@@ -114,8 +114,9 @@ foreach (var field in FixParser.ParseFields(wire))
   first, or use `TryGetValue`.
 - A tag the package does not know is read as the type a dictionary applied to the context gives
   it (see **Dictionaries**). A MsgType it does not know is built by `FixMessageFactory` (a
-  `FixCustomMessage` that places its own fields and adds its own findings with `AddFinding`, from
-  `Place` or `OnValidate` only: at any other time it throws). A tag nothing defines is a `FixField.Invalid` of
+  `FixCustomMessage` that places its own fields, adds what reading finds with `AddFinding` from
+  `Place` only — at any other time it throws — and what validating finds to the collection
+  `OnValidate(context, findings)` is given). A tag nothing defines is a `FixField.Invalid` of
   that tag with its octets, and a type the factory answers null for a `FixMessage.Unknown`. A
   standard message has no property for a tag outside its version, so such a field is out of scope
   in it.
@@ -238,9 +239,13 @@ var context = Fix44Context.Default.With(dictionary);   // Load(text) and LoadFil
 2. Reading `Value` from a field without checking `IsValid`.
 3. Expecting a message call to refuse a wrong BodyLength or CheckSum. It builds the message;
    `Validate` reports `BodyLengthMismatch` and `CheckSumMismatch`.
-4. Streaming a space-padded log as messages. A stream is cut by BodyLength and wants a bare `|`.
-5. Writing a pair's data tag without its length right before it. The field calls return it
+4. Reading `message.Findings` as the validation. It is what reading found; `message.Validate(context)`
+   answers that and everything the schema finds, a new list each call (empty when the message is
+   valid). To validate many messages without a list each, pass one: `Validate(context, findings)`
+   adds to it and answers how many it added.
+5. Streaming a space-padded log as messages. A stream is cut by BodyLength and wants a bare `|`.
+6. Writing a pair's data tag without its length right before it. The field calls return it
    as a `FixField.Invalid`: only a length says where the data ends.
-6. Reading another version's data through the wrong namespace. A 4.2 or FIXT.1.1 message read by
+7. Reading another version's data through the wrong namespace. A 4.2 or FIXT.1.1 message read by
    `Fix44.FixParser` is built as a 4.4 message and told its BeginString is wrong.
 7. Editing a `FixDictionary` after `With` and expecting the context to follow. Apply it again.

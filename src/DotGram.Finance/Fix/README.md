@@ -227,8 +227,41 @@ Reading the wire and holding the result to a schema are two acts. **Recognition 
 leaves the input's meaning unknown: a message not ended by its `CheckSum`, one without a `MsgType`,
 a data field its length does not measure, a `NumInGroup` that would size an array past the fields
 left, a group entry that does not begin with its delimiter. **Everything else is a finding** about a
-message that was built: `message.Validate(context)` holds it to the context's schema, answers
-whether nothing is wrong, and puts everything that is in `message.InvalidFindings` at once:
+message that was built: `message.Validate(context)` holds it to the context's schema and answers
+everything that is wrong, at once — empty when nothing is:
+
+```csharp
+var message  = FixParser.ParseMessage("8=FIX.4.4|9=5|35=0|10=000|".Replace('|', '\u0001'));
+var findings = message.Validate(Fix44Context.Default);
+
+if (findings.Count > 0)
+    Console.WriteLine(string.Join(Environment.NewLine, findings));
+```
+
+What reading itself found — a tag twice, a tag the type has no place for — is `message.Findings`,
+which `Validate` answers first. `Validate` keeps nothing on the message: every call asks again, of
+the context it is given, and one message can be validated from several threads at once. A valid
+message is validated without allocating; an invalid one costs a finding apiece and the list that
+holds them. A caller who validates a stream of messages, or adds rules of its own, gives
+`Validate` a collection to add to, and is answered how many it added:
+
+```csharp
+using System.Collections.Generic;
+
+var context  = Fix44Context.Default;
+var findings = new List<FixFinding>();
+
+using var stream = File.OpenRead("messages.fix");
+
+foreach (var message in FixParser.ReadMessages(stream, context))
+{
+    findings.Clear();
+
+    if (message.Validate(context, findings) > 0)
+        Console.WriteLine(string.Join("; ", findings));
+}
+```
+
 
 | What it reports | |
 | --- | --- |
@@ -245,10 +278,13 @@ whether nothing is wrong, and puts everything that is in `message.InvalidFinding
 | `CheckSumMismatch` | `CheckSum` is not the sum, modulo 256, of the octets before it |
 | `LengthFieldNotBeforeData` | a length field is not followed by the data it measures |
 
-Each `FixFinding` names its rule, its tag, the field, where in the source it begins and the entry of
-the repeating group it is in — "tag 448 is wrong" says nothing where a message carries nine
-parties. Code ported from a library that stops at the first problem handles one finding per
-message; `InvalidFindings` holds all of them.
+Each `FixFinding` names its rule, its tag, the field, where in the source it begins (-1 for a field
+that is absent from the message), and the `Path` to it through repeating groups, outermost first —
+"tag 448 is wrong" says nothing where a message carries nine parties. As a line it reads
+`453[1].802[0] tag 803 at 86: DuplicateField`: the first sub-ID entry of the second party. Code
+ported from a library that stops at the first problem handles one finding per message; `Validate`
+answers all of them. A finding is made with `FixFinding.Missing(tag)` or `FixFinding.Of(rule, field)`,
+each with the path, if any, after it.
 
 It is not a trading or session validator: prose-only conditional requirements, sequence-number
 state, order economics and live ISO registry assignments are outside it; ISO identifiers are
@@ -318,19 +354,21 @@ sealed class VenueQuote : FixCustomMessage
         return true;
     }
 
-    protected override void OnValidate(Fix44Context context)
+    protected override void OnValidate(Fix44Context context, ICollection<FixFinding> findings)
     {
         if (Status is null)
-            AddFinding(new FixFinding(FixRule.RequiredFieldMissing, 25005, 0, null, -1));
+            findings.Add(FixFinding.Missing(25005));
         else if (Status.Value is not ("OPEN" or "CLOSED"))
-            AddFinding(new FixFinding(FixRule.InvalidValue, Status.Tag, Status.Position, Status, -1));
+            findings.Add(FixFinding.Of(FixRule.InvalidValue, Status));
     }
 }
 ```
 
-A custom message adds its findings with `AddFinding`, from `Place` while it is read and from
-`OnValidate` while it is validated; called at any other time it throws
-`InvalidOperationException`, so what reading found does not change once the message has been read.
+`OnValidate` adds what it finds to the collection it is given, which is that call's: it runs on
+every `Validate`, from as many threads as validate the message, and keeps nothing on it. What
+`Place` finds while the message is read it adds with `AddFinding`, which it can call only then; at
+any other time it throws `InvalidOperationException`, so what reading found does not change once the
+message has been read.
 The standard header and trailer are the reader's: their properties are set before `Place` is
 asked, and a custom message cannot set them.
 

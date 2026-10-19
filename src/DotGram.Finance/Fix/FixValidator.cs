@@ -9,28 +9,39 @@ namespace DotGram.Finance.Fix;
 abstract partial class FixValidator
 {
 	/// <summary>A field the schema requires of this type, and the message does not have.</summary>
-	internal static void Missing(IFixFindings message, int tag)
+	internal static void Missing(FixCheck check, int tag)
 	{
-		message.AddFinding(new FixFinding(FixRule.RequiredFieldMissing, tag, 0, null, -1));
+		check.Add(FixRule.RequiredFieldMissing, tag, -1, null);
 	}
 
 	/// <summary>A field the schema requires of an entry, and the entry does not have: said at the field the entry opened with.</summary>
-	internal static void Missing(IFixFindings message, int tag, int position, int index)
+	internal static void Missing(FixCheck check, int tag, int position)
 	{
-		message.AddFinding(new FixFinding(FixRule.RequiredFieldMissing, tag, position, null, index));
+		check.Add(FixRule.RequiredFieldMissing, tag, position, null);
 	}
 
 	/// <summary>A block the schema requires of this type, and the carrier has no field of.</summary>
 	/// <remarks>Named by the first tag it would have held, since a block has no tag of its own.</remarks>
-	internal static void Absent(IFixFindings message, int tag)
+	internal static void Absent(FixCheck check, int tag)
 	{
-		message.AddFinding(new FixFinding(FixRule.RequiredComponentMissing, tag, 0, null, -1));
+		check.Add(FixRule.RequiredComponentMissing, tag, -1, null);
+	}
+
+	/// <summary>A block the schema requires of an entry, and the entry has no field of: said at the field the entry opened with.</summary>
+	internal static void Absent(FixCheck check, int tag, int position)
+	{
+		check.Add(FixRule.RequiredComponentMissing, tag, position, null);
 	}
 
 	/// <summary>A value that does not fit its field: not its type, or not one the specification lists.</summary>
-	internal static void Invalid(IFixFindings message, FixField field)
+	internal static void Invalid(FixCheck check, FixField field)
 	{
-		message.AddFinding(new FixFinding(FixRule.InvalidValue, field.Tag, field.Position, field, -1));
+		check.Add(FixRule.InvalidValue, field.Tag, field.Position, field);
+	}
+
+	/// <summary>Nothing: what a loaded check of a message, block or entry the file gives no members is written with.</summary>
+	internal static void Nothing()
+	{
 	}
 
 	/// <summary>A counter and the entries that follow it, which have to be the same number.</summary>
@@ -38,12 +49,12 @@ abstract partial class FixValidator
 	/// A counter absent while entries are present is a finding of the reading, made where the first
 	/// entry was built, so there is nothing left to say about it here.
 	/// </remarks>
-	internal static void Counted<T>(IFixFindings message, FixField.Typed<long>? counter, List<T>? entries)
+	internal static void Counted<T>(FixCheck check, FixField.Typed<long>? counter, List<T>? entries)
 	{
 		if (counter is null)
 			return;
 
 		if (!counter.IsValid || counter.Value != (entries?.Count ?? 0))
-			message.AddFinding(new FixFinding(FixRule.GroupCountMismatch, counter.Tag, counter.Position, counter, -1));
+			check.Add(FixRule.GroupCountMismatch, counter.Tag, counter.Position, counter);
 	}
 }

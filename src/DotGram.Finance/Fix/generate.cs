@@ -928,9 +928,16 @@ sealed class Writer
 	// The reading: one switch over the tags of a type, each arm placing its field where it belongs —
 	// on the message, or on the last entry of the group it is in.
 
-	public List<string> Arms(List<Member> members, string holder, List<string> lists, string index, string pad = "\t\t\t\t\t")
+	// `lists` are the groups the arms are inside, outermost first, and `counters` their counters' tags: a
+	// finding in an entry is said with the path to it, each step the counter and the last entry's index.
+	public List<string> Arms(List<Member> members, string holder, List<string> lists, List<string> counters, string pad = "\t\t\t\t\t")
 	{
 		var outLines = new List<string>();
+
+		string Path()
+		{
+			return string.Concat(lists.Select((l, i) => $", {counters[i]}, {l}!.Count - 1"));
+		}
 
 		string Failing()
 		{
@@ -950,15 +957,15 @@ sealed class Writer
 		{
 			if (lists.Count == 0)
 			{
-				outLines.Add($"{pad}case {f.Const}: if ({f.Name} is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); {f.Name} = ({f.TypeName})field; break;");
+				outLines.Add($"{pad}case {f.Const}: if ({f.Name} is not null) Duplicate(field); {f.Name} = ({f.TypeName})field; break;");
 				return;
 			}
 
 			outLines.Add($"{pad}case {f.Const}:");
 			outLines.Add($"{pad}\tif ({Failing()})");
-			outLines.Add($"{pad}\t\tAddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));");
+			outLines.Add($"{pad}\t\tUnentered(field);");
 			outLines.Add($"{pad}\telse if ({holder}{f.Name} is not null)");
-			outLines.Add($"{pad}\t\tAddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, {index}));");
+			outLines.Add($"{pad}\t\tDuplicate(field{Path()});");
 			outLines.Add($"{pad}\telse");
 			outLines.Add($"{pad}\t\t{holder}{f.Name} = ({f.TypeName})field;");
 			outLines.Add($"{pad}\tbreak;");
@@ -989,7 +996,7 @@ sealed class Writer
 
 					// The first entry of a group whose counter has not been read is entries nothing counts:
 					// said once, at the entry, by the counter's tag.
-					var uncounted = $"if ({target} is null && {holder}{group.Counter.Name} is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, {group.Counter.Const}, field.Position, field, -1));";
+					var uncounted = $"if ({target} is null && {holder}{group.Counter.Name} is null) Uncounted({group.Counter.Const}, field{Path()});";
 					var add       = $"({target} ??= []).Add(new (({opener.TypeName})field));";
 
 					if (lists.Count == 0)
@@ -1003,7 +1010,7 @@ sealed class Writer
 					{
 						outLines.Add($"{pad}case {opener.Const}:");
 						outLines.Add($"{pad}\tif ({Failing()})");
-						outLines.Add($"{pad}\t\tAddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));");
+						outLines.Add($"{pad}\t\tUnentered(field);");
 						outLines.Add($"{pad}\telse");
 						outLines.Add($"{pad}\t{{");
 						outLines.Add($"{pad}\t\t{uncounted}");
@@ -1012,9 +1019,10 @@ sealed class Writer
 						outLines.Add($"{pad}\tbreak;");
 					}
 
-					var nextLists = new List<string>(lists) { target };
+					var nextLists    = new List<string>(lists) { target };
+					var nextCounters = new List<string>(counters) { group.Counter.Const };
 
-					outLines.AddRange(Arms(group.Entry.Members, $"{target}![^1].", nextLists, $"{target}!.Count - 1", pad));
+					outLines.AddRange(Arms(group.Entry.Members, $"{target}![^1].", nextLists, nextCounters, pad));
 				}
 			}
 		}
@@ -1042,13 +1050,13 @@ sealed class Writer
 			"\t\t\t\t{",
 		};
 
-		outLines.AddRange(Arms(members, "", new List<string>(), "-1"));
+		outLines.AddRange(Arms(members, "", new List<string>(), new List<string>()));
 		outLines.AddRange(new[]
 		{
 			"",
 			"\t\t\t\t\tdefault:",
 			"\t\t\t\t\t\tif (!SetStandardField(field))",
-			"\t\t\t\t\t\t\tAddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));",
+			"\t\t\t\t\t\t\tOutOfScope(field);",
 			"",
 			"\t\t\t\t\t\tbreak;",
 			"\t\t\t\t}",
@@ -1061,9 +1069,9 @@ sealed class Writer
 		outLines.AddRange(new[]
 		{
 			"\t\t/// <summary>Asks the context for the check of this type and runs it.</summary>",
-			$"\t\tprivate protected override void Check({_v.Context} context)",
+			$"\t\tprivate protected override void Check({_v.Context} context, FixCheck check)",
 			"\t\t{",
-			$"\t\t\tcontext.Validators.{msg.Name}(context, this);",
+			$"\t\t\tcontext.Validators.{msg.Name}(context, check, this);",
 			"\t\t}",
 			"\t}",
 			"",
@@ -1136,12 +1144,12 @@ sealed class Writer
 
 				if (block.Required)
 				{
-					outLines.Add($"\t\tif (Empty((I{block.Name}){subject})) Absent(message, {first.Const});");
-					outLines.Add($"\t\telse context.Validators.{block.Name}(context, message, {subject});");
+					outLines.Add($"\t\tif (Empty((I{block.Name}){subject})) Absent(check, {first.Const}{At(subject, entryOpener)});");
+					outLines.Add($"\t\telse context.Validators.{block.Name}(context, check, {subject});");
 				}
 				else
 				{
-					outLines.Add($"\t\tif (!Empty((I{block.Name}){subject})) context.Validators.{block.Name}(context, message, {subject});");
+					outLines.Add($"\t\tif (!Empty((I{block.Name}){subject})) context.Validators.{block.Name}(context, check, {subject});");
 				}
 			}
 			else
@@ -1149,19 +1157,23 @@ sealed class Writer
 				var group = (Group)mm;
 
 				FieldCheck(group.Counter, outLines, subject, entryOpener);
-				outLines.Add($"\t\tCounted(message, {subject}.{group.Counter.Name}, {subject}.{group.List});");
-				outLines.Add($"\t\tif ({subject}.{group.List} is not null)");
-				outLines.Add($"\t\t\tfor (var i = 0; i < {subject}.{group.List}.Count; i++)");
-				outLines.Add($"\t\t\t\tcontext.Validators.{group.Entry.Slot}(context, message, {subject}.{group.List}[i], i);");
+				outLines.Add($"\t\tCounted(check, {subject}.{group.Counter.Name}, {subject}.{group.List});");
+				outLines.Add($"\t\tEach(context, check, {group.Counter.Const}, {subject}.{group.List}, context.Validators.{group.Entry.Slot});");
 			}
 		}
 
 		return outLines;
 	}
 
+	// Where a finding of an entry's is said that has no field of its own: at the field the entry opened with.
+	static string At(string subject, Field? entryOpener)
+	{
+		return entryOpener != null ? $", {subject}.{entryOpener.Name}.Position" : "";
+	}
+
 	public static void FieldCheck(Field f, List<string> outLines, string subject, Field? entryOpener)
 	{
-		var call = $"context.Validators.{f.Slot}(context, message, {subject}.{f.Name});";
+		var call = $"context.Validators.{f.Slot}(context, check, {subject}.{f.Name});";
 
 		if (entryOpener != null && f.Tag == entryOpener.Tag)
 		{
@@ -1169,9 +1181,7 @@ sealed class Writer
 		}
 		else if (f.Required)
 		{
-			var where = entryOpener != null ? $", {subject}.{entryOpener.Name}.Position, index" : "";
-
-			outLines.Add($"\t\tif ({subject}.{f.Name} is null) Missing(message, {f.Const}{where});");
+			outLines.Add($"\t\tif ({subject}.{f.Name} is null) Missing(check, {f.Const}{At(subject, entryOpener)});");
 			outLines.Add($"\t\telse {call}");
 		}
 		else
@@ -1191,14 +1201,12 @@ sealed class Writer
 		foreach (var msg in _m.Messages)
 		{
 			slots.Add($"\t/// <summary>Holds a {v.Title} {msg.Name} to the schema.</summary>");
-			slots.Add($"\tpublic Func<{ctx}, FixMessage.{msg.Name}, bool> {msg.Name} {{ get; set; }} = Validate{msg.Name};");
+			slots.Add($"\tpublic Action<{ctx}, FixCheck, FixMessage.{msg.Name}> {msg.Name} {{ get; set; }} = Validate{msg.Name};");
 			slots.Add("");
 
-			checks.Add($"\tstatic bool Validate{msg.Name}({ctx} context, FixMessage.{msg.Name} message)");
+			checks.Add($"\tstatic void Validate{msg.Name}({ctx} context, FixCheck check, FixMessage.{msg.Name} message)");
 			checks.Add("\t{");
 			checks.AddRange(CheckBody(_m.MessageMembers[msg.Name], "message"));
-			checks.Add("");
-			checks.Add("\t\treturn message.IsValid;");
 			checks.Add("\t}");
 			checks.Add("");
 		}
@@ -1206,14 +1214,12 @@ sealed class Writer
 		foreach (var i in _m.InterfacesOrdered)
 		{
 			slots.Add($"\t/// <summary>Holds a {v.Title} {i.Name} to the schema, wherever it is carried.</summary>");
-			slots.Add($"\tpublic Func<{ctx}, FixMessage, {i.TypeName}, bool> {i.Name} {{ get; set; }} = Validate{i.Name};");
+			slots.Add($"\tpublic Action<{ctx}, FixCheck, {i.TypeName}> {i.Name} {{ get; set; }} = Validate{i.Name};");
 			slots.Add("");
 
-			checks.Add($"\tstatic bool Validate{i.Name}({ctx} context, FixMessage message, {i.TypeName} block)");
+			checks.Add($"\tstatic void Validate{i.Name}({ctx} context, FixCheck check, {i.TypeName} block)");
 			checks.Add("\t{");
 			checks.AddRange(CheckBody(i.Members, "block"));
-			checks.Add("");
-			checks.Add("\t\treturn message.IsValid;");
 			checks.Add("\t}");
 			checks.Add("");
 
@@ -1234,14 +1240,12 @@ sealed class Writer
 		foreach (var e in entries)
 		{
 			slots.Add($"\t/// <summary>Holds one entry of {e.TypeName} to the schema.</summary>");
-			slots.Add($"\tpublic Func<{ctx}, FixMessage, {e.TypeName}, int, bool> {e.Slot} {{ get; set; }} = Validate{e.Slot};");
+			slots.Add($"\tpublic Action<{ctx}, FixCheck, {e.TypeName}> {e.Slot} {{ get; set; }} = Validate{e.Slot};");
 			slots.Add("");
 
-			checks.Add($"\tstatic bool Validate{e.Slot}({ctx} context, FixMessage message, {e.TypeName} entry, int index)");
+			checks.Add($"\tstatic void Validate{e.Slot}({ctx} context, FixCheck check, {e.TypeName} entry)");
 			checks.Add("\t{");
 			checks.AddRange(CheckBody(e.Members, "entry", e.Opener));
-			checks.Add("");
-			checks.Add("\t\treturn message.IsValid;");
 			checks.Add("\t}");
 			checks.Add("");
 		}
@@ -1412,7 +1416,7 @@ sealed class Writer
 			var codes = cls != "Boolean" && _m.Enums.TryGetValue(t, out var c) ? c : null;
 			var listed = codes != null && codes.Count > 0 ? "the values the specification lists" : "its type";
 
-			rows.Add(($"\t/// <summary>Holds a {v.Title} {name}, tag {t}, to {listed}.</summary>", $"Func<{ctx}, FixMessage, FixField.{cls}, bool>", _m.FieldSlot[t]));
+			rows.Add(($"\t/// <summary>Holds a {v.Title} {name}, tag {t}, to {listed}.</summary>", $"Action<{ctx}, FixCheck, FixField.{cls}>", _m.FieldSlot[t]));
 		}
 
 		var tw = rows.Max(r => r.Func.Length);
@@ -1445,13 +1449,13 @@ sealed class Writer
 			var cls = _m.FieldClass[t];
 			var codes = cls != "Boolean" && _m.Enums.TryGetValue(t, out var c) ? c : null;
 
-			outLines.Add($"\tstatic bool Validate{_m.FieldSlot[t]}({ctx} context, FixMessage message, FixField.{cls} field)");
+			outLines.Add($"\tstatic void Validate{_m.FieldSlot[t]}({ctx} context, FixCheck check, FixField.{cls} field)");
 			outLines.Add("\t{");
 
 			if (codes == null || codes.Count == 0)
 			{
 				outLines.Add("\t\tif (!field.IsValid)");
-				outLines.Add("\t\t\tInvalid(message, field);");
+				outLines.Add("\t\t\tInvalid(check, field);");
 			}
 			else
 			{
@@ -1468,7 +1472,7 @@ sealed class Writer
 					wrapped[^1] += "))";
 					outLines.AddRange(wrapped);
 					outLines.Add("\t\t\t{");
-					outLines.Add("\t\t\t\tInvalid(message, field);");
+					outLines.Add("\t\t\t\tInvalid(check, field);");
 					outLines.Add("");
 					outLines.Add("\t\t\t\tbreak;");
 					outLines.Add("\t\t\t}");
@@ -1479,23 +1483,21 @@ sealed class Writer
 
 					wrapped[^1] += "))";
 					outLines.AddRange(wrapped);
-					outLines.Add("\t\t\tInvalid(message, field);");
+					outLines.Add("\t\t\tInvalid(check, field);");
 				}
 				else
 				{
 					outLines.Add("\t\tif (!field.IsValid)");
-					outLines.Add("\t\t\tInvalid(message, field);");
+					outLines.Add("\t\t\tInvalid(check, field);");
 
 					var wrapped = Wrapped(items, "\t\telse if (field.Value is not (", "\t\t\t");
 
 					wrapped[^1] += "))";
 					outLines.AddRange(wrapped);
-					outLines.Add("\t\t\tInvalid(message, field);");
+					outLines.Add("\t\t\tInvalid(check, field);");
 				}
 			}
 
-			outLines.Add("");
-			outLines.Add("\t\treturn message.IsValid;");
 			outLines.Add("\t}");
 			outLines.Add("");
 		}
@@ -1534,7 +1536,7 @@ sealed class Writer
 			"\t\t{",
 		};
 
-		outLines.AddRange(Arms(members, "", new List<string>(), "-1", pad: "\t\t\t"));
+		outLines.AddRange(Arms(members, "", new List<string>(), new List<string>(), pad: "\t\t\t"));
 		outLines.AddRange(new[]
 		{
 			"",
@@ -1630,21 +1632,21 @@ sealed class Writer
 		var required = Flat(_m.Header.Concat(_m.Trailer).ToList()).Where(f => f.Required).ToList();
 		var width = required.Max(f => f.Name.Length);
 
-		return required.Select(f => $"\t\tif (message.{f.Name.PadRight(width)} is null) Missing(message, {f.Const});").ToList();
+		return required.Select(f => $"\t\tif (message.{f.Name.PadRight(width)} is null) Missing(check, {f.Const});").ToList();
 	}
 
-	/// <summary>The count of every group of the header and trailer held to its entries, between blank lines.</summary>
+	/// <summary>The count of every group of the header and trailer held to its entries, after a blank line.</summary>
 	public List<string> HeaderGroups()
 	{
 		var groups = _m.Header.Concat(_m.Trailer).OfType<Group>().ToList();
 
-		if (groups.Count == 0)
-			return new List<string> { "" };
-
+		// Written straight after the closing brace of the loop before it: nothing where there are no groups.
 		var outLines = new List<string> { "" };
 
-		outLines.AddRange(groups.Select(g => $"\t\tCounted(message, message.{g.Counter.Name}, message.{g.List});"));
-		outLines.Add("");
+		if (groups.Count > 0)
+			outLines.Add("");
+
+		outLines.AddRange(groups.Select(g => $"\t\tCounted(check, message.{g.Counter.Name}, message.{g.List});"));
 
 		return outLines;
 	}

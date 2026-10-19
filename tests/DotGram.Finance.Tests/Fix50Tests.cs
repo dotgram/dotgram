@@ -38,7 +38,7 @@ public sealed class Fix50Tests
 		Assert.Equal(300m, order.OrderQty!.Value);
 		Assert.Equal(["BROKER", "CLIENT"], order.NoPartyIDsGroups!.Select(one => one.PartyID.Value));
 
-		Assert.True(order.Validate(Fix50Context.Default), string.Join("; ", order.InvalidFindings ?? []));
+		Assert.Empty(order.Validate(Fix50Context.Default));
 	}
 
 	[Fact]
@@ -51,7 +51,7 @@ public sealed class Fix50Tests
 		var wrong = (FixMessage.NewOrderSingle)FixParser.ParseMessage(Wire("D", Order.Replace("1079=13:09+05:30", "1079=13:09")));
 
 		Assert.False(wrong.MaturityTime!.IsValid);
-		Assert.False(wrong.Validate(Fix50Context.Default));
+		Assert.NotEmpty(wrong.Validate(Fix50Context.Default));
 	}
 
 	[Fact]
@@ -77,8 +77,7 @@ public sealed class Fix50Tests
 	{
 		var order = FixParser.ParseMessage(Wire("D", Order).Replace("8=FIXT.1.1", "8=FIX.4.4"));
 
-		Assert.False(order.Validate(Fix50Context.Default));
-		Assert.Contains(order.InvalidFindings!, one => one.Rule == FixRule.InvalidValue && one.Tag == FixTag.BeginString);
+		Assert.Contains(order.Validate(Fix50Context.Default), one => one.Rule == FixRule.InvalidValue && one.Tag == FixTag.BeginString);
 	}
 
 	[Fact]
@@ -143,8 +142,8 @@ public sealed class Fix50Tests
 		var order   = FixParser.ParseMessage(Wire("D", Order));
 		var notice  = FixParser.ParseMessage(Wire("CB", "809=2|553=ALICE|553=BOB|926=1|"));
 
-		Assert.True(order.Validate(context), string.Join("; ", order.InvalidFindings ?? []));
-		Assert.True(notice.Validate(context), string.Join("; ", notice.InvalidFindings ?? []));
+		Assert.Empty(order.Validate(context));
+		Assert.Empty(notice.Validate(context));
 
 		// And every other check they describe compiles: nothing is left to fail on a later message's first reading.
 		context.Prepare();
@@ -159,7 +158,7 @@ public sealed class Fix50Tests
 		var context = Fix50Context.Default.Load(File.ReadAllText(Path.Combine(Corpus, "FIXT11.xml")));
 		var order   = FixParser.ParseMessage(Wire("D", Order));
 
-		Assert.True(order.Validate(context), string.Join("; ", order.InvalidFindings ?? []));
+		Assert.Empty(order.Validate(context));
 	}
 
 	/// <summary>
@@ -183,8 +182,7 @@ public sealed class Fix50Tests
 		var context = Fix50Context.Default.Load(fragment);
 		var message = FixParser.ParseMessage(Wire("f", "55=IBM|"));
 
-		Assert.False(message.Validate(context));
-		Assert.Contains(message.InvalidFindings!, one => one.Rule == FixRule.RequiredFieldMissing && one.Tag == 327);
+		Assert.Contains(message.Validate(context), one => one.Rule == FixRule.RequiredFieldMissing && one.Tag == 327);
 	}
 
 	static readonly string Corpus = Path.Combine(TestPaths.Tests, "Corpus", "Fix");

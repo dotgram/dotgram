@@ -77,8 +77,7 @@ public abstract class FixFieldReaderTests
 
 			var corrupted = FixParser.BuildMessage(corrupt, corruptFields);
 
-			Assert.False(corrupted.Validate(Fix44Context.Default));
-			Assert.Contains(corrupted.InvalidFindings!, finding => finding.Rule == FixRule.CheckSumMismatch);
+			Assert.Contains(corrupted.Validate(Fix44Context.Default), finding => finding.Rule == FixRule.CheckSumMismatch);
 		});
 	}
 

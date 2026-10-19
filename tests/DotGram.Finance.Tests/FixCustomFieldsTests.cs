@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Threading;
 
@@ -151,10 +150,10 @@ public sealed class FixCustomFieldsTests
 			return true;
 		}
 
-		protected override void OnValidate(Fix44Context context)
+		protected override void OnValidate(Fix44Context context, ICollection<FixFinding> findings)
 		{
 			if (Status is null)
-				AddFinding(new FixFinding(FixRule.RequiredFieldMissing, 25005, 0, null, -1));
+				findings.Add(FixFinding.Missing(25005));
 		}
 	}
 
@@ -172,7 +171,7 @@ public sealed class FixCustomFieldsTests
 		Assert.Equal("U1", quote.MessageType);
 		Assert.Equal("OPEN", quote.Status!.Value);
 		Assert.Equal("A", quote.SenderCompID!.Value);
-		Assert.True(quote.Validate(context), string.Join("; ", quote.InvalidFindings ?? []));
+		Assert.Empty(quote.Validate(context));
 	}
 
 	[Fact]
@@ -181,10 +180,9 @@ public sealed class FixCustomFieldsTests
 		var context = Venues();
 		var quote   = Assert.IsType<VenueQuote>(FixParser.ParseMessage(Framed("35=U1|49=A|56=B|34=1|52=20260919-12:00:00|58=note|"), context));
 
-		Assert.False(quote.Validate(context));
 		Assert.Equal(
 			[(FixRule.FieldNotInScope, FixTag.Text), (FixRule.RequiredFieldMissing, 25005)],
-			quote.InvalidFindings!.Select(one => (one.Rule, one.Tag)));
+			quote.Validate(context).Select(one => (one.Rule, one.Tag)));
 	}
 
 	// A message that reports what it reads as it places it, and offers the same call afterwards.
@@ -193,7 +191,7 @@ public sealed class FixCustomFieldsTests
 		protected override bool Place(FixField field)
 		{
 			if (field is FixField.Text { Tag: 25005, Value: not "OPEN" } status)
-				AddFinding(new FixFinding(FixRule.InvalidValue, status.Tag, status.Position, status, -1));
+				AddFinding(FixFinding.Of(FixRule.InvalidValue, status));
 
 			return field.Tag == 25005;
 		}
@@ -209,11 +207,15 @@ public sealed class FixCustomFieldsTests
 	{
 		var context = new Fix44Context { FixMessageFactory = type => type == "U3" ? new VenueTicket() : null }.Load(Venue);
 		var ticket  = Assert.IsType<VenueTicket>(FixParser.ParseMessage(Framed("35=U3|49=A|56=B|34=1|52=20260919-12:00:00|25005=SHUT|"), context));
-		var found   = Assert.Single(ticket.InvalidFindings!);
+		var found   = Assert.Single(ticket.Findings);
 
 		Assert.Equal((FixRule.InvalidValue, 25005), (found.Rule, found.Tag));
-		Assert.Throws<InvalidOperationException>(() => ticket.Report(new FixFinding(FixRule.RequiredFieldMissing, 25006, 0, null, -1)));
-		Assert.Single(ticket.InvalidFindings!);
+		Assert.Throws<InvalidOperationException>(() => ticket.Report(FixFinding.Missing(25006)));
+		Assert.Single(ticket.Findings);
+
+		// Validating does not open it either: a finding of the validation goes to what OnValidate is given.
+		Assert.Same(found, Assert.Single(ticket.Validate(context)));
+		Assert.Throws<InvalidOperationException>(() => ticket.Report(FixFinding.Missing(25006)));
 	}
 
 	// A message that validates itself while it is read, and goes on adding findings after that.
@@ -238,12 +240,12 @@ public sealed class FixCustomFieldsTests
 				}
 			}
 
-			AddFinding(new FixFinding(FixRule.InvalidValue, field.Tag, field.Position, field, -1));
+			AddFinding(FixFinding.Of(FixRule.InvalidValue, field));
 
 			return true;
 		}
 
-		protected override void OnValidate(Fix44Context context)
+		protected override void OnValidate(Fix44Context context, ICollection<FixFinding> findings)
 		{
 			if (Fail)
 				throw new FormatException("thrown by OnValidate");
@@ -269,8 +271,8 @@ public sealed class FixCustomFieldsTests
 		// The finding after the nested Validate and the one of the next Place are both there.
 		Assert.Equal(
 			[25005, 25006],
-			nested.InvalidFindings!.Where(one => one.Rule == FixRule.InvalidValue).Select(one => one.Tag));
-		Assert.Throws<InvalidOperationException>(() => nested.Report(new FixFinding(FixRule.RequiredFieldMissing, 25011, 0, null, -1)));
+			nested.Findings.Where(one => one.Rule == FixRule.InvalidValue).Select(one => one.Tag));
+		Assert.Throws<InvalidOperationException>(() => nested.Report(FixFinding.Missing(25011)));
 	}
 
 	[Fact]
@@ -280,57 +282,25 @@ public sealed class FixCustomFieldsTests
 		var nested  = Assert.IsType<VenueNested>(FixParser.ParseMessage(Framed("35=U4|49=A|56=B|34=1|52=20260919-12:00:00|"), context));
 
 		Assert.Throws<FormatException>(() => nested.Validate(context));
-		Assert.Throws<InvalidOperationException>(() => nested.Report(new FixFinding(FixRule.RequiredFieldMissing, 25011, 0, null, -1)));
+		Assert.Throws<InvalidOperationException>(() => nested.Report(FixFinding.Missing(25011)));
 	}
 
-	// A message whose OnValidate runs on two threads at once, the first leaving it before the second does:
-	// the order in which a saved-and-restored flag would be left open.
+	// A message whose OnValidate runs on two threads at once, both inside it together: each call's
+	// findings go to that call, and none of them to the message.
 	sealed class VenueRace : FixCustomMessage
 	{
 		static readonly TimeSpan Limit = TimeSpan.FromSeconds(30);
 
-		readonly Barrier              _both      = new(2);
-		readonly ManualResetEventSlim _firstDone = new();
-		int                           _entered;
+		readonly Barrier _both = new(2);
 
-		public Thread? Second   { get; private set; }
-		public bool    SecondOk { get; private set; }
+		public bool Met { get; private set; } = true;
 
-		protected override void OnValidate(Fix44Context context)
+		protected override void OnValidate(Fix44Context context, ICollection<FixFinding> findings)
 		{
-			if (Interlocked.Increment(ref _entered) == 1)
-			{
-				// Two threads can both pass the check that a message has been validated; the test lets the
-				// second one in deterministically rather than waiting for that race to happen.
-				typeof(FixMessage).GetField("_validated", BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(this, false);
+			findings.Add(FixFinding.Missing(25011));
 
-				Second = new Thread(() => ValidateSecond(context));
-				Second.Start();
-
-				Assert.True(_both.SignalAndWait(Limit));
-			}
-			else
-			{
-				SecondOk = _both.SignalAndWait(Limit) && _firstDone.Wait(Limit);
-			}
-		}
-
-		// Nothing on the second thread may throw: an exception there would end the test process.
-		void ValidateSecond(Fix44Context context)
-		{
-			try
-			{
-				Validate(context);
-			}
-			catch (Exception)
-			{
-				SecondOk = false;
-			}
-		}
-
-		public void FirstDone()
-		{
-			_firstDone.Set();
+			if (!_both.SignalAndWait(Limit))
+				Met = false;
 		}
 
 		public void Report(FixFinding finding)
@@ -340,17 +310,26 @@ public sealed class FixCustomFieldsTests
 	}
 
 	[Fact]
-	public void Two_threads_validating_one_custom_message_leave_it_closed_to_findings()
+	public void Two_threads_validating_one_custom_message_each_get_their_own_findings()
 	{
 		var context = new Fix44Context { FixMessageFactory = type => type == "U5" ? new VenueRace() : null }.Load(Venue);
 		var race    = Assert.IsType<VenueRace>(FixParser.ParseMessage(Framed("35=U5|49=A|56=B|34=1|52=20260919-12:00:00|"), context));
 
-		race.Validate(context);
-		race.FirstDone();
+		IReadOnlyList<FixFinding>? second = null;
 
-		Assert.True(race.Second!.Join(TimeSpan.FromSeconds(30)));
-		Assert.True(race.SecondOk);
-		Assert.Throws<InvalidOperationException>(() => race.Report(new FixFinding(FixRule.RequiredFieldMissing, 25011, 0, null, -1)));
+		var other = new Thread(() => second = race.Validate(context));
+
+		other.Start();
+
+		var first = race.Validate(context);
+
+		Assert.True(other.Join(TimeSpan.FromSeconds(30)));
+		Assert.True(race.Met);
+		Assert.Equal(25011, Assert.Single(first).Tag);
+		Assert.Equal(25011, Assert.Single(second!).Tag);
+		Assert.NotSame(Assert.Single(first), Assert.Single(second!));
+		Assert.Empty(race.Findings);
+		Assert.Throws<InvalidOperationException>(() => race.Report(FixFinding.Missing(25011)));
 	}
 
 	[Fact]
@@ -360,8 +339,7 @@ public sealed class FixCustomFieldsTests
 
 		var invalid = Assert.IsType<FixMessage.Unknown>(message);
 
-		Assert.False(invalid.IsValid);
-		Assert.Equal(FixRule.UnknownMessageType, Assert.Single(invalid.InvalidFindings!).Rule);
+		Assert.Equal(FixRule.UnknownMessageType, Assert.Single(invalid.Findings).Rule);
 		Assert.Equal("A", invalid.SenderCompID!.Value);
 	}
 

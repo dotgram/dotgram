@@ -71,8 +71,7 @@ public sealed class FixFieldGrammarTests
 		var log = FixFieldReaderTests.Log(wire, FixParser.ParseMessage(wire));
 		var damaged = FixParser.ParseMessage(log.Replace("TEST", "FAIL"), Fix44Context.WithLogFraming);
 
-		Assert.False(damaged.Validate(Fix44Context.WithLogFraming));
-		Assert.Contains(damaged.InvalidFindings!, finding => finding.Rule == FixRule.CheckSumMismatch);
+		Assert.Contains(damaged.Validate(Fix44Context.WithLogFraming), finding => finding.Rule == FixRule.CheckSumMismatch);
 	}
 
 	static FixField Field(FixMessage message, int tag)

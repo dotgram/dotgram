@@ -11,7 +11,7 @@ namespace DotGram.Finance.Fix.Fix50;
 /// <remarks>
 /// <para>
 /// A <see cref="FixContext"/> of FIX 5.0 SP2, passed to every call of <see cref="FixParser"/> and to
-/// <see cref="FixMessage.Validate"/>. Immutable, and changed with <c>with</c>:
+/// <see cref="FixMessage.Validate(Fix50Context)"/>. Immutable, and changed with <c>with</c>:
 /// <c>Fix50Context.Default with { Framing = FixFraming.Log }</c>.
 /// </para>
 /// <para>

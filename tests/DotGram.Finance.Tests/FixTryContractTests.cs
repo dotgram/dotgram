@@ -41,8 +41,8 @@ public sealed class FixTryContractTests
 
 		Assert.Equal(read.GetType(), built.GetType());
 		Assert.Equal(read.Fields.Count, built.Fields.Count);
-		Assert.True(built.Validate(context));
-		Assert.True(read.Validate(context));
+		Assert.Empty(built.Validate(context));
+		Assert.Empty(read.Validate(context));
 
 		Assert.True(FixParser.TryBuildMessage(log, fields, out var tried, out var error, context));
 		Assert.Null(error);
@@ -63,7 +63,7 @@ public sealed class FixTryContractTests
 
 		Assert.Equal(read.GetType(), built.GetType());
 		Assert.Equal(read.Fields.Count, built.Fields.Count);
-		Assert.True(built.Validate(context));
+		Assert.Empty(built.Validate(context));
 
 		Assert.True(FixParser.TryBuildMessage(new ReadOnlyMemory<byte>(octets), fields, out var tried, out var error, context));
 		Assert.Null(error);
@@ -78,7 +78,7 @@ public sealed class FixTryContractTests
 		var built  = FixParser.BuildMessage(octets, fields);
 
 		Assert.Equal(FixParser.ParseMessage(octets).GetType(), built.GetType());
-		Assert.True(built.Validate(Fix44Context.Default));
+		Assert.Empty(built.Validate(Fix44Context.Default));
 		Assert.All(fields, field => Assert.Contains(built.Fields, held => ReferenceEquals(held, field)));
 	}
 

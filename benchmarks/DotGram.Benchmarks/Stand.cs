@@ -1270,7 +1270,14 @@ static partial class Stand
 			var schema   = context.GetProperty("Default", BindingFlags.Static | BindingFlags.Public)?.GetValue(null)
 				?? throw new InvalidOperationException($"FIX {version}: the context has no Default");
 
-			return () => door.Invoke(null, [wire, null]) is { } one && (bool)validate.Invoke(one, [schema])! ? 1 : 0;
+			return () => door.Invoke(null, [wire, null]) is { } one && Valid(validate.Invoke(one, [schema])) ? 1 : 0;
+		}
+
+		// What a side's Validate answers, in either of its shapes: whether nothing was found (the earlier one),
+		// or what was, empty when nothing.
+		static bool Valid(object? answer)
+		{
+			return answer is bool valid ? valid : answer is ICollection { Count: 0 };
 		}
 
 		/// <summary>

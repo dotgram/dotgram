@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading;
 
 namespace DotGram.Finance.Fix.Fix42;
 
@@ -18,8 +17,10 @@ namespace DotGram.Finance.Fix.Fix42;
 /// message is a <see cref="FixMessage.Unknown"/>.
 /// </para>
 /// <para>
-/// <see cref="FixMessage.Validate"/> holds the header to the standard, and then asks
-/// <see cref="OnValidate(Fix42Context)"/>, which finds nothing unless the message says what it requires.
+/// <see cref="FixMessage.Validate(Fix42Context)"/> holds the header to the standard, and then asks
+/// <see cref="OnValidate"/>, which finds nothing unless the message says what it requires. A finding of
+/// the reading is added with <see cref="AddFinding"/> from <see cref="Place"/>; a finding of the
+/// validation goes to the collection <see cref="OnValidate"/> is given.
 /// </para>
 /// </remarks>
 public abstract class FixCustomMessage : FixMessage
@@ -38,42 +39,39 @@ public abstract class FixCustomMessage : FixMessage
 		return true;
 	}
 
-	/// <summary>Holds the body to what this message requires, adding what is wrong with <see cref="AddFinding"/>.</summary>
+	/// <summary>Holds the body to what this message requires, adding what is wrong to <paramref name="findings"/>.</summary>
 	/// <param name="context">The context the message is validated in.</param>
-	protected virtual void OnValidate(Fix42Context context)
+	/// <param name="findings">
+	/// Where this validation's findings go, made with <see cref="FixFinding.Missing"/> and
+	/// <see cref="FixFinding.Of(FixRule, FixField, FixGroupStep[])"/>. It is the call's: it may hold findings of
+	/// the message already, and is not to be kept after the call returns.
+	/// </param>
+	/// <remarks>Called on every <c>Validate</c>, and from as many threads as validate the message: it keeps nothing on the message.</remarks>
+	protected virtual void OnValidate(Fix42Context context, ICollection<FixFinding> findings)
 	{
 	}
 
-	// How many scopes in which a finding may be added are open now: the reader handing the fields to
-	// Place, and OnValidate running. A message is not changed by anything else once it has been read. A
-	// count rather than a flag, so that a Place that validates the message keeps its own permission after
-	// it; changed with Interlocked, so that two Validate calls on one message from two threads, which can
-	// both run the check, still leave it closed when both have returned.
-	int _adding;
+	// Whether the reader is handing the fields to Place now, the one time a finding may be added to the
+	// message: what reading found is not changed once the message has been read, and the reader is done
+	// before any caller holds the message.
+	bool _reading;
 
-	/// <summary>Adds one finding to this message: from <see cref="Place"/> while it is read, or from <see cref="OnValidate"/> while it is validated.</summary>
+	/// <summary>Adds one finding of the reading to this message, from <see cref="Place"/> while it is read.</summary>
 	/// <param name="finding">What is wrong.</param>
-	/// <exception cref="InvalidOperationException">Called at any other time: what reading found is not changed after the message has been read.</exception>
+	/// <exception cref="InvalidOperationException">Called at any other time: what reading found is not changed after the message has been read, and a finding of the validation goes to the collection <see cref="OnValidate"/> is given.</exception>
 	protected new void AddFinding(FixFinding finding)
 	{
-		if (Volatile.Read(ref _adding) == 0)
-			throw new InvalidOperationException("A finding is added to a message only from Place, while it is read, or from OnValidate, while it is validated.");
+		if (finding == null) throw new ArgumentNullException(nameof(finding));
+
+		if (!_reading)
+			throw new InvalidOperationException("A finding is added to a message only from Place, while it is read; OnValidate adds its own to the collection it is given.");
 
 		base.AddFinding(finding);
 	}
 
-	private protected sealed override void Check(Fix42Context context)
+	private protected sealed override void Check(Fix42Context context, FixCheck check)
 	{
-		Interlocked.Increment(ref _adding);
-
-		try
-		{
-			OnValidate(context);
-		}
-		finally
-		{
-			Interlocked.Decrement(ref _adding);
-		}
+		OnValidate(context, check.Findings);
 	}
 
 	// Called by the reader once the factory has built the message: the type and the fields it was read with.
@@ -82,17 +80,17 @@ public abstract class FixCustomMessage : FixMessage
 		MessageType = type;
 		Fields      = fields;
 
-		Interlocked.Increment(ref _adding);
+		_reading = true;
 
 		try
 		{
 			foreach (var field in fields)
 				if (!SetStandardField(field) && !Place(field))
-					base.AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+					OutOfScope(field);
 		}
 		finally
 		{
-			Interlocked.Decrement(ref _adding);
+			_reading = false;
 		}
 
 		return this;

@@ -250,8 +250,12 @@ switch (mode)
 
 			foreach (var message in batch)
 			{
-				validate.Invoke(message, [context]);
-				found += ((System.Collections.ICollection?)message.GetType().GetProperty("InvalidFindings")!.GetValue(message))?.Count ?? 0;
+				// A build that answers its findings says them; an earlier one kept them on the message.
+				var answer = validate.Invoke(message, [context]);
+
+				found += answer is System.Collections.ICollection findings
+					? findings.Count
+					: ((System.Collections.ICollection?)message.GetType().GetProperty("InvalidFindings")!.GetValue(message))?.Count ?? 0;
 			}
 
 			return found;

@@ -26,18 +26,24 @@ public sealed class Fix42RepositoryAgreementTests : FixRepositoryAgreementTests
 	{
 		var message = FixParser.ParseMessage(wire);
 
-		message.Validate(Fix42Context.Default);
-
-		return message.InvalidFindings ?? [];
+		return message.Validate(Fix42Context.Default);
 	}
 
 	protected override bool Check(byte[] wire, string name, FixField field)
 	{
-		var host  = FixParser.ParseMessage(wire);
 		var check = (System.Delegate)typeof(FixValidator42).GetProperty(name)!.GetValue(FixValidator42.Default)!;
+		var found = new List<FixFinding>();
+		var run   = FixCheck.Rent(found);
 
-		check.DynamicInvoke(Fix42Context.Default, host, field);
+		try
+		{
+			check.DynamicInvoke(Fix42Context.Default, run, field);
+		}
+		finally
+		{
+			run.Return();
+		}
 
-		return host.IsValid;
+		return found.Count == 0;
 	}
 }

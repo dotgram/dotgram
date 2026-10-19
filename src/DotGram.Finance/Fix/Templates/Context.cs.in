@@ -8,7 +8,7 @@ namespace DotGram.Finance.Fix.@@Ns@@;
 /// <remarks>
 /// <para>
 /// A <see cref="FixContext"/> of @@Title@@, passed to every call of <see cref="FixParser"/> and to
-/// <see cref="FixMessage.Validate"/>. Immutable, and changed with <c>with</c>:
+/// <see cref="FixMessage.Validate(@@Context@@)"/>. Immutable, and changed with <c>with</c>:
 /// <c>@@Context@@.Default with { Framing = FixFraming.Log }</c>.
 /// </para>
 /// <para>

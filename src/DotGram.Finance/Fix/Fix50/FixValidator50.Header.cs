@@ -22,37 +22,37 @@ partial class FixValidator50 : FixValidator
 	private protected override string ContextName => nameof(Fix50Context);
 
 	/// <summary>Holds the standard header and trailer of any message to the schema.</summary>
-	public Func<Fix50Context, FixMessage, bool> StandardHeader { get; set; } = ValidateStandardHeader;
+	public Action<Fix50Context, FixCheck, FixMessage> StandardHeader { get; set; } = ValidateStandardHeader;
 
-	static bool ValidateStandardHeader(Fix50Context context, FixMessage message)
+	static void ValidateStandardHeader(Fix50Context context, FixCheck check, FixMessage message)
 	{
-		if (message.BeginString  is null) Missing(message, FixTag.BeginString);
-		if (message.BodyLength   is null) Missing(message, FixTag.BodyLength);
-		if (message.MsgType      is null) Missing(message, FixTag.MsgType);
-		if (message.SenderCompID is null) Missing(message, FixTag.SenderCompID);
-		if (message.TargetCompID is null) Missing(message, FixTag.TargetCompID);
-		if (message.MsgSeqNum    is null) Missing(message, FixTag.MsgSeqNum);
-		if (message.SendingTime  is null) Missing(message, FixTag.SendingTime);
-		if (message.CheckSum     is null) Missing(message, FixTag.CheckSum);
+		if (message.BeginString  is null) Missing(check, FixTag.BeginString);
+		if (message.BodyLength   is null) Missing(check, FixTag.BodyLength);
+		if (message.MsgType      is null) Missing(check, FixTag.MsgType);
+		if (message.SenderCompID is null) Missing(check, FixTag.SenderCompID);
+		if (message.TargetCompID is null) Missing(check, FixTag.TargetCompID);
+		if (message.MsgSeqNum    is null) Missing(check, FixTag.MsgSeqNum);
+		if (message.SendingTime  is null) Missing(check, FixTag.SendingTime);
+		if (message.CheckSum     is null) Missing(check, FixTag.CheckSum);
 
 		// BeginString, BodyLength and MsgType are the first three fields, in that order.
-		First(message, 0, message.BeginString);
-		First(message, 1, message.BodyLength);
-		First(message, 2, message.MsgType);
+		First(check, message, 0, message.BeginString);
+		First(check, message, 1, message.BodyLength);
+		First(check, message, 2, message.MsgType);
 
 		if (message.BeginString is { IsValid: true } begin && begin.Value != "FIXT.1.1")
-			message.AddFinding(new FixFinding(FixRule.InvalidValue, FixTag.BeginString, begin.Position, begin, -1));
+			check.Add(FixRule.InvalidValue, FixTag.BeginString, begin.Position, begin);
 
 		// What the reading measured of the octets, which the message does not keep.
 		if (message.BodyLength is { IsValid: true } declared && message.MeasuredBodyLength >= 0 && declared.Value != message.MeasuredBodyLength)
-			message.AddFinding(new FixFinding(FixRule.BodyLengthMismatch, FixTag.BodyLength, declared.Position, declared, -1));
+			check.Add(FixRule.BodyLengthMismatch, FixTag.BodyLength, declared.Position, declared);
 
 		if (message.CheckSum is { } sum)
 		{
 			if (sum.Value.Length != 3 || sum.Value.AsSpan().ToTag() is var expected && expected < 0)
-				message.AddFinding(new FixFinding(FixRule.InvalidValue, FixTag.CheckSum, sum.Position, sum, -1));
+				check.Add(FixRule.InvalidValue, FixTag.CheckSum, sum.Position, sum);
 			else if (message.MeasuredCheckSum >= 0 && expected != message.MeasuredCheckSum)
-				message.AddFinding(new FixFinding(FixRule.CheckSumMismatch, FixTag.CheckSum, sum.Position, sum, -1));
+				check.Add(FixRule.CheckSumMismatch, FixTag.CheckSum, sum.Position, sum);
 		}
 
 		// The header is read before the body, and a header tag met after the body has begun is
@@ -70,13 +70,13 @@ partial class FixValidator50 : FixValidator
 		{
 			// A length field is followed by the data it measures, and by nothing else.
 			if (length != 0 && field.Tag != context.DataTag(length))
-				message.AddFinding(new FixFinding(FixRule.LengthFieldNotBeforeData, length, field.Position, field, -1));
+				check.Add(FixRule.LengthFieldNotBeforeData, length, field.Position, field);
 
 			length = context.Kind(field.Tag) > 0 ? field.Tag : 0;
 
 			if (!encoding && IsEncoded(field.Tag))
 			{
-				message.AddFinding(new FixFinding(FixRule.MessageEncodingMissing, FixTag.MessageEncoding, field.Position, field, -1));
+				check.Add(FixRule.MessageEncodingMissing, FixTag.MessageEncoding, field.Position, field);
 				encoding = true;
 			}
 
@@ -86,30 +86,38 @@ partial class FixValidator50 : FixValidator
 			if (!IsHeader(field.Tag))
 				body = true;
 			else if (body)
-				message.AddFinding(new FixFinding(FixRule.FieldOutOfOrder, field.Tag, field.Position, field, -1));
+				check.Add(FixRule.FieldOutOfOrder, field.Tag, field.Position, field);
 		}
 
-		Counted(message, message.NoHops, message.NoHopsGroups);
-
-		return message.IsValid;
+		Counted(check, message.NoHops, message.NoHopsGroups);
 	}
 
 	/// <summary>Holds each entry of a group to its check, in order; nothing where the group is absent.</summary>
-	/// <remarks>What a loaded dictionary's check calls for a group, rather than writing the loop in its text.</remarks>
-	internal static void Each<TEntry>(Fix50Context context, FixMessage message, List<TEntry>? entries, Func<Fix50Context, FixMessage, TEntry, int, bool> check)
+	/// <remarks>
+	/// What every check calls for a group, rather than writing the loop in its text: the walk is where the
+	/// check enters the group and moves from entry to entry, which every finding inside says with its path.
+	/// </remarks>
+	internal static void Each<TEntry>(Fix50Context context, FixCheck check, int counter, List<TEntry>? entries, Action<Fix50Context, FixCheck, TEntry> slot)
 	{
 		if (entries is null)
 			return;
 
+		check.Enter(counter);
+
 		for (var i = 0; i < entries.Count; i++)
-			check(context, message, entries[i], i);
+		{
+			check.At(i);
+			slot(context, check, entries[i]);
+		}
+
+		check.Leave();
 	}
 
 	// A field of the header that has to stand at an index of its own, and does not.
-	static void First(FixMessage message, int index, FixField? field)
+	static void First(FixCheck check, FixMessage message, int index, FixField? field)
 	{
 		if (field is not null && (message.Fields.Count <= index || !ReferenceEquals(message.Fields[index], field)))
-			message.AddFinding(new FixFinding(FixRule.FieldOutOfOrder, field.Tag, field.Position, field, -1));
+			check.Add(FixRule.FieldOutOfOrder, field.Tag, field.Position, field);
 	}
 
 	static bool IsHeader(int tag)

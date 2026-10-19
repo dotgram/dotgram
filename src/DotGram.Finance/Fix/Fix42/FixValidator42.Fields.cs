@@ -11,4557 +11,3747 @@ partial class FixValidator42
 	// The fields, every one, so that a dictionary has a slot for whatever it limits.
 
 	/// <summary>Holds a FIX 4.2 Account, tag 1, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      Account                          { get; set; } = ValidateAccount;
+	public Action<Fix42Context, FixCheck, FixField.Text>      Account                          { get; set; } = ValidateAccount;
 
 	/// <summary>Holds a FIX 4.2 AdvId, tag 2, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      AdvId                            { get; set; } = ValidateAdvId;
+	public Action<Fix42Context, FixCheck, FixField.Text>      AdvId                            { get; set; } = ValidateAdvId;
 
 	/// <summary>Holds a FIX 4.2 AdvRefID, tag 3, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      AdvRefID                         { get; set; } = ValidateAdvRefID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      AdvRefID                         { get; set; } = ValidateAdvRefID;
 
 	/// <summary>Holds a FIX 4.2 AdvSide, tag 4, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> AdvSide                          { get; set; } = ValidateAdvSide;
+	public Action<Fix42Context, FixCheck, FixField.Character> AdvSide                          { get; set; } = ValidateAdvSide;
 
 	/// <summary>Holds a FIX 4.2 AdvTransType, tag 5, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      AdvTransType                     { get; set; } = ValidateAdvTransType;
+	public Action<Fix42Context, FixCheck, FixField.Text>      AdvTransType                     { get; set; } = ValidateAdvTransType;
 
 	/// <summary>Holds a FIX 4.2 AvgPx, tag 6, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   AvgPx                            { get; set; } = ValidateAvgPx;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   AvgPx                            { get; set; } = ValidateAvgPx;
 
 	/// <summary>Holds a FIX 4.2 BeginSeqNo, tag 7, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   BeginSeqNo                       { get; set; } = ValidateBeginSeqNo;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   BeginSeqNo                       { get; set; } = ValidateBeginSeqNo;
 
 	/// <summary>Holds a FIX 4.2 BeginString, tag 8, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      BeginString                      { get; set; } = ValidateBeginString;
+	public Action<Fix42Context, FixCheck, FixField.Text>      BeginString                      { get; set; } = ValidateBeginString;
 
 	/// <summary>Holds a FIX 4.2 BodyLength, tag 9, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   BodyLength                       { get; set; } = ValidateBodyLength;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   BodyLength                       { get; set; } = ValidateBodyLength;
 
 	/// <summary>Holds a FIX 4.2 CheckSum, tag 10, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      CheckSum                         { get; set; } = ValidateCheckSum;
+	public Action<Fix42Context, FixCheck, FixField.Text>      CheckSum                         { get; set; } = ValidateCheckSum;
 
 	/// <summary>Holds a FIX 4.2 ClOrdID, tag 11, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      ClOrdID                          { get; set; } = ValidateClOrdID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      ClOrdID                          { get; set; } = ValidateClOrdID;
 
 	/// <summary>Holds a FIX 4.2 Commission, tag 12, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   Commission                       { get; set; } = ValidateCommission;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   Commission                       { get; set; } = ValidateCommission;
 
 	/// <summary>Holds a FIX 4.2 CommType, tag 13, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> CommType                         { get; set; } = ValidateCommType;
+	public Action<Fix42Context, FixCheck, FixField.Character> CommType                         { get; set; } = ValidateCommType;
 
 	/// <summary>Holds a FIX 4.2 CumQty, tag 14, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   CumQty                           { get; set; } = ValidateCumQty;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   CumQty                           { get; set; } = ValidateCumQty;
 
 	/// <summary>Holds a FIX 4.2 Currency, tag 15, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      Currency                         { get; set; } = ValidateCurrency;
+	public Action<Fix42Context, FixCheck, FixField.Text>      Currency                         { get; set; } = ValidateCurrency;
 
 	/// <summary>Holds a FIX 4.2 EndSeqNo, tag 16, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   EndSeqNo                         { get; set; } = ValidateEndSeqNo;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   EndSeqNo                         { get; set; } = ValidateEndSeqNo;
 
 	/// <summary>Holds a FIX 4.2 ExecID, tag 17, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      ExecID                           { get; set; } = ValidateExecID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      ExecID                           { get; set; } = ValidateExecID;
 
 	/// <summary>Holds a FIX 4.2 ExecInst, tag 18, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Multiple, bool>  ExecInst                         { get; set; } = ValidateExecInst;
+	public Action<Fix42Context, FixCheck, FixField.Multiple>  ExecInst                         { get; set; } = ValidateExecInst;
 
 	/// <summary>Holds a FIX 4.2 ExecRefID, tag 19, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      ExecRefID                        { get; set; } = ValidateExecRefID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      ExecRefID                        { get; set; } = ValidateExecRefID;
 
 	/// <summary>Holds a FIX 4.2 ExecTransType, tag 20, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> ExecTransType                    { get; set; } = ValidateExecTransType;
+	public Action<Fix42Context, FixCheck, FixField.Character> ExecTransType                    { get; set; } = ValidateExecTransType;
 
 	/// <summary>Holds a FIX 4.2 HandlInst, tag 21, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> HandlInst                        { get; set; } = ValidateHandlInst;
+	public Action<Fix42Context, FixCheck, FixField.Character> HandlInst                        { get; set; } = ValidateHandlInst;
 
 	/// <summary>Holds a FIX 4.2 IDSource, tag 22, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      IDSource                         { get; set; } = ValidateIDSource;
+	public Action<Fix42Context, FixCheck, FixField.Text>      IDSource                         { get; set; } = ValidateIDSource;
 
 	/// <summary>Holds a FIX 4.2 IOIid, tag 23, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      IOIid                            { get; set; } = ValidateIOIid;
+	public Action<Fix42Context, FixCheck, FixField.Text>      IOIid                            { get; set; } = ValidateIOIid;
 
 	/// <summary>Holds a FIX 4.2 IOIOthSvc, tag 24, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> IOIOthSvc                        { get; set; } = ValidateIOIOthSvc;
+	public Action<Fix42Context, FixCheck, FixField.Character> IOIOthSvc                        { get; set; } = ValidateIOIOthSvc;
 
 	/// <summary>Holds a FIX 4.2 IOIQltyInd, tag 25, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> IOIQltyInd                       { get; set; } = ValidateIOIQltyInd;
+	public Action<Fix42Context, FixCheck, FixField.Character> IOIQltyInd                       { get; set; } = ValidateIOIQltyInd;
 
 	/// <summary>Holds a FIX 4.2 IOIRefID, tag 26, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      IOIRefID                         { get; set; } = ValidateIOIRefID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      IOIRefID                         { get; set; } = ValidateIOIRefID;
 
 	/// <summary>Holds a FIX 4.2 IOIShares, tag 27, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      IOIShares                        { get; set; } = ValidateIOIShares;
+	public Action<Fix42Context, FixCheck, FixField.Text>      IOIShares                        { get; set; } = ValidateIOIShares;
 
 	/// <summary>Holds a FIX 4.2 IOITransType, tag 28, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> IOITransType                     { get; set; } = ValidateIOITransType;
+	public Action<Fix42Context, FixCheck, FixField.Character> IOITransType                     { get; set; } = ValidateIOITransType;
 
 	/// <summary>Holds a FIX 4.2 LastCapacity, tag 29, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> LastCapacity                     { get; set; } = ValidateLastCapacity;
+	public Action<Fix42Context, FixCheck, FixField.Character> LastCapacity                     { get; set; } = ValidateLastCapacity;
 
 	/// <summary>Holds a FIX 4.2 LastMkt, tag 30, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      LastMkt                          { get; set; } = ValidateLastMkt;
+	public Action<Fix42Context, FixCheck, FixField.Text>      LastMkt                          { get; set; } = ValidateLastMkt;
 
 	/// <summary>Holds a FIX 4.2 LastPx, tag 31, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   LastPx                           { get; set; } = ValidateLastPx;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   LastPx                           { get; set; } = ValidateLastPx;
 
 	/// <summary>Holds a FIX 4.2 LastShares, tag 32, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   LastShares                       { get; set; } = ValidateLastShares;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   LastShares                       { get; set; } = ValidateLastShares;
 
 	/// <summary>Holds a FIX 4.2 LinesOfText, tag 33, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   LinesOfText                      { get; set; } = ValidateLinesOfText;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   LinesOfText                      { get; set; } = ValidateLinesOfText;
 
 	/// <summary>Holds a FIX 4.2 MsgSeqNum, tag 34, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   MsgSeqNum                        { get; set; } = ValidateMsgSeqNum;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   MsgSeqNum                        { get; set; } = ValidateMsgSeqNum;
 
 	/// <summary>Holds a FIX 4.2 MsgType, tag 35, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      MsgType                          { get; set; } = ValidateMsgType;
+	public Action<Fix42Context, FixCheck, FixField.Text>      MsgType                          { get; set; } = ValidateMsgType;
 
 	/// <summary>Holds a FIX 4.2 NewSeqNo, tag 36, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NewSeqNo                         { get; set; } = ValidateNewSeqNo;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NewSeqNo                         { get; set; } = ValidateNewSeqNo;
 
 	/// <summary>Holds a FIX 4.2 OrderID, tag 37, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      OrderID                          { get; set; } = ValidateOrderID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      OrderID                          { get; set; } = ValidateOrderID;
 
 	/// <summary>Holds a FIX 4.2 OrderQty, tag 38, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   OrderQty                         { get; set; } = ValidateOrderQty;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   OrderQty                         { get; set; } = ValidateOrderQty;
 
 	/// <summary>Holds a FIX 4.2 OrdStatus, tag 39, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> OrdStatus                        { get; set; } = ValidateOrdStatus;
+	public Action<Fix42Context, FixCheck, FixField.Character> OrdStatus                        { get; set; } = ValidateOrdStatus;
 
 	/// <summary>Holds a FIX 4.2 OrdType, tag 40, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> OrdType                          { get; set; } = ValidateOrdType;
+	public Action<Fix42Context, FixCheck, FixField.Character> OrdType                          { get; set; } = ValidateOrdType;
 
 	/// <summary>Holds a FIX 4.2 OrigClOrdID, tag 41, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      OrigClOrdID                      { get; set; } = ValidateOrigClOrdID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      OrigClOrdID                      { get; set; } = ValidateOrigClOrdID;
 
 	/// <summary>Holds a FIX 4.2 OrigTime, tag 42, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Timestamp, bool> OrigTime                         { get; set; } = ValidateOrigTime;
+	public Action<Fix42Context, FixCheck, FixField.Timestamp> OrigTime                         { get; set; } = ValidateOrigTime;
 
 	/// <summary>Holds a FIX 4.2 PossDupFlag, tag 43, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Boolean, bool>   PossDupFlag                      { get; set; } = ValidatePossDupFlag;
+	public Action<Fix42Context, FixCheck, FixField.Boolean>   PossDupFlag                      { get; set; } = ValidatePossDupFlag;
 
 	/// <summary>Holds a FIX 4.2 Price, tag 44, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   Price                            { get; set; } = ValidatePrice;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   Price                            { get; set; } = ValidatePrice;
 
 	/// <summary>Holds a FIX 4.2 RefSeqNum, tag 45, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   RefSeqNum                        { get; set; } = ValidateRefSeqNum;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   RefSeqNum                        { get; set; } = ValidateRefSeqNum;
 
 	/// <summary>Holds a FIX 4.2 RelatdSym, tag 46, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      RelatdSym                        { get; set; } = ValidateRelatdSym;
+	public Action<Fix42Context, FixCheck, FixField.Text>      RelatdSym                        { get; set; } = ValidateRelatdSym;
 
 	/// <summary>Holds a FIX 4.2 Rule80A, tag 47, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> Rule80A                          { get; set; } = ValidateRule80A;
+	public Action<Fix42Context, FixCheck, FixField.Character> Rule80A                          { get; set; } = ValidateRule80A;
 
 	/// <summary>Holds a FIX 4.2 SecurityID, tag 48, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SecurityID                       { get; set; } = ValidateSecurityID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SecurityID                       { get; set; } = ValidateSecurityID;
 
 	/// <summary>Holds a FIX 4.2 SenderCompID, tag 49, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SenderCompID                     { get; set; } = ValidateSenderCompID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SenderCompID                     { get; set; } = ValidateSenderCompID;
 
 	/// <summary>Holds a FIX 4.2 SenderSubID, tag 50, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SenderSubID                      { get; set; } = ValidateSenderSubID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SenderSubID                      { get; set; } = ValidateSenderSubID;
 
 	/// <summary>Holds a FIX 4.2 SendingDate, tag 51, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Date, bool>      SendingDate                      { get; set; } = ValidateSendingDate;
+	public Action<Fix42Context, FixCheck, FixField.Date>      SendingDate                      { get; set; } = ValidateSendingDate;
 
 	/// <summary>Holds a FIX 4.2 SendingTime, tag 52, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Timestamp, bool> SendingTime                      { get; set; } = ValidateSendingTime;
+	public Action<Fix42Context, FixCheck, FixField.Timestamp> SendingTime                      { get; set; } = ValidateSendingTime;
 
 	/// <summary>Holds a FIX 4.2 Shares, tag 53, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   Shares                           { get; set; } = ValidateShares;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   Shares                           { get; set; } = ValidateShares;
 
 	/// <summary>Holds a FIX 4.2 Side, tag 54, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> Side                             { get; set; } = ValidateSide;
+	public Action<Fix42Context, FixCheck, FixField.Character> Side                             { get; set; } = ValidateSide;
 
 	/// <summary>Holds a FIX 4.2 Symbol, tag 55, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      Symbol                           { get; set; } = ValidateSymbol;
+	public Action<Fix42Context, FixCheck, FixField.Text>      Symbol                           { get; set; } = ValidateSymbol;
 
 	/// <summary>Holds a FIX 4.2 TargetCompID, tag 56, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      TargetCompID                     { get; set; } = ValidateTargetCompID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      TargetCompID                     { get; set; } = ValidateTargetCompID;
 
 	/// <summary>Holds a FIX 4.2 TargetSubID, tag 57, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      TargetSubID                      { get; set; } = ValidateTargetSubID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      TargetSubID                      { get; set; } = ValidateTargetSubID;
 
 	/// <summary>Holds a FIX 4.2 Text, tag 58, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      Text                             { get; set; } = ValidateText;
+	public Action<Fix42Context, FixCheck, FixField.Text>      Text                             { get; set; } = ValidateText;
 
 	/// <summary>Holds a FIX 4.2 TimeInForce, tag 59, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> TimeInForce                      { get; set; } = ValidateTimeInForce;
+	public Action<Fix42Context, FixCheck, FixField.Character> TimeInForce                      { get; set; } = ValidateTimeInForce;
 
 	/// <summary>Holds a FIX 4.2 TransactTime, tag 60, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Timestamp, bool> TransactTime                     { get; set; } = ValidateTransactTime;
+	public Action<Fix42Context, FixCheck, FixField.Timestamp> TransactTime                     { get; set; } = ValidateTransactTime;
 
 	/// <summary>Holds a FIX 4.2 Urgency, tag 61, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> Urgency                          { get; set; } = ValidateUrgency;
+	public Action<Fix42Context, FixCheck, FixField.Character> Urgency                          { get; set; } = ValidateUrgency;
 
 	/// <summary>Holds a FIX 4.2 ValidUntilTime, tag 62, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Timestamp, bool> ValidUntilTime                   { get; set; } = ValidateValidUntilTime;
+	public Action<Fix42Context, FixCheck, FixField.Timestamp> ValidUntilTime                   { get; set; } = ValidateValidUntilTime;
 
 	/// <summary>Holds a FIX 4.2 SettlmntTyp, tag 63, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> SettlmntTyp                      { get; set; } = ValidateSettlmntTyp;
+	public Action<Fix42Context, FixCheck, FixField.Character> SettlmntTyp                      { get; set; } = ValidateSettlmntTyp;
 
 	/// <summary>Holds a FIX 4.2 FutSettDate, tag 64, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Date, bool>      FutSettDate                      { get; set; } = ValidateFutSettDate;
+	public Action<Fix42Context, FixCheck, FixField.Date>      FutSettDate                      { get; set; } = ValidateFutSettDate;
 
 	/// <summary>Holds a FIX 4.2 SymbolSfx, tag 65, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SymbolSfx                        { get; set; } = ValidateSymbolSfx;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SymbolSfx                        { get; set; } = ValidateSymbolSfx;
 
 	/// <summary>Holds a FIX 4.2 ListID, tag 66, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      ListID                           { get; set; } = ValidateListID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      ListID                           { get; set; } = ValidateListID;
 
 	/// <summary>Holds a FIX 4.2 ListSeqNo, tag 67, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   ListSeqNo                        { get; set; } = ValidateListSeqNo;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   ListSeqNo                        { get; set; } = ValidateListSeqNo;
 
 	/// <summary>Holds a FIX 4.2 TotNoOrders, tag 68, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   TotNoOrders                      { get; set; } = ValidateTotNoOrders;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   TotNoOrders                      { get; set; } = ValidateTotNoOrders;
 
 	/// <summary>Holds a FIX 4.2 ListExecInst, tag 69, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      ListExecInst                     { get; set; } = ValidateListExecInst;
+	public Action<Fix42Context, FixCheck, FixField.Text>      ListExecInst                     { get; set; } = ValidateListExecInst;
 
 	/// <summary>Holds a FIX 4.2 AllocID, tag 70, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      AllocID                          { get; set; } = ValidateAllocID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      AllocID                          { get; set; } = ValidateAllocID;
 
 	/// <summary>Holds a FIX 4.2 AllocTransType, tag 71, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> AllocTransType                   { get; set; } = ValidateAllocTransType;
+	public Action<Fix42Context, FixCheck, FixField.Character> AllocTransType                   { get; set; } = ValidateAllocTransType;
 
 	/// <summary>Holds a FIX 4.2 RefAllocID, tag 72, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      RefAllocID                       { get; set; } = ValidateRefAllocID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      RefAllocID                       { get; set; } = ValidateRefAllocID;
 
 	/// <summary>Holds a FIX 4.2 NoOrders, tag 73, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoOrders                         { get; set; } = ValidateNoOrders;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoOrders                         { get; set; } = ValidateNoOrders;
 
 	/// <summary>Holds a FIX 4.2 AvgPrxPrecision, tag 74, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   AvgPrxPrecision                  { get; set; } = ValidateAvgPrxPrecision;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   AvgPrxPrecision                  { get; set; } = ValidateAvgPrxPrecision;
 
 	/// <summary>Holds a FIX 4.2 TradeDate, tag 75, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Date, bool>      TradeDate                        { get; set; } = ValidateTradeDate;
+	public Action<Fix42Context, FixCheck, FixField.Date>      TradeDate                        { get; set; } = ValidateTradeDate;
 
 	/// <summary>Holds a FIX 4.2 ExecBroker, tag 76, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      ExecBroker                       { get; set; } = ValidateExecBroker;
+	public Action<Fix42Context, FixCheck, FixField.Text>      ExecBroker                       { get; set; } = ValidateExecBroker;
 
 	/// <summary>Holds a FIX 4.2 OpenClose, tag 77, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> OpenClose                        { get; set; } = ValidateOpenClose;
+	public Action<Fix42Context, FixCheck, FixField.Character> OpenClose                        { get; set; } = ValidateOpenClose;
 
 	/// <summary>Holds a FIX 4.2 NoAllocs, tag 78, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoAllocs                         { get; set; } = ValidateNoAllocs;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoAllocs                         { get; set; } = ValidateNoAllocs;
 
 	/// <summary>Holds a FIX 4.2 AllocAccount, tag 79, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      AllocAccount                     { get; set; } = ValidateAllocAccount;
+	public Action<Fix42Context, FixCheck, FixField.Text>      AllocAccount                     { get; set; } = ValidateAllocAccount;
 
 	/// <summary>Holds a FIX 4.2 AllocShares, tag 80, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   AllocShares                      { get; set; } = ValidateAllocShares;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   AllocShares                      { get; set; } = ValidateAllocShares;
 
 	/// <summary>Holds a FIX 4.2 ProcessCode, tag 81, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> ProcessCode                      { get; set; } = ValidateProcessCode;
+	public Action<Fix42Context, FixCheck, FixField.Character> ProcessCode                      { get; set; } = ValidateProcessCode;
 
 	/// <summary>Holds a FIX 4.2 NoRpts, tag 82, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoRpts                           { get; set; } = ValidateNoRpts;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoRpts                           { get; set; } = ValidateNoRpts;
 
 	/// <summary>Holds a FIX 4.2 RptSeq, tag 83, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   RptSeq                           { get; set; } = ValidateRptSeq;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   RptSeq                           { get; set; } = ValidateRptSeq;
 
 	/// <summary>Holds a FIX 4.2 CxlQty, tag 84, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   CxlQty                           { get; set; } = ValidateCxlQty;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   CxlQty                           { get; set; } = ValidateCxlQty;
 
 	/// <summary>Holds a FIX 4.2 NoDlvyInst, tag 85, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoDlvyInst                       { get; set; } = ValidateNoDlvyInst;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoDlvyInst                       { get; set; } = ValidateNoDlvyInst;
 
 	/// <summary>Holds a FIX 4.2 DlvyInst, tag 86, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      DlvyInst                         { get; set; } = ValidateDlvyInst;
+	public Action<Fix42Context, FixCheck, FixField.Text>      DlvyInst                         { get; set; } = ValidateDlvyInst;
 
 	/// <summary>Holds a FIX 4.2 AllocStatus, tag 87, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   AllocStatus                      { get; set; } = ValidateAllocStatus;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   AllocStatus                      { get; set; } = ValidateAllocStatus;
 
 	/// <summary>Holds a FIX 4.2 AllocRejCode, tag 88, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   AllocRejCode                     { get; set; } = ValidateAllocRejCode;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   AllocRejCode                     { get; set; } = ValidateAllocRejCode;
 
 	/// <summary>Holds a FIX 4.2 Signature, tag 89, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Data, bool>      Signature                        { get; set; } = ValidateSignature;
+	public Action<Fix42Context, FixCheck, FixField.Data>      Signature                        { get; set; } = ValidateSignature;
 
 	/// <summary>Holds a FIX 4.2 SecureDataLen, tag 90, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   SecureDataLen                    { get; set; } = ValidateSecureDataLen;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   SecureDataLen                    { get; set; } = ValidateSecureDataLen;
 
 	/// <summary>Holds a FIX 4.2 SecureData, tag 91, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Data, bool>      SecureData                       { get; set; } = ValidateSecureData;
+	public Action<Fix42Context, FixCheck, FixField.Data>      SecureData                       { get; set; } = ValidateSecureData;
 
 	/// <summary>Holds a FIX 4.2 BrokerOfCredit, tag 92, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      BrokerOfCredit                   { get; set; } = ValidateBrokerOfCredit;
+	public Action<Fix42Context, FixCheck, FixField.Text>      BrokerOfCredit                   { get; set; } = ValidateBrokerOfCredit;
 
 	/// <summary>Holds a FIX 4.2 SignatureLength, tag 93, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   SignatureLength                  { get; set; } = ValidateSignatureLength;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   SignatureLength                  { get; set; } = ValidateSignatureLength;
 
 	/// <summary>Holds a FIX 4.2 EmailType, tag 94, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> EmailType                        { get; set; } = ValidateEmailType;
+	public Action<Fix42Context, FixCheck, FixField.Character> EmailType                        { get; set; } = ValidateEmailType;
 
 	/// <summary>Holds a FIX 4.2 RawDataLength, tag 95, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   RawDataLength                    { get; set; } = ValidateRawDataLength;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   RawDataLength                    { get; set; } = ValidateRawDataLength;
 
 	/// <summary>Holds a FIX 4.2 RawData, tag 96, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Data, bool>      RawData                          { get; set; } = ValidateRawData;
+	public Action<Fix42Context, FixCheck, FixField.Data>      RawData                          { get; set; } = ValidateRawData;
 
 	/// <summary>Holds a FIX 4.2 PossResend, tag 97, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Boolean, bool>   PossResend                       { get; set; } = ValidatePossResend;
+	public Action<Fix42Context, FixCheck, FixField.Boolean>   PossResend                       { get; set; } = ValidatePossResend;
 
 	/// <summary>Holds a FIX 4.2 EncryptMethod, tag 98, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   EncryptMethod                    { get; set; } = ValidateEncryptMethod;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   EncryptMethod                    { get; set; } = ValidateEncryptMethod;
 
 	/// <summary>Holds a FIX 4.2 StopPx, tag 99, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   StopPx                           { get; set; } = ValidateStopPx;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   StopPx                           { get; set; } = ValidateStopPx;
 
 	/// <summary>Holds a FIX 4.2 ExDestination, tag 100, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      ExDestination                    { get; set; } = ValidateExDestination;
+	public Action<Fix42Context, FixCheck, FixField.Text>      ExDestination                    { get; set; } = ValidateExDestination;
 
 	/// <summary>Holds a FIX 4.2 CxlRejReason, tag 102, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   CxlRejReason                     { get; set; } = ValidateCxlRejReason;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   CxlRejReason                     { get; set; } = ValidateCxlRejReason;
 
 	/// <summary>Holds a FIX 4.2 OrdRejReason, tag 103, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   OrdRejReason                     { get; set; } = ValidateOrdRejReason;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   OrdRejReason                     { get; set; } = ValidateOrdRejReason;
 
 	/// <summary>Holds a FIX 4.2 IOIQualifier, tag 104, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> IOIQualifier                     { get; set; } = ValidateIOIQualifier;
+	public Action<Fix42Context, FixCheck, FixField.Character> IOIQualifier                     { get; set; } = ValidateIOIQualifier;
 
 	/// <summary>Holds a FIX 4.2 WaveNo, tag 105, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      WaveNo                           { get; set; } = ValidateWaveNo;
+	public Action<Fix42Context, FixCheck, FixField.Text>      WaveNo                           { get; set; } = ValidateWaveNo;
 
 	/// <summary>Holds a FIX 4.2 Issuer, tag 106, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      Issuer                           { get; set; } = ValidateIssuer;
+	public Action<Fix42Context, FixCheck, FixField.Text>      Issuer                           { get; set; } = ValidateIssuer;
 
 	/// <summary>Holds a FIX 4.2 SecurityDesc, tag 107, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SecurityDesc                     { get; set; } = ValidateSecurityDesc;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SecurityDesc                     { get; set; } = ValidateSecurityDesc;
 
 	/// <summary>Holds a FIX 4.2 HeartBtInt, tag 108, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   HeartBtInt                       { get; set; } = ValidateHeartBtInt;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   HeartBtInt                       { get; set; } = ValidateHeartBtInt;
 
 	/// <summary>Holds a FIX 4.2 ClientID, tag 109, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      ClientID                         { get; set; } = ValidateClientID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      ClientID                         { get; set; } = ValidateClientID;
 
 	/// <summary>Holds a FIX 4.2 MinQty, tag 110, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   MinQty                           { get; set; } = ValidateMinQty;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   MinQty                           { get; set; } = ValidateMinQty;
 
 	/// <summary>Holds a FIX 4.2 MaxFloor, tag 111, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   MaxFloor                         { get; set; } = ValidateMaxFloor;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   MaxFloor                         { get; set; } = ValidateMaxFloor;
 
 	/// <summary>Holds a FIX 4.2 TestReqID, tag 112, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      TestReqID                        { get; set; } = ValidateTestReqID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      TestReqID                        { get; set; } = ValidateTestReqID;
 
 	/// <summary>Holds a FIX 4.2 ReportToExch, tag 113, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Boolean, bool>   ReportToExch                     { get; set; } = ValidateReportToExch;
+	public Action<Fix42Context, FixCheck, FixField.Boolean>   ReportToExch                     { get; set; } = ValidateReportToExch;
 
 	/// <summary>Holds a FIX 4.2 LocateReqd, tag 114, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Boolean, bool>   LocateReqd                       { get; set; } = ValidateLocateReqd;
+	public Action<Fix42Context, FixCheck, FixField.Boolean>   LocateReqd                       { get; set; } = ValidateLocateReqd;
 
 	/// <summary>Holds a FIX 4.2 OnBehalfOfCompID, tag 115, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      OnBehalfOfCompID                 { get; set; } = ValidateOnBehalfOfCompID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      OnBehalfOfCompID                 { get; set; } = ValidateOnBehalfOfCompID;
 
 	/// <summary>Holds a FIX 4.2 OnBehalfOfSubID, tag 116, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      OnBehalfOfSubID                  { get; set; } = ValidateOnBehalfOfSubID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      OnBehalfOfSubID                  { get; set; } = ValidateOnBehalfOfSubID;
 
 	/// <summary>Holds a FIX 4.2 QuoteID, tag 117, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      QuoteID                          { get; set; } = ValidateQuoteID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      QuoteID                          { get; set; } = ValidateQuoteID;
 
 	/// <summary>Holds a FIX 4.2 NetMoney, tag 118, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   NetMoney                         { get; set; } = ValidateNetMoney;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   NetMoney                         { get; set; } = ValidateNetMoney;
 
 	/// <summary>Holds a FIX 4.2 SettlCurrAmt, tag 119, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   SettlCurrAmt                     { get; set; } = ValidateSettlCurrAmt;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   SettlCurrAmt                     { get; set; } = ValidateSettlCurrAmt;
 
 	/// <summary>Holds a FIX 4.2 SettlCurrency, tag 120, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SettlCurrency                    { get; set; } = ValidateSettlCurrency;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SettlCurrency                    { get; set; } = ValidateSettlCurrency;
 
 	/// <summary>Holds a FIX 4.2 ForexReq, tag 121, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Boolean, bool>   ForexReq                         { get; set; } = ValidateForexReq;
+	public Action<Fix42Context, FixCheck, FixField.Boolean>   ForexReq                         { get; set; } = ValidateForexReq;
 
 	/// <summary>Holds a FIX 4.2 OrigSendingTime, tag 122, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Timestamp, bool> OrigSendingTime                  { get; set; } = ValidateOrigSendingTime;
+	public Action<Fix42Context, FixCheck, FixField.Timestamp> OrigSendingTime                  { get; set; } = ValidateOrigSendingTime;
 
 	/// <summary>Holds a FIX 4.2 GapFillFlag, tag 123, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Boolean, bool>   GapFillFlag                      { get; set; } = ValidateGapFillFlag;
+	public Action<Fix42Context, FixCheck, FixField.Boolean>   GapFillFlag                      { get; set; } = ValidateGapFillFlag;
 
 	/// <summary>Holds a FIX 4.2 NoExecs, tag 124, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoExecs                          { get; set; } = ValidateNoExecs;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoExecs                          { get; set; } = ValidateNoExecs;
 
 	/// <summary>Holds a FIX 4.2 CxlType, tag 125, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> CxlType                          { get; set; } = ValidateCxlType;
+	public Action<Fix42Context, FixCheck, FixField.Character> CxlType                          { get; set; } = ValidateCxlType;
 
 	/// <summary>Holds a FIX 4.2 ExpireTime, tag 126, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Timestamp, bool> ExpireTime                       { get; set; } = ValidateExpireTime;
+	public Action<Fix42Context, FixCheck, FixField.Timestamp> ExpireTime                       { get; set; } = ValidateExpireTime;
 
 	/// <summary>Holds a FIX 4.2 DKReason, tag 127, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> DKReason                         { get; set; } = ValidateDKReason;
+	public Action<Fix42Context, FixCheck, FixField.Character> DKReason                         { get; set; } = ValidateDKReason;
 
 	/// <summary>Holds a FIX 4.2 DeliverToCompID, tag 128, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      DeliverToCompID                  { get; set; } = ValidateDeliverToCompID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      DeliverToCompID                  { get; set; } = ValidateDeliverToCompID;
 
 	/// <summary>Holds a FIX 4.2 DeliverToSubID, tag 129, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      DeliverToSubID                   { get; set; } = ValidateDeliverToSubID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      DeliverToSubID                   { get; set; } = ValidateDeliverToSubID;
 
 	/// <summary>Holds a FIX 4.2 IOINaturalFlag, tag 130, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Boolean, bool>   IOINaturalFlag                   { get; set; } = ValidateIOINaturalFlag;
+	public Action<Fix42Context, FixCheck, FixField.Boolean>   IOINaturalFlag                   { get; set; } = ValidateIOINaturalFlag;
 
 	/// <summary>Holds a FIX 4.2 QuoteReqID, tag 131, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      QuoteReqID                       { get; set; } = ValidateQuoteReqID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      QuoteReqID                       { get; set; } = ValidateQuoteReqID;
 
 	/// <summary>Holds a FIX 4.2 BidPx, tag 132, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   BidPx                            { get; set; } = ValidateBidPx;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   BidPx                            { get; set; } = ValidateBidPx;
 
 	/// <summary>Holds a FIX 4.2 OfferPx, tag 133, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   OfferPx                          { get; set; } = ValidateOfferPx;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   OfferPx                          { get; set; } = ValidateOfferPx;
 
 	/// <summary>Holds a FIX 4.2 BidSize, tag 134, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   BidSize                          { get; set; } = ValidateBidSize;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   BidSize                          { get; set; } = ValidateBidSize;
 
 	/// <summary>Holds a FIX 4.2 OfferSize, tag 135, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   OfferSize                        { get; set; } = ValidateOfferSize;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   OfferSize                        { get; set; } = ValidateOfferSize;
 
 	/// <summary>Holds a FIX 4.2 NoMiscFees, tag 136, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoMiscFees                       { get; set; } = ValidateNoMiscFees;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoMiscFees                       { get; set; } = ValidateNoMiscFees;
 
 	/// <summary>Holds a FIX 4.2 MiscFeeAmt, tag 137, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   MiscFeeAmt                       { get; set; } = ValidateMiscFeeAmt;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   MiscFeeAmt                       { get; set; } = ValidateMiscFeeAmt;
 
 	/// <summary>Holds a FIX 4.2 MiscFeeCurr, tag 138, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      MiscFeeCurr                      { get; set; } = ValidateMiscFeeCurr;
+	public Action<Fix42Context, FixCheck, FixField.Text>      MiscFeeCurr                      { get; set; } = ValidateMiscFeeCurr;
 
 	/// <summary>Holds a FIX 4.2 MiscFeeType, tag 139, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> MiscFeeType                      { get; set; } = ValidateMiscFeeType;
+	public Action<Fix42Context, FixCheck, FixField.Character> MiscFeeType                      { get; set; } = ValidateMiscFeeType;
 
 	/// <summary>Holds a FIX 4.2 PrevClosePx, tag 140, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   PrevClosePx                      { get; set; } = ValidatePrevClosePx;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   PrevClosePx                      { get; set; } = ValidatePrevClosePx;
 
 	/// <summary>Holds a FIX 4.2 ResetSeqNumFlag, tag 141, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Boolean, bool>   ResetSeqNumFlag                  { get; set; } = ValidateResetSeqNumFlag;
+	public Action<Fix42Context, FixCheck, FixField.Boolean>   ResetSeqNumFlag                  { get; set; } = ValidateResetSeqNumFlag;
 
 	/// <summary>Holds a FIX 4.2 SenderLocationID, tag 142, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SenderLocationID                 { get; set; } = ValidateSenderLocationID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SenderLocationID                 { get; set; } = ValidateSenderLocationID;
 
 	/// <summary>Holds a FIX 4.2 TargetLocationID, tag 143, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      TargetLocationID                 { get; set; } = ValidateTargetLocationID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      TargetLocationID                 { get; set; } = ValidateTargetLocationID;
 
 	/// <summary>Holds a FIX 4.2 OnBehalfOfLocationID, tag 144, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      OnBehalfOfLocationID             { get; set; } = ValidateOnBehalfOfLocationID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      OnBehalfOfLocationID             { get; set; } = ValidateOnBehalfOfLocationID;
 
 	/// <summary>Holds a FIX 4.2 DeliverToLocationID, tag 145, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      DeliverToLocationID              { get; set; } = ValidateDeliverToLocationID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      DeliverToLocationID              { get; set; } = ValidateDeliverToLocationID;
 
 	/// <summary>Holds a FIX 4.2 NoRelatedSym, tag 146, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoRelatedSym                     { get; set; } = ValidateNoRelatedSym;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoRelatedSym                     { get; set; } = ValidateNoRelatedSym;
 
 	/// <summary>Holds a FIX 4.2 Subject, tag 147, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      Subject                          { get; set; } = ValidateSubject;
+	public Action<Fix42Context, FixCheck, FixField.Text>      Subject                          { get; set; } = ValidateSubject;
 
 	/// <summary>Holds a FIX 4.2 Headline, tag 148, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      Headline                         { get; set; } = ValidateHeadline;
+	public Action<Fix42Context, FixCheck, FixField.Text>      Headline                         { get; set; } = ValidateHeadline;
 
 	/// <summary>Holds a FIX 4.2 URLLink, tag 149, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      URLLink                          { get; set; } = ValidateURLLink;
+	public Action<Fix42Context, FixCheck, FixField.Text>      URLLink                          { get; set; } = ValidateURLLink;
 
 	/// <summary>Holds a FIX 4.2 ExecType, tag 150, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> ExecType                         { get; set; } = ValidateExecType;
+	public Action<Fix42Context, FixCheck, FixField.Character> ExecType                         { get; set; } = ValidateExecType;
 
 	/// <summary>Holds a FIX 4.2 LeavesQty, tag 151, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   LeavesQty                        { get; set; } = ValidateLeavesQty;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   LeavesQty                        { get; set; } = ValidateLeavesQty;
 
 	/// <summary>Holds a FIX 4.2 CashOrderQty, tag 152, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   CashOrderQty                     { get; set; } = ValidateCashOrderQty;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   CashOrderQty                     { get; set; } = ValidateCashOrderQty;
 
 	/// <summary>Holds a FIX 4.2 AllocAvgPx, tag 153, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   AllocAvgPx                       { get; set; } = ValidateAllocAvgPx;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   AllocAvgPx                       { get; set; } = ValidateAllocAvgPx;
 
 	/// <summary>Holds a FIX 4.2 AllocNetMoney, tag 154, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   AllocNetMoney                    { get; set; } = ValidateAllocNetMoney;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   AllocNetMoney                    { get; set; } = ValidateAllocNetMoney;
 
 	/// <summary>Holds a FIX 4.2 SettlCurrFxRate, tag 155, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   SettlCurrFxRate                  { get; set; } = ValidateSettlCurrFxRate;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   SettlCurrFxRate                  { get; set; } = ValidateSettlCurrFxRate;
 
 	/// <summary>Holds a FIX 4.2 SettlCurrFxRateCalc, tag 156, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> SettlCurrFxRateCalc              { get; set; } = ValidateSettlCurrFxRateCalc;
+	public Action<Fix42Context, FixCheck, FixField.Character> SettlCurrFxRateCalc              { get; set; } = ValidateSettlCurrFxRateCalc;
 
 	/// <summary>Holds a FIX 4.2 NumDaysInterest, tag 157, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NumDaysInterest                  { get; set; } = ValidateNumDaysInterest;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NumDaysInterest                  { get; set; } = ValidateNumDaysInterest;
 
 	/// <summary>Holds a FIX 4.2 AccruedInterestRate, tag 158, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   AccruedInterestRate              { get; set; } = ValidateAccruedInterestRate;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   AccruedInterestRate              { get; set; } = ValidateAccruedInterestRate;
 
 	/// <summary>Holds a FIX 4.2 AccruedInterestAmt, tag 159, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   AccruedInterestAmt               { get; set; } = ValidateAccruedInterestAmt;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   AccruedInterestAmt               { get; set; } = ValidateAccruedInterestAmt;
 
 	/// <summary>Holds a FIX 4.2 SettlInstMode, tag 160, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> SettlInstMode                    { get; set; } = ValidateSettlInstMode;
+	public Action<Fix42Context, FixCheck, FixField.Character> SettlInstMode                    { get; set; } = ValidateSettlInstMode;
 
 	/// <summary>Holds a FIX 4.2 AllocText, tag 161, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      AllocText                        { get; set; } = ValidateAllocText;
+	public Action<Fix42Context, FixCheck, FixField.Text>      AllocText                        { get; set; } = ValidateAllocText;
 
 	/// <summary>Holds a FIX 4.2 SettlInstID, tag 162, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SettlInstID                      { get; set; } = ValidateSettlInstID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SettlInstID                      { get; set; } = ValidateSettlInstID;
 
 	/// <summary>Holds a FIX 4.2 SettlInstTransType, tag 163, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> SettlInstTransType               { get; set; } = ValidateSettlInstTransType;
+	public Action<Fix42Context, FixCheck, FixField.Character> SettlInstTransType               { get; set; } = ValidateSettlInstTransType;
 
 	/// <summary>Holds a FIX 4.2 EmailThreadID, tag 164, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      EmailThreadID                    { get; set; } = ValidateEmailThreadID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      EmailThreadID                    { get; set; } = ValidateEmailThreadID;
 
 	/// <summary>Holds a FIX 4.2 SettlInstSource, tag 165, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> SettlInstSource                  { get; set; } = ValidateSettlInstSource;
+	public Action<Fix42Context, FixCheck, FixField.Character> SettlInstSource                  { get; set; } = ValidateSettlInstSource;
 
 	/// <summary>Holds a FIX 4.2 SettlLocation, tag 166, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SettlLocation                    { get; set; } = ValidateSettlLocation;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SettlLocation                    { get; set; } = ValidateSettlLocation;
 
 	/// <summary>Holds a FIX 4.2 SecurityType, tag 167, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SecurityType                     { get; set; } = ValidateSecurityType;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SecurityType                     { get; set; } = ValidateSecurityType;
 
 	/// <summary>Holds a FIX 4.2 EffectiveTime, tag 168, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Timestamp, bool> EffectiveTime                    { get; set; } = ValidateEffectiveTime;
+	public Action<Fix42Context, FixCheck, FixField.Timestamp> EffectiveTime                    { get; set; } = ValidateEffectiveTime;
 
 	/// <summary>Holds a FIX 4.2 StandInstDbType, tag 169, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   StandInstDbType                  { get; set; } = ValidateStandInstDbType;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   StandInstDbType                  { get; set; } = ValidateStandInstDbType;
 
 	/// <summary>Holds a FIX 4.2 StandInstDbName, tag 170, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      StandInstDbName                  { get; set; } = ValidateStandInstDbName;
+	public Action<Fix42Context, FixCheck, FixField.Text>      StandInstDbName                  { get; set; } = ValidateStandInstDbName;
 
 	/// <summary>Holds a FIX 4.2 StandInstDbID, tag 171, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      StandInstDbID                    { get; set; } = ValidateStandInstDbID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      StandInstDbID                    { get; set; } = ValidateStandInstDbID;
 
 	/// <summary>Holds a FIX 4.2 SettlDeliveryType, tag 172, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   SettlDeliveryType                { get; set; } = ValidateSettlDeliveryType;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   SettlDeliveryType                { get; set; } = ValidateSettlDeliveryType;
 
 	/// <summary>Holds a FIX 4.2 SettlDepositoryCode, tag 173, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SettlDepositoryCode              { get; set; } = ValidateSettlDepositoryCode;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SettlDepositoryCode              { get; set; } = ValidateSettlDepositoryCode;
 
 	/// <summary>Holds a FIX 4.2 SettlBrkrCode, tag 174, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SettlBrkrCode                    { get; set; } = ValidateSettlBrkrCode;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SettlBrkrCode                    { get; set; } = ValidateSettlBrkrCode;
 
 	/// <summary>Holds a FIX 4.2 SettlInstCode, tag 175, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SettlInstCode                    { get; set; } = ValidateSettlInstCode;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SettlInstCode                    { get; set; } = ValidateSettlInstCode;
 
 	/// <summary>Holds a FIX 4.2 SecuritySettlAgentName, tag 176, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SecuritySettlAgentName           { get; set; } = ValidateSecuritySettlAgentName;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SecuritySettlAgentName           { get; set; } = ValidateSecuritySettlAgentName;
 
 	/// <summary>Holds a FIX 4.2 SecuritySettlAgentCode, tag 177, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SecuritySettlAgentCode           { get; set; } = ValidateSecuritySettlAgentCode;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SecuritySettlAgentCode           { get; set; } = ValidateSecuritySettlAgentCode;
 
 	/// <summary>Holds a FIX 4.2 SecuritySettlAgentAcctNum, tag 178, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SecuritySettlAgentAcctNum        { get; set; } = ValidateSecuritySettlAgentAcctNum;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SecuritySettlAgentAcctNum        { get; set; } = ValidateSecuritySettlAgentAcctNum;
 
 	/// <summary>Holds a FIX 4.2 SecuritySettlAgentAcctName, tag 179, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SecuritySettlAgentAcctName       { get; set; } = ValidateSecuritySettlAgentAcctName;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SecuritySettlAgentAcctName       { get; set; } = ValidateSecuritySettlAgentAcctName;
 
 	/// <summary>Holds a FIX 4.2 SecuritySettlAgentContactName, tag 180, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SecuritySettlAgentContactName    { get; set; } = ValidateSecuritySettlAgentContactName;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SecuritySettlAgentContactName    { get; set; } = ValidateSecuritySettlAgentContactName;
 
 	/// <summary>Holds a FIX 4.2 SecuritySettlAgentContactPhone, tag 181, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SecuritySettlAgentContactPhone   { get; set; } = ValidateSecuritySettlAgentContactPhone;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SecuritySettlAgentContactPhone   { get; set; } = ValidateSecuritySettlAgentContactPhone;
 
 	/// <summary>Holds a FIX 4.2 CashSettlAgentName, tag 182, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      CashSettlAgentName               { get; set; } = ValidateCashSettlAgentName;
+	public Action<Fix42Context, FixCheck, FixField.Text>      CashSettlAgentName               { get; set; } = ValidateCashSettlAgentName;
 
 	/// <summary>Holds a FIX 4.2 CashSettlAgentCode, tag 183, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      CashSettlAgentCode               { get; set; } = ValidateCashSettlAgentCode;
+	public Action<Fix42Context, FixCheck, FixField.Text>      CashSettlAgentCode               { get; set; } = ValidateCashSettlAgentCode;
 
 	/// <summary>Holds a FIX 4.2 CashSettlAgentAcctNum, tag 184, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      CashSettlAgentAcctNum            { get; set; } = ValidateCashSettlAgentAcctNum;
+	public Action<Fix42Context, FixCheck, FixField.Text>      CashSettlAgentAcctNum            { get; set; } = ValidateCashSettlAgentAcctNum;
 
 	/// <summary>Holds a FIX 4.2 CashSettlAgentAcctName, tag 185, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      CashSettlAgentAcctName           { get; set; } = ValidateCashSettlAgentAcctName;
+	public Action<Fix42Context, FixCheck, FixField.Text>      CashSettlAgentAcctName           { get; set; } = ValidateCashSettlAgentAcctName;
 
 	/// <summary>Holds a FIX 4.2 CashSettlAgentContactName, tag 186, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      CashSettlAgentContactName        { get; set; } = ValidateCashSettlAgentContactName;
+	public Action<Fix42Context, FixCheck, FixField.Text>      CashSettlAgentContactName        { get; set; } = ValidateCashSettlAgentContactName;
 
 	/// <summary>Holds a FIX 4.2 CashSettlAgentContactPhone, tag 187, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      CashSettlAgentContactPhone       { get; set; } = ValidateCashSettlAgentContactPhone;
+	public Action<Fix42Context, FixCheck, FixField.Text>      CashSettlAgentContactPhone       { get; set; } = ValidateCashSettlAgentContactPhone;
 
 	/// <summary>Holds a FIX 4.2 BidSpotRate, tag 188, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   BidSpotRate                      { get; set; } = ValidateBidSpotRate;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   BidSpotRate                      { get; set; } = ValidateBidSpotRate;
 
 	/// <summary>Holds a FIX 4.2 BidForwardPoints, tag 189, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   BidForwardPoints                 { get; set; } = ValidateBidForwardPoints;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   BidForwardPoints                 { get; set; } = ValidateBidForwardPoints;
 
 	/// <summary>Holds a FIX 4.2 OfferSpotRate, tag 190, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   OfferSpotRate                    { get; set; } = ValidateOfferSpotRate;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   OfferSpotRate                    { get; set; } = ValidateOfferSpotRate;
 
 	/// <summary>Holds a FIX 4.2 OfferForwardPoints, tag 191, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   OfferForwardPoints               { get; set; } = ValidateOfferForwardPoints;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   OfferForwardPoints               { get; set; } = ValidateOfferForwardPoints;
 
 	/// <summary>Holds a FIX 4.2 OrderQty2, tag 192, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   OrderQty2                        { get; set; } = ValidateOrderQty2;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   OrderQty2                        { get; set; } = ValidateOrderQty2;
 
 	/// <summary>Holds a FIX 4.2 FutSettDate2, tag 193, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Date, bool>      FutSettDate2                     { get; set; } = ValidateFutSettDate2;
+	public Action<Fix42Context, FixCheck, FixField.Date>      FutSettDate2                     { get; set; } = ValidateFutSettDate2;
 
 	/// <summary>Holds a FIX 4.2 LastSpotRate, tag 194, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   LastSpotRate                     { get; set; } = ValidateLastSpotRate;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   LastSpotRate                     { get; set; } = ValidateLastSpotRate;
 
 	/// <summary>Holds a FIX 4.2 LastForwardPoints, tag 195, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   LastForwardPoints                { get; set; } = ValidateLastForwardPoints;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   LastForwardPoints                { get; set; } = ValidateLastForwardPoints;
 
 	/// <summary>Holds a FIX 4.2 AllocLinkID, tag 196, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      AllocLinkID                      { get; set; } = ValidateAllocLinkID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      AllocLinkID                      { get; set; } = ValidateAllocLinkID;
 
 	/// <summary>Holds a FIX 4.2 AllocLinkType, tag 197, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   AllocLinkType                    { get; set; } = ValidateAllocLinkType;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   AllocLinkType                    { get; set; } = ValidateAllocLinkType;
 
 	/// <summary>Holds a FIX 4.2 SecondaryOrderID, tag 198, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SecondaryOrderID                 { get; set; } = ValidateSecondaryOrderID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SecondaryOrderID                 { get; set; } = ValidateSecondaryOrderID;
 
 	/// <summary>Holds a FIX 4.2 NoIOIQualifiers, tag 199, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoIOIQualifiers                  { get; set; } = ValidateNoIOIQualifiers;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoIOIQualifiers                  { get; set; } = ValidateNoIOIQualifiers;
 
 	/// <summary>Holds a FIX 4.2 MaturityMonthYear, tag 200, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.MonthYear, bool> MaturityMonthYear                { get; set; } = ValidateMaturityMonthYear;
+	public Action<Fix42Context, FixCheck, FixField.MonthYear> MaturityMonthYear                { get; set; } = ValidateMaturityMonthYear;
 
 	/// <summary>Holds a FIX 4.2 PutOrCall, tag 201, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   PutOrCall                        { get; set; } = ValidatePutOrCall;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   PutOrCall                        { get; set; } = ValidatePutOrCall;
 
 	/// <summary>Holds a FIX 4.2 StrikePrice, tag 202, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   StrikePrice                      { get; set; } = ValidateStrikePrice;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   StrikePrice                      { get; set; } = ValidateStrikePrice;
 
 	/// <summary>Holds a FIX 4.2 CoveredOrUncovered, tag 203, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   CoveredOrUncovered               { get; set; } = ValidateCoveredOrUncovered;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   CoveredOrUncovered               { get; set; } = ValidateCoveredOrUncovered;
 
 	/// <summary>Holds a FIX 4.2 CustomerOrFirm, tag 204, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   CustomerOrFirm                   { get; set; } = ValidateCustomerOrFirm;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   CustomerOrFirm                   { get; set; } = ValidateCustomerOrFirm;
 
 	/// <summary>Holds a FIX 4.2 MaturityDay, tag 205, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   MaturityDay                      { get; set; } = ValidateMaturityDay;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   MaturityDay                      { get; set; } = ValidateMaturityDay;
 
 	/// <summary>Holds a FIX 4.2 OptAttribute, tag 206, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> OptAttribute                     { get; set; } = ValidateOptAttribute;
+	public Action<Fix42Context, FixCheck, FixField.Character> OptAttribute                     { get; set; } = ValidateOptAttribute;
 
 	/// <summary>Holds a FIX 4.2 SecurityExchange, tag 207, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SecurityExchange                 { get; set; } = ValidateSecurityExchange;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SecurityExchange                 { get; set; } = ValidateSecurityExchange;
 
 	/// <summary>Holds a FIX 4.2 NotifyBrokerOfCredit, tag 208, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Boolean, bool>   NotifyBrokerOfCredit             { get; set; } = ValidateNotifyBrokerOfCredit;
+	public Action<Fix42Context, FixCheck, FixField.Boolean>   NotifyBrokerOfCredit             { get; set; } = ValidateNotifyBrokerOfCredit;
 
 	/// <summary>Holds a FIX 4.2 AllocHandlInst, tag 209, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   AllocHandlInst                   { get; set; } = ValidateAllocHandlInst;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   AllocHandlInst                   { get; set; } = ValidateAllocHandlInst;
 
 	/// <summary>Holds a FIX 4.2 MaxShow, tag 210, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   MaxShow                          { get; set; } = ValidateMaxShow;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   MaxShow                          { get; set; } = ValidateMaxShow;
 
 	/// <summary>Holds a FIX 4.2 PegDifference, tag 211, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   PegDifference                    { get; set; } = ValidatePegDifference;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   PegDifference                    { get; set; } = ValidatePegDifference;
 
 	/// <summary>Holds a FIX 4.2 XmlDataLen, tag 212, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   XmlDataLen                       { get; set; } = ValidateXmlDataLen;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   XmlDataLen                       { get; set; } = ValidateXmlDataLen;
 
 	/// <summary>Holds a FIX 4.2 XmlData, tag 213, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Data, bool>      XmlData                          { get; set; } = ValidateXmlData;
+	public Action<Fix42Context, FixCheck, FixField.Data>      XmlData                          { get; set; } = ValidateXmlData;
 
 	/// <summary>Holds a FIX 4.2 SettlInstRefID, tag 214, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SettlInstRefID                   { get; set; } = ValidateSettlInstRefID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SettlInstRefID                   { get; set; } = ValidateSettlInstRefID;
 
 	/// <summary>Holds a FIX 4.2 NoRoutingIDs, tag 215, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoRoutingIDs                     { get; set; } = ValidateNoRoutingIDs;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoRoutingIDs                     { get; set; } = ValidateNoRoutingIDs;
 
 	/// <summary>Holds a FIX 4.2 RoutingType, tag 216, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   RoutingType                      { get; set; } = ValidateRoutingType;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   RoutingType                      { get; set; } = ValidateRoutingType;
 
 	/// <summary>Holds a FIX 4.2 RoutingID, tag 217, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      RoutingID                        { get; set; } = ValidateRoutingID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      RoutingID                        { get; set; } = ValidateRoutingID;
 
 	/// <summary>Holds a FIX 4.2 SpreadToBenchmark, tag 218, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   SpreadToBenchmark                { get; set; } = ValidateSpreadToBenchmark;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   SpreadToBenchmark                { get; set; } = ValidateSpreadToBenchmark;
 
 	/// <summary>Holds a FIX 4.2 Benchmark, tag 219, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> Benchmark                        { get; set; } = ValidateBenchmark;
+	public Action<Fix42Context, FixCheck, FixField.Character> Benchmark                        { get; set; } = ValidateBenchmark;
 
 	/// <summary>Holds a FIX 4.2 CouponRate, tag 223, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   CouponRate                       { get; set; } = ValidateCouponRate;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   CouponRate                       { get; set; } = ValidateCouponRate;
 
 	/// <summary>Holds a FIX 4.2 ContractMultiplier, tag 231, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   ContractMultiplier               { get; set; } = ValidateContractMultiplier;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   ContractMultiplier               { get; set; } = ValidateContractMultiplier;
 
 	/// <summary>Holds a FIX 4.2 MDReqID, tag 262, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      MDReqID                          { get; set; } = ValidateMDReqID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      MDReqID                          { get; set; } = ValidateMDReqID;
 
 	/// <summary>Holds a FIX 4.2 SubscriptionRequestType, tag 263, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> SubscriptionRequestType          { get; set; } = ValidateSubscriptionRequestType;
+	public Action<Fix42Context, FixCheck, FixField.Character> SubscriptionRequestType          { get; set; } = ValidateSubscriptionRequestType;
 
 	/// <summary>Holds a FIX 4.2 MarketDepth, tag 264, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   MarketDepth                      { get; set; } = ValidateMarketDepth;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   MarketDepth                      { get; set; } = ValidateMarketDepth;
 
 	/// <summary>Holds a FIX 4.2 MDUpdateType, tag 265, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   MDUpdateType                     { get; set; } = ValidateMDUpdateType;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   MDUpdateType                     { get; set; } = ValidateMDUpdateType;
 
 	/// <summary>Holds a FIX 4.2 AggregatedBook, tag 266, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Boolean, bool>   AggregatedBook                   { get; set; } = ValidateAggregatedBook;
+	public Action<Fix42Context, FixCheck, FixField.Boolean>   AggregatedBook                   { get; set; } = ValidateAggregatedBook;
 
 	/// <summary>Holds a FIX 4.2 NoMDEntryTypes, tag 267, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoMDEntryTypes                   { get; set; } = ValidateNoMDEntryTypes;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoMDEntryTypes                   { get; set; } = ValidateNoMDEntryTypes;
 
 	/// <summary>Holds a FIX 4.2 NoMDEntries, tag 268, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoMDEntries                      { get; set; } = ValidateNoMDEntries;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoMDEntries                      { get; set; } = ValidateNoMDEntries;
 
 	/// <summary>Holds a FIX 4.2 MDEntryType, tag 269, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> MDEntryType                      { get; set; } = ValidateMDEntryType;
+	public Action<Fix42Context, FixCheck, FixField.Character> MDEntryType                      { get; set; } = ValidateMDEntryType;
 
 	/// <summary>Holds a FIX 4.2 MDEntryPx, tag 270, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   MDEntryPx                        { get; set; } = ValidateMDEntryPx;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   MDEntryPx                        { get; set; } = ValidateMDEntryPx;
 
 	/// <summary>Holds a FIX 4.2 MDEntrySize, tag 271, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   MDEntrySize                      { get; set; } = ValidateMDEntrySize;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   MDEntrySize                      { get; set; } = ValidateMDEntrySize;
 
 	/// <summary>Holds a FIX 4.2 MDEntryDate, tag 272, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Date, bool>      MDEntryDate                      { get; set; } = ValidateMDEntryDate;
+	public Action<Fix42Context, FixCheck, FixField.Date>      MDEntryDate                      { get; set; } = ValidateMDEntryDate;
 
 	/// <summary>Holds a FIX 4.2 MDEntryTime, tag 273, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Time, bool>      MDEntryTime                      { get; set; } = ValidateMDEntryTime;
+	public Action<Fix42Context, FixCheck, FixField.Time>      MDEntryTime                      { get; set; } = ValidateMDEntryTime;
 
 	/// <summary>Holds a FIX 4.2 TickDirection, tag 274, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> TickDirection                    { get; set; } = ValidateTickDirection;
+	public Action<Fix42Context, FixCheck, FixField.Character> TickDirection                    { get; set; } = ValidateTickDirection;
 
 	/// <summary>Holds a FIX 4.2 MDMkt, tag 275, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      MDMkt                            { get; set; } = ValidateMDMkt;
+	public Action<Fix42Context, FixCheck, FixField.Text>      MDMkt                            { get; set; } = ValidateMDMkt;
 
 	/// <summary>Holds a FIX 4.2 QuoteCondition, tag 276, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Multiple, bool>  QuoteCondition                   { get; set; } = ValidateQuoteCondition;
+	public Action<Fix42Context, FixCheck, FixField.Multiple>  QuoteCondition                   { get; set; } = ValidateQuoteCondition;
 
 	/// <summary>Holds a FIX 4.2 TradeCondition, tag 277, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Multiple, bool>  TradeCondition                   { get; set; } = ValidateTradeCondition;
+	public Action<Fix42Context, FixCheck, FixField.Multiple>  TradeCondition                   { get; set; } = ValidateTradeCondition;
 
 	/// <summary>Holds a FIX 4.2 MDEntryID, tag 278, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      MDEntryID                        { get; set; } = ValidateMDEntryID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      MDEntryID                        { get; set; } = ValidateMDEntryID;
 
 	/// <summary>Holds a FIX 4.2 MDUpdateAction, tag 279, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> MDUpdateAction                   { get; set; } = ValidateMDUpdateAction;
+	public Action<Fix42Context, FixCheck, FixField.Character> MDUpdateAction                   { get; set; } = ValidateMDUpdateAction;
 
 	/// <summary>Holds a FIX 4.2 MDEntryRefID, tag 280, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      MDEntryRefID                     { get; set; } = ValidateMDEntryRefID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      MDEntryRefID                     { get; set; } = ValidateMDEntryRefID;
 
 	/// <summary>Holds a FIX 4.2 MDReqRejReason, tag 281, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> MDReqRejReason                   { get; set; } = ValidateMDReqRejReason;
+	public Action<Fix42Context, FixCheck, FixField.Character> MDReqRejReason                   { get; set; } = ValidateMDReqRejReason;
 
 	/// <summary>Holds a FIX 4.2 MDEntryOriginator, tag 282, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      MDEntryOriginator                { get; set; } = ValidateMDEntryOriginator;
+	public Action<Fix42Context, FixCheck, FixField.Text>      MDEntryOriginator                { get; set; } = ValidateMDEntryOriginator;
 
 	/// <summary>Holds a FIX 4.2 LocationID, tag 283, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      LocationID                       { get; set; } = ValidateLocationID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      LocationID                       { get; set; } = ValidateLocationID;
 
 	/// <summary>Holds a FIX 4.2 DeskID, tag 284, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      DeskID                           { get; set; } = ValidateDeskID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      DeskID                           { get; set; } = ValidateDeskID;
 
 	/// <summary>Holds a FIX 4.2 DeleteReason, tag 285, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> DeleteReason                     { get; set; } = ValidateDeleteReason;
+	public Action<Fix42Context, FixCheck, FixField.Character> DeleteReason                     { get; set; } = ValidateDeleteReason;
 
 	/// <summary>Holds a FIX 4.2 OpenCloseSettleFlag, tag 286, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> OpenCloseSettleFlag              { get; set; } = ValidateOpenCloseSettleFlag;
+	public Action<Fix42Context, FixCheck, FixField.Character> OpenCloseSettleFlag              { get; set; } = ValidateOpenCloseSettleFlag;
 
 	/// <summary>Holds a FIX 4.2 SellerDays, tag 287, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   SellerDays                       { get; set; } = ValidateSellerDays;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   SellerDays                       { get; set; } = ValidateSellerDays;
 
 	/// <summary>Holds a FIX 4.2 MDEntryBuyer, tag 288, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      MDEntryBuyer                     { get; set; } = ValidateMDEntryBuyer;
+	public Action<Fix42Context, FixCheck, FixField.Text>      MDEntryBuyer                     { get; set; } = ValidateMDEntryBuyer;
 
 	/// <summary>Holds a FIX 4.2 MDEntrySeller, tag 289, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      MDEntrySeller                    { get; set; } = ValidateMDEntrySeller;
+	public Action<Fix42Context, FixCheck, FixField.Text>      MDEntrySeller                    { get; set; } = ValidateMDEntrySeller;
 
 	/// <summary>Holds a FIX 4.2 MDEntryPositionNo, tag 290, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   MDEntryPositionNo                { get; set; } = ValidateMDEntryPositionNo;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   MDEntryPositionNo                { get; set; } = ValidateMDEntryPositionNo;
 
 	/// <summary>Holds a FIX 4.2 FinancialStatus, tag 291, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> FinancialStatus                  { get; set; } = ValidateFinancialStatus;
+	public Action<Fix42Context, FixCheck, FixField.Character> FinancialStatus                  { get; set; } = ValidateFinancialStatus;
 
 	/// <summary>Holds a FIX 4.2 CorporateAction, tag 292, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> CorporateAction                  { get; set; } = ValidateCorporateAction;
+	public Action<Fix42Context, FixCheck, FixField.Character> CorporateAction                  { get; set; } = ValidateCorporateAction;
 
 	/// <summary>Holds a FIX 4.2 DefBidSize, tag 293, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   DefBidSize                       { get; set; } = ValidateDefBidSize;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   DefBidSize                       { get; set; } = ValidateDefBidSize;
 
 	/// <summary>Holds a FIX 4.2 DefOfferSize, tag 294, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   DefOfferSize                     { get; set; } = ValidateDefOfferSize;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   DefOfferSize                     { get; set; } = ValidateDefOfferSize;
 
 	/// <summary>Holds a FIX 4.2 NoQuoteEntries, tag 295, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoQuoteEntries                   { get; set; } = ValidateNoQuoteEntries;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoQuoteEntries                   { get; set; } = ValidateNoQuoteEntries;
 
 	/// <summary>Holds a FIX 4.2 NoQuoteSets, tag 296, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoQuoteSets                      { get; set; } = ValidateNoQuoteSets;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoQuoteSets                      { get; set; } = ValidateNoQuoteSets;
 
 	/// <summary>Holds a FIX 4.2 QuoteAckStatus, tag 297, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   QuoteAckStatus                   { get; set; } = ValidateQuoteAckStatus;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   QuoteAckStatus                   { get; set; } = ValidateQuoteAckStatus;
 
 	/// <summary>Holds a FIX 4.2 QuoteCancelType, tag 298, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   QuoteCancelType                  { get; set; } = ValidateQuoteCancelType;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   QuoteCancelType                  { get; set; } = ValidateQuoteCancelType;
 
 	/// <summary>Holds a FIX 4.2 QuoteEntryID, tag 299, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      QuoteEntryID                     { get; set; } = ValidateQuoteEntryID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      QuoteEntryID                     { get; set; } = ValidateQuoteEntryID;
 
 	/// <summary>Holds a FIX 4.2 QuoteRejectReason, tag 300, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   QuoteRejectReason                { get; set; } = ValidateQuoteRejectReason;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   QuoteRejectReason                { get; set; } = ValidateQuoteRejectReason;
 
 	/// <summary>Holds a FIX 4.2 QuoteResponseLevel, tag 301, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   QuoteResponseLevel               { get; set; } = ValidateQuoteResponseLevel;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   QuoteResponseLevel               { get; set; } = ValidateQuoteResponseLevel;
 
 	/// <summary>Holds a FIX 4.2 QuoteSetID, tag 302, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      QuoteSetID                       { get; set; } = ValidateQuoteSetID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      QuoteSetID                       { get; set; } = ValidateQuoteSetID;
 
 	/// <summary>Holds a FIX 4.2 QuoteRequestType, tag 303, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   QuoteRequestType                 { get; set; } = ValidateQuoteRequestType;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   QuoteRequestType                 { get; set; } = ValidateQuoteRequestType;
 
 	/// <summary>Holds a FIX 4.2 TotQuoteEntries, tag 304, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   TotQuoteEntries                  { get; set; } = ValidateTotQuoteEntries;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   TotQuoteEntries                  { get; set; } = ValidateTotQuoteEntries;
 
 	/// <summary>Holds a FIX 4.2 UnderlyingIDSource, tag 305, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      UnderlyingIDSource               { get; set; } = ValidateUnderlyingIDSource;
+	public Action<Fix42Context, FixCheck, FixField.Text>      UnderlyingIDSource               { get; set; } = ValidateUnderlyingIDSource;
 
 	/// <summary>Holds a FIX 4.2 UnderlyingIssuer, tag 306, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      UnderlyingIssuer                 { get; set; } = ValidateUnderlyingIssuer;
+	public Action<Fix42Context, FixCheck, FixField.Text>      UnderlyingIssuer                 { get; set; } = ValidateUnderlyingIssuer;
 
 	/// <summary>Holds a FIX 4.2 UnderlyingSecurityDesc, tag 307, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      UnderlyingSecurityDesc           { get; set; } = ValidateUnderlyingSecurityDesc;
+	public Action<Fix42Context, FixCheck, FixField.Text>      UnderlyingSecurityDesc           { get; set; } = ValidateUnderlyingSecurityDesc;
 
 	/// <summary>Holds a FIX 4.2 UnderlyingSecurityExchange, tag 308, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      UnderlyingSecurityExchange       { get; set; } = ValidateUnderlyingSecurityExchange;
+	public Action<Fix42Context, FixCheck, FixField.Text>      UnderlyingSecurityExchange       { get; set; } = ValidateUnderlyingSecurityExchange;
 
 	/// <summary>Holds a FIX 4.2 UnderlyingSecurityID, tag 309, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      UnderlyingSecurityID             { get; set; } = ValidateUnderlyingSecurityID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      UnderlyingSecurityID             { get; set; } = ValidateUnderlyingSecurityID;
 
 	/// <summary>Holds a FIX 4.2 UnderlyingSecurityType, tag 310, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      UnderlyingSecurityType           { get; set; } = ValidateUnderlyingSecurityType;
+	public Action<Fix42Context, FixCheck, FixField.Text>      UnderlyingSecurityType           { get; set; } = ValidateUnderlyingSecurityType;
 
 	/// <summary>Holds a FIX 4.2 UnderlyingSymbol, tag 311, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      UnderlyingSymbol                 { get; set; } = ValidateUnderlyingSymbol;
+	public Action<Fix42Context, FixCheck, FixField.Text>      UnderlyingSymbol                 { get; set; } = ValidateUnderlyingSymbol;
 
 	/// <summary>Holds a FIX 4.2 UnderlyingSymbolSfx, tag 312, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      UnderlyingSymbolSfx              { get; set; } = ValidateUnderlyingSymbolSfx;
+	public Action<Fix42Context, FixCheck, FixField.Text>      UnderlyingSymbolSfx              { get; set; } = ValidateUnderlyingSymbolSfx;
 
 	/// <summary>Holds a FIX 4.2 UnderlyingMaturityMonthYear, tag 313, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.MonthYear, bool> UnderlyingMaturityMonthYear      { get; set; } = ValidateUnderlyingMaturityMonthYear;
+	public Action<Fix42Context, FixCheck, FixField.MonthYear> UnderlyingMaturityMonthYear      { get; set; } = ValidateUnderlyingMaturityMonthYear;
 
 	/// <summary>Holds a FIX 4.2 UnderlyingMaturityDay, tag 314, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   UnderlyingMaturityDay            { get; set; } = ValidateUnderlyingMaturityDay;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   UnderlyingMaturityDay            { get; set; } = ValidateUnderlyingMaturityDay;
 
 	/// <summary>Holds a FIX 4.2 UnderlyingPutOrCall, tag 315, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   UnderlyingPutOrCall              { get; set; } = ValidateUnderlyingPutOrCall;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   UnderlyingPutOrCall              { get; set; } = ValidateUnderlyingPutOrCall;
 
 	/// <summary>Holds a FIX 4.2 UnderlyingStrikePrice, tag 316, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   UnderlyingStrikePrice            { get; set; } = ValidateUnderlyingStrikePrice;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   UnderlyingStrikePrice            { get; set; } = ValidateUnderlyingStrikePrice;
 
 	/// <summary>Holds a FIX 4.2 UnderlyingOptAttribute, tag 317, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> UnderlyingOptAttribute           { get; set; } = ValidateUnderlyingOptAttribute;
+	public Action<Fix42Context, FixCheck, FixField.Character> UnderlyingOptAttribute           { get; set; } = ValidateUnderlyingOptAttribute;
 
 	/// <summary>Holds a FIX 4.2 UnderlyingCurrency, tag 318, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      UnderlyingCurrency               { get; set; } = ValidateUnderlyingCurrency;
+	public Action<Fix42Context, FixCheck, FixField.Text>      UnderlyingCurrency               { get; set; } = ValidateUnderlyingCurrency;
 
 	/// <summary>Holds a FIX 4.2 RatioQty, tag 319, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   RatioQty                         { get; set; } = ValidateRatioQty;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   RatioQty                         { get; set; } = ValidateRatioQty;
 
 	/// <summary>Holds a FIX 4.2 SecurityReqID, tag 320, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SecurityReqID                    { get; set; } = ValidateSecurityReqID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SecurityReqID                    { get; set; } = ValidateSecurityReqID;
 
 	/// <summary>Holds a FIX 4.2 SecurityRequestType, tag 321, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   SecurityRequestType              { get; set; } = ValidateSecurityRequestType;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   SecurityRequestType              { get; set; } = ValidateSecurityRequestType;
 
 	/// <summary>Holds a FIX 4.2 SecurityResponseID, tag 322, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SecurityResponseID               { get; set; } = ValidateSecurityResponseID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SecurityResponseID               { get; set; } = ValidateSecurityResponseID;
 
 	/// <summary>Holds a FIX 4.2 SecurityResponseType, tag 323, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   SecurityResponseType             { get; set; } = ValidateSecurityResponseType;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   SecurityResponseType             { get; set; } = ValidateSecurityResponseType;
 
 	/// <summary>Holds a FIX 4.2 SecurityStatusReqID, tag 324, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      SecurityStatusReqID              { get; set; } = ValidateSecurityStatusReqID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      SecurityStatusReqID              { get; set; } = ValidateSecurityStatusReqID;
 
 	/// <summary>Holds a FIX 4.2 UnsolicitedIndicator, tag 325, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Boolean, bool>   UnsolicitedIndicator             { get; set; } = ValidateUnsolicitedIndicator;
+	public Action<Fix42Context, FixCheck, FixField.Boolean>   UnsolicitedIndicator             { get; set; } = ValidateUnsolicitedIndicator;
 
 	/// <summary>Holds a FIX 4.2 SecurityTradingStatus, tag 326, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   SecurityTradingStatus            { get; set; } = ValidateSecurityTradingStatus;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   SecurityTradingStatus            { get; set; } = ValidateSecurityTradingStatus;
 
 	/// <summary>Holds a FIX 4.2 HaltReason, tag 327, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> HaltReason                       { get; set; } = ValidateHaltReason;
+	public Action<Fix42Context, FixCheck, FixField.Character> HaltReason                       { get; set; } = ValidateHaltReason;
 
 	/// <summary>Holds a FIX 4.2 InViewOfCommon, tag 328, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Boolean, bool>   InViewOfCommon                   { get; set; } = ValidateInViewOfCommon;
+	public Action<Fix42Context, FixCheck, FixField.Boolean>   InViewOfCommon                   { get; set; } = ValidateInViewOfCommon;
 
 	/// <summary>Holds a FIX 4.2 DueToRelated, tag 329, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Boolean, bool>   DueToRelated                     { get; set; } = ValidateDueToRelated;
+	public Action<Fix42Context, FixCheck, FixField.Boolean>   DueToRelated                     { get; set; } = ValidateDueToRelated;
 
 	/// <summary>Holds a FIX 4.2 BuyVolume, tag 330, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   BuyVolume                        { get; set; } = ValidateBuyVolume;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   BuyVolume                        { get; set; } = ValidateBuyVolume;
 
 	/// <summary>Holds a FIX 4.2 SellVolume, tag 331, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   SellVolume                       { get; set; } = ValidateSellVolume;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   SellVolume                       { get; set; } = ValidateSellVolume;
 
 	/// <summary>Holds a FIX 4.2 HighPx, tag 332, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   HighPx                           { get; set; } = ValidateHighPx;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   HighPx                           { get; set; } = ValidateHighPx;
 
 	/// <summary>Holds a FIX 4.2 LowPx, tag 333, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   LowPx                            { get; set; } = ValidateLowPx;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   LowPx                            { get; set; } = ValidateLowPx;
 
 	/// <summary>Holds a FIX 4.2 Adjustment, tag 334, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   Adjustment                       { get; set; } = ValidateAdjustment;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   Adjustment                       { get; set; } = ValidateAdjustment;
 
 	/// <summary>Holds a FIX 4.2 TradSesReqID, tag 335, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      TradSesReqID                     { get; set; } = ValidateTradSesReqID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      TradSesReqID                     { get; set; } = ValidateTradSesReqID;
 
 	/// <summary>Holds a FIX 4.2 TradingSessionID, tag 336, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      TradingSessionID                 { get; set; } = ValidateTradingSessionID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      TradingSessionID                 { get; set; } = ValidateTradingSessionID;
 
 	/// <summary>Holds a FIX 4.2 ContraTrader, tag 337, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      ContraTrader                     { get; set; } = ValidateContraTrader;
+	public Action<Fix42Context, FixCheck, FixField.Text>      ContraTrader                     { get; set; } = ValidateContraTrader;
 
 	/// <summary>Holds a FIX 4.2 TradSesMethod, tag 338, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   TradSesMethod                    { get; set; } = ValidateTradSesMethod;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   TradSesMethod                    { get; set; } = ValidateTradSesMethod;
 
 	/// <summary>Holds a FIX 4.2 TradSesMode, tag 339, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   TradSesMode                      { get; set; } = ValidateTradSesMode;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   TradSesMode                      { get; set; } = ValidateTradSesMode;
 
 	/// <summary>Holds a FIX 4.2 TradSesStatus, tag 340, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   TradSesStatus                    { get; set; } = ValidateTradSesStatus;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   TradSesStatus                    { get; set; } = ValidateTradSesStatus;
 
 	/// <summary>Holds a FIX 4.2 TradSesStartTime, tag 341, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Timestamp, bool> TradSesStartTime                 { get; set; } = ValidateTradSesStartTime;
+	public Action<Fix42Context, FixCheck, FixField.Timestamp> TradSesStartTime                 { get; set; } = ValidateTradSesStartTime;
 
 	/// <summary>Holds a FIX 4.2 TradSesOpenTime, tag 342, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Timestamp, bool> TradSesOpenTime                  { get; set; } = ValidateTradSesOpenTime;
+	public Action<Fix42Context, FixCheck, FixField.Timestamp> TradSesOpenTime                  { get; set; } = ValidateTradSesOpenTime;
 
 	/// <summary>Holds a FIX 4.2 TradSesPreCloseTime, tag 343, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Timestamp, bool> TradSesPreCloseTime              { get; set; } = ValidateTradSesPreCloseTime;
+	public Action<Fix42Context, FixCheck, FixField.Timestamp> TradSesPreCloseTime              { get; set; } = ValidateTradSesPreCloseTime;
 
 	/// <summary>Holds a FIX 4.2 TradSesCloseTime, tag 344, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Timestamp, bool> TradSesCloseTime                 { get; set; } = ValidateTradSesCloseTime;
+	public Action<Fix42Context, FixCheck, FixField.Timestamp> TradSesCloseTime                 { get; set; } = ValidateTradSesCloseTime;
 
 	/// <summary>Holds a FIX 4.2 TradSesEndTime, tag 345, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Timestamp, bool> TradSesEndTime                   { get; set; } = ValidateTradSesEndTime;
+	public Action<Fix42Context, FixCheck, FixField.Timestamp> TradSesEndTime                   { get; set; } = ValidateTradSesEndTime;
 
 	/// <summary>Holds a FIX 4.2 NumberOfOrders, tag 346, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NumberOfOrders                   { get; set; } = ValidateNumberOfOrders;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NumberOfOrders                   { get; set; } = ValidateNumberOfOrders;
 
 	/// <summary>Holds a FIX 4.2 MessageEncoding, tag 347, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      MessageEncoding                  { get; set; } = ValidateMessageEncoding;
+	public Action<Fix42Context, FixCheck, FixField.Text>      MessageEncoding                  { get; set; } = ValidateMessageEncoding;
 
 	/// <summary>Holds a FIX 4.2 EncodedIssuerLen, tag 348, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   EncodedIssuerLen                 { get; set; } = ValidateEncodedIssuerLen;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   EncodedIssuerLen                 { get; set; } = ValidateEncodedIssuerLen;
 
 	/// <summary>Holds a FIX 4.2 EncodedIssuer, tag 349, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Data, bool>      EncodedIssuer                    { get; set; } = ValidateEncodedIssuer;
+	public Action<Fix42Context, FixCheck, FixField.Data>      EncodedIssuer                    { get; set; } = ValidateEncodedIssuer;
 
 	/// <summary>Holds a FIX 4.2 EncodedSecurityDescLen, tag 350, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   EncodedSecurityDescLen           { get; set; } = ValidateEncodedSecurityDescLen;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   EncodedSecurityDescLen           { get; set; } = ValidateEncodedSecurityDescLen;
 
 	/// <summary>Holds a FIX 4.2 EncodedSecurityDesc, tag 351, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Data, bool>      EncodedSecurityDesc              { get; set; } = ValidateEncodedSecurityDesc;
+	public Action<Fix42Context, FixCheck, FixField.Data>      EncodedSecurityDesc              { get; set; } = ValidateEncodedSecurityDesc;
 
 	/// <summary>Holds a FIX 4.2 EncodedListExecInstLen, tag 352, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   EncodedListExecInstLen           { get; set; } = ValidateEncodedListExecInstLen;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   EncodedListExecInstLen           { get; set; } = ValidateEncodedListExecInstLen;
 
 	/// <summary>Holds a FIX 4.2 EncodedListExecInst, tag 353, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Data, bool>      EncodedListExecInst              { get; set; } = ValidateEncodedListExecInst;
+	public Action<Fix42Context, FixCheck, FixField.Data>      EncodedListExecInst              { get; set; } = ValidateEncodedListExecInst;
 
 	/// <summary>Holds a FIX 4.2 EncodedTextLen, tag 354, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   EncodedTextLen                   { get; set; } = ValidateEncodedTextLen;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   EncodedTextLen                   { get; set; } = ValidateEncodedTextLen;
 
 	/// <summary>Holds a FIX 4.2 EncodedText, tag 355, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Data, bool>      EncodedText                      { get; set; } = ValidateEncodedText;
+	public Action<Fix42Context, FixCheck, FixField.Data>      EncodedText                      { get; set; } = ValidateEncodedText;
 
 	/// <summary>Holds a FIX 4.2 EncodedSubjectLen, tag 356, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   EncodedSubjectLen                { get; set; } = ValidateEncodedSubjectLen;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   EncodedSubjectLen                { get; set; } = ValidateEncodedSubjectLen;
 
 	/// <summary>Holds a FIX 4.2 EncodedSubject, tag 357, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Data, bool>      EncodedSubject                   { get; set; } = ValidateEncodedSubject;
+	public Action<Fix42Context, FixCheck, FixField.Data>      EncodedSubject                   { get; set; } = ValidateEncodedSubject;
 
 	/// <summary>Holds a FIX 4.2 EncodedHeadlineLen, tag 358, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   EncodedHeadlineLen               { get; set; } = ValidateEncodedHeadlineLen;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   EncodedHeadlineLen               { get; set; } = ValidateEncodedHeadlineLen;
 
 	/// <summary>Holds a FIX 4.2 EncodedHeadline, tag 359, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Data, bool>      EncodedHeadline                  { get; set; } = ValidateEncodedHeadline;
+	public Action<Fix42Context, FixCheck, FixField.Data>      EncodedHeadline                  { get; set; } = ValidateEncodedHeadline;
 
 	/// <summary>Holds a FIX 4.2 EncodedAllocTextLen, tag 360, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   EncodedAllocTextLen              { get; set; } = ValidateEncodedAllocTextLen;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   EncodedAllocTextLen              { get; set; } = ValidateEncodedAllocTextLen;
 
 	/// <summary>Holds a FIX 4.2 EncodedAllocText, tag 361, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Data, bool>      EncodedAllocText                 { get; set; } = ValidateEncodedAllocText;
+	public Action<Fix42Context, FixCheck, FixField.Data>      EncodedAllocText                 { get; set; } = ValidateEncodedAllocText;
 
 	/// <summary>Holds a FIX 4.2 EncodedUnderlyingIssuerLen, tag 362, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   EncodedUnderlyingIssuerLen       { get; set; } = ValidateEncodedUnderlyingIssuerLen;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   EncodedUnderlyingIssuerLen       { get; set; } = ValidateEncodedUnderlyingIssuerLen;
 
 	/// <summary>Holds a FIX 4.2 EncodedUnderlyingIssuer, tag 363, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Data, bool>      EncodedUnderlyingIssuer          { get; set; } = ValidateEncodedUnderlyingIssuer;
+	public Action<Fix42Context, FixCheck, FixField.Data>      EncodedUnderlyingIssuer          { get; set; } = ValidateEncodedUnderlyingIssuer;
 
 	/// <summary>Holds a FIX 4.2 EncodedUnderlyingSecurityDescLen, tag 364, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   EncodedUnderlyingSecurityDescLen { get; set; } = ValidateEncodedUnderlyingSecurityDescLen;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   EncodedUnderlyingSecurityDescLen { get; set; } = ValidateEncodedUnderlyingSecurityDescLen;
 
 	/// <summary>Holds a FIX 4.2 EncodedUnderlyingSecurityDesc, tag 365, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Data, bool>      EncodedUnderlyingSecurityDesc    { get; set; } = ValidateEncodedUnderlyingSecurityDesc;
+	public Action<Fix42Context, FixCheck, FixField.Data>      EncodedUnderlyingSecurityDesc    { get; set; } = ValidateEncodedUnderlyingSecurityDesc;
 
 	/// <summary>Holds a FIX 4.2 AllocPrice, tag 366, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   AllocPrice                       { get; set; } = ValidateAllocPrice;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   AllocPrice                       { get; set; } = ValidateAllocPrice;
 
 	/// <summary>Holds a FIX 4.2 QuoteSetValidUntilTime, tag 367, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Timestamp, bool> QuoteSetValidUntilTime           { get; set; } = ValidateQuoteSetValidUntilTime;
+	public Action<Fix42Context, FixCheck, FixField.Timestamp> QuoteSetValidUntilTime           { get; set; } = ValidateQuoteSetValidUntilTime;
 
 	/// <summary>Holds a FIX 4.2 QuoteEntryRejectReason, tag 368, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   QuoteEntryRejectReason           { get; set; } = ValidateQuoteEntryRejectReason;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   QuoteEntryRejectReason           { get; set; } = ValidateQuoteEntryRejectReason;
 
 	/// <summary>Holds a FIX 4.2 LastMsgSeqNumProcessed, tag 369, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   LastMsgSeqNumProcessed           { get; set; } = ValidateLastMsgSeqNumProcessed;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   LastMsgSeqNumProcessed           { get; set; } = ValidateLastMsgSeqNumProcessed;
 
 	/// <summary>Holds a FIX 4.2 OnBehalfOfSendingTime, tag 370, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Timestamp, bool> OnBehalfOfSendingTime            { get; set; } = ValidateOnBehalfOfSendingTime;
+	public Action<Fix42Context, FixCheck, FixField.Timestamp> OnBehalfOfSendingTime            { get; set; } = ValidateOnBehalfOfSendingTime;
 
 	/// <summary>Holds a FIX 4.2 RefTagID, tag 371, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   RefTagID                         { get; set; } = ValidateRefTagID;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   RefTagID                         { get; set; } = ValidateRefTagID;
 
 	/// <summary>Holds a FIX 4.2 RefMsgType, tag 372, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      RefMsgType                       { get; set; } = ValidateRefMsgType;
+	public Action<Fix42Context, FixCheck, FixField.Text>      RefMsgType                       { get; set; } = ValidateRefMsgType;
 
 	/// <summary>Holds a FIX 4.2 SessionRejectReason, tag 373, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   SessionRejectReason              { get; set; } = ValidateSessionRejectReason;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   SessionRejectReason              { get; set; } = ValidateSessionRejectReason;
 
 	/// <summary>Holds a FIX 4.2 BidRequestTransType, tag 374, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> BidRequestTransType              { get; set; } = ValidateBidRequestTransType;
+	public Action<Fix42Context, FixCheck, FixField.Character> BidRequestTransType              { get; set; } = ValidateBidRequestTransType;
 
 	/// <summary>Holds a FIX 4.2 ContraBroker, tag 375, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      ContraBroker                     { get; set; } = ValidateContraBroker;
+	public Action<Fix42Context, FixCheck, FixField.Text>      ContraBroker                     { get; set; } = ValidateContraBroker;
 
 	/// <summary>Holds a FIX 4.2 ComplianceID, tag 376, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      ComplianceID                     { get; set; } = ValidateComplianceID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      ComplianceID                     { get; set; } = ValidateComplianceID;
 
 	/// <summary>Holds a FIX 4.2 SolicitedFlag, tag 377, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Boolean, bool>   SolicitedFlag                    { get; set; } = ValidateSolicitedFlag;
+	public Action<Fix42Context, FixCheck, FixField.Boolean>   SolicitedFlag                    { get; set; } = ValidateSolicitedFlag;
 
 	/// <summary>Holds a FIX 4.2 ExecRestatementReason, tag 378, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   ExecRestatementReason            { get; set; } = ValidateExecRestatementReason;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   ExecRestatementReason            { get; set; } = ValidateExecRestatementReason;
 
 	/// <summary>Holds a FIX 4.2 BusinessRejectRefID, tag 379, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      BusinessRejectRefID              { get; set; } = ValidateBusinessRejectRefID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      BusinessRejectRefID              { get; set; } = ValidateBusinessRejectRefID;
 
 	/// <summary>Holds a FIX 4.2 BusinessRejectReason, tag 380, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   BusinessRejectReason             { get; set; } = ValidateBusinessRejectReason;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   BusinessRejectReason             { get; set; } = ValidateBusinessRejectReason;
 
 	/// <summary>Holds a FIX 4.2 GrossTradeAmt, tag 381, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   GrossTradeAmt                    { get; set; } = ValidateGrossTradeAmt;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   GrossTradeAmt                    { get; set; } = ValidateGrossTradeAmt;
 
 	/// <summary>Holds a FIX 4.2 NoContraBrokers, tag 382, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoContraBrokers                  { get; set; } = ValidateNoContraBrokers;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoContraBrokers                  { get; set; } = ValidateNoContraBrokers;
 
 	/// <summary>Holds a FIX 4.2 MaxMessageSize, tag 383, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   MaxMessageSize                   { get; set; } = ValidateMaxMessageSize;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   MaxMessageSize                   { get; set; } = ValidateMaxMessageSize;
 
 	/// <summary>Holds a FIX 4.2 NoMsgTypes, tag 384, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoMsgTypes                       { get; set; } = ValidateNoMsgTypes;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoMsgTypes                       { get; set; } = ValidateNoMsgTypes;
 
 	/// <summary>Holds a FIX 4.2 MsgDirection, tag 385, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> MsgDirection                     { get; set; } = ValidateMsgDirection;
+	public Action<Fix42Context, FixCheck, FixField.Character> MsgDirection                     { get; set; } = ValidateMsgDirection;
 
 	/// <summary>Holds a FIX 4.2 NoTradingSessions, tag 386, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoTradingSessions                { get; set; } = ValidateNoTradingSessions;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoTradingSessions                { get; set; } = ValidateNoTradingSessions;
 
 	/// <summary>Holds a FIX 4.2 TotalVolumeTraded, tag 387, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   TotalVolumeTraded                { get; set; } = ValidateTotalVolumeTraded;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   TotalVolumeTraded                { get; set; } = ValidateTotalVolumeTraded;
 
 	/// <summary>Holds a FIX 4.2 DiscretionInst, tag 388, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> DiscretionInst                   { get; set; } = ValidateDiscretionInst;
+	public Action<Fix42Context, FixCheck, FixField.Character> DiscretionInst                   { get; set; } = ValidateDiscretionInst;
 
 	/// <summary>Holds a FIX 4.2 DiscretionOffset, tag 389, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   DiscretionOffset                 { get; set; } = ValidateDiscretionOffset;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   DiscretionOffset                 { get; set; } = ValidateDiscretionOffset;
 
 	/// <summary>Holds a FIX 4.2 BidID, tag 390, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      BidID                            { get; set; } = ValidateBidID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      BidID                            { get; set; } = ValidateBidID;
 
 	/// <summary>Holds a FIX 4.2 ClientBidID, tag 391, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      ClientBidID                      { get; set; } = ValidateClientBidID;
+	public Action<Fix42Context, FixCheck, FixField.Text>      ClientBidID                      { get; set; } = ValidateClientBidID;
 
 	/// <summary>Holds a FIX 4.2 ListName, tag 392, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      ListName                         { get; set; } = ValidateListName;
+	public Action<Fix42Context, FixCheck, FixField.Text>      ListName                         { get; set; } = ValidateListName;
 
 	/// <summary>Holds a FIX 4.2 TotalNumSecurities, tag 393, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   TotalNumSecurities               { get; set; } = ValidateTotalNumSecurities;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   TotalNumSecurities               { get; set; } = ValidateTotalNumSecurities;
 
 	/// <summary>Holds a FIX 4.2 BidType, tag 394, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   BidType                          { get; set; } = ValidateBidType;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   BidType                          { get; set; } = ValidateBidType;
 
 	/// <summary>Holds a FIX 4.2 NumTickets, tag 395, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NumTickets                       { get; set; } = ValidateNumTickets;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NumTickets                       { get; set; } = ValidateNumTickets;
 
 	/// <summary>Holds a FIX 4.2 SideValue1, tag 396, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   SideValue1                       { get; set; } = ValidateSideValue1;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   SideValue1                       { get; set; } = ValidateSideValue1;
 
 	/// <summary>Holds a FIX 4.2 SideValue2, tag 397, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   SideValue2                       { get; set; } = ValidateSideValue2;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   SideValue2                       { get; set; } = ValidateSideValue2;
 
 	/// <summary>Holds a FIX 4.2 NoBidDescriptors, tag 398, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoBidDescriptors                 { get; set; } = ValidateNoBidDescriptors;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoBidDescriptors                 { get; set; } = ValidateNoBidDescriptors;
 
 	/// <summary>Holds a FIX 4.2 BidDescriptorType, tag 399, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   BidDescriptorType                { get; set; } = ValidateBidDescriptorType;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   BidDescriptorType                { get; set; } = ValidateBidDescriptorType;
 
 	/// <summary>Holds a FIX 4.2 BidDescriptor, tag 400, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      BidDescriptor                    { get; set; } = ValidateBidDescriptor;
+	public Action<Fix42Context, FixCheck, FixField.Text>      BidDescriptor                    { get; set; } = ValidateBidDescriptor;
 
 	/// <summary>Holds a FIX 4.2 SideValueInd, tag 401, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   SideValueInd                     { get; set; } = ValidateSideValueInd;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   SideValueInd                     { get; set; } = ValidateSideValueInd;
 
 	/// <summary>Holds a FIX 4.2 LiquidityPctLow, tag 402, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   LiquidityPctLow                  { get; set; } = ValidateLiquidityPctLow;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   LiquidityPctLow                  { get; set; } = ValidateLiquidityPctLow;
 
 	/// <summary>Holds a FIX 4.2 LiquidityPctHigh, tag 403, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   LiquidityPctHigh                 { get; set; } = ValidateLiquidityPctHigh;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   LiquidityPctHigh                 { get; set; } = ValidateLiquidityPctHigh;
 
 	/// <summary>Holds a FIX 4.2 LiquidityValue, tag 404, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   LiquidityValue                   { get; set; } = ValidateLiquidityValue;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   LiquidityValue                   { get; set; } = ValidateLiquidityValue;
 
 	/// <summary>Holds a FIX 4.2 EFPTrackingError, tag 405, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   EFPTrackingError                 { get; set; } = ValidateEFPTrackingError;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   EFPTrackingError                 { get; set; } = ValidateEFPTrackingError;
 
 	/// <summary>Holds a FIX 4.2 FairValue, tag 406, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   FairValue                        { get; set; } = ValidateFairValue;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   FairValue                        { get; set; } = ValidateFairValue;
 
 	/// <summary>Holds a FIX 4.2 OutsideIndexPct, tag 407, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   OutsideIndexPct                  { get; set; } = ValidateOutsideIndexPct;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   OutsideIndexPct                  { get; set; } = ValidateOutsideIndexPct;
 
 	/// <summary>Holds a FIX 4.2 ValueOfFutures, tag 408, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   ValueOfFutures                   { get; set; } = ValidateValueOfFutures;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   ValueOfFutures                   { get; set; } = ValidateValueOfFutures;
 
 	/// <summary>Holds a FIX 4.2 LiquidityIndType, tag 409, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   LiquidityIndType                 { get; set; } = ValidateLiquidityIndType;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   LiquidityIndType                 { get; set; } = ValidateLiquidityIndType;
 
 	/// <summary>Holds a FIX 4.2 WtAverageLiquidity, tag 410, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   WtAverageLiquidity               { get; set; } = ValidateWtAverageLiquidity;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   WtAverageLiquidity               { get; set; } = ValidateWtAverageLiquidity;
 
 	/// <summary>Holds a FIX 4.2 ExchangeForPhysical, tag 411, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Boolean, bool>   ExchangeForPhysical              { get; set; } = ValidateExchangeForPhysical;
+	public Action<Fix42Context, FixCheck, FixField.Boolean>   ExchangeForPhysical              { get; set; } = ValidateExchangeForPhysical;
 
 	/// <summary>Holds a FIX 4.2 OutMainCntryUIndex, tag 412, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   OutMainCntryUIndex               { get; set; } = ValidateOutMainCntryUIndex;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   OutMainCntryUIndex               { get; set; } = ValidateOutMainCntryUIndex;
 
 	/// <summary>Holds a FIX 4.2 CrossPercent, tag 413, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   CrossPercent                     { get; set; } = ValidateCrossPercent;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   CrossPercent                     { get; set; } = ValidateCrossPercent;
 
 	/// <summary>Holds a FIX 4.2 ProgRptReqs, tag 414, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   ProgRptReqs                      { get; set; } = ValidateProgRptReqs;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   ProgRptReqs                      { get; set; } = ValidateProgRptReqs;
 
 	/// <summary>Holds a FIX 4.2 ProgPeriodInterval, tag 415, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   ProgPeriodInterval               { get; set; } = ValidateProgPeriodInterval;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   ProgPeriodInterval               { get; set; } = ValidateProgPeriodInterval;
 
 	/// <summary>Holds a FIX 4.2 IncTaxInd, tag 416, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   IncTaxInd                        { get; set; } = ValidateIncTaxInd;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   IncTaxInd                        { get; set; } = ValidateIncTaxInd;
 
 	/// <summary>Holds a FIX 4.2 NumBidders, tag 417, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NumBidders                       { get; set; } = ValidateNumBidders;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NumBidders                       { get; set; } = ValidateNumBidders;
 
 	/// <summary>Holds a FIX 4.2 TradeType, tag 418, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> TradeType                        { get; set; } = ValidateTradeType;
+	public Action<Fix42Context, FixCheck, FixField.Character> TradeType                        { get; set; } = ValidateTradeType;
 
 	/// <summary>Holds a FIX 4.2 BasisPxType, tag 419, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> BasisPxType                      { get; set; } = ValidateBasisPxType;
+	public Action<Fix42Context, FixCheck, FixField.Character> BasisPxType                      { get; set; } = ValidateBasisPxType;
 
 	/// <summary>Holds a FIX 4.2 NoBidComponents, tag 420, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoBidComponents                  { get; set; } = ValidateNoBidComponents;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoBidComponents                  { get; set; } = ValidateNoBidComponents;
 
 	/// <summary>Holds a FIX 4.2 Country, tag 421, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      Country                          { get; set; } = ValidateCountry;
+	public Action<Fix42Context, FixCheck, FixField.Text>      Country                          { get; set; } = ValidateCountry;
 
 	/// <summary>Holds a FIX 4.2 TotNoStrikes, tag 422, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   TotNoStrikes                     { get; set; } = ValidateTotNoStrikes;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   TotNoStrikes                     { get; set; } = ValidateTotNoStrikes;
 
 	/// <summary>Holds a FIX 4.2 PriceType, tag 423, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   PriceType                        { get; set; } = ValidatePriceType;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   PriceType                        { get; set; } = ValidatePriceType;
 
 	/// <summary>Holds a FIX 4.2 DayOrderQty, tag 424, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   DayOrderQty                      { get; set; } = ValidateDayOrderQty;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   DayOrderQty                      { get; set; } = ValidateDayOrderQty;
 
 	/// <summary>Holds a FIX 4.2 DayCumQty, tag 425, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   DayCumQty                        { get; set; } = ValidateDayCumQty;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   DayCumQty                        { get; set; } = ValidateDayCumQty;
 
 	/// <summary>Holds a FIX 4.2 DayAvgPx, tag 426, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   DayAvgPx                         { get; set; } = ValidateDayAvgPx;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   DayAvgPx                         { get; set; } = ValidateDayAvgPx;
 
 	/// <summary>Holds a FIX 4.2 GTBookingInst, tag 427, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   GTBookingInst                    { get; set; } = ValidateGTBookingInst;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   GTBookingInst                    { get; set; } = ValidateGTBookingInst;
 
 	/// <summary>Holds a FIX 4.2 NoStrikes, tag 428, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NoStrikes                        { get; set; } = ValidateNoStrikes;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NoStrikes                        { get; set; } = ValidateNoStrikes;
 
 	/// <summary>Holds a FIX 4.2 ListStatusType, tag 429, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   ListStatusType                   { get; set; } = ValidateListStatusType;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   ListStatusType                   { get; set; } = ValidateListStatusType;
 
 	/// <summary>Holds a FIX 4.2 NetGrossInd, tag 430, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   NetGrossInd                      { get; set; } = ValidateNetGrossInd;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   NetGrossInd                      { get; set; } = ValidateNetGrossInd;
 
 	/// <summary>Holds a FIX 4.2 ListOrderStatus, tag 431, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   ListOrderStatus                  { get; set; } = ValidateListOrderStatus;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   ListOrderStatus                  { get; set; } = ValidateListOrderStatus;
 
 	/// <summary>Holds a FIX 4.2 ExpireDate, tag 432, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Date, bool>      ExpireDate                       { get; set; } = ValidateExpireDate;
+	public Action<Fix42Context, FixCheck, FixField.Date>      ExpireDate                       { get; set; } = ValidateExpireDate;
 
 	/// <summary>Holds a FIX 4.2 ListExecInstType, tag 433, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> ListExecInstType                 { get; set; } = ValidateListExecInstType;
+	public Action<Fix42Context, FixCheck, FixField.Character> ListExecInstType                 { get; set; } = ValidateListExecInstType;
 
 	/// <summary>Holds a FIX 4.2 CxlRejResponseTo, tag 434, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> CxlRejResponseTo                 { get; set; } = ValidateCxlRejResponseTo;
+	public Action<Fix42Context, FixCheck, FixField.Character> CxlRejResponseTo                 { get; set; } = ValidateCxlRejResponseTo;
 
 	/// <summary>Holds a FIX 4.2 UnderlyingCouponRate, tag 435, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   UnderlyingCouponRate             { get; set; } = ValidateUnderlyingCouponRate;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   UnderlyingCouponRate             { get; set; } = ValidateUnderlyingCouponRate;
 
 	/// <summary>Holds a FIX 4.2 UnderlyingContractMultiplier, tag 436, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   UnderlyingContractMultiplier     { get; set; } = ValidateUnderlyingContractMultiplier;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   UnderlyingContractMultiplier     { get; set; } = ValidateUnderlyingContractMultiplier;
 
 	/// <summary>Holds a FIX 4.2 ContraTradeQty, tag 437, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Decimal, bool>   ContraTradeQty                   { get; set; } = ValidateContraTradeQty;
+	public Action<Fix42Context, FixCheck, FixField.Decimal>   ContraTradeQty                   { get; set; } = ValidateContraTradeQty;
 
 	/// <summary>Holds a FIX 4.2 ContraTradeTime, tag 438, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Timestamp, bool> ContraTradeTime                  { get; set; } = ValidateContraTradeTime;
+	public Action<Fix42Context, FixCheck, FixField.Timestamp> ContraTradeTime                  { get; set; } = ValidateContraTradeTime;
 
 	/// <summary>Holds a FIX 4.2 ClearingFirm, tag 439, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      ClearingFirm                     { get; set; } = ValidateClearingFirm;
+	public Action<Fix42Context, FixCheck, FixField.Text>      ClearingFirm                     { get; set; } = ValidateClearingFirm;
 
 	/// <summary>Holds a FIX 4.2 ClearingAccount, tag 440, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      ClearingAccount                  { get; set; } = ValidateClearingAccount;
+	public Action<Fix42Context, FixCheck, FixField.Text>      ClearingAccount                  { get; set; } = ValidateClearingAccount;
 
 	/// <summary>Holds a FIX 4.2 LiquidityNumSecurities, tag 441, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   LiquidityNumSecurities           { get; set; } = ValidateLiquidityNumSecurities;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   LiquidityNumSecurities           { get; set; } = ValidateLiquidityNumSecurities;
 
 	/// <summary>Holds a FIX 4.2 MultiLegReportingType, tag 442, to the values the specification lists.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Character, bool> MultiLegReportingType            { get; set; } = ValidateMultiLegReportingType;
+	public Action<Fix42Context, FixCheck, FixField.Character> MultiLegReportingType            { get; set; } = ValidateMultiLegReportingType;
 
 	/// <summary>Holds a FIX 4.2 StrikeTime, tag 443, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Timestamp, bool> StrikeTime                       { get; set; } = ValidateStrikeTime;
+	public Action<Fix42Context, FixCheck, FixField.Timestamp> StrikeTime                       { get; set; } = ValidateStrikeTime;
 
 	/// <summary>Holds a FIX 4.2 ListStatusText, tag 444, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Text, bool>      ListStatusText                   { get; set; } = ValidateListStatusText;
+	public Action<Fix42Context, FixCheck, FixField.Text>      ListStatusText                   { get; set; } = ValidateListStatusText;
 
 	/// <summary>Holds a FIX 4.2 EncodedListStatusTextLen, tag 445, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Integer, bool>   EncodedListStatusTextLen         { get; set; } = ValidateEncodedListStatusTextLen;
+	public Action<Fix42Context, FixCheck, FixField.Integer>   EncodedListStatusTextLen         { get; set; } = ValidateEncodedListStatusTextLen;
 
 	/// <summary>Holds a FIX 4.2 EncodedListStatusText, tag 446, to its type.</summary>
-	public Func<Fix42Context, FixMessage, FixField.Data, bool>      EncodedListStatusText            { get; set; } = ValidateEncodedListStatusText;
+	public Action<Fix42Context, FixCheck, FixField.Data>      EncodedListStatusText            { get; set; } = ValidateEncodedListStatusText;
 
-	static bool ValidateAccount(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateAccount(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAdvId(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateAdvId(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAdvRefID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateAdvRefID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAdvSide(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateAdvSide(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('B' or 'S' or 'T' or 'X'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAdvTransType(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateAdvTransType(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("C" or "N" or "R"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAvgPx(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAvgPx(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBeginSeqNo(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateBeginSeqNo(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBeginString(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateBeginString(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBodyLength(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateBodyLength(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCheckSum(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateCheckSum(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateClOrdID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateClOrdID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCommission(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateCommission(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCommType(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateCommType(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCumQty(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateCumQty(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCurrency(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateCurrency(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEndSeqNo(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEndSeqNo(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExecID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateExecID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExecInst(Fix42Context context, FixMessage message, FixField.Multiple field)
+	static void ValidateExecInst(Fix42Context context, FixCheck check, FixField.Multiple field)
 	{
 		foreach (var code in field.Value)
 			if (code is not ("0" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A" or "B" or
 				"C" or "D" or "E" or "F" or "G" or "I" or "L" or "M" or "N" or "O" or "P" or "R" or "S" or "T" or
 				"U" or "V" or "W"))
 			{
-				Invalid(message, field);
+				Invalid(check, field);
 
 				break;
 			}
-
-		return message.IsValid;
 	}
 
-	static bool ValidateExecRefID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateExecRefID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExecTransType(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateExecTransType(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateHandlInst(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateHandlInst(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIDSource(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateIDSource(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIOIid(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateIOIid(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIOIOthSvc(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateIOIOthSvc(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIOIQltyInd(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateIOIQltyInd(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('H' or 'L' or 'M'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIOIRefID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateIOIRefID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIOIShares(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateIOIShares(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("L" or "M" or "S"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIOITransType(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateIOITransType(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('C' or 'N' or 'R'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastCapacity(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateLastCapacity(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3' or '4'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastMkt(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateLastMkt(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastPx(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLastPx(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastShares(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLastShares(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLinesOfText(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateLinesOfText(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMsgSeqNum(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateMsgSeqNum(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMsgType(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateMsgType(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("0" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A" or "B" or
 			"C" or "D" or "E" or "F" or "G" or "H" or "J" or "K" or "L" or "M" or "N" or "P" or "Q" or "R" or "S" or
 			"T" or "V" or "W" or "X" or "Y" or "Z" or "a" or "b" or "c" or "d" or "e" or "f" or "g" or "h" or "i" or
 			"j" or "k" or "l" or "m"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNewSeqNo(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNewSeqNo(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrderID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateOrderID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrderQty(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOrderQty(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrdStatus(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateOrdStatus(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or 'A' or 'B' or
 			'C' or 'D' or 'E'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrdType(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateOrdType(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or 'A' or 'B' or 'C' or
 			'D' or 'E' or 'F' or 'G' or 'H' or 'I' or 'P'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrigClOrdID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateOrigClOrdID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrigTime(Fix42Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateOrigTime(Fix42Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePossDupFlag(Fix42Context context, FixMessage message, FixField.Boolean field)
+	static void ValidatePossDupFlag(Fix42Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePrice(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidatePrice(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRefSeqNum(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateRefSeqNum(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRelatdSym(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateRelatdSym(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRule80A(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateRule80A(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('A' or 'B' or 'C' or 'D' or 'E' or 'F' or 'H' or 'I' or 'J' or 'K' or 'L' or 'M' or
 			'N' or 'O' or 'P' or 'R' or 'S' or 'T' or 'U' or 'W' or 'X' or 'Y' or 'Z'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecurityID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSenderCompID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSenderCompID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSenderSubID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSenderSubID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSendingDate(Fix42Context context, FixMessage message, FixField.Date field)
+	static void ValidateSendingDate(Fix42Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSendingTime(Fix42Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateSendingTime(Fix42Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateShares(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateShares(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSide(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateSide(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSymbol(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSymbol(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTargetCompID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateTargetCompID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTargetSubID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateTargetSubID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateText(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateText(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTimeInForce(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateTimeInForce(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTransactTime(Fix42Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateTransactTime(Fix42Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUrgency(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateUrgency(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateValidUntilTime(Fix42Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateValidUntilTime(Fix42Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlmntTyp(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateSettlmntTyp(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateFutSettDate(Fix42Context context, FixMessage message, FixField.Date field)
+	static void ValidateFutSettDate(Fix42Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSymbolSfx(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSymbolSfx(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateListID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateListID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateListSeqNo(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateListSeqNo(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotNoOrders(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTotNoOrders(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateListExecInst(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateListExecInst(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateAllocID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocTransType(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateAllocTransType(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRefAllocID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateRefAllocID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoOrders(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoOrders(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAvgPrxPrecision(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAvgPrxPrecision(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradeDate(Fix42Context context, FixMessage message, FixField.Date field)
+	static void ValidateTradeDate(Fix42Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExecBroker(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateExecBroker(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOpenClose(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateOpenClose(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('C' or 'O'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoAllocs(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoAllocs(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocAccount(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateAllocAccount(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocShares(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAllocShares(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateProcessCode(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateProcessCode(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoRpts(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoRpts(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRptSeq(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateRptSeq(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCxlQty(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateCxlQty(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoDlvyInst(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoDlvyInst(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDlvyInst(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateDlvyInst(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocStatus(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAllocStatus(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocRejCode(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAllocRejCode(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 7))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSignature(Fix42Context context, FixMessage message, FixField.Data field)
+	static void ValidateSignature(Fix42Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecureDataLen(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSecureDataLen(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecureData(Fix42Context context, FixMessage message, FixField.Data field)
+	static void ValidateSecureData(Fix42Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBrokerOfCredit(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateBrokerOfCredit(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSignatureLength(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSignatureLength(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEmailType(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateEmailType(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRawDataLength(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateRawDataLength(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRawData(Fix42Context context, FixMessage message, FixField.Data field)
+	static void ValidateRawData(Fix42Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePossResend(Fix42Context context, FixMessage message, FixField.Boolean field)
+	static void ValidatePossResend(Fix42Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncryptMethod(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncryptMethod(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStopPx(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateStopPx(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExDestination(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateExDestination(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCxlRejReason(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateCxlRejReason(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrdRejReason(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateOrdRejReason(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 7 or 8))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIOIQualifier(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateIOIQualifier(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('A' or 'C' or 'I' or 'L' or 'M' or 'O' or 'P' or 'Q' or 'R' or 'S' or 'T' or 'V' or
 			'W' or 'X' or 'Y' or 'Z'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateWaveNo(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateWaveNo(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIssuer(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateIssuer(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityDesc(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecurityDesc(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateHeartBtInt(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateHeartBtInt(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateClientID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateClientID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMinQty(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMinQty(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMaxFloor(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMaxFloor(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTestReqID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateTestReqID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateReportToExch(Fix42Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateReportToExch(Fix42Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLocateReqd(Fix42Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateLocateReqd(Fix42Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOnBehalfOfCompID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateOnBehalfOfCompID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOnBehalfOfSubID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateOnBehalfOfSubID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateQuoteID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNetMoney(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateNetMoney(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlCurrAmt(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateSettlCurrAmt(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlCurrency(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSettlCurrency(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateForexReq(Fix42Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateForexReq(Fix42Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrigSendingTime(Fix42Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateOrigSendingTime(Fix42Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateGapFillFlag(Fix42Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateGapFillFlag(Fix42Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoExecs(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoExecs(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCxlType(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateCxlType(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExpireTime(Fix42Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateExpireTime(Fix42Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDKReason(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateDKReason(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('A' or 'B' or 'C' or 'D' or 'E' or 'Z'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDeliverToCompID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateDeliverToCompID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDeliverToSubID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateDeliverToSubID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIOINaturalFlag(Fix42Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateIOINaturalFlag(Fix42Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteReqID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateQuoteReqID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidPx(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateBidPx(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOfferPx(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOfferPx(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidSize(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateBidSize(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOfferSize(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOfferSize(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoMiscFees(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoMiscFees(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMiscFeeAmt(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMiscFeeAmt(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMiscFeeCurr(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateMiscFeeCurr(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMiscFeeType(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateMiscFeeType(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePrevClosePx(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidatePrevClosePx(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateResetSeqNumFlag(Fix42Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateResetSeqNumFlag(Fix42Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSenderLocationID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSenderLocationID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTargetLocationID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateTargetLocationID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOnBehalfOfLocationID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateOnBehalfOfLocationID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDeliverToLocationID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateDeliverToLocationID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoRelatedSym(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoRelatedSym(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSubject(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSubject(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateHeadline(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateHeadline(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateURLLink(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateURLLink(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExecType(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateExecType(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or 'A' or 'B' or
 			'C' or 'D' or 'E'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLeavesQty(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLeavesQty(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCashOrderQty(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateCashOrderQty(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocAvgPx(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAllocAvgPx(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocNetMoney(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAllocNetMoney(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlCurrFxRate(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateSettlCurrFxRate(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlCurrFxRateCalc(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateSettlCurrFxRateCalc(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNumDaysInterest(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNumDaysInterest(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAccruedInterestRate(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAccruedInterestRate(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAccruedInterestAmt(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAccruedInterestAmt(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlInstMode(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateSettlInstMode(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocText(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateAllocText(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlInstID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSettlInstID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlInstTransType(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateSettlInstTransType(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('C' or 'N' or 'R'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEmailThreadID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateEmailThreadID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlInstSource(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateSettlInstSource(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlLocation(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSettlLocation(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("CED" or "DTC" or "EUR" or "FED" or "ISO Country Code" or "PNY" or "PTC"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityType(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecurityType(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("?" or "BA" or "CB" or "CD" or "CMO" or "CORP" or "CP" or "CPP" or "CS" or "FHA" or
 			"FHL" or "FN" or "FOR" or "FUT" or "GN" or "GOVT" or "IET" or "MF" or "MIO" or "MPO" or "MPP" or
 			"MPT" or "MUNI" or "NONE" or "OPT" or "PS" or "RP" or "RVRP" or "SL" or "TD" or "USTB" or "WAR" or "ZOO"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEffectiveTime(Fix42Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateEffectiveTime(Fix42Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStandInstDbType(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateStandInstDbType(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStandInstDbName(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateStandInstDbName(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStandInstDbID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateStandInstDbID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlDeliveryType(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSettlDeliveryType(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlDepositoryCode(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSettlDepositoryCode(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlBrkrCode(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSettlBrkrCode(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlInstCode(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSettlInstCode(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecuritySettlAgentName(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecuritySettlAgentName(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecuritySettlAgentCode(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecuritySettlAgentCode(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecuritySettlAgentAcctNum(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecuritySettlAgentAcctNum(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecuritySettlAgentAcctName(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecuritySettlAgentAcctName(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecuritySettlAgentContactName(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecuritySettlAgentContactName(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecuritySettlAgentContactPhone(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecuritySettlAgentContactPhone(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCashSettlAgentName(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateCashSettlAgentName(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCashSettlAgentCode(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateCashSettlAgentCode(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCashSettlAgentAcctNum(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateCashSettlAgentAcctNum(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCashSettlAgentAcctName(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateCashSettlAgentAcctName(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCashSettlAgentContactName(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateCashSettlAgentContactName(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCashSettlAgentContactPhone(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateCashSettlAgentContactPhone(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidSpotRate(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateBidSpotRate(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidForwardPoints(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateBidForwardPoints(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOfferSpotRate(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOfferSpotRate(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOfferForwardPoints(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOfferForwardPoints(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrderQty2(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOrderQty2(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateFutSettDate2(Fix42Context context, FixMessage message, FixField.Date field)
+	static void ValidateFutSettDate2(Fix42Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastSpotRate(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLastSpotRate(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastForwardPoints(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLastForwardPoints(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocLinkID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateAllocLinkID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocLinkType(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAllocLinkType(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecondaryOrderID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecondaryOrderID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoIOIQualifiers(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoIOIQualifiers(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMaturityMonthYear(Fix42Context context, FixMessage message, FixField.MonthYear field)
+	static void ValidateMaturityMonthYear(Fix42Context context, FixCheck check, FixField.MonthYear field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePutOrCall(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePutOrCall(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStrikePrice(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateStrikePrice(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCoveredOrUncovered(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateCoveredOrUncovered(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCustomerOrFirm(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateCustomerOrFirm(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMaturityDay(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateMaturityDay(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOptAttribute(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateOptAttribute(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityExchange(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecurityExchange(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNotifyBrokerOfCredit(Fix42Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateNotifyBrokerOfCredit(Fix42Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocHandlInst(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAllocHandlInst(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMaxShow(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMaxShow(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePegDifference(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidatePegDifference(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateXmlDataLen(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateXmlDataLen(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateXmlData(Fix42Context context, FixMessage message, FixField.Data field)
+	static void ValidateXmlData(Fix42Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlInstRefID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSettlInstRefID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoRoutingIDs(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoRoutingIDs(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRoutingType(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateRoutingType(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRoutingID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateRoutingID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSpreadToBenchmark(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateSpreadToBenchmark(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBenchmark(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateBenchmark(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCouponRate(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateCouponRate(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateContractMultiplier(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateContractMultiplier(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDReqID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateMDReqID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSubscriptionRequestType(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateSubscriptionRequestType(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMarketDepth(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateMarketDepth(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDUpdateType(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateMDUpdateType(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAggregatedBook(Fix42Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateAggregatedBook(Fix42Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoMDEntryTypes(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoMDEntryTypes(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoMDEntries(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoMDEntries(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntryType(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateMDEntryType(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntryPx(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMDEntryPx(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntrySize(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMDEntrySize(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntryDate(Fix42Context context, FixMessage message, FixField.Date field)
+	static void ValidateMDEntryDate(Fix42Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntryTime(Fix42Context context, FixMessage message, FixField.Time field)
+	static void ValidateMDEntryTime(Fix42Context context, FixCheck check, FixField.Time field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTickDirection(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateTickDirection(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDMkt(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateMDMkt(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteCondition(Fix42Context context, FixMessage message, FixField.Multiple field)
+	static void ValidateQuoteCondition(Fix42Context context, FixCheck check, FixField.Multiple field)
 	{
 		foreach (var code in field.Value)
 			if (code is not ("A" or "B" or "C" or "D" or "E" or "F" or "G" or "H" or "I"))
 			{
-				Invalid(message, field);
+				Invalid(check, field);
 
 				break;
 			}
-
-		return message.IsValid;
 	}
 
-	static bool ValidateTradeCondition(Fix42Context context, FixMessage message, FixField.Multiple field)
+	static void ValidateTradeCondition(Fix42Context context, FixCheck check, FixField.Multiple field)
 	{
 		foreach (var code in field.Value)
 			if (code is not ("A" or "B" or "C" or "D" or "E" or "F" or "G" or "H" or "I" or "J" or "K" or "L" or
 				"M" or "N"))
 			{
-				Invalid(message, field);
+				Invalid(check, field);
 
 				break;
 			}
-
-		return message.IsValid;
 	}
 
-	static bool ValidateMDEntryID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateMDEntryID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDUpdateAction(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateMDUpdateAction(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntryRefID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateMDEntryRefID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDReqRejReason(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateMDReqRejReason(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7' or '8'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntryOriginator(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateMDEntryOriginator(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLocationID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateLocationID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDeskID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateDeskID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDeleteReason(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateDeleteReason(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOpenCloseSettleFlag(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateOpenCloseSettleFlag(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSellerDays(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSellerDays(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntryBuyer(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateMDEntryBuyer(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntrySeller(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateMDEntrySeller(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntryPositionNo(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateMDEntryPositionNo(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateFinancialStatus(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateFinancialStatus(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCorporateAction(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateCorporateAction(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('A' or 'B' or 'C' or 'D' or 'E'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDefBidSize(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateDefBidSize(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDefOfferSize(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateDefOfferSize(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoQuoteEntries(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoQuoteEntries(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoQuoteSets(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoQuoteSets(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteAckStatus(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateQuoteAckStatus(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteCancelType(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateQuoteCancelType(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteEntryID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateQuoteEntryID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteRejectReason(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateQuoteRejectReason(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteResponseLevel(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateQuoteResponseLevel(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteSetID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateQuoteSetID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteRequestType(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateQuoteRequestType(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotQuoteEntries(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTotQuoteEntries(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingIDSource(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingIDSource(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingIssuer(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingIssuer(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingSecurityDesc(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingSecurityDesc(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingSecurityExchange(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingSecurityExchange(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingSecurityID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingSecurityID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingSecurityType(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingSecurityType(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingSymbol(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingSymbol(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingSymbolSfx(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingSymbolSfx(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingMaturityMonthYear(Fix42Context context, FixMessage message, FixField.MonthYear field)
+	static void ValidateUnderlyingMaturityMonthYear(Fix42Context context, FixCheck check, FixField.MonthYear field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingMaturityDay(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateUnderlyingMaturityDay(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingPutOrCall(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateUnderlyingPutOrCall(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingStrikePrice(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateUnderlyingStrikePrice(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingOptAttribute(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateUnderlyingOptAttribute(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingCurrency(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingCurrency(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRatioQty(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateRatioQty(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityReqID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecurityReqID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityRequestType(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSecurityRequestType(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityResponseID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecurityResponseID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityResponseType(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSecurityResponseType(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 6))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityStatusReqID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecurityStatusReqID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnsolicitedIndicator(Fix42Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateUnsolicitedIndicator(Fix42Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityTradingStatus(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSecurityTradingStatus(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 10 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 2 or 20 or 3 or 4 or
 			5 or 6 or 7 or 8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateHaltReason(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateHaltReason(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('D' or 'E' or 'I' or 'M' or 'P' or 'X'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateInViewOfCommon(Fix42Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateInViewOfCommon(Fix42Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDueToRelated(Fix42Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateDueToRelated(Fix42Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBuyVolume(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateBuyVolume(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSellVolume(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateSellVolume(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateHighPx(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateHighPx(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLowPx(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLowPx(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAdjustment(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAdjustment(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesReqID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateTradSesReqID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradingSessionID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateTradingSessionID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateContraTrader(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateContraTrader(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesMethod(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTradSesMethod(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesMode(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTradSesMode(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesStatus(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTradSesStatus(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4 or 5))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesStartTime(Fix42Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateTradSesStartTime(Fix42Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesOpenTime(Fix42Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateTradSesOpenTime(Fix42Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesPreCloseTime(Fix42Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateTradSesPreCloseTime(Fix42Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesCloseTime(Fix42Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateTradSesCloseTime(Fix42Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesEndTime(Fix42Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateTradSesEndTime(Fix42Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNumberOfOrders(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNumberOfOrders(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMessageEncoding(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateMessageEncoding(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("EUC-JP" or "ISO-2022-JP" or "Shift_JIS" or "UTF-8"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedIssuerLen(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedIssuerLen(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedIssuer(Fix42Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedIssuer(Fix42Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedSecurityDescLen(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedSecurityDescLen(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedSecurityDesc(Fix42Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedSecurityDesc(Fix42Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedListExecInstLen(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedListExecInstLen(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedListExecInst(Fix42Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedListExecInst(Fix42Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedTextLen(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedTextLen(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedText(Fix42Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedText(Fix42Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedSubjectLen(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedSubjectLen(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedSubject(Fix42Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedSubject(Fix42Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedHeadlineLen(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedHeadlineLen(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedHeadline(Fix42Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedHeadline(Fix42Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedAllocTextLen(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedAllocTextLen(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedAllocText(Fix42Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedAllocText(Fix42Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedUnderlyingIssuerLen(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedUnderlyingIssuerLen(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedUnderlyingIssuer(Fix42Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedUnderlyingIssuer(Fix42Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedUnderlyingSecurityDescLen(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedUnderlyingSecurityDescLen(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedUnderlyingSecurityDesc(Fix42Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedUnderlyingSecurityDesc(Fix42Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocPrice(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAllocPrice(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteSetValidUntilTime(Fix42Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateQuoteSetValidUntilTime(Fix42Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteEntryRejectReason(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateQuoteEntryRejectReason(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastMsgSeqNumProcessed(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateLastMsgSeqNumProcessed(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOnBehalfOfSendingTime(Fix42Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateOnBehalfOfSendingTime(Fix42Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRefTagID(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateRefTagID(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRefMsgType(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateRefMsgType(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSessionRejectReason(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSessionRejectReason(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 10 or 11 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidRequestTransType(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateBidRequestTransType(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('C' or 'N'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateContraBroker(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateContraBroker(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateComplianceID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateComplianceID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSolicitedFlag(Fix42Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateSolicitedFlag(Fix42Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExecRestatementReason(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateExecRestatementReason(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBusinessRejectRefID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateBusinessRejectRefID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBusinessRejectReason(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateBusinessRejectReason(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateGrossTradeAmt(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateGrossTradeAmt(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoContraBrokers(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoContraBrokers(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMaxMessageSize(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateMaxMessageSize(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoMsgTypes(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoMsgTypes(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMsgDirection(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateMsgDirection(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('R' or 'S'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoTradingSessions(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoTradingSessions(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotalVolumeTraded(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateTotalVolumeTraded(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDiscretionInst(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateDiscretionInst(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDiscretionOffset(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateDiscretionOffset(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateBidID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateClientBidID(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateClientBidID(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateListName(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateListName(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotalNumSecurities(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTotalNumSecurities(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidType(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateBidType(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNumTickets(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNumTickets(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSideValue1(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateSideValue1(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSideValue2(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateSideValue2(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoBidDescriptors(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoBidDescriptors(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidDescriptorType(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateBidDescriptorType(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidDescriptor(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateBidDescriptor(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSideValueInd(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSideValueInd(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLiquidityPctLow(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLiquidityPctLow(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLiquidityPctHigh(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLiquidityPctHigh(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLiquidityValue(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLiquidityValue(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEFPTrackingError(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateEFPTrackingError(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateFairValue(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateFairValue(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOutsideIndexPct(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOutsideIndexPct(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateValueOfFutures(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateValueOfFutures(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLiquidityIndType(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateLiquidityIndType(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateWtAverageLiquidity(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateWtAverageLiquidity(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExchangeForPhysical(Fix42Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateExchangeForPhysical(Fix42Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOutMainCntryUIndex(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOutMainCntryUIndex(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCrossPercent(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateCrossPercent(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateProgRptReqs(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateProgRptReqs(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateProgPeriodInterval(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateProgPeriodInterval(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIncTaxInd(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateIncTaxInd(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNumBidders(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNumBidders(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradeType(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateTradeType(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('A' or 'G' or 'J' or 'R'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBasisPxType(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateBasisPxType(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or 'A' or 'B' or 'C' or 'D' or
 			'Z'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoBidComponents(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoBidComponents(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCountry(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateCountry(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotNoStrikes(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTotNoStrikes(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePriceType(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePriceType(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDayOrderQty(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateDayOrderQty(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDayCumQty(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateDayCumQty(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDayAvgPx(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateDayAvgPx(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateGTBookingInst(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateGTBookingInst(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoStrikes(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoStrikes(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateListStatusType(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateListStatusType(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNetGrossInd(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNetGrossInd(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateListOrderStatus(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateListOrderStatus(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExpireDate(Fix42Context context, FixMessage message, FixField.Date field)
+	static void ValidateExpireDate(Fix42Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateListExecInstType(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateListExecInstType(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCxlRejResponseTo(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateCxlRejResponseTo(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingCouponRate(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateUnderlyingCouponRate(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingContractMultiplier(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateUnderlyingContractMultiplier(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateContraTradeQty(Fix42Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateContraTradeQty(Fix42Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateContraTradeTime(Fix42Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateContraTradeTime(Fix42Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateClearingFirm(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateClearingFirm(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateClearingAccount(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateClearingAccount(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLiquidityNumSecurities(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateLiquidityNumSecurities(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMultiLegReportingType(Fix42Context context, FixMessage message, FixField.Character field)
+	static void ValidateMultiLegReportingType(Fix42Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStrikeTime(Fix42Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateStrikeTime(Fix42Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateListStatusText(Fix42Context context, FixMessage message, FixField.Text field)
+	static void ValidateListStatusText(Fix42Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedListStatusTextLen(Fix42Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedListStatusTextLen(Fix42Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedListStatusText(Fix42Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedListStatusText(Fix42Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 }

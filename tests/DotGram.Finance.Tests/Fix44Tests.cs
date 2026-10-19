@@ -55,7 +55,7 @@ public sealed class Fix44Tests
 		{
 			var message = FixParser.ParseMessage((string)data[1]);
 
-			foreach (var finding in message.InvalidFindings ?? [])
+			foreach (var finding in message.Findings)
 				if (finding.Rule == FixRule.FieldNotInScope)
 					unplaced.Add(((string)data[0], finding.Tag));
 		}
@@ -70,10 +70,9 @@ public sealed class Fix44Tests
 	{
 		var message = FixParser.ParseMessage(FixFixtures.Wire("0", "112=TEST|9001=A|44=1.5|"));
 
-		Assert.False(message.IsValid);
 		Assert.Equal(
 			[9001, 44],
-			message.InvalidFindings!.Where(one => one.Rule == FixRule.FieldNotInScope).Select(one => one.Tag).ToArray());
+			message.Findings.Where(one => one.Rule == FixRule.FieldNotInScope).Select(one => one.Tag).ToArray());
 	}
 
 	[Fact]
@@ -161,13 +160,11 @@ public sealed class Fix44Tests
 
 		var checksum = FixParser.ParseMessage(wire[..^4] + "999\u0001");
 
-		Assert.False(checksum.Validate(Fix44Context.Default));
-		Assert.Contains(checksum.InvalidFindings!, finding => finding is { Rule: FixRule.CheckSumMismatch, Tag: FixTag.CheckSum });
+		Assert.Contains(checksum.Validate(Fix44Context.Default), finding => finding is { Rule: FixRule.CheckSumMismatch, Tag: FixTag.CheckSum });
 
 		var length = FixParser.ParseMessage(wire.Replace("9=", "9=1", StringComparison.Ordinal));
 
-		Assert.False(length.Validate(Fix44Context.Default));
-		Assert.Contains(length.InvalidFindings!, finding => finding is { Rule: FixRule.BodyLengthMismatch, Tag: FixTag.BodyLength });
+		Assert.Contains(length.Validate(Fix44Context.Default), finding => finding is { Rule: FixRule.BodyLengthMismatch, Tag: FixTag.BodyLength });
 	}
 
 	[Fact]
@@ -176,15 +173,13 @@ public sealed class Fix44Tests
 		var wire  = FixFixtures.Wire("0", "");
 		var other = FixParser.ParseMessage(wire.Replace("FIX.4.4", "FIX.4.2", StringComparison.Ordinal));
 
-		Assert.False(other.Validate(Fix44Context.Default));
-		Assert.Contains(other.InvalidFindings!, finding => finding is { Rule: FixRule.InvalidValue, Tag: FixTag.BeginString });
+		Assert.Contains(other.Validate(Fix44Context.Default), finding => finding is { Rule: FixRule.InvalidValue, Tag: FixTag.BeginString });
 
 		// MsgType moved behind SenderCompID: the octets are the same, so only the order is wrong.
 		var moved = FixParser.ParseMessage(wire.Replace("35=0\u000149=SENDER\u0001", "49=SENDER\u000135=0\u0001", StringComparison.Ordinal));
 
-		Assert.False(moved.Validate(Fix44Context.Default));
-		Assert.Contains(moved.InvalidFindings!, finding => finding is { Rule: FixRule.FieldOutOfOrder, Tag: FixTag.MsgType });
-		Assert.DoesNotContain(moved.InvalidFindings!, finding => finding.Rule is FixRule.CheckSumMismatch or FixRule.BodyLengthMismatch);
+		Assert.Contains(moved.Validate(Fix44Context.Default), finding => finding is { Rule: FixRule.FieldOutOfOrder, Tag: FixTag.MsgType });
+		Assert.DoesNotContain(moved.Validate(Fix44Context.Default), finding => finding.Rule is FixRule.CheckSumMismatch or FixRule.BodyLengthMismatch);
 	}
 
 	[Fact]
@@ -195,7 +190,7 @@ public sealed class Fix44Tests
 
 		var message = FixParser.ParseMessage(padded, Fix44Context.WithLogFraming);
 
-		Assert.True(message.Validate(Fix44Context.WithLogFraming), string.Join("; ", message.InvalidFindings ?? []));
+		Assert.Empty(message.Validate(Fix44Context.WithLogFraming));
 	}
 
 	[Fact]
@@ -203,9 +198,7 @@ public sealed class Fix44Tests
 	{
 		var bare = FixParser.ParseMessage(FixFixtures.Wire("B", "148=NEWS|354=3|355=abc|358=2|359=xy|33=0|"));
 
-		Assert.False(bare.Validate(Fix44Context.Default));
-
-		var missing = Assert.Single(bare.InvalidFindings!, finding => finding.Rule == FixRule.MessageEncodingMissing);
+		var missing = Assert.Single(bare.Validate(Fix44Context.Default), finding => finding.Rule == FixRule.MessageEncodingMissing);
 
 		Assert.Equal(FixTag.MessageEncoding, missing.Tag);
 		Assert.Equal(FixTag.EncodedText, missing.Field!.Tag);
@@ -213,9 +206,7 @@ public sealed class Fix44Tests
 
 		var declared = FixParser.ParseMessage(FixFixtures.Wire("B", "347=UTF-8|148=NEWS|354=3|355=abc|33=0|"));
 
-		declared.Validate(Fix44Context.Default);
-
-		Assert.DoesNotContain(declared.InvalidFindings ?? [], finding => finding.Rule == FixRule.MessageEncodingMissing);
+		Assert.DoesNotContain(declared.Validate(Fix44Context.Default), finding => finding.Rule == FixRule.MessageEncodingMissing);
 	}
 
 	[Fact]
@@ -223,8 +214,7 @@ public sealed class Fix44Tests
 	{
 		var message = FixParser.ParseMessage(FixFixtures.Wire("A", "98=0|108=30|95=3|"));
 
-		Assert.False(message.Validate(Fix44Context.Default));
-		Assert.Contains(message.InvalidFindings!, finding => finding is { Rule: FixRule.LengthFieldNotBeforeData, Tag: FixTag.RawDataLength });
+		Assert.Contains(message.Validate(Fix44Context.Default), finding => finding is { Rule: FixRule.LengthFieldNotBeforeData, Tag: FixTag.RawDataLength });
 	}
 
 	[Theory]

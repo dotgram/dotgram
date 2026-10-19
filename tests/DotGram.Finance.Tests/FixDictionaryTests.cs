@@ -88,12 +88,12 @@ public sealed class FixDictionaryTests
 	{
 		var dictionary = FixDictionary.Parse(Venue);
 
-		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(Fix44Context.Default.With(dictionary)));
+		Assert.NotEmpty(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(Fix44Context.Default.With(dictionary)));
 
 		// The venue drops its rule for ResetSeqNumFlag: the same Logon now holds.
 		dictionary.Messages["A"].Members.RemoveAt(2);
 
-		Assert.True(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(Fix44Context.Default.With(dictionary)));
+		Assert.Empty(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(Fix44Context.Default.With(dictionary)));
 	}
 
 	[Fact]
@@ -104,7 +104,7 @@ public sealed class FixDictionaryTests
 
 		dictionary.Messages["A"].Members.RemoveAt(2);
 
-		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(context));
+		Assert.NotEmpty(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(context));
 	}
 
 	/// <summary>
@@ -116,12 +116,12 @@ public sealed class FixDictionaryTests
 	{
 		var context = Fix44Context.Default.With(FixDictionary.Parse(Venue));
 
-		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(context));
+		Assert.NotEmpty(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(context));
 
 		context.Prepare();
 
 		Assert.Equal(0, context.Checks.CompileDeferred());
-		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(context));
+		Assert.NotEmpty(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(context));
 	}
 
 	/// <summary>

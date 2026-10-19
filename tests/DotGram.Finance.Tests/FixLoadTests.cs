@@ -40,10 +40,9 @@ public sealed class FixLoadTests
 		// The fragment is the whole of what a Logon is now asked: 141, and no longer 98 or 108.
 		var bare = FixParser.ParseMessage(FixFixtures.Wire("A", ""));
 
-		Assert.False(bare.Validate(context));
 		Assert.Equal(
 			[141],
-			bare.InvalidFindings!.Where(one => one.Rule == FixRule.RequiredFieldMissing).Select(one => one.Tag).OrderBy(tag => tag).ToArray());
+			bare.Validate(context).Where(one => one.Rule == FixRule.RequiredFieldMissing).Select(one => one.Tag).OrderBy(tag => tag).ToArray());
 
 		// A fragment that wants the standard as well says so.
 		const string logonWantsAll =
@@ -61,13 +60,12 @@ public sealed class FixLoadTests
 
 		var all = FixParser.ParseMessage(FixFixtures.Wire("A", ""));
 
-		Assert.False(all.Validate(Fix44Context.Default.Load(logonWantsAll)));
 		Assert.Equal(
 			[98, 108, 141],
-			all.InvalidFindings!.Where(one => one.Rule == FixRule.RequiredFieldMissing).Select(one => one.Tag).OrderBy(tag => tag).ToArray());
+			all.Validate(Fix44Context.Default.Load(logonWantsAll)).Where(one => one.Rule == FixRule.RequiredFieldMissing).Select(one => one.Tag).OrderBy(tag => tag).ToArray());
 
 		// A message that has what the fragment wants is valid under it.
-		Assert.True(FixParser.ParseMessage(FixFixtures.Wire("A", Logon + "141=Y|")).Validate(context));
+		Assert.Empty(FixParser.ParseMessage(FixFixtures.Wire("A", Logon + "141=Y|")).Validate(context));
 	}
 
 	[Fact]
@@ -78,8 +76,8 @@ public sealed class FixLoadTests
 		var message = FixParser.ParseMessage(FixFixtures.Wire("A", Logon));
 
 		Assert.NotSame(before, after);
-		Assert.True(message.Validate(before));
-		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(after));
+		Assert.Empty(message.Validate(before));
+		Assert.NotEmpty(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(after));
 	}
 
 	[Fact]
@@ -100,8 +98,7 @@ public sealed class FixLoadTests
 		var message = FixParser.ParseMessage(FixFixtures.Wire("A", Logon));
 
 		// Only the second fragment speaks for a Logon now; the first spoke for it until then.
-		Assert.False(message.Validate(context));
-		Assert.Equal([383], message.InvalidFindings!.Select(one => one.Tag).ToArray());
+		Assert.Equal([383], message.Validate(context).Select(one => one.Tag).ToArray());
 	}
 
 	[Fact]
@@ -122,11 +119,11 @@ public sealed class FixLoadTests
 
 		var context = Fix44Context.Default.Load(ordType);
 
-		Assert.True(FixParser.ParseMessage(FixFixtures.Wire("D", Order.Replace("40=1|", "40=Z|"))).Validate(context));
-		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("D", Order.Replace("40=1|", "40=2|"))).Validate(context));
+		Assert.Empty(FixParser.ParseMessage(FixFixtures.Wire("D", Order.Replace("40=1|", "40=Z|"))).Validate(context));
+		Assert.NotEmpty(FixParser.ParseMessage(FixFixtures.Wire("D", Order.Replace("40=1|", "40=2|"))).Validate(context));
 
 		// And the standard is what it was.
-		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("D", Order.Replace("40=1|", "40=Z|"))).Validate(Fix44Context.Default));
+		Assert.NotEmpty(FixParser.ParseMessage(FixFixtures.Wire("D", Order.Replace("40=1|", "40=Z|"))).Validate(Fix44Context.Default));
 	}
 
 	[Fact]
@@ -147,10 +144,8 @@ public sealed class FixLoadTests
 		var order   = FixParser.ParseMessage(FixFixtures.Wire("D", Order));
 		var quote   = FixParser.ParseMessage(FixFixtures.Wire("S", "117=Q|55=ABC|"));
 
-		Assert.False(order.Validate(context));
-		Assert.False(quote.Validate(context));
-		Assert.Equal(FixTag.SecurityID, Assert.Single(order.InvalidFindings!).Tag);
-		Assert.Equal(FixTag.SecurityID, Assert.Single(quote.InvalidFindings!).Tag);
+		Assert.Equal(FixTag.SecurityID, Assert.Single(order.Validate(context)).Tag);
+		Assert.Equal(FixTag.SecurityID, Assert.Single(quote.Validate(context)).Tag);
 	}
 
 	[Fact]
@@ -161,9 +156,9 @@ public sealed class FixLoadTests
 		using var reader = new StringReader(LogonWantsReset);
 		using var stream = new MemoryStream(Encoding.UTF8.GetBytes(LogonWantsReset));
 
-		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(Fix44Context.Default.Load(reader)));
-		Assert.False(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(Fix44Context.Default.Load(stream)));
-		Assert.True(message.Validate(Fix44Context.Default));
+		Assert.NotEmpty(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(Fix44Context.Default.Load(reader)));
+		Assert.NotEmpty(FixParser.ParseMessage(FixFixtures.Wire("A", Logon)).Validate(Fix44Context.Default.Load(stream)));
+		Assert.Empty(message.Validate(Fix44Context.Default));
 	}
 
 	[Fact]
@@ -188,13 +183,11 @@ public sealed class FixLoadTests
 		var context = Fix44Context.Default.Load(partiesWantRole);
 		var order   = FixParser.ParseMessage(FixFixtures.Wire("D", Order + "453=2|448=P1|452=1|448=P2|"));
 
-		Assert.False(order.Validate(context));
-
-		var finding = Assert.Single(order.InvalidFindings!);
+		var finding = Assert.Single(order.Validate(context));
 
 		Assert.Equal(FixRule.RequiredFieldMissing, finding.Rule);
 		Assert.Equal(FixTag.PartyRole, finding.Tag);
-		Assert.Equal(1, finding.EntryIndex);
+		Assert.Equal([new FixGroupStep(FixTag.NoPartyIDs, 1)], finding.Path);
 		Assert.Equal(((FixMessage.NewOrderSingle)order).NoPartyIDsGroups![1].PartyID.Position, finding.Position);
 	}
 	[Fact]
@@ -211,11 +204,11 @@ public sealed class FixLoadTests
 			Assert.Equal(["Logon.el"], written);
 			var text = File.ReadAllText(Path.Combine(directory, "Logon.el"));
 
-			Assert.Contains("(Fix44Context context, FixMessage.Logon message) =>", text, StringComparison.Ordinal);
+			Assert.Contains("(Fix44Context context, FixCheck check, FixMessage.Logon message) =>", text, StringComparison.Ordinal);
 
 			// A tag is written as its number, which every version shares, and not as a name FixTag may
 			// spell otherwise than the file.
-			Assert.Contains("FixValidator.Missing(message, 141)", text, StringComparison.Ordinal);
+			Assert.Contains("FixValidator.Missing(check, 141)", text, StringComparison.Ordinal);
 			Assert.DoesNotContain("FixTag.", text, StringComparison.Ordinal);
 		}
 		finally
@@ -281,7 +274,7 @@ public sealed class FixLoadTests
 		var mended = Fix44Context.Default.Load([file, errata]);
 		var order  = FixParser.ParseMessage(FixFixtures.Wire("D", Order));
 
-		Assert.True(order.Validate(mended), string.Join("; ", order.InvalidFindings ?? []));
+		Assert.Empty(order.Validate(mended));
 
 		// What the errata leaves alone is their fields: the values their file lists for a field stand,
 		// and differ from the repository's here and there (SymbolSfx, YieldRedemptionPriceType). So the
@@ -309,12 +302,9 @@ public sealed class FixLoadTests
 			var standard = FixParser.ParseMessage(wire);
 			var repaired = FixParser.ParseMessage(wire);
 
-			standard.Validate(theirFields);
-			repaired.Validate(mended);
-
 			Assert.Equal(
-				(standard.InvalidFindings ?? []).Select(one => one.ToString()).Order(),
-				(repaired.InvalidFindings ?? []).Select(one => one.ToString()).Order());
+				standard.Validate(theirFields).Select(one => one.ToString()).Order(),
+				repaired.Validate(mended).Select(one => one.ToString()).Order());
 
 			seen.Add(name);
 		}
@@ -343,8 +333,7 @@ public sealed class FixLoadTests
 		var context = Fix44Context.Default.Load(fragment);
 		var message = FixParser.ParseMessage(FixFixtures.Wire("6", "28=N|55=IBM|54=1|27=S|"));
 
-		Assert.False(message.Validate(context));
-		Assert.Contains(message.InvalidFindings!, one => one.Rule == FixRule.RequiredFieldMissing && one.Tag == 23);
+		Assert.Contains(message.Validate(context), one => one.Rule == FixRule.RequiredFieldMissing && one.Tag == 23);
 	}
 
 	static readonly string Corpus = Path.Combine(TestPaths.Tests, "Corpus", "Fix");

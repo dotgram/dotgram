@@ -16,44 +16,44 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.AdvId: if (AdvId is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); AdvId = (FixField.Text)field; break;
-					case FixTag.AdvTransType: if (AdvTransType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); AdvTransType = (FixField.Text)field; break;
-					case FixTag.AdvRefID: if (AdvRefID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); AdvRefID = (FixField.Text)field; break;
-					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.AdvSide: if (AdvSide is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); AdvSide = (FixField.Character)field; break;
-					case FixTag.Quantity: if (Shares is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Shares = (FixField.Decimal)field; break;
-					case FixTag.Price: if (Price is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Price = (FixField.Decimal)field; break;
-					case FixTag.Currency: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Text)field; break;
-					case FixTag.TradeDate: if (TradeDate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradeDate = (FixField.Date)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
-					case FixTag.URLLink: if (URLLink is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); URLLink = (FixField.Text)field; break;
-					case FixTag.LastMkt: if (LastMkt is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LastMkt = (FixField.Text)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradingSessionID = (FixField.Text)field; break;
+					case FixTag.AdvId: if (AdvId is not null) Duplicate(field); AdvId = (FixField.Text)field; break;
+					case FixTag.AdvTransType: if (AdvTransType is not null) Duplicate(field); AdvTransType = (FixField.Text)field; break;
+					case FixTag.AdvRefID: if (AdvRefID is not null) Duplicate(field); AdvRefID = (FixField.Text)field; break;
+					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.AdvSide: if (AdvSide is not null) Duplicate(field); AdvSide = (FixField.Character)field; break;
+					case FixTag.Quantity: if (Shares is not null) Duplicate(field); Shares = (FixField.Decimal)field; break;
+					case FixTag.Price: if (Price is not null) Duplicate(field); Price = (FixField.Decimal)field; break;
+					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
+					case FixTag.TradeDate: if (TradeDate is not null) Duplicate(field); TradeDate = (FixField.Date)field; break;
+					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.URLLink: if (URLLink is not null) Duplicate(field); URLLink = (FixField.Text)field; break;
+					case FixTag.LastMkt: if (LastMkt is not null) Duplicate(field); LastMkt = (FixField.Text)field; break;
+					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -163,9 +163,9 @@ public abstract partial class FixMessage
 		public FixField.Text? TradingSessionID { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.Advertisement(context, this);
+			context.Validators.Advertisement(context, check, this);
 		}
 	}
 
@@ -178,325 +178,325 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.AllocID: if (AllocID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); AllocID = (FixField.Text)field; break;
-					case FixTag.AllocTransType: if (AllocTransType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); AllocTransType = (FixField.Character)field; break;
-					case FixTag.RefAllocID: if (RefAllocID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); RefAllocID = (FixField.Text)field; break;
-					case FixTag.AllocLinkID: if (AllocLinkID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); AllocLinkID = (FixField.Text)field; break;
-					case FixTag.AllocLinkType: if (AllocLinkType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); AllocLinkType = (FixField.Integer)field; break;
-					case FixTag.NoOrders: if (NoOrders is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoOrders = (FixField.Integer)field; break;
+					case FixTag.AllocID: if (AllocID is not null) Duplicate(field); AllocID = (FixField.Text)field; break;
+					case FixTag.AllocTransType: if (AllocTransType is not null) Duplicate(field); AllocTransType = (FixField.Character)field; break;
+					case FixTag.RefAllocID: if (RefAllocID is not null) Duplicate(field); RefAllocID = (FixField.Text)field; break;
+					case FixTag.AllocLinkID: if (AllocLinkID is not null) Duplicate(field); AllocLinkID = (FixField.Text)field; break;
+					case FixTag.AllocLinkType: if (AllocLinkType is not null) Duplicate(field); AllocLinkType = (FixField.Integer)field; break;
+					case FixTag.NoOrders: if (NoOrders is not null) Duplicate(field); NoOrders = (FixField.Integer)field; break;
 					case FixTag.ClOrdID:
-						if (noOrdersGroups is null && NoOrders is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoOrders, field.Position, field, -1));
+						if (noOrdersGroups is null && NoOrders is null) Uncounted(FixTag.NoOrders, field);
 						(noOrdersGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.OrderID:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].OrderID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].OrderID = (FixField.Text)field;
 						break;
 					case FixTag.SecondaryOrderID:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].SecondaryOrderID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].SecondaryOrderID = (FixField.Text)field;
 						break;
 					case FixTag.ListID:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].ListID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].ListID = (FixField.Text)field;
 						break;
 					case FixTag.WaveNo:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].WaveNo is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].WaveNo = (FixField.Text)field;
 						break;
-					case FixTag.NoExecs: if (NoExecs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoExecs = (FixField.Integer)field; break;
+					case FixTag.NoExecs: if (NoExecs is not null) Duplicate(field); NoExecs = (FixField.Integer)field; break;
 					case FixTag.LastQty:
-						if (noExecsGroups is null && NoExecs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoExecs, field.Position, field, -1));
+						if (noExecsGroups is null && NoExecs is null) Uncounted(FixTag.NoExecs, field);
 						(noExecsGroups ??= []).Add(new ((FixField.Decimal)field));
 						break;
 					case FixTag.ExecID:
 						if (noExecsGroups is null || noExecsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noExecsGroups![^1].ExecID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noExecsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoExecs, noExecsGroups!.Count - 1);
 						else
 							noExecsGroups![^1].ExecID = (FixField.Text)field;
 						break;
 					case FixTag.LastPx:
 						if (noExecsGroups is null || noExecsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noExecsGroups![^1].LastPx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noExecsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoExecs, noExecsGroups!.Count - 1);
 						else
 							noExecsGroups![^1].LastPx = (FixField.Decimal)field;
 						break;
 					case FixTag.LastCapacity:
 						if (noExecsGroups is null || noExecsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noExecsGroups![^1].LastCapacity is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noExecsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoExecs, noExecsGroups!.Count - 1);
 						else
 							noExecsGroups![^1].LastCapacity = (FixField.Character)field;
 						break;
-					case FixTag.Side: if (Side is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Side = (FixField.Character)field; break;
-					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Quantity: if (Shares is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Shares = (FixField.Decimal)field; break;
-					case FixTag.LastMkt: if (LastMkt is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LastMkt = (FixField.Text)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.AvgPx: if (AvgPx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); AvgPx = (FixField.Decimal)field; break;
-					case FixTag.Currency: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Text)field; break;
-					case FixTag.AvgPxPrecision: if (AvgPrxPrecision is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); AvgPrxPrecision = (FixField.Integer)field; break;
-					case FixTag.TradeDate: if (TradeDate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradeDate = (FixField.Date)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.SettlType: if (SettlmntTyp is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlmntTyp = (FixField.Character)field; break;
-					case FixTag.SettlDate: if (FutSettDate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); FutSettDate = (FixField.Date)field; break;
-					case FixTag.GrossTradeAmt: if (GrossTradeAmt is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); GrossTradeAmt = (FixField.Decimal)field; break;
-					case FixTag.NetMoney: if (NetMoney is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NetMoney = (FixField.Decimal)field; break;
-					case FixTag.PositionEffect: if (OpenClose is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OpenClose = (FixField.Character)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
-					case FixTag.NumDaysInterest: if (NumDaysInterest is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NumDaysInterest = (FixField.Integer)field; break;
-					case FixTag.AccruedInterestRate: if (AccruedInterestRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); AccruedInterestRate = (FixField.Decimal)field; break;
-					case FixTag.NoAllocs: if (NoAllocs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoAllocs = (FixField.Integer)field; break;
+					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
+					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Quantity: if (Shares is not null) Duplicate(field); Shares = (FixField.Decimal)field; break;
+					case FixTag.LastMkt: if (LastMkt is not null) Duplicate(field); LastMkt = (FixField.Text)field; break;
+					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
+					case FixTag.AvgPx: if (AvgPx is not null) Duplicate(field); AvgPx = (FixField.Decimal)field; break;
+					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
+					case FixTag.AvgPxPrecision: if (AvgPrxPrecision is not null) Duplicate(field); AvgPrxPrecision = (FixField.Integer)field; break;
+					case FixTag.TradeDate: if (TradeDate is not null) Duplicate(field); TradeDate = (FixField.Date)field; break;
+					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
+					case FixTag.SettlType: if (SettlmntTyp is not null) Duplicate(field); SettlmntTyp = (FixField.Character)field; break;
+					case FixTag.SettlDate: if (FutSettDate is not null) Duplicate(field); FutSettDate = (FixField.Date)field; break;
+					case FixTag.GrossTradeAmt: if (GrossTradeAmt is not null) Duplicate(field); GrossTradeAmt = (FixField.Decimal)field; break;
+					case FixTag.NetMoney: if (NetMoney is not null) Duplicate(field); NetMoney = (FixField.Decimal)field; break;
+					case FixTag.PositionEffect: if (OpenClose is not null) Duplicate(field); OpenClose = (FixField.Character)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.NumDaysInterest: if (NumDaysInterest is not null) Duplicate(field); NumDaysInterest = (FixField.Integer)field; break;
+					case FixTag.AccruedInterestRate: if (AccruedInterestRate is not null) Duplicate(field); AccruedInterestRate = (FixField.Decimal)field; break;
+					case FixTag.NoAllocs: if (NoAllocs is not null) Duplicate(field); NoAllocs = (FixField.Integer)field; break;
 					case FixTag.AllocAccount:
-						if (noAllocsGroups is null && NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
+						if (noAllocsGroups is null && NoAllocs is null) Uncounted(FixTag.NoAllocs, field);
 						(noAllocsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.AllocPrice:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].AllocPrice is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].AllocPrice = (FixField.Decimal)field;
 						break;
 					case FixTag.AllocQty:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].AllocShares is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].AllocShares = (FixField.Decimal)field;
 						break;
 					case FixTag.ProcessCode:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].ProcessCode is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].ProcessCode = (FixField.Character)field;
 						break;
 					case FixTag.BrokerOfCredit:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].BrokerOfCredit is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].BrokerOfCredit = (FixField.Text)field;
 						break;
 					case FixTag.NotifyBrokerOfCredit:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].NotifyBrokerOfCredit is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].NotifyBrokerOfCredit = (FixField.Boolean)field;
 						break;
 					case FixTag.AllocHandlInst:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].AllocHandlInst is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].AllocHandlInst = (FixField.Integer)field;
 						break;
 					case FixTag.AllocText:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].AllocText is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].AllocText = (FixField.Text)field;
 						break;
 					case FixTag.EncodedAllocTextLen:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].EncodedAllocTextLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].EncodedAllocTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedAllocText:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].EncodedAllocText is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].EncodedAllocText = (FixField.Data)field;
 						break;
 					case FixTag.ExecBroker:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].ExecBroker is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].ExecBroker = (FixField.Text)field;
 						break;
 					case FixTag.ClientID:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].ClientID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].ClientID = (FixField.Text)field;
 						break;
 					case FixTag.Commission:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].Commission is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].Commission = (FixField.Decimal)field;
 						break;
 					case FixTag.CommType:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].CommType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].CommType = (FixField.Character)field;
 						break;
 					case FixTag.AllocAvgPx:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].AllocAvgPx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].AllocAvgPx = (FixField.Decimal)field;
 						break;
 					case FixTag.AllocNetMoney:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].AllocNetMoney is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].AllocNetMoney = (FixField.Decimal)field;
 						break;
 					case FixTag.SettlCurrAmt:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].SettlCurrAmt is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].SettlCurrAmt = (FixField.Decimal)field;
 						break;
 					case FixTag.SettlCurrency:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].SettlCurrency is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].SettlCurrency = (FixField.Text)field;
 						break;
 					case FixTag.SettlCurrFxRate:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].SettlCurrFxRate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].SettlCurrFxRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SettlCurrFxRateCalc:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].SettlCurrFxRateCalc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].SettlCurrFxRateCalc = (FixField.Character)field;
 						break;
 					case FixTag.AccruedInterestAmt:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].AccruedInterestAmt is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].AccruedInterestAmt = (FixField.Decimal)field;
 						break;
 					case FixTag.SettlInstMode:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].SettlInstMode is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].SettlInstMode = (FixField.Character)field;
 						break;
 					case FixTag.NoMiscFees:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].NoMiscFees is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].NoMiscFees = (FixField.Integer)field;
 						break;
 					case FixTag.MiscFeeAmt:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else
 						{
-							if (noAllocsGroups![^1].noMiscFeesGroups is null && noAllocsGroups![^1].NoMiscFees is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMiscFees, field.Position, field, -1));
+							if (noAllocsGroups![^1].noMiscFeesGroups is null && noAllocsGroups![^1].NoMiscFees is null) Uncounted(FixTag.NoMiscFees, field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 							(noAllocsGroups![^1].noMiscFeesGroups ??= []).Add(new ((FixField.Decimal)field));
 						}
 						break;
 					case FixTag.MiscFeeCurr:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0 || noAllocsGroups![^1].noMiscFeesGroups is null || noAllocsGroups![^1].noMiscFeesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].noMiscFeesGroups![^1].MiscFeeCurr is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups![^1].noMiscFeesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1, FixTag.NoMiscFees, noAllocsGroups![^1].noMiscFeesGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].noMiscFeesGroups![^1].MiscFeeCurr = (FixField.Text)field;
 						break;
 					case FixTag.MiscFeeType:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0 || noAllocsGroups![^1].noMiscFeesGroups is null || noAllocsGroups![^1].noMiscFeesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].noMiscFeesGroups![^1].MiscFeeType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups![^1].noMiscFeesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1, FixTag.NoMiscFees, noAllocsGroups![^1].noMiscFeesGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].noMiscFeesGroups![^1].MiscFeeType = (FixField.Character)field;
 						break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -799,9 +799,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.Allocation(context, this);
+			context.Validators.Allocation(context, check, this);
 		}
 	}
 
@@ -814,20 +814,20 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.ClientID: if (ClientID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClientID = (FixField.Text)field; break;
-					case FixTag.ExecBroker: if (ExecBroker is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecBroker = (FixField.Text)field; break;
-					case FixTag.AllocID: if (AllocID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); AllocID = (FixField.Text)field; break;
-					case FixTag.TradeDate: if (TradeDate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradeDate = (FixField.Date)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.AllocStatus: if (AllocStatus is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); AllocStatus = (FixField.Integer)field; break;
-					case FixTag.AllocRejCode: if (AllocRejCode is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); AllocRejCode = (FixField.Integer)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
+					case FixTag.ClientID: if (ClientID is not null) Duplicate(field); ClientID = (FixField.Text)field; break;
+					case FixTag.ExecBroker: if (ExecBroker is not null) Duplicate(field); ExecBroker = (FixField.Text)field; break;
+					case FixTag.AllocID: if (AllocID is not null) Duplicate(field); AllocID = (FixField.Text)field; break;
+					case FixTag.TradeDate: if (TradeDate is not null) Duplicate(field); TradeDate = (FixField.Date)field; break;
+					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
+					case FixTag.AllocStatus: if (AllocStatus is not null) Duplicate(field); AllocStatus = (FixField.Integer)field; break;
+					case FixTag.AllocRejCode: if (AllocRejCode is not null) Duplicate(field); AllocRejCode = (FixField.Integer)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -865,9 +865,9 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.AllocationACK(context, this);
+			context.Validators.AllocationACK(context, check, this);
 		}
 	}
 
@@ -880,175 +880,175 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.BidID: if (BidID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BidID = (FixField.Text)field; break;
-					case FixTag.ClientBidID: if (ClientBidID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClientBidID = (FixField.Text)field; break;
-					case FixTag.BidRequestTransType: if (BidRequestTransType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BidRequestTransType = (FixField.Character)field; break;
-					case FixTag.ListName: if (ListName is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ListName = (FixField.Text)field; break;
-					case FixTag.TotNoRelatedSym: if (TotalNumSecurities is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TotalNumSecurities = (FixField.Integer)field; break;
-					case FixTag.BidType: if (BidType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BidType = (FixField.Integer)field; break;
-					case FixTag.NumTickets: if (NumTickets is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NumTickets = (FixField.Integer)field; break;
-					case FixTag.Currency: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Text)field; break;
-					case FixTag.SideValue1: if (SideValue1 is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SideValue1 = (FixField.Decimal)field; break;
-					case FixTag.SideValue2: if (SideValue2 is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SideValue2 = (FixField.Decimal)field; break;
-					case FixTag.NoBidDescriptors: if (NoBidDescriptors is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoBidDescriptors = (FixField.Integer)field; break;
+					case FixTag.BidID: if (BidID is not null) Duplicate(field); BidID = (FixField.Text)field; break;
+					case FixTag.ClientBidID: if (ClientBidID is not null) Duplicate(field); ClientBidID = (FixField.Text)field; break;
+					case FixTag.BidRequestTransType: if (BidRequestTransType is not null) Duplicate(field); BidRequestTransType = (FixField.Character)field; break;
+					case FixTag.ListName: if (ListName is not null) Duplicate(field); ListName = (FixField.Text)field; break;
+					case FixTag.TotNoRelatedSym: if (TotalNumSecurities is not null) Duplicate(field); TotalNumSecurities = (FixField.Integer)field; break;
+					case FixTag.BidType: if (BidType is not null) Duplicate(field); BidType = (FixField.Integer)field; break;
+					case FixTag.NumTickets: if (NumTickets is not null) Duplicate(field); NumTickets = (FixField.Integer)field; break;
+					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
+					case FixTag.SideValue1: if (SideValue1 is not null) Duplicate(field); SideValue1 = (FixField.Decimal)field; break;
+					case FixTag.SideValue2: if (SideValue2 is not null) Duplicate(field); SideValue2 = (FixField.Decimal)field; break;
+					case FixTag.NoBidDescriptors: if (NoBidDescriptors is not null) Duplicate(field); NoBidDescriptors = (FixField.Integer)field; break;
 					case FixTag.BidDescriptorType:
-						if (noBidDescriptorsGroups is null && NoBidDescriptors is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoBidDescriptors, field.Position, field, -1));
+						if (noBidDescriptorsGroups is null && NoBidDescriptors is null) Uncounted(FixTag.NoBidDescriptors, field);
 						(noBidDescriptorsGroups ??= []).Add(new ((FixField.Integer)field));
 						break;
 					case FixTag.BidDescriptor:
 						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].BidDescriptor is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidDescriptorsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
 							noBidDescriptorsGroups![^1].BidDescriptor = (FixField.Text)field;
 						break;
 					case FixTag.SideValueInd:
 						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].SideValueInd is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidDescriptorsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
 							noBidDescriptorsGroups![^1].SideValueInd = (FixField.Integer)field;
 						break;
 					case FixTag.LiquidityValue:
 						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].LiquidityValue is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidDescriptorsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
 							noBidDescriptorsGroups![^1].LiquidityValue = (FixField.Decimal)field;
 						break;
 					case FixTag.LiquidityNumSecurities:
 						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].LiquidityNumSecurities is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidDescriptorsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
 							noBidDescriptorsGroups![^1].LiquidityNumSecurities = (FixField.Integer)field;
 						break;
 					case FixTag.LiquidityPctLow:
 						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].LiquidityPctLow is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidDescriptorsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
 							noBidDescriptorsGroups![^1].LiquidityPctLow = (FixField.Decimal)field;
 						break;
 					case FixTag.LiquidityPctHigh:
 						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].LiquidityPctHigh is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidDescriptorsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
 							noBidDescriptorsGroups![^1].LiquidityPctHigh = (FixField.Decimal)field;
 						break;
 					case FixTag.EFPTrackingError:
 						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].EFPTrackingError is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidDescriptorsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
 							noBidDescriptorsGroups![^1].EFPTrackingError = (FixField.Decimal)field;
 						break;
 					case FixTag.FairValue:
 						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].FairValue is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidDescriptorsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
 							noBidDescriptorsGroups![^1].FairValue = (FixField.Decimal)field;
 						break;
 					case FixTag.OutsideIndexPct:
 						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].OutsideIndexPct is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidDescriptorsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
 							noBidDescriptorsGroups![^1].OutsideIndexPct = (FixField.Decimal)field;
 						break;
 					case FixTag.ValueOfFutures:
 						if (noBidDescriptorsGroups is null || noBidDescriptorsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidDescriptorsGroups![^1].ValueOfFutures is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidDescriptorsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
 							noBidDescriptorsGroups![^1].ValueOfFutures = (FixField.Decimal)field;
 						break;
-					case FixTag.NoBidComponents: if (NoBidComponents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoBidComponents = (FixField.Integer)field; break;
+					case FixTag.NoBidComponents: if (NoBidComponents is not null) Duplicate(field); NoBidComponents = (FixField.Integer)field; break;
 					case FixTag.ListID:
-						if (noBidComponentsGroups is null && NoBidComponents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoBidComponents, field.Position, field, -1));
+						if (noBidComponentsGroups is null && NoBidComponents is null) Uncounted(FixTag.NoBidComponents, field);
 						(noBidComponentsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.Side:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].Side is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].Side = (FixField.Character)field;
 						break;
 					case FixTag.TradingSessionID:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].TradingSessionID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].TradingSessionID = (FixField.Text)field;
 						break;
 					case FixTag.NetGrossInd:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].NetGrossInd is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].NetGrossInd = (FixField.Integer)field;
 						break;
 					case FixTag.SettlType:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].SettlmntTyp is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].SettlmntTyp = (FixField.Character)field;
 						break;
 					case FixTag.SettlDate:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].FutSettDate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].FutSettDate = (FixField.Date)field;
 						break;
 					case FixTag.Account:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].Account is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].Account = (FixField.Text)field;
 						break;
-					case FixTag.LiquidityIndType: if (LiquidityIndType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LiquidityIndType = (FixField.Integer)field; break;
-					case FixTag.WtAverageLiquidity: if (WtAverageLiquidity is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); WtAverageLiquidity = (FixField.Decimal)field; break;
-					case FixTag.ExchangeForPhysical: if (ExchangeForPhysical is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExchangeForPhysical = (FixField.Boolean)field; break;
-					case FixTag.OutMainCntryUIndex: if (OutMainCntryUIndex is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OutMainCntryUIndex = (FixField.Decimal)field; break;
-					case FixTag.CrossPercent: if (CrossPercent is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CrossPercent = (FixField.Decimal)field; break;
-					case FixTag.ProgRptReqs: if (ProgRptReqs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ProgRptReqs = (FixField.Integer)field; break;
-					case FixTag.ProgPeriodInterval: if (ProgPeriodInterval is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ProgPeriodInterval = (FixField.Integer)field; break;
-					case FixTag.IncTaxInd: if (IncTaxInd is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IncTaxInd = (FixField.Integer)field; break;
-					case FixTag.ForexReq: if (ForexReq is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ForexReq = (FixField.Boolean)field; break;
-					case FixTag.NumBidders: if (NumBidders is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NumBidders = (FixField.Integer)field; break;
-					case FixTag.TradeDate: if (TradeDate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradeDate = (FixField.Date)field; break;
-					case FixTag.BidTradeType: if (TradeType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradeType = (FixField.Character)field; break;
-					case FixTag.BasisPxType: if (BasisPxType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BasisPxType = (FixField.Character)field; break;
-					case FixTag.StrikeTime: if (StrikeTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StrikeTime = (FixField.Timestamp)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
+					case FixTag.LiquidityIndType: if (LiquidityIndType is not null) Duplicate(field); LiquidityIndType = (FixField.Integer)field; break;
+					case FixTag.WtAverageLiquidity: if (WtAverageLiquidity is not null) Duplicate(field); WtAverageLiquidity = (FixField.Decimal)field; break;
+					case FixTag.ExchangeForPhysical: if (ExchangeForPhysical is not null) Duplicate(field); ExchangeForPhysical = (FixField.Boolean)field; break;
+					case FixTag.OutMainCntryUIndex: if (OutMainCntryUIndex is not null) Duplicate(field); OutMainCntryUIndex = (FixField.Decimal)field; break;
+					case FixTag.CrossPercent: if (CrossPercent is not null) Duplicate(field); CrossPercent = (FixField.Decimal)field; break;
+					case FixTag.ProgRptReqs: if (ProgRptReqs is not null) Duplicate(field); ProgRptReqs = (FixField.Integer)field; break;
+					case FixTag.ProgPeriodInterval: if (ProgPeriodInterval is not null) Duplicate(field); ProgPeriodInterval = (FixField.Integer)field; break;
+					case FixTag.IncTaxInd: if (IncTaxInd is not null) Duplicate(field); IncTaxInd = (FixField.Integer)field; break;
+					case FixTag.ForexReq: if (ForexReq is not null) Duplicate(field); ForexReq = (FixField.Boolean)field; break;
+					case FixTag.NumBidders: if (NumBidders is not null) Duplicate(field); NumBidders = (FixField.Integer)field; break;
+					case FixTag.TradeDate: if (TradeDate is not null) Duplicate(field); TradeDate = (FixField.Date)field; break;
+					case FixTag.BidTradeType: if (TradeType is not null) Duplicate(field); TradeType = (FixField.Character)field; break;
+					case FixTag.BasisPxType: if (BasisPxType is not null) Duplicate(field); BasisPxType = (FixField.Character)field; break;
+					case FixTag.StrikeTime: if (StrikeTime is not null) Duplicate(field); StrikeTime = (FixField.Timestamp)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -1223,9 +1223,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.BidRequest(context, this);
+			context.Validators.BidRequest(context, check, this);
 		}
 	}
 
@@ -1238,129 +1238,129 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.BidID: if (BidID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BidID = (FixField.Text)field; break;
-					case FixTag.ClientBidID: if (ClientBidID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClientBidID = (FixField.Text)field; break;
-					case FixTag.NoBidComponents: if (NoBidComponents is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoBidComponents = (FixField.Integer)field; break;
+					case FixTag.BidID: if (BidID is not null) Duplicate(field); BidID = (FixField.Text)field; break;
+					case FixTag.ClientBidID: if (ClientBidID is not null) Duplicate(field); ClientBidID = (FixField.Text)field; break;
+					case FixTag.NoBidComponents: if (NoBidComponents is not null) Duplicate(field); NoBidComponents = (FixField.Integer)field; break;
 					case FixTag.Commission:
-						if (noBidComponentsGroups is null && NoBidComponents is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoBidComponents, field.Position, field, -1));
+						if (noBidComponentsGroups is null && NoBidComponents is null) Uncounted(FixTag.NoBidComponents, field);
 						(noBidComponentsGroups ??= []).Add(new ((FixField.Decimal)field));
 						break;
 					case FixTag.CommType:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].CommType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].CommType = (FixField.Character)field;
 						break;
 					case FixTag.ListID:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].ListID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].ListID = (FixField.Text)field;
 						break;
 					case FixTag.Country:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].Country is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].Country = (FixField.Text)field;
 						break;
 					case FixTag.Side:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].Side is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].Side = (FixField.Character)field;
 						break;
 					case FixTag.Price:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].Price is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].Price = (FixField.Decimal)field;
 						break;
 					case FixTag.PriceType:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].PriceType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].PriceType = (FixField.Integer)field;
 						break;
 					case FixTag.FairValue:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].FairValue is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].FairValue = (FixField.Decimal)field;
 						break;
 					case FixTag.NetGrossInd:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].NetGrossInd is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].NetGrossInd = (FixField.Integer)field;
 						break;
 					case FixTag.SettlType:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].SettlmntTyp is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].SettlmntTyp = (FixField.Character)field;
 						break;
 					case FixTag.SettlDate:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].FutSettDate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].FutSettDate = (FixField.Date)field;
 						break;
 					case FixTag.TradingSessionID:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].TradingSessionID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].TradingSessionID = (FixField.Text)field;
 						break;
 					case FixTag.Text:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].Text is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].Text = (FixField.Text)field;
 						break;
 					case FixTag.EncodedTextLen:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].EncodedTextLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].EncodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
 						if (noBidComponentsGroups is null || noBidComponentsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noBidComponentsGroups![^1].EncodedText is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noBidComponentsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
 							noBidComponentsGroups![^1].EncodedText = (FixField.Data)field;
 						break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -1435,9 +1435,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.BidResponse(context, this);
+			context.Validators.BidResponse(context, check, this);
 		}
 	}
 
@@ -1450,17 +1450,17 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.RefSeqNum: if (RefSeqNum is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); RefSeqNum = (FixField.Integer)field; break;
-					case FixTag.RefMsgType: if (RefMsgType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); RefMsgType = (FixField.Text)field; break;
-					case FixTag.BusinessRejectRefID: if (BusinessRejectRefID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BusinessRejectRefID = (FixField.Text)field; break;
-					case FixTag.BusinessRejectReason: if (BusinessRejectReason is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BusinessRejectReason = (FixField.Integer)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
+					case FixTag.RefSeqNum: if (RefSeqNum is not null) Duplicate(field); RefSeqNum = (FixField.Integer)field; break;
+					case FixTag.RefMsgType: if (RefMsgType is not null) Duplicate(field); RefMsgType = (FixField.Text)field; break;
+					case FixTag.BusinessRejectRefID: if (BusinessRejectRefID is not null) Duplicate(field); BusinessRejectRefID = (FixField.Text)field; break;
+					case FixTag.BusinessRejectReason: if (BusinessRejectReason is not null) Duplicate(field); BusinessRejectReason = (FixField.Integer)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -1489,9 +1489,9 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.BusinessMessageReject(context, this);
+			context.Validators.BusinessMessageReject(context, check, this);
 		}
 	}
 
@@ -1504,40 +1504,40 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.OrderID: if (OrderID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderID = (FixField.Text)field; break;
-					case FixTag.ExecID: if (ExecID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecID = (FixField.Text)field; break;
-					case FixTag.DKReason: if (DKReason is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DKReason = (FixField.Character)field; break;
-					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Side: if (Side is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Side = (FixField.Character)field; break;
-					case FixTag.OrderQty: if (OrderQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderQty = (FixField.Decimal)field; break;
-					case FixTag.CashOrderQty: if (CashOrderQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CashOrderQty = (FixField.Decimal)field; break;
-					case FixTag.LastQty: if (LastShares is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LastShares = (FixField.Decimal)field; break;
-					case FixTag.LastPx: if (LastPx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LastPx = (FixField.Decimal)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
+					case FixTag.OrderID: if (OrderID is not null) Duplicate(field); OrderID = (FixField.Text)field; break;
+					case FixTag.ExecID: if (ExecID is not null) Duplicate(field); ExecID = (FixField.Text)field; break;
+					case FixTag.DKReason: if (DKReason is not null) Duplicate(field); DKReason = (FixField.Character)field; break;
+					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
+					case FixTag.OrderQty: if (OrderQty is not null) Duplicate(field); OrderQty = (FixField.Decimal)field; break;
+					case FixTag.CashOrderQty: if (CashOrderQty is not null) Duplicate(field); CashOrderQty = (FixField.Decimal)field; break;
+					case FixTag.LastQty: if (LastShares is not null) Duplicate(field); LastShares = (FixField.Decimal)field; break;
+					case FixTag.LastPx: if (LastPx is not null) Duplicate(field); LastPx = (FixField.Decimal)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -1635,9 +1635,9 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.DontKnowTrade(context, this);
+			context.Validators.DontKnowTrade(context, check, this);
 		}
 	}
 
@@ -1650,203 +1650,203 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.EmailThreadID: if (EmailThreadID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EmailThreadID = (FixField.Text)field; break;
-					case FixTag.EmailType: if (EmailType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EmailType = (FixField.Character)field; break;
-					case FixTag.OrigTime: if (OrigTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrigTime = (FixField.Timestamp)field; break;
-					case FixTag.Subject: if (Subject is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Subject = (FixField.Text)field; break;
-					case FixTag.EncodedSubjectLen: if (EncodedSubjectLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSubjectLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSubject: if (EncodedSubject is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSubject = (FixField.Data)field; break;
-					case FixTag.NoRoutingIDs: if (NoRoutingIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRoutingIDs = (FixField.Integer)field; break;
+					case FixTag.EmailThreadID: if (EmailThreadID is not null) Duplicate(field); EmailThreadID = (FixField.Text)field; break;
+					case FixTag.EmailType: if (EmailType is not null) Duplicate(field); EmailType = (FixField.Character)field; break;
+					case FixTag.OrigTime: if (OrigTime is not null) Duplicate(field); OrigTime = (FixField.Timestamp)field; break;
+					case FixTag.Subject: if (Subject is not null) Duplicate(field); Subject = (FixField.Text)field; break;
+					case FixTag.EncodedSubjectLen: if (EncodedSubjectLen is not null) Duplicate(field); EncodedSubjectLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSubject: if (EncodedSubject is not null) Duplicate(field); EncodedSubject = (FixField.Data)field; break;
+					case FixTag.NoRoutingIDs: if (NoRoutingIDs is not null) Duplicate(field); NoRoutingIDs = (FixField.Integer)field; break;
 					case FixTag.RoutingType:
-						if (noRoutingIDsGroups is null && NoRoutingIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRoutingIDs, field.Position, field, -1));
+						if (noRoutingIDsGroups is null && NoRoutingIDs is null) Uncounted(FixTag.NoRoutingIDs, field);
 						(noRoutingIDsGroups ??= []).Add(new ((FixField.Integer)field));
 						break;
 					case FixTag.RoutingID:
 						if (noRoutingIDsGroups is null || noRoutingIDsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRoutingIDsGroups![^1].RoutingID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRoutingIDsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRoutingIDs, noRoutingIDsGroups!.Count - 1);
 						else
 							noRoutingIDsGroups![^1].RoutingID = (FixField.Text)field;
 						break;
-					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
+					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) Duplicate(field); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.RelatdSym:
-						if (noRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
+						if (noRelatedSymGroups is null && NoRelatedSym is null) Uncounted(FixTag.NoRelatedSym, field);
 						(noRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SymbolSfx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].IDSource is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].MaturityMonthYear is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].MaturityDay is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].PutOrCall is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].StrikePrice is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].OptAttribute is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].ContractMultiplier is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].CouponRate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityExchange is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].Issuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedIssuerLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedIssuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedSecurityDescLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedSecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
 						break;
-					case FixTag.OrderID: if (OrderID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderID = (FixField.Text)field; break;
-					case FixTag.ClOrdID: if (ClOrdID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClOrdID = (FixField.Text)field; break;
-					case FixTag.NoLinesOfText: if (LinesOfText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LinesOfText = (FixField.Integer)field; break;
+					case FixTag.OrderID: if (OrderID is not null) Duplicate(field); OrderID = (FixField.Text)field; break;
+					case FixTag.ClOrdID: if (ClOrdID is not null) Duplicate(field); ClOrdID = (FixField.Text)field; break;
+					case FixTag.NoLinesOfText: if (LinesOfText is not null) Duplicate(field); LinesOfText = (FixField.Integer)field; break;
 					case FixTag.Text:
-						if (linesOfTextGroups is null && LinesOfText is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLinesOfText, field.Position, field, -1));
+						if (linesOfTextGroups is null && LinesOfText is null) Uncounted(FixTag.NoLinesOfText, field);
 						(linesOfTextGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.EncodedTextLen:
 						if (linesOfTextGroups is null || linesOfTextGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (linesOfTextGroups![^1].EncodedTextLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, linesOfTextGroups!.Count - 1));
+							Duplicate(field, FixTag.NoLinesOfText, linesOfTextGroups!.Count - 1);
 						else
 							linesOfTextGroups![^1].EncodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
 						if (linesOfTextGroups is null || linesOfTextGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (linesOfTextGroups![^1].EncodedText is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, linesOfTextGroups!.Count - 1));
+							Duplicate(field, FixTag.NoLinesOfText, linesOfTextGroups!.Count - 1);
 						else
 							linesOfTextGroups![^1].EncodedText = (FixField.Data)field;
 						break;
-					case FixTag.RawDataLength: if (RawDataLength is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); RawDataLength = (FixField.Integer)field; break;
-					case FixTag.RawData: if (RawData is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); RawData = (FixField.Data)field; break;
+					case FixTag.RawDataLength: if (RawDataLength is not null) Duplicate(field); RawDataLength = (FixField.Integer)field; break;
+					case FixTag.RawData: if (RawData is not null) Duplicate(field); RawData = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -2004,9 +2004,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.Email(context, this);
+			context.Validators.Email(context, check, this);
 		}
 	}
 
@@ -2019,130 +2019,130 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.OrderID: if (OrderID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderID = (FixField.Text)field; break;
-					case FixTag.SecondaryOrderID: if (SecondaryOrderID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecondaryOrderID = (FixField.Text)field; break;
-					case FixTag.ClOrdID: if (ClOrdID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClOrdID = (FixField.Text)field; break;
-					case FixTag.OrigClOrdID: if (OrigClOrdID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrigClOrdID = (FixField.Text)field; break;
-					case FixTag.ClientID: if (ClientID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClientID = (FixField.Text)field; break;
-					case FixTag.ExecBroker: if (ExecBroker is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecBroker = (FixField.Text)field; break;
-					case FixTag.NoContraBrokers: if (NoContraBrokers is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoContraBrokers = (FixField.Integer)field; break;
+					case FixTag.OrderID: if (OrderID is not null) Duplicate(field); OrderID = (FixField.Text)field; break;
+					case FixTag.SecondaryOrderID: if (SecondaryOrderID is not null) Duplicate(field); SecondaryOrderID = (FixField.Text)field; break;
+					case FixTag.ClOrdID: if (ClOrdID is not null) Duplicate(field); ClOrdID = (FixField.Text)field; break;
+					case FixTag.OrigClOrdID: if (OrigClOrdID is not null) Duplicate(field); OrigClOrdID = (FixField.Text)field; break;
+					case FixTag.ClientID: if (ClientID is not null) Duplicate(field); ClientID = (FixField.Text)field; break;
+					case FixTag.ExecBroker: if (ExecBroker is not null) Duplicate(field); ExecBroker = (FixField.Text)field; break;
+					case FixTag.NoContraBrokers: if (NoContraBrokers is not null) Duplicate(field); NoContraBrokers = (FixField.Integer)field; break;
 					case FixTag.ContraBroker:
-						if (noContraBrokersGroups is null && NoContraBrokers is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoContraBrokers, field.Position, field, -1));
+						if (noContraBrokersGroups is null && NoContraBrokers is null) Uncounted(FixTag.NoContraBrokers, field);
 						(noContraBrokersGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.ContraTrader:
 						if (noContraBrokersGroups is null || noContraBrokersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noContraBrokersGroups![^1].ContraTrader is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noContraBrokersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoContraBrokers, noContraBrokersGroups!.Count - 1);
 						else
 							noContraBrokersGroups![^1].ContraTrader = (FixField.Text)field;
 						break;
 					case FixTag.ContraTradeQty:
 						if (noContraBrokersGroups is null || noContraBrokersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noContraBrokersGroups![^1].ContraTradeQty is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noContraBrokersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoContraBrokers, noContraBrokersGroups!.Count - 1);
 						else
 							noContraBrokersGroups![^1].ContraTradeQty = (FixField.Decimal)field;
 						break;
 					case FixTag.ContraTradeTime:
 						if (noContraBrokersGroups is null || noContraBrokersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noContraBrokersGroups![^1].ContraTradeTime is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noContraBrokersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoContraBrokers, noContraBrokersGroups!.Count - 1);
 						else
 							noContraBrokersGroups![^1].ContraTradeTime = (FixField.Timestamp)field;
 						break;
-					case FixTag.ListID: if (ListID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ListID = (FixField.Text)field; break;
-					case FixTag.ExecID: if (ExecID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecID = (FixField.Text)field; break;
-					case FixTag.ExecTransType: if (ExecTransType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecTransType = (FixField.Character)field; break;
-					case FixTag.ExecRefID: if (ExecRefID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecRefID = (FixField.Text)field; break;
-					case FixTag.ExecType: if (ExecType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecType = (FixField.Character)field; break;
-					case FixTag.OrdStatus: if (OrdStatus is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrdStatus = (FixField.Character)field; break;
-					case FixTag.OrdRejReason: if (OrdRejReason is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrdRejReason = (FixField.Integer)field; break;
-					case FixTag.ExecRestatementReason: if (ExecRestatementReason is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecRestatementReason = (FixField.Integer)field; break;
-					case FixTag.Account: if (Account is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Account = (FixField.Text)field; break;
-					case FixTag.SettlType: if (SettlmntTyp is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlmntTyp = (FixField.Character)field; break;
-					case FixTag.SettlDate: if (FutSettDate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); FutSettDate = (FixField.Date)field; break;
-					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Side: if (Side is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Side = (FixField.Character)field; break;
-					case FixTag.OrderQty: if (OrderQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderQty = (FixField.Decimal)field; break;
-					case FixTag.CashOrderQty: if (CashOrderQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CashOrderQty = (FixField.Decimal)field; break;
-					case FixTag.OrdType: if (OrdType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrdType = (FixField.Character)field; break;
-					case FixTag.Price: if (Price is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Price = (FixField.Decimal)field; break;
-					case FixTag.StopPx: if (StopPx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StopPx = (FixField.Decimal)field; break;
-					case FixTag.PegOffsetValue: if (PegDifference is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PegDifference = (FixField.Decimal)field; break;
-					case FixTag.DiscretionInst: if (DiscretionInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DiscretionInst = (FixField.Character)field; break;
-					case FixTag.DiscretionOffsetValue: if (DiscretionOffset is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DiscretionOffset = (FixField.Decimal)field; break;
-					case FixTag.Currency: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Text)field; break;
-					case FixTag.ComplianceID: if (ComplianceID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ComplianceID = (FixField.Text)field; break;
-					case FixTag.SolicitedFlag: if (SolicitedFlag is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SolicitedFlag = (FixField.Boolean)field; break;
-					case FixTag.TimeInForce: if (TimeInForce is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TimeInForce = (FixField.Character)field; break;
-					case FixTag.EffectiveTime: if (EffectiveTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EffectiveTime = (FixField.Timestamp)field; break;
-					case FixTag.ExpireDate: if (ExpireDate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExpireDate = (FixField.Date)field; break;
-					case FixTag.ExpireTime: if (ExpireTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExpireTime = (FixField.Timestamp)field; break;
-					case FixTag.ExecInst: if (ExecInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecInst = (FixField.Multiple)field; break;
-					case FixTag.Rule80A: if (Rule80A is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Rule80A = (FixField.Character)field; break;
-					case FixTag.LastQty: if (LastShares is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LastShares = (FixField.Decimal)field; break;
-					case FixTag.LastPx: if (LastPx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LastPx = (FixField.Decimal)field; break;
-					case FixTag.LastSpotRate: if (LastSpotRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LastSpotRate = (FixField.Decimal)field; break;
-					case FixTag.LastForwardPoints: if (LastForwardPoints is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LastForwardPoints = (FixField.Decimal)field; break;
-					case FixTag.LastMkt: if (LastMkt is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LastMkt = (FixField.Text)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.LastCapacity: if (LastCapacity is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LastCapacity = (FixField.Character)field; break;
-					case FixTag.LeavesQty: if (LeavesQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LeavesQty = (FixField.Decimal)field; break;
-					case FixTag.CumQty: if (CumQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CumQty = (FixField.Decimal)field; break;
-					case FixTag.AvgPx: if (AvgPx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); AvgPx = (FixField.Decimal)field; break;
-					case FixTag.DayOrderQty: if (DayOrderQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DayOrderQty = (FixField.Decimal)field; break;
-					case FixTag.DayCumQty: if (DayCumQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DayCumQty = (FixField.Decimal)field; break;
-					case FixTag.DayAvgPx: if (DayAvgPx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DayAvgPx = (FixField.Decimal)field; break;
-					case FixTag.GTBookingInst: if (GTBookingInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); GTBookingInst = (FixField.Integer)field; break;
-					case FixTag.TradeDate: if (TradeDate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradeDate = (FixField.Date)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.ReportToExch: if (ReportToExch is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ReportToExch = (FixField.Boolean)field; break;
-					case FixTag.Commission: if (Commission is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Commission = (FixField.Decimal)field; break;
-					case FixTag.CommType: if (CommType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CommType = (FixField.Character)field; break;
-					case FixTag.GrossTradeAmt: if (GrossTradeAmt is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); GrossTradeAmt = (FixField.Decimal)field; break;
-					case FixTag.SettlCurrAmt: if (SettlCurrAmt is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlCurrAmt = (FixField.Decimal)field; break;
-					case FixTag.SettlCurrency: if (SettlCurrency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlCurrency = (FixField.Text)field; break;
-					case FixTag.SettlCurrFxRate: if (SettlCurrFxRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlCurrFxRate = (FixField.Decimal)field; break;
-					case FixTag.SettlCurrFxRateCalc: if (SettlCurrFxRateCalc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlCurrFxRateCalc = (FixField.Character)field; break;
-					case FixTag.HandlInst: if (HandlInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); HandlInst = (FixField.Character)field; break;
-					case FixTag.MinQty: if (MinQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MinQty = (FixField.Decimal)field; break;
-					case FixTag.MaxFloor: if (MaxFloor is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaxFloor = (FixField.Decimal)field; break;
-					case FixTag.PositionEffect: if (OpenClose is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OpenClose = (FixField.Character)field; break;
-					case FixTag.MaxShow: if (MaxShow is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaxShow = (FixField.Decimal)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
-					case FixTag.SettlDate2: if (FutSettDate2 is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); FutSettDate2 = (FixField.Date)field; break;
-					case FixTag.OrderQty2: if (OrderQty2 is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderQty2 = (FixField.Decimal)field; break;
-					case FixTag.ClearingFirm: if (ClearingFirm is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClearingFirm = (FixField.Text)field; break;
-					case FixTag.ClearingAccount: if (ClearingAccount is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClearingAccount = (FixField.Text)field; break;
-					case FixTag.MultiLegReportingType: if (MultiLegReportingType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MultiLegReportingType = (FixField.Character)field; break;
+					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
+					case FixTag.ExecID: if (ExecID is not null) Duplicate(field); ExecID = (FixField.Text)field; break;
+					case FixTag.ExecTransType: if (ExecTransType is not null) Duplicate(field); ExecTransType = (FixField.Character)field; break;
+					case FixTag.ExecRefID: if (ExecRefID is not null) Duplicate(field); ExecRefID = (FixField.Text)field; break;
+					case FixTag.ExecType: if (ExecType is not null) Duplicate(field); ExecType = (FixField.Character)field; break;
+					case FixTag.OrdStatus: if (OrdStatus is not null) Duplicate(field); OrdStatus = (FixField.Character)field; break;
+					case FixTag.OrdRejReason: if (OrdRejReason is not null) Duplicate(field); OrdRejReason = (FixField.Integer)field; break;
+					case FixTag.ExecRestatementReason: if (ExecRestatementReason is not null) Duplicate(field); ExecRestatementReason = (FixField.Integer)field; break;
+					case FixTag.Account: if (Account is not null) Duplicate(field); Account = (FixField.Text)field; break;
+					case FixTag.SettlType: if (SettlmntTyp is not null) Duplicate(field); SettlmntTyp = (FixField.Character)field; break;
+					case FixTag.SettlDate: if (FutSettDate is not null) Duplicate(field); FutSettDate = (FixField.Date)field; break;
+					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
+					case FixTag.OrderQty: if (OrderQty is not null) Duplicate(field); OrderQty = (FixField.Decimal)field; break;
+					case FixTag.CashOrderQty: if (CashOrderQty is not null) Duplicate(field); CashOrderQty = (FixField.Decimal)field; break;
+					case FixTag.OrdType: if (OrdType is not null) Duplicate(field); OrdType = (FixField.Character)field; break;
+					case FixTag.Price: if (Price is not null) Duplicate(field); Price = (FixField.Decimal)field; break;
+					case FixTag.StopPx: if (StopPx is not null) Duplicate(field); StopPx = (FixField.Decimal)field; break;
+					case FixTag.PegOffsetValue: if (PegDifference is not null) Duplicate(field); PegDifference = (FixField.Decimal)field; break;
+					case FixTag.DiscretionInst: if (DiscretionInst is not null) Duplicate(field); DiscretionInst = (FixField.Character)field; break;
+					case FixTag.DiscretionOffsetValue: if (DiscretionOffset is not null) Duplicate(field); DiscretionOffset = (FixField.Decimal)field; break;
+					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
+					case FixTag.ComplianceID: if (ComplianceID is not null) Duplicate(field); ComplianceID = (FixField.Text)field; break;
+					case FixTag.SolicitedFlag: if (SolicitedFlag is not null) Duplicate(field); SolicitedFlag = (FixField.Boolean)field; break;
+					case FixTag.TimeInForce: if (TimeInForce is not null) Duplicate(field); TimeInForce = (FixField.Character)field; break;
+					case FixTag.EffectiveTime: if (EffectiveTime is not null) Duplicate(field); EffectiveTime = (FixField.Timestamp)field; break;
+					case FixTag.ExpireDate: if (ExpireDate is not null) Duplicate(field); ExpireDate = (FixField.Date)field; break;
+					case FixTag.ExpireTime: if (ExpireTime is not null) Duplicate(field); ExpireTime = (FixField.Timestamp)field; break;
+					case FixTag.ExecInst: if (ExecInst is not null) Duplicate(field); ExecInst = (FixField.Multiple)field; break;
+					case FixTag.Rule80A: if (Rule80A is not null) Duplicate(field); Rule80A = (FixField.Character)field; break;
+					case FixTag.LastQty: if (LastShares is not null) Duplicate(field); LastShares = (FixField.Decimal)field; break;
+					case FixTag.LastPx: if (LastPx is not null) Duplicate(field); LastPx = (FixField.Decimal)field; break;
+					case FixTag.LastSpotRate: if (LastSpotRate is not null) Duplicate(field); LastSpotRate = (FixField.Decimal)field; break;
+					case FixTag.LastForwardPoints: if (LastForwardPoints is not null) Duplicate(field); LastForwardPoints = (FixField.Decimal)field; break;
+					case FixTag.LastMkt: if (LastMkt is not null) Duplicate(field); LastMkt = (FixField.Text)field; break;
+					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
+					case FixTag.LastCapacity: if (LastCapacity is not null) Duplicate(field); LastCapacity = (FixField.Character)field; break;
+					case FixTag.LeavesQty: if (LeavesQty is not null) Duplicate(field); LeavesQty = (FixField.Decimal)field; break;
+					case FixTag.CumQty: if (CumQty is not null) Duplicate(field); CumQty = (FixField.Decimal)field; break;
+					case FixTag.AvgPx: if (AvgPx is not null) Duplicate(field); AvgPx = (FixField.Decimal)field; break;
+					case FixTag.DayOrderQty: if (DayOrderQty is not null) Duplicate(field); DayOrderQty = (FixField.Decimal)field; break;
+					case FixTag.DayCumQty: if (DayCumQty is not null) Duplicate(field); DayCumQty = (FixField.Decimal)field; break;
+					case FixTag.DayAvgPx: if (DayAvgPx is not null) Duplicate(field); DayAvgPx = (FixField.Decimal)field; break;
+					case FixTag.GTBookingInst: if (GTBookingInst is not null) Duplicate(field); GTBookingInst = (FixField.Integer)field; break;
+					case FixTag.TradeDate: if (TradeDate is not null) Duplicate(field); TradeDate = (FixField.Date)field; break;
+					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
+					case FixTag.ReportToExch: if (ReportToExch is not null) Duplicate(field); ReportToExch = (FixField.Boolean)field; break;
+					case FixTag.Commission: if (Commission is not null) Duplicate(field); Commission = (FixField.Decimal)field; break;
+					case FixTag.CommType: if (CommType is not null) Duplicate(field); CommType = (FixField.Character)field; break;
+					case FixTag.GrossTradeAmt: if (GrossTradeAmt is not null) Duplicate(field); GrossTradeAmt = (FixField.Decimal)field; break;
+					case FixTag.SettlCurrAmt: if (SettlCurrAmt is not null) Duplicate(field); SettlCurrAmt = (FixField.Decimal)field; break;
+					case FixTag.SettlCurrency: if (SettlCurrency is not null) Duplicate(field); SettlCurrency = (FixField.Text)field; break;
+					case FixTag.SettlCurrFxRate: if (SettlCurrFxRate is not null) Duplicate(field); SettlCurrFxRate = (FixField.Decimal)field; break;
+					case FixTag.SettlCurrFxRateCalc: if (SettlCurrFxRateCalc is not null) Duplicate(field); SettlCurrFxRateCalc = (FixField.Character)field; break;
+					case FixTag.HandlInst: if (HandlInst is not null) Duplicate(field); HandlInst = (FixField.Character)field; break;
+					case FixTag.MinQty: if (MinQty is not null) Duplicate(field); MinQty = (FixField.Decimal)field; break;
+					case FixTag.MaxFloor: if (MaxFloor is not null) Duplicate(field); MaxFloor = (FixField.Decimal)field; break;
+					case FixTag.PositionEffect: if (OpenClose is not null) Duplicate(field); OpenClose = (FixField.Character)field; break;
+					case FixTag.MaxShow: if (MaxShow is not null) Duplicate(field); MaxShow = (FixField.Decimal)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.SettlDate2: if (FutSettDate2 is not null) Duplicate(field); FutSettDate2 = (FixField.Date)field; break;
+					case FixTag.OrderQty2: if (OrderQty2 is not null) Duplicate(field); OrderQty2 = (FixField.Decimal)field; break;
+					case FixTag.ClearingFirm: if (ClearingFirm is not null) Duplicate(field); ClearingFirm = (FixField.Text)field; break;
+					case FixTag.ClearingAccount: if (ClearingAccount is not null) Duplicate(field); ClearingAccount = (FixField.Text)field; break;
+					case FixTag.MultiLegReportingType: if (MultiLegReportingType is not null) Duplicate(field); MultiLegReportingType = (FixField.Character)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -2451,9 +2451,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.ExecutionReport(context, this);
+			context.Validators.ExecutionReport(context, check, this);
 		}
 	}
 
@@ -2466,11 +2466,11 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.TestReqID: if (TestReqID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TestReqID = (FixField.Text)field; break;
+					case FixTag.TestReqID: if (TestReqID is not null) Duplicate(field); TestReqID = (FixField.Text)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -2481,9 +2481,9 @@ public abstract partial class FixMessage
 		public FixField.Text? TestReqID { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.Heartbeat(context, this);
+			context.Validators.Heartbeat(context, check, this);
 		}
 	}
 
@@ -2496,64 +2496,64 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.IOIID: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.Text)field; break;
-					case FixTag.IOITransType: if (IOITransType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOITransType = (FixField.Character)field; break;
-					case FixTag.IOIRefID: if (IOIRefID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIRefID = (FixField.Text)field; break;
-					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Side: if (Side is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Side = (FixField.Character)field; break;
-					case FixTag.IOIQty: if (IOIShares is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIShares = (FixField.Text)field; break;
-					case FixTag.Price: if (Price is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Price = (FixField.Decimal)field; break;
-					case FixTag.Currency: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Text)field; break;
-					case FixTag.ValidUntilTime: if (ValidUntilTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ValidUntilTime = (FixField.Timestamp)field; break;
-					case FixTag.IOIQltyInd: if (IOIQltyInd is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIQltyInd = (FixField.Character)field; break;
-					case FixTag.IOINaturalFlag: if (IOINaturalFlag is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOINaturalFlag = (FixField.Boolean)field; break;
-					case FixTag.NoIOIQualifiers: if (NoIOIQualifiers is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoIOIQualifiers = (FixField.Integer)field; break;
+					case FixTag.IOIID: if (IOIid is not null) Duplicate(field); IOIid = (FixField.Text)field; break;
+					case FixTag.IOITransType: if (IOITransType is not null) Duplicate(field); IOITransType = (FixField.Character)field; break;
+					case FixTag.IOIRefID: if (IOIRefID is not null) Duplicate(field); IOIRefID = (FixField.Text)field; break;
+					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
+					case FixTag.IOIQty: if (IOIShares is not null) Duplicate(field); IOIShares = (FixField.Text)field; break;
+					case FixTag.Price: if (Price is not null) Duplicate(field); Price = (FixField.Decimal)field; break;
+					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
+					case FixTag.ValidUntilTime: if (ValidUntilTime is not null) Duplicate(field); ValidUntilTime = (FixField.Timestamp)field; break;
+					case FixTag.IOIQltyInd: if (IOIQltyInd is not null) Duplicate(field); IOIQltyInd = (FixField.Character)field; break;
+					case FixTag.IOINaturalFlag: if (IOINaturalFlag is not null) Duplicate(field); IOINaturalFlag = (FixField.Boolean)field; break;
+					case FixTag.NoIOIQualifiers: if (NoIOIQualifiers is not null) Duplicate(field); NoIOIQualifiers = (FixField.Integer)field; break;
 					case FixTag.IOIQualifier:
-						if (noIOIQualifiersGroups is null && NoIOIQualifiers is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoIOIQualifiers, field.Position, field, -1));
+						if (noIOIQualifiersGroups is null && NoIOIQualifiers is null) Uncounted(FixTag.NoIOIQualifiers, field);
 						(noIOIQualifiersGroups ??= []).Add(new ((FixField.Character)field));
 						break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.URLLink: if (URLLink is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); URLLink = (FixField.Text)field; break;
-					case FixTag.NoRoutingIDs: if (NoRoutingIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRoutingIDs = (FixField.Integer)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
+					case FixTag.URLLink: if (URLLink is not null) Duplicate(field); URLLink = (FixField.Text)field; break;
+					case FixTag.NoRoutingIDs: if (NoRoutingIDs is not null) Duplicate(field); NoRoutingIDs = (FixField.Integer)field; break;
 					case FixTag.RoutingType:
-						if (noRoutingIDsGroups is null && NoRoutingIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRoutingIDs, field.Position, field, -1));
+						if (noRoutingIDsGroups is null && NoRoutingIDs is null) Uncounted(FixTag.NoRoutingIDs, field);
 						(noRoutingIDsGroups ??= []).Add(new ((FixField.Integer)field));
 						break;
 					case FixTag.RoutingID:
 						if (noRoutingIDsGroups is null || noRoutingIDsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRoutingIDsGroups![^1].RoutingID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRoutingIDsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRoutingIDs, noRoutingIDsGroups!.Count - 1);
 						else
 							noRoutingIDsGroups![^1].RoutingID = (FixField.Text)field;
 						break;
-					case FixTag.Spread: if (SpreadToBenchmark is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SpreadToBenchmark = (FixField.Decimal)field; break;
-					case FixTag.Benchmark: if (Benchmark is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Benchmark = (FixField.Character)field; break;
+					case FixTag.Spread: if (SpreadToBenchmark is not null) Duplicate(field); SpreadToBenchmark = (FixField.Decimal)field; break;
+					case FixTag.Benchmark: if (Benchmark is not null) Duplicate(field); Benchmark = (FixField.Character)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -2710,9 +2710,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.IndicationofInterest(context, this);
+			context.Validators.IndicationofInterest(context, check, this);
 		}
 	}
 
@@ -2725,15 +2725,15 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.ListID: if (ListID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ListID = (FixField.Text)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
+					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
+					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -2756,9 +2756,9 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.ListCancelRequest(context, this);
+			context.Validators.ListCancelRequest(context, check, this);
 		}
 	}
 
@@ -2771,17 +2771,17 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.ListID: if (ListID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ListID = (FixField.Text)field; break;
-					case FixTag.ClientBidID: if (ClientBidID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClientBidID = (FixField.Text)field; break;
-					case FixTag.BidID: if (BidID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BidID = (FixField.Text)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
+					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
+					case FixTag.ClientBidID: if (ClientBidID is not null) Duplicate(field); ClientBidID = (FixField.Text)field; break;
+					case FixTag.BidID: if (BidID is not null) Duplicate(field); BidID = (FixField.Text)field; break;
+					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -2810,9 +2810,9 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.ListExecute(context, this);
+			context.Validators.ListExecute(context, check, this);
 		}
 	}
 
@@ -2825,97 +2825,97 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.ListID: if (ListID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ListID = (FixField.Text)field; break;
-					case FixTag.ListStatusType: if (ListStatusType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ListStatusType = (FixField.Integer)field; break;
-					case FixTag.NoRpts: if (NoRpts is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRpts = (FixField.Integer)field; break;
-					case FixTag.ListOrderStatus: if (ListOrderStatus is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ListOrderStatus = (FixField.Integer)field; break;
-					case FixTag.RptSeq: if (RptSeq is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); RptSeq = (FixField.Integer)field; break;
-					case FixTag.ListStatusText: if (ListStatusText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ListStatusText = (FixField.Text)field; break;
-					case FixTag.EncodedListStatusTextLen: if (EncodedListStatusTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedListStatusTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedListStatusText: if (EncodedListStatusText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedListStatusText = (FixField.Data)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.TotNoOrders: if (TotNoOrders is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TotNoOrders = (FixField.Integer)field; break;
-					case FixTag.NoOrders: if (NoOrders is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoOrders = (FixField.Integer)field; break;
+					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
+					case FixTag.ListStatusType: if (ListStatusType is not null) Duplicate(field); ListStatusType = (FixField.Integer)field; break;
+					case FixTag.NoRpts: if (NoRpts is not null) Duplicate(field); NoRpts = (FixField.Integer)field; break;
+					case FixTag.ListOrderStatus: if (ListOrderStatus is not null) Duplicate(field); ListOrderStatus = (FixField.Integer)field; break;
+					case FixTag.RptSeq: if (RptSeq is not null) Duplicate(field); RptSeq = (FixField.Integer)field; break;
+					case FixTag.ListStatusText: if (ListStatusText is not null) Duplicate(field); ListStatusText = (FixField.Text)field; break;
+					case FixTag.EncodedListStatusTextLen: if (EncodedListStatusTextLen is not null) Duplicate(field); EncodedListStatusTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedListStatusText: if (EncodedListStatusText is not null) Duplicate(field); EncodedListStatusText = (FixField.Data)field; break;
+					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
+					case FixTag.TotNoOrders: if (TotNoOrders is not null) Duplicate(field); TotNoOrders = (FixField.Integer)field; break;
+					case FixTag.NoOrders: if (NoOrders is not null) Duplicate(field); NoOrders = (FixField.Integer)field; break;
 					case FixTag.ClOrdID:
-						if (noOrdersGroups is null && NoOrders is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoOrders, field.Position, field, -1));
+						if (noOrdersGroups is null && NoOrders is null) Uncounted(FixTag.NoOrders, field);
 						(noOrdersGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.CumQty:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].CumQty is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].CumQty = (FixField.Decimal)field;
 						break;
 					case FixTag.OrdStatus:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].OrdStatus is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].OrdStatus = (FixField.Character)field;
 						break;
 					case FixTag.LeavesQty:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].LeavesQty is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].LeavesQty = (FixField.Decimal)field;
 						break;
 					case FixTag.CxlQty:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].CxlQty is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].CxlQty = (FixField.Decimal)field;
 						break;
 					case FixTag.AvgPx:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].AvgPx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].AvgPx = (FixField.Decimal)field;
 						break;
 					case FixTag.OrdRejReason:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].OrdRejReason is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].OrdRejReason = (FixField.Integer)field;
 						break;
 					case FixTag.Text:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].Text is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].Text = (FixField.Text)field;
 						break;
 					case FixTag.EncodedTextLen:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].EncodedTextLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].EncodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].EncodedText is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].EncodedText = (FixField.Data)field;
 						break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -2999,9 +2999,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.ListStatus(context, this);
+			context.Validators.ListStatus(context, check, this);
 		}
 	}
 
@@ -3014,14 +3014,14 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.ListID: if (ListID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ListID = (FixField.Text)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
+					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -3041,9 +3041,9 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.ListStatusRequest(context, this);
+			context.Validators.ListStatusRequest(context, check, this);
 		}
 	}
 
@@ -3056,225 +3056,225 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.ListID: if (ListID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ListID = (FixField.Text)field; break;
-					case FixTag.TotNoStrikes: if (TotNoStrikes is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TotNoStrikes = (FixField.Integer)field; break;
-					case FixTag.NoStrikes: if (NoStrikes is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoStrikes = (FixField.Integer)field; break;
+					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
+					case FixTag.TotNoStrikes: if (TotNoStrikes is not null) Duplicate(field); TotNoStrikes = (FixField.Integer)field; break;
+					case FixTag.NoStrikes: if (NoStrikes is not null) Duplicate(field); NoStrikes = (FixField.Integer)field; break;
 					case FixTag.Symbol:
-						if (noStrikesGroups is null && NoStrikes is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoStrikes, field.Position, field, -1));
+						if (noStrikesGroups is null && NoStrikes is null) Uncounted(FixTag.NoStrikes, field);
 						(noStrikesGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].SymbolSfx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].SecurityID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].IDSource is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].SecurityType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].MaturityMonthYear is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].MaturityDay is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].PutOrCall is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].StrikePrice is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].OptAttribute is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].ContractMultiplier is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].CouponRate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].SecurityExchange is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].Issuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].EncodedIssuerLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].EncodedIssuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].SecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].EncodedSecurityDescLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].EncodedSecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.PrevClosePx:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].PrevClosePx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].PrevClosePx = (FixField.Decimal)field;
 						break;
 					case FixTag.ClOrdID:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].ClOrdID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].ClOrdID = (FixField.Text)field;
 						break;
 					case FixTag.Side:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].Side is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].Side = (FixField.Character)field;
 						break;
 					case FixTag.Price:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].Price is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].Price = (FixField.Decimal)field;
 						break;
 					case FixTag.Currency:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].Currency is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].Currency = (FixField.Text)field;
 						break;
 					case FixTag.Text:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].Text is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].Text = (FixField.Text)field;
 						break;
 					case FixTag.EncodedTextLen:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].EncodedTextLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].EncodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
 						if (noStrikesGroups is null || noStrikesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noStrikesGroups![^1].EncodedText is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noStrikesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
 							noStrikesGroups![^1].EncodedText = (FixField.Data)field;
 						break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -3385,9 +3385,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.ListStrikePrice(context, this);
+			context.Validators.ListStrikePrice(context, check, this);
 		}
 	}
 
@@ -3400,29 +3400,29 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.EncryptMethod: if (EncryptMethod is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncryptMethod = (FixField.Integer)field; break;
-					case FixTag.HeartBtInt: if (HeartBtInt is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); HeartBtInt = (FixField.Integer)field; break;
-					case FixTag.RawDataLength: if (RawDataLength is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); RawDataLength = (FixField.Integer)field; break;
-					case FixTag.RawData: if (RawData is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); RawData = (FixField.Data)field; break;
-					case FixTag.ResetSeqNumFlag: if (ResetSeqNumFlag is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ResetSeqNumFlag = (FixField.Boolean)field; break;
-					case FixTag.MaxMessageSize: if (MaxMessageSize is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaxMessageSize = (FixField.Integer)field; break;
-					case FixTag.NoMsgTypes: if (NoMsgTypes is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoMsgTypes = (FixField.Integer)field; break;
+					case FixTag.EncryptMethod: if (EncryptMethod is not null) Duplicate(field); EncryptMethod = (FixField.Integer)field; break;
+					case FixTag.HeartBtInt: if (HeartBtInt is not null) Duplicate(field); HeartBtInt = (FixField.Integer)field; break;
+					case FixTag.RawDataLength: if (RawDataLength is not null) Duplicate(field); RawDataLength = (FixField.Integer)field; break;
+					case FixTag.RawData: if (RawData is not null) Duplicate(field); RawData = (FixField.Data)field; break;
+					case FixTag.ResetSeqNumFlag: if (ResetSeqNumFlag is not null) Duplicate(field); ResetSeqNumFlag = (FixField.Boolean)field; break;
+					case FixTag.MaxMessageSize: if (MaxMessageSize is not null) Duplicate(field); MaxMessageSize = (FixField.Integer)field; break;
+					case FixTag.NoMsgTypes: if (NoMsgTypes is not null) Duplicate(field); NoMsgTypes = (FixField.Integer)field; break;
 					case FixTag.RefMsgType:
-						if (noMsgTypesGroups is null && NoMsgTypes is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMsgTypes, field.Position, field, -1));
+						if (noMsgTypesGroups is null && NoMsgTypes is null) Uncounted(FixTag.NoMsgTypes, field);
 						(noMsgTypesGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.MsgDirection:
 						if (noMsgTypesGroups is null || noMsgTypesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMsgTypesGroups![^1].MsgDirection is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMsgTypesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMsgTypes, noMsgTypesGroups!.Count - 1);
 						else
 							noMsgTypesGroups![^1].MsgDirection = (FixField.Character)field;
 						break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -3470,9 +3470,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.Logon(context, this);
+			context.Validators.Logon(context, check, this);
 		}
 	}
 
@@ -3485,13 +3485,13 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -3508,9 +3508,9 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.Logout(context, this);
+			context.Validators.Logout(context, check, this);
 		}
 	}
 
@@ -3523,456 +3523,456 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.MDReqID: if (MDReqID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MDReqID = (FixField.Text)field; break;
-					case FixTag.NoMDEntries: if (NoMDEntries is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoMDEntries = (FixField.Integer)field; break;
+					case FixTag.MDReqID: if (MDReqID is not null) Duplicate(field); MDReqID = (FixField.Text)field; break;
+					case FixTag.NoMDEntries: if (NoMDEntries is not null) Duplicate(field); NoMDEntries = (FixField.Integer)field; break;
 					case FixTag.MDUpdateAction:
-						if (noMDEntriesGroups is null && NoMDEntries is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMDEntries, field.Position, field, -1));
+						if (noMDEntriesGroups is null && NoMDEntries is null) Uncounted(FixTag.NoMDEntries, field);
 						(noMDEntriesGroups ??= []).Add(new ((FixField.Character)field));
 						break;
 					case FixTag.DeleteReason:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].DeleteReason is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].DeleteReason = (FixField.Character)field;
 						break;
 					case FixTag.MDEntryType:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntryType = (FixField.Character)field;
 						break;
 					case FixTag.MDEntryID:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntryID = (FixField.Text)field;
 						break;
 					case FixTag.MDEntryRefID:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryRefID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntryRefID = (FixField.Text)field;
 						break;
 					case FixTag.Symbol:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].Symbol is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].Symbol = (FixField.Text)field;
 						break;
 					case FixTag.SymbolSfx:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].SymbolSfx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].SecurityID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].IDSource is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].SecurityType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MaturityMonthYear is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MaturityDay is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].PutOrCall is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].StrikePrice is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].OptAttribute is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].ContractMultiplier is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].CouponRate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].SecurityExchange is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].Issuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].EncodedIssuerLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].EncodedIssuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].SecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].EncodedSecurityDescLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].EncodedSecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.FinancialStatus:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].FinancialStatus is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].FinancialStatus = (FixField.Character)field;
 						break;
 					case FixTag.CorporateAction:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].CorporateAction is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].CorporateAction = (FixField.Character)field;
 						break;
 					case FixTag.MDEntryPx:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryPx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntryPx = (FixField.Decimal)field;
 						break;
 					case FixTag.Currency:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].Currency is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].Currency = (FixField.Text)field;
 						break;
 					case FixTag.MDEntrySize:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntrySize is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntrySize = (FixField.Decimal)field;
 						break;
 					case FixTag.MDEntryDate:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryDate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntryDate = (FixField.Date)field;
 						break;
 					case FixTag.MDEntryTime:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryTime is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntryTime = (FixField.Time)field;
 						break;
 					case FixTag.TickDirection:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].TickDirection is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].TickDirection = (FixField.Character)field;
 						break;
 					case FixTag.MDMkt:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDMkt is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDMkt = (FixField.Text)field;
 						break;
 					case FixTag.TradingSessionID:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].TradingSessionID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].TradingSessionID = (FixField.Text)field;
 						break;
 					case FixTag.QuoteCondition:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].QuoteCondition is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].QuoteCondition = (FixField.Multiple)field;
 						break;
 					case FixTag.TradeCondition:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].TradeCondition is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].TradeCondition = (FixField.Multiple)field;
 						break;
 					case FixTag.MDEntryOriginator:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryOriginator is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntryOriginator = (FixField.Text)field;
 						break;
 					case FixTag.LocationID:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].LocationID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].LocationID = (FixField.Text)field;
 						break;
 					case FixTag.DeskID:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].DeskID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].DeskID = (FixField.Text)field;
 						break;
 					case FixTag.OpenCloseSettlFlag:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].OpenCloseSettleFlag is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].OpenCloseSettleFlag = (FixField.Character)field;
 						break;
 					case FixTag.TimeInForce:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].TimeInForce is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].TimeInForce = (FixField.Character)field;
 						break;
 					case FixTag.ExpireDate:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].ExpireDate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].ExpireDate = (FixField.Date)field;
 						break;
 					case FixTag.ExpireTime:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].ExpireTime is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].ExpireTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.MinQty:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MinQty is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MinQty = (FixField.Decimal)field;
 						break;
 					case FixTag.ExecInst:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].ExecInst is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].ExecInst = (FixField.Multiple)field;
 						break;
 					case FixTag.SellerDays:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].SellerDays is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].SellerDays = (FixField.Integer)field;
 						break;
 					case FixTag.OrderID:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].OrderID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].OrderID = (FixField.Text)field;
 						break;
 					case FixTag.QuoteEntryID:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].QuoteEntryID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].QuoteEntryID = (FixField.Text)field;
 						break;
 					case FixTag.MDEntryBuyer:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryBuyer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntryBuyer = (FixField.Text)field;
 						break;
 					case FixTag.MDEntrySeller:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntrySeller is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntrySeller = (FixField.Text)field;
 						break;
 					case FixTag.NumberOfOrders:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].NumberOfOrders is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].NumberOfOrders = (FixField.Integer)field;
 						break;
 					case FixTag.MDEntryPositionNo:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryPositionNo is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntryPositionNo = (FixField.Integer)field;
 						break;
 					case FixTag.TotalVolumeTraded:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].TotalVolumeTraded is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].TotalVolumeTraded = (FixField.Decimal)field;
 						break;
 					case FixTag.Text:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].Text is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].Text = (FixField.Text)field;
 						break;
 					case FixTag.EncodedTextLen:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].EncodedTextLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].EncodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].EncodedText is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].EncodedText = (FixField.Data)field;
 						break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -4167,9 +4167,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.MarketDataIncrementalRefresh(context, this);
+			context.Validators.MarketDataIncrementalRefresh(context, check, this);
 		}
 	}
 
@@ -4182,177 +4182,177 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.MDReqID: if (MDReqID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MDReqID = (FixField.Text)field; break;
-					case FixTag.SubscriptionRequestType: if (SubscriptionRequestType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SubscriptionRequestType = (FixField.Character)field; break;
-					case FixTag.MarketDepth: if (MarketDepth is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MarketDepth = (FixField.Integer)field; break;
-					case FixTag.MDUpdateType: if (MDUpdateType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MDUpdateType = (FixField.Integer)field; break;
-					case FixTag.AggregatedBook: if (AggregatedBook is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); AggregatedBook = (FixField.Boolean)field; break;
-					case FixTag.NoMDEntryTypes: if (NoMDEntryTypes is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoMDEntryTypes = (FixField.Integer)field; break;
+					case FixTag.MDReqID: if (MDReqID is not null) Duplicate(field); MDReqID = (FixField.Text)field; break;
+					case FixTag.SubscriptionRequestType: if (SubscriptionRequestType is not null) Duplicate(field); SubscriptionRequestType = (FixField.Character)field; break;
+					case FixTag.MarketDepth: if (MarketDepth is not null) Duplicate(field); MarketDepth = (FixField.Integer)field; break;
+					case FixTag.MDUpdateType: if (MDUpdateType is not null) Duplicate(field); MDUpdateType = (FixField.Integer)field; break;
+					case FixTag.AggregatedBook: if (AggregatedBook is not null) Duplicate(field); AggregatedBook = (FixField.Boolean)field; break;
+					case FixTag.NoMDEntryTypes: if (NoMDEntryTypes is not null) Duplicate(field); NoMDEntryTypes = (FixField.Integer)field; break;
 					case FixTag.MDEntryType:
-						if (noMDEntryTypesGroups is null && NoMDEntryTypes is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMDEntryTypes, field.Position, field, -1));
+						if (noMDEntryTypesGroups is null && NoMDEntryTypes is null) Uncounted(FixTag.NoMDEntryTypes, field);
 						(noMDEntryTypesGroups ??= []).Add(new ((FixField.Character)field));
 						break;
-					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
+					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) Duplicate(field); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.Symbol:
-						if (noRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
+						if (noRelatedSymGroups is null && NoRelatedSym is null) Uncounted(FixTag.NoRelatedSym, field);
 						(noRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SymbolSfx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].IDSource is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].MaturityMonthYear is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].MaturityDay is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].PutOrCall is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].StrikePrice is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].OptAttribute is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].ContractMultiplier is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].CouponRate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityExchange is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].Issuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedIssuerLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedIssuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedSecurityDescLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedSecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.TradingSessionID:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].TradingSessionID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].TradingSessionID = (FixField.Text)field;
 						break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -4470,9 +4470,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.MarketDataRequest(context, this);
+			context.Validators.MarketDataRequest(context, check, this);
 		}
 	}
 
@@ -4485,15 +4485,15 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.MDReqID: if (MDReqID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MDReqID = (FixField.Text)field; break;
-					case FixTag.MDReqRejReason: if (MDReqRejReason is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MDReqRejReason = (FixField.Character)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
+					case FixTag.MDReqID: if (MDReqID is not null) Duplicate(field); MDReqID = (FixField.Text)field; break;
+					case FixTag.MDReqRejReason: if (MDReqRejReason is not null) Duplicate(field); MDReqRejReason = (FixField.Character)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -4516,9 +4516,9 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.MarketDataRequestReject(context, this);
+			context.Validators.MarketDataRequestReject(context, check, this);
 		}
 	}
 
@@ -4531,270 +4531,270 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.MDReqID: if (MDReqID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MDReqID = (FixField.Text)field; break;
-					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.FinancialStatus: if (FinancialStatus is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); FinancialStatus = (FixField.Character)field; break;
-					case FixTag.CorporateAction: if (CorporateAction is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CorporateAction = (FixField.Character)field; break;
-					case FixTag.TotalVolumeTraded: if (TotalVolumeTraded is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TotalVolumeTraded = (FixField.Decimal)field; break;
-					case FixTag.NoMDEntries: if (NoMDEntries is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoMDEntries = (FixField.Integer)field; break;
+					case FixTag.MDReqID: if (MDReqID is not null) Duplicate(field); MDReqID = (FixField.Text)field; break;
+					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.FinancialStatus: if (FinancialStatus is not null) Duplicate(field); FinancialStatus = (FixField.Character)field; break;
+					case FixTag.CorporateAction: if (CorporateAction is not null) Duplicate(field); CorporateAction = (FixField.Character)field; break;
+					case FixTag.TotalVolumeTraded: if (TotalVolumeTraded is not null) Duplicate(field); TotalVolumeTraded = (FixField.Decimal)field; break;
+					case FixTag.NoMDEntries: if (NoMDEntries is not null) Duplicate(field); NoMDEntries = (FixField.Integer)field; break;
 					case FixTag.MDEntryType:
-						if (noMDEntriesGroups is null && NoMDEntries is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoMDEntries, field.Position, field, -1));
+						if (noMDEntriesGroups is null && NoMDEntries is null) Uncounted(FixTag.NoMDEntries, field);
 						(noMDEntriesGroups ??= []).Add(new ((FixField.Character)field));
 						break;
 					case FixTag.MDEntryPx:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryPx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntryPx = (FixField.Decimal)field;
 						break;
 					case FixTag.Currency:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].Currency is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].Currency = (FixField.Text)field;
 						break;
 					case FixTag.MDEntrySize:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntrySize is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntrySize = (FixField.Decimal)field;
 						break;
 					case FixTag.MDEntryDate:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryDate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntryDate = (FixField.Date)field;
 						break;
 					case FixTag.MDEntryTime:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryTime is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntryTime = (FixField.Time)field;
 						break;
 					case FixTag.TickDirection:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].TickDirection is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].TickDirection = (FixField.Character)field;
 						break;
 					case FixTag.MDMkt:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDMkt is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDMkt = (FixField.Text)field;
 						break;
 					case FixTag.TradingSessionID:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].TradingSessionID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].TradingSessionID = (FixField.Text)field;
 						break;
 					case FixTag.QuoteCondition:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].QuoteCondition is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].QuoteCondition = (FixField.Multiple)field;
 						break;
 					case FixTag.TradeCondition:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].TradeCondition is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].TradeCondition = (FixField.Multiple)field;
 						break;
 					case FixTag.MDEntryOriginator:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryOriginator is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntryOriginator = (FixField.Text)field;
 						break;
 					case FixTag.LocationID:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].LocationID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].LocationID = (FixField.Text)field;
 						break;
 					case FixTag.DeskID:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].DeskID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].DeskID = (FixField.Text)field;
 						break;
 					case FixTag.OpenCloseSettlFlag:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].OpenCloseSettleFlag is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].OpenCloseSettleFlag = (FixField.Character)field;
 						break;
 					case FixTag.TimeInForce:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].TimeInForce is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].TimeInForce = (FixField.Character)field;
 						break;
 					case FixTag.ExpireDate:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].ExpireDate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].ExpireDate = (FixField.Date)field;
 						break;
 					case FixTag.ExpireTime:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].ExpireTime is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].ExpireTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.MinQty:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MinQty is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MinQty = (FixField.Decimal)field;
 						break;
 					case FixTag.ExecInst:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].ExecInst is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].ExecInst = (FixField.Multiple)field;
 						break;
 					case FixTag.SellerDays:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].SellerDays is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].SellerDays = (FixField.Integer)field;
 						break;
 					case FixTag.OrderID:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].OrderID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].OrderID = (FixField.Text)field;
 						break;
 					case FixTag.QuoteEntryID:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].QuoteEntryID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].QuoteEntryID = (FixField.Text)field;
 						break;
 					case FixTag.MDEntryBuyer:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryBuyer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntryBuyer = (FixField.Text)field;
 						break;
 					case FixTag.MDEntrySeller:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntrySeller is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntrySeller = (FixField.Text)field;
 						break;
 					case FixTag.NumberOfOrders:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].NumberOfOrders is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].NumberOfOrders = (FixField.Integer)field;
 						break;
 					case FixTag.MDEntryPositionNo:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].MDEntryPositionNo is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].MDEntryPositionNo = (FixField.Integer)field;
 						break;
 					case FixTag.Text:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].Text is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].Text = (FixField.Text)field;
 						break;
 					case FixTag.EncodedTextLen:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].EncodedTextLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].EncodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
 						if (noMDEntriesGroups is null || noMDEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noMDEntriesGroups![^1].EncodedText is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noMDEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
 							noMDEntriesGroups![^1].EncodedText = (FixField.Data)field;
 						break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -4977,9 +4977,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.MarketDataSnapshotFullRefresh(context, this);
+			context.Validators.MarketDataSnapshotFullRefresh(context, check, this);
 		}
 	}
 
@@ -4992,485 +4992,485 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.QuoteReqID: if (QuoteReqID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteReqID = (FixField.Text)field; break;
-					case FixTag.QuoteID: if (QuoteID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteID = (FixField.Text)field; break;
-					case FixTag.QuoteResponseLevel: if (QuoteResponseLevel is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteResponseLevel = (FixField.Integer)field; break;
-					case FixTag.DefBidSize: if (DefBidSize is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DefBidSize = (FixField.Decimal)field; break;
-					case FixTag.DefOfferSize: if (DefOfferSize is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DefOfferSize = (FixField.Decimal)field; break;
-					case FixTag.NoQuoteSets: if (NoQuoteSets is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoQuoteSets = (FixField.Integer)field; break;
+					case FixTag.QuoteReqID: if (QuoteReqID is not null) Duplicate(field); QuoteReqID = (FixField.Text)field; break;
+					case FixTag.QuoteID: if (QuoteID is not null) Duplicate(field); QuoteID = (FixField.Text)field; break;
+					case FixTag.QuoteResponseLevel: if (QuoteResponseLevel is not null) Duplicate(field); QuoteResponseLevel = (FixField.Integer)field; break;
+					case FixTag.DefBidSize: if (DefBidSize is not null) Duplicate(field); DefBidSize = (FixField.Decimal)field; break;
+					case FixTag.DefOfferSize: if (DefOfferSize is not null) Duplicate(field); DefOfferSize = (FixField.Decimal)field; break;
+					case FixTag.NoQuoteSets: if (NoQuoteSets is not null) Duplicate(field); NoQuoteSets = (FixField.Integer)field; break;
 					case FixTag.QuoteSetID:
-						if (noQuoteSetsGroups is null && NoQuoteSets is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteSets, field.Position, field, -1));
+						if (noQuoteSetsGroups is null && NoQuoteSets is null) Uncounted(FixTag.NoQuoteSets, field);
 						(noQuoteSetsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.UnderlyingSymbol:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSymbol is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingSymbol = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSymbolSfx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingSymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityID:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSecurityID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingSecurityID = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityIDSource:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingIDSource is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingIDSource = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityType:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSecurityType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingSecurityType = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingMaturityMonthYear:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingMaturityMonthYear is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingMaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.UnderlyingMaturityDay:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingMaturityDay is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingMaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingPutOrCall:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingPutOrCall is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingPutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingStrikePrice:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingStrikePrice is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingStrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingOptAttribute:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingOptAttribute is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingOptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.UnderlyingContractMultiplier:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingContractMultiplier is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingCouponRate:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingCouponRate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingCouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingSecurityExchange:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSecurityExchange is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingSecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingIssuer:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingIssuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingIssuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuerLen:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].EncodedUnderlyingIssuerLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].EncodedUnderlyingIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuer:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].EncodedUnderlyingIssuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].EncodedUnderlyingIssuer = (FixField.Data)field;
 						break;
 					case FixTag.UnderlyingSecurityDesc:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingSecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDescLen:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDescLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDesc:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.QuoteSetValidUntilTime:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].QuoteSetValidUntilTime is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].QuoteSetValidUntilTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.TotNoQuoteEntries:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].TotQuoteEntries is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].TotQuoteEntries = (FixField.Integer)field;
 						break;
 					case FixTag.NoQuoteEntries:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].NoQuoteEntries is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].NoQuoteEntries = (FixField.Integer)field;
 						break;
 					case FixTag.QuoteEntryID:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else
 						{
-							if (noQuoteSetsGroups![^1].noQuoteEntriesGroups is null && noQuoteSetsGroups![^1].NoQuoteEntries is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteEntries, field.Position, field, -1));
+							if (noQuoteSetsGroups![^1].noQuoteEntriesGroups is null && noQuoteSetsGroups![^1].NoQuoteEntries is null) Uncounted(FixTag.NoQuoteEntries, field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 							(noQuoteSetsGroups![^1].noQuoteEntriesGroups ??= []).Add(new ((FixField.Text)field));
 						}
 						break;
 					case FixTag.Symbol:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Symbol is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Symbol = (FixField.Text)field;
 						break;
 					case FixTag.SymbolSfx:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SymbolSfx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].IDSource is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityMonthYear is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityDay is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].PutOrCall is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].StrikePrice is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OptAttribute is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].ContractMultiplier is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].CouponRate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityExchange is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Issuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuerLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDescLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.BidPx:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidPx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidPx = (FixField.Decimal)field;
 						break;
 					case FixTag.OfferPx:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferPx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferPx = (FixField.Decimal)field;
 						break;
 					case FixTag.BidSize:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidSize is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidSize = (FixField.Decimal)field;
 						break;
 					case FixTag.OfferSize:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferSize is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferSize = (FixField.Decimal)field;
 						break;
 					case FixTag.ValidUntilTime:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].ValidUntilTime is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].ValidUntilTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.BidSpotRate:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidSpotRate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidSpotRate = (FixField.Decimal)field;
 						break;
 					case FixTag.OfferSpotRate:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferSpotRate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferSpotRate = (FixField.Decimal)field;
 						break;
 					case FixTag.BidForwardPoints:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidForwardPoints is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidForwardPoints = (FixField.Decimal)field;
 						break;
 					case FixTag.OfferForwardPoints:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferForwardPoints is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferForwardPoints = (FixField.Decimal)field;
 						break;
 					case FixTag.TransactTime:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].TransactTime is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].TransactTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.TradingSessionID:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].TradingSessionID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].TradingSessionID = (FixField.Text)field;
 						break;
 					case FixTag.SettlDate:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].FutSettDate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].FutSettDate = (FixField.Date)field;
 						break;
 					case FixTag.OrdType:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OrdType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OrdType = (FixField.Character)field;
 						break;
 					case FixTag.SettlDate2:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].FutSettDate2 is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].FutSettDate2 = (FixField.Date)field;
 						break;
 					case FixTag.OrderQty2:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OrderQty2 is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OrderQty2 = (FixField.Decimal)field;
 						break;
 					case FixTag.Currency:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Currency is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Currency = (FixField.Text)field;
 						break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -5699,9 +5699,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.MassQuote(context, this);
+			context.Validators.MassQuote(context, check, this);
 		}
 	}
 
@@ -5714,636 +5714,636 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.ListID: if (ListID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ListID = (FixField.Text)field; break;
-					case FixTag.BidID: if (BidID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BidID = (FixField.Text)field; break;
-					case FixTag.ClientBidID: if (ClientBidID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClientBidID = (FixField.Text)field; break;
-					case FixTag.ProgRptReqs: if (ProgRptReqs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ProgRptReqs = (FixField.Integer)field; break;
-					case FixTag.BidType: if (BidType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BidType = (FixField.Integer)field; break;
-					case FixTag.ProgPeriodInterval: if (ProgPeriodInterval is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ProgPeriodInterval = (FixField.Integer)field; break;
-					case FixTag.ListExecInstType: if (ListExecInstType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ListExecInstType = (FixField.Character)field; break;
-					case FixTag.ListExecInst: if (ListExecInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ListExecInst = (FixField.Text)field; break;
-					case FixTag.EncodedListExecInstLen: if (EncodedListExecInstLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedListExecInstLen = (FixField.Integer)field; break;
-					case FixTag.EncodedListExecInst: if (EncodedListExecInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedListExecInst = (FixField.Data)field; break;
-					case FixTag.TotNoOrders: if (TotNoOrders is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TotNoOrders = (FixField.Integer)field; break;
-					case FixTag.NoOrders: if (NoOrders is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoOrders = (FixField.Integer)field; break;
+					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
+					case FixTag.BidID: if (BidID is not null) Duplicate(field); BidID = (FixField.Text)field; break;
+					case FixTag.ClientBidID: if (ClientBidID is not null) Duplicate(field); ClientBidID = (FixField.Text)field; break;
+					case FixTag.ProgRptReqs: if (ProgRptReqs is not null) Duplicate(field); ProgRptReqs = (FixField.Integer)field; break;
+					case FixTag.BidType: if (BidType is not null) Duplicate(field); BidType = (FixField.Integer)field; break;
+					case FixTag.ProgPeriodInterval: if (ProgPeriodInterval is not null) Duplicate(field); ProgPeriodInterval = (FixField.Integer)field; break;
+					case FixTag.ListExecInstType: if (ListExecInstType is not null) Duplicate(field); ListExecInstType = (FixField.Character)field; break;
+					case FixTag.ListExecInst: if (ListExecInst is not null) Duplicate(field); ListExecInst = (FixField.Text)field; break;
+					case FixTag.EncodedListExecInstLen: if (EncodedListExecInstLen is not null) Duplicate(field); EncodedListExecInstLen = (FixField.Integer)field; break;
+					case FixTag.EncodedListExecInst: if (EncodedListExecInst is not null) Duplicate(field); EncodedListExecInst = (FixField.Data)field; break;
+					case FixTag.TotNoOrders: if (TotNoOrders is not null) Duplicate(field); TotNoOrders = (FixField.Integer)field; break;
+					case FixTag.NoOrders: if (NoOrders is not null) Duplicate(field); NoOrders = (FixField.Integer)field; break;
 					case FixTag.ClOrdID:
-						if (noOrdersGroups is null && NoOrders is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoOrders, field.Position, field, -1));
+						if (noOrdersGroups is null && NoOrders is null) Uncounted(FixTag.NoOrders, field);
 						(noOrdersGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.ListSeqNo:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].ListSeqNo is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].ListSeqNo = (FixField.Integer)field;
 						break;
 					case FixTag.SettlInstMode:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].SettlInstMode is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].SettlInstMode = (FixField.Character)field;
 						break;
 					case FixTag.ClientID:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].ClientID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].ClientID = (FixField.Text)field;
 						break;
 					case FixTag.ExecBroker:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].ExecBroker is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].ExecBroker = (FixField.Text)field;
 						break;
 					case FixTag.Account:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].Account is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].Account = (FixField.Text)field;
 						break;
 					case FixTag.NoAllocs:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].NoAllocs is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].NoAllocs = (FixField.Integer)field;
 						break;
 					case FixTag.AllocAccount:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else
 						{
-							if (noOrdersGroups![^1].noAllocsGroups is null && noOrdersGroups![^1].NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
+							if (noOrdersGroups![^1].noAllocsGroups is null && noOrdersGroups![^1].NoAllocs is null) Uncounted(FixTag.NoAllocs, field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 							(noOrdersGroups![^1].noAllocsGroups ??= []).Add(new ((FixField.Text)field));
 						}
 						break;
 					case FixTag.AllocQty:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0 || noOrdersGroups![^1].noAllocsGroups is null || noOrdersGroups![^1].noAllocsGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].noAllocsGroups![^1].AllocShares is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups![^1].noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1, FixTag.NoAllocs, noOrdersGroups![^1].noAllocsGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].noAllocsGroups![^1].AllocShares = (FixField.Decimal)field;
 						break;
 					case FixTag.SettlType:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].SettlmntTyp is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].SettlmntTyp = (FixField.Character)field;
 						break;
 					case FixTag.SettlDate:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].FutSettDate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].FutSettDate = (FixField.Date)field;
 						break;
 					case FixTag.HandlInst:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].HandlInst is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].HandlInst = (FixField.Character)field;
 						break;
 					case FixTag.ExecInst:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].ExecInst is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].ExecInst = (FixField.Multiple)field;
 						break;
 					case FixTag.MinQty:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].MinQty is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].MinQty = (FixField.Decimal)field;
 						break;
 					case FixTag.MaxFloor:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].MaxFloor is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].MaxFloor = (FixField.Decimal)field;
 						break;
 					case FixTag.ExDestination:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].ExDestination is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].ExDestination = (FixField.Text)field;
 						break;
 					case FixTag.NoTradingSessions:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].NoTradingSessions is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].NoTradingSessions = (FixField.Integer)field;
 						break;
 					case FixTag.TradingSessionID:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else
 						{
-							if (noOrdersGroups![^1].noTradingSessionsGroups is null && noOrdersGroups![^1].NoTradingSessions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTradingSessions, field.Position, field, -1));
+							if (noOrdersGroups![^1].noTradingSessionsGroups is null && noOrdersGroups![^1].NoTradingSessions is null) Uncounted(FixTag.NoTradingSessions, field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 							(noOrdersGroups![^1].noTradingSessionsGroups ??= []).Add(new ((FixField.Text)field));
 						}
 						break;
 					case FixTag.ProcessCode:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].ProcessCode is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].ProcessCode = (FixField.Character)field;
 						break;
 					case FixTag.Symbol:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].Symbol is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].Symbol = (FixField.Text)field;
 						break;
 					case FixTag.SymbolSfx:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].SymbolSfx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].SecurityID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].IDSource is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].SecurityType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].MaturityMonthYear is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].MaturityDay is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].PutOrCall is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].StrikePrice is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].OptAttribute is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].ContractMultiplier is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].CouponRate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].SecurityExchange is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].Issuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].EncodedIssuerLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].EncodedIssuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].SecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].EncodedSecurityDescLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].EncodedSecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.PrevClosePx:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].PrevClosePx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].PrevClosePx = (FixField.Decimal)field;
 						break;
 					case FixTag.Side:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].Side is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].Side = (FixField.Character)field;
 						break;
 					case FixTag.SideValueInd:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].SideValueInd is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].SideValueInd = (FixField.Integer)field;
 						break;
 					case FixTag.LocateReqd:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].LocateReqd is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].LocateReqd = (FixField.Boolean)field;
 						break;
 					case FixTag.TransactTime:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].TransactTime is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].TransactTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.OrderQty:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].OrderQty is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].OrderQty = (FixField.Decimal)field;
 						break;
 					case FixTag.CashOrderQty:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].CashOrderQty is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].CashOrderQty = (FixField.Decimal)field;
 						break;
 					case FixTag.OrdType:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].OrdType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].OrdType = (FixField.Character)field;
 						break;
 					case FixTag.Price:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].Price is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].Price = (FixField.Decimal)field;
 						break;
 					case FixTag.StopPx:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].StopPx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].StopPx = (FixField.Decimal)field;
 						break;
 					case FixTag.Currency:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].Currency is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].Currency = (FixField.Text)field;
 						break;
 					case FixTag.ComplianceID:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].ComplianceID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].ComplianceID = (FixField.Text)field;
 						break;
 					case FixTag.SolicitedFlag:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].SolicitedFlag is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].SolicitedFlag = (FixField.Boolean)field;
 						break;
 					case FixTag.IOIID:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].IOIid is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].IOIid = (FixField.Text)field;
 						break;
 					case FixTag.QuoteID:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].QuoteID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].QuoteID = (FixField.Text)field;
 						break;
 					case FixTag.TimeInForce:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].TimeInForce is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].TimeInForce = (FixField.Character)field;
 						break;
 					case FixTag.EffectiveTime:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].EffectiveTime is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].EffectiveTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.ExpireDate:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].ExpireDate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].ExpireDate = (FixField.Date)field;
 						break;
 					case FixTag.ExpireTime:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].ExpireTime is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].ExpireTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.GTBookingInst:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].GTBookingInst is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].GTBookingInst = (FixField.Integer)field;
 						break;
 					case FixTag.Commission:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].Commission is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].Commission = (FixField.Decimal)field;
 						break;
 					case FixTag.CommType:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].CommType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].CommType = (FixField.Character)field;
 						break;
 					case FixTag.Rule80A:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].Rule80A is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].Rule80A = (FixField.Character)field;
 						break;
 					case FixTag.ForexReq:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].ForexReq is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].ForexReq = (FixField.Boolean)field;
 						break;
 					case FixTag.SettlCurrency:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].SettlCurrency is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].SettlCurrency = (FixField.Text)field;
 						break;
 					case FixTag.Text:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].Text is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].Text = (FixField.Text)field;
 						break;
 					case FixTag.EncodedTextLen:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].EncodedTextLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].EncodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].EncodedText is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].EncodedText = (FixField.Data)field;
 						break;
 					case FixTag.SettlDate2:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].FutSettDate2 is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].FutSettDate2 = (FixField.Date)field;
 						break;
 					case FixTag.OrderQty2:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].OrderQty2 is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].OrderQty2 = (FixField.Decimal)field;
 						break;
 					case FixTag.PositionEffect:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].OpenClose is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].OpenClose = (FixField.Character)field;
 						break;
 					case FixTag.CoveredOrUncovered:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].CoveredOrUncovered is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].CoveredOrUncovered = (FixField.Integer)field;
 						break;
 					case FixTag.CustomerOrFirm:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].CustomerOrFirm is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].CustomerOrFirm = (FixField.Integer)field;
 						break;
 					case FixTag.MaxShow:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].MaxShow is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].MaxShow = (FixField.Decimal)field;
 						break;
 					case FixTag.PegOffsetValue:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].PegDifference is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].PegDifference = (FixField.Decimal)field;
 						break;
 					case FixTag.DiscretionInst:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].DiscretionInst is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].DiscretionInst = (FixField.Character)field;
 						break;
 					case FixTag.DiscretionOffsetValue:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].DiscretionOffset is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].DiscretionOffset = (FixField.Decimal)field;
 						break;
 					case FixTag.ClearingFirm:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].ClearingFirm is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].ClearingFirm = (FixField.Text)field;
 						break;
 					case FixTag.ClearingAccount:
 						if (noOrdersGroups is null || noOrdersGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noOrdersGroups![^1].ClearingAccount is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noOrdersGroups!.Count - 1));
+							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
 							noOrdersGroups![^1].ClearingAccount = (FixField.Text)field;
 						break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -6657,9 +6657,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.NewOrderList(context, this);
+			context.Validators.NewOrderList(context, check, this);
 		}
 	}
 
@@ -6672,97 +6672,97 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.ClOrdID: if (ClOrdID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClOrdID = (FixField.Text)field; break;
-					case FixTag.ClientID: if (ClientID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClientID = (FixField.Text)field; break;
-					case FixTag.ExecBroker: if (ExecBroker is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecBroker = (FixField.Text)field; break;
-					case FixTag.Account: if (Account is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Account = (FixField.Text)field; break;
-					case FixTag.NoAllocs: if (NoAllocs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoAllocs = (FixField.Integer)field; break;
+					case FixTag.ClOrdID: if (ClOrdID is not null) Duplicate(field); ClOrdID = (FixField.Text)field; break;
+					case FixTag.ClientID: if (ClientID is not null) Duplicate(field); ClientID = (FixField.Text)field; break;
+					case FixTag.ExecBroker: if (ExecBroker is not null) Duplicate(field); ExecBroker = (FixField.Text)field; break;
+					case FixTag.Account: if (Account is not null) Duplicate(field); Account = (FixField.Text)field; break;
+					case FixTag.NoAllocs: if (NoAllocs is not null) Duplicate(field); NoAllocs = (FixField.Integer)field; break;
 					case FixTag.AllocAccount:
-						if (noAllocsGroups is null && NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
+						if (noAllocsGroups is null && NoAllocs is null) Uncounted(FixTag.NoAllocs, field);
 						(noAllocsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.AllocQty:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].AllocShares is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].AllocShares = (FixField.Decimal)field;
 						break;
-					case FixTag.SettlType: if (SettlmntTyp is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlmntTyp = (FixField.Character)field; break;
-					case FixTag.SettlDate: if (FutSettDate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); FutSettDate = (FixField.Date)field; break;
-					case FixTag.HandlInst: if (HandlInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); HandlInst = (FixField.Character)field; break;
-					case FixTag.ExecInst: if (ExecInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecInst = (FixField.Multiple)field; break;
-					case FixTag.MinQty: if (MinQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MinQty = (FixField.Decimal)field; break;
-					case FixTag.MaxFloor: if (MaxFloor is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaxFloor = (FixField.Decimal)field; break;
-					case FixTag.ExDestination: if (ExDestination is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExDestination = (FixField.Text)field; break;
-					case FixTag.NoTradingSessions: if (NoTradingSessions is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTradingSessions = (FixField.Integer)field; break;
+					case FixTag.SettlType: if (SettlmntTyp is not null) Duplicate(field); SettlmntTyp = (FixField.Character)field; break;
+					case FixTag.SettlDate: if (FutSettDate is not null) Duplicate(field); FutSettDate = (FixField.Date)field; break;
+					case FixTag.HandlInst: if (HandlInst is not null) Duplicate(field); HandlInst = (FixField.Character)field; break;
+					case FixTag.ExecInst: if (ExecInst is not null) Duplicate(field); ExecInst = (FixField.Multiple)field; break;
+					case FixTag.MinQty: if (MinQty is not null) Duplicate(field); MinQty = (FixField.Decimal)field; break;
+					case FixTag.MaxFloor: if (MaxFloor is not null) Duplicate(field); MaxFloor = (FixField.Decimal)field; break;
+					case FixTag.ExDestination: if (ExDestination is not null) Duplicate(field); ExDestination = (FixField.Text)field; break;
+					case FixTag.NoTradingSessions: if (NoTradingSessions is not null) Duplicate(field); NoTradingSessions = (FixField.Integer)field; break;
 					case FixTag.TradingSessionID:
-						if (noTradingSessionsGroups is null && NoTradingSessions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTradingSessions, field.Position, field, -1));
+						if (noTradingSessionsGroups is null && NoTradingSessions is null) Uncounted(FixTag.NoTradingSessions, field);
 						(noTradingSessionsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
-					case FixTag.ProcessCode: if (ProcessCode is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ProcessCode = (FixField.Character)field; break;
-					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.PrevClosePx: if (PrevClosePx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PrevClosePx = (FixField.Decimal)field; break;
-					case FixTag.Side: if (Side is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Side = (FixField.Character)field; break;
-					case FixTag.LocateReqd: if (LocateReqd is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LocateReqd = (FixField.Boolean)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.OrderQty: if (OrderQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderQty = (FixField.Decimal)field; break;
-					case FixTag.CashOrderQty: if (CashOrderQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CashOrderQty = (FixField.Decimal)field; break;
-					case FixTag.OrdType: if (OrdType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrdType = (FixField.Character)field; break;
-					case FixTag.Price: if (Price is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Price = (FixField.Decimal)field; break;
-					case FixTag.StopPx: if (StopPx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StopPx = (FixField.Decimal)field; break;
-					case FixTag.Currency: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Text)field; break;
-					case FixTag.ComplianceID: if (ComplianceID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ComplianceID = (FixField.Text)field; break;
-					case FixTag.SolicitedFlag: if (SolicitedFlag is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SolicitedFlag = (FixField.Boolean)field; break;
-					case FixTag.IOIID: if (IOIid is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IOIid = (FixField.Text)field; break;
-					case FixTag.QuoteID: if (QuoteID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteID = (FixField.Text)field; break;
-					case FixTag.TimeInForce: if (TimeInForce is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TimeInForce = (FixField.Character)field; break;
-					case FixTag.EffectiveTime: if (EffectiveTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EffectiveTime = (FixField.Timestamp)field; break;
-					case FixTag.ExpireDate: if (ExpireDate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExpireDate = (FixField.Date)field; break;
-					case FixTag.ExpireTime: if (ExpireTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExpireTime = (FixField.Timestamp)field; break;
-					case FixTag.GTBookingInst: if (GTBookingInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); GTBookingInst = (FixField.Integer)field; break;
-					case FixTag.Commission: if (Commission is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Commission = (FixField.Decimal)field; break;
-					case FixTag.CommType: if (CommType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CommType = (FixField.Character)field; break;
-					case FixTag.Rule80A: if (Rule80A is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Rule80A = (FixField.Character)field; break;
-					case FixTag.ForexReq: if (ForexReq is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ForexReq = (FixField.Boolean)field; break;
-					case FixTag.SettlCurrency: if (SettlCurrency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlCurrency = (FixField.Text)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
-					case FixTag.SettlDate2: if (FutSettDate2 is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); FutSettDate2 = (FixField.Date)field; break;
-					case FixTag.OrderQty2: if (OrderQty2 is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderQty2 = (FixField.Decimal)field; break;
-					case FixTag.PositionEffect: if (OpenClose is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OpenClose = (FixField.Character)field; break;
-					case FixTag.CoveredOrUncovered: if (CoveredOrUncovered is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CoveredOrUncovered = (FixField.Integer)field; break;
-					case FixTag.CustomerOrFirm: if (CustomerOrFirm is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CustomerOrFirm = (FixField.Integer)field; break;
-					case FixTag.MaxShow: if (MaxShow is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaxShow = (FixField.Decimal)field; break;
-					case FixTag.PegOffsetValue: if (PegDifference is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PegDifference = (FixField.Decimal)field; break;
-					case FixTag.DiscretionInst: if (DiscretionInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DiscretionInst = (FixField.Character)field; break;
-					case FixTag.DiscretionOffsetValue: if (DiscretionOffset is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DiscretionOffset = (FixField.Decimal)field; break;
-					case FixTag.ClearingFirm: if (ClearingFirm is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClearingFirm = (FixField.Text)field; break;
-					case FixTag.ClearingAccount: if (ClearingAccount is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClearingAccount = (FixField.Text)field; break;
+					case FixTag.ProcessCode: if (ProcessCode is not null) Duplicate(field); ProcessCode = (FixField.Character)field; break;
+					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.PrevClosePx: if (PrevClosePx is not null) Duplicate(field); PrevClosePx = (FixField.Decimal)field; break;
+					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
+					case FixTag.LocateReqd: if (LocateReqd is not null) Duplicate(field); LocateReqd = (FixField.Boolean)field; break;
+					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
+					case FixTag.OrderQty: if (OrderQty is not null) Duplicate(field); OrderQty = (FixField.Decimal)field; break;
+					case FixTag.CashOrderQty: if (CashOrderQty is not null) Duplicate(field); CashOrderQty = (FixField.Decimal)field; break;
+					case FixTag.OrdType: if (OrdType is not null) Duplicate(field); OrdType = (FixField.Character)field; break;
+					case FixTag.Price: if (Price is not null) Duplicate(field); Price = (FixField.Decimal)field; break;
+					case FixTag.StopPx: if (StopPx is not null) Duplicate(field); StopPx = (FixField.Decimal)field; break;
+					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
+					case FixTag.ComplianceID: if (ComplianceID is not null) Duplicate(field); ComplianceID = (FixField.Text)field; break;
+					case FixTag.SolicitedFlag: if (SolicitedFlag is not null) Duplicate(field); SolicitedFlag = (FixField.Boolean)field; break;
+					case FixTag.IOIID: if (IOIid is not null) Duplicate(field); IOIid = (FixField.Text)field; break;
+					case FixTag.QuoteID: if (QuoteID is not null) Duplicate(field); QuoteID = (FixField.Text)field; break;
+					case FixTag.TimeInForce: if (TimeInForce is not null) Duplicate(field); TimeInForce = (FixField.Character)field; break;
+					case FixTag.EffectiveTime: if (EffectiveTime is not null) Duplicate(field); EffectiveTime = (FixField.Timestamp)field; break;
+					case FixTag.ExpireDate: if (ExpireDate is not null) Duplicate(field); ExpireDate = (FixField.Date)field; break;
+					case FixTag.ExpireTime: if (ExpireTime is not null) Duplicate(field); ExpireTime = (FixField.Timestamp)field; break;
+					case FixTag.GTBookingInst: if (GTBookingInst is not null) Duplicate(field); GTBookingInst = (FixField.Integer)field; break;
+					case FixTag.Commission: if (Commission is not null) Duplicate(field); Commission = (FixField.Decimal)field; break;
+					case FixTag.CommType: if (CommType is not null) Duplicate(field); CommType = (FixField.Character)field; break;
+					case FixTag.Rule80A: if (Rule80A is not null) Duplicate(field); Rule80A = (FixField.Character)field; break;
+					case FixTag.ForexReq: if (ForexReq is not null) Duplicate(field); ForexReq = (FixField.Boolean)field; break;
+					case FixTag.SettlCurrency: if (SettlCurrency is not null) Duplicate(field); SettlCurrency = (FixField.Text)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.SettlDate2: if (FutSettDate2 is not null) Duplicate(field); FutSettDate2 = (FixField.Date)field; break;
+					case FixTag.OrderQty2: if (OrderQty2 is not null) Duplicate(field); OrderQty2 = (FixField.Decimal)field; break;
+					case FixTag.PositionEffect: if (OpenClose is not null) Duplicate(field); OpenClose = (FixField.Character)field; break;
+					case FixTag.CoveredOrUncovered: if (CoveredOrUncovered is not null) Duplicate(field); CoveredOrUncovered = (FixField.Integer)field; break;
+					case FixTag.CustomerOrFirm: if (CustomerOrFirm is not null) Duplicate(field); CustomerOrFirm = (FixField.Integer)field; break;
+					case FixTag.MaxShow: if (MaxShow is not null) Duplicate(field); MaxShow = (FixField.Decimal)field; break;
+					case FixTag.PegOffsetValue: if (PegDifference is not null) Duplicate(field); PegDifference = (FixField.Decimal)field; break;
+					case FixTag.DiscretionInst: if (DiscretionInst is not null) Duplicate(field); DiscretionInst = (FixField.Character)field; break;
+					case FixTag.DiscretionOffsetValue: if (DiscretionOffset is not null) Duplicate(field); DiscretionOffset = (FixField.Decimal)field; break;
+					case FixTag.ClearingFirm: if (ClearingFirm is not null) Duplicate(field); ClearingFirm = (FixField.Text)field; break;
+					case FixTag.ClearingAccount: if (ClearingAccount is not null) Duplicate(field); ClearingAccount = (FixField.Text)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -7018,9 +7018,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.NewOrderSingle(context, this);
+			context.Validators.NewOrderSingle(context, check, this);
 		}
 	}
 
@@ -7033,201 +7033,201 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.OrigTime: if (OrigTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrigTime = (FixField.Timestamp)field; break;
-					case FixTag.Urgency: if (Urgency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Urgency = (FixField.Character)field; break;
-					case FixTag.Headline: if (Headline is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Headline = (FixField.Text)field; break;
-					case FixTag.EncodedHeadlineLen: if (EncodedHeadlineLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedHeadlineLen = (FixField.Integer)field; break;
-					case FixTag.EncodedHeadline: if (EncodedHeadline is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedHeadline = (FixField.Data)field; break;
-					case FixTag.NoRoutingIDs: if (NoRoutingIDs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRoutingIDs = (FixField.Integer)field; break;
+					case FixTag.OrigTime: if (OrigTime is not null) Duplicate(field); OrigTime = (FixField.Timestamp)field; break;
+					case FixTag.Urgency: if (Urgency is not null) Duplicate(field); Urgency = (FixField.Character)field; break;
+					case FixTag.Headline: if (Headline is not null) Duplicate(field); Headline = (FixField.Text)field; break;
+					case FixTag.EncodedHeadlineLen: if (EncodedHeadlineLen is not null) Duplicate(field); EncodedHeadlineLen = (FixField.Integer)field; break;
+					case FixTag.EncodedHeadline: if (EncodedHeadline is not null) Duplicate(field); EncodedHeadline = (FixField.Data)field; break;
+					case FixTag.NoRoutingIDs: if (NoRoutingIDs is not null) Duplicate(field); NoRoutingIDs = (FixField.Integer)field; break;
 					case FixTag.RoutingType:
-						if (noRoutingIDsGroups is null && NoRoutingIDs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRoutingIDs, field.Position, field, -1));
+						if (noRoutingIDsGroups is null && NoRoutingIDs is null) Uncounted(FixTag.NoRoutingIDs, field);
 						(noRoutingIDsGroups ??= []).Add(new ((FixField.Integer)field));
 						break;
 					case FixTag.RoutingID:
 						if (noRoutingIDsGroups is null || noRoutingIDsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRoutingIDsGroups![^1].RoutingID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRoutingIDsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRoutingIDs, noRoutingIDsGroups!.Count - 1);
 						else
 							noRoutingIDsGroups![^1].RoutingID = (FixField.Text)field;
 						break;
-					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
+					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) Duplicate(field); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.RelatdSym:
-						if (noRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
+						if (noRelatedSymGroups is null && NoRelatedSym is null) Uncounted(FixTag.NoRelatedSym, field);
 						(noRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SymbolSfx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].IDSource is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].MaturityMonthYear is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].MaturityDay is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].PutOrCall is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].StrikePrice is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].OptAttribute is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].ContractMultiplier is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].CouponRate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityExchange is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].Issuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedIssuerLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedIssuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedSecurityDescLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedSecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
 						break;
-					case FixTag.NoLinesOfText: if (LinesOfText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LinesOfText = (FixField.Integer)field; break;
+					case FixTag.NoLinesOfText: if (LinesOfText is not null) Duplicate(field); LinesOfText = (FixField.Integer)field; break;
 					case FixTag.Text:
-						if (linesOfTextGroups is null && LinesOfText is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoLinesOfText, field.Position, field, -1));
+						if (linesOfTextGroups is null && LinesOfText is null) Uncounted(FixTag.NoLinesOfText, field);
 						(linesOfTextGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.EncodedTextLen:
 						if (linesOfTextGroups is null || linesOfTextGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (linesOfTextGroups![^1].EncodedTextLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, linesOfTextGroups!.Count - 1));
+							Duplicate(field, FixTag.NoLinesOfText, linesOfTextGroups!.Count - 1);
 						else
 							linesOfTextGroups![^1].EncodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
 						if (linesOfTextGroups is null || linesOfTextGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (linesOfTextGroups![^1].EncodedText is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, linesOfTextGroups!.Count - 1));
+							Duplicate(field, FixTag.NoLinesOfText, linesOfTextGroups!.Count - 1);
 						else
 							linesOfTextGroups![^1].EncodedText = (FixField.Data)field;
 						break;
-					case FixTag.URLLink: if (URLLink is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); URLLink = (FixField.Text)field; break;
-					case FixTag.RawDataLength: if (RawDataLength is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); RawDataLength = (FixField.Integer)field; break;
-					case FixTag.RawData: if (RawData is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); RawData = (FixField.Data)field; break;
+					case FixTag.URLLink: if (URLLink is not null) Duplicate(field); URLLink = (FixField.Text)field; break;
+					case FixTag.RawDataLength: if (RawDataLength is not null) Duplicate(field); RawDataLength = (FixField.Integer)field; break;
+					case FixTag.RawData: if (RawData is not null) Duplicate(field); RawData = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -7379,9 +7379,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.News(context, this);
+			context.Validators.News(context, check, this);
 		}
 	}
 
@@ -7394,25 +7394,25 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.OrderID: if (OrderID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderID = (FixField.Text)field; break;
-					case FixTag.SecondaryOrderID: if (SecondaryOrderID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecondaryOrderID = (FixField.Text)field; break;
-					case FixTag.ClOrdID: if (ClOrdID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClOrdID = (FixField.Text)field; break;
-					case FixTag.OrigClOrdID: if (OrigClOrdID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrigClOrdID = (FixField.Text)field; break;
-					case FixTag.OrdStatus: if (OrdStatus is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrdStatus = (FixField.Character)field; break;
-					case FixTag.ClientID: if (ClientID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClientID = (FixField.Text)field; break;
-					case FixTag.ExecBroker: if (ExecBroker is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecBroker = (FixField.Text)field; break;
-					case FixTag.ListID: if (ListID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ListID = (FixField.Text)field; break;
-					case FixTag.Account: if (Account is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Account = (FixField.Text)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.CxlRejResponseTo: if (CxlRejResponseTo is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CxlRejResponseTo = (FixField.Character)field; break;
-					case FixTag.CxlRejReason: if (CxlRejReason is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CxlRejReason = (FixField.Integer)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
+					case FixTag.OrderID: if (OrderID is not null) Duplicate(field); OrderID = (FixField.Text)field; break;
+					case FixTag.SecondaryOrderID: if (SecondaryOrderID is not null) Duplicate(field); SecondaryOrderID = (FixField.Text)field; break;
+					case FixTag.ClOrdID: if (ClOrdID is not null) Duplicate(field); ClOrdID = (FixField.Text)field; break;
+					case FixTag.OrigClOrdID: if (OrigClOrdID is not null) Duplicate(field); OrigClOrdID = (FixField.Text)field; break;
+					case FixTag.OrdStatus: if (OrdStatus is not null) Duplicate(field); OrdStatus = (FixField.Character)field; break;
+					case FixTag.ClientID: if (ClientID is not null) Duplicate(field); ClientID = (FixField.Text)field; break;
+					case FixTag.ExecBroker: if (ExecBroker is not null) Duplicate(field); ExecBroker = (FixField.Text)field; break;
+					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
+					case FixTag.Account: if (Account is not null) Duplicate(field); Account = (FixField.Text)field; break;
+					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
+					case FixTag.CxlRejResponseTo: if (CxlRejResponseTo is not null) Duplicate(field); CxlRejResponseTo = (FixField.Character)field; break;
+					case FixTag.CxlRejReason: if (CxlRejReason is not null) Duplicate(field); CxlRejReason = (FixField.Integer)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -7465,9 +7465,9 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.OrderCancelReject(context, this);
+			context.Validators.OrderCancelReject(context, check, this);
 		}
 	}
 
@@ -7480,96 +7480,96 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.OrderID: if (OrderID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderID = (FixField.Text)field; break;
-					case FixTag.ClientID: if (ClientID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClientID = (FixField.Text)field; break;
-					case FixTag.ExecBroker: if (ExecBroker is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecBroker = (FixField.Text)field; break;
-					case FixTag.OrigClOrdID: if (OrigClOrdID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrigClOrdID = (FixField.Text)field; break;
-					case FixTag.ClOrdID: if (ClOrdID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClOrdID = (FixField.Text)field; break;
-					case FixTag.ListID: if (ListID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ListID = (FixField.Text)field; break;
-					case FixTag.Account: if (Account is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Account = (FixField.Text)field; break;
-					case FixTag.NoAllocs: if (NoAllocs is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoAllocs = (FixField.Integer)field; break;
+					case FixTag.OrderID: if (OrderID is not null) Duplicate(field); OrderID = (FixField.Text)field; break;
+					case FixTag.ClientID: if (ClientID is not null) Duplicate(field); ClientID = (FixField.Text)field; break;
+					case FixTag.ExecBroker: if (ExecBroker is not null) Duplicate(field); ExecBroker = (FixField.Text)field; break;
+					case FixTag.OrigClOrdID: if (OrigClOrdID is not null) Duplicate(field); OrigClOrdID = (FixField.Text)field; break;
+					case FixTag.ClOrdID: if (ClOrdID is not null) Duplicate(field); ClOrdID = (FixField.Text)field; break;
+					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
+					case FixTag.Account: if (Account is not null) Duplicate(field); Account = (FixField.Text)field; break;
+					case FixTag.NoAllocs: if (NoAllocs is not null) Duplicate(field); NoAllocs = (FixField.Integer)field; break;
 					case FixTag.AllocAccount:
-						if (noAllocsGroups is null && NoAllocs is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoAllocs, field.Position, field, -1));
+						if (noAllocsGroups is null && NoAllocs is null) Uncounted(FixTag.NoAllocs, field);
 						(noAllocsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.AllocQty:
 						if (noAllocsGroups is null || noAllocsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noAllocsGroups![^1].AllocShares is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noAllocsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
 							noAllocsGroups![^1].AllocShares = (FixField.Decimal)field;
 						break;
-					case FixTag.SettlType: if (SettlmntTyp is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlmntTyp = (FixField.Character)field; break;
-					case FixTag.SettlDate: if (FutSettDate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); FutSettDate = (FixField.Date)field; break;
-					case FixTag.HandlInst: if (HandlInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); HandlInst = (FixField.Character)field; break;
-					case FixTag.ExecInst: if (ExecInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecInst = (FixField.Multiple)field; break;
-					case FixTag.MinQty: if (MinQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MinQty = (FixField.Decimal)field; break;
-					case FixTag.MaxFloor: if (MaxFloor is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaxFloor = (FixField.Decimal)field; break;
-					case FixTag.ExDestination: if (ExDestination is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExDestination = (FixField.Text)field; break;
-					case FixTag.NoTradingSessions: if (NoTradingSessions is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoTradingSessions = (FixField.Integer)field; break;
+					case FixTag.SettlType: if (SettlmntTyp is not null) Duplicate(field); SettlmntTyp = (FixField.Character)field; break;
+					case FixTag.SettlDate: if (FutSettDate is not null) Duplicate(field); FutSettDate = (FixField.Date)field; break;
+					case FixTag.HandlInst: if (HandlInst is not null) Duplicate(field); HandlInst = (FixField.Character)field; break;
+					case FixTag.ExecInst: if (ExecInst is not null) Duplicate(field); ExecInst = (FixField.Multiple)field; break;
+					case FixTag.MinQty: if (MinQty is not null) Duplicate(field); MinQty = (FixField.Decimal)field; break;
+					case FixTag.MaxFloor: if (MaxFloor is not null) Duplicate(field); MaxFloor = (FixField.Decimal)field; break;
+					case FixTag.ExDestination: if (ExDestination is not null) Duplicate(field); ExDestination = (FixField.Text)field; break;
+					case FixTag.NoTradingSessions: if (NoTradingSessions is not null) Duplicate(field); NoTradingSessions = (FixField.Integer)field; break;
 					case FixTag.TradingSessionID:
-						if (noTradingSessionsGroups is null && NoTradingSessions is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoTradingSessions, field.Position, field, -1));
+						if (noTradingSessionsGroups is null && NoTradingSessions is null) Uncounted(FixTag.NoTradingSessions, field);
 						(noTradingSessionsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
-					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Side: if (Side is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Side = (FixField.Character)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.OrderQty: if (OrderQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderQty = (FixField.Decimal)field; break;
-					case FixTag.CashOrderQty: if (CashOrderQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CashOrderQty = (FixField.Decimal)field; break;
-					case FixTag.OrdType: if (OrdType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrdType = (FixField.Character)field; break;
-					case FixTag.Price: if (Price is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Price = (FixField.Decimal)field; break;
-					case FixTag.StopPx: if (StopPx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StopPx = (FixField.Decimal)field; break;
-					case FixTag.PegOffsetValue: if (PegDifference is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PegDifference = (FixField.Decimal)field; break;
-					case FixTag.DiscretionInst: if (DiscretionInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DiscretionInst = (FixField.Character)field; break;
-					case FixTag.DiscretionOffsetValue: if (DiscretionOffset is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DiscretionOffset = (FixField.Decimal)field; break;
-					case FixTag.ComplianceID: if (ComplianceID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ComplianceID = (FixField.Text)field; break;
-					case FixTag.SolicitedFlag: if (SolicitedFlag is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SolicitedFlag = (FixField.Boolean)field; break;
-					case FixTag.Currency: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Text)field; break;
-					case FixTag.TimeInForce: if (TimeInForce is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TimeInForce = (FixField.Character)field; break;
-					case FixTag.EffectiveTime: if (EffectiveTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EffectiveTime = (FixField.Timestamp)field; break;
-					case FixTag.ExpireDate: if (ExpireDate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExpireDate = (FixField.Date)field; break;
-					case FixTag.ExpireTime: if (ExpireTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExpireTime = (FixField.Timestamp)field; break;
-					case FixTag.GTBookingInst: if (GTBookingInst is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); GTBookingInst = (FixField.Integer)field; break;
-					case FixTag.Commission: if (Commission is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Commission = (FixField.Decimal)field; break;
-					case FixTag.CommType: if (CommType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CommType = (FixField.Character)field; break;
-					case FixTag.Rule80A: if (Rule80A is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Rule80A = (FixField.Character)field; break;
-					case FixTag.ForexReq: if (ForexReq is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ForexReq = (FixField.Boolean)field; break;
-					case FixTag.SettlCurrency: if (SettlCurrency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlCurrency = (FixField.Text)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
-					case FixTag.SettlDate2: if (FutSettDate2 is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); FutSettDate2 = (FixField.Date)field; break;
-					case FixTag.OrderQty2: if (OrderQty2 is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderQty2 = (FixField.Decimal)field; break;
-					case FixTag.PositionEffect: if (OpenClose is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OpenClose = (FixField.Character)field; break;
-					case FixTag.CoveredOrUncovered: if (CoveredOrUncovered is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CoveredOrUncovered = (FixField.Integer)field; break;
-					case FixTag.CustomerOrFirm: if (CustomerOrFirm is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CustomerOrFirm = (FixField.Integer)field; break;
-					case FixTag.MaxShow: if (MaxShow is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaxShow = (FixField.Decimal)field; break;
-					case FixTag.LocateReqd: if (LocateReqd is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LocateReqd = (FixField.Boolean)field; break;
-					case FixTag.ClearingFirm: if (ClearingFirm is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClearingFirm = (FixField.Text)field; break;
-					case FixTag.ClearingAccount: if (ClearingAccount is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClearingAccount = (FixField.Text)field; break;
+					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
+					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
+					case FixTag.OrderQty: if (OrderQty is not null) Duplicate(field); OrderQty = (FixField.Decimal)field; break;
+					case FixTag.CashOrderQty: if (CashOrderQty is not null) Duplicate(field); CashOrderQty = (FixField.Decimal)field; break;
+					case FixTag.OrdType: if (OrdType is not null) Duplicate(field); OrdType = (FixField.Character)field; break;
+					case FixTag.Price: if (Price is not null) Duplicate(field); Price = (FixField.Decimal)field; break;
+					case FixTag.StopPx: if (StopPx is not null) Duplicate(field); StopPx = (FixField.Decimal)field; break;
+					case FixTag.PegOffsetValue: if (PegDifference is not null) Duplicate(field); PegDifference = (FixField.Decimal)field; break;
+					case FixTag.DiscretionInst: if (DiscretionInst is not null) Duplicate(field); DiscretionInst = (FixField.Character)field; break;
+					case FixTag.DiscretionOffsetValue: if (DiscretionOffset is not null) Duplicate(field); DiscretionOffset = (FixField.Decimal)field; break;
+					case FixTag.ComplianceID: if (ComplianceID is not null) Duplicate(field); ComplianceID = (FixField.Text)field; break;
+					case FixTag.SolicitedFlag: if (SolicitedFlag is not null) Duplicate(field); SolicitedFlag = (FixField.Boolean)field; break;
+					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
+					case FixTag.TimeInForce: if (TimeInForce is not null) Duplicate(field); TimeInForce = (FixField.Character)field; break;
+					case FixTag.EffectiveTime: if (EffectiveTime is not null) Duplicate(field); EffectiveTime = (FixField.Timestamp)field; break;
+					case FixTag.ExpireDate: if (ExpireDate is not null) Duplicate(field); ExpireDate = (FixField.Date)field; break;
+					case FixTag.ExpireTime: if (ExpireTime is not null) Duplicate(field); ExpireTime = (FixField.Timestamp)field; break;
+					case FixTag.GTBookingInst: if (GTBookingInst is not null) Duplicate(field); GTBookingInst = (FixField.Integer)field; break;
+					case FixTag.Commission: if (Commission is not null) Duplicate(field); Commission = (FixField.Decimal)field; break;
+					case FixTag.CommType: if (CommType is not null) Duplicate(field); CommType = (FixField.Character)field; break;
+					case FixTag.Rule80A: if (Rule80A is not null) Duplicate(field); Rule80A = (FixField.Character)field; break;
+					case FixTag.ForexReq: if (ForexReq is not null) Duplicate(field); ForexReq = (FixField.Boolean)field; break;
+					case FixTag.SettlCurrency: if (SettlCurrency is not null) Duplicate(field); SettlCurrency = (FixField.Text)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.SettlDate2: if (FutSettDate2 is not null) Duplicate(field); FutSettDate2 = (FixField.Date)field; break;
+					case FixTag.OrderQty2: if (OrderQty2 is not null) Duplicate(field); OrderQty2 = (FixField.Decimal)field; break;
+					case FixTag.PositionEffect: if (OpenClose is not null) Duplicate(field); OpenClose = (FixField.Character)field; break;
+					case FixTag.CoveredOrUncovered: if (CoveredOrUncovered is not null) Duplicate(field); CoveredOrUncovered = (FixField.Integer)field; break;
+					case FixTag.CustomerOrFirm: if (CustomerOrFirm is not null) Duplicate(field); CustomerOrFirm = (FixField.Integer)field; break;
+					case FixTag.MaxShow: if (MaxShow is not null) Duplicate(field); MaxShow = (FixField.Decimal)field; break;
+					case FixTag.LocateReqd: if (LocateReqd is not null) Duplicate(field); LocateReqd = (FixField.Boolean)field; break;
+					case FixTag.ClearingFirm: if (ClearingFirm is not null) Duplicate(field); ClearingFirm = (FixField.Text)field; break;
+					case FixTag.ClearingAccount: if (ClearingAccount is not null) Duplicate(field); ClearingAccount = (FixField.Text)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -7822,9 +7822,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.OrderCancelReplaceRequest(context, this);
+			context.Validators.OrderCancelReplaceRequest(context, check, this);
 		}
 	}
 
@@ -7837,45 +7837,45 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.OrigClOrdID: if (OrigClOrdID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrigClOrdID = (FixField.Text)field; break;
-					case FixTag.OrderID: if (OrderID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderID = (FixField.Text)field; break;
-					case FixTag.ClOrdID: if (ClOrdID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClOrdID = (FixField.Text)field; break;
-					case FixTag.ListID: if (ListID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ListID = (FixField.Text)field; break;
-					case FixTag.Account: if (Account is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Account = (FixField.Text)field; break;
-					case FixTag.ClientID: if (ClientID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClientID = (FixField.Text)field; break;
-					case FixTag.ExecBroker: if (ExecBroker is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecBroker = (FixField.Text)field; break;
-					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Side: if (Side is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Side = (FixField.Character)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.OrderQty: if (OrderQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderQty = (FixField.Decimal)field; break;
-					case FixTag.CashOrderQty: if (CashOrderQty is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CashOrderQty = (FixField.Decimal)field; break;
-					case FixTag.ComplianceID: if (ComplianceID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ComplianceID = (FixField.Text)field; break;
-					case FixTag.SolicitedFlag: if (SolicitedFlag is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SolicitedFlag = (FixField.Boolean)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
+					case FixTag.OrigClOrdID: if (OrigClOrdID is not null) Duplicate(field); OrigClOrdID = (FixField.Text)field; break;
+					case FixTag.OrderID: if (OrderID is not null) Duplicate(field); OrderID = (FixField.Text)field; break;
+					case FixTag.ClOrdID: if (ClOrdID is not null) Duplicate(field); ClOrdID = (FixField.Text)field; break;
+					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
+					case FixTag.Account: if (Account is not null) Duplicate(field); Account = (FixField.Text)field; break;
+					case FixTag.ClientID: if (ClientID is not null) Duplicate(field); ClientID = (FixField.Text)field; break;
+					case FixTag.ExecBroker: if (ExecBroker is not null) Duplicate(field); ExecBroker = (FixField.Text)field; break;
+					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
+					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
+					case FixTag.OrderQty: if (OrderQty is not null) Duplicate(field); OrderQty = (FixField.Decimal)field; break;
+					case FixTag.CashOrderQty: if (CashOrderQty is not null) Duplicate(field); CashOrderQty = (FixField.Decimal)field; break;
+					case FixTag.ComplianceID: if (ComplianceID is not null) Duplicate(field); ComplianceID = (FixField.Text)field; break;
+					case FixTag.SolicitedFlag: if (SolicitedFlag is not null) Duplicate(field); SolicitedFlag = (FixField.Boolean)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -7988,9 +7988,9 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.OrderCancelRequest(context, this);
+			context.Validators.OrderCancelRequest(context, check, this);
 		}
 	}
 
@@ -8003,35 +8003,35 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.OrderID: if (OrderID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderID = (FixField.Text)field; break;
-					case FixTag.ClOrdID: if (ClOrdID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClOrdID = (FixField.Text)field; break;
-					case FixTag.ClientID: if (ClientID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClientID = (FixField.Text)field; break;
-					case FixTag.Account: if (Account is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Account = (FixField.Text)field; break;
-					case FixTag.ExecBroker: if (ExecBroker is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecBroker = (FixField.Text)field; break;
-					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Side: if (Side is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Side = (FixField.Character)field; break;
+					case FixTag.OrderID: if (OrderID is not null) Duplicate(field); OrderID = (FixField.Text)field; break;
+					case FixTag.ClOrdID: if (ClOrdID is not null) Duplicate(field); ClOrdID = (FixField.Text)field; break;
+					case FixTag.ClientID: if (ClientID is not null) Duplicate(field); ClientID = (FixField.Text)field; break;
+					case FixTag.Account: if (Account is not null) Duplicate(field); Account = (FixField.Text)field; break;
+					case FixTag.ExecBroker: if (ExecBroker is not null) Duplicate(field); ExecBroker = (FixField.Text)field; break;
+					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -8114,9 +8114,9 @@ public abstract partial class FixMessage
 		public FixField.Character? Side { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.OrderStatusRequest(context, this);
+			context.Validators.OrderStatusRequest(context, check, this);
 		}
 	}
 
@@ -8129,48 +8129,48 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.QuoteReqID: if (QuoteReqID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteReqID = (FixField.Text)field; break;
-					case FixTag.QuoteID: if (QuoteID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteID = (FixField.Text)field; break;
-					case FixTag.QuoteResponseLevel: if (QuoteResponseLevel is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteResponseLevel = (FixField.Integer)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.BidPx: if (BidPx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BidPx = (FixField.Decimal)field; break;
-					case FixTag.OfferPx: if (OfferPx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OfferPx = (FixField.Decimal)field; break;
-					case FixTag.BidSize: if (BidSize is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BidSize = (FixField.Decimal)field; break;
-					case FixTag.OfferSize: if (OfferSize is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OfferSize = (FixField.Decimal)field; break;
-					case FixTag.ValidUntilTime: if (ValidUntilTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ValidUntilTime = (FixField.Timestamp)field; break;
-					case FixTag.BidSpotRate: if (BidSpotRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BidSpotRate = (FixField.Decimal)field; break;
-					case FixTag.OfferSpotRate: if (OfferSpotRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OfferSpotRate = (FixField.Decimal)field; break;
-					case FixTag.BidForwardPoints: if (BidForwardPoints is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BidForwardPoints = (FixField.Decimal)field; break;
-					case FixTag.OfferForwardPoints: if (OfferForwardPoints is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OfferForwardPoints = (FixField.Decimal)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.SettlDate: if (FutSettDate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); FutSettDate = (FixField.Date)field; break;
-					case FixTag.OrdType: if (OrdType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrdType = (FixField.Character)field; break;
-					case FixTag.SettlDate2: if (FutSettDate2 is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); FutSettDate2 = (FixField.Date)field; break;
-					case FixTag.OrderQty2: if (OrderQty2 is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OrderQty2 = (FixField.Decimal)field; break;
-					case FixTag.Currency: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Text)field; break;
+					case FixTag.QuoteReqID: if (QuoteReqID is not null) Duplicate(field); QuoteReqID = (FixField.Text)field; break;
+					case FixTag.QuoteID: if (QuoteID is not null) Duplicate(field); QuoteID = (FixField.Text)field; break;
+					case FixTag.QuoteResponseLevel: if (QuoteResponseLevel is not null) Duplicate(field); QuoteResponseLevel = (FixField.Integer)field; break;
+					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
+					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.BidPx: if (BidPx is not null) Duplicate(field); BidPx = (FixField.Decimal)field; break;
+					case FixTag.OfferPx: if (OfferPx is not null) Duplicate(field); OfferPx = (FixField.Decimal)field; break;
+					case FixTag.BidSize: if (BidSize is not null) Duplicate(field); BidSize = (FixField.Decimal)field; break;
+					case FixTag.OfferSize: if (OfferSize is not null) Duplicate(field); OfferSize = (FixField.Decimal)field; break;
+					case FixTag.ValidUntilTime: if (ValidUntilTime is not null) Duplicate(field); ValidUntilTime = (FixField.Timestamp)field; break;
+					case FixTag.BidSpotRate: if (BidSpotRate is not null) Duplicate(field); BidSpotRate = (FixField.Decimal)field; break;
+					case FixTag.OfferSpotRate: if (OfferSpotRate is not null) Duplicate(field); OfferSpotRate = (FixField.Decimal)field; break;
+					case FixTag.BidForwardPoints: if (BidForwardPoints is not null) Duplicate(field); BidForwardPoints = (FixField.Decimal)field; break;
+					case FixTag.OfferForwardPoints: if (OfferForwardPoints is not null) Duplicate(field); OfferForwardPoints = (FixField.Decimal)field; break;
+					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
+					case FixTag.SettlDate: if (FutSettDate is not null) Duplicate(field); FutSettDate = (FixField.Date)field; break;
+					case FixTag.OrdType: if (OrdType is not null) Duplicate(field); OrdType = (FixField.Character)field; break;
+					case FixTag.SettlDate2: if (FutSettDate2 is not null) Duplicate(field); FutSettDate2 = (FixField.Date)field; break;
+					case FixTag.OrderQty2: if (OrderQty2 is not null) Duplicate(field); OrderQty2 = (FixField.Decimal)field; break;
+					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -8292,9 +8292,9 @@ public abstract partial class FixMessage
 		public FixField.Text? Currency { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.Quote(context, this);
+			context.Validators.Quote(context, check, this);
 		}
 	}
 
@@ -8307,359 +8307,359 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.QuoteReqID: if (QuoteReqID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteReqID = (FixField.Text)field; break;
-					case FixTag.QuoteID: if (QuoteID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteID = (FixField.Text)field; break;
-					case FixTag.QuoteStatus: if (QuoteAckStatus is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteAckStatus = (FixField.Integer)field; break;
-					case FixTag.QuoteRejectReason: if (QuoteRejectReason is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteRejectReason = (FixField.Integer)field; break;
-					case FixTag.QuoteResponseLevel: if (QuoteResponseLevel is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteResponseLevel = (FixField.Integer)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.NoQuoteSets: if (NoQuoteSets is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoQuoteSets = (FixField.Integer)field; break;
+					case FixTag.QuoteReqID: if (QuoteReqID is not null) Duplicate(field); QuoteReqID = (FixField.Text)field; break;
+					case FixTag.QuoteID: if (QuoteID is not null) Duplicate(field); QuoteID = (FixField.Text)field; break;
+					case FixTag.QuoteStatus: if (QuoteAckStatus is not null) Duplicate(field); QuoteAckStatus = (FixField.Integer)field; break;
+					case FixTag.QuoteRejectReason: if (QuoteRejectReason is not null) Duplicate(field); QuoteRejectReason = (FixField.Integer)field; break;
+					case FixTag.QuoteResponseLevel: if (QuoteResponseLevel is not null) Duplicate(field); QuoteResponseLevel = (FixField.Integer)field; break;
+					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.NoQuoteSets: if (NoQuoteSets is not null) Duplicate(field); NoQuoteSets = (FixField.Integer)field; break;
 					case FixTag.QuoteSetID:
-						if (noQuoteSetsGroups is null && NoQuoteSets is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteSets, field.Position, field, -1));
+						if (noQuoteSetsGroups is null && NoQuoteSets is null) Uncounted(FixTag.NoQuoteSets, field);
 						(noQuoteSetsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.UnderlyingSymbol:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSymbol is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingSymbol = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSymbolSfx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingSymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityID:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSecurityID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingSecurityID = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityIDSource:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingIDSource is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingIDSource = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityType:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSecurityType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingSecurityType = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingMaturityMonthYear:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingMaturityMonthYear is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingMaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.UnderlyingMaturityDay:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingMaturityDay is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingMaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingPutOrCall:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingPutOrCall is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingPutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingStrikePrice:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingStrikePrice is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingStrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingOptAttribute:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingOptAttribute is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingOptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.UnderlyingContractMultiplier:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingContractMultiplier is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingCouponRate:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingCouponRate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingCouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingSecurityExchange:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSecurityExchange is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingSecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingIssuer:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingIssuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingIssuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuerLen:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].EncodedUnderlyingIssuerLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].EncodedUnderlyingIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuer:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].EncodedUnderlyingIssuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].EncodedUnderlyingIssuer = (FixField.Data)field;
 						break;
 					case FixTag.UnderlyingSecurityDesc:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].UnderlyingSecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].UnderlyingSecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDescLen:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDescLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDesc:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.TotNoQuoteEntries:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].TotQuoteEntries is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].TotQuoteEntries = (FixField.Integer)field;
 						break;
 					case FixTag.NoQuoteEntries:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].NoQuoteEntries is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].NoQuoteEntries = (FixField.Integer)field;
 						break;
 					case FixTag.QuoteEntryID:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else
 						{
-							if (noQuoteSetsGroups![^1].noQuoteEntriesGroups is null && noQuoteSetsGroups![^1].NoQuoteEntries is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteEntries, field.Position, field, -1));
+							if (noQuoteSetsGroups![^1].noQuoteEntriesGroups is null && noQuoteSetsGroups![^1].NoQuoteEntries is null) Uncounted(FixTag.NoQuoteEntries, field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 							(noQuoteSetsGroups![^1].noQuoteEntriesGroups ??= []).Add(new ((FixField.Text)field));
 						}
 						break;
 					case FixTag.Symbol:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Symbol is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Symbol = (FixField.Text)field;
 						break;
 					case FixTag.SymbolSfx:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SymbolSfx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].IDSource is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityMonthYear is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityDay is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].PutOrCall is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].StrikePrice is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OptAttribute is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].ContractMultiplier is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].CouponRate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityExchange is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Issuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuerLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDescLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.QuoteEntryRejectReason:
 						if (noQuoteSetsGroups is null || noQuoteSetsGroups.Count == 0 || noQuoteSetsGroups![^1].noQuoteEntriesGroups is null || noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].QuoteEntryRejectReason is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].QuoteEntryRejectReason = (FixField.Integer)field;
 						break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -8846,9 +8846,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.QuoteAcknowledgement(context, this);
+			context.Validators.QuoteAcknowledgement(context, check, this);
 		}
 	}
 
@@ -8861,172 +8861,172 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.QuoteReqID: if (QuoteReqID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteReqID = (FixField.Text)field; break;
-					case FixTag.QuoteID: if (QuoteID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteID = (FixField.Text)field; break;
-					case FixTag.QuoteCancelType: if (QuoteCancelType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteCancelType = (FixField.Integer)field; break;
-					case FixTag.QuoteResponseLevel: if (QuoteResponseLevel is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteResponseLevel = (FixField.Integer)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.NoQuoteEntries: if (NoQuoteEntries is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoQuoteEntries = (FixField.Integer)field; break;
+					case FixTag.QuoteReqID: if (QuoteReqID is not null) Duplicate(field); QuoteReqID = (FixField.Text)field; break;
+					case FixTag.QuoteID: if (QuoteID is not null) Duplicate(field); QuoteID = (FixField.Text)field; break;
+					case FixTag.QuoteCancelType: if (QuoteCancelType is not null) Duplicate(field); QuoteCancelType = (FixField.Integer)field; break;
+					case FixTag.QuoteResponseLevel: if (QuoteResponseLevel is not null) Duplicate(field); QuoteResponseLevel = (FixField.Integer)field; break;
+					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
+					case FixTag.NoQuoteEntries: if (NoQuoteEntries is not null) Duplicate(field); NoQuoteEntries = (FixField.Integer)field; break;
 					case FixTag.Symbol:
-						if (noQuoteEntriesGroups is null && NoQuoteEntries is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoQuoteEntries, field.Position, field, -1));
+						if (noQuoteEntriesGroups is null && NoQuoteEntries is null) Uncounted(FixTag.NoQuoteEntries, field);
 						(noQuoteEntriesGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].SymbolSfx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].SecurityID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].IDSource is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].SecurityType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].MaturityMonthYear is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].MaturityDay is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].PutOrCall is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].StrikePrice is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].OptAttribute is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].ContractMultiplier is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].CouponRate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].SecurityExchange is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].Issuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].EncodedIssuerLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].EncodedIssuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].SecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].EncodedSecurityDescLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].EncodedSecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.UnderlyingSymbol:
 						if (noQuoteEntriesGroups is null || noQuoteEntriesGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noQuoteEntriesGroups![^1].UnderlyingSymbol is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noQuoteEntriesGroups!.Count - 1));
+							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
 							noQuoteEntriesGroups![^1].UnderlyingSymbol = (FixField.Text)field;
 						break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -9125,9 +9125,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.QuoteCancel(context, this);
+			context.Validators.QuoteCancel(context, check, this);
 		}
 	}
 
@@ -9140,256 +9140,256 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.QuoteReqID: if (QuoteReqID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteReqID = (FixField.Text)field; break;
-					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
+					case FixTag.QuoteReqID: if (QuoteReqID is not null) Duplicate(field); QuoteReqID = (FixField.Text)field; break;
+					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) Duplicate(field); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.Symbol:
-						if (noRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
+						if (noRelatedSymGroups is null && NoRelatedSym is null) Uncounted(FixTag.NoRelatedSym, field);
 						(noRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SymbolSfx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SecurityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].IDSource is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].IDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SecurityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].MaturityMonthYear is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].MaturityDay is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].MaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].PutOrCall is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].PutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].StrikePrice is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].StrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].OptAttribute is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].OptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].ContractMultiplier is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].ContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].CouponRate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].CouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityExchange is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].Issuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].Issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedIssuerLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedIssuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].SecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].SecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedSecurityDescLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedSecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.PrevClosePx:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].PrevClosePx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].PrevClosePx = (FixField.Decimal)field;
 						break;
 					case FixTag.QuoteRequestType:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].QuoteRequestType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].QuoteRequestType = (FixField.Integer)field;
 						break;
 					case FixTag.TradingSessionID:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].TradingSessionID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].TradingSessionID = (FixField.Text)field;
 						break;
 					case FixTag.Side:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].Side is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].Side = (FixField.Character)field;
 						break;
 					case FixTag.OrderQty:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].OrderQty is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].OrderQty = (FixField.Decimal)field;
 						break;
 					case FixTag.SettlDate:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].FutSettDate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].FutSettDate = (FixField.Date)field;
 						break;
 					case FixTag.OrdType:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].OrdType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].OrdType = (FixField.Character)field;
 						break;
 					case FixTag.SettlDate2:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].FutSettDate2 is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].FutSettDate2 = (FixField.Date)field;
 						break;
 					case FixTag.OrderQty2:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].OrderQty2 is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].OrderQty2 = (FixField.Decimal)field;
 						break;
 					case FixTag.ExpireTime:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].ExpireTime is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].ExpireTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.TransactTime:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].TransactTime is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].TransactTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.Currency:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].Currency is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].Currency = (FixField.Text)field;
 						break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -9509,9 +9509,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.QuoteRequest(context, this);
+			context.Validators.QuoteRequest(context, check, this);
 		}
 	}
 
@@ -9524,32 +9524,32 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.QuoteID: if (QuoteID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); QuoteID = (FixField.Text)field; break;
-					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Side: if (Side is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Side = (FixField.Character)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradingSessionID = (FixField.Text)field; break;
+					case FixTag.QuoteID: if (QuoteID is not null) Duplicate(field); QuoteID = (FixField.Text)field; break;
+					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
+					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -9623,9 +9623,9 @@ public abstract partial class FixMessage
 		public FixField.Text? TradingSessionID { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.QuoteStatusRequest(context, this);
+			context.Validators.QuoteStatusRequest(context, check, this);
 		}
 	}
 
@@ -9638,17 +9638,17 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.RefSeqNum: if (RefSeqNum is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); RefSeqNum = (FixField.Integer)field; break;
-					case FixTag.RefTagID: if (RefTagID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); RefTagID = (FixField.Integer)field; break;
-					case FixTag.RefMsgType: if (RefMsgType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); RefMsgType = (FixField.Text)field; break;
-					case FixTag.SessionRejectReason: if (SessionRejectReason is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SessionRejectReason = (FixField.Integer)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
+					case FixTag.RefSeqNum: if (RefSeqNum is not null) Duplicate(field); RefSeqNum = (FixField.Integer)field; break;
+					case FixTag.RefTagID: if (RefTagID is not null) Duplicate(field); RefTagID = (FixField.Integer)field; break;
+					case FixTag.RefMsgType: if (RefMsgType is not null) Duplicate(field); RefMsgType = (FixField.Text)field; break;
+					case FixTag.SessionRejectReason: if (SessionRejectReason is not null) Duplicate(field); SessionRejectReason = (FixField.Integer)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -9677,9 +9677,9 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.Reject(context, this);
+			context.Validators.Reject(context, check, this);
 		}
 	}
 
@@ -9692,12 +9692,12 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.BeginSeqNo: if (BeginSeqNo is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BeginSeqNo = (FixField.Integer)field; break;
-					case FixTag.EndSeqNo: if (EndSeqNo is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EndSeqNo = (FixField.Integer)field; break;
+					case FixTag.BeginSeqNo: if (BeginSeqNo is not null) Duplicate(field); BeginSeqNo = (FixField.Integer)field; break;
+					case FixTag.EndSeqNo: if (EndSeqNo is not null) Duplicate(field); EndSeqNo = (FixField.Integer)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -9711,9 +9711,9 @@ public abstract partial class FixMessage
 		public FixField.Integer? EndSeqNo { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.ResendRequest(context, this);
+			context.Validators.ResendRequest(context, check, this);
 		}
 	}
 
@@ -9726,211 +9726,211 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.SecurityReqID: if (SecurityReqID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityReqID = (FixField.Text)field; break;
-					case FixTag.SecurityResponseID: if (SecurityResponseID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityResponseID = (FixField.Text)field; break;
-					case FixTag.SecurityResponseType: if (SecurityResponseType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityResponseType = (FixField.Integer)field; break;
-					case FixTag.TotNoRelatedSym: if (TotalNumSecurities is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TotalNumSecurities = (FixField.Integer)field; break;
-					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Currency: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Text)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
-					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
+					case FixTag.SecurityReqID: if (SecurityReqID is not null) Duplicate(field); SecurityReqID = (FixField.Text)field; break;
+					case FixTag.SecurityResponseID: if (SecurityResponseID is not null) Duplicate(field); SecurityResponseID = (FixField.Text)field; break;
+					case FixTag.SecurityResponseType: if (SecurityResponseType is not null) Duplicate(field); SecurityResponseType = (FixField.Integer)field; break;
+					case FixTag.TotNoRelatedSym: if (TotalNumSecurities is not null) Duplicate(field); TotalNumSecurities = (FixField.Integer)field; break;
+					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
+					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) Duplicate(field); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
-						if (noRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
+						if (noRelatedSymGroups is null && NoRelatedSym is null) Uncounted(FixTag.NoRelatedSym, field);
 						(noRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSymbolSfx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingSymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityID:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSecurityID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingSecurityID = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityIDSource:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingIDSource is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingIDSource = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityType:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSecurityType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingSecurityType = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingMaturityMonthYear:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingMaturityMonthYear is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingMaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.UnderlyingMaturityDay:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingMaturityDay is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingMaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingPutOrCall:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingPutOrCall is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingPutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingStrikePrice:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingStrikePrice is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingStrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingOptAttribute:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingOptAttribute is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingOptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.UnderlyingContractMultiplier:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingContractMultiplier is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingCouponRate:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingCouponRate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingCouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingSecurityExchange:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSecurityExchange is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingSecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingIssuer:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingIssuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingIssuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuerLen:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedUnderlyingIssuerLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedUnderlyingIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuer:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedUnderlyingIssuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedUnderlyingIssuer = (FixField.Data)field;
 						break;
 					case FixTag.UnderlyingSecurityDesc:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingSecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDescLen:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedUnderlyingSecurityDescLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedUnderlyingSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDesc:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedUnderlyingSecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedUnderlyingSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.RatioQty:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].RatioQty is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].RatioQty = (FixField.Decimal)field;
 						break;
 					case FixTag.Side:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].Side is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].Side = (FixField.Character)field;
 						break;
 					case FixTag.UnderlyingCurrency:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingCurrency is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingCurrency = (FixField.Text)field;
 						break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -10104,9 +10104,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.SecurityDefinition(context, this);
+			context.Validators.SecurityDefinition(context, check, this);
 		}
 	}
 
@@ -10119,209 +10119,209 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.SecurityReqID: if (SecurityReqID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityReqID = (FixField.Text)field; break;
-					case FixTag.SecurityRequestType: if (SecurityRequestType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityRequestType = (FixField.Integer)field; break;
-					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Currency: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Text)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NoRelatedSym = (FixField.Integer)field; break;
+					case FixTag.SecurityReqID: if (SecurityReqID is not null) Duplicate(field); SecurityReqID = (FixField.Text)field; break;
+					case FixTag.SecurityRequestType: if (SecurityRequestType is not null) Duplicate(field); SecurityRequestType = (FixField.Integer)field; break;
+					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
+					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) Duplicate(field); NoRelatedSym = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
-						if (noRelatedSymGroups is null && NoRelatedSym is null) AddFinding(new FixFinding(FixRule.GroupCountMismatch, FixTag.NoRelatedSym, field.Position, field, -1));
+						if (noRelatedSymGroups is null && NoRelatedSym is null) Uncounted(FixTag.NoRelatedSym, field);
 						(noRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSymbolSfx is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingSymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityID:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSecurityID is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingSecurityID = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityIDSource:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingIDSource is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingIDSource = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityType:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSecurityType is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingSecurityType = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingMaturityMonthYear:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingMaturityMonthYear is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingMaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.UnderlyingMaturityDay:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingMaturityDay is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingMaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingPutOrCall:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingPutOrCall is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingPutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingStrikePrice:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingStrikePrice is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingStrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingOptAttribute:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingOptAttribute is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingOptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.UnderlyingContractMultiplier:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingContractMultiplier is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingCouponRate:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingCouponRate is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingCouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingSecurityExchange:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSecurityExchange is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingSecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingIssuer:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingIssuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingIssuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuerLen:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedUnderlyingIssuerLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedUnderlyingIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuer:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedUnderlyingIssuer is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedUnderlyingIssuer = (FixField.Data)field;
 						break;
 					case FixTag.UnderlyingSecurityDesc:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingSecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingSecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDescLen:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedUnderlyingSecurityDescLen is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedUnderlyingSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDesc:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].EncodedUnderlyingSecurityDesc is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].EncodedUnderlyingSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.RatioQty:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].RatioQty is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].RatioQty = (FixField.Decimal)field;
 						break;
 					case FixTag.Side:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].Side is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].Side = (FixField.Character)field;
 						break;
 					case FixTag.UnderlyingCurrency:
 						if (noRelatedSymGroups is null || noRelatedSymGroups.Count == 0)
-							AddFinding(new FixFinding(FixRule.GroupCountMismatch, field.Tag, field.Position, field, -1));
+							Unentered(field);
 						else if (noRelatedSymGroups![^1].UnderlyingCurrency is not null)
-							AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, noRelatedSymGroups!.Count - 1));
+							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
 							noRelatedSymGroups![^1].UnderlyingCurrency = (FixField.Text)field;
 						break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -10489,9 +10489,9 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.SecurityDefinitionRequest(context, this);
+			context.Validators.SecurityDefinitionRequest(context, check, this);
 		}
 	}
 
@@ -10504,46 +10504,46 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.SecurityStatusReqID: if (SecurityStatusReqID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityStatusReqID = (FixField.Text)field; break;
-					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Currency: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Text)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.UnsolicitedIndicator: if (UnsolicitedIndicator is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); UnsolicitedIndicator = (FixField.Boolean)field; break;
-					case FixTag.SecurityTradingStatus: if (SecurityTradingStatus is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityTradingStatus = (FixField.Integer)field; break;
-					case FixTag.FinancialStatus: if (FinancialStatus is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); FinancialStatus = (FixField.Character)field; break;
-					case FixTag.CorporateAction: if (CorporateAction is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CorporateAction = (FixField.Character)field; break;
-					case FixTag.HaltReason: if (HaltReason is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); HaltReason = (FixField.Character)field; break;
-					case FixTag.InViewOfCommon: if (InViewOfCommon is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); InViewOfCommon = (FixField.Boolean)field; break;
-					case FixTag.DueToRelated: if (DueToRelated is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); DueToRelated = (FixField.Boolean)field; break;
-					case FixTag.BuyVolume: if (BuyVolume is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); BuyVolume = (FixField.Decimal)field; break;
-					case FixTag.SellVolume: if (SellVolume is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SellVolume = (FixField.Decimal)field; break;
-					case FixTag.HighPx: if (HighPx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); HighPx = (FixField.Decimal)field; break;
-					case FixTag.LowPx: if (LowPx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LowPx = (FixField.Decimal)field; break;
-					case FixTag.LastPx: if (LastPx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LastPx = (FixField.Decimal)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.Adjustment: if (Adjustment is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Adjustment = (FixField.Integer)field; break;
+					case FixTag.SecurityStatusReqID: if (SecurityStatusReqID is not null) Duplicate(field); SecurityStatusReqID = (FixField.Text)field; break;
+					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
+					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
+					case FixTag.UnsolicitedIndicator: if (UnsolicitedIndicator is not null) Duplicate(field); UnsolicitedIndicator = (FixField.Boolean)field; break;
+					case FixTag.SecurityTradingStatus: if (SecurityTradingStatus is not null) Duplicate(field); SecurityTradingStatus = (FixField.Integer)field; break;
+					case FixTag.FinancialStatus: if (FinancialStatus is not null) Duplicate(field); FinancialStatus = (FixField.Character)field; break;
+					case FixTag.CorporateAction: if (CorporateAction is not null) Duplicate(field); CorporateAction = (FixField.Character)field; break;
+					case FixTag.HaltReason: if (HaltReason is not null) Duplicate(field); HaltReason = (FixField.Character)field; break;
+					case FixTag.InViewOfCommon: if (InViewOfCommon is not null) Duplicate(field); InViewOfCommon = (FixField.Boolean)field; break;
+					case FixTag.DueToRelated: if (DueToRelated is not null) Duplicate(field); DueToRelated = (FixField.Boolean)field; break;
+					case FixTag.BuyVolume: if (BuyVolume is not null) Duplicate(field); BuyVolume = (FixField.Decimal)field; break;
+					case FixTag.SellVolume: if (SellVolume is not null) Duplicate(field); SellVolume = (FixField.Decimal)field; break;
+					case FixTag.HighPx: if (HighPx is not null) Duplicate(field); HighPx = (FixField.Decimal)field; break;
+					case FixTag.LowPx: if (LowPx is not null) Duplicate(field); LowPx = (FixField.Decimal)field; break;
+					case FixTag.LastPx: if (LastPx is not null) Duplicate(field); LastPx = (FixField.Decimal)field; break;
+					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
+					case FixTag.Adjustment: if (Adjustment is not null) Duplicate(field); Adjustment = (FixField.Integer)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -10659,9 +10659,9 @@ public abstract partial class FixMessage
 		public FixField.Integer? Adjustment { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.SecurityStatus(context, this);
+			context.Validators.SecurityStatus(context, check, this);
 		}
 	}
 
@@ -10674,33 +10674,33 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.SecurityStatusReqID: if (SecurityStatusReqID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityStatusReqID = (FixField.Text)field; break;
-					case FixTag.Symbol: if (Symbol is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Currency: if (Currency is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Currency = (FixField.Text)field; break;
-					case FixTag.SubscriptionRequestType: if (SubscriptionRequestType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SubscriptionRequestType = (FixField.Character)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradingSessionID = (FixField.Text)field; break;
+					case FixTag.SecurityStatusReqID: if (SecurityStatusReqID is not null) Duplicate(field); SecurityStatusReqID = (FixField.Text)field; break;
+					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
+					case FixTag.SubscriptionRequestType: if (SubscriptionRequestType is not null) Duplicate(field); SubscriptionRequestType = (FixField.Character)field; break;
+					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -10777,9 +10777,9 @@ public abstract partial class FixMessage
 		public FixField.Text? TradingSessionID { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.SecurityStatusRequest(context, this);
+			context.Validators.SecurityStatusRequest(context, check, this);
 		}
 	}
 
@@ -10792,12 +10792,12 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.GapFillFlag: if (GapFillFlag is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); GapFillFlag = (FixField.Boolean)field; break;
-					case FixTag.NewSeqNo: if (NewSeqNo is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); NewSeqNo = (FixField.Integer)field; break;
+					case FixTag.GapFillFlag: if (GapFillFlag is not null) Duplicate(field); GapFillFlag = (FixField.Boolean)field; break;
+					case FixTag.NewSeqNo: if (NewSeqNo is not null) Duplicate(field); NewSeqNo = (FixField.Integer)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -10811,9 +10811,9 @@ public abstract partial class FixMessage
 		public FixField.Integer? NewSeqNo { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.SequenceReset(context, this);
+			context.Validators.SequenceReset(context, check, this);
 		}
 	}
 
@@ -10826,46 +10826,46 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.SettlInstID: if (SettlInstID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlInstID = (FixField.Text)field; break;
-					case FixTag.SettlInstTransType: if (SettlInstTransType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlInstTransType = (FixField.Character)field; break;
-					case FixTag.SettlInstRefID: if (SettlInstRefID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlInstRefID = (FixField.Text)field; break;
-					case FixTag.SettlInstMode: if (SettlInstMode is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlInstMode = (FixField.Character)field; break;
-					case FixTag.SettlInstSource: if (SettlInstSource is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlInstSource = (FixField.Character)field; break;
-					case FixTag.AllocAccount: if (AllocAccount is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); AllocAccount = (FixField.Text)field; break;
-					case FixTag.SettlLocation: if (SettlLocation is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlLocation = (FixField.Text)field; break;
-					case FixTag.TradeDate: if (TradeDate is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradeDate = (FixField.Date)field; break;
-					case FixTag.AllocID: if (AllocID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); AllocID = (FixField.Text)field; break;
-					case FixTag.LastMkt: if (LastMkt is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); LastMkt = (FixField.Text)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.Side: if (Side is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Side = (FixField.Character)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecurityType = (FixField.Text)field; break;
-					case FixTag.EffectiveTime: if (EffectiveTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EffectiveTime = (FixField.Timestamp)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.ClientID: if (ClientID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ClientID = (FixField.Text)field; break;
-					case FixTag.ExecBroker: if (ExecBroker is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); ExecBroker = (FixField.Text)field; break;
-					case FixTag.StandInstDbType: if (StandInstDbType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StandInstDbType = (FixField.Integer)field; break;
-					case FixTag.StandInstDbName: if (StandInstDbName is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StandInstDbName = (FixField.Text)field; break;
-					case FixTag.StandInstDbID: if (StandInstDbID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); StandInstDbID = (FixField.Text)field; break;
-					case FixTag.SettlDeliveryType: if (SettlDeliveryType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlDeliveryType = (FixField.Integer)field; break;
-					case FixTag.SettlDepositoryCode: if (SettlDepositoryCode is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlDepositoryCode = (FixField.Text)field; break;
-					case FixTag.SettlBrkrCode: if (SettlBrkrCode is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlBrkrCode = (FixField.Text)field; break;
-					case FixTag.SettlInstCode: if (SettlInstCode is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SettlInstCode = (FixField.Text)field; break;
-					case FixTag.SecuritySettlAgentName: if (SecuritySettlAgentName is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecuritySettlAgentName = (FixField.Text)field; break;
-					case FixTag.SecuritySettlAgentCode: if (SecuritySettlAgentCode is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecuritySettlAgentCode = (FixField.Text)field; break;
-					case FixTag.SecuritySettlAgentAcctNum: if (SecuritySettlAgentAcctNum is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecuritySettlAgentAcctNum = (FixField.Text)field; break;
-					case FixTag.SecuritySettlAgentAcctName: if (SecuritySettlAgentAcctName is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecuritySettlAgentAcctName = (FixField.Text)field; break;
-					case FixTag.SecuritySettlAgentContactName: if (SecuritySettlAgentContactName is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecuritySettlAgentContactName = (FixField.Text)field; break;
-					case FixTag.SecuritySettlAgentContactPhone: if (SecuritySettlAgentContactPhone is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SecuritySettlAgentContactPhone = (FixField.Text)field; break;
-					case FixTag.CashSettlAgentName: if (CashSettlAgentName is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CashSettlAgentName = (FixField.Text)field; break;
-					case FixTag.CashSettlAgentCode: if (CashSettlAgentCode is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CashSettlAgentCode = (FixField.Text)field; break;
-					case FixTag.CashSettlAgentAcctNum: if (CashSettlAgentAcctNum is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CashSettlAgentAcctNum = (FixField.Text)field; break;
-					case FixTag.CashSettlAgentAcctName: if (CashSettlAgentAcctName is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CashSettlAgentAcctName = (FixField.Text)field; break;
-					case FixTag.CashSettlAgentContactName: if (CashSettlAgentContactName is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CashSettlAgentContactName = (FixField.Text)field; break;
-					case FixTag.CashSettlAgentContactPhone: if (CashSettlAgentContactPhone is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); CashSettlAgentContactPhone = (FixField.Text)field; break;
+					case FixTag.SettlInstID: if (SettlInstID is not null) Duplicate(field); SettlInstID = (FixField.Text)field; break;
+					case FixTag.SettlInstTransType: if (SettlInstTransType is not null) Duplicate(field); SettlInstTransType = (FixField.Character)field; break;
+					case FixTag.SettlInstRefID: if (SettlInstRefID is not null) Duplicate(field); SettlInstRefID = (FixField.Text)field; break;
+					case FixTag.SettlInstMode: if (SettlInstMode is not null) Duplicate(field); SettlInstMode = (FixField.Character)field; break;
+					case FixTag.SettlInstSource: if (SettlInstSource is not null) Duplicate(field); SettlInstSource = (FixField.Character)field; break;
+					case FixTag.AllocAccount: if (AllocAccount is not null) Duplicate(field); AllocAccount = (FixField.Text)field; break;
+					case FixTag.SettlLocation: if (SettlLocation is not null) Duplicate(field); SettlLocation = (FixField.Text)field; break;
+					case FixTag.TradeDate: if (TradeDate is not null) Duplicate(field); TradeDate = (FixField.Date)field; break;
+					case FixTag.AllocID: if (AllocID is not null) Duplicate(field); AllocID = (FixField.Text)field; break;
+					case FixTag.LastMkt: if (LastMkt is not null) Duplicate(field); LastMkt = (FixField.Text)field; break;
+					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
+					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
+					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
+					case FixTag.EffectiveTime: if (EffectiveTime is not null) Duplicate(field); EffectiveTime = (FixField.Timestamp)field; break;
+					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
+					case FixTag.ClientID: if (ClientID is not null) Duplicate(field); ClientID = (FixField.Text)field; break;
+					case FixTag.ExecBroker: if (ExecBroker is not null) Duplicate(field); ExecBroker = (FixField.Text)field; break;
+					case FixTag.StandInstDbType: if (StandInstDbType is not null) Duplicate(field); StandInstDbType = (FixField.Integer)field; break;
+					case FixTag.StandInstDbName: if (StandInstDbName is not null) Duplicate(field); StandInstDbName = (FixField.Text)field; break;
+					case FixTag.StandInstDbID: if (StandInstDbID is not null) Duplicate(field); StandInstDbID = (FixField.Text)field; break;
+					case FixTag.SettlDeliveryType: if (SettlDeliveryType is not null) Duplicate(field); SettlDeliveryType = (FixField.Integer)field; break;
+					case FixTag.SettlDepositoryCode: if (SettlDepositoryCode is not null) Duplicate(field); SettlDepositoryCode = (FixField.Text)field; break;
+					case FixTag.SettlBrkrCode: if (SettlBrkrCode is not null) Duplicate(field); SettlBrkrCode = (FixField.Text)field; break;
+					case FixTag.SettlInstCode: if (SettlInstCode is not null) Duplicate(field); SettlInstCode = (FixField.Text)field; break;
+					case FixTag.SecuritySettlAgentName: if (SecuritySettlAgentName is not null) Duplicate(field); SecuritySettlAgentName = (FixField.Text)field; break;
+					case FixTag.SecuritySettlAgentCode: if (SecuritySettlAgentCode is not null) Duplicate(field); SecuritySettlAgentCode = (FixField.Text)field; break;
+					case FixTag.SecuritySettlAgentAcctNum: if (SecuritySettlAgentAcctNum is not null) Duplicate(field); SecuritySettlAgentAcctNum = (FixField.Text)field; break;
+					case FixTag.SecuritySettlAgentAcctName: if (SecuritySettlAgentAcctName is not null) Duplicate(field); SecuritySettlAgentAcctName = (FixField.Text)field; break;
+					case FixTag.SecuritySettlAgentContactName: if (SecuritySettlAgentContactName is not null) Duplicate(field); SecuritySettlAgentContactName = (FixField.Text)field; break;
+					case FixTag.SecuritySettlAgentContactPhone: if (SecuritySettlAgentContactPhone is not null) Duplicate(field); SecuritySettlAgentContactPhone = (FixField.Text)field; break;
+					case FixTag.CashSettlAgentName: if (CashSettlAgentName is not null) Duplicate(field); CashSettlAgentName = (FixField.Text)field; break;
+					case FixTag.CashSettlAgentCode: if (CashSettlAgentCode is not null) Duplicate(field); CashSettlAgentCode = (FixField.Text)field; break;
+					case FixTag.CashSettlAgentAcctNum: if (CashSettlAgentAcctNum is not null) Duplicate(field); CashSettlAgentAcctNum = (FixField.Text)field; break;
+					case FixTag.CashSettlAgentAcctName: if (CashSettlAgentAcctName is not null) Duplicate(field); CashSettlAgentAcctName = (FixField.Text)field; break;
+					case FixTag.CashSettlAgentContactName: if (CashSettlAgentContactName is not null) Duplicate(field); CashSettlAgentContactName = (FixField.Text)field; break;
+					case FixTag.CashSettlAgentContactPhone: if (CashSettlAgentContactPhone is not null) Duplicate(field); CashSettlAgentContactPhone = (FixField.Text)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -10981,9 +10981,9 @@ public abstract partial class FixMessage
 		public FixField.Text? CashSettlAgentContactPhone { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.SettlementInstructions(context, this);
+			context.Validators.SettlementInstructions(context, check, this);
 		}
 	}
 
@@ -10996,11 +10996,11 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.TestReqID: if (TestReqID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TestReqID = (FixField.Text)field; break;
+					case FixTag.TestReqID: if (TestReqID is not null) Duplicate(field); TestReqID = (FixField.Text)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -11011,9 +11011,9 @@ public abstract partial class FixMessage
 		public FixField.Text? TestReqID { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.TestRequest(context, this);
+			context.Validators.TestRequest(context, check, this);
 		}
 	}
 
@@ -11026,25 +11026,25 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.TradSesReqID: if (TradSesReqID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradSesReqID = (FixField.Text)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.TradSesMethod: if (TradSesMethod is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradSesMethod = (FixField.Integer)field; break;
-					case FixTag.TradSesMode: if (TradSesMode is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradSesMode = (FixField.Integer)field; break;
-					case FixTag.UnsolicitedIndicator: if (UnsolicitedIndicator is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); UnsolicitedIndicator = (FixField.Boolean)field; break;
-					case FixTag.TradSesStatus: if (TradSesStatus is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradSesStatus = (FixField.Integer)field; break;
-					case FixTag.TradSesStartTime: if (TradSesStartTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradSesStartTime = (FixField.Timestamp)field; break;
-					case FixTag.TradSesOpenTime: if (TradSesOpenTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradSesOpenTime = (FixField.Timestamp)field; break;
-					case FixTag.TradSesPreCloseTime: if (TradSesPreCloseTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradSesPreCloseTime = (FixField.Timestamp)field; break;
-					case FixTag.TradSesCloseTime: if (TradSesCloseTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradSesCloseTime = (FixField.Timestamp)field; break;
-					case FixTag.TradSesEndTime: if (TradSesEndTime is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradSesEndTime = (FixField.Timestamp)field; break;
-					case FixTag.TotalVolumeTraded: if (TotalVolumeTraded is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TotalVolumeTraded = (FixField.Decimal)field; break;
-					case FixTag.Text: if (Text is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); EncodedText = (FixField.Data)field; break;
+					case FixTag.TradSesReqID: if (TradSesReqID is not null) Duplicate(field); TradSesReqID = (FixField.Text)field; break;
+					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
+					case FixTag.TradSesMethod: if (TradSesMethod is not null) Duplicate(field); TradSesMethod = (FixField.Integer)field; break;
+					case FixTag.TradSesMode: if (TradSesMode is not null) Duplicate(field); TradSesMode = (FixField.Integer)field; break;
+					case FixTag.UnsolicitedIndicator: if (UnsolicitedIndicator is not null) Duplicate(field); UnsolicitedIndicator = (FixField.Boolean)field; break;
+					case FixTag.TradSesStatus: if (TradSesStatus is not null) Duplicate(field); TradSesStatus = (FixField.Integer)field; break;
+					case FixTag.TradSesStartTime: if (TradSesStartTime is not null) Duplicate(field); TradSesStartTime = (FixField.Timestamp)field; break;
+					case FixTag.TradSesOpenTime: if (TradSesOpenTime is not null) Duplicate(field); TradSesOpenTime = (FixField.Timestamp)field; break;
+					case FixTag.TradSesPreCloseTime: if (TradSesPreCloseTime is not null) Duplicate(field); TradSesPreCloseTime = (FixField.Timestamp)field; break;
+					case FixTag.TradSesCloseTime: if (TradSesCloseTime is not null) Duplicate(field); TradSesCloseTime = (FixField.Timestamp)field; break;
+					case FixTag.TradSesEndTime: if (TradSesEndTime is not null) Duplicate(field); TradSesEndTime = (FixField.Timestamp)field; break;
+					case FixTag.TotalVolumeTraded: if (TotalVolumeTraded is not null) Duplicate(field); TotalVolumeTraded = (FixField.Decimal)field; break;
+					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -11097,9 +11097,9 @@ public abstract partial class FixMessage
 		public FixField.Data? EncodedText { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.TradingSessionStatus(context, this);
+			context.Validators.TradingSessionStatus(context, check, this);
 		}
 	}
 
@@ -11112,15 +11112,15 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.TradSesReqID: if (TradSesReqID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradSesReqID = (FixField.Text)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.TradSesMethod: if (TradSesMethod is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradSesMethod = (FixField.Integer)field; break;
-					case FixTag.TradSesMode: if (TradSesMode is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); TradSesMode = (FixField.Integer)field; break;
-					case FixTag.SubscriptionRequestType: if (SubscriptionRequestType is not null) AddFinding(new FixFinding(FixRule.DuplicateField, field.Tag, field.Position, field, -1)); SubscriptionRequestType = (FixField.Character)field; break;
+					case FixTag.TradSesReqID: if (TradSesReqID is not null) Duplicate(field); TradSesReqID = (FixField.Text)field; break;
+					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
+					case FixTag.TradSesMethod: if (TradSesMethod is not null) Duplicate(field); TradSesMethod = (FixField.Integer)field; break;
+					case FixTag.TradSesMode: if (TradSesMode is not null) Duplicate(field); TradSesMode = (FixField.Integer)field; break;
+					case FixTag.SubscriptionRequestType: if (SubscriptionRequestType is not null) Duplicate(field); SubscriptionRequestType = (FixField.Character)field; break;
 
 					default:
 						if (!SetStandardField(field))
-							AddFinding(new FixFinding(FixRule.FieldNotInScope, field.Tag, field.Position, field, -1));
+							OutOfScope(field);
 
 						break;
 				}
@@ -11143,9 +11143,9 @@ public abstract partial class FixMessage
 		public FixField.Character? SubscriptionRequestType { get; internal set; }
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
-			context.Validators.TradingSessionStatusRequest(context, this);
+			context.Validators.TradingSessionStatusRequest(context, check, this);
 		}
 	}
 }

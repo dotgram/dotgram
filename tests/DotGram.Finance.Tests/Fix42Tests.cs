@@ -38,7 +38,7 @@ public sealed class Fix42Tests
 		Assert.Equal(["ACC-A", "ACC-B"], order.NoAllocsGroups!.Select(one => one.AllocAccount.Value));
 		Assert.Equal([100m, 200m], order.NoAllocsGroups!.Select(one => one.AllocShares!.Value));
 
-		Assert.True(order.Validate(Fix42Context.Default), string.Join("; ", order.InvalidFindings ?? []));
+		Assert.Empty(order.Validate(Fix42Context.Default));
 	}
 
 	[Fact]
@@ -55,8 +55,7 @@ public sealed class Fix42Tests
 		// MaturityDate (541) came in with FIX 4.3: a tag FixTag names, and no field of a 4.2 order.
 		var order = FixParser.ParseMessage(Wire("D", Order + "541=20270101|"));
 
-		Assert.False(order.Validate(Fix42Context.Default));
-		Assert.Contains(order.InvalidFindings!, one => one.Rule == FixRule.FieldNotInScope && one.Tag == 541);
+		Assert.Contains(order.Validate(Fix42Context.Default), one => one.Rule == FixRule.FieldNotInScope && one.Tag == 541);
 	}
 
 	[Fact]
@@ -64,8 +63,7 @@ public sealed class Fix42Tests
 	{
 		var order = FixParser.ParseMessage(Wire("D", Order).Replace("8=FIX.4.2", "8=FIX.4.4"));
 
-		Assert.False(order.Validate(Fix42Context.Default));
-		Assert.Contains(order.InvalidFindings!, one => one.Rule == FixRule.InvalidValue && one.Tag == FixTag.BeginString);
+		Assert.Contains(order.Validate(Fix42Context.Default), one => one.Rule == FixRule.InvalidValue && one.Tag == FixTag.BeginString);
 	}
 
 	[Fact]
@@ -90,7 +88,7 @@ public sealed class Fix42Tests
 		var context = Fix42Context.Default.Load(File.ReadAllText(Path.Combine(Corpus, "FIX42.xml")));
 		var order   = FixParser.ParseMessage(Wire("D", Order));
 
-		Assert.True(order.Validate(context), string.Join("; ", order.InvalidFindings ?? []));
+		Assert.Empty(order.Validate(context));
 	}
 
 	/// <summary>
@@ -114,8 +112,7 @@ public sealed class Fix42Tests
 		var context = Fix42Context.Default.Load(fragment);
 		var message = FixParser.ParseMessage(Wire("D", "11=ORD-1|21=1|55=IBM|54=1|60=20260920-12:00:00|40=1|"));
 
-		Assert.False(message.Validate(context));
-		Assert.Contains(message.InvalidFindings!, one => one.Rule == FixRule.RequiredFieldMissing && one.Tag == 22);
+		Assert.Contains(message.Validate(context), one => one.Rule == FixRule.RequiredFieldMissing && one.Tag == 22);
 	}
 
 	static readonly string Corpus = Path.Combine(TestPaths.Tests, "Corpus", "Fix");

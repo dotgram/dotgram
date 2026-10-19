@@ -74,16 +74,16 @@ abstract partial class FixValidator
 		{
 			var type = MessageClass(message.Name);
 
-			writing.Write(type, Using + "(" + ContextName + " context, FixMessage." + type + " message) => {\n" +
-				Members(writing, "message", "FixMessage." + type, type, message.Members, source, null) + "return message.IsValid; }");
+			writing.Write(type, Using + "(" + ContextName + " context, FixCheck check, FixMessage." + type + " message) => {\n" +
+				Body(Members(writing, "message", "FixMessage." + type, type, message.Members, source, null)) + "}");
 		}
 
 		// A component the version writes into its carriers, with no interface of its own, has no slot
 		// either: its members are checked where it is carried.
 		foreach (var component in dictionary.Components)
 			if (Carried(component.Name))
-				writing.Write(component.Name, Using + "(" + ContextName + " context, FixMessage message, I" + component.Name + " block) => {\n" +
-					Members(writing, "block", "I" + component.Name, component.Name, component.Members, source, null) + "return message.IsValid; }");
+				writing.Write(component.Name, Using + "(" + ContextName + " context, FixCheck check, I" + component.Name + " block) => {\n" +
+					Body(Members(writing, "block", "I" + component.Name, component.Name, component.Members, source, null)) + "}");
 
 		// In the order of their tags, so that the refusal of a file edited in code is the same on every run.
 		var tags = new List<int>(dictionary.Fields.Keys);
@@ -226,45 +226,21 @@ abstract partial class FixValidator
 		public static Delegate Of(FixValidator owner, PropertyInfo slot, string text)
 		{
 			var types = slot.PropertyType.GetGenericArguments();
-			var shape = types.Length switch
-			{
-				3 => typeof(Of2<,>),
-				4 => typeof(Of3<,,>),
-				5 => typeof(Of4<,,,>),
-				_ => throw new InvalidOperationException($"A slot of {types.Length - 1} parameters: {slot.Name}."),
-			};
+			// Every slot is an Action of the context, the run of the check, and what it checks.
+			if (types.Length != 3)
+				throw new InvalidOperationException($"A slot of {types.Length} parameters: {slot.Name}.");
 
-			var parameters = new Type[types.Length - 1];
-
-			Array.Copy(types, parameters, parameters.Length);
-
-			var stand = Activator.CreateInstance(shape.MakeGenericType(parameters), owner, slot, text)!;
+			var stand = Activator.CreateInstance(typeof(Of3<,,>).MakeGenericType(types), owner, slot, text)!;
 
 			return Delegate.CreateDelegate(slot.PropertyType, stand, "Invoke");
 		}
 	}
 
-	sealed class Of2<T1, T2>(FixValidator owner, PropertyInfo slot, string text) : Deferred(owner, slot, text)
-	{
-		public bool Invoke(T1 a, T2 b)
-		{
-			return ((Func<T1, T2, bool>)Compiled())(a, b);
-		}
-	}
-
 	sealed class Of3<T1, T2, T3>(FixValidator owner, PropertyInfo slot, string text) : Deferred(owner, slot, text)
 	{
-		public bool Invoke(T1 a, T2 b, T3 c)
+		public void Invoke(T1 a, T2 b, T3 c)
 		{
-			return ((Func<T1, T2, T3, bool>)Compiled())(a, b, c);
-		}
-	}
-
-	sealed class Of4<T1, T2, T3, T4>(FixValidator owner, PropertyInfo slot, string text) : Deferred(owner, slot, text)
-	{
-		public bool Invoke(T1 a, T2 b, T3 c, T4 d)
-		{
-			return ((Func<T1, T2, T3, T4, bool>)Compiled())(a, b, c, d);
+			((Action<T1, T2, T3>)Compiled())(a, b, c);
 		}
 	}
 
@@ -355,10 +331,10 @@ abstract partial class FixValidator
 					var cast = "((I" + member.Name + ")" + subject + ")";
 
 					if (member.Required)
-						body.Append("if (").Append(GetType().Name).Append(".Empty").Append(cast).Append(") FixValidator.Absent(message, ").Append(Tag(First(member, source), source)).Append(");\n")
-							.Append("else context.Validators.").Append(member.Name).Append(".Invoke(context, message, ").Append(subject).Append(");\n");
+						body.Append("if (").Append(GetType().Name).Append(".Empty").Append(cast).Append(") FixValidator.Absent(check, ").Append(Tag(First(member, source), source)).Append(At(opener)).Append(");\n")
+							.Append("else context.Validators.").Append(member.Name).Append(".Invoke(context, check, ").Append(subject).Append(");\n");
 					else
-						body.Append("if (!").Append(GetType().Name).Append(".Empty").Append(cast).Append(") context.Validators.").Append(member.Name).Append(".Invoke(context, message, ").Append(subject).Append(");\n");
+						body.Append("if (!").Append(GetType().Name).Append(".Empty").Append(cast).Append(") context.Validators.").Append(member.Name).Append(".Invoke(context, check, ").Append(subject).Append(");\n");
 
 					break;
 				}
@@ -380,13 +356,13 @@ abstract partial class FixValidator
 					// The entries are walked by a call rather than a loop written out: the expression language
 					// reads a block of sibling loops at a cost that grows faster than their number (25, 50,
 					// 100 and 200 of them: 2.5, 9.3, 25 and 64 ms), and a message's check holds one per group.
-					body.Append("FixValidator.Counted(message, ").Append(subject).Append('.').Append(counter).Append(", ").Append(list).Append(");\n")
-						.Append(GetType().Name).Append(".Each(context, message, ").Append(list).Append(", context.Validators.").Append(inner).Append(");\n");
+					body.Append("FixValidator.Counted(check, ").Append(subject).Append('.').Append(counter).Append(", ").Append(list).Append(");\n")
+						.Append(GetType().Name).Append(".Each(context, check, ").Append(Tag(counter, source)).Append(", ").Append(list).Append(", context.Validators.").Append(inner).Append(");\n");
 
 					// What the file says of the entry is the entry's check, replaced like any other slot.
 					if (member.Members.Count > 0)
-						writing.Write(inner, Using + "(" + ContextName + " context, FixMessage message, " + entry + " entry, int index) => {\n" +
-							Members(writing, "entry", entry, inner, member.Members, source, First(member.Members[0], source)) + "return message.IsValid; }");
+						writing.Write(inner, Using + "(" + ContextName + " context, FixCheck check, " + entry + " entry) => {\n" +
+							Body(Members(writing, "entry", entry, inner, member.Members, source, First(member.Members[0], source))) + "}");
 
 					break;
 				}
@@ -399,18 +375,29 @@ abstract partial class FixValidator
 	void Field(StringBuilder body, string subject, string name, bool required, Source source, string? opener)
 	{
 		var value = subject + "." + name;
-		var call  = "context.Validators." + FieldSlotName(name) + ".Invoke(context, message, " + value + ");\n";
+		var call  = "context.Validators." + FieldSlotName(name) + ".Invoke(context, check, " + value + ");\n";
 
 		// The field an entry opens with is there, or there would be no entry.
 		if (name == opener)
 			body.Append(call);
-		else if (required && opener is not null)
-			body.Append("if (").Append(value).Append(" == null) FixValidator.Missing(message, ").Append(Tag(name, source))
-				.Append(", entry.").Append(opener).Append(".Position, index);\nelse ").Append(call);
 		else if (required)
-			body.Append("if (").Append(value).Append(" == null) FixValidator.Missing(message, ").Append(Tag(name, source)).Append(");\nelse ").Append(call);
+			body.Append("if (").Append(value).Append(" == null) FixValidator.Missing(check, ").Append(Tag(name, source)).Append(At(opener)).Append(");\nelse ").Append(call);
 		else
 			body.Append("if (").Append(value).Append(" != null) ").Append(call);
+	}
+
+	// A check's statements, or, for a check of nothing, the one statement that says so: the expression
+	// language holds a block to having something in it.
+	static string Body(string statements)
+	{
+		return statements.Length > 0 ? statements : "FixValidator.Nothing();\n";
+	}
+
+	// Where a finding of an entry's that has no field of its own is said: at the field the entry opened
+	// with, the opener; nothing outside an entry.
+	static string At(string? opener)
+	{
+		return opener is null ? "" : ", entry." + opener + ".Position";
 	}
 
 	// A field's tag as the text says it: its number, which is the same in every version, where its
@@ -500,7 +487,7 @@ abstract partial class FixValidator
 	{
 		var slot = GetType().GetProperty(name, BindingFlags.Public | BindingFlags.Instance)?.PropertyType;
 
-		return slot is { IsGenericType: true } && slot.GetGenericTypeDefinition() == typeof(Func<,,,>) && slot.GetGenericArguments()[2] is var field && field.IsSubclassOf(typeof(FixField))
+		return slot is { IsGenericType: true } && slot.GetGenericTypeDefinition() == typeof(Action<,,>) && slot.GetGenericArguments()[2] is var field && field.IsSubclassOf(typeof(FixField))
 			? field
 			: null;
 	}
@@ -525,22 +512,22 @@ abstract partial class FixValidator
 				throw new FormatException($"The field '{name}' lists '{code}', which is not a value of its type, {value.Name}.");
 		}
 
-		body.Append("if (!field.IsValid) FixValidator.Invalid(message, field);\n");
+		body.Append("if (!field.IsValid) FixValidator.Invalid(check, field);\n");
 
 		if (value == typeof(string[]))
 		{
 			body.Append("else foreach (var code in field.Value) if (");
 			Codes(body, "code", codes, value);
-			body.Append(") { FixValidator.Invalid(message, field); break; }\n");
+			body.Append(") { FixValidator.Invalid(check, field); break; }\n");
 		}
 		else
 		{
 			body.Append("else if (");
 			Codes(body, "field.Value", codes, value);
-			body.Append(") FixValidator.Invalid(message, field);\n");
+			body.Append(") FixValidator.Invalid(check, field);\n");
 		}
 
-		return Using + "(" + ContextName + " context, FixMessage message, FixField." + field.Name + " field) => {\n" + body + "return message.IsValid; }";
+		return Using + "(" + ContextName + " context, FixCheck check, FixField." + field.Name + " field) => {\n" + body + "}";
 	}
 
 	// The value is none of the codes: a switch over them, in the literal form its type reads,

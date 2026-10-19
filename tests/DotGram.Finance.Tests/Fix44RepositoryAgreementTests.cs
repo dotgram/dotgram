@@ -31,18 +31,24 @@ public sealed class Fix44RepositoryAgreementTests : FixRepositoryAgreementTests
 	{
 		var message = FixParser.ParseMessage(wire);
 
-		message.Validate(Fix44Context.Default);
-
-		return message.InvalidFindings ?? [];
+		return message.Validate(Fix44Context.Default);
 	}
 
 	protected override bool Check(byte[] wire, string name, FixField field)
 	{
-		var host  = FixParser.ParseMessage(wire);
 		var check = (System.Delegate)typeof(FixValidator44).GetProperty(name)!.GetValue(FixValidator44.Default)!;
+		var found = new List<FixFinding>();
+		var run   = FixCheck.Rent(found);
 
-		check.DynamicInvoke(Fix44Context.Default, host, field);
+		try
+		{
+			check.DynamicInvoke(Fix44Context.Default, run, field);
+		}
+		finally
+		{
+			run.Return();
+		}
 
-		return host.IsValid;
+		return found.Count == 0;
 	}
 }

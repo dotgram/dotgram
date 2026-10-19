@@ -155,8 +155,8 @@ static partial class Stand
 			"fixmsg",
 			"Order44.strict",
 			[
-				new Reading("generated", () => FixParser.TryParseMessage(agreed, out var message, out _, null) && message!.Validate(Fix44Context.Default) ? 1 : 0),
-				new Reading("generated-loaded", () => FixParser.TryParseMessage(agreed, out var message, out _, null) && message!.Validate(LoadedContext.Value) ? 1 : 0),
+				new Reading("generated", () => FixParser.TryParseMessage(agreed, out var message, out _, null) && message!.Validate(Fix44Context.Default).Count == 0 ? 1 : 0),
+				new Reading("generated-loaded", () => FixParser.TryParseMessage(agreed, out var message, out _, null) && message!.Validate(LoadedContext.Value).Count == 0 ? 1 : 0),
 				new Reading("reference-QuickFIXn", () => QuickFixAccepts(agreed) ? 1 : 0),
 			],
 			() => FixParser.TryParseMessage(agreed, out _, out var error, null)
@@ -266,20 +266,20 @@ static partial class Stand
 		yield return new Workload(
 			"fixmsg",
 			"Order42.strict-string",
-			[new Reading("generated", () => Fix42.FixParser.TryParseMessage(order42, out var message, out _, null) && message!.Validate(Fix42.Fix42Context.Default) ? 1 : 0)],
-			() => Refused(Fix42.FixParser.ParseMessage(order42), static one => one.Validate(Fix42.Fix42Context.Default), static one => one.InvalidFindings));
+			[new Reading("generated", () => Fix42.FixParser.TryParseMessage(order42, out var message, out _, null) && message!.Validate(Fix42.Fix42Context.Default).Count == 0 ? 1 : 0)],
+			() => Refused(Fix42.FixParser.ParseMessage(order42), static one => one.Validate(Fix42.Fix42Context.Default)));
 
 		yield return new Workload(
 			"fixmsg",
 			"Order50.strict-string",
-			[new Reading("generated", () => Fix50.FixParser.TryParseMessage(order50, out var message, out _, null) && message!.Validate(Fix50.Fix50Context.Default) ? 1 : 0)],
-			() => Refused(Fix50.FixParser.ParseMessage(order50), static one => one.Validate(Fix50.Fix50Context.Default), static one => one.InvalidFindings));
+			[new Reading("generated", () => Fix50.FixParser.TryParseMessage(order50, out var message, out _, null) && message!.Validate(Fix50.Fix50Context.Default).Count == 0 ? 1 : 0)],
+			() => Refused(Fix50.FixParser.ParseMessage(order50), static one => one.Validate(Fix50.Fix50Context.Default)));
 
 		yield return new Workload(
 			"fixmsg",
 			"Report50.strict-string",
-			[new Reading("generated", () => Fix50.FixParser.TryParseMessage(report50, out var message, out _, null) && message!.Validate(Fix50.Fix50Context.Default) ? 1 : 0)],
-			() => Refused(Fix50.FixParser.ParseMessage(report50), static one => one.Validate(Fix50.Fix50Context.Default), static one => one.InvalidFindings));
+			[new Reading("generated", () => Fix50.FixParser.TryParseMessage(report50, out var message, out _, null) && message!.Validate(Fix50.Fix50Context.Default).Count == 0 ? 1 : 0)],
+			() => Refused(Fix50.FixParser.ParseMessage(report50), static one => one.Validate(Fix50.Fix50Context.Default)));
 
 		// Build over the fields a reader has already found, the form 4.4 has as `Order.build`: the message
 		// layer's own work with the tokenizing paid for outside the timing.
@@ -301,8 +301,10 @@ static partial class Stand
 	/// "invalid" would leave a failing run to be diagnosed by hand, and the findings are the one thing
 	/// this layer has to say about a message it refuses.
 	/// </summary>
-	static string? Refused<TMessage>(TMessage message, Func<TMessage, bool> validate, Func<TMessage, List<FixFinding>?> findings)
+	static string? Refused<TMessage>(TMessage message, Func<TMessage, IReadOnlyList<FixFinding>> validate)
 	{
-		return validate(message) ? null : "  the schema refuses the wire: " + string.Join("; ", findings(message) ?? []);
+		var findings = validate(message);
+
+		return findings.Count == 0 ? null : "  the schema refuses the wire: " + string.Join("; ", findings);
 	}
 }

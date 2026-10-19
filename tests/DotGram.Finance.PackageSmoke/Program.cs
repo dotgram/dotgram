@@ -38,13 +38,13 @@ if (typeof(FixField.Date).BaseType?.GetGenericArguments()[0] != typeof(DateOnly)
 	throw new Exception("A date and a time of day must be the runtime's own DateOnly and TimeOnly.");
 
 // The schema: the compiled-in one, and one loaded over it from a fragment of a QuickFIX dictionary.
-if (!heartbeat.Validate(Fix44Context.Default) || !heartbeat.IsValid)
+if (heartbeat.Validate(Fix44Context.Default).Count != 0 || heartbeat.Findings.Count != 0)
 	throw new Exception("A well-formed Heartbeat must hold to the compiled-in schema.");
 
 var loaded = Fix44Context.Default.Load(
 	"<fix><messages><message name='Heartbeat' msgtype='0' msgcat='admin'><field name='TestReqID' required='Y'/></message></messages></fix>");
 
-if (FixParser.ParseMessage(wire).Validate(loaded) || FixParser.ParseMessage(wire).Validate(Fix44Context.Default) == false)
+if (heartbeat.Validate(loaded).Count != 1 || heartbeat.Validate(Fix44Context.Default).Count != 0)
 	throw new Exception("A loaded schema must replace the compiled-in check of the type it describes, and leave the compiled-in context as it was.");
 
 // The other doors: pipe-delimited text, a byte stream, the octets themselves, and flat fields.
@@ -84,10 +84,10 @@ if (fields.Length != 8 || fields[0] is not FixField.Text { Tag: FixTag.BeginStri
 var prefix42 = "8=FIX.4.29=" + body.Length.ToString(CultureInfo.InvariantCulture) + "" + body;
 var wire42   = prefix42 + "10=" + (prefix42.Sum(c => (int)c) % 256).ToString("000", CultureInfo.InvariantCulture) + "";
 
-if (Fix42.FixParser.ParseMessage(wire42) is not Fix42.FixMessage.Heartbeat heartbeat42 || !heartbeat42.Validate(Fix42.Fix42Context.Default))
+if (Fix42.FixParser.ParseMessage(wire42) is not Fix42.FixMessage.Heartbeat heartbeat42 || heartbeat42.Validate(Fix42.Fix42Context.Default).Count != 0)
 	throw new Exception("A well-formed FIX 4.2 Heartbeat must hold to the compiled-in FIX 4.2 schema.");
 
-if (FixParser.ParseMessage(wire42).Validate(Fix44Context.Default))
+if (FixParser.ParseMessage(wire42).Validate(Fix44Context.Default).Count == 0)
 	throw new Exception("A FIX 4.2 BeginString must not hold to the FIX 4.4 schema.");
 
 // FIX 5.0 SP2 over FIXT 1.1, and a zoned value it adds: a SecurityStatus, whose class is
@@ -96,7 +96,7 @@ var body50   = "35=f\u000149=S\u000156=T\u000134=1\u000152=20260915-12:00:00.250
 var prefix50 = "8=FIXT.1.1\u00019=" + body50.Length.ToString(CultureInfo.InvariantCulture) + "\u0001" + body50;
 var wire50   = prefix50 + "10=" + (prefix50.Sum(c => (int)c) % 256).ToString("000", CultureInfo.InvariantCulture) + "\u0001";
 
-if (Fix50.FixParser.ParseMessage(wire50) is not Fix50.FixMessage.SecurityStatusMessage status || !status.Validate(Fix50.Fix50Context.Default))
+if (Fix50.FixParser.ParseMessage(wire50) is not Fix50.FixMessage.SecurityStatusMessage status || status.Validate(Fix50.Fix50Context.Default).Count != 0)
 	throw new Exception("A well-formed FIX 5.0 SP2 SecurityStatus must hold to the compiled-in FIX 5.0 SP2 schema.");
 
 if (status.MaturityTime?.Value != (new TimeOnly(13, 9), new TimeSpan(5, 30, 0)))

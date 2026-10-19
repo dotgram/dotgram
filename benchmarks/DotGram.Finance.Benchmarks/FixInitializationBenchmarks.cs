@@ -112,8 +112,6 @@ public class FixInitializationBenchmarks
 	{
 		var message = FixParser.ParseMessage(wire);
 
-		message.Validate(context);
-
-		return message.InvalidFindings?.Count ?? 0;
+		return message.Validate(context).Count;
 	}
 }

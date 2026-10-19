@@ -11,3006 +11,2942 @@ partial class FixValidator44
 	// The fields, every one, so that a dictionary has a slot for whatever it limits.
 
 	/// <summary>Holds a FIX 4.4 Account, tag 1, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      Account                              { get; set; } = ValidateAccount;
+	public Action<Fix44Context, FixCheck, FixField.Text>      Account                              { get; set; } = ValidateAccount;
 
 	/// <summary>Holds a FIX 4.4 AdvId, tag 2, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      AdvId                                { get; set; } = ValidateAdvId;
+	public Action<Fix44Context, FixCheck, FixField.Text>      AdvId                                { get; set; } = ValidateAdvId;
 
 	/// <summary>Holds a FIX 4.4 AdvRefID, tag 3, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      AdvRefID                             { get; set; } = ValidateAdvRefID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      AdvRefID                             { get; set; } = ValidateAdvRefID;
 
 	/// <summary>Holds a FIX 4.4 AdvSide, tag 4, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> AdvSide                              { get; set; } = ValidateAdvSide;
+	public Action<Fix44Context, FixCheck, FixField.Character> AdvSide                              { get; set; } = ValidateAdvSide;
 
 	/// <summary>Holds a FIX 4.4 AdvTransType, tag 5, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      AdvTransType                         { get; set; } = ValidateAdvTransType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      AdvTransType                         { get; set; } = ValidateAdvTransType;
 
 	/// <summary>Holds a FIX 4.4 AvgPx, tag 6, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   AvgPx                                { get; set; } = ValidateAvgPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   AvgPx                                { get; set; } = ValidateAvgPx;
 
 	/// <summary>Holds a FIX 4.4 BeginSeqNo, tag 7, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   BeginSeqNo                           { get; set; } = ValidateBeginSeqNo;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   BeginSeqNo                           { get; set; } = ValidateBeginSeqNo;
 
 	/// <summary>Holds a FIX 4.4 BeginString, tag 8, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      BeginString                          { get; set; } = ValidateBeginString;
+	public Action<Fix44Context, FixCheck, FixField.Text>      BeginString                          { get; set; } = ValidateBeginString;
 
 	/// <summary>Holds a FIX 4.4 BodyLength, tag 9, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   BodyLength                           { get; set; } = ValidateBodyLength;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   BodyLength                           { get; set; } = ValidateBodyLength;
 
 	/// <summary>Holds a FIX 4.4 CheckSum, tag 10, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CheckSum                             { get; set; } = ValidateCheckSum;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CheckSum                             { get; set; } = ValidateCheckSum;
 
 	/// <summary>Holds a FIX 4.4 ClOrdID, tag 11, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ClOrdID                              { get; set; } = ValidateClOrdID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ClOrdID                              { get; set; } = ValidateClOrdID;
 
 	/// <summary>Holds a FIX 4.4 Commission, tag 12, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   Commission                           { get; set; } = ValidateCommission;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   Commission                           { get; set; } = ValidateCommission;
 
 	/// <summary>Holds a FIX 4.4 CommType, tag 13, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> CommType                             { get; set; } = ValidateCommType;
+	public Action<Fix44Context, FixCheck, FixField.Character> CommType                             { get; set; } = ValidateCommType;
 
 	/// <summary>Holds a FIX 4.4 CumQty, tag 14, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   CumQty                               { get; set; } = ValidateCumQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   CumQty                               { get; set; } = ValidateCumQty;
 
 	/// <summary>Holds a FIX 4.4 Currency, tag 15, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      Currency                             { get; set; } = ValidateCurrency;
+	public Action<Fix44Context, FixCheck, FixField.Text>      Currency                             { get; set; } = ValidateCurrency;
 
 	/// <summary>Holds a FIX 4.4 EndSeqNo, tag 16, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   EndSeqNo                             { get; set; } = ValidateEndSeqNo;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   EndSeqNo                             { get; set; } = ValidateEndSeqNo;
 
 	/// <summary>Holds a FIX 4.4 ExecID, tag 17, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ExecID                               { get; set; } = ValidateExecID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ExecID                               { get; set; } = ValidateExecID;
 
 	/// <summary>Holds a FIX 4.4 ExecInst, tag 18, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Multiple, bool>  ExecInst                             { get; set; } = ValidateExecInst;
+	public Action<Fix44Context, FixCheck, FixField.Multiple>  ExecInst                             { get; set; } = ValidateExecInst;
 
 	/// <summary>Holds a FIX 4.4 ExecRefID, tag 19, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ExecRefID                            { get; set; } = ValidateExecRefID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ExecRefID                            { get; set; } = ValidateExecRefID;
 
 	/// <summary>Holds a FIX 4.4 HandlInst, tag 21, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> HandlInst                            { get; set; } = ValidateHandlInst;
+	public Action<Fix44Context, FixCheck, FixField.Character> HandlInst                            { get; set; } = ValidateHandlInst;
 
 	/// <summary>Holds a FIX 4.4 SecurityIDSource, tag 22, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SecurityIDSource                     { get; set; } = ValidateSecurityIDSource;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SecurityIDSource                     { get; set; } = ValidateSecurityIDSource;
 
 	/// <summary>Holds a FIX 4.4 IOIid, tag 23, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      IOIid                                { get; set; } = ValidateIOIid;
+	public Action<Fix44Context, FixCheck, FixField.Text>      IOIid                                { get; set; } = ValidateIOIid;
 
 	/// <summary>Holds a FIX 4.4 IOIQltyInd, tag 25, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> IOIQltyInd                           { get; set; } = ValidateIOIQltyInd;
+	public Action<Fix44Context, FixCheck, FixField.Character> IOIQltyInd                           { get; set; } = ValidateIOIQltyInd;
 
 	/// <summary>Holds a FIX 4.4 IOIRefID, tag 26, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      IOIRefID                             { get; set; } = ValidateIOIRefID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      IOIRefID                             { get; set; } = ValidateIOIRefID;
 
 	/// <summary>Holds a FIX 4.4 IOIQty, tag 27, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      IOIQty                               { get; set; } = ValidateIOIQty;
+	public Action<Fix44Context, FixCheck, FixField.Text>      IOIQty                               { get; set; } = ValidateIOIQty;
 
 	/// <summary>Holds a FIX 4.4 IOITransType, tag 28, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> IOITransType                         { get; set; } = ValidateIOITransType;
+	public Action<Fix44Context, FixCheck, FixField.Character> IOITransType                         { get; set; } = ValidateIOITransType;
 
 	/// <summary>Holds a FIX 4.4 LastCapacity, tag 29, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> LastCapacity                         { get; set; } = ValidateLastCapacity;
+	public Action<Fix44Context, FixCheck, FixField.Character> LastCapacity                         { get; set; } = ValidateLastCapacity;
 
 	/// <summary>Holds a FIX 4.4 LastMkt, tag 30, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LastMkt                              { get; set; } = ValidateLastMkt;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LastMkt                              { get; set; } = ValidateLastMkt;
 
 	/// <summary>Holds a FIX 4.4 LastPx, tag 31, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LastPx                               { get; set; } = ValidateLastPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LastPx                               { get; set; } = ValidateLastPx;
 
 	/// <summary>Holds a FIX 4.4 LastQty, tag 32, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LastQty                              { get; set; } = ValidateLastQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LastQty                              { get; set; } = ValidateLastQty;
 
 	/// <summary>Holds a FIX 4.4 LinesOfText, tag 33, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   LinesOfText                          { get; set; } = ValidateLinesOfText;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   LinesOfText                          { get; set; } = ValidateLinesOfText;
 
 	/// <summary>Holds a FIX 4.4 MsgSeqNum, tag 34, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   MsgSeqNum                            { get; set; } = ValidateMsgSeqNum;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   MsgSeqNum                            { get; set; } = ValidateMsgSeqNum;
 
 	/// <summary>Holds a FIX 4.4 MsgType, tag 35, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      MsgType                              { get; set; } = ValidateMsgType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      MsgType                              { get; set; } = ValidateMsgType;
 
 	/// <summary>Holds a FIX 4.4 NewSeqNo, tag 36, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NewSeqNo                             { get; set; } = ValidateNewSeqNo;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NewSeqNo                             { get; set; } = ValidateNewSeqNo;
 
 	/// <summary>Holds a FIX 4.4 OrderID, tag 37, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      OrderID                              { get; set; } = ValidateOrderID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      OrderID                              { get; set; } = ValidateOrderID;
 
 	/// <summary>Holds a FIX 4.4 OrderQty, tag 38, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   OrderQty                             { get; set; } = ValidateOrderQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   OrderQty                             { get; set; } = ValidateOrderQty;
 
 	/// <summary>Holds a FIX 4.4 OrdStatus, tag 39, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> OrdStatus                            { get; set; } = ValidateOrdStatus;
+	public Action<Fix44Context, FixCheck, FixField.Character> OrdStatus                            { get; set; } = ValidateOrdStatus;
 
 	/// <summary>Holds a FIX 4.4 OrdType, tag 40, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> OrdType                              { get; set; } = ValidateOrdType;
+	public Action<Fix44Context, FixCheck, FixField.Character> OrdType                              { get; set; } = ValidateOrdType;
 
 	/// <summary>Holds a FIX 4.4 OrigClOrdID, tag 41, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      OrigClOrdID                          { get; set; } = ValidateOrigClOrdID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      OrigClOrdID                          { get; set; } = ValidateOrigClOrdID;
 
 	/// <summary>Holds a FIX 4.4 OrigTime, tag 42, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> OrigTime                             { get; set; } = ValidateOrigTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> OrigTime                             { get; set; } = ValidateOrigTime;
 
 	/// <summary>Holds a FIX 4.4 PossDupFlag, tag 43, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   PossDupFlag                          { get; set; } = ValidatePossDupFlag;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   PossDupFlag                          { get; set; } = ValidatePossDupFlag;
 
 	/// <summary>Holds a FIX 4.4 Price, tag 44, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   Price                                { get; set; } = ValidatePrice;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   Price                                { get; set; } = ValidatePrice;
 
 	/// <summary>Holds a FIX 4.4 RefSeqNum, tag 45, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   RefSeqNum                            { get; set; } = ValidateRefSeqNum;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   RefSeqNum                            { get; set; } = ValidateRefSeqNum;
 
 	/// <summary>Holds a FIX 4.4 SecurityID, tag 48, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SecurityID                           { get; set; } = ValidateSecurityID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SecurityID                           { get; set; } = ValidateSecurityID;
 
 	/// <summary>Holds a FIX 4.4 SenderCompID, tag 49, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SenderCompID                         { get; set; } = ValidateSenderCompID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SenderCompID                         { get; set; } = ValidateSenderCompID;
 
 	/// <summary>Holds a FIX 4.4 SenderSubID, tag 50, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SenderSubID                          { get; set; } = ValidateSenderSubID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SenderSubID                          { get; set; } = ValidateSenderSubID;
 
 	/// <summary>Holds a FIX 4.4 SendingTime, tag 52, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> SendingTime                          { get; set; } = ValidateSendingTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> SendingTime                          { get; set; } = ValidateSendingTime;
 
 	/// <summary>Holds a FIX 4.4 Quantity, tag 53, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   Quantity                             { get; set; } = ValidateQuantity;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   Quantity                             { get; set; } = ValidateQuantity;
 
 	/// <summary>Holds a FIX 4.4 Side, tag 54, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> Side                                 { get; set; } = ValidateSide;
+	public Action<Fix44Context, FixCheck, FixField.Character> Side                                 { get; set; } = ValidateSide;
 
 	/// <summary>Holds a FIX 4.4 Symbol, tag 55, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      Symbol                               { get; set; } = ValidateSymbol;
+	public Action<Fix44Context, FixCheck, FixField.Text>      Symbol                               { get; set; } = ValidateSymbol;
 
 	/// <summary>Holds a FIX 4.4 TargetCompID, tag 56, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TargetCompID                         { get; set; } = ValidateTargetCompID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TargetCompID                         { get; set; } = ValidateTargetCompID;
 
 	/// <summary>Holds a FIX 4.4 TargetSubID, tag 57, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TargetSubID                          { get; set; } = ValidateTargetSubID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TargetSubID                          { get; set; } = ValidateTargetSubID;
 
 	/// <summary>Holds a FIX 4.4 Text, tag 58, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      Text                                 { get; set; } = ValidateText;
+	public Action<Fix44Context, FixCheck, FixField.Text>      Text                                 { get; set; } = ValidateText;
 
 	/// <summary>Holds a FIX 4.4 TimeInForce, tag 59, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> TimeInForce                          { get; set; } = ValidateTimeInForce;
+	public Action<Fix44Context, FixCheck, FixField.Character> TimeInForce                          { get; set; } = ValidateTimeInForce;
 
 	/// <summary>Holds a FIX 4.4 TransactTime, tag 60, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> TransactTime                         { get; set; } = ValidateTransactTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> TransactTime                         { get; set; } = ValidateTransactTime;
 
 	/// <summary>Holds a FIX 4.4 Urgency, tag 61, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> Urgency                              { get; set; } = ValidateUrgency;
+	public Action<Fix44Context, FixCheck, FixField.Character> Urgency                              { get; set; } = ValidateUrgency;
 
 	/// <summary>Holds a FIX 4.4 ValidUntilTime, tag 62, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> ValidUntilTime                       { get; set; } = ValidateValidUntilTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> ValidUntilTime                       { get; set; } = ValidateValidUntilTime;
 
 	/// <summary>Holds a FIX 4.4 SettlType, tag 63, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> SettlType                            { get; set; } = ValidateSettlType;
+	public Action<Fix44Context, FixCheck, FixField.Character> SettlType                            { get; set; } = ValidateSettlType;
 
 	/// <summary>Holds a FIX 4.4 SettlDate, tag 64, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      SettlDate                            { get; set; } = ValidateSettlDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      SettlDate                            { get; set; } = ValidateSettlDate;
 
 	/// <summary>Holds a FIX 4.4 SymbolSfx, tag 65, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SymbolSfx                            { get; set; } = ValidateSymbolSfx;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SymbolSfx                            { get; set; } = ValidateSymbolSfx;
 
 	/// <summary>Holds a FIX 4.4 ListID, tag 66, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ListID                               { get; set; } = ValidateListID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ListID                               { get; set; } = ValidateListID;
 
 	/// <summary>Holds a FIX 4.4 ListSeqNo, tag 67, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ListSeqNo                            { get; set; } = ValidateListSeqNo;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ListSeqNo                            { get; set; } = ValidateListSeqNo;
 
 	/// <summary>Holds a FIX 4.4 TotNoOrders, tag 68, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TotNoOrders                          { get; set; } = ValidateTotNoOrders;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TotNoOrders                          { get; set; } = ValidateTotNoOrders;
 
 	/// <summary>Holds a FIX 4.4 ListExecInst, tag 69, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ListExecInst                         { get; set; } = ValidateListExecInst;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ListExecInst                         { get; set; } = ValidateListExecInst;
 
 	/// <summary>Holds a FIX 4.4 AllocID, tag 70, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      AllocID                              { get; set; } = ValidateAllocID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      AllocID                              { get; set; } = ValidateAllocID;
 
 	/// <summary>Holds a FIX 4.4 AllocTransType, tag 71, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> AllocTransType                       { get; set; } = ValidateAllocTransType;
+	public Action<Fix44Context, FixCheck, FixField.Character> AllocTransType                       { get; set; } = ValidateAllocTransType;
 
 	/// <summary>Holds a FIX 4.4 RefAllocID, tag 72, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      RefAllocID                           { get; set; } = ValidateRefAllocID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      RefAllocID                           { get; set; } = ValidateRefAllocID;
 
 	/// <summary>Holds a FIX 4.4 NoOrders, tag 73, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoOrders                             { get; set; } = ValidateNoOrders;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoOrders                             { get; set; } = ValidateNoOrders;
 
 	/// <summary>Holds a FIX 4.4 AvgPxPrecision, tag 74, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   AvgPxPrecision                       { get; set; } = ValidateAvgPxPrecision;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   AvgPxPrecision                       { get; set; } = ValidateAvgPxPrecision;
 
 	/// <summary>Holds a FIX 4.4 TradeDate, tag 75, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      TradeDate                            { get; set; } = ValidateTradeDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      TradeDate                            { get; set; } = ValidateTradeDate;
 
 	/// <summary>Holds a FIX 4.4 PositionEffect, tag 77, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> PositionEffect                       { get; set; } = ValidatePositionEffect;
+	public Action<Fix44Context, FixCheck, FixField.Character> PositionEffect                       { get; set; } = ValidatePositionEffect;
 
 	/// <summary>Holds a FIX 4.4 NoAllocs, tag 78, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoAllocs                             { get; set; } = ValidateNoAllocs;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoAllocs                             { get; set; } = ValidateNoAllocs;
 
 	/// <summary>Holds a FIX 4.4 AllocAccount, tag 79, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      AllocAccount                         { get; set; } = ValidateAllocAccount;
+	public Action<Fix44Context, FixCheck, FixField.Text>      AllocAccount                         { get; set; } = ValidateAllocAccount;
 
 	/// <summary>Holds a FIX 4.4 AllocQty, tag 80, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   AllocQty                             { get; set; } = ValidateAllocQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   AllocQty                             { get; set; } = ValidateAllocQty;
 
 	/// <summary>Holds a FIX 4.4 ProcessCode, tag 81, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> ProcessCode                          { get; set; } = ValidateProcessCode;
+	public Action<Fix44Context, FixCheck, FixField.Character> ProcessCode                          { get; set; } = ValidateProcessCode;
 
 	/// <summary>Holds a FIX 4.4 NoRpts, tag 82, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoRpts                               { get; set; } = ValidateNoRpts;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoRpts                               { get; set; } = ValidateNoRpts;
 
 	/// <summary>Holds a FIX 4.4 RptSeq, tag 83, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   RptSeq                               { get; set; } = ValidateRptSeq;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   RptSeq                               { get; set; } = ValidateRptSeq;
 
 	/// <summary>Holds a FIX 4.4 CxlQty, tag 84, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   CxlQty                               { get; set; } = ValidateCxlQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   CxlQty                               { get; set; } = ValidateCxlQty;
 
 	/// <summary>Holds a FIX 4.4 NoDlvyInst, tag 85, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoDlvyInst                           { get; set; } = ValidateNoDlvyInst;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoDlvyInst                           { get; set; } = ValidateNoDlvyInst;
 
 	/// <summary>Holds a FIX 4.4 AllocStatus, tag 87, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   AllocStatus                          { get; set; } = ValidateAllocStatus;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   AllocStatus                          { get; set; } = ValidateAllocStatus;
 
 	/// <summary>Holds a FIX 4.4 AllocRejCode, tag 88, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   AllocRejCode                         { get; set; } = ValidateAllocRejCode;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   AllocRejCode                         { get; set; } = ValidateAllocRejCode;
 
 	/// <summary>Holds a FIX 4.4 Signature, tag 89, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Data, bool>      Signature                            { get; set; } = ValidateSignature;
+	public Action<Fix44Context, FixCheck, FixField.Data>      Signature                            { get; set; } = ValidateSignature;
 
 	/// <summary>Holds a FIX 4.4 SecureDataLen, tag 90, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   SecureDataLen                        { get; set; } = ValidateSecureDataLen;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   SecureDataLen                        { get; set; } = ValidateSecureDataLen;
 
 	/// <summary>Holds a FIX 4.4 SecureData, tag 91, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Data, bool>      SecureData                           { get; set; } = ValidateSecureData;
+	public Action<Fix44Context, FixCheck, FixField.Data>      SecureData                           { get; set; } = ValidateSecureData;
 
 	/// <summary>Holds a FIX 4.4 SignatureLength, tag 93, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   SignatureLength                      { get; set; } = ValidateSignatureLength;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   SignatureLength                      { get; set; } = ValidateSignatureLength;
 
 	/// <summary>Holds a FIX 4.4 EmailType, tag 94, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> EmailType                            { get; set; } = ValidateEmailType;
+	public Action<Fix44Context, FixCheck, FixField.Character> EmailType                            { get; set; } = ValidateEmailType;
 
 	/// <summary>Holds a FIX 4.4 RawDataLength, tag 95, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   RawDataLength                        { get; set; } = ValidateRawDataLength;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   RawDataLength                        { get; set; } = ValidateRawDataLength;
 
 	/// <summary>Holds a FIX 4.4 RawData, tag 96, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Data, bool>      RawData                              { get; set; } = ValidateRawData;
+	public Action<Fix44Context, FixCheck, FixField.Data>      RawData                              { get; set; } = ValidateRawData;
 
 	/// <summary>Holds a FIX 4.4 PossResend, tag 97, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   PossResend                           { get; set; } = ValidatePossResend;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   PossResend                           { get; set; } = ValidatePossResend;
 
 	/// <summary>Holds a FIX 4.4 EncryptMethod, tag 98, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   EncryptMethod                        { get; set; } = ValidateEncryptMethod;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   EncryptMethod                        { get; set; } = ValidateEncryptMethod;
 
 	/// <summary>Holds a FIX 4.4 StopPx, tag 99, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   StopPx                               { get; set; } = ValidateStopPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   StopPx                               { get; set; } = ValidateStopPx;
 
 	/// <summary>Holds a FIX 4.4 ExDestination, tag 100, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ExDestination                        { get; set; } = ValidateExDestination;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ExDestination                        { get; set; } = ValidateExDestination;
 
 	/// <summary>Holds a FIX 4.4 CxlRejReason, tag 102, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   CxlRejReason                         { get; set; } = ValidateCxlRejReason;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   CxlRejReason                         { get; set; } = ValidateCxlRejReason;
 
 	/// <summary>Holds a FIX 4.4 OrdRejReason, tag 103, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   OrdRejReason                         { get; set; } = ValidateOrdRejReason;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   OrdRejReason                         { get; set; } = ValidateOrdRejReason;
 
 	/// <summary>Holds a FIX 4.4 IOIQualifier, tag 104, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> IOIQualifier                         { get; set; } = ValidateIOIQualifier;
+	public Action<Fix44Context, FixCheck, FixField.Character> IOIQualifier                         { get; set; } = ValidateIOIQualifier;
 
 	/// <summary>Holds a FIX 4.4 Issuer, tag 106, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      Issuer                               { get; set; } = ValidateIssuer;
+	public Action<Fix44Context, FixCheck, FixField.Text>      Issuer                               { get; set; } = ValidateIssuer;
 
 	/// <summary>Holds a FIX 4.4 SecurityDesc, tag 107, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SecurityDesc                         { get; set; } = ValidateSecurityDesc;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SecurityDesc                         { get; set; } = ValidateSecurityDesc;
 
 	/// <summary>Holds a FIX 4.4 HeartBtInt, tag 108, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   HeartBtInt                           { get; set; } = ValidateHeartBtInt;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   HeartBtInt                           { get; set; } = ValidateHeartBtInt;
 
 	/// <summary>Holds a FIX 4.4 MinQty, tag 110, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   MinQty                               { get; set; } = ValidateMinQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   MinQty                               { get; set; } = ValidateMinQty;
 
 	/// <summary>Holds a FIX 4.4 MaxFloor, tag 111, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   MaxFloor                             { get; set; } = ValidateMaxFloor;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   MaxFloor                             { get; set; } = ValidateMaxFloor;
 
 	/// <summary>Holds a FIX 4.4 TestReqID, tag 112, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TestReqID                            { get; set; } = ValidateTestReqID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TestReqID                            { get; set; } = ValidateTestReqID;
 
 	/// <summary>Holds a FIX 4.4 ReportToExch, tag 113, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   ReportToExch                         { get; set; } = ValidateReportToExch;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   ReportToExch                         { get; set; } = ValidateReportToExch;
 
 	/// <summary>Holds a FIX 4.4 LocateReqd, tag 114, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   LocateReqd                           { get; set; } = ValidateLocateReqd;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   LocateReqd                           { get; set; } = ValidateLocateReqd;
 
 	/// <summary>Holds a FIX 4.4 OnBehalfOfCompID, tag 115, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      OnBehalfOfCompID                     { get; set; } = ValidateOnBehalfOfCompID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      OnBehalfOfCompID                     { get; set; } = ValidateOnBehalfOfCompID;
 
 	/// <summary>Holds a FIX 4.4 OnBehalfOfSubID, tag 116, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      OnBehalfOfSubID                      { get; set; } = ValidateOnBehalfOfSubID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      OnBehalfOfSubID                      { get; set; } = ValidateOnBehalfOfSubID;
 
 	/// <summary>Holds a FIX 4.4 QuoteID, tag 117, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      QuoteID                              { get; set; } = ValidateQuoteID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      QuoteID                              { get; set; } = ValidateQuoteID;
 
 	/// <summary>Holds a FIX 4.4 NetMoney, tag 118, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   NetMoney                             { get; set; } = ValidateNetMoney;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   NetMoney                             { get; set; } = ValidateNetMoney;
 
 	/// <summary>Holds a FIX 4.4 SettlCurrAmt, tag 119, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   SettlCurrAmt                         { get; set; } = ValidateSettlCurrAmt;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   SettlCurrAmt                         { get; set; } = ValidateSettlCurrAmt;
 
 	/// <summary>Holds a FIX 4.4 SettlCurrency, tag 120, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SettlCurrency                        { get; set; } = ValidateSettlCurrency;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SettlCurrency                        { get; set; } = ValidateSettlCurrency;
 
 	/// <summary>Holds a FIX 4.4 ForexReq, tag 121, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   ForexReq                             { get; set; } = ValidateForexReq;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   ForexReq                             { get; set; } = ValidateForexReq;
 
 	/// <summary>Holds a FIX 4.4 OrigSendingTime, tag 122, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> OrigSendingTime                      { get; set; } = ValidateOrigSendingTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> OrigSendingTime                      { get; set; } = ValidateOrigSendingTime;
 
 	/// <summary>Holds a FIX 4.4 GapFillFlag, tag 123, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   GapFillFlag                          { get; set; } = ValidateGapFillFlag;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   GapFillFlag                          { get; set; } = ValidateGapFillFlag;
 
 	/// <summary>Holds a FIX 4.4 NoExecs, tag 124, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoExecs                              { get; set; } = ValidateNoExecs;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoExecs                              { get; set; } = ValidateNoExecs;
 
 	/// <summary>Holds a FIX 4.4 ExpireTime, tag 126, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> ExpireTime                           { get; set; } = ValidateExpireTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> ExpireTime                           { get; set; } = ValidateExpireTime;
 
 	/// <summary>Holds a FIX 4.4 DKReason, tag 127, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> DKReason                             { get; set; } = ValidateDKReason;
+	public Action<Fix44Context, FixCheck, FixField.Character> DKReason                             { get; set; } = ValidateDKReason;
 
 	/// <summary>Holds a FIX 4.4 DeliverToCompID, tag 128, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      DeliverToCompID                      { get; set; } = ValidateDeliverToCompID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      DeliverToCompID                      { get; set; } = ValidateDeliverToCompID;
 
 	/// <summary>Holds a FIX 4.4 DeliverToSubID, tag 129, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      DeliverToSubID                       { get; set; } = ValidateDeliverToSubID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      DeliverToSubID                       { get; set; } = ValidateDeliverToSubID;
 
 	/// <summary>Holds a FIX 4.4 IOINaturalFlag, tag 130, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   IOINaturalFlag                       { get; set; } = ValidateIOINaturalFlag;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   IOINaturalFlag                       { get; set; } = ValidateIOINaturalFlag;
 
 	/// <summary>Holds a FIX 4.4 QuoteReqID, tag 131, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      QuoteReqID                           { get; set; } = ValidateQuoteReqID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      QuoteReqID                           { get; set; } = ValidateQuoteReqID;
 
 	/// <summary>Holds a FIX 4.4 BidPx, tag 132, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   BidPx                                { get; set; } = ValidateBidPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   BidPx                                { get; set; } = ValidateBidPx;
 
 	/// <summary>Holds a FIX 4.4 OfferPx, tag 133, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   OfferPx                              { get; set; } = ValidateOfferPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   OfferPx                              { get; set; } = ValidateOfferPx;
 
 	/// <summary>Holds a FIX 4.4 BidSize, tag 134, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   BidSize                              { get; set; } = ValidateBidSize;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   BidSize                              { get; set; } = ValidateBidSize;
 
 	/// <summary>Holds a FIX 4.4 OfferSize, tag 135, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   OfferSize                            { get; set; } = ValidateOfferSize;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   OfferSize                            { get; set; } = ValidateOfferSize;
 
 	/// <summary>Holds a FIX 4.4 NoMiscFees, tag 136, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoMiscFees                           { get; set; } = ValidateNoMiscFees;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoMiscFees                           { get; set; } = ValidateNoMiscFees;
 
 	/// <summary>Holds a FIX 4.4 MiscFeeAmt, tag 137, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   MiscFeeAmt                           { get; set; } = ValidateMiscFeeAmt;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   MiscFeeAmt                           { get; set; } = ValidateMiscFeeAmt;
 
 	/// <summary>Holds a FIX 4.4 MiscFeeCurr, tag 138, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      MiscFeeCurr                          { get; set; } = ValidateMiscFeeCurr;
+	public Action<Fix44Context, FixCheck, FixField.Text>      MiscFeeCurr                          { get; set; } = ValidateMiscFeeCurr;
 
 	/// <summary>Holds a FIX 4.4 MiscFeeType, tag 139, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      MiscFeeType                          { get; set; } = ValidateMiscFeeType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      MiscFeeType                          { get; set; } = ValidateMiscFeeType;
 
 	/// <summary>Holds a FIX 4.4 PrevClosePx, tag 140, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   PrevClosePx                          { get; set; } = ValidatePrevClosePx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   PrevClosePx                          { get; set; } = ValidatePrevClosePx;
 
 	/// <summary>Holds a FIX 4.4 ResetSeqNumFlag, tag 141, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   ResetSeqNumFlag                      { get; set; } = ValidateResetSeqNumFlag;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   ResetSeqNumFlag                      { get; set; } = ValidateResetSeqNumFlag;
 
 	/// <summary>Holds a FIX 4.4 SenderLocationID, tag 142, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SenderLocationID                     { get; set; } = ValidateSenderLocationID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SenderLocationID                     { get; set; } = ValidateSenderLocationID;
 
 	/// <summary>Holds a FIX 4.4 TargetLocationID, tag 143, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TargetLocationID                     { get; set; } = ValidateTargetLocationID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TargetLocationID                     { get; set; } = ValidateTargetLocationID;
 
 	/// <summary>Holds a FIX 4.4 OnBehalfOfLocationID, tag 144, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      OnBehalfOfLocationID                 { get; set; } = ValidateOnBehalfOfLocationID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      OnBehalfOfLocationID                 { get; set; } = ValidateOnBehalfOfLocationID;
 
 	/// <summary>Holds a FIX 4.4 DeliverToLocationID, tag 145, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      DeliverToLocationID                  { get; set; } = ValidateDeliverToLocationID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      DeliverToLocationID                  { get; set; } = ValidateDeliverToLocationID;
 
 	/// <summary>Holds a FIX 4.4 NoRelatedSym, tag 146, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoRelatedSym                         { get; set; } = ValidateNoRelatedSym;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoRelatedSym                         { get; set; } = ValidateNoRelatedSym;
 
 	/// <summary>Holds a FIX 4.4 Subject, tag 147, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      Subject                              { get; set; } = ValidateSubject;
+	public Action<Fix44Context, FixCheck, FixField.Text>      Subject                              { get; set; } = ValidateSubject;
 
 	/// <summary>Holds a FIX 4.4 Headline, tag 148, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      Headline                             { get; set; } = ValidateHeadline;
+	public Action<Fix44Context, FixCheck, FixField.Text>      Headline                             { get; set; } = ValidateHeadline;
 
 	/// <summary>Holds a FIX 4.4 URLLink, tag 149, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      URLLink                              { get; set; } = ValidateURLLink;
+	public Action<Fix44Context, FixCheck, FixField.Text>      URLLink                              { get; set; } = ValidateURLLink;
 
 	/// <summary>Holds a FIX 4.4 ExecType, tag 150, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> ExecType                             { get; set; } = ValidateExecType;
+	public Action<Fix44Context, FixCheck, FixField.Character> ExecType                             { get; set; } = ValidateExecType;
 
 	/// <summary>Holds a FIX 4.4 LeavesQty, tag 151, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LeavesQty                            { get; set; } = ValidateLeavesQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LeavesQty                            { get; set; } = ValidateLeavesQty;
 
 	/// <summary>Holds a FIX 4.4 CashOrderQty, tag 152, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   CashOrderQty                         { get; set; } = ValidateCashOrderQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   CashOrderQty                         { get; set; } = ValidateCashOrderQty;
 
 	/// <summary>Holds a FIX 4.4 AllocAvgPx, tag 153, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   AllocAvgPx                           { get; set; } = ValidateAllocAvgPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   AllocAvgPx                           { get; set; } = ValidateAllocAvgPx;
 
 	/// <summary>Holds a FIX 4.4 AllocNetMoney, tag 154, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   AllocNetMoney                        { get; set; } = ValidateAllocNetMoney;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   AllocNetMoney                        { get; set; } = ValidateAllocNetMoney;
 
 	/// <summary>Holds a FIX 4.4 SettlCurrFxRate, tag 155, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   SettlCurrFxRate                      { get; set; } = ValidateSettlCurrFxRate;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   SettlCurrFxRate                      { get; set; } = ValidateSettlCurrFxRate;
 
 	/// <summary>Holds a FIX 4.4 SettlCurrFxRateCalc, tag 156, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> SettlCurrFxRateCalc                  { get; set; } = ValidateSettlCurrFxRateCalc;
+	public Action<Fix44Context, FixCheck, FixField.Character> SettlCurrFxRateCalc                  { get; set; } = ValidateSettlCurrFxRateCalc;
 
 	/// <summary>Holds a FIX 4.4 NumDaysInterest, tag 157, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NumDaysInterest                      { get; set; } = ValidateNumDaysInterest;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NumDaysInterest                      { get; set; } = ValidateNumDaysInterest;
 
 	/// <summary>Holds a FIX 4.4 AccruedInterestRate, tag 158, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   AccruedInterestRate                  { get; set; } = ValidateAccruedInterestRate;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   AccruedInterestRate                  { get; set; } = ValidateAccruedInterestRate;
 
 	/// <summary>Holds a FIX 4.4 AccruedInterestAmt, tag 159, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   AccruedInterestAmt                   { get; set; } = ValidateAccruedInterestAmt;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   AccruedInterestAmt                   { get; set; } = ValidateAccruedInterestAmt;
 
 	/// <summary>Holds a FIX 4.4 SettlInstMode, tag 160, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> SettlInstMode                        { get; set; } = ValidateSettlInstMode;
+	public Action<Fix44Context, FixCheck, FixField.Character> SettlInstMode                        { get; set; } = ValidateSettlInstMode;
 
 	/// <summary>Holds a FIX 4.4 AllocText, tag 161, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      AllocText                            { get; set; } = ValidateAllocText;
+	public Action<Fix44Context, FixCheck, FixField.Text>      AllocText                            { get; set; } = ValidateAllocText;
 
 	/// <summary>Holds a FIX 4.4 SettlInstID, tag 162, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SettlInstID                          { get; set; } = ValidateSettlInstID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SettlInstID                          { get; set; } = ValidateSettlInstID;
 
 	/// <summary>Holds a FIX 4.4 SettlInstTransType, tag 163, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> SettlInstTransType                   { get; set; } = ValidateSettlInstTransType;
+	public Action<Fix44Context, FixCheck, FixField.Character> SettlInstTransType                   { get; set; } = ValidateSettlInstTransType;
 
 	/// <summary>Holds a FIX 4.4 EmailThreadID, tag 164, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      EmailThreadID                        { get; set; } = ValidateEmailThreadID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      EmailThreadID                        { get; set; } = ValidateEmailThreadID;
 
 	/// <summary>Holds a FIX 4.4 SettlInstSource, tag 165, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> SettlInstSource                      { get; set; } = ValidateSettlInstSource;
+	public Action<Fix44Context, FixCheck, FixField.Character> SettlInstSource                      { get; set; } = ValidateSettlInstSource;
 
 	/// <summary>Holds a FIX 4.4 SecurityType, tag 167, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SecurityType                         { get; set; } = ValidateSecurityType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SecurityType                         { get; set; } = ValidateSecurityType;
 
 	/// <summary>Holds a FIX 4.4 EffectiveTime, tag 168, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> EffectiveTime                        { get; set; } = ValidateEffectiveTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> EffectiveTime                        { get; set; } = ValidateEffectiveTime;
 
 	/// <summary>Holds a FIX 4.4 StandInstDbType, tag 169, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   StandInstDbType                      { get; set; } = ValidateStandInstDbType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   StandInstDbType                      { get; set; } = ValidateStandInstDbType;
 
 	/// <summary>Holds a FIX 4.4 StandInstDbName, tag 170, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      StandInstDbName                      { get; set; } = ValidateStandInstDbName;
+	public Action<Fix44Context, FixCheck, FixField.Text>      StandInstDbName                      { get; set; } = ValidateStandInstDbName;
 
 	/// <summary>Holds a FIX 4.4 StandInstDbID, tag 171, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      StandInstDbID                        { get; set; } = ValidateStandInstDbID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      StandInstDbID                        { get; set; } = ValidateStandInstDbID;
 
 	/// <summary>Holds a FIX 4.4 SettlDeliveryType, tag 172, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   SettlDeliveryType                    { get; set; } = ValidateSettlDeliveryType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   SettlDeliveryType                    { get; set; } = ValidateSettlDeliveryType;
 
 	/// <summary>Holds a FIX 4.4 BidSpotRate, tag 188, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   BidSpotRate                          { get; set; } = ValidateBidSpotRate;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   BidSpotRate                          { get; set; } = ValidateBidSpotRate;
 
 	/// <summary>Holds a FIX 4.4 BidForwardPoints, tag 189, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   BidForwardPoints                     { get; set; } = ValidateBidForwardPoints;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   BidForwardPoints                     { get; set; } = ValidateBidForwardPoints;
 
 	/// <summary>Holds a FIX 4.4 OfferSpotRate, tag 190, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   OfferSpotRate                        { get; set; } = ValidateOfferSpotRate;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   OfferSpotRate                        { get; set; } = ValidateOfferSpotRate;
 
 	/// <summary>Holds a FIX 4.4 OfferForwardPoints, tag 191, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   OfferForwardPoints                   { get; set; } = ValidateOfferForwardPoints;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   OfferForwardPoints                   { get; set; } = ValidateOfferForwardPoints;
 
 	/// <summary>Holds a FIX 4.4 OrderQty2, tag 192, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   OrderQty2                            { get; set; } = ValidateOrderQty2;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   OrderQty2                            { get; set; } = ValidateOrderQty2;
 
 	/// <summary>Holds a FIX 4.4 SettlDate2, tag 193, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      SettlDate2                           { get; set; } = ValidateSettlDate2;
+	public Action<Fix44Context, FixCheck, FixField.Date>      SettlDate2                           { get; set; } = ValidateSettlDate2;
 
 	/// <summary>Holds a FIX 4.4 LastSpotRate, tag 194, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LastSpotRate                         { get; set; } = ValidateLastSpotRate;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LastSpotRate                         { get; set; } = ValidateLastSpotRate;
 
 	/// <summary>Holds a FIX 4.4 LastForwardPoints, tag 195, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LastForwardPoints                    { get; set; } = ValidateLastForwardPoints;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LastForwardPoints                    { get; set; } = ValidateLastForwardPoints;
 
 	/// <summary>Holds a FIX 4.4 AllocLinkID, tag 196, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      AllocLinkID                          { get; set; } = ValidateAllocLinkID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      AllocLinkID                          { get; set; } = ValidateAllocLinkID;
 
 	/// <summary>Holds a FIX 4.4 AllocLinkType, tag 197, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   AllocLinkType                        { get; set; } = ValidateAllocLinkType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   AllocLinkType                        { get; set; } = ValidateAllocLinkType;
 
 	/// <summary>Holds a FIX 4.4 SecondaryOrderID, tag 198, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SecondaryOrderID                     { get; set; } = ValidateSecondaryOrderID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SecondaryOrderID                     { get; set; } = ValidateSecondaryOrderID;
 
 	/// <summary>Holds a FIX 4.4 NoIOIQualifiers, tag 199, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoIOIQualifiers                      { get; set; } = ValidateNoIOIQualifiers;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoIOIQualifiers                      { get; set; } = ValidateNoIOIQualifiers;
 
 	/// <summary>Holds a FIX 4.4 MaturityMonthYear, tag 200, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.MonthYear, bool> MaturityMonthYear                    { get; set; } = ValidateMaturityMonthYear;
+	public Action<Fix44Context, FixCheck, FixField.MonthYear> MaturityMonthYear                    { get; set; } = ValidateMaturityMonthYear;
 
 	/// <summary>Holds a FIX 4.4 PutOrCall, tag 201, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PutOrCall                            { get; set; } = ValidatePutOrCall;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PutOrCall                            { get; set; } = ValidatePutOrCall;
 
 	/// <summary>Holds a FIX 4.4 StrikePrice, tag 202, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   StrikePrice                          { get; set; } = ValidateStrikePrice;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   StrikePrice                          { get; set; } = ValidateStrikePrice;
 
 	/// <summary>Holds a FIX 4.4 CoveredOrUncovered, tag 203, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   CoveredOrUncovered                   { get; set; } = ValidateCoveredOrUncovered;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   CoveredOrUncovered                   { get; set; } = ValidateCoveredOrUncovered;
 
 	/// <summary>Holds a FIX 4.4 OptAttribute, tag 206, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> OptAttribute                         { get; set; } = ValidateOptAttribute;
+	public Action<Fix44Context, FixCheck, FixField.Character> OptAttribute                         { get; set; } = ValidateOptAttribute;
 
 	/// <summary>Holds a FIX 4.4 SecurityExchange, tag 207, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SecurityExchange                     { get; set; } = ValidateSecurityExchange;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SecurityExchange                     { get; set; } = ValidateSecurityExchange;
 
 	/// <summary>Holds a FIX 4.4 NotifyBrokerOfCredit, tag 208, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   NotifyBrokerOfCredit                 { get; set; } = ValidateNotifyBrokerOfCredit;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   NotifyBrokerOfCredit                 { get; set; } = ValidateNotifyBrokerOfCredit;
 
 	/// <summary>Holds a FIX 4.4 AllocHandlInst, tag 209, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   AllocHandlInst                       { get; set; } = ValidateAllocHandlInst;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   AllocHandlInst                       { get; set; } = ValidateAllocHandlInst;
 
 	/// <summary>Holds a FIX 4.4 MaxShow, tag 210, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   MaxShow                              { get; set; } = ValidateMaxShow;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   MaxShow                              { get; set; } = ValidateMaxShow;
 
 	/// <summary>Holds a FIX 4.4 PegOffsetValue, tag 211, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   PegOffsetValue                       { get; set; } = ValidatePegOffsetValue;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   PegOffsetValue                       { get; set; } = ValidatePegOffsetValue;
 
 	/// <summary>Holds a FIX 4.4 XmlDataLen, tag 212, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   XmlDataLen                           { get; set; } = ValidateXmlDataLen;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   XmlDataLen                           { get; set; } = ValidateXmlDataLen;
 
 	/// <summary>Holds a FIX 4.4 XmlData, tag 213, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Data, bool>      XmlData                              { get; set; } = ValidateXmlData;
+	public Action<Fix44Context, FixCheck, FixField.Data>      XmlData                              { get; set; } = ValidateXmlData;
 
 	/// <summary>Holds a FIX 4.4 SettlInstRefID, tag 214, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SettlInstRefID                       { get; set; } = ValidateSettlInstRefID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SettlInstRefID                       { get; set; } = ValidateSettlInstRefID;
 
 	/// <summary>Holds a FIX 4.4 NoRoutingIDs, tag 215, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoRoutingIDs                         { get; set; } = ValidateNoRoutingIDs;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoRoutingIDs                         { get; set; } = ValidateNoRoutingIDs;
 
 	/// <summary>Holds a FIX 4.4 RoutingType, tag 216, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   RoutingType                          { get; set; } = ValidateRoutingType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   RoutingType                          { get; set; } = ValidateRoutingType;
 
 	/// <summary>Holds a FIX 4.4 RoutingID, tag 217, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      RoutingID                            { get; set; } = ValidateRoutingID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      RoutingID                            { get; set; } = ValidateRoutingID;
 
 	/// <summary>Holds a FIX 4.4 Spread, tag 218, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   Spread                               { get; set; } = ValidateSpread;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   Spread                               { get; set; } = ValidateSpread;
 
 	/// <summary>Holds a FIX 4.4 BenchmarkCurveCurrency, tag 220, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      BenchmarkCurveCurrency               { get; set; } = ValidateBenchmarkCurveCurrency;
+	public Action<Fix44Context, FixCheck, FixField.Text>      BenchmarkCurveCurrency               { get; set; } = ValidateBenchmarkCurveCurrency;
 
 	/// <summary>Holds a FIX 4.4 BenchmarkCurveName, tag 221, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      BenchmarkCurveName                   { get; set; } = ValidateBenchmarkCurveName;
+	public Action<Fix44Context, FixCheck, FixField.Text>      BenchmarkCurveName                   { get; set; } = ValidateBenchmarkCurveName;
 
 	/// <summary>Holds a FIX 4.4 BenchmarkCurvePoint, tag 222, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      BenchmarkCurvePoint                  { get; set; } = ValidateBenchmarkCurvePoint;
+	public Action<Fix44Context, FixCheck, FixField.Text>      BenchmarkCurvePoint                  { get; set; } = ValidateBenchmarkCurvePoint;
 
 	/// <summary>Holds a FIX 4.4 CouponRate, tag 223, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   CouponRate                           { get; set; } = ValidateCouponRate;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   CouponRate                           { get; set; } = ValidateCouponRate;
 
 	/// <summary>Holds a FIX 4.4 CouponPaymentDate, tag 224, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      CouponPaymentDate                    { get; set; } = ValidateCouponPaymentDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      CouponPaymentDate                    { get; set; } = ValidateCouponPaymentDate;
 
 	/// <summary>Holds a FIX 4.4 IssueDate, tag 225, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      IssueDate                            { get; set; } = ValidateIssueDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      IssueDate                            { get; set; } = ValidateIssueDate;
 
 	/// <summary>Holds a FIX 4.4 RepurchaseTerm, tag 226, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   RepurchaseTerm                       { get; set; } = ValidateRepurchaseTerm;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   RepurchaseTerm                       { get; set; } = ValidateRepurchaseTerm;
 
 	/// <summary>Holds a FIX 4.4 RepurchaseRate, tag 227, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   RepurchaseRate                       { get; set; } = ValidateRepurchaseRate;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   RepurchaseRate                       { get; set; } = ValidateRepurchaseRate;
 
 	/// <summary>Holds a FIX 4.4 Factor, tag 228, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   Factor                               { get; set; } = ValidateFactor;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   Factor                               { get; set; } = ValidateFactor;
 
 	/// <summary>Holds a FIX 4.4 TradeOriginationDate, tag 229, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      TradeOriginationDate                 { get; set; } = ValidateTradeOriginationDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      TradeOriginationDate                 { get; set; } = ValidateTradeOriginationDate;
 
 	/// <summary>Holds a FIX 4.4 ExDate, tag 230, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      ExDate                               { get; set; } = ValidateExDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      ExDate                               { get; set; } = ValidateExDate;
 
 	/// <summary>Holds a FIX 4.4 ContractMultiplier, tag 231, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   ContractMultiplier                   { get; set; } = ValidateContractMultiplier;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   ContractMultiplier                   { get; set; } = ValidateContractMultiplier;
 
 	/// <summary>Holds a FIX 4.4 NoStipulations, tag 232, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoStipulations                       { get; set; } = ValidateNoStipulations;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoStipulations                       { get; set; } = ValidateNoStipulations;
 
 	/// <summary>Holds a FIX 4.4 StipulationType, tag 233, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      StipulationType                      { get; set; } = ValidateStipulationType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      StipulationType                      { get; set; } = ValidateStipulationType;
 
 	/// <summary>Holds a FIX 4.4 StipulationValue, tag 234, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      StipulationValue                     { get; set; } = ValidateStipulationValue;
+	public Action<Fix44Context, FixCheck, FixField.Text>      StipulationValue                     { get; set; } = ValidateStipulationValue;
 
 	/// <summary>Holds a FIX 4.4 YieldType, tag 235, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      YieldType                            { get; set; } = ValidateYieldType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      YieldType                            { get; set; } = ValidateYieldType;
 
 	/// <summary>Holds a FIX 4.4 Yield, tag 236, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   Yield                                { get; set; } = ValidateYield;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   Yield                                { get; set; } = ValidateYield;
 
 	/// <summary>Holds a FIX 4.4 TotalTakedown, tag 237, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   TotalTakedown                        { get; set; } = ValidateTotalTakedown;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   TotalTakedown                        { get; set; } = ValidateTotalTakedown;
 
 	/// <summary>Holds a FIX 4.4 Concession, tag 238, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   Concession                           { get; set; } = ValidateConcession;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   Concession                           { get; set; } = ValidateConcession;
 
 	/// <summary>Holds a FIX 4.4 RepoCollateralSecurityType, tag 239, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      RepoCollateralSecurityType           { get; set; } = ValidateRepoCollateralSecurityType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      RepoCollateralSecurityType           { get; set; } = ValidateRepoCollateralSecurityType;
 
 	/// <summary>Holds a FIX 4.4 RedemptionDate, tag 240, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      RedemptionDate                       { get; set; } = ValidateRedemptionDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      RedemptionDate                       { get; set; } = ValidateRedemptionDate;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingCouponPaymentDate, tag 241, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      UnderlyingCouponPaymentDate          { get; set; } = ValidateUnderlyingCouponPaymentDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      UnderlyingCouponPaymentDate          { get; set; } = ValidateUnderlyingCouponPaymentDate;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingIssueDate, tag 242, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      UnderlyingIssueDate                  { get; set; } = ValidateUnderlyingIssueDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      UnderlyingIssueDate                  { get; set; } = ValidateUnderlyingIssueDate;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingRepoCollateralSecurityType, tag 243, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingRepoCollateralSecurityType { get; set; } = ValidateUnderlyingRepoCollateralSecurityType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingRepoCollateralSecurityType { get; set; } = ValidateUnderlyingRepoCollateralSecurityType;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingRepurchaseTerm, tag 244, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   UnderlyingRepurchaseTerm             { get; set; } = ValidateUnderlyingRepurchaseTerm;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   UnderlyingRepurchaseTerm             { get; set; } = ValidateUnderlyingRepurchaseTerm;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingRepurchaseRate, tag 245, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   UnderlyingRepurchaseRate             { get; set; } = ValidateUnderlyingRepurchaseRate;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   UnderlyingRepurchaseRate             { get; set; } = ValidateUnderlyingRepurchaseRate;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingFactor, tag 246, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   UnderlyingFactor                     { get; set; } = ValidateUnderlyingFactor;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   UnderlyingFactor                     { get; set; } = ValidateUnderlyingFactor;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingRedemptionDate, tag 247, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      UnderlyingRedemptionDate             { get; set; } = ValidateUnderlyingRedemptionDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      UnderlyingRedemptionDate             { get; set; } = ValidateUnderlyingRedemptionDate;
 
 	/// <summary>Holds a FIX 4.4 LegCouponPaymentDate, tag 248, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      LegCouponPaymentDate                 { get; set; } = ValidateLegCouponPaymentDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      LegCouponPaymentDate                 { get; set; } = ValidateLegCouponPaymentDate;
 
 	/// <summary>Holds a FIX 4.4 LegIssueDate, tag 249, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      LegIssueDate                         { get; set; } = ValidateLegIssueDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      LegIssueDate                         { get; set; } = ValidateLegIssueDate;
 
 	/// <summary>Holds a FIX 4.4 LegRepoCollateralSecurityType, tag 250, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegRepoCollateralSecurityType        { get; set; } = ValidateLegRepoCollateralSecurityType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegRepoCollateralSecurityType        { get; set; } = ValidateLegRepoCollateralSecurityType;
 
 	/// <summary>Holds a FIX 4.4 LegRepurchaseTerm, tag 251, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   LegRepurchaseTerm                    { get; set; } = ValidateLegRepurchaseTerm;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   LegRepurchaseTerm                    { get; set; } = ValidateLegRepurchaseTerm;
 
 	/// <summary>Holds a FIX 4.4 LegRepurchaseRate, tag 252, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LegRepurchaseRate                    { get; set; } = ValidateLegRepurchaseRate;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LegRepurchaseRate                    { get; set; } = ValidateLegRepurchaseRate;
 
 	/// <summary>Holds a FIX 4.4 LegFactor, tag 253, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LegFactor                            { get; set; } = ValidateLegFactor;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LegFactor                            { get; set; } = ValidateLegFactor;
 
 	/// <summary>Holds a FIX 4.4 LegRedemptionDate, tag 254, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      LegRedemptionDate                    { get; set; } = ValidateLegRedemptionDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      LegRedemptionDate                    { get; set; } = ValidateLegRedemptionDate;
 
 	/// <summary>Holds a FIX 4.4 CreditRating, tag 255, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CreditRating                         { get; set; } = ValidateCreditRating;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CreditRating                         { get; set; } = ValidateCreditRating;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingCreditRating, tag 256, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingCreditRating               { get; set; } = ValidateUnderlyingCreditRating;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingCreditRating               { get; set; } = ValidateUnderlyingCreditRating;
 
 	/// <summary>Holds a FIX 4.4 LegCreditRating, tag 257, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegCreditRating                      { get; set; } = ValidateLegCreditRating;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegCreditRating                      { get; set; } = ValidateLegCreditRating;
 
 	/// <summary>Holds a FIX 4.4 TradedFlatSwitch, tag 258, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   TradedFlatSwitch                     { get; set; } = ValidateTradedFlatSwitch;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   TradedFlatSwitch                     { get; set; } = ValidateTradedFlatSwitch;
 
 	/// <summary>Holds a FIX 4.4 BasisFeatureDate, tag 259, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      BasisFeatureDate                     { get; set; } = ValidateBasisFeatureDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      BasisFeatureDate                     { get; set; } = ValidateBasisFeatureDate;
 
 	/// <summary>Holds a FIX 4.4 BasisFeaturePrice, tag 260, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   BasisFeaturePrice                    { get; set; } = ValidateBasisFeaturePrice;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   BasisFeaturePrice                    { get; set; } = ValidateBasisFeaturePrice;
 
 	/// <summary>Holds a FIX 4.4 MDReqID, tag 262, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      MDReqID                              { get; set; } = ValidateMDReqID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      MDReqID                              { get; set; } = ValidateMDReqID;
 
 	/// <summary>Holds a FIX 4.4 SubscriptionRequestType, tag 263, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> SubscriptionRequestType              { get; set; } = ValidateSubscriptionRequestType;
+	public Action<Fix44Context, FixCheck, FixField.Character> SubscriptionRequestType              { get; set; } = ValidateSubscriptionRequestType;
 
 	/// <summary>Holds a FIX 4.4 MarketDepth, tag 264, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   MarketDepth                          { get; set; } = ValidateMarketDepth;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   MarketDepth                          { get; set; } = ValidateMarketDepth;
 
 	/// <summary>Holds a FIX 4.4 MDUpdateType, tag 265, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   MDUpdateType                         { get; set; } = ValidateMDUpdateType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   MDUpdateType                         { get; set; } = ValidateMDUpdateType;
 
 	/// <summary>Holds a FIX 4.4 AggregatedBook, tag 266, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   AggregatedBook                       { get; set; } = ValidateAggregatedBook;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   AggregatedBook                       { get; set; } = ValidateAggregatedBook;
 
 	/// <summary>Holds a FIX 4.4 NoMDEntryTypes, tag 267, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoMDEntryTypes                       { get; set; } = ValidateNoMDEntryTypes;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoMDEntryTypes                       { get; set; } = ValidateNoMDEntryTypes;
 
 	/// <summary>Holds a FIX 4.4 NoMDEntries, tag 268, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoMDEntries                          { get; set; } = ValidateNoMDEntries;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoMDEntries                          { get; set; } = ValidateNoMDEntries;
 
 	/// <summary>Holds a FIX 4.4 MDEntryType, tag 269, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> MDEntryType                          { get; set; } = ValidateMDEntryType;
+	public Action<Fix44Context, FixCheck, FixField.Character> MDEntryType                          { get; set; } = ValidateMDEntryType;
 
 	/// <summary>Holds a FIX 4.4 MDEntryPx, tag 270, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   MDEntryPx                            { get; set; } = ValidateMDEntryPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   MDEntryPx                            { get; set; } = ValidateMDEntryPx;
 
 	/// <summary>Holds a FIX 4.4 MDEntrySize, tag 271, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   MDEntrySize                          { get; set; } = ValidateMDEntrySize;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   MDEntrySize                          { get; set; } = ValidateMDEntrySize;
 
 	/// <summary>Holds a FIX 4.4 MDEntryDate, tag 272, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      MDEntryDate                          { get; set; } = ValidateMDEntryDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      MDEntryDate                          { get; set; } = ValidateMDEntryDate;
 
 	/// <summary>Holds a FIX 4.4 MDEntryTime, tag 273, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Time, bool>      MDEntryTime                          { get; set; } = ValidateMDEntryTime;
+	public Action<Fix44Context, FixCheck, FixField.Time>      MDEntryTime                          { get; set; } = ValidateMDEntryTime;
 
 	/// <summary>Holds a FIX 4.4 TickDirection, tag 274, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> TickDirection                        { get; set; } = ValidateTickDirection;
+	public Action<Fix44Context, FixCheck, FixField.Character> TickDirection                        { get; set; } = ValidateTickDirection;
 
 	/// <summary>Holds a FIX 4.4 MDMkt, tag 275, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      MDMkt                                { get; set; } = ValidateMDMkt;
+	public Action<Fix44Context, FixCheck, FixField.Text>      MDMkt                                { get; set; } = ValidateMDMkt;
 
 	/// <summary>Holds a FIX 4.4 QuoteCondition, tag 276, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Multiple, bool>  QuoteCondition                       { get; set; } = ValidateQuoteCondition;
+	public Action<Fix44Context, FixCheck, FixField.Multiple>  QuoteCondition                       { get; set; } = ValidateQuoteCondition;
 
 	/// <summary>Holds a FIX 4.4 TradeCondition, tag 277, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Multiple, bool>  TradeCondition                       { get; set; } = ValidateTradeCondition;
+	public Action<Fix44Context, FixCheck, FixField.Multiple>  TradeCondition                       { get; set; } = ValidateTradeCondition;
 
 	/// <summary>Holds a FIX 4.4 MDEntryID, tag 278, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      MDEntryID                            { get; set; } = ValidateMDEntryID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      MDEntryID                            { get; set; } = ValidateMDEntryID;
 
 	/// <summary>Holds a FIX 4.4 MDUpdateAction, tag 279, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> MDUpdateAction                       { get; set; } = ValidateMDUpdateAction;
+	public Action<Fix44Context, FixCheck, FixField.Character> MDUpdateAction                       { get; set; } = ValidateMDUpdateAction;
 
 	/// <summary>Holds a FIX 4.4 MDEntryRefID, tag 280, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      MDEntryRefID                         { get; set; } = ValidateMDEntryRefID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      MDEntryRefID                         { get; set; } = ValidateMDEntryRefID;
 
 	/// <summary>Holds a FIX 4.4 MDReqRejReason, tag 281, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> MDReqRejReason                       { get; set; } = ValidateMDReqRejReason;
+	public Action<Fix44Context, FixCheck, FixField.Character> MDReqRejReason                       { get; set; } = ValidateMDReqRejReason;
 
 	/// <summary>Holds a FIX 4.4 MDEntryOriginator, tag 282, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      MDEntryOriginator                    { get; set; } = ValidateMDEntryOriginator;
+	public Action<Fix44Context, FixCheck, FixField.Text>      MDEntryOriginator                    { get; set; } = ValidateMDEntryOriginator;
 
 	/// <summary>Holds a FIX 4.4 LocationID, tag 283, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LocationID                           { get; set; } = ValidateLocationID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LocationID                           { get; set; } = ValidateLocationID;
 
 	/// <summary>Holds a FIX 4.4 DeskID, tag 284, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      DeskID                               { get; set; } = ValidateDeskID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      DeskID                               { get; set; } = ValidateDeskID;
 
 	/// <summary>Holds a FIX 4.4 DeleteReason, tag 285, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> DeleteReason                         { get; set; } = ValidateDeleteReason;
+	public Action<Fix44Context, FixCheck, FixField.Character> DeleteReason                         { get; set; } = ValidateDeleteReason;
 
 	/// <summary>Holds a FIX 4.4 OpenCloseSettlFlag, tag 286, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Multiple, bool>  OpenCloseSettlFlag                   { get; set; } = ValidateOpenCloseSettlFlag;
+	public Action<Fix44Context, FixCheck, FixField.Multiple>  OpenCloseSettlFlag                   { get; set; } = ValidateOpenCloseSettlFlag;
 
 	/// <summary>Holds a FIX 4.4 SellerDays, tag 287, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   SellerDays                           { get; set; } = ValidateSellerDays;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   SellerDays                           { get; set; } = ValidateSellerDays;
 
 	/// <summary>Holds a FIX 4.4 MDEntryBuyer, tag 288, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      MDEntryBuyer                         { get; set; } = ValidateMDEntryBuyer;
+	public Action<Fix44Context, FixCheck, FixField.Text>      MDEntryBuyer                         { get; set; } = ValidateMDEntryBuyer;
 
 	/// <summary>Holds a FIX 4.4 MDEntrySeller, tag 289, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      MDEntrySeller                        { get; set; } = ValidateMDEntrySeller;
+	public Action<Fix44Context, FixCheck, FixField.Text>      MDEntrySeller                        { get; set; } = ValidateMDEntrySeller;
 
 	/// <summary>Holds a FIX 4.4 MDEntryPositionNo, tag 290, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   MDEntryPositionNo                    { get; set; } = ValidateMDEntryPositionNo;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   MDEntryPositionNo                    { get; set; } = ValidateMDEntryPositionNo;
 
 	/// <summary>Holds a FIX 4.4 FinancialStatus, tag 291, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Multiple, bool>  FinancialStatus                      { get; set; } = ValidateFinancialStatus;
+	public Action<Fix44Context, FixCheck, FixField.Multiple>  FinancialStatus                      { get; set; } = ValidateFinancialStatus;
 
 	/// <summary>Holds a FIX 4.4 CorporateAction, tag 292, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Multiple, bool>  CorporateAction                      { get; set; } = ValidateCorporateAction;
+	public Action<Fix44Context, FixCheck, FixField.Multiple>  CorporateAction                      { get; set; } = ValidateCorporateAction;
 
 	/// <summary>Holds a FIX 4.4 DefBidSize, tag 293, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   DefBidSize                           { get; set; } = ValidateDefBidSize;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   DefBidSize                           { get; set; } = ValidateDefBidSize;
 
 	/// <summary>Holds a FIX 4.4 DefOfferSize, tag 294, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   DefOfferSize                         { get; set; } = ValidateDefOfferSize;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   DefOfferSize                         { get; set; } = ValidateDefOfferSize;
 
 	/// <summary>Holds a FIX 4.4 NoQuoteEntries, tag 295, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoQuoteEntries                       { get; set; } = ValidateNoQuoteEntries;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoQuoteEntries                       { get; set; } = ValidateNoQuoteEntries;
 
 	/// <summary>Holds a FIX 4.4 NoQuoteSets, tag 296, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoQuoteSets                          { get; set; } = ValidateNoQuoteSets;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoQuoteSets                          { get; set; } = ValidateNoQuoteSets;
 
 	/// <summary>Holds a FIX 4.4 QuoteStatus, tag 297, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   QuoteStatus                          { get; set; } = ValidateQuoteStatus;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   QuoteStatus                          { get; set; } = ValidateQuoteStatus;
 
 	/// <summary>Holds a FIX 4.4 QuoteCancelType, tag 298, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   QuoteCancelType                      { get; set; } = ValidateQuoteCancelType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   QuoteCancelType                      { get; set; } = ValidateQuoteCancelType;
 
 	/// <summary>Holds a FIX 4.4 QuoteEntryID, tag 299, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      QuoteEntryID                         { get; set; } = ValidateQuoteEntryID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      QuoteEntryID                         { get; set; } = ValidateQuoteEntryID;
 
 	/// <summary>Holds a FIX 4.4 QuoteRejectReason, tag 300, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   QuoteRejectReason                    { get; set; } = ValidateQuoteRejectReason;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   QuoteRejectReason                    { get; set; } = ValidateQuoteRejectReason;
 
 	/// <summary>Holds a FIX 4.4 QuoteResponseLevel, tag 301, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   QuoteResponseLevel                   { get; set; } = ValidateQuoteResponseLevel;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   QuoteResponseLevel                   { get; set; } = ValidateQuoteResponseLevel;
 
 	/// <summary>Holds a FIX 4.4 QuoteSetID, tag 302, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      QuoteSetID                           { get; set; } = ValidateQuoteSetID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      QuoteSetID                           { get; set; } = ValidateQuoteSetID;
 
 	/// <summary>Holds a FIX 4.4 QuoteRequestType, tag 303, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   QuoteRequestType                     { get; set; } = ValidateQuoteRequestType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   QuoteRequestType                     { get; set; } = ValidateQuoteRequestType;
 
 	/// <summary>Holds a FIX 4.4 TotNoQuoteEntries, tag 304, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TotNoQuoteEntries                    { get; set; } = ValidateTotNoQuoteEntries;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TotNoQuoteEntries                    { get; set; } = ValidateTotNoQuoteEntries;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingSecurityIDSource, tag 305, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingSecurityIDSource           { get; set; } = ValidateUnderlyingSecurityIDSource;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingSecurityIDSource           { get; set; } = ValidateUnderlyingSecurityIDSource;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingIssuer, tag 306, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingIssuer                     { get; set; } = ValidateUnderlyingIssuer;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingIssuer                     { get; set; } = ValidateUnderlyingIssuer;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingSecurityDesc, tag 307, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingSecurityDesc               { get; set; } = ValidateUnderlyingSecurityDesc;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingSecurityDesc               { get; set; } = ValidateUnderlyingSecurityDesc;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingSecurityExchange, tag 308, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingSecurityExchange           { get; set; } = ValidateUnderlyingSecurityExchange;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingSecurityExchange           { get; set; } = ValidateUnderlyingSecurityExchange;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingSecurityID, tag 309, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingSecurityID                 { get; set; } = ValidateUnderlyingSecurityID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingSecurityID                 { get; set; } = ValidateUnderlyingSecurityID;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingSecurityType, tag 310, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingSecurityType               { get; set; } = ValidateUnderlyingSecurityType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingSecurityType               { get; set; } = ValidateUnderlyingSecurityType;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingSymbol, tag 311, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingSymbol                     { get; set; } = ValidateUnderlyingSymbol;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingSymbol                     { get; set; } = ValidateUnderlyingSymbol;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingSymbolSfx, tag 312, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingSymbolSfx                  { get; set; } = ValidateUnderlyingSymbolSfx;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingSymbolSfx                  { get; set; } = ValidateUnderlyingSymbolSfx;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingMaturityMonthYear, tag 313, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.MonthYear, bool> UnderlyingMaturityMonthYear          { get; set; } = ValidateUnderlyingMaturityMonthYear;
+	public Action<Fix44Context, FixCheck, FixField.MonthYear> UnderlyingMaturityMonthYear          { get; set; } = ValidateUnderlyingMaturityMonthYear;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingPutOrCall, tag 315, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   UnderlyingPutOrCall                  { get; set; } = ValidateUnderlyingPutOrCall;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   UnderlyingPutOrCall                  { get; set; } = ValidateUnderlyingPutOrCall;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingStrikePrice, tag 316, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   UnderlyingStrikePrice                { get; set; } = ValidateUnderlyingStrikePrice;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   UnderlyingStrikePrice                { get; set; } = ValidateUnderlyingStrikePrice;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingOptAttribute, tag 317, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> UnderlyingOptAttribute               { get; set; } = ValidateUnderlyingOptAttribute;
+	public Action<Fix44Context, FixCheck, FixField.Character> UnderlyingOptAttribute               { get; set; } = ValidateUnderlyingOptAttribute;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingCurrency, tag 318, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingCurrency                   { get; set; } = ValidateUnderlyingCurrency;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingCurrency                   { get; set; } = ValidateUnderlyingCurrency;
 
 	/// <summary>Holds a FIX 4.4 SecurityReqID, tag 320, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SecurityReqID                        { get; set; } = ValidateSecurityReqID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SecurityReqID                        { get; set; } = ValidateSecurityReqID;
 
 	/// <summary>Holds a FIX 4.4 SecurityRequestType, tag 321, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   SecurityRequestType                  { get; set; } = ValidateSecurityRequestType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   SecurityRequestType                  { get; set; } = ValidateSecurityRequestType;
 
 	/// <summary>Holds a FIX 4.4 SecurityResponseID, tag 322, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SecurityResponseID                   { get; set; } = ValidateSecurityResponseID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SecurityResponseID                   { get; set; } = ValidateSecurityResponseID;
 
 	/// <summary>Holds a FIX 4.4 SecurityResponseType, tag 323, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   SecurityResponseType                 { get; set; } = ValidateSecurityResponseType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   SecurityResponseType                 { get; set; } = ValidateSecurityResponseType;
 
 	/// <summary>Holds a FIX 4.4 SecurityStatusReqID, tag 324, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SecurityStatusReqID                  { get; set; } = ValidateSecurityStatusReqID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SecurityStatusReqID                  { get; set; } = ValidateSecurityStatusReqID;
 
 	/// <summary>Holds a FIX 4.4 UnsolicitedIndicator, tag 325, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   UnsolicitedIndicator                 { get; set; } = ValidateUnsolicitedIndicator;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   UnsolicitedIndicator                 { get; set; } = ValidateUnsolicitedIndicator;
 
 	/// <summary>Holds a FIX 4.4 SecurityTradingStatus, tag 326, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   SecurityTradingStatus                { get; set; } = ValidateSecurityTradingStatus;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   SecurityTradingStatus                { get; set; } = ValidateSecurityTradingStatus;
 
 	/// <summary>Holds a FIX 4.4 HaltReason, tag 327, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> HaltReason                           { get; set; } = ValidateHaltReason;
+	public Action<Fix44Context, FixCheck, FixField.Character> HaltReason                           { get; set; } = ValidateHaltReason;
 
 	/// <summary>Holds a FIX 4.4 InViewOfCommon, tag 328, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   InViewOfCommon                       { get; set; } = ValidateInViewOfCommon;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   InViewOfCommon                       { get; set; } = ValidateInViewOfCommon;
 
 	/// <summary>Holds a FIX 4.4 DueToRelated, tag 329, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   DueToRelated                         { get; set; } = ValidateDueToRelated;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   DueToRelated                         { get; set; } = ValidateDueToRelated;
 
 	/// <summary>Holds a FIX 4.4 BuyVolume, tag 330, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   BuyVolume                            { get; set; } = ValidateBuyVolume;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   BuyVolume                            { get; set; } = ValidateBuyVolume;
 
 	/// <summary>Holds a FIX 4.4 SellVolume, tag 331, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   SellVolume                           { get; set; } = ValidateSellVolume;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   SellVolume                           { get; set; } = ValidateSellVolume;
 
 	/// <summary>Holds a FIX 4.4 HighPx, tag 332, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   HighPx                               { get; set; } = ValidateHighPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   HighPx                               { get; set; } = ValidateHighPx;
 
 	/// <summary>Holds a FIX 4.4 LowPx, tag 333, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LowPx                                { get; set; } = ValidateLowPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LowPx                                { get; set; } = ValidateLowPx;
 
 	/// <summary>Holds a FIX 4.4 Adjustment, tag 334, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   Adjustment                           { get; set; } = ValidateAdjustment;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   Adjustment                           { get; set; } = ValidateAdjustment;
 
 	/// <summary>Holds a FIX 4.4 TradSesReqID, tag 335, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TradSesReqID                         { get; set; } = ValidateTradSesReqID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TradSesReqID                         { get; set; } = ValidateTradSesReqID;
 
 	/// <summary>Holds a FIX 4.4 TradingSessionID, tag 336, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TradingSessionID                     { get; set; } = ValidateTradingSessionID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TradingSessionID                     { get; set; } = ValidateTradingSessionID;
 
 	/// <summary>Holds a FIX 4.4 ContraTrader, tag 337, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ContraTrader                         { get; set; } = ValidateContraTrader;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ContraTrader                         { get; set; } = ValidateContraTrader;
 
 	/// <summary>Holds a FIX 4.4 TradSesMethod, tag 338, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TradSesMethod                        { get; set; } = ValidateTradSesMethod;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TradSesMethod                        { get; set; } = ValidateTradSesMethod;
 
 	/// <summary>Holds a FIX 4.4 TradSesMode, tag 339, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TradSesMode                          { get; set; } = ValidateTradSesMode;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TradSesMode                          { get; set; } = ValidateTradSesMode;
 
 	/// <summary>Holds a FIX 4.4 TradSesStatus, tag 340, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TradSesStatus                        { get; set; } = ValidateTradSesStatus;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TradSesStatus                        { get; set; } = ValidateTradSesStatus;
 
 	/// <summary>Holds a FIX 4.4 TradSesStartTime, tag 341, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> TradSesStartTime                     { get; set; } = ValidateTradSesStartTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> TradSesStartTime                     { get; set; } = ValidateTradSesStartTime;
 
 	/// <summary>Holds a FIX 4.4 TradSesOpenTime, tag 342, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> TradSesOpenTime                      { get; set; } = ValidateTradSesOpenTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> TradSesOpenTime                      { get; set; } = ValidateTradSesOpenTime;
 
 	/// <summary>Holds a FIX 4.4 TradSesPreCloseTime, tag 343, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> TradSesPreCloseTime                  { get; set; } = ValidateTradSesPreCloseTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> TradSesPreCloseTime                  { get; set; } = ValidateTradSesPreCloseTime;
 
 	/// <summary>Holds a FIX 4.4 TradSesCloseTime, tag 344, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> TradSesCloseTime                     { get; set; } = ValidateTradSesCloseTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> TradSesCloseTime                     { get; set; } = ValidateTradSesCloseTime;
 
 	/// <summary>Holds a FIX 4.4 TradSesEndTime, tag 345, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> TradSesEndTime                       { get; set; } = ValidateTradSesEndTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> TradSesEndTime                       { get; set; } = ValidateTradSesEndTime;
 
 	/// <summary>Holds a FIX 4.4 NumberOfOrders, tag 346, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NumberOfOrders                       { get; set; } = ValidateNumberOfOrders;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NumberOfOrders                       { get; set; } = ValidateNumberOfOrders;
 
 	/// <summary>Holds a FIX 4.4 MessageEncoding, tag 347, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      MessageEncoding                      { get; set; } = ValidateMessageEncoding;
+	public Action<Fix44Context, FixCheck, FixField.Text>      MessageEncoding                      { get; set; } = ValidateMessageEncoding;
 
 	/// <summary>Holds a FIX 4.4 EncodedIssuerLen, tag 348, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   EncodedIssuerLen                     { get; set; } = ValidateEncodedIssuerLen;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   EncodedIssuerLen                     { get; set; } = ValidateEncodedIssuerLen;
 
 	/// <summary>Holds a FIX 4.4 EncodedIssuer, tag 349, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Data, bool>      EncodedIssuer                        { get; set; } = ValidateEncodedIssuer;
+	public Action<Fix44Context, FixCheck, FixField.Data>      EncodedIssuer                        { get; set; } = ValidateEncodedIssuer;
 
 	/// <summary>Holds a FIX 4.4 EncodedSecurityDescLen, tag 350, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   EncodedSecurityDescLen               { get; set; } = ValidateEncodedSecurityDescLen;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   EncodedSecurityDescLen               { get; set; } = ValidateEncodedSecurityDescLen;
 
 	/// <summary>Holds a FIX 4.4 EncodedSecurityDesc, tag 351, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Data, bool>      EncodedSecurityDesc                  { get; set; } = ValidateEncodedSecurityDesc;
+	public Action<Fix44Context, FixCheck, FixField.Data>      EncodedSecurityDesc                  { get; set; } = ValidateEncodedSecurityDesc;
 
 	/// <summary>Holds a FIX 4.4 EncodedListExecInstLen, tag 352, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   EncodedListExecInstLen               { get; set; } = ValidateEncodedListExecInstLen;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   EncodedListExecInstLen               { get; set; } = ValidateEncodedListExecInstLen;
 
 	/// <summary>Holds a FIX 4.4 EncodedListExecInst, tag 353, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Data, bool>      EncodedListExecInst                  { get; set; } = ValidateEncodedListExecInst;
+	public Action<Fix44Context, FixCheck, FixField.Data>      EncodedListExecInst                  { get; set; } = ValidateEncodedListExecInst;
 
 	/// <summary>Holds a FIX 4.4 EncodedTextLen, tag 354, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   EncodedTextLen                       { get; set; } = ValidateEncodedTextLen;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   EncodedTextLen                       { get; set; } = ValidateEncodedTextLen;
 
 	/// <summary>Holds a FIX 4.4 EncodedText, tag 355, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Data, bool>      EncodedText                          { get; set; } = ValidateEncodedText;
+	public Action<Fix44Context, FixCheck, FixField.Data>      EncodedText                          { get; set; } = ValidateEncodedText;
 
 	/// <summary>Holds a FIX 4.4 EncodedSubjectLen, tag 356, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   EncodedSubjectLen                    { get; set; } = ValidateEncodedSubjectLen;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   EncodedSubjectLen                    { get; set; } = ValidateEncodedSubjectLen;
 
 	/// <summary>Holds a FIX 4.4 EncodedSubject, tag 357, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Data, bool>      EncodedSubject                       { get; set; } = ValidateEncodedSubject;
+	public Action<Fix44Context, FixCheck, FixField.Data>      EncodedSubject                       { get; set; } = ValidateEncodedSubject;
 
 	/// <summary>Holds a FIX 4.4 EncodedHeadlineLen, tag 358, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   EncodedHeadlineLen                   { get; set; } = ValidateEncodedHeadlineLen;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   EncodedHeadlineLen                   { get; set; } = ValidateEncodedHeadlineLen;
 
 	/// <summary>Holds a FIX 4.4 EncodedHeadline, tag 359, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Data, bool>      EncodedHeadline                      { get; set; } = ValidateEncodedHeadline;
+	public Action<Fix44Context, FixCheck, FixField.Data>      EncodedHeadline                      { get; set; } = ValidateEncodedHeadline;
 
 	/// <summary>Holds a FIX 4.4 EncodedAllocTextLen, tag 360, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   EncodedAllocTextLen                  { get; set; } = ValidateEncodedAllocTextLen;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   EncodedAllocTextLen                  { get; set; } = ValidateEncodedAllocTextLen;
 
 	/// <summary>Holds a FIX 4.4 EncodedAllocText, tag 361, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Data, bool>      EncodedAllocText                     { get; set; } = ValidateEncodedAllocText;
+	public Action<Fix44Context, FixCheck, FixField.Data>      EncodedAllocText                     { get; set; } = ValidateEncodedAllocText;
 
 	/// <summary>Holds a FIX 4.4 EncodedUnderlyingIssuerLen, tag 362, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   EncodedUnderlyingIssuerLen           { get; set; } = ValidateEncodedUnderlyingIssuerLen;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   EncodedUnderlyingIssuerLen           { get; set; } = ValidateEncodedUnderlyingIssuerLen;
 
 	/// <summary>Holds a FIX 4.4 EncodedUnderlyingIssuer, tag 363, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Data, bool>      EncodedUnderlyingIssuer              { get; set; } = ValidateEncodedUnderlyingIssuer;
+	public Action<Fix44Context, FixCheck, FixField.Data>      EncodedUnderlyingIssuer              { get; set; } = ValidateEncodedUnderlyingIssuer;
 
 	/// <summary>Holds a FIX 4.4 EncodedUnderlyingSecurityDescLen, tag 364, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   EncodedUnderlyingSecurityDescLen     { get; set; } = ValidateEncodedUnderlyingSecurityDescLen;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   EncodedUnderlyingSecurityDescLen     { get; set; } = ValidateEncodedUnderlyingSecurityDescLen;
 
 	/// <summary>Holds a FIX 4.4 EncodedUnderlyingSecurityDesc, tag 365, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Data, bool>      EncodedUnderlyingSecurityDesc        { get; set; } = ValidateEncodedUnderlyingSecurityDesc;
+	public Action<Fix44Context, FixCheck, FixField.Data>      EncodedUnderlyingSecurityDesc        { get; set; } = ValidateEncodedUnderlyingSecurityDesc;
 
 	/// <summary>Holds a FIX 4.4 AllocPrice, tag 366, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   AllocPrice                           { get; set; } = ValidateAllocPrice;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   AllocPrice                           { get; set; } = ValidateAllocPrice;
 
 	/// <summary>Holds a FIX 4.4 QuoteSetValidUntilTime, tag 367, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> QuoteSetValidUntilTime               { get; set; } = ValidateQuoteSetValidUntilTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> QuoteSetValidUntilTime               { get; set; } = ValidateQuoteSetValidUntilTime;
 
 	/// <summary>Holds a FIX 4.4 QuoteEntryRejectReason, tag 368, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   QuoteEntryRejectReason               { get; set; } = ValidateQuoteEntryRejectReason;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   QuoteEntryRejectReason               { get; set; } = ValidateQuoteEntryRejectReason;
 
 	/// <summary>Holds a FIX 4.4 LastMsgSeqNumProcessed, tag 369, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   LastMsgSeqNumProcessed               { get; set; } = ValidateLastMsgSeqNumProcessed;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   LastMsgSeqNumProcessed               { get; set; } = ValidateLastMsgSeqNumProcessed;
 
 	/// <summary>Holds a FIX 4.4 RefTagID, tag 371, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   RefTagID                             { get; set; } = ValidateRefTagID;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   RefTagID                             { get; set; } = ValidateRefTagID;
 
 	/// <summary>Holds a FIX 4.4 RefMsgType, tag 372, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      RefMsgType                           { get; set; } = ValidateRefMsgType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      RefMsgType                           { get; set; } = ValidateRefMsgType;
 
 	/// <summary>Holds a FIX 4.4 SessionRejectReason, tag 373, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   SessionRejectReason                  { get; set; } = ValidateSessionRejectReason;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   SessionRejectReason                  { get; set; } = ValidateSessionRejectReason;
 
 	/// <summary>Holds a FIX 4.4 BidRequestTransType, tag 374, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> BidRequestTransType                  { get; set; } = ValidateBidRequestTransType;
+	public Action<Fix44Context, FixCheck, FixField.Character> BidRequestTransType                  { get; set; } = ValidateBidRequestTransType;
 
 	/// <summary>Holds a FIX 4.4 ContraBroker, tag 375, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ContraBroker                         { get; set; } = ValidateContraBroker;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ContraBroker                         { get; set; } = ValidateContraBroker;
 
 	/// <summary>Holds a FIX 4.4 ComplianceID, tag 376, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ComplianceID                         { get; set; } = ValidateComplianceID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ComplianceID                         { get; set; } = ValidateComplianceID;
 
 	/// <summary>Holds a FIX 4.4 SolicitedFlag, tag 377, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   SolicitedFlag                        { get; set; } = ValidateSolicitedFlag;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   SolicitedFlag                        { get; set; } = ValidateSolicitedFlag;
 
 	/// <summary>Holds a FIX 4.4 ExecRestatementReason, tag 378, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ExecRestatementReason                { get; set; } = ValidateExecRestatementReason;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ExecRestatementReason                { get; set; } = ValidateExecRestatementReason;
 
 	/// <summary>Holds a FIX 4.4 BusinessRejectRefID, tag 379, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      BusinessRejectRefID                  { get; set; } = ValidateBusinessRejectRefID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      BusinessRejectRefID                  { get; set; } = ValidateBusinessRejectRefID;
 
 	/// <summary>Holds a FIX 4.4 BusinessRejectReason, tag 380, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   BusinessRejectReason                 { get; set; } = ValidateBusinessRejectReason;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   BusinessRejectReason                 { get; set; } = ValidateBusinessRejectReason;
 
 	/// <summary>Holds a FIX 4.4 GrossTradeAmt, tag 381, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   GrossTradeAmt                        { get; set; } = ValidateGrossTradeAmt;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   GrossTradeAmt                        { get; set; } = ValidateGrossTradeAmt;
 
 	/// <summary>Holds a FIX 4.4 NoContraBrokers, tag 382, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoContraBrokers                      { get; set; } = ValidateNoContraBrokers;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoContraBrokers                      { get; set; } = ValidateNoContraBrokers;
 
 	/// <summary>Holds a FIX 4.4 MaxMessageSize, tag 383, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   MaxMessageSize                       { get; set; } = ValidateMaxMessageSize;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   MaxMessageSize                       { get; set; } = ValidateMaxMessageSize;
 
 	/// <summary>Holds a FIX 4.4 NoMsgTypes, tag 384, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoMsgTypes                           { get; set; } = ValidateNoMsgTypes;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoMsgTypes                           { get; set; } = ValidateNoMsgTypes;
 
 	/// <summary>Holds a FIX 4.4 MsgDirection, tag 385, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> MsgDirection                         { get; set; } = ValidateMsgDirection;
+	public Action<Fix44Context, FixCheck, FixField.Character> MsgDirection                         { get; set; } = ValidateMsgDirection;
 
 	/// <summary>Holds a FIX 4.4 NoTradingSessions, tag 386, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoTradingSessions                    { get; set; } = ValidateNoTradingSessions;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoTradingSessions                    { get; set; } = ValidateNoTradingSessions;
 
 	/// <summary>Holds a FIX 4.4 TotalVolumeTraded, tag 387, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   TotalVolumeTraded                    { get; set; } = ValidateTotalVolumeTraded;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   TotalVolumeTraded                    { get; set; } = ValidateTotalVolumeTraded;
 
 	/// <summary>Holds a FIX 4.4 DiscretionInst, tag 388, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> DiscretionInst                       { get; set; } = ValidateDiscretionInst;
+	public Action<Fix44Context, FixCheck, FixField.Character> DiscretionInst                       { get; set; } = ValidateDiscretionInst;
 
 	/// <summary>Holds a FIX 4.4 DiscretionOffsetValue, tag 389, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   DiscretionOffsetValue                { get; set; } = ValidateDiscretionOffsetValue;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   DiscretionOffsetValue                { get; set; } = ValidateDiscretionOffsetValue;
 
 	/// <summary>Holds a FIX 4.4 BidID, tag 390, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      BidID                                { get; set; } = ValidateBidID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      BidID                                { get; set; } = ValidateBidID;
 
 	/// <summary>Holds a FIX 4.4 ClientBidID, tag 391, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ClientBidID                          { get; set; } = ValidateClientBidID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ClientBidID                          { get; set; } = ValidateClientBidID;
 
 	/// <summary>Holds a FIX 4.4 ListName, tag 392, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ListName                             { get; set; } = ValidateListName;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ListName                             { get; set; } = ValidateListName;
 
 	/// <summary>Holds a FIX 4.4 TotNoRelatedSym, tag 393, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TotNoRelatedSym                      { get; set; } = ValidateTotNoRelatedSym;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TotNoRelatedSym                      { get; set; } = ValidateTotNoRelatedSym;
 
 	/// <summary>Holds a FIX 4.4 BidType, tag 394, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   BidType                              { get; set; } = ValidateBidType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   BidType                              { get; set; } = ValidateBidType;
 
 	/// <summary>Holds a FIX 4.4 NumTickets, tag 395, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NumTickets                           { get; set; } = ValidateNumTickets;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NumTickets                           { get; set; } = ValidateNumTickets;
 
 	/// <summary>Holds a FIX 4.4 SideValue1, tag 396, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   SideValue1                           { get; set; } = ValidateSideValue1;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   SideValue1                           { get; set; } = ValidateSideValue1;
 
 	/// <summary>Holds a FIX 4.4 SideValue2, tag 397, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   SideValue2                           { get; set; } = ValidateSideValue2;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   SideValue2                           { get; set; } = ValidateSideValue2;
 
 	/// <summary>Holds a FIX 4.4 NoBidDescriptors, tag 398, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoBidDescriptors                     { get; set; } = ValidateNoBidDescriptors;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoBidDescriptors                     { get; set; } = ValidateNoBidDescriptors;
 
 	/// <summary>Holds a FIX 4.4 BidDescriptorType, tag 399, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   BidDescriptorType                    { get; set; } = ValidateBidDescriptorType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   BidDescriptorType                    { get; set; } = ValidateBidDescriptorType;
 
 	/// <summary>Holds a FIX 4.4 BidDescriptor, tag 400, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      BidDescriptor                        { get; set; } = ValidateBidDescriptor;
+	public Action<Fix44Context, FixCheck, FixField.Text>      BidDescriptor                        { get; set; } = ValidateBidDescriptor;
 
 	/// <summary>Holds a FIX 4.4 SideValueInd, tag 401, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   SideValueInd                         { get; set; } = ValidateSideValueInd;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   SideValueInd                         { get; set; } = ValidateSideValueInd;
 
 	/// <summary>Holds a FIX 4.4 LiquidityPctLow, tag 402, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LiquidityPctLow                      { get; set; } = ValidateLiquidityPctLow;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LiquidityPctLow                      { get; set; } = ValidateLiquidityPctLow;
 
 	/// <summary>Holds a FIX 4.4 LiquidityPctHigh, tag 403, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LiquidityPctHigh                     { get; set; } = ValidateLiquidityPctHigh;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LiquidityPctHigh                     { get; set; } = ValidateLiquidityPctHigh;
 
 	/// <summary>Holds a FIX 4.4 LiquidityValue, tag 404, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LiquidityValue                       { get; set; } = ValidateLiquidityValue;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LiquidityValue                       { get; set; } = ValidateLiquidityValue;
 
 	/// <summary>Holds a FIX 4.4 EFPTrackingError, tag 405, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   EFPTrackingError                     { get; set; } = ValidateEFPTrackingError;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   EFPTrackingError                     { get; set; } = ValidateEFPTrackingError;
 
 	/// <summary>Holds a FIX 4.4 FairValue, tag 406, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   FairValue                            { get; set; } = ValidateFairValue;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   FairValue                            { get; set; } = ValidateFairValue;
 
 	/// <summary>Holds a FIX 4.4 OutsideIndexPct, tag 407, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   OutsideIndexPct                      { get; set; } = ValidateOutsideIndexPct;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   OutsideIndexPct                      { get; set; } = ValidateOutsideIndexPct;
 
 	/// <summary>Holds a FIX 4.4 ValueOfFutures, tag 408, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   ValueOfFutures                       { get; set; } = ValidateValueOfFutures;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   ValueOfFutures                       { get; set; } = ValidateValueOfFutures;
 
 	/// <summary>Holds a FIX 4.4 LiquidityIndType, tag 409, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   LiquidityIndType                     { get; set; } = ValidateLiquidityIndType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   LiquidityIndType                     { get; set; } = ValidateLiquidityIndType;
 
 	/// <summary>Holds a FIX 4.4 WtAverageLiquidity, tag 410, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   WtAverageLiquidity                   { get; set; } = ValidateWtAverageLiquidity;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   WtAverageLiquidity                   { get; set; } = ValidateWtAverageLiquidity;
 
 	/// <summary>Holds a FIX 4.4 ExchangeForPhysical, tag 411, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   ExchangeForPhysical                  { get; set; } = ValidateExchangeForPhysical;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   ExchangeForPhysical                  { get; set; } = ValidateExchangeForPhysical;
 
 	/// <summary>Holds a FIX 4.4 OutMainCntryUIndex, tag 412, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   OutMainCntryUIndex                   { get; set; } = ValidateOutMainCntryUIndex;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   OutMainCntryUIndex                   { get; set; } = ValidateOutMainCntryUIndex;
 
 	/// <summary>Holds a FIX 4.4 CrossPercent, tag 413, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   CrossPercent                         { get; set; } = ValidateCrossPercent;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   CrossPercent                         { get; set; } = ValidateCrossPercent;
 
 	/// <summary>Holds a FIX 4.4 ProgRptReqs, tag 414, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ProgRptReqs                          { get; set; } = ValidateProgRptReqs;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ProgRptReqs                          { get; set; } = ValidateProgRptReqs;
 
 	/// <summary>Holds a FIX 4.4 ProgPeriodInterval, tag 415, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ProgPeriodInterval                   { get; set; } = ValidateProgPeriodInterval;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ProgPeriodInterval                   { get; set; } = ValidateProgPeriodInterval;
 
 	/// <summary>Holds a FIX 4.4 IncTaxInd, tag 416, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   IncTaxInd                            { get; set; } = ValidateIncTaxInd;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   IncTaxInd                            { get; set; } = ValidateIncTaxInd;
 
 	/// <summary>Holds a FIX 4.4 NumBidders, tag 417, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NumBidders                           { get; set; } = ValidateNumBidders;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NumBidders                           { get; set; } = ValidateNumBidders;
 
 	/// <summary>Holds a FIX 4.4 BidTradeType, tag 418, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> BidTradeType                         { get; set; } = ValidateBidTradeType;
+	public Action<Fix44Context, FixCheck, FixField.Character> BidTradeType                         { get; set; } = ValidateBidTradeType;
 
 	/// <summary>Holds a FIX 4.4 BasisPxType, tag 419, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> BasisPxType                          { get; set; } = ValidateBasisPxType;
+	public Action<Fix44Context, FixCheck, FixField.Character> BasisPxType                          { get; set; } = ValidateBasisPxType;
 
 	/// <summary>Holds a FIX 4.4 NoBidComponents, tag 420, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoBidComponents                      { get; set; } = ValidateNoBidComponents;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoBidComponents                      { get; set; } = ValidateNoBidComponents;
 
 	/// <summary>Holds a FIX 4.4 Country, tag 421, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      Country                              { get; set; } = ValidateCountry;
+	public Action<Fix44Context, FixCheck, FixField.Text>      Country                              { get; set; } = ValidateCountry;
 
 	/// <summary>Holds a FIX 4.4 TotNoStrikes, tag 422, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TotNoStrikes                         { get; set; } = ValidateTotNoStrikes;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TotNoStrikes                         { get; set; } = ValidateTotNoStrikes;
 
 	/// <summary>Holds a FIX 4.4 PriceType, tag 423, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PriceType                            { get; set; } = ValidatePriceType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PriceType                            { get; set; } = ValidatePriceType;
 
 	/// <summary>Holds a FIX 4.4 DayOrderQty, tag 424, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   DayOrderQty                          { get; set; } = ValidateDayOrderQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   DayOrderQty                          { get; set; } = ValidateDayOrderQty;
 
 	/// <summary>Holds a FIX 4.4 DayCumQty, tag 425, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   DayCumQty                            { get; set; } = ValidateDayCumQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   DayCumQty                            { get; set; } = ValidateDayCumQty;
 
 	/// <summary>Holds a FIX 4.4 DayAvgPx, tag 426, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   DayAvgPx                             { get; set; } = ValidateDayAvgPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   DayAvgPx                             { get; set; } = ValidateDayAvgPx;
 
 	/// <summary>Holds a FIX 4.4 GTBookingInst, tag 427, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   GTBookingInst                        { get; set; } = ValidateGTBookingInst;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   GTBookingInst                        { get; set; } = ValidateGTBookingInst;
 
 	/// <summary>Holds a FIX 4.4 NoStrikes, tag 428, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoStrikes                            { get; set; } = ValidateNoStrikes;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoStrikes                            { get; set; } = ValidateNoStrikes;
 
 	/// <summary>Holds a FIX 4.4 ListStatusType, tag 429, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ListStatusType                       { get; set; } = ValidateListStatusType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ListStatusType                       { get; set; } = ValidateListStatusType;
 
 	/// <summary>Holds a FIX 4.4 NetGrossInd, tag 430, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NetGrossInd                          { get; set; } = ValidateNetGrossInd;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NetGrossInd                          { get; set; } = ValidateNetGrossInd;
 
 	/// <summary>Holds a FIX 4.4 ListOrderStatus, tag 431, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ListOrderStatus                      { get; set; } = ValidateListOrderStatus;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ListOrderStatus                      { get; set; } = ValidateListOrderStatus;
 
 	/// <summary>Holds a FIX 4.4 ExpireDate, tag 432, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      ExpireDate                           { get; set; } = ValidateExpireDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      ExpireDate                           { get; set; } = ValidateExpireDate;
 
 	/// <summary>Holds a FIX 4.4 ListExecInstType, tag 433, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> ListExecInstType                     { get; set; } = ValidateListExecInstType;
+	public Action<Fix44Context, FixCheck, FixField.Character> ListExecInstType                     { get; set; } = ValidateListExecInstType;
 
 	/// <summary>Holds a FIX 4.4 CxlRejResponseTo, tag 434, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> CxlRejResponseTo                     { get; set; } = ValidateCxlRejResponseTo;
+	public Action<Fix44Context, FixCheck, FixField.Character> CxlRejResponseTo                     { get; set; } = ValidateCxlRejResponseTo;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingCouponRate, tag 435, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   UnderlyingCouponRate                 { get; set; } = ValidateUnderlyingCouponRate;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   UnderlyingCouponRate                 { get; set; } = ValidateUnderlyingCouponRate;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingContractMultiplier, tag 436, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   UnderlyingContractMultiplier         { get; set; } = ValidateUnderlyingContractMultiplier;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   UnderlyingContractMultiplier         { get; set; } = ValidateUnderlyingContractMultiplier;
 
 	/// <summary>Holds a FIX 4.4 ContraTradeQty, tag 437, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   ContraTradeQty                       { get; set; } = ValidateContraTradeQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   ContraTradeQty                       { get; set; } = ValidateContraTradeQty;
 
 	/// <summary>Holds a FIX 4.4 ContraTradeTime, tag 438, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> ContraTradeTime                      { get; set; } = ValidateContraTradeTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> ContraTradeTime                      { get; set; } = ValidateContraTradeTime;
 
 	/// <summary>Holds a FIX 4.4 LiquidityNumSecurities, tag 441, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   LiquidityNumSecurities               { get; set; } = ValidateLiquidityNumSecurities;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   LiquidityNumSecurities               { get; set; } = ValidateLiquidityNumSecurities;
 
 	/// <summary>Holds a FIX 4.4 MultiLegReportingType, tag 442, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> MultiLegReportingType                { get; set; } = ValidateMultiLegReportingType;
+	public Action<Fix44Context, FixCheck, FixField.Character> MultiLegReportingType                { get; set; } = ValidateMultiLegReportingType;
 
 	/// <summary>Holds a FIX 4.4 StrikeTime, tag 443, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> StrikeTime                           { get; set; } = ValidateStrikeTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> StrikeTime                           { get; set; } = ValidateStrikeTime;
 
 	/// <summary>Holds a FIX 4.4 ListStatusText, tag 444, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ListStatusText                       { get; set; } = ValidateListStatusText;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ListStatusText                       { get; set; } = ValidateListStatusText;
 
 	/// <summary>Holds a FIX 4.4 EncodedListStatusTextLen, tag 445, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   EncodedListStatusTextLen             { get; set; } = ValidateEncodedListStatusTextLen;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   EncodedListStatusTextLen             { get; set; } = ValidateEncodedListStatusTextLen;
 
 	/// <summary>Holds a FIX 4.4 EncodedListStatusText, tag 446, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Data, bool>      EncodedListStatusText                { get; set; } = ValidateEncodedListStatusText;
+	public Action<Fix44Context, FixCheck, FixField.Data>      EncodedListStatusText                { get; set; } = ValidateEncodedListStatusText;
 
 	/// <summary>Holds a FIX 4.4 PartyIDSource, tag 447, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> PartyIDSource                        { get; set; } = ValidatePartyIDSource;
+	public Action<Fix44Context, FixCheck, FixField.Character> PartyIDSource                        { get; set; } = ValidatePartyIDSource;
 
 	/// <summary>Holds a FIX 4.4 PartyID, tag 448, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      PartyID                              { get; set; } = ValidatePartyID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      PartyID                              { get; set; } = ValidatePartyID;
 
 	/// <summary>Holds a FIX 4.4 NetChgPrevDay, tag 451, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   NetChgPrevDay                        { get; set; } = ValidateNetChgPrevDay;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   NetChgPrevDay                        { get; set; } = ValidateNetChgPrevDay;
 
 	/// <summary>Holds a FIX 4.4 PartyRole, tag 452, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PartyRole                            { get; set; } = ValidatePartyRole;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PartyRole                            { get; set; } = ValidatePartyRole;
 
 	/// <summary>Holds a FIX 4.4 NoPartyIDs, tag 453, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoPartyIDs                           { get; set; } = ValidateNoPartyIDs;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoPartyIDs                           { get; set; } = ValidateNoPartyIDs;
 
 	/// <summary>Holds a FIX 4.4 NoSecurityAltID, tag 454, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoSecurityAltID                      { get; set; } = ValidateNoSecurityAltID;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoSecurityAltID                      { get; set; } = ValidateNoSecurityAltID;
 
 	/// <summary>Holds a FIX 4.4 SecurityAltID, tag 455, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SecurityAltID                        { get; set; } = ValidateSecurityAltID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SecurityAltID                        { get; set; } = ValidateSecurityAltID;
 
 	/// <summary>Holds a FIX 4.4 SecurityAltIDSource, tag 456, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SecurityAltIDSource                  { get; set; } = ValidateSecurityAltIDSource;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SecurityAltIDSource                  { get; set; } = ValidateSecurityAltIDSource;
 
 	/// <summary>Holds a FIX 4.4 NoUnderlyingSecurityAltID, tag 457, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoUnderlyingSecurityAltID            { get; set; } = ValidateNoUnderlyingSecurityAltID;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoUnderlyingSecurityAltID            { get; set; } = ValidateNoUnderlyingSecurityAltID;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingSecurityAltID, tag 458, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingSecurityAltID              { get; set; } = ValidateUnderlyingSecurityAltID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingSecurityAltID              { get; set; } = ValidateUnderlyingSecurityAltID;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingSecurityAltIDSource, tag 459, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingSecurityAltIDSource        { get; set; } = ValidateUnderlyingSecurityAltIDSource;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingSecurityAltIDSource        { get; set; } = ValidateUnderlyingSecurityAltIDSource;
 
 	/// <summary>Holds a FIX 4.4 Product, tag 460, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   Product                              { get; set; } = ValidateProduct;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   Product                              { get; set; } = ValidateProduct;
 
 	/// <summary>Holds a FIX 4.4 CFICode, tag 461, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CFICode                              { get; set; } = ValidateCFICode;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CFICode                              { get; set; } = ValidateCFICode;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingProduct, tag 462, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   UnderlyingProduct                    { get; set; } = ValidateUnderlyingProduct;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   UnderlyingProduct                    { get; set; } = ValidateUnderlyingProduct;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingCFICode, tag 463, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingCFICode                    { get; set; } = ValidateUnderlyingCFICode;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingCFICode                    { get; set; } = ValidateUnderlyingCFICode;
 
 	/// <summary>Holds a FIX 4.4 TestMessageIndicator, tag 464, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   TestMessageIndicator                 { get; set; } = ValidateTestMessageIndicator;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   TestMessageIndicator                 { get; set; } = ValidateTestMessageIndicator;
 
 	/// <summary>Holds a FIX 4.4 BookingRefID, tag 466, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      BookingRefID                         { get; set; } = ValidateBookingRefID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      BookingRefID                         { get; set; } = ValidateBookingRefID;
 
 	/// <summary>Holds a FIX 4.4 IndividualAllocID, tag 467, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      IndividualAllocID                    { get; set; } = ValidateIndividualAllocID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      IndividualAllocID                    { get; set; } = ValidateIndividualAllocID;
 
 	/// <summary>Holds a FIX 4.4 RoundingDirection, tag 468, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> RoundingDirection                    { get; set; } = ValidateRoundingDirection;
+	public Action<Fix44Context, FixCheck, FixField.Character> RoundingDirection                    { get; set; } = ValidateRoundingDirection;
 
 	/// <summary>Holds a FIX 4.4 RoundingModulus, tag 469, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   RoundingModulus                      { get; set; } = ValidateRoundingModulus;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   RoundingModulus                      { get; set; } = ValidateRoundingModulus;
 
 	/// <summary>Holds a FIX 4.4 CountryOfIssue, tag 470, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CountryOfIssue                       { get; set; } = ValidateCountryOfIssue;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CountryOfIssue                       { get; set; } = ValidateCountryOfIssue;
 
 	/// <summary>Holds a FIX 4.4 StateOrProvinceOfIssue, tag 471, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      StateOrProvinceOfIssue               { get; set; } = ValidateStateOrProvinceOfIssue;
+	public Action<Fix44Context, FixCheck, FixField.Text>      StateOrProvinceOfIssue               { get; set; } = ValidateStateOrProvinceOfIssue;
 
 	/// <summary>Holds a FIX 4.4 LocaleOfIssue, tag 472, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LocaleOfIssue                        { get; set; } = ValidateLocaleOfIssue;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LocaleOfIssue                        { get; set; } = ValidateLocaleOfIssue;
 
 	/// <summary>Holds a FIX 4.4 NoRegistDtls, tag 473, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoRegistDtls                         { get; set; } = ValidateNoRegistDtls;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoRegistDtls                         { get; set; } = ValidateNoRegistDtls;
 
 	/// <summary>Holds a FIX 4.4 MailingDtls, tag 474, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      MailingDtls                          { get; set; } = ValidateMailingDtls;
+	public Action<Fix44Context, FixCheck, FixField.Text>      MailingDtls                          { get; set; } = ValidateMailingDtls;
 
 	/// <summary>Holds a FIX 4.4 InvestorCountryOfResidence, tag 475, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      InvestorCountryOfResidence           { get; set; } = ValidateInvestorCountryOfResidence;
+	public Action<Fix44Context, FixCheck, FixField.Text>      InvestorCountryOfResidence           { get; set; } = ValidateInvestorCountryOfResidence;
 
 	/// <summary>Holds a FIX 4.4 PaymentRef, tag 476, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      PaymentRef                           { get; set; } = ValidatePaymentRef;
+	public Action<Fix44Context, FixCheck, FixField.Text>      PaymentRef                           { get; set; } = ValidatePaymentRef;
 
 	/// <summary>Holds a FIX 4.4 DistribPaymentMethod, tag 477, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   DistribPaymentMethod                 { get; set; } = ValidateDistribPaymentMethod;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   DistribPaymentMethod                 { get; set; } = ValidateDistribPaymentMethod;
 
 	/// <summary>Holds a FIX 4.4 CashDistribCurr, tag 478, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CashDistribCurr                      { get; set; } = ValidateCashDistribCurr;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CashDistribCurr                      { get; set; } = ValidateCashDistribCurr;
 
 	/// <summary>Holds a FIX 4.4 CommCurrency, tag 479, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CommCurrency                         { get; set; } = ValidateCommCurrency;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CommCurrency                         { get; set; } = ValidateCommCurrency;
 
 	/// <summary>Holds a FIX 4.4 CancellationRights, tag 480, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> CancellationRights                   { get; set; } = ValidateCancellationRights;
+	public Action<Fix44Context, FixCheck, FixField.Character> CancellationRights                   { get; set; } = ValidateCancellationRights;
 
 	/// <summary>Holds a FIX 4.4 MoneyLaunderingStatus, tag 481, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> MoneyLaunderingStatus                { get; set; } = ValidateMoneyLaunderingStatus;
+	public Action<Fix44Context, FixCheck, FixField.Character> MoneyLaunderingStatus                { get; set; } = ValidateMoneyLaunderingStatus;
 
 	/// <summary>Holds a FIX 4.4 MailingInst, tag 482, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      MailingInst                          { get; set; } = ValidateMailingInst;
+	public Action<Fix44Context, FixCheck, FixField.Text>      MailingInst                          { get; set; } = ValidateMailingInst;
 
 	/// <summary>Holds a FIX 4.4 TransBkdTime, tag 483, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> TransBkdTime                         { get; set; } = ValidateTransBkdTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> TransBkdTime                         { get; set; } = ValidateTransBkdTime;
 
 	/// <summary>Holds a FIX 4.4 ExecPriceType, tag 484, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> ExecPriceType                        { get; set; } = ValidateExecPriceType;
+	public Action<Fix44Context, FixCheck, FixField.Character> ExecPriceType                        { get; set; } = ValidateExecPriceType;
 
 	/// <summary>Holds a FIX 4.4 ExecPriceAdjustment, tag 485, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   ExecPriceAdjustment                  { get; set; } = ValidateExecPriceAdjustment;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   ExecPriceAdjustment                  { get; set; } = ValidateExecPriceAdjustment;
 
 	/// <summary>Holds a FIX 4.4 DateOfBirth, tag 486, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      DateOfBirth                          { get; set; } = ValidateDateOfBirth;
+	public Action<Fix44Context, FixCheck, FixField.Date>      DateOfBirth                          { get; set; } = ValidateDateOfBirth;
 
 	/// <summary>Holds a FIX 4.4 TradeReportTransType, tag 487, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TradeReportTransType                 { get; set; } = ValidateTradeReportTransType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TradeReportTransType                 { get; set; } = ValidateTradeReportTransType;
 
 	/// <summary>Holds a FIX 4.4 CardHolderName, tag 488, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CardHolderName                       { get; set; } = ValidateCardHolderName;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CardHolderName                       { get; set; } = ValidateCardHolderName;
 
 	/// <summary>Holds a FIX 4.4 CardNumber, tag 489, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CardNumber                           { get; set; } = ValidateCardNumber;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CardNumber                           { get; set; } = ValidateCardNumber;
 
 	/// <summary>Holds a FIX 4.4 CardExpDate, tag 490, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      CardExpDate                          { get; set; } = ValidateCardExpDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      CardExpDate                          { get; set; } = ValidateCardExpDate;
 
 	/// <summary>Holds a FIX 4.4 CardIssNum, tag 491, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CardIssNum                           { get; set; } = ValidateCardIssNum;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CardIssNum                           { get; set; } = ValidateCardIssNum;
 
 	/// <summary>Holds a FIX 4.4 PaymentMethod, tag 492, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PaymentMethod                        { get; set; } = ValidatePaymentMethod;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PaymentMethod                        { get; set; } = ValidatePaymentMethod;
 
 	/// <summary>Holds a FIX 4.4 RegistAcctType, tag 493, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      RegistAcctType                       { get; set; } = ValidateRegistAcctType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      RegistAcctType                       { get; set; } = ValidateRegistAcctType;
 
 	/// <summary>Holds a FIX 4.4 Designation, tag 494, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      Designation                          { get; set; } = ValidateDesignation;
+	public Action<Fix44Context, FixCheck, FixField.Text>      Designation                          { get; set; } = ValidateDesignation;
 
 	/// <summary>Holds a FIX 4.4 TaxAdvantageType, tag 495, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TaxAdvantageType                     { get; set; } = ValidateTaxAdvantageType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TaxAdvantageType                     { get; set; } = ValidateTaxAdvantageType;
 
 	/// <summary>Holds a FIX 4.4 RegistRejReasonText, tag 496, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      RegistRejReasonText                  { get; set; } = ValidateRegistRejReasonText;
+	public Action<Fix44Context, FixCheck, FixField.Text>      RegistRejReasonText                  { get; set; } = ValidateRegistRejReasonText;
 
 	/// <summary>Holds a FIX 4.4 FundRenewWaiv, tag 497, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> FundRenewWaiv                        { get; set; } = ValidateFundRenewWaiv;
+	public Action<Fix44Context, FixCheck, FixField.Character> FundRenewWaiv                        { get; set; } = ValidateFundRenewWaiv;
 
 	/// <summary>Holds a FIX 4.4 CashDistribAgentName, tag 498, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CashDistribAgentName                 { get; set; } = ValidateCashDistribAgentName;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CashDistribAgentName                 { get; set; } = ValidateCashDistribAgentName;
 
 	/// <summary>Holds a FIX 4.4 CashDistribAgentCode, tag 499, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CashDistribAgentCode                 { get; set; } = ValidateCashDistribAgentCode;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CashDistribAgentCode                 { get; set; } = ValidateCashDistribAgentCode;
 
 	/// <summary>Holds a FIX 4.4 CashDistribAgentAcctNumber, tag 500, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CashDistribAgentAcctNumber           { get; set; } = ValidateCashDistribAgentAcctNumber;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CashDistribAgentAcctNumber           { get; set; } = ValidateCashDistribAgentAcctNumber;
 
 	/// <summary>Holds a FIX 4.4 CashDistribPayRef, tag 501, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CashDistribPayRef                    { get; set; } = ValidateCashDistribPayRef;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CashDistribPayRef                    { get; set; } = ValidateCashDistribPayRef;
 
 	/// <summary>Holds a FIX 4.4 CashDistribAgentAcctName, tag 502, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CashDistribAgentAcctName             { get; set; } = ValidateCashDistribAgentAcctName;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CashDistribAgentAcctName             { get; set; } = ValidateCashDistribAgentAcctName;
 
 	/// <summary>Holds a FIX 4.4 CardStartDate, tag 503, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      CardStartDate                        { get; set; } = ValidateCardStartDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      CardStartDate                        { get; set; } = ValidateCardStartDate;
 
 	/// <summary>Holds a FIX 4.4 PaymentDate, tag 504, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      PaymentDate                          { get; set; } = ValidatePaymentDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      PaymentDate                          { get; set; } = ValidatePaymentDate;
 
 	/// <summary>Holds a FIX 4.4 PaymentRemitterID, tag 505, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      PaymentRemitterID                    { get; set; } = ValidatePaymentRemitterID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      PaymentRemitterID                    { get; set; } = ValidatePaymentRemitterID;
 
 	/// <summary>Holds a FIX 4.4 RegistStatus, tag 506, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> RegistStatus                         { get; set; } = ValidateRegistStatus;
+	public Action<Fix44Context, FixCheck, FixField.Character> RegistStatus                         { get; set; } = ValidateRegistStatus;
 
 	/// <summary>Holds a FIX 4.4 RegistRejReasonCode, tag 507, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   RegistRejReasonCode                  { get; set; } = ValidateRegistRejReasonCode;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   RegistRejReasonCode                  { get; set; } = ValidateRegistRejReasonCode;
 
 	/// <summary>Holds a FIX 4.4 RegistRefID, tag 508, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      RegistRefID                          { get; set; } = ValidateRegistRefID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      RegistRefID                          { get; set; } = ValidateRegistRefID;
 
 	/// <summary>Holds a FIX 4.4 RegistDtls, tag 509, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      RegistDtls                           { get; set; } = ValidateRegistDtls;
+	public Action<Fix44Context, FixCheck, FixField.Text>      RegistDtls                           { get; set; } = ValidateRegistDtls;
 
 	/// <summary>Holds a FIX 4.4 NoDistribInsts, tag 510, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoDistribInsts                       { get; set; } = ValidateNoDistribInsts;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoDistribInsts                       { get; set; } = ValidateNoDistribInsts;
 
 	/// <summary>Holds a FIX 4.4 RegistEmail, tag 511, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      RegistEmail                          { get; set; } = ValidateRegistEmail;
+	public Action<Fix44Context, FixCheck, FixField.Text>      RegistEmail                          { get; set; } = ValidateRegistEmail;
 
 	/// <summary>Holds a FIX 4.4 DistribPercentage, tag 512, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   DistribPercentage                    { get; set; } = ValidateDistribPercentage;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   DistribPercentage                    { get; set; } = ValidateDistribPercentage;
 
 	/// <summary>Holds a FIX 4.4 RegistID, tag 513, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      RegistID                             { get; set; } = ValidateRegistID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      RegistID                             { get; set; } = ValidateRegistID;
 
 	/// <summary>Holds a FIX 4.4 RegistTransType, tag 514, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> RegistTransType                      { get; set; } = ValidateRegistTransType;
+	public Action<Fix44Context, FixCheck, FixField.Character> RegistTransType                      { get; set; } = ValidateRegistTransType;
 
 	/// <summary>Holds a FIX 4.4 ExecValuationPoint, tag 515, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> ExecValuationPoint                   { get; set; } = ValidateExecValuationPoint;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> ExecValuationPoint                   { get; set; } = ValidateExecValuationPoint;
 
 	/// <summary>Holds a FIX 4.4 OrderPercent, tag 516, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   OrderPercent                         { get; set; } = ValidateOrderPercent;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   OrderPercent                         { get; set; } = ValidateOrderPercent;
 
 	/// <summary>Holds a FIX 4.4 OwnershipType, tag 517, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> OwnershipType                        { get; set; } = ValidateOwnershipType;
+	public Action<Fix44Context, FixCheck, FixField.Character> OwnershipType                        { get; set; } = ValidateOwnershipType;
 
 	/// <summary>Holds a FIX 4.4 NoContAmts, tag 518, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoContAmts                           { get; set; } = ValidateNoContAmts;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoContAmts                           { get; set; } = ValidateNoContAmts;
 
 	/// <summary>Holds a FIX 4.4 ContAmtType, tag 519, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ContAmtType                          { get; set; } = ValidateContAmtType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ContAmtType                          { get; set; } = ValidateContAmtType;
 
 	/// <summary>Holds a FIX 4.4 ContAmtValue, tag 520, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   ContAmtValue                         { get; set; } = ValidateContAmtValue;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   ContAmtValue                         { get; set; } = ValidateContAmtValue;
 
 	/// <summary>Holds a FIX 4.4 ContAmtCurr, tag 521, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ContAmtCurr                          { get; set; } = ValidateContAmtCurr;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ContAmtCurr                          { get; set; } = ValidateContAmtCurr;
 
 	/// <summary>Holds a FIX 4.4 OwnerType, tag 522, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   OwnerType                            { get; set; } = ValidateOwnerType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   OwnerType                            { get; set; } = ValidateOwnerType;
 
 	/// <summary>Holds a FIX 4.4 PartySubID, tag 523, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      PartySubID                           { get; set; } = ValidatePartySubID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      PartySubID                           { get; set; } = ValidatePartySubID;
 
 	/// <summary>Holds a FIX 4.4 NestedPartyID, tag 524, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      NestedPartyID                        { get; set; } = ValidateNestedPartyID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      NestedPartyID                        { get; set; } = ValidateNestedPartyID;
 
 	/// <summary>Holds a FIX 4.4 NestedPartyIDSource, tag 525, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> NestedPartyIDSource                  { get; set; } = ValidateNestedPartyIDSource;
+	public Action<Fix44Context, FixCheck, FixField.Character> NestedPartyIDSource                  { get; set; } = ValidateNestedPartyIDSource;
 
 	/// <summary>Holds a FIX 4.4 SecondaryClOrdID, tag 526, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SecondaryClOrdID                     { get; set; } = ValidateSecondaryClOrdID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SecondaryClOrdID                     { get; set; } = ValidateSecondaryClOrdID;
 
 	/// <summary>Holds a FIX 4.4 SecondaryExecID, tag 527, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SecondaryExecID                      { get; set; } = ValidateSecondaryExecID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SecondaryExecID                      { get; set; } = ValidateSecondaryExecID;
 
 	/// <summary>Holds a FIX 4.4 OrderCapacity, tag 528, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> OrderCapacity                        { get; set; } = ValidateOrderCapacity;
+	public Action<Fix44Context, FixCheck, FixField.Character> OrderCapacity                        { get; set; } = ValidateOrderCapacity;
 
 	/// <summary>Holds a FIX 4.4 OrderRestrictions, tag 529, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Multiple, bool>  OrderRestrictions                    { get; set; } = ValidateOrderRestrictions;
+	public Action<Fix44Context, FixCheck, FixField.Multiple>  OrderRestrictions                    { get; set; } = ValidateOrderRestrictions;
 
 	/// <summary>Holds a FIX 4.4 MassCancelRequestType, tag 530, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> MassCancelRequestType                { get; set; } = ValidateMassCancelRequestType;
+	public Action<Fix44Context, FixCheck, FixField.Character> MassCancelRequestType                { get; set; } = ValidateMassCancelRequestType;
 
 	/// <summary>Holds a FIX 4.4 MassCancelResponse, tag 531, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> MassCancelResponse                   { get; set; } = ValidateMassCancelResponse;
+	public Action<Fix44Context, FixCheck, FixField.Character> MassCancelResponse                   { get; set; } = ValidateMassCancelResponse;
 
 	/// <summary>Holds a FIX 4.4 MassCancelRejectReason, tag 532, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      MassCancelRejectReason               { get; set; } = ValidateMassCancelRejectReason;
+	public Action<Fix44Context, FixCheck, FixField.Text>      MassCancelRejectReason               { get; set; } = ValidateMassCancelRejectReason;
 
 	/// <summary>Holds a FIX 4.4 TotalAffectedOrders, tag 533, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TotalAffectedOrders                  { get; set; } = ValidateTotalAffectedOrders;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TotalAffectedOrders                  { get; set; } = ValidateTotalAffectedOrders;
 
 	/// <summary>Holds a FIX 4.4 NoAffectedOrders, tag 534, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoAffectedOrders                     { get; set; } = ValidateNoAffectedOrders;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoAffectedOrders                     { get; set; } = ValidateNoAffectedOrders;
 
 	/// <summary>Holds a FIX 4.4 AffectedOrderID, tag 535, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      AffectedOrderID                      { get; set; } = ValidateAffectedOrderID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      AffectedOrderID                      { get; set; } = ValidateAffectedOrderID;
 
 	/// <summary>Holds a FIX 4.4 AffectedSecondaryOrderID, tag 536, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      AffectedSecondaryOrderID             { get; set; } = ValidateAffectedSecondaryOrderID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      AffectedSecondaryOrderID             { get; set; } = ValidateAffectedSecondaryOrderID;
 
 	/// <summary>Holds a FIX 4.4 QuoteType, tag 537, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   QuoteType                            { get; set; } = ValidateQuoteType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   QuoteType                            { get; set; } = ValidateQuoteType;
 
 	/// <summary>Holds a FIX 4.4 NestedPartyRole, tag 538, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NestedPartyRole                      { get; set; } = ValidateNestedPartyRole;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NestedPartyRole                      { get; set; } = ValidateNestedPartyRole;
 
 	/// <summary>Holds a FIX 4.4 NoNestedPartyIDs, tag 539, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoNestedPartyIDs                     { get; set; } = ValidateNoNestedPartyIDs;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoNestedPartyIDs                     { get; set; } = ValidateNoNestedPartyIDs;
 
 	/// <summary>Holds a FIX 4.4 TotalAccruedInterestAmt, tag 540, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   TotalAccruedInterestAmt              { get; set; } = ValidateTotalAccruedInterestAmt;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   TotalAccruedInterestAmt              { get; set; } = ValidateTotalAccruedInterestAmt;
 
 	/// <summary>Holds a FIX 4.4 MaturityDate, tag 541, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      MaturityDate                         { get; set; } = ValidateMaturityDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      MaturityDate                         { get; set; } = ValidateMaturityDate;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingMaturityDate, tag 542, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      UnderlyingMaturityDate               { get; set; } = ValidateUnderlyingMaturityDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      UnderlyingMaturityDate               { get; set; } = ValidateUnderlyingMaturityDate;
 
 	/// <summary>Holds a FIX 4.4 InstrRegistry, tag 543, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      InstrRegistry                        { get; set; } = ValidateInstrRegistry;
+	public Action<Fix44Context, FixCheck, FixField.Text>      InstrRegistry                        { get; set; } = ValidateInstrRegistry;
 
 	/// <summary>Holds a FIX 4.4 CashMargin, tag 544, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> CashMargin                           { get; set; } = ValidateCashMargin;
+	public Action<Fix44Context, FixCheck, FixField.Character> CashMargin                           { get; set; } = ValidateCashMargin;
 
 	/// <summary>Holds a FIX 4.4 NestedPartySubID, tag 545, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      NestedPartySubID                     { get; set; } = ValidateNestedPartySubID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      NestedPartySubID                     { get; set; } = ValidateNestedPartySubID;
 
 	/// <summary>Holds a FIX 4.4 Scope, tag 546, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Multiple, bool>  Scope                                { get; set; } = ValidateScope;
+	public Action<Fix44Context, FixCheck, FixField.Multiple>  Scope                                { get; set; } = ValidateScope;
 
 	/// <summary>Holds a FIX 4.4 MDImplicitDelete, tag 547, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   MDImplicitDelete                     { get; set; } = ValidateMDImplicitDelete;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   MDImplicitDelete                     { get; set; } = ValidateMDImplicitDelete;
 
 	/// <summary>Holds a FIX 4.4 CrossID, tag 548, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CrossID                              { get; set; } = ValidateCrossID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CrossID                              { get; set; } = ValidateCrossID;
 
 	/// <summary>Holds a FIX 4.4 CrossType, tag 549, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   CrossType                            { get; set; } = ValidateCrossType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   CrossType                            { get; set; } = ValidateCrossType;
 
 	/// <summary>Holds a FIX 4.4 CrossPrioritization, tag 550, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   CrossPrioritization                  { get; set; } = ValidateCrossPrioritization;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   CrossPrioritization                  { get; set; } = ValidateCrossPrioritization;
 
 	/// <summary>Holds a FIX 4.4 OrigCrossID, tag 551, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      OrigCrossID                          { get; set; } = ValidateOrigCrossID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      OrigCrossID                          { get; set; } = ValidateOrigCrossID;
 
 	/// <summary>Holds a FIX 4.4 NoSides, tag 552, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoSides                              { get; set; } = ValidateNoSides;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoSides                              { get; set; } = ValidateNoSides;
 
 	/// <summary>Holds a FIX 4.4 Username, tag 553, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      Username                             { get; set; } = ValidateUsername;
+	public Action<Fix44Context, FixCheck, FixField.Text>      Username                             { get; set; } = ValidateUsername;
 
 	/// <summary>Holds a FIX 4.4 Password, tag 554, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      Password                             { get; set; } = ValidatePassword;
+	public Action<Fix44Context, FixCheck, FixField.Text>      Password                             { get; set; } = ValidatePassword;
 
 	/// <summary>Holds a FIX 4.4 NoLegs, tag 555, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoLegs                               { get; set; } = ValidateNoLegs;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoLegs                               { get; set; } = ValidateNoLegs;
 
 	/// <summary>Holds a FIX 4.4 LegCurrency, tag 556, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegCurrency                          { get; set; } = ValidateLegCurrency;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegCurrency                          { get; set; } = ValidateLegCurrency;
 
 	/// <summary>Holds a FIX 4.4 TotNoSecurityTypes, tag 557, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TotNoSecurityTypes                   { get; set; } = ValidateTotNoSecurityTypes;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TotNoSecurityTypes                   { get; set; } = ValidateTotNoSecurityTypes;
 
 	/// <summary>Holds a FIX 4.4 NoSecurityTypes, tag 558, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoSecurityTypes                      { get; set; } = ValidateNoSecurityTypes;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoSecurityTypes                      { get; set; } = ValidateNoSecurityTypes;
 
 	/// <summary>Holds a FIX 4.4 SecurityListRequestType, tag 559, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   SecurityListRequestType              { get; set; } = ValidateSecurityListRequestType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   SecurityListRequestType              { get; set; } = ValidateSecurityListRequestType;
 
 	/// <summary>Holds a FIX 4.4 SecurityRequestResult, tag 560, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   SecurityRequestResult                { get; set; } = ValidateSecurityRequestResult;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   SecurityRequestResult                { get; set; } = ValidateSecurityRequestResult;
 
 	/// <summary>Holds a FIX 4.4 RoundLot, tag 561, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   RoundLot                             { get; set; } = ValidateRoundLot;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   RoundLot                             { get; set; } = ValidateRoundLot;
 
 	/// <summary>Holds a FIX 4.4 MinTradeVol, tag 562, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   MinTradeVol                          { get; set; } = ValidateMinTradeVol;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   MinTradeVol                          { get; set; } = ValidateMinTradeVol;
 
 	/// <summary>Holds a FIX 4.4 MultiLegRptTypeReq, tag 563, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   MultiLegRptTypeReq                   { get; set; } = ValidateMultiLegRptTypeReq;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   MultiLegRptTypeReq                   { get; set; } = ValidateMultiLegRptTypeReq;
 
 	/// <summary>Holds a FIX 4.4 LegPositionEffect, tag 564, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> LegPositionEffect                    { get; set; } = ValidateLegPositionEffect;
+	public Action<Fix44Context, FixCheck, FixField.Character> LegPositionEffect                    { get; set; } = ValidateLegPositionEffect;
 
 	/// <summary>Holds a FIX 4.4 LegCoveredOrUncovered, tag 565, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   LegCoveredOrUncovered                { get; set; } = ValidateLegCoveredOrUncovered;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   LegCoveredOrUncovered                { get; set; } = ValidateLegCoveredOrUncovered;
 
 	/// <summary>Holds a FIX 4.4 LegPrice, tag 566, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LegPrice                             { get; set; } = ValidateLegPrice;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LegPrice                             { get; set; } = ValidateLegPrice;
 
 	/// <summary>Holds a FIX 4.4 TradSesStatusRejReason, tag 567, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TradSesStatusRejReason               { get; set; } = ValidateTradSesStatusRejReason;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TradSesStatusRejReason               { get; set; } = ValidateTradSesStatusRejReason;
 
 	/// <summary>Holds a FIX 4.4 TradeRequestID, tag 568, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TradeRequestID                       { get; set; } = ValidateTradeRequestID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TradeRequestID                       { get; set; } = ValidateTradeRequestID;
 
 	/// <summary>Holds a FIX 4.4 TradeRequestType, tag 569, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TradeRequestType                     { get; set; } = ValidateTradeRequestType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TradeRequestType                     { get; set; } = ValidateTradeRequestType;
 
 	/// <summary>Holds a FIX 4.4 PreviouslyReported, tag 570, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   PreviouslyReported                   { get; set; } = ValidatePreviouslyReported;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   PreviouslyReported                   { get; set; } = ValidatePreviouslyReported;
 
 	/// <summary>Holds a FIX 4.4 TradeReportID, tag 571, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TradeReportID                        { get; set; } = ValidateTradeReportID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TradeReportID                        { get; set; } = ValidateTradeReportID;
 
 	/// <summary>Holds a FIX 4.4 TradeReportRefID, tag 572, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TradeReportRefID                     { get; set; } = ValidateTradeReportRefID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TradeReportRefID                     { get; set; } = ValidateTradeReportRefID;
 
 	/// <summary>Holds a FIX 4.4 MatchStatus, tag 573, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> MatchStatus                          { get; set; } = ValidateMatchStatus;
+	public Action<Fix44Context, FixCheck, FixField.Character> MatchStatus                          { get; set; } = ValidateMatchStatus;
 
 	/// <summary>Holds a FIX 4.4 MatchType, tag 574, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      MatchType                            { get; set; } = ValidateMatchType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      MatchType                            { get; set; } = ValidateMatchType;
 
 	/// <summary>Holds a FIX 4.4 OddLot, tag 575, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   OddLot                               { get; set; } = ValidateOddLot;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   OddLot                               { get; set; } = ValidateOddLot;
 
 	/// <summary>Holds a FIX 4.4 NoClearingInstructions, tag 576, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoClearingInstructions               { get; set; } = ValidateNoClearingInstructions;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoClearingInstructions               { get; set; } = ValidateNoClearingInstructions;
 
 	/// <summary>Holds a FIX 4.4 ClearingInstruction, tag 577, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ClearingInstruction                  { get; set; } = ValidateClearingInstruction;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ClearingInstruction                  { get; set; } = ValidateClearingInstruction;
 
 	/// <summary>Holds a FIX 4.4 TradeInputSource, tag 578, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TradeInputSource                     { get; set; } = ValidateTradeInputSource;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TradeInputSource                     { get; set; } = ValidateTradeInputSource;
 
 	/// <summary>Holds a FIX 4.4 TradeInputDevice, tag 579, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TradeInputDevice                     { get; set; } = ValidateTradeInputDevice;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TradeInputDevice                     { get; set; } = ValidateTradeInputDevice;
 
 	/// <summary>Holds a FIX 4.4 NoDates, tag 580, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoDates                              { get; set; } = ValidateNoDates;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoDates                              { get; set; } = ValidateNoDates;
 
 	/// <summary>Holds a FIX 4.4 AccountType, tag 581, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   AccountType                          { get; set; } = ValidateAccountType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   AccountType                          { get; set; } = ValidateAccountType;
 
 	/// <summary>Holds a FIX 4.4 CustOrderCapacity, tag 582, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   CustOrderCapacity                    { get; set; } = ValidateCustOrderCapacity;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   CustOrderCapacity                    { get; set; } = ValidateCustOrderCapacity;
 
 	/// <summary>Holds a FIX 4.4 ClOrdLinkID, tag 583, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ClOrdLinkID                          { get; set; } = ValidateClOrdLinkID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ClOrdLinkID                          { get; set; } = ValidateClOrdLinkID;
 
 	/// <summary>Holds a FIX 4.4 MassStatusReqID, tag 584, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      MassStatusReqID                      { get; set; } = ValidateMassStatusReqID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      MassStatusReqID                      { get; set; } = ValidateMassStatusReqID;
 
 	/// <summary>Holds a FIX 4.4 MassStatusReqType, tag 585, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   MassStatusReqType                    { get; set; } = ValidateMassStatusReqType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   MassStatusReqType                    { get; set; } = ValidateMassStatusReqType;
 
 	/// <summary>Holds a FIX 4.4 OrigOrdModTime, tag 586, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> OrigOrdModTime                       { get; set; } = ValidateOrigOrdModTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> OrigOrdModTime                       { get; set; } = ValidateOrigOrdModTime;
 
 	/// <summary>Holds a FIX 4.4 LegSettlType, tag 587, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> LegSettlType                         { get; set; } = ValidateLegSettlType;
+	public Action<Fix44Context, FixCheck, FixField.Character> LegSettlType                         { get; set; } = ValidateLegSettlType;
 
 	/// <summary>Holds a FIX 4.4 LegSettlDate, tag 588, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      LegSettlDate                         { get; set; } = ValidateLegSettlDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      LegSettlDate                         { get; set; } = ValidateLegSettlDate;
 
 	/// <summary>Holds a FIX 4.4 DayBookingInst, tag 589, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> DayBookingInst                       { get; set; } = ValidateDayBookingInst;
+	public Action<Fix44Context, FixCheck, FixField.Character> DayBookingInst                       { get; set; } = ValidateDayBookingInst;
 
 	/// <summary>Holds a FIX 4.4 BookingUnit, tag 590, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> BookingUnit                          { get; set; } = ValidateBookingUnit;
+	public Action<Fix44Context, FixCheck, FixField.Character> BookingUnit                          { get; set; } = ValidateBookingUnit;
 
 	/// <summary>Holds a FIX 4.4 PreallocMethod, tag 591, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> PreallocMethod                       { get; set; } = ValidatePreallocMethod;
+	public Action<Fix44Context, FixCheck, FixField.Character> PreallocMethod                       { get; set; } = ValidatePreallocMethod;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingCountryOfIssue, tag 592, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingCountryOfIssue             { get; set; } = ValidateUnderlyingCountryOfIssue;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingCountryOfIssue             { get; set; } = ValidateUnderlyingCountryOfIssue;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingStateOrProvinceOfIssue, tag 593, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingStateOrProvinceOfIssue     { get; set; } = ValidateUnderlyingStateOrProvinceOfIssue;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingStateOrProvinceOfIssue     { get; set; } = ValidateUnderlyingStateOrProvinceOfIssue;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingLocaleOfIssue, tag 594, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingLocaleOfIssue              { get; set; } = ValidateUnderlyingLocaleOfIssue;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingLocaleOfIssue              { get; set; } = ValidateUnderlyingLocaleOfIssue;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingInstrRegistry, tag 595, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingInstrRegistry              { get; set; } = ValidateUnderlyingInstrRegistry;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingInstrRegistry              { get; set; } = ValidateUnderlyingInstrRegistry;
 
 	/// <summary>Holds a FIX 4.4 LegCountryOfIssue, tag 596, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegCountryOfIssue                    { get; set; } = ValidateLegCountryOfIssue;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegCountryOfIssue                    { get; set; } = ValidateLegCountryOfIssue;
 
 	/// <summary>Holds a FIX 4.4 LegStateOrProvinceOfIssue, tag 597, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegStateOrProvinceOfIssue            { get; set; } = ValidateLegStateOrProvinceOfIssue;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegStateOrProvinceOfIssue            { get; set; } = ValidateLegStateOrProvinceOfIssue;
 
 	/// <summary>Holds a FIX 4.4 LegLocaleOfIssue, tag 598, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegLocaleOfIssue                     { get; set; } = ValidateLegLocaleOfIssue;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegLocaleOfIssue                     { get; set; } = ValidateLegLocaleOfIssue;
 
 	/// <summary>Holds a FIX 4.4 LegInstrRegistry, tag 599, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegInstrRegistry                     { get; set; } = ValidateLegInstrRegistry;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegInstrRegistry                     { get; set; } = ValidateLegInstrRegistry;
 
 	/// <summary>Holds a FIX 4.4 LegSymbol, tag 600, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegSymbol                            { get; set; } = ValidateLegSymbol;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegSymbol                            { get; set; } = ValidateLegSymbol;
 
 	/// <summary>Holds a FIX 4.4 LegSymbolSfx, tag 601, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegSymbolSfx                         { get; set; } = ValidateLegSymbolSfx;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegSymbolSfx                         { get; set; } = ValidateLegSymbolSfx;
 
 	/// <summary>Holds a FIX 4.4 LegSecurityID, tag 602, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegSecurityID                        { get; set; } = ValidateLegSecurityID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegSecurityID                        { get; set; } = ValidateLegSecurityID;
 
 	/// <summary>Holds a FIX 4.4 LegSecurityIDSource, tag 603, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegSecurityIDSource                  { get; set; } = ValidateLegSecurityIDSource;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegSecurityIDSource                  { get; set; } = ValidateLegSecurityIDSource;
 
 	/// <summary>Holds a FIX 4.4 NoLegSecurityAltID, tag 604, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoLegSecurityAltID                   { get; set; } = ValidateNoLegSecurityAltID;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoLegSecurityAltID                   { get; set; } = ValidateNoLegSecurityAltID;
 
 	/// <summary>Holds a FIX 4.4 LegSecurityAltID, tag 605, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegSecurityAltID                     { get; set; } = ValidateLegSecurityAltID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegSecurityAltID                     { get; set; } = ValidateLegSecurityAltID;
 
 	/// <summary>Holds a FIX 4.4 LegSecurityAltIDSource, tag 606, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegSecurityAltIDSource               { get; set; } = ValidateLegSecurityAltIDSource;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegSecurityAltIDSource               { get; set; } = ValidateLegSecurityAltIDSource;
 
 	/// <summary>Holds a FIX 4.4 LegProduct, tag 607, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   LegProduct                           { get; set; } = ValidateLegProduct;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   LegProduct                           { get; set; } = ValidateLegProduct;
 
 	/// <summary>Holds a FIX 4.4 LegCFICode, tag 608, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegCFICode                           { get; set; } = ValidateLegCFICode;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegCFICode                           { get; set; } = ValidateLegCFICode;
 
 	/// <summary>Holds a FIX 4.4 LegSecurityType, tag 609, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegSecurityType                      { get; set; } = ValidateLegSecurityType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegSecurityType                      { get; set; } = ValidateLegSecurityType;
 
 	/// <summary>Holds a FIX 4.4 LegMaturityMonthYear, tag 610, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.MonthYear, bool> LegMaturityMonthYear                 { get; set; } = ValidateLegMaturityMonthYear;
+	public Action<Fix44Context, FixCheck, FixField.MonthYear> LegMaturityMonthYear                 { get; set; } = ValidateLegMaturityMonthYear;
 
 	/// <summary>Holds a FIX 4.4 LegMaturityDate, tag 611, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      LegMaturityDate                      { get; set; } = ValidateLegMaturityDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      LegMaturityDate                      { get; set; } = ValidateLegMaturityDate;
 
 	/// <summary>Holds a FIX 4.4 LegStrikePrice, tag 612, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LegStrikePrice                       { get; set; } = ValidateLegStrikePrice;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LegStrikePrice                       { get; set; } = ValidateLegStrikePrice;
 
 	/// <summary>Holds a FIX 4.4 LegOptAttribute, tag 613, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> LegOptAttribute                      { get; set; } = ValidateLegOptAttribute;
+	public Action<Fix44Context, FixCheck, FixField.Character> LegOptAttribute                      { get; set; } = ValidateLegOptAttribute;
 
 	/// <summary>Holds a FIX 4.4 LegContractMultiplier, tag 614, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LegContractMultiplier                { get; set; } = ValidateLegContractMultiplier;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LegContractMultiplier                { get; set; } = ValidateLegContractMultiplier;
 
 	/// <summary>Holds a FIX 4.4 LegCouponRate, tag 615, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LegCouponRate                        { get; set; } = ValidateLegCouponRate;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LegCouponRate                        { get; set; } = ValidateLegCouponRate;
 
 	/// <summary>Holds a FIX 4.4 LegSecurityExchange, tag 616, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegSecurityExchange                  { get; set; } = ValidateLegSecurityExchange;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegSecurityExchange                  { get; set; } = ValidateLegSecurityExchange;
 
 	/// <summary>Holds a FIX 4.4 LegIssuer, tag 617, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegIssuer                            { get; set; } = ValidateLegIssuer;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegIssuer                            { get; set; } = ValidateLegIssuer;
 
 	/// <summary>Holds a FIX 4.4 EncodedLegIssuerLen, tag 618, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   EncodedLegIssuerLen                  { get; set; } = ValidateEncodedLegIssuerLen;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   EncodedLegIssuerLen                  { get; set; } = ValidateEncodedLegIssuerLen;
 
 	/// <summary>Holds a FIX 4.4 EncodedLegIssuer, tag 619, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Data, bool>      EncodedLegIssuer                     { get; set; } = ValidateEncodedLegIssuer;
+	public Action<Fix44Context, FixCheck, FixField.Data>      EncodedLegIssuer                     { get; set; } = ValidateEncodedLegIssuer;
 
 	/// <summary>Holds a FIX 4.4 LegSecurityDesc, tag 620, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegSecurityDesc                      { get; set; } = ValidateLegSecurityDesc;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegSecurityDesc                      { get; set; } = ValidateLegSecurityDesc;
 
 	/// <summary>Holds a FIX 4.4 EncodedLegSecurityDescLen, tag 621, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   EncodedLegSecurityDescLen            { get; set; } = ValidateEncodedLegSecurityDescLen;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   EncodedLegSecurityDescLen            { get; set; } = ValidateEncodedLegSecurityDescLen;
 
 	/// <summary>Holds a FIX 4.4 EncodedLegSecurityDesc, tag 622, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Data, bool>      EncodedLegSecurityDesc               { get; set; } = ValidateEncodedLegSecurityDesc;
+	public Action<Fix44Context, FixCheck, FixField.Data>      EncodedLegSecurityDesc               { get; set; } = ValidateEncodedLegSecurityDesc;
 
 	/// <summary>Holds a FIX 4.4 LegRatioQty, tag 623, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LegRatioQty                          { get; set; } = ValidateLegRatioQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LegRatioQty                          { get; set; } = ValidateLegRatioQty;
 
 	/// <summary>Holds a FIX 4.4 LegSide, tag 624, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> LegSide                              { get; set; } = ValidateLegSide;
+	public Action<Fix44Context, FixCheck, FixField.Character> LegSide                              { get; set; } = ValidateLegSide;
 
 	/// <summary>Holds a FIX 4.4 TradingSessionSubID, tag 625, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TradingSessionSubID                  { get; set; } = ValidateTradingSessionSubID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TradingSessionSubID                  { get; set; } = ValidateTradingSessionSubID;
 
 	/// <summary>Holds a FIX 4.4 AllocType, tag 626, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   AllocType                            { get; set; } = ValidateAllocType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   AllocType                            { get; set; } = ValidateAllocType;
 
 	/// <summary>Holds a FIX 4.4 NoHops, tag 627, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoHops                               { get; set; } = ValidateNoHops;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoHops                               { get; set; } = ValidateNoHops;
 
 	/// <summary>Holds a FIX 4.4 HopCompID, tag 628, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      HopCompID                            { get; set; } = ValidateHopCompID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      HopCompID                            { get; set; } = ValidateHopCompID;
 
 	/// <summary>Holds a FIX 4.4 HopSendingTime, tag 629, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> HopSendingTime                       { get; set; } = ValidateHopSendingTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> HopSendingTime                       { get; set; } = ValidateHopSendingTime;
 
 	/// <summary>Holds a FIX 4.4 HopRefID, tag 630, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   HopRefID                             { get; set; } = ValidateHopRefID;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   HopRefID                             { get; set; } = ValidateHopRefID;
 
 	/// <summary>Holds a FIX 4.4 MidPx, tag 631, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   MidPx                                { get; set; } = ValidateMidPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   MidPx                                { get; set; } = ValidateMidPx;
 
 	/// <summary>Holds a FIX 4.4 BidYield, tag 632, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   BidYield                             { get; set; } = ValidateBidYield;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   BidYield                             { get; set; } = ValidateBidYield;
 
 	/// <summary>Holds a FIX 4.4 MidYield, tag 633, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   MidYield                             { get; set; } = ValidateMidYield;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   MidYield                             { get; set; } = ValidateMidYield;
 
 	/// <summary>Holds a FIX 4.4 OfferYield, tag 634, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   OfferYield                           { get; set; } = ValidateOfferYield;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   OfferYield                           { get; set; } = ValidateOfferYield;
 
 	/// <summary>Holds a FIX 4.4 ClearingFeeIndicator, tag 635, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ClearingFeeIndicator                 { get; set; } = ValidateClearingFeeIndicator;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ClearingFeeIndicator                 { get; set; } = ValidateClearingFeeIndicator;
 
 	/// <summary>Holds a FIX 4.4 WorkingIndicator, tag 636, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   WorkingIndicator                     { get; set; } = ValidateWorkingIndicator;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   WorkingIndicator                     { get; set; } = ValidateWorkingIndicator;
 
 	/// <summary>Holds a FIX 4.4 LegLastPx, tag 637, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LegLastPx                            { get; set; } = ValidateLegLastPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LegLastPx                            { get; set; } = ValidateLegLastPx;
 
 	/// <summary>Holds a FIX 4.4 PriorityIndicator, tag 638, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PriorityIndicator                    { get; set; } = ValidatePriorityIndicator;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PriorityIndicator                    { get; set; } = ValidatePriorityIndicator;
 
 	/// <summary>Holds a FIX 4.4 PriceImprovement, tag 639, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   PriceImprovement                     { get; set; } = ValidatePriceImprovement;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   PriceImprovement                     { get; set; } = ValidatePriceImprovement;
 
 	/// <summary>Holds a FIX 4.4 Price2, tag 640, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   Price2                               { get; set; } = ValidatePrice2;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   Price2                               { get; set; } = ValidatePrice2;
 
 	/// <summary>Holds a FIX 4.4 LastForwardPoints2, tag 641, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LastForwardPoints2                   { get; set; } = ValidateLastForwardPoints2;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LastForwardPoints2                   { get; set; } = ValidateLastForwardPoints2;
 
 	/// <summary>Holds a FIX 4.4 BidForwardPoints2, tag 642, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   BidForwardPoints2                    { get; set; } = ValidateBidForwardPoints2;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   BidForwardPoints2                    { get; set; } = ValidateBidForwardPoints2;
 
 	/// <summary>Holds a FIX 4.4 OfferForwardPoints2, tag 643, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   OfferForwardPoints2                  { get; set; } = ValidateOfferForwardPoints2;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   OfferForwardPoints2                  { get; set; } = ValidateOfferForwardPoints2;
 
 	/// <summary>Holds a FIX 4.4 RFQReqID, tag 644, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      RFQReqID                             { get; set; } = ValidateRFQReqID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      RFQReqID                             { get; set; } = ValidateRFQReqID;
 
 	/// <summary>Holds a FIX 4.4 MktBidPx, tag 645, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   MktBidPx                             { get; set; } = ValidateMktBidPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   MktBidPx                             { get; set; } = ValidateMktBidPx;
 
 	/// <summary>Holds a FIX 4.4 MktOfferPx, tag 646, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   MktOfferPx                           { get; set; } = ValidateMktOfferPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   MktOfferPx                           { get; set; } = ValidateMktOfferPx;
 
 	/// <summary>Holds a FIX 4.4 MinBidSize, tag 647, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   MinBidSize                           { get; set; } = ValidateMinBidSize;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   MinBidSize                           { get; set; } = ValidateMinBidSize;
 
 	/// <summary>Holds a FIX 4.4 MinOfferSize, tag 648, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   MinOfferSize                         { get; set; } = ValidateMinOfferSize;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   MinOfferSize                         { get; set; } = ValidateMinOfferSize;
 
 	/// <summary>Holds a FIX 4.4 QuoteStatusReqID, tag 649, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      QuoteStatusReqID                     { get; set; } = ValidateQuoteStatusReqID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      QuoteStatusReqID                     { get; set; } = ValidateQuoteStatusReqID;
 
 	/// <summary>Holds a FIX 4.4 LegalConfirm, tag 650, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   LegalConfirm                         { get; set; } = ValidateLegalConfirm;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   LegalConfirm                         { get; set; } = ValidateLegalConfirm;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingLastPx, tag 651, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   UnderlyingLastPx                     { get; set; } = ValidateUnderlyingLastPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   UnderlyingLastPx                     { get; set; } = ValidateUnderlyingLastPx;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingLastQty, tag 652, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   UnderlyingLastQty                    { get; set; } = ValidateUnderlyingLastQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   UnderlyingLastQty                    { get; set; } = ValidateUnderlyingLastQty;
 
 	/// <summary>Holds a FIX 4.4 LegRefID, tag 654, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegRefID                             { get; set; } = ValidateLegRefID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegRefID                             { get; set; } = ValidateLegRefID;
 
 	/// <summary>Holds a FIX 4.4 ContraLegRefID, tag 655, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ContraLegRefID                       { get; set; } = ValidateContraLegRefID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ContraLegRefID                       { get; set; } = ValidateContraLegRefID;
 
 	/// <summary>Holds a FIX 4.4 SettlCurrBidFxRate, tag 656, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   SettlCurrBidFxRate                   { get; set; } = ValidateSettlCurrBidFxRate;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   SettlCurrBidFxRate                   { get; set; } = ValidateSettlCurrBidFxRate;
 
 	/// <summary>Holds a FIX 4.4 SettlCurrOfferFxRate, tag 657, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   SettlCurrOfferFxRate                 { get; set; } = ValidateSettlCurrOfferFxRate;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   SettlCurrOfferFxRate                 { get; set; } = ValidateSettlCurrOfferFxRate;
 
 	/// <summary>Holds a FIX 4.4 QuoteRequestRejectReason, tag 658, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   QuoteRequestRejectReason             { get; set; } = ValidateQuoteRequestRejectReason;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   QuoteRequestRejectReason             { get; set; } = ValidateQuoteRequestRejectReason;
 
 	/// <summary>Holds a FIX 4.4 SideComplianceID, tag 659, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SideComplianceID                     { get; set; } = ValidateSideComplianceID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SideComplianceID                     { get; set; } = ValidateSideComplianceID;
 
 	/// <summary>Holds a FIX 4.4 AcctIDSource, tag 660, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   AcctIDSource                         { get; set; } = ValidateAcctIDSource;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   AcctIDSource                         { get; set; } = ValidateAcctIDSource;
 
 	/// <summary>Holds a FIX 4.4 AllocAcctIDSource, tag 661, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   AllocAcctIDSource                    { get; set; } = ValidateAllocAcctIDSource;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   AllocAcctIDSource                    { get; set; } = ValidateAllocAcctIDSource;
 
 	/// <summary>Holds a FIX 4.4 BenchmarkPrice, tag 662, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   BenchmarkPrice                       { get; set; } = ValidateBenchmarkPrice;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   BenchmarkPrice                       { get; set; } = ValidateBenchmarkPrice;
 
 	/// <summary>Holds a FIX 4.4 BenchmarkPriceType, tag 663, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   BenchmarkPriceType                   { get; set; } = ValidateBenchmarkPriceType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   BenchmarkPriceType                   { get; set; } = ValidateBenchmarkPriceType;
 
 	/// <summary>Holds a FIX 4.4 ConfirmID, tag 664, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ConfirmID                            { get; set; } = ValidateConfirmID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ConfirmID                            { get; set; } = ValidateConfirmID;
 
 	/// <summary>Holds a FIX 4.4 ConfirmStatus, tag 665, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ConfirmStatus                        { get; set; } = ValidateConfirmStatus;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ConfirmStatus                        { get; set; } = ValidateConfirmStatus;
 
 	/// <summary>Holds a FIX 4.4 ConfirmTransType, tag 666, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ConfirmTransType                     { get; set; } = ValidateConfirmTransType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ConfirmTransType                     { get; set; } = ValidateConfirmTransType;
 
 	/// <summary>Holds a FIX 4.4 ContractSettlMonth, tag 667, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.MonthYear, bool> ContractSettlMonth                   { get; set; } = ValidateContractSettlMonth;
+	public Action<Fix44Context, FixCheck, FixField.MonthYear> ContractSettlMonth                   { get; set; } = ValidateContractSettlMonth;
 
 	/// <summary>Holds a FIX 4.4 DeliveryForm, tag 668, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   DeliveryForm                         { get; set; } = ValidateDeliveryForm;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   DeliveryForm                         { get; set; } = ValidateDeliveryForm;
 
 	/// <summary>Holds a FIX 4.4 LastParPx, tag 669, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LastParPx                            { get; set; } = ValidateLastParPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LastParPx                            { get; set; } = ValidateLastParPx;
 
 	/// <summary>Holds a FIX 4.4 NoLegAllocs, tag 670, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoLegAllocs                          { get; set; } = ValidateNoLegAllocs;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoLegAllocs                          { get; set; } = ValidateNoLegAllocs;
 
 	/// <summary>Holds a FIX 4.4 LegAllocAccount, tag 671, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegAllocAccount                      { get; set; } = ValidateLegAllocAccount;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegAllocAccount                      { get; set; } = ValidateLegAllocAccount;
 
 	/// <summary>Holds a FIX 4.4 LegIndividualAllocID, tag 672, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegIndividualAllocID                 { get; set; } = ValidateLegIndividualAllocID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegIndividualAllocID                 { get; set; } = ValidateLegIndividualAllocID;
 
 	/// <summary>Holds a FIX 4.4 LegAllocQty, tag 673, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LegAllocQty                          { get; set; } = ValidateLegAllocQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LegAllocQty                          { get; set; } = ValidateLegAllocQty;
 
 	/// <summary>Holds a FIX 4.4 LegAllocAcctIDSource, tag 674, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegAllocAcctIDSource                 { get; set; } = ValidateLegAllocAcctIDSource;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegAllocAcctIDSource                 { get; set; } = ValidateLegAllocAcctIDSource;
 
 	/// <summary>Holds a FIX 4.4 LegSettlCurrency, tag 675, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegSettlCurrency                     { get; set; } = ValidateLegSettlCurrency;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegSettlCurrency                     { get; set; } = ValidateLegSettlCurrency;
 
 	/// <summary>Holds a FIX 4.4 LegBenchmarkCurveCurrency, tag 676, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegBenchmarkCurveCurrency            { get; set; } = ValidateLegBenchmarkCurveCurrency;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegBenchmarkCurveCurrency            { get; set; } = ValidateLegBenchmarkCurveCurrency;
 
 	/// <summary>Holds a FIX 4.4 LegBenchmarkCurveName, tag 677, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegBenchmarkCurveName                { get; set; } = ValidateLegBenchmarkCurveName;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegBenchmarkCurveName                { get; set; } = ValidateLegBenchmarkCurveName;
 
 	/// <summary>Holds a FIX 4.4 LegBenchmarkCurvePoint, tag 678, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegBenchmarkCurvePoint               { get; set; } = ValidateLegBenchmarkCurvePoint;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegBenchmarkCurvePoint               { get; set; } = ValidateLegBenchmarkCurvePoint;
 
 	/// <summary>Holds a FIX 4.4 LegBenchmarkPrice, tag 679, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LegBenchmarkPrice                    { get; set; } = ValidateLegBenchmarkPrice;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LegBenchmarkPrice                    { get; set; } = ValidateLegBenchmarkPrice;
 
 	/// <summary>Holds a FIX 4.4 LegBenchmarkPriceType, tag 680, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   LegBenchmarkPriceType                { get; set; } = ValidateLegBenchmarkPriceType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   LegBenchmarkPriceType                { get; set; } = ValidateLegBenchmarkPriceType;
 
 	/// <summary>Holds a FIX 4.4 LegBidPx, tag 681, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LegBidPx                             { get; set; } = ValidateLegBidPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LegBidPx                             { get; set; } = ValidateLegBidPx;
 
 	/// <summary>Holds a FIX 4.4 LegIOIQty, tag 682, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegIOIQty                            { get; set; } = ValidateLegIOIQty;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegIOIQty                            { get; set; } = ValidateLegIOIQty;
 
 	/// <summary>Holds a FIX 4.4 NoLegStipulations, tag 683, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoLegStipulations                    { get; set; } = ValidateNoLegStipulations;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoLegStipulations                    { get; set; } = ValidateNoLegStipulations;
 
 	/// <summary>Holds a FIX 4.4 LegOfferPx, tag 684, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LegOfferPx                           { get; set; } = ValidateLegOfferPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LegOfferPx                           { get; set; } = ValidateLegOfferPx;
 
 	/// <summary>Holds a FIX 4.4 LegPriceType, tag 686, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   LegPriceType                         { get; set; } = ValidateLegPriceType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   LegPriceType                         { get; set; } = ValidateLegPriceType;
 
 	/// <summary>Holds a FIX 4.4 LegQty, tag 687, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LegQty                               { get; set; } = ValidateLegQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LegQty                               { get; set; } = ValidateLegQty;
 
 	/// <summary>Holds a FIX 4.4 LegStipulationType, tag 688, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegStipulationType                   { get; set; } = ValidateLegStipulationType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegStipulationType                   { get; set; } = ValidateLegStipulationType;
 
 	/// <summary>Holds a FIX 4.4 LegStipulationValue, tag 689, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegStipulationValue                  { get; set; } = ValidateLegStipulationValue;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegStipulationValue                  { get; set; } = ValidateLegStipulationValue;
 
 	/// <summary>Holds a FIX 4.4 LegSwapType, tag 690, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   LegSwapType                          { get; set; } = ValidateLegSwapType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   LegSwapType                          { get; set; } = ValidateLegSwapType;
 
 	/// <summary>Holds a FIX 4.4 Pool, tag 691, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      Pool                                 { get; set; } = ValidatePool;
+	public Action<Fix44Context, FixCheck, FixField.Text>      Pool                                 { get; set; } = ValidatePool;
 
 	/// <summary>Holds a FIX 4.4 QuotePriceType, tag 692, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   QuotePriceType                       { get; set; } = ValidateQuotePriceType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   QuotePriceType                       { get; set; } = ValidateQuotePriceType;
 
 	/// <summary>Holds a FIX 4.4 QuoteRespID, tag 693, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      QuoteRespID                          { get; set; } = ValidateQuoteRespID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      QuoteRespID                          { get; set; } = ValidateQuoteRespID;
 
 	/// <summary>Holds a FIX 4.4 QuoteRespType, tag 694, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   QuoteRespType                        { get; set; } = ValidateQuoteRespType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   QuoteRespType                        { get; set; } = ValidateQuoteRespType;
 
 	/// <summary>Holds a FIX 4.4 QuoteQualifier, tag 695, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> QuoteQualifier                       { get; set; } = ValidateQuoteQualifier;
+	public Action<Fix44Context, FixCheck, FixField.Character> QuoteQualifier                       { get; set; } = ValidateQuoteQualifier;
 
 	/// <summary>Holds a FIX 4.4 YieldRedemptionDate, tag 696, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      YieldRedemptionDate                  { get; set; } = ValidateYieldRedemptionDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      YieldRedemptionDate                  { get; set; } = ValidateYieldRedemptionDate;
 
 	/// <summary>Holds a FIX 4.4 YieldRedemptionPrice, tag 697, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   YieldRedemptionPrice                 { get; set; } = ValidateYieldRedemptionPrice;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   YieldRedemptionPrice                 { get; set; } = ValidateYieldRedemptionPrice;
 
 	/// <summary>Holds a FIX 4.4 YieldRedemptionPriceType, tag 698, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   YieldRedemptionPriceType             { get; set; } = ValidateYieldRedemptionPriceType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   YieldRedemptionPriceType             { get; set; } = ValidateYieldRedemptionPriceType;
 
 	/// <summary>Holds a FIX 4.4 BenchmarkSecurityID, tag 699, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      BenchmarkSecurityID                  { get; set; } = ValidateBenchmarkSecurityID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      BenchmarkSecurityID                  { get; set; } = ValidateBenchmarkSecurityID;
 
 	/// <summary>Holds a FIX 4.4 ReversalIndicator, tag 700, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   ReversalIndicator                    { get; set; } = ValidateReversalIndicator;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   ReversalIndicator                    { get; set; } = ValidateReversalIndicator;
 
 	/// <summary>Holds a FIX 4.4 YieldCalcDate, tag 701, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      YieldCalcDate                        { get; set; } = ValidateYieldCalcDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      YieldCalcDate                        { get; set; } = ValidateYieldCalcDate;
 
 	/// <summary>Holds a FIX 4.4 NoPositions, tag 702, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoPositions                          { get; set; } = ValidateNoPositions;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoPositions                          { get; set; } = ValidateNoPositions;
 
 	/// <summary>Holds a FIX 4.4 PosType, tag 703, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      PosType                              { get; set; } = ValidatePosType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      PosType                              { get; set; } = ValidatePosType;
 
 	/// <summary>Holds a FIX 4.4 LongQty, tag 704, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   LongQty                              { get; set; } = ValidateLongQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   LongQty                              { get; set; } = ValidateLongQty;
 
 	/// <summary>Holds a FIX 4.4 ShortQty, tag 705, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   ShortQty                             { get; set; } = ValidateShortQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   ShortQty                             { get; set; } = ValidateShortQty;
 
 	/// <summary>Holds a FIX 4.4 PosQtyStatus, tag 706, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PosQtyStatus                         { get; set; } = ValidatePosQtyStatus;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PosQtyStatus                         { get; set; } = ValidatePosQtyStatus;
 
 	/// <summary>Holds a FIX 4.4 PosAmtType, tag 707, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      PosAmtType                           { get; set; } = ValidatePosAmtType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      PosAmtType                           { get; set; } = ValidatePosAmtType;
 
 	/// <summary>Holds a FIX 4.4 PosAmt, tag 708, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   PosAmt                               { get; set; } = ValidatePosAmt;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   PosAmt                               { get; set; } = ValidatePosAmt;
 
 	/// <summary>Holds a FIX 4.4 PosTransType, tag 709, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PosTransType                         { get; set; } = ValidatePosTransType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PosTransType                         { get; set; } = ValidatePosTransType;
 
 	/// <summary>Holds a FIX 4.4 PosReqID, tag 710, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      PosReqID                             { get; set; } = ValidatePosReqID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      PosReqID                             { get; set; } = ValidatePosReqID;
 
 	/// <summary>Holds a FIX 4.4 NoUnderlyings, tag 711, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoUnderlyings                        { get; set; } = ValidateNoUnderlyings;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoUnderlyings                        { get; set; } = ValidateNoUnderlyings;
 
 	/// <summary>Holds a FIX 4.4 PosMaintAction, tag 712, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PosMaintAction                       { get; set; } = ValidatePosMaintAction;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PosMaintAction                       { get; set; } = ValidatePosMaintAction;
 
 	/// <summary>Holds a FIX 4.4 OrigPosReqRefID, tag 713, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      OrigPosReqRefID                      { get; set; } = ValidateOrigPosReqRefID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      OrigPosReqRefID                      { get; set; } = ValidateOrigPosReqRefID;
 
 	/// <summary>Holds a FIX 4.4 PosMaintRptRefID, tag 714, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      PosMaintRptRefID                     { get; set; } = ValidatePosMaintRptRefID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      PosMaintRptRefID                     { get; set; } = ValidatePosMaintRptRefID;
 
 	/// <summary>Holds a FIX 4.4 ClearingBusinessDate, tag 715, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      ClearingBusinessDate                 { get; set; } = ValidateClearingBusinessDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      ClearingBusinessDate                 { get; set; } = ValidateClearingBusinessDate;
 
 	/// <summary>Holds a FIX 4.4 SettlSessID, tag 716, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SettlSessID                          { get; set; } = ValidateSettlSessID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SettlSessID                          { get; set; } = ValidateSettlSessID;
 
 	/// <summary>Holds a FIX 4.4 SettlSessSubID, tag 717, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SettlSessSubID                       { get; set; } = ValidateSettlSessSubID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SettlSessSubID                       { get; set; } = ValidateSettlSessSubID;
 
 	/// <summary>Holds a FIX 4.4 AdjustmentType, tag 718, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   AdjustmentType                       { get; set; } = ValidateAdjustmentType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   AdjustmentType                       { get; set; } = ValidateAdjustmentType;
 
 	/// <summary>Holds a FIX 4.4 ContraryInstructionIndicator, tag 719, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   ContraryInstructionIndicator         { get; set; } = ValidateContraryInstructionIndicator;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   ContraryInstructionIndicator         { get; set; } = ValidateContraryInstructionIndicator;
 
 	/// <summary>Holds a FIX 4.4 PriorSpreadIndicator, tag 720, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   PriorSpreadIndicator                 { get; set; } = ValidatePriorSpreadIndicator;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   PriorSpreadIndicator                 { get; set; } = ValidatePriorSpreadIndicator;
 
 	/// <summary>Holds a FIX 4.4 PosMaintRptID, tag 721, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      PosMaintRptID                        { get; set; } = ValidatePosMaintRptID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      PosMaintRptID                        { get; set; } = ValidatePosMaintRptID;
 
 	/// <summary>Holds a FIX 4.4 PosMaintStatus, tag 722, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PosMaintStatus                       { get; set; } = ValidatePosMaintStatus;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PosMaintStatus                       { get; set; } = ValidatePosMaintStatus;
 
 	/// <summary>Holds a FIX 4.4 PosMaintResult, tag 723, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PosMaintResult                       { get; set; } = ValidatePosMaintResult;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PosMaintResult                       { get; set; } = ValidatePosMaintResult;
 
 	/// <summary>Holds a FIX 4.4 PosReqType, tag 724, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PosReqType                           { get; set; } = ValidatePosReqType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PosReqType                           { get; set; } = ValidatePosReqType;
 
 	/// <summary>Holds a FIX 4.4 ResponseTransportType, tag 725, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ResponseTransportType                { get; set; } = ValidateResponseTransportType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ResponseTransportType                { get; set; } = ValidateResponseTransportType;
 
 	/// <summary>Holds a FIX 4.4 ResponseDestination, tag 726, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ResponseDestination                  { get; set; } = ValidateResponseDestination;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ResponseDestination                  { get; set; } = ValidateResponseDestination;
 
 	/// <summary>Holds a FIX 4.4 TotalNumPosReports, tag 727, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TotalNumPosReports                   { get; set; } = ValidateTotalNumPosReports;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TotalNumPosReports                   { get; set; } = ValidateTotalNumPosReports;
 
 	/// <summary>Holds a FIX 4.4 PosReqResult, tag 728, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PosReqResult                         { get; set; } = ValidatePosReqResult;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PosReqResult                         { get; set; } = ValidatePosReqResult;
 
 	/// <summary>Holds a FIX 4.4 PosReqStatus, tag 729, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PosReqStatus                         { get; set; } = ValidatePosReqStatus;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PosReqStatus                         { get; set; } = ValidatePosReqStatus;
 
 	/// <summary>Holds a FIX 4.4 SettlPrice, tag 730, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   SettlPrice                           { get; set; } = ValidateSettlPrice;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   SettlPrice                           { get; set; } = ValidateSettlPrice;
 
 	/// <summary>Holds a FIX 4.4 SettlPriceType, tag 731, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   SettlPriceType                       { get; set; } = ValidateSettlPriceType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   SettlPriceType                       { get; set; } = ValidateSettlPriceType;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingSettlPrice, tag 732, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   UnderlyingSettlPrice                 { get; set; } = ValidateUnderlyingSettlPrice;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   UnderlyingSettlPrice                 { get; set; } = ValidateUnderlyingSettlPrice;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingSettlPriceType, tag 733, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   UnderlyingSettlPriceType             { get; set; } = ValidateUnderlyingSettlPriceType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   UnderlyingSettlPriceType             { get; set; } = ValidateUnderlyingSettlPriceType;
 
 	/// <summary>Holds a FIX 4.4 PriorSettlPrice, tag 734, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   PriorSettlPrice                      { get; set; } = ValidatePriorSettlPrice;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   PriorSettlPrice                      { get; set; } = ValidatePriorSettlPrice;
 
 	/// <summary>Holds a FIX 4.4 NoQuoteQualifiers, tag 735, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoQuoteQualifiers                    { get; set; } = ValidateNoQuoteQualifiers;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoQuoteQualifiers                    { get; set; } = ValidateNoQuoteQualifiers;
 
 	/// <summary>Holds a FIX 4.4 AllocSettlCurrency, tag 736, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      AllocSettlCurrency                   { get; set; } = ValidateAllocSettlCurrency;
+	public Action<Fix44Context, FixCheck, FixField.Text>      AllocSettlCurrency                   { get; set; } = ValidateAllocSettlCurrency;
 
 	/// <summary>Holds a FIX 4.4 AllocSettlCurrAmt, tag 737, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   AllocSettlCurrAmt                    { get; set; } = ValidateAllocSettlCurrAmt;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   AllocSettlCurrAmt                    { get; set; } = ValidateAllocSettlCurrAmt;
 
 	/// <summary>Holds a FIX 4.4 InterestAtMaturity, tag 738, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   InterestAtMaturity                   { get; set; } = ValidateInterestAtMaturity;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   InterestAtMaturity                   { get; set; } = ValidateInterestAtMaturity;
 
 	/// <summary>Holds a FIX 4.4 LegDatedDate, tag 739, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      LegDatedDate                         { get; set; } = ValidateLegDatedDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      LegDatedDate                         { get; set; } = ValidateLegDatedDate;
 
 	/// <summary>Holds a FIX 4.4 LegPool, tag 740, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegPool                              { get; set; } = ValidateLegPool;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegPool                              { get; set; } = ValidateLegPool;
 
 	/// <summary>Holds a FIX 4.4 AllocInterestAtMaturity, tag 741, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   AllocInterestAtMaturity              { get; set; } = ValidateAllocInterestAtMaturity;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   AllocInterestAtMaturity              { get; set; } = ValidateAllocInterestAtMaturity;
 
 	/// <summary>Holds a FIX 4.4 AllocAccruedInterestAmt, tag 742, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   AllocAccruedInterestAmt              { get; set; } = ValidateAllocAccruedInterestAmt;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   AllocAccruedInterestAmt              { get; set; } = ValidateAllocAccruedInterestAmt;
 
 	/// <summary>Holds a FIX 4.4 DeliveryDate, tag 743, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      DeliveryDate                         { get; set; } = ValidateDeliveryDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      DeliveryDate                         { get; set; } = ValidateDeliveryDate;
 
 	/// <summary>Holds a FIX 4.4 AssignmentMethod, tag 744, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> AssignmentMethod                     { get; set; } = ValidateAssignmentMethod;
+	public Action<Fix44Context, FixCheck, FixField.Character> AssignmentMethod                     { get; set; } = ValidateAssignmentMethod;
 
 	/// <summary>Holds a FIX 4.4 AssignmentUnit, tag 745, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   AssignmentUnit                       { get; set; } = ValidateAssignmentUnit;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   AssignmentUnit                       { get; set; } = ValidateAssignmentUnit;
 
 	/// <summary>Holds a FIX 4.4 OpenInterest, tag 746, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   OpenInterest                         { get; set; } = ValidateOpenInterest;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   OpenInterest                         { get; set; } = ValidateOpenInterest;
 
 	/// <summary>Holds a FIX 4.4 ExerciseMethod, tag 747, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> ExerciseMethod                       { get; set; } = ValidateExerciseMethod;
+	public Action<Fix44Context, FixCheck, FixField.Character> ExerciseMethod                       { get; set; } = ValidateExerciseMethod;
 
 	/// <summary>Holds a FIX 4.4 TotNumTradeReports, tag 748, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TotNumTradeReports                   { get; set; } = ValidateTotNumTradeReports;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TotNumTradeReports                   { get; set; } = ValidateTotNumTradeReports;
 
 	/// <summary>Holds a FIX 4.4 TradeRequestResult, tag 749, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TradeRequestResult                   { get; set; } = ValidateTradeRequestResult;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TradeRequestResult                   { get; set; } = ValidateTradeRequestResult;
 
 	/// <summary>Holds a FIX 4.4 TradeRequestStatus, tag 750, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TradeRequestStatus                   { get; set; } = ValidateTradeRequestStatus;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TradeRequestStatus                   { get; set; } = ValidateTradeRequestStatus;
 
 	/// <summary>Holds a FIX 4.4 TradeReportRejectReason, tag 751, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TradeReportRejectReason              { get; set; } = ValidateTradeReportRejectReason;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TradeReportRejectReason              { get; set; } = ValidateTradeReportRejectReason;
 
 	/// <summary>Holds a FIX 4.4 SideMultiLegReportingType, tag 752, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   SideMultiLegReportingType            { get; set; } = ValidateSideMultiLegReportingType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   SideMultiLegReportingType            { get; set; } = ValidateSideMultiLegReportingType;
 
 	/// <summary>Holds a FIX 4.4 NoPosAmt, tag 753, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoPosAmt                             { get; set; } = ValidateNoPosAmt;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoPosAmt                             { get; set; } = ValidateNoPosAmt;
 
 	/// <summary>Holds a FIX 4.4 AutoAcceptIndicator, tag 754, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   AutoAcceptIndicator                  { get; set; } = ValidateAutoAcceptIndicator;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   AutoAcceptIndicator                  { get; set; } = ValidateAutoAcceptIndicator;
 
 	/// <summary>Holds a FIX 4.4 AllocReportID, tag 755, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      AllocReportID                        { get; set; } = ValidateAllocReportID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      AllocReportID                        { get; set; } = ValidateAllocReportID;
 
 	/// <summary>Holds a FIX 4.4 NoNested2PartyIDs, tag 756, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoNested2PartyIDs                    { get; set; } = ValidateNoNested2PartyIDs;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoNested2PartyIDs                    { get; set; } = ValidateNoNested2PartyIDs;
 
 	/// <summary>Holds a FIX 4.4 Nested2PartyID, tag 757, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      Nested2PartyID                       { get; set; } = ValidateNested2PartyID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      Nested2PartyID                       { get; set; } = ValidateNested2PartyID;
 
 	/// <summary>Holds a FIX 4.4 Nested2PartyIDSource, tag 758, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> Nested2PartyIDSource                 { get; set; } = ValidateNested2PartyIDSource;
+	public Action<Fix44Context, FixCheck, FixField.Character> Nested2PartyIDSource                 { get; set; } = ValidateNested2PartyIDSource;
 
 	/// <summary>Holds a FIX 4.4 Nested2PartyRole, tag 759, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   Nested2PartyRole                     { get; set; } = ValidateNested2PartyRole;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   Nested2PartyRole                     { get; set; } = ValidateNested2PartyRole;
 
 	/// <summary>Holds a FIX 4.4 Nested2PartySubID, tag 760, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      Nested2PartySubID                    { get; set; } = ValidateNested2PartySubID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      Nested2PartySubID                    { get; set; } = ValidateNested2PartySubID;
 
 	/// <summary>Holds a FIX 4.4 BenchmarkSecurityIDSource, tag 761, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      BenchmarkSecurityIDSource            { get; set; } = ValidateBenchmarkSecurityIDSource;
+	public Action<Fix44Context, FixCheck, FixField.Text>      BenchmarkSecurityIDSource            { get; set; } = ValidateBenchmarkSecurityIDSource;
 
 	/// <summary>Holds a FIX 4.4 SecuritySubType, tag 762, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SecuritySubType                      { get; set; } = ValidateSecuritySubType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SecuritySubType                      { get; set; } = ValidateSecuritySubType;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingSecuritySubType, tag 763, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingSecuritySubType            { get; set; } = ValidateUnderlyingSecuritySubType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingSecuritySubType            { get; set; } = ValidateUnderlyingSecuritySubType;
 
 	/// <summary>Holds a FIX 4.4 LegSecuritySubType, tag 764, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegSecuritySubType                   { get; set; } = ValidateLegSecuritySubType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegSecuritySubType                   { get; set; } = ValidateLegSecuritySubType;
 
 	/// <summary>Holds a FIX 4.4 AllowableOneSidednessPct, tag 765, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   AllowableOneSidednessPct             { get; set; } = ValidateAllowableOneSidednessPct;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   AllowableOneSidednessPct             { get; set; } = ValidateAllowableOneSidednessPct;
 
 	/// <summary>Holds a FIX 4.4 AllowableOneSidednessValue, tag 766, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   AllowableOneSidednessValue           { get; set; } = ValidateAllowableOneSidednessValue;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   AllowableOneSidednessValue           { get; set; } = ValidateAllowableOneSidednessValue;
 
 	/// <summary>Holds a FIX 4.4 AllowableOneSidednessCurr, tag 767, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      AllowableOneSidednessCurr            { get; set; } = ValidateAllowableOneSidednessCurr;
+	public Action<Fix44Context, FixCheck, FixField.Text>      AllowableOneSidednessCurr            { get; set; } = ValidateAllowableOneSidednessCurr;
 
 	/// <summary>Holds a FIX 4.4 NoTrdRegTimestamps, tag 768, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoTrdRegTimestamps                   { get; set; } = ValidateNoTrdRegTimestamps;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoTrdRegTimestamps                   { get; set; } = ValidateNoTrdRegTimestamps;
 
 	/// <summary>Holds a FIX 4.4 TrdRegTimestamp, tag 769, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> TrdRegTimestamp                      { get; set; } = ValidateTrdRegTimestamp;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> TrdRegTimestamp                      { get; set; } = ValidateTrdRegTimestamp;
 
 	/// <summary>Holds a FIX 4.4 TrdRegTimestampType, tag 770, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TrdRegTimestampType                  { get; set; } = ValidateTrdRegTimestampType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TrdRegTimestampType                  { get; set; } = ValidateTrdRegTimestampType;
 
 	/// <summary>Holds a FIX 4.4 TrdRegTimestampOrigin, tag 771, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TrdRegTimestampOrigin                { get; set; } = ValidateTrdRegTimestampOrigin;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TrdRegTimestampOrigin                { get; set; } = ValidateTrdRegTimestampOrigin;
 
 	/// <summary>Holds a FIX 4.4 ConfirmRefID, tag 772, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ConfirmRefID                         { get; set; } = ValidateConfirmRefID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ConfirmRefID                         { get; set; } = ValidateConfirmRefID;
 
 	/// <summary>Holds a FIX 4.4 ConfirmType, tag 773, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ConfirmType                          { get; set; } = ValidateConfirmType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ConfirmType                          { get; set; } = ValidateConfirmType;
 
 	/// <summary>Holds a FIX 4.4 ConfirmRejReason, tag 774, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ConfirmRejReason                     { get; set; } = ValidateConfirmRejReason;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ConfirmRejReason                     { get; set; } = ValidateConfirmRejReason;
 
 	/// <summary>Holds a FIX 4.4 BookingType, tag 775, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   BookingType                          { get; set; } = ValidateBookingType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   BookingType                          { get; set; } = ValidateBookingType;
 
 	/// <summary>Holds a FIX 4.4 IndividualAllocRejCode, tag 776, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   IndividualAllocRejCode               { get; set; } = ValidateIndividualAllocRejCode;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   IndividualAllocRejCode               { get; set; } = ValidateIndividualAllocRejCode;
 
 	/// <summary>Holds a FIX 4.4 SettlInstMsgID, tag 777, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SettlInstMsgID                       { get; set; } = ValidateSettlInstMsgID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SettlInstMsgID                       { get; set; } = ValidateSettlInstMsgID;
 
 	/// <summary>Holds a FIX 4.4 NoSettlInst, tag 778, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoSettlInst                          { get; set; } = ValidateNoSettlInst;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoSettlInst                          { get; set; } = ValidateNoSettlInst;
 
 	/// <summary>Holds a FIX 4.4 LastUpdateTime, tag 779, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Timestamp, bool> LastUpdateTime                       { get; set; } = ValidateLastUpdateTime;
+	public Action<Fix44Context, FixCheck, FixField.Timestamp> LastUpdateTime                       { get; set; } = ValidateLastUpdateTime;
 
 	/// <summary>Holds a FIX 4.4 AllocSettlInstType, tag 780, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   AllocSettlInstType                   { get; set; } = ValidateAllocSettlInstType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   AllocSettlInstType                   { get; set; } = ValidateAllocSettlInstType;
 
 	/// <summary>Holds a FIX 4.4 NoSettlPartyIDs, tag 781, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoSettlPartyIDs                      { get; set; } = ValidateNoSettlPartyIDs;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoSettlPartyIDs                      { get; set; } = ValidateNoSettlPartyIDs;
 
 	/// <summary>Holds a FIX 4.4 SettlPartyID, tag 782, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SettlPartyID                         { get; set; } = ValidateSettlPartyID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SettlPartyID                         { get; set; } = ValidateSettlPartyID;
 
 	/// <summary>Holds a FIX 4.4 SettlPartyIDSource, tag 783, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> SettlPartyIDSource                   { get; set; } = ValidateSettlPartyIDSource;
+	public Action<Fix44Context, FixCheck, FixField.Character> SettlPartyIDSource                   { get; set; } = ValidateSettlPartyIDSource;
 
 	/// <summary>Holds a FIX 4.4 SettlPartyRole, tag 784, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   SettlPartyRole                       { get; set; } = ValidateSettlPartyRole;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   SettlPartyRole                       { get; set; } = ValidateSettlPartyRole;
 
 	/// <summary>Holds a FIX 4.4 SettlPartySubID, tag 785, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SettlPartySubID                      { get; set; } = ValidateSettlPartySubID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SettlPartySubID                      { get; set; } = ValidateSettlPartySubID;
 
 	/// <summary>Holds a FIX 4.4 SettlPartySubIDType, tag 786, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   SettlPartySubIDType                  { get; set; } = ValidateSettlPartySubIDType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   SettlPartySubIDType                  { get; set; } = ValidateSettlPartySubIDType;
 
 	/// <summary>Holds a FIX 4.4 DlvyInstType, tag 787, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> DlvyInstType                         { get; set; } = ValidateDlvyInstType;
+	public Action<Fix44Context, FixCheck, FixField.Character> DlvyInstType                         { get; set; } = ValidateDlvyInstType;
 
 	/// <summary>Holds a FIX 4.4 TerminationType, tag 788, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TerminationType                      { get; set; } = ValidateTerminationType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TerminationType                      { get; set; } = ValidateTerminationType;
 
 	/// <summary>Holds a FIX 4.4 NextExpectedMsgSeqNum, tag 789, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NextExpectedMsgSeqNum                { get; set; } = ValidateNextExpectedMsgSeqNum;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NextExpectedMsgSeqNum                { get; set; } = ValidateNextExpectedMsgSeqNum;
 
 	/// <summary>Holds a FIX 4.4 OrdStatusReqID, tag 790, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      OrdStatusReqID                       { get; set; } = ValidateOrdStatusReqID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      OrdStatusReqID                       { get; set; } = ValidateOrdStatusReqID;
 
 	/// <summary>Holds a FIX 4.4 SettlInstReqID, tag 791, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SettlInstReqID                       { get; set; } = ValidateSettlInstReqID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SettlInstReqID                       { get; set; } = ValidateSettlInstReqID;
 
 	/// <summary>Holds a FIX 4.4 SettlInstReqRejCode, tag 792, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   SettlInstReqRejCode                  { get; set; } = ValidateSettlInstReqRejCode;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   SettlInstReqRejCode                  { get; set; } = ValidateSettlInstReqRejCode;
 
 	/// <summary>Holds a FIX 4.4 SecondaryAllocID, tag 793, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SecondaryAllocID                     { get; set; } = ValidateSecondaryAllocID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SecondaryAllocID                     { get; set; } = ValidateSecondaryAllocID;
 
 	/// <summary>Holds a FIX 4.4 AllocReportType, tag 794, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   AllocReportType                      { get; set; } = ValidateAllocReportType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   AllocReportType                      { get; set; } = ValidateAllocReportType;
 
 	/// <summary>Holds a FIX 4.4 AllocReportRefID, tag 795, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      AllocReportRefID                     { get; set; } = ValidateAllocReportRefID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      AllocReportRefID                     { get; set; } = ValidateAllocReportRefID;
 
 	/// <summary>Holds a FIX 4.4 AllocCancReplaceReason, tag 796, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   AllocCancReplaceReason               { get; set; } = ValidateAllocCancReplaceReason;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   AllocCancReplaceReason               { get; set; } = ValidateAllocCancReplaceReason;
 
 	/// <summary>Holds a FIX 4.4 CopyMsgIndicator, tag 797, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   CopyMsgIndicator                     { get; set; } = ValidateCopyMsgIndicator;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   CopyMsgIndicator                     { get; set; } = ValidateCopyMsgIndicator;
 
 	/// <summary>Holds a FIX 4.4 AllocAccountType, tag 798, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   AllocAccountType                     { get; set; } = ValidateAllocAccountType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   AllocAccountType                     { get; set; } = ValidateAllocAccountType;
 
 	/// <summary>Holds a FIX 4.4 OrderAvgPx, tag 799, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   OrderAvgPx                           { get; set; } = ValidateOrderAvgPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   OrderAvgPx                           { get; set; } = ValidateOrderAvgPx;
 
 	/// <summary>Holds a FIX 4.4 OrderBookingQty, tag 800, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   OrderBookingQty                      { get; set; } = ValidateOrderBookingQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   OrderBookingQty                      { get; set; } = ValidateOrderBookingQty;
 
 	/// <summary>Holds a FIX 4.4 NoSettlPartySubIDs, tag 801, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoSettlPartySubIDs                   { get; set; } = ValidateNoSettlPartySubIDs;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoSettlPartySubIDs                   { get; set; } = ValidateNoSettlPartySubIDs;
 
 	/// <summary>Holds a FIX 4.4 NoPartySubIDs, tag 802, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoPartySubIDs                        { get; set; } = ValidateNoPartySubIDs;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoPartySubIDs                        { get; set; } = ValidateNoPartySubIDs;
 
 	/// <summary>Holds a FIX 4.4 PartySubIDType, tag 803, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PartySubIDType                       { get; set; } = ValidatePartySubIDType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PartySubIDType                       { get; set; } = ValidatePartySubIDType;
 
 	/// <summary>Holds a FIX 4.4 NoNestedPartySubIDs, tag 804, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoNestedPartySubIDs                  { get; set; } = ValidateNoNestedPartySubIDs;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoNestedPartySubIDs                  { get; set; } = ValidateNoNestedPartySubIDs;
 
 	/// <summary>Holds a FIX 4.4 NestedPartySubIDType, tag 805, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NestedPartySubIDType                 { get; set; } = ValidateNestedPartySubIDType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NestedPartySubIDType                 { get; set; } = ValidateNestedPartySubIDType;
 
 	/// <summary>Holds a FIX 4.4 NoNested2PartySubIDs, tag 806, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoNested2PartySubIDs                 { get; set; } = ValidateNoNested2PartySubIDs;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoNested2PartySubIDs                 { get; set; } = ValidateNoNested2PartySubIDs;
 
 	/// <summary>Holds a FIX 4.4 Nested2PartySubIDType, tag 807, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   Nested2PartySubIDType                { get; set; } = ValidateNested2PartySubIDType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   Nested2PartySubIDType                { get; set; } = ValidateNested2PartySubIDType;
 
 	/// <summary>Holds a FIX 4.4 AllocIntermedReqType, tag 808, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   AllocIntermedReqType                 { get; set; } = ValidateAllocIntermedReqType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   AllocIntermedReqType                 { get; set; } = ValidateAllocIntermedReqType;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingPx, tag 810, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   UnderlyingPx                         { get; set; } = ValidateUnderlyingPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   UnderlyingPx                         { get; set; } = ValidateUnderlyingPx;
 
 	/// <summary>Holds a FIX 4.4 PriceDelta, tag 811, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   PriceDelta                           { get; set; } = ValidatePriceDelta;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   PriceDelta                           { get; set; } = ValidatePriceDelta;
 
 	/// <summary>Holds a FIX 4.4 ApplQueueMax, tag 812, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ApplQueueMax                         { get; set; } = ValidateApplQueueMax;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ApplQueueMax                         { get; set; } = ValidateApplQueueMax;
 
 	/// <summary>Holds a FIX 4.4 ApplQueueDepth, tag 813, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ApplQueueDepth                       { get; set; } = ValidateApplQueueDepth;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ApplQueueDepth                       { get; set; } = ValidateApplQueueDepth;
 
 	/// <summary>Holds a FIX 4.4 ApplQueueResolution, tag 814, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ApplQueueResolution                  { get; set; } = ValidateApplQueueResolution;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ApplQueueResolution                  { get; set; } = ValidateApplQueueResolution;
 
 	/// <summary>Holds a FIX 4.4 ApplQueueAction, tag 815, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ApplQueueAction                      { get; set; } = ValidateApplQueueAction;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ApplQueueAction                      { get; set; } = ValidateApplQueueAction;
 
 	/// <summary>Holds a FIX 4.4 NoAltMDSource, tag 816, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoAltMDSource                        { get; set; } = ValidateNoAltMDSource;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoAltMDSource                        { get; set; } = ValidateNoAltMDSource;
 
 	/// <summary>Holds a FIX 4.4 AltMDSourceID, tag 817, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      AltMDSourceID                        { get; set; } = ValidateAltMDSourceID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      AltMDSourceID                        { get; set; } = ValidateAltMDSourceID;
 
 	/// <summary>Holds a FIX 4.4 SecondaryTradeReportID, tag 818, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SecondaryTradeReportID               { get; set; } = ValidateSecondaryTradeReportID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SecondaryTradeReportID               { get; set; } = ValidateSecondaryTradeReportID;
 
 	/// <summary>Holds a FIX 4.4 AvgPxIndicator, tag 819, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   AvgPxIndicator                       { get; set; } = ValidateAvgPxIndicator;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   AvgPxIndicator                       { get; set; } = ValidateAvgPxIndicator;
 
 	/// <summary>Holds a FIX 4.4 TradeLinkID, tag 820, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TradeLinkID                          { get; set; } = ValidateTradeLinkID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TradeLinkID                          { get; set; } = ValidateTradeLinkID;
 
 	/// <summary>Holds a FIX 4.4 OrderInputDevice, tag 821, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      OrderInputDevice                     { get; set; } = ValidateOrderInputDevice;
+	public Action<Fix44Context, FixCheck, FixField.Text>      OrderInputDevice                     { get; set; } = ValidateOrderInputDevice;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingTradingSessionID, tag 822, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingTradingSessionID           { get; set; } = ValidateUnderlyingTradingSessionID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingTradingSessionID           { get; set; } = ValidateUnderlyingTradingSessionID;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingTradingSessionSubID, tag 823, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingTradingSessionSubID        { get; set; } = ValidateUnderlyingTradingSessionSubID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingTradingSessionSubID        { get; set; } = ValidateUnderlyingTradingSessionSubID;
 
 	/// <summary>Holds a FIX 4.4 TradeLegRefID, tag 824, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TradeLegRefID                        { get; set; } = ValidateTradeLegRefID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TradeLegRefID                        { get; set; } = ValidateTradeLegRefID;
 
 	/// <summary>Holds a FIX 4.4 ExchangeRule, tag 825, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ExchangeRule                         { get; set; } = ValidateExchangeRule;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ExchangeRule                         { get; set; } = ValidateExchangeRule;
 
 	/// <summary>Holds a FIX 4.4 TradeAllocIndicator, tag 826, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TradeAllocIndicator                  { get; set; } = ValidateTradeAllocIndicator;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TradeAllocIndicator                  { get; set; } = ValidateTradeAllocIndicator;
 
 	/// <summary>Holds a FIX 4.4 ExpirationCycle, tag 827, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ExpirationCycle                      { get; set; } = ValidateExpirationCycle;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ExpirationCycle                      { get; set; } = ValidateExpirationCycle;
 
 	/// <summary>Holds a FIX 4.4 TrdType, tag 828, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TrdType                              { get; set; } = ValidateTrdType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TrdType                              { get; set; } = ValidateTrdType;
 
 	/// <summary>Holds a FIX 4.4 TrdSubType, tag 829, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TrdSubType                           { get; set; } = ValidateTrdSubType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TrdSubType                           { get; set; } = ValidateTrdSubType;
 
 	/// <summary>Holds a FIX 4.4 TransferReason, tag 830, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TransferReason                       { get; set; } = ValidateTransferReason;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TransferReason                       { get; set; } = ValidateTransferReason;
 
 	/// <summary>Holds a FIX 4.4 TotNumAssignmentReports, tag 832, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TotNumAssignmentReports              { get; set; } = ValidateTotNumAssignmentReports;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TotNumAssignmentReports              { get; set; } = ValidateTotNumAssignmentReports;
 
 	/// <summary>Holds a FIX 4.4 AsgnRptID, tag 833, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      AsgnRptID                            { get; set; } = ValidateAsgnRptID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      AsgnRptID                            { get; set; } = ValidateAsgnRptID;
 
 	/// <summary>Holds a FIX 4.4 ThresholdAmount, tag 834, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   ThresholdAmount                      { get; set; } = ValidateThresholdAmount;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   ThresholdAmount                      { get; set; } = ValidateThresholdAmount;
 
 	/// <summary>Holds a FIX 4.4 PegMoveType, tag 835, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PegMoveType                          { get; set; } = ValidatePegMoveType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PegMoveType                          { get; set; } = ValidatePegMoveType;
 
 	/// <summary>Holds a FIX 4.4 PegOffsetType, tag 836, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PegOffsetType                        { get; set; } = ValidatePegOffsetType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PegOffsetType                        { get; set; } = ValidatePegOffsetType;
 
 	/// <summary>Holds a FIX 4.4 PegLimitType, tag 837, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PegLimitType                         { get; set; } = ValidatePegLimitType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PegLimitType                         { get; set; } = ValidatePegLimitType;
 
 	/// <summary>Holds a FIX 4.4 PegRoundDirection, tag 838, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PegRoundDirection                    { get; set; } = ValidatePegRoundDirection;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PegRoundDirection                    { get; set; } = ValidatePegRoundDirection;
 
 	/// <summary>Holds a FIX 4.4 PeggedPrice, tag 839, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   PeggedPrice                          { get; set; } = ValidatePeggedPrice;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   PeggedPrice                          { get; set; } = ValidatePeggedPrice;
 
 	/// <summary>Holds a FIX 4.4 PegScope, tag 840, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   PegScope                             { get; set; } = ValidatePegScope;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   PegScope                             { get; set; } = ValidatePegScope;
 
 	/// <summary>Holds a FIX 4.4 DiscretionMoveType, tag 841, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   DiscretionMoveType                   { get; set; } = ValidateDiscretionMoveType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   DiscretionMoveType                   { get; set; } = ValidateDiscretionMoveType;
 
 	/// <summary>Holds a FIX 4.4 DiscretionOffsetType, tag 842, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   DiscretionOffsetType                 { get; set; } = ValidateDiscretionOffsetType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   DiscretionOffsetType                 { get; set; } = ValidateDiscretionOffsetType;
 
 	/// <summary>Holds a FIX 4.4 DiscretionLimitType, tag 843, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   DiscretionLimitType                  { get; set; } = ValidateDiscretionLimitType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   DiscretionLimitType                  { get; set; } = ValidateDiscretionLimitType;
 
 	/// <summary>Holds a FIX 4.4 DiscretionRoundDirection, tag 844, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   DiscretionRoundDirection             { get; set; } = ValidateDiscretionRoundDirection;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   DiscretionRoundDirection             { get; set; } = ValidateDiscretionRoundDirection;
 
 	/// <summary>Holds a FIX 4.4 DiscretionPrice, tag 845, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   DiscretionPrice                      { get; set; } = ValidateDiscretionPrice;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   DiscretionPrice                      { get; set; } = ValidateDiscretionPrice;
 
 	/// <summary>Holds a FIX 4.4 DiscretionScope, tag 846, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   DiscretionScope                      { get; set; } = ValidateDiscretionScope;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   DiscretionScope                      { get; set; } = ValidateDiscretionScope;
 
 	/// <summary>Holds a FIX 4.4 TargetStrategy, tag 847, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TargetStrategy                       { get; set; } = ValidateTargetStrategy;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TargetStrategy                       { get; set; } = ValidateTargetStrategy;
 
 	/// <summary>Holds a FIX 4.4 TargetStrategyParameters, tag 848, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TargetStrategyParameters             { get; set; } = ValidateTargetStrategyParameters;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TargetStrategyParameters             { get; set; } = ValidateTargetStrategyParameters;
 
 	/// <summary>Holds a FIX 4.4 ParticipationRate, tag 849, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   ParticipationRate                    { get; set; } = ValidateParticipationRate;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   ParticipationRate                    { get; set; } = ValidateParticipationRate;
 
 	/// <summary>Holds a FIX 4.4 TargetStrategyPerformance, tag 850, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   TargetStrategyPerformance            { get; set; } = ValidateTargetStrategyPerformance;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   TargetStrategyPerformance            { get; set; } = ValidateTargetStrategyPerformance;
 
 	/// <summary>Holds a FIX 4.4 LastLiquidityInd, tag 851, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   LastLiquidityInd                     { get; set; } = ValidateLastLiquidityInd;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   LastLiquidityInd                     { get; set; } = ValidateLastLiquidityInd;
 
 	/// <summary>Holds a FIX 4.4 PublishTrdIndicator, tag 852, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   PublishTrdIndicator                  { get; set; } = ValidatePublishTrdIndicator;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   PublishTrdIndicator                  { get; set; } = ValidatePublishTrdIndicator;
 
 	/// <summary>Holds a FIX 4.4 ShortSaleReason, tag 853, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   ShortSaleReason                      { get; set; } = ValidateShortSaleReason;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   ShortSaleReason                      { get; set; } = ValidateShortSaleReason;
 
 	/// <summary>Holds a FIX 4.4 QtyType, tag 854, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   QtyType                              { get; set; } = ValidateQtyType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   QtyType                              { get; set; } = ValidateQtyType;
 
 	/// <summary>Holds a FIX 4.4 SecondaryTrdType, tag 855, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   SecondaryTrdType                     { get; set; } = ValidateSecondaryTrdType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   SecondaryTrdType                     { get; set; } = ValidateSecondaryTrdType;
 
 	/// <summary>Holds a FIX 4.4 TradeReportType, tag 856, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TradeReportType                      { get; set; } = ValidateTradeReportType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TradeReportType                      { get; set; } = ValidateTradeReportType;
 
 	/// <summary>Holds a FIX 4.4 AllocNoOrdersType, tag 857, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   AllocNoOrdersType                    { get; set; } = ValidateAllocNoOrdersType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   AllocNoOrdersType                    { get; set; } = ValidateAllocNoOrdersType;
 
 	/// <summary>Holds a FIX 4.4 SharedCommission, tag 858, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   SharedCommission                     { get; set; } = ValidateSharedCommission;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   SharedCommission                     { get; set; } = ValidateSharedCommission;
 
 	/// <summary>Holds a FIX 4.4 ConfirmReqID, tag 859, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      ConfirmReqID                         { get; set; } = ValidateConfirmReqID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      ConfirmReqID                         { get; set; } = ValidateConfirmReqID;
 
 	/// <summary>Holds a FIX 4.4 AvgParPx, tag 860, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   AvgParPx                             { get; set; } = ValidateAvgParPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   AvgParPx                             { get; set; } = ValidateAvgParPx;
 
 	/// <summary>Holds a FIX 4.4 ReportedPx, tag 861, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   ReportedPx                           { get; set; } = ValidateReportedPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   ReportedPx                           { get; set; } = ValidateReportedPx;
 
 	/// <summary>Holds a FIX 4.4 NoCapacities, tag 862, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoCapacities                         { get; set; } = ValidateNoCapacities;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoCapacities                         { get; set; } = ValidateNoCapacities;
 
 	/// <summary>Holds a FIX 4.4 OrderCapacityQty, tag 863, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   OrderCapacityQty                     { get; set; } = ValidateOrderCapacityQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   OrderCapacityQty                     { get; set; } = ValidateOrderCapacityQty;
 
 	/// <summary>Holds a FIX 4.4 NoEvents, tag 864, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoEvents                             { get; set; } = ValidateNoEvents;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoEvents                             { get; set; } = ValidateNoEvents;
 
 	/// <summary>Holds a FIX 4.4 EventType, tag 865, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   EventType                            { get; set; } = ValidateEventType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   EventType                            { get; set; } = ValidateEventType;
 
 	/// <summary>Holds a FIX 4.4 EventDate, tag 866, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      EventDate                            { get; set; } = ValidateEventDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      EventDate                            { get; set; } = ValidateEventDate;
 
 	/// <summary>Holds a FIX 4.4 EventPx, tag 867, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   EventPx                              { get; set; } = ValidateEventPx;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   EventPx                              { get; set; } = ValidateEventPx;
 
 	/// <summary>Holds a FIX 4.4 EventText, tag 868, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      EventText                            { get; set; } = ValidateEventText;
+	public Action<Fix44Context, FixCheck, FixField.Text>      EventText                            { get; set; } = ValidateEventText;
 
 	/// <summary>Holds a FIX 4.4 PctAtRisk, tag 869, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   PctAtRisk                            { get; set; } = ValidatePctAtRisk;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   PctAtRisk                            { get; set; } = ValidatePctAtRisk;
 
 	/// <summary>Holds a FIX 4.4 NoInstrAttrib, tag 870, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoInstrAttrib                        { get; set; } = ValidateNoInstrAttrib;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoInstrAttrib                        { get; set; } = ValidateNoInstrAttrib;
 
 	/// <summary>Holds a FIX 4.4 InstrAttribType, tag 871, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   InstrAttribType                      { get; set; } = ValidateInstrAttribType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   InstrAttribType                      { get; set; } = ValidateInstrAttribType;
 
 	/// <summary>Holds a FIX 4.4 InstrAttribValue, tag 872, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      InstrAttribValue                     { get; set; } = ValidateInstrAttribValue;
+	public Action<Fix44Context, FixCheck, FixField.Text>      InstrAttribValue                     { get; set; } = ValidateInstrAttribValue;
 
 	/// <summary>Holds a FIX 4.4 DatedDate, tag 873, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      DatedDate                            { get; set; } = ValidateDatedDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      DatedDate                            { get; set; } = ValidateDatedDate;
 
 	/// <summary>Holds a FIX 4.4 InterestAccrualDate, tag 874, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      InterestAccrualDate                  { get; set; } = ValidateInterestAccrualDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      InterestAccrualDate                  { get; set; } = ValidateInterestAccrualDate;
 
 	/// <summary>Holds a FIX 4.4 CPProgram, tag 875, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   CPProgram                            { get; set; } = ValidateCPProgram;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   CPProgram                            { get; set; } = ValidateCPProgram;
 
 	/// <summary>Holds a FIX 4.4 CPRegType, tag 876, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CPRegType                            { get; set; } = ValidateCPRegType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CPRegType                            { get; set; } = ValidateCPRegType;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingCPProgram, tag 877, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingCPProgram                  { get; set; } = ValidateUnderlyingCPProgram;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingCPProgram                  { get; set; } = ValidateUnderlyingCPProgram;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingCPRegType, tag 878, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingCPRegType                  { get; set; } = ValidateUnderlyingCPRegType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingCPRegType                  { get; set; } = ValidateUnderlyingCPRegType;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingQty, tag 879, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   UnderlyingQty                        { get; set; } = ValidateUnderlyingQty;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   UnderlyingQty                        { get; set; } = ValidateUnderlyingQty;
 
 	/// <summary>Holds a FIX 4.4 TrdMatchID, tag 880, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TrdMatchID                           { get; set; } = ValidateTrdMatchID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TrdMatchID                           { get; set; } = ValidateTrdMatchID;
 
 	/// <summary>Holds a FIX 4.4 SecondaryTradeReportRefID, tag 881, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      SecondaryTradeReportRefID            { get; set; } = ValidateSecondaryTradeReportRefID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      SecondaryTradeReportRefID            { get; set; } = ValidateSecondaryTradeReportRefID;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingDirtyPrice, tag 882, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   UnderlyingDirtyPrice                 { get; set; } = ValidateUnderlyingDirtyPrice;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   UnderlyingDirtyPrice                 { get; set; } = ValidateUnderlyingDirtyPrice;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingEndPrice, tag 883, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   UnderlyingEndPrice                   { get; set; } = ValidateUnderlyingEndPrice;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   UnderlyingEndPrice                   { get; set; } = ValidateUnderlyingEndPrice;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingStartValue, tag 884, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   UnderlyingStartValue                 { get; set; } = ValidateUnderlyingStartValue;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   UnderlyingStartValue                 { get; set; } = ValidateUnderlyingStartValue;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingCurrentValue, tag 885, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   UnderlyingCurrentValue               { get; set; } = ValidateUnderlyingCurrentValue;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   UnderlyingCurrentValue               { get; set; } = ValidateUnderlyingCurrentValue;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingEndValue, tag 886, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   UnderlyingEndValue                   { get; set; } = ValidateUnderlyingEndValue;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   UnderlyingEndValue                   { get; set; } = ValidateUnderlyingEndValue;
 
 	/// <summary>Holds a FIX 4.4 NoUnderlyingStips, tag 887, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoUnderlyingStips                    { get; set; } = ValidateNoUnderlyingStips;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoUnderlyingStips                    { get; set; } = ValidateNoUnderlyingStips;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingStipType, tag 888, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingStipType                   { get; set; } = ValidateUnderlyingStipType;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingStipType                   { get; set; } = ValidateUnderlyingStipType;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingStipValue, tag 889, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingStipValue                  { get; set; } = ValidateUnderlyingStipValue;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingStipValue                  { get; set; } = ValidateUnderlyingStipValue;
 
 	/// <summary>Holds a FIX 4.4 MaturityNetMoney, tag 890, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   MaturityNetMoney                     { get; set; } = ValidateMaturityNetMoney;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   MaturityNetMoney                     { get; set; } = ValidateMaturityNetMoney;
 
 	/// <summary>Holds a FIX 4.4 MiscFeeBasis, tag 891, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   MiscFeeBasis                         { get; set; } = ValidateMiscFeeBasis;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   MiscFeeBasis                         { get; set; } = ValidateMiscFeeBasis;
 
 	/// <summary>Holds a FIX 4.4 TotNoAllocs, tag 892, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TotNoAllocs                          { get; set; } = ValidateTotNoAllocs;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TotNoAllocs                          { get; set; } = ValidateTotNoAllocs;
 
 	/// <summary>Holds a FIX 4.4 LastFragment, tag 893, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   LastFragment                         { get; set; } = ValidateLastFragment;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   LastFragment                         { get; set; } = ValidateLastFragment;
 
 	/// <summary>Holds a FIX 4.4 CollReqID, tag 894, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CollReqID                            { get; set; } = ValidateCollReqID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CollReqID                            { get; set; } = ValidateCollReqID;
 
 	/// <summary>Holds a FIX 4.4 CollAsgnReason, tag 895, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   CollAsgnReason                       { get; set; } = ValidateCollAsgnReason;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   CollAsgnReason                       { get; set; } = ValidateCollAsgnReason;
 
 	/// <summary>Holds a FIX 4.4 CollInquiryQualifier, tag 896, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   CollInquiryQualifier                 { get; set; } = ValidateCollInquiryQualifier;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   CollInquiryQualifier                 { get; set; } = ValidateCollInquiryQualifier;
 
 	/// <summary>Holds a FIX 4.4 NoTrades, tag 897, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoTrades                             { get; set; } = ValidateNoTrades;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoTrades                             { get; set; } = ValidateNoTrades;
 
 	/// <summary>Holds a FIX 4.4 MarginRatio, tag 898, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   MarginRatio                          { get; set; } = ValidateMarginRatio;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   MarginRatio                          { get; set; } = ValidateMarginRatio;
 
 	/// <summary>Holds a FIX 4.4 MarginExcess, tag 899, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   MarginExcess                         { get; set; } = ValidateMarginExcess;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   MarginExcess                         { get; set; } = ValidateMarginExcess;
 
 	/// <summary>Holds a FIX 4.4 TotalNetValue, tag 900, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   TotalNetValue                        { get; set; } = ValidateTotalNetValue;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   TotalNetValue                        { get; set; } = ValidateTotalNetValue;
 
 	/// <summary>Holds a FIX 4.4 CashOutstanding, tag 901, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   CashOutstanding                      { get; set; } = ValidateCashOutstanding;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   CashOutstanding                      { get; set; } = ValidateCashOutstanding;
 
 	/// <summary>Holds a FIX 4.4 CollAsgnID, tag 902, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CollAsgnID                           { get; set; } = ValidateCollAsgnID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CollAsgnID                           { get; set; } = ValidateCollAsgnID;
 
 	/// <summary>Holds a FIX 4.4 CollAsgnTransType, tag 903, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   CollAsgnTransType                    { get; set; } = ValidateCollAsgnTransType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   CollAsgnTransType                    { get; set; } = ValidateCollAsgnTransType;
 
 	/// <summary>Holds a FIX 4.4 CollRespID, tag 904, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CollRespID                           { get; set; } = ValidateCollRespID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CollRespID                           { get; set; } = ValidateCollRespID;
 
 	/// <summary>Holds a FIX 4.4 CollAsgnRespType, tag 905, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   CollAsgnRespType                     { get; set; } = ValidateCollAsgnRespType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   CollAsgnRespType                     { get; set; } = ValidateCollAsgnRespType;
 
 	/// <summary>Holds a FIX 4.4 CollAsgnRejectReason, tag 906, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   CollAsgnRejectReason                 { get; set; } = ValidateCollAsgnRejectReason;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   CollAsgnRejectReason                 { get; set; } = ValidateCollAsgnRejectReason;
 
 	/// <summary>Holds a FIX 4.4 CollAsgnRefID, tag 907, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CollAsgnRefID                        { get; set; } = ValidateCollAsgnRefID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CollAsgnRefID                        { get; set; } = ValidateCollAsgnRefID;
 
 	/// <summary>Holds a FIX 4.4 CollRptID, tag 908, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CollRptID                            { get; set; } = ValidateCollRptID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CollRptID                            { get; set; } = ValidateCollRptID;
 
 	/// <summary>Holds a FIX 4.4 CollInquiryID, tag 909, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      CollInquiryID                        { get; set; } = ValidateCollInquiryID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      CollInquiryID                        { get; set; } = ValidateCollInquiryID;
 
 	/// <summary>Holds a FIX 4.4 CollStatus, tag 910, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   CollStatus                           { get; set; } = ValidateCollStatus;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   CollStatus                           { get; set; } = ValidateCollStatus;
 
 	/// <summary>Holds a FIX 4.4 TotNumReports, tag 911, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TotNumReports                        { get; set; } = ValidateTotNumReports;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TotNumReports                        { get; set; } = ValidateTotNumReports;
 
 	/// <summary>Holds a FIX 4.4 LastRptRequested, tag 912, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Boolean, bool>   LastRptRequested                     { get; set; } = ValidateLastRptRequested;
+	public Action<Fix44Context, FixCheck, FixField.Boolean>   LastRptRequested                     { get; set; } = ValidateLastRptRequested;
 
 	/// <summary>Holds a FIX 4.4 AgreementDesc, tag 913, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      AgreementDesc                        { get; set; } = ValidateAgreementDesc;
+	public Action<Fix44Context, FixCheck, FixField.Text>      AgreementDesc                        { get; set; } = ValidateAgreementDesc;
 
 	/// <summary>Holds a FIX 4.4 AgreementID, tag 914, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      AgreementID                          { get; set; } = ValidateAgreementID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      AgreementID                          { get; set; } = ValidateAgreementID;
 
 	/// <summary>Holds a FIX 4.4 AgreementDate, tag 915, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      AgreementDate                        { get; set; } = ValidateAgreementDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      AgreementDate                        { get; set; } = ValidateAgreementDate;
 
 	/// <summary>Holds a FIX 4.4 StartDate, tag 916, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      StartDate                            { get; set; } = ValidateStartDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      StartDate                            { get; set; } = ValidateStartDate;
 
 	/// <summary>Holds a FIX 4.4 EndDate, tag 917, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      EndDate                              { get; set; } = ValidateEndDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      EndDate                              { get; set; } = ValidateEndDate;
 
 	/// <summary>Holds a FIX 4.4 AgreementCurrency, tag 918, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      AgreementCurrency                    { get; set; } = ValidateAgreementCurrency;
+	public Action<Fix44Context, FixCheck, FixField.Text>      AgreementCurrency                    { get; set; } = ValidateAgreementCurrency;
 
 	/// <summary>Holds a FIX 4.4 DeliveryType, tag 919, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   DeliveryType                         { get; set; } = ValidateDeliveryType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   DeliveryType                         { get; set; } = ValidateDeliveryType;
 
 	/// <summary>Holds a FIX 4.4 EndAccruedInterestAmt, tag 920, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   EndAccruedInterestAmt                { get; set; } = ValidateEndAccruedInterestAmt;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   EndAccruedInterestAmt                { get; set; } = ValidateEndAccruedInterestAmt;
 
 	/// <summary>Holds a FIX 4.4 StartCash, tag 921, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   StartCash                            { get; set; } = ValidateStartCash;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   StartCash                            { get; set; } = ValidateStartCash;
 
 	/// <summary>Holds a FIX 4.4 EndCash, tag 922, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Decimal, bool>   EndCash                              { get; set; } = ValidateEndCash;
+	public Action<Fix44Context, FixCheck, FixField.Decimal>   EndCash                              { get; set; } = ValidateEndCash;
 
 	/// <summary>Holds a FIX 4.4 UserRequestID, tag 923, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UserRequestID                        { get; set; } = ValidateUserRequestID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UserRequestID                        { get; set; } = ValidateUserRequestID;
 
 	/// <summary>Holds a FIX 4.4 UserRequestType, tag 924, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   UserRequestType                      { get; set; } = ValidateUserRequestType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   UserRequestType                      { get; set; } = ValidateUserRequestType;
 
 	/// <summary>Holds a FIX 4.4 NewPassword, tag 925, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      NewPassword                          { get; set; } = ValidateNewPassword;
+	public Action<Fix44Context, FixCheck, FixField.Text>      NewPassword                          { get; set; } = ValidateNewPassword;
 
 	/// <summary>Holds a FIX 4.4 UserStatus, tag 926, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   UserStatus                           { get; set; } = ValidateUserStatus;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   UserStatus                           { get; set; } = ValidateUserStatus;
 
 	/// <summary>Holds a FIX 4.4 UserStatusText, tag 927, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UserStatusText                       { get; set; } = ValidateUserStatusText;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UserStatusText                       { get; set; } = ValidateUserStatusText;
 
 	/// <summary>Holds a FIX 4.4 StatusValue, tag 928, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   StatusValue                          { get; set; } = ValidateStatusValue;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   StatusValue                          { get; set; } = ValidateStatusValue;
 
 	/// <summary>Holds a FIX 4.4 StatusText, tag 929, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      StatusText                           { get; set; } = ValidateStatusText;
+	public Action<Fix44Context, FixCheck, FixField.Text>      StatusText                           { get; set; } = ValidateStatusText;
 
 	/// <summary>Holds a FIX 4.4 RefCompID, tag 930, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      RefCompID                            { get; set; } = ValidateRefCompID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      RefCompID                            { get; set; } = ValidateRefCompID;
 
 	/// <summary>Holds a FIX 4.4 RefSubID, tag 931, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      RefSubID                             { get; set; } = ValidateRefSubID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      RefSubID                             { get; set; } = ValidateRefSubID;
 
 	/// <summary>Holds a FIX 4.4 NetworkResponseID, tag 932, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      NetworkResponseID                    { get; set; } = ValidateNetworkResponseID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      NetworkResponseID                    { get; set; } = ValidateNetworkResponseID;
 
 	/// <summary>Holds a FIX 4.4 NetworkRequestID, tag 933, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      NetworkRequestID                     { get; set; } = ValidateNetworkRequestID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      NetworkRequestID                     { get; set; } = ValidateNetworkRequestID;
 
 	/// <summary>Holds a FIX 4.4 LastNetworkResponseID, tag 934, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LastNetworkResponseID                { get; set; } = ValidateLastNetworkResponseID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LastNetworkResponseID                { get; set; } = ValidateLastNetworkResponseID;
 
 	/// <summary>Holds a FIX 4.4 NetworkRequestType, tag 935, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NetworkRequestType                   { get; set; } = ValidateNetworkRequestType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NetworkRequestType                   { get; set; } = ValidateNetworkRequestType;
 
 	/// <summary>Holds a FIX 4.4 NoCompIDs, tag 936, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoCompIDs                            { get; set; } = ValidateNoCompIDs;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoCompIDs                            { get; set; } = ValidateNoCompIDs;
 
 	/// <summary>Holds a FIX 4.4 NetworkStatusResponseType, tag 937, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NetworkStatusResponseType            { get; set; } = ValidateNetworkStatusResponseType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NetworkStatusResponseType            { get; set; } = ValidateNetworkStatusResponseType;
 
 	/// <summary>Holds a FIX 4.4 NoCollInquiryQualifier, tag 938, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoCollInquiryQualifier               { get; set; } = ValidateNoCollInquiryQualifier;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoCollInquiryQualifier               { get; set; } = ValidateNoCollInquiryQualifier;
 
 	/// <summary>Holds a FIX 4.4 TrdRptStatus, tag 939, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   TrdRptStatus                         { get; set; } = ValidateTrdRptStatus;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   TrdRptStatus                         { get; set; } = ValidateTrdRptStatus;
 
 	/// <summary>Holds a FIX 4.4 AffirmStatus, tag 940, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   AffirmStatus                         { get; set; } = ValidateAffirmStatus;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   AffirmStatus                         { get; set; } = ValidateAffirmStatus;
 
 	/// <summary>Holds a FIX 4.4 UnderlyingStrikeCurrency, tag 941, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      UnderlyingStrikeCurrency             { get; set; } = ValidateUnderlyingStrikeCurrency;
+	public Action<Fix44Context, FixCheck, FixField.Text>      UnderlyingStrikeCurrency             { get; set; } = ValidateUnderlyingStrikeCurrency;
 
 	/// <summary>Holds a FIX 4.4 LegStrikeCurrency, tag 942, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      LegStrikeCurrency                    { get; set; } = ValidateLegStrikeCurrency;
+	public Action<Fix44Context, FixCheck, FixField.Text>      LegStrikeCurrency                    { get; set; } = ValidateLegStrikeCurrency;
 
 	/// <summary>Holds a FIX 4.4 TimeBracket, tag 943, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      TimeBracket                          { get; set; } = ValidateTimeBracket;
+	public Action<Fix44Context, FixCheck, FixField.Text>      TimeBracket                          { get; set; } = ValidateTimeBracket;
 
 	/// <summary>Holds a FIX 4.4 CollAction, tag 944, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   CollAction                           { get; set; } = ValidateCollAction;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   CollAction                           { get; set; } = ValidateCollAction;
 
 	/// <summary>Holds a FIX 4.4 CollInquiryStatus, tag 945, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   CollInquiryStatus                    { get; set; } = ValidateCollInquiryStatus;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   CollInquiryStatus                    { get; set; } = ValidateCollInquiryStatus;
 
 	/// <summary>Holds a FIX 4.4 CollInquiryResult, tag 946, to the values the specification lists.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   CollInquiryResult                    { get; set; } = ValidateCollInquiryResult;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   CollInquiryResult                    { get; set; } = ValidateCollInquiryResult;
 
 	/// <summary>Holds a FIX 4.4 StrikeCurrency, tag 947, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      StrikeCurrency                       { get; set; } = ValidateStrikeCurrency;
+	public Action<Fix44Context, FixCheck, FixField.Text>      StrikeCurrency                       { get; set; } = ValidateStrikeCurrency;
 
 	/// <summary>Holds a FIX 4.4 NoNested3PartyIDs, tag 948, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoNested3PartyIDs                    { get; set; } = ValidateNoNested3PartyIDs;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoNested3PartyIDs                    { get; set; } = ValidateNoNested3PartyIDs;
 
 	/// <summary>Holds a FIX 4.4 Nested3PartyID, tag 949, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      Nested3PartyID                       { get; set; } = ValidateNested3PartyID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      Nested3PartyID                       { get; set; } = ValidateNested3PartyID;
 
 	/// <summary>Holds a FIX 4.4 Nested3PartyIDSource, tag 950, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Character, bool> Nested3PartyIDSource                 { get; set; } = ValidateNested3PartyIDSource;
+	public Action<Fix44Context, FixCheck, FixField.Character> Nested3PartyIDSource                 { get; set; } = ValidateNested3PartyIDSource;
 
 	/// <summary>Holds a FIX 4.4 Nested3PartyRole, tag 951, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   Nested3PartyRole                     { get; set; } = ValidateNested3PartyRole;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   Nested3PartyRole                     { get; set; } = ValidateNested3PartyRole;
 
 	/// <summary>Holds a FIX 4.4 NoNested3PartySubIDs, tag 952, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   NoNested3PartySubIDs                 { get; set; } = ValidateNoNested3PartySubIDs;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   NoNested3PartySubIDs                 { get; set; } = ValidateNoNested3PartySubIDs;
 
 	/// <summary>Holds a FIX 4.4 Nested3PartySubID, tag 953, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Text, bool>      Nested3PartySubID                    { get; set; } = ValidateNested3PartySubID;
+	public Action<Fix44Context, FixCheck, FixField.Text>      Nested3PartySubID                    { get; set; } = ValidateNested3PartySubID;
 
 	/// <summary>Holds a FIX 4.4 Nested3PartySubIDType, tag 954, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Integer, bool>   Nested3PartySubIDType                { get; set; } = ValidateNested3PartySubIDType;
+	public Action<Fix44Context, FixCheck, FixField.Integer>   Nested3PartySubIDType                { get; set; } = ValidateNested3PartySubIDType;
 
 	/// <summary>Holds a FIX 4.4 LegContractSettlMonth, tag 955, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.MonthYear, bool> LegContractSettlMonth                { get; set; } = ValidateLegContractSettlMonth;
+	public Action<Fix44Context, FixCheck, FixField.MonthYear> LegContractSettlMonth                { get; set; } = ValidateLegContractSettlMonth;
 
 	/// <summary>Holds a FIX 4.4 LegInterestAccrualDate, tag 956, to its type.</summary>
-	public Func<Fix44Context, FixMessage, FixField.Date, bool>      LegInterestAccrualDate               { get; set; } = ValidateLegInterestAccrualDate;
+	public Action<Fix44Context, FixCheck, FixField.Date>      LegInterestAccrualDate               { get; set; } = ValidateLegInterestAccrualDate;
 
-	static bool ValidateAccount(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAccount(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAdvId(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAdvId(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAdvRefID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAdvRefID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAdvSide(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateAdvSide(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('B' or 'S' or 'T' or 'X'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAdvTransType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAdvTransType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("C" or "N" or "R"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAvgPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAvgPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBeginSeqNo(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateBeginSeqNo(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBeginString(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateBeginString(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBodyLength(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateBodyLength(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCheckSum(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCheckSum(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateClOrdID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateClOrdID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCommission(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateCommission(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCommType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateCommType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3' or '4' or '5' or '6'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCumQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateCumQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCurrency(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCurrency(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEndSeqNo(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEndSeqNo(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExecID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateExecID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExecInst(Fix44Context context, FixMessage message, FixField.Multiple field)
+	static void ValidateExecInst(Fix44Context context, FixCheck check, FixField.Multiple field)
 	{
 		foreach (var code in field.Value)
 			if (code is not ("0" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A" or "B" or
 				"C" or "D" or "E" or "F" or "G" or "H" or "I" or "J" or "K" or "L" or "M" or "N" or "O" or "P" or
 				"Q" or "R" or "S" or "U" or "V" or "W" or "X" or "Y" or "Z" or "a" or "b" or "c" or "d" or "e"))
 			{
-				Invalid(message, field);
+				Invalid(check, field);
 
 				break;
 			}
-
-		return message.IsValid;
 	}
 
-	static bool ValidateExecRefID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateExecRefID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateHandlInst(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateHandlInst(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityIDSource(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecurityIDSource(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A" or "B" or "C" or
 			"D" or "E" or "F" or "G" or "H" or "I" or "J"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIOIid(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateIOIid(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIOIQltyInd(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateIOIQltyInd(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('H' or 'L' or 'M'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIOIRefID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateIOIRefID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIOIQty(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateIOIQty(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("L" or "M" or "S"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIOITransType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateIOITransType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('C' or 'N' or 'R'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastCapacity(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateLastCapacity(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3' or '4'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastMkt(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLastMkt(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLastPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLastQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLinesOfText(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateLinesOfText(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMsgSeqNum(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateMsgSeqNum(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMsgType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateMsgType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("0" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A" or "AA" or
 			"AB" or "AC" or "AD" or "AE" or "AF" or "AG" or "AH" or "AI" or "AJ" or "AK" or "AL" or "AM" or "AN" or
@@ -3019,988 +2955,746 @@ partial class FixValidator44
 			"H" or "J" or "K" or "L" or "M" or "N" or "P" or "Q" or "R" or "S" or "T" or "V" or "W" or "X" or "Y" or
 			"Z" or "a" or "b" or "c" or "d" or "e" or "f" or "g" or "h" or "i" or "j" or "k" or "l" or "m" or "n" or
 			"o" or "p" or "q" or "r" or "s" or "t" or "u" or "v" or "w" or "x" or "y" or "z"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNewSeqNo(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNewSeqNo(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrderID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateOrderID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrderQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOrderQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrdStatus(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateOrdStatus(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '6' or '7' or '8' or '9' or 'A' or 'B' or 'C' or
 			'D' or 'E'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrdType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateOrdType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3' or '4' or '6' or '7' or '8' or '9' or 'D' or 'E' or 'G' or 'I' or
 			'J' or 'K' or 'L' or 'M' or 'P'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrigClOrdID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateOrigClOrdID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrigTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateOrigTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePossDupFlag(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidatePossDupFlag(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePrice(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidatePrice(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRefSeqNum(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateRefSeqNum(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecurityID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSenderCompID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSenderCompID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSenderSubID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSenderSubID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSendingTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateSendingTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuantity(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateQuantity(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSide(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateSide(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or 'A' or 'B' or 'C' or
 			'D' or 'E' or 'F' or 'G'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSymbol(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSymbol(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTargetCompID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTargetCompID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTargetSubID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTargetSubID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateText(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateText(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTimeInForce(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateTimeInForce(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTransactTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateTransactTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUrgency(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateUrgency(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateValidUntilTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateValidUntilTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateSettlType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateSettlDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSymbolSfx(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSymbolSfx(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateListID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateListID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateListSeqNo(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateListSeqNo(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotNoOrders(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTotNoOrders(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateListExecInst(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateListExecInst(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAllocID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocTransType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateAllocTransType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRefAllocID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateRefAllocID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoOrders(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoOrders(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAvgPxPrecision(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAvgPxPrecision(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradeDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateTradeDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePositionEffect(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidatePositionEffect(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('C' or 'F' or 'O' or 'R'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoAllocs(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoAllocs(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocAccount(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAllocAccount(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAllocQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateProcessCode(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateProcessCode(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoRpts(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoRpts(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRptSeq(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateRptSeq(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCxlQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateCxlQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoDlvyInst(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoDlvyInst(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocStatus(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAllocStatus(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocRejCode(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAllocRejCode(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSignature(Fix44Context context, FixMessage message, FixField.Data field)
+	static void ValidateSignature(Fix44Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecureDataLen(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSecureDataLen(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecureData(Fix44Context context, FixMessage message, FixField.Data field)
+	static void ValidateSecureData(Fix44Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSignatureLength(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSignatureLength(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEmailType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateEmailType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRawDataLength(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateRawDataLength(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRawData(Fix44Context context, FixMessage message, FixField.Data field)
+	static void ValidateRawData(Fix44Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePossResend(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidatePossResend(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncryptMethod(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncryptMethod(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStopPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateStopPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExDestination(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateExDestination(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCxlRejReason(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateCxlRejReason(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrdRejReason(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateOrdRejReason(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 10 or 11 or 13 or 14 or 15 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or
 			99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIOIQualifier(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateIOIQualifier(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('A' or 'B' or 'C' or 'D' or 'I' or 'L' or 'M' or 'O' or 'P' or 'Q' or 'R' or 'S' or
 			'T' or 'V' or 'W' or 'X' or 'Y' or 'Z'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIssuer(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateIssuer(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityDesc(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecurityDesc(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateHeartBtInt(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateHeartBtInt(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMinQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMinQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMaxFloor(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMaxFloor(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTestReqID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTestReqID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateReportToExch(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateReportToExch(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLocateReqd(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateLocateReqd(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOnBehalfOfCompID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateOnBehalfOfCompID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOnBehalfOfSubID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateOnBehalfOfSubID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateQuoteID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNetMoney(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateNetMoney(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlCurrAmt(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateSettlCurrAmt(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlCurrency(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSettlCurrency(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateForexReq(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateForexReq(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrigSendingTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateOrigSendingTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateGapFillFlag(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateGapFillFlag(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoExecs(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoExecs(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExpireTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateExpireTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDKReason(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateDKReason(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('A' or 'B' or 'C' or 'D' or 'E' or 'F' or 'Z'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDeliverToCompID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateDeliverToCompID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDeliverToSubID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateDeliverToSubID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIOINaturalFlag(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateIOINaturalFlag(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteReqID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateQuoteReqID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateBidPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOfferPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOfferPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidSize(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateBidSize(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOfferSize(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOfferSize(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoMiscFees(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoMiscFees(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMiscFeeAmt(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMiscFeeAmt(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMiscFeeCurr(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateMiscFeeCurr(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMiscFeeType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateMiscFeeType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("1" or "10" or "11" or "12" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePrevClosePx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidatePrevClosePx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateResetSeqNumFlag(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateResetSeqNumFlag(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSenderLocationID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSenderLocationID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTargetLocationID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTargetLocationID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOnBehalfOfLocationID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateOnBehalfOfLocationID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDeliverToLocationID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateDeliverToLocationID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoRelatedSym(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoRelatedSym(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSubject(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSubject(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateHeadline(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateHeadline(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateURLLink(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateURLLink(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExecType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateExecType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or 'A' or 'B' or 'C' or 'D' or
 			'E' or 'F' or 'G' or 'H' or 'I'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLeavesQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLeavesQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCashOrderQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateCashOrderQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocAvgPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAllocAvgPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocNetMoney(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAllocNetMoney(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlCurrFxRate(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateSettlCurrFxRate(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlCurrFxRateCalc(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateSettlCurrFxRateCalc(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('D' or 'M'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNumDaysInterest(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNumDaysInterest(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAccruedInterestRate(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAccruedInterestRate(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAccruedInterestAmt(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAccruedInterestAmt(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlInstMode(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateSettlInstMode(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '4' or '5'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocText(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAllocText(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlInstID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSettlInstID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlInstTransType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateSettlInstTransType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('C' or 'N' or 'R' or 'T'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEmailThreadID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateEmailThreadID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlInstSource(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateSettlInstSource(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecurityType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("ABS" or "AMENDED" or "AN" or "BA" or "BN" or "BOX" or "BRADY" or "BRIDGE" or
 			"BUYSELL" or "CB" or "CD" or "CL" or "CMBS" or "CMO" or "COFO" or "COFP" or "CORP" or "CP" or "CPP" or
@@ -4012,402 +3706,306 @@ partial class FixValidator44
 			"STRUCT" or "SUPRA" or "SWING" or "TAN" or "TAXA" or "TBA" or "TBILL" or "TBOND" or "TCAL" or "TD" or
 			"TECP" or "TERM" or "TINT" or "TIPS" or "TNOTE" or "TPRN" or "TRAN" or "UST" or "USTB" or "VRDN" or
 			"WAR" or "WITHDRN" or "XCN" or "XLINKD" or "YANK" or "YCD"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEffectiveTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateEffectiveTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStandInstDbType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateStandInstDbType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStandInstDbName(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateStandInstDbName(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStandInstDbID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateStandInstDbID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlDeliveryType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSettlDeliveryType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidSpotRate(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateBidSpotRate(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidForwardPoints(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateBidForwardPoints(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOfferSpotRate(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOfferSpotRate(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOfferForwardPoints(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOfferForwardPoints(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrderQty2(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOrderQty2(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlDate2(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateSettlDate2(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastSpotRate(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLastSpotRate(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastForwardPoints(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLastForwardPoints(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocLinkID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAllocLinkID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocLinkType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAllocLinkType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecondaryOrderID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecondaryOrderID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoIOIQualifiers(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoIOIQualifiers(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMaturityMonthYear(Fix44Context context, FixMessage message, FixField.MonthYear field)
+	static void ValidateMaturityMonthYear(Fix44Context context, FixCheck check, FixField.MonthYear field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePutOrCall(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePutOrCall(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStrikePrice(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateStrikePrice(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCoveredOrUncovered(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateCoveredOrUncovered(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOptAttribute(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateOptAttribute(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityExchange(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecurityExchange(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNotifyBrokerOfCredit(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateNotifyBrokerOfCredit(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocHandlInst(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAllocHandlInst(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMaxShow(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMaxShow(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePegOffsetValue(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidatePegOffsetValue(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateXmlDataLen(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateXmlDataLen(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateXmlData(Fix44Context context, FixMessage message, FixField.Data field)
+	static void ValidateXmlData(Fix44Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlInstRefID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSettlInstRefID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoRoutingIDs(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoRoutingIDs(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRoutingType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateRoutingType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRoutingID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateRoutingID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSpread(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateSpread(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBenchmarkCurveCurrency(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateBenchmarkCurveCurrency(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBenchmarkCurveName(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateBenchmarkCurveName(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBenchmarkCurvePoint(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateBenchmarkCurvePoint(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCouponRate(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateCouponRate(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCouponPaymentDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateCouponPaymentDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIssueDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateIssueDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRepurchaseTerm(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateRepurchaseTerm(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRepurchaseRate(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateRepurchaseRate(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateFactor(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateFactor(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradeOriginationDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateTradeOriginationDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateExDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateContractMultiplier(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateContractMultiplier(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoStipulations(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoStipulations(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStipulationType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateStipulationType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("AMT" or "AUTOREINV" or "BANKQUAL" or "BGNCON" or "COUPON" or "CURRENCY" or
 			"CUSTOMDATE" or "GEOG" or "HAIRCUT" or "INSURED" or "ISSUE" or "ISSUER" or "ISSUESIZE" or "LOOKBACK" or
@@ -4416,6000 +4014,4578 @@ partial class FixValidator44
 			"PROTECT" or "PURPOSE" or "PXSOURCE" or "RATING" or "REDEMPTION" or "RESTRICTED" or "SECTOR" or
 			"SECTYPE" or "STRUCT" or "SUBSFREQ" or "SUBSLEFT" or "TEXT" or "TRDVAR" or "WAC" or "WAL" or "WALA" or
 			"WAM" or "WHOLE" or "YIELD"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStipulationValue(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateStipulationValue(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateYieldType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateYieldType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("AFTERTAX" or "ANNUAL" or "ATISSUE" or "AVGMATURITY" or "BOOK" or "CALL" or
 			"CHANGE" or "CLOSE" or "COMPOUND" or "CURRENT" or "GOVTEQUIV" or "GROSS" or "INFLATION" or
 			"INVERSEFLOATER" or "LASTCLOSE" or "LASTMONTH" or "LASTQUARTER" or "LASTYEAR" or "LONGAVGLIFE" or
 			"MARK" or "MATURITY" or "NEXTREFUND" or "OPENAVG" or "PREVCLOSE" or "PROCEEDS" or "PUT" or
 			"SEMIANNUAL" or "SHORTAVGLIFE" or "SIMPLE" or "TAXEQUIV" or "TENDER" or "TRUE" or "VALUE1/32" or "WORST"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateYield(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateYield(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotalTakedown(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateTotalTakedown(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateConcession(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateConcession(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRepoCollateralSecurityType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateRepoCollateralSecurityType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRedemptionDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateRedemptionDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingCouponPaymentDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateUnderlyingCouponPaymentDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingIssueDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateUnderlyingIssueDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingRepoCollateralSecurityType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingRepoCollateralSecurityType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingRepurchaseTerm(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateUnderlyingRepurchaseTerm(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingRepurchaseRate(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateUnderlyingRepurchaseRate(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingFactor(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateUnderlyingFactor(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingRedemptionDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateUnderlyingRedemptionDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegCouponPaymentDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateLegCouponPaymentDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegIssueDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateLegIssueDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegRepoCollateralSecurityType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegRepoCollateralSecurityType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegRepurchaseTerm(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateLegRepurchaseTerm(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegRepurchaseRate(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLegRepurchaseRate(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegFactor(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLegFactor(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegRedemptionDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateLegRedemptionDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCreditRating(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCreditRating(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingCreditRating(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingCreditRating(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegCreditRating(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegCreditRating(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradedFlatSwitch(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateTradedFlatSwitch(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBasisFeatureDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateBasisFeatureDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBasisFeaturePrice(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateBasisFeaturePrice(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDReqID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateMDReqID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSubscriptionRequestType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateSubscriptionRequestType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMarketDepth(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateMarketDepth(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDUpdateType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateMDUpdateType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAggregatedBook(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateAggregatedBook(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoMDEntryTypes(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoMDEntryTypes(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoMDEntries(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoMDEntries(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntryType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateMDEntryType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or 'A' or 'B' or
 			'C'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntryPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMDEntryPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntrySize(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMDEntrySize(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntryDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateMDEntryDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntryTime(Fix44Context context, FixMessage message, FixField.Time field)
+	static void ValidateMDEntryTime(Fix44Context context, FixCheck check, FixField.Time field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTickDirection(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateTickDirection(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDMkt(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateMDMkt(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteCondition(Fix44Context context, FixMessage message, FixField.Multiple field)
+	static void ValidateQuoteCondition(Fix44Context context, FixCheck check, FixField.Multiple field)
 	{
 		foreach (var code in field.Value)
 			if (code is not ("A" or "B" or "C" or "D" or "E" or "F" or "G" or "H" or "I"))
 			{
-				Invalid(message, field);
+				Invalid(check, field);
 
 				break;
 			}
-
-		return message.IsValid;
 	}
 
-	static bool ValidateTradeCondition(Fix44Context context, FixMessage message, FixField.Multiple field)
+	static void ValidateTradeCondition(Fix44Context context, FixCheck check, FixField.Multiple field)
 	{
 		foreach (var code in field.Value)
 			if (code is not ("A" or "B" or "C" or "D" or "E" or "F" or "G" or "H" or "I" or "J" or "K" or "L" or
 				"M" or "N" or "P" or "Q" or "R"))
 			{
-				Invalid(message, field);
+				Invalid(check, field);
 
 				break;
 			}
-
-		return message.IsValid;
 	}
 
-	static bool ValidateMDEntryID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateMDEntryID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDUpdateAction(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateMDUpdateAction(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntryRefID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateMDEntryRefID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDReqRejReason(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateMDReqRejReason(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or 'A' or 'B' or
 			'C'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntryOriginator(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateMDEntryOriginator(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLocationID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLocationID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDeskID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateDeskID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDeleteReason(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateDeleteReason(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOpenCloseSettlFlag(Fix44Context context, FixMessage message, FixField.Multiple field)
+	static void ValidateOpenCloseSettlFlag(Fix44Context context, FixCheck check, FixField.Multiple field)
 	{
 		foreach (var code in field.Value)
 			if (code is not ("0" or "1" or "2" or "3" or "4" or "5"))
 			{
-				Invalid(message, field);
+				Invalid(check, field);
 
 				break;
 			}
-
-		return message.IsValid;
 	}
 
-	static bool ValidateSellerDays(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSellerDays(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntryBuyer(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateMDEntryBuyer(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntrySeller(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateMDEntrySeller(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMDEntryPositionNo(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateMDEntryPositionNo(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateFinancialStatus(Fix44Context context, FixMessage message, FixField.Multiple field)
+	static void ValidateFinancialStatus(Fix44Context context, FixCheck check, FixField.Multiple field)
 	{
 		foreach (var code in field.Value)
 			if (code is not ("1" or "2"))
 			{
-				Invalid(message, field);
+				Invalid(check, field);
 
 				break;
 			}
-
-		return message.IsValid;
 	}
 
-	static bool ValidateCorporateAction(Fix44Context context, FixMessage message, FixField.Multiple field)
+	static void ValidateCorporateAction(Fix44Context context, FixCheck check, FixField.Multiple field)
 	{
 		foreach (var code in field.Value)
 			if (code is not ("A" or "B" or "C" or "D" or "E"))
 			{
-				Invalid(message, field);
+				Invalid(check, field);
 
 				break;
 			}
-
-		return message.IsValid;
 	}
 
-	static bool ValidateDefBidSize(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateDefBidSize(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDefOfferSize(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateDefOfferSize(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoQuoteEntries(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoQuoteEntries(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoQuoteSets(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoQuoteSets(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteStatus(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateQuoteStatus(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 14 or 15 or 2 or 3 or 4 or 5 or 6 or 7 or
 			8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteCancelType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateQuoteCancelType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteEntryID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateQuoteEntryID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteRejectReason(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateQuoteRejectReason(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteResponseLevel(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateQuoteResponseLevel(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteSetID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateQuoteSetID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteRequestType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateQuoteRequestType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotNoQuoteEntries(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTotNoQuoteEntries(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingSecurityIDSource(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingSecurityIDSource(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingIssuer(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingIssuer(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingSecurityDesc(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingSecurityDesc(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingSecurityExchange(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingSecurityExchange(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingSecurityID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingSecurityID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingSecurityType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingSecurityType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingSymbol(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingSymbol(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingSymbolSfx(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingSymbolSfx(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingMaturityMonthYear(Fix44Context context, FixMessage message, FixField.MonthYear field)
+	static void ValidateUnderlyingMaturityMonthYear(Fix44Context context, FixCheck check, FixField.MonthYear field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingPutOrCall(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateUnderlyingPutOrCall(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingStrikePrice(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateUnderlyingStrikePrice(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingOptAttribute(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateUnderlyingOptAttribute(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingCurrency(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingCurrency(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityReqID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecurityReqID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityRequestType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSecurityRequestType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityResponseID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecurityResponseID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityResponseType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSecurityResponseType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 5 or 6))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityStatusReqID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecurityStatusReqID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnsolicitedIndicator(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateUnsolicitedIndicator(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityTradingStatus(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSecurityTradingStatus(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 10 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 2 or 20 or 21 or
 			22 or 23 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateHaltReason(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateHaltReason(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('D' or 'E' or 'I' or 'M' or 'P' or 'X'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateInViewOfCommon(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateInViewOfCommon(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDueToRelated(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateDueToRelated(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBuyVolume(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateBuyVolume(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSellVolume(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateSellVolume(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateHighPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateHighPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLowPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLowPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAdjustment(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAdjustment(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesReqID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTradSesReqID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradingSessionID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTradingSessionID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateContraTrader(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateContraTrader(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesMethod(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTradSesMethod(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesMode(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTradSesMode(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesStatus(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTradSesStatus(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesStartTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateTradSesStartTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesOpenTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateTradSesOpenTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesPreCloseTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateTradSesPreCloseTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesCloseTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateTradSesCloseTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesEndTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateTradSesEndTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNumberOfOrders(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNumberOfOrders(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMessageEncoding(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateMessageEncoding(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("EUC-JP" or "ISO-2022-JP" or "Shift_JIS" or "UTF-8"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedIssuerLen(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedIssuerLen(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedIssuer(Fix44Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedIssuer(Fix44Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedSecurityDescLen(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedSecurityDescLen(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedSecurityDesc(Fix44Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedSecurityDesc(Fix44Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedListExecInstLen(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedListExecInstLen(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedListExecInst(Fix44Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedListExecInst(Fix44Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedTextLen(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedTextLen(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedText(Fix44Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedText(Fix44Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedSubjectLen(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedSubjectLen(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedSubject(Fix44Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedSubject(Fix44Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedHeadlineLen(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedHeadlineLen(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedHeadline(Fix44Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedHeadline(Fix44Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedAllocTextLen(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedAllocTextLen(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedAllocText(Fix44Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedAllocText(Fix44Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedUnderlyingIssuerLen(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedUnderlyingIssuerLen(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedUnderlyingIssuer(Fix44Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedUnderlyingIssuer(Fix44Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedUnderlyingSecurityDescLen(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedUnderlyingSecurityDescLen(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedUnderlyingSecurityDesc(Fix44Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedUnderlyingSecurityDesc(Fix44Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocPrice(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAllocPrice(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteSetValidUntilTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateQuoteSetValidUntilTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteEntryRejectReason(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateQuoteEntryRejectReason(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastMsgSeqNumProcessed(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateLastMsgSeqNumProcessed(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRefTagID(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateRefTagID(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRefMsgType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateRefMsgType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSessionRejectReason(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSessionRejectReason(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 2 or 3 or 4 or 5 or
 			6 or 7 or 8 or 9 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidRequestTransType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateBidRequestTransType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('C' or 'N'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateContraBroker(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateContraBroker(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateComplianceID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateComplianceID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSolicitedFlag(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateSolicitedFlag(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExecRestatementReason(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateExecRestatementReason(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 10 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBusinessRejectRefID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateBusinessRejectRefID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBusinessRejectReason(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateBusinessRejectReason(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 7))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateGrossTradeAmt(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateGrossTradeAmt(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoContraBrokers(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoContraBrokers(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMaxMessageSize(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateMaxMessageSize(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoMsgTypes(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoMsgTypes(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMsgDirection(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateMsgDirection(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('R' or 'S'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoTradingSessions(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoTradingSessions(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotalVolumeTraded(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateTotalVolumeTraded(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDiscretionInst(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateDiscretionInst(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDiscretionOffsetValue(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateDiscretionOffsetValue(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateBidID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateClientBidID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateClientBidID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateListName(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateListName(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotNoRelatedSym(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTotNoRelatedSym(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateBidType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNumTickets(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNumTickets(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSideValue1(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateSideValue1(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSideValue2(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateSideValue2(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoBidDescriptors(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoBidDescriptors(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidDescriptorType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateBidDescriptorType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidDescriptor(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateBidDescriptor(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSideValueInd(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSideValueInd(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLiquidityPctLow(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLiquidityPctLow(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLiquidityPctHigh(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLiquidityPctHigh(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLiquidityValue(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLiquidityValue(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEFPTrackingError(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateEFPTrackingError(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateFairValue(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateFairValue(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOutsideIndexPct(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOutsideIndexPct(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateValueOfFutures(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateValueOfFutures(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLiquidityIndType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateLiquidityIndType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateWtAverageLiquidity(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateWtAverageLiquidity(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExchangeForPhysical(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateExchangeForPhysical(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOutMainCntryUIndex(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOutMainCntryUIndex(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCrossPercent(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateCrossPercent(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateProgRptReqs(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateProgRptReqs(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateProgPeriodInterval(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateProgPeriodInterval(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIncTaxInd(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateIncTaxInd(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNumBidders(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNumBidders(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidTradeType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateBidTradeType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('A' or 'G' or 'J' or 'R'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBasisPxType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateBasisPxType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or 'A' or 'B' or 'C' or 'D' or
 			'Z'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoBidComponents(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoBidComponents(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCountry(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCountry(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotNoStrikes(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTotNoStrikes(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePriceType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePriceType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 10 or 11 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDayOrderQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateDayOrderQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDayCumQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateDayCumQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDayAvgPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateDayAvgPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateGTBookingInst(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateGTBookingInst(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoStrikes(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoStrikes(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateListStatusType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateListStatusType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 6))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNetGrossInd(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNetGrossInd(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateListOrderStatus(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateListOrderStatus(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 6 or 7))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExpireDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateExpireDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateListExecInstType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateListExecInstType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3' or '4' or '5'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCxlRejResponseTo(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateCxlRejResponseTo(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingCouponRate(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateUnderlyingCouponRate(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingContractMultiplier(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateUnderlyingContractMultiplier(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateContraTradeQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateContraTradeQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateContraTradeTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateContraTradeTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLiquidityNumSecurities(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateLiquidityNumSecurities(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMultiLegReportingType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateMultiLegReportingType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStrikeTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateStrikeTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateListStatusText(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateListStatusText(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedListStatusTextLen(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedListStatusTextLen(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedListStatusText(Fix44Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedListStatusText(Fix44Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePartyIDSource(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidatePartyIDSource(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3' or '4' or '5' or '6' or '7' or '8' or '9' or 'A' or 'B' or 'C' or
 			'D' or 'E' or 'F' or 'G' or 'H' or 'I'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePartyID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidatePartyID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNetChgPrevDay(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateNetChgPrevDay(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePartyRole(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePartyRole(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 2 or 20 or
 			21 or 22 or 24 or 25 or 26 or 27 or 28 or 29 or 3 or 30 or 31 or 32 or 33 or 34 or 35 or 36 or 37 or
 			38 or 4 or 5 or 6 or 7 or 8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoPartyIDs(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoPartyIDs(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoSecurityAltID(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoSecurityAltID(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityAltID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecurityAltID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityAltIDSource(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecurityAltIDSource(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoUnderlyingSecurityAltID(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoUnderlyingSecurityAltID(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingSecurityAltID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingSecurityAltID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingSecurityAltIDSource(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingSecurityAltIDSource(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateProduct(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateProduct(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCFICode(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCFICode(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingProduct(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateUnderlyingProduct(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingCFICode(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingCFICode(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTestMessageIndicator(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateTestMessageIndicator(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBookingRefID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateBookingRefID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIndividualAllocID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateIndividualAllocID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRoundingDirection(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateRoundingDirection(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRoundingModulus(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateRoundingModulus(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCountryOfIssue(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCountryOfIssue(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStateOrProvinceOfIssue(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateStateOrProvinceOfIssue(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLocaleOfIssue(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLocaleOfIssue(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoRegistDtls(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoRegistDtls(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMailingDtls(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateMailingDtls(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateInvestorCountryOfResidence(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateInvestorCountryOfResidence(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePaymentRef(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidatePaymentRef(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDistribPaymentMethod(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateDistribPaymentMethod(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 10 or 11 or 12 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCashDistribCurr(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCashDistribCurr(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCommCurrency(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCommCurrency(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCancellationRights(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateCancellationRights(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('M' or 'N' or 'O' or 'Y'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMoneyLaunderingStatus(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateMoneyLaunderingStatus(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3' or 'N' or 'Y'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMailingInst(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateMailingInst(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTransBkdTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateTransBkdTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExecPriceType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateExecPriceType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('B' or 'C' or 'D' or 'E' or 'O' or 'P' or 'Q' or 'S'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExecPriceAdjustment(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateExecPriceAdjustment(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDateOfBirth(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateDateOfBirth(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradeReportTransType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTradeReportTransType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCardHolderName(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCardHolderName(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCardNumber(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCardNumber(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCardExpDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateCardExpDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCardIssNum(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCardIssNum(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePaymentMethod(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePaymentMethod(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRegistAcctType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateRegistAcctType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDesignation(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateDesignation(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTaxAdvantageType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTaxAdvantageType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 2 or
 			20 or 21 or 22 or 23 or 24 or 25 or 26 or 27 or 28 or 29 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRegistRejReasonText(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateRegistRejReasonText(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateFundRenewWaiv(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateFundRenewWaiv(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('N' or 'Y'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCashDistribAgentName(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCashDistribAgentName(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCashDistribAgentCode(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCashDistribAgentCode(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCashDistribAgentAcctNumber(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCashDistribAgentAcctNumber(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCashDistribPayRef(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCashDistribPayRef(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCashDistribAgentAcctName(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCashDistribAgentAcctName(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCardStartDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateCardStartDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePaymentDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidatePaymentDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePaymentRemitterID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidatePaymentRemitterID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRegistStatus(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateRegistStatus(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('A' or 'H' or 'N' or 'R'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRegistRejReasonCode(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateRegistRejReasonCode(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 2 or 3 or 4 or 5 or
 			6 or 7 or 8 or 9 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRegistRefID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateRegistRefID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRegistDtls(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateRegistDtls(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoDistribInsts(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoDistribInsts(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRegistEmail(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateRegistEmail(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDistribPercentage(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateDistribPercentage(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRegistID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateRegistID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRegistTransType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateRegistTransType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExecValuationPoint(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateExecValuationPoint(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrderPercent(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOrderPercent(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOwnershipType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateOwnershipType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('2' or 'J' or 'T'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoContAmts(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoContAmts(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateContAmtType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateContAmtType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateContAmtValue(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateContAmtValue(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateContAmtCurr(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateContAmtCurr(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOwnerType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateOwnerType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePartySubID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidatePartySubID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNestedPartyID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateNestedPartyID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNestedPartyIDSource(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateNestedPartyIDSource(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecondaryClOrdID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecondaryClOrdID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecondaryExecID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecondaryExecID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrderCapacity(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateOrderCapacity(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('A' or 'G' or 'I' or 'P' or 'R' or 'W'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrderRestrictions(Fix44Context context, FixMessage message, FixField.Multiple field)
+	static void ValidateOrderRestrictions(Fix44Context context, FixCheck check, FixField.Multiple field)
 	{
 		foreach (var code in field.Value)
 			if (code is not ("1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "A"))
 			{
-				Invalid(message, field);
+				Invalid(check, field);
 
 				break;
 			}
-
-		return message.IsValid;
 	}
 
-	static bool ValidateMassCancelRequestType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateMassCancelRequestType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3' or '4' or '5' or '6' or '7'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMassCancelResponse(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateMassCancelResponse(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2' or '3' or '4' or '5' or '6' or '7'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMassCancelRejectReason(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateMassCancelRejectReason(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("0" or "1" or "2" or "3" or "4" or "5" or "6" or "99"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotalAffectedOrders(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTotalAffectedOrders(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoAffectedOrders(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoAffectedOrders(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAffectedOrderID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAffectedOrderID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAffectedSecondaryOrderID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAffectedSecondaryOrderID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateQuoteType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNestedPartyRole(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNestedPartyRole(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoNestedPartyIDs(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoNestedPartyIDs(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotalAccruedInterestAmt(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateTotalAccruedInterestAmt(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMaturityDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateMaturityDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingMaturityDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateUnderlyingMaturityDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateInstrRegistry(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateInstrRegistry(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCashMargin(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateCashMargin(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('1' or '2' or '3'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNestedPartySubID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateNestedPartySubID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateScope(Fix44Context context, FixMessage message, FixField.Multiple field)
+	static void ValidateScope(Fix44Context context, FixCheck check, FixField.Multiple field)
 	{
 		foreach (var code in field.Value)
 			if (code is not ("1" or "2" or "3"))
 			{
-				Invalid(message, field);
+				Invalid(check, field);
 
 				break;
 			}
-
-		return message.IsValid;
 	}
 
-	static bool ValidateMDImplicitDelete(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateMDImplicitDelete(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCrossID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCrossID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCrossType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateCrossType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCrossPrioritization(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateCrossPrioritization(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrigCrossID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateOrigCrossID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoSides(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoSides(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUsername(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUsername(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePassword(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidatePassword(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoLegs(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoLegs(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegCurrency(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegCurrency(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotNoSecurityTypes(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTotNoSecurityTypes(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoSecurityTypes(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoSecurityTypes(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityListRequestType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSecurityListRequestType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecurityRequestResult(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSecurityRequestResult(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRoundLot(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateRoundLot(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMinTradeVol(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMinTradeVol(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMultiLegRptTypeReq(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateMultiLegRptTypeReq(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegPositionEffect(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateLegPositionEffect(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegCoveredOrUncovered(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateLegCoveredOrUncovered(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegPrice(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLegPrice(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradSesStatusRejReason(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTradSesStatusRejReason(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradeRequestID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTradeRequestID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradeRequestType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTradeRequestType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePreviouslyReported(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidatePreviouslyReported(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradeReportID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTradeReportID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradeReportRefID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTradeReportRefID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMatchStatus(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateMatchStatus(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMatchType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateMatchType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("A1" or "A2" or "A3" or "A4" or "A5" or "AQ" or "M1" or "M2" or "M3" or "M4" or
 			"M5" or "M6" or "MT" or "S1" or "S2" or "S3" or "S4" or "S5"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOddLot(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateOddLot(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoClearingInstructions(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoClearingInstructions(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateClearingInstruction(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateClearingInstruction(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 10 or 11 or 12 or 13 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradeInputSource(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTradeInputSource(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradeInputDevice(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTradeInputDevice(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoDates(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoDates(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAccountType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAccountType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4 or 6 or 7 or 8))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCustOrderCapacity(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateCustOrderCapacity(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateClOrdLinkID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateClOrdLinkID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMassStatusReqID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateMassStatusReqID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMassStatusReqType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateMassStatusReqType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 6 or 7 or 8))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrigOrdModTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateOrigOrdModTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegSettlType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateLegSettlType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegSettlDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateLegSettlDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDayBookingInst(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateDayBookingInst(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBookingUnit(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateBookingUnit(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1' or '2'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePreallocMethod(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidatePreallocMethod(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('0' or '1'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingCountryOfIssue(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingCountryOfIssue(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingStateOrProvinceOfIssue(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingStateOrProvinceOfIssue(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingLocaleOfIssue(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingLocaleOfIssue(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingInstrRegistry(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingInstrRegistry(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegCountryOfIssue(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegCountryOfIssue(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegStateOrProvinceOfIssue(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegStateOrProvinceOfIssue(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegLocaleOfIssue(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegLocaleOfIssue(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegInstrRegistry(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegInstrRegistry(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegSymbol(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegSymbol(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegSymbolSfx(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegSymbolSfx(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegSecurityID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegSecurityID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegSecurityIDSource(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegSecurityIDSource(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoLegSecurityAltID(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoLegSecurityAltID(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegSecurityAltID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegSecurityAltID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegSecurityAltIDSource(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegSecurityAltIDSource(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegProduct(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateLegProduct(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegCFICode(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegCFICode(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegSecurityType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegSecurityType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegMaturityMonthYear(Fix44Context context, FixMessage message, FixField.MonthYear field)
+	static void ValidateLegMaturityMonthYear(Fix44Context context, FixCheck check, FixField.MonthYear field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegMaturityDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateLegMaturityDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegStrikePrice(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLegStrikePrice(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegOptAttribute(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateLegOptAttribute(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegContractMultiplier(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLegContractMultiplier(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegCouponRate(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLegCouponRate(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegSecurityExchange(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegSecurityExchange(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegIssuer(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegIssuer(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedLegIssuerLen(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedLegIssuerLen(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedLegIssuer(Fix44Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedLegIssuer(Fix44Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegSecurityDesc(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegSecurityDesc(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedLegSecurityDescLen(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEncodedLegSecurityDescLen(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEncodedLegSecurityDesc(Fix44Context context, FixMessage message, FixField.Data field)
+	static void ValidateEncodedLegSecurityDesc(Fix44Context context, FixCheck check, FixField.Data field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegRatioQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLegRatioQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegSide(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateLegSide(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradingSessionSubID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTradingSessionSubID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAllocType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 5 or 7 or 8))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoHops(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoHops(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateHopCompID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateHopCompID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateHopSendingTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateHopSendingTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateHopRefID(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateHopRefID(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMidPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMidPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidYield(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateBidYield(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMidYield(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMidYield(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOfferYield(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOfferYield(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateClearingFeeIndicator(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateClearingFeeIndicator(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("1" or "2" or "3" or "4" or "5" or "9" or "B" or "C" or "E" or "F" or "H" or "I" or
 			"L" or "M"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateWorkingIndicator(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateWorkingIndicator(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegLastPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLegLastPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePriorityIndicator(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePriorityIndicator(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePriceImprovement(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidatePriceImprovement(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePrice2(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidatePrice2(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastForwardPoints2(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLastForwardPoints2(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBidForwardPoints2(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateBidForwardPoints2(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOfferForwardPoints2(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOfferForwardPoints2(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRFQReqID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateRFQReqID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMktBidPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMktBidPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMktOfferPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMktOfferPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMinBidSize(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMinBidSize(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMinOfferSize(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMinOfferSize(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteStatusReqID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateQuoteStatusReqID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegalConfirm(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateLegalConfirm(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingLastPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateUnderlyingLastPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingLastQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateUnderlyingLastQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegRefID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegRefID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateContraLegRefID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateContraLegRefID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlCurrBidFxRate(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateSettlCurrBidFxRate(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlCurrOfferFxRate(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateSettlCurrOfferFxRate(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteRequestRejectReason(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateQuoteRequestRejectReason(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 10 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSideComplianceID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSideComplianceID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAcctIDSource(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAcctIDSource(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocAcctIDSource(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAllocAcctIDSource(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBenchmarkPrice(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateBenchmarkPrice(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBenchmarkPriceType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateBenchmarkPriceType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateConfirmID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateConfirmID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateConfirmStatus(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateConfirmStatus(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4 or 5))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateConfirmTransType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateConfirmTransType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateContractSettlMonth(Fix44Context context, FixMessage message, FixField.MonthYear field)
+	static void ValidateContractSettlMonth(Fix44Context context, FixCheck check, FixField.MonthYear field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDeliveryForm(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateDeliveryForm(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastParPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLastParPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoLegAllocs(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoLegAllocs(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegAllocAccount(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegAllocAccount(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegIndividualAllocID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegIndividualAllocID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegAllocQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLegAllocQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegAllocAcctIDSource(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegAllocAcctIDSource(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegSettlCurrency(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegSettlCurrency(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegBenchmarkCurveCurrency(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegBenchmarkCurveCurrency(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegBenchmarkCurveName(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegBenchmarkCurveName(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegBenchmarkCurvePoint(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegBenchmarkCurvePoint(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegBenchmarkPrice(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLegBenchmarkPrice(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegBenchmarkPriceType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateLegBenchmarkPriceType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegBidPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLegBidPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegIOIQty(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegIOIQty(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoLegStipulations(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoLegStipulations(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegOfferPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLegOfferPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegPriceType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateLegPriceType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLegQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegStipulationType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegStipulationType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegStipulationValue(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegStipulationValue(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegSwapType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateLegSwapType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 4 or 5))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePool(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidatePool(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuotePriceType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateQuotePriceType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 10 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteRespID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateQuoteRespID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteRespType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateQuoteRespType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 6))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQuoteQualifier(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateQuoteQualifier(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateYieldRedemptionDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateYieldRedemptionDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateYieldRedemptionPrice(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateYieldRedemptionPrice(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateYieldRedemptionPriceType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateYieldRedemptionPriceType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBenchmarkSecurityID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateBenchmarkSecurityID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateReversalIndicator(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateReversalIndicator(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateYieldCalcDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateYieldCalcDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoPositions(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoPositions(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePosType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidatePosType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("ALC" or "AS" or "ASF" or "DLV" or "ETR" or "EX" or "FIN" or "IAS" or "IES" or
 			"PA" or "PIT" or "SOD" or "SPL" or "TA" or "TOT" or "TQ" or "TRF" or "TX" or "XM"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLongQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateLongQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateShortQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateShortQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePosQtyStatus(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePosQtyStatus(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePosAmtType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidatePosAmtType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("CASH" or "CRES" or "FMTM" or "IMTM" or "PREM" or "SMTM" or "TVAR" or "VADJ"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePosAmt(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidatePosAmt(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePosTransType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePosTransType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4 or 5))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePosReqID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidatePosReqID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoUnderlyings(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoUnderlyings(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePosMaintAction(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePosMaintAction(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrigPosReqRefID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateOrigPosReqRefID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePosMaintRptRefID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidatePosMaintRptRefID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateClearingBusinessDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateClearingBusinessDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlSessID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSettlSessID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (field.Value is not ("ETH" or "ITD" or "RTH"))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlSessSubID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSettlSessSubID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAdjustmentType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAdjustmentType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateContraryInstructionIndicator(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateContraryInstructionIndicator(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePriorSpreadIndicator(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidatePriorSpreadIndicator(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePosMaintRptID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidatePosMaintRptID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePosMaintStatus(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePosMaintStatus(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePosMaintResult(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePosMaintResult(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePosReqType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePosReqType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateResponseTransportType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateResponseTransportType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateResponseDestination(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateResponseDestination(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotalNumPosReports(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTotalNumPosReports(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePosReqResult(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePosReqResult(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePosReqStatus(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePosReqStatus(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlPrice(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateSettlPrice(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlPriceType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSettlPriceType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingSettlPrice(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateUnderlyingSettlPrice(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingSettlPriceType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateUnderlyingSettlPriceType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePriorSettlPrice(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidatePriorSettlPrice(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoQuoteQualifiers(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoQuoteQualifiers(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocSettlCurrency(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAllocSettlCurrency(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocSettlCurrAmt(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAllocSettlCurrAmt(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateInterestAtMaturity(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateInterestAtMaturity(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegDatedDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateLegDatedDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegPool(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegPool(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocInterestAtMaturity(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAllocInterestAtMaturity(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocAccruedInterestAmt(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAllocAccruedInterestAmt(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDeliveryDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateDeliveryDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAssignmentMethod(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateAssignmentMethod(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('P' or 'R'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAssignmentUnit(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAssignmentUnit(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOpenInterest(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOpenInterest(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExerciseMethod(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateExerciseMethod(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('A' or 'M'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotNumTradeReports(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTotNumTradeReports(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradeRequestResult(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTradeRequestResult(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 8 or 9 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradeRequestStatus(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTradeRequestStatus(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradeReportRejectReason(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTradeReportRejectReason(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSideMultiLegReportingType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSideMultiLegReportingType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoPosAmt(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoPosAmt(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAutoAcceptIndicator(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateAutoAcceptIndicator(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocReportID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAllocReportID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoNested2PartyIDs(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoNested2PartyIDs(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNested2PartyID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateNested2PartyID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNested2PartyIDSource(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateNested2PartyIDSource(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNested2PartyRole(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNested2PartyRole(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNested2PartySubID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateNested2PartySubID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBenchmarkSecurityIDSource(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateBenchmarkSecurityIDSource(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecuritySubType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecuritySubType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingSecuritySubType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingSecuritySubType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegSecuritySubType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegSecuritySubType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllowableOneSidednessPct(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAllowableOneSidednessPct(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllowableOneSidednessValue(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAllowableOneSidednessValue(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllowableOneSidednessCurr(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAllowableOneSidednessCurr(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoTrdRegTimestamps(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoTrdRegTimestamps(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTrdRegTimestamp(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateTrdRegTimestamp(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTrdRegTimestampType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTrdRegTimestampType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4 or 5))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTrdRegTimestampOrigin(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTrdRegTimestampOrigin(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateConfirmRefID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateConfirmRefID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateConfirmType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateConfirmType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateConfirmRejReason(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateConfirmRejReason(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateBookingType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateBookingType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateIndividualAllocRejCode(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateIndividualAllocRejCode(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlInstMsgID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSettlInstMsgID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoSettlInst(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoSettlInst(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastUpdateTime(Fix44Context context, FixMessage message, FixField.Timestamp field)
+	static void ValidateLastUpdateTime(Fix44Context context, FixCheck check, FixField.Timestamp field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocSettlInstType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAllocSettlInstType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoSettlPartyIDs(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoSettlPartyIDs(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlPartyID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSettlPartyID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlPartyIDSource(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateSettlPartyIDSource(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlPartyRole(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSettlPartyRole(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlPartySubID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSettlPartySubID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlPartySubIDType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSettlPartySubIDType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDlvyInstType(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateDlvyInstType(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (field.Value is not ('C' or 'S'))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTerminationType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTerminationType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNextExpectedMsgSeqNum(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNextExpectedMsgSeqNum(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrdStatusReqID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateOrdStatusReqID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlInstReqID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSettlInstReqID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSettlInstReqRejCode(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSettlInstReqRejCode(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecondaryAllocID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecondaryAllocID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocReportType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAllocReportType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (3 or 4 or 5 or 8))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocReportRefID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAllocReportRefID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocCancReplaceReason(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAllocCancReplaceReason(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCopyMsgIndicator(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateCopyMsgIndicator(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocAccountType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAllocAccountType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4 or 6 or 7 or 8))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrderAvgPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOrderAvgPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrderBookingQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOrderBookingQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoSettlPartySubIDs(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoSettlPartySubIDs(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoPartySubIDs(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoPartySubIDs(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePartySubIDType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePartySubIDType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 2 or 20 or
 			21 or 22 or 23 or 24 or 25 or 26 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoNestedPartySubIDs(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoNestedPartySubIDs(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNestedPartySubIDType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNestedPartySubIDType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoNested2PartySubIDs(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoNested2PartySubIDs(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNested2PartySubIDType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNested2PartySubIDType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocIntermedReqType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAllocIntermedReqType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 6))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateUnderlyingPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePriceDelta(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidatePriceDelta(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateApplQueueMax(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateApplQueueMax(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateApplQueueDepth(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateApplQueueDepth(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateApplQueueResolution(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateApplQueueResolution(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateApplQueueAction(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateApplQueueAction(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoAltMDSource(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoAltMDSource(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAltMDSourceID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAltMDSourceID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecondaryTradeReportID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecondaryTradeReportID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAvgPxIndicator(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAvgPxIndicator(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradeLinkID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTradeLinkID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrderInputDevice(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateOrderInputDevice(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingTradingSessionID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingTradingSessionID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingTradingSessionSubID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingTradingSessionSubID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradeLegRefID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTradeLegRefID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExchangeRule(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateExchangeRule(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradeAllocIndicator(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTradeAllocIndicator(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateExpirationCycle(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateExpirationCycle(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTrdType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTrdType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 10 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTrdSubType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTrdSubType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTransferReason(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTransferReason(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotNumAssignmentReports(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTotNumAssignmentReports(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAsgnRptID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAsgnRptID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateThresholdAmount(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateThresholdAmount(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePegMoveType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePegMoveType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePegOffsetType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePegOffsetType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePegLimitType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePegLimitType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePegRoundDirection(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePegRoundDirection(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePeggedPrice(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidatePeggedPrice(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePegScope(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidatePegScope(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDiscretionMoveType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateDiscretionMoveType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDiscretionOffsetType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateDiscretionOffsetType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDiscretionLimitType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateDiscretionLimitType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDiscretionRoundDirection(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateDiscretionRoundDirection(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDiscretionPrice(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateDiscretionPrice(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDiscretionScope(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateDiscretionScope(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTargetStrategy(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTargetStrategy(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTargetStrategyParameters(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTargetStrategyParameters(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateParticipationRate(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateParticipationRate(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTargetStrategyPerformance(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateTargetStrategyPerformance(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastLiquidityInd(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateLastLiquidityInd(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePublishTrdIndicator(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidatePublishTrdIndicator(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateShortSaleReason(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateShortSaleReason(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateQtyType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateQtyType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecondaryTrdType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateSecondaryTrdType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTradeReportType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTradeReportType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 7))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAllocNoOrdersType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAllocNoOrdersType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSharedCommission(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateSharedCommission(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateConfirmReqID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateConfirmReqID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAvgParPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateAvgParPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateReportedPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateReportedPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoCapacities(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoCapacities(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateOrderCapacityQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateOrderCapacityQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoEvents(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoEvents(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEventType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateEventType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEventDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateEventDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEventPx(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateEventPx(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEventText(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateEventText(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidatePctAtRisk(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidatePctAtRisk(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoInstrAttrib(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoInstrAttrib(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateInstrAttribType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateInstrAttribType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 10 or 11 or 12 or 13 or 14 or 15 or 16 or 17 or 18 or 19 or 2 or 20 or
 			21 or 22 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateInstrAttribValue(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateInstrAttribValue(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDatedDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateDatedDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateInterestAccrualDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateInterestAccrualDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCPProgram(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateCPProgram(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCPRegType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCPRegType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingCPProgram(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingCPProgram(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingCPRegType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingCPRegType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingQty(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateUnderlyingQty(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTrdMatchID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTrdMatchID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateSecondaryTradeReportRefID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateSecondaryTradeReportRefID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingDirtyPrice(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateUnderlyingDirtyPrice(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingEndPrice(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateUnderlyingEndPrice(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingStartValue(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateUnderlyingStartValue(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingCurrentValue(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateUnderlyingCurrentValue(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingEndValue(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateUnderlyingEndValue(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoUnderlyingStips(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoUnderlyingStips(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingStipType(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingStipType(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingStipValue(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingStipValue(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMaturityNetMoney(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMaturityNetMoney(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMiscFeeBasis(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateMiscFeeBasis(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotNoAllocs(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTotNoAllocs(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastFragment(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateLastFragment(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCollReqID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCollReqID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCollAsgnReason(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateCollAsgnReason(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 7))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCollInquiryQualifier(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateCollInquiryQualifier(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 7))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoTrades(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoTrades(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMarginRatio(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMarginRatio(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateMarginExcess(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateMarginExcess(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotalNetValue(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateTotalNetValue(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCashOutstanding(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateCashOutstanding(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCollAsgnID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCollAsgnID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCollAsgnTransType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateCollAsgnTransType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCollRespID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCollRespID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCollAsgnRespType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateCollAsgnRespType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCollAsgnRejectReason(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateCollAsgnRejectReason(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCollAsgnRefID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCollAsgnRefID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCollRptID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCollRptID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCollInquiryID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateCollInquiryID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCollStatus(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateCollStatus(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTotNumReports(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTotNumReports(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastRptRequested(Fix44Context context, FixMessage message, FixField.Boolean field)
+	static void ValidateLastRptRequested(Fix44Context context, FixCheck check, FixField.Boolean field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAgreementDesc(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAgreementDesc(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAgreementID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAgreementID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAgreementDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateAgreementDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStartDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateStartDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEndDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateEndDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAgreementCurrency(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateAgreementCurrency(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateDeliveryType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateDeliveryType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEndAccruedInterestAmt(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateEndAccruedInterestAmt(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStartCash(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateStartCash(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateEndCash(Fix44Context context, FixMessage message, FixField.Decimal field)
+	static void ValidateEndCash(Fix44Context context, FixCheck check, FixField.Decimal field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUserRequestID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUserRequestID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUserRequestType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateUserRequestType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNewPassword(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateNewPassword(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUserStatus(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateUserStatus(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4 or 5 or 6))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUserStatusText(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUserStatusText(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStatusValue(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateStatusValue(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStatusText(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateStatusText(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRefCompID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateRefCompID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateRefSubID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateRefSubID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNetworkResponseID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateNetworkResponseID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNetworkRequestID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateNetworkRequestID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLastNetworkResponseID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLastNetworkResponseID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNetworkRequestType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNetworkRequestType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 4 or 8))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoCompIDs(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoCompIDs(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNetworkStatusResponseType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNetworkStatusResponseType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoCollInquiryQualifier(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoCollInquiryQualifier(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTrdRptStatus(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateTrdRptStatus(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateAffirmStatus(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateAffirmStatus(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (1 or 2 or 3))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateUnderlyingStrikeCurrency(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateUnderlyingStrikeCurrency(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegStrikeCurrency(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateLegStrikeCurrency(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateTimeBracket(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateTimeBracket(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCollAction(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateCollAction(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCollInquiryStatus(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateCollInquiryStatus(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateCollInquiryResult(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateCollInquiryResult(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
+			Invalid(check, field);
 		else if (field.Value is not (0 or 1 or 2 or 3 or 4 or 5 or 6 or 7 or 8 or 9 or 99))
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateStrikeCurrency(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateStrikeCurrency(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoNested3PartyIDs(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoNested3PartyIDs(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNested3PartyID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateNested3PartyID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNested3PartyIDSource(Fix44Context context, FixMessage message, FixField.Character field)
+	static void ValidateNested3PartyIDSource(Fix44Context context, FixCheck check, FixField.Character field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNested3PartyRole(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNested3PartyRole(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNoNested3PartySubIDs(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNoNested3PartySubIDs(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNested3PartySubID(Fix44Context context, FixMessage message, FixField.Text field)
+	static void ValidateNested3PartySubID(Fix44Context context, FixCheck check, FixField.Text field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateNested3PartySubIDType(Fix44Context context, FixMessage message, FixField.Integer field)
+	static void ValidateNested3PartySubIDType(Fix44Context context, FixCheck check, FixField.Integer field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegContractSettlMonth(Fix44Context context, FixMessage message, FixField.MonthYear field)
+	static void ValidateLegContractSettlMonth(Fix44Context context, FixCheck check, FixField.MonthYear field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 
-	static bool ValidateLegInterestAccrualDate(Fix44Context context, FixMessage message, FixField.Date field)
+	static void ValidateLegInterestAccrualDate(Fix44Context context, FixCheck check, FixField.Date field)
 	{
 		if (!field.IsValid)
-			Invalid(message, field);
-
-		return message.IsValid;
+			Invalid(check, field);
 	}
 }

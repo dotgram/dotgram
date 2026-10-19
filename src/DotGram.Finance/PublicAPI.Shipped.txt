@@ -12,7 +12,7 @@ DotGram.Finance.Fix.Fix42.Fix42Context.LoadFile(string! fileName, string? emitTo
 DotGram.Finance.Fix.Fix42.Fix42Context.Prepare() -> void
 DotGram.Finance.Fix.Fix42.Fix42Context.With(DotGram.Finance.Fix.FixDictionary! dictionary, string? emitTo = null) -> DotGram.Finance.Fix.Fix42.Fix42Context!
 DotGram.Finance.Fix.Fix42.FixCustomMessage
-DotGram.Finance.Fix.Fix42.FixCustomMessage.AddFinding(DotGram.Finance.Fix.FixFinding finding) -> void
+DotGram.Finance.Fix.Fix42.FixCustomMessage.AddFinding(DotGram.Finance.Fix.FixFinding! finding) -> void
 DotGram.Finance.Fix.Fix42.FixCustomMessage.FixCustomMessage() -> void
 DotGram.Finance.Fix.Fix42.FixMessage
 DotGram.Finance.Fix.Fix42.FixMessage.Advertisement
@@ -413,6 +413,7 @@ DotGram.Finance.Fix.Fix42.FixMessage.ExecutionReport.TradeDate.get -> DotGram.Fi
 DotGram.Finance.Fix.Fix42.FixMessage.ExecutionReport.TradingSessionID.get -> DotGram.Finance.Fix.FixField.Text?
 DotGram.Finance.Fix.Fix42.FixMessage.ExecutionReport.TransactTime.get -> DotGram.Finance.Fix.FixField.Timestamp?
 DotGram.Finance.Fix.Fix42.FixMessage.Fields.get -> System.Collections.Generic.List<DotGram.Finance.Fix.FixField!>!
+DotGram.Finance.Fix.Fix42.FixMessage.Findings.get -> System.Collections.Generic.IReadOnlyList<DotGram.Finance.Fix.FixFinding!>!
 DotGram.Finance.Fix.Fix42.FixMessage.Heartbeat
 DotGram.Finance.Fix.Fix42.FixMessage.Heartbeat.TestReqID.get -> DotGram.Finance.Fix.FixField.Text?
 DotGram.Finance.Fix.Fix42.FixMessage.IndicationofInterest
@@ -461,8 +462,6 @@ DotGram.Finance.Fix.Fix42.FixMessage.IndicationofInterest.Text.get -> DotGram.Fi
 DotGram.Finance.Fix.Fix42.FixMessage.IndicationofInterest.TransactTime.get -> DotGram.Finance.Fix.FixField.Timestamp?
 DotGram.Finance.Fix.Fix42.FixMessage.IndicationofInterest.URLLink.get -> DotGram.Finance.Fix.FixField.Text?
 DotGram.Finance.Fix.Fix42.FixMessage.IndicationofInterest.ValidUntilTime.get -> DotGram.Finance.Fix.FixField.Timestamp?
-DotGram.Finance.Fix.Fix42.FixMessage.InvalidFindings.get -> System.Collections.Generic.List<DotGram.Finance.Fix.FixFinding>?
-DotGram.Finance.Fix.Fix42.FixMessage.IsValid.get -> bool
 DotGram.Finance.Fix.Fix42.FixMessage.LastMsgSeqNumProcessed.get -> DotGram.Finance.Fix.FixField.Integer?
 DotGram.Finance.Fix.Fix42.FixMessage.ListCancelRequest
 DotGram.Finance.Fix.Fix42.FixMessage.ListCancelRequest.EncodedText.get -> DotGram.Finance.Fix.FixField.Data?
@@ -1604,7 +1603,8 @@ DotGram.Finance.Fix.Fix42.FixMessage.TradingSessionStatusRequest.TradSesMode.get
 DotGram.Finance.Fix.Fix42.FixMessage.TradingSessionStatusRequest.TradSesReqID.get -> DotGram.Finance.Fix.FixField.Text?
 DotGram.Finance.Fix.Fix42.FixMessage.TradingSessionStatusRequest.TradingSessionID.get -> DotGram.Finance.Fix.FixField.Text?
 DotGram.Finance.Fix.Fix42.FixMessage.Unknown
-DotGram.Finance.Fix.Fix42.FixMessage.Validate(DotGram.Finance.Fix.Fix42.Fix42Context! context) -> bool
+DotGram.Finance.Fix.Fix42.FixMessage.Validate(DotGram.Finance.Fix.Fix42.Fix42Context! context) -> System.Collections.Generic.IReadOnlyList<DotGram.Finance.Fix.FixFinding!>!
+DotGram.Finance.Fix.Fix42.FixMessage.Validate(DotGram.Finance.Fix.Fix42.Fix42Context! context, System.Collections.Generic.ICollection<DotGram.Finance.Fix.FixFinding!>! findings) -> int
 DotGram.Finance.Fix.Fix42.FixMessage.XmlData.get -> DotGram.Finance.Fix.FixField.Data?
 DotGram.Finance.Fix.Fix42.FixMessage.XmlDataLen.get -> DotGram.Finance.Fix.FixField.Integer?
 DotGram.Finance.Fix.Fix42.FixParser
@@ -1621,7 +1621,7 @@ DotGram.Finance.Fix.Fix44.Fix44Context.LoadFile(string! fileName, string? emitTo
 DotGram.Finance.Fix.Fix44.Fix44Context.Prepare() -> void
 DotGram.Finance.Fix.Fix44.Fix44Context.With(DotGram.Finance.Fix.FixDictionary! dictionary, string? emitTo = null) -> DotGram.Finance.Fix.Fix44.Fix44Context!
 DotGram.Finance.Fix.Fix44.FixCustomMessage
-DotGram.Finance.Fix.Fix44.FixCustomMessage.AddFinding(DotGram.Finance.Fix.FixFinding finding) -> void
+DotGram.Finance.Fix.Fix44.FixCustomMessage.AddFinding(DotGram.Finance.Fix.FixFinding! finding) -> void
 DotGram.Finance.Fix.Fix44.FixCustomMessage.FixCustomMessage() -> void
 DotGram.Finance.Fix.Fix44.FixMessage
 DotGram.Finance.Fix.Fix44.FixMessage.Advertisement
@@ -5628,6 +5628,7 @@ DotGram.Finance.Fix.Fix44.FixMessage.ExecutionReport.YieldRedemptionPrice.get ->
 DotGram.Finance.Fix.Fix44.FixMessage.ExecutionReport.YieldRedemptionPriceType.get -> DotGram.Finance.Fix.FixField.Integer?
 DotGram.Finance.Fix.Fix44.FixMessage.ExecutionReport.YieldType.get -> DotGram.Finance.Fix.FixField.Text?
 DotGram.Finance.Fix.Fix44.FixMessage.Fields.get -> System.Collections.Generic.List<DotGram.Finance.Fix.FixField!>!
+DotGram.Finance.Fix.Fix44.FixMessage.Findings.get -> System.Collections.Generic.IReadOnlyList<DotGram.Finance.Fix.FixFinding!>!
 DotGram.Finance.Fix.Fix44.FixMessage.Heartbeat
 DotGram.Finance.Fix.Fix44.FixMessage.Heartbeat.TestReqID.get -> DotGram.Finance.Fix.FixField.Text?
 DotGram.Finance.Fix.Fix44.FixMessage.IndicationOfInterest
@@ -5833,8 +5834,6 @@ DotGram.Finance.Fix.Fix44.FixMessage.IndicationOfInterest.YieldRedemptionDate.ge
 DotGram.Finance.Fix.Fix44.FixMessage.IndicationOfInterest.YieldRedemptionPrice.get -> DotGram.Finance.Fix.FixField.Decimal?
 DotGram.Finance.Fix.Fix44.FixMessage.IndicationOfInterest.YieldRedemptionPriceType.get -> DotGram.Finance.Fix.FixField.Integer?
 DotGram.Finance.Fix.Fix44.FixMessage.IndicationOfInterest.YieldType.get -> DotGram.Finance.Fix.FixField.Text?
-DotGram.Finance.Fix.Fix44.FixMessage.InvalidFindings.get -> System.Collections.Generic.List<DotGram.Finance.Fix.FixFinding>?
-DotGram.Finance.Fix.Fix44.FixMessage.IsValid.get -> bool
 DotGram.Finance.Fix.Fix44.FixMessage.LastMsgSeqNumProcessed.get -> DotGram.Finance.Fix.FixField.Integer?
 DotGram.Finance.Fix.Fix44.FixMessage.ListCancelRequest
 DotGram.Finance.Fix.Fix44.FixMessage.ListCancelRequest.EncodedText.get -> DotGram.Finance.Fix.FixField.Data?
@@ -13776,7 +13775,8 @@ DotGram.Finance.Fix.Fix44.FixMessage.UserResponse.UserRequestID.get -> DotGram.F
 DotGram.Finance.Fix.Fix44.FixMessage.UserResponse.UserStatus.get -> DotGram.Finance.Fix.FixField.Integer?
 DotGram.Finance.Fix.Fix44.FixMessage.UserResponse.UserStatusText.get -> DotGram.Finance.Fix.FixField.Text?
 DotGram.Finance.Fix.Fix44.FixMessage.UserResponse.Username.get -> DotGram.Finance.Fix.FixField.Text?
-DotGram.Finance.Fix.Fix44.FixMessage.Validate(DotGram.Finance.Fix.Fix44.Fix44Context! context) -> bool
+DotGram.Finance.Fix.Fix44.FixMessage.Validate(DotGram.Finance.Fix.Fix44.Fix44Context! context) -> System.Collections.Generic.IReadOnlyList<DotGram.Finance.Fix.FixFinding!>!
+DotGram.Finance.Fix.Fix44.FixMessage.Validate(DotGram.Finance.Fix.Fix44.Fix44Context! context, System.Collections.Generic.ICollection<DotGram.Finance.Fix.FixFinding!>! findings) -> int
 DotGram.Finance.Fix.Fix44.FixMessage.XMLnonFIX
 DotGram.Finance.Fix.Fix44.FixMessage.XmlData.get -> DotGram.Finance.Fix.FixField.Data?
 DotGram.Finance.Fix.Fix44.FixMessage.XmlDataLen.get -> DotGram.Finance.Fix.FixField.Integer?
@@ -14125,7 +14125,7 @@ DotGram.Finance.Fix.Fix50.Fix50Context.LoadFile(string! fileName, string? emitTo
 DotGram.Finance.Fix.Fix50.Fix50Context.Prepare() -> void
 DotGram.Finance.Fix.Fix50.Fix50Context.With(DotGram.Finance.Fix.FixDictionary! dictionary, string? emitTo = null) -> DotGram.Finance.Fix.Fix50.Fix50Context!
 DotGram.Finance.Fix.Fix50.FixCustomMessage
-DotGram.Finance.Fix.Fix50.FixCustomMessage.AddFinding(DotGram.Finance.Fix.FixFinding finding) -> void
+DotGram.Finance.Fix.Fix50.FixCustomMessage.AddFinding(DotGram.Finance.Fix.FixFinding! finding) -> void
 DotGram.Finance.Fix.Fix50.FixCustomMessage.FixCustomMessage() -> void
 DotGram.Finance.Fix.Fix50.FixMessage
 DotGram.Finance.Fix.Fix50.FixMessage.AdjustedPositionReport
@@ -21448,6 +21448,7 @@ DotGram.Finance.Fix.Fix50.FixMessage.ExecutionReport.YieldRedemptionPrice.get ->
 DotGram.Finance.Fix.Fix50.FixMessage.ExecutionReport.YieldRedemptionPriceType.get -> DotGram.Finance.Fix.FixField.Integer?
 DotGram.Finance.Fix.Fix50.FixMessage.ExecutionReport.YieldType.get -> DotGram.Finance.Fix.FixField.Text?
 DotGram.Finance.Fix.Fix50.FixMessage.Fields.get -> System.Collections.Generic.List<DotGram.Finance.Fix.FixField!>!
+DotGram.Finance.Fix.Fix50.FixMessage.Findings.get -> System.Collections.Generic.IReadOnlyList<DotGram.Finance.Fix.FixFinding!>!
 DotGram.Finance.Fix.Fix50.FixMessage.Heartbeat
 DotGram.Finance.Fix.Fix50.FixMessage.Heartbeat.TestReqID.get -> DotGram.Finance.Fix.FixField.Text?
 DotGram.Finance.Fix.Fix50.FixMessage.IOI
@@ -21744,8 +21745,6 @@ DotGram.Finance.Fix.Fix50.FixMessage.IOI.YieldRedemptionDate.get -> DotGram.Fina
 DotGram.Finance.Fix.Fix50.FixMessage.IOI.YieldRedemptionPrice.get -> DotGram.Finance.Fix.FixField.Decimal?
 DotGram.Finance.Fix.Fix50.FixMessage.IOI.YieldRedemptionPriceType.get -> DotGram.Finance.Fix.FixField.Integer?
 DotGram.Finance.Fix.Fix50.FixMessage.IOI.YieldType.get -> DotGram.Finance.Fix.FixField.Text?
-DotGram.Finance.Fix.Fix50.FixMessage.InvalidFindings.get -> System.Collections.Generic.List<DotGram.Finance.Fix.FixFinding>?
-DotGram.Finance.Fix.Fix50.FixMessage.IsValid.get -> bool
 DotGram.Finance.Fix.Fix50.FixMessage.LastMsgSeqNumProcessed.get -> DotGram.Finance.Fix.FixField.Integer?
 DotGram.Finance.Fix.Fix50.FixMessage.ListCancelRequest
 DotGram.Finance.Fix.Fix50.FixMessage.ListCancelRequest.EncodedText.get -> DotGram.Finance.Fix.FixField.Data?
@@ -35959,7 +35958,8 @@ DotGram.Finance.Fix.Fix50.FixMessage.UserResponse.UserRequestID.get -> DotGram.F
 DotGram.Finance.Fix.Fix50.FixMessage.UserResponse.UserStatus.get -> DotGram.Finance.Fix.FixField.Integer?
 DotGram.Finance.Fix.Fix50.FixMessage.UserResponse.UserStatusText.get -> DotGram.Finance.Fix.FixField.Text?
 DotGram.Finance.Fix.Fix50.FixMessage.UserResponse.Username.get -> DotGram.Finance.Fix.FixField.Text?
-DotGram.Finance.Fix.Fix50.FixMessage.Validate(DotGram.Finance.Fix.Fix50.Fix50Context! context) -> bool
+DotGram.Finance.Fix.Fix50.FixMessage.Validate(DotGram.Finance.Fix.Fix50.Fix50Context! context) -> System.Collections.Generic.IReadOnlyList<DotGram.Finance.Fix.FixFinding!>!
+DotGram.Finance.Fix.Fix50.FixMessage.Validate(DotGram.Finance.Fix.Fix50.Fix50Context! context, System.Collections.Generic.ICollection<DotGram.Finance.Fix.FixFinding!>! findings) -> int
 DotGram.Finance.Fix.Fix50.FixMessage.XMLnonFIX
 DotGram.Finance.Fix.Fix50.FixMessage.XmlData.get -> DotGram.Finance.Fix.FixField.Data?
 DotGram.Finance.Fix.Fix50.FixMessage.XmlDataLen.get -> DotGram.Finance.Fix.FixField.Integer?
@@ -36669,23 +36669,23 @@ DotGram.Finance.Fix.FixField.ValuePosition.get -> int
 DotGram.Finance.Fix.FixField.ZonedTime
 DotGram.Finance.Fix.FixField.ZonedTime.ZonedTime(int tag, (bool Valid, (System.TimeOnly Time, System.TimeSpan Offset) Value) value) -> void
 DotGram.Finance.Fix.FixFinding
-DotGram.Finance.Fix.FixFinding.Deconstruct(out DotGram.Finance.Fix.FixRule Rule, out int Tag, out int Position, out DotGram.Finance.Fix.FixField? Field, out int EntryIndex) -> void
-DotGram.Finance.Fix.FixFinding.EntryIndex.get -> int
-DotGram.Finance.Fix.FixFinding.EntryIndex.init -> void
-DotGram.Finance.Fix.FixFinding.Equals(DotGram.Finance.Fix.FixFinding other) -> bool
 DotGram.Finance.Fix.FixFinding.Field.get -> DotGram.Finance.Fix.FixField?
-DotGram.Finance.Fix.FixFinding.Field.init -> void
-DotGram.Finance.Fix.FixFinding.FixFinding() -> void
-DotGram.Finance.Fix.FixFinding.FixFinding(DotGram.Finance.Fix.FixRule Rule, int Tag, int Position, DotGram.Finance.Fix.FixField? Field, int EntryIndex) -> void
+DotGram.Finance.Fix.FixFinding.Path.get -> System.Collections.Generic.IReadOnlyList<DotGram.Finance.Fix.FixGroupStep>!
 DotGram.Finance.Fix.FixFinding.Position.get -> int
-DotGram.Finance.Fix.FixFinding.Position.init -> void
 DotGram.Finance.Fix.FixFinding.Rule.get -> DotGram.Finance.Fix.FixRule
-DotGram.Finance.Fix.FixFinding.Rule.init -> void
 DotGram.Finance.Fix.FixFinding.Tag.get -> int
-DotGram.Finance.Fix.FixFinding.Tag.init -> void
 DotGram.Finance.Fix.FixFraming
 DotGram.Finance.Fix.FixFraming.Log = 1 -> DotGram.Finance.Fix.FixFraming
 DotGram.Finance.Fix.FixFraming.Wire = 0 -> DotGram.Finance.Fix.FixFraming
+DotGram.Finance.Fix.FixGroupStep
+DotGram.Finance.Fix.FixGroupStep.CounterTag.get -> int
+DotGram.Finance.Fix.FixGroupStep.CounterTag.init -> void
+DotGram.Finance.Fix.FixGroupStep.Deconstruct(out int CounterTag, out int Index) -> void
+DotGram.Finance.Fix.FixGroupStep.Equals(DotGram.Finance.Fix.FixGroupStep other) -> bool
+DotGram.Finance.Fix.FixGroupStep.FixGroupStep() -> void
+DotGram.Finance.Fix.FixGroupStep.FixGroupStep(int CounterTag, int Index) -> void
+DotGram.Finance.Fix.FixGroupStep.Index.get -> int
+DotGram.Finance.Fix.FixGroupStep.Index.init -> void
 DotGram.Finance.Fix.FixParseError
 DotGram.Finance.Fix.FixParseError.MessageType.get -> string?
 DotGram.Finance.Fix.FixParseError.Position.get -> int
@@ -38213,8 +38213,9 @@ override DotGram.Finance.Fix.Fix50.Fix50Context.ToString() -> string!
 override DotGram.Finance.Fix.FixContext.Equals(object? obj) -> bool
 override DotGram.Finance.Fix.FixContext.GetHashCode() -> int
 override DotGram.Finance.Fix.FixContext.ToString() -> string!
-override DotGram.Finance.Fix.FixFinding.GetHashCode() -> int
 override DotGram.Finance.Fix.FixFinding.ToString() -> string!
+override DotGram.Finance.Fix.FixGroupStep.GetHashCode() -> int
+override DotGram.Finance.Fix.FixGroupStep.ToString() -> string!
 override DotGram.Finance.Fix.FixParseError.ToString() -> string!
 override sealed DotGram.Finance.Fix.Fix42.Fix42Context.Equals(DotGram.Finance.Fix.FixContext? other) -> bool
 override sealed DotGram.Finance.Fix.Fix44.Fix44Context.Equals(DotGram.Finance.Fix.FixContext? other) -> bool
@@ -38371,15 +38372,18 @@ static DotGram.Finance.Fix.FixDictionary.Read(System.IO.TextReader! input) -> Do
 static DotGram.Finance.Fix.FixDictionaryMember.Component(string! name, bool required = false) -> DotGram.Finance.Fix.FixDictionaryMember!
 static DotGram.Finance.Fix.FixDictionaryMember.Field(string! name, bool required = false) -> DotGram.Finance.Fix.FixDictionaryMember!
 static DotGram.Finance.Fix.FixDictionaryMember.Group(string! counter, bool required = false) -> DotGram.Finance.Fix.FixDictionaryMember!
-static DotGram.Finance.Fix.FixFinding.operator !=(DotGram.Finance.Fix.FixFinding left, DotGram.Finance.Fix.FixFinding right) -> bool
-static DotGram.Finance.Fix.FixFinding.operator ==(DotGram.Finance.Fix.FixFinding left, DotGram.Finance.Fix.FixFinding right) -> bool
-virtual DotGram.Finance.Fix.Fix42.FixCustomMessage.OnValidate(DotGram.Finance.Fix.Fix42.Fix42Context! context) -> void
+static DotGram.Finance.Fix.FixFinding.Missing(int tag, params DotGram.Finance.Fix.FixGroupStep[]! path) -> DotGram.Finance.Fix.FixFinding!
+static DotGram.Finance.Fix.FixFinding.Of(DotGram.Finance.Fix.FixRule rule, DotGram.Finance.Fix.FixField! field, params DotGram.Finance.Fix.FixGroupStep[]! path) -> DotGram.Finance.Fix.FixFinding!
+static DotGram.Finance.Fix.FixFinding.Of(DotGram.Finance.Fix.FixRule rule, int tag, params DotGram.Finance.Fix.FixGroupStep[]! path) -> DotGram.Finance.Fix.FixFinding!
+static DotGram.Finance.Fix.FixGroupStep.operator !=(DotGram.Finance.Fix.FixGroupStep left, DotGram.Finance.Fix.FixGroupStep right) -> bool
+static DotGram.Finance.Fix.FixGroupStep.operator ==(DotGram.Finance.Fix.FixGroupStep left, DotGram.Finance.Fix.FixGroupStep right) -> bool
+virtual DotGram.Finance.Fix.Fix42.FixCustomMessage.OnValidate(DotGram.Finance.Fix.Fix42.Fix42Context! context, System.Collections.Generic.ICollection<DotGram.Finance.Fix.FixFinding!>! findings) -> void
 virtual DotGram.Finance.Fix.Fix42.FixCustomMessage.Place(DotGram.Finance.Fix.FixField! field) -> bool
-virtual DotGram.Finance.Fix.Fix44.FixCustomMessage.OnValidate(DotGram.Finance.Fix.Fix44.Fix44Context! context) -> void
+virtual DotGram.Finance.Fix.Fix44.FixCustomMessage.OnValidate(DotGram.Finance.Fix.Fix44.Fix44Context! context, System.Collections.Generic.ICollection<DotGram.Finance.Fix.FixFinding!>! findings) -> void
 virtual DotGram.Finance.Fix.Fix44.FixCustomMessage.Place(DotGram.Finance.Fix.FixField! field) -> bool
-virtual DotGram.Finance.Fix.Fix50.FixCustomMessage.OnValidate(DotGram.Finance.Fix.Fix50.Fix50Context! context) -> void
+virtual DotGram.Finance.Fix.Fix50.FixCustomMessage.OnValidate(DotGram.Finance.Fix.Fix50.Fix50Context! context, System.Collections.Generic.ICollection<DotGram.Finance.Fix.FixFinding!>! findings) -> void
 virtual DotGram.Finance.Fix.Fix50.FixCustomMessage.Place(DotGram.Finance.Fix.FixField! field) -> bool
 virtual DotGram.Finance.Fix.FixContext.EqualityContract.get -> System.Type!
 virtual DotGram.Finance.Fix.FixContext.Equals(DotGram.Finance.Fix.FixContext? other) -> bool
 virtual DotGram.Finance.Fix.FixContext.PrintMembers(System.Text.StringBuilder! builder) -> bool
-~override DotGram.Finance.Fix.FixFinding.Equals(object obj) -> bool
+~override DotGram.Finance.Fix.FixGroupStep.Equals(object obj) -> bool

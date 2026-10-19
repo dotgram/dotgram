@@ -171,9 +171,9 @@ static partial class Stand
 		return (version, form) switch
 		{
 			("42", "parse-string")  => () => Fix42.FixParser.ParseMessage(wire) is null ? 0 : 1,
-			("42", "strict-string") => () => Fix42.FixParser.ParseMessage(wire).Validate(Fix42.Fix42Context.Default) ? 1 : 0,
+			("42", "strict-string") => () => Fix42.FixParser.ParseMessage(wire).Validate(Fix42.Fix42Context.Default).Count == 0 ? 1 : 0,
 			("50", "parse-string")  => () => Fix50.FixParser.ParseMessage(wire) is null ? 0 : 1,
-			("50", "strict-string") => () => Fix50.FixParser.ParseMessage(wire).Validate(Fix50.Fix50Context.Default) ? 1 : 0,
+			("50", "strict-string") => () => Fix50.FixParser.ParseMessage(wire).Validate(Fix50.Fix50Context.Default).Count == 0 ? 1 : 0,
 			_ => throw new ArgumentException($"no reading of this process's own FIX {version} {form}", nameof(form)),
 		};
 	}
@@ -199,15 +199,15 @@ static partial class Stand
 		// before timing anything -- see the remarks above the rows.
 		return form switch
 		{
-			"parse-stream" => () => FixParser.ReadMessage(new MemoryStream(octets, false)) is { InvalidFindings: null } ? 1 : 0,
-			"parse-reader" => () => FixParser.ReadMessage(new StringReader(text))          is { InvalidFindings: null } ? 1 : 0,
+			"parse-stream" => () => FixParser.ReadMessage(new MemoryStream(octets, false)) is { Findings.Count: 0 } ? 1 : 0,
+			"parse-reader" => () => FixParser.ReadMessage(new StringReader(text))          is { Findings.Count: 0 } ? 1 : 0,
 
 			// The door takes no span, so a caller holding one copies it into a string first, and the
 			// copy is part of the form -- the same sentence the side's own comment carries.
-			"parse-span"   => () => FixParser.ParseMessage(wire.AsSpan().ToString())       is { InvalidFindings: null } ? 1 : 0,
+			"parse-span"   => () => FixParser.ParseMessage(wire.AsSpan().ToString())       is { Findings.Count: 0 } ? 1 : 0,
 
-			"read-stream"  => () => FixParser.ReadMessages(new MemoryStream(octets, false)).Count(static one => one.InvalidFindings is null),
-			"read-reader"  => () => FixParser.ReadMessages(new StringReader(text)).Count(static one => one.InvalidFindings is null),
+			"read-stream"  => () => FixParser.ReadMessages(new MemoryStream(octets, false)).Count(static one => one.Findings.Count == 0),
+			"read-reader"  => () => FixParser.ReadMessages(new StringReader(text)).Count(static one => one.Findings.Count == 0),
 
 			_ => throw new ArgumentException($"no reading of this process's own {form}", nameof(form)),
 		};

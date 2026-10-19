@@ -195,8 +195,7 @@ public sealed class FixOctetRoadTests
 		// UTF-8: the claim is false, and what is found is the length rather than the decoding.
 		var misread = FixParser.ParseMessage(Encoding.UTF8.GetString(wire));
 
-		Assert.False(misread.Validate(Fix44Context.Default));
-		Assert.Contains(misread.InvalidFindings!, finding => finding.Rule == FixRule.BodyLengthMismatch);
+		Assert.Contains(misread.Validate(Fix44Context.Default), finding => finding.Rule == FixRule.BodyLengthMismatch);
 	}
 
 	/// <summary>
@@ -212,8 +211,7 @@ public sealed class FixOctetRoadTests
 
 		var misread = FixParser.ParseMessage(Encoding.UTF8.GetString(wire));
 
-		Assert.False(misread.Validate(Fix44Context.Default));
-		Assert.Contains(misread.InvalidFindings!, finding => finding.Rule == FixRule.BodyLengthMismatch);
+		Assert.Contains(misread.Validate(Fix44Context.Default), finding => finding.Rule == FixRule.BodyLengthMismatch);
 	}
 
 	// ── the doors of the octet road answer alike ─────────────────────────────────────────────
@@ -305,8 +303,7 @@ public sealed class FixOctetRoadTests
 
 		var message = FixParser.ParseMessage(wire);
 
-		Assert.False(message.Validate(Fix44Context.Default));
-		Assert.Contains(message.InvalidFindings!, finding => finding.Rule == FixRule.CheckSumMismatch);
+		Assert.Contains(message.Validate(Fix44Context.Default), finding => finding.Rule == FixRule.CheckSumMismatch);
 	}
 
 	/// <summary>The trying door answers a message cut short with a diagnostic rather than throwing.</summary>

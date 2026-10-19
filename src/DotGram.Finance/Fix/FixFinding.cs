@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Globalization;
+using System.Text;
 
 namespace DotGram.Finance.Fix;
 
@@ -47,6 +49,18 @@ public enum FixRule
 	CheckSumMismatch,
 }
 
+/// <summary>One step of the way to a finding inside repeating groups: the group, by its counter's tag, and which entry.</summary>
+/// <param name="CounterTag">The tag of the group's counter, NoPartyIDs' 453.</param>
+/// <param name="Index">Which entry of the group, counting from zero.</param>
+public readonly record struct FixGroupStep(int CounterTag, int Index)
+{
+	/// <summary>The step as a finding's path writes it: <c>453[1]</c>.</summary>
+	public override string ToString()
+	{
+		return CounterTag.ToString(CultureInfo.InvariantCulture) + "[" + Index.ToString(CultureInfo.InvariantCulture) + "]";
+	}
+}
+
 /// <summary>One thing wrong with a message, and where.</summary>
 /// <remarks>
 /// <para>
@@ -57,28 +71,108 @@ public enum FixRule
 /// </para>
 /// <para>
 /// The path matters as much as the tag. "Tag 448 is wrong" says nothing where a message carries
-/// nine parties, so a finding inside a repeating group names the group and which entry it is.
+/// nine parties, so a finding inside repeating groups names every group and entry on the way to
+/// it, outermost first: <c>453[1].802[0]</c> is the first sub-ID entry of the second party.
+/// </para>
+/// <para>
+/// Made by the package, or by a custom message or a consumer's own rules through
+/// <see cref="Missing"/> and <see cref="Of(FixRule, FixField, FixGroupStep[])"/>; a finding is never
+/// changed once made, and two are the same finding only if they are the same object.
 /// </para>
 /// </remarks>
-/// <param name="Rule">Which rule found it.</param>
-/// <param name="Tag">The tag it is about; zero where the finding is about the message itself.</param>
-/// <param name="Position">Where the fault is: the field it is about, or the field it was expected beside.</param>
-/// <param name="Field">The field it is about, or null where the finding is that there is none.</param>
-/// <param name="EntryIndex">Which entry of the repeating group it is in, counting from zero, or -1 outside one.</param>
-public readonly record struct FixFinding(
-	FixRule   Rule,
-	int       Tag,
-	int       Position,
-	FixField? Field,
-	int       EntryIndex)
+public sealed class FixFinding
 {
-	/// <summary>The finding as a line: what is wrong, which tag, and where.</summary>
+	readonly FixGroupStep[]? _path;
+
+	FixFinding(FixRule rule, int tag, int position, FixField? field, FixGroupStep[]? path)
+	{
+		Rule     = rule;
+		Tag      = tag;
+		Position = position;
+		Field    = field;
+		_path    = path;
+	}
+
+	/// <summary>Which rule found it.</summary>
+	public FixRule   Rule     { get; }
+
+	/// <summary>The tag it is about: the field's, or the one that is missing.</summary>
+	public int       Tag      { get; }
+
+	/// <summary>Where the fault is: the field it is about, or the field it was expected beside; -1 where there is no place, a field the message lacks.</summary>
+	public int       Position { get; }
+
+	/// <summary>The field it is about, or null where the finding is that there is none.</summary>
+	public FixField? Field    { get; }
+
+	/// <summary>The groups and entries the finding is in, outermost first; empty outside every group.</summary>
+	public IReadOnlyList<FixGroupStep> Path => _path ?? Array.Empty<FixGroupStep>();
+
+	/// <summary>A required field that is absent: from the message, or from the entry the path names.</summary>
+	/// <param name="tag">The field's tag.</param>
+	/// <param name="path">The groups and entries it is missing from, outermost first; none for the message itself.</param>
+	public static FixFinding Missing(int tag, params FixGroupStep[] path)
+	{
+		return new FixFinding(FixRule.RequiredFieldMissing, tag, -1, null, Copy(path));
+	}
+
+	/// <summary>A finding about a field the message has, said where the field is.</summary>
+	/// <param name="rule">Which rule found it.</param>
+	/// <param name="field">The field it is about.</param>
+	/// <param name="path">The groups and entries the field is in, outermost first; none outside every group.</param>
+	public static FixFinding Of(FixRule rule, FixField field, params FixGroupStep[] path)
+	{
+		if (field == null) throw new ArgumentNullException(nameof(field));
+
+		return new FixFinding(rule, field.Tag, field.Position, field, Copy(path));
+	}
+
+	/// <summary>A finding about a tag with no field to point at.</summary>
+	/// <param name="rule">Which rule found it.</param>
+	/// <param name="tag">The tag it is about.</param>
+	/// <param name="path">The groups and entries it is about, outermost first; none for the message itself.</param>
+	public static FixFinding Of(FixRule rule, int tag, params FixGroupStep[] path)
+	{
+		return new FixFinding(rule, tag, -1, null, Copy(path));
+	}
+
+	// The package's own: a path it made for this finding, or shares between findings of one entry, and
+	// does not change.
+	internal static FixFinding At(FixRule rule, int tag, int position, FixField? field, FixGroupStep[]? path)
+	{
+		return new FixFinding(rule, tag, position, field, path);
+	}
+
+	/// <summary>The finding as a line: where in the groups, which tag, where in the input, and what is wrong.</summary>
 	public override string ToString()
 	{
-		var where = EntryIndex < 0 ? "" : $"[{EntryIndex}] ";
+		var line = new StringBuilder();
 
-		return Tag == 0
-			? $"{where}at {Position}: {Rule}"
-			: $"{where}tag {Tag} at {Position}: {Rule}";
+		if (_path is not null)
+		{
+			foreach (var step in _path)
+				line.Append(line.Length == 0 ? "" : ".").Append(step.ToString());
+
+			line.Append(' ');
+		}
+
+		if (Tag != 0)
+			line.Append("tag ").Append(Tag.ToString(CultureInfo.InvariantCulture)).Append(' ');
+
+		if (Position >= 0)
+			line.Append("at ").Append(Position.ToString(CultureInfo.InvariantCulture));
+		else if (line.Length > 0)
+			line.Length--;
+
+		return line.Length == 0 ? Rule.ToString() : line.Append(": ").Append(Rule.ToString()).ToString();
+	}
+
+	// A caller's path is copied, so that what it does with its array afterwards does not move the finding.
+	static FixGroupStep[]? Copy(FixGroupStep[]? path)
+	{
+		if (path is null || path.Length == 0)
+			return null;
+
+		return (FixGroupStep[])path.Clone();
 	}
 }

@@ -17,7 +17,7 @@ namespace DotGram.Finance.Fix.Fix42;
 /// thing IS where it is written, and puts the base type in front of every arm of every switch,
 /// which is what makes the hierarchy visibly closed where it is taken apart.
 /// </remarks>
-public abstract partial class FixMessage : IFixFindings
+public abstract partial class FixMessage
 {
 	internal FixMessage(string messageType, List<FixField> fields)
 	{
@@ -44,14 +44,15 @@ public abstract partial class FixMessage : IFixFindings
 
 
 	/// <summary>Everything found wrong with this message, or null while nothing has been.</summary>
-	public List<FixFinding>? InvalidFindings { get; private set; }
+	// What reading found, or null while it has found nothing.
+	FixReadFindings? _findings;
 
-	/// <summary>Whether nothing has been found wrong with this message.</summary>
+	/// <summary>What reading this message found wrong with it, in the order it was found; empty when nothing.</summary>
 	/// <remarks>
-	/// True before <see cref="Validate"/> is called means only that the reading found nothing: the
-	/// message has not been held to the schema yet.
+	/// A message is read once and these do not change after: <see cref="Validate(Fix42Context)"/> answers them
+	/// first, with what holding the message to a schema finds.
 	/// </remarks>
-	public bool IsValid => InvalidFindings is null;
+	public IReadOnlyList<FixFinding> Findings => (IReadOnlyList<FixFinding>?)_findings ?? Array.Empty<FixFinding>();
 
 	// What the reading measured of the octets this message was read from, which it does not keep: the
 	// octets of the body and their sum before CheckSum, for Validate to hold BodyLength and CheckSum to;
@@ -59,49 +60,163 @@ public abstract partial class FixMessage : IFixFindings
 	internal int MeasuredBodyLength = -1;
 	internal int MeasuredCheckSum   = -1;
 
-	// Only so that a second Validate does not fill the findings twice. One pass over an input is
-	// one context, so a message is validated once and a second call answers what the first did.
-	bool _validated;
-
-	/// <summary>Holds this message to the schema, adding what is wrong to <see cref="InvalidFindings"/>.</summary>
+	/// <summary>Holds this message to a schema, and answers everything wrong with it.</summary>
 	/// <param name="context">The schema to hold it to.</param>
-	/// <returns>Whether nothing is wrong with it.</returns>
-	public bool Validate(Fix42Context context)
+	/// <returns>
+	/// What reading found, <see cref="Findings"/>, and then what the schema finds; empty when nothing is
+	/// wrong. A new list each call, the caller's to keep.
+	/// </returns>
+	/// <remarks>
+	/// Nothing is kept on the message: every call asks again, of the context it is given, and calls from
+	/// several threads on one message do not meet. A valid message is validated without allocating.
+	/// </remarks>
+	public IReadOnlyList<FixFinding> Validate(Fix42Context context)
 	{
 		if (context == null) throw new ArgumentNullException(nameof(context));
 
-		if (_validated)
-			return IsValid;
+		var check = FixCheck.Rent(null);
 
-		_validated = true;
+		try
+		{
+			Run(context, check);
 
-		// The standard header and trailer first, which every type carries, then the type itself.
-		context.Validators.StandardHeader(context, this);
-		Check(context);
+			return check.Found();
+		}
+		finally
+		{
+			check.Return();
+		}
+	}
 
-		return IsValid;
+	/// <summary>Holds this message to a schema, and adds everything wrong with it to a collection of the caller's.</summary>
+	/// <param name="context">The schema to hold it to.</param>
+	/// <param name="findings">What to add the findings to: what reading found, <see cref="Findings"/>, and then what the schema finds.</param>
+	/// <returns>How many it added; zero where nothing is wrong.</returns>
+	/// <remarks>
+	/// For a caller who validates many messages into one collection, cleared between them, or adds its own
+	/// rules' findings beside the schema's: no list is made per message, whatever is wrong with it.
+	/// </remarks>
+	public int Validate(Fix42Context context, ICollection<FixFinding> findings)
+	{
+		if (context  == null) throw new ArgumentNullException(nameof(context));
+		if (findings == null) throw new ArgumentNullException(nameof(findings));
+
+		var before = findings.Count;
+		var check  = FixCheck.Rent(findings);
+
+		try
+		{
+			Run(context, check);
+		}
+		finally
+		{
+			check.Return();
+		}
+
+		return findings.Count - before;
+	}
+
+	// What reading found first, then the standard header and trailer, which every type carries, then the
+	// type itself.
+	void Run(Fix42Context context, FixCheck check)
+	{
+		if (_findings is not null)
+			foreach (var finding in _findings)
+				check.Findings.Add(finding);
+
+		context.Validators.StandardHeader(context, check, this);
+		Check(context, check);
 	}
 
 	/// <summary>Asks the context for the check of this message type and runs it.</summary>
-	private protected abstract void Check(Fix42Context context);
+	private protected abstract void Check(Fix42Context context, FixCheck check);
 
-	// Adds one finding to this message: the reader's and the checks' own. A custom message adds its own
-	// through FixCustomMessage.AddFinding, which says when it may.
+	// Adds one finding of the reading. A custom message adds its own through FixCustomMessage.AddFinding,
+	// which says when it may.
 	internal void AddFinding(FixFinding finding)
 	{
-		(InvalidFindings ??= []).Add(finding);
+		(_findings ??= new FixReadFindings()).Add(finding);
 	}
 
-	void IFixFindings.AddFinding(FixFinding finding)
+	// The reader's findings, one helper a kind, so that each of the many places a message type reads a
+	// field is a call and not the finding written out.
+
+	// A tag read twice where it is held once: on the message, or in the entry the path ends at, each step
+	// a counter's tag and an index.
+	private protected void Duplicate(FixField field)
 	{
-		AddFinding(finding);
+		AddFinding(FixFinding.At(FixRule.DuplicateField, field.Tag, field.Position, field, null));
+	}
+
+	private protected void Duplicate(FixField field, int counter, int index)
+	{
+		AddFinding(FixFinding.At(FixRule.DuplicateField, field.Tag, field.Position, field, [new(counter, index)]));
+	}
+
+	private protected void Duplicate(FixField field, int counter1, int index1, int counter2, int index2)
+	{
+		AddFinding(FixFinding.At(FixRule.DuplicateField, field.Tag, field.Position, field, [new(counter1, index1), new(counter2, index2)]));
+	}
+
+	private protected void Duplicate(FixField field, int counter1, int index1, int counter2, int index2, int counter3, int index3)
+	{
+		AddFinding(FixFinding.At(FixRule.DuplicateField, field.Tag, field.Position, field, [new(counter1, index1), new(counter2, index2), new(counter3, index3)]));
+	}
+
+	private protected void Duplicate(FixField field, int counter1, int index1, int counter2, int index2, int counter3, int index3, int counter4, int index4)
+	{
+		AddFinding(FixFinding.At(FixRule.DuplicateField, field.Tag, field.Position, field, [new(counter1, index1), new(counter2, index2), new(counter3, index3), new(counter4, index4)]));
+	}
+
+	private protected void Duplicate(FixField field, int counter1, int index1, int counter2, int index2, int counter3, int index3, int counter4, int index4, int counter5, int index5)
+	{
+		AddFinding(FixFinding.At(FixRule.DuplicateField, field.Tag, field.Position, field, [new(counter1, index1), new(counter2, index2), new(counter3, index3), new(counter4, index4), new(counter5, index5)]));
+	}
+
+	// The first entry of a group whose counter has not been read: entries nothing counts, said at the
+	// entry by the counter's tag, in the entry the path ends at.
+	private protected void Uncounted(int counter, FixField field)
+	{
+		AddFinding(FixFinding.At(FixRule.GroupCountMismatch, counter, field.Position, field, null));
+	}
+
+	private protected void Uncounted(int counter, FixField field, int outer, int index)
+	{
+		AddFinding(FixFinding.At(FixRule.GroupCountMismatch, counter, field.Position, field, [new(outer, index)]));
+	}
+
+	private protected void Uncounted(int counter, FixField field, int outer1, int index1, int outer2, int index2)
+	{
+		AddFinding(FixFinding.At(FixRule.GroupCountMismatch, counter, field.Position, field, [new(outer1, index1), new(outer2, index2)]));
+	}
+
+	private protected void Uncounted(int counter, FixField field, int outer1, int index1, int outer2, int index2, int outer3, int index3)
+	{
+		AddFinding(FixFinding.At(FixRule.GroupCountMismatch, counter, field.Position, field, [new(outer1, index1), new(outer2, index2), new(outer3, index3)]));
+	}
+
+	private protected void Uncounted(int counter, FixField field, int outer1, int index1, int outer2, int index2, int outer3, int index3, int outer4, int index4)
+	{
+		AddFinding(FixFinding.At(FixRule.GroupCountMismatch, counter, field.Position, field, [new(outer1, index1), new(outer2, index2), new(outer3, index3), new(outer4, index4)]));
+	}
+
+	// A field of an entry with no entry open to hold it: the group's count does not match what follows.
+	private protected void Unentered(FixField field)
+	{
+		AddFinding(FixFinding.At(FixRule.GroupCountMismatch, field.Tag, field.Position, field, null));
+	}
+
+	// A field the type has no place for.
+	private protected void OutOfScope(FixField field)
+	{
+		AddFinding(FixFinding.At(FixRule.FieldNotInScope, field.Tag, field.Position, field, null));
 	}
 
 	/// <summary>A message of a MsgType FIX 4.2 does not define and no message factory builds; its fields remain in wire order.</summary>
 	/// <remarks>
 	/// Not valid from the moment it is read: its type is what is wrong with it, and that is said once,
 	/// as <see cref="FixRule.UnknownMessageType"/>. The standard header and trailer are the standard's
-	/// and are read as themselves; <see cref="Validate"/> holds them to it and asks nothing more.
+	/// and are read as themselves; <see cref="Validate(Fix42Context)"/> holds them to it and asks nothing more.
 	/// </remarks>
 	public sealed class Unknown : FixMessage
 	{
@@ -110,11 +225,11 @@ public abstract partial class FixMessage : IFixFindings
 			foreach (var field in fields)
 				SetStandardField(field);
 
-			AddFinding(new FixFinding(FixRule.UnknownMessageType, FixTag.MsgType, MsgType?.Position ?? 0, MsgType, -1));
+			AddFinding(FixFinding.At(FixRule.UnknownMessageType, FixTag.MsgType, MsgType?.Position ?? -1, MsgType, null));
 		}
 
 		/// <summary>Nothing: the type is not one the schema describes, and that has been said.</summary>
-		private protected override void Check(Fix42Context context)
+		private protected override void Check(Fix42Context context, FixCheck check)
 		{
 		}
 	}

@@ -101,8 +101,7 @@ public sealed class FixInputRoadsTests
 		{
 			Assert.Equal("0", message.MessageType);
 			Assert.Equal(beginString, message.BeginString!.Value);
-			Assert.False(message.Validate(Fix44.Fix44Context.Default));
-			Assert.Contains(message.InvalidFindings!, IsBeginStringFinding);
+			Assert.Contains(message.Validate(Fix44.Fix44Context.Default), IsBeginStringFinding);
 		}
 	}
 
@@ -119,8 +118,7 @@ public sealed class FixInputRoadsTests
 			Fix42.FixParser.ReadMessages(new MemoryStream(octets)).Single(),
 		})
 		{
-			Assert.False(message.Validate(Fix42.Fix42Context.Default));
-			Assert.Contains(message.InvalidFindings!, IsBeginStringFinding);
+			Assert.Contains(message.Validate(Fix42.Fix42Context.Default), IsBeginStringFinding);
 		}
 
 		foreach (var message in new Fix50.FixMessage[]
@@ -130,8 +128,7 @@ public sealed class FixInputRoadsTests
 			Fix50.FixParser.ReadMessages(new StringReader(wire)).Single(),
 		})
 		{
-			Assert.False(message.Validate(Fix50.Fix50Context.Default));
-			Assert.Contains(message.InvalidFindings!, IsBeginStringFinding);
+			Assert.Contains(message.Validate(Fix50.Fix50Context.Default), IsBeginStringFinding);
 		}
 	}
 
@@ -175,8 +172,7 @@ public sealed class FixInputRoadsTests
 
 		foreach (var message in new[] { buffer, chars, bytes })
 		{
-			Assert.False(message.Validate(Fix44.Fix44Context.Default));
-			Assert.Contains(message.InvalidFindings!, IsBeginStringFinding);
+			Assert.Contains(message.Validate(Fix44.Fix44Context.Default), IsBeginStringFinding);
 		}
 	}
 

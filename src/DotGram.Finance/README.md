@@ -46,7 +46,7 @@ else
   stream in bounded memory, pipe-delimited or not.
 - **Checking messages against a counterparty's dictionary** before a certification or in a test
   suite: apply their data dictionary, and `Validate` reports every finding of a message at once,
-  each with its rule, tag, position and group entry, rather than the first.
+  each with its rule, tag, position and path through the groups, rather than the first.
 - **Buses and stores.** Data kept in Kafka, a database or a queue — drop copy, post-trade, clearing —
   and read by a consumer that has no session to hold.
 - **Files and other transports.** End-of-day allocation and confirmation files, FIX carried over a

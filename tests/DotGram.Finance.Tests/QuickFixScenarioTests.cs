@@ -86,7 +86,7 @@ public sealed class QuickFixScenarioTests
 			// Not a Reject: the message is one the counterparty must take, so nothing may be wrong with it.
 			var accepted = FixParser.ParseMessage(wire);
 
-			Assert.True(accepted.Validate(Schema.Value), $"{scenario} #{exchange}: {Describe(accepted)}");
+			Assert.Empty(accepted.Validate(Schema.Value));
 
 			return;
 		}
@@ -111,11 +111,11 @@ public sealed class QuickFixScenarioTests
 
 		Assert.DoesNotContain((scenario, exchange), RefusedAtTheDoor);
 
-		message!.Validate(Schema.Value);
+		var findings = message!.Validate(Schema.Value);
 
 		Assert.True(
-			(message.InvalidFindings ?? []).Any(one => one.Tag == tag && Rule(reason).Contains(one.Rule)),
-			$"{scenario} #{exchange}: expected {string.Join(" or ", Rule(reason))} on tag {tag} (SessionRejectReason {reason}); found {Describe(message)}");
+			findings.Any(one => one.Tag == tag && Rule(reason).Contains(one.Rule)),
+			$"{scenario} #{exchange}: expected {string.Join(" or ", Rule(reason))} on tag {tag} (SessionRejectReason {reason}); found {Describe(findings)}");
 	}
 
 	static readonly (string Scenario, int Exchange)[] RefusedAtTheDoor =
@@ -142,9 +142,9 @@ public sealed class QuickFixScenarioTests
 		};
 	}
 
-	static string Describe(FixMessage message)
+	static string Describe(IReadOnlyList<FixFinding> findings)
 	{
-		return message.InvalidFindings is { Count: > 0 } findings ? string.Join("; ", findings) : "nothing";
+		return findings.Count > 0 ? string.Join("; ", findings) : "nothing";
 	}
 
 	static string? Tag(string wire, int tag)
