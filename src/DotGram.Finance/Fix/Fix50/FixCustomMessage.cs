@@ -44,7 +44,8 @@ public abstract class FixCustomMessage : FixMessage
 	}
 
 	// Whether a finding may be added now: only while the reader hands the fields to Place, and while
-	// OnValidate runs. A message is not changed by anything else once it has been read.
+	// OnValidate runs. A message is not changed by anything else once it has been read. Each scope puts
+	// back what it found, so that a Place that validates the message keeps its own permission after it.
 	bool _adding;
 
 	/// <summary>Adds one finding to this message: from <see cref="Place"/> while it is read, or from <see cref="OnValidate"/> while it is validated.</summary>
@@ -60,6 +61,8 @@ public abstract class FixCustomMessage : FixMessage
 
 	private protected sealed override void Check(Fix50Context context)
 	{
+		var adding = _adding;
+
 		_adding = true;
 
 		try
@@ -68,13 +71,15 @@ public abstract class FixCustomMessage : FixMessage
 		}
 		finally
 		{
-			_adding = false;
+			_adding = adding;
 		}
 	}
 
 	// Called by the reader once the factory has built the message: the type and the fields it was read with.
 	internal FixCustomMessage Read(string type, List<FixField> fields)
 	{
+		var adding = _adding;
+
 		MessageType = type;
 		Fields      = fields;
 		_adding     = true;
@@ -87,7 +92,7 @@ public abstract class FixCustomMessage : FixMessage
 		}
 		finally
 		{
-			_adding = false;
+			_adding = adding;
 		}
 
 		return this;

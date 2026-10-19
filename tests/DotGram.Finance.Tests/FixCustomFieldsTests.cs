@@ -214,6 +214,73 @@ public sealed class FixCustomFieldsTests
 		Assert.Single(ticket.InvalidFindings!);
 	}
 
+	// A message that validates itself while it is read, and goes on adding findings after that.
+	sealed class VenueNested : FixCustomMessage
+	{
+		public Fix44Context? Context { get; init; }
+		public bool          Fail    { get; init; }
+
+		protected override bool Place(FixField field)
+		{
+			if (field.Tag is not (25005 or 25006))
+				return false;
+
+			if (field.Tag == 25005)
+			{
+				try
+				{
+					Validate(Context!);
+				}
+				catch (FormatException) when (Fail)
+				{
+				}
+			}
+
+			AddFinding(new FixFinding(FixRule.InvalidValue, field.Tag, field.Position, field, -1));
+
+			return true;
+		}
+
+		protected override void OnValidate(Fix44Context context)
+		{
+			if (Fail)
+				throw new FormatException("thrown by OnValidate");
+		}
+
+		public void Report(FixFinding finding)
+		{
+			AddFinding(finding);
+		}
+	}
+
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void A_custom_message_validated_inside_Place_keeps_adding_findings_until_it_has_been_read(bool fail)
+	{
+		Fix44Context? context = null;
+
+		context = new Fix44Context { FixMessageFactory = type => type == "U4" ? new VenueNested { Context = context, Fail = fail } : null }.Load(Venue);
+
+		var nested = Assert.IsType<VenueNested>(FixParser.ParseMessage(Framed("35=U4|49=A|56=B|34=1|52=20260919-12:00:00|25005=OPEN|25006=1.5|"), context));
+
+		// The finding after the nested Validate and the one of the next Place are both there.
+		Assert.Equal(
+			[25005, 25006],
+			nested.InvalidFindings!.Where(one => one.Rule == FixRule.InvalidValue).Select(one => one.Tag));
+		Assert.Throws<InvalidOperationException>(() => nested.Report(new FixFinding(FixRule.RequiredFieldMissing, 25011, 0, null, -1)));
+	}
+
+	[Fact]
+	public void A_custom_message_adds_no_finding_after_OnValidate_has_thrown()
+	{
+		var context = new Fix44Context { FixMessageFactory = type => type == "U4" ? new VenueNested { Fail = true } : null }.Load(Venue);
+		var nested  = Assert.IsType<VenueNested>(FixParser.ParseMessage(Framed("35=U4|49=A|56=B|34=1|52=20260919-12:00:00|"), context));
+
+		Assert.Throws<FormatException>(() => nested.Validate(context));
+		Assert.Throws<InvalidOperationException>(() => nested.Report(new FixFinding(FixRule.RequiredFieldMissing, 25011, 0, null, -1)));
+	}
+
 	[Fact]
 	public void A_type_the_factory_answers_null_for_is_an_Unknown_message()
 	{
