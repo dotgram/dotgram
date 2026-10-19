@@ -19,8 +19,8 @@ static class SqlTokens
 	{
 		var tokens = new List<Token>();
 
-		foreach (var (token, _) in Scan(text, 0))
-			tokens.Add(token);
+		for (var at = 0; Next(text, ref at, out var kind, out var start);)
+			tokens.Add(new Token(kind, text[start..at]));
 
 		return tokens;
 	}
@@ -31,7 +31,12 @@ static class SqlTokens
 	/// </summary>
 	public static List<(Token Token, int At)> Located(string text)
 	{
-		return [.. Scan(text, 0)];
+		var tokens = new List<(Token, int)>();
+
+		for (var at = 0; Next(text, ref at, out var kind, out var start);)
+			tokens.Add((new Token(kind, text[start..at]), start));
+
+		return tokens;
 	}
 
 	/// <summary>
@@ -41,9 +46,9 @@ static class SqlTokens
 	/// </summary>
 	public static int Find(string text, string spelled, int from = 0)
 	{
-		foreach (var (token, at) in Scan(text, 0))
-			if (at >= from && Spelled(token, spelled))
-				return at;
+		for (var at = 0; Next(text, ref at, out var kind, out var start);)
+			if (start >= from && Spelled(kind, text.AsSpan(start, at - start), spelled))
+				return start;
 
 		return -1;
 	}
@@ -53,18 +58,18 @@ static class SqlTokens
 	{
 		var last = -1;
 
-		foreach (var (token, at) in Scan(text, 0))
-			if (Spelled(token, spelled))
-				last = at;
+		for (var at = 0; Next(text, ref at, out var kind, out var start);)
+			if (Spelled(kind, text.AsSpan(start, at - start), spelled))
+				last = start;
 
 		return last;
 	}
 
-	static bool Spelled(Token token, string spelled)
+	static bool Spelled(Kind kind, ReadOnlySpan<char> token, string spelled)
 	{
-		return token.Kind == Kind.Word
-			? token.Text.Equals(spelled, StringComparison.OrdinalIgnoreCase)
-			: token.Text == spelled;
+		return kind == Kind.Word
+			? token.Equals(spelled, StringComparison.OrdinalIgnoreCase)
+			: token.SequenceEqual(spelled);
 	}
 
 	/// <summary>
@@ -73,13 +78,16 @@ static class SqlTokens
 	/// </summary>
 	public static Token? First(string text, int from)
 	{
-		foreach (var (token, _) in Scan(text, from))
-			return token;
+		var at = from;
 
-		return null;
+		return Next(text, ref at, out var kind, out var start) ? new Token(kind, text[start..at]) : null;
 	}
 
-	static IEnumerable<(Token Token, int At)> Scan(string text, int at)
+	/// <summary>
+	/// The next token from a position on: its kind and where it starts, with the position moved past its end; false where
+	/// only blanks and comments are left. Nothing is allocated: a caller that wants the token's text cuts it.
+	/// </summary>
+	static bool Next(string text, ref int at, out Kind kind, out int start)
 	{
 		while (at < text.Length)
 		{
@@ -108,23 +116,23 @@ static class SqlTokens
 				continue;
 			}
 
-			var start = at;
+			start = at;
 
 			if (c is '[' or '"')
 			{
-				at = Closed(text, at, c == '[' ? ']' : '"');
-				yield return (new Token(Kind.Delimited, text[start..at]), start);
+				at   = Closed(text, at, c == '[' ? ']' : '"');
+				kind = Kind.Delimited;
 
-				continue;
+				return true;
 			}
 
 			// A string, and a national one: the N is the string's.
 			if (c == '\'' || c is 'N' or 'n' && At(text, at + 1) == '\'')
 			{
-				at = Closed(text, c == '\'' ? at : at + 1, '\'');
-				yield return (new Token(Kind.String, text[start..at]), start);
+				at   = Closed(text, c == '\'' ? at : at + 1, '\'');
+				kind = Kind.String;
 
-				continue;
+				return true;
 			}
 
 			if (char.IsDigit(c) || c == '.' && char.IsDigit(At(text, at + 1)))
@@ -132,9 +140,9 @@ static class SqlTokens
 				while (at < text.Length && (char.IsLetterOrDigit(text[at]) || text[at] == '.'))
 					at++;
 
-				yield return (new Token(Kind.Number, text[start..at]), start);
+				kind = Kind.Number;
 
-				continue;
+				return true;
 			}
 
 			if (char.IsLetter(c) || c is '_' or '@' or '#' or '$')
@@ -142,15 +150,21 @@ static class SqlTokens
 				while (at < text.Length && (char.IsLetterOrDigit(text[at]) || text[at] is '_' or '@' or '#' or '$'))
 					at++;
 
-				yield return (new Token(Kind.Word, text[start..at]), start);
+				kind = Kind.Word;
 
-				continue;
+				return true;
 			}
 
-			yield return (new Token(Kind.Punctuation, c.ToString()), start);
 			at++;
+			kind = Kind.Punctuation;
+
+			return true;
 		}
 
+		kind  = default;
+		start = at;
+
+		return false;
 	}
 
 	static char At(string text, int at)
