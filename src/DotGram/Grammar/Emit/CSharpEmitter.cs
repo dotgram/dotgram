@@ -438,9 +438,10 @@ public static partial class CSharpEmitter
 
 				// And the alternative that binds nothing of a terminal whose other alternatives
 				// bind text: a token the tags passed is read for its value through it alone, as
-				// a whole root of its own (Through).
+				// a root of its own, entered where the token begins and stopping where its first
+				// reading stops (Through).
 				if (Through(lexical, valuing, rule) is { } through)
-					valuing.Register(through.Rule, whole: true);
+					valuing.Register(through.Rule, whole: false);
 			}
 
 			// And what measures the rest of a terminal the lexer only begins. Not whole: it is
@@ -5504,8 +5505,8 @@ file.Line("return spare;");
 
 			if (through is { } taken)
 			{
-				file.Line($"/// <summary>What the text of one <c>{rule.Name}</c> token is worth, read through <c>{taken.Rule.Name}</c> alone.</summary>");
-				file.Write(valuing.RenderWrapper(taken.Rule, taken.Read, engine, whole: true));
+				file.Line($"/// <summary>What the text of one <c>{rule.Name}</c> token is worth, read through <c>{taken.Rule.Name}</c> alone; where that reading stops.</summary>");
+				file.Write(valuing.RenderWrapper(taken.Rule, taken.Read, engine, whole: false));
 				file.Line();
 			}
 
@@ -5520,7 +5521,10 @@ file.Line("return spare;");
 				file.Line("/// Where none of the alternatives that bind text could begin the token — the tags");
 				file.Line("/// the tokenizer asked, asked again over the token — it was read whole through the");
 				file.Line("/// one that binds nothing, and its value is that alternative's, handed to the");
-				file.Line("/// construction alone.");
+				file.Line("/// construction alone: the alternative's first reading, as the atomic choice would");
+				file.Line("/// have committed to it, and only where that reading ends where the token ends. Where");
+				file.Line("/// it stops short, the rule is read as written, which commits to the same reading and");
+				file.Line("/// then finds the token unfinished.");
 			}
 
 			file.Line("/// </remarks>");
@@ -5543,10 +5547,8 @@ file.Line("return spare;");
 					file.Line();
 					file.Line($"Scan_Tag{one.Kind}(text, at, out var tagged);");
 					file.Line();
-					file.Line("if (tagged == 0)");
-					file.Then(
-						$"return {one.Read}(text, at, ref failure, out {one.Type} through{input}) < 0 " +
-						$"? default! : {one.Method}({string.Join(", ", one.Arguments)});");
+					file.Line($"if (tagged == 0 && {one.Read}(text, at, ref failure, out {one.Type} through{input}) == at + length)");
+					file.Then($"return {one.Method}({string.Join(", ", one.Arguments)});");
 
 					text = "text";
 				}
@@ -5587,6 +5589,15 @@ file.Line("return spare;");
 	/// paid on every token for an answer the tags already gave. Over the token alone the tags
 	/// say the same: a binding alternative that matched the token would have its necessary
 	/// beginning inside it.
+	/// </para>
+	/// <para>
+	/// The rule read through is read as the atomic choice reads it: its first reading, from
+	/// the token's start, with no way back into it — not whole over the token, which would
+	/// let the reading give back what the choice has committed to. <c>'a'+ &amp; ('a' &amp;
+	/// 'b')?</c> reads <c>aa</c> of the token <c>aab</c> and stops; the terminal, read as
+	/// written, commits to that and finds the token unfinished, and the shortcut must say the
+	/// same. So the reading's end is compared with the token's, and anything but the token's
+	/// end sends the value to the rule as written.
 	/// </para>
 	/// <para>
 	/// Only the plain shape, which is what a string beside a raw one is: one alternative that

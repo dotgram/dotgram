@@ -85,6 +85,49 @@ public sealed class TaggedValueTests
 		Assert.Equal(EmittedCode.Match(twin, "Grammar", "TryParseItems", input).Value, EmittedCode.Match(assembly, "Grammar", "TryParseItems", input).Value);
 	}
 
+	/// <summary>
+	/// The rule read through is read as the atomic choice reads it — its first reading, committed
+	/// to — and not whole over the token: <c>'a'+ &amp; ('a' &amp; 'b')?</c> reads <c>aa</c> of the
+	/// token <c>aab</c>, and the terminal read as written then finds the token unfinished and builds
+	/// nothing, as a plain terminal of the same rule does. The shortcut says the same, where a whole
+	/// reading would have given back an <c>a</c> and built <c>[aab]</c>. Over characters the choice
+	/// commits to <c>aa</c> and the parent takes the <c>b</c>: the token's longest match, documented.
+	/// </summary>
+	[Fact]
+	public void The_rule_read_through_is_read_as_the_choice_commits_to_it()
+	{
+		const string bound =
+			"""
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				T : @string = { r: ($q: 'x' & $q) | p: Plain } => @("[" + (r ?? p!) + "]")
+				Plain : @string = 'a'+ & ('a' & 'b')? => @(parserText)
+			}
+			Root : @string = s: Lexical.T & 'b'? => @(s ?? "<null>")
+			parse Root
+			""";
+		var plain = bound.Replace("{ r: ($q: 'x' & $q) | p: Plain } => @(\"[\" + (r ?? p!) + \"]\")", "{ p: Plain } => @(\"[\" + p! + \"]\")", StringComparison.Ordinal);
+
+		var (beside, source) = Lexical(bound, direct: true);
+		var (alone, _)       = Lexical(plain, direct: true);
+		var twin = Compiled(bound, direct: true);
+
+		Assert.Contains("_For_Lexical_T_DotGram(", source, StringComparison.Ordinal);
+		Assert.Equal("[aa]", EmittedCode.Match(twin, "Grammar", "TryParseRoot", "aab").Value);
+
+		foreach (var input in new[] { "aab", "aa", "a", "ab", "aaab", "aab b" })
+		{
+			var written = EmittedCode.Match(alone, "Grammar", "TryParseRoot", input);
+			var through = EmittedCode.Match(beside, "Grammar", "TryParseRoot", input);
+
+			Assert.True(written.IsSuccess == through.IsSuccess && Equals(written.Value, through.Value), $"\"{input}\": as written {written}, through {through}");
+		}
+
+		Assert.Equal("[aa]", EmittedCode.Match(beside, "Grammar", "TryParseRoot", "aa").Value);
+	}
+
 	static (Assembly Assembly, string Source) Lexical(string grammar, bool direct)
 	{
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
