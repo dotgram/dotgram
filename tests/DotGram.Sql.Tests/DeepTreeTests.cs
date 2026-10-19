@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 
@@ -56,6 +57,52 @@ public sealed class DeepTreeTests
 
 		Assert.Null(thrown);
 		Assert.NotEmpty(written);
+	}
+
+	/// <summary>
+	/// A located reading deep enough to be carried onto a stack of its own keeps every span it keeps where it is not:
+	/// the values built there are told the reading's text and that it publishes where they were written, as those built
+	/// before the hand-off are.
+	/// </summary>
+	[Theory]
+	[InlineData("", "(", "1", ")", "")]
+	[InlineData("", "1 + (", "2", ")", "")]
+	[InlineData("", "CASE WHEN a = 1 THEN 1 ELSE ", "0", " END", "")]
+	[InlineData("", "(", "TRIM(BOTH FROM s) + CAST(a AS int) + DATEADD(day, 1, d)", ")", "")]
+	[InlineData("", "(", "(SELECT 1)", ")", "")]
+	public void A_located_reading_carried_onto_another_stack_keeps_its_spans(string prefix, string open, string middle, string close, string suffix)
+	{
+		var text = Nested(prefix, open, middle, close, suffix, Depth);
+
+		var (small, thrown) = OnStack(() => Spans(TransactSqlParser.Located.ParseExpression(text)));
+
+		Assert.Null(thrown);
+
+		List<SqlSpan> large = [];
+		var thread = new Thread(() => large = Spans(TransactSqlParser.Located.ParseExpression(text)), 512 * 1024 * 1024);
+
+		thread.Start();
+		thread.Join();
+
+		Assert.Equal(large.Count, small.Count);
+		Assert.Equal(large, small);
+
+		if (open == "(" && middle == "1")
+			Assert.All(small, static span => Assert.True(span.Known));
+
+		static List<SqlSpan> Spans(Ast.Expression root)
+		{
+			var spans = new List<SqlSpan>();
+
+			SqlWalker.Walk(root, node =>
+			{
+				spans.Add(node.Span);
+
+				return true;
+			});
+
+			return spans;
+		}
 	}
 
 	/// <summary>

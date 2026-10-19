@@ -33,7 +33,17 @@ static partial class Build
 	/// The text the reading under way was given, which a builder reads the words a record leaves out from, or null where
 	/// it is not known.
 	/// </summary>
-	[ThreadStatic] static string? source;
+	static string? source
+	{
+		get
+		{
+			return SqlReading.Current?.Source;
+		}
+		set
+		{
+			SqlReading.Writable.Source = value;
+		}
+	}
 
 	/// <summary>
 	/// Whether the reading under way publishes where each node was written: <c>TransactSqlParser.Located</c>'s. A node of
@@ -149,14 +159,13 @@ static partial class Build
 	/// </summary>
 	internal static T Deeper<T>(object read, Func<object, T> convert)
 	{
-		var reading = Reading.Here();
-		var made    = new object?[1];
+		var made = new object?[1];
 
-		SqlStack.Deeper(read, (reading, convert), made, static (node, state, result) =>
+		// The walk's thread takes the context, and the reading with it; carried here as well, so that it holds where the
+		// caller keeps the context from flowing.
+		SqlStack.Deeper(read, (reading: SqlReading.Current, convert), made, static (node, state, result) =>
 		{
-			var outer = Reading.Here();
-
-			state.reading.Restore();
+			var outer = SqlReading.Swap(state.reading);
 
 			try
 			{
@@ -164,28 +173,11 @@ static partial class Build
 			}
 			finally
 			{
-				outer.Restore();
+				SqlReading.Swap(outer);
 			}
 		});
 
 		return (T)made[0]!;
-	}
-
-	/// <summary>What a thread knows of the reading under way, to be taken onto another stack and back.</summary>
-	sealed class Reading(string? source, bool skimming, bool unlocated, bool publishing)
-	{
-		public static Reading Here()
-		{
-			return new Reading(Build.source, Build.skimming, Build.unlocated, SqlLocation.Publishing);
-		}
-
-		public void Restore()
-		{
-			Build.source           = source;
-			Build.skimming         = skimming;
-			Build.unlocated        = unlocated;
-			SqlLocation.Publishing = publishing;
-		}
 	}
 
 	/// <summary>

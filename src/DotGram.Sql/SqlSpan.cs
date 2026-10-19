@@ -173,10 +173,16 @@ internal readonly struct SqlLocation : IEquatable<SqlLocation>
 	}
 
 	/// <summary>
-	/// Whether the reading under way on this thread keeps the spans it tells the values it builds: one asked for
-	/// locations. Set by the reader's entries around a reading.
+	/// Whether the reading under way keeps the spans it tells the values it builds: one asked for locations. Set by the
+	/// reader's entries around a reading (<see cref="SqlReading"/>).
 	/// </summary>
-	[ThreadStatic] internal static bool Publishing;
+	internal static bool Publishing
+	{
+		get
+		{
+			return SqlReading.Publishes;
+		}
+	}
 
 	/// <summary>A span told by a reading: kept for everybody where the reading publishes it, and for the reading alone where not.</summary>
 	public static SqlLocation Told(int at, int length)
