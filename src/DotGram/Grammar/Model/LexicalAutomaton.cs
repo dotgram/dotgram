@@ -105,8 +105,14 @@ public sealed class LexicalAutomaton
 	/// <param name="graph">For the bodies calls reach.</param>
 	/// <param name="patterns">One node a pattern, in the order the caller numbers them.</param>
 	/// <param name="blocked">What refused, appended to.</param>
+	/// <param name="exact">
+	/// Which patterns are a token as the automaton reads them, with nothing to read them again:
+	/// those may not hold an until the machine can only read wider than the rule (see
+	/// <c>Delimited</c>). Null where every pattern is a beginning or a question some other reading
+	/// answers, and the wider reading is the safe direction.
+	/// </param>
 	public static LexicalAutomaton? Of(
-		RecognitionGraph graph, IReadOnlyList<Node> patterns, List<string> blocked)
+		RecognitionGraph graph, IReadOnlyList<Node> patterns, List<string> blocked, Func<int, bool>? exact = null)
 	{
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
@@ -114,11 +120,14 @@ public sealed class LexicalAutomaton
 		if (patterns is null)
 			throw new ArgumentNullException(nameof(patterns));
 
-		return new Builder(graph, blocked).Run(patterns);
+		return new Builder(graph, blocked, exact).Run(patterns);
 	}
 
-	sealed class Builder(RecognitionGraph graph, List<string> blocked)
+	sealed class Builder(RecognitionGraph graph, List<string> blocked, Func<int, bool>? exact)
 	{
+		/// <summary>Whether the pattern being built must be read exactly.</summary>
+		bool _exact;
+
 		// ── The machine under construction ───────────────────────────────────────────
 		//
 		// States are numbers. An edge is either an atom edge or an empty one, and both are
@@ -154,6 +163,8 @@ public sealed class LexicalAutomaton
 
 			for (var i = 0; i < patterns.Count; i++)
 			{
+				_exact = exact?.Invoke(i) ?? false;
+
 				if (Build(patterns[i], []) is not var (from, to))
 					return null;
 
@@ -505,8 +516,10 @@ public sealed class LexicalAutomaton
 		/// The lookahead is asked at every item boundary and sees past what the run consumed, so
 		/// the run stops where the delimiter first <em>begins</em>, which an automaton reading the
 		/// run alone cannot know: what follows decides it. Three cases are exact, and anything else
-		/// is refused, so the grammar keeps the character machine rather than an approximation
-		/// that accepts more than the rule.
+		/// is refused in a pattern that must be exact, so the grammar keeps the character machine
+		/// rather than a token that accepts more than the rule. A beginning, which its own rule
+		/// reads again from the token's start, keeps the wider reading: there it only lets the
+		/// rule be asked.
 		/// </para>
 		/// <para>
 		/// Where the delimiter follows (<paramref name="closed"/>) and every one of its characters
@@ -557,7 +570,7 @@ public sealed class LexicalAutomaton
 			// alphabet as a set of its own and the partition cuts at every boundary.
 			var absorbs = closed && delimiter.All(c => atoms.Any(atom => _atoms[atom].From == c && _atoms[atom].To == c));
 
-			if (!absorbs && length > 1 && (!closed || Overlaps(delimiter)))
+			if (_exact && !absorbs && length > 1 && (!closed || Overlaps(delimiter)))
 			{
 				Refuse(
 					closed
