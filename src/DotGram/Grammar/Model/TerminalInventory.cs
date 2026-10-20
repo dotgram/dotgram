@@ -1881,7 +1881,8 @@ public sealed class TerminalInventory
 		/// </summary>
 		/// <remarks>
 		/// An allowlist on purpose: every other shape — a choice of anything but literals, a
-		/// repetition of more than one class, a bounded run, a look, a guard — is not proven, and a
+		/// bounded or doubled repetition, a repetition something after it can begin as its body does, a
+		/// look, a guard — is not proven, and a
 		/// terminal holding one in braces is read again by its rule.
 		/// </remarks>
 		/// <param name="scope">The terminal's body, which a run's follow is asked under.</param>
@@ -1926,6 +1927,19 @@ public sealed class TerminalInventory
 
 				case Node.Atomic(Node.Repeat(var one, _, null)) when Single(one, []):
 					return Exact(node, scope, []);
+
+				// The run rule for a body of more than one character: a turn begins only where the
+				// body can, so where nothing after the repetition can begin as the body does, the
+				// rule and the automaton stop it at the same place, and a turn that fails gives back
+				// to its own start. Not for a repetition owed more than one turn, where a turn that
+				// fails short of the least would have to be read another way.
+				case Node.Repeat(var body, var min, null) when min <= 1 && !FirstSets.Nullable(body, graph):
+				{
+					var first = FirstSets.Of(body, graph);
+
+					return Proven(body, scope, inside) &&
+						Follow(scope, node, first, FirstSets.First.None, []) is { } follow && !follow.Overlaps(first);
+				}
 
 				case Node.Atomic(var kept):
 					return Proven(kept, scope, inside);
