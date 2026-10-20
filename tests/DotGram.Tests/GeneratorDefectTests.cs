@@ -27,8 +27,8 @@ public sealed class GeneratorDefectTests
 	/// grammar is compiled over characters, saying so.
 	/// </summary>
 	[Theory]
-	[InlineData("T = { (?!\"ab\" & ['a' | 'b'])* & 'b' }", "ab,aab,abb,b,bb,ba", false)]
-	[InlineData("T = { 'c' & (?!\"ab\" & ['a' | 'b'])* }", "cab,ca,cb,cba,c,cbb", false)]
+	[InlineData("T = { (?!\"ab\" & ['a' | 'b'])* & 'b' }", "ab,aab,abb,b,bb,ba", true)]
+	[InlineData("T = { 'c' & (?!\"ab\" & ['a' | 'b'])* }", "cab,ca,cb,cba,c,cbb", true)]
 	[InlineData("T = { 'c' & (?!\"aaa\" & any)* & \"aaa\" }", "caaaa,caaa,cbaaa,caabaaa,caaaaa,cbaab", true)]
 	[InlineData("T = { 'c' & (?!\"aa\" & ['a' | 'b'])* & \"aa\" }", "caaa,caa,cbaa,cab,caaaa,cbabaa", true)]
 	[InlineData("T = { 'c' & (?!\"ab\" & ['a' | 'b'])* & \"ab\" }", "cab,caab,cbab,cabab,cb", true)]
@@ -36,7 +36,7 @@ public sealed class GeneratorDefectTests
 	[InlineData("T = { 'c' & (?!\"aa\" & 'b')* & \"aa\" }", "caa,cbaa,cbbaa,caaa,cba", false)]
 	[InlineData("T = { 'c' & (?!\"ab\" & 'b')* & \"ab\" }", "cab,cbab,cbbab,caab,cba", true)]
 	[InlineData("T = { '/' & (?!\"*/\" & any)* & \"*/\" }", "/*/,/a*/,/**/,/a**/,/*/*/", true)]
-	[InlineData("T = { 'c' & (?!'x' & any)* } | 'x'", "cab,cax,c,x", true)]
+	[InlineData("T = { 'c' & (?!'x' & any)* } | 'x'", "cab,cax,c,x", false)]
 	[InlineData("T = 'c' & (?!\"ab\" & ['a' | 'b'])* & Std.Nested('b', 'z')", "cabz,cbz,caabz,cbbzz,cz", false)]
 	public void An_until_reads_as_over_characters(string rules, string inputs, bool cut)
 	{
@@ -142,7 +142,9 @@ public sealed class GeneratorDefectTests
 	[InlineData("T : @string = { 'a'+ & when @(parserText.Length < 3) } => @(parserText)", "aa,aaa,a,aa aa,aaaa")]
 	[InlineData("T : @string = { 'a' | 'a' & 'b' } => @(parserText)", "a,ab,a a")]
 	[InlineData("T = { (\"ab\" | 'a') & \"bc\"? }", "abc,ab,abbc,a,ab abc")]
-	[InlineData("T = { \"aa\" | \"ab\" | 'a' }+", "aab,aa,ab,a,aaab,aba")]
+	[InlineData("T = { ({ \"aa\" | \"ab\" | 'a' })+ }", "aab,aa,ab,a,aaab,aba")]
+	[InlineData("T = { ('a' & 'b'+)+ & 'a' }", "aba,abba,ababa,aa,ab,a")]
+	[InlineData("T = { 'a' & ('_'* & 'a')* } & 'x'?", "a,a_a,a__a,a_,a_x,a_ax,ax")]
 	[InlineData("T : @string = { 'a'+ & when @(parserText.Length >= 2) & 'b' } => @(parserText)", "ab,aab,aaab,b")]
 	public void A_plain_terminal_read_wider_by_the_automaton_is_measured_by_its_rule(string rules, string inputs)
 	{
@@ -167,14 +169,16 @@ public sealed class GeneratorDefectTests
 	}
 
 	/// <summary>
-	/// A guard in a terminal that is not atomic cannot be measured by its rule, whose reading the
-	/// syntax could come back into: the grammar is compiled over characters, saying so, and the
-	/// guard is respected.
+	/// A terminal that is not atomic cannot be measured by its rule, whose reading the syntax could
+	/// come back into: where the automaton would read it wider — a guard, a group in braces it
+	/// splits otherwise — the grammar is compiled over characters, saying so, and answers as written.
 	/// </summary>
-	[Fact]
-	public void A_guard_in_a_terminal_that_is_not_atomic_keeps_the_grammar_over_characters()
+	[Theory]
+	[InlineData("T = 'a'+ & when @(parserText.Length < 3)", "aa,aaa,a,aa aa,")]
+	[InlineData("T = { \"aa\" | \"ab\" | 'a' }+", "aab,aa,ab,a,aaab,aba")]
+	public void A_terminal_that_is_not_atomic_and_not_read_exactly_keeps_the_grammar_over_characters(string rules, string inputs)
 	{
-		var grammar = "trivia = { ' '* }\nnamespace Lexical\n{\n\ttrivia = none\n\tT = 'a'+ & when @(parserText.Length < 3)\n}\nRoot = Lexical.T+\nparse Root\n";
+		var grammar = "trivia = { ' '* }\nnamespace Lexical\n{\n\ttrivia = none\n\t" + rules + "\n}\nRoot = Lexical.T+\nparse Root\n";
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
 			Lexical       = true,
@@ -188,8 +192,28 @@ public sealed class GeneratorDefectTests
 
 		var twin = Compiled(grammar, direct: true);
 
-		foreach (var input in new[] { "aa", "aaa", "a", "aa aa", "" })
+		foreach (var input in inputs.Split(','))
 			Assert.Equal(EmittedCode.Match(twin, "Grammar", "TryParseRoot", input).IsSuccess, EmittedCode.Match(assembly, "Grammar", "TryParseRoot", input).IsSuccess);
+	}
+
+	/// <summary>
+	/// What the allowlist takes in braces and what it leaves to the rule: a repetition of a body
+	/// nothing after it can begin, as numbers write a separator between digits, is read whole; one
+	/// whose body can begin what follows it, a choice of literals one of which begins another, or a
+	/// choice that commits short of what follows it, is measured by the rule.
+	/// </summary>
+	[Theory]
+	[InlineData("T = { 'a' & ('_'* & 'a')* }", false)]
+	[InlineData("T = { ('a' & 'b'+)+ & 'a' }", true)]
+	[InlineData("T = { ('a' & 'b'+){2,} }", true)]
+	[InlineData("T = { (\"ab\" | 'a') & \"bc\"? }", true)]
+	[InlineData("T = { ({ \"aa\" | \"ab\" | 'a' })+ }", true)]
+	[InlineData("T = { \"ab\" | \"c\" }+", false)]
+	public void Only_a_proven_shape_in_braces_is_read_whole(string rules, bool measured)
+	{
+		var (_, source) = Lexical(Rooted(rules), direct: true);
+
+		Assert.Equal(measured, source.Contains("Measure_Lexical_T_", StringComparison.Ordinal));
 	}
 
 	static string Rooted(string rules)
