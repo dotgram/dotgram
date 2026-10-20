@@ -170,7 +170,8 @@ var next = FixParser.ReadMessage(single, Fix44Context.Default with { MaxMessageL
 messages by their `BodyLength`, 16 MiB each at most unless the context's `MaxMessageLength` says otherwise. A frame begins with a BeginString
 and BodyLength, and whatever BeginString it names is read as the one the version knows, as a buffer
 reads it: another version's message comes back built as this version's, and `Validate` says its
-BeginString is not this version's. Only `MaxMessageLength` bounds it. A frame is cut by a BodyLength
+BeginString is not this version's. Only `MaxMessageLength` bounds it. `ParseMessage` and `TryParseMessage` over a string, a byte array or a
+`ReadOnlyMemory<byte>` are not bounded by it: the caller already holds the buffer and bounds untrusted input itself. A frame is cut by a BodyLength
 that is present, decimal digits and within that limit; one that is missing or malformed ends the
 stream with a diagnostic, since without it there is no telling where the message ends. They are synchronous, read lazily
 and leave the input open; enumerate once. Clean EOF ends `ReadMessages`, and EOF inside a frame is

@@ -233,7 +233,8 @@ var context = Fix44Context.Default.With(dictionary);   // Load(text) and LoadFil
 `FixParser.ReadFields(Stream)` and `FixParser.ReadFields(TextReader)` return a lazy
 `IEnumerable<FixField>`. `FixParser.ReadMessages` returns a lazy
 `IEnumerable<FixMessage>`, one message at a time, each at most the context's `MaxMessageLength`,
-16 MiB by default. Neither closes its input.
+16 MiB by default. `ParseMessage`/`TryParseMessage` over a buffer are not bounded by it: the caller
+holds the buffer and bounds untrusted input itself. Neither closes its input.
 
 ## Mistakes to avoid
 
