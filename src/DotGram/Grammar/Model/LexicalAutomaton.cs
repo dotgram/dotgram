@@ -715,7 +715,11 @@ public sealed class LexicalAutomaton
 			]) || escape.Length != 1)
 				return null;
 
-			if (plain is Node.Sequence([Node.Lookahead(false, Node.Literal(var same)), var inner]) && same == escape)
+			// Only a guard that refuses exactly the escape character: `?!'a'i` refuses `A` too, which
+			// neither alternative then reads, and dropping it would read `A` as plain.
+			if (plain is Node.Sequence([Node.Lookahead(false, Node.Literal(var same) guard), var inner]) &&
+				same == escape &&
+				(!guard.IgnoreCase || CaseFold.Ranges(same[0]) is [var only] && only == new CharRange(same[0], same[0])))
 				plain = inner;
 
 			return (escape[0], escaped, plain);
