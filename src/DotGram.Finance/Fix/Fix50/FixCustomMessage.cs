@@ -8,7 +8,7 @@ namespace DotGram.Finance.Fix.Fix50;
 /// <summary>A message of a type FIX 5.0 SP2 does not define, built by a consumer who knows what it holds.</summary>
 /// <remarks>
 /// <para>
-/// The context's <see cref="Fix50Context.FixMessageFactory"/> is asked, for a MsgType the package has
+/// The context's <see cref="Fix50Context.MessageFactory"/> is asked, for a MsgType the package has
 /// no class for, which of these to build: <c>type =&gt; type == "U1" ? new VenueQuote() : null</c>.
 /// The message it answers is then handed its fields one at a time, in the order they were read: the
 /// standard header and trailer are taken as every message takes them, and each other field goes to

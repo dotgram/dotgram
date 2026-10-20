@@ -197,7 +197,7 @@ public sealed class FixLoadTests
 
 		try
 		{
-			Fix44Context.Default.Load(LogonWantsReset, directory);
+			(Fix44Context.Default with { CheckSourceDirectory = directory }).Load(LogonWantsReset);
 
 			var written = Directory.GetFiles(directory, "*.el").Select(Path.GetFileName).ToArray();
 

@@ -57,7 +57,7 @@ public sealed class FixTests
 	[InlineData("95=0000|96=", 96)]
 	public void Typed_numbers_preserve_integer_boundaries_and_zero_padded_lengths(string input, int tag)
 	{
-		var expected = FixParser.ParseFields(input, Fix44Context.WithLogFraming);
+		var expected = FixParser.ParseFields(input, Fix44Context.Log);
 
 		Assert.Equal(tag, (int)expected[^1].Tag);
 		Assert.DoesNotContain(expected, field => field is FixField.Invalid { Tag: 0 });

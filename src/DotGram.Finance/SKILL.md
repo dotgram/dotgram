@@ -59,7 +59,7 @@ The verb says where the input is and what happens to it: `Parse` takes a buffer 
   decodes, knowing the specification counts octets. Prefer it wherever the octets are in
   hand. It is not cheaper: the values are materialised one character to one octet either way.
   It is right.
-- **Wire or log.** The field calls read SOH-separated fields, and `Fix44Context.WithLogFraming`
+- **Wire or log.** The field calls read SOH-separated fields, and `Fix44Context.Log`
   makes them read pipe-separated ones, with or without spaces around the pipe. The same
   value goes to every other call. A message read whole may pad its pipes with spaces;
   streamed messages, cut by their BodyLength, want a bare `|`.
@@ -113,7 +113,7 @@ foreach (var field in FixParser.ParseFields(wire))
   `38=abc`, a date of `20261340` — is still returned, with `IsValid` false. Test it
   first, or use `TryGetValue`.
 - A tag the package does not know is read as the type a dictionary applied to the context gives
-  it (see **Dictionaries**). A MsgType it does not know is built by `FixMessageFactory` (a
+  it (see **Dictionaries**). A MsgType it does not know is built by `MessageFactory` (a
   `FixCustomMessage` that places its own fields, adds what reading finds with `AddFinding` from
   `Place` only — at any other time it throws — and what validating finds to the collection
   `OnValidate(context, findings)` is given). A tag nothing defines is a `FixField.Invalid` of
@@ -222,6 +222,8 @@ var context = Fix44Context.Default.With(dictionary);   // Load(text) and LoadFil
   whole. Reading it (`Parse`, `LoadFile`) refuses only what is not a dictionary.
 - `Merge` replaces a message type, component or field whole; it cannot remove one. To drop a
   message type the model has no class for, remove it: `dictionary.Messages.Remove("CF")`.
+- `Fix44Context.Default with { CheckSourceDirectory = dir }` writes each check an applied dictionary is
+  turned into to `dir`, one `.el` file a slot, for reading.
 - Applying costs what reading does; the checks are then compiled in the background. A message
   validated before its check is ready compiles it itself, once, so an early first `Validate` of a
   type can be slower. Call `context.Prepare()` after applying to wait until every check is ready.
@@ -230,7 +232,7 @@ var context = Fix44Context.Default.With(dictionary);   // Load(text) and LoadFil
 
 `FixParser.ReadFields(Stream)` and `FixParser.ReadFields(TextReader)` return a lazy
 `IEnumerable<FixField>`. `FixParser.ReadMessages` returns a lazy
-`IEnumerable<FixMessage>`, one message at a time, each at most `maxMessageLength`,
+`IEnumerable<FixMessage>`, one message at a time, each at most the context's `MaxMessageLength`,
 16 MiB by default. Neither closes its input.
 
 ## Mistakes to avoid

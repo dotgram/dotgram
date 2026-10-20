@@ -92,7 +92,7 @@ public sealed class FixLogTests
 
 		Assert.Equal(2, fields.Length);
 		Assert.Equal(value, FixFixtures.Typed<FixField.Text>(FixTag.Symbol, fields[0]).Value);
-		Assert.Equal("ABC ", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, Assert.Single(FixParser.ParseFields("55=ABC ", Fix44Context.WithLogFraming))).Value);
+		Assert.Equal("ABC ", FixFixtures.Typed<FixField.Text>(FixTag.Symbol, Assert.Single(FixParser.ParseFields("55=ABC ", Fix44Context.Log))).Value);
 	}
 
 	[Theory]

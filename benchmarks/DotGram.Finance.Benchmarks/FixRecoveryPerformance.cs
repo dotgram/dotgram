@@ -62,7 +62,7 @@ public static class FixRecoveryPerformance
 		var type     = assembly.GetType("DotGram.Finance.Fix.Fix44.FixParser", true)!;
 		var context  = assembly.GetType("DotGram.Finance.Fix.Fix44.Fix44Context", true)!;
 		var method   = type.GetMethod("ParseFields", [typeof(string), context])!;
-		var framing  = context.GetProperty("WithLogFraming")!.GetValue(null);
+		var framing  = (context.GetProperty("Log") ?? context.GetProperty("WithLogFraming"))!.GetValue(null);
 		var input    = Expression.Parameter(typeof(string));
 		var call     = Expression.Call(method, input, Expression.Constant(framing, context));
 

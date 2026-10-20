@@ -34,7 +34,7 @@ public sealed class FixTryContractTests
 	public void BuildMessage_takes_a_logs_padded_separators_as_the_fields_have_them(string separator)
 	{
 		var log     = Log(separator);
-		var context = Fix44Context.WithLogFraming;
+		var context = Fix44Context.Log;
 		var fields  = FixParser.ParseFields(log, context);
 		var read    = FixParser.ParseMessage(log, context);
 		var built   = FixParser.BuildMessage(log, fields, context);
@@ -56,7 +56,7 @@ public sealed class FixTryContractTests
 	public void BuildMessage_reads_the_octets_a_log_was_read_from(string separator)
 	{
 		var octets  = Encoding.Latin1.GetBytes(Log(separator));
-		var context = Fix44Context.WithLogFraming;
+		var context = Fix44Context.Log;
 		var fields  = FixParser.ParseFields(octets, context);
 		var read    = FixParser.ParseMessage(octets, context);
 		var built   = FixParser.BuildMessage(octets, fields, context);
@@ -86,7 +86,7 @@ public sealed class FixTryContractTests
 	public void BuildMessage_refuses_a_source_that_is_not_the_one_the_fields_were_read_from()
 	{
 		var log     = Log(" | ");
-		var context = Fix44Context.WithLogFraming;
+		var context = Fix44Context.Log;
 		var fields  = FixParser.ParseFields(log, context);
 
 		// One terminator no longer the length the field says, and one that holds no separator.
@@ -195,7 +195,7 @@ public sealed class FixTryContractTests
 		var log   = "8=FIX.4.4 | 9=5 | 35=0 | 10=000 | ";
 		var wire  = log.Replace('|', '\u0001');
 		var bare  = "8=FIX.4.4|9=5|35=0|10=000|";
-		var logs  = Fix44Context.WithLogFraming;
+		var logs  = Fix44Context.Log;
 		var fields = FixParser.ParseFields(log, logs);
 
 		// Fields read as a log, a source that is the same text with SOH for the pipes: not a wire.

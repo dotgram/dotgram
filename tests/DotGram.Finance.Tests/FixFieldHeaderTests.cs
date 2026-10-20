@@ -104,11 +104,11 @@ public sealed class FixFieldHeaderTests
 
 		if (log)
 		{
-			yield return FixParser.ParseFields(input, Fix44Context.WithLogFraming);
-			yield return FixParser.ParseFields(new ReadOnlyMemory<byte>(bytes), Fix44Context.WithLogFraming);
-			yield return FixParser.ParseFields(bytes, Fix44Context.WithLogFraming);
-			yield return FixParser.ReadFields(new StringReader(input), Fix44Context.WithLogFraming with { BufferSize = 7 }).ToArray();
-			yield return FixParser.ReadFields(new MemoryStream(bytes), Fix44Context.WithLogFraming with { BufferSize = 7 }).ToArray();
+			yield return FixParser.ParseFields(input, Fix44Context.Log);
+			yield return FixParser.ParseFields(new ReadOnlyMemory<byte>(bytes), Fix44Context.Log);
+			yield return FixParser.ParseFields(bytes, Fix44Context.Log);
+			yield return FixParser.ReadFields(new StringReader(input), Fix44Context.Log with { BufferSize = 7 }).ToArray();
+			yield return FixParser.ReadFields(new MemoryStream(bytes), Fix44Context.Log with { BufferSize = 7 }).ToArray();
 			yield return HandFixParser.ParseLog(input);
 			yield return HandFixParser.ParseLog(bytes);
 			yield return HandFixParser.ParseLog(new StringReader(input), Fix44Context.Default with { BufferSize = 7 }).ToArray();

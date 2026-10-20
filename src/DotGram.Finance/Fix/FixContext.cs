@@ -56,7 +56,11 @@ public abstract record FixContext
 
 	/// <summary>How the input separates one field from the next: the wire's SOH, or a log's pipe.</summary>
 	/// <exception cref="ArgumentOutOfRangeException">Neither of the two.</exception>
-	public FixFraming Framing { get; init; }
+	public FixFraming Framing
+	{
+		get;
+		init => field = value is FixFraming.Wire or FixFraming.Log ? value : throw new ArgumentOutOfRangeException(nameof(Framing));
+	}
 
 	/// <summary>The initial size of the buffer a reader or a stream is read through, in characters or bytes: 4096 unless given.</summary>
 	/// <exception cref="ArgumentOutOfRangeException">Not positive.</exception>
@@ -81,6 +85,33 @@ public abstract record FixContext
 		get;
 		init => field = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(MaxRetained));
 	} = FixGrammar.DefaultMaxRetained;
+
+	internal const int DefaultMaxMessageLength = 16 * 1024 * 1024;
+
+	/// <summary>The largest message a call that reads a reader, a stream or several messages at once will read, in octets: 16 Mi unless given.</summary>
+	/// <remarks>
+	/// A message that is longer is not read: a call that reads one answers with a diagnostic, and one
+	/// that reads several stops there. Only the length of the frame is bounded here, not what is made
+	/// of it. Null as a context reads with the default.
+	/// </remarks>
+	/// <exception cref="ArgumentOutOfRangeException">Not positive.</exception>
+	public int MaxMessageLength
+	{
+		get;
+		init => field = value > 0 ? value : throw new ArgumentOutOfRangeException(nameof(MaxMessageLength));
+	} = DefaultMaxMessageLength;
+
+	/// <summary>
+	/// A directory each check a dictionary is turned into is written to when it is applied, one file a
+	/// slot, named for the slot with the extension <c>.el</c>; null, the default, writes nothing.
+	/// </summary>
+	/// <remarks>
+	/// What an extension author reads to see what a dictionary compiled to. A check that would not
+	/// compile is written before the refusal names it. Every dictionary applied afterwards, to this
+	/// context or one made from it, writes there:
+	/// <c>Default with { CheckSourceDirectory = dir }.Load(text)</c>.
+	/// </remarks>
+	public string? CheckSourceDirectory { get; init; }
 
 	readonly Dictionary<int, int> _pairs;
 
@@ -130,7 +161,7 @@ public abstract record FixContext
 	// A dictionary's checks go over this context's, and the fields it describes that the version does
 	// not are read, from then on, as the types it gives them. A clone of this context, whatever
 	// version's it is.
-	private protected FixContext Loaded(FixDictionary dictionary, string? emitTo)
+	private protected FixContext Loaded(FixDictionary dictionary)
 	{
 		var types = new List<(int Tag, FixValueType Type)>();
 
@@ -145,7 +176,7 @@ public abstract record FixContext
 
 		return this with
 		{
-			Checks = Checks.Load(dictionary, Emitter(emitTo)),
+			Checks = Checks.Load(dictionary, Emitter(CheckSourceDirectory)),
 			Coded  = Coded.Typed(types),
 		};
 	}

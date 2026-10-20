@@ -152,7 +152,7 @@ character. Consequently this adapter is a convenience and bounded-input-bufferin
 API, not a speed optimization over a preexisting string.
 
 Allocated bytes are cumulative allocation, not peak live memory. The adapter's
-character buffer grows geometrically and remains bounded by `maxMessageLength`;
+character buffer grows geometrically and remains bounded by `MaxMessageLength`;
 it is reused across frames. This benchmark does not measure peak memory or file
 I/O. Its prebuilt character and byte corpora also remain resident outside the
 reported allocation. General buffered generation needs a separate FIX integration

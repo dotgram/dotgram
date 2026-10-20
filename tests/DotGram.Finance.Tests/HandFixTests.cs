@@ -81,7 +81,7 @@ public sealed class HandFixTests
 		var spaces = new string(' ', 4096);
 		var input  = "broken" + spaces + "x | 55=END";
 
-		var fields = HandFixParser.Parse(input, Fix44Context.WithLogFraming);
+		var fields = HandFixParser.Parse(input, Fix44Context.Log);
 
 		Assert.Equal(2, fields.Length);
 		var invalid = Assert.IsType<FixField.Invalid>(fields[0]);
@@ -93,10 +93,10 @@ public sealed class HandFixTests
 
 		// Every buffered form, of either parser, reads what the whole input reads, whatever the buffer.
 		var bytes      = Encoding.Latin1.GetBytes(input);
-		var fromBytes  = HandFixParser.Parse(bytes, Fix44Context.WithLogFraming);
+		var fromBytes  = HandFixParser.Parse(bytes, Fix44Context.Log);
 		foreach (var bufferSize in new[] { 1, 3, 4095, 4096, 4097 })
 		{
-			var context = Fix44Context.WithLogFraming with { BufferSize = bufferSize };
+			var context = Fix44Context.Log with { BufferSize = bufferSize };
 			Equal(fields,    HandFixParser.Parse(new StringReader(input), context));
 			Equal(fields,    FixParser.ReadFields(new StringReader(input), context));
 			Equal(fromBytes, HandFixParser.Parse(new MemoryStream(bytes, false), context));
@@ -105,7 +105,7 @@ public sealed class HandFixTests
 
 		// A retention bound too small for the rejected element and the separator it resumes after
 		// is refused by both, and the smallest one that holds them is enough for both.
-		var tight = Fix44Context.WithLogFraming with { BufferSize = 3, MaxRetained = input.Length - "55=END".Length };
+		var tight = Fix44Context.Log with { BufferSize = 3, MaxRetained = input.Length - "55=END".Length };
 		Assert.Throws<IOException>(() => HandFixParser.Parse(new StringReader(input), tight).ToArray());
 		Assert.Throws<IOException>(() => FixParser.ReadFields(new StringReader(input), tight).ToArray());
 		Assert.Throws<IOException>(() => HandFixParser.Parse(new MemoryStream(bytes, false), tight).ToArray());

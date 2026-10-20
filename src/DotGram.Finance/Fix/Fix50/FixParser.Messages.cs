@@ -34,11 +34,6 @@ namespace DotGram.Finance.Fix.Fix50;
 public static partial class FixParser
 {
 	/// <summary>
-	/// The largest message a streamed call will read, in octets, when none is given.
-	/// </summary>
-	public const int DefaultMaxMessageLength = 16 * 1024 * 1024;
-
-	/// <summary>
 	/// Parses one complete message from a lossless octet string: every character in U+0000..U+00FF.
 	/// </summary>
 	/// <param name="input">The message.</param>
@@ -289,7 +284,7 @@ public static partial class FixParser
 				(2, 'C', 'C') => new FixMessage.StreamAssignmentRequest                 (fields),
 				(2, 'C', 'D') => new FixMessage.StreamAssignmentReport                  (fields),
 				(2, 'C', 'E') => new FixMessage.StreamAssignmentReportACK               (fields),
-				_             => (context?.FixMessageFactory?.Invoke(type) is { } made ? made.Read(type, fields) : new FixMessage.Unknown(type, fields)),
+				_             => (context?.MessageFactory?.Invoke(type) is { } made ? made.Read(type, fields) : new FixMessage.Unknown(type, fields)),
 			};
 		}
 	}
@@ -324,14 +319,13 @@ public static partial class FixParser
 	/// <summary>Reads every message of a buffer, in order.</summary>
 	/// <param name="input">Concatenated messages, as octets held one to a character.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
-	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <exception cref="FormatException">The input holds something that is not a message.</exception>
 	/// <remarks>
 	/// The whole input is in hand, so every message is built before the call returns; a log too
-	/// large to hold that way is what <see cref="ReadMessages(TextReader, Fix50Context, int)"/>
+	/// large to hold that way is what <see cref="ReadMessages(TextReader, Fix50Context)"/>
 	/// is for.
 	/// </remarks>
-	public static FixMessage[] ParseMessages(string input, Fix50Context? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	public static FixMessage[] ParseMessages(string input, Fix50Context? context = null)
 	{
 		if (input is null)
 			throw new ArgumentNullException(nameof(input));
@@ -339,7 +333,7 @@ public static partial class FixParser
 		var messages = new List<FixMessage>();
 
 		using (var reader = new StringReader(input))
-			foreach (var message in ReadMessages(reader, context, maxMessageLength))
+			foreach (var message in ReadMessages(reader, context))
 				messages.Add(message);
 
 		return messages.ToArray();
@@ -348,33 +342,31 @@ public static partial class FixParser
 	/// <summary>Reads every message of a buffer of octets, in order.</summary>
 	/// <param name="input">Concatenated messages, as the octets that came off the wire.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
-	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
 	/// <exception cref="FormatException">The input holds something that is not a message.</exception>
 	/// <remarks>
 	/// <see cref="ParseMessage(byte[], Fix50Context)"/> says what the octet road is for. The whole
 	/// input is in hand, so every message is built before the call returns; a log too large to hold
-	/// that way is what <see cref="ReadMessages(Stream, Fix50Context, int)"/> is for, and this is
+	/// that way is what <see cref="ReadMessages(Stream, Fix50Context)"/> is for, and this is
 	/// that call over the octets already read.
 	/// </remarks>
-	public static FixMessage[] ParseMessages(byte[] input, Fix50Context? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	public static FixMessage[] ParseMessages(byte[] input, Fix50Context? context = null)
 	{
 		if (input is null)
 			throw new ArgumentNullException(nameof(input));
 
-		return ParseMessages(new ReadOnlyMemory<byte>(input), context, maxMessageLength);
+		return ParseMessages(new ReadOnlyMemory<byte>(input), context);
 	}
 
 	/// <summary>Reads every message of octets the caller already holds, in order.</summary>
 	/// <param name="input">Concatenated messages, as the octets that came off the wire.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
-	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <exception cref="FormatException">The input holds something that is not a message.</exception>
 	/// <remarks>
 	/// Octets held in an array are read where they lie; memory of any other kind is copied into one
 	/// first.
 	/// </remarks>
-	public static FixMessage[] ParseMessages(ReadOnlyMemory<byte> input, Fix50Context? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	public static FixMessage[] ParseMessages(ReadOnlyMemory<byte> input, Fix50Context? context = null)
 	{
 		var held = MemoryMarshal.TryGetArray(input, out var segment)
 			? segment
@@ -383,7 +375,7 @@ public static partial class FixParser
 		var messages = new List<FixMessage>();
 
 		using (var stream = new MemoryStream(held.Array!, held.Offset, held.Count, writable: false))
-			foreach (var message in ReadMessages(stream, context, maxMessageLength))
+			foreach (var message in ReadMessages(stream, context))
 				messages.Add(message);
 
 		return messages.ToArray();
@@ -392,11 +384,10 @@ public static partial class FixParser
 	/// <summary>Reads exactly one message from a reader, without closing it or reading past it.</summary>
 	/// <param name="input">The reader, which is left open.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
-	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <exception cref="FormatException">The input does not begin with a message.</exception>
-	public static FixMessage ReadMessage(TextReader input, Fix50Context? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	public static FixMessage ReadMessage(TextReader input, Fix50Context? context = null)
 	{
-		if (TryReadMessage(input, out var message, out var error, context, maxMessageLength))
+		if (TryReadMessage(input, out var message, out var error, context))
 			return message!;
 
 		throw new FormatException(error!.ToString());
@@ -405,11 +396,10 @@ public static partial class FixParser
 	/// <summary>Reads exactly one message from a stream, without closing it or reading past it.</summary>
 	/// <param name="input">The stream, which is left open.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
-	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <exception cref="FormatException">The input does not begin with a message.</exception>
-	public static FixMessage ReadMessage(Stream input, Fix50Context? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	public static FixMessage ReadMessage(Stream input, Fix50Context? context = null)
 	{
-		if (TryReadMessage(input, out var message, out var error, context, maxMessageLength))
+		if (TryReadMessage(input, out var message, out var error, context))
 			return message!;
 
 		throw new FormatException(error!.ToString());
@@ -420,18 +410,15 @@ public static partial class FixParser
 	/// <param name="message">The message read, or null.</param>
 	/// <param name="error">The first problem found, or null.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
-	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>. I/O exceptions propagate.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
-	public static bool TryReadMessage(TextReader input, [NotNullWhen(true)] out FixMessage? message, [NotNullWhen(false)] out FixParseError? error, Fix50Context? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	public static bool TryReadMessage(TextReader input, [NotNullWhen(true)] out FixMessage? message, [NotNullWhen(false)] out FixParseError? error, Fix50Context? context = null)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 
-		ValidateStreamArguments(maxMessageLength);
-
 		message = null;
 
-		var reader = new FrameReader(input, maxMessageLength, (context?.Framing ?? FixFraming.Wire).Separator());
+		var reader = new FrameReader(input, context?.MaxMessageLength ?? FixContext.DefaultMaxMessageLength, (context?.Framing ?? FixFraming.Wire).Separator());
 
 		if (!reader.TryRead(out var wire, out var failure))
 		{
@@ -447,18 +434,15 @@ public static partial class FixParser
 	/// <param name="message">The message read, or null.</param>
 	/// <param name="error">The first problem found, or null.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
-	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
 	/// <returns>False with the first problem found in <paramref name="error"/>. I/O exceptions propagate.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
-	public static bool TryReadMessage(Stream input, [NotNullWhen(true)] out FixMessage? message, [NotNullWhen(false)] out FixParseError? error, Fix50Context? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	public static bool TryReadMessage(Stream input, [NotNullWhen(true)] out FixMessage? message, [NotNullWhen(false)] out FixParseError? error, Fix50Context? context = null)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 
-		ValidateStreamArguments(maxMessageLength);
-
 		message = null;
 
-		var reader = new FrameReader(input, maxMessageLength, (context?.Framing ?? FixFraming.Wire).Separator());
+		var reader = new FrameReader(input, context?.MaxMessageLength ?? FixContext.DefaultMaxMessageLength, (context?.Framing ?? FixFraming.Wire).Separator());
 
 		if (!reader.TryRead(out var wire, out var failure))
 		{
@@ -472,27 +456,21 @@ public static partial class FixParser
 	/// <summary>Reads concatenated messages from a reader, one at a time, reusing a frame buffer.</summary>
 	/// <param name="input">The reader, which is left open and owned by the caller.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
-	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
-	public static IEnumerable<FixMessage> ReadMessages(TextReader input, Fix50Context? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	public static IEnumerable<FixMessage> ReadMessages(TextReader input, Fix50Context? context = null)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 
-		ValidateStreamArguments(maxMessageLength);
-
-		return ReadFrames(new FrameReader(input, maxMessageLength, (context?.Framing ?? FixFraming.Wire).Separator()), context);
+		return ReadFrames(new FrameReader(input, context?.MaxMessageLength ?? FixContext.DefaultMaxMessageLength, (context?.Framing ?? FixFraming.Wire).Separator()), context);
 	}
 
 	/// <summary>Reads concatenated messages from a stream, one at a time, reusing a frame buffer.</summary>
 	/// <param name="input">The stream, which is left open and owned by the caller.</param>
 	/// <param name="context">Null reads wire framing with the standard length/data pairs.</param>
-	/// <param name="maxMessageLength">The largest message that will be read, in octets.</param>
-	public static IEnumerable<FixMessage> ReadMessages(Stream input, Fix50Context? context = null, int maxMessageLength = DefaultMaxMessageLength)
+	public static IEnumerable<FixMessage> ReadMessages(Stream input, Fix50Context? context = null)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
 
-		ValidateStreamArguments(maxMessageLength);
-
-		return ReadFrames(new FrameReader(input, maxMessageLength, (context?.Framing ?? FixFraming.Wire).Separator()), context);
+		return ReadFrames(new FrameReader(input, context?.MaxMessageLength ?? FixContext.DefaultMaxMessageLength, (context?.Framing ?? FixFraming.Wire).Separator()), context);
 	}
 
 	/// <summary>

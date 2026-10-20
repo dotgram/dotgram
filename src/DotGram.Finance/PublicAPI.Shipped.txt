@@ -2,15 +2,15 @@
 DotGram.Finance.Fix.Fix42.Fix42Context
 DotGram.Finance.Fix.Fix42.Fix42Context.Equals(DotGram.Finance.Fix.Fix42.Fix42Context? other) -> bool
 DotGram.Finance.Fix.Fix42.Fix42Context.Fix42Context() -> void
-DotGram.Finance.Fix.Fix42.Fix42Context.FixMessageFactory.get -> System.Func<string!, DotGram.Finance.Fix.Fix42.FixCustomMessage?>?
-DotGram.Finance.Fix.Fix42.Fix42Context.FixMessageFactory.init -> void
-DotGram.Finance.Fix.Fix42.Fix42Context.Load(System.Collections.Generic.IEnumerable<string!>! dictionaries, string? emitTo = null) -> DotGram.Finance.Fix.Fix42.Fix42Context!
-DotGram.Finance.Fix.Fix42.Fix42Context.Load(System.IO.Stream! dictionary, string? emitTo = null) -> DotGram.Finance.Fix.Fix42.Fix42Context!
-DotGram.Finance.Fix.Fix42.Fix42Context.Load(System.IO.TextReader! dictionary, string? emitTo = null) -> DotGram.Finance.Fix.Fix42.Fix42Context!
-DotGram.Finance.Fix.Fix42.Fix42Context.Load(string! dictionary, string? emitTo = null) -> DotGram.Finance.Fix.Fix42.Fix42Context!
-DotGram.Finance.Fix.Fix42.Fix42Context.LoadFile(string! fileName, string? emitTo = null) -> DotGram.Finance.Fix.Fix42.Fix42Context!
+DotGram.Finance.Fix.Fix42.Fix42Context.Load(System.Collections.Generic.IEnumerable<string!>! dictionaries) -> DotGram.Finance.Fix.Fix42.Fix42Context!
+DotGram.Finance.Fix.Fix42.Fix42Context.Load(System.IO.Stream! dictionary) -> DotGram.Finance.Fix.Fix42.Fix42Context!
+DotGram.Finance.Fix.Fix42.Fix42Context.Load(System.IO.TextReader! dictionary) -> DotGram.Finance.Fix.Fix42.Fix42Context!
+DotGram.Finance.Fix.Fix42.Fix42Context.Load(string! dictionary) -> DotGram.Finance.Fix.Fix42.Fix42Context!
+DotGram.Finance.Fix.Fix42.Fix42Context.LoadFile(string! fileName) -> DotGram.Finance.Fix.Fix42.Fix42Context!
+DotGram.Finance.Fix.Fix42.Fix42Context.MessageFactory.get -> System.Func<string!, DotGram.Finance.Fix.Fix42.FixCustomMessage?>?
+DotGram.Finance.Fix.Fix42.Fix42Context.MessageFactory.init -> void
 DotGram.Finance.Fix.Fix42.Fix42Context.Prepare() -> void
-DotGram.Finance.Fix.Fix42.Fix42Context.With(DotGram.Finance.Fix.FixDictionary! dictionary, string? emitTo = null) -> DotGram.Finance.Fix.Fix42.Fix42Context!
+DotGram.Finance.Fix.Fix42.Fix42Context.With(DotGram.Finance.Fix.FixDictionary! dictionary) -> DotGram.Finance.Fix.Fix42.Fix42Context!
 DotGram.Finance.Fix.Fix42.FixCustomMessage
 DotGram.Finance.Fix.Fix42.FixCustomMessage.AddFinding(DotGram.Finance.Fix.FixFinding! finding) -> void
 DotGram.Finance.Fix.Fix42.FixCustomMessage.FixCustomMessage() -> void
@@ -1611,15 +1611,15 @@ DotGram.Finance.Fix.Fix42.FixParser
 DotGram.Finance.Fix.Fix44.Fix44Context
 DotGram.Finance.Fix.Fix44.Fix44Context.Equals(DotGram.Finance.Fix.Fix44.Fix44Context? other) -> bool
 DotGram.Finance.Fix.Fix44.Fix44Context.Fix44Context() -> void
-DotGram.Finance.Fix.Fix44.Fix44Context.FixMessageFactory.get -> System.Func<string!, DotGram.Finance.Fix.Fix44.FixCustomMessage?>?
-DotGram.Finance.Fix.Fix44.Fix44Context.FixMessageFactory.init -> void
-DotGram.Finance.Fix.Fix44.Fix44Context.Load(System.Collections.Generic.IEnumerable<string!>! dictionaries, string? emitTo = null) -> DotGram.Finance.Fix.Fix44.Fix44Context!
-DotGram.Finance.Fix.Fix44.Fix44Context.Load(System.IO.Stream! dictionary, string? emitTo = null) -> DotGram.Finance.Fix.Fix44.Fix44Context!
-DotGram.Finance.Fix.Fix44.Fix44Context.Load(System.IO.TextReader! dictionary, string? emitTo = null) -> DotGram.Finance.Fix.Fix44.Fix44Context!
-DotGram.Finance.Fix.Fix44.Fix44Context.Load(string! dictionary, string? emitTo = null) -> DotGram.Finance.Fix.Fix44.Fix44Context!
-DotGram.Finance.Fix.Fix44.Fix44Context.LoadFile(string! fileName, string? emitTo = null) -> DotGram.Finance.Fix.Fix44.Fix44Context!
+DotGram.Finance.Fix.Fix44.Fix44Context.Load(System.Collections.Generic.IEnumerable<string!>! dictionaries) -> DotGram.Finance.Fix.Fix44.Fix44Context!
+DotGram.Finance.Fix.Fix44.Fix44Context.Load(System.IO.Stream! dictionary) -> DotGram.Finance.Fix.Fix44.Fix44Context!
+DotGram.Finance.Fix.Fix44.Fix44Context.Load(System.IO.TextReader! dictionary) -> DotGram.Finance.Fix.Fix44.Fix44Context!
+DotGram.Finance.Fix.Fix44.Fix44Context.Load(string! dictionary) -> DotGram.Finance.Fix.Fix44.Fix44Context!
+DotGram.Finance.Fix.Fix44.Fix44Context.LoadFile(string! fileName) -> DotGram.Finance.Fix.Fix44.Fix44Context!
+DotGram.Finance.Fix.Fix44.Fix44Context.MessageFactory.get -> System.Func<string!, DotGram.Finance.Fix.Fix44.FixCustomMessage?>?
+DotGram.Finance.Fix.Fix44.Fix44Context.MessageFactory.init -> void
 DotGram.Finance.Fix.Fix44.Fix44Context.Prepare() -> void
-DotGram.Finance.Fix.Fix44.Fix44Context.With(DotGram.Finance.Fix.FixDictionary! dictionary, string? emitTo = null) -> DotGram.Finance.Fix.Fix44.Fix44Context!
+DotGram.Finance.Fix.Fix44.Fix44Context.With(DotGram.Finance.Fix.FixDictionary! dictionary) -> DotGram.Finance.Fix.Fix44.Fix44Context!
 DotGram.Finance.Fix.Fix44.FixCustomMessage
 DotGram.Finance.Fix.Fix44.FixCustomMessage.AddFinding(DotGram.Finance.Fix.FixFinding! finding) -> void
 DotGram.Finance.Fix.Fix44.FixCustomMessage.FixCustomMessage() -> void
@@ -14115,15 +14115,15 @@ DotGram.Finance.Fix.Fix44.IYieldData.YieldType.get -> DotGram.Finance.Fix.FixFie
 DotGram.Finance.Fix.Fix50.Fix50Context
 DotGram.Finance.Fix.Fix50.Fix50Context.Equals(DotGram.Finance.Fix.Fix50.Fix50Context? other) -> bool
 DotGram.Finance.Fix.Fix50.Fix50Context.Fix50Context() -> void
-DotGram.Finance.Fix.Fix50.Fix50Context.FixMessageFactory.get -> System.Func<string!, DotGram.Finance.Fix.Fix50.FixCustomMessage?>?
-DotGram.Finance.Fix.Fix50.Fix50Context.FixMessageFactory.init -> void
-DotGram.Finance.Fix.Fix50.Fix50Context.Load(System.Collections.Generic.IEnumerable<string!>! dictionaries, string? emitTo = null) -> DotGram.Finance.Fix.Fix50.Fix50Context!
-DotGram.Finance.Fix.Fix50.Fix50Context.Load(System.IO.Stream! dictionary, string? emitTo = null) -> DotGram.Finance.Fix.Fix50.Fix50Context!
-DotGram.Finance.Fix.Fix50.Fix50Context.Load(System.IO.TextReader! dictionary, string? emitTo = null) -> DotGram.Finance.Fix.Fix50.Fix50Context!
-DotGram.Finance.Fix.Fix50.Fix50Context.Load(string! dictionary, string? emitTo = null) -> DotGram.Finance.Fix.Fix50.Fix50Context!
-DotGram.Finance.Fix.Fix50.Fix50Context.LoadFile(string! fileName, string? emitTo = null) -> DotGram.Finance.Fix.Fix50.Fix50Context!
+DotGram.Finance.Fix.Fix50.Fix50Context.Load(System.Collections.Generic.IEnumerable<string!>! dictionaries) -> DotGram.Finance.Fix.Fix50.Fix50Context!
+DotGram.Finance.Fix.Fix50.Fix50Context.Load(System.IO.Stream! dictionary) -> DotGram.Finance.Fix.Fix50.Fix50Context!
+DotGram.Finance.Fix.Fix50.Fix50Context.Load(System.IO.TextReader! dictionary) -> DotGram.Finance.Fix.Fix50.Fix50Context!
+DotGram.Finance.Fix.Fix50.Fix50Context.Load(string! dictionary) -> DotGram.Finance.Fix.Fix50.Fix50Context!
+DotGram.Finance.Fix.Fix50.Fix50Context.LoadFile(string! fileName) -> DotGram.Finance.Fix.Fix50.Fix50Context!
+DotGram.Finance.Fix.Fix50.Fix50Context.MessageFactory.get -> System.Func<string!, DotGram.Finance.Fix.Fix50.FixCustomMessage?>?
+DotGram.Finance.Fix.Fix50.Fix50Context.MessageFactory.init -> void
 DotGram.Finance.Fix.Fix50.Fix50Context.Prepare() -> void
-DotGram.Finance.Fix.Fix50.Fix50Context.With(DotGram.Finance.Fix.FixDictionary! dictionary, string? emitTo = null) -> DotGram.Finance.Fix.Fix50.Fix50Context!
+DotGram.Finance.Fix.Fix50.Fix50Context.With(DotGram.Finance.Fix.FixDictionary! dictionary) -> DotGram.Finance.Fix.Fix50.Fix50Context!
 DotGram.Finance.Fix.Fix50.FixCustomMessage
 DotGram.Finance.Fix.Fix50.FixCustomMessage.AddFinding(DotGram.Finance.Fix.FixFinding! finding) -> void
 DotGram.Finance.Fix.Fix50.FixCustomMessage.FixCustomMessage() -> void
@@ -36581,11 +36581,15 @@ DotGram.Finance.Fix.Fix50.IYieldData.YieldType.get -> DotGram.Finance.Fix.FixFie
 DotGram.Finance.Fix.FixContext
 DotGram.Finance.Fix.FixContext.BufferSize.get -> int
 DotGram.Finance.Fix.FixContext.BufferSize.init -> void
+DotGram.Finance.Fix.FixContext.CheckSourceDirectory.get -> string?
+DotGram.Finance.Fix.FixContext.CheckSourceDirectory.init -> void
 DotGram.Finance.Fix.FixContext.FixContext(DotGram.Finance.Fix.FixContext! original) -> void
 DotGram.Finance.Fix.FixContext.Framing.get -> DotGram.Finance.Fix.FixFraming
 DotGram.Finance.Fix.FixContext.Framing.init -> void
 DotGram.Finance.Fix.FixContext.LengthDataPairs.get -> System.Collections.Generic.IReadOnlyDictionary<int, int>!
 DotGram.Finance.Fix.FixContext.LengthDataPairs.init -> void
+DotGram.Finance.Fix.FixContext.MaxMessageLength.get -> int
+DotGram.Finance.Fix.FixContext.MaxMessageLength.init -> void
 DotGram.Finance.Fix.FixContext.MaxRetained.get -> int
 DotGram.Finance.Fix.FixContext.MaxRetained.init -> void
 DotGram.Finance.Fix.FixConvert
@@ -36711,9 +36715,6 @@ DotGram.Finance.Fix.IFixLocation.Locate(int position, int length) -> void
 DotGram.Finance.Fix.IFixLocation.Position.get -> int
 DotGram.Finance.Fix.IFixLocation.ValuePosition.get -> int
 abstract DotGram.Finance.Fix.FixContext.<Clone>$() -> DotGram.Finance.Fix.FixContext!
-const DotGram.Finance.Fix.Fix42.FixParser.DefaultMaxMessageLength = 16777216 -> int
-const DotGram.Finance.Fix.Fix44.FixParser.DefaultMaxMessageLength = 16777216 -> int
-const DotGram.Finance.Fix.Fix50.FixParser.DefaultMaxMessageLength = 16777216 -> int
 const DotGram.Finance.Fix.FixTag.Account = 1 -> int
 const DotGram.Finance.Fix.FixTag.AccountType = 581 -> int
 const DotGram.Finance.Fix.FixTag.AccruedInterestAmt = 159 -> int
@@ -38221,7 +38222,7 @@ override sealed DotGram.Finance.Fix.Fix42.Fix42Context.Equals(DotGram.Finance.Fi
 override sealed DotGram.Finance.Fix.Fix44.Fix44Context.Equals(DotGram.Finance.Fix.FixContext? other) -> bool
 override sealed DotGram.Finance.Fix.Fix50.Fix50Context.Equals(DotGram.Finance.Fix.FixContext? other) -> bool
 static DotGram.Finance.Fix.Fix42.Fix42Context.Default.get -> DotGram.Finance.Fix.Fix42.Fix42Context!
-static DotGram.Finance.Fix.Fix42.Fix42Context.WithLogFraming.get -> DotGram.Finance.Fix.Fix42.Fix42Context!
+static DotGram.Finance.Fix.Fix42.Fix42Context.Log.get -> DotGram.Finance.Fix.Fix42.Fix42Context!
 static DotGram.Finance.Fix.Fix42.Fix42Context.operator !=(DotGram.Finance.Fix.Fix42.Fix42Context? left, DotGram.Finance.Fix.Fix42.Fix42Context? right) -> bool
 static DotGram.Finance.Fix.Fix42.Fix42Context.operator ==(DotGram.Finance.Fix.Fix42.Fix42Context? left, DotGram.Finance.Fix.Fix42.Fix42Context? right) -> bool
 static DotGram.Finance.Fix.Fix42.FixParser.BuildMessage(System.ReadOnlyMemory<byte> source, DotGram.Finance.Fix.FixField![]! fields, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> DotGram.Finance.Fix.Fix42.FixMessage!
@@ -38233,24 +38234,24 @@ static DotGram.Finance.Fix.Fix42.FixParser.ParseFields(string! input, DotGram.Fi
 static DotGram.Finance.Fix.Fix42.FixParser.ParseMessage(System.ReadOnlyMemory<byte> input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> DotGram.Finance.Fix.Fix42.FixMessage!
 static DotGram.Finance.Fix.Fix42.FixParser.ParseMessage(byte[]! input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> DotGram.Finance.Fix.Fix42.FixMessage!
 static DotGram.Finance.Fix.Fix42.FixParser.ParseMessage(string! input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> DotGram.Finance.Fix.Fix42.FixMessage!
-static DotGram.Finance.Fix.Fix42.FixParser.ParseMessages(System.ReadOnlyMemory<byte> input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null, int maxMessageLength = 16777216) -> DotGram.Finance.Fix.Fix42.FixMessage![]!
-static DotGram.Finance.Fix.Fix42.FixParser.ParseMessages(byte[]! input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null, int maxMessageLength = 16777216) -> DotGram.Finance.Fix.Fix42.FixMessage![]!
-static DotGram.Finance.Fix.Fix42.FixParser.ParseMessages(string! input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null, int maxMessageLength = 16777216) -> DotGram.Finance.Fix.Fix42.FixMessage![]!
+static DotGram.Finance.Fix.Fix42.FixParser.ParseMessages(System.ReadOnlyMemory<byte> input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> DotGram.Finance.Fix.Fix42.FixMessage![]!
+static DotGram.Finance.Fix.Fix42.FixParser.ParseMessages(byte[]! input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> DotGram.Finance.Fix.Fix42.FixMessage![]!
+static DotGram.Finance.Fix.Fix42.FixParser.ParseMessages(string! input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> DotGram.Finance.Fix.Fix42.FixMessage![]!
 static DotGram.Finance.Fix.Fix42.FixParser.ReadFields(System.IO.Stream! input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.FixField!>!
 static DotGram.Finance.Fix.Fix42.FixParser.ReadFields(System.IO.TextReader! input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.FixField!>!
-static DotGram.Finance.Fix.Fix42.FixParser.ReadMessage(System.IO.Stream! input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null, int maxMessageLength = 16777216) -> DotGram.Finance.Fix.Fix42.FixMessage!
-static DotGram.Finance.Fix.Fix42.FixParser.ReadMessage(System.IO.TextReader! input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null, int maxMessageLength = 16777216) -> DotGram.Finance.Fix.Fix42.FixMessage!
-static DotGram.Finance.Fix.Fix42.FixParser.ReadMessages(System.IO.Stream! input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null, int maxMessageLength = 16777216) -> System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.Fix42.FixMessage!>!
-static DotGram.Finance.Fix.Fix42.FixParser.ReadMessages(System.IO.TextReader! input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null, int maxMessageLength = 16777216) -> System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.Fix42.FixMessage!>!
+static DotGram.Finance.Fix.Fix42.FixParser.ReadMessage(System.IO.Stream! input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> DotGram.Finance.Fix.Fix42.FixMessage!
+static DotGram.Finance.Fix.Fix42.FixParser.ReadMessage(System.IO.TextReader! input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> DotGram.Finance.Fix.Fix42.FixMessage!
+static DotGram.Finance.Fix.Fix42.FixParser.ReadMessages(System.IO.Stream! input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.Fix42.FixMessage!>!
+static DotGram.Finance.Fix.Fix42.FixParser.ReadMessages(System.IO.TextReader! input, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.Fix42.FixMessage!>!
 static DotGram.Finance.Fix.Fix42.FixParser.TryBuildMessage(System.ReadOnlyMemory<byte> source, DotGram.Finance.Fix.FixField![]! fields, out DotGram.Finance.Fix.Fix42.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> bool
 static DotGram.Finance.Fix.Fix42.FixParser.TryBuildMessage(string! source, DotGram.Finance.Fix.FixField![]! fields, out DotGram.Finance.Fix.Fix42.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> bool
 static DotGram.Finance.Fix.Fix42.FixParser.TryParseMessage(System.ReadOnlyMemory<byte> input, out DotGram.Finance.Fix.Fix42.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> bool
 static DotGram.Finance.Fix.Fix42.FixParser.TryParseMessage(byte[]! input, out DotGram.Finance.Fix.Fix42.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> bool
 static DotGram.Finance.Fix.Fix42.FixParser.TryParseMessage(string! input, out DotGram.Finance.Fix.Fix42.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> bool
-static DotGram.Finance.Fix.Fix42.FixParser.TryReadMessage(System.IO.Stream! input, out DotGram.Finance.Fix.Fix42.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix42.Fix42Context? context = null, int maxMessageLength = 16777216) -> bool
-static DotGram.Finance.Fix.Fix42.FixParser.TryReadMessage(System.IO.TextReader! input, out DotGram.Finance.Fix.Fix42.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix42.Fix42Context? context = null, int maxMessageLength = 16777216) -> bool
+static DotGram.Finance.Fix.Fix42.FixParser.TryReadMessage(System.IO.Stream! input, out DotGram.Finance.Fix.Fix42.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> bool
+static DotGram.Finance.Fix.Fix42.FixParser.TryReadMessage(System.IO.TextReader! input, out DotGram.Finance.Fix.Fix42.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix42.Fix42Context? context = null) -> bool
 static DotGram.Finance.Fix.Fix44.Fix44Context.Default.get -> DotGram.Finance.Fix.Fix44.Fix44Context!
-static DotGram.Finance.Fix.Fix44.Fix44Context.WithLogFraming.get -> DotGram.Finance.Fix.Fix44.Fix44Context!
+static DotGram.Finance.Fix.Fix44.Fix44Context.Log.get -> DotGram.Finance.Fix.Fix44.Fix44Context!
 static DotGram.Finance.Fix.Fix44.Fix44Context.operator !=(DotGram.Finance.Fix.Fix44.Fix44Context? left, DotGram.Finance.Fix.Fix44.Fix44Context? right) -> bool
 static DotGram.Finance.Fix.Fix44.Fix44Context.operator ==(DotGram.Finance.Fix.Fix44.Fix44Context? left, DotGram.Finance.Fix.Fix44.Fix44Context? right) -> bool
 static DotGram.Finance.Fix.Fix44.FixParser.BuildMessage(System.ReadOnlyMemory<byte> source, DotGram.Finance.Fix.FixField![]! fields, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> DotGram.Finance.Fix.Fix44.FixMessage!
@@ -38262,24 +38263,24 @@ static DotGram.Finance.Fix.Fix44.FixParser.ParseFields(string! input, DotGram.Fi
 static DotGram.Finance.Fix.Fix44.FixParser.ParseMessage(System.ReadOnlyMemory<byte> input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> DotGram.Finance.Fix.Fix44.FixMessage!
 static DotGram.Finance.Fix.Fix44.FixParser.ParseMessage(byte[]! input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> DotGram.Finance.Fix.Fix44.FixMessage!
 static DotGram.Finance.Fix.Fix44.FixParser.ParseMessage(string! input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> DotGram.Finance.Fix.Fix44.FixMessage!
-static DotGram.Finance.Fix.Fix44.FixParser.ParseMessages(System.ReadOnlyMemory<byte> input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null, int maxMessageLength = 16777216) -> DotGram.Finance.Fix.Fix44.FixMessage![]!
-static DotGram.Finance.Fix.Fix44.FixParser.ParseMessages(byte[]! input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null, int maxMessageLength = 16777216) -> DotGram.Finance.Fix.Fix44.FixMessage![]!
-static DotGram.Finance.Fix.Fix44.FixParser.ParseMessages(string! input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null, int maxMessageLength = 16777216) -> DotGram.Finance.Fix.Fix44.FixMessage![]!
+static DotGram.Finance.Fix.Fix44.FixParser.ParseMessages(System.ReadOnlyMemory<byte> input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> DotGram.Finance.Fix.Fix44.FixMessage![]!
+static DotGram.Finance.Fix.Fix44.FixParser.ParseMessages(byte[]! input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> DotGram.Finance.Fix.Fix44.FixMessage![]!
+static DotGram.Finance.Fix.Fix44.FixParser.ParseMessages(string! input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> DotGram.Finance.Fix.Fix44.FixMessage![]!
 static DotGram.Finance.Fix.Fix44.FixParser.ReadFields(System.IO.Stream! input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.FixField!>!
 static DotGram.Finance.Fix.Fix44.FixParser.ReadFields(System.IO.TextReader! input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.FixField!>!
-static DotGram.Finance.Fix.Fix44.FixParser.ReadMessage(System.IO.Stream! input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null, int maxMessageLength = 16777216) -> DotGram.Finance.Fix.Fix44.FixMessage!
-static DotGram.Finance.Fix.Fix44.FixParser.ReadMessage(System.IO.TextReader! input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null, int maxMessageLength = 16777216) -> DotGram.Finance.Fix.Fix44.FixMessage!
-static DotGram.Finance.Fix.Fix44.FixParser.ReadMessages(System.IO.Stream! input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null, int maxMessageLength = 16777216) -> System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.Fix44.FixMessage!>!
-static DotGram.Finance.Fix.Fix44.FixParser.ReadMessages(System.IO.TextReader! input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null, int maxMessageLength = 16777216) -> System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.Fix44.FixMessage!>!
+static DotGram.Finance.Fix.Fix44.FixParser.ReadMessage(System.IO.Stream! input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> DotGram.Finance.Fix.Fix44.FixMessage!
+static DotGram.Finance.Fix.Fix44.FixParser.ReadMessage(System.IO.TextReader! input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> DotGram.Finance.Fix.Fix44.FixMessage!
+static DotGram.Finance.Fix.Fix44.FixParser.ReadMessages(System.IO.Stream! input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.Fix44.FixMessage!>!
+static DotGram.Finance.Fix.Fix44.FixParser.ReadMessages(System.IO.TextReader! input, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.Fix44.FixMessage!>!
 static DotGram.Finance.Fix.Fix44.FixParser.TryBuildMessage(System.ReadOnlyMemory<byte> source, DotGram.Finance.Fix.FixField![]! fields, out DotGram.Finance.Fix.Fix44.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> bool
 static DotGram.Finance.Fix.Fix44.FixParser.TryBuildMessage(string! source, DotGram.Finance.Fix.FixField![]! fields, out DotGram.Finance.Fix.Fix44.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> bool
 static DotGram.Finance.Fix.Fix44.FixParser.TryParseMessage(System.ReadOnlyMemory<byte> input, out DotGram.Finance.Fix.Fix44.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> bool
 static DotGram.Finance.Fix.Fix44.FixParser.TryParseMessage(byte[]! input, out DotGram.Finance.Fix.Fix44.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> bool
 static DotGram.Finance.Fix.Fix44.FixParser.TryParseMessage(string! input, out DotGram.Finance.Fix.Fix44.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> bool
-static DotGram.Finance.Fix.Fix44.FixParser.TryReadMessage(System.IO.Stream! input, out DotGram.Finance.Fix.Fix44.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix44.Fix44Context? context = null, int maxMessageLength = 16777216) -> bool
-static DotGram.Finance.Fix.Fix44.FixParser.TryReadMessage(System.IO.TextReader! input, out DotGram.Finance.Fix.Fix44.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix44.Fix44Context? context = null, int maxMessageLength = 16777216) -> bool
+static DotGram.Finance.Fix.Fix44.FixParser.TryReadMessage(System.IO.Stream! input, out DotGram.Finance.Fix.Fix44.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> bool
+static DotGram.Finance.Fix.Fix44.FixParser.TryReadMessage(System.IO.TextReader! input, out DotGram.Finance.Fix.Fix44.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix44.Fix44Context? context = null) -> bool
 static DotGram.Finance.Fix.Fix50.Fix50Context.Default.get -> DotGram.Finance.Fix.Fix50.Fix50Context!
-static DotGram.Finance.Fix.Fix50.Fix50Context.WithLogFraming.get -> DotGram.Finance.Fix.Fix50.Fix50Context!
+static DotGram.Finance.Fix.Fix50.Fix50Context.Log.get -> DotGram.Finance.Fix.Fix50.Fix50Context!
 static DotGram.Finance.Fix.Fix50.Fix50Context.operator !=(DotGram.Finance.Fix.Fix50.Fix50Context? left, DotGram.Finance.Fix.Fix50.Fix50Context? right) -> bool
 static DotGram.Finance.Fix.Fix50.Fix50Context.operator ==(DotGram.Finance.Fix.Fix50.Fix50Context? left, DotGram.Finance.Fix.Fix50.Fix50Context? right) -> bool
 static DotGram.Finance.Fix.Fix50.FixParser.BuildMessage(System.ReadOnlyMemory<byte> source, DotGram.Finance.Fix.FixField![]! fields, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> DotGram.Finance.Fix.Fix50.FixMessage!
@@ -38291,22 +38292,22 @@ static DotGram.Finance.Fix.Fix50.FixParser.ParseFields(string! input, DotGram.Fi
 static DotGram.Finance.Fix.Fix50.FixParser.ParseMessage(System.ReadOnlyMemory<byte> input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> DotGram.Finance.Fix.Fix50.FixMessage!
 static DotGram.Finance.Fix.Fix50.FixParser.ParseMessage(byte[]! input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> DotGram.Finance.Fix.Fix50.FixMessage!
 static DotGram.Finance.Fix.Fix50.FixParser.ParseMessage(string! input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> DotGram.Finance.Fix.Fix50.FixMessage!
-static DotGram.Finance.Fix.Fix50.FixParser.ParseMessages(System.ReadOnlyMemory<byte> input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null, int maxMessageLength = 16777216) -> DotGram.Finance.Fix.Fix50.FixMessage![]!
-static DotGram.Finance.Fix.Fix50.FixParser.ParseMessages(byte[]! input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null, int maxMessageLength = 16777216) -> DotGram.Finance.Fix.Fix50.FixMessage![]!
-static DotGram.Finance.Fix.Fix50.FixParser.ParseMessages(string! input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null, int maxMessageLength = 16777216) -> DotGram.Finance.Fix.Fix50.FixMessage![]!
+static DotGram.Finance.Fix.Fix50.FixParser.ParseMessages(System.ReadOnlyMemory<byte> input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> DotGram.Finance.Fix.Fix50.FixMessage![]!
+static DotGram.Finance.Fix.Fix50.FixParser.ParseMessages(byte[]! input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> DotGram.Finance.Fix.Fix50.FixMessage![]!
+static DotGram.Finance.Fix.Fix50.FixParser.ParseMessages(string! input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> DotGram.Finance.Fix.Fix50.FixMessage![]!
 static DotGram.Finance.Fix.Fix50.FixParser.ReadFields(System.IO.Stream! input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.FixField!>!
 static DotGram.Finance.Fix.Fix50.FixParser.ReadFields(System.IO.TextReader! input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.FixField!>!
-static DotGram.Finance.Fix.Fix50.FixParser.ReadMessage(System.IO.Stream! input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null, int maxMessageLength = 16777216) -> DotGram.Finance.Fix.Fix50.FixMessage!
-static DotGram.Finance.Fix.Fix50.FixParser.ReadMessage(System.IO.TextReader! input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null, int maxMessageLength = 16777216) -> DotGram.Finance.Fix.Fix50.FixMessage!
-static DotGram.Finance.Fix.Fix50.FixParser.ReadMessages(System.IO.Stream! input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null, int maxMessageLength = 16777216) -> System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.Fix50.FixMessage!>!
-static DotGram.Finance.Fix.Fix50.FixParser.ReadMessages(System.IO.TextReader! input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null, int maxMessageLength = 16777216) -> System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.Fix50.FixMessage!>!
+static DotGram.Finance.Fix.Fix50.FixParser.ReadMessage(System.IO.Stream! input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> DotGram.Finance.Fix.Fix50.FixMessage!
+static DotGram.Finance.Fix.Fix50.FixParser.ReadMessage(System.IO.TextReader! input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> DotGram.Finance.Fix.Fix50.FixMessage!
+static DotGram.Finance.Fix.Fix50.FixParser.ReadMessages(System.IO.Stream! input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.Fix50.FixMessage!>!
+static DotGram.Finance.Fix.Fix50.FixParser.ReadMessages(System.IO.TextReader! input, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> System.Collections.Generic.IEnumerable<DotGram.Finance.Fix.Fix50.FixMessage!>!
 static DotGram.Finance.Fix.Fix50.FixParser.TryBuildMessage(System.ReadOnlyMemory<byte> source, DotGram.Finance.Fix.FixField![]! fields, out DotGram.Finance.Fix.Fix50.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> bool
 static DotGram.Finance.Fix.Fix50.FixParser.TryBuildMessage(string! source, DotGram.Finance.Fix.FixField![]! fields, out DotGram.Finance.Fix.Fix50.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> bool
 static DotGram.Finance.Fix.Fix50.FixParser.TryParseMessage(System.ReadOnlyMemory<byte> input, out DotGram.Finance.Fix.Fix50.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> bool
 static DotGram.Finance.Fix.Fix50.FixParser.TryParseMessage(byte[]! input, out DotGram.Finance.Fix.Fix50.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> bool
 static DotGram.Finance.Fix.Fix50.FixParser.TryParseMessage(string! input, out DotGram.Finance.Fix.Fix50.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> bool
-static DotGram.Finance.Fix.Fix50.FixParser.TryReadMessage(System.IO.Stream! input, out DotGram.Finance.Fix.Fix50.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix50.Fix50Context? context = null, int maxMessageLength = 16777216) -> bool
-static DotGram.Finance.Fix.Fix50.FixParser.TryReadMessage(System.IO.TextReader! input, out DotGram.Finance.Fix.Fix50.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix50.Fix50Context? context = null, int maxMessageLength = 16777216) -> bool
+static DotGram.Finance.Fix.Fix50.FixParser.TryReadMessage(System.IO.Stream! input, out DotGram.Finance.Fix.Fix50.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> bool
+static DotGram.Finance.Fix.Fix50.FixParser.TryReadMessage(System.IO.TextReader! input, out DotGram.Finance.Fix.Fix50.FixMessage? message, out DotGram.Finance.Fix.FixParseError? error, DotGram.Finance.Fix.Fix50.Fix50Context? context = null) -> bool
 static DotGram.Finance.Fix.FixContext.operator !=(DotGram.Finance.Fix.FixContext? left, DotGram.Finance.Fix.FixContext? right) -> bool
 static DotGram.Finance.Fix.FixContext.operator ==(DotGram.Finance.Fix.FixContext? left, DotGram.Finance.Fix.FixContext? right) -> bool
 static DotGram.Finance.Fix.FixConvert.ToBoolean(this System.ReadOnlySpan<byte> raw) -> (bool Valid, bool Value)

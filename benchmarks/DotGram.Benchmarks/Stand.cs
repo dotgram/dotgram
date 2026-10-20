@@ -1222,7 +1222,7 @@ static partial class Stand
 			return () =>
 			{
 				var source = input == typeof(Stream) ? (object)new MemoryStream(parse ? one : many, false) : new StringReader(parse ? wire : text);
-				var result = entry.Invoke(null, kind switch { FixEntry.Mode => [source, strict, 4096], FixEntry.FieldOptions => [source, null, 4096], FixEntry.Door => [source, null, FixMaxMessageLength()], _ => [source, 4096] });
+				var result = entry.Invoke(null, kind switch { FixEntry.Mode => [source, strict, 4096], FixEntry.FieldOptions => [source, null, 4096], FixEntry.Door => [source, null, FixMaxMessageLength()], FixEntry.Context => [source, null], _ => [source, 4096] });
 
 				if (parse)
 					return Checked(result, validate) is null ? 0 : 1;
@@ -1307,6 +1307,10 @@ static partial class Stand
 			if (Fix.GetMethod(doorName, Inserted(FixOptions)) is { } door)
 				return (door, FixEntry.Door);
 
+			// The length of a message is the context's, so the streaming forms of the door have no parameter for it.
+			if (plain.Length == 2 && Fix.GetMethod(doorName, [plain[0], FixOptions]) is { } contextDoor)
+				return (contextDoor, FixEntry.Context);
+
 			if (FixMessages.GetMethod(name, plain) is { } direct)
 				return (direct, FixEntry.Plain);
 
@@ -1320,7 +1324,7 @@ static partial class Stand
 		/// Which overload of the message layer a side has: with the mode (strict), plain, with Fix44Context after the first parameter (passed as null) on FixMessages, or the same on FixParser (the door, ParseMessage / ReadMessage /
 		/// ReadMessages), whose last parameter of the streaming forms is the length of a message, not the size of a buffer: <see cref="FixMaxMessageLength"/>.
 		/// </summary>
-		enum FixEntry { Mode, Plain, FieldOptions, Door }
+		enum FixEntry { Mode, Plain, FieldOptions, Door, Context }
 
 		/// <summary>FixParser.DefaultMaxMessageLength of a side that has the door: the value the streaming forms are called with, as a consumer that names none calls them.</summary>
 		int FixMaxMessageLength()
@@ -1640,7 +1644,7 @@ static partial class Stand
 			var strict   = kind == FixEntry.Mode ? FixStrictMode() : null;
 			var validate = kind == FixEntry.Mode ? null : FixValidate();
 
-			return () => Checked(call.Invoke(null, kind switch { FixEntry.Mode => [wire, strict], FixEntry.FieldOptions or FixEntry.Door => [wire, null], _ => [wire] }), validate) is null ? 0 : 1;
+			return () => Checked(call.Invoke(null, kind switch { FixEntry.Mode => [wire, strict], FixEntry.FieldOptions or FixEntry.Door or FixEntry.Context => [wire, null], _ => [wire] }), validate) is null ? 0 : 1;
 		}
 
 		/// <summary>FixMessages.Build over the fields this side's FixParser reads from the wire, by reflection.</summary>
@@ -1664,7 +1668,7 @@ static partial class Stand
 			var bytes = Encoding.Latin1.GetBytes(text);
 
 			// Form 3 of the message layer has no ParseLog at all: the framing is a value, Fix44Context.WithLogFraming, passed to Parse (finance-9a, 2026-09-20).
-			if (Fix.GetMethod("ParseLog", [typeof(string), FixOptions]) is null && FixOptions.GetProperty("WithLogFraming", BindingFlags.Public | BindingFlags.Static)?.GetValue(null) is { } log)
+			if (Fix.GetMethod("ParseLog", [typeof(string), FixOptions]) is null && (FixOptions.GetProperty("Log", BindingFlags.Public | BindingFlags.Static) ?? FixOptions.GetProperty("WithLogFraming", BindingFlags.Public | BindingFlags.Static))?.GetValue(null) is { } log)
 			{
 				return form switch
 				{

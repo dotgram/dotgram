@@ -20,7 +20,7 @@ public sealed class FixFieldGrammarTests
 		var log = FixFieldReaderTests.Log(wire, expected);
 		using var bytes = new MemoryStream(Bytes(wire));
 		using var logBytes = new MemoryStream(Bytes(log));
-		foreach (var message in new[] { FixParser.ReadMessage(bytes), FixParser.ParseMessage(log, Fix44Context.WithLogFraming), FixParser.ReadMessage(logBytes, Fix44Context.WithLogFraming) })
+		foreach (var message in new[] { FixParser.ReadMessage(bytes), FixParser.ParseMessage(log, Fix44Context.Log), FixParser.ReadMessage(logBytes, Fix44Context.Log) })
 		{
 			Assert.Equal(name, message.GetType().Name);
 			Assert.Equal(expected.Fields.Select(f => (f.Tag, f.GetType())), message.Fields.Select(f => (f.Tag, f.GetType())));
@@ -69,9 +69,9 @@ public sealed class FixFieldGrammarTests
 	{
 		var wire = FixFixtures.Wire("0", "112=TEST|");
 		var log = FixFieldReaderTests.Log(wire, FixParser.ParseMessage(wire));
-		var damaged = FixParser.ParseMessage(log.Replace("TEST", "FAIL"), Fix44Context.WithLogFraming);
+		var damaged = FixParser.ParseMessage(log.Replace("TEST", "FAIL"), Fix44Context.Log);
 
-		Assert.Contains(damaged.Validate(Fix44Context.WithLogFraming), finding => finding.Rule == FixRule.CheckSumMismatch);
+		Assert.Contains(damaged.Validate(Fix44Context.Log), finding => finding.Rule == FixRule.CheckSumMismatch);
 	}
 
 	static FixField Field(FixMessage message, int tag)

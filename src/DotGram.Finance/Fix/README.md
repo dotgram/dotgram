@@ -45,7 +45,7 @@ var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
 FixMessage message = FixParser.ParseMessage(wire);
 
 FixField[] fields = FixParser.ParseFields(wire);
-var logFields = FixParser.ParseFields("55=ABC | 38=100", Fix44Context.WithLogFraming);
+var logFields = FixParser.ParseFields("55=ABC | 38=100", Fix44Context.Log);
 
 using var input = File.OpenRead("messages.fix");
 
@@ -163,14 +163,14 @@ foreach (var message in FixParser.ReadMessages(input))
 
 // Alternatively, read exactly one frame from a fresh stream:
 using var single = File.OpenRead("messages.fix");
-var next = FixParser.ReadMessage(single, maxMessageLength: 4 * 1024 * 1024);
+var next = FixParser.ReadMessage(single, Fix44Context.Default with { MaxMessageLength = 4 * 1024 * 1024 });
 ```
 
 `ReadMessage`, `TryReadMessage` and `ReadMessages` take a `TextReader` or a `Stream` and cut it into
-messages by their `BodyLength`, 16 MiB each at most unless given. A frame begins with a BeginString
+messages by their `BodyLength`, 16 MiB each at most unless the context's `MaxMessageLength` says otherwise. A frame begins with a BeginString
 and BodyLength, and whatever BeginString it names is read as the one the version knows, as a buffer
 reads it: another version's message comes back built as this version's, and `Validate` says its
-BeginString is not this version's. Only `maxMessageLength` bounds it. A frame is cut by a BodyLength
+BeginString is not this version's. Only `MaxMessageLength` bounds it. A frame is cut by a BodyLength
 that is present, decimal digits and within that limit; one that is missing or malformed ends the
 stream with a diagnostic, since without it there is no telling where the message ends. They are synchronous, read lazily
 and leave the input open; enumerate once. Clean EOF ends `ReadMessages`, and EOF inside a frame is
@@ -189,7 +189,7 @@ twenty-four in 5.0 SP2):
 ```csharp
 using System.Collections.Generic;
 
-var fields  = FixParser.ParseFields("55=ABC|38=100|", Fix44Context.WithLogFraming);
+var fields  = FixParser.ParseFields("55=ABC|38=100|", Fix44Context.Log);
 var context = new Fix44Context
 {
     LengthDataPairs = new Dictionary<int, int> { [5000] = 5001 },   // added to the version's own pairs
@@ -207,13 +207,13 @@ input is retained.
 var logLine   = "55=ABC | 38=100";
 using var logReader = new StringReader(logLine);
 
-var message = FixParser.ParseMessage(logLine, Fix44Context.WithLogFraming);
-var context = Fix44Context.WithLogFraming;
+var message = FixParser.ParseMessage(logLine, Fix44Context.Log);
+var context = Fix44Context.Log;
 foreach (var item in FixParser.ReadMessages(logReader, context))
     Console.WriteLine(item.MessageType);
 ```
 
-`WithLogFraming` reads a bare `|`, a spaced ` | `, or a mixture; spaces inside values are kept, and
+`Log` reads a bare `|`, a spaced ` | `, or a mixture; spaces inside values are kept, and
 positions refer to the log as it was given. A log may pad its pipes: BodyLength and CheckSum are
 measured over the fields as the wire had them. Streamed messages, cut by their BodyLength, want a
 bare `|`: a log padded with spaces cannot be streamed, only read whole.
@@ -316,7 +316,9 @@ places a field where the model has no property for it, lists a code its field's 
 or gives one name to two tags, is refused there, whole. Applying costs what reading does: the checks
 are then compiled in the background, side by side, and a message that arrives before its check is
 ready compiles it itself, once. `context.Prepare()` waits until all of them are ready, for a caller who
-wants no message to pay for that. `Load(text)` and `LoadFile(path)` on the context are the short forms. The package ships nobody's dictionary: the file is yours, and
+wants no message to pay for that. `Load(text)` and `LoadFile(path)` on the context are the short forms. To read what a dictionary compiled to, set
+`CheckSourceDirectory` on the context first (`Fix44Context.Default with { CheckSourceDirectory = "checks" }`): each check
+is then written there, one `.el` file a slot. The package ships nobody's dictionary: the file is yours, and
 its licence obligations are yours with it.
 
 ## Custom fields and messages
@@ -330,7 +332,7 @@ using System.Collections.Generic;
 
 var context = new Fix44Context
 {
-    FixMessageFactory = type => type == "U1" ? new VenueQuote() : null,
+    MessageFactory = type => type == "U1" ? new VenueQuote() : null,
     LengthDataPairs   = new Dictionary<int, int> { [25000] = 25001 },
 }.Load("""
     <fix>

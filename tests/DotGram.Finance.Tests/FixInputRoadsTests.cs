@@ -26,7 +26,7 @@ public sealed class FixInputRoadsTests
 	{
 		var expected = wire.Split('\u0001')[^2].Split('=')[1];
 
-		foreach (var (context, text) in new[] { (Fix44.Fix44Context.Default, wire), (Fix44.Fix44Context.WithLogFraming, wire.Replace('\u0001', '|')) })
+		foreach (var (context, text) in new[] { (Fix44.Fix44Context.Default, wire), (Fix44.Fix44Context.Log, wire.Replace('\u0001', '|')) })
 		{
 			var fromChars = Assert.IsType<FixField.Invalid>(Assert.Single(Fix44.FixParser.ParseFields(text, context), field => field.Tag == 28905));
 			var fromBytes = Assert.IsType<FixField.Invalid>(Assert.Single(Fix44.FixParser.ParseFields(Encoding.Latin1.GetBytes(text), context), field => field.Tag == 28905));
@@ -177,13 +177,13 @@ public sealed class FixInputRoadsTests
 	}
 
 	[Fact]
-	public void A_BeginString_that_never_ends_is_bounded_by_maxMessageLength()
+	public void A_BeginString_that_never_ends_is_bounded_by_MaxMessageLength()
 	{
 		var wire = "8=" + new string('A', 5000);
 
-		Assert.False(Fix44.FixParser.TryReadMessage(new StringReader(wire), out _, out var error, maxMessageLength: 64));
-		Assert.Contains("maxMessageLength", error.Reason, StringComparison.Ordinal);
-		Assert.False(Fix44.FixParser.TryReadMessage(new MemoryStream(Encoding.Latin1.GetBytes(wire)), out _, out error, maxMessageLength: 64));
-		Assert.Contains("maxMessageLength", error.Reason, StringComparison.Ordinal);
+		Assert.False(Fix44.FixParser.TryReadMessage(new StringReader(wire), out _, out var error, Fix44.Fix44Context.Default with { MaxMessageLength = 64 }));
+		Assert.Contains("MaxMessageLength", error.Reason, StringComparison.Ordinal);
+		Assert.False(Fix44.FixParser.TryReadMessage(new MemoryStream(Encoding.Latin1.GetBytes(wire)), out _, out error, Fix44.Fix44Context.Default with { MaxMessageLength = 64 }));
+		Assert.Contains("MaxMessageLength", error.Reason, StringComparison.Ordinal);
 	}
 }

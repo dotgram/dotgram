@@ -188,9 +188,9 @@ public sealed class Fix44Tests
 		var wire   = FixFixtures.Wire("0", "112=TEST|");
 		var padded = FixFieldReaderTests.Log(wire, FixParser.ParseMessage(wire)).Replace("|", " | ", StringComparison.Ordinal).TrimEnd();
 
-		var message = FixParser.ParseMessage(padded, Fix44Context.WithLogFraming);
+		var message = FixParser.ParseMessage(padded, Fix44Context.Log);
 
-		Assert.Empty(message.Validate(Fix44Context.WithLogFraming));
+		Assert.Empty(message.Validate(Fix44Context.Log));
 	}
 
 	[Fact]

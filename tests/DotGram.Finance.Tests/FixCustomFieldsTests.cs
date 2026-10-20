@@ -68,7 +68,7 @@ public sealed class FixCustomFieldsTests
 	[Fact]
 	public void A_dictionary_does_not_retype_a_tag_the_standard_defines()
 	{
-		var context = Fix44Context.WithLogFraming.Load(
+		var context = Fix44Context.Log.Load(
 			"""
 			<fix>
 			  <fields>
@@ -85,7 +85,7 @@ public sealed class FixCustomFieldsTests
 	[Fact]
 	public void A_tag_nothing_defines_is_Invalid_and_keeps_its_tag_and_value()
 	{
-		foreach (var context in new[] { Context(), Fix44Context.WithLogFraming })
+		foreach (var context in new[] { Context(), Fix44Context.Log })
 		{
 			var invalid = Assert.IsType<FixField.Invalid>(Assert.Single(FixParser.ParseFields("28905=20261231|", context)));
 
@@ -159,7 +159,7 @@ public sealed class FixCustomFieldsTests
 
 	static Fix44Context Venues()
 	{
-		return new Fix44Context { FixMessageFactory = type => type == "U1" ? new VenueQuote() : null }.Load(Venue);
+		return new Fix44Context { MessageFactory = type => type == "U1" ? new VenueQuote() : null }.Load(Venue);
 	}
 
 	[Fact]
@@ -205,7 +205,7 @@ public sealed class FixCustomFieldsTests
 	[Fact]
 	public void A_custom_message_adds_findings_while_it_is_read_and_not_afterwards()
 	{
-		var context = new Fix44Context { FixMessageFactory = type => type == "U3" ? new VenueTicket() : null }.Load(Venue);
+		var context = new Fix44Context { MessageFactory = type => type == "U3" ? new VenueTicket() : null }.Load(Venue);
 		var ticket  = Assert.IsType<VenueTicket>(FixParser.ParseMessage(Framed("35=U3|49=A|56=B|34=1|52=20260919-12:00:00|25005=SHUT|"), context));
 		var found   = Assert.Single(ticket.Findings);
 
@@ -264,7 +264,7 @@ public sealed class FixCustomFieldsTests
 	{
 		Fix44Context? context = null;
 
-		context = new Fix44Context { FixMessageFactory = type => type == "U4" ? new VenueNested { Context = context, Fail = fail } : null }.Load(Venue);
+		context = new Fix44Context { MessageFactory = type => type == "U4" ? new VenueNested { Context = context, Fail = fail } : null }.Load(Venue);
 
 		var nested = Assert.IsType<VenueNested>(FixParser.ParseMessage(Framed("35=U4|49=A|56=B|34=1|52=20260919-12:00:00|25005=OPEN|25006=1.5|"), context));
 
@@ -278,7 +278,7 @@ public sealed class FixCustomFieldsTests
 	[Fact]
 	public void A_custom_message_adds_no_finding_after_OnValidate_has_thrown()
 	{
-		var context = new Fix44Context { FixMessageFactory = type => type == "U4" ? new VenueNested { Fail = true } : null }.Load(Venue);
+		var context = new Fix44Context { MessageFactory = type => type == "U4" ? new VenueNested { Fail = true } : null }.Load(Venue);
 		var nested  = Assert.IsType<VenueNested>(FixParser.ParseMessage(Framed("35=U4|49=A|56=B|34=1|52=20260919-12:00:00|"), context));
 
 		Assert.Throws<FormatException>(() => nested.Validate(context));
@@ -312,7 +312,7 @@ public sealed class FixCustomFieldsTests
 	[Fact]
 	public void Two_threads_validating_one_custom_message_each_get_their_own_findings()
 	{
-		var context = new Fix44Context { FixMessageFactory = type => type == "U5" ? new VenueRace() : null }.Load(Venue);
+		var context = new Fix44Context { MessageFactory = type => type == "U5" ? new VenueRace() : null }.Load(Venue);
 		var race    = Assert.IsType<VenueRace>(FixParser.ParseMessage(Framed("35=U5|49=A|56=B|34=1|52=20260919-12:00:00|"), context));
 
 		IReadOnlyList<FixFinding>? second = null;
@@ -397,7 +397,7 @@ public sealed class FixCustomFieldsTests
 	[InlineData(false)]
 	public void Another_thread_adds_no_finding_while_one_is_inside_a_callback(bool inPlace)
 	{
-		var context = new Fix44Context { FixMessageFactory = type => type == "U6" ? new VenueHeld { InPlace = inPlace } : null }.Load(Venue);
+		var context = new Fix44Context { MessageFactory = type => type == "U6" ? new VenueHeld { InPlace = inPlace } : null }.Load(Venue);
 		var held    = Assert.IsType<VenueHeld>(FixParser.ParseMessage(Framed("35=U6|49=A|56=B|34=1|52=20260919-12:00:00|25005=OPEN|"), context));
 
 		if (!inPlace)
@@ -444,7 +444,7 @@ public sealed class FixCustomFieldsTests
 	{
 		Fix44Context? context = null;
 
-		context = new Fix44Context { FixMessageFactory = type => type == "U7" ? new VenueInner { Context = context } : null }.Load(Venue);
+		context = new Fix44Context { MessageFactory = type => type == "U7" ? new VenueInner { Context = context } : null }.Load(Venue);
 
 		var inner = Assert.IsType<VenueInner>(FixParser.ParseMessage(Framed("35=U7|49=A|56=B|34=1|52=20260919-12:00:00|25005=OPEN|"), context));
 
@@ -479,7 +479,7 @@ public sealed class FixCustomFieldsTests
 	public void A_Place_that_reads_into_its_own_message_keeps_its_right_to_add()
 	{
 		var one     = new VenueReread { Inner = Framed("35=U8|49=A|56=B|34=1|52=20260919-12:00:00|25005=INNER|") };
-		var context = new Fix44Context { FixMessageFactory = type => type == "U8" ? one : null }.Load(Venue);
+		var context = new Fix44Context { MessageFactory = type => type == "U8" ? one : null }.Load(Venue);
 
 		one.Context = context;
 

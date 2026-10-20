@@ -43,7 +43,7 @@ public static class FixFixtures
 	/// <summary>A context that reads a reader or a stream through a buffer of this size, bounding a field by that many.</summary>
 	public static Fix44Context Reading(bool log, int bufferSize, int? maxRetained = null)
 	{
-		return (log ? Fix44Context.WithLogFraming : Fix44Context.Default) with
+		return (log ? Fix44Context.Log : Fix44Context.Default) with
 		{
 			BufferSize  = bufferSize,
 			MaxRetained = maxRetained ?? FixParser.DefaultMaxRetained,

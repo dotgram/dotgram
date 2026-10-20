@@ -858,7 +858,7 @@ group recognition as the string API. Checking a
 message against the schema is a separate call: see **Validation** below.
 It reuses a growing buffer across `ReadMessages` iterations and copies each frame out of it
 before reading it. Buffering is bounded by the largest frame seen, not the length of the stream;
-a message keeps its fields and not the frame. The default `maxMessageLength` is 16 MiB per
+a message keeps its fields and not the frame. The default `MaxMessageLength` of the context is 16 MiB per
 message, including header and trailer; callers can set a different positive
 limit. This is a frame-size limit, not a total allocation budget.
 

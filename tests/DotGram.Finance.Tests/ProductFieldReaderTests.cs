@@ -15,8 +15,8 @@ public sealed class ProductFieldReaderTests : FixFieldReaderTests
 	protected override FieldParser[] Parsers { get; } =
 	[
 		new FieldParser("generated",
-			(input, log)                         => log ? FixParser.ParseFields(input, Fix44Context.WithLogFraming) : FixParser.ParseFields(input),
-			(input, log)                         => log ? FixParser.ParseFields(input, Fix44Context.WithLogFraming) : FixParser.ParseFields(input),
+			(input, log)                         => log ? FixParser.ParseFields(input, Fix44Context.Log) : FixParser.ParseFields(input),
+			(input, log)                         => log ? FixParser.ParseFields(input, Fix44Context.Log) : FixParser.ParseFields(input),
 			(input, log, bufferSize, maxRetained) => FixParser.ReadFields(input, FixFixtures.Reading(log, bufferSize, maxRetained)),
 			(input, log, bufferSize, maxRetained) => FixParser.ReadFields(input, FixFixtures.Reading(log, bufferSize, maxRetained))),
 		new FieldParser("hand",

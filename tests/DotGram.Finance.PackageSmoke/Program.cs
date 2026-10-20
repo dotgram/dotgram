@@ -48,7 +48,7 @@ if (heartbeat.Validate(loaded).Count != 1 || heartbeat.Validate(Fix44Context.Def
 	throw new Exception("A loaded schema must replace the compiled-in check of the type it describes, and leave the compiled-in context as it was.");
 
 // The other doors: pipe-delimited text, a byte stream, the octets themselves, and flat fields.
-if (FixParser.ParseMessage(wire.Replace('\u0001', '|'), Fix44Context.WithLogFraming) is not FixMessage.Heartbeat)
+if (FixParser.ParseMessage(wire.Replace('\u0001', '|'), Fix44Context.Log) is not FixMessage.Heartbeat)
 	throw new Exception("Expected a pipe-delimited Heartbeat.");
 
 using var stream = new MemoryStream(Encoding.Latin1.GetBytes(wire + wire));

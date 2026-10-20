@@ -47,8 +47,8 @@ public sealed class Fix44StreamingTests
 			Assert.False(FixParser.TryReadMessage(new StringReader(wire.Substring(0, i)), out _, out var error));
 			Assert.NotNull(error);
 		}
-		Assert.False(FixParser.TryReadMessage(new StringReader(wire), out _, out _, maxMessageLength: wire.Length - 1));
-		Assert.Equal(Extents(FixParser.ParseMessage(wire)), Extents(FixParser.ReadMessage(new StringReader(wire), maxMessageLength: wire.Length)));
+		Assert.False(FixParser.TryReadMessage(new StringReader(wire), out _, out _, new Fix44Context { MaxMessageLength = wire.Length - 1 }));
+		Assert.Equal(Extents(FixParser.ParseMessage(wire)), Extents(FixParser.ReadMessage(new StringReader(wire), new Fix44Context { MaxMessageLength = wire.Length })));
 		var damaged = FixParser.ReadMessage(new StringReader(wire.Substring(0, wire.Length - 4) + "999\u0001"));
 		Assert.Contains(damaged.Validate(Fix44Context.Default), finding => finding.Rule == FixRule.CheckSumMismatch);
 		Assert.Throws<FormatException>(() => FixParser.ReadMessages(new StringReader(wire + "8=")).ToArray());
