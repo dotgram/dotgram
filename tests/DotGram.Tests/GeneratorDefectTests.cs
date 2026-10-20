@@ -131,14 +131,19 @@ public sealed class GeneratorDefectTests
 	/// <summary>
 	/// A plain terminal the automaton reads wider than its rule — a guard it takes as an empty match,
 	/// a choice whose earlier alternative stops short of a later one inside an atomic group — is
-	/// measured by its own rule after the lexer: success, value and the place of a refusal are the
-	/// reading over characters', and <c>bbb</c> is no longer a success with no value.
+	/// measured by its own rule after the lexer: success and value are the reading over characters',
+	/// and <c>bbb</c> is no longer a success with no value. Where the rule refuses, the position is
+	/// lexed again without the terminal, so a refusal is reported where the token began rather than
+	/// where the rule stopped — the place is not compared.
 	/// </summary>
 	[Theory]
 	[InlineData("T : @string = { ('b' | 'b' & 'b'){2} } => @(parserText)", "bbb,bb,bbbb,b,b b")]
 	[InlineData("T = { ('b' | 'b' & 'b'){2} }", "bbb,bb,bbbb,b")]
 	[InlineData("T : @string = { 'a'+ & when @(parserText.Length < 3) } => @(parserText)", "aa,aaa,a,aa aa,aaaa")]
 	[InlineData("T : @string = { 'a' | 'a' & 'b' } => @(parserText)", "a,ab,a a")]
+	[InlineData("T = { (\"ab\" | 'a') & \"bc\"? }", "abc,ab,abbc,a,ab abc")]
+	[InlineData("T = { \"aa\" | \"ab\" | 'a' }+", "aab,aa,ab,a,aaab,aba")]
+	[InlineData("T : @string = { 'a'+ & when @(parserText.Length >= 2) & 'b' } => @(parserText)", "ab,aab,aaab,b")]
 	public void A_plain_terminal_read_wider_by_the_automaton_is_measured_by_its_rule(string rules, string inputs)
 	{
 		var grammar = "trivia = { ' '* }\nnamespace Lexical\n{\n\ttrivia = none\n\t" + rules +

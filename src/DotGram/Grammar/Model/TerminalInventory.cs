@@ -1840,18 +1840,14 @@ public sealed class TerminalInventory
 				case Node.Guard:
 					return false;
 
-				// The group's first reading is its longest where every decision inside it is settled
-				// by the next character; and the automaton, free to stop the group anywhere, stops it
-				// at that longest reading too where nothing after the group can begin with a
-				// character that would have continued it.
+				// Only a group of a shape whose reading is known to be the automaton's: one built of
+				// literals, runs nothing after can continue and choices of literals none of which
+				// begins another (Proven); or one every reading of which ends at one place, read with
+				// nothing inside that commits otherwise (EndsOnce, Commits). Anything else in braces
+				// is read again by the rule.
 				case Node.Atomic(var kept):
-					if (!EndsOnce(kept) && !Settled(kept, FirstSets.First.None, scope, []) ||
-						Continuing(kept) is not { } continuing ||
-						Follow(scope, node, FirstSets.Of(kept, graph), FirstSets.First.None, []) is not { } follow ||
-						follow.Overlaps(continuing))
-					{
+					if (!Proven(kept, scope, []) && !(EndsOnce(kept) && Commits(kept, scope, [])))
 						return false;
-					}
 
 					return ReadsAsWritten(kept, scope, inside);
 
@@ -1877,80 +1873,112 @@ public sealed class TerminalInventory
 		}
 
 		/// <summary>
-		/// Whether the first reading of a node is its longest: each repetition stops only where its
-		/// next turn cannot begin, each choice's earlier alternative never stops short of a later
-		/// one, and nothing in it is a guard or a look the next character does not decide.
+		/// Whether the reading of a node inside braces is the automaton's, by its shape alone: a
+		/// literal or a class; a run of one class that nothing after it — inside the group or past
+		/// it, the next turn of a repetition around it included — can begin with a character of; an
+		/// until closed by its own delimiter; a choice of literals none of which begins another, so
+		/// that at most one of them matches anywhere; and sequences, captures and values of those.
 		/// </summary>
-		/// <param name="after">What has to match after the node inside the group; none at its tail.</param>
-		/// <param name="scope">What a run's follow is asked under.</param>
-		bool Settled(Node node, FirstSets.First after, Node scope, HashSet<RuleSymbol> inside)
+		/// <remarks>
+		/// An allowlist on purpose: every other shape — a choice of anything but literals, a
+		/// repetition of more than one class, a bounded run, a look, a guard — is not proven, and a
+		/// terminal holding one in braces is read again by its rule.
+		/// </remarks>
+		/// <param name="scope">The terminal's body, which a run's follow is asked under.</param>
+		bool Proven(Node node, Node scope, HashSet<RuleSymbol> inside)
 		{
 			switch (node)
 			{
 				case Node.Empty or Node.Literal or Node.Element:
 					return true;
 
-				// A look reads nothing, so it leaves no reading to choose between.
-				case Node.Lookahead:
-					return true;
-
-				// A run of one character in braces reads all of it: the longest, where nothing that
-				// can follow it, the run itself again through a repetition excepted, begins as it does.
-				case Node.Atomic(Node.Repeat(var one, _, null)) when Single(one, []):
-					return Exact(node, scope, []);
+				case Node.Marked(var kept, _):    return Proven(kept, scope, inside);
+				case Node.Capture(_, var held):   return Proven(held, scope, inside);
+				case Node.Construct(var made, _): return Proven(made, scope, inside);
 
 				case Node.Sequence(var parts):
-				{
-					var next = after;
-
-					for (var i = parts.Count - 1; i >= 0; i--)
+					for (var i = 0; i < parts.Count; i++)
 					{
-						if (!Settled(parts[i], next, scope, inside))
-							return false;
+						if (parts[i] is Node.Repeat(Node.Sequence([Node.Lookahead(false, Node.Literal(var delimiter) { IgnoreCase: false }), _]), 0, null))
+						{
+							if (i + 1 >= parts.Count || parts[i + 1] is not Node.Literal(var next) { IgnoreCase: false } || next != delimiter)
+								return false;
 
-						next = FirstSets.Nullable(parts[i], graph) ? FirstSets.Of(parts[i], graph).Or(next) : FirstSets.Of(parts[i], graph);
+							continue;
+						}
+
+						if (!Proven(parts[i], scope, inside))
+							return false;
 					}
 
 					return true;
+
+				// A run, in braces of its own or not: the rule takes all of it, and so does the
+				// automaton where nothing that can follow begins as the run does. The follow is
+				// asked of the run node itself, so a repetition around a group the run is not the
+				// whole of counts its next turn.
+				case Node.Repeat(var one, _, null) when Single(one, []):
+				{
+					var first = FirstSets.Of(one, graph);
+
+					return Follow(scope, node, first, FirstSets.First.None, []) is { } follow && !follow.Overlaps(first);
 				}
+
+				case Node.Atomic(Node.Repeat(var one, _, null)) when Single(one, []):
+					return Exact(node, scope, []);
+
+				case Node.Atomic(var kept):
+					return Proven(kept, scope, inside);
 
 				case Node.Choice { Selection: null } choice:
-					if (!Ordered(choice.Nodes) || choice.Nodes.Any(one => FirstSets.Nullable(one, graph)))
-						return false;
+				{
+					var literals = new List<Node.Literal>(choice.Nodes.Count);
 
 					foreach (var alternative in choice.Nodes)
-						if (!Settled(alternative, after, scope, inside))
+					{
+						var bare = alternative;
+
+						while (true)
+						{
+							if (bare is Node.Capture(_, var held))
+								bare = held;
+							else if (bare is Node.Construct(var built, _))
+								bare = built;
+							else
+								break;
+						}
+
+						if (bare is not Node.Literal { Text.Length: > 0 } literal)
 							return false;
 
+						literals.Add(literal);
+					}
+
+					for (var i = 0; i < literals.Count; i++)
+						for (var j = 0; j < literals.Count; j++)
+						{
+							if (i == j)
+								continue;
+
+							var comparison = literals[i].IgnoreCase || literals[j].IgnoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
+							if (literals[j].Text.StartsWith(literals[i].Text, comparison))
+								return false;
+						}
+
 					return true;
-
-				// An until stops where its delimiter begins, which the next characters decide; a token
-				// pattern holds one only where the automaton reads it exactly.
-				case Node.Repeat(Node.Sequence([Node.Lookahead(false, Node.Literal { IgnoreCase: false }), _]), 0, null):
-					return true;
-
-				case Node.Repeat(var body, _, _):
-				{
-					var first = FirstSets.Of(body, graph);
-
-					return !FirstSets.Nullable(body, graph) && !first.Overlaps(after) && Settled(body, first.Or(after), scope, inside);
 				}
-
-				case Node.Atomic(var kept):         return Settled(kept, after, scope, inside);
-				case Node.Marked(var kept, _):      return Settled(kept, after, scope, inside);
-				case Node.Capture(_, var held):     return Settled(held, after, scope, inside);
-				case Node.Construct(var made, _):   return Settled(made, after, scope, inside);
 
 				case Node.Call(var called, _):
 				{
 					if (!inside.Add(called) || !graph.Bodies.TryGetValue(called, out var body))
 						return false;
 
-					var settled = Settled(body, after, scope, inside);
+					var proven = Proven(body, scope, inside);
 
 					inside.Remove(called);
 
-					return settled;
+					return proven;
 				}
 
 				default:
@@ -1959,31 +1987,39 @@ public sealed class TerminalInventory
 		}
 
 		/// <summary>
-		/// The characters that continue some match of a node into a longer prefix of one; null where
-		/// the automaton does not read it.
+		/// Whether nothing inside a node commits where the automaton would not: no guard, and every
+		/// group in braces <see cref="Proven"/> or ending at one place itself — so that the rule,
+		/// backtracking freely everywhere else, finds a reading wherever the automaton does.
 		/// </summary>
-		FirstSets.First? Continuing(Node node)
+		bool Commits(Node node, Node scope, HashSet<RuleSymbol> inside)
 		{
-			if (LexicalAutomaton.Of(graph, [node], []) is not { } machine)
-				return null;
-
-			var ranges = new List<CharRange>();
-
-			for (var state = 0; state < machine.Accepts.Count; state++)
+			switch (node)
 			{
-				if (machine.Accepts[state] < 0)
-					continue;
+				case Node.Guard:
+					return false;
 
-				for (var atom = 0; atom < machine.Next[state].Length; atom++)
+				case Node.Atomic(var kept):
+					return Proven(kept, scope, []) || EndsOnce(kept) && Commits(kept, scope, inside);
+
+				case Node.Call(var called, _):
 				{
-					var to = machine.Next[state][atom];
+					if (!inside.Add(called) || !graph.Bodies.TryGetValue(called, out var body))
+						return true;
 
-					if (to >= 0 && (machine.Accepts[to] >= 0 || Onward(machine, to).Any(next => machine.Accepts[next] >= 0)))
-						ranges.Add(machine.Atoms[atom]);
+					var commits = Commits(body, scope, inside);
+
+					inside.Remove(called);
+
+					return commits;
 				}
-			}
 
-			return FirstSets.First.Chars(ranges);
+				default:
+					foreach (var child in node.Children)
+						if (!Commits(child, scope, inside))
+							return false;
+
+					return true;
+			}
 		}
 
 		/// <summary>
@@ -2247,7 +2283,7 @@ public sealed class TerminalInventory
 				// Read whole only where the rule's reading of it ends where the automaton's does:
 				// every reading ends at one place, or the first reading is the longest. Else the
 				// rule reads the token again.
-				if (!EndsOnce(relaxed) && !Settled(alternative, FirstSets.First.None, Unwrapped(alternative), []))
+				if (!Proven(alternative, Unwrapped(alternative), []) && !(EndsOnce(relaxed) && Commits(alternative, Unwrapped(alternative), [])))
 					return null;
 
 				shapes.Add(relaxed);
