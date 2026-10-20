@@ -1124,11 +1124,12 @@ public sealed class TerminalInventory
 			// other way is either approximate or a second implementation of the lexer.
 			var shapes = patterns.Select(one => Shape(one)).ToList();
 
-			// A class read whole by the automaton is the token; one the lexer only begins is read
-			// again by its own rule from the token's start.
+			// A class read whole by the automaton is the token, and so is the prefix of one whose
+			// rest is read on from where the prefix ended: only a terminal its own rule reads again
+			// from the token's start may begin wider than the rule.
 			bool Exactly(int index)
 			{
-				return patterns[index] is not Pattern.Class(_, var rule) || Continuation(rule) is null;
+				return patterns[index] is not Pattern.Class(_, var rule) || Continuation(rule) is not { FromStart: true };
 			}
 			var machine = shapes.Any(one => one is null)
 				? null
@@ -1801,9 +1802,221 @@ public sealed class TerminalInventory
 				found = (parts.Count == 2 ? parts[0] : new Node.Sequence([.. parts.Take(parts.Count - 1)]), tail, null, false);
 			}
 
+			// A terminal the automaton reads whole but wider than its rule — a guard it takes as an
+			// empty match, an atomic group it reads with a way back, a choice whose earlier
+			// alternative stops short of a later one — begins with the automaton's reading and is
+			// measured by its own rule from the token's start, as a terminal that binds text is: its
+			// length is the rule's reading, and where the rule refuses, the position is lexed again
+			// without it.
+			if (found is null && Regular(body) && !ReadsAsWritten(body))
+				found = (body, new Node.Call(rule, []), null, true);
+
 			_tails[rule] = found;
 
 			return found;
+		}
+
+		/// <summary>
+		/// Whether the automaton's reading of a regular terminal is the rule's: no guard in it, which
+		/// the automaton takes as an empty match, and no atomic group it reads wider — one that
+		/// gives back where the automaton would (<see cref="Exact"/>), or one holding an ordered
+		/// choice whose earlier alternative matches a proper prefix of what a later one matches,
+		/// where the group commits to the earlier and the automaton reads on.
+		/// </summary>
+		/// <remarks>
+		/// Only what the rule decides on its own. A choice outside an atomic group is one the
+		/// reading over characters may come back into from whatever follows the terminal, and the
+		/// token's longest match is the ordinary contract there.
+		/// </remarks>
+		bool ReadsAsWritten(Node body)
+		{
+			return ReadsAsWritten(body, body, []);
+		}
+
+		bool ReadsAsWritten(Node node, Node scope, HashSet<RuleSymbol> inside)
+		{
+			switch (node)
+			{
+				case Node.Guard:
+					return false;
+
+				// The group's first reading is its longest where every decision inside it is settled
+				// by the next character; and the automaton, free to stop the group anywhere, stops it
+				// at that longest reading too where nothing after the group can begin with a
+				// character that would have continued it.
+				case Node.Atomic(var kept):
+					if (!Settled(kept, FirstSets.First.None, []) ||
+						Continuing(kept) is not { } continuing ||
+						Follow(scope, node, FirstSets.Of(kept, graph), FirstSets.First.None, []) is not { } follow ||
+						follow.Overlaps(continuing))
+					{
+						return false;
+					}
+
+					return ReadsAsWritten(kept, scope, inside);
+
+				case Node.Call(var called, _):
+				{
+					if (!inside.Add(called) || !graph.Bodies.TryGetValue(called, out var body))
+						return true;
+
+					var read = ReadsAsWritten(body, scope, inside);
+
+					inside.Remove(called);
+
+					return read;
+				}
+
+				default:
+					foreach (var child in node.Children)
+						if (!ReadsAsWritten(child, scope, inside))
+							return false;
+
+					return true;
+			}
+		}
+
+		/// <summary>
+		/// Whether the first reading of a node is its longest: each repetition stops only where its
+		/// next turn cannot begin, each choice's earlier alternative never stops short of a later
+		/// one, and nothing in it is a guard or a look the next character does not decide.
+		/// </summary>
+		/// <param name="after">What has to match after the node inside the group; none at its tail.</param>
+		bool Settled(Node node, FirstSets.First after, HashSet<RuleSymbol> inside)
+		{
+			switch (node)
+			{
+				case Node.Empty or Node.Literal or Node.Element:
+					return true;
+
+				case Node.Sequence(var parts):
+				{
+					var next = after;
+
+					for (var i = parts.Count - 1; i >= 0; i--)
+					{
+						if (!Settled(parts[i], next, inside))
+							return false;
+
+						next = FirstSets.Nullable(parts[i], graph) ? FirstSets.Of(parts[i], graph).Or(next) : FirstSets.Of(parts[i], graph);
+					}
+
+					return true;
+				}
+
+				case Node.Choice { Selection: null } choice:
+					if (!Ordered(choice.Nodes) || choice.Nodes.Any(one => FirstSets.Nullable(one, graph)))
+						return false;
+
+					foreach (var alternative in choice.Nodes)
+						if (!Settled(alternative, after, inside))
+							return false;
+
+					return true;
+
+				// An until stops where its delimiter begins, which the next characters decide; a token
+				// pattern holds one only where the automaton reads it exactly.
+				case Node.Repeat(Node.Sequence([Node.Lookahead(false, Node.Literal { IgnoreCase: false }), _]), 0, null):
+					return true;
+
+				case Node.Repeat(var body, _, _):
+				{
+					var first = FirstSets.Of(body, graph);
+
+					return !FirstSets.Nullable(body, graph) && !first.Overlaps(after) && Settled(body, first.Or(after), inside);
+				}
+
+				case Node.Atomic(var kept):         return Settled(kept, after, inside);
+				case Node.Marked(var kept, _):      return Settled(kept, after, inside);
+				case Node.Capture(_, var held):     return Settled(held, after, inside);
+				case Node.Construct(var made, _):   return Settled(made, after, inside);
+
+				case Node.Call(var called, _):
+				{
+					if (!inside.Add(called) || !graph.Bodies.TryGetValue(called, out var body))
+						return false;
+
+					var settled = Settled(body, after, inside);
+
+					inside.Remove(called);
+
+					return settled;
+				}
+
+				default:
+					return false;
+			}
+		}
+
+		/// <summary>
+		/// The characters that continue some match of a node into a longer prefix of one; null where
+		/// the automaton does not read it.
+		/// </summary>
+		FirstSets.First? Continuing(Node node)
+		{
+			if (LexicalAutomaton.Of(graph, [node], []) is not { } machine)
+				return null;
+
+			var ranges = new List<CharRange>();
+
+			for (var state = 0; state < machine.Accepts.Count; state++)
+			{
+				if (machine.Accepts[state] < 0)
+					continue;
+
+				for (var atom = 0; atom < machine.Next[state].Length; atom++)
+				{
+					var to = machine.Next[state][atom];
+
+					if (to >= 0 && (machine.Accepts[to] >= 0 || Onward(machine, to).Any(next => machine.Accepts[next] >= 0)))
+						ranges.Add(machine.Atoms[atom]);
+				}
+			}
+
+			return FirstSets.First.Chars(ranges);
+		}
+
+		/// <summary>
+		/// Whether no alternative of an ordered choice matches a proper prefix of a string a later
+		/// one matches, where the rule would stop at the earlier and the automaton read on.
+		/// </summary>
+		bool Ordered(IReadOnlyList<Node> alternatives)
+		{
+			for (var i = 0; i < alternatives.Count; i++)
+				for (var j = i + 1; j < alternatives.Count; j++)
+				{
+					var earlier = alternatives[i];
+					var later   = alternatives[j];
+
+					// Literals, which keyword choices are made of, compared as text; and nothing to ask
+					// where the two cannot begin alike.
+					if (earlier is Node.Literal(var shorter) one && later is Node.Literal(var longer) other)
+					{
+						var comparison = one.IgnoreCase || other.IgnoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
+						if (longer.Length > shorter.Length && longer.StartsWith(shorter, comparison))
+							return false;
+
+						continue;
+					}
+
+					if (!FirstSets.Nullable(earlier, graph) && !FirstSets.Of(earlier, graph).Overlaps(FirstSets.Of(later, graph)))
+						continue;
+
+					var pair = LexicalAutomaton.Of(graph, [earlier, later], []);
+
+					if (pair is null)
+						return false;
+
+					for (var state = 0; state < pair.Accepts.Count; state++)
+						if (pair.Accepts[state] >= 0 && pair.Sets[pair.Accepts[state]].Contains(0) &&
+							Onward(pair, state).Any(next => pair.Accepts[next] >= 0 && pair.Sets[pair.Accepts[next]].Contains(1)))
+						{
+							return false;
+						}
+				}
+
+			return true;
 		}
 
 		readonly Dictionary<RuleSymbol, (Node Prefix, Node Tail, NestedPair.Delimiters? Counted, bool FromStart)?> _tails = [];

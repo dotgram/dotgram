@@ -37,6 +37,7 @@ public sealed class GeneratorDefectTests
 	[InlineData("T = { 'c' & (?!\"ab\" & 'b')* & \"ab\" }", "cab,cbab,cbbab,caab,cba", true)]
 	[InlineData("T = { '/' & (?!\"*/\" & any)* & \"*/\" }", "/*/,/a*/,/**/,/a**/,/*/*/", true)]
 	[InlineData("T = { 'c' & (?!'x' & any)* } | 'x'", "cab,cax,c,x", true)]
+	[InlineData("T = 'c' & (?!\"ab\" & ['a' | 'b'])* & Std.Nested('b', 'z')", "cabz,cbz,caabz,cbbzz,cz", false)]
 	public void An_until_reads_as_over_characters(string rules, string inputs, bool cut)
 	{
 		var grammar = Rooted(rules);
@@ -125,6 +126,65 @@ public sealed class GeneratorDefectTests
 				Assert.True(over.IsSuccess == token.IsSuccess && Equals(over.Value, token.Value), $"\"{input}\" (direct: {direct}): over characters {over}, over tokens {token}");
 			}
 		}
+	}
+
+	/// <summary>
+	/// A plain terminal the automaton reads wider than its rule — a guard it takes as an empty match,
+	/// a choice whose earlier alternative stops short of a later one inside an atomic group — is
+	/// measured by its own rule after the lexer: success, value and the place of a refusal are the
+	/// reading over characters', and <c>bbb</c> is no longer a success with no value.
+	/// </summary>
+	[Theory]
+	[InlineData("T : @string = { ('b' | 'b' & 'b'){2} } => @(parserText)", "bbb,bb,bbbb,b,b b")]
+	[InlineData("T = { ('b' | 'b' & 'b'){2} }", "bbb,bb,bbbb,b")]
+	[InlineData("T : @string = { 'a'+ & when @(parserText.Length < 3) } => @(parserText)", "aa,aaa,a,aa aa,aaaa")]
+	[InlineData("T : @string = { 'a' | 'a' & 'b' } => @(parserText)", "a,ab,a a")]
+	public void A_plain_terminal_read_wider_by_the_automaton_is_measured_by_its_rule(string rules, string inputs)
+	{
+		var grammar = "trivia = { ' '* }\nnamespace Lexical\n{\n\ttrivia = none\n\t" + rules +
+			"\n}\nRoot : @string = s: Lexical.T+ => @(string.Join(\"|\", s))\nparse Root\n";
+
+		foreach (var direct in new[] { true, false })
+		{
+			var (assembly, _) = Lexical(grammar, direct);
+			var twin = Compiled(grammar, direct);
+
+			foreach (var input in inputs.Split(','))
+			{
+				var over  = EmittedCode.Match(twin, "Grammar", "TryParseRoot", input);
+				var token = EmittedCode.Match(assembly, "Grammar", "TryParseRoot", input);
+
+				Assert.True(
+					over.IsSuccess == token.IsSuccess && Equals(over.Value, token.Value),
+					$"\"{input}\" (direct: {direct}): over characters {over}, over tokens {token}");
+			}
+		}
+	}
+
+	/// <summary>
+	/// A guard in a terminal that is not atomic cannot be measured by its rule, whose reading the
+	/// syntax could come back into: the grammar is compiled over characters, saying so, and the
+	/// guard is respected.
+	/// </summary>
+	[Fact]
+	public void A_guard_in_a_terminal_that_is_not_atomic_keeps_the_grammar_over_characters()
+	{
+		var grammar = "trivia = { ' '* }\nnamespace Lexical\n{\n\ttrivia = none\n\tT = 'a'+ & when @(parserText.Length < 3)\n}\nRoot = Lexical.T+\nparse Root\n";
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			Lexical       = true,
+			Direct        = true,
+			CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+
+		Assert.Contains(result.Diagnostics, static one => one.Id == GramCompiler.NotCut);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text, sourceParts: result.Sources.Skip(1).Select(static one => one.Text));
+
+		var twin = Compiled(grammar, direct: true);
+
+		foreach (var input in new[] { "aa", "aaa", "a", "aa aa", "" })
+			Assert.Equal(EmittedCode.Match(twin, "Grammar", "TryParseRoot", input).IsSuccess, EmittedCode.Match(assembly, "Grammar", "TryParseRoot", input).IsSuccess);
 	}
 
 	static string Rooted(string rules)
