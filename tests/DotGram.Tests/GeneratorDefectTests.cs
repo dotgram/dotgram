@@ -37,6 +37,8 @@ public sealed class GeneratorDefectTests
 	[InlineData("T = { 'c' & (?!\"ab\" & 'b')* & \"ab\" }", "cab,cbab,cbbab,caab,cba", true)]
 	[InlineData("T = { '/' & (?!\"*/\" & any)* & \"*/\" }", "/*/,/a*/,/**/,/a**/,/*/*/", true)]
 	[InlineData("T = { 'c' & (?!'x' & any)* } | 'x'", "cab,cax,c,x", false)]
+	[InlineData("T = { 'c' & (?!'!' & ('a' & any | ?!'a'i & any))* & '!' }", "cA!,ca!!,cb!,c!,cab!", false)]
+	[InlineData("T = { 'c' & (?!'!' & ('a' & any | ?!'a' & any))* & '!' }", "cA!,ca!!,cb!,c!,cab!", true)]
 	[InlineData("T = 'c' & (?!\"ab\" & ['a' | 'b'])* & Std.Nested('b', 'z')", "cabz,cbz,caabz,cbbzz,cz", false)]
 	public void An_until_reads_as_over_characters(string rules, string inputs, bool cut)
 	{
