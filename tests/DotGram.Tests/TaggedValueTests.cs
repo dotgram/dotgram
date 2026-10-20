@@ -86,12 +86,11 @@ public sealed class TaggedValueTests
 	}
 
 	/// <summary>
-	/// The rule read through is read as the atomic choice reads it — its first reading, committed
-	/// to — and not whole over the token: <c>'a'+ &amp; ('a' &amp; 'b')?</c> reads <c>aa</c> of the
-	/// token <c>aab</c>, and the terminal read as written then finds the token unfinished and builds
-	/// nothing, as a plain terminal of the same rule does. The shortcut says the same, where a whole
-	/// reading would have given back an <c>a</c> and built <c>[aab]</c>. Over characters the choice
-	/// commits to <c>aa</c> and the parent takes the <c>b</c>: the token's longest match, documented.
+	/// An alternative whose first reading stops short of its longest is not read through: <c>'a'+
+	/// &amp; ('a' &amp; 'b')?</c> reads <c>aa</c> of the token <c>aab</c> where the automaton would
+	/// take all three, so the terminal is read again, beside a binding alternative and alone alike,
+	/// and both say what the reading over characters says — the choice commits to <c>aa</c> and the
+	/// parent takes the <c>b</c>.
 	/// </summary>
 	[Fact]
 	public void The_rule_read_through_is_read_as_the_choice_commits_to_it()
@@ -114,15 +113,17 @@ public sealed class TaggedValueTests
 		var (alone, _)       = Lexical(plain, direct: true);
 		var twin = Compiled(bound, direct: true);
 
-		Assert.Contains("_For_Lexical_T_DotGram(", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("_For_Lexical_T_DotGram(", source, StringComparison.Ordinal);
 		Assert.Equal("[aa]", EmittedCode.Match(twin, "Grammar", "TryParseRoot", "aab").Value);
 
 		foreach (var input in new[] { "aab", "aa", "a", "ab", "aaab", "aab b" })
 		{
+			var over    = EmittedCode.Match(twin, "Grammar", "TryParseRoot", input);
 			var written = EmittedCode.Match(alone, "Grammar", "TryParseRoot", input);
 			var through = EmittedCode.Match(beside, "Grammar", "TryParseRoot", input);
 
-			Assert.True(written.IsSuccess == through.IsSuccess && Equals(written.Value, through.Value), $"\"{input}\": as written {written}, through {through}");
+			Assert.True(written.IsSuccess == through.IsSuccess && Equals(written.Value, through.Value), $"\"{input}\": as written {written}, beside {through}");
+			Assert.True(over.IsSuccess == through.IsSuccess && Equals(over.Value, through.Value), $"\"{input}\": over characters {over}, beside {through}");
 		}
 
 		Assert.Equal("[aa]", EmittedCode.Match(beside, "Grammar", "TryParseRoot", "aa").Value);
