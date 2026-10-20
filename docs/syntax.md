@@ -449,12 +449,11 @@ automaton reads — a lookahead, say — is refused by name.
 Where such a terminal is a choice of forms of which some bind no text — a raw string beside
 a plain one — a token none of the binding forms could have been is not read again: the
 lexer tells, from what each binding form necessarily begins with, that none of them stands
-at the token's start, and the automaton's reading of the plain form stands. That holds only
-where the form's first reading is its longest, so the two readings are one; a form that can
-stop short of its longest reading — a choice inside the braces whose earlier alternative
-matches a prefix of a later one, a run that gives back to what follows it, a guard — is read
-again by the rule, as a plain terminal of that shape is. Such a token's value is read the
-same way: where the terminal
+at the token's start, and the automaton's reading of the plain form stands. That token is
+the plain form's longest match, as every regular token's is; its own rule, read again, would
+give the form's first reading, and the two differ only where that form can stop short of
+its longest reading — the ordinary contract of a token, and the one reason a plain form is
+written so that it cannot. Such a token's value is read the same way: where the terminal
 has one plain form, a capture of a rule that builds a value, under a `=>` over its captures
 alone, the value is that rule's reading of the token, handed to the `=>` in its capture's
 place with nothing in the others'.
