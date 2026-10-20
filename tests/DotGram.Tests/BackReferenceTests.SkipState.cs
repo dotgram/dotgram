@@ -80,13 +80,12 @@ public sealed partial class BackReferenceTests
 	}
 
 	/// <summary>
-	/// The documented contract of a token, and not a defect of the skip: a terminal's token is the
-	/// alternative's longest match, where the rule's own reading of it may stop short. <c>'a'+ &amp;
-	/// ('a' &amp; 'b')?</c> reads <c>aab</c> whole as a token, plain or beside a binding alternative
-	/// alike, where over characters the run takes both <c>a</c> and the rest is refused.
+	/// An alternative whose first reading stops short of its longest is not read whole beside a
+	/// binding alternative, nor alone: <c>'a'+ &amp; ('a' &amp; 'b')?</c> in braces takes both
+	/// <c>a</c> of <c>aab</c> and refuses the rest, over characters and over tokens alike.
 	/// </summary>
 	[Fact]
-	public void A_token_is_the_longest_match_beside_a_binding_alternative_as_it_is_alone()
+	public void A_token_is_the_rule_reading_beside_a_binding_alternative_as_it_is_alone()
 	{
 		BackReferenceEmission.RequireBoth();
 
@@ -96,12 +95,14 @@ public sealed partial class BackReferenceTests
 		var (alone, _)       = Lexical(plain, direct: true);
 		var twin = Compiled(bound, CarrierKind.Auto, direct: true);
 
-		Assert.Contains("Scan_Tag", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Scan_Tag", source, StringComparison.Ordinal);
 
 		foreach (var input in new[] { "aab", "aaab", "ab", "aa", "a" })
+		{
 			Assert.Equal(EmittedCode.Match(alone, "Grammar", "TryParseRoot", input).IsSuccess, EmittedCode.Match(beside, "Grammar", "TryParseRoot", input).IsSuccess);
+			Assert.Equal(EmittedCode.Match(twin, "Grammar", "TryParseRoot", input).IsSuccess, EmittedCode.Match(beside, "Grammar", "TryParseRoot", input).IsSuccess);
+		}
 
-		Assert.True(EmittedCode.Match(beside, "Grammar", "TryParseRoot", "aab").IsSuccess);
-		Assert.False(EmittedCode.Match(twin, "Grammar", "TryParseRoot", "aab").IsSuccess);
+		Assert.False(EmittedCode.Match(beside, "Grammar", "TryParseRoot", "aab").IsSuccess);
 	}
 }

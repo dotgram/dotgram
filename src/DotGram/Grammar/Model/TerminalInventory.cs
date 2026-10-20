@@ -1845,7 +1845,7 @@ public sealed class TerminalInventory
 				// at that longest reading too where nothing after the group can begin with a
 				// character that would have continued it.
 				case Node.Atomic(var kept):
-					if (!Settled(kept, FirstSets.First.None, []) ||
+					if (!EndsOnce(kept) && !Settled(kept, FirstSets.First.None, scope, []) ||
 						Continuing(kept) is not { } continuing ||
 						Follow(scope, node, FirstSets.Of(kept, graph), FirstSets.First.None, []) is not { } follow ||
 						follow.Overlaps(continuing))
@@ -1882,12 +1882,22 @@ public sealed class TerminalInventory
 		/// one, and nothing in it is a guard or a look the next character does not decide.
 		/// </summary>
 		/// <param name="after">What has to match after the node inside the group; none at its tail.</param>
-		bool Settled(Node node, FirstSets.First after, HashSet<RuleSymbol> inside)
+		/// <param name="scope">What a run's follow is asked under.</param>
+		bool Settled(Node node, FirstSets.First after, Node scope, HashSet<RuleSymbol> inside)
 		{
 			switch (node)
 			{
 				case Node.Empty or Node.Literal or Node.Element:
 					return true;
+
+				// A look reads nothing, so it leaves no reading to choose between.
+				case Node.Lookahead:
+					return true;
+
+				// A run of one character in braces reads all of it: the longest, where nothing that
+				// can follow it, the run itself again through a repetition excepted, begins as it does.
+				case Node.Atomic(Node.Repeat(var one, _, null)) when Single(one, []):
+					return Exact(node, scope, []);
 
 				case Node.Sequence(var parts):
 				{
@@ -1895,7 +1905,7 @@ public sealed class TerminalInventory
 
 					for (var i = parts.Count - 1; i >= 0; i--)
 					{
-						if (!Settled(parts[i], next, inside))
+						if (!Settled(parts[i], next, scope, inside))
 							return false;
 
 						next = FirstSets.Nullable(parts[i], graph) ? FirstSets.Of(parts[i], graph).Or(next) : FirstSets.Of(parts[i], graph);
@@ -1909,7 +1919,7 @@ public sealed class TerminalInventory
 						return false;
 
 					foreach (var alternative in choice.Nodes)
-						if (!Settled(alternative, after, inside))
+						if (!Settled(alternative, after, scope, inside))
 							return false;
 
 					return true;
@@ -1923,20 +1933,20 @@ public sealed class TerminalInventory
 				{
 					var first = FirstSets.Of(body, graph);
 
-					return !FirstSets.Nullable(body, graph) && !first.Overlaps(after) && Settled(body, first.Or(after), inside);
+					return !FirstSets.Nullable(body, graph) && !first.Overlaps(after) && Settled(body, first.Or(after), scope, inside);
 				}
 
-				case Node.Atomic(var kept):         return Settled(kept, after, inside);
-				case Node.Marked(var kept, _):      return Settled(kept, after, inside);
-				case Node.Capture(_, var held):     return Settled(held, after, inside);
-				case Node.Construct(var made, _):   return Settled(made, after, inside);
+				case Node.Atomic(var kept):         return Settled(kept, after, scope, inside);
+				case Node.Marked(var kept, _):      return Settled(kept, after, scope, inside);
+				case Node.Capture(_, var held):     return Settled(held, after, scope, inside);
+				case Node.Construct(var made, _):   return Settled(made, after, scope, inside);
 
 				case Node.Call(var called, _):
 				{
 					if (!inside.Add(called) || !graph.Bodies.TryGetValue(called, out var body))
 						return false;
 
-					var settled = Settled(body, after, inside);
+					var settled = Settled(body, after, scope, inside);
 
 					inside.Remove(called);
 
@@ -2234,6 +2244,12 @@ public sealed class TerminalInventory
 				if (Relaxed(alternative, looks, []) is not { } relaxed || !Regular(relaxed))
 					return null;
 
+				// Read whole only where the rule's reading of it ends where the automaton's does:
+				// every reading ends at one place, or the first reading is the longest. Else the
+				// rule reads the token again.
+				if (!EndsOnce(relaxed) && !Settled(alternative, FirstSets.First.None, Unwrapped(alternative), []))
+					return null;
+
 				shapes.Add(relaxed);
 				whole.Add(relaxed);
 				unbound.Add(alternative);
@@ -2269,6 +2285,47 @@ public sealed class TerminalInventory
 						return null;
 
 			return (shapes.Count == 1 ? shapes[0] : new Node.Choice(shapes), tagged, unbound);
+		}
+
+		/// <summary>An alternative with its values, captures, braces and the rule it calls taken off, as <see cref="Relaxed"/> reads it.</summary>
+		Node Unwrapped(Node alternative)
+		{
+			var node   = alternative;
+			var inside = new HashSet<RuleSymbol>();
+
+			while (true)
+			{
+				switch (node)
+				{
+					case Node.Construct(var built, _): node = built; continue;
+					case Node.Marked(var noted, _):    node = noted; continue;
+					case Node.Capture(_, var held):    node = held;  continue;
+					case Node.Atomic(var held):        node = held;  continue;
+
+					case Node.Call(var called, _) when inside.Add(called) && graph.Bodies.TryGetValue(called, out var body):
+						node = body;
+
+						continue;
+				}
+
+				return node;
+			}
+		}
+
+		/// <summary>
+		/// Whether no string a node matches begins a longer one it matches: every reading of it from
+		/// a place ends at the same place, the first and the longest alike — a string's closing quote.
+		/// </summary>
+		bool EndsOnce(Node node)
+		{
+			if (LexicalAutomaton.Of(graph, [node], []) is not { } machine)
+				return false;
+
+			for (var state = 0; state < machine.Accepts.Count; state++)
+				if (machine.Accepts[state] >= 0 && Onward(machine, state).Any(next => machine.Accepts[next] >= 0))
+					return false;
+
+			return true;
 		}
 
 		/// <summary>Whether no alternative matches a string that begins, or is, a string another matches.</summary>
