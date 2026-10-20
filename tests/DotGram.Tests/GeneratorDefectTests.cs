@@ -142,6 +142,8 @@ public sealed class GeneratorDefectTests
 	[InlineData("T : @string = { 'a'+ & when @(parserText.Length < 3) } => @(parserText)", "aa,aaa,a,aa aa,aaaa")]
 	[InlineData("T : @string = { 'a' | 'a' & 'b' } => @(parserText)", "a,ab,a a")]
 	[InlineData("T = { (\"ab\" | 'a') & \"bc\"? }", "abc,ab,abbc,a,ab abc")]
+	[InlineData("T = { { \"ẞ!\"i | \"ß\"i } & '!' }", "ß!,ß!!,ẞ!!,ß")]
+	[InlineData("T = { { \"AB\"i | \"a\"i } & 'b' }", "ab,Ab,abb,aBb,b")]
 	[InlineData("T = { ({ \"aa\" | \"ab\" | 'a' })+ }", "aab,aa,ab,a,aaab,aba")]
 	[InlineData("T = { ('a' & 'b'+)+ & 'a' }", "aba,abba,ababa,aa,ab,a")]
 	[InlineData("T = { 'a' & ('_'* & 'a')* } & 'x'?", "a,a_a,a__a,a_,a_x,a_ax,ax")]
@@ -209,6 +211,9 @@ public sealed class GeneratorDefectTests
 	[InlineData("T = { (\"ab\" | 'a') & \"bc\"? }", true)]
 	[InlineData("T = { ({ \"aa\" | \"ab\" | 'a' })+ }", true)]
 	[InlineData("T = { \"ab\" | \"c\" }+", false)]
+	[InlineData("T = { { \"ẞ!\"i | \"ß\"i } & '!' }", true)]
+	[InlineData("T = { { \"AB\"i | \"a\"i } & 'b' }", true)]
+	[InlineData("T = { { \"AB\"i | \"c\"i } & 'b' }", false)]
 	public void Only_a_proven_shape_in_braces_is_read_whole(string rules, bool measured)
 	{
 		var (_, source) = Lexical(Rooted(rules), direct: true);
