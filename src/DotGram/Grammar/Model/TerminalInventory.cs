@@ -1974,9 +1974,7 @@ public sealed class TerminalInventory
 							if (i == j)
 								continue;
 
-							var comparison = literals[i].IgnoreCase || literals[j].IgnoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-
-							if (literals[j].Text.StartsWith(literals[i].Text, comparison))
+							if (Begins(literals[i], literals[j]))
 								return false;
 						}
 
@@ -1998,6 +1996,42 @@ public sealed class TerminalInventory
 				default:
 					return false;
 			}
+		}
+
+		/// <summary>
+		/// Whether some string <paramref name="shorter"/> matches begins, or is, a string
+		/// <paramref name="longer"/> matches: position by position, the characters each literal
+		/// accepts there meet — through <see cref="CaseFold"/> where it ignores case, as the reading
+		/// does, and not through the runtime's own idea of case, which `ẞ` and `ß` part.
+		/// </summary>
+		static bool Begins(Node.Literal shorter, Node.Literal longer)
+		{
+			if (shorter.Text.Length > longer.Text.Length)
+				return false;
+
+			for (var at = 0; at < shorter.Text.Length; at++)
+				if (!Meet(Accepted(shorter, at), Accepted(longer, at)))
+					return false;
+
+			return true;
+		}
+
+		/// <summary>The characters a literal accepts at one position.</summary>
+		static IReadOnlyList<CharRange> Accepted(Node.Literal literal, int at)
+		{
+			var c = literal.Text[at];
+
+			return literal.IgnoreCase ? CaseFold.Ranges(c) : [new CharRange(c, c)];
+		}
+
+		static bool Meet(IReadOnlyList<CharRange> one, IReadOnlyList<CharRange> other)
+		{
+			foreach (var a in one)
+				foreach (var b in other)
+					if (a.From <= b.To && b.From <= a.To)
+						return true;
+
+			return false;
 		}
 
 		/// <summary>
@@ -2034,49 +2068,6 @@ public sealed class TerminalInventory
 
 					return true;
 			}
-		}
-
-		/// <summary>
-		/// Whether no alternative of an ordered choice matches a proper prefix of a string a later
-		/// one matches, where the rule would stop at the earlier and the automaton read on.
-		/// </summary>
-		bool Ordered(IReadOnlyList<Node> alternatives)
-		{
-			for (var i = 0; i < alternatives.Count; i++)
-				for (var j = i + 1; j < alternatives.Count; j++)
-				{
-					var earlier = alternatives[i];
-					var later   = alternatives[j];
-
-					// Literals, which keyword choices are made of, compared as text; and nothing to ask
-					// where the two cannot begin alike.
-					if (earlier is Node.Literal(var shorter) one && later is Node.Literal(var longer) other)
-					{
-						var comparison = one.IgnoreCase || other.IgnoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-
-						if (longer.Length > shorter.Length && longer.StartsWith(shorter, comparison))
-							return false;
-
-						continue;
-					}
-
-					if (!FirstSets.Nullable(earlier, graph) && !FirstSets.Of(earlier, graph).Overlaps(FirstSets.Of(later, graph)))
-						continue;
-
-					var pair = LexicalAutomaton.Of(graph, [earlier, later], []);
-
-					if (pair is null)
-						return false;
-
-					for (var state = 0; state < pair.Accepts.Count; state++)
-						if (pair.Accepts[state] >= 0 && pair.Sets[pair.Accepts[state]].Contains(0) &&
-							Onward(pair, state).Any(next => pair.Accepts[next] >= 0 && pair.Sets[pair.Accepts[next]].Contains(1)))
-						{
-							return false;
-						}
-				}
-
-			return true;
 		}
 
 		readonly Dictionary<RuleSymbol, (Node Prefix, Node Tail, NestedPair.Delimiters? Counted, bool FromStart)?> _tails = [];
