@@ -1123,9 +1123,16 @@ public sealed class TerminalInventory
 			// accept together is what a subset construction answers, and answering it any
 			// other way is either approximate or a second implementation of the lexer.
 			var shapes = patterns.Select(one => Shape(one)).ToList();
+
+			// A class read whole by the automaton is the token; one the lexer only begins is read
+			// again by its own rule from the token's start.
+			bool Exactly(int index)
+			{
+				return patterns[index] is not Pattern.Class(_, var rule) || Continuation(rule) is null;
+			}
 			var machine = shapes.Any(one => one is null)
 				? null
-				: LexicalAutomaton.Of(graph, [.. shapes!], _reasons);
+				: LexicalAutomaton.Of(graph, [.. shapes!], _reasons, Exactly);
 
 			if (machine is null)
 			{
@@ -1269,7 +1276,8 @@ public sealed class TerminalInventory
 				masked = LexicalAutomaton.Of(
 					graph,
 					[.. shapes.Select((shape, index) => hidden.Contains(index) ? Nothing : shape!)],
-					_reasons);
+					_reasons,
+					Exactly);
 
 				if (masked is null)
 					return new TerminalInventory(true, patterns, [], [], _reasons);
