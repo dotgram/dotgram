@@ -536,11 +536,15 @@ sealed partial class Machine
 				return true;
 			}
 
-			case Node.Repeat(var body, _, _):
+			// A turn is at the tail only where no turn after it is owed: at the tail a repetition
+			// that may stop after its first turn takes what it greedily takes, but one that must
+			// turn again has its next turn still to match. `{ ('b'+){2} }` reads `bb` by giving
+			// the first run's second `b` back, which a greedy first turn read and then refused.
+			case Node.Repeat(var body, var min, _):
 				return
 					!FirstSets.Nullable(body, _graph) &&
 					(after.Nothing || !FirstSets.Of(body, _graph).Overlaps(after)) &&
-					Scannable(body, after.Nothing ? after : FirstSets.Of(body, _graph).Or(after), seen);
+					Scannable(body, after.Nothing && min <= 1 ? after : FirstSets.Of(body, _graph).Or(after), seen);
 
 			case Node.Lookahead(_, var inside):
 				return Scannable(inside, FirstSets.First.All, seen);

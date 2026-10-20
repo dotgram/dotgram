@@ -1071,7 +1071,9 @@ public static partial class CSharpEmitter
 			file.Write(ParserRuntime(
 				graph.Climbing.Count > 0,
 				machines.Exists(static compiled => compiled.Machine.Caches),
-				machines.Exists(static compiled => compiled.Machine.UsesMarks),
+				// The valuing machine's own marks too: a terminal `with state` whose value reads
+				// `parserState` places them in the reading again, where the syntax may place none.
+				machines.Exists(static compiled => compiled.Machine.UsesMarks) || valuing is { UsesMarks: true },
 				tables,
 				Locating(graph) || Wording(graph),
 				machines.Exists(static compiled => !compiled.Flat && !compiled.Direct && compiled.Machine.KeepsExpectations),

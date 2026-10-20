@@ -387,13 +387,30 @@ public sealed class LexicalAutomaton
 					var from = State();
 					var at   = from;
 
-					foreach (var part in parts)
+					for (var i = 0; i < parts.Count; i++)
 					{
-						if (Build(part, inside) is not var (one, end))
+						var part = parts[i];
+
+						// An until and the delimiter that closes it are read as one machine: what the
+						// lookahead sees past the run is the delimiter, and nothing else is.
+						var closed =
+							Until(part) is var (delimiter, _) &&
+							i + 1 < parts.Count &&
+							parts[i + 1] is Node.Literal(var next) { IgnoreCase: false } &&
+							next == delimiter;
+
+						var read = closed && Until(part) is var (stop, item)
+							? Delimited(stop, item, inside, closed: true)
+							: Build(part, inside) is { } alone ? (alone, false) : null;
+
+						if (read is not ((var one, var end), var absorbed))
 							return null;
 
 						_empty[at].Add(one);
 						at = end;
+
+						if (absorbed)
+							i++;
 					}
 
 					return (from, at);
@@ -417,7 +434,7 @@ public sealed class LexicalAutomaton
 				}
 
 				case Node.Repeat when Until(node) is var (delimiter, item):
-					return Delimited(delimiter, item, inside);
+					return Delimited(delimiter, item, inside, closed: false) is (var delimited, _) ? delimited : null;
 
 				case Node.Repeat(var body, var min, var max):
 					return Repeated(body, min, max, inside);
@@ -479,23 +496,36 @@ public sealed class LexicalAutomaton
 		}
 
 		/// <summary>
-		/// The machine for "an item at a time, and the delimiter never begins here".
+		/// The machine for "an item at a time, and the delimiter never begins here", and whether
+		/// it read the delimiter that closes the run too.
 		/// </summary>
 		/// <remarks>
 		/// <para>
-		/// One state a length of matched delimiter prefix, and the state that would complete
-		/// it is simply absent — Knuth, Morris and Pratt's automaton with its accepting state
-		/// taken out, which is exactly "the delimiter does not occur". Every state is a place
-		/// the repetition may stop, so every one of them reaches the end.
+		/// One state a length of matched delimiter prefix — Knuth, Morris and Pratt's automaton.
+		/// The lookahead is asked at every item boundary and sees past what the run consumed, so
+		/// the run stops where the delimiter first <em>begins</em>, which an automaton reading the
+		/// run alone cannot know: what follows decides it. Three cases are exact, and anything else
+		/// is refused, so the grammar keeps the character machine rather than an approximation
+		/// that accepts more than the rule.
 		/// </para>
 		/// <para>
-		/// Where the repetition is followed by the delimiter — which is the only way anyone
-		/// writes it — this is exact. Standing alone it admits a little more: the operand's
-		/// lookahead sees past what the repetition consumed, and an automaton cannot. What it
-		/// admits is a longer run, and the delimiter that follows is what cuts it back.
+		/// Where the delimiter follows (<paramref name="closed"/>) and every one of its characters
+		/// is an item, the run and the delimiter are read as one machine whose completed delimiter
+		/// is its end: the strings in which the delimiter occurs exactly once, as their suffix.
+		/// That is the rule's reading — the run stops at the first beginning, and the delimiter is
+		/// what is there — including a delimiter that overlaps itself, where the first beginning
+		/// may lie inside a later occurrence: <c>(?!"aa" &amp; any)* &amp; "aa"</c> reads <c>aa</c>
+		/// of <c>aaa</c>.
+		/// </para>
+		/// <para>
+		/// Where the delimiter follows but some of its characters are not items, the run is read
+		/// as the strings the delimiter does not occur in and the delimiter after it — the two
+		/// agree only where the delimiter cannot overlap itself, so that an occurrence cannot begin
+		/// inside the run and end inside the delimiter. And a delimiter of one character is exact
+		/// wherever the run stands, since an occurrence of it lies wholly in the run or not in it.
 		/// </para>
 		/// </remarks>
-		(int From, int To)? Delimited(string delimiter, Node item, HashSet<RuleSymbol> inside)
+		((int From, int To) Built, bool Absorbed)? Delimited(string delimiter, Node item, HashSet<RuleSymbol> inside, bool closed)
 		{
 			if (Escaping(item) is var (escape, escaped, plain))
 			{
@@ -506,7 +536,7 @@ public sealed class LexicalAutomaton
 					return null;
 				}
 
-				return Delimited(delimiter[0], escape, escaped, plain, inside);
+				return Delimited(delimiter[0], escape, escaped, plain, inside) is { } pair ? (pair, false) : null;
 			}
 
 			var over = Consumed(item, inside);
@@ -519,6 +549,24 @@ public sealed class LexicalAutomaton
 			}
 
 			var length = delimiter.Length;
+			var atoms  = Atoms(over);
+
+			// Whether each of the delimiter's characters is an item, so the one machine can read
+			// the delimiter with the run: an atom is either exactly one of the delimiter's
+			// characters or holds none of them, because each of those characters was added to the
+			// alphabet as a set of its own and the partition cuts at every boundary.
+			var absorbs = closed && delimiter.All(c => atoms.Any(atom => _atoms[atom].From == c && _atoms[atom].To == c));
+
+			if (!absorbs && length > 1 && (!closed || Overlaps(delimiter)))
+			{
+				Refuse(
+					closed
+						? $"an until whose delimiter overlaps itself and is not all items: {delimiter}"
+						: $"an until of more than one character that its delimiter does not follow: {delimiter}");
+
+				return null;
+			}
+
 			var states = new int[length];
 
 			for (var i = 0; i < length; i++)
@@ -526,8 +574,9 @@ public sealed class LexicalAutomaton
 
 			var to = State();
 
-			foreach (var state in states)
-				_empty[state].Add(to);
+			if (!absorbs)
+				foreach (var state in states)
+					_empty[state].Add(to);
 
 			// The prefix function, and then the failure links read off it. Written the
 			// standard way rather than in one pass, because the one-pass version this began
@@ -569,24 +618,34 @@ public sealed class LexicalAutomaton
 			}
 
 			for (var state = 0; state < length; state++)
-				foreach (var atom in Atoms(over))
+				foreach (var atom in atoms)
 				{
-					// An atom is either exactly one of the delimiter's characters or holds
-					// none of them, because each of those characters was added to the
-					// alphabet as a set of its own and the partition cuts at every boundary.
 					var here = _atoms[atom];
 
 					var next = Delta(
 						state,
 						here.From == here.To && delimiter.IndexOf(here.From) >= 0 ? here.From : null);
 
-					// Completing the delimiter is the one thing this language forbids, so the
-					// way there is not written and the machine simply stops.
+					// Completing the delimiter ends the run: read with it, that is the end of
+					// the pair; read alone, it is the one thing the run may not do, so the way
+					// there is not written and the machine simply stops.
 					if (next < length)
 						_on[states[state]].Add((atom, states[next]));
+					else if (absorbs)
+						_on[states[state]].Add((atom, to));
 				}
 
-			return (states[0], to);
+			return ((states[0], to), absorbs);
+		}
+
+		/// <summary>Whether a proper prefix of <paramref name="delimiter"/> is also its suffix.</summary>
+		static bool Overlaps(string delimiter)
+		{
+			for (var k = 1; k < delimiter.Length; k++)
+				if (string.CompareOrdinal(delimiter, 0, delimiter, delimiter.Length - k, k) == 0)
+					return true;
+
+			return false;
 		}
 
 		/// <summary>What one turn of an "until" consumes, or null where it consumes no one item.</summary>
