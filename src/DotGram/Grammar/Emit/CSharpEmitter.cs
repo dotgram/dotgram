@@ -4455,6 +4455,11 @@ file.Line("return spare;");
 	/// dispatched a recovery by plan since there was one plan. What has to differ per
 	/// recovery is the name of the factory the grammar's <c>=&gt;</c> becomes, which
 	/// <see cref="RecoveryMethod"/> settles for both halves of the emitter at once.
+	/// <para>
+	/// A marked repetition inside another one's element or synchronization is one of them
+	/// too, after the one it stands in. Left out, it ran as a plain repetition and the outer
+	/// one stepped over the whole element in its place.
+	/// </para>
 	/// </remarks>
 	internal static IReadOnlyList<(Node Repetition, Recovery Recovery, int Slot)> RecoveriesIn(
 		RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
@@ -4478,14 +4483,22 @@ file.Line("return spare;");
 			{
 				found.Add((
 					node, recovery,
-					slot >= 0 ? slot : repeated is Node.Capture ? layout.SlotOf(repeated) : -1));
+					slot >= 0 ? slot : repeated is Node.Capture ? layout.SlotOrNone(repeated) : -1));
+
+				// One marked inside its element or its synchronization recovers there, as if it were
+				// a rule of its own called at that place: the arena runs every turn of a recovering
+				// repetition on locals of its own, so it needs only the plan. What it collects is
+				// this rule's, in the slots the layout gave it, so nothing is carried across.
+				Find(repeated, -1);
+				Find(recovery.Sync, -1);
 
 				return;
 			}
 
+			// A synchronization is no part of the layout, so a capture in one has no slot.
 			if (node is Node.Capture(_, var captured))
 			{
-				Find(captured, layout.SlotOf(node));
+				Find(captured, layout.SlotOrNone(node));
 
 				return;
 			}

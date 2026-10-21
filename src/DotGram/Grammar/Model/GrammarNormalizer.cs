@@ -66,6 +66,12 @@ public sealed partial class GrammarNormalizer
 	public const string RecoveryInLookahead = "GRAM4038";
 
 	/// <summary>
+	/// A repetition marked <c>recover</c> in a rule the lexer reads, once the grammar is cut in two,
+	/// which reads it as a plain repetition.
+	/// </summary>
+	public const string RecoveryInToken     = "GRAM4044";
+
+	/// <summary>
 	/// An argument of a call into a namespace with a header, written outside that namespace,
 	/// that names a rule the header rebinds.
 	/// </summary>
