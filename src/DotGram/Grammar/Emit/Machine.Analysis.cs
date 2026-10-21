@@ -163,9 +163,10 @@ sealed partial class Machine
 			// try each alternative in order through the give-back door, and the first that
 			// matches is final — nothing ever comes back, which is what "atomic" says.
 			// The alternatives may share prefixes freely; what each must be is silent.
+			// Under the view the compile hands the contents (Machine.Compile's Atomic case).
 			Node.Atomic(var kept) => kept is Node.Choice(var options) { Selection: null }
-														  ? AllSilentWithin(options, following)
-														  : SilentWithin(kept, following),
+														  ? AllSilentWithin(options, OverKinds ? following : following.Committed())
+														  : SilentWithin(kept, OverKinds ? following : following.Committed()),
 
 			_ => false,
 		};
@@ -244,12 +245,14 @@ sealed partial class Machine
 		// the general machinery stays, which is the safe direction for a guess to fail in.
 		// Possessive asks whether what follows can fail after a turn and want one back, so it
 		// reads the view (Continuation.Taught); the body's own nodes are asked under their own.
+		// A body one character decides is silent as the loop it is compiled as (CompileRun):
+		// asked as a call, a one-class rule would be given a scanner nothing then calls.
 		return Unrolls(repeat) &&
 		Possessive(repeat.Body, following.Taught) &&
-		SilentWithin(
+		(RunTest(repeat.Body) is not null || SilentWithin(
 			repeat.Body,
 			following.Or(new FollowSets.Continuation(
-				FirstSets.Of(repeat.Body, _graph), FirstSets.Of(repeat.Body, _graph))));
+				FirstSets.Of(repeat.Body, _graph), FirstSets.Of(repeat.Body, _graph)))));
 	}
 
 	/// <summary>

@@ -3019,7 +3019,10 @@ sealed partial class Machine
 			if (machine.Quiets)
 				code.Line("if (!failure.Quiet)");
 
-			code.Then($"p = {machine.Sharpening(texts, displays)}(text, p, ref {narrowed});");
+			// The walk is written when the reader is: the first pass only observes, and a run it
+			// finds that the reader then renders another way would leave the walk called by
+			// nothing.
+			code.Then($"p = {(analyzing ? "Sharpening_DotGram" : machine.Sharpening(texts, displays))}(text, p, ref {narrowed});");
 			code.Line(Refusal(narrowed));
 			code.Line(Fails());
 		}

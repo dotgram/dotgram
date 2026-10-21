@@ -112,7 +112,7 @@ public sealed class BacktrackedValueTests
 	/// a run giving back for a guard — <c>'a' &amp; c: 'b'* &amp; when @(c.Length == 0)</c> reads
 	/// <c>a</c> of <c>ab</c> — what follows the group cannot reach the alternative after it.
 	/// </summary>
-	[Theory(Skip = "Open: an atomic group whose first reading gave back for a guard still gives way to a later alternative (every carrier through a rule, the engine inline).")]
+	[Theory]
 	[MemberData(nameof(Readings))]
 	public void An_atomic_group_keeps_a_first_reading_a_guard_made(CarrierKind carrier, bool direct)
 	{
@@ -126,6 +126,32 @@ public sealed class BacktrackedValueTests
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseR", "ab").IsSuccess);
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseS", "ab").IsSuccess);
 		Assert.Equal((true, "a"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseR", "a")));
+		Assert.Equal((true, "a"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseS", "a")));
+	}
+
+	/// <summary>
+	/// The same commit around a run that must take a turn, <c>'b'+</c> giving back to one for
+	/// the guard, and with something read after the group; and a rule called both inside braces
+	/// and outside them, whose readings differ only where the braces are.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readings))]
+	public void An_atomic_group_keeps_a_first_reading_a_guard_made_whatever_follows_it(CarrierKind carrier, bool direct)
+	{
+		var assembly = Compile(
+			"""
+			R : @string = { Y } & 'b' => @(parserText)
+			Y : @string = 'a' & c: 'b'+ & when @(c.Length == 1) => @("1") | "abb" => @("2")
+			S : @string = { Y } => @(parserText) | Y => @(parserText + "!")
+			T : @string = { 'a' & c: 'b'+ & when @(c.Length == 1) | "abb" } & 'b' => @(parserText)
+			""", carrier, direct);
+
+		Assert.Equal((true, "abb"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseR", "abb")));
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseR", "ab").IsSuccess);
+		Assert.Equal((true, "abb!"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseS", "abb")));
+		Assert.Equal((true, "ab"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseS", "ab")));
+		Assert.Equal((true, "abb"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseT", "abb")));
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseT", "ab").IsSuccess);
 	}
 
 	/// <summary>
