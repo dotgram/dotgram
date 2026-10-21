@@ -177,13 +177,13 @@ public sealed class NestedRecoveryTests
 			"a capture outside, read by an inner guard",
 			Words +
 				"Count : @int = d: ['0'..'9'] => @(int.Parse(d))\n" +
-				"Line : @string = n: Count & ':' & (w: Word & when @(w.Length <= n) & ';')* recover ';' & eol => @(string.Join(\"+\", w))\n" +
-				"Start : @string[] = Line* recover eol",
+				"Start : @string = ((n: Count & ':' & (w: Word & when @(w[w.Length - 1].Length <= n[n.Length - 1]) & ';')* recover ';' & eol)* recover eol)" +
+				" => @(string.Join(\"+\", w))",
 			null,
 			[],
-			// What the guard reads of `w` is every word the line has read so far, its own included:
-			// the count bounds how many words a line holds.
-			[("2:ab;abc;c;\n1:x;yy;\n", "ab+abc,x")]),
+			// Both are sequences so far, the current one last: a word longer than its line's count is
+			// a bad element of the inner repetition, and the rest of the line is kept.
+			[("2:ab;abc;c;\n1:x;yy;\n", "ab+c+x")]),
 
 		new(
 			"the enclosing rule's on fail",
@@ -415,10 +415,10 @@ public sealed class NestedRecoveryTests
 	/// edge, it hands back what the string form does.
 	/// </summary>
 	[Theory]
-	[InlineData("a\n9#x;y;x;\nb\n")]
-	[InlineData("a\nb\n99#x;x;yy;x;x;\nc\n")]
-	[InlineData("a\n9#yyyyyyyy;x;\nb\n9\n")]
-	public void One_marked_in_the_synchronization_leaves_the_rule_its_reader(string input)
+	[InlineData("a\n9#x;y;x;\nb\n", "a,b")]
+	[InlineData("a\nb\n99#x;x;yy;x;x;\nc\n", "a,b,c")]
+	[InlineData("a\n9#yyyyyyyy;x;\nb\n9\n", "a,b")]
+	public void One_marked_in_the_synchronization_leaves_the_rule_its_reader(string input, string expected)
 	{
 		const string Grammar = Words + "Line : @string = w: Word & eol => @(w)\n" +
 			"Start : @string[] = Line* recover ('#' & ('x' & ';')* recover ';' & eol)\nparse Start";
@@ -439,6 +439,7 @@ public sealed class NestedRecoveryTests
 				var whole  = Show(host.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, [input]));
 				var reader = host.GetMethod("ParseStart", [typeof(TextReader)])!.Invoke(null, [new StringReader(input)]);
 
+				Assert.Equal(expected, whole);
 				Assert.Equal(whole, Show(reader));
 			}
 	}
