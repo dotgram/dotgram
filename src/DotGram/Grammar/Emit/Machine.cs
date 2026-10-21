@@ -4911,7 +4911,11 @@ sealed partial class Machine
 				// round the parse would compare `"http"` a second time to find `"https"`.
 				if (carries.Count > 0)
 				{
-					var carry = CompileCarries(text.Length, carries, displays, next, fail);
+					// A continuation that does not fit fails the choice: it stands past the
+					// characters this one matched, where an alternative after the run would be
+					// read from the wrong place, and the run is taken only where none of those
+					// can be needed once a member has matched (`LaterSettled`).
+					var carry = CompileCarries(text.Length, carries, displays, next, Fail);
 
 					writer.Line(
 						$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, carry)}, p, call, atomic, " +

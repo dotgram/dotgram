@@ -5153,6 +5153,19 @@ namespace DotGram.Snapshots
 				if (count < LinkedUpTo)
 					LinkedUpTo = count;
 			}
+			internal void Reopen(int call, ParserArena entries)
+			{
+				// A choice resumed inside a call that had returned opens that call again, and every
+				// call it returned into: a value a guard built for one of them was built for the
+				// reading being given up. An open call's callers are open too, so the walk stops there.
+				while (call >= 0 && entries[call].Kind == ParserEntry.Completed)
+				{
+					if (call < _built.Length)
+						_built[call] = false;
+
+					call = entries[call].CallIndex;
+				}
+			}
 
 			internal void Reset()
 			{

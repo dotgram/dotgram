@@ -25,7 +25,9 @@ public sealed class BacktrackedValueTests
 	/// <summary>
 	/// Literal alternatives read as one run keep no way back between them, which holds only
 	/// where nothing after the run can begin where one of them did: <c>"ccc" | 'a'</c> is such a
-	/// run, but <c>"cc"</c> after it is read only by coming back from <c>"ccc"</c>.
+	/// run, but <c>"cc"</c> after it is read only by coming back from <c>"ccc"</c>. And where a
+	/// member continues another, <c>'c' | "ca"</c>, coming back for the longer one is reading it
+	/// from past the shorter, where nothing after the run may be read.
 	/// </summary>
 	[Theory]
 	[MemberData(nameof(Readings))]
@@ -35,6 +37,7 @@ public sealed class BacktrackedValueTests
 			"""
 			R : @string = ("ccc" | 'a' | "cc") & 'c' => @(parserText)
 			S : @string = ("ab" | 'x' | ['a'..'b']) & "bc" => @(parserText)
+			T : @string = ('c' | "ca" | ['b']) => @(parserText)
 			""", carrier, direct);
 
 		Assert.Equal((true, "ccc"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseR", "ccc")));
@@ -43,6 +46,12 @@ public sealed class BacktrackedValueTests
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseR", "cc").IsSuccess);
 		Assert.Equal((true, "abc"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseS", "abc")));
 		Assert.Equal((true, "abbc"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseS", "abbc")));
+
+		// A continuation of a member, "ca" after 'c', that does not fit leaves nothing after the
+		// run to be read from where it stands.
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseT", "cb").IsSuccess);
+		Assert.Equal((true, "ca"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseT", "ca")));
+		Assert.Equal((true, "b"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseT", "b")));
 	}
 
 	/// <summary>
@@ -76,7 +85,7 @@ public sealed class BacktrackedValueTests
 	{
 		var publications = string.Join("\n", rules.Split('\n')
 			.Select(static line => line.Trim())
-			.Where(static line => line.Length > 0 && char.IsUpper(line[0]) && line.Split(' ')[0] is "R" or "S")
+			.Where(static line => line.Length > 0 && char.IsUpper(line[0]) && line.Split(' ')[0] is "R" or "S" or "T")
 			.Select(static line => "parse " + line.Split(' ')[0]));
 
 		var result = GramCompiler.Compile(rules + "\n" + publications + "\n", new GramCompilerOptions
