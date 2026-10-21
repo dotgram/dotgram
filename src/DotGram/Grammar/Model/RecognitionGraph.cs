@@ -881,6 +881,19 @@ public sealed class RecognitionGraph(
 	/// </summary>
 	public bool PositionalSplit { get; init; }
 
+	/// <summary>
+	/// Whether the rules read kinds: the syntactic half of a grammar cut in two
+	/// (<see cref="LexicalSplit"/>), where a choice is decided by the token in front of it and
+	/// nothing gives a turn back (docs/syntax.md §4).
+	/// </summary>
+	/// <remarks>
+	/// Read where a proof differs between the alphabets: the contents of an atomic group over
+	/// characters are told that nothing after the group can fail (<see cref="FollowSets.Continuation.Committed"/>),
+	/// which over kinds is already so of everything, and said again would only change what the
+	/// syntactic machine proves and so what it emits.
+	/// </remarks>
+	public bool OverKinds { get; init; }
+
 	/// <summary>What each rule can begin with, once worked out. A memo, not model state.</summary>
 	/// <remarks>
 	/// Held here because it is a fact about this graph that costs a fixed point to find, and
