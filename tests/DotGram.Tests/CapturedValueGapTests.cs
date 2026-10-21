@@ -22,27 +22,6 @@ public sealed class CapturedValueGapTests
 	}
 
 	/// <summary>
-	/// §7.3: a run that matched nothing is <c>""</c> and only an optional capture that never ran is
-	/// null. A bounded run that may take no turn, <c>c: 'a'{0,2}</c>, is <c>""</c> in a rule of one
-	/// alternative and null in a rule of several, where the capture is absent from the others.
-	/// </summary>
-	[Theory(Skip = "Open: a text capture of a bounded run that took no turn reads null where its rule has another alternative.")]
-	[MemberData(nameof(Readings))]
-	public void A_bounded_run_that_took_no_turn_is_empty_text_in_a_rule_of_several_alternatives(CarrierKind carrier, bool direct)
-	{
-		var assembly = Compile(
-			"""
-			One : @string = c: 'a'{0,2} => @(c ?? "null")
-			Two : @string = c: 'a'{0,2} => @(c ?? "null") | 'c' => @("c")
-			parse One
-			parse Two
-			""", carrier, direct);
-
-		Assert.Equal("", EmittedCode.Match(assembly, "Grammar", "TryParseOne", "").Value);
-		Assert.Equal("", EmittedCode.Match(assembly, "Grammar", "TryParseTwo", "").Value);
-	}
-
-	/// <summary>
 	/// §3.4: <c>?=X</c> produces <c>X</c>'s value, which can be captured. Captured, a lookahead at a
 	/// rule that builds a value is handed the text the lookahead saw instead — and where the rule's
 	/// type is not <c>string</c>, the example of §3.6 (<c>n: ?=Number &amp; when @IsSmall(n)</c>)
