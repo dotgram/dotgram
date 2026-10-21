@@ -6,8 +6,8 @@
 # or the ratchet only protects against regressing to a number looser than reality.
 # package	rule	count
 Examples	IDE0035	0
-Examples	IDE0059	1379
-Examples	IDE0060	112
+Examples	IDE0059	1377
+Examples	IDE0060	110
 Examples	IDE0051	67
 Examples	IDE0052	19
 Examples	IDE0004	3

@@ -561,6 +561,18 @@ gives it the text joined. Each turn records an entry of its own and the value is
 joined — taken as the extent of the whole run where the turns are adjacent, which is
 measured rather than assumed, so `(t: A+ & '-')+` answers `"1234"` and not `"12-34"`.
 
+**A run that took no turn is `""`, whatever its bounds.** `c: 'a'{0,2}` that took none read
+`""` in a rule of one alternative and null in a rule of several, where another alternative
+leaves `c` unwritten: the capture is recorded once per turn, no turn left no record, and no
+record was read as the capture that never happened. Only `*` was safe, because its capture
+is recorded once around the loop, and a loop of no turns is still a record. Every bound but
+`{0,1}` is recorded that way now. A run whose turns cannot be
+one record — `(c: 'a' & ',')*`, where the comma is in the extent and not in the text — is
+given an empty record in front of it, where the rule may also leave the name unwritten. `?`,
+`{0,1}` spelled out, stays the option it is: null where it did not match. Over bytes a text
+capture is a span and was empty either way, so the string and byte forms of one grammar
+disagreed until now.
+
 One thing a capture can still be that is recognized and not built, `GRAM4006` rather
 than a silent drop: a capture inside a lookahead, which is a machine of its own that
 answers yes or no.

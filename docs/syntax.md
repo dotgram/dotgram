@@ -3310,7 +3310,9 @@ repeated text is the text joined, a repeated rule is an array of its values.
 
 An optional capture and an empty run are different answers and stay different: `(sign:
 '-')?` that did not match is null, while `digits: ['0'..'9']*` that matched nothing is
-`""` — the text of no iterations.
+`""` — the text of no iterations. Every quantifier but `?` is a run, whatever its bounds:
+`digits: ['0'..'9']{0,3}` that took no turn is `""` as well, in a rule of one alternative
+or of several. `?`, which `{0,1}` spells out, is the one option.
 
 ```dotgram
 Url = scheme: ("https" | "http" | "ftp") & "://" & host: Host
