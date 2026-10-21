@@ -874,6 +874,9 @@ Without it a refusal names what could have stood where the parse stopped, which 
 and, where what could have stood there is everything an expression may begin with, a list
 nobody reads. The rule that knows what it is says so instead.
 
+Only the direct-method reader says the phrase so far; the backtracking engine (`Direct = false`)
+does not yet, and its refusal names what was expected. What is parsed is the same either way.
+
 The text is handed back as it stands. Nothing here reads it, so it is a sentence where a
 sentence is wanted and a code where the caller has its own words in its own languages.
 
