@@ -343,6 +343,12 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
+		static int Recognize_Script_Whole_Trivia(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		{
+			object? ignored;
+			return Recognize_DotGram(text, pos, 113, -1, false, false, ref failure, out ignored);
+		}
+
 		/// <summary>Reads <c>Script</c> from a reader, a part at a time.</summary>
 		/// <remarks>
 		/// The input is read through a buffer that is reused, so what is held is the part
@@ -353,6 +359,30 @@ namespace DotGram.Snapshots
 		{
 			var window = new Window(input, 4096);
 			var start  = 0;
+			var furthest = 0L;
+
+			var triviaFailureLead = new Failure();
+			int triviaEndLead;
+
+			while (true)
+			{
+				triviaFailureLead = new Failure();
+				triviaEndLead = Recognize_Script_Whole_Trivia(window.Span(), start, ref triviaFailureLead);
+
+				if (((triviaEndLead < 0 ? triviaFailureLead.Position : triviaEndLead) >= window.Length || triviaFailureLead.Starved) && !window.Ended)
+				{
+					window.Extend(ref start);
+					continue;
+				}
+
+				break;
+			}
+
+			if (window.Offset + triviaFailureLead.Position > furthest)
+				furthest = window.Offset + triviaFailureLead.Position;
+
+			if (triviaEndLead >= 0)
+				start = triviaEndLead;
 
 			// every Command
 			while (true)
@@ -373,6 +403,9 @@ namespace DotGram.Snapshots
 
 					break;
 				}
+
+				if (window.Offset + seamFailure0.Position > furthest)
+					furthest = window.Offset + seamFailure0.Position;
 
 				if (seamEnd0 >= 0)
 					start = seamEnd0;
@@ -395,6 +428,9 @@ namespace DotGram.Snapshots
 					break;
 				}
 
+				if (window.Offset + failure0.Position > furthest)
+					furthest = window.Offset + failure0.Position;
+
 				if (end0 < 0)
 					break;
 
@@ -402,13 +438,36 @@ namespace DotGram.Snapshots
 				start = end0;
 			}
 
+			var triviaFailureTrail = new Failure();
+			int triviaEndTrail;
+
+			while (true)
+			{
+				triviaFailureTrail = new Failure();
+				triviaEndTrail = Recognize_Script_Whole_Trivia(window.Span(), start, ref triviaFailureTrail);
+
+				if (((triviaEndTrail < 0 ? triviaFailureTrail.Position : triviaEndTrail) >= window.Length || triviaFailureTrail.Starved) && !window.Ended)
+				{
+					window.Extend(ref start);
+					continue;
+				}
+
+				break;
+			}
+
+			if (window.Offset + triviaFailureTrail.Position > furthest)
+				furthest = window.Offset + triviaFailureTrail.Position;
+
+			if (triviaEndTrail >= 0)
+				start = triviaEndTrail;
+
 			while (start >= window.Length && !window.Ended)
 			{
 				window.Extend(ref start);
 			}
 
 			if (start < window.Length)
-				throw new global::System.FormatException("Expected end of input at " + (window.Offset + start).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
+				throw new global::System.FormatException("Expected end of input at " + (furthest > window.Offset + start ? furthest : window.Offset + start).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>The same, over a sequence of lines (docs/syntax.md §6.3).</summary>

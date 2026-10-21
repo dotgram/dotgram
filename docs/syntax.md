@@ -2220,7 +2220,9 @@ nothing, so one that collects a value inside it gets no reader, and neither does
 builds its own value with `=>`, since the elements are gone by the time it could. Only the
 repetition marked `recover` asks the rest of the rule first and steps over a bad element; any
 other one is read for as long as its element matches, as over a string. A repetition is held
-to its least and its most, and input left over after the last part is refused.
+to its least and its most — and one with a most is asked the same question as one without, so
+`A? & A+` gets no reader — the rule's trivia is read before and after it as a whole parse reads
+it, and input left over after the last part is refused where the string refuses it.
 
 Which is the shared responsibility: the author picks an overload, and the compiler
 offers one only where it provably works.
