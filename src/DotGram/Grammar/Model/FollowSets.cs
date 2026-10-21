@@ -158,6 +158,25 @@ public static class FollowSets
 
 			return View is null ? plain : plain with { View = new Split(new Continuation(View.Value.Plain, FirstSets.First.All)) };
 		}
+
+		/// <summary>
+		/// This continuation as the contents of an atomic group see it: what follows the group may
+		/// begin as it did, and none of it can fail and ask the contents back for another reading —
+		/// the group commits its first reading, so the view is the stop (<see cref="Sealed"/>).
+		/// </summary>
+		/// <remarks>
+		/// Told to the contents and not merely to the proofs at the group's end: a repetition that
+		/// gives back for a guard inside the group, <c>{ 'a' &amp; c: 'b'* &amp; when @(c.Length == 0)
+		/// | "ab" }</c> on <c>ab</c>, reads <c>a</c> as the group's first reading, and what follows the
+		/// group refusing there is not a way to the next alternative. Handed the group's continuation
+		/// as it stood, the run was proved never to give back against what followed the group, read
+		/// the <c>b</c>, failed the guard, and the second alternative was read as if the group had
+		/// never succeeded.
+		/// </remarks>
+		internal Continuation Committed()
+		{
+			return Surface with { View = new Split(Stop) };
+		}
 	}
 
 	/// <summary>A continuation held by reference, where another one keeps it as its view.</summary>
@@ -474,6 +493,13 @@ public static class FollowSets
 		var queue = new Queue<RuleSymbol>(graph.Rules);
 		var queued = new HashSet<RuleSymbol>(graph.Rules);
 
+		// Whether an atomic group in the body being walked tells its contents that nothing
+		// after the group can fail (Continuation.Committed): over characters always; over
+		// kinds only in a rule marked `?`, the one place something gives a turn back there.
+		// Elsewhere over kinds that is so of everything already, and the contents are told
+		// what they were (Machine.Commits asks the same of the group it compiles).
+		var commits = !graph.OverKinds;
+
 		foreach (var (body, after, seam) in entries)
 			Contribute(body, after, seam);
 
@@ -482,6 +508,7 @@ public static class FollowSets
 			var rule = queue.Dequeue();
 
 			queued.Remove(rule);
+			commits = !graph.OverKinds || rule.GivesBack;
 
 			if (graph.Bodies.TryGetValue(rule, out var body))
 				Contribute(body, follow[rule], SeamOf(rule, graph));
@@ -561,7 +588,7 @@ public static class FollowSets
 
 				case Node.Capture(_, var captured): Contribute(captured, after, seam); return;
 				case Node.Construct(var built, _):  Contribute(built,    after, seam); return;
-				case Node.Atomic(var kept):         Contribute(kept,     after, seam); return;
+				case Node.Atomic(var kept):         Contribute(kept,     commits ? after.Committed() : after, seam); return;
 				case Node.Marked(var kept, _):      Contribute(kept,     after, seam); return;
 				case Node.Bind(_, var bound, _):    Contribute(bound,    after, seam); return;
 

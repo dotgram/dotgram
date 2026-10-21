@@ -2628,6 +2628,21 @@ sealed partial class Machine
 	/// chose; what it holds is braced as before.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// Whether an atomic group's contents are told that nothing after the group can fail
+	/// (<see cref="FollowSets.Continuation.Committed"/>): over characters always; over kinds
+	/// only inside a rule marked <c>?</c>, the one place a choice or a repetition is revisited
+	/// there (§4). Elsewhere over kinds nothing gives a turn back whatever follows, and every
+	/// call, choice and repetition is read as braced (<see cref="Stands"/>): told the stop, they
+	/// would only prove more and be emitted otherwise — flat, without their positional forms —
+	/// so there the contents see the continuation as it stands. The same question
+	/// <see cref="FollowSets"/> asks of the rule it walks.
+	/// </summary>
+	bool Commits(Node atomic)
+	{
+		return !OverKinds || _owners.TryGetValue(atomic, out var owner) && owner.GivesBack;
+	}
+
 	bool Stands(Node node)
 	{
 		return OverKinds && !_standing.Contains(node) && !HoldsRecovery(node) && node switch
@@ -3705,6 +3720,12 @@ sealed partial class Machine
 
 			case Node.Atomic(var body):
 			{
+				// What the contents are followed by: the group's continuation, which commits
+				// the first reading and so never asks the contents back for another
+				// (Continuation.Committed) — the same view FollowSets hands a rule called inside
+				// the braces, and Silent's own Atomic case asks of (Commits).
+				var inside = Commits(node) ? following.Committed() : following;
+
 				// A committed choice whose tails read nothing — the fold's residue, where
 				// past the shared operand the alternatives differ in which factory runs
 				// and not in what the text says. Compiled as the decision it is: each
@@ -3715,14 +3736,14 @@ sealed partial class Machine
 				if (body is Node.Choice(var decided) { Selection: null } && decided.Count > 1 &&
 					decided.All(Weightless))
 				{
-					var chosen = Compile(decided[decided.Count - 1], next, following);
+					var chosen = Compile(decided[decided.Count - 1], next, inside);
 
 					for (var at = decided.Count - 2; at >= 0; at--)
 					{
 						var saved = _fail;
 
 						_fail  = chosen;
-						chosen = Compile(decided[at], next, following);
+						chosen = Compile(decided[at], next, inside);
 						_fail  = saved;
 					}
 
@@ -3733,8 +3754,8 @@ sealed partial class Machine
 				// the give-back door, and the first that matches is final. The same test
 				// `Silent`'s own Atomic case asks, so the two agree.
 				if (body is Node.Choice(var options) { Selection: null }
-					? AllSilent(options, following, sequence: false)
-					: Silent(body, following))
+					? AllSilent(options, inside, sequence: false)
+					: Silent(body, inside))
 				{
 					// No pending site may open inside: the chain's doors are where a
 					// failure goes here, and a way back they jumped past would stand
@@ -3745,7 +3766,7 @@ sealed partial class Machine
 
 					if (body is not Node.Choice(var tried) || tried.Count == 1)
 					{
-						var kept = Compile(body is Node.Choice(var only) ? only[0] : body, next, following);
+						var kept = Compile(body is Node.Choice(var only) ? only[0] : body, next, inside);
 
 						_checkpointsAllowed = checkpoints;
 
@@ -3760,7 +3781,7 @@ sealed partial class Machine
 					// unless it fails where it began, in which case the next alternative
 					// is the failure target directly. A capture a failed alternative
 					// opened is unset on the way through.
-					var target = Compile(tried[tried.Count - 1], next, following);
+					var target = Compile(tried[tried.Count - 1], next, inside);
 
 					for (var at = tried.Count - 2; at >= 0; at--)
 					{
@@ -3779,7 +3800,7 @@ sealed partial class Machine
 							doors = true;
 
 						_fail  = direct ? target : GiveBack(target, mine, out _, undone, tried[at]);
-						target = Compile(tried[at], next, following);
+						target = Compile(tried[at], next, inside);
 						_fail  = saved;
 					}
 
@@ -3803,7 +3824,7 @@ sealed partial class Machine
 				}
 
 				var commit = Reserve(out var atCommit);
-				var inner  = Compile(body, commit, following);
+				var inner  = Compile(body, commit, inside);
 				var state  = Reserve(out var writer);
 
 				writer.Line("var atomicIndex = entries.Count;");
