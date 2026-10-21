@@ -240,7 +240,8 @@ public interface IInstrument
 		public FixField.Text SecurityAltID { get; }
 
 		/// <summary>The FIX SecurityAltIDSource, tag 456, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityAltIDSource { get; internal set; }
+		public FixField.Text? SecurityAltIDSource => _securityAltIDSource;
+		internal FixField.Text? _securityAltIDSource;
 
 		FixField IFixEntry.Opener => SecurityAltID;
 
@@ -269,13 +270,16 @@ public interface IInstrument
 		public FixField.Integer EventType { get; }
 
 		/// <summary>The FIX EventDate, tag 866, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? EventDate { get; internal set; }
+		public FixField.Date? EventDate => _eventDate;
+		internal FixField.Date? _eventDate;
 
 		/// <summary>The FIX EventPx, tag 867, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? EventPx { get; internal set; }
+		public FixField.Decimal? EventPx => _eventPx;
+		internal FixField.Decimal? _eventPx;
 
 		/// <summary>The FIX EventText, tag 868, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? EventText { get; internal set; }
+		public FixField.Text? EventText => _eventText;
+		internal FixField.Text? _eventText;
 
 		FixField IFixEntry.Opener => EventType;
 
@@ -321,7 +325,8 @@ public interface IInstrumentExtension
 		public FixField.Integer InstrAttribType { get; }
 
 		/// <summary>The FIX InstrAttribValue, tag 872, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? InstrAttribValue { get; internal set; }
+		public FixField.Text? InstrAttribValue => _instrAttribValue;
+		internal FixField.Text? _instrAttribValue;
 
 		FixField IFixEntry.Opener => InstrAttribType;
 
@@ -484,7 +489,8 @@ public interface IInstrumentLeg
 		public FixField.Text LegSecurityAltID { get; }
 
 		/// <summary>The FIX LegSecurityAltIDSource, tag 606, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? LegSecurityAltIDSource { get; internal set; }
+		public FixField.Text? LegSecurityAltIDSource => _legSecurityAltIDSource;
+		internal FixField.Text? _legSecurityAltIDSource;
 
 		FixField IFixEntry.Opener => LegSecurityAltID;
 
@@ -544,7 +550,8 @@ public interface ILegStipulations
 		public FixField.Text LegStipulationType { get; }
 
 		/// <summary>The FIX LegStipulationValue, tag 689, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? LegStipulationValue { get; internal set; }
+		public FixField.Text? LegStipulationValue => _legStipulationValue;
+		internal FixField.Text? _legStipulationValue;
 
 		FixField IFixEntry.Opener => LegStipulationType;
 
@@ -584,13 +591,16 @@ public interface INestedParties
 		public FixField.Text NestedPartyID { get; }
 
 		/// <summary>The FIX NestedPartyIDSource, tag 525, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? NestedPartyIDSource { get; internal set; }
+		public FixField.Character? NestedPartyIDSource => _nestedPartyIDSource;
+		internal FixField.Character? _nestedPartyIDSource;
 
 		/// <summary>The FIX NestedPartyRole, tag 538, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NestedPartyRole { get; internal set; }
+		public FixField.Integer? NestedPartyRole => _nestedPartyRole;
+		internal FixField.Integer? _nestedPartyRole;
 
 		/// <summary>The FIX NoNestedPartySubIDs, tag 804, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoNestedPartySubIDs { get; internal set; }
+		public FixField.Integer? NoNestedPartySubIDs => _noNestedPartySubIDs;
+		internal FixField.Integer? _noNestedPartySubIDs;
 
 		/// <summary>The entries counted by NoNestedPartySubIDs, tag 804; null when the group is absent.</summary>
 		public List<INestedParties.NoNestedPartyIDsGroup.NoNestedPartySubIDsGroup>? NoNestedPartySubIDsGroups => noNestedPartySubIDsGroups;
@@ -608,7 +618,8 @@ public interface INestedParties
 			public FixField.Text NestedPartySubID { get; }
 
 			/// <summary>The FIX NestedPartySubIDType, tag 805, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? NestedPartySubIDType { get; internal set; }
+			public FixField.Integer? NestedPartySubIDType => _nestedPartySubIDType;
+			internal FixField.Integer? _nestedPartySubIDType;
 
 			FixField IFixEntry.Opener => NestedPartySubID;
 
@@ -661,13 +672,16 @@ public interface INestedParties2
 		public FixField.Text Nested2PartyID { get; }
 
 		/// <summary>The FIX Nested2PartyIDSource, tag 758, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? Nested2PartyIDSource { get; internal set; }
+		public FixField.Character? Nested2PartyIDSource => _nested2PartyIDSource;
+		internal FixField.Character? _nested2PartyIDSource;
 
 		/// <summary>The FIX Nested2PartyRole, tag 759, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? Nested2PartyRole { get; internal set; }
+		public FixField.Integer? Nested2PartyRole => _nested2PartyRole;
+		internal FixField.Integer? _nested2PartyRole;
 
 		/// <summary>The FIX NoNested2PartySubIDs, tag 806, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoNested2PartySubIDs { get; internal set; }
+		public FixField.Integer? NoNested2PartySubIDs => _noNested2PartySubIDs;
+		internal FixField.Integer? _noNested2PartySubIDs;
 
 		/// <summary>The entries counted by NoNested2PartySubIDs, tag 806; null when the group is absent.</summary>
 		public List<INestedParties2.NoNested2PartyIDsGroup.NoNested2PartySubIDsGroup>? NoNested2PartySubIDsGroups => noNested2PartySubIDsGroups;
@@ -685,7 +699,8 @@ public interface INestedParties2
 			public FixField.Text Nested2PartySubID { get; }
 
 			/// <summary>The FIX Nested2PartySubIDType, tag 807, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? Nested2PartySubIDType { get; internal set; }
+			public FixField.Integer? Nested2PartySubIDType => _nested2PartySubIDType;
+			internal FixField.Integer? _nested2PartySubIDType;
 
 			FixField IFixEntry.Opener => Nested2PartySubID;
 
@@ -738,13 +753,16 @@ public interface INestedParties3
 		public FixField.Text Nested3PartyID { get; }
 
 		/// <summary>The FIX Nested3PartyIDSource, tag 950, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? Nested3PartyIDSource { get; internal set; }
+		public FixField.Character? Nested3PartyIDSource => _nested3PartyIDSource;
+		internal FixField.Character? _nested3PartyIDSource;
 
 		/// <summary>The FIX Nested3PartyRole, tag 951, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? Nested3PartyRole { get; internal set; }
+		public FixField.Integer? Nested3PartyRole => _nested3PartyRole;
+		internal FixField.Integer? _nested3PartyRole;
 
 		/// <summary>The FIX NoNested3PartySubIDs, tag 952, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoNested3PartySubIDs { get; internal set; }
+		public FixField.Integer? NoNested3PartySubIDs => _noNested3PartySubIDs;
+		internal FixField.Integer? _noNested3PartySubIDs;
 
 		/// <summary>The entries counted by NoNested3PartySubIDs, tag 952; null when the group is absent.</summary>
 		public List<INestedParties3.NoNested3PartyIDsGroup.NoNested3PartySubIDsGroup>? NoNested3PartySubIDsGroups => noNested3PartySubIDsGroups;
@@ -762,7 +780,8 @@ public interface INestedParties3
 			public FixField.Text Nested3PartySubID { get; }
 
 			/// <summary>The FIX Nested3PartySubIDType, tag 954, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? Nested3PartySubIDType { get; internal set; }
+			public FixField.Integer? Nested3PartySubIDType => _nested3PartySubIDType;
+			internal FixField.Integer? _nested3PartySubIDType;
 
 			FixField IFixEntry.Opener => Nested3PartySubID;
 
@@ -835,13 +854,16 @@ public interface IParties
 		public FixField.Text PartyID { get; }
 
 		/// <summary>The FIX PartyIDSource, tag 447, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? PartyIDSource { get; internal set; }
+		public FixField.Character? PartyIDSource => _partyIDSource;
+		internal FixField.Character? _partyIDSource;
 
 		/// <summary>The FIX PartyRole, tag 452, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? PartyRole { get; internal set; }
+		public FixField.Integer? PartyRole => _partyRole;
+		internal FixField.Integer? _partyRole;
 
 		/// <summary>The FIX NoPartySubIDs, tag 802, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoPartySubIDs { get; internal set; }
+		public FixField.Integer? NoPartySubIDs => _noPartySubIDs;
+		internal FixField.Integer? _noPartySubIDs;
 
 		/// <summary>The entries counted by NoPartySubIDs, tag 802; null when the group is absent.</summary>
 		public List<IParties.NoPartyIDsGroup.NoPartySubIDsGroup>? NoPartySubIDsGroups => noPartySubIDsGroups;
@@ -859,7 +881,8 @@ public interface IParties
 			public FixField.Text PartySubID { get; }
 
 			/// <summary>The FIX PartySubIDType, tag 803, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? PartySubIDType { get; internal set; }
+			public FixField.Integer? PartySubIDType => _partySubIDType;
+			internal FixField.Integer? _partySubIDType;
 
 			FixField IFixEntry.Opener => PartySubID;
 
@@ -935,7 +958,8 @@ public interface IPositionAmountData
 		public FixField.Text PosAmtType { get; }
 
 		/// <summary>The FIX PosAmt, tag 708, wire type <c>Amt</c>; null when the field is absent.</summary>
-		public FixField.Decimal? PosAmt { get; internal set; }
+		public FixField.Decimal? PosAmt => _posAmt;
+		internal FixField.Decimal? _posAmt;
 
 		FixField IFixEntry.Opener => PosAmtType;
 
@@ -975,16 +999,20 @@ public interface IPositionQty
 		public FixField.Text PosType { get; }
 
 		/// <summary>The FIX LongQty, tag 704, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? LongQty { get; internal set; }
+		public FixField.Decimal? LongQty => _longQty;
+		internal FixField.Decimal? _longQty;
 
 		/// <summary>The FIX ShortQty, tag 705, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? ShortQty { get; internal set; }
+		public FixField.Decimal? ShortQty => _shortQty;
+		internal FixField.Decimal? _shortQty;
 
 		/// <summary>The FIX PosQtyStatus, tag 706, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? PosQtyStatus { get; internal set; }
+		public FixField.Integer? PosQtyStatus => _posQtyStatus;
+		internal FixField.Integer? _posQtyStatus;
 
 		/// <summary>The FIX NoNestedPartyIDs, tag 539, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoNestedPartyIDs { get; internal set; }
+		public FixField.Integer? NoNestedPartyIDs => _noNestedPartyIDs;
+		internal FixField.Integer? _noNestedPartyIDs;
 
 		/// <summary>The entries counted by NoNestedPartyIDs, tag 539; null when the group is absent.</summary>
 		public List<INestedParties.NoNestedPartyIDsGroup>? NoNestedPartyIDsGroups => noNestedPartyIDsGroups;
@@ -1038,10 +1066,12 @@ public interface ISettlInstructionsData
 		public FixField.Character SettlInstSource { get; }
 
 		/// <summary>The FIX DlvyInstType, tag 787, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? DlvyInstType { get; internal set; }
+		public FixField.Character? DlvyInstType => _dlvyInstType;
+		internal FixField.Character? _dlvyInstType;
 
 		/// <summary>The FIX NoSettlPartyIDs, tag 781, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoSettlPartyIDs { get; internal set; }
+		public FixField.Integer? NoSettlPartyIDs => _noSettlPartyIDs;
+		internal FixField.Integer? _noSettlPartyIDs;
 
 		/// <summary>The entries counted by NoSettlPartyIDs, tag 781; null when the group is absent.</summary>
 		public List<ISettlParties.NoSettlPartyIDsGroup>? NoSettlPartyIDsGroups => noSettlPartyIDsGroups;
@@ -1083,13 +1113,16 @@ public interface ISettlParties
 		public FixField.Text SettlPartyID { get; }
 
 		/// <summary>The FIX SettlPartyIDSource, tag 783, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? SettlPartyIDSource { get; internal set; }
+		public FixField.Character? SettlPartyIDSource => _settlPartyIDSource;
+		internal FixField.Character? _settlPartyIDSource;
 
 		/// <summary>The FIX SettlPartyRole, tag 784, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? SettlPartyRole { get; internal set; }
+		public FixField.Integer? SettlPartyRole => _settlPartyRole;
+		internal FixField.Integer? _settlPartyRole;
 
 		/// <summary>The FIX NoSettlPartySubIDs, tag 801, wire type <c>NumInGroup</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoSettlPartySubIDs { get; internal set; }
+		public FixField.Integer? NoSettlPartySubIDs => _noSettlPartySubIDs;
+		internal FixField.Integer? _noSettlPartySubIDs;
 
 		/// <summary>The entries counted by NoSettlPartySubIDs, tag 801; null when the group is absent.</summary>
 		public List<ISettlParties.NoSettlPartyIDsGroup.NoSettlPartySubIDsGroup>? NoSettlPartySubIDsGroups => noSettlPartySubIDsGroups;
@@ -1107,7 +1140,8 @@ public interface ISettlParties
 			public FixField.Text SettlPartySubID { get; }
 
 			/// <summary>The FIX SettlPartySubIDType, tag 786, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? SettlPartySubIDType { get; internal set; }
+			public FixField.Integer? SettlPartySubIDType => _settlPartySubIDType;
+			internal FixField.Integer? _settlPartySubIDType;
 
 			FixField IFixEntry.Opener => SettlPartySubID;
 
@@ -1189,7 +1223,8 @@ public interface IStipulations
 		public FixField.Text StipulationType { get; }
 
 		/// <summary>The FIX StipulationValue, tag 234, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? StipulationValue { get; internal set; }
+		public FixField.Text? StipulationValue => _stipulationValue;
+		internal FixField.Text? _stipulationValue;
 
 		FixField IFixEntry.Opener => StipulationType;
 
@@ -1229,10 +1264,12 @@ public interface ITrdRegTimestamps
 		public FixField.Timestamp TrdRegTimestamp { get; }
 
 		/// <summary>The FIX TrdRegTimestampType, tag 770, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? TrdRegTimestampType { get; internal set; }
+		public FixField.Integer? TrdRegTimestampType => _trdRegTimestampType;
+		internal FixField.Integer? _trdRegTimestampType;
 
 		/// <summary>The FIX TrdRegTimestampOrigin, tag 771, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TrdRegTimestampOrigin { get; internal set; }
+		public FixField.Text? TrdRegTimestampOrigin => _trdRegTimestampOrigin;
+		internal FixField.Text? _trdRegTimestampOrigin;
 
 		FixField IFixEntry.Opener => TrdRegTimestamp;
 
@@ -1407,7 +1444,8 @@ public interface IUnderlyingInstrument : IUnderlyingStipulations
 		public FixField.Text UnderlyingSecurityAltID { get; }
 
 		/// <summary>The FIX UnderlyingSecurityAltIDSource, tag 459, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? UnderlyingSecurityAltIDSource { get; internal set; }
+		public FixField.Text? UnderlyingSecurityAltIDSource => _underlyingSecurityAltIDSource;
+		internal FixField.Text? _underlyingSecurityAltIDSource;
 
 		FixField IFixEntry.Opener => UnderlyingSecurityAltID;
 
@@ -1447,7 +1485,8 @@ public interface IUnderlyingStipulations
 		public FixField.Text UnderlyingStipType { get; }
 
 		/// <summary>The FIX UnderlyingStipValue, tag 889, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? UnderlyingStipValue { get; internal set; }
+		public FixField.Text? UnderlyingStipValue => _underlyingStipValue;
+		internal FixField.Text? _underlyingStipValue;
 
 		FixField IFixEntry.Opener => UnderlyingStipType;
 
