@@ -146,6 +146,8 @@ public sealed class StreamedParseTests
 	[InlineData("Start : @string[] = (\"a\" | \"ab\") & \"b\" & eol & Row* recover eol", true, new[] { "abb\n[c]\n[9]\n", "ab\n[c]\n" })]
 	[InlineData("Start : @string[] = Row* & ((\"a\" | \"ab\") & \"b\" & ';')*", true, new[] { "[x]\nabb;ab;", "ab;abb;" })]
 	[InlineData("trivia = { ' '* }\nC : @string = 'c' => @(\"c\")\nStart : @string[] = (\"a\" | \"ab\") & \"b\" & C*", true, new[] { "a b c", "ab b c c", "abb c", " abb" })]
+	[InlineData("X : @string = (\"a\" | \"Ab\"i) => @(\"x\")\nStart : @string[] = X* & 'b' & eol", true, new[] { "abb\n", "ab\n" })]
+	[InlineData("X : @string = (\"a\" | \"Cb\"i) => @(\"x\")\nStart : @string[] = X* & 'b' & eol", false, new[] { "ab\n", "cbab\n", "Cbb\n" })]
 	public void A_part_that_can_end_two_ways_is_not_read_one_way(string rule, bool refused, string[] inputs)
 	{
 		var grammar = rule.StartsWith("trivia", StringComparison.Ordinal) ? rule : Rules(rule);
@@ -166,6 +168,48 @@ public sealed class StreamedParseTests
 				foreach (var input in inputs)
 				{
 					var whole    = Whole(host, input);
+					var streamed = Streamed(host, input);
+
+					Assert.True(
+						whole == streamed || whole.StartsWith('!') && streamed.StartsWith('!') && Place(whole) == Place(streamed),
+						$"{carrier}, direct {direct}, [{input}]: string {whole}, reader {streamed}");
+				}
+			}
+	}
+
+	/// <summary>
+	/// The trivia a whole parse reads around the rule and between its parts takes all it can, and
+	/// over a string gives back what the part after it needed: where it can read what a part begins
+	/// with, or what the last part reads, the rule gets no reader.
+	/// </summary>
+	[Theory]
+	[InlineData("trivia = 'a'*\nA : @string = 'a' => @(\"a\")\nStart : @string[] = A+", true, new[] { "a", "aa" })]
+	[InlineData("trivia = 'a'*\nA : @string = 'b' => @(\"b\")\nB : @string = 'a' => @(\"a\")\nStart : @string[] = A* & B", true, new[] { "ba", "a" })]
+	[InlineData("trivia = { ' '* }\nA : @string = 'a' => @(\"a\")\nStart : @string[] = A+", false, new[] { "a", " a a ", "a  a" })]
+	public void Trivia_that_reads_into_a_part_is_not_read_once(string grammar, bool refused, string[] inputs)
+	{
+		var told = Compiled(grammar, CarrierKind.Auto, direct: true).Diagnostics;
+
+		Assert.Equal(
+			refused,
+			told.Any(static one => one.Id == "GRAM5001" && one.Message.Contains("the trivia can read", StringComparison.Ordinal)));
+
+		foreach (var carrier in Carriers)
+			foreach (var direct in new[] { true, false })
+			{
+				var host = Host(grammar, carrier, direct, streams: !refused);
+
+				foreach (var input in inputs)
+				{
+					var whole = Whole(host, input);
+
+					if (refused)
+					{
+						Assert.False(whole.StartsWith('!'), $"{carrier}, direct {direct}, [{input}]: string {whole}");
+
+						continue;
+					}
+
 					var streamed = Streamed(host, input);
 
 					Assert.True(
