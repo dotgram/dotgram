@@ -159,7 +159,7 @@ public sealed class BacktrackedValueTests
 	/// <c>Q</c>, on <c>ac</c>, where <c>Q</c> reads <c>ac</c>. The look holds, the group is skipped,
 	/// and <c>Q</c> is read.
 	/// </summary>
-	[Theory(Skip = "Open: the engine refuses where a skippable group holding a negative look at a rule precedes that rule.")]
+	[Theory]
 	[MemberData(nameof(Readings))]
 	public void A_skipped_group_with_a_negative_look_at_a_rule_lets_the_rule_be_read(CarrierKind carrier, bool direct)
 	{
@@ -171,6 +171,29 @@ public sealed class BacktrackedValueTests
 			""", carrier, direct);
 
 		Assert.Equal((true, "ac"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseR", "ac")));
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseR", "aa").IsSuccess);
+	}
+
+	/// <summary>
+	/// The same skip spelled <c>?</c>, over a look at a literal, and with a positive look that
+	/// holds before the body fails: in each the body is entered on its first character and
+	/// fails for another reason, and what follows is read where the body began.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readings))]
+	public void A_skipped_group_entered_on_its_first_character_lets_what_follows_be_read(CarrierKind carrier, bool direct)
+	{
+		var assembly = Compile(
+			"""
+			R : @string = (?!Q & 'a')? & c: Q => @(c)
+			S : @string = (?!"ac" & 'a')? & "ac" => @(parserText)
+			T : @string = (?="ac" & 'b')? & "ac" => @(parserText)
+			Q : @string = "ac" => @(parserText)
+			""", carrier, direct);
+
+		Assert.Equal((true, "ac"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseR", "ac")));
+		Assert.Equal((true, "ac"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseS", "ac")));
+		Assert.Equal((true, "ac"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseT", "ac")));
 	}
 
 	static (bool, object?) Answer((bool IsSuccess, object? Value, string? Error, long Position) match)
