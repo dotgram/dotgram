@@ -225,14 +225,18 @@ public sealed partial class GrammarNormalizer
 
 		string? why = null;
 
+		// What a guard inside is handed is what the part captured before it, as the rule the part
+		// becomes numbers it; a name captured outside and not among those is one it cannot have.
+		var layout = CaptureLayout.Of(inner, BuildsValue);
+
 		foreach (var node in Unlifted(inner))
 			if (node is Node.Construct)
 				why ??= "a value is built inside it, and the value it is part of is the enclosing rule's";
 			else if (node is Node.Capture(_, Node.Lookahead))
 				why ??= "what a lookahead inside it saw is captured, and that capture is written where the lookahead ends, outside its call";
 			else if (node is Node.Guard guard &&
-				outside.FirstOrDefault(name => !inside.Contains(name) && Names(guard.Text, name)) is { } read)
-				why ??= $"a guard inside it reads '{read}', which is captured only outside it";
+				outside.FirstOrDefault(name => !Before(guard, name) && Names(guard.Text, name)) is { } read)
+				why ??= $"a guard inside it reads '{read}', which is captured outside it and not inside it before the guard";
 
 		foreach (var body in bodies)
 			foreach (var node in Unlifted(body, except: inner))
@@ -250,6 +254,13 @@ public sealed partial class GrammarNormalizer
 			at);
 
 		return true;
+
+		bool Before(Node guard, string name)
+		{
+			var before = layout.Before(guard);
+
+			return layout.Slots.Any(slot => slot.Index < before && slot.Name == name);
+		}
 
 		// The rule's body and the bodies already lifted out of it: the one value they build.
 		void Region(Node body)

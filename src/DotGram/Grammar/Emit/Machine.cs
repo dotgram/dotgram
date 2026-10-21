@@ -704,7 +704,7 @@ sealed partial class Machine
 		foreach (var rule in _rules)
 		{
 			_seam      = FollowSets.SeamOf(rule, graph);
-			_traceRule = rule.Name;
+			_traceRule = graph.Origin(rule).Name;
 			_frame     = FrameOf(rule);
 
 			var body = Compile(graph.Bodies[rule], Return, Follows(rule));
@@ -3266,7 +3266,7 @@ sealed partial class Machine
 				if (_graph.Climbing.Count > 0)
 					writer.Line($"power = {calledPower};");
 				writer.Line(
-					$"Step_DotGram(\"call {Escape(rule.Name)}\", {Mark(Lands, _entries[rule])}, p, entries.Count{Traced});");
+					$"Step_DotGram(\"call {Escape(_graph.Origin(rule).Name)}\", {Mark(Lands, _entries[rule])}, p, entries.Count{Traced});");
 				writer.Line($"goto {Label(writer, _entries[rule])};");
 
 				return state;
