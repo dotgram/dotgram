@@ -1697,6 +1697,12 @@ records through a window that holds none of them for long is a pinned test. *`pa
 reads from a reader* above has the mechanics; the analysis above is what the overloads
 rest on.
 
+What a reader hands back is held to what the string reads, on every shape the analysis
+lets through (`StreamedParseTests`): only the marked repetition asks the rest of the rule
+first, an ordinary one beside it is read greedily, least and most are held, and input left
+after the last part is refused. A part that collects a value without being a call, and a rule
+with its own `=>`, get no reader.
+
 ## What has been measured
 
 Eight of the architecture's claims now have numbers rather than reasoning behind them.

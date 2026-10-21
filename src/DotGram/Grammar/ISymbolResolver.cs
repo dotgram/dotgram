@@ -188,9 +188,22 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 		return true;
 	}
 
+	/// <remarks>
+	/// But for an array asked about as its own element: <c>T[]</c> is a <c>T</c> only where every
+	/// array is, and of those only <c>object</c> is a type a grammar would collect into. Saying yes
+	/// had a sequence of <c>T</c> take a rule that builds a <c>T[]</c> as one of its elements, in
+	/// code that did not compile (CS0029), where a compilation refuses the grammar (§4.1 case 2).
+	/// </remarks>
 	public bool IsAssignable(string from, string to)
 	{
-		return true;
+		if (from is null)
+			throw new ArgumentNullException(nameof(from));
+
+		if (to is null)
+			throw new ArgumentNullException(nameof(to));
+
+		return !(from.Length == to.Length + 2 && from.StartsWith(to, StringComparison.Ordinal) &&
+			from.EndsWith("[]", StringComparison.Ordinal) && to is not ("object" or "System.Object" or "global::System.Object"));
 	}
 
 	/// <remarks>
