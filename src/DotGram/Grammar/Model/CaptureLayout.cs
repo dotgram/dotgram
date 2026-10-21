@@ -137,9 +137,14 @@ public sealed class CaptureLayout
 	/// applied once per iteration and needs that iteration's captures, not the last
 	/// one's.
 	/// </param>
-	public static CaptureLayout Of(Node body, Func<RuleSymbol, bool> buildsValue, Node? fold = null)
+	/// <param name="lifted">
+	/// The body of a rule lifted out of an element (<see cref="RecognitionGraph.LiftedBody"/>), whose
+	/// captures a call of it numbers where the call stands, as they were numbered before the lift.
+	/// </param>
+	public static CaptureLayout Of(
+		Node body, Func<RuleSymbol, bool> buildsValue, Node? fold = null, Func<RuleSymbol, Node?>? lifted = null)
 	{
-		var layout = new CaptureLayout { _fold = fold };
+		var layout = new CaptureLayout { _fold = fold, _lifted = lifted };
 
 		layout.Walk(body, buildsValue, repeated: false, inFold: false);
 
@@ -147,6 +152,8 @@ public sealed class CaptureLayout
 	}
 
 	Node? _fold;
+
+	Func<RuleSymbol, Node?>? _lifted;
 
 	/// <param name="repeated">
 	/// Whether a repetition that may run more than once encloses this node. What is
@@ -279,6 +286,17 @@ public sealed class CaptureLayout
 				_after[node] = _slots.Count;
 				break;
 
+			// A rule lifted out of an element keeps its captures in this rule's slots, numbered where
+			// it is called as they were where it stood.
+			case Node.Call(var called, _) when _lifted?.Invoke(called) is { } inner:
+
+				_before[node] = _slots.Count;
+
+				Walk(inner, buildsValue, repeated, inFold);
+
+				_after[node] = _slots.Count;
+				break;
+
 			// A lookahead consumes nothing and is compiled as a separate machine, with its
 			// captures stripped: there is no slot of this rule's for it to write.
 			default:
@@ -343,6 +361,17 @@ public sealed record ResultMember(
 		return capture == Name || Joins.Contains(capture);
 	}
 }
+
+/// <summary>
+/// Where a rule normalization made of a marked repetition was lifted from (§8.2).
+/// </summary>
+/// <param name="Parent">The rule whose body held the repetition, and now holds the call.</param>
+/// <param name="Origin">The rule the author wrote it in, which every name the user sees is.</param>
+/// <param name="Transparent">
+/// Whether it stood in the other one's element, so that what it captures is that rule's, in its
+/// slots; one lifted out of a synchronization captures nothing anything reads.
+/// </param>
+public sealed record Lift(RuleSymbol Parent, RuleSymbol Origin, bool Transparent);
 
 /// <summary>
 /// What a repetition marked <c>recover</c> was told (§8.2): where to resume after a

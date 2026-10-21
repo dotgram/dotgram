@@ -188,7 +188,8 @@ sealed partial class Machine
 
 				var layout = CaptureLayout.Of(
 					_graph.Bodies[called],
-					other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other));
+					other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other),
+					lifted: _graph.LiftedBody);
 				var slots  = new Dictionary<Node, int>(NodeIdentity.Instance);
 				var nested = _graph.Recursive.Contains(rule);
 

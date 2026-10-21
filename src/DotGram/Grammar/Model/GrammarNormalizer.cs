@@ -311,6 +311,10 @@ public sealed partial class GrammarNormalizer
 		normalizer.CheckPublicationTypes();
 		normalizer.LowerYieldPublications();
 
+		// After everything that rewrites a body, so that what it lifts is final and every instance
+		// is lifted on its own; it only moves a node into a rule of its own.
+		normalizer.LiftNestedRecoveries();
+
 		normalizer.Prune();
 
 		// After pruning, because a rule nothing reaches is never emitted, and a mark in one
@@ -330,6 +334,9 @@ public sealed partial class GrammarNormalizer
 			Folds      = normalizer._folds,
 			Trivia     = normalizer._trivia,
 			Recoveries = normalizer._recoveries,
+			Lifted     = normalizer._lifted
+				.Where(pair => normalizer._rules.Contains(pair.Key))
+				.ToDictionary(pair => pair.Key, pair => pair.Value),
 			Says       = normalizer._says,
 			Forwarded  = normalizer._forwarded,
 			Climbing   = normalizer._climbing,

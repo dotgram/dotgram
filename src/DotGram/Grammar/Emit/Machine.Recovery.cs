@@ -126,11 +126,11 @@ sealed partial class Machine
 
 		atScan.Line($"if ({Short(1)}) goto {Label(atScan, recovered)};");
 		EmitRecoverySearch(atScan, recovery.Recovery.Sync);
-		atScan.Line("syncFrom = p;");
+		atScan.Line($"{SyncFrom(id)} = p;");
 		atScan.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(atScan, advance)}, p, call, atomic, repeat, lookahead, 0));");
 		atScan.Line($"goto {Label(atScan, sync)};");
 
-		atSynced.Line($"if (p <= syncFrom) {{ expected = null; goto Fail; }}");
+		atSynced.Line($"if (p <= {SyncFrom(id)}) {{ expected = null; goto Fail; }}");
 		atSynced.Line($"goto {Label(atSynced, recovered)};");
 
 		atAdvance.Line("p++;");
@@ -495,6 +495,9 @@ sealed partial class Machine
 
 			file.Line($"var reach{id} = 0;");
 
+			if (id > 0 && Written(asked))
+				file.Line($"var {SyncFrom(id)} = 0;");
+
 			if (plan.Recovery.Explains && Written(asked))
 			{
 				// A repetition read again inside its own element keeps these on the arena.
@@ -507,6 +510,17 @@ sealed partial class Machine
 				file.Line($"string[]? expecting{id} = null;");
 			}
 		}
+	}
+
+	/// <summary>
+	/// Where a recovering repetition began looking for its synchronization, which the match it finds
+	/// has to move past: one per repetition, as a repetition in the synchronization another looks for
+	/// looks for its own in between, and the outer one was then held to where the inner one began.
+	/// The first keeps the name the one local for all of them had.
+	/// </summary>
+	static string SyncFrom(int id)
+	{
+		return id == 0 ? "syncFrom" : "syncFrom" + id.ToString(System.Globalization.CultureInfo.InvariantCulture);
 	}
 
 	/// <summary>How far each recovering repetition's element got, raised where the engine fails.</summary>

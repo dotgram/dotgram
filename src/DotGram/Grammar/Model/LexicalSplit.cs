@@ -314,6 +314,9 @@ public sealed class LexicalSplit
 					one => (IReadOnlyDictionary<Node, int>)Remapped(one.Value)),
 				Folds = Refolded(Kept(graph.Folds, rules)),
 				Says  = Kept(graph.Says, rules),
+
+				// Keyed by rule: a lifted rule is the same rule over kinds.
+				Lifted = Kept(graph.Lifted, rules),
 			};
 
 			return new LexicalSplit(

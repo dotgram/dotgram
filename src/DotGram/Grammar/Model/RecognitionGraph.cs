@@ -582,6 +582,42 @@ public sealed class RecognitionGraph(
 		new Dictionary<Node, Recovery>();
 
 	/// <summary>
+	/// The rules normalization made of a marked repetition that stood inside another one's element
+	/// or synchronization (§8.2), each with where it was lifted from.
+	/// </summary>
+	public IReadOnlyDictionary<RuleSymbol, Lift> Lifted { get; init; } =
+		new Dictionary<RuleSymbol, Lift>();
+
+	/// <summary>
+	/// The body of a rule lifted out of another one's element, which keeps its captures in the slots
+	/// of the rule it was lifted from (<see cref="Lift.Transparent"/>); null for every other rule.
+	/// </summary>
+	public Node? LiftedBody(RuleSymbol rule)
+	{
+		return Lifted.TryGetValue(rule, out var lift) && lift.Transparent && Bodies.TryGetValue(rule, out var body)
+			? body
+			: null;
+	}
+
+	/// <summary>
+	/// The rule whose slots a rule's captures are kept in: the rule itself, or for one lifted out of
+	/// an element, the rule the element is in, followed out through every such lift.
+	/// </summary>
+	public RuleSymbol ValueOwner(RuleSymbol rule)
+	{
+		while (Lifted.TryGetValue(rule, out var lift) && lift.Transparent)
+			rule = lift.Parent;
+
+		return rule;
+	}
+
+	/// <summary>The rule the author wrote, for a rule normalization lifted out of it.</summary>
+	public RuleSymbol Origin(RuleSymbol rule)
+	{
+		return Lifted.TryGetValue(rule, out var lift) ? lift.Origin : rule;
+	}
+
+	/// <summary>
 	/// What a rule's refusal says where that is not what the rule itself declared with
 	/// <c>on fail</c> (§4) — a message a vanished rule left to the one that took its place.
 	/// </summary>

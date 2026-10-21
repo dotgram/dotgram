@@ -486,7 +486,8 @@ sealed partial class Machine
 		foreach (var rule in _rules)
 		{
 			var layout = CaptureLayout.Of(
-				graph.Bodies[rule], other => graph.Results[other].Count > 0 || graph.Types.ContainsKey(other));
+				graph.Bodies[rule], other => graph.Results[other].Count > 0 || graph.Types.ContainsKey(other),
+				lifted: graph.LiftedBody);
 			var factories = CSharpEmitter.FactoriesOf(graph, results, rule);
 			if (BufferedBytes) factories = factories.Select(factory => factory with { Method = factory.Method + "_Bytes" }).ToArray();
 
@@ -766,7 +767,7 @@ sealed partial class Machine
 		{
 			var layout = CaptureLayout.Of(
 				graph.Bodies[rule], other => graph.Results[other].Count > 0 || graph.Types.ContainsKey(other),
-				graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
+				graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null, graph.LiftedBody);
 
 			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
 			{
@@ -1926,7 +1927,7 @@ sealed partial class Machine
 					// Read only by a recovering repetition's search for its synchronization, which a
 					// grammar whose recoveries are all out of the engine's reach does not write: a
 					// rule that recovers and is only looked ahead at is scanned, not run in states.
-					if (_recoveringStates.Exists(one => Written(one.Asked)))
+					if (_recoveringStates.Count > 0 && Written(_recoveringStates[0].Asked))
 						file.Line("var syncFrom = 0;");
 
 					RecoveryLocals(file);
