@@ -107,6 +107,46 @@ public sealed class BacktrackedValueTests
 		}
 	}
 
+	/// <summary>
+	/// An atomic group commits the first reading of what it holds. Where that reading came about by
+	/// a run giving back for a guard — <c>'a' &amp; c: 'b'* &amp; when @(c.Length == 0)</c> reads
+	/// <c>a</c> of <c>ab</c> — what follows the group cannot reach the alternative after it.
+	/// </summary>
+	[Theory(Skip = "Open: an atomic group whose first reading gave back for a guard still gives way to a later alternative (every carrier through a rule, the engine inline).")]
+	[MemberData(nameof(Readings))]
+	public void An_atomic_group_keeps_a_first_reading_a_guard_made(CarrierKind carrier, bool direct)
+	{
+		var assembly = Compile(
+			"""
+			R : @string = { Y } => @(parserText)
+			Y : @string = 'a' & c: 'b'* & when @(c.Length == 0) => @("1") | "ab" => @("2")
+			S : @string = { 'a' & c: 'b'* & when @(c.Length == 0) | "ab" } => @(parserText)
+			""", carrier, direct);
+
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseR", "ab").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseS", "ab").IsSuccess);
+		Assert.Equal((true, "a"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseR", "a")));
+	}
+
+	/// <summary>
+	/// A negative look at a rule, in a group that may be skipped: <c>(?!Q &amp; 'a'){0,1}</c> before
+	/// <c>Q</c>, on <c>ac</c>, where <c>Q</c> reads <c>ac</c>. The look holds, the group is skipped,
+	/// and <c>Q</c> is read.
+	/// </summary>
+	[Theory(Skip = "Open: the engine refuses where a skippable group holding a negative look at a rule precedes that rule.")]
+	[MemberData(nameof(Readings))]
+	public void A_skipped_group_with_a_negative_look_at_a_rule_lets_the_rule_be_read(CarrierKind carrier, bool direct)
+	{
+		var assembly = Compile(
+			"""
+			R : @string = (?!Q & 'a'){0,1} & c: Q => @(c)
+			Q : @string = c: W => @(c)
+			W : @string = "ac" => @(parserText)
+			""", carrier, direct);
+
+		Assert.Equal((true, "ac"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseR", "ac")));
+	}
+
 	static (bool, object?) Answer((bool IsSuccess, object? Value, string? Error, long Position) match)
 	{
 		return (match.IsSuccess, match.Value);
