@@ -514,9 +514,10 @@ sealed partial class Machine
 
 	/// <summary>
 	/// Where a recovering repetition began looking for its synchronization, which the match it finds
-	/// has to move past: one per repetition, as a repetition in the synchronization another looks for
-	/// looks for its own in between, and the outer one was then held to where the inner one began.
-	/// The first keeps the name the one local for all of them had.
+	/// has to move past: one per repetition. A repetition read while another is between looking for
+	/// its synchronization and finding it — one in that synchronization, or in a rule it calls —
+	/// looks for its own in between, and a single local then held the outer one to where the inner
+	/// search began. The first keeps the name the one local had.
 	/// </summary>
 	static string SyncFrom(int id)
 	{
