@@ -213,6 +213,19 @@ public sealed partial class GrammarNormalizer
 						: Framed(new Node.Choice([
 							.. sources.Select((_, at) => (Node)new Node.Capture(name, Through(called, at)))]), called);
 
+				// And over a lookahead at them: a capture of `?=X` holds X's value (§3.4), which
+				// a choice of the sources inside one lookahead would make text. Looking at each
+				// source in turn is the same reading, since a lookahead gives the input back —
+				// committed to the first that matches, as the one lookahead was: a later failure
+				// does not come back to look at the next.
+				case Node.Capture(var name, Node.Lookahead(true, Node.Call(var called, { Count: 0 })))
+					when transparent.TryGetValue(called, out var sources):
+					return sources.Count == 1
+						? new Node.Capture(name, new Node.Lookahead(true, Through(called, 0)))
+						: new Node.Atomic(Framed(new Node.Choice([
+							.. sources.Select((_, at) =>
+								(Node)new Node.Capture(name, new Node.Lookahead(true, Through(called, at))))]), called));
+
 				case Node.Call(var called, { Count: 0 })
 					when transparent.TryGetValue(called, out var sources):
 					return sources.Count == 1

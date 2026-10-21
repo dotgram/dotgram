@@ -1,4 +1,4 @@
-# Implementation status
+﻿# Implementation status
 
 [`syntax.md`](syntax.md) describes the language. It is a specification, not a report:
 it says what `.Gram` is, in the present tense, whether or not the compiler does it yet.
@@ -916,7 +916,7 @@ public and safe from collision.
 and §3.6 writes the example out:
 
 ```dotgram
-SmallNumber = n: ?=Number & when @IsSmall(n) & value: Number
+SmallNumber : @int = n: ?=Number & when @IsSmall(n) & value: Number => value
 ```
 
 Neither half worked. `n: ?=Number` did not parse at all — a capture read only a primary
@@ -928,6 +928,15 @@ It now takes the extent from what the lookahead returned, which is how far it go
 giving the position back. A negative lookahead still produces nothing, which is not an
 oversight — it succeeded because what it looked for was *not* there, so there is nothing
 to have seen.
+
+What it took was still the text, where §3.4 says the value: `n: ?=Number` with `Number :
+@int` was handed the digits as a string, and the example above, typed, did not compile
+(CS0029). A lookahead at a rule that builds a value now commits as an atomic group that keeps
+its records does — its ways back are put out and the call it read stays in the tape — and the
+capture names that call, as a capture of the call itself would. A guard reads it the same
+way, which is what the example asks. A lookahead at a pattern, or at a rule whose value is its
+text, is the text as before. Only the tape carries it: the direct reader and the immediate
+carrier hand a rule that captures a lookahead to the tape, as they did.
 
 Found by reading §3 with a probe rather than by writing a feature: five claims tested,
 one of them false in two ways.

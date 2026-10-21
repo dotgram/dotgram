@@ -552,7 +552,8 @@ sealed partial class Machine
 					// reading, not where the turn did, so the next turn's piece can begin
 					// inside it — the pieces can overlap, and a sum of lengths no longer says
 					// whether they tile.
-					else if (node is Node.Capture(_, Node.Lookahead) && looped.Contains(node))
+					else if (node is Node.Capture(_, Node.Lookahead) && looped.Contains(node) &&
+						layout.Slots[layout.SlotOf(node)].Rule is null)
 					{
 						_repeatedCaptures.Add(slot);
 
@@ -3105,7 +3106,9 @@ sealed partial class Machine
 					return CompileSite((Node.Capture)node, sitePlan, next, following);
 
 				if (body is Node.Lookahead(true, var seen))
-					return CompileLookaheadCapture(slot, seen, next);
+					return _slotRules[slot] is { } looked
+						? CompileLookaheadValueCapture(slot, looked, seen, next)
+						: CompileLookaheadCapture(slot, seen, next);
 				if (body is Node.Lookahead(false, var rejected))
 					return CompileNegativeLookaheadCapture(slot, rejected, next);
 
@@ -4566,6 +4569,73 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, p, {_frame}, atomic, " +
 			"repeat, lookahead, seenTo));");
 		atSuccess.Line($"Step_DotGram(\"capture lookahead\", {slot}, seenTo, entries.Count{Traced});");
+		atSuccess.Line($"goto {Label(atSuccess, next)};");
+
+		return state;
+	}
+
+	/// <summary>
+	/// A positive lookahead at a rule that builds a value, captured: §3.4 has <c>?=X</c> produce
+	/// <c>X</c>'s value, and the capture holds that value as a capture of the call would.
+	/// </summary>
+	/// <remarks>
+	/// The lookahead commits the way an atomic group that keeps its records does: the ways back
+	/// inside it are put out, and what it recognised stays where it is, so the call it read
+	/// stands completed in the arena for a <see cref="ParserEntry"/> of the rule capture kind to
+	/// name. Then the input goes back to where the lookahead began. A text capture of a lookahead
+	/// takes everything it read off the arena instead, which a value cannot be built from.
+	/// </remarks>
+	int CompileLookaheadValueCapture(int slot, RuleSymbol looked, Node seen, int next)
+	{
+		_usesCompleted = true;
+		_usesDead      = true;
+
+		var success = Reserve(out var atSuccess);
+		var inner   = Compile(seen, success, FollowSets.Continuation.All);
+		var state   = Reserve(out var writer);
+
+		writer.Line("var lookaheadIndex = entries.Count;");
+		writer.Line(
+			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {Resuming(writer, next)}, p, call, atomic, " +
+			"repeat, lookahead, 1));");
+		writer.Line("lookahead = lookaheadIndex;");
+		writer.Line($"Step_DotGram(\"enter captured positive lookahead\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
+		writer.Line($"goto {Label(writer, inner)};");
+
+		atSuccess.Line("global::System.Diagnostics.Debug.Assert(lookahead >= 0 && lookahead < entries.Count);");
+		atSuccess.Line("var seenTo = p;");
+		atSuccess.Line("var lookedAt = lookahead;");
+		atSuccess.Line("var looked = entries[lookedAt];");
+		atSuccess.Line("global::System.Diagnostics.Debug.Assert(looked.Kind == ParserEntry.Lookahead);");
+		atSuccess.Line("var capturedCall = completedCall;");
+		atSuccess.Line(
+			"global::System.Diagnostics.Debug.Assert(" +
+			"capturedCall > lookedAt && " +
+			"entries[capturedCall].Kind == ParserEntry.Completed && " +
+			$"entries[capturedCall].RuleIndex == {_ruleIds[looked]} && " +
+			"entries[capturedCall].Value == seenTo);");
+
+		using (atSuccess.Block("for (var back = entries.Count - 1; back >= lookedAt; back--)"))
+		{
+			atSuccess.Line("var inside = entries[back];");
+			atSuccess.Line(
+				"if (inside.Kind != ParserEntry.Choice && inside.Kind != ParserEntry.Run && " +
+				"inside.Kind != ParserEntry.Lookahead) continue;");
+			atSuccess.Line(
+				"entries[back] = new ParserEntry(ParserEntry.Dead, inside.State, inside.Position, " +
+				"inside.CallIndex, inside.AtomicIndex, inside.RepeatIndex, inside.LookaheadIndex, " +
+				"inside.Value);");
+		}
+
+		atSuccess.Line("p         = looked.Position;");
+		atSuccess.Line("call      = looked.CallIndex;");
+		atSuccess.Line("atomic    = looked.AtomicIndex;");
+		atSuccess.Line("repeat    = looked.RepeatIndex;");
+		atSuccess.Line("lookahead = looked.LookaheadIndex;");
+		atSuccess.Line(
+			$"entries.Add(new ParserEntry(ParserEntry.RuleCapture, {slot}, capturedCall, {_frame}, atomic, " +
+			"repeat, lookahead, p));");
+		atSuccess.Line($"Step_DotGram(\"capture lookahead value\", {slot}, seenTo, entries.Count{Traced});");
 		atSuccess.Line($"goto {Label(atSuccess, next)};");
 
 		return state;
