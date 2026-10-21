@@ -3722,7 +3722,7 @@ file.Line("return spare;");
 
 		void Gather(Node node)
 		{
-			foreach (var one in NodeWalk.Descendants(node))
+			foreach (var one in layout.Through(node))
 				if (one is Node.Capture && layout.SlotOrNone(one) is var slot && slot >= 0)
 					found.Add(slot);
 		}

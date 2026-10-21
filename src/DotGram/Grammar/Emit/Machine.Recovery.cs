@@ -174,7 +174,7 @@ sealed partial class Machine
 			atRecovered.Line($"{Keep("parser")}[entries.Count] = expecting{id};");
 
 		atRecovered.Line(
-			$"entries.Add(new ParserEntry(ParserEntry.Recovery, {recovery.Id}, recoveryFrom, call, recoveryReach, " +
+			$"entries.Add(new ParserEntry(ParserEntry.Recovery, {recovery.Id}, recoveryFrom, {_frame}, recoveryReach, " +
 			"repeat, lookahead, recoveryTo, entries[repeat].Value" +
 			(recovery.Recovery.YieldStep ? " + failure.RecoveryOrdinal" : "") + "));");
 		// The element stepped over, told where the build traces: from where it began to where

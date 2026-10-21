@@ -174,16 +174,39 @@ public sealed class NestedRecoveryTests
 			TwinValues: false),
 
 		new(
-			"a capture outside, read by an inner guard",
-			Words +
-				"Count : @int = d: ['0'..'9'] => @(int.Parse(d))\n" +
-				"Start : @string = ((n: Count & ':' & (w: Word & when @(w[w.Length - 1].Length <= n[n.Length - 1]) & ';')* recover ';' & eol)* recover eol)" +
+			"an inner guard reads what its own turn captured",
+			Words + "Start : @string = (('[' & (w: Word & when @(w.Length <= 1) & ';')* recover ';' & ']' & eol)* recover eol)" +
 				" => @(string.Join(\"+\", w))",
-			null,
-			[],
-			// Both are sequences so far, the current one last: a word longer than its line's count is
-			// a bad element of the inner repetition, and the rest of the line is kept.
-			[("2:ab;abc;c;\n1:x;yy;\n", "ab+c+x")]),
+			Words + "Inner = (w: Word & when @(w.Length <= 1) & ';')* recover ';'\nStart = ('[' & Inner & ']' & eol)* recover eol",
+			["Inner"],
+			[
+				// The guard on the second line is handed `b` alone, as the twin's is: the first
+				// line's `a` was captured by another reading of the inner part.
+				("[a;]\n[b;]\n", "a+b"),
+				("[a;b;]\n[c;d;e;]\n", "a+c"),
+			],
+			TwinValues: false),
+
+		new(
+			"a guard in an inner synchronization",
+			Words + "Start : @string[] = (Word & eol)* recover ('#' & ('x' & when @(true) & ';')* recover ';' & eol)",
+			Words + "Sync = '#' & ('x' & when @(true) & ';')* recover ';' & eol\nStart : @string[] = (Word & eol)* recover Sync",
+			["Sync"],
+			[("a\n9#x;y;x;\nb\n", "a,b")]),
+
+		new(
+			"an inner synchronization looked for inside an outer one",
+			Words + "Line : @string = w: Word & ';'? & eol => @(w)\n" +
+				"Start : @string[] = Line* recover ('#' & ('b' & ('x' & ';')* recover ';' & '!')?)",
+			Words + "Line : @string = w: Word & ';'? & eol => @(w)\n" +
+				"Inner = ('x' & ';')* recover ';'\nStart : @string[] = Line* recover ('#' & ('b' & Inner & '!')?)",
+			["Inner"],
+			[
+				// The inner one looks for its `;` and finds none it can end on, so the outer
+				// synchronization is only `#`, and reading goes on at `b;` — past where the outer
+				// search began, which the inner search, begun later, does not move.
+				("a\n9#b;\nc\n", "a,b,c"),
+			]),
 
 		new(
 			"the enclosing rule's on fail",
@@ -345,6 +368,34 @@ public sealed class NestedRecoveryTests
 	/// included: one bound inside and read after the inner part, and one bound outside and read
 	/// inside it.
 	/// </summary>
+	/// <summary>
+	/// What a rule of its own cannot carry is refused where the inner <c>recover</c> is written
+	/// (GRAM4045): an outer capture read by an inner guard, an inner capture read by a guard outside,
+	/// and a capture of a lookahead inside.
+	/// </summary>
+	[Theory]
+	[InlineData(
+		"Count : @int = d: ['0'..'9'] => @(int.Parse(d))\n" +
+		"Start : @string = ((n: Count & ':' & (w: Word & when @(w.Length <= n.Length) & ';')* recover ';' & eol)* recover eol) => @(string.Join(\"+\", w))",
+		"reads 'n', which is captured outside it")]
+	[InlineData(
+		"Start : @string = (('[' & (w: Word & ';')* recover ';' & when @(w.Length > 0) & ']' & eol)* recover eol) => @(string.Join(\"+\", w))",
+		"reads 'w', which is captured inside it")]
+	[InlineData(
+		"Start : @string = (('[' & (k: ?=Word & w: Word & ';')* recover ';' & ']' & eol)* recover eol) => @(string.Join(\"+\", w))",
+		"lookahead")]
+	public void What_a_rule_of_its_own_cannot_carry_is_refused_at_the_inner_recover(string rule, string why)
+	{
+		var grammar = Words + rule + "\nparse Start";
+		var told    = GramCompiler.Compile(grammar, Options(CarrierKind.Auto, true, false, false, false)).Diagnostics;
+		var refused = Assert.Single(told, static one => one.Id == GrammarNormalizer.NestedRecoveryFlow);
+
+		Assert.Equal(GramSeverity.Error, refused.Severity);
+		Assert.EndsWith("recover ';'", grammar.Substring(refused.Position, refused.Length), StringComparison.Ordinal);
+		Assert.StartsWith("(", grammar.Substring(refused.Position, refused.Length), StringComparison.Ordinal);
+		Assert.Contains(why, refused.Message, StringComparison.Ordinal);
+	}
+
 	[Theory]
 	[InlineData("Start = ('[' & ($q: Word & ';')* recover ';' & '=' & $q & ']' & eol)* recover eol", "$q: Word")]
 	[InlineData("Start = ($q: Word & ':' & ($q & ';')* recover ';' & eol)* recover eol", "$q & ';'")]

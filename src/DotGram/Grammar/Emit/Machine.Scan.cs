@@ -172,6 +172,12 @@ sealed partial class Machine
 	/// </remarks>
 	bool Scans(RuleSymbol rule, Node body)
 	{
+		// Not a repetition marked `recover`: a scanner commits to what it reads and records
+		// nothing, and a recovery is a way of reading that steps over what it could not read
+		// (§8.2) — a rule lifted out of another one's synchronization is one such body.
+		if (NodeWalk.Descendants(body).Any(_graph.Recoveries.ContainsKey))
+			return false;
+
 		if (body is Node.Atomic(var kept))
 			return !KeepsRecords(kept) && Scannable(kept, FirstSets.First.None);
 

@@ -3725,6 +3725,14 @@ if need be: `[9]` on a line of its own is stepped over to the next `;`, the one 
 outer one's, keeps the inner one inside its element. A `recover` inside a synchronization runs
 at every position the synchronization search tries.
 
+It is a rule of its own in every other way too. A guard inside reads what the inner part has
+captured in this reading of it, not what earlier lines did: `(w: Word & when @(w.Length <= 1) &
+';')*` is handed this line's words. What a rule of its own could not be handed or hand back is
+refused where the inner `recover` is written (`GRAM4045`): a guard inside reading a capture made
+outside it, a guard outside reading one made inside, a value built inside it, a capture of a
+lookahead inside it. Move the part into its own rule and pass it what it needs; a `=>` of the
+enclosing rule reads what was captured inside, which is built after the parse.
+
 A grammar cut in two (`Lexical = true`) recovers in the syntax that reads the tokens. A
 `recover` in a rule the lexer reads — a terminal, what one is made of, or trivia — is refused
 (`GRAM4044`): a token is the longest match of a regular language, and there is no element in

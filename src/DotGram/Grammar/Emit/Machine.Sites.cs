@@ -376,7 +376,7 @@ sealed partial class Machine
 
 			atClose.Line(
 				$"entries.Add(new ParserEntry(ParserEntry.Capture, {site.Boundary}, " +
-				$"capture{site.Boundary}, call, atomic, repeat, lookahead, p));");
+				$"capture{site.Boundary}, {_frame}, atomic, repeat, lookahead, p));");
 			atClose.Line($"goto {Label(atClose, next)};");
 		}
 

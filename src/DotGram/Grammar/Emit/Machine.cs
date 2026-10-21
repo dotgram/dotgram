@@ -491,7 +491,11 @@ sealed partial class Machine
 			var factories = CSharpEmitter.FactoriesOf(graph, results, rule);
 			if (BufferedBytes) factories = factories.Select(factory => factory with { Method = factory.Method + "_Bytes" }).ToArray();
 
-			_captureOffsets[rule] = _captures;
+			// A rule lifted out of an element keeps its captures in the slots of the rule it was
+			// lifted from, numbered where the call stands (§8.2): none of its own to take.
+			var lent = SlotsLent(rule);
+
+			_captureOffsets[rule] = lent is { } within ? within : _captures;
 			_factories[rule] = factories;
 
 			var looped = Looped(graph.Bodies[rule], graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
@@ -502,7 +506,7 @@ sealed partial class Machine
 
 				if (node is Node.Capture(_, var captured))
 				{
-					var slot = _captures + layout.SlotOf(node);
+					var slot = _captureOffsets[rule] + layout.SlotOf(node);
 
 					_captureSlots[node] = slot;
 					_slotRules[slot]    = layout.Slots[layout.SlotOf(node)].Rule;
@@ -575,7 +579,7 @@ sealed partial class Machine
 					// rule's captures, which no member names: what the arena holds of it is
 					// read back by a reference and by a count, never by Accept. Kept in the
 					// arena rather than a variable for the same two reasons a capture is.
-					var slot = _captures + layout.SlotOf(binding);
+					var slot = _captureOffsets[rule] + layout.SlotOf(binding);
 
 					_bindingSlots[binding] = slot;
 
@@ -586,7 +590,8 @@ sealed partial class Machine
 				}
 			}
 
-			_captures += layout.Slots.Count + layout.Bindings.Count;
+			if (lent is null)
+				_captures += layout.Slots.Count + layout.Bindings.Count;
 
 			// One plan per marked repetition: each has its own sync, its own `=>` and its
 			// own sequence, and the arena has always dispatched a recovery by plan.
@@ -596,7 +601,7 @@ sealed partial class Machine
 			{
 				var (repetition, recovery, recoverySlot) = recoveries[found];
 				var plan = new RecoveryPlan(
-					rule, recovery, recoverySlot < 0 ? -1 : _captureOffsets[rule] + recoverySlot,
+					graph.ValueOwner(rule), recovery, recoverySlot < 0 ? -1 : _captureOffsets[rule] + recoverySlot,
 					_recoveryPlans.Count, CSharpEmitter.RecoveryMethod(rule, found) + (BorrowedCaptures ? "_Span" + _tag : ""),
 					recoverySlot < 0 ? null : layout.Slots[recoverySlot].Rule);
 
@@ -700,8 +705,11 @@ sealed partial class Machine
 		{
 			_seam      = FollowSets.SeamOf(rule, graph);
 			_traceRule = rule.Name;
+			_frame     = FrameOf(rule);
 
 			var body = Compile(graph.Bodies[rule], Return, Follows(rule));
+
+			_frame = "call";
 			var entry = _states[_entries[rule] - First];
 
 			// Nothing but the jump, so that `JumpOnly` can collapse this state away and the
@@ -763,13 +771,16 @@ sealed partial class Machine
 	/// </remarks>
 	bool HasTypedGuards(RecognitionGraph graph)
 	{
-		foreach (var rule in _rules)
+		foreach (var own in _rules)
 		{
+			// A guard of a rule lifted out of an element reads the members of the rule it was
+			// lifted from (§8.2), numbered there.
+			var rule   = graph.ValueOwner(own);
 			var layout = CaptureLayout.Of(
 				graph.Bodies[rule], other => graph.Results[other].Count > 0 || graph.Types.ContainsKey(other),
 				graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null, graph.LiftedBody);
 
-			foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
+			foreach (var node in NodeWalk.Descendants(graph.Bodies[own]))
 			{
 				if (node is not Node.Guard)
 					continue;
@@ -3059,7 +3070,7 @@ sealed partial class Machine
 						"entries[capturedCall].Value == p);");
 					atClose.Line(
 						$"entries.Add(new ParserEntry(ParserEntry.RuleCapture, {slot}, capturedCall, " +
-						"call, atomic, repeat, lookahead, p));");
+						$"{_frame}, atomic, repeat, lookahead, p));");
 					atClose.Line($"Step_DotGram(\"rule capture\", {slot}, p, entries.Count{Traced});");
 					atClose.Line($"goto {Label(atClose, next)};");
 
@@ -3090,7 +3101,7 @@ sealed partial class Machine
 
 				atClose.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, capture{slot}, " +
-					"call, atomic, repeat, lookahead, p));");
+					$"{_frame}, atomic, repeat, lookahead, p));");
 				atClose.Line($"Step_DotGram(\"capture\", {slot}, p, entries.Count{Traced});");
 				atClose.Line($"goto {Label(atClose, next)};");
 
@@ -3278,12 +3289,19 @@ sealed partial class Machine
 			case Node.Guard(var condition):
 			{
 				var dispatch = _switches.TryGetValue(node, out var selection);
-				var rule = _owners[node];
+
+				// What a guard in a rule lifted out of an element reads is the members of the rule
+				// whose slots it keeps, and of them only what its own call captured (§8.2).
+				var own    = _owners[node];
+				var rule   = _graph.ValueOwner(own);
 				var layout = CaptureLayout.Of(
 					_graph.Bodies[rule],
 					other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other),
-					_graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
+					_graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null,
+					_graph.LiftedBody);
 				var before = layout.Before(node);
+				var from   = SlotsLent(own) is { } lentAt ? lentAt - _captureOffsets[rule] : 0;
+				var frame  = FrameOf(own);
 				var method = $"Recognize_DotGram{_tag}_Guard" + _guards++;
 				var helper = new Writer(0);
 				var parameters = new List<string>();
@@ -3344,7 +3362,7 @@ sealed partial class Machine
 					var slots = new List<int>();
 
 					foreach (var slot in written.Slots)
-						if (slot < before)
+						if (slot >= from && slot < before)
 							slots.Add(slot);
 
 					if (slots.Count == 0 || written.Name == accumulator)
@@ -3368,7 +3386,7 @@ sealed partial class Machine
 						continue;
 					}
 
-					var optional = GuardCaptureAdmitsAbsence(rule, node, member);
+					var optional = GuardCaptureAdmitsAbsence(own, node, member);
 
 					var parameterType = member.Rule is null
 						? BorrowedCaptures ? CaptureSpanType : "string"
@@ -3472,7 +3490,7 @@ sealed partial class Machine
 
 					if (member.Rule is not null && member.IsSequence)
 					{
-						var collected = GuardSequenceTest(rule, slots);
+						var collected = GuardSequenceTest(rule, slots, frame);
 
 						using (writer.Block($"for (var candidateAt = {floor} + 1; candidateAt < entries.Count; candidateAt++)"))
 						{
@@ -3510,7 +3528,7 @@ sealed partial class Machine
 							writer.Line("var candidate = entries[candidateAt];");
 
 							using (writer.Block(
-								"if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == call && " +
+								$"if (candidate.Kind == ParserEntry.Capture && candidate.CallIndex == {frame} && " +
 								$"({string.Join(" || ", tests)}))"))
 							{
 								Measure(writer, $"guardCaptured{memberIndex}", joined: true, overlaps);
@@ -3522,7 +3540,7 @@ sealed partial class Machine
 						WriteJoin(
 							writer, $"guardCaptured{memberIndex}", member.IsOptional, overlaps,
 							$"for (var candidateAt = entries.Count - 1; candidateAt > {floor}; candidateAt--)",
-							"candidateAt", "call", slots.Select(slot => _captureOffsets[rule] + slot));
+							"candidateAt", frame, slots.Select(slot => _captureOffsets[rule] + slot));
 
 						continue;
 					}
@@ -3535,7 +3553,7 @@ sealed partial class Machine
 
 						using (writer.Block(
 							$"if (candidate.Kind == {(member.Rule is null ? "ParserEntry.Capture" : "ParserEntry.RuleCapture")} && " +
-							"candidate.CallIndex == call && " +
+							$"candidate.CallIndex == {frame} && " +
 							$"({string.Join(" || ", tests)}))"))
 						{
 							writer.Line($"guardCaptured{memberIndex}At = " +
@@ -3600,7 +3618,7 @@ sealed partial class Machine
 						foreach (var slot in slots)
 							tests.Add($"candidate.State == {_captureOffsets[rule] + slot}");
 
-						var collected = GuardSequenceTest(rule, slots);
+						var collected = GuardSequenceTest(rule, slots, frame);
 
 						writer.Line($"var guardCaptured{memberIndex}Count = 0;");
 
@@ -4133,7 +4151,7 @@ sealed partial class Machine
 		writer.Line($"opened{slot} = entries.Count;");
 		writer.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.CaptureOpen, {slot}, p, " +
-			"call, atomic, repeat, lookahead, 0));");
+			$"{_frame}, atomic, repeat, lookahead, 0));");
 	}
 
 	/// <summary>
@@ -4177,7 +4195,7 @@ sealed partial class Machine
 			"if ((uint)openedAt >= (uint)entries.Count || " +
 			"entries[openedAt].Kind != ParserEntry.CaptureOpen || " +
 			$"entries[openedAt].State != {slot} || " +
-			"entries[openedAt].CallIndex != call)"))
+			$"entries[openedAt].CallIndex != {_frame})"))
 		{
 			atClose.Line("var closed = 0;");
 			atClose.Line();
@@ -4222,7 +4240,7 @@ sealed partial class Machine
 		atClose.Line("global::System.Diagnostics.Debug.Assert(openedAt >= 0);");
 		atClose.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, " +
-			"entries[openedAt].Position, call, atomic, repeat, lookahead, p));");
+			$"entries[openedAt].Position, {_frame}, atomic, repeat, lookahead, p));");
 
 		if (stepped)
 			atClose.Line($"Step_DotGram(\"capture\", {slot}, p, entries.Count{Traced});");
@@ -4628,7 +4646,7 @@ sealed partial class Machine
 		atSuccess.Line("repeat    = looked.RepeatIndex;");
 		atSuccess.Line("lookahead = looked.LookaheadIndex;");
 		atSuccess.Line(
-			$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, p, call, atomic, " +
+			$"entries.Add(new ParserEntry(ParserEntry.Capture, {slot}, p, {_frame}, atomic, " +
 			"repeat, lookahead, seenTo));");
 		atSuccess.Line($"Step_DotGram(\"capture lookahead\", {slot}, seenTo, entries.Count{Traced});");
 		atSuccess.Line($"goto {Label(atSuccess, next)};");
@@ -4636,7 +4654,7 @@ sealed partial class Machine
 		return state;
 	}
 
-	string GuardSequenceTest(RuleSymbol rule, IReadOnlyList<int> slots)
+	string GuardSequenceTest(RuleSymbol rule, IReadOnlyList<int> slots, string frame)
 	{
 		var states = new List<string>(slots.Count);
 
@@ -4644,7 +4662,7 @@ sealed partial class Machine
 			states.Add($"candidate.State == {_captureOffsets[rule] + slot}");
 
 		var accepted =
-			"candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == call && " +
+			$"candidate.Kind == ParserEntry.RuleCapture && candidate.CallIndex == {frame} && " +
 			$"({string.Join(" || ", states)})";
 		var recovered = new List<string>();
 
@@ -4653,7 +4671,7 @@ sealed partial class Machine
 				foreach (var slot in slots)
 					if (plan.Slot == _captureOffsets[rule] + slot)
 						recovered.Add(
-							$"candidate.Kind == ParserEntry.Recovery && candidate.CallIndex == call && " +
+							$"candidate.Kind == ParserEntry.Recovery && candidate.CallIndex == {frame} && " +
 							$"candidate.State == {plan.Id}");
 
 		return recovered.Count == 0

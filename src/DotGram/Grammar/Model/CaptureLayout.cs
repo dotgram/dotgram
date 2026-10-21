@@ -155,6 +155,22 @@ public sealed class CaptureLayout
 
 	Func<RuleSymbol, Node?>? _lifted;
 
+	/// <summary>
+	/// Every node under one, and under every call of a rule lifted out of an element there: the
+	/// nodes whose captures this layout numbers.
+	/// </summary>
+	public IEnumerable<Node> Through(Node node)
+	{
+		foreach (var one in NodeWalk.Descendants(node))
+		{
+			yield return one;
+
+			if (one is Node.Call(var called, _) && _lifted?.Invoke(called) is { } inner)
+				foreach (var deeper in Through(inner))
+					yield return deeper;
+		}
+	}
+
 	/// <param name="repeated">
 	/// Whether a repetition that may run more than once encloses this node. What is
 	/// captured under one is written once per iteration, which is a sequence rather than

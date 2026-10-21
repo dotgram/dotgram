@@ -90,6 +90,7 @@ then quietly mean nothing.
 | a `recover` inside a lookahead, refused (`GRAM4038`) — a rule called from one recovers §8.2 | ✓ | ✓ | ✓ | — | — |
 | a `recover` inside another one's element or synchronization, as if its own rule there §8.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a `recover` in a rule the lexer reads, refused (`GRAM4044`) §8.2 | ✓ | ✓ | ✓ | — | — |
+| a value crossing a nested `recover` that its own rule could not carry, refused (`GRAM4045`) §8.2 | ✓ | ✓ | ✓ | — | — |
 | a `=>` that throws inside `recover` leaves the parse §8.2 | — | — | — | ✓ | ✓ |
 | C# recognizer calls emitted without generator resolution §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | a value type generated for a rule that has none §7.3 | — | — | ✓ | ✓ | ✓ |

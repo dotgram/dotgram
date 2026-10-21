@@ -177,7 +177,7 @@ public sealed partial class GrammarNormalizer
 		if (!NodeWalk.Descendants(node).Any(one => ReferenceEquals(one, target)))
 			return node;
 
-		var rebuilt = node switch
+		Node rebuilt = node switch
 		{
 			Node.Sequence sequence => sequence with { Nodes = [.. sequence.Nodes.Select(part => Replaced(part, target, by))] },
 			Node.Choice choice     => choice.Rebuild([.. choice.Nodes.Select(part => Replaced(part, target, by))]),
@@ -225,14 +225,16 @@ public sealed partial class GrammarNormalizer
 
 		string? why = null;
 
-		foreach (var node in Within(inner))
+		foreach (var node in Unlifted(inner))
 			if (node is Node.Construct)
 				why ??= "a value is built inside it, and the value it is part of is the enclosing rule's";
+			else if (node is Node.Capture(_, Node.Lookahead))
+				why ??= "what a lookahead inside it saw is captured, and that capture is written where the lookahead ends, outside its call";
 			else if (node is Node.Guard guard && outside.FirstOrDefault(name => Names(guard.Text, name)) is { } read)
 				why ??= $"a guard inside it reads '{read}', which is captured outside it";
 
 		foreach (var body in bodies)
-			foreach (var node in Within(body, except: inner))
+			foreach (var node in Unlifted(body, except: inner))
 				if (node is Node.Guard guard && inside.FirstOrDefault(name => Names(guard.Text, name)) is { } read)
 					why ??= $"a guard outside it reads '{read}', which is captured inside it";
 
@@ -262,7 +264,7 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>The nodes under one, without what stands under another node, or inside a lookahead or a synchronization.</summary>
-	static IEnumerable<Node> Within(Node node, Node? except = null)
+	static IEnumerable<Node> Unlifted(Node node, Node? except = null)
 	{
 		if (ReferenceEquals(node, except))
 			yield break;
@@ -273,7 +275,7 @@ public sealed partial class GrammarNormalizer
 			yield break;
 
 		foreach (var child in node.Children)
-			foreach (var one in Within(child, except))
+			foreach (var one in Unlifted(child, except))
 				yield return one;
 	}
 
@@ -281,7 +283,7 @@ public sealed partial class GrammarNormalizer
 	{
 		var names = new HashSet<string>(StringComparer.Ordinal);
 
-		foreach (var one in Within(node, except))
+		foreach (var one in Unlifted(node, except))
 			if (one is Node.Capture(var name, _))
 				names.Add(name);
 
