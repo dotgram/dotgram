@@ -240,6 +240,13 @@ public sealed class StreamedParseTests
 		Agrees(grammar, inputs);
 	}
 
+	[Theory]
+	[InlineData("A : @string = 'a' => @(\"a\")\nStart : @string[] = A{2} & A+", new[] { "aa", "aaa", "aaaa", "a" })]
+	public void An_exact_count_before_an_overlapping_stage_keeps_the_reader(string grammar, string[] inputs)
+	{
+		Agrees(grammar, inputs);
+	}
+
 	/// <summary>The grammar gets a reader, and it reads what the string reads.</summary>
 	static void Agrees(string grammar, string[] inputs)
 	{

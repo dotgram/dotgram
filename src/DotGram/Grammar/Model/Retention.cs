@@ -602,11 +602,12 @@ public static class Retention
 	/// <remarks>
 	/// A most does not settle it: <c>A? &amp; A+</c> over <c>a</c> reads the <c>a</c> into the
 	/// second only once the first has given it back, which a stream that handed it over cannot do.
-	/// So a bounded repetition is asked the same question as one without a bound.
+	/// So a bounded repetition is asked the same question as one without a bound. An exact count
+	/// is not bounded in that sense: it has no turn to give back, and is left as it is.
 	/// </remarks>
 	static IReadOnlyList<Node> Unbounded(IReadOnlyList<Node> parts, int at)
 	{
-		if (parts[at] is not Node.Repeat(var body, var min, not null))
+		if (parts[at] is not Node.Repeat(var body, var min, { } max) || max == min)
 			return parts;
 
 		var asked = parts.ToList();
