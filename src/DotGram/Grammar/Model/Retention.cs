@@ -378,6 +378,143 @@ public static class Retention
 	}
 
 	/// <summary>
+	/// Whether a part may end in two places because of a choice one of whose literals begins
+	/// another, where what follows the shorter can go on as the longer does.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Over a string such a choice is tried again with the longer literal when what follows
+	/// fails; a stream that read the part and went on cannot: <c>("a" | "ab") &amp; "b"</c> over
+	/// <c>abb</c> takes the <c>a</c> and is refused where the string reads <c>ab</c>. Found
+	/// wherever it stands in the part — in a rule it calls, in a turn, before what the part reads
+	/// next — and only where what follows the shorter literal can begin with the character the
+	/// longer one reads next: <c>eol</c>'s <c>"\r\n" | "\r"</c> ends once before a line that
+	/// cannot begin with a line feed.
+	/// </para>
+	/// <para>
+	/// This is that shape and not every way a part can end twice: <see cref="Determinism.Of"/>
+	/// clears what it can prove has one match, and other ambiguities — a run the next operand
+	/// can also read, absorbed again further on — are left to the analysis above as before.
+	/// </para>
+	/// </remarks>
+	static bool EndsTwice(
+		Node node, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam, HashSet<RuleSymbol> entered)
+	{
+		if (Determinism.Of(node, following, graph, seam))
+			return false;
+
+		switch (node)
+		{
+			case Node.Capture(_, var body):
+				return EndsTwice(body, following, graph, seam, entered);
+
+			case Node.Construct(var body, _):
+				return EndsTwice(body, following, graph, seam, entered);
+
+			case Node.Marked(var body, _):
+				return EndsTwice(body, following, graph, seam, entered);
+
+			case Node.Call(var rule, _) when graph.Bodies.TryGetValue(rule, out var called) && entered.Add(rule):
+			{
+				var twice = EndsTwice(called, following, graph, seam, entered);
+
+				entered.Remove(rule);
+
+				return twice;
+			}
+
+			case Node.Sequence(var nodes):
+				for (var at = 0; at < nodes.Count; at++)
+				{
+					var rest = at + 1 == nodes.Count
+						? following
+						: FollowSets.Precedes(
+							at + 2 == nodes.Count ? nodes[at + 1] : new Node.Sequence([.. nodes.Skip(at + 1)]),
+							following, graph, seam);
+
+					if (EndsTwice(nodes[at], rest, graph, seam, entered))
+						return true;
+				}
+
+				return false;
+
+			// A turn is followed by another turn or by what follows the repetition. Where the
+			// repetition itself stops is not this question: first sets overlap there wherever
+			// a character after them decides, as on the spaces before `;` or `,`.
+			case Node.Repeat(var body, _, _):
+				return EndsTwice(
+					body,
+					following.Or(new FollowSets.Continuation(FirstSets.Of(body, graph), FirstSets.Of(body, graph))),
+					graph, seam, entered);
+
+			case Node.Choice(var options) { Selection: null }:
+				foreach (var option in options)
+					if (EndsTwice(option, following, graph, seam, entered))
+						return true;
+
+				// In the order they are tried. A shorter literal first is taken where the longer
+				// stands, and the string goes back for the longer whenever what follows fails. A
+				// longer one first is given up for the shorter only where what follows can begin
+				// with the character the longer read next.
+				for (var first = 0; first < options.Count; first++)
+					for (var then = first + 1; then < options.Count; then++)
+					{
+						if (Text(options[first]) is not { } earlier || Text(options[then]) is not { } later)
+							continue;
+
+						if (later.Length > earlier.Length && later.StartsWith(earlier, StringComparison.Ordinal))
+							return true;
+
+						if (earlier.Length > later.Length && earlier.StartsWith(later, StringComparison.Ordinal) &&
+							FirstSets.First.Chars([new CharRange(earlier[later.Length], earlier[later.Length])])
+								.Overlaps(following.Plain))
+							return true;
+					}
+
+				return false;
+
+			default:
+				return false;
+		}
+	}
+
+	/// <summary>Whether every reading of a node ends with <c>eol</c>.</summary>
+	static bool EndsWithEol(Node node, RecognitionGraph graph, int depth)
+	{
+		if (depth > 16)
+			return false;
+
+		return node switch
+		{
+			Node.Choice(var options) { Selection: null } when
+				options.Count == 3 && options.Select(Text).OrderBy(static one => one, StringComparer.Ordinal)
+					.SequenceEqual(["\n", "\r", "\r\n"]) => true,
+			Node.Choice(var options) { Selection: null } => options.All(option => EndsWithEol(option, graph, depth + 1)),
+			Node.Sequence(var nodes) => nodes.Count > 0 && EndsWithEol(nodes[nodes.Count - 1], graph, depth + 1),
+			Node.Capture(_, var body) => EndsWithEol(body, graph, depth + 1),
+			Node.Construct(var body, _) => EndsWithEol(body, graph, depth + 1),
+			Node.Marked(var body, _) => EndsWithEol(body, graph, depth + 1),
+			Node.Call(var rule, { Count: 0 }) => graph.Bodies.TryGetValue(rule, out var called) && EndsWithEol(called, graph, depth + 1),
+			_ => false,
+		};
+	}
+
+	/// <summary>
+	/// The text a literal alternative reads: a character class of one character included, and an
+	/// empty alternative, which is what factoring leaves of <c>"a" | "ab"</c> after the <c>a</c>.
+	/// </summary>
+	static string? Text(Node option)
+	{
+		return option switch
+		{
+			Node.Literal(var text) => text,
+			Node.Empty => "",
+			Node.Element(false, [var range], { Count: 0 }, { Count: 0 }) when range.From == range.To => range.From.ToString(),
+			_ => null,
+		};
+	}
+
+	/// <summary>
 	/// The parts with one repetition's most taken off, for the question of where it ends.
 	/// </summary>
 	/// <remarks>
@@ -561,6 +698,48 @@ public static class Retention
 				return $"in '{rule.Name}', '{part}' collects values without being a call of a rule, " +
 					"and a streamed parse hands over the values of the rules it calls, one at a time. " +
 					"Give the part its own rule (docs/syntax.md §6.3).";
+
+		// Each part is read once and what follows it begins where it ended. Over a string a
+		// part that can end in two places is given back a turn when what follows fails, which
+		// a stream that went on past it cannot do: `("a" | "ab") & "b"` over `abb` reads the
+		// `a`, then `b`, and is refused where the string tries `ab`. So every part, but the
+		// marked one, which commits, must not be able to end in two places that way.
+		var woven = FollowSets.SeamOf(rule, graph);
+		var lines = ExtentOf(graph);
+		var reads = Consuming(graph);
+
+		for (var i = 0; i < parts.Count; i++)
+		{
+			if (graph.Recoveries.ContainsKey(parts[i]))
+				continue;
+
+			var rest = new List<Node>(parts.Skip(i + 1));
+
+			if (graph.Trivia.TryGetValue(rule, out var trailing))
+				rest.Add(trailing);
+
+			var following = FollowSets.Precedes(
+				rest.Count switch { 0 => new Node.Empty(), 1 => rest[0], _ => new Node.Sequence(rest) },
+				FollowSets.Continuation.End, graph, woven);
+
+			// A line, ended by its terminator and taking none before it, ends where its line
+			// does, however it read up to there; only the terminator itself can end two ways,
+			// a carriage return taken alone where a line feed may follow. A repetition of lines
+			// is a line at a time, each followed by the next or by what follows the run, and
+			// where the run stops the first sets above have settled.
+			var line  = parts[i] is Node.Repeat(var turn, _, _) ? turn : parts[i];
+			var after = ReferenceEquals(line, parts[i])
+				? following
+				: following.Or(new FollowSets.Continuation(FirstSets.Of(line, graph), FirstSets.Of(line, graph)));
+
+			if (Extent(line, lines, reads) == LineExtent.AtEnd && EndsWithEol(line, graph, 0)
+				? FirstSets.First.Chars([new CharRange('\n', '\n')]).Overlaps(after.Plain)
+				: EndsTwice(parts[i], following, graph, woven, new HashSet<RuleSymbol>()))
+				return $"in '{rule.Name}', '{parts[i]}' can end in more than one place: a choice in it has a " +
+					"literal that begins another, and what follows the shorter can go on as the longer does, " +
+					"which a string settles by trying the other. A streamed parse reads each part once and " +
+					"cannot go back into it. Make the choice end in one place (docs/syntax.md §6.3).";
+		}
 
 		var extents   = ExtentOf(graph);
 		var consuming = Consuming(graph);

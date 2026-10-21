@@ -2222,7 +2222,10 @@ repetition marked `recover` asks the rest of the rule first and steps over a bad
 other one is read for as long as its element matches, as over a string. A repetition is held
 to its least and its most — and one with a most is asked the same question as one without, so
 `A? & A+` gets no reader — the rule's trivia is read before and after it as a whole parse reads
-it, and input left over after the last part is refused where the string refuses it.
+it, and input left over after the last part is refused where the string refuses it. A part is
+read once, so one that a choice of literals lets end in two places — `("a" | "ab") & "b"`, where
+the string tries `ab` once `a` led nowhere — gets no reader either; a line ended by `eol` ends where
+its line does, and keeps it.
 
 Which is the shared responsibility: the author picks an overload, and the compiler
 offers one only where it provably works.
