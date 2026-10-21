@@ -5984,10 +5984,15 @@ sealed partial class Machine
 		// and the grammar of the notation carries several optionals per operand.
 		//
 		// That is another question: not whether what follows can fail, but whether it can
-		// begin where a body that failed began. A positional stop can begin anywhere, so it
-		// is asked of the halves, where the stop is anything.
+		// begin where a body that failed began — and asked of the characters alone. The
+		// standing exit's proof may rest on a look the body leads with: a turn of `?!Q & 'a'`
+		// begins only where `Q` refused, so a continuation that is `Q` cannot begin where a
+		// completed turn did. Where the body *failed* it says nothing — the look failing is
+		// `Q` matching, which is where the continuation begins — and `(?!Q & 'a')? & Q`
+		// entered on the `a` of `ac` refused what skipping would have read. A positional
+		// stop can begin anywhere, so it is asked of the halves, where the stop is anything.
 		if (settled && min == 0 && max == 1 && Decidable(body) is { } begins &&
-			Determinism.NeverGivesBack(repeatNode, following.Surface, _graph, _seam))
+			!begins.Overlaps(following.Surface.Plain))
 		{
 			_usesChar = true;
 
