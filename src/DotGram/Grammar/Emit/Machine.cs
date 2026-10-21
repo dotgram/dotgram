@@ -5106,6 +5106,12 @@ sealed partial class Machine
 			var asked  = proven is { } sure    && mine is { } opens && opens.Covers(sure)   ? null : mine;
 			var others = proven is { } settled && rest is { } later && later.Covers(settled) ? null : rest;
 
+			// What may begin anything — a literal of no characters after this one, or an
+			// alternative whose first set is not known, joined to a run — turns nothing away,
+			// and has no ranges a test could be written over.
+			if (others is { Anything: true })
+				others = null;
+
 			// One character can say two things here, and each saves something
 			// different. That this alternative cannot begin here saves going into it;
 			// that none of the ones after it can saves the entry that would have let
