@@ -2204,6 +2204,8 @@ sealed partial class Machine
 							file.Line("power  = entry.Power;");
 						if (Tracing is not null)
 							file.Line("failure.Trace?.Resumed(call);");
+						if (Caches)
+							file.Line("parser.Reopen(call, entries);");
 						file.Line("Step_DotGram(\"resume\", state, p, entries.Count, text, \"\");");
 						file.Line("goto Dispatch;");
 					}
@@ -2249,6 +2251,8 @@ sealed partial class Machine
 								file.Line("power  = entry.Power;");
 							if (Tracing is not null)
 								file.Line("failure.Trace?.Resumed(call);");
+							if (Caches)
+								file.Line("parser.Reopen(call, entries);");
 							file.Line("Step_DotGram(\"resume exit\", state, p, entries.Count, text, \"\");");
 							file.Line("goto Dispatch;");
 						}
@@ -2274,6 +2278,8 @@ sealed partial class Machine
 								$"entry.LookaheadIndex, p{(Ceiled ? ", -1, power" : "")}));");
 							if (Tracing is not null)
 								file.Line("failure.Trace?.Resumed(call);");
+							if (Caches)
+								file.Line("parser.Reopen(call, entries);");
 							file.Line("Step_DotGram(\"shorten run\", state, p, entries.Count, text, \"\");");
 							file.Line("goto Dispatch;");
 						}
@@ -5059,7 +5065,15 @@ sealed partial class Machine
 			// matched, so where they differ is where the next is tried — which is
 			// what a common prefix is worth, and it is worth it whether or not there
 			// is one.
-			if (LiteralGroup(alternatives, i, following.Taught.Plain) is var here and > 0)
+			//
+			// That holds against the alternatives after the run only where none of them is
+			// needed once a member has matched, since nothing comes back for them then
+			// (`LaterSettled`). `"ccc" | 'a' | "cc"` before `'c'` is the run `"ccc" | 'a'` with
+			// `"cc"` after it, and `ccc` is read only by coming back from `"ccc"` to `"cc"`.
+			// Where one is needed, each member is compiled as an alternative of its own,
+			// with its way back.
+			if (LiteralGroup(alternatives, i, following.Taught.Plain) is var here and > 0 &&
+				LaterSettled(alternatives, i - here + 1, i, following.Taught.Plain))
 			{
 				var from = i - here + 1;
 

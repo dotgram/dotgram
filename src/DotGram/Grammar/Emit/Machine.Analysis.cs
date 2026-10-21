@@ -807,6 +807,39 @@ sealed partial class Machine
 		return run;
 	}
 
+	/// <summary>
+	/// Whether no alternative written after the literal run <paramref name="from"/>..<paramref name="to"/>
+	/// can be needed once a member of the run has matched.
+	/// </summary>
+	/// <remarks>
+	/// A run compiled as one keeps no way back, so a failure after the member it took fails the
+	/// choice. That is the choice's answer only where every later alternative would have failed
+	/// at the same position: a later literal that a member settles (<see cref="PrefixSettled"/>,
+	/// asked with the member written first), or any other alternative whose first set is known
+	/// and holds no character a member begins with.
+	/// </remarks>
+	bool LaterSettled(IReadOnlyList<Node> alternatives, int from, int to, FirstSets.First following)
+	{
+		var begins = Begins(alternatives, from, to);
+
+		for (var later = to + 1; later < alternatives.Count; later++)
+		{
+			if (alternatives[later] is Node.Literal { IgnoreCase: false } literal)
+			{
+				for (var member = from; member <= to; member++)
+					if (alternatives[member] is Node.Literal(var text) && !PrefixSettled(text, literal.Text, following))
+						return false;
+
+				continue;
+			}
+
+			if (Decidable(alternatives[later]) is not { } first || first.Overlaps(begins))
+				return false;
+		}
+
+		return true;
+	}
+
 	static int LiteralRun(IReadOnlyList<Node> alternatives, int at, FirstSets.First following)
 	{
 		var run = 0;
