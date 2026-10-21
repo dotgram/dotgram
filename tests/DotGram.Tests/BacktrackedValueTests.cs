@@ -76,6 +76,30 @@ public sealed class BacktrackedValueTests
 		Assert.Equal((true, "2"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseS", "bc")));
 	}
 
+	/// <summary>
+	/// An alternative that can read nothing in front of a literal run, where what comes after it
+	/// may begin anything — a look, or a literal of no characters — has nothing after it to turn
+	/// it away by, and the engine wrote that as a test of no ranges, which did not compile.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readings))]
+	public void A_choice_whose_later_alternatives_may_begin_anything_compiles(CarrierKind carrier, bool direct)
+	{
+		var assembly = Compile(
+			"""
+			R : @string = ('b'? | "b" | "cb" | ?='c') => @(parserText)
+			S : @string = ('b'? | "b" | "cb" | "") => @(parserText)
+			""", carrier, direct);
+
+		foreach (var rule in new[] { "TryParseR", "TryParseS" })
+		{
+			Assert.Equal((true, "b"), Answer(EmittedCode.Match(assembly, "Grammar", rule, "b")));
+			Assert.Equal((true, "cb"), Answer(EmittedCode.Match(assembly, "Grammar", rule, "cb")));
+			Assert.Equal((true, ""), Answer(EmittedCode.Match(assembly, "Grammar", rule, "")));
+			Assert.False(EmittedCode.Match(assembly, "Grammar", rule, "c").IsSuccess);
+		}
+	}
+
 	static (bool, object?) Answer((bool IsSuccess, object? Value, string? Error, long Position) match)
 	{
 		return (match.IsSuccess, match.Value);
