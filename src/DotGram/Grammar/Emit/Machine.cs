@@ -4726,13 +4726,22 @@ sealed partial class Machine
 	/// </remarks>
 	int CompileCarries(int matched, IReadOnlyList<string> carries, IReadOnlyList<string> displays, int next, int fail)
 	{
-		var state     = Reserve(out var writer);
 		var arrayName = DeclareExpected(displays);
+		var after     = -1;
 
-		foreach (var carry in carries)
+		// Last first, so that each knows the state of the ones after it. One that fits goes on
+		// and leaves a way back to the ones after it that continue it in turn: `'b' | "bc" | "bcc"`
+		// takes "bc" first and comes back for "bcc" where the parse goes wrong past it.
+		for (var at = carries.Count - 1; at >= 0; at--)
 		{
+			var carry = carries[at];
 			var rest  = carry.Substring(matched);
 			var tests = new List<string> { Room(rest.Length) };
+			var state = Reserve(out var writer);
+			var again = false;
+
+			for (var later = at + 1; later < carries.Count; later++)
+				again |= carries[later].StartsWith(carry, StringComparison.Ordinal);
 
 			if (rest.Length > 1)
 				tests.Add(BufferedBytes ? $"text.Matches(p, {Quoted(rest)})" :
@@ -4743,14 +4752,27 @@ sealed partial class Machine
 
 			using (writer.Block($"if ({string.Join(" && ", tests)})"))
 			{
+				if (again)
+				{
+					writer.Line(
+						$"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(writer, after)}, p, call, atomic, " +
+						$"repeat, lookahead, 0{KeptPower}));");
+					writer.Line($"Step_DotGram(\"push choice\", {Mark(Lands, after)}, p, entries.Count{Traced});");
+				}
+
 				writer.Line($"p += {rest.Length};");
 				writer.Line($"goto {Label(writer, next)};");
 			}
+
+			if (after >= 0)
+				writer.Line($"goto {Label(writer, after)};");
+			else
+				EmitTerminalFailure(writer, fail, arrayName);
+
+			after = state;
 		}
 
-		EmitTerminalFailure(writer, fail, arrayName);
-
-		return state;
+		return after;
 	}
 
 	int CompileLiterals(IReadOnlyList<Node> alternatives, int from, int to, int next, int fail)

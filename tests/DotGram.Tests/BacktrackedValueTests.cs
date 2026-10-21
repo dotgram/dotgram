@@ -38,6 +38,7 @@ public sealed class BacktrackedValueTests
 			R : @string = ("ccc" | 'a' | "cc") & 'c' => @(parserText)
 			S : @string = ("ab" | 'x' | ['a'..'b']) & "bc" => @(parserText)
 			T : @string = ('c' | "ca" | ['b']) => @(parserText)
+			U : @string = ('b' | "bc" | "bcc") => @(parserText)
 			""", carrier, direct);
 
 		Assert.Equal((true, "ccc"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseR", "ccc")));
@@ -52,6 +53,12 @@ public sealed class BacktrackedValueTests
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseT", "cb").IsSuccess);
 		Assert.Equal((true, "ca"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseT", "ca")));
 		Assert.Equal((true, "b"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseT", "b")));
+
+		// Two continuations of one member, the second continuing the first: the second is read
+		// by coming back from the first.
+		Assert.Equal((true, "bcc"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseU", "bcc")));
+		Assert.Equal((true, "bc"), Answer(EmittedCode.Match(assembly, "Grammar", "TryParseU", "bc")));
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseU", "bccc").IsSuccess);
 	}
 
 	/// <summary>
@@ -109,7 +116,7 @@ public sealed class BacktrackedValueTests
 	{
 		var publications = string.Join("\n", rules.Split('\n')
 			.Select(static line => line.Trim())
-			.Where(static line => line.Length > 0 && char.IsUpper(line[0]) && line.Split(' ')[0] is "R" or "S" or "T")
+			.Where(static line => line.Length > 0 && char.IsUpper(line[0]) && line.Split(' ')[0] is "R" or "S" or "T" or "U")
 			.Select(static line => "parse " + line.Split(' ')[0]));
 
 		var result = GramCompiler.Compile(rules + "\n" + publications + "\n", new GramCompilerOptions
