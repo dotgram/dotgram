@@ -3308,6 +3308,14 @@ sealed partial class Machine
 				var before = layout.Before(node);
 				var from   = SlotsLent(own) is { } lentAt ? lentAt - _captureOffsets[rule] : 0;
 				var frame  = FrameOf(own);
+
+				// Whether a member is one value or a sequence is the lifted rule's own shape, as it would
+				// be in a rule written for the part: the enclosing rule's repetition is not around it.
+				var shape  = ReferenceEquals(own, rule)
+					? null
+					: CaptureLayout.Of(
+						_graph.Bodies[own], other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other),
+						lifted: _graph.LiftedBody);
 				var method = $"Recognize_DotGram{_tag}_Guard" + _guards++;
 				var helper = new Writer(0);
 				var parameters = new List<string>();
@@ -3376,7 +3384,9 @@ sealed partial class Machine
 
 					var member = inStep
 						? written with { IsSequence = slots.Exists(slot => layout.Slots[slot].Collects) }
-						: written;
+						: shape is not null
+							? written with { IsSequence = slots.Exists(slot => shape.Slots[slot - from].IsSequence) }
+							: written;
 
 					// Only what the condition names. Every one of these is materialized to run
 					// it — a rule's value built, a run cut into a string — and a condition

@@ -211,6 +211,28 @@ public sealed class NestedRecoveryTests
 			]),
 
 		new(
+			"an inner guard in a part read once",
+			Words + "Start : @string = ((w: Word & ':' & (w: Word & when @(w.Length == 1) & ';')? recover ';' & eol)* recover eol)" +
+				" => @(string.Join(\"+\", w))",
+			Words + "Inner = (w: Word & when @(w.Length == 1) & ';')? recover ';'\n" +
+				"Start : @string = ((w: Word & ':' & Inner & eol)* recover eol) => @(string.Join(\"+\", w))",
+			["Inner"],
+			// The part is read at most once, so the guard is handed one word, not the line's sequence.
+			[("x:ab;\n", "x"), ("x:a;\n", "x+a")],
+			TwinValues: false),
+
+		new(
+			"an inner guard in a part read many times",
+			Words + "Start : @string = ((w: Word & ':' & (w: Word & when @(w.Length == 1) & ';')* recover ';' & eol)* recover eol)" +
+				" => @(string.Join(\"+\", w))",
+			Words + "Inner = (w: Word & when @(w.Length == 1) & ';')* recover ';'\n" +
+				"Start : @string = ((w: Word & ':' & Inner & eol)* recover eol) => @(string.Join(\"+\", w))",
+			["Inner"],
+			// The sequence this reading of the part has captured: one word at the first turn.
+			[("x:ab;cd;\n", "x+ab")],
+			TwinValues: false),
+
+		new(
 			"a guard on a capture in an inner synchronization",
 			Words + "Start : @string[] = (Word & eol)* recover ('#' & (k: 'x' & when @(k.Length > 0) & ';')* recover ';' & eol)",
 			Words + "Sync = '#' & (k: 'x' & when @(k.Length > 0) & ';')* recover ';' & eol\nStart : @string[] = (Word & eol)* recover Sync",
