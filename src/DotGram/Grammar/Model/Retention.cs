@@ -462,12 +462,11 @@ public static class Retention
 						if (Text(options[first]) is not { } earlier || Text(options[then]) is not { } later)
 							continue;
 
-						if (later.Length > earlier.Length && later.StartsWith(earlier, StringComparison.Ordinal))
+						if (later.Count > earlier.Count && Begins(later, earlier))
 							return true;
 
-						if (earlier.Length > later.Length && earlier.StartsWith(later, StringComparison.Ordinal) &&
-							FirstSets.First.Chars([new CharRange(earlier[later.Length], earlier[later.Length])])
-								.Overlaps(following.Plain))
+						if (earlier.Count > later.Count && Begins(earlier, later) &&
+							earlier[later.Count].Overlaps(following.Plain))
 							return true;
 					}
 
@@ -487,8 +486,13 @@ public static class Retention
 		return node switch
 		{
 			Node.Choice(var options) { Selection: null } when
-				options.Count == 3 && options.Select(Text).OrderBy(static one => one, StringComparer.Ordinal)
-					.SequenceEqual(["\n", "\r", "\r\n"]) => true,
+				options.Count == 3 && options.Select(static option => option switch
+				{
+					Node.Literal { IgnoreCase: false } literal => literal.Text,
+					Node.Element(false, [var range], { Count: 0 }, { Count: 0 }) when range.From == range.To => range.From.ToString(),
+					_ => null,
+				})
+					.OrderBy(static one => one, StringComparer.Ordinal).SequenceEqual(["\n", "\r", "\r\n"]) => true,
 			Node.Choice(var options) { Selection: null } => options.All(option => EndsWithEol(option, graph, depth + 1)),
 			Node.Sequence(var nodes) => nodes.Count > 0 && EndsWithEol(nodes[nodes.Count - 1], graph, depth + 1),
 			Node.Capture(_, var body) => EndsWithEol(body, graph, depth + 1),
@@ -500,18 +504,44 @@ public static class Retention
 	}
 
 	/// <summary>
-	/// The text a literal alternative reads: a character class of one character included, and an
-	/// empty alternative, which is what factoring leaves of <c>"a" | "ab"</c> after the <c>a</c>.
+	/// What a literal alternative reads, a set of characters per position: each character of a
+	/// literal, with its case partners where it ignores case (<see cref="CaseFold"/>, as the reader
+	/// matches it), a class of plain ranges as one position, and an empty alternative as none —
+	/// which is what factoring leaves of <c>"a" | "ab"</c> after the <c>a</c>.
 	/// </summary>
-	static string? Text(Node option)
+	static IReadOnlyList<FirstSets.First>? Text(Node option)
 	{
-		return option switch
+		switch (option)
 		{
-			Node.Literal(var text) => text,
-			Node.Empty => "",
-			Node.Element(false, [var range], { Count: 0 }, { Count: 0 }) when range.From == range.To => range.From.ToString(),
-			_ => null,
-		};
+			case Node.Literal literal:
+			{
+				var positions = new List<FirstSets.First>(literal.Text.Length);
+
+				foreach (var c in literal.Text)
+					positions.Add(FirstSets.First.Chars(literal.IgnoreCase ? CaseFold.Ranges(c) : [new CharRange(c, c)]));
+
+				return positions;
+			}
+
+			case Node.Element(false, var ranges, { Count: 0 }, { Count: 0 }) when ranges.Count > 0:
+				return [FirstSets.First.Chars(ranges)];
+
+			case Node.Empty:
+				return [];
+
+			default:
+				return null;
+		}
+	}
+
+	/// <summary>Whether some input read by <paramref name="shorter"/> also begins one read by <paramref name="longer"/>.</summary>
+	static bool Begins(IReadOnlyList<FirstSets.First> longer, IReadOnlyList<FirstSets.First> shorter)
+	{
+		for (var at = 0; at < shorter.Count; at++)
+			if (!shorter[at].Overlaps(longer[at]))
+				return false;
+
+		return true;
 	}
 
 	/// <summary>
@@ -741,6 +771,15 @@ public static class Retention
 					"cannot go back into it. Make the choice end in one place (docs/syntax.md §6.3).";
 		}
 
+		// The trivia read before the stages, at the seams between them and after them is read
+		// once, and it takes all it can: over a string it gives back what the part after it
+		// needed, as `trivia = 'a'*` before `A+` does with `a`. So it may not begin what it stands
+		// before, nor what the last part reads.
+		if (graph.Trivia.TryGetValue(rule, out var around) && Overlapped(around) is { } overlapped)
+			return $"in '{rule.Name}', the trivia can read what '{overlapped}' begins with or ends with, and " +
+				"over a string it gives that back where the part needs it. A streamed parse reads the trivia " +
+				"once. Make the two tellable apart (docs/syntax.md §6.3).";
+
 		var extents   = ExtentOf(graph);
 		var consuming = Consuming(graph);
 
@@ -759,6 +798,53 @@ public static class Retention
 		}
 
 		return null;
+
+		// The first part the trivia stands before or after that it can read into: from the start,
+		// after every seam, inside every seamed turn, and the last part.
+		Node? Overlapped(Node trivia)
+		{
+			var spaces = FirstSets.Of(trivia, graph);
+
+			for (var at = -1; at < parts.Count; at++)
+			{
+				if (at >= 0 && !IsSeam(parts[at]))
+				{
+					if (parts[at] is Node.Repeat(var turn, _, _) && !ReferenceEquals(PastSeam(turn, seam), turn) &&
+						spaces.Overlaps(FirstSets.Of(PastSeam(turn, seam), graph)))
+						return parts[at];
+
+					continue;
+				}
+
+				for (var next = at + 1; next < parts.Count; next++)
+				{
+					if (IsSeam(parts[next]))
+						continue;
+
+					if (spaces.Overlaps(FirstSets.Of(Begun(parts[next]), graph)))
+						return parts[next];
+
+					if (!FirstSets.Nullable(parts[next], graph))
+						break;
+				}
+			}
+
+			for (var last = parts.Count - 1; last >= 0; last--)
+				if (!IsSeam(parts[last]))
+					return spaces.Overlaps(FirstSets.Of(Begun(parts[last]), graph)) ? parts[last] : null;
+
+			return null;
+		}
+
+		bool IsSeam(Node part)
+		{
+			return seam is not null && part is Node.Call(var called, _) && ReferenceEquals(called, seam);
+		}
+
+		Node Begun(Node part)
+		{
+			return part is Node.Repeat(var turn, _, _) ? PastSeam(turn, seam) : part;
+		}
 	}
 
 	/// <summary>
