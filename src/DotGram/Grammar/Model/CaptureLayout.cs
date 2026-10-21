@@ -322,14 +322,16 @@ public sealed class CaptureLayout
 
 	/// <summary>
 	/// The rule whose value a capture of this node holds, or null where what it holds is text: a
-	/// call of a rule that builds a value.
+	/// call of a rule that builds a value, and a positive lookahead at one, which produces that
+	/// value without moving the input (§3.4).
 	/// </summary>
 	public static RuleSymbol? ValuedCall(Node captured, Func<RuleSymbol, bool> buildsValue)
 	{
 		return captured switch
 		{
-			Node.Call(var rule, _) when buildsValue(rule) => rule,
-			_                                             => null,
+			Node.Call(var rule, _) when buildsValue(rule)                       => rule,
+			Node.Lookahead(true, Node.Call(var rule, _)) when buildsValue(rule) => rule,
+			_                                                                   => null,
 		};
 	}
 
