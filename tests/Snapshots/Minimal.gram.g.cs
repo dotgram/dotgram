@@ -5423,6 +5423,14 @@ namespace DotGram.Snapshots
 				throw new global::System.FormatException("Input does not match 'eof' at " + (window.Offset + failure1.Position).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 
 			start = end1;
+
+			while (start >= window.Length && !window.Ended)
+			{
+				window.Extend(ref start);
+			}
+
+			if (start < window.Length)
+				throw new global::System.FormatException("Expected end of input at " + (window.Offset + start).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>The same, over a sequence of lines (docs/syntax.md §6.3).</summary>

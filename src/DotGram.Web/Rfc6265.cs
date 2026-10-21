@@ -348,7 +348,7 @@ public static class CookieDate
 	// ── §4.2.1 ───────────────────────────────────────────────────────────────────
 
 	// cookie-header = "Cookie:" OWS cookie-string OWS; cookie-string = cookie-pair *( ";" SP cookie-pair ).
-	CookieString : @CookiePair[] = Ows & first: CookiePairRule & rest: NextCookiePair* & Ows => @(Rfc6265.Joined(first, rest))
+	CookieString : @CookiePair[] = Ows & CookiePairRule & NextCookiePair* & Ows
 
 	NextCookiePair : @CookiePair = ';' & ' ' & pair: CookiePairRule => @(pair)
 
