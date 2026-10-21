@@ -140,6 +140,7 @@ then quietly mean nothing.
 | a binding read where it may not have happened, `($q: X)?` then `$q`, refused with the fix §3.5.1 | ✓ | ✓ | ✓ | — | — |
 | a binding inside a lookahead, or over a recovery point, refused §3.5.1 | ✓ | ✓ | ✓ | — | — |
 | a binding and its back-reference in an atomic terminal the lexer reads: begun by the lexer, read whole by its rule, lexed again without it where the rule refuses §3.5.1/§7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| a terminal that binds nothing but that the automaton reads wider than its rule (a guard, an atomic group read with a way back, a choice whose earlier alternative is a prefix of a later one): begun by the lexer, measured by its rule from the token's start, lexed again without it where the rule refuses §7.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same beside a token or trivia that can read on past its beginning, or not atomic: read over characters, `GRAM5004` naming the fix §7.1 | ✓ | ✓ | ✓ | — | — |
 | a binding in what `trivia` is made of once the grammar is cut in two, refused, not yet supported §3.5.1 | ✓ | ✓ | ✓ | — | — |
 | a binding and its back-reference read through a `TextReader` or a stream, bytes included §3.5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
