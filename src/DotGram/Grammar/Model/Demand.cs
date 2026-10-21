@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -252,7 +252,8 @@ public static class Demand
 		var layout = CaptureLayout.Of(
 			body,
 			other => Valued(graph, other),
-			graph.Folds.TryGetValue(owner, out var fold) ? fold.Loop : null);
+			graph.Folds.TryGetValue(owner, out var fold) ? fold.Loop : null,
+			graph.LiftedBody);
 
 		// What runs while reading, with how many slots stand before it: a guard is handed
 		// the captures before it and no others (Machine.GuardMembers).

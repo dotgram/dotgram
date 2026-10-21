@@ -188,7 +188,8 @@ sealed partial class Machine
 
 				var layout = CaptureLayout.Of(
 					_graph.Bodies[called],
-					other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other));
+					other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other),
+					lifted: _graph.LiftedBody);
 				var slots  = new Dictionary<Node, int>(NodeIdentity.Instance);
 				var nested = _graph.Recursive.Contains(rule);
 
@@ -375,7 +376,7 @@ sealed partial class Machine
 
 			atClose.Line(
 				$"entries.Add(new ParserEntry(ParserEntry.Capture, {site.Boundary}, " +
-				$"capture{site.Boundary}, call, atomic, repeat, lookahead, p));");
+				$"capture{site.Boundary}, {_frame}, atomic, repeat, lookahead, p));");
 			atClose.Line($"goto {Label(atClose, next)};");
 		}
 

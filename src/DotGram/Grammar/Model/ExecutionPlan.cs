@@ -66,6 +66,10 @@ public sealed class ExecutionPlan
 	/// sides: a valueless call is 4.8 ns (<c>benchmarks/CallCost.cs</c>) and a copy is its
 	/// size in emitted code, times however many places reach it.
 	/// </para>
+	/// <para>
+	/// Never a rule lifted out of a marked repetition (§8.2): the boundary is what it was made for,
+	/// and a guard in it reads from where it was called.
+	/// </para>
 	/// </remarks>
 	public IReadOnlyCollection<RuleSymbol> CompiledInPlace { get; }
 
@@ -95,6 +99,7 @@ public sealed class ExecutionPlan
 				 graph.Results[rule].Count == 0               &&
 				!graph.Recursive.Contains(rule)               &&
 				!graph.Climbing.ContainsKey(rule)             &&
+				!graph.Lifted.ContainsKey(rule)               &&
 				 graph.Bodies.TryGetValue(rule, out var body) &&
 				!NodeWalk.Descendants(body).Any(node => node is Node.Capture or Node.Construct or Node.Bind) &&
 				 NodeWalk.Descendants(body).Take(Copied + 1).Count() <= Copied)

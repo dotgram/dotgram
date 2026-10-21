@@ -377,16 +377,32 @@ public static class Retention
 			: element;
 	}
 
-	/// <summary>How many repetitions under a node were marked <c>recover</c>.</summary>
-	static int Marked(Node node, RecognitionGraph graph)
+	/// <summary>
+	/// The repetitions under a node that were marked <c>recover</c>, but for one inside another's
+	/// element: that one recovers inside the element it stands in, which the outer one is
+	/// already stepping over or handing back whole, so it is the outer one's and not one more
+	/// for the driver to run (docs/syntax.md §8.2).
+	/// </summary>
+	static List<Node> Marked(Node node, RecognitionGraph graph)
 	{
-		var marked = 0;
+		var marked = new List<Node>();
 
-		foreach (var descendant in NodeWalk.Descendants(node))
-			if (graph.Recoveries.ContainsKey(descendant))
-				marked++;
+		Walk(node);
 
 		return marked;
+
+		void Walk(Node at)
+		{
+			if (graph.Recoveries.ContainsKey(at))
+			{
+				marked.Add(at);
+
+				return;
+			}
+
+			foreach (var child in at.Children)
+				Walk(child);
+		}
 	}
 
 	public static string? StreamedParse(RecognitionGraph graph, RuleSymbol rule)
@@ -410,7 +426,9 @@ public static class Retention
 		// runs every one of them. A stream does not: the driver steps over a bad element
 		// as it hands the good ones back, and it is reading one repetition at a time, so
 		// the second `recover` would be one that quietly does not happen.
-		if (Marked(body, graph) > 1)
+		var marked = Marked(body, graph);
+
+		if (marked.Count > 1)
 			return $"'{rule.Name}' marks more than one repetition with 'recover', and a stream " +
 				"steps over a bad element one repetition at a time. Give the other its own rule.";
 
@@ -437,6 +455,14 @@ public static class Retention
 			return $"'{rule.Name}' has no repetition of a rule to hand over, so a streamed parse " +
 				"would have nothing to give the caller between reads. Give the repeated part its " +
 				"own rule (docs/syntax.md §6.3).";
+
+		// The driver steps over a bad element of the repetition it hands back, and of no other:
+		// one marked inside a part it reads whole would recover there against the end of the
+		// part rather than against what follows it, and hand back nothing it collected.
+		if (marked.Count == 1 && !parts.Any(part => ReferenceEquals(part, marked[0]) && Yields(part, seam)))
+			return $"'{rule.Name}' marks a repetition with 'recover' that is not a repetition of a rule, and " +
+				"a stream steps over a bad element only in the repetition it hands back. Give the " +
+				"repeated part its own rule (docs/syntax.md §6.3).";
 
 		for (var i = 0; i < parts.Count; i++)
 		{

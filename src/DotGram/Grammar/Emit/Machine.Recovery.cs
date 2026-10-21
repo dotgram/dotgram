@@ -126,11 +126,11 @@ sealed partial class Machine
 
 		atScan.Line($"if ({Short(1)}) goto {Label(atScan, recovered)};");
 		EmitRecoverySearch(atScan, recovery.Recovery.Sync);
-		atScan.Line("syncFrom = p;");
+		atScan.Line($"{SyncFrom(id)} = p;");
 		atScan.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(atScan, advance)}, p, call, atomic, repeat, lookahead, 0));");
 		atScan.Line($"goto {Label(atScan, sync)};");
 
-		atSynced.Line($"if (p <= syncFrom) {{ expected = null; goto Fail; }}");
+		atSynced.Line($"if (p <= {SyncFrom(id)}) {{ expected = null; goto Fail; }}");
 		atSynced.Line($"goto {Label(atSynced, recovered)};");
 
 		atAdvance.Line("p++;");
@@ -174,7 +174,7 @@ sealed partial class Machine
 			atRecovered.Line($"{Keep("parser")}[entries.Count] = expecting{id};");
 
 		atRecovered.Line(
-			$"entries.Add(new ParserEntry(ParserEntry.Recovery, {recovery.Id}, recoveryFrom, call, recoveryReach, " +
+			$"entries.Add(new ParserEntry(ParserEntry.Recovery, {recovery.Id}, recoveryFrom, {_frame}, recoveryReach, " +
 			"repeat, lookahead, recoveryTo, entries[repeat].Value" +
 			(recovery.Recovery.YieldStep ? " + failure.RecoveryOrdinal" : "") + "));");
 		// The element stepped over, told where the build traces: from where it began to where
@@ -495,6 +495,9 @@ sealed partial class Machine
 
 			file.Line($"var reach{id} = 0;");
 
+			if (id > 0 && Written(asked))
+				file.Line($"var {SyncFrom(id)} = 0;");
+
 			if (plan.Recovery.Explains && Written(asked))
 			{
 				// A repetition read again inside its own element keeps these on the arena.
@@ -507,6 +510,18 @@ sealed partial class Machine
 				file.Line($"string[]? expecting{id} = null;");
 			}
 		}
+	}
+
+	/// <summary>
+	/// Where a recovering repetition began looking for its synchronization, which the match it finds
+	/// has to move past: one per repetition. A repetition read while another is between looking for
+	/// its synchronization and finding it — one in that synchronization, or in a rule it calls —
+	/// looks for its own in between, and a single local then held the outer one to where the inner
+	/// search began. The first keeps the name the one local had.
+	/// </summary>
+	static string SyncFrom(int id)
+	{
+		return id == 0 ? "syncFrom" : "syncFrom" + id.ToString(System.Globalization.CultureInfo.InvariantCulture);
 	}
 
 	/// <summary>How far each recovering repetition's element got, raised where the engine fails.</summary>

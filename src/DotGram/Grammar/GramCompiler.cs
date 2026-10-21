@@ -284,7 +284,67 @@ public static class GramCompiler
 			return null;
 		}
 
+		// Errors and not a reason, as for a binding above: what the lexer reads is a token, the
+		// longest match of a regular language, so a repetition in it marked `recover` would be read
+		// as a plain one and the grammar would mean something else than it says.
+		if (LexedRecoveries(graph, split) is { Count: > 0 } lexed)
+		{
+			foreach (var refusal in lexed)
+				diagnostics.Add(refusal);
+
+			return null;
+		}
+
 		return split;
+	}
+
+	/// <summary>
+	/// Every repetition marked <c>recover</c> in a rule the lexer of this split reads — a terminal,
+	/// what a terminal is made of, or what trivia is — each where it was written.
+	/// </summary>
+	static List<GramDiagnostic> LexedRecoveries(RecognitionGraph graph, LexicalSplit split)
+	{
+		var refused = new List<GramDiagnostic>();
+
+		if (graph.Recoveries.Count == 0)
+			return refused;
+
+		var lexed = new HashSet<RuleSymbol>();
+
+		foreach (var pattern in split.Inventory.Patterns)
+			if (pattern is TerminalInventory.Pattern.Class(_, var terminal))
+				lexed.UnionWith(graph.Reaches(terminal));
+
+		foreach (var trivia in split.Trivia)
+			lexed.UnionWith(graph.Reaches(trivia));
+
+		var said = new HashSet<(int, int)>();
+
+		foreach (var rule in graph.Rules)
+			if (lexed.Contains(rule) && graph.Bodies.TryGetValue(rule, out var body))
+				Look(body, rule);
+
+		return refused;
+
+		void Look(Node node, RuleSymbol rule)
+		{
+			foreach (var one in NodeWalk.Descendants(node))
+			{
+				if (!graph.Recoveries.TryGetValue(one, out var recovery))
+					continue;
+
+				if (said.Add((recovery.At.Position, recovery.At.Length)))
+					refused.Add(new GramDiagnostic(
+						GrammarNormalizer.RecoveryInToken,
+						$"'recover' in '{rule.Name}' would be read as a plain repetition: the grammar is cut in two " +
+						"(Lexical = true) and the lexer reads this rule as part of a token, the longest match of a " +
+						"regular language, which has no element in it to step over. Recover in the syntax that " +
+						"reads the tokens, or read this grammar over characters: leave Lexical off (docs/syntax.md §8.2).",
+						recovery.At.Position, recovery.At.Length, GramSeverity.Error));
+
+				Look(recovery.Sync, rule);
+			}
+		}
 	}
 
 	/// <summary>The grammar was sound and still could not be cut in two.</summary>

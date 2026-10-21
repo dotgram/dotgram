@@ -66,6 +66,12 @@ public sealed partial class GrammarNormalizer
 	public const string RecoveryInLookahead = "GRAM4038";
 
 	/// <summary>
+	/// A repetition marked <c>recover</c> in a rule the lexer reads, once the grammar is cut in two,
+	/// which reads it as a plain repetition.
+	/// </summary>
+	public const string RecoveryInToken     = "GRAM4044";
+
+	/// <summary>
 	/// An argument of a call into a namespace with a header, written outside that namespace,
 	/// that names a rule the header rebinds.
 	/// </summary>
@@ -305,6 +311,10 @@ public sealed partial class GrammarNormalizer
 		normalizer.CheckPublicationTypes();
 		normalizer.LowerYieldPublications();
 
+		// After everything that rewrites a body, so that what it lifts is final and every instance
+		// is lifted on its own; it only moves a node into a rule of its own.
+		normalizer.LiftNestedRecoveries();
+
 		normalizer.Prune();
 
 		// After pruning, because a rule nothing reaches is never emitted, and a mark in one
@@ -324,6 +334,9 @@ public sealed partial class GrammarNormalizer
 			Folds      = normalizer._folds,
 			Trivia     = normalizer._trivia,
 			Recoveries = normalizer._recoveries,
+			Lifted     = normalizer._lifted
+				.Where(pair => normalizer._rules.Contains(pair.Key))
+				.ToDictionary(pair => pair.Key, pair => pair.Value),
 			Says       = normalizer._says,
 			Forwarded  = normalizer._forwarded,
 			Climbing   = normalizer._climbing,
