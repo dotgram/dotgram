@@ -444,9 +444,21 @@ public sealed partial class GrammarNormalizer
 			if (_recoveries.ContainsKey(node))
 				found++;
 
-		foreach (var node in NodeWalk.Descendants(_bodies[rule]))
-			if (_recoveries.TryGetValue(node, out var recovery) && recovery.Factory is not null)
-				CheckRecoveredElement(rule, node);
+		Look(_bodies[rule]);
+
+		// One marked in another's synchronization recovers there as one in its element does, and is
+		// checked as one: the synchronization hangs off the repetition, so the walk goes into it.
+		void Look(Node from)
+		{
+			foreach (var node in NodeWalk.Descendants(from))
+				if (_recoveries.TryGetValue(node, out var recovery))
+				{
+					if (recovery.Factory is not null)
+						CheckRecoveredElement(rule, node);
+
+					Look(recovery.Sync);
+				}
+		}
 	}
 
 	/// <summary>

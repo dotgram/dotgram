@@ -3722,7 +3722,7 @@ file.Line("return spare;");
 
 		void Gather(Node node)
 		{
-			foreach (var one in NodeWalk.Descendants(node))
+			foreach (var one in layout.Through(node))
 				if (one is Node.Capture && layout.SlotOrNone(one) is var slot && slot >= 0)
 					found.Add(slot);
 		}
@@ -3764,7 +3764,8 @@ file.Line("return spare;");
 		return CaptureLayout.Of(
 			graph.Bodies[rule],
 			other => results.QualifiedOf(other) is not null,
-			graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
+			graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null,
+			graph.LiftedBody);
 	}
 
 	/// <summary>

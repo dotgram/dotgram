@@ -291,7 +291,7 @@ sealed partial class Machine
 			return false;
 
 		var layout = CaptureLayout.Of(
-			_graph.Bodies[rule], other => _results.QualifiedOf(other) is not null);
+			_graph.Bodies[rule], other => _results.QualifiedOf(other) is not null, lifted: _graph.LiftedBody);
 
 		return layout.Slots.Count <= 60;
 	}

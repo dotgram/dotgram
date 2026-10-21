@@ -3695,13 +3695,48 @@ Sheet = "H" & eol & head: Row* recover eol => @(Bad("head", parserText))
 The one exception is a parse read from a `TextReader` (§6.3): the driver steps over a
 bad element as it hands the good ones back, one repetition at a time, so a rule that
 marks two is told it gets no reader overload (`GRAM5001`) rather than silently
-recovering in one place only. Read whole, it recovers in both.
+recovering in one place only. Read whole, it recovers in both. One marked inside the
+other's element or synchronization is not a second: it recovers inside what the other
+steps over or hands back (below). The one a stream steps over has to be the repetition of a
+rule that it hands back; one marked in a part read whole is told the same.
 
 **A repetition inside a lookahead does not recover in place.** A lookahead (§3.4) is a
 reading of its own that answers yes or no, and its rule plans no recovery for it, so
 `?=(Row* recover ';')` is refused (`GRAM4038`) rather than read as a plain `Row*`. Name the
 recovering repetition as a rule and call that from the lookahead — `?=Rows` with
 `Rows = Row* recover ';'` — and it recovers as written: a rule plans its own.
+
+**A marked repetition inside another one's element or synchronization recovers as if it
+were its own rule in that place**, with the enclosing rule's value, trivia and `on fail`:
+
+```dotgram
+Lines : @string[] = ('[' & (Word & ';')* recover ';' & ']' & eol)* recover eol
+```
+
+Read over `[a;b;]`, `[c;9;d;]` and `[e;]`, a line each, the inner one steps over `9;` and
+the second line keeps `c` and `d`: `a, b, c, d, e`. The outer one steps over a line only
+where the inner one cannot: a bad element outside the inner repetition, or an inner one whose
+failure reaches the line's element because its synchronization cannot be found. What the inner
+one collects is the enclosing rule's, where it stands — the result above is one flat
+sequence, and a capture inside is a capture of the enclosing rule's — and its ordinals are its
+own. Its synchronization is looked for as far as it takes, past the end of the outer element
+if need be: `[9]` on a line of its own is stepped over to the next `;`, the one in `[e;]`, and
+`e` goes with it. A synchronization the outer element always has, or a choice with the
+outer one's, keeps the inner one inside its element. A `recover` inside a synchronization runs
+at every position the synchronization search tries.
+
+It is a rule of its own in every other way too. A guard inside reads what the inner part has
+captured in this reading of it, not what earlier lines did: `(w: Word & when @(w.Length <= 1) &
+';')*` is handed this line's words. What a rule of its own could not be handed or hand back is
+refused where the inner `recover` is written (`GRAM4045`): a guard inside reading a capture made
+outside it, a guard outside reading one made inside, a value built inside it, a capture of a
+lookahead inside it. Move the part into its own rule and pass it what it needs; a `=>` of the
+enclosing rule reads what was captured inside, which is built after the parse.
+
+A grammar cut in two (`Lexical = true`) recovers in the syntax that reads the tokens. A
+`recover` in a rule the lexer reads — a terminal, what one is made of, or trivia — is refused
+(`GRAM4044`): a token is the longest match of a regular language, and there is no element in
+it to step over.
 
 **The synchronization expression is one operand, so a choice needs brackets.**
 
