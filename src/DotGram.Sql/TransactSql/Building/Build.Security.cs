@@ -53,9 +53,7 @@ static partial class Build
 				return made;
 
 			// The elements are the five statements a schema declares in its own breath: read as a script, the text after the owner.
-			// Cut from the statement's own text where it can be, so that the nodes can be told where they stand in the input.
-			var written = AsWritten(old, tail, at);
-			var text    = written?.Text ?? tail[tokens[at].At..];
+			var text = tail[tokens[at].At..];
 			// Read with that text as the one its rules carry their parts with, as the elements are carried below.
 			var read = Inside(text, () => Reread(text, located: true));
 
@@ -64,8 +62,9 @@ static partial class Build
 
 			var items = Inside(text, () => elements.Select(StatementOf).ToSqlList());
 
-			if (written is { } where)
-				Shift(items, where.At);
+			// The text is the tail's, which has lost its blanks: the nodes are told where they stand in the statement as written.
+			if (Positions(old, tail, at) is { } positions)
+				Shift(items, positions, 0);
 
 			return made with { Elements = items };
 		}

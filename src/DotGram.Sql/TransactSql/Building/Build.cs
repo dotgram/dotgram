@@ -256,13 +256,18 @@ static partial class Build
 	}
 
 	/// <summary>
-	/// A statement's own text from the token at <paramref name="from"/> of the tail its rule kept to its end, as it was
-	/// written, and where that text starts in the text the reading is over. The tail has its blanks made one space, so a
-	/// position in it is no position in the input; the statement's text is cut by tokens instead, and null stands where
-	/// it cannot be cut or its tokens are not the tail's.
+	/// Where each character of the tail its rule kept, from the token at <paramref name="from"/> to its end, stands in the
+	/// text the reading is over, or null where that cannot be told. The tail has its blanks made one space, so a position
+	/// in it is no position in the input; the statement's own text is walked beside it, once the tokens say where the
+	/// tail begins in it. The array has one place more than the tail has characters, the end. Null as well where the
+	/// reading keeps no spans.
 	/// </summary>
-	static (string Text, int At)? AsWritten(ISqlSpan old, string tail, int from)
+	static int[]? Positions(ISqlSpan old, string tail, int from)
 	{
+		// Only a reading that keeps its spans for everybody needs them.
+		if (!SqlReading.Publishes)
+			return null;
+
 		var span = SpanOf(old);
 
 		if (!Cuttable(span) || span.End > source.Length)
@@ -271,38 +276,77 @@ static partial class Build
 		var whole = source.Substring(span.At, span.Length);
 		var kept  = SqlTokens.Located(tail);
 		var all   = SqlTokens.Located(whole);
-		var count = all.Count;
 
-		// A terminator is the statement's, not the tail's.
-		if (count > kept.Count && all[count - 1].Token is { Kind: SqlTokens.Kind.Punctuation, Text: ";" })
-			count--;
-
-		if (count < kept.Count || from >= kept.Count)
+		if (from >= kept.Count)
 			return null;
 
+		// The tail ends where the statement does, or before a terminator the statement has and the tail does not.
+		var first = Aligned(kept, all, all.Count);
+
+		if (first < 0 && all.Count > 0 && all[^1].Token is { Kind: SqlTokens.Kind.Punctuation, Text: ";" })
+			first = Aligned(kept, all, all.Count - 1);
+
+		if (first < 0)
+			return null;
+
+		var piece = tail[kept[from].At..];
+		var map   = new int[piece.Length + 1];
+		var at    = all[first + from].At;
+
+		for (int i = at, j = 0; j < piece.Length; j++)
+		{
+			// Blanks the rule made one are skipped in the text, except where the character is the same.
+			while (i < whole.Length && whole[i] != piece[j] && TransactSqlParser.Spacing(whole[i]) && !TransactSqlParser.Spacing(piece[j]))
+				i++;
+
+			if (i >= whole.Length)
+				return null;
+
+			if (whole[i] != piece[j] && !(TransactSqlParser.Spacing(whole[i]) && TransactSqlParser.Spacing(piece[j])))
+				return null;
+
+			map[j] = span.At + i++;
+		}
+
+		map[piece.Length] = piece.Length == 0 ? span.At + at : map[piece.Length - 1] + 1;
+
+		return map;
+	}
+
+	/// <summary>Where in the statement's tokens the tail's begin, when the tail ends at the token before <paramref name="count"/>, or -1.</summary>
+	static int Aligned(List<(SqlTokens.Token Token, int At)> kept, List<(SqlTokens.Token Token, int At)> all, int count)
+	{
 		var first = count - kept.Count;
+
+		if (first < 0)
+			return -1;
 
 		for (var i = 0; i < kept.Count; i++)
 			if (kept[i].Token != all[first + i].Token)
-				return null;
+				return -1;
 
-		var start = all[first + from].At;
-		var end   = count < all.Count ? all[count].At : whole.Length;
-
-		return (whole[start..end], span.At + start);
+		return first;
 	}
 
 	/// <summary>
-	/// A part read again from a text cut out of the statement, whose nodes were told where they stand in that text: told
-	/// where they stand in the text the reading is over, where the reading keeps the spans it tells.
+	/// A part read again from a text of its own, whose nodes were told where they stand in that text: told where they
+	/// stand in the text the reading is over, where the reading keeps the spans it tells.
 	/// </summary>
-	static void Shift<T>(IEnumerable<T> nodes, int by)
+	/// <param name="nodes">The nodes made from the part.</param>
+	/// <param name="positions">Where each character of the part stands in the text the reading is over (<see cref="Positions"/>).</param>
+	/// <param name="origin">Where the part begins in the text it was read from.</param>
+	static void Shift<T>(IEnumerable<T> nodes, int[] positions, int origin)
 		where T : ISqlSpan
 	{
-		if (by == 0 || !SqlReading.Publishes)
+		if (!SqlReading.Publishes)
 			return;
 
 		var seen = new HashSet<ISqlSpan>(Rules.ByReference.Instance);
+
+		int Place(int at)
+		{
+			return positions[Math.Min(Math.Max(at - origin, 0), positions.Length - 1)];
+		}
 
 		foreach (var root in nodes)
 		{
@@ -310,10 +354,13 @@ static partial class Build
 			{
 				if (node.Span is { Known: true } span && seen.Add(node))
 				{
+					var at     = Place(span.At);
+					var length = span.Length == 0 ? 0 : Place(span.End - 1) + 1 - at;
+
 					if (node is ISqlLocatable located)
-						located.Locate(span.At + by, span.Length, span.GapStart + by);
+						located.Locate(at, length, Place(span.GapStart));
 					else
-						node.Locate(span.At + by, span.Length);
+						node.Locate(at, length);
 				}
 
 				return true;

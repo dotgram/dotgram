@@ -283,11 +283,31 @@ public sealed class LocatedReadingTests
 		Assert.All(cut, one => Assert.Equal(one.Trim(), one));
 	}
 
+	/// <summary>
+	/// A part read again from the tail of a statement reads as it would from the statement as written: the blanks the tail
+	/// has lost make no difference to the tree, a money literal's or a string's text included.
+	/// </summary>
+	[Theory]
+	[InlineData("CREATE TYPE tt AS TABLE (a MONEY DEFAULT $1.5, b INT DEFAULT 1 + 2, c VARCHAR(5) DEFAULT 'x  y')", "CREATE TYPE tt AS TABLE (a MONEY DEFAULT   $1.5 , b INT DEFAULT  1   +   2, c VARCHAR(5) DEFAULT 'x  y')")]
+	[InlineData("CREATE TYPE tt AS TABLE (a MONEY DEFAULT -$1.5)", "CREATE  TYPE tt\tAS\r\nTABLE (a MONEY DEFAULT  - $1.5)")]
+	[InlineData("CREATE TYPE tt AS TABLE (a INT DEFAULT - 1, b NVARCHAR(3) DEFAULT N'z', c VARBINARY(3) DEFAULT 0x1)", "CREATE TYPE tt AS TABLE (a INT DEFAULT  -   1, b NVARCHAR(3) DEFAULT  N'z', c VARBINARY(3) DEFAULT  0x1)")]
+	[InlineData("CREATE SCHEMA s CREATE TABLE t (a MONEY DEFAULT $1.5, [a b] INT CHECK ([a b] = 0))", "CREATE SCHEMA s CREATE TABLE t (a MONEY DEFAULT   $1.5,  [a b]  INT  CHECK ([a b]  =  0))")]
+	[InlineData("CREATE SCHEMA s CREATE VIEW v AS SELECT $1 AS x", "CREATE SCHEMA s CREATE VIEW v AS SELECT  $1  AS  x")]
+	public void A_part_read_again_reads_as_the_statement_as_written(string collapsed, string written)
+	{
+		Assert.Equal(TransactSqlParser.ParseSql(collapsed), TransactSqlParser.ParseSql(written));
+		Assert.Equal(TransactSqlParser.ParseSql(collapsed), TransactSqlParser.Located.ParseSql(written));
+	}
+
 	[Theory]
 	[InlineData("CREATE SCHEMA s AUTHORIZATION o CREATE TABLE t (a INT) GRANT SELECT ON t TO u", new[] { "CREATE TABLE t (a INT)", "GRANT SELECT ON t TO u" })]
 	[InlineData("SELECT 1; CREATE  SCHEMA\ts\r\n AUTHORIZATION  o /* c */ CREATE   TABLE t (a INT, CHECK (a  >  0)) -- c\r\n  CREATE VIEW v AS SELECT 1 AS x ; SELECT 2", new[] { "CREATE   TABLE t (a INT, CHECK (a  >  0))", "CREATE VIEW v AS SELECT 1 AS x" })]
 	[InlineData("CREATE SCHEMA AUTHORIZATION o DENY SELECT ON t TO u REVOKE SELECT ON t FROM u", new[] { "DENY SELECT ON t TO u", "REVOKE SELECT ON t FROM u" })]
 	[InlineData("CREATE SCHEMA s CREATE TABLE t (a INT)", new[] { "CREATE TABLE t (a INT)" })]
+	[InlineData("CREATE SCHEMA s CREATE PROCEDURE p AS SELECT 1;", new[] { "CREATE PROCEDURE p AS SELECT 1;" })]
+	[InlineData("CREATE SCHEMA s CREATE PROCEDURE p AS SELECT 1 /* c */ ;", new[] { "CREATE PROCEDURE p AS SELECT 1 /* c */ ;" })]
+	[InlineData("CREATE SCHEMA s CREATE PROCEDURE p AS SELECT 1\r\n  ;  ;", new[] { "CREATE PROCEDURE p AS SELECT 1\r\n  ;  ;" })]
+	[InlineData("CREATE SCHEMA s CREATE VIEW v AS SELECT 1;", new[] { "CREATE VIEW v AS SELECT 1" })]
 	public void The_statements_of_a_schema_are_spanned_in_the_input(string text, string[] elements)
 	{
 		var schema = (Ast.Statement.CreateSchema)TransactSqlParser.Located.ParseSql(text).Single(static one => one is Ast.Statement.CreateSchema);
