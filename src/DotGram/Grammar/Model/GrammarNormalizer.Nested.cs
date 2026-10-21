@@ -230,8 +230,9 @@ public sealed partial class GrammarNormalizer
 				why ??= "a value is built inside it, and the value it is part of is the enclosing rule's";
 			else if (node is Node.Capture(_, Node.Lookahead))
 				why ??= "what a lookahead inside it saw is captured, and that capture is written where the lookahead ends, outside its call";
-			else if (node is Node.Guard guard && outside.FirstOrDefault(name => Names(guard.Text, name)) is { } read)
-				why ??= $"a guard inside it reads '{read}', which is captured outside it";
+			else if (node is Node.Guard guard &&
+				outside.FirstOrDefault(name => !inside.Contains(name) && Names(guard.Text, name)) is { } read)
+				why ??= $"a guard inside it reads '{read}', which is captured only outside it";
 
 		foreach (var body in bodies)
 			foreach (var node in Unlifted(body, except: inner))

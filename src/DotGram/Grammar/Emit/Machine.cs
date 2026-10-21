@@ -791,7 +791,7 @@ sealed partial class Machine
 
 				var before = layout.Before(node);
 
-				foreach (var member in graph.Results[rule])
+				foreach (var member in GuardMembers(rule))
 					if (member.Rule is not null)
 						foreach (var slot in member.Slots)
 							if (slot < before)
@@ -3363,7 +3363,7 @@ sealed partial class Machine
 					arguments.Add("guardAccumulated");
 				}
 
-				foreach (var written in _graph.Results[rule])
+				foreach (var written in GuardMembers(rule))
 				{
 					var slots = new List<int>();
 
