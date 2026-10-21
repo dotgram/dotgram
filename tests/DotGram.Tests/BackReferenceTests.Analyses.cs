@@ -323,12 +323,18 @@ public sealed partial class BackReferenceTests
 		Assert.IsType<Node.Counted>(capture.Body);
 	}
 
+	/// <summary>
+	/// And under one that may take no turn and has an end: a run all the same, whose text is
+	/// <c>""</c> when it took none, which the capture around it records.
+	/// </summary>
 	[Fact]
-	public void A_text_capture_stays_in_a_count_that_may_take_no_turn_and_has_an_end()
+	public void A_text_capture_is_lifted_out_of_a_count_that_may_take_no_turn_and_has_an_end()
 	{
 		var body = Body("R = $q: 'b'+ & t: 'a'{0,#q}\nparse R");
 
-		Assert.IsType<Node.Capture>(Nodes<Node.Counted>(body).Single().Body);
+		var capture = Nodes<Node.Capture>(body).Single();
+
+		Assert.IsType<Node.Counted>(capture.Body);
 	}
 
 	// ── Helpers ─────────────────────────────────────────────────────────────────

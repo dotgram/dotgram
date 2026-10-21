@@ -146,9 +146,13 @@ sealed partial class Machine
 				if (wanted.Name == "parserText" || wanted.Name == made.Accumulator)
 					continue;
 
+				// Absent where the rule may leave it unwritten, and where this alternative may: a
+				// fold's step writing the name says nothing of the base, which is built first.
 				for (var i = 0; i < members.Count; i++)
 					if (members[i].Name == wanted.Name)
-						shaped.Add(new DirectMember(members[i], i, Shaped(members[i], members[i].Slots, repeated), wanted.Slots));
+						shaped.Add(new DirectMember(
+							wanted.IsOptional && !members[i].IsOptional ? members[i] with { IsOptional = true } : members[i],
+							i, Shaped(members[i], members[i].Slots, repeated), wanted.Slots));
 			}
 
 			return shaped;

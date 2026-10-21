@@ -182,7 +182,7 @@ public sealed class CaptureLayout
 		{
 			case Node.Capture(var name, var captured):
 			{
-				var called = captured is Node.Call(var rule, _) && buildsValue(rule) ? rule : null;
+				var called = ValuedCall(captured, buildsValue);
 
 				_slotOf[node] = _slots.Count;
 
@@ -318,6 +318,19 @@ public sealed class CaptureLayout
 			default:
 				break;
 		}
+	}
+
+	/// <summary>
+	/// The rule whose value a capture of this node holds, or null where what it holds is text: a
+	/// call of a rule that builds a value.
+	/// </summary>
+	public static RuleSymbol? ValuedCall(Node captured, Func<RuleSymbol, bool> buildsValue)
+	{
+		return captured switch
+		{
+			Node.Call(var rule, _) when buildsValue(rule) => rule,
+			_                                             => null,
+		};
 	}
 
 	/// <summary>The rule's bindings, each once, in the order they are first written.</summary>
