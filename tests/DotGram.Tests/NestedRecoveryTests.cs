@@ -402,7 +402,10 @@ public sealed class NestedRecoveryTests
 	[InlineData(
 		"Count : @int = d: ['0'..'9'] => @(int.Parse(d))\n" +
 		"Start : @string = ((n: Count & ':' & (w: Word & when @(w.Length <= n.Length) & ';')* recover ';' & eol)* recover eol) => @(string.Join(\"+\", w))",
-		"reads 'n', which is captured only outside it")]
+		"reads 'n', which is captured outside it and not inside it before the guard")]
+	[InlineData(
+		"Start = (k: 'a' & (when @(k == \"a\") & k: 'b' & ';')* recover ';' & eol)* recover eol",
+		"reads 'k', which is captured outside it and not inside it before the guard")]
 	[InlineData(
 		"Start : @string = (('[' & (w: Word & ';')* recover ';' & when @(w.Length > 0) & ']' & eol)* recover eol) => @(string.Join(\"+\", w))",
 		"reads 'w', which is captured inside it")]
@@ -458,6 +461,26 @@ public sealed class NestedRecoveryTests
 			GramCompiler.Compile(grammar, Options(CarrierKind.Auto, true, true, false, false)).Diagnostics
 				.Where(static one => one.Id == GrammarNormalizer.RecoveryInToken),
 			static one => Assert.StartsWith("'recover' in 'Tok' ", one.Message, StringComparison.Ordinal));
+	}
+
+	/// <summary>
+	/// Nor does the engine's step trace (DOTGRAM_STEPS): every name a string of the parser holds is
+	/// one the author wrote.
+	/// </summary>
+	[Fact]
+	public void The_step_trace_names_the_rule_the_author_wrote()
+	{
+		foreach (var one in All)
+		{
+			var options = Options(CarrierKind.Tape, false, one.Lexical, false, false);
+
+			options.Steps = true;
+
+			var source = string.Concat(GramCompiler.Compile(one.Inline + "\nparse Start", options).Sources.Select(static part => part.Text));
+
+			Assert.Contains("Step_DotGram(", source, StringComparison.Ordinal);
+			Assert.DoesNotMatch(@"""(?:call |read )?\w*_Nested\w*""", source);
+		}
 	}
 
 	/// <summary>
