@@ -117,7 +117,7 @@ sealed partial class Machine
 			// flat-valued call is the call's body compiled in place, silent when it is.
 			Node.Capture(_, var captured) => _valuesInLocals &&
 														  (SiteCallee(node) is { } called
-															  ? Silent(_graph.Bodies[called], following)
+															  ? Silent(_graph.Bodies[called], Handed(called, following))
 															  : Silent(captured, following)),
 
 			// The single construction a flat-value method runs at Accept, once the
@@ -147,7 +147,7 @@ sealed partial class Machine
 			Node.Call(var rule, _) => ScannerOf(rule) is not null ||
 														  CanInline(rule) &&
 														  _graph.Bodies.TryGetValue(rule, out var called) &&
-														  Silent(called, following),
+														  Silent(called, Handed(rule, following)),
 
 			// A repetition inside another is silent exactly when it is itself the loop and
 			// nothing else — which is the same question, asked of it. `Path = ('/' & Segment)*`
@@ -163,12 +163,24 @@ sealed partial class Machine
 			// try each alternative in order through the give-back door, and the first that
 			// matches is final — nothing ever comes back, which is what "atomic" says.
 			// The alternatives may share prefixes freely; what each must be is silent.
-			Node.Atomic(var kept) => kept is Node.Choice(var options) { Selection: null }
-														  ? AllSilentWithin(options, following)
-														  : SilentWithin(kept, following),
+			// Under the view the compile hands the contents (Machine.CompileAtomic).
+			Node.Atomic(var kept) => SilentAtomic(node, kept, following),
 
 			_ => false,
 		};
+	}
+
+	/// <summary>
+	/// <see cref="Silent"/>'s Atomic case: the contents under the view the compile hands them
+	/// (<see cref="CompileAtomic"/>).
+	/// </summary>
+	bool SilentAtomic(Node node, Node kept, FollowSets.Continuation following)
+	{
+		var inside = Commits(node) ? following.Committed() : following;
+
+		return kept is Node.Choice(var options) { Selection: null }
+			? AllSilentWithin(options, inside)
+			: SilentWithin(kept, inside);
 	}
 
 	/// <summary>

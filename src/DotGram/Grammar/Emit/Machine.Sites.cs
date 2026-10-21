@@ -332,14 +332,11 @@ sealed partial class Machine
 	int CompileSite(Node.Capture capture, SitePlan site, int next, FollowSets.Continuation following)
 	{
 		// The inlined body composes continuations against its own namespace's seam,
-		// exactly as the valueless inline above does.
+		// exactly as the valueless inline does (Handed).
 		var outerSeam = _seam;
-		var handed    = following;
+		var handed    = Handed(site.Callee, following, outerSeam);
 
 		_seam = FollowSets.SeamOf(site.Callee, _graph);
-
-		if (!ReferenceEquals(_seam, outerSeam))
-			handed = new FollowSets.Continuation(following.Plain, FirstSets.First.All);
 
 		var saved = _siteSlots;
 
