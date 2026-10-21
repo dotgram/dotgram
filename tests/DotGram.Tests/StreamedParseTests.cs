@@ -129,6 +129,52 @@ public sealed class StreamedParseTests
 			}
 	}
 
+	/// <summary>
+	/// A part that can end in two places — a choice whose earlier alternative is a prefix of a
+	/// later one — is given back over a string when what follows fails, and a stream cannot go
+	/// back into it. Such a rule either gets no reader, and is told why, or reads what the string
+	/// reads, wherever the choice stands: a part of its own, the last part, a call, the element
+	/// of a repetition, with trivia, beside a recover.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : @string[] = (\"a\" | \"ab\") & \"b\" & eol & Line*", true, new[] { "abb\nx\n", "ab\nx\n", "abb\n" })]
+	[InlineData("Start : @string[] = Line* & '-' & (\"a\" | \"ab\")", true, new[] { "x\n-ab", "x\n-a", "-ab" })]
+	[InlineData("X : @string = (\"a\" | \"ab\") => @(\"x\")\nStart : @string[] = X & \"b\" & eol & Line*", true, new[] { "abb\nx\n", "ab\n" })]
+	[InlineData("X : @string = (\"a\" | \"ab\") => @(\"x\")\nStart : @string[] = X* & \"b\" & eol", true, new[] { "aabb\n", "ab\n", "abab\n" })]
+	[InlineData("Item : @string = (\"a\" | \"ab\") & \"b\" & eol => @(\"i\")\nStart : @string[] = Item*", false, new[] { "abb\nab\n", "ab\nabb\n" })]
+	[InlineData("Item : @string = (\"a\" | \"ab\") & \"b\" & eol => @(\"i\")\nStart : @string[] = Item* recover eol", false, new[] { "abb\nx\nab\n" })]
+	[InlineData("Start : @string[] = (\"a\" | \"ab\") & \"b\" & eol & Row* recover eol", true, new[] { "abb\n[c]\n[9]\n", "ab\n[c]\n" })]
+	[InlineData("Start : @string[] = Row* & ((\"a\" | \"ab\") & \"b\" & ';')*", true, new[] { "[x]\nabb;ab;", "ab;abb;" })]
+	[InlineData("trivia = { ' '* }\nC : @string = 'c' => @(\"c\")\nStart : @string[] = (\"a\" | \"ab\") & \"b\" & C*", true, new[] { "a b c", "ab b c c", "abb c", " abb" })]
+	public void A_part_that_can_end_two_ways_is_not_read_one_way(string rule, bool refused, string[] inputs)
+	{
+		var grammar = rule.StartsWith("trivia", StringComparison.Ordinal) ? rule : Rules(rule);
+		var told    = Compiled(grammar, CarrierKind.Auto, direct: true).Diagnostics;
+
+		Assert.Equal(
+			refused,
+			told.Any(static one => one.Id == "GRAM5001" && one.Message.Contains("can end in more than one place", StringComparison.Ordinal)));
+
+		if (refused)
+			return;
+
+		foreach (var carrier in Carriers)
+			foreach (var direct in new[] { true, false })
+			{
+				var host = Host(grammar, carrier, direct);
+
+				foreach (var input in inputs)
+				{
+					var whole    = Whole(host, input);
+					var streamed = Streamed(host, input);
+
+					Assert.True(
+						whole == streamed || whole.StartsWith('!') && streamed.StartsWith('!') && Place(whole) == Place(streamed),
+						$"{carrier}, direct {direct}, [{input}]: string {whole}, reader {streamed}");
+				}
+			}
+	}
+
 	/// <summary>The two that were found, with the values they are meant to have.</summary>
 	[Theory]
 	[InlineData("Start : @string[] = Line* & Row* recover eol", "a\nb\n[c]\n[9]\n[d]\n", "a,b,c,d")]
