@@ -16,40 +16,40 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.AdvId: if (AdvId is not null) Duplicate(field); AdvId = (FixField.Text)field; break;
-					case FixTag.AdvTransType: if (AdvTransType is not null) Duplicate(field); AdvTransType = (FixField.Text)field; break;
-					case FixTag.AdvRefID: if (AdvRefID is not null) Duplicate(field); AdvRefID = (FixField.Text)field; break;
-					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.AdvSide: if (AdvSide is not null) Duplicate(field); AdvSide = (FixField.Character)field; break;
-					case FixTag.Quantity: if (Shares is not null) Duplicate(field); Shares = (FixField.Decimal)field; break;
-					case FixTag.Price: if (Price is not null) Duplicate(field); Price = (FixField.Decimal)field; break;
-					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
-					case FixTag.TradeDate: if (TradeDate is not null) Duplicate(field); TradeDate = (FixField.Date)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
-					case FixTag.URLLink: if (URLLink is not null) Duplicate(field); URLLink = (FixField.Text)field; break;
-					case FixTag.LastMkt: if (LastMkt is not null) Duplicate(field); LastMkt = (FixField.Text)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
+					case FixTag.AdvId: if (_advId is not null) Duplicate(field); _advId = (FixField.Text)field; break;
+					case FixTag.AdvTransType: if (_advTransType is not null) Duplicate(field); _advTransType = (FixField.Text)field; break;
+					case FixTag.AdvRefID: if (_advRefID is not null) Duplicate(field); _advRefID = (FixField.Text)field; break;
+					case FixTag.Symbol: if (_symbol is not null) Duplicate(field); _symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (_symbolSfx is not null) Duplicate(field); _symbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (_securityID is not null) Duplicate(field); _securityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (_iDSource is not null) Duplicate(field); _iDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (_securityType is not null) Duplicate(field); _securityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (_maturityMonthYear is not null) Duplicate(field); _maturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (_maturityDay is not null) Duplicate(field); _maturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (_putOrCall is not null) Duplicate(field); _putOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (_strikePrice is not null) Duplicate(field); _strikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (_optAttribute is not null) Duplicate(field); _optAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (_contractMultiplier is not null) Duplicate(field); _contractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (_couponRate is not null) Duplicate(field); _couponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (_securityExchange is not null) Duplicate(field); _securityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (_issuer is not null) Duplicate(field); _issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (_encodedIssuerLen is not null) Duplicate(field); _encodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (_encodedIssuer is not null) Duplicate(field); _encodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (_securityDesc is not null) Duplicate(field); _securityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (_encodedSecurityDescLen is not null) Duplicate(field); _encodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (_encodedSecurityDesc is not null) Duplicate(field); _encodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.AdvSide: if (_advSide is not null) Duplicate(field); _advSide = (FixField.Character)field; break;
+					case FixTag.Quantity: if (_shares is not null) Duplicate(field); _shares = (FixField.Decimal)field; break;
+					case FixTag.Price: if (_price is not null) Duplicate(field); _price = (FixField.Decimal)field; break;
+					case FixTag.Currency: if (_currency is not null) Duplicate(field); _currency = (FixField.Text)field; break;
+					case FixTag.TradeDate: if (_tradeDate is not null) Duplicate(field); _tradeDate = (FixField.Date)field; break;
+					case FixTag.TransactTime: if (_transactTime is not null) Duplicate(field); _transactTime = (FixField.Timestamp)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
+					case FixTag.URLLink: if (_uRLLink is not null) Duplicate(field); _uRLLink = (FixField.Text)field; break;
+					case FixTag.LastMkt: if (_lastMkt is not null) Duplicate(field); _lastMkt = (FixField.Text)field; break;
+					case FixTag.TradingSessionID: if (_tradingSessionID is not null) Duplicate(field); _tradingSessionID = (FixField.Text)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -61,106 +61,140 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX AdvId, tag 2, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? AdvId { get; internal set; }
+		public FixField.Text? AdvId => _advId;
+		internal FixField.Text? _advId;
 
 		/// <summary>The FIX AdvTransType, tag 5, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? AdvTransType { get; internal set; }
+		public FixField.Text? AdvTransType => _advTransType;
+		internal FixField.Text? _advTransType;
 
 		/// <summary>The FIX AdvRefID, tag 3, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? AdvRefID { get; internal set; }
+		public FixField.Text? AdvRefID => _advRefID;
+		internal FixField.Text? _advRefID;
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Symbol { get; internal set; }
+		public FixField.Text? Symbol => _symbol;
+		internal FixField.Text? _symbol;
 
 		/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SymbolSfx { get; internal set; }
+		public FixField.Text? SymbolSfx => _symbolSfx;
+		internal FixField.Text? _symbolSfx;
 
 		/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityID { get; internal set; }
+		public FixField.Text? SecurityID => _securityID;
+		internal FixField.Text? _securityID;
 
 		/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IDSource { get; internal set; }
+		public FixField.Text? IDSource => _iDSource;
+		internal FixField.Text? _iDSource;
 
 		/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityType { get; internal set; }
+		public FixField.Text? SecurityType => _securityType;
+		internal FixField.Text? _securityType;
 
 		/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-		public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+		public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+		internal FixField.MonthYear? _maturityMonthYear;
 
 		/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-		public FixField.Integer? MaturityDay { get; internal set; }
+		public FixField.Integer? MaturityDay => _maturityDay;
+		internal FixField.Integer? _maturityDay;
 
 		/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? PutOrCall { get; internal set; }
+		public FixField.Integer? PutOrCall => _putOrCall;
+		internal FixField.Integer? _putOrCall;
 
 		/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StrikePrice { get; internal set; }
+		public FixField.Decimal? StrikePrice => _strikePrice;
+		internal FixField.Decimal? _strikePrice;
 
 		/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OptAttribute { get; internal set; }
+		public FixField.Character? OptAttribute => _optAttribute;
+		internal FixField.Character? _optAttribute;
 
 		/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? ContractMultiplier { get; internal set; }
+		public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+		internal FixField.Decimal? _contractMultiplier;
 
 		/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CouponRate { get; internal set; }
+		public FixField.Decimal? CouponRate => _couponRate;
+		internal FixField.Decimal? _couponRate;
 
 		/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityExchange { get; internal set; }
+		public FixField.Text? SecurityExchange => _securityExchange;
+		internal FixField.Text? _securityExchange;
 
 		/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Issuer { get; internal set; }
+		public FixField.Text? Issuer => _issuer;
+		internal FixField.Text? _issuer;
 
 		/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedIssuerLen { get; internal set; }
+		public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+		internal FixField.Integer? _encodedIssuerLen;
 
 		/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedIssuer { get; internal set; }
+		public FixField.Data? EncodedIssuer => _encodedIssuer;
+		internal FixField.Data? _encodedIssuer;
 
 		/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityDesc { get; internal set; }
+		public FixField.Text? SecurityDesc => _securityDesc;
+		internal FixField.Text? _securityDesc;
 
 		/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+		public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+		internal FixField.Integer? _encodedSecurityDescLen;
 
 		/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedSecurityDesc { get; internal set; }
+		public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+		internal FixField.Data? _encodedSecurityDesc;
 
 		/// <summary>The FIX AdvSide, tag 4, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? AdvSide { get; internal set; }
+		public FixField.Character? AdvSide => _advSide;
+		internal FixField.Character? _advSide;
 
 		/// <summary>The FIX Shares, tag 53, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? Shares { get; internal set; }
+		public FixField.Decimal? Shares => _shares;
+		internal FixField.Decimal? _shares;
 
 		/// <summary>The FIX Price, tag 44, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? Price { get; internal set; }
+		public FixField.Decimal? Price => _price;
+		internal FixField.Decimal? _price;
 
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
-		public FixField.Text? Currency { get; internal set; }
+		public FixField.Text? Currency => _currency;
+		internal FixField.Text? _currency;
 
 		/// <summary>The FIX TradeDate, tag 75, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? TradeDate { get; internal set; }
+		public FixField.Date? TradeDate => _tradeDate;
+		internal FixField.Date? _tradeDate;
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TransactTime { get; internal set; }
+		public FixField.Timestamp? TransactTime => _transactTime;
+		internal FixField.Timestamp? _transactTime;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>The FIX URLLink, tag 149, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? URLLink { get; internal set; }
+		public FixField.Text? URLLink => _uRLLink;
+		internal FixField.Text? _uRLLink;
 
 		/// <summary>The FIX LastMkt, tag 30, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? LastMkt { get; internal set; }
+		public FixField.Text? LastMkt => _lastMkt;
+		internal FixField.Text? _lastMkt;
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TradingSessionID { get; internal set; }
+		public FixField.Text? TradingSessionID => _tradingSessionID;
+		internal FixField.Text? _tradingSessionID;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -178,302 +212,302 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.AllocID: if (AllocID is not null) Duplicate(field); AllocID = (FixField.Text)field; break;
-					case FixTag.AllocTransType: if (AllocTransType is not null) Duplicate(field); AllocTransType = (FixField.Character)field; break;
-					case FixTag.RefAllocID: if (RefAllocID is not null) Duplicate(field); RefAllocID = (FixField.Text)field; break;
-					case FixTag.AllocLinkID: if (AllocLinkID is not null) Duplicate(field); AllocLinkID = (FixField.Text)field; break;
-					case FixTag.AllocLinkType: if (AllocLinkType is not null) Duplicate(field); AllocLinkType = (FixField.Integer)field; break;
-					case FixTag.NoOrders: if (NoOrders is not null) Duplicate(field); NoOrders = (FixField.Integer)field; break;
+					case FixTag.AllocID: if (_allocID is not null) Duplicate(field); _allocID = (FixField.Text)field; break;
+					case FixTag.AllocTransType: if (_allocTransType is not null) Duplicate(field); _allocTransType = (FixField.Character)field; break;
+					case FixTag.RefAllocID: if (_refAllocID is not null) Duplicate(field); _refAllocID = (FixField.Text)field; break;
+					case FixTag.AllocLinkID: if (_allocLinkID is not null) Duplicate(field); _allocLinkID = (FixField.Text)field; break;
+					case FixTag.AllocLinkType: if (_allocLinkType is not null) Duplicate(field); _allocLinkType = (FixField.Integer)field; break;
+					case FixTag.NoOrders: if (_noOrders is not null) Duplicate(field); _noOrders = (FixField.Integer)field; break;
 					case FixTag.ClOrdID:
-						if (noOrdersGroups is null && NoOrders is null) Uncounted(FixTag.NoOrders, field);
+						if (noOrdersGroups is null && _noOrders is null) Uncounted(FixTag.NoOrders, field);
 						(noOrdersGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.OrderID:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].OrderID is not null)
+						else if (noOrdersGroups![^1]._orderID is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].OrderID = (FixField.Text)field;
+							noOrdersGroups![^1]._orderID = (FixField.Text)field;
 						break;
 					case FixTag.SecondaryOrderID:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].SecondaryOrderID is not null)
+						else if (noOrdersGroups![^1]._secondaryOrderID is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].SecondaryOrderID = (FixField.Text)field;
+							noOrdersGroups![^1]._secondaryOrderID = (FixField.Text)field;
 						break;
 					case FixTag.ListID:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].ListID is not null)
+						else if (noOrdersGroups![^1]._listID is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].ListID = (FixField.Text)field;
+							noOrdersGroups![^1]._listID = (FixField.Text)field;
 						break;
 					case FixTag.WaveNo:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].WaveNo is not null)
+						else if (noOrdersGroups![^1]._waveNo is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].WaveNo = (FixField.Text)field;
+							noOrdersGroups![^1]._waveNo = (FixField.Text)field;
 						break;
-					case FixTag.NoExecs: if (NoExecs is not null) Duplicate(field); NoExecs = (FixField.Integer)field; break;
+					case FixTag.NoExecs: if (_noExecs is not null) Duplicate(field); _noExecs = (FixField.Integer)field; break;
 					case FixTag.LastQty:
-						if (noExecsGroups is null && NoExecs is null) Uncounted(FixTag.NoExecs, field);
+						if (noExecsGroups is null && _noExecs is null) Uncounted(FixTag.NoExecs, field);
 						(noExecsGroups ??= []).Add(new ((FixField.Decimal)field));
 						break;
 					case FixTag.ExecID:
 						if (None(noExecsGroups))
 							Unentered(field);
-						else if (noExecsGroups![^1].ExecID is not null)
+						else if (noExecsGroups![^1]._execID is not null)
 							Duplicate(field, FixTag.NoExecs, noExecsGroups!.Count - 1);
 						else
-							noExecsGroups![^1].ExecID = (FixField.Text)field;
+							noExecsGroups![^1]._execID = (FixField.Text)field;
 						break;
 					case FixTag.LastPx:
 						if (None(noExecsGroups))
 							Unentered(field);
-						else if (noExecsGroups![^1].LastPx is not null)
+						else if (noExecsGroups![^1]._lastPx is not null)
 							Duplicate(field, FixTag.NoExecs, noExecsGroups!.Count - 1);
 						else
-							noExecsGroups![^1].LastPx = (FixField.Decimal)field;
+							noExecsGroups![^1]._lastPx = (FixField.Decimal)field;
 						break;
 					case FixTag.LastCapacity:
 						if (None(noExecsGroups))
 							Unentered(field);
-						else if (noExecsGroups![^1].LastCapacity is not null)
+						else if (noExecsGroups![^1]._lastCapacity is not null)
 							Duplicate(field, FixTag.NoExecs, noExecsGroups!.Count - 1);
 						else
-							noExecsGroups![^1].LastCapacity = (FixField.Character)field;
+							noExecsGroups![^1]._lastCapacity = (FixField.Character)field;
 						break;
-					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
-					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Quantity: if (Shares is not null) Duplicate(field); Shares = (FixField.Decimal)field; break;
-					case FixTag.LastMkt: if (LastMkt is not null) Duplicate(field); LastMkt = (FixField.Text)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.AvgPx: if (AvgPx is not null) Duplicate(field); AvgPx = (FixField.Decimal)field; break;
-					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
-					case FixTag.AvgPxPrecision: if (AvgPrxPrecision is not null) Duplicate(field); AvgPrxPrecision = (FixField.Integer)field; break;
-					case FixTag.TradeDate: if (TradeDate is not null) Duplicate(field); TradeDate = (FixField.Date)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.SettlType: if (SettlmntTyp is not null) Duplicate(field); SettlmntTyp = (FixField.Character)field; break;
-					case FixTag.SettlDate: if (FutSettDate is not null) Duplicate(field); FutSettDate = (FixField.Date)field; break;
-					case FixTag.GrossTradeAmt: if (GrossTradeAmt is not null) Duplicate(field); GrossTradeAmt = (FixField.Decimal)field; break;
-					case FixTag.NetMoney: if (NetMoney is not null) Duplicate(field); NetMoney = (FixField.Decimal)field; break;
-					case FixTag.PositionEffect: if (OpenClose is not null) Duplicate(field); OpenClose = (FixField.Character)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
-					case FixTag.NumDaysInterest: if (NumDaysInterest is not null) Duplicate(field); NumDaysInterest = (FixField.Integer)field; break;
-					case FixTag.AccruedInterestRate: if (AccruedInterestRate is not null) Duplicate(field); AccruedInterestRate = (FixField.Decimal)field; break;
-					case FixTag.NoAllocs: if (NoAllocs is not null) Duplicate(field); NoAllocs = (FixField.Integer)field; break;
+					case FixTag.Side: if (_side is not null) Duplicate(field); _side = (FixField.Character)field; break;
+					case FixTag.Symbol: if (_symbol is not null) Duplicate(field); _symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (_symbolSfx is not null) Duplicate(field); _symbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (_securityID is not null) Duplicate(field); _securityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (_iDSource is not null) Duplicate(field); _iDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (_securityType is not null) Duplicate(field); _securityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (_maturityMonthYear is not null) Duplicate(field); _maturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (_maturityDay is not null) Duplicate(field); _maturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (_putOrCall is not null) Duplicate(field); _putOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (_strikePrice is not null) Duplicate(field); _strikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (_optAttribute is not null) Duplicate(field); _optAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (_contractMultiplier is not null) Duplicate(field); _contractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (_couponRate is not null) Duplicate(field); _couponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (_securityExchange is not null) Duplicate(field); _securityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (_issuer is not null) Duplicate(field); _issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (_encodedIssuerLen is not null) Duplicate(field); _encodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (_encodedIssuer is not null) Duplicate(field); _encodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (_securityDesc is not null) Duplicate(field); _securityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (_encodedSecurityDescLen is not null) Duplicate(field); _encodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (_encodedSecurityDesc is not null) Duplicate(field); _encodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Quantity: if (_shares is not null) Duplicate(field); _shares = (FixField.Decimal)field; break;
+					case FixTag.LastMkt: if (_lastMkt is not null) Duplicate(field); _lastMkt = (FixField.Text)field; break;
+					case FixTag.TradingSessionID: if (_tradingSessionID is not null) Duplicate(field); _tradingSessionID = (FixField.Text)field; break;
+					case FixTag.AvgPx: if (_avgPx is not null) Duplicate(field); _avgPx = (FixField.Decimal)field; break;
+					case FixTag.Currency: if (_currency is not null) Duplicate(field); _currency = (FixField.Text)field; break;
+					case FixTag.AvgPxPrecision: if (_avgPrxPrecision is not null) Duplicate(field); _avgPrxPrecision = (FixField.Integer)field; break;
+					case FixTag.TradeDate: if (_tradeDate is not null) Duplicate(field); _tradeDate = (FixField.Date)field; break;
+					case FixTag.TransactTime: if (_transactTime is not null) Duplicate(field); _transactTime = (FixField.Timestamp)field; break;
+					case FixTag.SettlType: if (_settlmntTyp is not null) Duplicate(field); _settlmntTyp = (FixField.Character)field; break;
+					case FixTag.SettlDate: if (_futSettDate is not null) Duplicate(field); _futSettDate = (FixField.Date)field; break;
+					case FixTag.GrossTradeAmt: if (_grossTradeAmt is not null) Duplicate(field); _grossTradeAmt = (FixField.Decimal)field; break;
+					case FixTag.NetMoney: if (_netMoney is not null) Duplicate(field); _netMoney = (FixField.Decimal)field; break;
+					case FixTag.PositionEffect: if (_openClose is not null) Duplicate(field); _openClose = (FixField.Character)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
+					case FixTag.NumDaysInterest: if (_numDaysInterest is not null) Duplicate(field); _numDaysInterest = (FixField.Integer)field; break;
+					case FixTag.AccruedInterestRate: if (_accruedInterestRate is not null) Duplicate(field); _accruedInterestRate = (FixField.Decimal)field; break;
+					case FixTag.NoAllocs: if (_noAllocs is not null) Duplicate(field); _noAllocs = (FixField.Integer)field; break;
 					case FixTag.AllocAccount:
-						if (noAllocsGroups is null && NoAllocs is null) Uncounted(FixTag.NoAllocs, field);
+						if (noAllocsGroups is null && _noAllocs is null) Uncounted(FixTag.NoAllocs, field);
 						(noAllocsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.AllocPrice:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].AllocPrice is not null)
+						else if (noAllocsGroups![^1]._allocPrice is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].AllocPrice = (FixField.Decimal)field;
+							noAllocsGroups![^1]._allocPrice = (FixField.Decimal)field;
 						break;
 					case FixTag.AllocQty:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].AllocShares is not null)
+						else if (noAllocsGroups![^1]._allocShares is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].AllocShares = (FixField.Decimal)field;
+							noAllocsGroups![^1]._allocShares = (FixField.Decimal)field;
 						break;
 					case FixTag.ProcessCode:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].ProcessCode is not null)
+						else if (noAllocsGroups![^1]._processCode is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].ProcessCode = (FixField.Character)field;
+							noAllocsGroups![^1]._processCode = (FixField.Character)field;
 						break;
 					case FixTag.BrokerOfCredit:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].BrokerOfCredit is not null)
+						else if (noAllocsGroups![^1]._brokerOfCredit is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].BrokerOfCredit = (FixField.Text)field;
+							noAllocsGroups![^1]._brokerOfCredit = (FixField.Text)field;
 						break;
 					case FixTag.NotifyBrokerOfCredit:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].NotifyBrokerOfCredit is not null)
+						else if (noAllocsGroups![^1]._notifyBrokerOfCredit is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].NotifyBrokerOfCredit = (FixField.Boolean)field;
+							noAllocsGroups![^1]._notifyBrokerOfCredit = (FixField.Boolean)field;
 						break;
 					case FixTag.AllocHandlInst:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].AllocHandlInst is not null)
+						else if (noAllocsGroups![^1]._allocHandlInst is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].AllocHandlInst = (FixField.Integer)field;
+							noAllocsGroups![^1]._allocHandlInst = (FixField.Integer)field;
 						break;
 					case FixTag.AllocText:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].AllocText is not null)
+						else if (noAllocsGroups![^1]._allocText is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].AllocText = (FixField.Text)field;
+							noAllocsGroups![^1]._allocText = (FixField.Text)field;
 						break;
 					case FixTag.EncodedAllocTextLen:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].EncodedAllocTextLen is not null)
+						else if (noAllocsGroups![^1]._encodedAllocTextLen is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].EncodedAllocTextLen = (FixField.Integer)field;
+							noAllocsGroups![^1]._encodedAllocTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedAllocText:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].EncodedAllocText is not null)
+						else if (noAllocsGroups![^1]._encodedAllocText is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].EncodedAllocText = (FixField.Data)field;
+							noAllocsGroups![^1]._encodedAllocText = (FixField.Data)field;
 						break;
 					case FixTag.ExecBroker:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].ExecBroker is not null)
+						else if (noAllocsGroups![^1]._execBroker is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].ExecBroker = (FixField.Text)field;
+							noAllocsGroups![^1]._execBroker = (FixField.Text)field;
 						break;
 					case FixTag.ClientID:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].ClientID is not null)
+						else if (noAllocsGroups![^1]._clientID is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].ClientID = (FixField.Text)field;
+							noAllocsGroups![^1]._clientID = (FixField.Text)field;
 						break;
 					case FixTag.Commission:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].Commission is not null)
+						else if (noAllocsGroups![^1]._commission is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].Commission = (FixField.Decimal)field;
+							noAllocsGroups![^1]._commission = (FixField.Decimal)field;
 						break;
 					case FixTag.CommType:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].CommType is not null)
+						else if (noAllocsGroups![^1]._commType is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].CommType = (FixField.Character)field;
+							noAllocsGroups![^1]._commType = (FixField.Character)field;
 						break;
 					case FixTag.AllocAvgPx:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].AllocAvgPx is not null)
+						else if (noAllocsGroups![^1]._allocAvgPx is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].AllocAvgPx = (FixField.Decimal)field;
+							noAllocsGroups![^1]._allocAvgPx = (FixField.Decimal)field;
 						break;
 					case FixTag.AllocNetMoney:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].AllocNetMoney is not null)
+						else if (noAllocsGroups![^1]._allocNetMoney is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].AllocNetMoney = (FixField.Decimal)field;
+							noAllocsGroups![^1]._allocNetMoney = (FixField.Decimal)field;
 						break;
 					case FixTag.SettlCurrAmt:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].SettlCurrAmt is not null)
+						else if (noAllocsGroups![^1]._settlCurrAmt is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].SettlCurrAmt = (FixField.Decimal)field;
+							noAllocsGroups![^1]._settlCurrAmt = (FixField.Decimal)field;
 						break;
 					case FixTag.SettlCurrency:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].SettlCurrency is not null)
+						else if (noAllocsGroups![^1]._settlCurrency is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].SettlCurrency = (FixField.Text)field;
+							noAllocsGroups![^1]._settlCurrency = (FixField.Text)field;
 						break;
 					case FixTag.SettlCurrFxRate:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].SettlCurrFxRate is not null)
+						else if (noAllocsGroups![^1]._settlCurrFxRate is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].SettlCurrFxRate = (FixField.Decimal)field;
+							noAllocsGroups![^1]._settlCurrFxRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SettlCurrFxRateCalc:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].SettlCurrFxRateCalc is not null)
+						else if (noAllocsGroups![^1]._settlCurrFxRateCalc is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].SettlCurrFxRateCalc = (FixField.Character)field;
+							noAllocsGroups![^1]._settlCurrFxRateCalc = (FixField.Character)field;
 						break;
 					case FixTag.AccruedInterestAmt:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].AccruedInterestAmt is not null)
+						else if (noAllocsGroups![^1]._accruedInterestAmt is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].AccruedInterestAmt = (FixField.Decimal)field;
+							noAllocsGroups![^1]._accruedInterestAmt = (FixField.Decimal)field;
 						break;
 					case FixTag.SettlInstMode:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].SettlInstMode is not null)
+						else if (noAllocsGroups![^1]._settlInstMode is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].SettlInstMode = (FixField.Character)field;
+							noAllocsGroups![^1]._settlInstMode = (FixField.Character)field;
 						break;
 					case FixTag.NoMiscFees:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].NoMiscFees is not null)
+						else if (noAllocsGroups![^1]._noMiscFees is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].NoMiscFees = (FixField.Integer)field;
+							noAllocsGroups![^1]._noMiscFees = (FixField.Integer)field;
 						break;
 					case FixTag.MiscFeeAmt:
 						if (None(noAllocsGroups))
 							Unentered(field);
 						else
 						{
-							if (noAllocsGroups![^1].noMiscFeesGroups is null && noAllocsGroups![^1].NoMiscFees is null) Uncounted(FixTag.NoMiscFees, field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
+							if (noAllocsGroups![^1].noMiscFeesGroups is null && noAllocsGroups![^1]._noMiscFees is null) Uncounted(FixTag.NoMiscFees, field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 							(noAllocsGroups![^1].noMiscFeesGroups ??= []).Add(new ((FixField.Decimal)field));
 						}
 						break;
@@ -482,20 +516,20 @@ public abstract partial class FixMessage
 							Unentered(field);
 						else if (None(noAllocsGroups![^1].noMiscFeesGroups))
 							Unentered(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
-						else if (noAllocsGroups![^1].noMiscFeesGroups![^1].MiscFeeCurr is not null)
+						else if (noAllocsGroups![^1].noMiscFeesGroups![^1]._miscFeeCurr is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1, FixTag.NoMiscFees, noAllocsGroups![^1].noMiscFeesGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].noMiscFeesGroups![^1].MiscFeeCurr = (FixField.Text)field;
+							noAllocsGroups![^1].noMiscFeesGroups![^1]._miscFeeCurr = (FixField.Text)field;
 						break;
 					case FixTag.MiscFeeType:
 						if (None(noAllocsGroups))
 							Unentered(field);
 						else if (None(noAllocsGroups![^1].noMiscFeesGroups))
 							Unentered(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
-						else if (noAllocsGroups![^1].noMiscFeesGroups![^1].MiscFeeType is not null)
+						else if (noAllocsGroups![^1].noMiscFeesGroups![^1]._miscFeeType is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1, FixTag.NoMiscFees, noAllocsGroups![^1].noMiscFeesGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].noMiscFeesGroups![^1].MiscFeeType = (FixField.Character)field;
+							noAllocsGroups![^1].noMiscFeesGroups![^1]._miscFeeType = (FixField.Character)field;
 						break;
 
 					default:
@@ -508,150 +542,196 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX AllocID, tag 70, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? AllocID { get; internal set; }
+		public FixField.Text? AllocID => _allocID;
+		internal FixField.Text? _allocID;
 
 		/// <summary>The FIX AllocTransType, tag 71, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? AllocTransType { get; internal set; }
+		public FixField.Character? AllocTransType => _allocTransType;
+		internal FixField.Character? _allocTransType;
 
 		/// <summary>The FIX RefAllocID, tag 72, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? RefAllocID { get; internal set; }
+		public FixField.Text? RefAllocID => _refAllocID;
+		internal FixField.Text? _refAllocID;
 
 		/// <summary>The FIX AllocLinkID, tag 196, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? AllocLinkID { get; internal set; }
+		public FixField.Text? AllocLinkID => _allocLinkID;
+		internal FixField.Text? _allocLinkID;
 
 		/// <summary>The FIX AllocLinkType, tag 197, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? AllocLinkType { get; internal set; }
+		public FixField.Integer? AllocLinkType => _allocLinkType;
+		internal FixField.Integer? _allocLinkType;
 
 		/// <summary>The FIX NoOrders, tag 73, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoOrders { get; internal set; }
+		public FixField.Integer? NoOrders => _noOrders;
+		internal FixField.Integer? _noOrders;
 
 		/// <summary>The entries counted by NoOrders, tag 73; null when the group is absent.</summary>
 		public List<FixMessage.Allocation.NoOrdersGroup>? NoOrdersGroups => noOrdersGroups;
 		internal List<NoOrdersGroup>? noOrdersGroups;
 
 		/// <summary>The FIX NoExecs, tag 124, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoExecs { get; internal set; }
+		public FixField.Integer? NoExecs => _noExecs;
+		internal FixField.Integer? _noExecs;
 
 		/// <summary>The entries counted by NoExecs, tag 124; null when the group is absent.</summary>
 		public List<FixMessage.Allocation.NoExecsGroup>? NoExecsGroups => noExecsGroups;
 		internal List<NoExecsGroup>? noExecsGroups;
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? Side { get; internal set; }
+		public FixField.Character? Side => _side;
+		internal FixField.Character? _side;
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Symbol { get; internal set; }
+		public FixField.Text? Symbol => _symbol;
+		internal FixField.Text? _symbol;
 
 		/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SymbolSfx { get; internal set; }
+		public FixField.Text? SymbolSfx => _symbolSfx;
+		internal FixField.Text? _symbolSfx;
 
 		/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityID { get; internal set; }
+		public FixField.Text? SecurityID => _securityID;
+		internal FixField.Text? _securityID;
 
 		/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IDSource { get; internal set; }
+		public FixField.Text? IDSource => _iDSource;
+		internal FixField.Text? _iDSource;
 
 		/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityType { get; internal set; }
+		public FixField.Text? SecurityType => _securityType;
+		internal FixField.Text? _securityType;
 
 		/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-		public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+		public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+		internal FixField.MonthYear? _maturityMonthYear;
 
 		/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-		public FixField.Integer? MaturityDay { get; internal set; }
+		public FixField.Integer? MaturityDay => _maturityDay;
+		internal FixField.Integer? _maturityDay;
 
 		/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? PutOrCall { get; internal set; }
+		public FixField.Integer? PutOrCall => _putOrCall;
+		internal FixField.Integer? _putOrCall;
 
 		/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StrikePrice { get; internal set; }
+		public FixField.Decimal? StrikePrice => _strikePrice;
+		internal FixField.Decimal? _strikePrice;
 
 		/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OptAttribute { get; internal set; }
+		public FixField.Character? OptAttribute => _optAttribute;
+		internal FixField.Character? _optAttribute;
 
 		/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? ContractMultiplier { get; internal set; }
+		public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+		internal FixField.Decimal? _contractMultiplier;
 
 		/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CouponRate { get; internal set; }
+		public FixField.Decimal? CouponRate => _couponRate;
+		internal FixField.Decimal? _couponRate;
 
 		/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityExchange { get; internal set; }
+		public FixField.Text? SecurityExchange => _securityExchange;
+		internal FixField.Text? _securityExchange;
 
 		/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Issuer { get; internal set; }
+		public FixField.Text? Issuer => _issuer;
+		internal FixField.Text? _issuer;
 
 		/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedIssuerLen { get; internal set; }
+		public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+		internal FixField.Integer? _encodedIssuerLen;
 
 		/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedIssuer { get; internal set; }
+		public FixField.Data? EncodedIssuer => _encodedIssuer;
+		internal FixField.Data? _encodedIssuer;
 
 		/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityDesc { get; internal set; }
+		public FixField.Text? SecurityDesc => _securityDesc;
+		internal FixField.Text? _securityDesc;
 
 		/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+		public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+		internal FixField.Integer? _encodedSecurityDescLen;
 
 		/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedSecurityDesc { get; internal set; }
+		public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+		internal FixField.Data? _encodedSecurityDesc;
 
 		/// <summary>The FIX Shares, tag 53, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? Shares { get; internal set; }
+		public FixField.Decimal? Shares => _shares;
+		internal FixField.Decimal? _shares;
 
 		/// <summary>The FIX LastMkt, tag 30, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? LastMkt { get; internal set; }
+		public FixField.Text? LastMkt => _lastMkt;
+		internal FixField.Text? _lastMkt;
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TradingSessionID { get; internal set; }
+		public FixField.Text? TradingSessionID => _tradingSessionID;
+		internal FixField.Text? _tradingSessionID;
 
 		/// <summary>The FIX AvgPx, tag 6, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? AvgPx { get; internal set; }
+		public FixField.Decimal? AvgPx => _avgPx;
+		internal FixField.Decimal? _avgPx;
 
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
-		public FixField.Text? Currency { get; internal set; }
+		public FixField.Text? Currency => _currency;
+		internal FixField.Text? _currency;
 
 		/// <summary>The FIX AvgPrxPrecision, tag 74, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? AvgPrxPrecision { get; internal set; }
+		public FixField.Integer? AvgPrxPrecision => _avgPrxPrecision;
+		internal FixField.Integer? _avgPrxPrecision;
 
 		/// <summary>The FIX TradeDate, tag 75, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? TradeDate { get; internal set; }
+		public FixField.Date? TradeDate => _tradeDate;
+		internal FixField.Date? _tradeDate;
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TransactTime { get; internal set; }
+		public FixField.Timestamp? TransactTime => _transactTime;
+		internal FixField.Timestamp? _transactTime;
 
 		/// <summary>The FIX SettlmntTyp, tag 63, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? SettlmntTyp { get; internal set; }
+		public FixField.Character? SettlmntTyp => _settlmntTyp;
+		internal FixField.Character? _settlmntTyp;
 
 		/// <summary>The FIX FutSettDate, tag 64, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? FutSettDate { get; internal set; }
+		public FixField.Date? FutSettDate => _futSettDate;
+		internal FixField.Date? _futSettDate;
 
 		/// <summary>The FIX GrossTradeAmt, tag 381, wire type <c>Amt</c>; null when the field is absent.</summary>
-		public FixField.Decimal? GrossTradeAmt { get; internal set; }
+		public FixField.Decimal? GrossTradeAmt => _grossTradeAmt;
+		internal FixField.Decimal? _grossTradeAmt;
 
 		/// <summary>The FIX NetMoney, tag 118, wire type <c>Amt</c>; null when the field is absent.</summary>
-		public FixField.Decimal? NetMoney { get; internal set; }
+		public FixField.Decimal? NetMoney => _netMoney;
+		internal FixField.Decimal? _netMoney;
 
 		/// <summary>The FIX OpenClose, tag 77, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OpenClose { get; internal set; }
+		public FixField.Character? OpenClose => _openClose;
+		internal FixField.Character? _openClose;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>The FIX NumDaysInterest, tag 157, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NumDaysInterest { get; internal set; }
+		public FixField.Integer? NumDaysInterest => _numDaysInterest;
+		internal FixField.Integer? _numDaysInterest;
 
 		/// <summary>The FIX AccruedInterestRate, tag 158, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? AccruedInterestRate { get; internal set; }
+		public FixField.Decimal? AccruedInterestRate => _accruedInterestRate;
+		internal FixField.Decimal? _accruedInterestRate;
 
 		/// <summary>The FIX NoAllocs, tag 78, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoAllocs { get; internal set; }
+		public FixField.Integer? NoAllocs => _noAllocs;
+		internal FixField.Integer? _noAllocs;
 
 		/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
 		public List<FixMessage.Allocation.NoAllocsGroup>? NoAllocsGroups => noAllocsGroups;
@@ -669,16 +749,20 @@ public abstract partial class FixMessage
 			public FixField.Text ClOrdID { get; }
 
 			/// <summary>The FIX OrderID, tag 37, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? OrderID { get; internal set; }
+			public FixField.Text? OrderID => _orderID;
+			internal FixField.Text? _orderID;
 
 			/// <summary>The FIX SecondaryOrderID, tag 198, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecondaryOrderID { get; internal set; }
+			public FixField.Text? SecondaryOrderID => _secondaryOrderID;
+			internal FixField.Text? _secondaryOrderID;
 
 			/// <summary>The FIX ListID, tag 66, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? ListID { get; internal set; }
+			public FixField.Text? ListID => _listID;
+			internal FixField.Text? _listID;
 
 			/// <summary>The FIX WaveNo, tag 105, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? WaveNo { get; internal set; }
+			public FixField.Text? WaveNo => _waveNo;
+			internal FixField.Text? _waveNo;
 
 			FixField IFixEntry.Opener => ClOrdID;
 
@@ -707,13 +791,16 @@ public abstract partial class FixMessage
 			public FixField.Decimal LastShares { get; }
 
 			/// <summary>The FIX ExecID, tag 17, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? ExecID { get; internal set; }
+			public FixField.Text? ExecID => _execID;
+			internal FixField.Text? _execID;
 
 			/// <summary>The FIX LastPx, tag 31, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? LastPx { get; internal set; }
+			public FixField.Decimal? LastPx => _lastPx;
+			internal FixField.Decimal? _lastPx;
 
 			/// <summary>The FIX LastCapacity, tag 29, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? LastCapacity { get; internal set; }
+			public FixField.Character? LastCapacity => _lastCapacity;
+			internal FixField.Character? _lastCapacity;
 
 			FixField IFixEntry.Opener => LastShares;
 
@@ -742,70 +829,92 @@ public abstract partial class FixMessage
 			public FixField.Text AllocAccount { get; }
 
 			/// <summary>The FIX AllocPrice, tag 366, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? AllocPrice { get; internal set; }
+			public FixField.Decimal? AllocPrice => _allocPrice;
+			internal FixField.Decimal? _allocPrice;
 
 			/// <summary>The FIX AllocShares, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? AllocShares { get; internal set; }
+			public FixField.Decimal? AllocShares => _allocShares;
+			internal FixField.Decimal? _allocShares;
 
 			/// <summary>The FIX ProcessCode, tag 81, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? ProcessCode { get; internal set; }
+			public FixField.Character? ProcessCode => _processCode;
+			internal FixField.Character? _processCode;
 
 			/// <summary>The FIX BrokerOfCredit, tag 92, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? BrokerOfCredit { get; internal set; }
+			public FixField.Text? BrokerOfCredit => _brokerOfCredit;
+			internal FixField.Text? _brokerOfCredit;
 
 			/// <summary>The FIX NotifyBrokerOfCredit, tag 208, wire type <c>Boolean</c>; null when the field is absent.</summary>
-			public FixField.Boolean? NotifyBrokerOfCredit { get; internal set; }
+			public FixField.Boolean? NotifyBrokerOfCredit => _notifyBrokerOfCredit;
+			internal FixField.Boolean? _notifyBrokerOfCredit;
 
 			/// <summary>The FIX AllocHandlInst, tag 209, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? AllocHandlInst { get; internal set; }
+			public FixField.Integer? AllocHandlInst => _allocHandlInst;
+			internal FixField.Integer? _allocHandlInst;
 
 			/// <summary>The FIX AllocText, tag 161, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? AllocText { get; internal set; }
+			public FixField.Text? AllocText => _allocText;
+			internal FixField.Text? _allocText;
 
 			/// <summary>The FIX EncodedAllocTextLen, tag 360, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedAllocTextLen { get; internal set; }
+			public FixField.Integer? EncodedAllocTextLen => _encodedAllocTextLen;
+			internal FixField.Integer? _encodedAllocTextLen;
 
 			/// <summary>The FIX EncodedAllocText, tag 361, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedAllocText { get; internal set; }
+			public FixField.Data? EncodedAllocText => _encodedAllocText;
+			internal FixField.Data? _encodedAllocText;
 
 			/// <summary>The FIX ExecBroker, tag 76, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? ExecBroker { get; internal set; }
+			public FixField.Text? ExecBroker => _execBroker;
+			internal FixField.Text? _execBroker;
 
 			/// <summary>The FIX ClientID, tag 109, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? ClientID { get; internal set; }
+			public FixField.Text? ClientID => _clientID;
+			internal FixField.Text? _clientID;
 
 			/// <summary>The FIX Commission, tag 12, wire type <c>Amt</c>; null when the field is absent.</summary>
-			public FixField.Decimal? Commission { get; internal set; }
+			public FixField.Decimal? Commission => _commission;
+			internal FixField.Decimal? _commission;
 
 			/// <summary>The FIX CommType, tag 13, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? CommType { get; internal set; }
+			public FixField.Character? CommType => _commType;
+			internal FixField.Character? _commType;
 
 			/// <summary>The FIX AllocAvgPx, tag 153, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? AllocAvgPx { get; internal set; }
+			public FixField.Decimal? AllocAvgPx => _allocAvgPx;
+			internal FixField.Decimal? _allocAvgPx;
 
 			/// <summary>The FIX AllocNetMoney, tag 154, wire type <c>Amt</c>; null when the field is absent.</summary>
-			public FixField.Decimal? AllocNetMoney { get; internal set; }
+			public FixField.Decimal? AllocNetMoney => _allocNetMoney;
+			internal FixField.Decimal? _allocNetMoney;
 
 			/// <summary>The FIX SettlCurrAmt, tag 119, wire type <c>Amt</c>; null when the field is absent.</summary>
-			public FixField.Decimal? SettlCurrAmt { get; internal set; }
+			public FixField.Decimal? SettlCurrAmt => _settlCurrAmt;
+			internal FixField.Decimal? _settlCurrAmt;
 
 			/// <summary>The FIX SettlCurrency, tag 120, wire type <c>Currency</c>; null when the field is absent.</summary>
-			public FixField.Text? SettlCurrency { get; internal set; }
+			public FixField.Text? SettlCurrency => _settlCurrency;
+			internal FixField.Text? _settlCurrency;
 
 			/// <summary>The FIX SettlCurrFxRate, tag 155, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? SettlCurrFxRate { get; internal set; }
+			public FixField.Decimal? SettlCurrFxRate => _settlCurrFxRate;
+			internal FixField.Decimal? _settlCurrFxRate;
 
 			/// <summary>The FIX SettlCurrFxRateCalc, tag 156, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? SettlCurrFxRateCalc { get; internal set; }
+			public FixField.Character? SettlCurrFxRateCalc => _settlCurrFxRateCalc;
+			internal FixField.Character? _settlCurrFxRateCalc;
 
 			/// <summary>The FIX AccruedInterestAmt, tag 159, wire type <c>Amt</c>; null when the field is absent.</summary>
-			public FixField.Decimal? AccruedInterestAmt { get; internal set; }
+			public FixField.Decimal? AccruedInterestAmt => _accruedInterestAmt;
+			internal FixField.Decimal? _accruedInterestAmt;
 
 			/// <summary>The FIX SettlInstMode, tag 160, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? SettlInstMode { get; internal set; }
+			public FixField.Character? SettlInstMode => _settlInstMode;
+			internal FixField.Character? _settlInstMode;
 
 			/// <summary>The FIX NoMiscFees, tag 136, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? NoMiscFees { get; internal set; }
+			public FixField.Integer? NoMiscFees => _noMiscFees;
+			internal FixField.Integer? _noMiscFees;
 
 			/// <summary>The entries counted by NoMiscFees, tag 136; null when the group is absent.</summary>
 			public List<FixMessage.Allocation.NoAllocsGroup.NoMiscFeesGroup>? NoMiscFeesGroups => noMiscFeesGroups;
@@ -823,10 +932,12 @@ public abstract partial class FixMessage
 				public FixField.Decimal MiscFeeAmt { get; }
 
 				/// <summary>The FIX MiscFeeCurr, tag 138, wire type <c>Currency</c>; null when the field is absent.</summary>
-				public FixField.Text? MiscFeeCurr { get; internal set; }
+				public FixField.Text? MiscFeeCurr => _miscFeeCurr;
+				internal FixField.Text? _miscFeeCurr;
 
 				/// <summary>The FIX MiscFeeType, tag 139, wire type <c>char</c>; null when the field is absent.</summary>
-				public FixField.Character? MiscFeeType { get; internal set; }
+				public FixField.Character? MiscFeeType => _miscFeeType;
+				internal FixField.Character? _miscFeeType;
 
 				FixField IFixEntry.Opener => MiscFeeAmt;
 
@@ -881,16 +992,16 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.ClientID: if (ClientID is not null) Duplicate(field); ClientID = (FixField.Text)field; break;
-					case FixTag.ExecBroker: if (ExecBroker is not null) Duplicate(field); ExecBroker = (FixField.Text)field; break;
-					case FixTag.AllocID: if (AllocID is not null) Duplicate(field); AllocID = (FixField.Text)field; break;
-					case FixTag.TradeDate: if (TradeDate is not null) Duplicate(field); TradeDate = (FixField.Date)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.AllocStatus: if (AllocStatus is not null) Duplicate(field); AllocStatus = (FixField.Integer)field; break;
-					case FixTag.AllocRejCode: if (AllocRejCode is not null) Duplicate(field); AllocRejCode = (FixField.Integer)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.ClientID: if (_clientID is not null) Duplicate(field); _clientID = (FixField.Text)field; break;
+					case FixTag.ExecBroker: if (_execBroker is not null) Duplicate(field); _execBroker = (FixField.Text)field; break;
+					case FixTag.AllocID: if (_allocID is not null) Duplicate(field); _allocID = (FixField.Text)field; break;
+					case FixTag.TradeDate: if (_tradeDate is not null) Duplicate(field); _tradeDate = (FixField.Date)field; break;
+					case FixTag.TransactTime: if (_transactTime is not null) Duplicate(field); _transactTime = (FixField.Timestamp)field; break;
+					case FixTag.AllocStatus: if (_allocStatus is not null) Duplicate(field); _allocStatus = (FixField.Integer)field; break;
+					case FixTag.AllocRejCode: if (_allocRejCode is not null) Duplicate(field); _allocRejCode = (FixField.Integer)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -902,34 +1013,44 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX ClientID, tag 109, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClientID { get; internal set; }
+		public FixField.Text? ClientID => _clientID;
+		internal FixField.Text? _clientID;
 
 		/// <summary>The FIX ExecBroker, tag 76, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ExecBroker { get; internal set; }
+		public FixField.Text? ExecBroker => _execBroker;
+		internal FixField.Text? _execBroker;
 
 		/// <summary>The FIX AllocID, tag 70, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? AllocID { get; internal set; }
+		public FixField.Text? AllocID => _allocID;
+		internal FixField.Text? _allocID;
 
 		/// <summary>The FIX TradeDate, tag 75, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? TradeDate { get; internal set; }
+		public FixField.Date? TradeDate => _tradeDate;
+		internal FixField.Date? _tradeDate;
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TransactTime { get; internal set; }
+		public FixField.Timestamp? TransactTime => _transactTime;
+		internal FixField.Timestamp? _transactTime;
 
 		/// <summary>The FIX AllocStatus, tag 87, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? AllocStatus { get; internal set; }
+		public FixField.Integer? AllocStatus => _allocStatus;
+		internal FixField.Integer? _allocStatus;
 
 		/// <summary>The FIX AllocRejCode, tag 88, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? AllocRejCode { get; internal set; }
+		public FixField.Integer? AllocRejCode => _allocRejCode;
+		internal FixField.Integer? _allocRejCode;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -947,171 +1068,171 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.BidID: if (BidID is not null) Duplicate(field); BidID = (FixField.Text)field; break;
-					case FixTag.ClientBidID: if (ClientBidID is not null) Duplicate(field); ClientBidID = (FixField.Text)field; break;
-					case FixTag.BidRequestTransType: if (BidRequestTransType is not null) Duplicate(field); BidRequestTransType = (FixField.Character)field; break;
-					case FixTag.ListName: if (ListName is not null) Duplicate(field); ListName = (FixField.Text)field; break;
-					case FixTag.TotNoRelatedSym: if (TotalNumSecurities is not null) Duplicate(field); TotalNumSecurities = (FixField.Integer)field; break;
-					case FixTag.BidType: if (BidType is not null) Duplicate(field); BidType = (FixField.Integer)field; break;
-					case FixTag.NumTickets: if (NumTickets is not null) Duplicate(field); NumTickets = (FixField.Integer)field; break;
-					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
-					case FixTag.SideValue1: if (SideValue1 is not null) Duplicate(field); SideValue1 = (FixField.Decimal)field; break;
-					case FixTag.SideValue2: if (SideValue2 is not null) Duplicate(field); SideValue2 = (FixField.Decimal)field; break;
-					case FixTag.NoBidDescriptors: if (NoBidDescriptors is not null) Duplicate(field); NoBidDescriptors = (FixField.Integer)field; break;
+					case FixTag.BidID: if (_bidID is not null) Duplicate(field); _bidID = (FixField.Text)field; break;
+					case FixTag.ClientBidID: if (_clientBidID is not null) Duplicate(field); _clientBidID = (FixField.Text)field; break;
+					case FixTag.BidRequestTransType: if (_bidRequestTransType is not null) Duplicate(field); _bidRequestTransType = (FixField.Character)field; break;
+					case FixTag.ListName: if (_listName is not null) Duplicate(field); _listName = (FixField.Text)field; break;
+					case FixTag.TotNoRelatedSym: if (_totalNumSecurities is not null) Duplicate(field); _totalNumSecurities = (FixField.Integer)field; break;
+					case FixTag.BidType: if (_bidType is not null) Duplicate(field); _bidType = (FixField.Integer)field; break;
+					case FixTag.NumTickets: if (_numTickets is not null) Duplicate(field); _numTickets = (FixField.Integer)field; break;
+					case FixTag.Currency: if (_currency is not null) Duplicate(field); _currency = (FixField.Text)field; break;
+					case FixTag.SideValue1: if (_sideValue1 is not null) Duplicate(field); _sideValue1 = (FixField.Decimal)field; break;
+					case FixTag.SideValue2: if (_sideValue2 is not null) Duplicate(field); _sideValue2 = (FixField.Decimal)field; break;
+					case FixTag.NoBidDescriptors: if (_noBidDescriptors is not null) Duplicate(field); _noBidDescriptors = (FixField.Integer)field; break;
 					case FixTag.BidDescriptorType:
-						if (noBidDescriptorsGroups is null && NoBidDescriptors is null) Uncounted(FixTag.NoBidDescriptors, field);
+						if (noBidDescriptorsGroups is null && _noBidDescriptors is null) Uncounted(FixTag.NoBidDescriptors, field);
 						(noBidDescriptorsGroups ??= []).Add(new ((FixField.Integer)field));
 						break;
 					case FixTag.BidDescriptor:
 						if (None(noBidDescriptorsGroups))
 							Unentered(field);
-						else if (noBidDescriptorsGroups![^1].BidDescriptor is not null)
+						else if (noBidDescriptorsGroups![^1]._bidDescriptor is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
-							noBidDescriptorsGroups![^1].BidDescriptor = (FixField.Text)field;
+							noBidDescriptorsGroups![^1]._bidDescriptor = (FixField.Text)field;
 						break;
 					case FixTag.SideValueInd:
 						if (None(noBidDescriptorsGroups))
 							Unentered(field);
-						else if (noBidDescriptorsGroups![^1].SideValueInd is not null)
+						else if (noBidDescriptorsGroups![^1]._sideValueInd is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
-							noBidDescriptorsGroups![^1].SideValueInd = (FixField.Integer)field;
+							noBidDescriptorsGroups![^1]._sideValueInd = (FixField.Integer)field;
 						break;
 					case FixTag.LiquidityValue:
 						if (None(noBidDescriptorsGroups))
 							Unentered(field);
-						else if (noBidDescriptorsGroups![^1].LiquidityValue is not null)
+						else if (noBidDescriptorsGroups![^1]._liquidityValue is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
-							noBidDescriptorsGroups![^1].LiquidityValue = (FixField.Decimal)field;
+							noBidDescriptorsGroups![^1]._liquidityValue = (FixField.Decimal)field;
 						break;
 					case FixTag.LiquidityNumSecurities:
 						if (None(noBidDescriptorsGroups))
 							Unentered(field);
-						else if (noBidDescriptorsGroups![^1].LiquidityNumSecurities is not null)
+						else if (noBidDescriptorsGroups![^1]._liquidityNumSecurities is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
-							noBidDescriptorsGroups![^1].LiquidityNumSecurities = (FixField.Integer)field;
+							noBidDescriptorsGroups![^1]._liquidityNumSecurities = (FixField.Integer)field;
 						break;
 					case FixTag.LiquidityPctLow:
 						if (None(noBidDescriptorsGroups))
 							Unentered(field);
-						else if (noBidDescriptorsGroups![^1].LiquidityPctLow is not null)
+						else if (noBidDescriptorsGroups![^1]._liquidityPctLow is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
-							noBidDescriptorsGroups![^1].LiquidityPctLow = (FixField.Decimal)field;
+							noBidDescriptorsGroups![^1]._liquidityPctLow = (FixField.Decimal)field;
 						break;
 					case FixTag.LiquidityPctHigh:
 						if (None(noBidDescriptorsGroups))
 							Unentered(field);
-						else if (noBidDescriptorsGroups![^1].LiquidityPctHigh is not null)
+						else if (noBidDescriptorsGroups![^1]._liquidityPctHigh is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
-							noBidDescriptorsGroups![^1].LiquidityPctHigh = (FixField.Decimal)field;
+							noBidDescriptorsGroups![^1]._liquidityPctHigh = (FixField.Decimal)field;
 						break;
 					case FixTag.EFPTrackingError:
 						if (None(noBidDescriptorsGroups))
 							Unentered(field);
-						else if (noBidDescriptorsGroups![^1].EFPTrackingError is not null)
+						else if (noBidDescriptorsGroups![^1]._eFPTrackingError is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
-							noBidDescriptorsGroups![^1].EFPTrackingError = (FixField.Decimal)field;
+							noBidDescriptorsGroups![^1]._eFPTrackingError = (FixField.Decimal)field;
 						break;
 					case FixTag.FairValue:
 						if (None(noBidDescriptorsGroups))
 							Unentered(field);
-						else if (noBidDescriptorsGroups![^1].FairValue is not null)
+						else if (noBidDescriptorsGroups![^1]._fairValue is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
-							noBidDescriptorsGroups![^1].FairValue = (FixField.Decimal)field;
+							noBidDescriptorsGroups![^1]._fairValue = (FixField.Decimal)field;
 						break;
 					case FixTag.OutsideIndexPct:
 						if (None(noBidDescriptorsGroups))
 							Unentered(field);
-						else if (noBidDescriptorsGroups![^1].OutsideIndexPct is not null)
+						else if (noBidDescriptorsGroups![^1]._outsideIndexPct is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
-							noBidDescriptorsGroups![^1].OutsideIndexPct = (FixField.Decimal)field;
+							noBidDescriptorsGroups![^1]._outsideIndexPct = (FixField.Decimal)field;
 						break;
 					case FixTag.ValueOfFutures:
 						if (None(noBidDescriptorsGroups))
 							Unentered(field);
-						else if (noBidDescriptorsGroups![^1].ValueOfFutures is not null)
+						else if (noBidDescriptorsGroups![^1]._valueOfFutures is not null)
 							Duplicate(field, FixTag.NoBidDescriptors, noBidDescriptorsGroups!.Count - 1);
 						else
-							noBidDescriptorsGroups![^1].ValueOfFutures = (FixField.Decimal)field;
+							noBidDescriptorsGroups![^1]._valueOfFutures = (FixField.Decimal)field;
 						break;
-					case FixTag.NoBidComponents: if (NoBidComponents is not null) Duplicate(field); NoBidComponents = (FixField.Integer)field; break;
+					case FixTag.NoBidComponents: if (_noBidComponents is not null) Duplicate(field); _noBidComponents = (FixField.Integer)field; break;
 					case FixTag.ListID:
-						if (noBidComponentsGroups is null && NoBidComponents is null) Uncounted(FixTag.NoBidComponents, field);
+						if (noBidComponentsGroups is null && _noBidComponents is null) Uncounted(FixTag.NoBidComponents, field);
 						(noBidComponentsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.Side:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].Side is not null)
+						else if (noBidComponentsGroups![^1]._side is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].Side = (FixField.Character)field;
+							noBidComponentsGroups![^1]._side = (FixField.Character)field;
 						break;
 					case FixTag.TradingSessionID:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].TradingSessionID is not null)
+						else if (noBidComponentsGroups![^1]._tradingSessionID is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].TradingSessionID = (FixField.Text)field;
+							noBidComponentsGroups![^1]._tradingSessionID = (FixField.Text)field;
 						break;
 					case FixTag.NetGrossInd:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].NetGrossInd is not null)
+						else if (noBidComponentsGroups![^1]._netGrossInd is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].NetGrossInd = (FixField.Integer)field;
+							noBidComponentsGroups![^1]._netGrossInd = (FixField.Integer)field;
 						break;
 					case FixTag.SettlType:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].SettlmntTyp is not null)
+						else if (noBidComponentsGroups![^1]._settlmntTyp is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].SettlmntTyp = (FixField.Character)field;
+							noBidComponentsGroups![^1]._settlmntTyp = (FixField.Character)field;
 						break;
 					case FixTag.SettlDate:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].FutSettDate is not null)
+						else if (noBidComponentsGroups![^1]._futSettDate is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].FutSettDate = (FixField.Date)field;
+							noBidComponentsGroups![^1]._futSettDate = (FixField.Date)field;
 						break;
 					case FixTag.Account:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].Account is not null)
+						else if (noBidComponentsGroups![^1]._account is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].Account = (FixField.Text)field;
+							noBidComponentsGroups![^1]._account = (FixField.Text)field;
 						break;
-					case FixTag.LiquidityIndType: if (LiquidityIndType is not null) Duplicate(field); LiquidityIndType = (FixField.Integer)field; break;
-					case FixTag.WtAverageLiquidity: if (WtAverageLiquidity is not null) Duplicate(field); WtAverageLiquidity = (FixField.Decimal)field; break;
-					case FixTag.ExchangeForPhysical: if (ExchangeForPhysical is not null) Duplicate(field); ExchangeForPhysical = (FixField.Boolean)field; break;
-					case FixTag.OutMainCntryUIndex: if (OutMainCntryUIndex is not null) Duplicate(field); OutMainCntryUIndex = (FixField.Decimal)field; break;
-					case FixTag.CrossPercent: if (CrossPercent is not null) Duplicate(field); CrossPercent = (FixField.Decimal)field; break;
-					case FixTag.ProgRptReqs: if (ProgRptReqs is not null) Duplicate(field); ProgRptReqs = (FixField.Integer)field; break;
-					case FixTag.ProgPeriodInterval: if (ProgPeriodInterval is not null) Duplicate(field); ProgPeriodInterval = (FixField.Integer)field; break;
-					case FixTag.IncTaxInd: if (IncTaxInd is not null) Duplicate(field); IncTaxInd = (FixField.Integer)field; break;
-					case FixTag.ForexReq: if (ForexReq is not null) Duplicate(field); ForexReq = (FixField.Boolean)field; break;
-					case FixTag.NumBidders: if (NumBidders is not null) Duplicate(field); NumBidders = (FixField.Integer)field; break;
-					case FixTag.TradeDate: if (TradeDate is not null) Duplicate(field); TradeDate = (FixField.Date)field; break;
-					case FixTag.BidTradeType: if (TradeType is not null) Duplicate(field); TradeType = (FixField.Character)field; break;
-					case FixTag.BasisPxType: if (BasisPxType is not null) Duplicate(field); BasisPxType = (FixField.Character)field; break;
-					case FixTag.StrikeTime: if (StrikeTime is not null) Duplicate(field); StrikeTime = (FixField.Timestamp)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.LiquidityIndType: if (_liquidityIndType is not null) Duplicate(field); _liquidityIndType = (FixField.Integer)field; break;
+					case FixTag.WtAverageLiquidity: if (_wtAverageLiquidity is not null) Duplicate(field); _wtAverageLiquidity = (FixField.Decimal)field; break;
+					case FixTag.ExchangeForPhysical: if (_exchangeForPhysical is not null) Duplicate(field); _exchangeForPhysical = (FixField.Boolean)field; break;
+					case FixTag.OutMainCntryUIndex: if (_outMainCntryUIndex is not null) Duplicate(field); _outMainCntryUIndex = (FixField.Decimal)field; break;
+					case FixTag.CrossPercent: if (_crossPercent is not null) Duplicate(field); _crossPercent = (FixField.Decimal)field; break;
+					case FixTag.ProgRptReqs: if (_progRptReqs is not null) Duplicate(field); _progRptReqs = (FixField.Integer)field; break;
+					case FixTag.ProgPeriodInterval: if (_progPeriodInterval is not null) Duplicate(field); _progPeriodInterval = (FixField.Integer)field; break;
+					case FixTag.IncTaxInd: if (_incTaxInd is not null) Duplicate(field); _incTaxInd = (FixField.Integer)field; break;
+					case FixTag.ForexReq: if (_forexReq is not null) Duplicate(field); _forexReq = (FixField.Boolean)field; break;
+					case FixTag.NumBidders: if (_numBidders is not null) Duplicate(field); _numBidders = (FixField.Integer)field; break;
+					case FixTag.TradeDate: if (_tradeDate is not null) Duplicate(field); _tradeDate = (FixField.Date)field; break;
+					case FixTag.BidTradeType: if (_tradeType is not null) Duplicate(field); _tradeType = (FixField.Character)field; break;
+					case FixTag.BasisPxType: if (_basisPxType is not null) Duplicate(field); _basisPxType = (FixField.Character)field; break;
+					case FixTag.StrikeTime: if (_strikeTime is not null) Duplicate(field); _strikeTime = (FixField.Timestamp)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -1123,99 +1244,128 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX BidID, tag 390, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? BidID { get; internal set; }
+		public FixField.Text? BidID => _bidID;
+		internal FixField.Text? _bidID;
 
 		/// <summary>The FIX ClientBidID, tag 391, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClientBidID { get; internal set; }
+		public FixField.Text? ClientBidID => _clientBidID;
+		internal FixField.Text? _clientBidID;
 
 		/// <summary>The FIX BidRequestTransType, tag 374, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? BidRequestTransType { get; internal set; }
+		public FixField.Character? BidRequestTransType => _bidRequestTransType;
+		internal FixField.Character? _bidRequestTransType;
 
 		/// <summary>The FIX ListName, tag 392, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ListName { get; internal set; }
+		public FixField.Text? ListName => _listName;
+		internal FixField.Text? _listName;
 
 		/// <summary>The FIX TotalNumSecurities, tag 393, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? TotalNumSecurities { get; internal set; }
+		public FixField.Integer? TotalNumSecurities => _totalNumSecurities;
+		internal FixField.Integer? _totalNumSecurities;
 
 		/// <summary>The FIX BidType, tag 394, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? BidType { get; internal set; }
+		public FixField.Integer? BidType => _bidType;
+		internal FixField.Integer? _bidType;
 
 		/// <summary>The FIX NumTickets, tag 395, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NumTickets { get; internal set; }
+		public FixField.Integer? NumTickets => _numTickets;
+		internal FixField.Integer? _numTickets;
 
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
-		public FixField.Text? Currency { get; internal set; }
+		public FixField.Text? Currency => _currency;
+		internal FixField.Text? _currency;
 
 		/// <summary>The FIX SideValue1, tag 396, wire type <c>Amt</c>; null when the field is absent.</summary>
-		public FixField.Decimal? SideValue1 { get; internal set; }
+		public FixField.Decimal? SideValue1 => _sideValue1;
+		internal FixField.Decimal? _sideValue1;
 
 		/// <summary>The FIX SideValue2, tag 397, wire type <c>Amt</c>; null when the field is absent.</summary>
-		public FixField.Decimal? SideValue2 { get; internal set; }
+		public FixField.Decimal? SideValue2 => _sideValue2;
+		internal FixField.Decimal? _sideValue2;
 
 		/// <summary>The FIX NoBidDescriptors, tag 398, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoBidDescriptors { get; internal set; }
+		public FixField.Integer? NoBidDescriptors => _noBidDescriptors;
+		internal FixField.Integer? _noBidDescriptors;
 
 		/// <summary>The entries counted by NoBidDescriptors, tag 398; null when the group is absent.</summary>
 		public List<FixMessage.BidRequest.NoBidDescriptorsGroup>? NoBidDescriptorsGroups => noBidDescriptorsGroups;
 		internal List<NoBidDescriptorsGroup>? noBidDescriptorsGroups;
 
 		/// <summary>The FIX NoBidComponents, tag 420, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoBidComponents { get; internal set; }
+		public FixField.Integer? NoBidComponents => _noBidComponents;
+		internal FixField.Integer? _noBidComponents;
 
 		/// <summary>The entries counted by NoBidComponents, tag 420; null when the group is absent.</summary>
 		public List<FixMessage.BidRequest.NoBidComponentsGroup>? NoBidComponentsGroups => noBidComponentsGroups;
 		internal List<NoBidComponentsGroup>? noBidComponentsGroups;
 
 		/// <summary>The FIX LiquidityIndType, tag 409, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? LiquidityIndType { get; internal set; }
+		public FixField.Integer? LiquidityIndType => _liquidityIndType;
+		internal FixField.Integer? _liquidityIndType;
 
 		/// <summary>The FIX WtAverageLiquidity, tag 410, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? WtAverageLiquidity { get; internal set; }
+		public FixField.Decimal? WtAverageLiquidity => _wtAverageLiquidity;
+		internal FixField.Decimal? _wtAverageLiquidity;
 
 		/// <summary>The FIX ExchangeForPhysical, tag 411, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? ExchangeForPhysical { get; internal set; }
+		public FixField.Boolean? ExchangeForPhysical => _exchangeForPhysical;
+		internal FixField.Boolean? _exchangeForPhysical;
 
 		/// <summary>The FIX OutMainCntryUIndex, tag 412, wire type <c>Amt</c>; null when the field is absent.</summary>
-		public FixField.Decimal? OutMainCntryUIndex { get; internal set; }
+		public FixField.Decimal? OutMainCntryUIndex => _outMainCntryUIndex;
+		internal FixField.Decimal? _outMainCntryUIndex;
 
 		/// <summary>The FIX CrossPercent, tag 413, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CrossPercent { get; internal set; }
+		public FixField.Decimal? CrossPercent => _crossPercent;
+		internal FixField.Decimal? _crossPercent;
 
 		/// <summary>The FIX ProgRptReqs, tag 414, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? ProgRptReqs { get; internal set; }
+		public FixField.Integer? ProgRptReqs => _progRptReqs;
+		internal FixField.Integer? _progRptReqs;
 
 		/// <summary>The FIX ProgPeriodInterval, tag 415, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? ProgPeriodInterval { get; internal set; }
+		public FixField.Integer? ProgPeriodInterval => _progPeriodInterval;
+		internal FixField.Integer? _progPeriodInterval;
 
 		/// <summary>The FIX IncTaxInd, tag 416, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? IncTaxInd { get; internal set; }
+		public FixField.Integer? IncTaxInd => _incTaxInd;
+		internal FixField.Integer? _incTaxInd;
 
 		/// <summary>The FIX ForexReq, tag 121, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? ForexReq { get; internal set; }
+		public FixField.Boolean? ForexReq => _forexReq;
+		internal FixField.Boolean? _forexReq;
 
 		/// <summary>The FIX NumBidders, tag 417, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NumBidders { get; internal set; }
+		public FixField.Integer? NumBidders => _numBidders;
+		internal FixField.Integer? _numBidders;
 
 		/// <summary>The FIX TradeDate, tag 75, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? TradeDate { get; internal set; }
+		public FixField.Date? TradeDate => _tradeDate;
+		internal FixField.Date? _tradeDate;
 
 		/// <summary>The FIX TradeType, tag 418, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? TradeType { get; internal set; }
+		public FixField.Character? TradeType => _tradeType;
+		internal FixField.Character? _tradeType;
 
 		/// <summary>The FIX BasisPxType, tag 419, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? BasisPxType { get; internal set; }
+		public FixField.Character? BasisPxType => _basisPxType;
+		internal FixField.Character? _basisPxType;
 
 		/// <summary>The FIX StrikeTime, tag 443, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? StrikeTime { get; internal set; }
+		public FixField.Timestamp? StrikeTime => _strikeTime;
+		internal FixField.Timestamp? _strikeTime;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>One entry of the group counted by NoBidDescriptors, tag 398.</summary>
 		public sealed class NoBidDescriptorsGroup : IFixEntry
@@ -1229,34 +1379,44 @@ public abstract partial class FixMessage
 			public FixField.Integer BidDescriptorType { get; }
 
 			/// <summary>The FIX BidDescriptor, tag 400, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? BidDescriptor { get; internal set; }
+			public FixField.Text? BidDescriptor => _bidDescriptor;
+			internal FixField.Text? _bidDescriptor;
 
 			/// <summary>The FIX SideValueInd, tag 401, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? SideValueInd { get; internal set; }
+			public FixField.Integer? SideValueInd => _sideValueInd;
+			internal FixField.Integer? _sideValueInd;
 
 			/// <summary>The FIX LiquidityValue, tag 404, wire type <c>Amt</c>; null when the field is absent.</summary>
-			public FixField.Decimal? LiquidityValue { get; internal set; }
+			public FixField.Decimal? LiquidityValue => _liquidityValue;
+			internal FixField.Decimal? _liquidityValue;
 
 			/// <summary>The FIX LiquidityNumSecurities, tag 441, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? LiquidityNumSecurities { get; internal set; }
+			public FixField.Integer? LiquidityNumSecurities => _liquidityNumSecurities;
+			internal FixField.Integer? _liquidityNumSecurities;
 
 			/// <summary>The FIX LiquidityPctLow, tag 402, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? LiquidityPctLow { get; internal set; }
+			public FixField.Decimal? LiquidityPctLow => _liquidityPctLow;
+			internal FixField.Decimal? _liquidityPctLow;
 
 			/// <summary>The FIX LiquidityPctHigh, tag 403, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? LiquidityPctHigh { get; internal set; }
+			public FixField.Decimal? LiquidityPctHigh => _liquidityPctHigh;
+			internal FixField.Decimal? _liquidityPctHigh;
 
 			/// <summary>The FIX EFPTrackingError, tag 405, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? EFPTrackingError { get; internal set; }
+			public FixField.Decimal? EFPTrackingError => _eFPTrackingError;
+			internal FixField.Decimal? _eFPTrackingError;
 
 			/// <summary>The FIX FairValue, tag 406, wire type <c>Amt</c>; null when the field is absent.</summary>
-			public FixField.Decimal? FairValue { get; internal set; }
+			public FixField.Decimal? FairValue => _fairValue;
+			internal FixField.Decimal? _fairValue;
 
 			/// <summary>The FIX OutsideIndexPct, tag 407, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? OutsideIndexPct { get; internal set; }
+			public FixField.Decimal? OutsideIndexPct => _outsideIndexPct;
+			internal FixField.Decimal? _outsideIndexPct;
 
 			/// <summary>The FIX ValueOfFutures, tag 408, wire type <c>Amt</c>; null when the field is absent.</summary>
-			public FixField.Decimal? ValueOfFutures { get; internal set; }
+			public FixField.Decimal? ValueOfFutures => _valueOfFutures;
+			internal FixField.Decimal? _valueOfFutures;
 
 			FixField IFixEntry.Opener => BidDescriptorType;
 
@@ -1285,22 +1445,28 @@ public abstract partial class FixMessage
 			public FixField.Text ListID { get; }
 
 			/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? Side { get; internal set; }
+			public FixField.Character? Side => _side;
+			internal FixField.Character? _side;
 
 			/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? TradingSessionID { get; internal set; }
+			public FixField.Text? TradingSessionID => _tradingSessionID;
+			internal FixField.Text? _tradingSessionID;
 
 			/// <summary>The FIX NetGrossInd, tag 430, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? NetGrossInd { get; internal set; }
+			public FixField.Integer? NetGrossInd => _netGrossInd;
+			internal FixField.Integer? _netGrossInd;
 
 			/// <summary>The FIX SettlmntTyp, tag 63, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? SettlmntTyp { get; internal set; }
+			public FixField.Character? SettlmntTyp => _settlmntTyp;
+			internal FixField.Character? _settlmntTyp;
 
 			/// <summary>The FIX FutSettDate, tag 64, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-			public FixField.Date? FutSettDate { get; internal set; }
+			public FixField.Date? FutSettDate => _futSettDate;
+			internal FixField.Date? _futSettDate;
 
 			/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Account { get; internal set; }
+			public FixField.Text? Account => _account;
+			internal FixField.Text? _account;
 
 			FixField IFixEntry.Opener => ListID;
 
@@ -1340,124 +1506,124 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.BidID: if (BidID is not null) Duplicate(field); BidID = (FixField.Text)field; break;
-					case FixTag.ClientBidID: if (ClientBidID is not null) Duplicate(field); ClientBidID = (FixField.Text)field; break;
-					case FixTag.NoBidComponents: if (NoBidComponents is not null) Duplicate(field); NoBidComponents = (FixField.Integer)field; break;
+					case FixTag.BidID: if (_bidID is not null) Duplicate(field); _bidID = (FixField.Text)field; break;
+					case FixTag.ClientBidID: if (_clientBidID is not null) Duplicate(field); _clientBidID = (FixField.Text)field; break;
+					case FixTag.NoBidComponents: if (_noBidComponents is not null) Duplicate(field); _noBidComponents = (FixField.Integer)field; break;
 					case FixTag.Commission:
-						if (noBidComponentsGroups is null && NoBidComponents is null) Uncounted(FixTag.NoBidComponents, field);
+						if (noBidComponentsGroups is null && _noBidComponents is null) Uncounted(FixTag.NoBidComponents, field);
 						(noBidComponentsGroups ??= []).Add(new ((FixField.Decimal)field));
 						break;
 					case FixTag.CommType:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].CommType is not null)
+						else if (noBidComponentsGroups![^1]._commType is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].CommType = (FixField.Character)field;
+							noBidComponentsGroups![^1]._commType = (FixField.Character)field;
 						break;
 					case FixTag.ListID:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].ListID is not null)
+						else if (noBidComponentsGroups![^1]._listID is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].ListID = (FixField.Text)field;
+							noBidComponentsGroups![^1]._listID = (FixField.Text)field;
 						break;
 					case FixTag.Country:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].Country is not null)
+						else if (noBidComponentsGroups![^1]._country is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].Country = (FixField.Text)field;
+							noBidComponentsGroups![^1]._country = (FixField.Text)field;
 						break;
 					case FixTag.Side:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].Side is not null)
+						else if (noBidComponentsGroups![^1]._side is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].Side = (FixField.Character)field;
+							noBidComponentsGroups![^1]._side = (FixField.Character)field;
 						break;
 					case FixTag.Price:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].Price is not null)
+						else if (noBidComponentsGroups![^1]._price is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].Price = (FixField.Decimal)field;
+							noBidComponentsGroups![^1]._price = (FixField.Decimal)field;
 						break;
 					case FixTag.PriceType:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].PriceType is not null)
+						else if (noBidComponentsGroups![^1]._priceType is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].PriceType = (FixField.Integer)field;
+							noBidComponentsGroups![^1]._priceType = (FixField.Integer)field;
 						break;
 					case FixTag.FairValue:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].FairValue is not null)
+						else if (noBidComponentsGroups![^1]._fairValue is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].FairValue = (FixField.Decimal)field;
+							noBidComponentsGroups![^1]._fairValue = (FixField.Decimal)field;
 						break;
 					case FixTag.NetGrossInd:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].NetGrossInd is not null)
+						else if (noBidComponentsGroups![^1]._netGrossInd is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].NetGrossInd = (FixField.Integer)field;
+							noBidComponentsGroups![^1]._netGrossInd = (FixField.Integer)field;
 						break;
 					case FixTag.SettlType:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].SettlmntTyp is not null)
+						else if (noBidComponentsGroups![^1]._settlmntTyp is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].SettlmntTyp = (FixField.Character)field;
+							noBidComponentsGroups![^1]._settlmntTyp = (FixField.Character)field;
 						break;
 					case FixTag.SettlDate:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].FutSettDate is not null)
+						else if (noBidComponentsGroups![^1]._futSettDate is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].FutSettDate = (FixField.Date)field;
+							noBidComponentsGroups![^1]._futSettDate = (FixField.Date)field;
 						break;
 					case FixTag.TradingSessionID:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].TradingSessionID is not null)
+						else if (noBidComponentsGroups![^1]._tradingSessionID is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].TradingSessionID = (FixField.Text)field;
+							noBidComponentsGroups![^1]._tradingSessionID = (FixField.Text)field;
 						break;
 					case FixTag.Text:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].Text is not null)
+						else if (noBidComponentsGroups![^1]._text is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].Text = (FixField.Text)field;
+							noBidComponentsGroups![^1]._text = (FixField.Text)field;
 						break;
 					case FixTag.EncodedTextLen:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].EncodedTextLen is not null)
+						else if (noBidComponentsGroups![^1]._encodedTextLen is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].EncodedTextLen = (FixField.Integer)field;
+							noBidComponentsGroups![^1]._encodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
 						if (None(noBidComponentsGroups))
 							Unentered(field);
-						else if (noBidComponentsGroups![^1].EncodedText is not null)
+						else if (noBidComponentsGroups![^1]._encodedText is not null)
 							Duplicate(field, FixTag.NoBidComponents, noBidComponentsGroups!.Count - 1);
 						else
-							noBidComponentsGroups![^1].EncodedText = (FixField.Data)field;
+							noBidComponentsGroups![^1]._encodedText = (FixField.Data)field;
 						break;
 
 					default:
@@ -1470,13 +1636,16 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX BidID, tag 390, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? BidID { get; internal set; }
+		public FixField.Text? BidID => _bidID;
+		internal FixField.Text? _bidID;
 
 		/// <summary>The FIX ClientBidID, tag 391, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClientBidID { get; internal set; }
+		public FixField.Text? ClientBidID => _clientBidID;
+		internal FixField.Text? _clientBidID;
 
 		/// <summary>The FIX NoBidComponents, tag 420, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoBidComponents { get; internal set; }
+		public FixField.Integer? NoBidComponents => _noBidComponents;
+		internal FixField.Integer? _noBidComponents;
 
 		/// <summary>The entries counted by NoBidComponents, tag 420; null when the group is absent.</summary>
 		public List<FixMessage.BidResponse.NoBidComponentsGroup>? NoBidComponentsGroups => noBidComponentsGroups;
@@ -1494,46 +1663,60 @@ public abstract partial class FixMessage
 			public FixField.Decimal Commission { get; }
 
 			/// <summary>The FIX CommType, tag 13, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? CommType { get; internal set; }
+			public FixField.Character? CommType => _commType;
+			internal FixField.Character? _commType;
 
 			/// <summary>The FIX ListID, tag 66, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? ListID { get; internal set; }
+			public FixField.Text? ListID => _listID;
+			internal FixField.Text? _listID;
 
 			/// <summary>The FIX Country, tag 421, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Country { get; internal set; }
+			public FixField.Text? Country => _country;
+			internal FixField.Text? _country;
 
 			/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? Side { get; internal set; }
+			public FixField.Character? Side => _side;
+			internal FixField.Character? _side;
 
 			/// <summary>The FIX Price, tag 44, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? Price { get; internal set; }
+			public FixField.Decimal? Price => _price;
+			internal FixField.Decimal? _price;
 
 			/// <summary>The FIX PriceType, tag 423, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? PriceType { get; internal set; }
+			public FixField.Integer? PriceType => _priceType;
+			internal FixField.Integer? _priceType;
 
 			/// <summary>The FIX FairValue, tag 406, wire type <c>Amt</c>; null when the field is absent.</summary>
-			public FixField.Decimal? FairValue { get; internal set; }
+			public FixField.Decimal? FairValue => _fairValue;
+			internal FixField.Decimal? _fairValue;
 
 			/// <summary>The FIX NetGrossInd, tag 430, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? NetGrossInd { get; internal set; }
+			public FixField.Integer? NetGrossInd => _netGrossInd;
+			internal FixField.Integer? _netGrossInd;
 
 			/// <summary>The FIX SettlmntTyp, tag 63, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? SettlmntTyp { get; internal set; }
+			public FixField.Character? SettlmntTyp => _settlmntTyp;
+			internal FixField.Character? _settlmntTyp;
 
 			/// <summary>The FIX FutSettDate, tag 64, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-			public FixField.Date? FutSettDate { get; internal set; }
+			public FixField.Date? FutSettDate => _futSettDate;
+			internal FixField.Date? _futSettDate;
 
 			/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? TradingSessionID { get; internal set; }
+			public FixField.Text? TradingSessionID => _tradingSessionID;
+			internal FixField.Text? _tradingSessionID;
 
 			/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Text { get; internal set; }
+			public FixField.Text? Text => _text;
+			internal FixField.Text? _text;
 
 			/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedTextLen { get; internal set; }
+			public FixField.Integer? EncodedTextLen => _encodedTextLen;
+			internal FixField.Integer? _encodedTextLen;
 
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedText { get; internal set; }
+			public FixField.Data? EncodedText => _encodedText;
+			internal FixField.Data? _encodedText;
 
 			FixField IFixEntry.Opener => Commission;
 
@@ -1572,13 +1755,13 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.RefSeqNum: if (RefSeqNum is not null) Duplicate(field); RefSeqNum = (FixField.Integer)field; break;
-					case FixTag.RefMsgType: if (RefMsgType is not null) Duplicate(field); RefMsgType = (FixField.Text)field; break;
-					case FixTag.BusinessRejectRefID: if (BusinessRejectRefID is not null) Duplicate(field); BusinessRejectRefID = (FixField.Text)field; break;
-					case FixTag.BusinessRejectReason: if (BusinessRejectReason is not null) Duplicate(field); BusinessRejectReason = (FixField.Integer)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.RefSeqNum: if (_refSeqNum is not null) Duplicate(field); _refSeqNum = (FixField.Integer)field; break;
+					case FixTag.RefMsgType: if (_refMsgType is not null) Duplicate(field); _refMsgType = (FixField.Text)field; break;
+					case FixTag.BusinessRejectRefID: if (_businessRejectRefID is not null) Duplicate(field); _businessRejectRefID = (FixField.Text)field; break;
+					case FixTag.BusinessRejectReason: if (_businessRejectReason is not null) Duplicate(field); _businessRejectReason = (FixField.Integer)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -1590,25 +1773,32 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX RefSeqNum, tag 45, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? RefSeqNum { get; internal set; }
+		public FixField.Integer? RefSeqNum => _refSeqNum;
+		internal FixField.Integer? _refSeqNum;
 
 		/// <summary>The FIX RefMsgType, tag 372, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? RefMsgType { get; internal set; }
+		public FixField.Text? RefMsgType => _refMsgType;
+		internal FixField.Text? _refMsgType;
 
 		/// <summary>The FIX BusinessRejectRefID, tag 379, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? BusinessRejectRefID { get; internal set; }
+		public FixField.Text? BusinessRejectRefID => _businessRejectRefID;
+		internal FixField.Text? _businessRejectRefID;
 
 		/// <summary>The FIX BusinessRejectReason, tag 380, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? BusinessRejectReason { get; internal set; }
+		public FixField.Integer? BusinessRejectReason => _businessRejectReason;
+		internal FixField.Integer? _businessRejectReason;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -1626,36 +1816,36 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.OrderID: if (OrderID is not null) Duplicate(field); OrderID = (FixField.Text)field; break;
-					case FixTag.ExecID: if (ExecID is not null) Duplicate(field); ExecID = (FixField.Text)field; break;
-					case FixTag.DKReason: if (DKReason is not null) Duplicate(field); DKReason = (FixField.Character)field; break;
-					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
-					case FixTag.OrderQty: if (OrderQty is not null) Duplicate(field); OrderQty = (FixField.Decimal)field; break;
-					case FixTag.CashOrderQty: if (CashOrderQty is not null) Duplicate(field); CashOrderQty = (FixField.Decimal)field; break;
-					case FixTag.LastQty: if (LastShares is not null) Duplicate(field); LastShares = (FixField.Decimal)field; break;
-					case FixTag.LastPx: if (LastPx is not null) Duplicate(field); LastPx = (FixField.Decimal)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.OrderID: if (_orderID is not null) Duplicate(field); _orderID = (FixField.Text)field; break;
+					case FixTag.ExecID: if (_execID is not null) Duplicate(field); _execID = (FixField.Text)field; break;
+					case FixTag.DKReason: if (_dKReason is not null) Duplicate(field); _dKReason = (FixField.Character)field; break;
+					case FixTag.Symbol: if (_symbol is not null) Duplicate(field); _symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (_symbolSfx is not null) Duplicate(field); _symbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (_securityID is not null) Duplicate(field); _securityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (_iDSource is not null) Duplicate(field); _iDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (_securityType is not null) Duplicate(field); _securityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (_maturityMonthYear is not null) Duplicate(field); _maturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (_maturityDay is not null) Duplicate(field); _maturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (_putOrCall is not null) Duplicate(field); _putOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (_strikePrice is not null) Duplicate(field); _strikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (_optAttribute is not null) Duplicate(field); _optAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (_contractMultiplier is not null) Duplicate(field); _contractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (_couponRate is not null) Duplicate(field); _couponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (_securityExchange is not null) Duplicate(field); _securityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (_issuer is not null) Duplicate(field); _issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (_encodedIssuerLen is not null) Duplicate(field); _encodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (_encodedIssuer is not null) Duplicate(field); _encodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (_securityDesc is not null) Duplicate(field); _securityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (_encodedSecurityDescLen is not null) Duplicate(field); _encodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (_encodedSecurityDesc is not null) Duplicate(field); _encodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Side: if (_side is not null) Duplicate(field); _side = (FixField.Character)field; break;
+					case FixTag.OrderQty: if (_orderQty is not null) Duplicate(field); _orderQty = (FixField.Decimal)field; break;
+					case FixTag.CashOrderQty: if (_cashOrderQty is not null) Duplicate(field); _cashOrderQty = (FixField.Decimal)field; break;
+					case FixTag.LastQty: if (_lastShares is not null) Duplicate(field); _lastShares = (FixField.Decimal)field; break;
+					case FixTag.LastPx: if (_lastPx is not null) Duplicate(field); _lastPx = (FixField.Decimal)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -1667,94 +1857,124 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX OrderID, tag 37, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? OrderID { get; internal set; }
+		public FixField.Text? OrderID => _orderID;
+		internal FixField.Text? _orderID;
 
 		/// <summary>The FIX ExecID, tag 17, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ExecID { get; internal set; }
+		public FixField.Text? ExecID => _execID;
+		internal FixField.Text? _execID;
 
 		/// <summary>The FIX DKReason, tag 127, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? DKReason { get; internal set; }
+		public FixField.Character? DKReason => _dKReason;
+		internal FixField.Character? _dKReason;
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Symbol { get; internal set; }
+		public FixField.Text? Symbol => _symbol;
+		internal FixField.Text? _symbol;
 
 		/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SymbolSfx { get; internal set; }
+		public FixField.Text? SymbolSfx => _symbolSfx;
+		internal FixField.Text? _symbolSfx;
 
 		/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityID { get; internal set; }
+		public FixField.Text? SecurityID => _securityID;
+		internal FixField.Text? _securityID;
 
 		/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IDSource { get; internal set; }
+		public FixField.Text? IDSource => _iDSource;
+		internal FixField.Text? _iDSource;
 
 		/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityType { get; internal set; }
+		public FixField.Text? SecurityType => _securityType;
+		internal FixField.Text? _securityType;
 
 		/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-		public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+		public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+		internal FixField.MonthYear? _maturityMonthYear;
 
 		/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-		public FixField.Integer? MaturityDay { get; internal set; }
+		public FixField.Integer? MaturityDay => _maturityDay;
+		internal FixField.Integer? _maturityDay;
 
 		/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? PutOrCall { get; internal set; }
+		public FixField.Integer? PutOrCall => _putOrCall;
+		internal FixField.Integer? _putOrCall;
 
 		/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StrikePrice { get; internal set; }
+		public FixField.Decimal? StrikePrice => _strikePrice;
+		internal FixField.Decimal? _strikePrice;
 
 		/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OptAttribute { get; internal set; }
+		public FixField.Character? OptAttribute => _optAttribute;
+		internal FixField.Character? _optAttribute;
 
 		/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? ContractMultiplier { get; internal set; }
+		public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+		internal FixField.Decimal? _contractMultiplier;
 
 		/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CouponRate { get; internal set; }
+		public FixField.Decimal? CouponRate => _couponRate;
+		internal FixField.Decimal? _couponRate;
 
 		/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityExchange { get; internal set; }
+		public FixField.Text? SecurityExchange => _securityExchange;
+		internal FixField.Text? _securityExchange;
 
 		/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Issuer { get; internal set; }
+		public FixField.Text? Issuer => _issuer;
+		internal FixField.Text? _issuer;
 
 		/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedIssuerLen { get; internal set; }
+		public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+		internal FixField.Integer? _encodedIssuerLen;
 
 		/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedIssuer { get; internal set; }
+		public FixField.Data? EncodedIssuer => _encodedIssuer;
+		internal FixField.Data? _encodedIssuer;
 
 		/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityDesc { get; internal set; }
+		public FixField.Text? SecurityDesc => _securityDesc;
+		internal FixField.Text? _securityDesc;
 
 		/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+		public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+		internal FixField.Integer? _encodedSecurityDescLen;
 
 		/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedSecurityDesc { get; internal set; }
+		public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+		internal FixField.Data? _encodedSecurityDesc;
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? Side { get; internal set; }
+		public FixField.Character? Side => _side;
+		internal FixField.Character? _side;
 
 		/// <summary>The FIX OrderQty, tag 38, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? OrderQty { get; internal set; }
+		public FixField.Decimal? OrderQty => _orderQty;
+		internal FixField.Decimal? _orderQty;
 
 		/// <summary>The FIX CashOrderQty, tag 152, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CashOrderQty { get; internal set; }
+		public FixField.Decimal? CashOrderQty => _cashOrderQty;
+		internal FixField.Decimal? _cashOrderQty;
 
 		/// <summary>The FIX LastShares, tag 32, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? LastShares { get; internal set; }
+		public FixField.Decimal? LastShares => _lastShares;
+		internal FixField.Decimal? _lastShares;
 
 		/// <summary>The FIX LastPx, tag 31, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? LastPx { get; internal set; }
+		public FixField.Decimal? LastPx => _lastPx;
+		internal FixField.Decimal? _lastPx;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -1772,199 +1992,199 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.EmailThreadID: if (EmailThreadID is not null) Duplicate(field); EmailThreadID = (FixField.Text)field; break;
-					case FixTag.EmailType: if (EmailType is not null) Duplicate(field); EmailType = (FixField.Character)field; break;
-					case FixTag.OrigTime: if (OrigTime is not null) Duplicate(field); OrigTime = (FixField.Timestamp)field; break;
-					case FixTag.Subject: if (Subject is not null) Duplicate(field); Subject = (FixField.Text)field; break;
-					case FixTag.EncodedSubjectLen: if (EncodedSubjectLen is not null) Duplicate(field); EncodedSubjectLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSubject: if (EncodedSubject is not null) Duplicate(field); EncodedSubject = (FixField.Data)field; break;
-					case FixTag.NoRoutingIDs: if (NoRoutingIDs is not null) Duplicate(field); NoRoutingIDs = (FixField.Integer)field; break;
+					case FixTag.EmailThreadID: if (_emailThreadID is not null) Duplicate(field); _emailThreadID = (FixField.Text)field; break;
+					case FixTag.EmailType: if (_emailType is not null) Duplicate(field); _emailType = (FixField.Character)field; break;
+					case FixTag.OrigTime: if (_origTime is not null) Duplicate(field); _origTime = (FixField.Timestamp)field; break;
+					case FixTag.Subject: if (_subject is not null) Duplicate(field); _subject = (FixField.Text)field; break;
+					case FixTag.EncodedSubjectLen: if (_encodedSubjectLen is not null) Duplicate(field); _encodedSubjectLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSubject: if (_encodedSubject is not null) Duplicate(field); _encodedSubject = (FixField.Data)field; break;
+					case FixTag.NoRoutingIDs: if (_noRoutingIDs is not null) Duplicate(field); _noRoutingIDs = (FixField.Integer)field; break;
 					case FixTag.RoutingType:
-						if (noRoutingIDsGroups is null && NoRoutingIDs is null) Uncounted(FixTag.NoRoutingIDs, field);
+						if (noRoutingIDsGroups is null && _noRoutingIDs is null) Uncounted(FixTag.NoRoutingIDs, field);
 						(noRoutingIDsGroups ??= []).Add(new ((FixField.Integer)field));
 						break;
 					case FixTag.RoutingID:
 						if (None(noRoutingIDsGroups))
 							Unentered(field);
-						else if (noRoutingIDsGroups![^1].RoutingID is not null)
+						else if (noRoutingIDsGroups![^1]._routingID is not null)
 							Duplicate(field, FixTag.NoRoutingIDs, noRoutingIDsGroups!.Count - 1);
 						else
-							noRoutingIDsGroups![^1].RoutingID = (FixField.Text)field;
+							noRoutingIDsGroups![^1]._routingID = (FixField.Text)field;
 						break;
-					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) Duplicate(field); NoRelatedSym = (FixField.Integer)field; break;
+					case FixTag.NoRelatedSym: if (_noRelatedSym is not null) Duplicate(field); _noRelatedSym = (FixField.Integer)field; break;
 					case FixTag.RelatdSym:
-						if (noRelatedSymGroups is null && NoRelatedSym is null) Uncounted(FixTag.NoRelatedSym, field);
+						if (noRelatedSymGroups is null && _noRelatedSym is null) Uncounted(FixTag.NoRelatedSym, field);
 						(noRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SymbolSfx is not null)
+						else if (noRelatedSymGroups![^1]._symbolSfx is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SymbolSfx = (FixField.Text)field;
+							noRelatedSymGroups![^1]._symbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SecurityID is not null)
+						else if (noRelatedSymGroups![^1]._securityID is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SecurityID = (FixField.Text)field;
+							noRelatedSymGroups![^1]._securityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].IDSource is not null)
+						else if (noRelatedSymGroups![^1]._iDSource is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].IDSource = (FixField.Text)field;
+							noRelatedSymGroups![^1]._iDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SecurityType is not null)
+						else if (noRelatedSymGroups![^1]._securityType is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SecurityType = (FixField.Text)field;
+							noRelatedSymGroups![^1]._securityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].MaturityMonthYear is not null)
+						else if (noRelatedSymGroups![^1]._maturityMonthYear is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
+							noRelatedSymGroups![^1]._maturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].MaturityDay is not null)
+						else if (noRelatedSymGroups![^1]._maturityDay is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].MaturityDay = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._maturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].PutOrCall is not null)
+						else if (noRelatedSymGroups![^1]._putOrCall is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].PutOrCall = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._putOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].StrikePrice is not null)
+						else if (noRelatedSymGroups![^1]._strikePrice is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].StrikePrice = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._strikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].OptAttribute is not null)
+						else if (noRelatedSymGroups![^1]._optAttribute is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].OptAttribute = (FixField.Character)field;
+							noRelatedSymGroups![^1]._optAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].ContractMultiplier is not null)
+						else if (noRelatedSymGroups![^1]._contractMultiplier is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].ContractMultiplier = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._contractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].CouponRate is not null)
+						else if (noRelatedSymGroups![^1]._couponRate is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].CouponRate = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._couponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SecurityExchange is not null)
+						else if (noRelatedSymGroups![^1]._securityExchange is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SecurityExchange = (FixField.Text)field;
+							noRelatedSymGroups![^1]._securityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].Issuer is not null)
+						else if (noRelatedSymGroups![^1]._issuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].Issuer = (FixField.Text)field;
+							noRelatedSymGroups![^1]._issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedIssuerLen is not null)
+						else if (noRelatedSymGroups![^1]._encodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._encodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedIssuer is not null)
+						else if (noRelatedSymGroups![^1]._encodedIssuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedIssuer = (FixField.Data)field;
+							noRelatedSymGroups![^1]._encodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SecurityDesc is not null)
+						else if (noRelatedSymGroups![^1]._securityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SecurityDesc = (FixField.Text)field;
+							noRelatedSymGroups![^1]._securityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedSecurityDescLen is not null)
+						else if (noRelatedSymGroups![^1]._encodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._encodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedSecurityDesc is not null)
+						else if (noRelatedSymGroups![^1]._encodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
+							noRelatedSymGroups![^1]._encodedSecurityDesc = (FixField.Data)field;
 						break;
-					case FixTag.OrderID: if (OrderID is not null) Duplicate(field); OrderID = (FixField.Text)field; break;
-					case FixTag.ClOrdID: if (ClOrdID is not null) Duplicate(field); ClOrdID = (FixField.Text)field; break;
-					case FixTag.NoLinesOfText: if (LinesOfText is not null) Duplicate(field); LinesOfText = (FixField.Integer)field; break;
+					case FixTag.OrderID: if (_orderID is not null) Duplicate(field); _orderID = (FixField.Text)field; break;
+					case FixTag.ClOrdID: if (_clOrdID is not null) Duplicate(field); _clOrdID = (FixField.Text)field; break;
+					case FixTag.NoLinesOfText: if (_linesOfText is not null) Duplicate(field); _linesOfText = (FixField.Integer)field; break;
 					case FixTag.Text:
-						if (linesOfTextGroups is null && LinesOfText is null) Uncounted(FixTag.NoLinesOfText, field);
+						if (linesOfTextGroups is null && _linesOfText is null) Uncounted(FixTag.NoLinesOfText, field);
 						(linesOfTextGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.EncodedTextLen:
 						if (None(linesOfTextGroups))
 							Unentered(field);
-						else if (linesOfTextGroups![^1].EncodedTextLen is not null)
+						else if (linesOfTextGroups![^1]._encodedTextLen is not null)
 							Duplicate(field, FixTag.NoLinesOfText, linesOfTextGroups!.Count - 1);
 						else
-							linesOfTextGroups![^1].EncodedTextLen = (FixField.Integer)field;
+							linesOfTextGroups![^1]._encodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
 						if (None(linesOfTextGroups))
 							Unentered(field);
-						else if (linesOfTextGroups![^1].EncodedText is not null)
+						else if (linesOfTextGroups![^1]._encodedText is not null)
 							Duplicate(field, FixTag.NoLinesOfText, linesOfTextGroups!.Count - 1);
 						else
-							linesOfTextGroups![^1].EncodedText = (FixField.Data)field;
+							linesOfTextGroups![^1]._encodedText = (FixField.Data)field;
 						break;
-					case FixTag.RawDataLength: if (RawDataLength is not null) Duplicate(field); RawDataLength = (FixField.Integer)field; break;
-					case FixTag.RawData: if (RawData is not null) Duplicate(field); RawData = (FixField.Data)field; break;
+					case FixTag.RawDataLength: if (_rawDataLength is not null) Duplicate(field); _rawDataLength = (FixField.Integer)field; break;
+					case FixTag.RawData: if (_rawData is not null) Duplicate(field); _rawData = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -1976,55 +2196,68 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX EmailThreadID, tag 164, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? EmailThreadID { get; internal set; }
+		public FixField.Text? EmailThreadID => _emailThreadID;
+		internal FixField.Text? _emailThreadID;
 
 		/// <summary>The FIX EmailType, tag 94, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? EmailType { get; internal set; }
+		public FixField.Character? EmailType => _emailType;
+		internal FixField.Character? _emailType;
 
 		/// <summary>The FIX OrigTime, tag 42, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? OrigTime { get; internal set; }
+		public FixField.Timestamp? OrigTime => _origTime;
+		internal FixField.Timestamp? _origTime;
 
 		/// <summary>The FIX Subject, tag 147, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Subject { get; internal set; }
+		public FixField.Text? Subject => _subject;
+		internal FixField.Text? _subject;
 
 		/// <summary>The FIX EncodedSubjectLen, tag 356, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedSubjectLen { get; internal set; }
+		public FixField.Integer? EncodedSubjectLen => _encodedSubjectLen;
+		internal FixField.Integer? _encodedSubjectLen;
 
 		/// <summary>The FIX EncodedSubject, tag 357, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedSubject { get; internal set; }
+		public FixField.Data? EncodedSubject => _encodedSubject;
+		internal FixField.Data? _encodedSubject;
 
 		/// <summary>The FIX NoRoutingIDs, tag 215, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoRoutingIDs { get; internal set; }
+		public FixField.Integer? NoRoutingIDs => _noRoutingIDs;
+		internal FixField.Integer? _noRoutingIDs;
 
 		/// <summary>The entries counted by NoRoutingIDs, tag 215; null when the group is absent.</summary>
 		public List<FixMessage.Email.NoRoutingIDsGroup>? NoRoutingIDsGroups => noRoutingIDsGroups;
 		internal List<NoRoutingIDsGroup>? noRoutingIDsGroups;
 
 		/// <summary>The FIX NoRelatedSym, tag 146, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoRelatedSym { get; internal set; }
+		public FixField.Integer? NoRelatedSym => _noRelatedSym;
+		internal FixField.Integer? _noRelatedSym;
 
 		/// <summary>The entries counted by NoRelatedSym, tag 146; null when the group is absent.</summary>
 		public List<FixMessage.Email.NoRelatedSymGroup>? NoRelatedSymGroups => noRelatedSymGroups;
 		internal List<NoRelatedSymGroup>? noRelatedSymGroups;
 
 		/// <summary>The FIX OrderID, tag 37, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? OrderID { get; internal set; }
+		public FixField.Text? OrderID => _orderID;
+		internal FixField.Text? _orderID;
 
 		/// <summary>The FIX ClOrdID, tag 11, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClOrdID { get; internal set; }
+		public FixField.Text? ClOrdID => _clOrdID;
+		internal FixField.Text? _clOrdID;
 
 		/// <summary>The FIX LinesOfText, tag 33, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? LinesOfText { get; internal set; }
+		public FixField.Integer? LinesOfText => _linesOfText;
+		internal FixField.Integer? _linesOfText;
 
 		/// <summary>The entries counted by LinesOfText, tag 33; null when the group is absent.</summary>
 		public List<FixMessage.Email.LinesOfTextGroup>? LinesOfTextGroups => linesOfTextGroups;
 		internal List<LinesOfTextGroup>? linesOfTextGroups;
 
 		/// <summary>The FIX RawDataLength, tag 95, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? RawDataLength { get; internal set; }
+		public FixField.Integer? RawDataLength => _rawDataLength;
+		internal FixField.Integer? _rawDataLength;
 
 		/// <summary>The FIX RawData, tag 96, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? RawData { get; internal set; }
+		public FixField.Data? RawData => _rawData;
+		internal FixField.Data? _rawData;
 
 		/// <summary>One entry of the group counted by NoRoutingIDs, tag 215.</summary>
 		public sealed class NoRoutingIDsGroup : IFixEntry
@@ -2038,7 +2271,8 @@ public abstract partial class FixMessage
 			public FixField.Integer RoutingType { get; }
 
 			/// <summary>The FIX RoutingID, tag 217, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? RoutingID { get; internal set; }
+			public FixField.Text? RoutingID => _routingID;
+			internal FixField.Text? _routingID;
 
 			FixField IFixEntry.Opener => RoutingType;
 
@@ -2067,58 +2301,76 @@ public abstract partial class FixMessage
 			public FixField.Text RelatdSym { get; }
 
 			/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SymbolSfx { get; internal set; }
+			public FixField.Text? SymbolSfx => _symbolSfx;
+			internal FixField.Text? _symbolSfx;
 
 			/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityID { get; internal set; }
+			public FixField.Text? SecurityID => _securityID;
+			internal FixField.Text? _securityID;
 
 			/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? IDSource { get; internal set; }
+			public FixField.Text? IDSource => _iDSource;
+			internal FixField.Text? _iDSource;
 
 			/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityType { get; internal set; }
+			public FixField.Text? SecurityType => _securityType;
+			internal FixField.Text? _securityType;
 
 			/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-			public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+			public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+			internal FixField.MonthYear? _maturityMonthYear;
 
 			/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-			public FixField.Integer? MaturityDay { get; internal set; }
+			public FixField.Integer? MaturityDay => _maturityDay;
+			internal FixField.Integer? _maturityDay;
 
 			/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? PutOrCall { get; internal set; }
+			public FixField.Integer? PutOrCall => _putOrCall;
+			internal FixField.Integer? _putOrCall;
 
 			/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? StrikePrice { get; internal set; }
+			public FixField.Decimal? StrikePrice => _strikePrice;
+			internal FixField.Decimal? _strikePrice;
 
 			/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? OptAttribute { get; internal set; }
+			public FixField.Character? OptAttribute => _optAttribute;
+			internal FixField.Character? _optAttribute;
 
 			/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? ContractMultiplier { get; internal set; }
+			public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+			internal FixField.Decimal? _contractMultiplier;
 
 			/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? CouponRate { get; internal set; }
+			public FixField.Decimal? CouponRate => _couponRate;
+			internal FixField.Decimal? _couponRate;
 
 			/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityExchange { get; internal set; }
+			public FixField.Text? SecurityExchange => _securityExchange;
+			internal FixField.Text? _securityExchange;
 
 			/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Issuer { get; internal set; }
+			public FixField.Text? Issuer => _issuer;
+			internal FixField.Text? _issuer;
 
 			/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedIssuerLen { get; internal set; }
+			public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+			internal FixField.Integer? _encodedIssuerLen;
 
 			/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedIssuer { get; internal set; }
+			public FixField.Data? EncodedIssuer => _encodedIssuer;
+			internal FixField.Data? _encodedIssuer;
 
 			/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityDesc { get; internal set; }
+			public FixField.Text? SecurityDesc => _securityDesc;
+			internal FixField.Text? _securityDesc;
 
 			/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+			public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+			internal FixField.Integer? _encodedSecurityDescLen;
 
 			/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedSecurityDesc { get; internal set; }
+			public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+			internal FixField.Data? _encodedSecurityDesc;
 
 			FixField IFixEntry.Opener => RelatdSym;
 
@@ -2148,10 +2400,12 @@ public abstract partial class FixMessage
 			public FixField.Text Text { get; }
 
 			/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedTextLen { get; internal set; }
+			public FixField.Integer? EncodedTextLen => _encodedTextLen;
+			internal FixField.Integer? _encodedTextLen;
 
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedText { get; internal set; }
+			public FixField.Data? EncodedText => _encodedText;
+			internal FixField.Data? _encodedText;
 
 			FixField IFixEntry.Opener => Text;
 
@@ -2192,126 +2446,126 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.OrderID: if (OrderID is not null) Duplicate(field); OrderID = (FixField.Text)field; break;
-					case FixTag.SecondaryOrderID: if (SecondaryOrderID is not null) Duplicate(field); SecondaryOrderID = (FixField.Text)field; break;
-					case FixTag.ClOrdID: if (ClOrdID is not null) Duplicate(field); ClOrdID = (FixField.Text)field; break;
-					case FixTag.OrigClOrdID: if (OrigClOrdID is not null) Duplicate(field); OrigClOrdID = (FixField.Text)field; break;
-					case FixTag.ClientID: if (ClientID is not null) Duplicate(field); ClientID = (FixField.Text)field; break;
-					case FixTag.ExecBroker: if (ExecBroker is not null) Duplicate(field); ExecBroker = (FixField.Text)field; break;
-					case FixTag.NoContraBrokers: if (NoContraBrokers is not null) Duplicate(field); NoContraBrokers = (FixField.Integer)field; break;
+					case FixTag.OrderID: if (_orderID is not null) Duplicate(field); _orderID = (FixField.Text)field; break;
+					case FixTag.SecondaryOrderID: if (_secondaryOrderID is not null) Duplicate(field); _secondaryOrderID = (FixField.Text)field; break;
+					case FixTag.ClOrdID: if (_clOrdID is not null) Duplicate(field); _clOrdID = (FixField.Text)field; break;
+					case FixTag.OrigClOrdID: if (_origClOrdID is not null) Duplicate(field); _origClOrdID = (FixField.Text)field; break;
+					case FixTag.ClientID: if (_clientID is not null) Duplicate(field); _clientID = (FixField.Text)field; break;
+					case FixTag.ExecBroker: if (_execBroker is not null) Duplicate(field); _execBroker = (FixField.Text)field; break;
+					case FixTag.NoContraBrokers: if (_noContraBrokers is not null) Duplicate(field); _noContraBrokers = (FixField.Integer)field; break;
 					case FixTag.ContraBroker:
-						if (noContraBrokersGroups is null && NoContraBrokers is null) Uncounted(FixTag.NoContraBrokers, field);
+						if (noContraBrokersGroups is null && _noContraBrokers is null) Uncounted(FixTag.NoContraBrokers, field);
 						(noContraBrokersGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.ContraTrader:
 						if (None(noContraBrokersGroups))
 							Unentered(field);
-						else if (noContraBrokersGroups![^1].ContraTrader is not null)
+						else if (noContraBrokersGroups![^1]._contraTrader is not null)
 							Duplicate(field, FixTag.NoContraBrokers, noContraBrokersGroups!.Count - 1);
 						else
-							noContraBrokersGroups![^1].ContraTrader = (FixField.Text)field;
+							noContraBrokersGroups![^1]._contraTrader = (FixField.Text)field;
 						break;
 					case FixTag.ContraTradeQty:
 						if (None(noContraBrokersGroups))
 							Unentered(field);
-						else if (noContraBrokersGroups![^1].ContraTradeQty is not null)
+						else if (noContraBrokersGroups![^1]._contraTradeQty is not null)
 							Duplicate(field, FixTag.NoContraBrokers, noContraBrokersGroups!.Count - 1);
 						else
-							noContraBrokersGroups![^1].ContraTradeQty = (FixField.Decimal)field;
+							noContraBrokersGroups![^1]._contraTradeQty = (FixField.Decimal)field;
 						break;
 					case FixTag.ContraTradeTime:
 						if (None(noContraBrokersGroups))
 							Unentered(field);
-						else if (noContraBrokersGroups![^1].ContraTradeTime is not null)
+						else if (noContraBrokersGroups![^1]._contraTradeTime is not null)
 							Duplicate(field, FixTag.NoContraBrokers, noContraBrokersGroups!.Count - 1);
 						else
-							noContraBrokersGroups![^1].ContraTradeTime = (FixField.Timestamp)field;
+							noContraBrokersGroups![^1]._contraTradeTime = (FixField.Timestamp)field;
 						break;
-					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
-					case FixTag.ExecID: if (ExecID is not null) Duplicate(field); ExecID = (FixField.Text)field; break;
-					case FixTag.ExecTransType: if (ExecTransType is not null) Duplicate(field); ExecTransType = (FixField.Character)field; break;
-					case FixTag.ExecRefID: if (ExecRefID is not null) Duplicate(field); ExecRefID = (FixField.Text)field; break;
-					case FixTag.ExecType: if (ExecType is not null) Duplicate(field); ExecType = (FixField.Character)field; break;
-					case FixTag.OrdStatus: if (OrdStatus is not null) Duplicate(field); OrdStatus = (FixField.Character)field; break;
-					case FixTag.OrdRejReason: if (OrdRejReason is not null) Duplicate(field); OrdRejReason = (FixField.Integer)field; break;
-					case FixTag.ExecRestatementReason: if (ExecRestatementReason is not null) Duplicate(field); ExecRestatementReason = (FixField.Integer)field; break;
-					case FixTag.Account: if (Account is not null) Duplicate(field); Account = (FixField.Text)field; break;
-					case FixTag.SettlType: if (SettlmntTyp is not null) Duplicate(field); SettlmntTyp = (FixField.Character)field; break;
-					case FixTag.SettlDate: if (FutSettDate is not null) Duplicate(field); FutSettDate = (FixField.Date)field; break;
-					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
-					case FixTag.OrderQty: if (OrderQty is not null) Duplicate(field); OrderQty = (FixField.Decimal)field; break;
-					case FixTag.CashOrderQty: if (CashOrderQty is not null) Duplicate(field); CashOrderQty = (FixField.Decimal)field; break;
-					case FixTag.OrdType: if (OrdType is not null) Duplicate(field); OrdType = (FixField.Character)field; break;
-					case FixTag.Price: if (Price is not null) Duplicate(field); Price = (FixField.Decimal)field; break;
-					case FixTag.StopPx: if (StopPx is not null) Duplicate(field); StopPx = (FixField.Decimal)field; break;
-					case FixTag.PegOffsetValue: if (PegDifference is not null) Duplicate(field); PegDifference = (FixField.Decimal)field; break;
-					case FixTag.DiscretionInst: if (DiscretionInst is not null) Duplicate(field); DiscretionInst = (FixField.Character)field; break;
-					case FixTag.DiscretionOffsetValue: if (DiscretionOffset is not null) Duplicate(field); DiscretionOffset = (FixField.Decimal)field; break;
-					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
-					case FixTag.ComplianceID: if (ComplianceID is not null) Duplicate(field); ComplianceID = (FixField.Text)field; break;
-					case FixTag.SolicitedFlag: if (SolicitedFlag is not null) Duplicate(field); SolicitedFlag = (FixField.Boolean)field; break;
-					case FixTag.TimeInForce: if (TimeInForce is not null) Duplicate(field); TimeInForce = (FixField.Character)field; break;
-					case FixTag.EffectiveTime: if (EffectiveTime is not null) Duplicate(field); EffectiveTime = (FixField.Timestamp)field; break;
-					case FixTag.ExpireDate: if (ExpireDate is not null) Duplicate(field); ExpireDate = (FixField.Date)field; break;
-					case FixTag.ExpireTime: if (ExpireTime is not null) Duplicate(field); ExpireTime = (FixField.Timestamp)field; break;
-					case FixTag.ExecInst: if (ExecInst is not null) Duplicate(field); ExecInst = (FixField.Multiple)field; break;
-					case FixTag.Rule80A: if (Rule80A is not null) Duplicate(field); Rule80A = (FixField.Character)field; break;
-					case FixTag.LastQty: if (LastShares is not null) Duplicate(field); LastShares = (FixField.Decimal)field; break;
-					case FixTag.LastPx: if (LastPx is not null) Duplicate(field); LastPx = (FixField.Decimal)field; break;
-					case FixTag.LastSpotRate: if (LastSpotRate is not null) Duplicate(field); LastSpotRate = (FixField.Decimal)field; break;
-					case FixTag.LastForwardPoints: if (LastForwardPoints is not null) Duplicate(field); LastForwardPoints = (FixField.Decimal)field; break;
-					case FixTag.LastMkt: if (LastMkt is not null) Duplicate(field); LastMkt = (FixField.Text)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.LastCapacity: if (LastCapacity is not null) Duplicate(field); LastCapacity = (FixField.Character)field; break;
-					case FixTag.LeavesQty: if (LeavesQty is not null) Duplicate(field); LeavesQty = (FixField.Decimal)field; break;
-					case FixTag.CumQty: if (CumQty is not null) Duplicate(field); CumQty = (FixField.Decimal)field; break;
-					case FixTag.AvgPx: if (AvgPx is not null) Duplicate(field); AvgPx = (FixField.Decimal)field; break;
-					case FixTag.DayOrderQty: if (DayOrderQty is not null) Duplicate(field); DayOrderQty = (FixField.Decimal)field; break;
-					case FixTag.DayCumQty: if (DayCumQty is not null) Duplicate(field); DayCumQty = (FixField.Decimal)field; break;
-					case FixTag.DayAvgPx: if (DayAvgPx is not null) Duplicate(field); DayAvgPx = (FixField.Decimal)field; break;
-					case FixTag.GTBookingInst: if (GTBookingInst is not null) Duplicate(field); GTBookingInst = (FixField.Integer)field; break;
-					case FixTag.TradeDate: if (TradeDate is not null) Duplicate(field); TradeDate = (FixField.Date)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.ReportToExch: if (ReportToExch is not null) Duplicate(field); ReportToExch = (FixField.Boolean)field; break;
-					case FixTag.Commission: if (Commission is not null) Duplicate(field); Commission = (FixField.Decimal)field; break;
-					case FixTag.CommType: if (CommType is not null) Duplicate(field); CommType = (FixField.Character)field; break;
-					case FixTag.GrossTradeAmt: if (GrossTradeAmt is not null) Duplicate(field); GrossTradeAmt = (FixField.Decimal)field; break;
-					case FixTag.SettlCurrAmt: if (SettlCurrAmt is not null) Duplicate(field); SettlCurrAmt = (FixField.Decimal)field; break;
-					case FixTag.SettlCurrency: if (SettlCurrency is not null) Duplicate(field); SettlCurrency = (FixField.Text)field; break;
-					case FixTag.SettlCurrFxRate: if (SettlCurrFxRate is not null) Duplicate(field); SettlCurrFxRate = (FixField.Decimal)field; break;
-					case FixTag.SettlCurrFxRateCalc: if (SettlCurrFxRateCalc is not null) Duplicate(field); SettlCurrFxRateCalc = (FixField.Character)field; break;
-					case FixTag.HandlInst: if (HandlInst is not null) Duplicate(field); HandlInst = (FixField.Character)field; break;
-					case FixTag.MinQty: if (MinQty is not null) Duplicate(field); MinQty = (FixField.Decimal)field; break;
-					case FixTag.MaxFloor: if (MaxFloor is not null) Duplicate(field); MaxFloor = (FixField.Decimal)field; break;
-					case FixTag.PositionEffect: if (OpenClose is not null) Duplicate(field); OpenClose = (FixField.Character)field; break;
-					case FixTag.MaxShow: if (MaxShow is not null) Duplicate(field); MaxShow = (FixField.Decimal)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
-					case FixTag.SettlDate2: if (FutSettDate2 is not null) Duplicate(field); FutSettDate2 = (FixField.Date)field; break;
-					case FixTag.OrderQty2: if (OrderQty2 is not null) Duplicate(field); OrderQty2 = (FixField.Decimal)field; break;
-					case FixTag.ClearingFirm: if (ClearingFirm is not null) Duplicate(field); ClearingFirm = (FixField.Text)field; break;
-					case FixTag.ClearingAccount: if (ClearingAccount is not null) Duplicate(field); ClearingAccount = (FixField.Text)field; break;
-					case FixTag.MultiLegReportingType: if (MultiLegReportingType is not null) Duplicate(field); MultiLegReportingType = (FixField.Character)field; break;
+					case FixTag.ListID: if (_listID is not null) Duplicate(field); _listID = (FixField.Text)field; break;
+					case FixTag.ExecID: if (_execID is not null) Duplicate(field); _execID = (FixField.Text)field; break;
+					case FixTag.ExecTransType: if (_execTransType is not null) Duplicate(field); _execTransType = (FixField.Character)field; break;
+					case FixTag.ExecRefID: if (_execRefID is not null) Duplicate(field); _execRefID = (FixField.Text)field; break;
+					case FixTag.ExecType: if (_execType is not null) Duplicate(field); _execType = (FixField.Character)field; break;
+					case FixTag.OrdStatus: if (_ordStatus is not null) Duplicate(field); _ordStatus = (FixField.Character)field; break;
+					case FixTag.OrdRejReason: if (_ordRejReason is not null) Duplicate(field); _ordRejReason = (FixField.Integer)field; break;
+					case FixTag.ExecRestatementReason: if (_execRestatementReason is not null) Duplicate(field); _execRestatementReason = (FixField.Integer)field; break;
+					case FixTag.Account: if (_account is not null) Duplicate(field); _account = (FixField.Text)field; break;
+					case FixTag.SettlType: if (_settlmntTyp is not null) Duplicate(field); _settlmntTyp = (FixField.Character)field; break;
+					case FixTag.SettlDate: if (_futSettDate is not null) Duplicate(field); _futSettDate = (FixField.Date)field; break;
+					case FixTag.Symbol: if (_symbol is not null) Duplicate(field); _symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (_symbolSfx is not null) Duplicate(field); _symbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (_securityID is not null) Duplicate(field); _securityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (_iDSource is not null) Duplicate(field); _iDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (_securityType is not null) Duplicate(field); _securityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (_maturityMonthYear is not null) Duplicate(field); _maturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (_maturityDay is not null) Duplicate(field); _maturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (_putOrCall is not null) Duplicate(field); _putOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (_strikePrice is not null) Duplicate(field); _strikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (_optAttribute is not null) Duplicate(field); _optAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (_contractMultiplier is not null) Duplicate(field); _contractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (_couponRate is not null) Duplicate(field); _couponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (_securityExchange is not null) Duplicate(field); _securityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (_issuer is not null) Duplicate(field); _issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (_encodedIssuerLen is not null) Duplicate(field); _encodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (_encodedIssuer is not null) Duplicate(field); _encodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (_securityDesc is not null) Duplicate(field); _securityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (_encodedSecurityDescLen is not null) Duplicate(field); _encodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (_encodedSecurityDesc is not null) Duplicate(field); _encodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Side: if (_side is not null) Duplicate(field); _side = (FixField.Character)field; break;
+					case FixTag.OrderQty: if (_orderQty is not null) Duplicate(field); _orderQty = (FixField.Decimal)field; break;
+					case FixTag.CashOrderQty: if (_cashOrderQty is not null) Duplicate(field); _cashOrderQty = (FixField.Decimal)field; break;
+					case FixTag.OrdType: if (_ordType is not null) Duplicate(field); _ordType = (FixField.Character)field; break;
+					case FixTag.Price: if (_price is not null) Duplicate(field); _price = (FixField.Decimal)field; break;
+					case FixTag.StopPx: if (_stopPx is not null) Duplicate(field); _stopPx = (FixField.Decimal)field; break;
+					case FixTag.PegOffsetValue: if (_pegDifference is not null) Duplicate(field); _pegDifference = (FixField.Decimal)field; break;
+					case FixTag.DiscretionInst: if (_discretionInst is not null) Duplicate(field); _discretionInst = (FixField.Character)field; break;
+					case FixTag.DiscretionOffsetValue: if (_discretionOffset is not null) Duplicate(field); _discretionOffset = (FixField.Decimal)field; break;
+					case FixTag.Currency: if (_currency is not null) Duplicate(field); _currency = (FixField.Text)field; break;
+					case FixTag.ComplianceID: if (_complianceID is not null) Duplicate(field); _complianceID = (FixField.Text)field; break;
+					case FixTag.SolicitedFlag: if (_solicitedFlag is not null) Duplicate(field); _solicitedFlag = (FixField.Boolean)field; break;
+					case FixTag.TimeInForce: if (_timeInForce is not null) Duplicate(field); _timeInForce = (FixField.Character)field; break;
+					case FixTag.EffectiveTime: if (_effectiveTime is not null) Duplicate(field); _effectiveTime = (FixField.Timestamp)field; break;
+					case FixTag.ExpireDate: if (_expireDate is not null) Duplicate(field); _expireDate = (FixField.Date)field; break;
+					case FixTag.ExpireTime: if (_expireTime is not null) Duplicate(field); _expireTime = (FixField.Timestamp)field; break;
+					case FixTag.ExecInst: if (_execInst is not null) Duplicate(field); _execInst = (FixField.Multiple)field; break;
+					case FixTag.Rule80A: if (_rule80A is not null) Duplicate(field); _rule80A = (FixField.Character)field; break;
+					case FixTag.LastQty: if (_lastShares is not null) Duplicate(field); _lastShares = (FixField.Decimal)field; break;
+					case FixTag.LastPx: if (_lastPx is not null) Duplicate(field); _lastPx = (FixField.Decimal)field; break;
+					case FixTag.LastSpotRate: if (_lastSpotRate is not null) Duplicate(field); _lastSpotRate = (FixField.Decimal)field; break;
+					case FixTag.LastForwardPoints: if (_lastForwardPoints is not null) Duplicate(field); _lastForwardPoints = (FixField.Decimal)field; break;
+					case FixTag.LastMkt: if (_lastMkt is not null) Duplicate(field); _lastMkt = (FixField.Text)field; break;
+					case FixTag.TradingSessionID: if (_tradingSessionID is not null) Duplicate(field); _tradingSessionID = (FixField.Text)field; break;
+					case FixTag.LastCapacity: if (_lastCapacity is not null) Duplicate(field); _lastCapacity = (FixField.Character)field; break;
+					case FixTag.LeavesQty: if (_leavesQty is not null) Duplicate(field); _leavesQty = (FixField.Decimal)field; break;
+					case FixTag.CumQty: if (_cumQty is not null) Duplicate(field); _cumQty = (FixField.Decimal)field; break;
+					case FixTag.AvgPx: if (_avgPx is not null) Duplicate(field); _avgPx = (FixField.Decimal)field; break;
+					case FixTag.DayOrderQty: if (_dayOrderQty is not null) Duplicate(field); _dayOrderQty = (FixField.Decimal)field; break;
+					case FixTag.DayCumQty: if (_dayCumQty is not null) Duplicate(field); _dayCumQty = (FixField.Decimal)field; break;
+					case FixTag.DayAvgPx: if (_dayAvgPx is not null) Duplicate(field); _dayAvgPx = (FixField.Decimal)field; break;
+					case FixTag.GTBookingInst: if (_gTBookingInst is not null) Duplicate(field); _gTBookingInst = (FixField.Integer)field; break;
+					case FixTag.TradeDate: if (_tradeDate is not null) Duplicate(field); _tradeDate = (FixField.Date)field; break;
+					case FixTag.TransactTime: if (_transactTime is not null) Duplicate(field); _transactTime = (FixField.Timestamp)field; break;
+					case FixTag.ReportToExch: if (_reportToExch is not null) Duplicate(field); _reportToExch = (FixField.Boolean)field; break;
+					case FixTag.Commission: if (_commission is not null) Duplicate(field); _commission = (FixField.Decimal)field; break;
+					case FixTag.CommType: if (_commType is not null) Duplicate(field); _commType = (FixField.Character)field; break;
+					case FixTag.GrossTradeAmt: if (_grossTradeAmt is not null) Duplicate(field); _grossTradeAmt = (FixField.Decimal)field; break;
+					case FixTag.SettlCurrAmt: if (_settlCurrAmt is not null) Duplicate(field); _settlCurrAmt = (FixField.Decimal)field; break;
+					case FixTag.SettlCurrency: if (_settlCurrency is not null) Duplicate(field); _settlCurrency = (FixField.Text)field; break;
+					case FixTag.SettlCurrFxRate: if (_settlCurrFxRate is not null) Duplicate(field); _settlCurrFxRate = (FixField.Decimal)field; break;
+					case FixTag.SettlCurrFxRateCalc: if (_settlCurrFxRateCalc is not null) Duplicate(field); _settlCurrFxRateCalc = (FixField.Character)field; break;
+					case FixTag.HandlInst: if (_handlInst is not null) Duplicate(field); _handlInst = (FixField.Character)field; break;
+					case FixTag.MinQty: if (_minQty is not null) Duplicate(field); _minQty = (FixField.Decimal)field; break;
+					case FixTag.MaxFloor: if (_maxFloor is not null) Duplicate(field); _maxFloor = (FixField.Decimal)field; break;
+					case FixTag.PositionEffect: if (_openClose is not null) Duplicate(field); _openClose = (FixField.Character)field; break;
+					case FixTag.MaxShow: if (_maxShow is not null) Duplicate(field); _maxShow = (FixField.Decimal)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
+					case FixTag.SettlDate2: if (_futSettDate2 is not null) Duplicate(field); _futSettDate2 = (FixField.Date)field; break;
+					case FixTag.OrderQty2: if (_orderQty2 is not null) Duplicate(field); _orderQty2 = (FixField.Decimal)field; break;
+					case FixTag.ClearingFirm: if (_clearingFirm is not null) Duplicate(field); _clearingFirm = (FixField.Text)field; break;
+					case FixTag.ClearingAccount: if (_clearingAccount is not null) Duplicate(field); _clearingAccount = (FixField.Text)field; break;
+					case FixTag.MultiLegReportingType: if (_multiLegReportingType is not null) Duplicate(field); _multiLegReportingType = (FixField.Character)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -2323,284 +2577,376 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX OrderID, tag 37, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? OrderID { get; internal set; }
+		public FixField.Text? OrderID => _orderID;
+		internal FixField.Text? _orderID;
 
 		/// <summary>The FIX SecondaryOrderID, tag 198, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecondaryOrderID { get; internal set; }
+		public FixField.Text? SecondaryOrderID => _secondaryOrderID;
+		internal FixField.Text? _secondaryOrderID;
 
 		/// <summary>The FIX ClOrdID, tag 11, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClOrdID { get; internal set; }
+		public FixField.Text? ClOrdID => _clOrdID;
+		internal FixField.Text? _clOrdID;
 
 		/// <summary>The FIX OrigClOrdID, tag 41, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? OrigClOrdID { get; internal set; }
+		public FixField.Text? OrigClOrdID => _origClOrdID;
+		internal FixField.Text? _origClOrdID;
 
 		/// <summary>The FIX ClientID, tag 109, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClientID { get; internal set; }
+		public FixField.Text? ClientID => _clientID;
+		internal FixField.Text? _clientID;
 
 		/// <summary>The FIX ExecBroker, tag 76, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ExecBroker { get; internal set; }
+		public FixField.Text? ExecBroker => _execBroker;
+		internal FixField.Text? _execBroker;
 
 		/// <summary>The FIX NoContraBrokers, tag 382, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoContraBrokers { get; internal set; }
+		public FixField.Integer? NoContraBrokers => _noContraBrokers;
+		internal FixField.Integer? _noContraBrokers;
 
 		/// <summary>The entries counted by NoContraBrokers, tag 382; null when the group is absent.</summary>
 		public List<FixMessage.ExecutionReport.NoContraBrokersGroup>? NoContraBrokersGroups => noContraBrokersGroups;
 		internal List<NoContraBrokersGroup>? noContraBrokersGroups;
 
 		/// <summary>The FIX ListID, tag 66, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ListID { get; internal set; }
+		public FixField.Text? ListID => _listID;
+		internal FixField.Text? _listID;
 
 		/// <summary>The FIX ExecID, tag 17, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ExecID { get; internal set; }
+		public FixField.Text? ExecID => _execID;
+		internal FixField.Text? _execID;
 
 		/// <summary>The FIX ExecTransType, tag 20, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? ExecTransType { get; internal set; }
+		public FixField.Character? ExecTransType => _execTransType;
+		internal FixField.Character? _execTransType;
 
 		/// <summary>The FIX ExecRefID, tag 19, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ExecRefID { get; internal set; }
+		public FixField.Text? ExecRefID => _execRefID;
+		internal FixField.Text? _execRefID;
 
 		/// <summary>The FIX ExecType, tag 150, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? ExecType { get; internal set; }
+		public FixField.Character? ExecType => _execType;
+		internal FixField.Character? _execType;
 
 		/// <summary>The FIX OrdStatus, tag 39, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OrdStatus { get; internal set; }
+		public FixField.Character? OrdStatus => _ordStatus;
+		internal FixField.Character? _ordStatus;
 
 		/// <summary>The FIX OrdRejReason, tag 103, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? OrdRejReason { get; internal set; }
+		public FixField.Integer? OrdRejReason => _ordRejReason;
+		internal FixField.Integer? _ordRejReason;
 
 		/// <summary>The FIX ExecRestatementReason, tag 378, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? ExecRestatementReason { get; internal set; }
+		public FixField.Integer? ExecRestatementReason => _execRestatementReason;
+		internal FixField.Integer? _execRestatementReason;
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Account { get; internal set; }
+		public FixField.Text? Account => _account;
+		internal FixField.Text? _account;
 
 		/// <summary>The FIX SettlmntTyp, tag 63, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? SettlmntTyp { get; internal set; }
+		public FixField.Character? SettlmntTyp => _settlmntTyp;
+		internal FixField.Character? _settlmntTyp;
 
 		/// <summary>The FIX FutSettDate, tag 64, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? FutSettDate { get; internal set; }
+		public FixField.Date? FutSettDate => _futSettDate;
+		internal FixField.Date? _futSettDate;
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Symbol { get; internal set; }
+		public FixField.Text? Symbol => _symbol;
+		internal FixField.Text? _symbol;
 
 		/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SymbolSfx { get; internal set; }
+		public FixField.Text? SymbolSfx => _symbolSfx;
+		internal FixField.Text? _symbolSfx;
 
 		/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityID { get; internal set; }
+		public FixField.Text? SecurityID => _securityID;
+		internal FixField.Text? _securityID;
 
 		/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IDSource { get; internal set; }
+		public FixField.Text? IDSource => _iDSource;
+		internal FixField.Text? _iDSource;
 
 		/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityType { get; internal set; }
+		public FixField.Text? SecurityType => _securityType;
+		internal FixField.Text? _securityType;
 
 		/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-		public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+		public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+		internal FixField.MonthYear? _maturityMonthYear;
 
 		/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-		public FixField.Integer? MaturityDay { get; internal set; }
+		public FixField.Integer? MaturityDay => _maturityDay;
+		internal FixField.Integer? _maturityDay;
 
 		/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? PutOrCall { get; internal set; }
+		public FixField.Integer? PutOrCall => _putOrCall;
+		internal FixField.Integer? _putOrCall;
 
 		/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StrikePrice { get; internal set; }
+		public FixField.Decimal? StrikePrice => _strikePrice;
+		internal FixField.Decimal? _strikePrice;
 
 		/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OptAttribute { get; internal set; }
+		public FixField.Character? OptAttribute => _optAttribute;
+		internal FixField.Character? _optAttribute;
 
 		/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? ContractMultiplier { get; internal set; }
+		public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+		internal FixField.Decimal? _contractMultiplier;
 
 		/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CouponRate { get; internal set; }
+		public FixField.Decimal? CouponRate => _couponRate;
+		internal FixField.Decimal? _couponRate;
 
 		/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityExchange { get; internal set; }
+		public FixField.Text? SecurityExchange => _securityExchange;
+		internal FixField.Text? _securityExchange;
 
 		/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Issuer { get; internal set; }
+		public FixField.Text? Issuer => _issuer;
+		internal FixField.Text? _issuer;
 
 		/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedIssuerLen { get; internal set; }
+		public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+		internal FixField.Integer? _encodedIssuerLen;
 
 		/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedIssuer { get; internal set; }
+		public FixField.Data? EncodedIssuer => _encodedIssuer;
+		internal FixField.Data? _encodedIssuer;
 
 		/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityDesc { get; internal set; }
+		public FixField.Text? SecurityDesc => _securityDesc;
+		internal FixField.Text? _securityDesc;
 
 		/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+		public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+		internal FixField.Integer? _encodedSecurityDescLen;
 
 		/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedSecurityDesc { get; internal set; }
+		public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+		internal FixField.Data? _encodedSecurityDesc;
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? Side { get; internal set; }
+		public FixField.Character? Side => _side;
+		internal FixField.Character? _side;
 
 		/// <summary>The FIX OrderQty, tag 38, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? OrderQty { get; internal set; }
+		public FixField.Decimal? OrderQty => _orderQty;
+		internal FixField.Decimal? _orderQty;
 
 		/// <summary>The FIX CashOrderQty, tag 152, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CashOrderQty { get; internal set; }
+		public FixField.Decimal? CashOrderQty => _cashOrderQty;
+		internal FixField.Decimal? _cashOrderQty;
 
 		/// <summary>The FIX OrdType, tag 40, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OrdType { get; internal set; }
+		public FixField.Character? OrdType => _ordType;
+		internal FixField.Character? _ordType;
 
 		/// <summary>The FIX Price, tag 44, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? Price { get; internal set; }
+		public FixField.Decimal? Price => _price;
+		internal FixField.Decimal? _price;
 
 		/// <summary>The FIX StopPx, tag 99, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StopPx { get; internal set; }
+		public FixField.Decimal? StopPx => _stopPx;
+		internal FixField.Decimal? _stopPx;
 
 		/// <summary>The FIX PegDifference, tag 211, wire type <c>PriceOffset</c>; null when the field is absent.</summary>
-		public FixField.Decimal? PegDifference { get; internal set; }
+		public FixField.Decimal? PegDifference => _pegDifference;
+		internal FixField.Decimal? _pegDifference;
 
 		/// <summary>The FIX DiscretionInst, tag 388, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? DiscretionInst { get; internal set; }
+		public FixField.Character? DiscretionInst => _discretionInst;
+		internal FixField.Character? _discretionInst;
 
 		/// <summary>The FIX DiscretionOffset, tag 389, wire type <c>PriceOffset</c>; null when the field is absent.</summary>
-		public FixField.Decimal? DiscretionOffset { get; internal set; }
+		public FixField.Decimal? DiscretionOffset => _discretionOffset;
+		internal FixField.Decimal? _discretionOffset;
 
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
-		public FixField.Text? Currency { get; internal set; }
+		public FixField.Text? Currency => _currency;
+		internal FixField.Text? _currency;
 
 		/// <summary>The FIX ComplianceID, tag 376, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ComplianceID { get; internal set; }
+		public FixField.Text? ComplianceID => _complianceID;
+		internal FixField.Text? _complianceID;
 
 		/// <summary>The FIX SolicitedFlag, tag 377, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? SolicitedFlag { get; internal set; }
+		public FixField.Boolean? SolicitedFlag => _solicitedFlag;
+		internal FixField.Boolean? _solicitedFlag;
 
 		/// <summary>The FIX TimeInForce, tag 59, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? TimeInForce { get; internal set; }
+		public FixField.Character? TimeInForce => _timeInForce;
+		internal FixField.Character? _timeInForce;
 
 		/// <summary>The FIX EffectiveTime, tag 168, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? EffectiveTime { get; internal set; }
+		public FixField.Timestamp? EffectiveTime => _effectiveTime;
+		internal FixField.Timestamp? _effectiveTime;
 
 		/// <summary>The FIX ExpireDate, tag 432, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? ExpireDate { get; internal set; }
+		public FixField.Date? ExpireDate => _expireDate;
+		internal FixField.Date? _expireDate;
 
 		/// <summary>The FIX ExpireTime, tag 126, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? ExpireTime { get; internal set; }
+		public FixField.Timestamp? ExpireTime => _expireTime;
+		internal FixField.Timestamp? _expireTime;
 
 		/// <summary>The FIX ExecInst, tag 18, wire type <c>MultipleValueString</c>; null when the field is absent.</summary>
-		public FixField.Multiple? ExecInst { get; internal set; }
+		public FixField.Multiple? ExecInst => _execInst;
+		internal FixField.Multiple? _execInst;
 
 		/// <summary>The FIX Rule80A, tag 47, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? Rule80A { get; internal set; }
+		public FixField.Character? Rule80A => _rule80A;
+		internal FixField.Character? _rule80A;
 
 		/// <summary>The FIX LastShares, tag 32, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? LastShares { get; internal set; }
+		public FixField.Decimal? LastShares => _lastShares;
+		internal FixField.Decimal? _lastShares;
 
 		/// <summary>The FIX LastPx, tag 31, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? LastPx { get; internal set; }
+		public FixField.Decimal? LastPx => _lastPx;
+		internal FixField.Decimal? _lastPx;
 
 		/// <summary>The FIX LastSpotRate, tag 194, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? LastSpotRate { get; internal set; }
+		public FixField.Decimal? LastSpotRate => _lastSpotRate;
+		internal FixField.Decimal? _lastSpotRate;
 
 		/// <summary>The FIX LastForwardPoints, tag 195, wire type <c>PriceOffset</c>; null when the field is absent.</summary>
-		public FixField.Decimal? LastForwardPoints { get; internal set; }
+		public FixField.Decimal? LastForwardPoints => _lastForwardPoints;
+		internal FixField.Decimal? _lastForwardPoints;
 
 		/// <summary>The FIX LastMkt, tag 30, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? LastMkt { get; internal set; }
+		public FixField.Text? LastMkt => _lastMkt;
+		internal FixField.Text? _lastMkt;
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TradingSessionID { get; internal set; }
+		public FixField.Text? TradingSessionID => _tradingSessionID;
+		internal FixField.Text? _tradingSessionID;
 
 		/// <summary>The FIX LastCapacity, tag 29, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? LastCapacity { get; internal set; }
+		public FixField.Character? LastCapacity => _lastCapacity;
+		internal FixField.Character? _lastCapacity;
 
 		/// <summary>The FIX LeavesQty, tag 151, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? LeavesQty { get; internal set; }
+		public FixField.Decimal? LeavesQty => _leavesQty;
+		internal FixField.Decimal? _leavesQty;
 
 		/// <summary>The FIX CumQty, tag 14, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CumQty { get; internal set; }
+		public FixField.Decimal? CumQty => _cumQty;
+		internal FixField.Decimal? _cumQty;
 
 		/// <summary>The FIX AvgPx, tag 6, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? AvgPx { get; internal set; }
+		public FixField.Decimal? AvgPx => _avgPx;
+		internal FixField.Decimal? _avgPx;
 
 		/// <summary>The FIX DayOrderQty, tag 424, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? DayOrderQty { get; internal set; }
+		public FixField.Decimal? DayOrderQty => _dayOrderQty;
+		internal FixField.Decimal? _dayOrderQty;
 
 		/// <summary>The FIX DayCumQty, tag 425, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? DayCumQty { get; internal set; }
+		public FixField.Decimal? DayCumQty => _dayCumQty;
+		internal FixField.Decimal? _dayCumQty;
 
 		/// <summary>The FIX DayAvgPx, tag 426, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? DayAvgPx { get; internal set; }
+		public FixField.Decimal? DayAvgPx => _dayAvgPx;
+		internal FixField.Decimal? _dayAvgPx;
 
 		/// <summary>The FIX GTBookingInst, tag 427, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? GTBookingInst { get; internal set; }
+		public FixField.Integer? GTBookingInst => _gTBookingInst;
+		internal FixField.Integer? _gTBookingInst;
 
 		/// <summary>The FIX TradeDate, tag 75, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? TradeDate { get; internal set; }
+		public FixField.Date? TradeDate => _tradeDate;
+		internal FixField.Date? _tradeDate;
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TransactTime { get; internal set; }
+		public FixField.Timestamp? TransactTime => _transactTime;
+		internal FixField.Timestamp? _transactTime;
 
 		/// <summary>The FIX ReportToExch, tag 113, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? ReportToExch { get; internal set; }
+		public FixField.Boolean? ReportToExch => _reportToExch;
+		internal FixField.Boolean? _reportToExch;
 
 		/// <summary>The FIX Commission, tag 12, wire type <c>Amt</c>; null when the field is absent.</summary>
-		public FixField.Decimal? Commission { get; internal set; }
+		public FixField.Decimal? Commission => _commission;
+		internal FixField.Decimal? _commission;
 
 		/// <summary>The FIX CommType, tag 13, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? CommType { get; internal set; }
+		public FixField.Character? CommType => _commType;
+		internal FixField.Character? _commType;
 
 		/// <summary>The FIX GrossTradeAmt, tag 381, wire type <c>Amt</c>; null when the field is absent.</summary>
-		public FixField.Decimal? GrossTradeAmt { get; internal set; }
+		public FixField.Decimal? GrossTradeAmt => _grossTradeAmt;
+		internal FixField.Decimal? _grossTradeAmt;
 
 		/// <summary>The FIX SettlCurrAmt, tag 119, wire type <c>Amt</c>; null when the field is absent.</summary>
-		public FixField.Decimal? SettlCurrAmt { get; internal set; }
+		public FixField.Decimal? SettlCurrAmt => _settlCurrAmt;
+		internal FixField.Decimal? _settlCurrAmt;
 
 		/// <summary>The FIX SettlCurrency, tag 120, wire type <c>Currency</c>; null when the field is absent.</summary>
-		public FixField.Text? SettlCurrency { get; internal set; }
+		public FixField.Text? SettlCurrency => _settlCurrency;
+		internal FixField.Text? _settlCurrency;
 
 		/// <summary>The FIX SettlCurrFxRate, tag 155, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? SettlCurrFxRate { get; internal set; }
+		public FixField.Decimal? SettlCurrFxRate => _settlCurrFxRate;
+		internal FixField.Decimal? _settlCurrFxRate;
 
 		/// <summary>The FIX SettlCurrFxRateCalc, tag 156, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? SettlCurrFxRateCalc { get; internal set; }
+		public FixField.Character? SettlCurrFxRateCalc => _settlCurrFxRateCalc;
+		internal FixField.Character? _settlCurrFxRateCalc;
 
 		/// <summary>The FIX HandlInst, tag 21, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? HandlInst { get; internal set; }
+		public FixField.Character? HandlInst => _handlInst;
+		internal FixField.Character? _handlInst;
 
 		/// <summary>The FIX MinQty, tag 110, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? MinQty { get; internal set; }
+		public FixField.Decimal? MinQty => _minQty;
+		internal FixField.Decimal? _minQty;
 
 		/// <summary>The FIX MaxFloor, tag 111, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? MaxFloor { get; internal set; }
+		public FixField.Decimal? MaxFloor => _maxFloor;
+		internal FixField.Decimal? _maxFloor;
 
 		/// <summary>The FIX OpenClose, tag 77, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OpenClose { get; internal set; }
+		public FixField.Character? OpenClose => _openClose;
+		internal FixField.Character? _openClose;
 
 		/// <summary>The FIX MaxShow, tag 210, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? MaxShow { get; internal set; }
+		public FixField.Decimal? MaxShow => _maxShow;
+		internal FixField.Decimal? _maxShow;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>The FIX FutSettDate2, tag 193, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? FutSettDate2 { get; internal set; }
+		public FixField.Date? FutSettDate2 => _futSettDate2;
+		internal FixField.Date? _futSettDate2;
 
 		/// <summary>The FIX OrderQty2, tag 192, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? OrderQty2 { get; internal set; }
+		public FixField.Decimal? OrderQty2 => _orderQty2;
+		internal FixField.Decimal? _orderQty2;
 
 		/// <summary>The FIX ClearingFirm, tag 439, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClearingFirm { get; internal set; }
+		public FixField.Text? ClearingFirm => _clearingFirm;
+		internal FixField.Text? _clearingFirm;
 
 		/// <summary>The FIX ClearingAccount, tag 440, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClearingAccount { get; internal set; }
+		public FixField.Text? ClearingAccount => _clearingAccount;
+		internal FixField.Text? _clearingAccount;
 
 		/// <summary>The FIX MultiLegReportingType, tag 442, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? MultiLegReportingType { get; internal set; }
+		public FixField.Character? MultiLegReportingType => _multiLegReportingType;
+		internal FixField.Character? _multiLegReportingType;
 
 		/// <summary>One entry of the group counted by NoContraBrokers, tag 382.</summary>
 		public sealed class NoContraBrokersGroup : IFixEntry
@@ -2614,13 +2960,16 @@ public abstract partial class FixMessage
 			public FixField.Text ContraBroker { get; }
 
 			/// <summary>The FIX ContraTrader, tag 337, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? ContraTrader { get; internal set; }
+			public FixField.Text? ContraTrader => _contraTrader;
+			internal FixField.Text? _contraTrader;
 
 			/// <summary>The FIX ContraTradeQty, tag 437, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? ContraTradeQty { get; internal set; }
+			public FixField.Decimal? ContraTradeQty => _contraTradeQty;
+			internal FixField.Decimal? _contraTradeQty;
 
 			/// <summary>The FIX ContraTradeTime, tag 438, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-			public FixField.Timestamp? ContraTradeTime { get; internal set; }
+			public FixField.Timestamp? ContraTradeTime => _contraTradeTime;
+			internal FixField.Timestamp? _contraTradeTime;
 
 			FixField IFixEntry.Opener => ContraBroker;
 
@@ -2659,7 +3008,7 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.TestReqID: if (TestReqID is not null) Duplicate(field); TestReqID = (FixField.Text)field; break;
+					case FixTag.TestReqID: if (_testReqID is not null) Duplicate(field); _testReqID = (FixField.Text)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -2671,7 +3020,8 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX TestReqID, tag 112, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TestReqID { get; internal set; }
+		public FixField.Text? TestReqID => _testReqID;
+		internal FixField.Text? _testReqID;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -2689,60 +3039,60 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.IOIID: if (IOIid is not null) Duplicate(field); IOIid = (FixField.Text)field; break;
-					case FixTag.IOITransType: if (IOITransType is not null) Duplicate(field); IOITransType = (FixField.Character)field; break;
-					case FixTag.IOIRefID: if (IOIRefID is not null) Duplicate(field); IOIRefID = (FixField.Text)field; break;
-					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
-					case FixTag.IOIQty: if (IOIShares is not null) Duplicate(field); IOIShares = (FixField.Text)field; break;
-					case FixTag.Price: if (Price is not null) Duplicate(field); Price = (FixField.Decimal)field; break;
-					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
-					case FixTag.ValidUntilTime: if (ValidUntilTime is not null) Duplicate(field); ValidUntilTime = (FixField.Timestamp)field; break;
-					case FixTag.IOIQltyInd: if (IOIQltyInd is not null) Duplicate(field); IOIQltyInd = (FixField.Character)field; break;
-					case FixTag.IOINaturalFlag: if (IOINaturalFlag is not null) Duplicate(field); IOINaturalFlag = (FixField.Boolean)field; break;
-					case FixTag.NoIOIQualifiers: if (NoIOIQualifiers is not null) Duplicate(field); NoIOIQualifiers = (FixField.Integer)field; break;
+					case FixTag.IOIID: if (_iOIid is not null) Duplicate(field); _iOIid = (FixField.Text)field; break;
+					case FixTag.IOITransType: if (_iOITransType is not null) Duplicate(field); _iOITransType = (FixField.Character)field; break;
+					case FixTag.IOIRefID: if (_iOIRefID is not null) Duplicate(field); _iOIRefID = (FixField.Text)field; break;
+					case FixTag.Symbol: if (_symbol is not null) Duplicate(field); _symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (_symbolSfx is not null) Duplicate(field); _symbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (_securityID is not null) Duplicate(field); _securityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (_iDSource is not null) Duplicate(field); _iDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (_securityType is not null) Duplicate(field); _securityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (_maturityMonthYear is not null) Duplicate(field); _maturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (_maturityDay is not null) Duplicate(field); _maturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (_putOrCall is not null) Duplicate(field); _putOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (_strikePrice is not null) Duplicate(field); _strikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (_optAttribute is not null) Duplicate(field); _optAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (_contractMultiplier is not null) Duplicate(field); _contractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (_couponRate is not null) Duplicate(field); _couponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (_securityExchange is not null) Duplicate(field); _securityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (_issuer is not null) Duplicate(field); _issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (_encodedIssuerLen is not null) Duplicate(field); _encodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (_encodedIssuer is not null) Duplicate(field); _encodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (_securityDesc is not null) Duplicate(field); _securityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (_encodedSecurityDescLen is not null) Duplicate(field); _encodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (_encodedSecurityDesc is not null) Duplicate(field); _encodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Side: if (_side is not null) Duplicate(field); _side = (FixField.Character)field; break;
+					case FixTag.IOIQty: if (_iOIShares is not null) Duplicate(field); _iOIShares = (FixField.Text)field; break;
+					case FixTag.Price: if (_price is not null) Duplicate(field); _price = (FixField.Decimal)field; break;
+					case FixTag.Currency: if (_currency is not null) Duplicate(field); _currency = (FixField.Text)field; break;
+					case FixTag.ValidUntilTime: if (_validUntilTime is not null) Duplicate(field); _validUntilTime = (FixField.Timestamp)field; break;
+					case FixTag.IOIQltyInd: if (_iOIQltyInd is not null) Duplicate(field); _iOIQltyInd = (FixField.Character)field; break;
+					case FixTag.IOINaturalFlag: if (_iOINaturalFlag is not null) Duplicate(field); _iOINaturalFlag = (FixField.Boolean)field; break;
+					case FixTag.NoIOIQualifiers: if (_noIOIQualifiers is not null) Duplicate(field); _noIOIQualifiers = (FixField.Integer)field; break;
 					case FixTag.IOIQualifier:
-						if (noIOIQualifiersGroups is null && NoIOIQualifiers is null) Uncounted(FixTag.NoIOIQualifiers, field);
+						if (noIOIQualifiersGroups is null && _noIOIQualifiers is null) Uncounted(FixTag.NoIOIQualifiers, field);
 						(noIOIQualifiersGroups ??= []).Add(new ((FixField.Character)field));
 						break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.URLLink: if (URLLink is not null) Duplicate(field); URLLink = (FixField.Text)field; break;
-					case FixTag.NoRoutingIDs: if (NoRoutingIDs is not null) Duplicate(field); NoRoutingIDs = (FixField.Integer)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
+					case FixTag.TransactTime: if (_transactTime is not null) Duplicate(field); _transactTime = (FixField.Timestamp)field; break;
+					case FixTag.URLLink: if (_uRLLink is not null) Duplicate(field); _uRLLink = (FixField.Text)field; break;
+					case FixTag.NoRoutingIDs: if (_noRoutingIDs is not null) Duplicate(field); _noRoutingIDs = (FixField.Integer)field; break;
 					case FixTag.RoutingType:
-						if (noRoutingIDsGroups is null && NoRoutingIDs is null) Uncounted(FixTag.NoRoutingIDs, field);
+						if (noRoutingIDsGroups is null && _noRoutingIDs is null) Uncounted(FixTag.NoRoutingIDs, field);
 						(noRoutingIDsGroups ??= []).Add(new ((FixField.Integer)field));
 						break;
 					case FixTag.RoutingID:
 						if (None(noRoutingIDsGroups))
 							Unentered(field);
-						else if (noRoutingIDsGroups![^1].RoutingID is not null)
+						else if (noRoutingIDsGroups![^1]._routingID is not null)
 							Duplicate(field, FixTag.NoRoutingIDs, noRoutingIDsGroups!.Count - 1);
 						else
-							noRoutingIDsGroups![^1].RoutingID = (FixField.Text)field;
+							noRoutingIDsGroups![^1]._routingID = (FixField.Text)field;
 						break;
-					case FixTag.Spread: if (SpreadToBenchmark is not null) Duplicate(field); SpreadToBenchmark = (FixField.Decimal)field; break;
-					case FixTag.Benchmark: if (Benchmark is not null) Duplicate(field); Benchmark = (FixField.Character)field; break;
+					case FixTag.Spread: if (_spreadToBenchmark is not null) Duplicate(field); _spreadToBenchmark = (FixField.Decimal)field; break;
+					case FixTag.Benchmark: if (_benchmark is not null) Duplicate(field); _benchmark = (FixField.Character)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -2754,126 +3104,164 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX IOIid, tag 23, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IOIid { get; internal set; }
+		public FixField.Text? IOIid => _iOIid;
+		internal FixField.Text? _iOIid;
 
 		/// <summary>The FIX IOITransType, tag 28, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? IOITransType { get; internal set; }
+		public FixField.Character? IOITransType => _iOITransType;
+		internal FixField.Character? _iOITransType;
 
 		/// <summary>The FIX IOIRefID, tag 26, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IOIRefID { get; internal set; }
+		public FixField.Text? IOIRefID => _iOIRefID;
+		internal FixField.Text? _iOIRefID;
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Symbol { get; internal set; }
+		public FixField.Text? Symbol => _symbol;
+		internal FixField.Text? _symbol;
 
 		/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SymbolSfx { get; internal set; }
+		public FixField.Text? SymbolSfx => _symbolSfx;
+		internal FixField.Text? _symbolSfx;
 
 		/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityID { get; internal set; }
+		public FixField.Text? SecurityID => _securityID;
+		internal FixField.Text? _securityID;
 
 		/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IDSource { get; internal set; }
+		public FixField.Text? IDSource => _iDSource;
+		internal FixField.Text? _iDSource;
 
 		/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityType { get; internal set; }
+		public FixField.Text? SecurityType => _securityType;
+		internal FixField.Text? _securityType;
 
 		/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-		public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+		public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+		internal FixField.MonthYear? _maturityMonthYear;
 
 		/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-		public FixField.Integer? MaturityDay { get; internal set; }
+		public FixField.Integer? MaturityDay => _maturityDay;
+		internal FixField.Integer? _maturityDay;
 
 		/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? PutOrCall { get; internal set; }
+		public FixField.Integer? PutOrCall => _putOrCall;
+		internal FixField.Integer? _putOrCall;
 
 		/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StrikePrice { get; internal set; }
+		public FixField.Decimal? StrikePrice => _strikePrice;
+		internal FixField.Decimal? _strikePrice;
 
 		/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OptAttribute { get; internal set; }
+		public FixField.Character? OptAttribute => _optAttribute;
+		internal FixField.Character? _optAttribute;
 
 		/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? ContractMultiplier { get; internal set; }
+		public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+		internal FixField.Decimal? _contractMultiplier;
 
 		/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CouponRate { get; internal set; }
+		public FixField.Decimal? CouponRate => _couponRate;
+		internal FixField.Decimal? _couponRate;
 
 		/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityExchange { get; internal set; }
+		public FixField.Text? SecurityExchange => _securityExchange;
+		internal FixField.Text? _securityExchange;
 
 		/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Issuer { get; internal set; }
+		public FixField.Text? Issuer => _issuer;
+		internal FixField.Text? _issuer;
 
 		/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedIssuerLen { get; internal set; }
+		public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+		internal FixField.Integer? _encodedIssuerLen;
 
 		/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedIssuer { get; internal set; }
+		public FixField.Data? EncodedIssuer => _encodedIssuer;
+		internal FixField.Data? _encodedIssuer;
 
 		/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityDesc { get; internal set; }
+		public FixField.Text? SecurityDesc => _securityDesc;
+		internal FixField.Text? _securityDesc;
 
 		/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+		public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+		internal FixField.Integer? _encodedSecurityDescLen;
 
 		/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedSecurityDesc { get; internal set; }
+		public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+		internal FixField.Data? _encodedSecurityDesc;
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? Side { get; internal set; }
+		public FixField.Character? Side => _side;
+		internal FixField.Character? _side;
 
 		/// <summary>The FIX IOIShares, tag 27, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IOIShares { get; internal set; }
+		public FixField.Text? IOIShares => _iOIShares;
+		internal FixField.Text? _iOIShares;
 
 		/// <summary>The FIX Price, tag 44, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? Price { get; internal set; }
+		public FixField.Decimal? Price => _price;
+		internal FixField.Decimal? _price;
 
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
-		public FixField.Text? Currency { get; internal set; }
+		public FixField.Text? Currency => _currency;
+		internal FixField.Text? _currency;
 
 		/// <summary>The FIX ValidUntilTime, tag 62, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? ValidUntilTime { get; internal set; }
+		public FixField.Timestamp? ValidUntilTime => _validUntilTime;
+		internal FixField.Timestamp? _validUntilTime;
 
 		/// <summary>The FIX IOIQltyInd, tag 25, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? IOIQltyInd { get; internal set; }
+		public FixField.Character? IOIQltyInd => _iOIQltyInd;
+		internal FixField.Character? _iOIQltyInd;
 
 		/// <summary>The FIX IOINaturalFlag, tag 130, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? IOINaturalFlag { get; internal set; }
+		public FixField.Boolean? IOINaturalFlag => _iOINaturalFlag;
+		internal FixField.Boolean? _iOINaturalFlag;
 
 		/// <summary>The FIX NoIOIQualifiers, tag 199, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoIOIQualifiers { get; internal set; }
+		public FixField.Integer? NoIOIQualifiers => _noIOIQualifiers;
+		internal FixField.Integer? _noIOIQualifiers;
 
 		/// <summary>The entries counted by NoIOIQualifiers, tag 199; null when the group is absent.</summary>
 		public List<FixMessage.IndicationofInterest.NoIOIQualifiersGroup>? NoIOIQualifiersGroups => noIOIQualifiersGroups;
 		internal List<NoIOIQualifiersGroup>? noIOIQualifiersGroups;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TransactTime { get; internal set; }
+		public FixField.Timestamp? TransactTime => _transactTime;
+		internal FixField.Timestamp? _transactTime;
 
 		/// <summary>The FIX URLLink, tag 149, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? URLLink { get; internal set; }
+		public FixField.Text? URLLink => _uRLLink;
+		internal FixField.Text? _uRLLink;
 
 		/// <summary>The FIX NoRoutingIDs, tag 215, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoRoutingIDs { get; internal set; }
+		public FixField.Integer? NoRoutingIDs => _noRoutingIDs;
+		internal FixField.Integer? _noRoutingIDs;
 
 		/// <summary>The entries counted by NoRoutingIDs, tag 215; null when the group is absent.</summary>
 		public List<FixMessage.IndicationofInterest.NoRoutingIDsGroup>? NoRoutingIDsGroups => noRoutingIDsGroups;
 		internal List<NoRoutingIDsGroup>? noRoutingIDsGroups;
 
 		/// <summary>The FIX SpreadToBenchmark, tag 218, wire type <c>PriceOffset</c>; null when the field is absent.</summary>
-		public FixField.Decimal? SpreadToBenchmark { get; internal set; }
+		public FixField.Decimal? SpreadToBenchmark => _spreadToBenchmark;
+		internal FixField.Decimal? _spreadToBenchmark;
 
 		/// <summary>The FIX Benchmark, tag 219, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? Benchmark { get; internal set; }
+		public FixField.Character? Benchmark => _benchmark;
+		internal FixField.Character? _benchmark;
 
 		/// <summary>One entry of the group counted by NoIOIQualifiers, tag 199.</summary>
 		public sealed class NoIOIQualifiersGroup : IFixEntry
@@ -2913,7 +3301,8 @@ public abstract partial class FixMessage
 			public FixField.Integer RoutingType { get; }
 
 			/// <summary>The FIX RoutingID, tag 217, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? RoutingID { get; internal set; }
+			public FixField.Text? RoutingID => _routingID;
+			internal FixField.Text? _routingID;
 
 			FixField IFixEntry.Opener => RoutingType;
 
@@ -2953,11 +3342,11 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.ListID: if (_listID is not null) Duplicate(field); _listID = (FixField.Text)field; break;
+					case FixTag.TransactTime: if (_transactTime is not null) Duplicate(field); _transactTime = (FixField.Timestamp)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -2969,19 +3358,24 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX ListID, tag 66, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ListID { get; internal set; }
+		public FixField.Text? ListID => _listID;
+		internal FixField.Text? _listID;
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TransactTime { get; internal set; }
+		public FixField.Timestamp? TransactTime => _transactTime;
+		internal FixField.Timestamp? _transactTime;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -2999,13 +3393,13 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
-					case FixTag.ClientBidID: if (ClientBidID is not null) Duplicate(field); ClientBidID = (FixField.Text)field; break;
-					case FixTag.BidID: if (BidID is not null) Duplicate(field); BidID = (FixField.Text)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.ListID: if (_listID is not null) Duplicate(field); _listID = (FixField.Text)field; break;
+					case FixTag.ClientBidID: if (_clientBidID is not null) Duplicate(field); _clientBidID = (FixField.Text)field; break;
+					case FixTag.BidID: if (_bidID is not null) Duplicate(field); _bidID = (FixField.Text)field; break;
+					case FixTag.TransactTime: if (_transactTime is not null) Duplicate(field); _transactTime = (FixField.Timestamp)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -3017,25 +3411,32 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX ListID, tag 66, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ListID { get; internal set; }
+		public FixField.Text? ListID => _listID;
+		internal FixField.Text? _listID;
 
 		/// <summary>The FIX ClientBidID, tag 391, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClientBidID { get; internal set; }
+		public FixField.Text? ClientBidID => _clientBidID;
+		internal FixField.Text? _clientBidID;
 
 		/// <summary>The FIX BidID, tag 390, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? BidID { get; internal set; }
+		public FixField.Text? BidID => _bidID;
+		internal FixField.Text? _bidID;
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TransactTime { get; internal set; }
+		public FixField.Timestamp? TransactTime => _transactTime;
+		internal FixField.Timestamp? _transactTime;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -3053,92 +3454,92 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
-					case FixTag.ListStatusType: if (ListStatusType is not null) Duplicate(field); ListStatusType = (FixField.Integer)field; break;
-					case FixTag.NoRpts: if (NoRpts is not null) Duplicate(field); NoRpts = (FixField.Integer)field; break;
-					case FixTag.ListOrderStatus: if (ListOrderStatus is not null) Duplicate(field); ListOrderStatus = (FixField.Integer)field; break;
-					case FixTag.RptSeq: if (RptSeq is not null) Duplicate(field); RptSeq = (FixField.Integer)field; break;
-					case FixTag.ListStatusText: if (ListStatusText is not null) Duplicate(field); ListStatusText = (FixField.Text)field; break;
-					case FixTag.EncodedListStatusTextLen: if (EncodedListStatusTextLen is not null) Duplicate(field); EncodedListStatusTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedListStatusText: if (EncodedListStatusText is not null) Duplicate(field); EncodedListStatusText = (FixField.Data)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.TotNoOrders: if (TotNoOrders is not null) Duplicate(field); TotNoOrders = (FixField.Integer)field; break;
-					case FixTag.NoOrders: if (NoOrders is not null) Duplicate(field); NoOrders = (FixField.Integer)field; break;
+					case FixTag.ListID: if (_listID is not null) Duplicate(field); _listID = (FixField.Text)field; break;
+					case FixTag.ListStatusType: if (_listStatusType is not null) Duplicate(field); _listStatusType = (FixField.Integer)field; break;
+					case FixTag.NoRpts: if (_noRpts is not null) Duplicate(field); _noRpts = (FixField.Integer)field; break;
+					case FixTag.ListOrderStatus: if (_listOrderStatus is not null) Duplicate(field); _listOrderStatus = (FixField.Integer)field; break;
+					case FixTag.RptSeq: if (_rptSeq is not null) Duplicate(field); _rptSeq = (FixField.Integer)field; break;
+					case FixTag.ListStatusText: if (_listStatusText is not null) Duplicate(field); _listStatusText = (FixField.Text)field; break;
+					case FixTag.EncodedListStatusTextLen: if (_encodedListStatusTextLen is not null) Duplicate(field); _encodedListStatusTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedListStatusText: if (_encodedListStatusText is not null) Duplicate(field); _encodedListStatusText = (FixField.Data)field; break;
+					case FixTag.TransactTime: if (_transactTime is not null) Duplicate(field); _transactTime = (FixField.Timestamp)field; break;
+					case FixTag.TotNoOrders: if (_totNoOrders is not null) Duplicate(field); _totNoOrders = (FixField.Integer)field; break;
+					case FixTag.NoOrders: if (_noOrders is not null) Duplicate(field); _noOrders = (FixField.Integer)field; break;
 					case FixTag.ClOrdID:
-						if (noOrdersGroups is null && NoOrders is null) Uncounted(FixTag.NoOrders, field);
+						if (noOrdersGroups is null && _noOrders is null) Uncounted(FixTag.NoOrders, field);
 						(noOrdersGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.CumQty:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].CumQty is not null)
+						else if (noOrdersGroups![^1]._cumQty is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].CumQty = (FixField.Decimal)field;
+							noOrdersGroups![^1]._cumQty = (FixField.Decimal)field;
 						break;
 					case FixTag.OrdStatus:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].OrdStatus is not null)
+						else if (noOrdersGroups![^1]._ordStatus is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].OrdStatus = (FixField.Character)field;
+							noOrdersGroups![^1]._ordStatus = (FixField.Character)field;
 						break;
 					case FixTag.LeavesQty:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].LeavesQty is not null)
+						else if (noOrdersGroups![^1]._leavesQty is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].LeavesQty = (FixField.Decimal)field;
+							noOrdersGroups![^1]._leavesQty = (FixField.Decimal)field;
 						break;
 					case FixTag.CxlQty:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].CxlQty is not null)
+						else if (noOrdersGroups![^1]._cxlQty is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].CxlQty = (FixField.Decimal)field;
+							noOrdersGroups![^1]._cxlQty = (FixField.Decimal)field;
 						break;
 					case FixTag.AvgPx:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].AvgPx is not null)
+						else if (noOrdersGroups![^1]._avgPx is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].AvgPx = (FixField.Decimal)field;
+							noOrdersGroups![^1]._avgPx = (FixField.Decimal)field;
 						break;
 					case FixTag.OrdRejReason:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].OrdRejReason is not null)
+						else if (noOrdersGroups![^1]._ordRejReason is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].OrdRejReason = (FixField.Integer)field;
+							noOrdersGroups![^1]._ordRejReason = (FixField.Integer)field;
 						break;
 					case FixTag.Text:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].Text is not null)
+						else if (noOrdersGroups![^1]._text is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].Text = (FixField.Text)field;
+							noOrdersGroups![^1]._text = (FixField.Text)field;
 						break;
 					case FixTag.EncodedTextLen:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].EncodedTextLen is not null)
+						else if (noOrdersGroups![^1]._encodedTextLen is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].EncodedTextLen = (FixField.Integer)field;
+							noOrdersGroups![^1]._encodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].EncodedText is not null)
+						else if (noOrdersGroups![^1]._encodedText is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].EncodedText = (FixField.Data)field;
+							noOrdersGroups![^1]._encodedText = (FixField.Data)field;
 						break;
 
 					default:
@@ -3151,37 +3552,48 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX ListID, tag 66, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ListID { get; internal set; }
+		public FixField.Text? ListID => _listID;
+		internal FixField.Text? _listID;
 
 		/// <summary>The FIX ListStatusType, tag 429, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? ListStatusType { get; internal set; }
+		public FixField.Integer? ListStatusType => _listStatusType;
+		internal FixField.Integer? _listStatusType;
 
 		/// <summary>The FIX NoRpts, tag 82, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoRpts { get; internal set; }
+		public FixField.Integer? NoRpts => _noRpts;
+		internal FixField.Integer? _noRpts;
 
 		/// <summary>The FIX ListOrderStatus, tag 431, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? ListOrderStatus { get; internal set; }
+		public FixField.Integer? ListOrderStatus => _listOrderStatus;
+		internal FixField.Integer? _listOrderStatus;
 
 		/// <summary>The FIX RptSeq, tag 83, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? RptSeq { get; internal set; }
+		public FixField.Integer? RptSeq => _rptSeq;
+		internal FixField.Integer? _rptSeq;
 
 		/// <summary>The FIX ListStatusText, tag 444, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ListStatusText { get; internal set; }
+		public FixField.Text? ListStatusText => _listStatusText;
+		internal FixField.Text? _listStatusText;
 
 		/// <summary>The FIX EncodedListStatusTextLen, tag 445, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedListStatusTextLen { get; internal set; }
+		public FixField.Integer? EncodedListStatusTextLen => _encodedListStatusTextLen;
+		internal FixField.Integer? _encodedListStatusTextLen;
 
 		/// <summary>The FIX EncodedListStatusText, tag 446, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedListStatusText { get; internal set; }
+		public FixField.Data? EncodedListStatusText => _encodedListStatusText;
+		internal FixField.Data? _encodedListStatusText;
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TransactTime { get; internal set; }
+		public FixField.Timestamp? TransactTime => _transactTime;
+		internal FixField.Timestamp? _transactTime;
 
 		/// <summary>The FIX TotNoOrders, tag 68, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? TotNoOrders { get; internal set; }
+		public FixField.Integer? TotNoOrders => _totNoOrders;
+		internal FixField.Integer? _totNoOrders;
 
 		/// <summary>The FIX NoOrders, tag 73, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoOrders { get; internal set; }
+		public FixField.Integer? NoOrders => _noOrders;
+		internal FixField.Integer? _noOrders;
 
 		/// <summary>The entries counted by NoOrders, tag 73; null when the group is absent.</summary>
 		public List<FixMessage.ListStatus.NoOrdersGroup>? NoOrdersGroups => noOrdersGroups;
@@ -3199,31 +3611,40 @@ public abstract partial class FixMessage
 			public FixField.Text ClOrdID { get; }
 
 			/// <summary>The FIX CumQty, tag 14, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? CumQty { get; internal set; }
+			public FixField.Decimal? CumQty => _cumQty;
+			internal FixField.Decimal? _cumQty;
 
 			/// <summary>The FIX OrdStatus, tag 39, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? OrdStatus { get; internal set; }
+			public FixField.Character? OrdStatus => _ordStatus;
+			internal FixField.Character? _ordStatus;
 
 			/// <summary>The FIX LeavesQty, tag 151, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? LeavesQty { get; internal set; }
+			public FixField.Decimal? LeavesQty => _leavesQty;
+			internal FixField.Decimal? _leavesQty;
 
 			/// <summary>The FIX CxlQty, tag 84, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? CxlQty { get; internal set; }
+			public FixField.Decimal? CxlQty => _cxlQty;
+			internal FixField.Decimal? _cxlQty;
 
 			/// <summary>The FIX AvgPx, tag 6, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? AvgPx { get; internal set; }
+			public FixField.Decimal? AvgPx => _avgPx;
+			internal FixField.Decimal? _avgPx;
 
 			/// <summary>The FIX OrdRejReason, tag 103, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? OrdRejReason { get; internal set; }
+			public FixField.Integer? OrdRejReason => _ordRejReason;
+			internal FixField.Integer? _ordRejReason;
 
 			/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Text { get; internal set; }
+			public FixField.Text? Text => _text;
+			internal FixField.Text? _text;
 
 			/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedTextLen { get; internal set; }
+			public FixField.Integer? EncodedTextLen => _encodedTextLen;
+			internal FixField.Integer? _encodedTextLen;
 
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedText { get; internal set; }
+			public FixField.Data? EncodedText => _encodedText;
+			internal FixField.Data? _encodedText;
 
 			FixField IFixEntry.Opener => ClOrdID;
 
@@ -3262,10 +3683,10 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.ListID: if (_listID is not null) Duplicate(field); _listID = (FixField.Text)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -3277,16 +3698,20 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX ListID, tag 66, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ListID { get; internal set; }
+		public FixField.Text? ListID => _listID;
+		internal FixField.Text? _listID;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -3304,220 +3729,220 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
-					case FixTag.TotNoStrikes: if (TotNoStrikes is not null) Duplicate(field); TotNoStrikes = (FixField.Integer)field; break;
-					case FixTag.NoStrikes: if (NoStrikes is not null) Duplicate(field); NoStrikes = (FixField.Integer)field; break;
+					case FixTag.ListID: if (_listID is not null) Duplicate(field); _listID = (FixField.Text)field; break;
+					case FixTag.TotNoStrikes: if (_totNoStrikes is not null) Duplicate(field); _totNoStrikes = (FixField.Integer)field; break;
+					case FixTag.NoStrikes: if (_noStrikes is not null) Duplicate(field); _noStrikes = (FixField.Integer)field; break;
 					case FixTag.Symbol:
-						if (noStrikesGroups is null && NoStrikes is null) Uncounted(FixTag.NoStrikes, field);
+						if (noStrikesGroups is null && _noStrikes is null) Uncounted(FixTag.NoStrikes, field);
 						(noStrikesGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].SymbolSfx is not null)
+						else if (noStrikesGroups![^1]._symbolSfx is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].SymbolSfx = (FixField.Text)field;
+							noStrikesGroups![^1]._symbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].SecurityID is not null)
+						else if (noStrikesGroups![^1]._securityID is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].SecurityID = (FixField.Text)field;
+							noStrikesGroups![^1]._securityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].IDSource is not null)
+						else if (noStrikesGroups![^1]._iDSource is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].IDSource = (FixField.Text)field;
+							noStrikesGroups![^1]._iDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].SecurityType is not null)
+						else if (noStrikesGroups![^1]._securityType is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].SecurityType = (FixField.Text)field;
+							noStrikesGroups![^1]._securityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].MaturityMonthYear is not null)
+						else if (noStrikesGroups![^1]._maturityMonthYear is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
+							noStrikesGroups![^1]._maturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].MaturityDay is not null)
+						else if (noStrikesGroups![^1]._maturityDay is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].MaturityDay = (FixField.Integer)field;
+							noStrikesGroups![^1]._maturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].PutOrCall is not null)
+						else if (noStrikesGroups![^1]._putOrCall is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].PutOrCall = (FixField.Integer)field;
+							noStrikesGroups![^1]._putOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].StrikePrice is not null)
+						else if (noStrikesGroups![^1]._strikePrice is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].StrikePrice = (FixField.Decimal)field;
+							noStrikesGroups![^1]._strikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].OptAttribute is not null)
+						else if (noStrikesGroups![^1]._optAttribute is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].OptAttribute = (FixField.Character)field;
+							noStrikesGroups![^1]._optAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].ContractMultiplier is not null)
+						else if (noStrikesGroups![^1]._contractMultiplier is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].ContractMultiplier = (FixField.Decimal)field;
+							noStrikesGroups![^1]._contractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].CouponRate is not null)
+						else if (noStrikesGroups![^1]._couponRate is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].CouponRate = (FixField.Decimal)field;
+							noStrikesGroups![^1]._couponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].SecurityExchange is not null)
+						else if (noStrikesGroups![^1]._securityExchange is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].SecurityExchange = (FixField.Text)field;
+							noStrikesGroups![^1]._securityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].Issuer is not null)
+						else if (noStrikesGroups![^1]._issuer is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].Issuer = (FixField.Text)field;
+							noStrikesGroups![^1]._issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].EncodedIssuerLen is not null)
+						else if (noStrikesGroups![^1]._encodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
+							noStrikesGroups![^1]._encodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].EncodedIssuer is not null)
+						else if (noStrikesGroups![^1]._encodedIssuer is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].EncodedIssuer = (FixField.Data)field;
+							noStrikesGroups![^1]._encodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].SecurityDesc is not null)
+						else if (noStrikesGroups![^1]._securityDesc is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].SecurityDesc = (FixField.Text)field;
+							noStrikesGroups![^1]._securityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].EncodedSecurityDescLen is not null)
+						else if (noStrikesGroups![^1]._encodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
+							noStrikesGroups![^1]._encodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].EncodedSecurityDesc is not null)
+						else if (noStrikesGroups![^1]._encodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
+							noStrikesGroups![^1]._encodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.PrevClosePx:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].PrevClosePx is not null)
+						else if (noStrikesGroups![^1]._prevClosePx is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].PrevClosePx = (FixField.Decimal)field;
+							noStrikesGroups![^1]._prevClosePx = (FixField.Decimal)field;
 						break;
 					case FixTag.ClOrdID:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].ClOrdID is not null)
+						else if (noStrikesGroups![^1]._clOrdID is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].ClOrdID = (FixField.Text)field;
+							noStrikesGroups![^1]._clOrdID = (FixField.Text)field;
 						break;
 					case FixTag.Side:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].Side is not null)
+						else if (noStrikesGroups![^1]._side is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].Side = (FixField.Character)field;
+							noStrikesGroups![^1]._side = (FixField.Character)field;
 						break;
 					case FixTag.Price:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].Price is not null)
+						else if (noStrikesGroups![^1]._price is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].Price = (FixField.Decimal)field;
+							noStrikesGroups![^1]._price = (FixField.Decimal)field;
 						break;
 					case FixTag.Currency:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].Currency is not null)
+						else if (noStrikesGroups![^1]._currency is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].Currency = (FixField.Text)field;
+							noStrikesGroups![^1]._currency = (FixField.Text)field;
 						break;
 					case FixTag.Text:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].Text is not null)
+						else if (noStrikesGroups![^1]._text is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].Text = (FixField.Text)field;
+							noStrikesGroups![^1]._text = (FixField.Text)field;
 						break;
 					case FixTag.EncodedTextLen:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].EncodedTextLen is not null)
+						else if (noStrikesGroups![^1]._encodedTextLen is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].EncodedTextLen = (FixField.Integer)field;
+							noStrikesGroups![^1]._encodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
 						if (None(noStrikesGroups))
 							Unentered(field);
-						else if (noStrikesGroups![^1].EncodedText is not null)
+						else if (noStrikesGroups![^1]._encodedText is not null)
 							Duplicate(field, FixTag.NoStrikes, noStrikesGroups!.Count - 1);
 						else
-							noStrikesGroups![^1].EncodedText = (FixField.Data)field;
+							noStrikesGroups![^1]._encodedText = (FixField.Data)field;
 						break;
 
 					default:
@@ -3530,13 +3955,16 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX ListID, tag 66, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ListID { get; internal set; }
+		public FixField.Text? ListID => _listID;
+		internal FixField.Text? _listID;
 
 		/// <summary>The FIX TotNoStrikes, tag 422, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? TotNoStrikes { get; internal set; }
+		public FixField.Integer? TotNoStrikes => _totNoStrikes;
+		internal FixField.Integer? _totNoStrikes;
 
 		/// <summary>The FIX NoStrikes, tag 428, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoStrikes { get; internal set; }
+		public FixField.Integer? NoStrikes => _noStrikes;
+		internal FixField.Integer? _noStrikes;
 
 		/// <summary>The entries counted by NoStrikes, tag 428; null when the group is absent.</summary>
 		public List<FixMessage.ListStrikePrice.NoStrikesGroup>? NoStrikesGroups => noStrikesGroups;
@@ -3554,82 +3982,108 @@ public abstract partial class FixMessage
 			public FixField.Text Symbol { get; }
 
 			/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SymbolSfx { get; internal set; }
+			public FixField.Text? SymbolSfx => _symbolSfx;
+			internal FixField.Text? _symbolSfx;
 
 			/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityID { get; internal set; }
+			public FixField.Text? SecurityID => _securityID;
+			internal FixField.Text? _securityID;
 
 			/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? IDSource { get; internal set; }
+			public FixField.Text? IDSource => _iDSource;
+			internal FixField.Text? _iDSource;
 
 			/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityType { get; internal set; }
+			public FixField.Text? SecurityType => _securityType;
+			internal FixField.Text? _securityType;
 
 			/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-			public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+			public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+			internal FixField.MonthYear? _maturityMonthYear;
 
 			/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-			public FixField.Integer? MaturityDay { get; internal set; }
+			public FixField.Integer? MaturityDay => _maturityDay;
+			internal FixField.Integer? _maturityDay;
 
 			/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? PutOrCall { get; internal set; }
+			public FixField.Integer? PutOrCall => _putOrCall;
+			internal FixField.Integer? _putOrCall;
 
 			/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? StrikePrice { get; internal set; }
+			public FixField.Decimal? StrikePrice => _strikePrice;
+			internal FixField.Decimal? _strikePrice;
 
 			/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? OptAttribute { get; internal set; }
+			public FixField.Character? OptAttribute => _optAttribute;
+			internal FixField.Character? _optAttribute;
 
 			/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? ContractMultiplier { get; internal set; }
+			public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+			internal FixField.Decimal? _contractMultiplier;
 
 			/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? CouponRate { get; internal set; }
+			public FixField.Decimal? CouponRate => _couponRate;
+			internal FixField.Decimal? _couponRate;
 
 			/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityExchange { get; internal set; }
+			public FixField.Text? SecurityExchange => _securityExchange;
+			internal FixField.Text? _securityExchange;
 
 			/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Issuer { get; internal set; }
+			public FixField.Text? Issuer => _issuer;
+			internal FixField.Text? _issuer;
 
 			/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedIssuerLen { get; internal set; }
+			public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+			internal FixField.Integer? _encodedIssuerLen;
 
 			/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedIssuer { get; internal set; }
+			public FixField.Data? EncodedIssuer => _encodedIssuer;
+			internal FixField.Data? _encodedIssuer;
 
 			/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityDesc { get; internal set; }
+			public FixField.Text? SecurityDesc => _securityDesc;
+			internal FixField.Text? _securityDesc;
 
 			/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+			public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+			internal FixField.Integer? _encodedSecurityDescLen;
 
 			/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedSecurityDesc { get; internal set; }
+			public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+			internal FixField.Data? _encodedSecurityDesc;
 
 			/// <summary>The FIX PrevClosePx, tag 140, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? PrevClosePx { get; internal set; }
+			public FixField.Decimal? PrevClosePx => _prevClosePx;
+			internal FixField.Decimal? _prevClosePx;
 
 			/// <summary>The FIX ClOrdID, tag 11, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? ClOrdID { get; internal set; }
+			public FixField.Text? ClOrdID => _clOrdID;
+			internal FixField.Text? _clOrdID;
 
 			/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? Side { get; internal set; }
+			public FixField.Character? Side => _side;
+			internal FixField.Character? _side;
 
 			/// <summary>The FIX Price, tag 44, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? Price { get; internal set; }
+			public FixField.Decimal? Price => _price;
+			internal FixField.Decimal? _price;
 
 			/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
-			public FixField.Text? Currency { get; internal set; }
+			public FixField.Text? Currency => _currency;
+			internal FixField.Text? _currency;
 
 			/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Text { get; internal set; }
+			public FixField.Text? Text => _text;
+			internal FixField.Text? _text;
 
 			/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedTextLen { get; internal set; }
+			public FixField.Integer? EncodedTextLen => _encodedTextLen;
+			internal FixField.Integer? _encodedTextLen;
 
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedText { get; internal set; }
+			public FixField.Data? EncodedText => _encodedText;
+			internal FixField.Data? _encodedText;
 
 			FixField IFixEntry.Opener => Symbol;
 
@@ -3669,24 +4123,24 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.EncryptMethod: if (EncryptMethod is not null) Duplicate(field); EncryptMethod = (FixField.Integer)field; break;
-					case FixTag.HeartBtInt: if (HeartBtInt is not null) Duplicate(field); HeartBtInt = (FixField.Integer)field; break;
-					case FixTag.RawDataLength: if (RawDataLength is not null) Duplicate(field); RawDataLength = (FixField.Integer)field; break;
-					case FixTag.RawData: if (RawData is not null) Duplicate(field); RawData = (FixField.Data)field; break;
-					case FixTag.ResetSeqNumFlag: if (ResetSeqNumFlag is not null) Duplicate(field); ResetSeqNumFlag = (FixField.Boolean)field; break;
-					case FixTag.MaxMessageSize: if (MaxMessageSize is not null) Duplicate(field); MaxMessageSize = (FixField.Integer)field; break;
-					case FixTag.NoMsgTypes: if (NoMsgTypes is not null) Duplicate(field); NoMsgTypes = (FixField.Integer)field; break;
+					case FixTag.EncryptMethod: if (_encryptMethod is not null) Duplicate(field); _encryptMethod = (FixField.Integer)field; break;
+					case FixTag.HeartBtInt: if (_heartBtInt is not null) Duplicate(field); _heartBtInt = (FixField.Integer)field; break;
+					case FixTag.RawDataLength: if (_rawDataLength is not null) Duplicate(field); _rawDataLength = (FixField.Integer)field; break;
+					case FixTag.RawData: if (_rawData is not null) Duplicate(field); _rawData = (FixField.Data)field; break;
+					case FixTag.ResetSeqNumFlag: if (_resetSeqNumFlag is not null) Duplicate(field); _resetSeqNumFlag = (FixField.Boolean)field; break;
+					case FixTag.MaxMessageSize: if (_maxMessageSize is not null) Duplicate(field); _maxMessageSize = (FixField.Integer)field; break;
+					case FixTag.NoMsgTypes: if (_noMsgTypes is not null) Duplicate(field); _noMsgTypes = (FixField.Integer)field; break;
 					case FixTag.RefMsgType:
-						if (noMsgTypesGroups is null && NoMsgTypes is null) Uncounted(FixTag.NoMsgTypes, field);
+						if (noMsgTypesGroups is null && _noMsgTypes is null) Uncounted(FixTag.NoMsgTypes, field);
 						(noMsgTypesGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.MsgDirection:
 						if (None(noMsgTypesGroups))
 							Unentered(field);
-						else if (noMsgTypesGroups![^1].MsgDirection is not null)
+						else if (noMsgTypesGroups![^1]._msgDirection is not null)
 							Duplicate(field, FixTag.NoMsgTypes, noMsgTypesGroups!.Count - 1);
 						else
-							noMsgTypesGroups![^1].MsgDirection = (FixField.Character)field;
+							noMsgTypesGroups![^1]._msgDirection = (FixField.Character)field;
 						break;
 
 					default:
@@ -3699,25 +4153,32 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX EncryptMethod, tag 98, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncryptMethod { get; internal set; }
+		public FixField.Integer? EncryptMethod => _encryptMethod;
+		internal FixField.Integer? _encryptMethod;
 
 		/// <summary>The FIX HeartBtInt, tag 108, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? HeartBtInt { get; internal set; }
+		public FixField.Integer? HeartBtInt => _heartBtInt;
+		internal FixField.Integer? _heartBtInt;
 
 		/// <summary>The FIX RawDataLength, tag 95, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? RawDataLength { get; internal set; }
+		public FixField.Integer? RawDataLength => _rawDataLength;
+		internal FixField.Integer? _rawDataLength;
 
 		/// <summary>The FIX RawData, tag 96, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? RawData { get; internal set; }
+		public FixField.Data? RawData => _rawData;
+		internal FixField.Data? _rawData;
 
 		/// <summary>The FIX ResetSeqNumFlag, tag 141, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? ResetSeqNumFlag { get; internal set; }
+		public FixField.Boolean? ResetSeqNumFlag => _resetSeqNumFlag;
+		internal FixField.Boolean? _resetSeqNumFlag;
 
 		/// <summary>The FIX MaxMessageSize, tag 383, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? MaxMessageSize { get; internal set; }
+		public FixField.Integer? MaxMessageSize => _maxMessageSize;
+		internal FixField.Integer? _maxMessageSize;
 
 		/// <summary>The FIX NoMsgTypes, tag 384, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoMsgTypes { get; internal set; }
+		public FixField.Integer? NoMsgTypes => _noMsgTypes;
+		internal FixField.Integer? _noMsgTypes;
 
 		/// <summary>The entries counted by NoMsgTypes, tag 384; null when the group is absent.</summary>
 		public List<FixMessage.Logon.NoMsgTypesGroup>? NoMsgTypesGroups => noMsgTypesGroups;
@@ -3735,7 +4196,8 @@ public abstract partial class FixMessage
 			public FixField.Text RefMsgType { get; }
 
 			/// <summary>The FIX MsgDirection, tag 385, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? MsgDirection { get; internal set; }
+			public FixField.Character? MsgDirection => _msgDirection;
+			internal FixField.Character? _msgDirection;
 
 			FixField IFixEntry.Opener => RefMsgType;
 
@@ -3774,9 +4236,9 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -3788,13 +4250,16 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -3812,451 +4277,451 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.MDReqID: if (MDReqID is not null) Duplicate(field); MDReqID = (FixField.Text)field; break;
-					case FixTag.NoMDEntries: if (NoMDEntries is not null) Duplicate(field); NoMDEntries = (FixField.Integer)field; break;
+					case FixTag.MDReqID: if (_mDReqID is not null) Duplicate(field); _mDReqID = (FixField.Text)field; break;
+					case FixTag.NoMDEntries: if (_noMDEntries is not null) Duplicate(field); _noMDEntries = (FixField.Integer)field; break;
 					case FixTag.MDUpdateAction:
-						if (noMDEntriesGroups is null && NoMDEntries is null) Uncounted(FixTag.NoMDEntries, field);
+						if (noMDEntriesGroups is null && _noMDEntries is null) Uncounted(FixTag.NoMDEntries, field);
 						(noMDEntriesGroups ??= []).Add(new ((FixField.Character)field));
 						break;
 					case FixTag.DeleteReason:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].DeleteReason is not null)
+						else if (noMDEntriesGroups![^1]._deleteReason is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].DeleteReason = (FixField.Character)field;
+							noMDEntriesGroups![^1]._deleteReason = (FixField.Character)field;
 						break;
 					case FixTag.MDEntryType:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntryType is not null)
+						else if (noMDEntriesGroups![^1]._mDEntryType is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntryType = (FixField.Character)field;
+							noMDEntriesGroups![^1]._mDEntryType = (FixField.Character)field;
 						break;
 					case FixTag.MDEntryID:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntryID is not null)
+						else if (noMDEntriesGroups![^1]._mDEntryID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntryID = (FixField.Text)field;
+							noMDEntriesGroups![^1]._mDEntryID = (FixField.Text)field;
 						break;
 					case FixTag.MDEntryRefID:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntryRefID is not null)
+						else if (noMDEntriesGroups![^1]._mDEntryRefID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntryRefID = (FixField.Text)field;
+							noMDEntriesGroups![^1]._mDEntryRefID = (FixField.Text)field;
 						break;
 					case FixTag.Symbol:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].Symbol is not null)
+						else if (noMDEntriesGroups![^1]._symbol is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].Symbol = (FixField.Text)field;
+							noMDEntriesGroups![^1]._symbol = (FixField.Text)field;
 						break;
 					case FixTag.SymbolSfx:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].SymbolSfx is not null)
+						else if (noMDEntriesGroups![^1]._symbolSfx is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].SymbolSfx = (FixField.Text)field;
+							noMDEntriesGroups![^1]._symbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].SecurityID is not null)
+						else if (noMDEntriesGroups![^1]._securityID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].SecurityID = (FixField.Text)field;
+							noMDEntriesGroups![^1]._securityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].IDSource is not null)
+						else if (noMDEntriesGroups![^1]._iDSource is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].IDSource = (FixField.Text)field;
+							noMDEntriesGroups![^1]._iDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].SecurityType is not null)
+						else if (noMDEntriesGroups![^1]._securityType is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].SecurityType = (FixField.Text)field;
+							noMDEntriesGroups![^1]._securityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MaturityMonthYear is not null)
+						else if (noMDEntriesGroups![^1]._maturityMonthYear is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
+							noMDEntriesGroups![^1]._maturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MaturityDay is not null)
+						else if (noMDEntriesGroups![^1]._maturityDay is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MaturityDay = (FixField.Integer)field;
+							noMDEntriesGroups![^1]._maturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].PutOrCall is not null)
+						else if (noMDEntriesGroups![^1]._putOrCall is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].PutOrCall = (FixField.Integer)field;
+							noMDEntriesGroups![^1]._putOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].StrikePrice is not null)
+						else if (noMDEntriesGroups![^1]._strikePrice is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].StrikePrice = (FixField.Decimal)field;
+							noMDEntriesGroups![^1]._strikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].OptAttribute is not null)
+						else if (noMDEntriesGroups![^1]._optAttribute is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].OptAttribute = (FixField.Character)field;
+							noMDEntriesGroups![^1]._optAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].ContractMultiplier is not null)
+						else if (noMDEntriesGroups![^1]._contractMultiplier is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].ContractMultiplier = (FixField.Decimal)field;
+							noMDEntriesGroups![^1]._contractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].CouponRate is not null)
+						else if (noMDEntriesGroups![^1]._couponRate is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].CouponRate = (FixField.Decimal)field;
+							noMDEntriesGroups![^1]._couponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].SecurityExchange is not null)
+						else if (noMDEntriesGroups![^1]._securityExchange is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].SecurityExchange = (FixField.Text)field;
+							noMDEntriesGroups![^1]._securityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].Issuer is not null)
+						else if (noMDEntriesGroups![^1]._issuer is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].Issuer = (FixField.Text)field;
+							noMDEntriesGroups![^1]._issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].EncodedIssuerLen is not null)
+						else if (noMDEntriesGroups![^1]._encodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
+							noMDEntriesGroups![^1]._encodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].EncodedIssuer is not null)
+						else if (noMDEntriesGroups![^1]._encodedIssuer is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].EncodedIssuer = (FixField.Data)field;
+							noMDEntriesGroups![^1]._encodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].SecurityDesc is not null)
+						else if (noMDEntriesGroups![^1]._securityDesc is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].SecurityDesc = (FixField.Text)field;
+							noMDEntriesGroups![^1]._securityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].EncodedSecurityDescLen is not null)
+						else if (noMDEntriesGroups![^1]._encodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
+							noMDEntriesGroups![^1]._encodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].EncodedSecurityDesc is not null)
+						else if (noMDEntriesGroups![^1]._encodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
+							noMDEntriesGroups![^1]._encodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.FinancialStatus:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].FinancialStatus is not null)
+						else if (noMDEntriesGroups![^1]._financialStatus is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].FinancialStatus = (FixField.Character)field;
+							noMDEntriesGroups![^1]._financialStatus = (FixField.Character)field;
 						break;
 					case FixTag.CorporateAction:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].CorporateAction is not null)
+						else if (noMDEntriesGroups![^1]._corporateAction is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].CorporateAction = (FixField.Character)field;
+							noMDEntriesGroups![^1]._corporateAction = (FixField.Character)field;
 						break;
 					case FixTag.MDEntryPx:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntryPx is not null)
+						else if (noMDEntriesGroups![^1]._mDEntryPx is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntryPx = (FixField.Decimal)field;
+							noMDEntriesGroups![^1]._mDEntryPx = (FixField.Decimal)field;
 						break;
 					case FixTag.Currency:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].Currency is not null)
+						else if (noMDEntriesGroups![^1]._currency is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].Currency = (FixField.Text)field;
+							noMDEntriesGroups![^1]._currency = (FixField.Text)field;
 						break;
 					case FixTag.MDEntrySize:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntrySize is not null)
+						else if (noMDEntriesGroups![^1]._mDEntrySize is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntrySize = (FixField.Decimal)field;
+							noMDEntriesGroups![^1]._mDEntrySize = (FixField.Decimal)field;
 						break;
 					case FixTag.MDEntryDate:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntryDate is not null)
+						else if (noMDEntriesGroups![^1]._mDEntryDate is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntryDate = (FixField.Date)field;
+							noMDEntriesGroups![^1]._mDEntryDate = (FixField.Date)field;
 						break;
 					case FixTag.MDEntryTime:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntryTime is not null)
+						else if (noMDEntriesGroups![^1]._mDEntryTime is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntryTime = (FixField.Time)field;
+							noMDEntriesGroups![^1]._mDEntryTime = (FixField.Time)field;
 						break;
 					case FixTag.TickDirection:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].TickDirection is not null)
+						else if (noMDEntriesGroups![^1]._tickDirection is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].TickDirection = (FixField.Character)field;
+							noMDEntriesGroups![^1]._tickDirection = (FixField.Character)field;
 						break;
 					case FixTag.MDMkt:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDMkt is not null)
+						else if (noMDEntriesGroups![^1]._mDMkt is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDMkt = (FixField.Text)field;
+							noMDEntriesGroups![^1]._mDMkt = (FixField.Text)field;
 						break;
 					case FixTag.TradingSessionID:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].TradingSessionID is not null)
+						else if (noMDEntriesGroups![^1]._tradingSessionID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].TradingSessionID = (FixField.Text)field;
+							noMDEntriesGroups![^1]._tradingSessionID = (FixField.Text)field;
 						break;
 					case FixTag.QuoteCondition:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].QuoteCondition is not null)
+						else if (noMDEntriesGroups![^1]._quoteCondition is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].QuoteCondition = (FixField.Multiple)field;
+							noMDEntriesGroups![^1]._quoteCondition = (FixField.Multiple)field;
 						break;
 					case FixTag.TradeCondition:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].TradeCondition is not null)
+						else if (noMDEntriesGroups![^1]._tradeCondition is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].TradeCondition = (FixField.Multiple)field;
+							noMDEntriesGroups![^1]._tradeCondition = (FixField.Multiple)field;
 						break;
 					case FixTag.MDEntryOriginator:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntryOriginator is not null)
+						else if (noMDEntriesGroups![^1]._mDEntryOriginator is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntryOriginator = (FixField.Text)field;
+							noMDEntriesGroups![^1]._mDEntryOriginator = (FixField.Text)field;
 						break;
 					case FixTag.LocationID:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].LocationID is not null)
+						else if (noMDEntriesGroups![^1]._locationID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].LocationID = (FixField.Text)field;
+							noMDEntriesGroups![^1]._locationID = (FixField.Text)field;
 						break;
 					case FixTag.DeskID:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].DeskID is not null)
+						else if (noMDEntriesGroups![^1]._deskID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].DeskID = (FixField.Text)field;
+							noMDEntriesGroups![^1]._deskID = (FixField.Text)field;
 						break;
 					case FixTag.OpenCloseSettlFlag:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].OpenCloseSettleFlag is not null)
+						else if (noMDEntriesGroups![^1]._openCloseSettleFlag is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].OpenCloseSettleFlag = (FixField.Character)field;
+							noMDEntriesGroups![^1]._openCloseSettleFlag = (FixField.Character)field;
 						break;
 					case FixTag.TimeInForce:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].TimeInForce is not null)
+						else if (noMDEntriesGroups![^1]._timeInForce is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].TimeInForce = (FixField.Character)field;
+							noMDEntriesGroups![^1]._timeInForce = (FixField.Character)field;
 						break;
 					case FixTag.ExpireDate:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].ExpireDate is not null)
+						else if (noMDEntriesGroups![^1]._expireDate is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].ExpireDate = (FixField.Date)field;
+							noMDEntriesGroups![^1]._expireDate = (FixField.Date)field;
 						break;
 					case FixTag.ExpireTime:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].ExpireTime is not null)
+						else if (noMDEntriesGroups![^1]._expireTime is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].ExpireTime = (FixField.Timestamp)field;
+							noMDEntriesGroups![^1]._expireTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.MinQty:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MinQty is not null)
+						else if (noMDEntriesGroups![^1]._minQty is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MinQty = (FixField.Decimal)field;
+							noMDEntriesGroups![^1]._minQty = (FixField.Decimal)field;
 						break;
 					case FixTag.ExecInst:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].ExecInst is not null)
+						else if (noMDEntriesGroups![^1]._execInst is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].ExecInst = (FixField.Multiple)field;
+							noMDEntriesGroups![^1]._execInst = (FixField.Multiple)field;
 						break;
 					case FixTag.SellerDays:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].SellerDays is not null)
+						else if (noMDEntriesGroups![^1]._sellerDays is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].SellerDays = (FixField.Integer)field;
+							noMDEntriesGroups![^1]._sellerDays = (FixField.Integer)field;
 						break;
 					case FixTag.OrderID:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].OrderID is not null)
+						else if (noMDEntriesGroups![^1]._orderID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].OrderID = (FixField.Text)field;
+							noMDEntriesGroups![^1]._orderID = (FixField.Text)field;
 						break;
 					case FixTag.QuoteEntryID:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].QuoteEntryID is not null)
+						else if (noMDEntriesGroups![^1]._quoteEntryID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].QuoteEntryID = (FixField.Text)field;
+							noMDEntriesGroups![^1]._quoteEntryID = (FixField.Text)field;
 						break;
 					case FixTag.MDEntryBuyer:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntryBuyer is not null)
+						else if (noMDEntriesGroups![^1]._mDEntryBuyer is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntryBuyer = (FixField.Text)field;
+							noMDEntriesGroups![^1]._mDEntryBuyer = (FixField.Text)field;
 						break;
 					case FixTag.MDEntrySeller:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntrySeller is not null)
+						else if (noMDEntriesGroups![^1]._mDEntrySeller is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntrySeller = (FixField.Text)field;
+							noMDEntriesGroups![^1]._mDEntrySeller = (FixField.Text)field;
 						break;
 					case FixTag.NumberOfOrders:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].NumberOfOrders is not null)
+						else if (noMDEntriesGroups![^1]._numberOfOrders is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].NumberOfOrders = (FixField.Integer)field;
+							noMDEntriesGroups![^1]._numberOfOrders = (FixField.Integer)field;
 						break;
 					case FixTag.MDEntryPositionNo:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntryPositionNo is not null)
+						else if (noMDEntriesGroups![^1]._mDEntryPositionNo is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntryPositionNo = (FixField.Integer)field;
+							noMDEntriesGroups![^1]._mDEntryPositionNo = (FixField.Integer)field;
 						break;
 					case FixTag.TotalVolumeTraded:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].TotalVolumeTraded is not null)
+						else if (noMDEntriesGroups![^1]._totalVolumeTraded is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].TotalVolumeTraded = (FixField.Decimal)field;
+							noMDEntriesGroups![^1]._totalVolumeTraded = (FixField.Decimal)field;
 						break;
 					case FixTag.Text:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].Text is not null)
+						else if (noMDEntriesGroups![^1]._text is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].Text = (FixField.Text)field;
+							noMDEntriesGroups![^1]._text = (FixField.Text)field;
 						break;
 					case FixTag.EncodedTextLen:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].EncodedTextLen is not null)
+						else if (noMDEntriesGroups![^1]._encodedTextLen is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].EncodedTextLen = (FixField.Integer)field;
+							noMDEntriesGroups![^1]._encodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].EncodedText is not null)
+						else if (noMDEntriesGroups![^1]._encodedText is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].EncodedText = (FixField.Data)field;
+							noMDEntriesGroups![^1]._encodedText = (FixField.Data)field;
 						break;
 
 					default:
@@ -4269,10 +4734,12 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX MDReqID, tag 262, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? MDReqID { get; internal set; }
+		public FixField.Text? MDReqID => _mDReqID;
+		internal FixField.Text? _mDReqID;
 
 		/// <summary>The FIX NoMDEntries, tag 268, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoMDEntries { get; internal set; }
+		public FixField.Integer? NoMDEntries => _noMDEntries;
+		internal FixField.Integer? _noMDEntries;
 
 		/// <summary>The entries counted by NoMDEntries, tag 268; null when the group is absent.</summary>
 		public List<FixMessage.MarketDataIncrementalRefresh.NoMDEntriesGroup>? NoMDEntriesGroups => noMDEntriesGroups;
@@ -4290,169 +4757,224 @@ public abstract partial class FixMessage
 			public FixField.Character MDUpdateAction { get; }
 
 			/// <summary>The FIX DeleteReason, tag 285, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? DeleteReason { get; internal set; }
+			public FixField.Character? DeleteReason => _deleteReason;
+			internal FixField.Character? _deleteReason;
 
 			/// <summary>The FIX MDEntryType, tag 269, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? MDEntryType { get; internal set; }
+			public FixField.Character? MDEntryType => _mDEntryType;
+			internal FixField.Character? _mDEntryType;
 
 			/// <summary>The FIX MDEntryID, tag 278, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? MDEntryID { get; internal set; }
+			public FixField.Text? MDEntryID => _mDEntryID;
+			internal FixField.Text? _mDEntryID;
 
 			/// <summary>The FIX MDEntryRefID, tag 280, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? MDEntryRefID { get; internal set; }
+			public FixField.Text? MDEntryRefID => _mDEntryRefID;
+			internal FixField.Text? _mDEntryRefID;
 
 			/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Symbol { get; internal set; }
+			public FixField.Text? Symbol => _symbol;
+			internal FixField.Text? _symbol;
 
 			/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SymbolSfx { get; internal set; }
+			public FixField.Text? SymbolSfx => _symbolSfx;
+			internal FixField.Text? _symbolSfx;
 
 			/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityID { get; internal set; }
+			public FixField.Text? SecurityID => _securityID;
+			internal FixField.Text? _securityID;
 
 			/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? IDSource { get; internal set; }
+			public FixField.Text? IDSource => _iDSource;
+			internal FixField.Text? _iDSource;
 
 			/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityType { get; internal set; }
+			public FixField.Text? SecurityType => _securityType;
+			internal FixField.Text? _securityType;
 
 			/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-			public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+			public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+			internal FixField.MonthYear? _maturityMonthYear;
 
 			/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-			public FixField.Integer? MaturityDay { get; internal set; }
+			public FixField.Integer? MaturityDay => _maturityDay;
+			internal FixField.Integer? _maturityDay;
 
 			/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? PutOrCall { get; internal set; }
+			public FixField.Integer? PutOrCall => _putOrCall;
+			internal FixField.Integer? _putOrCall;
 
 			/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? StrikePrice { get; internal set; }
+			public FixField.Decimal? StrikePrice => _strikePrice;
+			internal FixField.Decimal? _strikePrice;
 
 			/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? OptAttribute { get; internal set; }
+			public FixField.Character? OptAttribute => _optAttribute;
+			internal FixField.Character? _optAttribute;
 
 			/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? ContractMultiplier { get; internal set; }
+			public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+			internal FixField.Decimal? _contractMultiplier;
 
 			/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? CouponRate { get; internal set; }
+			public FixField.Decimal? CouponRate => _couponRate;
+			internal FixField.Decimal? _couponRate;
 
 			/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityExchange { get; internal set; }
+			public FixField.Text? SecurityExchange => _securityExchange;
+			internal FixField.Text? _securityExchange;
 
 			/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Issuer { get; internal set; }
+			public FixField.Text? Issuer => _issuer;
+			internal FixField.Text? _issuer;
 
 			/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedIssuerLen { get; internal set; }
+			public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+			internal FixField.Integer? _encodedIssuerLen;
 
 			/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedIssuer { get; internal set; }
+			public FixField.Data? EncodedIssuer => _encodedIssuer;
+			internal FixField.Data? _encodedIssuer;
 
 			/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityDesc { get; internal set; }
+			public FixField.Text? SecurityDesc => _securityDesc;
+			internal FixField.Text? _securityDesc;
 
 			/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+			public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+			internal FixField.Integer? _encodedSecurityDescLen;
 
 			/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedSecurityDesc { get; internal set; }
+			public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+			internal FixField.Data? _encodedSecurityDesc;
 
 			/// <summary>The FIX FinancialStatus, tag 291, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? FinancialStatus { get; internal set; }
+			public FixField.Character? FinancialStatus => _financialStatus;
+			internal FixField.Character? _financialStatus;
 
 			/// <summary>The FIX CorporateAction, tag 292, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? CorporateAction { get; internal set; }
+			public FixField.Character? CorporateAction => _corporateAction;
+			internal FixField.Character? _corporateAction;
 
 			/// <summary>The FIX MDEntryPx, tag 270, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? MDEntryPx { get; internal set; }
+			public FixField.Decimal? MDEntryPx => _mDEntryPx;
+			internal FixField.Decimal? _mDEntryPx;
 
 			/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
-			public FixField.Text? Currency { get; internal set; }
+			public FixField.Text? Currency => _currency;
+			internal FixField.Text? _currency;
 
 			/// <summary>The FIX MDEntrySize, tag 271, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? MDEntrySize { get; internal set; }
+			public FixField.Decimal? MDEntrySize => _mDEntrySize;
+			internal FixField.Decimal? _mDEntrySize;
 
 			/// <summary>The FIX MDEntryDate, tag 272, wire type <c>UTCDate</c>; null when the field is absent.</summary>
-			public FixField.Date? MDEntryDate { get; internal set; }
+			public FixField.Date? MDEntryDate => _mDEntryDate;
+			internal FixField.Date? _mDEntryDate;
 
 			/// <summary>The FIX MDEntryTime, tag 273, wire type <c>UTCTimeOnly</c>; null when the field is absent.</summary>
-			public FixField.Time? MDEntryTime { get; internal set; }
+			public FixField.Time? MDEntryTime => _mDEntryTime;
+			internal FixField.Time? _mDEntryTime;
 
 			/// <summary>The FIX TickDirection, tag 274, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? TickDirection { get; internal set; }
+			public FixField.Character? TickDirection => _tickDirection;
+			internal FixField.Character? _tickDirection;
 
 			/// <summary>The FIX MDMkt, tag 275, wire type <c>Exchange</c>; null when the field is absent.</summary>
-			public FixField.Text? MDMkt { get; internal set; }
+			public FixField.Text? MDMkt => _mDMkt;
+			internal FixField.Text? _mDMkt;
 
 			/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? TradingSessionID { get; internal set; }
+			public FixField.Text? TradingSessionID => _tradingSessionID;
+			internal FixField.Text? _tradingSessionID;
 
 			/// <summary>The FIX QuoteCondition, tag 276, wire type <c>MultipleValueString</c>; null when the field is absent.</summary>
-			public FixField.Multiple? QuoteCondition { get; internal set; }
+			public FixField.Multiple? QuoteCondition => _quoteCondition;
+			internal FixField.Multiple? _quoteCondition;
 
 			/// <summary>The FIX TradeCondition, tag 277, wire type <c>MultipleValueString</c>; null when the field is absent.</summary>
-			public FixField.Multiple? TradeCondition { get; internal set; }
+			public FixField.Multiple? TradeCondition => _tradeCondition;
+			internal FixField.Multiple? _tradeCondition;
 
 			/// <summary>The FIX MDEntryOriginator, tag 282, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? MDEntryOriginator { get; internal set; }
+			public FixField.Text? MDEntryOriginator => _mDEntryOriginator;
+			internal FixField.Text? _mDEntryOriginator;
 
 			/// <summary>The FIX LocationID, tag 283, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? LocationID { get; internal set; }
+			public FixField.Text? LocationID => _locationID;
+			internal FixField.Text? _locationID;
 
 			/// <summary>The FIX DeskID, tag 284, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? DeskID { get; internal set; }
+			public FixField.Text? DeskID => _deskID;
+			internal FixField.Text? _deskID;
 
 			/// <summary>The FIX OpenCloseSettleFlag, tag 286, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? OpenCloseSettleFlag { get; internal set; }
+			public FixField.Character? OpenCloseSettleFlag => _openCloseSettleFlag;
+			internal FixField.Character? _openCloseSettleFlag;
 
 			/// <summary>The FIX TimeInForce, tag 59, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? TimeInForce { get; internal set; }
+			public FixField.Character? TimeInForce => _timeInForce;
+			internal FixField.Character? _timeInForce;
 
 			/// <summary>The FIX ExpireDate, tag 432, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-			public FixField.Date? ExpireDate { get; internal set; }
+			public FixField.Date? ExpireDate => _expireDate;
+			internal FixField.Date? _expireDate;
 
 			/// <summary>The FIX ExpireTime, tag 126, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-			public FixField.Timestamp? ExpireTime { get; internal set; }
+			public FixField.Timestamp? ExpireTime => _expireTime;
+			internal FixField.Timestamp? _expireTime;
 
 			/// <summary>The FIX MinQty, tag 110, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? MinQty { get; internal set; }
+			public FixField.Decimal? MinQty => _minQty;
+			internal FixField.Decimal? _minQty;
 
 			/// <summary>The FIX ExecInst, tag 18, wire type <c>MultipleValueString</c>; null when the field is absent.</summary>
-			public FixField.Multiple? ExecInst { get; internal set; }
+			public FixField.Multiple? ExecInst => _execInst;
+			internal FixField.Multiple? _execInst;
 
 			/// <summary>The FIX SellerDays, tag 287, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? SellerDays { get; internal set; }
+			public FixField.Integer? SellerDays => _sellerDays;
+			internal FixField.Integer? _sellerDays;
 
 			/// <summary>The FIX OrderID, tag 37, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? OrderID { get; internal set; }
+			public FixField.Text? OrderID => _orderID;
+			internal FixField.Text? _orderID;
 
 			/// <summary>The FIX QuoteEntryID, tag 299, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? QuoteEntryID { get; internal set; }
+			public FixField.Text? QuoteEntryID => _quoteEntryID;
+			internal FixField.Text? _quoteEntryID;
 
 			/// <summary>The FIX MDEntryBuyer, tag 288, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? MDEntryBuyer { get; internal set; }
+			public FixField.Text? MDEntryBuyer => _mDEntryBuyer;
+			internal FixField.Text? _mDEntryBuyer;
 
 			/// <summary>The FIX MDEntrySeller, tag 289, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? MDEntrySeller { get; internal set; }
+			public FixField.Text? MDEntrySeller => _mDEntrySeller;
+			internal FixField.Text? _mDEntrySeller;
 
 			/// <summary>The FIX NumberOfOrders, tag 346, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? NumberOfOrders { get; internal set; }
+			public FixField.Integer? NumberOfOrders => _numberOfOrders;
+			internal FixField.Integer? _numberOfOrders;
 
 			/// <summary>The FIX MDEntryPositionNo, tag 290, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? MDEntryPositionNo { get; internal set; }
+			public FixField.Integer? MDEntryPositionNo => _mDEntryPositionNo;
+			internal FixField.Integer? _mDEntryPositionNo;
 
 			/// <summary>The FIX TotalVolumeTraded, tag 387, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? TotalVolumeTraded { get; internal set; }
+			public FixField.Decimal? TotalVolumeTraded => _totalVolumeTraded;
+			internal FixField.Decimal? _totalVolumeTraded;
 
 			/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Text { get; internal set; }
+			public FixField.Text? Text => _text;
+			internal FixField.Text? _text;
 
 			/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedTextLen { get; internal set; }
+			public FixField.Integer? EncodedTextLen => _encodedTextLen;
+			internal FixField.Integer? _encodedTextLen;
 
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedText { get; internal set; }
+			public FixField.Data? EncodedText => _encodedText;
+			internal FixField.Data? _encodedText;
 
 			FixField IFixEntry.Opener => MDUpdateAction;
 
@@ -4494,172 +5016,172 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.MDReqID: if (MDReqID is not null) Duplicate(field); MDReqID = (FixField.Text)field; break;
-					case FixTag.SubscriptionRequestType: if (SubscriptionRequestType is not null) Duplicate(field); SubscriptionRequestType = (FixField.Character)field; break;
-					case FixTag.MarketDepth: if (MarketDepth is not null) Duplicate(field); MarketDepth = (FixField.Integer)field; break;
-					case FixTag.MDUpdateType: if (MDUpdateType is not null) Duplicate(field); MDUpdateType = (FixField.Integer)field; break;
-					case FixTag.AggregatedBook: if (AggregatedBook is not null) Duplicate(field); AggregatedBook = (FixField.Boolean)field; break;
-					case FixTag.NoMDEntryTypes: if (NoMDEntryTypes is not null) Duplicate(field); NoMDEntryTypes = (FixField.Integer)field; break;
+					case FixTag.MDReqID: if (_mDReqID is not null) Duplicate(field); _mDReqID = (FixField.Text)field; break;
+					case FixTag.SubscriptionRequestType: if (_subscriptionRequestType is not null) Duplicate(field); _subscriptionRequestType = (FixField.Character)field; break;
+					case FixTag.MarketDepth: if (_marketDepth is not null) Duplicate(field); _marketDepth = (FixField.Integer)field; break;
+					case FixTag.MDUpdateType: if (_mDUpdateType is not null) Duplicate(field); _mDUpdateType = (FixField.Integer)field; break;
+					case FixTag.AggregatedBook: if (_aggregatedBook is not null) Duplicate(field); _aggregatedBook = (FixField.Boolean)field; break;
+					case FixTag.NoMDEntryTypes: if (_noMDEntryTypes is not null) Duplicate(field); _noMDEntryTypes = (FixField.Integer)field; break;
 					case FixTag.MDEntryType:
-						if (noMDEntryTypesGroups is null && NoMDEntryTypes is null) Uncounted(FixTag.NoMDEntryTypes, field);
+						if (noMDEntryTypesGroups is null && _noMDEntryTypes is null) Uncounted(FixTag.NoMDEntryTypes, field);
 						(noMDEntryTypesGroups ??= []).Add(new ((FixField.Character)field));
 						break;
-					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) Duplicate(field); NoRelatedSym = (FixField.Integer)field; break;
+					case FixTag.NoRelatedSym: if (_noRelatedSym is not null) Duplicate(field); _noRelatedSym = (FixField.Integer)field; break;
 					case FixTag.Symbol:
-						if (noRelatedSymGroups is null && NoRelatedSym is null) Uncounted(FixTag.NoRelatedSym, field);
+						if (noRelatedSymGroups is null && _noRelatedSym is null) Uncounted(FixTag.NoRelatedSym, field);
 						(noRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SymbolSfx is not null)
+						else if (noRelatedSymGroups![^1]._symbolSfx is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SymbolSfx = (FixField.Text)field;
+							noRelatedSymGroups![^1]._symbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SecurityID is not null)
+						else if (noRelatedSymGroups![^1]._securityID is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SecurityID = (FixField.Text)field;
+							noRelatedSymGroups![^1]._securityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].IDSource is not null)
+						else if (noRelatedSymGroups![^1]._iDSource is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].IDSource = (FixField.Text)field;
+							noRelatedSymGroups![^1]._iDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SecurityType is not null)
+						else if (noRelatedSymGroups![^1]._securityType is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SecurityType = (FixField.Text)field;
+							noRelatedSymGroups![^1]._securityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].MaturityMonthYear is not null)
+						else if (noRelatedSymGroups![^1]._maturityMonthYear is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
+							noRelatedSymGroups![^1]._maturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].MaturityDay is not null)
+						else if (noRelatedSymGroups![^1]._maturityDay is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].MaturityDay = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._maturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].PutOrCall is not null)
+						else if (noRelatedSymGroups![^1]._putOrCall is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].PutOrCall = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._putOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].StrikePrice is not null)
+						else if (noRelatedSymGroups![^1]._strikePrice is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].StrikePrice = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._strikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].OptAttribute is not null)
+						else if (noRelatedSymGroups![^1]._optAttribute is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].OptAttribute = (FixField.Character)field;
+							noRelatedSymGroups![^1]._optAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].ContractMultiplier is not null)
+						else if (noRelatedSymGroups![^1]._contractMultiplier is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].ContractMultiplier = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._contractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].CouponRate is not null)
+						else if (noRelatedSymGroups![^1]._couponRate is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].CouponRate = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._couponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SecurityExchange is not null)
+						else if (noRelatedSymGroups![^1]._securityExchange is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SecurityExchange = (FixField.Text)field;
+							noRelatedSymGroups![^1]._securityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].Issuer is not null)
+						else if (noRelatedSymGroups![^1]._issuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].Issuer = (FixField.Text)field;
+							noRelatedSymGroups![^1]._issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedIssuerLen is not null)
+						else if (noRelatedSymGroups![^1]._encodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._encodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedIssuer is not null)
+						else if (noRelatedSymGroups![^1]._encodedIssuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedIssuer = (FixField.Data)field;
+							noRelatedSymGroups![^1]._encodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SecurityDesc is not null)
+						else if (noRelatedSymGroups![^1]._securityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SecurityDesc = (FixField.Text)field;
+							noRelatedSymGroups![^1]._securityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedSecurityDescLen is not null)
+						else if (noRelatedSymGroups![^1]._encodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._encodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedSecurityDesc is not null)
+						else if (noRelatedSymGroups![^1]._encodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
+							noRelatedSymGroups![^1]._encodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.TradingSessionID:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].TradingSessionID is not null)
+						else if (noRelatedSymGroups![^1]._tradingSessionID is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].TradingSessionID = (FixField.Text)field;
+							noRelatedSymGroups![^1]._tradingSessionID = (FixField.Text)field;
 						break;
 
 					default:
@@ -4672,29 +5194,36 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX MDReqID, tag 262, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? MDReqID { get; internal set; }
+		public FixField.Text? MDReqID => _mDReqID;
+		internal FixField.Text? _mDReqID;
 
 		/// <summary>The FIX SubscriptionRequestType, tag 263, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? SubscriptionRequestType { get; internal set; }
+		public FixField.Character? SubscriptionRequestType => _subscriptionRequestType;
+		internal FixField.Character? _subscriptionRequestType;
 
 		/// <summary>The FIX MarketDepth, tag 264, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? MarketDepth { get; internal set; }
+		public FixField.Integer? MarketDepth => _marketDepth;
+		internal FixField.Integer? _marketDepth;
 
 		/// <summary>The FIX MDUpdateType, tag 265, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? MDUpdateType { get; internal set; }
+		public FixField.Integer? MDUpdateType => _mDUpdateType;
+		internal FixField.Integer? _mDUpdateType;
 
 		/// <summary>The FIX AggregatedBook, tag 266, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? AggregatedBook { get; internal set; }
+		public FixField.Boolean? AggregatedBook => _aggregatedBook;
+		internal FixField.Boolean? _aggregatedBook;
 
 		/// <summary>The FIX NoMDEntryTypes, tag 267, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoMDEntryTypes { get; internal set; }
+		public FixField.Integer? NoMDEntryTypes => _noMDEntryTypes;
+		internal FixField.Integer? _noMDEntryTypes;
 
 		/// <summary>The entries counted by NoMDEntryTypes, tag 267; null when the group is absent.</summary>
 		public List<FixMessage.MarketDataRequest.NoMDEntryTypesGroup>? NoMDEntryTypesGroups => noMDEntryTypesGroups;
 		internal List<NoMDEntryTypesGroup>? noMDEntryTypesGroups;
 
 		/// <summary>The FIX NoRelatedSym, tag 146, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoRelatedSym { get; internal set; }
+		public FixField.Integer? NoRelatedSym => _noRelatedSym;
+		internal FixField.Integer? _noRelatedSym;
 
 		/// <summary>The entries counted by NoRelatedSym, tag 146; null when the group is absent.</summary>
 		public List<FixMessage.MarketDataRequest.NoRelatedSymGroup>? NoRelatedSymGroups => noRelatedSymGroups;
@@ -4738,61 +5267,80 @@ public abstract partial class FixMessage
 			public FixField.Text Symbol { get; }
 
 			/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SymbolSfx { get; internal set; }
+			public FixField.Text? SymbolSfx => _symbolSfx;
+			internal FixField.Text? _symbolSfx;
 
 			/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityID { get; internal set; }
+			public FixField.Text? SecurityID => _securityID;
+			internal FixField.Text? _securityID;
 
 			/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? IDSource { get; internal set; }
+			public FixField.Text? IDSource => _iDSource;
+			internal FixField.Text? _iDSource;
 
 			/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityType { get; internal set; }
+			public FixField.Text? SecurityType => _securityType;
+			internal FixField.Text? _securityType;
 
 			/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-			public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+			public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+			internal FixField.MonthYear? _maturityMonthYear;
 
 			/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-			public FixField.Integer? MaturityDay { get; internal set; }
+			public FixField.Integer? MaturityDay => _maturityDay;
+			internal FixField.Integer? _maturityDay;
 
 			/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? PutOrCall { get; internal set; }
+			public FixField.Integer? PutOrCall => _putOrCall;
+			internal FixField.Integer? _putOrCall;
 
 			/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? StrikePrice { get; internal set; }
+			public FixField.Decimal? StrikePrice => _strikePrice;
+			internal FixField.Decimal? _strikePrice;
 
 			/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? OptAttribute { get; internal set; }
+			public FixField.Character? OptAttribute => _optAttribute;
+			internal FixField.Character? _optAttribute;
 
 			/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? ContractMultiplier { get; internal set; }
+			public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+			internal FixField.Decimal? _contractMultiplier;
 
 			/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? CouponRate { get; internal set; }
+			public FixField.Decimal? CouponRate => _couponRate;
+			internal FixField.Decimal? _couponRate;
 
 			/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityExchange { get; internal set; }
+			public FixField.Text? SecurityExchange => _securityExchange;
+			internal FixField.Text? _securityExchange;
 
 			/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Issuer { get; internal set; }
+			public FixField.Text? Issuer => _issuer;
+			internal FixField.Text? _issuer;
 
 			/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedIssuerLen { get; internal set; }
+			public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+			internal FixField.Integer? _encodedIssuerLen;
 
 			/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedIssuer { get; internal set; }
+			public FixField.Data? EncodedIssuer => _encodedIssuer;
+			internal FixField.Data? _encodedIssuer;
 
 			/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityDesc { get; internal set; }
+			public FixField.Text? SecurityDesc => _securityDesc;
+			internal FixField.Text? _securityDesc;
 
 			/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+			public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+			internal FixField.Integer? _encodedSecurityDescLen;
 
 			/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedSecurityDesc { get; internal set; }
+			public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+			internal FixField.Data? _encodedSecurityDesc;
 
 			/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? TradingSessionID { get; internal set; }
+			public FixField.Text? TradingSessionID => _tradingSessionID;
+			internal FixField.Text? _tradingSessionID;
 
 			FixField IFixEntry.Opener => Symbol;
 
@@ -4833,11 +5381,11 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.MDReqID: if (MDReqID is not null) Duplicate(field); MDReqID = (FixField.Text)field; break;
-					case FixTag.MDReqRejReason: if (MDReqRejReason is not null) Duplicate(field); MDReqRejReason = (FixField.Character)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.MDReqID: if (_mDReqID is not null) Duplicate(field); _mDReqID = (FixField.Text)field; break;
+					case FixTag.MDReqRejReason: if (_mDReqRejReason is not null) Duplicate(field); _mDReqRejReason = (FixField.Character)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -4849,19 +5397,24 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX MDReqID, tag 262, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? MDReqID { get; internal set; }
+		public FixField.Text? MDReqID => _mDReqID;
+		internal FixField.Text? _mDReqID;
 
 		/// <summary>The FIX MDReqRejReason, tag 281, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? MDReqRejReason { get; internal set; }
+		public FixField.Character? MDReqRejReason => _mDReqRejReason;
+		internal FixField.Character? _mDReqRejReason;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -4879,265 +5432,265 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.MDReqID: if (MDReqID is not null) Duplicate(field); MDReqID = (FixField.Text)field; break;
-					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.FinancialStatus: if (FinancialStatus is not null) Duplicate(field); FinancialStatus = (FixField.Character)field; break;
-					case FixTag.CorporateAction: if (CorporateAction is not null) Duplicate(field); CorporateAction = (FixField.Character)field; break;
-					case FixTag.TotalVolumeTraded: if (TotalVolumeTraded is not null) Duplicate(field); TotalVolumeTraded = (FixField.Decimal)field; break;
-					case FixTag.NoMDEntries: if (NoMDEntries is not null) Duplicate(field); NoMDEntries = (FixField.Integer)field; break;
+					case FixTag.MDReqID: if (_mDReqID is not null) Duplicate(field); _mDReqID = (FixField.Text)field; break;
+					case FixTag.Symbol: if (_symbol is not null) Duplicate(field); _symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (_symbolSfx is not null) Duplicate(field); _symbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (_securityID is not null) Duplicate(field); _securityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (_iDSource is not null) Duplicate(field); _iDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (_securityType is not null) Duplicate(field); _securityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (_maturityMonthYear is not null) Duplicate(field); _maturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (_maturityDay is not null) Duplicate(field); _maturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (_putOrCall is not null) Duplicate(field); _putOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (_strikePrice is not null) Duplicate(field); _strikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (_optAttribute is not null) Duplicate(field); _optAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (_contractMultiplier is not null) Duplicate(field); _contractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (_couponRate is not null) Duplicate(field); _couponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (_securityExchange is not null) Duplicate(field); _securityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (_issuer is not null) Duplicate(field); _issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (_encodedIssuerLen is not null) Duplicate(field); _encodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (_encodedIssuer is not null) Duplicate(field); _encodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (_securityDesc is not null) Duplicate(field); _securityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (_encodedSecurityDescLen is not null) Duplicate(field); _encodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (_encodedSecurityDesc is not null) Duplicate(field); _encodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.FinancialStatus: if (_financialStatus is not null) Duplicate(field); _financialStatus = (FixField.Character)field; break;
+					case FixTag.CorporateAction: if (_corporateAction is not null) Duplicate(field); _corporateAction = (FixField.Character)field; break;
+					case FixTag.TotalVolumeTraded: if (_totalVolumeTraded is not null) Duplicate(field); _totalVolumeTraded = (FixField.Decimal)field; break;
+					case FixTag.NoMDEntries: if (_noMDEntries is not null) Duplicate(field); _noMDEntries = (FixField.Integer)field; break;
 					case FixTag.MDEntryType:
-						if (noMDEntriesGroups is null && NoMDEntries is null) Uncounted(FixTag.NoMDEntries, field);
+						if (noMDEntriesGroups is null && _noMDEntries is null) Uncounted(FixTag.NoMDEntries, field);
 						(noMDEntriesGroups ??= []).Add(new ((FixField.Character)field));
 						break;
 					case FixTag.MDEntryPx:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntryPx is not null)
+						else if (noMDEntriesGroups![^1]._mDEntryPx is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntryPx = (FixField.Decimal)field;
+							noMDEntriesGroups![^1]._mDEntryPx = (FixField.Decimal)field;
 						break;
 					case FixTag.Currency:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].Currency is not null)
+						else if (noMDEntriesGroups![^1]._currency is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].Currency = (FixField.Text)field;
+							noMDEntriesGroups![^1]._currency = (FixField.Text)field;
 						break;
 					case FixTag.MDEntrySize:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntrySize is not null)
+						else if (noMDEntriesGroups![^1]._mDEntrySize is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntrySize = (FixField.Decimal)field;
+							noMDEntriesGroups![^1]._mDEntrySize = (FixField.Decimal)field;
 						break;
 					case FixTag.MDEntryDate:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntryDate is not null)
+						else if (noMDEntriesGroups![^1]._mDEntryDate is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntryDate = (FixField.Date)field;
+							noMDEntriesGroups![^1]._mDEntryDate = (FixField.Date)field;
 						break;
 					case FixTag.MDEntryTime:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntryTime is not null)
+						else if (noMDEntriesGroups![^1]._mDEntryTime is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntryTime = (FixField.Time)field;
+							noMDEntriesGroups![^1]._mDEntryTime = (FixField.Time)field;
 						break;
 					case FixTag.TickDirection:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].TickDirection is not null)
+						else if (noMDEntriesGroups![^1]._tickDirection is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].TickDirection = (FixField.Character)field;
+							noMDEntriesGroups![^1]._tickDirection = (FixField.Character)field;
 						break;
 					case FixTag.MDMkt:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDMkt is not null)
+						else if (noMDEntriesGroups![^1]._mDMkt is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDMkt = (FixField.Text)field;
+							noMDEntriesGroups![^1]._mDMkt = (FixField.Text)field;
 						break;
 					case FixTag.TradingSessionID:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].TradingSessionID is not null)
+						else if (noMDEntriesGroups![^1]._tradingSessionID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].TradingSessionID = (FixField.Text)field;
+							noMDEntriesGroups![^1]._tradingSessionID = (FixField.Text)field;
 						break;
 					case FixTag.QuoteCondition:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].QuoteCondition is not null)
+						else if (noMDEntriesGroups![^1]._quoteCondition is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].QuoteCondition = (FixField.Multiple)field;
+							noMDEntriesGroups![^1]._quoteCondition = (FixField.Multiple)field;
 						break;
 					case FixTag.TradeCondition:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].TradeCondition is not null)
+						else if (noMDEntriesGroups![^1]._tradeCondition is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].TradeCondition = (FixField.Multiple)field;
+							noMDEntriesGroups![^1]._tradeCondition = (FixField.Multiple)field;
 						break;
 					case FixTag.MDEntryOriginator:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntryOriginator is not null)
+						else if (noMDEntriesGroups![^1]._mDEntryOriginator is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntryOriginator = (FixField.Text)field;
+							noMDEntriesGroups![^1]._mDEntryOriginator = (FixField.Text)field;
 						break;
 					case FixTag.LocationID:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].LocationID is not null)
+						else if (noMDEntriesGroups![^1]._locationID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].LocationID = (FixField.Text)field;
+							noMDEntriesGroups![^1]._locationID = (FixField.Text)field;
 						break;
 					case FixTag.DeskID:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].DeskID is not null)
+						else if (noMDEntriesGroups![^1]._deskID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].DeskID = (FixField.Text)field;
+							noMDEntriesGroups![^1]._deskID = (FixField.Text)field;
 						break;
 					case FixTag.OpenCloseSettlFlag:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].OpenCloseSettleFlag is not null)
+						else if (noMDEntriesGroups![^1]._openCloseSettleFlag is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].OpenCloseSettleFlag = (FixField.Character)field;
+							noMDEntriesGroups![^1]._openCloseSettleFlag = (FixField.Character)field;
 						break;
 					case FixTag.TimeInForce:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].TimeInForce is not null)
+						else if (noMDEntriesGroups![^1]._timeInForce is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].TimeInForce = (FixField.Character)field;
+							noMDEntriesGroups![^1]._timeInForce = (FixField.Character)field;
 						break;
 					case FixTag.ExpireDate:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].ExpireDate is not null)
+						else if (noMDEntriesGroups![^1]._expireDate is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].ExpireDate = (FixField.Date)field;
+							noMDEntriesGroups![^1]._expireDate = (FixField.Date)field;
 						break;
 					case FixTag.ExpireTime:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].ExpireTime is not null)
+						else if (noMDEntriesGroups![^1]._expireTime is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].ExpireTime = (FixField.Timestamp)field;
+							noMDEntriesGroups![^1]._expireTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.MinQty:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MinQty is not null)
+						else if (noMDEntriesGroups![^1]._minQty is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MinQty = (FixField.Decimal)field;
+							noMDEntriesGroups![^1]._minQty = (FixField.Decimal)field;
 						break;
 					case FixTag.ExecInst:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].ExecInst is not null)
+						else if (noMDEntriesGroups![^1]._execInst is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].ExecInst = (FixField.Multiple)field;
+							noMDEntriesGroups![^1]._execInst = (FixField.Multiple)field;
 						break;
 					case FixTag.SellerDays:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].SellerDays is not null)
+						else if (noMDEntriesGroups![^1]._sellerDays is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].SellerDays = (FixField.Integer)field;
+							noMDEntriesGroups![^1]._sellerDays = (FixField.Integer)field;
 						break;
 					case FixTag.OrderID:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].OrderID is not null)
+						else if (noMDEntriesGroups![^1]._orderID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].OrderID = (FixField.Text)field;
+							noMDEntriesGroups![^1]._orderID = (FixField.Text)field;
 						break;
 					case FixTag.QuoteEntryID:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].QuoteEntryID is not null)
+						else if (noMDEntriesGroups![^1]._quoteEntryID is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].QuoteEntryID = (FixField.Text)field;
+							noMDEntriesGroups![^1]._quoteEntryID = (FixField.Text)field;
 						break;
 					case FixTag.MDEntryBuyer:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntryBuyer is not null)
+						else if (noMDEntriesGroups![^1]._mDEntryBuyer is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntryBuyer = (FixField.Text)field;
+							noMDEntriesGroups![^1]._mDEntryBuyer = (FixField.Text)field;
 						break;
 					case FixTag.MDEntrySeller:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntrySeller is not null)
+						else if (noMDEntriesGroups![^1]._mDEntrySeller is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntrySeller = (FixField.Text)field;
+							noMDEntriesGroups![^1]._mDEntrySeller = (FixField.Text)field;
 						break;
 					case FixTag.NumberOfOrders:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].NumberOfOrders is not null)
+						else if (noMDEntriesGroups![^1]._numberOfOrders is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].NumberOfOrders = (FixField.Integer)field;
+							noMDEntriesGroups![^1]._numberOfOrders = (FixField.Integer)field;
 						break;
 					case FixTag.MDEntryPositionNo:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].MDEntryPositionNo is not null)
+						else if (noMDEntriesGroups![^1]._mDEntryPositionNo is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].MDEntryPositionNo = (FixField.Integer)field;
+							noMDEntriesGroups![^1]._mDEntryPositionNo = (FixField.Integer)field;
 						break;
 					case FixTag.Text:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].Text is not null)
+						else if (noMDEntriesGroups![^1]._text is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].Text = (FixField.Text)field;
+							noMDEntriesGroups![^1]._text = (FixField.Text)field;
 						break;
 					case FixTag.EncodedTextLen:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].EncodedTextLen is not null)
+						else if (noMDEntriesGroups![^1]._encodedTextLen is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].EncodedTextLen = (FixField.Integer)field;
+							noMDEntriesGroups![^1]._encodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
 						if (None(noMDEntriesGroups))
 							Unentered(field);
-						else if (noMDEntriesGroups![^1].EncodedText is not null)
+						else if (noMDEntriesGroups![^1]._encodedText is not null)
 							Duplicate(field, FixTag.NoMDEntries, noMDEntriesGroups!.Count - 1);
 						else
-							noMDEntriesGroups![^1].EncodedText = (FixField.Data)field;
+							noMDEntriesGroups![^1]._encodedText = (FixField.Data)field;
 						break;
 
 					default:
@@ -5150,76 +5703,100 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX MDReqID, tag 262, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? MDReqID { get; internal set; }
+		public FixField.Text? MDReqID => _mDReqID;
+		internal FixField.Text? _mDReqID;
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Symbol { get; internal set; }
+		public FixField.Text? Symbol => _symbol;
+		internal FixField.Text? _symbol;
 
 		/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SymbolSfx { get; internal set; }
+		public FixField.Text? SymbolSfx => _symbolSfx;
+		internal FixField.Text? _symbolSfx;
 
 		/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityID { get; internal set; }
+		public FixField.Text? SecurityID => _securityID;
+		internal FixField.Text? _securityID;
 
 		/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IDSource { get; internal set; }
+		public FixField.Text? IDSource => _iDSource;
+		internal FixField.Text? _iDSource;
 
 		/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityType { get; internal set; }
+		public FixField.Text? SecurityType => _securityType;
+		internal FixField.Text? _securityType;
 
 		/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-		public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+		public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+		internal FixField.MonthYear? _maturityMonthYear;
 
 		/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-		public FixField.Integer? MaturityDay { get; internal set; }
+		public FixField.Integer? MaturityDay => _maturityDay;
+		internal FixField.Integer? _maturityDay;
 
 		/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? PutOrCall { get; internal set; }
+		public FixField.Integer? PutOrCall => _putOrCall;
+		internal FixField.Integer? _putOrCall;
 
 		/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StrikePrice { get; internal set; }
+		public FixField.Decimal? StrikePrice => _strikePrice;
+		internal FixField.Decimal? _strikePrice;
 
 		/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OptAttribute { get; internal set; }
+		public FixField.Character? OptAttribute => _optAttribute;
+		internal FixField.Character? _optAttribute;
 
 		/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? ContractMultiplier { get; internal set; }
+		public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+		internal FixField.Decimal? _contractMultiplier;
 
 		/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CouponRate { get; internal set; }
+		public FixField.Decimal? CouponRate => _couponRate;
+		internal FixField.Decimal? _couponRate;
 
 		/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityExchange { get; internal set; }
+		public FixField.Text? SecurityExchange => _securityExchange;
+		internal FixField.Text? _securityExchange;
 
 		/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Issuer { get; internal set; }
+		public FixField.Text? Issuer => _issuer;
+		internal FixField.Text? _issuer;
 
 		/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedIssuerLen { get; internal set; }
+		public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+		internal FixField.Integer? _encodedIssuerLen;
 
 		/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedIssuer { get; internal set; }
+		public FixField.Data? EncodedIssuer => _encodedIssuer;
+		internal FixField.Data? _encodedIssuer;
 
 		/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityDesc { get; internal set; }
+		public FixField.Text? SecurityDesc => _securityDesc;
+		internal FixField.Text? _securityDesc;
 
 		/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+		public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+		internal FixField.Integer? _encodedSecurityDescLen;
 
 		/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedSecurityDesc { get; internal set; }
+		public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+		internal FixField.Data? _encodedSecurityDesc;
 
 		/// <summary>The FIX FinancialStatus, tag 291, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? FinancialStatus { get; internal set; }
+		public FixField.Character? FinancialStatus => _financialStatus;
+		internal FixField.Character? _financialStatus;
 
 		/// <summary>The FIX CorporateAction, tag 292, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? CorporateAction { get; internal set; }
+		public FixField.Character? CorporateAction => _corporateAction;
+		internal FixField.Character? _corporateAction;
 
 		/// <summary>The FIX TotalVolumeTraded, tag 387, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? TotalVolumeTraded { get; internal set; }
+		public FixField.Decimal? TotalVolumeTraded => _totalVolumeTraded;
+		internal FixField.Decimal? _totalVolumeTraded;
 
 		/// <summary>The FIX NoMDEntries, tag 268, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoMDEntries { get; internal set; }
+		public FixField.Integer? NoMDEntries => _noMDEntries;
+		internal FixField.Integer? _noMDEntries;
 
 		/// <summary>The entries counted by NoMDEntries, tag 268; null when the group is absent.</summary>
 		public List<FixMessage.MarketDataSnapshotFullRefresh.NoMDEntriesGroup>? NoMDEntriesGroups => noMDEntriesGroups;
@@ -5237,91 +5814,120 @@ public abstract partial class FixMessage
 			public FixField.Character MDEntryType { get; }
 
 			/// <summary>The FIX MDEntryPx, tag 270, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? MDEntryPx { get; internal set; }
+			public FixField.Decimal? MDEntryPx => _mDEntryPx;
+			internal FixField.Decimal? _mDEntryPx;
 
 			/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
-			public FixField.Text? Currency { get; internal set; }
+			public FixField.Text? Currency => _currency;
+			internal FixField.Text? _currency;
 
 			/// <summary>The FIX MDEntrySize, tag 271, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? MDEntrySize { get; internal set; }
+			public FixField.Decimal? MDEntrySize => _mDEntrySize;
+			internal FixField.Decimal? _mDEntrySize;
 
 			/// <summary>The FIX MDEntryDate, tag 272, wire type <c>UTCDate</c>; null when the field is absent.</summary>
-			public FixField.Date? MDEntryDate { get; internal set; }
+			public FixField.Date? MDEntryDate => _mDEntryDate;
+			internal FixField.Date? _mDEntryDate;
 
 			/// <summary>The FIX MDEntryTime, tag 273, wire type <c>UTCTimeOnly</c>; null when the field is absent.</summary>
-			public FixField.Time? MDEntryTime { get; internal set; }
+			public FixField.Time? MDEntryTime => _mDEntryTime;
+			internal FixField.Time? _mDEntryTime;
 
 			/// <summary>The FIX TickDirection, tag 274, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? TickDirection { get; internal set; }
+			public FixField.Character? TickDirection => _tickDirection;
+			internal FixField.Character? _tickDirection;
 
 			/// <summary>The FIX MDMkt, tag 275, wire type <c>Exchange</c>; null when the field is absent.</summary>
-			public FixField.Text? MDMkt { get; internal set; }
+			public FixField.Text? MDMkt => _mDMkt;
+			internal FixField.Text? _mDMkt;
 
 			/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? TradingSessionID { get; internal set; }
+			public FixField.Text? TradingSessionID => _tradingSessionID;
+			internal FixField.Text? _tradingSessionID;
 
 			/// <summary>The FIX QuoteCondition, tag 276, wire type <c>MultipleValueString</c>; null when the field is absent.</summary>
-			public FixField.Multiple? QuoteCondition { get; internal set; }
+			public FixField.Multiple? QuoteCondition => _quoteCondition;
+			internal FixField.Multiple? _quoteCondition;
 
 			/// <summary>The FIX TradeCondition, tag 277, wire type <c>MultipleValueString</c>; null when the field is absent.</summary>
-			public FixField.Multiple? TradeCondition { get; internal set; }
+			public FixField.Multiple? TradeCondition => _tradeCondition;
+			internal FixField.Multiple? _tradeCondition;
 
 			/// <summary>The FIX MDEntryOriginator, tag 282, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? MDEntryOriginator { get; internal set; }
+			public FixField.Text? MDEntryOriginator => _mDEntryOriginator;
+			internal FixField.Text? _mDEntryOriginator;
 
 			/// <summary>The FIX LocationID, tag 283, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? LocationID { get; internal set; }
+			public FixField.Text? LocationID => _locationID;
+			internal FixField.Text? _locationID;
 
 			/// <summary>The FIX DeskID, tag 284, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? DeskID { get; internal set; }
+			public FixField.Text? DeskID => _deskID;
+			internal FixField.Text? _deskID;
 
 			/// <summary>The FIX OpenCloseSettleFlag, tag 286, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? OpenCloseSettleFlag { get; internal set; }
+			public FixField.Character? OpenCloseSettleFlag => _openCloseSettleFlag;
+			internal FixField.Character? _openCloseSettleFlag;
 
 			/// <summary>The FIX TimeInForce, tag 59, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? TimeInForce { get; internal set; }
+			public FixField.Character? TimeInForce => _timeInForce;
+			internal FixField.Character? _timeInForce;
 
 			/// <summary>The FIX ExpireDate, tag 432, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-			public FixField.Date? ExpireDate { get; internal set; }
+			public FixField.Date? ExpireDate => _expireDate;
+			internal FixField.Date? _expireDate;
 
 			/// <summary>The FIX ExpireTime, tag 126, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-			public FixField.Timestamp? ExpireTime { get; internal set; }
+			public FixField.Timestamp? ExpireTime => _expireTime;
+			internal FixField.Timestamp? _expireTime;
 
 			/// <summary>The FIX MinQty, tag 110, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? MinQty { get; internal set; }
+			public FixField.Decimal? MinQty => _minQty;
+			internal FixField.Decimal? _minQty;
 
 			/// <summary>The FIX ExecInst, tag 18, wire type <c>MultipleValueString</c>; null when the field is absent.</summary>
-			public FixField.Multiple? ExecInst { get; internal set; }
+			public FixField.Multiple? ExecInst => _execInst;
+			internal FixField.Multiple? _execInst;
 
 			/// <summary>The FIX SellerDays, tag 287, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? SellerDays { get; internal set; }
+			public FixField.Integer? SellerDays => _sellerDays;
+			internal FixField.Integer? _sellerDays;
 
 			/// <summary>The FIX OrderID, tag 37, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? OrderID { get; internal set; }
+			public FixField.Text? OrderID => _orderID;
+			internal FixField.Text? _orderID;
 
 			/// <summary>The FIX QuoteEntryID, tag 299, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? QuoteEntryID { get; internal set; }
+			public FixField.Text? QuoteEntryID => _quoteEntryID;
+			internal FixField.Text? _quoteEntryID;
 
 			/// <summary>The FIX MDEntryBuyer, tag 288, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? MDEntryBuyer { get; internal set; }
+			public FixField.Text? MDEntryBuyer => _mDEntryBuyer;
+			internal FixField.Text? _mDEntryBuyer;
 
 			/// <summary>The FIX MDEntrySeller, tag 289, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? MDEntrySeller { get; internal set; }
+			public FixField.Text? MDEntrySeller => _mDEntrySeller;
+			internal FixField.Text? _mDEntrySeller;
 
 			/// <summary>The FIX NumberOfOrders, tag 346, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? NumberOfOrders { get; internal set; }
+			public FixField.Integer? NumberOfOrders => _numberOfOrders;
+			internal FixField.Integer? _numberOfOrders;
 
 			/// <summary>The FIX MDEntryPositionNo, tag 290, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? MDEntryPositionNo { get; internal set; }
+			public FixField.Integer? MDEntryPositionNo => _mDEntryPositionNo;
+			internal FixField.Integer? _mDEntryPositionNo;
 
 			/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Text { get; internal set; }
+			public FixField.Text? Text => _text;
+			internal FixField.Text? _text;
 
 			/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedTextLen { get; internal set; }
+			public FixField.Integer? EncodedTextLen => _encodedTextLen;
+			internal FixField.Integer? _encodedTextLen;
 
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedText { get; internal set; }
+			public FixField.Data? EncodedText => _encodedText;
+			internal FixField.Data? _encodedText;
 
 			FixField IFixEntry.Opener => MDEntryType;
 
@@ -5361,198 +5967,198 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.QuoteReqID: if (QuoteReqID is not null) Duplicate(field); QuoteReqID = (FixField.Text)field; break;
-					case FixTag.QuoteID: if (QuoteID is not null) Duplicate(field); QuoteID = (FixField.Text)field; break;
-					case FixTag.QuoteResponseLevel: if (QuoteResponseLevel is not null) Duplicate(field); QuoteResponseLevel = (FixField.Integer)field; break;
-					case FixTag.DefBidSize: if (DefBidSize is not null) Duplicate(field); DefBidSize = (FixField.Decimal)field; break;
-					case FixTag.DefOfferSize: if (DefOfferSize is not null) Duplicate(field); DefOfferSize = (FixField.Decimal)field; break;
-					case FixTag.NoQuoteSets: if (NoQuoteSets is not null) Duplicate(field); NoQuoteSets = (FixField.Integer)field; break;
+					case FixTag.QuoteReqID: if (_quoteReqID is not null) Duplicate(field); _quoteReqID = (FixField.Text)field; break;
+					case FixTag.QuoteID: if (_quoteID is not null) Duplicate(field); _quoteID = (FixField.Text)field; break;
+					case FixTag.QuoteResponseLevel: if (_quoteResponseLevel is not null) Duplicate(field); _quoteResponseLevel = (FixField.Integer)field; break;
+					case FixTag.DefBidSize: if (_defBidSize is not null) Duplicate(field); _defBidSize = (FixField.Decimal)field; break;
+					case FixTag.DefOfferSize: if (_defOfferSize is not null) Duplicate(field); _defOfferSize = (FixField.Decimal)field; break;
+					case FixTag.NoQuoteSets: if (_noQuoteSets is not null) Duplicate(field); _noQuoteSets = (FixField.Integer)field; break;
 					case FixTag.QuoteSetID:
-						if (noQuoteSetsGroups is null && NoQuoteSets is null) Uncounted(FixTag.NoQuoteSets, field);
+						if (noQuoteSetsGroups is null && _noQuoteSets is null) Uncounted(FixTag.NoQuoteSets, field);
 						(noQuoteSetsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.UnderlyingSymbol:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingSymbol is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingSymbol is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingSymbol = (FixField.Text)field;
+							noQuoteSetsGroups![^1]._underlyingSymbol = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingSymbolSfx is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingSymbolSfx is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingSymbolSfx = (FixField.Text)field;
+							noQuoteSetsGroups![^1]._underlyingSymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityID:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingSecurityID is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingSecurityID is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingSecurityID = (FixField.Text)field;
+							noQuoteSetsGroups![^1]._underlyingSecurityID = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityIDSource:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingIDSource is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingIDSource is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingIDSource = (FixField.Text)field;
+							noQuoteSetsGroups![^1]._underlyingIDSource = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityType:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingSecurityType is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingSecurityType is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingSecurityType = (FixField.Text)field;
+							noQuoteSetsGroups![^1]._underlyingSecurityType = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingMaturityMonthYear:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingMaturityMonthYear is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingMaturityMonthYear is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingMaturityMonthYear = (FixField.MonthYear)field;
+							noQuoteSetsGroups![^1]._underlyingMaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.UnderlyingMaturityDay:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingMaturityDay is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingMaturityDay is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingMaturityDay = (FixField.Integer)field;
+							noQuoteSetsGroups![^1]._underlyingMaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingPutOrCall:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingPutOrCall is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingPutOrCall is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingPutOrCall = (FixField.Integer)field;
+							noQuoteSetsGroups![^1]._underlyingPutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingStrikePrice:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingStrikePrice is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingStrikePrice is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingStrikePrice = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1]._underlyingStrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingOptAttribute:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingOptAttribute is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingOptAttribute is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingOptAttribute = (FixField.Character)field;
+							noQuoteSetsGroups![^1]._underlyingOptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.UnderlyingContractMultiplier:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingContractMultiplier is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingContractMultiplier is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingContractMultiplier = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1]._underlyingContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingCouponRate:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingCouponRate is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingCouponRate is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingCouponRate = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1]._underlyingCouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingSecurityExchange:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingSecurityExchange is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingSecurityExchange is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingSecurityExchange = (FixField.Text)field;
+							noQuoteSetsGroups![^1]._underlyingSecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingIssuer:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingIssuer is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingIssuer is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingIssuer = (FixField.Text)field;
+							noQuoteSetsGroups![^1]._underlyingIssuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuerLen:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].EncodedUnderlyingIssuerLen is not null)
+						else if (noQuoteSetsGroups![^1]._encodedUnderlyingIssuerLen is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].EncodedUnderlyingIssuerLen = (FixField.Integer)field;
+							noQuoteSetsGroups![^1]._encodedUnderlyingIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuer:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].EncodedUnderlyingIssuer is not null)
+						else if (noQuoteSetsGroups![^1]._encodedUnderlyingIssuer is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].EncodedUnderlyingIssuer = (FixField.Data)field;
+							noQuoteSetsGroups![^1]._encodedUnderlyingIssuer = (FixField.Data)field;
 						break;
 					case FixTag.UnderlyingSecurityDesc:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingSecurityDesc is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingSecurityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingSecurityDesc = (FixField.Text)field;
+							noQuoteSetsGroups![^1]._underlyingSecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDescLen:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDescLen is not null)
+						else if (noQuoteSetsGroups![^1]._encodedUnderlyingSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDescLen = (FixField.Integer)field;
+							noQuoteSetsGroups![^1]._encodedUnderlyingSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDesc:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDesc is not null)
+						else if (noQuoteSetsGroups![^1]._encodedUnderlyingSecurityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDesc = (FixField.Data)field;
+							noQuoteSetsGroups![^1]._encodedUnderlyingSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.QuoteSetValidUntilTime:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].QuoteSetValidUntilTime is not null)
+						else if (noQuoteSetsGroups![^1]._quoteSetValidUntilTime is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].QuoteSetValidUntilTime = (FixField.Timestamp)field;
+							noQuoteSetsGroups![^1]._quoteSetValidUntilTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.TotNoQuoteEntries:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].TotQuoteEntries is not null)
+						else if (noQuoteSetsGroups![^1]._totQuoteEntries is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].TotQuoteEntries = (FixField.Integer)field;
+							noQuoteSetsGroups![^1]._totQuoteEntries = (FixField.Integer)field;
 						break;
 					case FixTag.NoQuoteEntries:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].NoQuoteEntries is not null)
+						else if (noQuoteSetsGroups![^1]._noQuoteEntries is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].NoQuoteEntries = (FixField.Integer)field;
+							noQuoteSetsGroups![^1]._noQuoteEntries = (FixField.Integer)field;
 						break;
 					case FixTag.QuoteEntryID:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else
 						{
-							if (noQuoteSetsGroups![^1].noQuoteEntriesGroups is null && noQuoteSetsGroups![^1].NoQuoteEntries is null) Uncounted(FixTag.NoQuoteEntries, field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
+							if (noQuoteSetsGroups![^1].noQuoteEntriesGroups is null && noQuoteSetsGroups![^1]._noQuoteEntries is null) Uncounted(FixTag.NoQuoteEntries, field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 							(noQuoteSetsGroups![^1].noQuoteEntriesGroups ??= []).Add(new ((FixField.Text)field));
 						}
 						break;
@@ -5561,350 +6167,350 @@ public abstract partial class FixMessage
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Symbol is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._symbol is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Symbol = (FixField.Text)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._symbol = (FixField.Text)field;
 						break;
 					case FixTag.SymbolSfx:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SymbolSfx is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._symbolSfx is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SymbolSfx = (FixField.Text)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._symbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityID is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._securityID is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityID = (FixField.Text)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._securityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].IDSource is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._iDSource is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].IDSource = (FixField.Text)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._iDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityType is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._securityType is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityType = (FixField.Text)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._securityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityMonthYear is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._maturityMonthYear is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._maturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityDay is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._maturityDay is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityDay = (FixField.Integer)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._maturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].PutOrCall is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._putOrCall is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].PutOrCall = (FixField.Integer)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._putOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].StrikePrice is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._strikePrice is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].StrikePrice = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._strikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OptAttribute is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._optAttribute is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OptAttribute = (FixField.Character)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._optAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].ContractMultiplier is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._contractMultiplier is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].ContractMultiplier = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._contractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].CouponRate is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._couponRate is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].CouponRate = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._couponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityExchange is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._securityExchange is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityExchange = (FixField.Text)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._securityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Issuer is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._issuer is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Issuer = (FixField.Text)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuerLen is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._encodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._encodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuer is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._encodedIssuer is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuer = (FixField.Data)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._encodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityDesc is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._securityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityDesc = (FixField.Text)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._securityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDescLen is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._encodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._encodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDesc is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._encodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._encodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.BidPx:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidPx is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._bidPx is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidPx = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._bidPx = (FixField.Decimal)field;
 						break;
 					case FixTag.OfferPx:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferPx is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._offerPx is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferPx = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._offerPx = (FixField.Decimal)field;
 						break;
 					case FixTag.BidSize:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidSize is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._bidSize is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidSize = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._bidSize = (FixField.Decimal)field;
 						break;
 					case FixTag.OfferSize:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferSize is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._offerSize is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferSize = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._offerSize = (FixField.Decimal)field;
 						break;
 					case FixTag.ValidUntilTime:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].ValidUntilTime is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._validUntilTime is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].ValidUntilTime = (FixField.Timestamp)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._validUntilTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.BidSpotRate:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidSpotRate is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._bidSpotRate is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidSpotRate = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._bidSpotRate = (FixField.Decimal)field;
 						break;
 					case FixTag.OfferSpotRate:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferSpotRate is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._offerSpotRate is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferSpotRate = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._offerSpotRate = (FixField.Decimal)field;
 						break;
 					case FixTag.BidForwardPoints:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidForwardPoints is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._bidForwardPoints is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].BidForwardPoints = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._bidForwardPoints = (FixField.Decimal)field;
 						break;
 					case FixTag.OfferForwardPoints:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferForwardPoints is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._offerForwardPoints is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OfferForwardPoints = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._offerForwardPoints = (FixField.Decimal)field;
 						break;
 					case FixTag.TransactTime:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].TransactTime is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._transactTime is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].TransactTime = (FixField.Timestamp)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._transactTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.TradingSessionID:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].TradingSessionID is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._tradingSessionID is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].TradingSessionID = (FixField.Text)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._tradingSessionID = (FixField.Text)field;
 						break;
 					case FixTag.SettlDate:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].FutSettDate is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._futSettDate is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].FutSettDate = (FixField.Date)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._futSettDate = (FixField.Date)field;
 						break;
 					case FixTag.OrdType:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OrdType is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._ordType is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OrdType = (FixField.Character)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._ordType = (FixField.Character)field;
 						break;
 					case FixTag.SettlDate2:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].FutSettDate2 is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._futSettDate2 is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].FutSettDate2 = (FixField.Date)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._futSettDate2 = (FixField.Date)field;
 						break;
 					case FixTag.OrderQty2:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OrderQty2 is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._orderQty2 is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OrderQty2 = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._orderQty2 = (FixField.Decimal)field;
 						break;
 					case FixTag.Currency:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Currency is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._currency is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Currency = (FixField.Text)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._currency = (FixField.Text)field;
 						break;
 
 					default:
@@ -5917,22 +6523,28 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX QuoteReqID, tag 131, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? QuoteReqID { get; internal set; }
+		public FixField.Text? QuoteReqID => _quoteReqID;
+		internal FixField.Text? _quoteReqID;
 
 		/// <summary>The FIX QuoteID, tag 117, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? QuoteID { get; internal set; }
+		public FixField.Text? QuoteID => _quoteID;
+		internal FixField.Text? _quoteID;
 
 		/// <summary>The FIX QuoteResponseLevel, tag 301, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? QuoteResponseLevel { get; internal set; }
+		public FixField.Integer? QuoteResponseLevel => _quoteResponseLevel;
+		internal FixField.Integer? _quoteResponseLevel;
 
 		/// <summary>The FIX DefBidSize, tag 293, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? DefBidSize { get; internal set; }
+		public FixField.Decimal? DefBidSize => _defBidSize;
+		internal FixField.Decimal? _defBidSize;
 
 		/// <summary>The FIX DefOfferSize, tag 294, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? DefOfferSize { get; internal set; }
+		public FixField.Decimal? DefOfferSize => _defOfferSize;
+		internal FixField.Decimal? _defOfferSize;
 
 		/// <summary>The FIX NoQuoteSets, tag 296, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoQuoteSets { get; internal set; }
+		public FixField.Integer? NoQuoteSets => _noQuoteSets;
+		internal FixField.Integer? _noQuoteSets;
 
 		/// <summary>The entries counted by NoQuoteSets, tag 296; null when the group is absent.</summary>
 		public List<FixMessage.MassQuote.NoQuoteSetsGroup>? NoQuoteSetsGroups => noQuoteSetsGroups;
@@ -5950,70 +6562,92 @@ public abstract partial class FixMessage
 			public FixField.Text QuoteSetID { get; }
 
 			/// <summary>The FIX UnderlyingSymbol, tag 311, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSymbol { get; internal set; }
+			public FixField.Text? UnderlyingSymbol => _underlyingSymbol;
+			internal FixField.Text? _underlyingSymbol;
 
 			/// <summary>The FIX UnderlyingSymbolSfx, tag 312, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSymbolSfx { get; internal set; }
+			public FixField.Text? UnderlyingSymbolSfx => _underlyingSymbolSfx;
+			internal FixField.Text? _underlyingSymbolSfx;
 
 			/// <summary>The FIX UnderlyingSecurityID, tag 309, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSecurityID { get; internal set; }
+			public FixField.Text? UnderlyingSecurityID => _underlyingSecurityID;
+			internal FixField.Text? _underlyingSecurityID;
 
 			/// <summary>The FIX UnderlyingIDSource, tag 305, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingIDSource { get; internal set; }
+			public FixField.Text? UnderlyingIDSource => _underlyingIDSource;
+			internal FixField.Text? _underlyingIDSource;
 
 			/// <summary>The FIX UnderlyingSecurityType, tag 310, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSecurityType { get; internal set; }
+			public FixField.Text? UnderlyingSecurityType => _underlyingSecurityType;
+			internal FixField.Text? _underlyingSecurityType;
 
 			/// <summary>The FIX UnderlyingMaturityMonthYear, tag 313, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-			public FixField.MonthYear? UnderlyingMaturityMonthYear { get; internal set; }
+			public FixField.MonthYear? UnderlyingMaturityMonthYear => _underlyingMaturityMonthYear;
+			internal FixField.MonthYear? _underlyingMaturityMonthYear;
 
 			/// <summary>The FIX UnderlyingMaturityDay, tag 314, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-			public FixField.Integer? UnderlyingMaturityDay { get; internal set; }
+			public FixField.Integer? UnderlyingMaturityDay => _underlyingMaturityDay;
+			internal FixField.Integer? _underlyingMaturityDay;
 
 			/// <summary>The FIX UnderlyingPutOrCall, tag 315, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? UnderlyingPutOrCall { get; internal set; }
+			public FixField.Integer? UnderlyingPutOrCall => _underlyingPutOrCall;
+			internal FixField.Integer? _underlyingPutOrCall;
 
 			/// <summary>The FIX UnderlyingStrikePrice, tag 316, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? UnderlyingStrikePrice { get; internal set; }
+			public FixField.Decimal? UnderlyingStrikePrice => _underlyingStrikePrice;
+			internal FixField.Decimal? _underlyingStrikePrice;
 
 			/// <summary>The FIX UnderlyingOptAttribute, tag 317, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? UnderlyingOptAttribute { get; internal set; }
+			public FixField.Character? UnderlyingOptAttribute => _underlyingOptAttribute;
+			internal FixField.Character? _underlyingOptAttribute;
 
 			/// <summary>The FIX UnderlyingContractMultiplier, tag 436, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? UnderlyingContractMultiplier { get; internal set; }
+			public FixField.Decimal? UnderlyingContractMultiplier => _underlyingContractMultiplier;
+			internal FixField.Decimal? _underlyingContractMultiplier;
 
 			/// <summary>The FIX UnderlyingCouponRate, tag 435, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? UnderlyingCouponRate { get; internal set; }
+			public FixField.Decimal? UnderlyingCouponRate => _underlyingCouponRate;
+			internal FixField.Decimal? _underlyingCouponRate;
 
 			/// <summary>The FIX UnderlyingSecurityExchange, tag 308, wire type <c>Exchange</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSecurityExchange { get; internal set; }
+			public FixField.Text? UnderlyingSecurityExchange => _underlyingSecurityExchange;
+			internal FixField.Text? _underlyingSecurityExchange;
 
 			/// <summary>The FIX UnderlyingIssuer, tag 306, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingIssuer { get; internal set; }
+			public FixField.Text? UnderlyingIssuer => _underlyingIssuer;
+			internal FixField.Text? _underlyingIssuer;
 
 			/// <summary>The FIX EncodedUnderlyingIssuerLen, tag 362, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedUnderlyingIssuerLen { get; internal set; }
+			public FixField.Integer? EncodedUnderlyingIssuerLen => _encodedUnderlyingIssuerLen;
+			internal FixField.Integer? _encodedUnderlyingIssuerLen;
 
 			/// <summary>The FIX EncodedUnderlyingIssuer, tag 363, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedUnderlyingIssuer { get; internal set; }
+			public FixField.Data? EncodedUnderlyingIssuer => _encodedUnderlyingIssuer;
+			internal FixField.Data? _encodedUnderlyingIssuer;
 
 			/// <summary>The FIX UnderlyingSecurityDesc, tag 307, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSecurityDesc { get; internal set; }
+			public FixField.Text? UnderlyingSecurityDesc => _underlyingSecurityDesc;
+			internal FixField.Text? _underlyingSecurityDesc;
 
 			/// <summary>The FIX EncodedUnderlyingSecurityDescLen, tag 364, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedUnderlyingSecurityDescLen { get; internal set; }
+			public FixField.Integer? EncodedUnderlyingSecurityDescLen => _encodedUnderlyingSecurityDescLen;
+			internal FixField.Integer? _encodedUnderlyingSecurityDescLen;
 
 			/// <summary>The FIX EncodedUnderlyingSecurityDesc, tag 365, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedUnderlyingSecurityDesc { get; internal set; }
+			public FixField.Data? EncodedUnderlyingSecurityDesc => _encodedUnderlyingSecurityDesc;
+			internal FixField.Data? _encodedUnderlyingSecurityDesc;
 
 			/// <summary>The FIX QuoteSetValidUntilTime, tag 367, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-			public FixField.Timestamp? QuoteSetValidUntilTime { get; internal set; }
+			public FixField.Timestamp? QuoteSetValidUntilTime => _quoteSetValidUntilTime;
+			internal FixField.Timestamp? _quoteSetValidUntilTime;
 
 			/// <summary>The FIX TotQuoteEntries, tag 304, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? TotQuoteEntries { get; internal set; }
+			public FixField.Integer? TotQuoteEntries => _totQuoteEntries;
+			internal FixField.Integer? _totQuoteEntries;
 
 			/// <summary>The FIX NoQuoteEntries, tag 295, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? NoQuoteEntries { get; internal set; }
+			public FixField.Integer? NoQuoteEntries => _noQuoteEntries;
+			internal FixField.Integer? _noQuoteEntries;
 
 			/// <summary>The entries counted by NoQuoteEntries, tag 295; null when the group is absent.</summary>
 			public List<FixMessage.MassQuote.NoQuoteSetsGroup.NoQuoteEntriesGroup>? NoQuoteEntriesGroups => noQuoteEntriesGroups;
@@ -6031,109 +6665,144 @@ public abstract partial class FixMessage
 				public FixField.Text QuoteEntryID { get; }
 
 				/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-				public FixField.Text? Symbol { get; internal set; }
+				public FixField.Text? Symbol => _symbol;
+				internal FixField.Text? _symbol;
 
 				/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-				public FixField.Text? SymbolSfx { get; internal set; }
+				public FixField.Text? SymbolSfx => _symbolSfx;
+				internal FixField.Text? _symbolSfx;
 
 				/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-				public FixField.Text? SecurityID { get; internal set; }
+				public FixField.Text? SecurityID => _securityID;
+				internal FixField.Text? _securityID;
 
 				/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-				public FixField.Text? IDSource { get; internal set; }
+				public FixField.Text? IDSource => _iDSource;
+				internal FixField.Text? _iDSource;
 
 				/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-				public FixField.Text? SecurityType { get; internal set; }
+				public FixField.Text? SecurityType => _securityType;
+				internal FixField.Text? _securityType;
 
 				/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-				public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+				public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+				internal FixField.MonthYear? _maturityMonthYear;
 
 				/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-				public FixField.Integer? MaturityDay { get; internal set; }
+				public FixField.Integer? MaturityDay => _maturityDay;
+				internal FixField.Integer? _maturityDay;
 
 				/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-				public FixField.Integer? PutOrCall { get; internal set; }
+				public FixField.Integer? PutOrCall => _putOrCall;
+				internal FixField.Integer? _putOrCall;
 
 				/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-				public FixField.Decimal? StrikePrice { get; internal set; }
+				public FixField.Decimal? StrikePrice => _strikePrice;
+				internal FixField.Decimal? _strikePrice;
 
 				/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-				public FixField.Character? OptAttribute { get; internal set; }
+				public FixField.Character? OptAttribute => _optAttribute;
+				internal FixField.Character? _optAttribute;
 
 				/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-				public FixField.Decimal? ContractMultiplier { get; internal set; }
+				public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+				internal FixField.Decimal? _contractMultiplier;
 
 				/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-				public FixField.Decimal? CouponRate { get; internal set; }
+				public FixField.Decimal? CouponRate => _couponRate;
+				internal FixField.Decimal? _couponRate;
 
 				/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-				public FixField.Text? SecurityExchange { get; internal set; }
+				public FixField.Text? SecurityExchange => _securityExchange;
+				internal FixField.Text? _securityExchange;
 
 				/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-				public FixField.Text? Issuer { get; internal set; }
+				public FixField.Text? Issuer => _issuer;
+				internal FixField.Text? _issuer;
 
 				/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-				public FixField.Integer? EncodedIssuerLen { get; internal set; }
+				public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+				internal FixField.Integer? _encodedIssuerLen;
 
 				/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-				public FixField.Data? EncodedIssuer { get; internal set; }
+				public FixField.Data? EncodedIssuer => _encodedIssuer;
+				internal FixField.Data? _encodedIssuer;
 
 				/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-				public FixField.Text? SecurityDesc { get; internal set; }
+				public FixField.Text? SecurityDesc => _securityDesc;
+				internal FixField.Text? _securityDesc;
 
 				/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-				public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+				public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+				internal FixField.Integer? _encodedSecurityDescLen;
 
 				/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-				public FixField.Data? EncodedSecurityDesc { get; internal set; }
+				public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+				internal FixField.Data? _encodedSecurityDesc;
 
 				/// <summary>The FIX BidPx, tag 132, wire type <c>Price</c>; null when the field is absent.</summary>
-				public FixField.Decimal? BidPx { get; internal set; }
+				public FixField.Decimal? BidPx => _bidPx;
+				internal FixField.Decimal? _bidPx;
 
 				/// <summary>The FIX OfferPx, tag 133, wire type <c>Price</c>; null when the field is absent.</summary>
-				public FixField.Decimal? OfferPx { get; internal set; }
+				public FixField.Decimal? OfferPx => _offerPx;
+				internal FixField.Decimal? _offerPx;
 
 				/// <summary>The FIX BidSize, tag 134, wire type <c>Qty</c>; null when the field is absent.</summary>
-				public FixField.Decimal? BidSize { get; internal set; }
+				public FixField.Decimal? BidSize => _bidSize;
+				internal FixField.Decimal? _bidSize;
 
 				/// <summary>The FIX OfferSize, tag 135, wire type <c>Qty</c>; null when the field is absent.</summary>
-				public FixField.Decimal? OfferSize { get; internal set; }
+				public FixField.Decimal? OfferSize => _offerSize;
+				internal FixField.Decimal? _offerSize;
 
 				/// <summary>The FIX ValidUntilTime, tag 62, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-				public FixField.Timestamp? ValidUntilTime { get; internal set; }
+				public FixField.Timestamp? ValidUntilTime => _validUntilTime;
+				internal FixField.Timestamp? _validUntilTime;
 
 				/// <summary>The FIX BidSpotRate, tag 188, wire type <c>Price</c>; null when the field is absent.</summary>
-				public FixField.Decimal? BidSpotRate { get; internal set; }
+				public FixField.Decimal? BidSpotRate => _bidSpotRate;
+				internal FixField.Decimal? _bidSpotRate;
 
 				/// <summary>The FIX OfferSpotRate, tag 190, wire type <c>Price</c>; null when the field is absent.</summary>
-				public FixField.Decimal? OfferSpotRate { get; internal set; }
+				public FixField.Decimal? OfferSpotRate => _offerSpotRate;
+				internal FixField.Decimal? _offerSpotRate;
 
 				/// <summary>The FIX BidForwardPoints, tag 189, wire type <c>PriceOffset</c>; null when the field is absent.</summary>
-				public FixField.Decimal? BidForwardPoints { get; internal set; }
+				public FixField.Decimal? BidForwardPoints => _bidForwardPoints;
+				internal FixField.Decimal? _bidForwardPoints;
 
 				/// <summary>The FIX OfferForwardPoints, tag 191, wire type <c>PriceOffset</c>; null when the field is absent.</summary>
-				public FixField.Decimal? OfferForwardPoints { get; internal set; }
+				public FixField.Decimal? OfferForwardPoints => _offerForwardPoints;
+				internal FixField.Decimal? _offerForwardPoints;
 
 				/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-				public FixField.Timestamp? TransactTime { get; internal set; }
+				public FixField.Timestamp? TransactTime => _transactTime;
+				internal FixField.Timestamp? _transactTime;
 
 				/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-				public FixField.Text? TradingSessionID { get; internal set; }
+				public FixField.Text? TradingSessionID => _tradingSessionID;
+				internal FixField.Text? _tradingSessionID;
 
 				/// <summary>The FIX FutSettDate, tag 64, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-				public FixField.Date? FutSettDate { get; internal set; }
+				public FixField.Date? FutSettDate => _futSettDate;
+				internal FixField.Date? _futSettDate;
 
 				/// <summary>The FIX OrdType, tag 40, wire type <c>char</c>; null when the field is absent.</summary>
-				public FixField.Character? OrdType { get; internal set; }
+				public FixField.Character? OrdType => _ordType;
+				internal FixField.Character? _ordType;
 
 				/// <summary>The FIX FutSettDate2, tag 193, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-				public FixField.Date? FutSettDate2 { get; internal set; }
+				public FixField.Date? FutSettDate2 => _futSettDate2;
+				internal FixField.Date? _futSettDate2;
 
 				/// <summary>The FIX OrderQty2, tag 192, wire type <c>Qty</c>; null when the field is absent.</summary>
-				public FixField.Decimal? OrderQty2 { get; internal set; }
+				public FixField.Decimal? OrderQty2 => _orderQty2;
+				internal FixField.Decimal? _orderQty2;
 
 				/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
-				public FixField.Text? Currency { get; internal set; }
+				public FixField.Text? Currency => _currency;
+				internal FixField.Text? _currency;
 
 				FixField IFixEntry.Opener => QuoteEntryID;
 
@@ -6190,76 +6859,76 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
-					case FixTag.BidID: if (BidID is not null) Duplicate(field); BidID = (FixField.Text)field; break;
-					case FixTag.ClientBidID: if (ClientBidID is not null) Duplicate(field); ClientBidID = (FixField.Text)field; break;
-					case FixTag.ProgRptReqs: if (ProgRptReqs is not null) Duplicate(field); ProgRptReqs = (FixField.Integer)field; break;
-					case FixTag.BidType: if (BidType is not null) Duplicate(field); BidType = (FixField.Integer)field; break;
-					case FixTag.ProgPeriodInterval: if (ProgPeriodInterval is not null) Duplicate(field); ProgPeriodInterval = (FixField.Integer)field; break;
-					case FixTag.ListExecInstType: if (ListExecInstType is not null) Duplicate(field); ListExecInstType = (FixField.Character)field; break;
-					case FixTag.ListExecInst: if (ListExecInst is not null) Duplicate(field); ListExecInst = (FixField.Text)field; break;
-					case FixTag.EncodedListExecInstLen: if (EncodedListExecInstLen is not null) Duplicate(field); EncodedListExecInstLen = (FixField.Integer)field; break;
-					case FixTag.EncodedListExecInst: if (EncodedListExecInst is not null) Duplicate(field); EncodedListExecInst = (FixField.Data)field; break;
-					case FixTag.TotNoOrders: if (TotNoOrders is not null) Duplicate(field); TotNoOrders = (FixField.Integer)field; break;
-					case FixTag.NoOrders: if (NoOrders is not null) Duplicate(field); NoOrders = (FixField.Integer)field; break;
+					case FixTag.ListID: if (_listID is not null) Duplicate(field); _listID = (FixField.Text)field; break;
+					case FixTag.BidID: if (_bidID is not null) Duplicate(field); _bidID = (FixField.Text)field; break;
+					case FixTag.ClientBidID: if (_clientBidID is not null) Duplicate(field); _clientBidID = (FixField.Text)field; break;
+					case FixTag.ProgRptReqs: if (_progRptReqs is not null) Duplicate(field); _progRptReqs = (FixField.Integer)field; break;
+					case FixTag.BidType: if (_bidType is not null) Duplicate(field); _bidType = (FixField.Integer)field; break;
+					case FixTag.ProgPeriodInterval: if (_progPeriodInterval is not null) Duplicate(field); _progPeriodInterval = (FixField.Integer)field; break;
+					case FixTag.ListExecInstType: if (_listExecInstType is not null) Duplicate(field); _listExecInstType = (FixField.Character)field; break;
+					case FixTag.ListExecInst: if (_listExecInst is not null) Duplicate(field); _listExecInst = (FixField.Text)field; break;
+					case FixTag.EncodedListExecInstLen: if (_encodedListExecInstLen is not null) Duplicate(field); _encodedListExecInstLen = (FixField.Integer)field; break;
+					case FixTag.EncodedListExecInst: if (_encodedListExecInst is not null) Duplicate(field); _encodedListExecInst = (FixField.Data)field; break;
+					case FixTag.TotNoOrders: if (_totNoOrders is not null) Duplicate(field); _totNoOrders = (FixField.Integer)field; break;
+					case FixTag.NoOrders: if (_noOrders is not null) Duplicate(field); _noOrders = (FixField.Integer)field; break;
 					case FixTag.ClOrdID:
-						if (noOrdersGroups is null && NoOrders is null) Uncounted(FixTag.NoOrders, field);
+						if (noOrdersGroups is null && _noOrders is null) Uncounted(FixTag.NoOrders, field);
 						(noOrdersGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.ListSeqNo:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].ListSeqNo is not null)
+						else if (noOrdersGroups![^1]._listSeqNo is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].ListSeqNo = (FixField.Integer)field;
+							noOrdersGroups![^1]._listSeqNo = (FixField.Integer)field;
 						break;
 					case FixTag.SettlInstMode:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].SettlInstMode is not null)
+						else if (noOrdersGroups![^1]._settlInstMode is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].SettlInstMode = (FixField.Character)field;
+							noOrdersGroups![^1]._settlInstMode = (FixField.Character)field;
 						break;
 					case FixTag.ClientID:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].ClientID is not null)
+						else if (noOrdersGroups![^1]._clientID is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].ClientID = (FixField.Text)field;
+							noOrdersGroups![^1]._clientID = (FixField.Text)field;
 						break;
 					case FixTag.ExecBroker:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].ExecBroker is not null)
+						else if (noOrdersGroups![^1]._execBroker is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].ExecBroker = (FixField.Text)field;
+							noOrdersGroups![^1]._execBroker = (FixField.Text)field;
 						break;
 					case FixTag.Account:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].Account is not null)
+						else if (noOrdersGroups![^1]._account is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].Account = (FixField.Text)field;
+							noOrdersGroups![^1]._account = (FixField.Text)field;
 						break;
 					case FixTag.NoAllocs:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].NoAllocs is not null)
+						else if (noOrdersGroups![^1]._noAllocs is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].NoAllocs = (FixField.Integer)field;
+							noOrdersGroups![^1]._noAllocs = (FixField.Integer)field;
 						break;
 					case FixTag.AllocAccount:
 						if (None(noOrdersGroups))
 							Unentered(field);
 						else
 						{
-							if (noOrdersGroups![^1].noAllocsGroups is null && noOrdersGroups![^1].NoAllocs is null) Uncounted(FixTag.NoAllocs, field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
+							if (noOrdersGroups![^1].noAllocsGroups is null && noOrdersGroups![^1]._noAllocs is null) Uncounted(FixTag.NoAllocs, field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 							(noOrdersGroups![^1].noAllocsGroups ??= []).Add(new ((FixField.Text)field));
 						}
 						break;
@@ -6268,555 +6937,555 @@ public abstract partial class FixMessage
 							Unentered(field);
 						else if (None(noOrdersGroups![^1].noAllocsGroups))
 							Unentered(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
-						else if (noOrdersGroups![^1].noAllocsGroups![^1].AllocShares is not null)
+						else if (noOrdersGroups![^1].noAllocsGroups![^1]._allocShares is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1, FixTag.NoAllocs, noOrdersGroups![^1].noAllocsGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].noAllocsGroups![^1].AllocShares = (FixField.Decimal)field;
+							noOrdersGroups![^1].noAllocsGroups![^1]._allocShares = (FixField.Decimal)field;
 						break;
 					case FixTag.SettlType:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].SettlmntTyp is not null)
+						else if (noOrdersGroups![^1]._settlmntTyp is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].SettlmntTyp = (FixField.Character)field;
+							noOrdersGroups![^1]._settlmntTyp = (FixField.Character)field;
 						break;
 					case FixTag.SettlDate:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].FutSettDate is not null)
+						else if (noOrdersGroups![^1]._futSettDate is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].FutSettDate = (FixField.Date)field;
+							noOrdersGroups![^1]._futSettDate = (FixField.Date)field;
 						break;
 					case FixTag.HandlInst:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].HandlInst is not null)
+						else if (noOrdersGroups![^1]._handlInst is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].HandlInst = (FixField.Character)field;
+							noOrdersGroups![^1]._handlInst = (FixField.Character)field;
 						break;
 					case FixTag.ExecInst:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].ExecInst is not null)
+						else if (noOrdersGroups![^1]._execInst is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].ExecInst = (FixField.Multiple)field;
+							noOrdersGroups![^1]._execInst = (FixField.Multiple)field;
 						break;
 					case FixTag.MinQty:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].MinQty is not null)
+						else if (noOrdersGroups![^1]._minQty is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].MinQty = (FixField.Decimal)field;
+							noOrdersGroups![^1]._minQty = (FixField.Decimal)field;
 						break;
 					case FixTag.MaxFloor:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].MaxFloor is not null)
+						else if (noOrdersGroups![^1]._maxFloor is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].MaxFloor = (FixField.Decimal)field;
+							noOrdersGroups![^1]._maxFloor = (FixField.Decimal)field;
 						break;
 					case FixTag.ExDestination:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].ExDestination is not null)
+						else if (noOrdersGroups![^1]._exDestination is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].ExDestination = (FixField.Text)field;
+							noOrdersGroups![^1]._exDestination = (FixField.Text)field;
 						break;
 					case FixTag.NoTradingSessions:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].NoTradingSessions is not null)
+						else if (noOrdersGroups![^1]._noTradingSessions is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].NoTradingSessions = (FixField.Integer)field;
+							noOrdersGroups![^1]._noTradingSessions = (FixField.Integer)field;
 						break;
 					case FixTag.TradingSessionID:
 						if (None(noOrdersGroups))
 							Unentered(field);
 						else
 						{
-							if (noOrdersGroups![^1].noTradingSessionsGroups is null && noOrdersGroups![^1].NoTradingSessions is null) Uncounted(FixTag.NoTradingSessions, field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
+							if (noOrdersGroups![^1].noTradingSessionsGroups is null && noOrdersGroups![^1]._noTradingSessions is null) Uncounted(FixTag.NoTradingSessions, field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 							(noOrdersGroups![^1].noTradingSessionsGroups ??= []).Add(new ((FixField.Text)field));
 						}
 						break;
 					case FixTag.ProcessCode:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].ProcessCode is not null)
+						else if (noOrdersGroups![^1]._processCode is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].ProcessCode = (FixField.Character)field;
+							noOrdersGroups![^1]._processCode = (FixField.Character)field;
 						break;
 					case FixTag.Symbol:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].Symbol is not null)
+						else if (noOrdersGroups![^1]._symbol is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].Symbol = (FixField.Text)field;
+							noOrdersGroups![^1]._symbol = (FixField.Text)field;
 						break;
 					case FixTag.SymbolSfx:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].SymbolSfx is not null)
+						else if (noOrdersGroups![^1]._symbolSfx is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].SymbolSfx = (FixField.Text)field;
+							noOrdersGroups![^1]._symbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].SecurityID is not null)
+						else if (noOrdersGroups![^1]._securityID is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].SecurityID = (FixField.Text)field;
+							noOrdersGroups![^1]._securityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].IDSource is not null)
+						else if (noOrdersGroups![^1]._iDSource is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].IDSource = (FixField.Text)field;
+							noOrdersGroups![^1]._iDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].SecurityType is not null)
+						else if (noOrdersGroups![^1]._securityType is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].SecurityType = (FixField.Text)field;
+							noOrdersGroups![^1]._securityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].MaturityMonthYear is not null)
+						else if (noOrdersGroups![^1]._maturityMonthYear is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
+							noOrdersGroups![^1]._maturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].MaturityDay is not null)
+						else if (noOrdersGroups![^1]._maturityDay is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].MaturityDay = (FixField.Integer)field;
+							noOrdersGroups![^1]._maturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].PutOrCall is not null)
+						else if (noOrdersGroups![^1]._putOrCall is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].PutOrCall = (FixField.Integer)field;
+							noOrdersGroups![^1]._putOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].StrikePrice is not null)
+						else if (noOrdersGroups![^1]._strikePrice is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].StrikePrice = (FixField.Decimal)field;
+							noOrdersGroups![^1]._strikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].OptAttribute is not null)
+						else if (noOrdersGroups![^1]._optAttribute is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].OptAttribute = (FixField.Character)field;
+							noOrdersGroups![^1]._optAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].ContractMultiplier is not null)
+						else if (noOrdersGroups![^1]._contractMultiplier is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].ContractMultiplier = (FixField.Decimal)field;
+							noOrdersGroups![^1]._contractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].CouponRate is not null)
+						else if (noOrdersGroups![^1]._couponRate is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].CouponRate = (FixField.Decimal)field;
+							noOrdersGroups![^1]._couponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].SecurityExchange is not null)
+						else if (noOrdersGroups![^1]._securityExchange is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].SecurityExchange = (FixField.Text)field;
+							noOrdersGroups![^1]._securityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].Issuer is not null)
+						else if (noOrdersGroups![^1]._issuer is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].Issuer = (FixField.Text)field;
+							noOrdersGroups![^1]._issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].EncodedIssuerLen is not null)
+						else if (noOrdersGroups![^1]._encodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
+							noOrdersGroups![^1]._encodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].EncodedIssuer is not null)
+						else if (noOrdersGroups![^1]._encodedIssuer is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].EncodedIssuer = (FixField.Data)field;
+							noOrdersGroups![^1]._encodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].SecurityDesc is not null)
+						else if (noOrdersGroups![^1]._securityDesc is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].SecurityDesc = (FixField.Text)field;
+							noOrdersGroups![^1]._securityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].EncodedSecurityDescLen is not null)
+						else if (noOrdersGroups![^1]._encodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
+							noOrdersGroups![^1]._encodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].EncodedSecurityDesc is not null)
+						else if (noOrdersGroups![^1]._encodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
+							noOrdersGroups![^1]._encodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.PrevClosePx:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].PrevClosePx is not null)
+						else if (noOrdersGroups![^1]._prevClosePx is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].PrevClosePx = (FixField.Decimal)field;
+							noOrdersGroups![^1]._prevClosePx = (FixField.Decimal)field;
 						break;
 					case FixTag.Side:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].Side is not null)
+						else if (noOrdersGroups![^1]._side is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].Side = (FixField.Character)field;
+							noOrdersGroups![^1]._side = (FixField.Character)field;
 						break;
 					case FixTag.SideValueInd:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].SideValueInd is not null)
+						else if (noOrdersGroups![^1]._sideValueInd is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].SideValueInd = (FixField.Integer)field;
+							noOrdersGroups![^1]._sideValueInd = (FixField.Integer)field;
 						break;
 					case FixTag.LocateReqd:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].LocateReqd is not null)
+						else if (noOrdersGroups![^1]._locateReqd is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].LocateReqd = (FixField.Boolean)field;
+							noOrdersGroups![^1]._locateReqd = (FixField.Boolean)field;
 						break;
 					case FixTag.TransactTime:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].TransactTime is not null)
+						else if (noOrdersGroups![^1]._transactTime is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].TransactTime = (FixField.Timestamp)field;
+							noOrdersGroups![^1]._transactTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.OrderQty:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].OrderQty is not null)
+						else if (noOrdersGroups![^1]._orderQty is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].OrderQty = (FixField.Decimal)field;
+							noOrdersGroups![^1]._orderQty = (FixField.Decimal)field;
 						break;
 					case FixTag.CashOrderQty:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].CashOrderQty is not null)
+						else if (noOrdersGroups![^1]._cashOrderQty is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].CashOrderQty = (FixField.Decimal)field;
+							noOrdersGroups![^1]._cashOrderQty = (FixField.Decimal)field;
 						break;
 					case FixTag.OrdType:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].OrdType is not null)
+						else if (noOrdersGroups![^1]._ordType is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].OrdType = (FixField.Character)field;
+							noOrdersGroups![^1]._ordType = (FixField.Character)field;
 						break;
 					case FixTag.Price:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].Price is not null)
+						else if (noOrdersGroups![^1]._price is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].Price = (FixField.Decimal)field;
+							noOrdersGroups![^1]._price = (FixField.Decimal)field;
 						break;
 					case FixTag.StopPx:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].StopPx is not null)
+						else if (noOrdersGroups![^1]._stopPx is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].StopPx = (FixField.Decimal)field;
+							noOrdersGroups![^1]._stopPx = (FixField.Decimal)field;
 						break;
 					case FixTag.Currency:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].Currency is not null)
+						else if (noOrdersGroups![^1]._currency is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].Currency = (FixField.Text)field;
+							noOrdersGroups![^1]._currency = (FixField.Text)field;
 						break;
 					case FixTag.ComplianceID:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].ComplianceID is not null)
+						else if (noOrdersGroups![^1]._complianceID is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].ComplianceID = (FixField.Text)field;
+							noOrdersGroups![^1]._complianceID = (FixField.Text)field;
 						break;
 					case FixTag.SolicitedFlag:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].SolicitedFlag is not null)
+						else if (noOrdersGroups![^1]._solicitedFlag is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].SolicitedFlag = (FixField.Boolean)field;
+							noOrdersGroups![^1]._solicitedFlag = (FixField.Boolean)field;
 						break;
 					case FixTag.IOIID:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].IOIid is not null)
+						else if (noOrdersGroups![^1]._iOIid is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].IOIid = (FixField.Text)field;
+							noOrdersGroups![^1]._iOIid = (FixField.Text)field;
 						break;
 					case FixTag.QuoteID:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].QuoteID is not null)
+						else if (noOrdersGroups![^1]._quoteID is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].QuoteID = (FixField.Text)field;
+							noOrdersGroups![^1]._quoteID = (FixField.Text)field;
 						break;
 					case FixTag.TimeInForce:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].TimeInForce is not null)
+						else if (noOrdersGroups![^1]._timeInForce is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].TimeInForce = (FixField.Character)field;
+							noOrdersGroups![^1]._timeInForce = (FixField.Character)field;
 						break;
 					case FixTag.EffectiveTime:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].EffectiveTime is not null)
+						else if (noOrdersGroups![^1]._effectiveTime is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].EffectiveTime = (FixField.Timestamp)field;
+							noOrdersGroups![^1]._effectiveTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.ExpireDate:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].ExpireDate is not null)
+						else if (noOrdersGroups![^1]._expireDate is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].ExpireDate = (FixField.Date)field;
+							noOrdersGroups![^1]._expireDate = (FixField.Date)field;
 						break;
 					case FixTag.ExpireTime:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].ExpireTime is not null)
+						else if (noOrdersGroups![^1]._expireTime is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].ExpireTime = (FixField.Timestamp)field;
+							noOrdersGroups![^1]._expireTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.GTBookingInst:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].GTBookingInst is not null)
+						else if (noOrdersGroups![^1]._gTBookingInst is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].GTBookingInst = (FixField.Integer)field;
+							noOrdersGroups![^1]._gTBookingInst = (FixField.Integer)field;
 						break;
 					case FixTag.Commission:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].Commission is not null)
+						else if (noOrdersGroups![^1]._commission is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].Commission = (FixField.Decimal)field;
+							noOrdersGroups![^1]._commission = (FixField.Decimal)field;
 						break;
 					case FixTag.CommType:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].CommType is not null)
+						else if (noOrdersGroups![^1]._commType is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].CommType = (FixField.Character)field;
+							noOrdersGroups![^1]._commType = (FixField.Character)field;
 						break;
 					case FixTag.Rule80A:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].Rule80A is not null)
+						else if (noOrdersGroups![^1]._rule80A is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].Rule80A = (FixField.Character)field;
+							noOrdersGroups![^1]._rule80A = (FixField.Character)field;
 						break;
 					case FixTag.ForexReq:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].ForexReq is not null)
+						else if (noOrdersGroups![^1]._forexReq is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].ForexReq = (FixField.Boolean)field;
+							noOrdersGroups![^1]._forexReq = (FixField.Boolean)field;
 						break;
 					case FixTag.SettlCurrency:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].SettlCurrency is not null)
+						else if (noOrdersGroups![^1]._settlCurrency is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].SettlCurrency = (FixField.Text)field;
+							noOrdersGroups![^1]._settlCurrency = (FixField.Text)field;
 						break;
 					case FixTag.Text:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].Text is not null)
+						else if (noOrdersGroups![^1]._text is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].Text = (FixField.Text)field;
+							noOrdersGroups![^1]._text = (FixField.Text)field;
 						break;
 					case FixTag.EncodedTextLen:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].EncodedTextLen is not null)
+						else if (noOrdersGroups![^1]._encodedTextLen is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].EncodedTextLen = (FixField.Integer)field;
+							noOrdersGroups![^1]._encodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].EncodedText is not null)
+						else if (noOrdersGroups![^1]._encodedText is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].EncodedText = (FixField.Data)field;
+							noOrdersGroups![^1]._encodedText = (FixField.Data)field;
 						break;
 					case FixTag.SettlDate2:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].FutSettDate2 is not null)
+						else if (noOrdersGroups![^1]._futSettDate2 is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].FutSettDate2 = (FixField.Date)field;
+							noOrdersGroups![^1]._futSettDate2 = (FixField.Date)field;
 						break;
 					case FixTag.OrderQty2:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].OrderQty2 is not null)
+						else if (noOrdersGroups![^1]._orderQty2 is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].OrderQty2 = (FixField.Decimal)field;
+							noOrdersGroups![^1]._orderQty2 = (FixField.Decimal)field;
 						break;
 					case FixTag.PositionEffect:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].OpenClose is not null)
+						else if (noOrdersGroups![^1]._openClose is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].OpenClose = (FixField.Character)field;
+							noOrdersGroups![^1]._openClose = (FixField.Character)field;
 						break;
 					case FixTag.CoveredOrUncovered:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].CoveredOrUncovered is not null)
+						else if (noOrdersGroups![^1]._coveredOrUncovered is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].CoveredOrUncovered = (FixField.Integer)field;
+							noOrdersGroups![^1]._coveredOrUncovered = (FixField.Integer)field;
 						break;
 					case FixTag.CustomerOrFirm:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].CustomerOrFirm is not null)
+						else if (noOrdersGroups![^1]._customerOrFirm is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].CustomerOrFirm = (FixField.Integer)field;
+							noOrdersGroups![^1]._customerOrFirm = (FixField.Integer)field;
 						break;
 					case FixTag.MaxShow:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].MaxShow is not null)
+						else if (noOrdersGroups![^1]._maxShow is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].MaxShow = (FixField.Decimal)field;
+							noOrdersGroups![^1]._maxShow = (FixField.Decimal)field;
 						break;
 					case FixTag.PegOffsetValue:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].PegDifference is not null)
+						else if (noOrdersGroups![^1]._pegDifference is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].PegDifference = (FixField.Decimal)field;
+							noOrdersGroups![^1]._pegDifference = (FixField.Decimal)field;
 						break;
 					case FixTag.DiscretionInst:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].DiscretionInst is not null)
+						else if (noOrdersGroups![^1]._discretionInst is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].DiscretionInst = (FixField.Character)field;
+							noOrdersGroups![^1]._discretionInst = (FixField.Character)field;
 						break;
 					case FixTag.DiscretionOffsetValue:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].DiscretionOffset is not null)
+						else if (noOrdersGroups![^1]._discretionOffset is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].DiscretionOffset = (FixField.Decimal)field;
+							noOrdersGroups![^1]._discretionOffset = (FixField.Decimal)field;
 						break;
 					case FixTag.ClearingFirm:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].ClearingFirm is not null)
+						else if (noOrdersGroups![^1]._clearingFirm is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].ClearingFirm = (FixField.Text)field;
+							noOrdersGroups![^1]._clearingFirm = (FixField.Text)field;
 						break;
 					case FixTag.ClearingAccount:
 						if (None(noOrdersGroups))
 							Unentered(field);
-						else if (noOrdersGroups![^1].ClearingAccount is not null)
+						else if (noOrdersGroups![^1]._clearingAccount is not null)
 							Duplicate(field, FixTag.NoOrders, noOrdersGroups!.Count - 1);
 						else
-							noOrdersGroups![^1].ClearingAccount = (FixField.Text)field;
+							noOrdersGroups![^1]._clearingAccount = (FixField.Text)field;
 						break;
 
 					default:
@@ -6829,40 +7498,52 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX ListID, tag 66, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ListID { get; internal set; }
+		public FixField.Text? ListID => _listID;
+		internal FixField.Text? _listID;
 
 		/// <summary>The FIX BidID, tag 390, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? BidID { get; internal set; }
+		public FixField.Text? BidID => _bidID;
+		internal FixField.Text? _bidID;
 
 		/// <summary>The FIX ClientBidID, tag 391, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClientBidID { get; internal set; }
+		public FixField.Text? ClientBidID => _clientBidID;
+		internal FixField.Text? _clientBidID;
 
 		/// <summary>The FIX ProgRptReqs, tag 414, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? ProgRptReqs { get; internal set; }
+		public FixField.Integer? ProgRptReqs => _progRptReqs;
+		internal FixField.Integer? _progRptReqs;
 
 		/// <summary>The FIX BidType, tag 394, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? BidType { get; internal set; }
+		public FixField.Integer? BidType => _bidType;
+		internal FixField.Integer? _bidType;
 
 		/// <summary>The FIX ProgPeriodInterval, tag 415, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? ProgPeriodInterval { get; internal set; }
+		public FixField.Integer? ProgPeriodInterval => _progPeriodInterval;
+		internal FixField.Integer? _progPeriodInterval;
 
 		/// <summary>The FIX ListExecInstType, tag 433, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? ListExecInstType { get; internal set; }
+		public FixField.Character? ListExecInstType => _listExecInstType;
+		internal FixField.Character? _listExecInstType;
 
 		/// <summary>The FIX ListExecInst, tag 69, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ListExecInst { get; internal set; }
+		public FixField.Text? ListExecInst => _listExecInst;
+		internal FixField.Text? _listExecInst;
 
 		/// <summary>The FIX EncodedListExecInstLen, tag 352, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedListExecInstLen { get; internal set; }
+		public FixField.Integer? EncodedListExecInstLen => _encodedListExecInstLen;
+		internal FixField.Integer? _encodedListExecInstLen;
 
 		/// <summary>The FIX EncodedListExecInst, tag 353, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedListExecInst { get; internal set; }
+		public FixField.Data? EncodedListExecInst => _encodedListExecInst;
+		internal FixField.Data? _encodedListExecInst;
 
 		/// <summary>The FIX TotNoOrders, tag 68, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? TotNoOrders { get; internal set; }
+		public FixField.Integer? TotNoOrders => _totNoOrders;
+		internal FixField.Integer? _totNoOrders;
 
 		/// <summary>The FIX NoOrders, tag 73, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoOrders { get; internal set; }
+		public FixField.Integer? NoOrders => _noOrders;
+		internal FixField.Integer? _noOrders;
 
 		/// <summary>The entries counted by NoOrders, tag 73; null when the group is absent.</summary>
 		public List<FixMessage.NewOrderList.NoOrdersGroup>? NoOrdersGroups => noOrdersGroups;
@@ -6880,231 +7561,304 @@ public abstract partial class FixMessage
 			public FixField.Text ClOrdID { get; }
 
 			/// <summary>The FIX ListSeqNo, tag 67, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? ListSeqNo { get; internal set; }
+			public FixField.Integer? ListSeqNo => _listSeqNo;
+			internal FixField.Integer? _listSeqNo;
 
 			/// <summary>The FIX SettlInstMode, tag 160, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? SettlInstMode { get; internal set; }
+			public FixField.Character? SettlInstMode => _settlInstMode;
+			internal FixField.Character? _settlInstMode;
 
 			/// <summary>The FIX ClientID, tag 109, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? ClientID { get; internal set; }
+			public FixField.Text? ClientID => _clientID;
+			internal FixField.Text? _clientID;
 
 			/// <summary>The FIX ExecBroker, tag 76, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? ExecBroker { get; internal set; }
+			public FixField.Text? ExecBroker => _execBroker;
+			internal FixField.Text? _execBroker;
 
 			/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Account { get; internal set; }
+			public FixField.Text? Account => _account;
+			internal FixField.Text? _account;
 
 			/// <summary>The FIX NoAllocs, tag 78, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? NoAllocs { get; internal set; }
+			public FixField.Integer? NoAllocs => _noAllocs;
+			internal FixField.Integer? _noAllocs;
 
 			/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
 			public List<FixMessage.NewOrderList.NoOrdersGroup.NoAllocsGroup>? NoAllocsGroups => noAllocsGroups;
 			internal List<NoAllocsGroup>? noAllocsGroups;
 
 			/// <summary>The FIX SettlmntTyp, tag 63, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? SettlmntTyp { get; internal set; }
+			public FixField.Character? SettlmntTyp => _settlmntTyp;
+			internal FixField.Character? _settlmntTyp;
 
 			/// <summary>The FIX FutSettDate, tag 64, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-			public FixField.Date? FutSettDate { get; internal set; }
+			public FixField.Date? FutSettDate => _futSettDate;
+			internal FixField.Date? _futSettDate;
 
 			/// <summary>The FIX HandlInst, tag 21, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? HandlInst { get; internal set; }
+			public FixField.Character? HandlInst => _handlInst;
+			internal FixField.Character? _handlInst;
 
 			/// <summary>The FIX ExecInst, tag 18, wire type <c>MultipleValueString</c>; null when the field is absent.</summary>
-			public FixField.Multiple? ExecInst { get; internal set; }
+			public FixField.Multiple? ExecInst => _execInst;
+			internal FixField.Multiple? _execInst;
 
 			/// <summary>The FIX MinQty, tag 110, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? MinQty { get; internal set; }
+			public FixField.Decimal? MinQty => _minQty;
+			internal FixField.Decimal? _minQty;
 
 			/// <summary>The FIX MaxFloor, tag 111, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? MaxFloor { get; internal set; }
+			public FixField.Decimal? MaxFloor => _maxFloor;
+			internal FixField.Decimal? _maxFloor;
 
 			/// <summary>The FIX ExDestination, tag 100, wire type <c>Exchange</c>; null when the field is absent.</summary>
-			public FixField.Text? ExDestination { get; internal set; }
+			public FixField.Text? ExDestination => _exDestination;
+			internal FixField.Text? _exDestination;
 
 			/// <summary>The FIX NoTradingSessions, tag 386, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? NoTradingSessions { get; internal set; }
+			public FixField.Integer? NoTradingSessions => _noTradingSessions;
+			internal FixField.Integer? _noTradingSessions;
 
 			/// <summary>The entries counted by NoTradingSessions, tag 386; null when the group is absent.</summary>
 			public List<FixMessage.NewOrderList.NoOrdersGroup.NoTradingSessionsGroup>? NoTradingSessionsGroups => noTradingSessionsGroups;
 			internal List<NoTradingSessionsGroup>? noTradingSessionsGroups;
 
 			/// <summary>The FIX ProcessCode, tag 81, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? ProcessCode { get; internal set; }
+			public FixField.Character? ProcessCode => _processCode;
+			internal FixField.Character? _processCode;
 
 			/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Symbol { get; internal set; }
+			public FixField.Text? Symbol => _symbol;
+			internal FixField.Text? _symbol;
 
 			/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SymbolSfx { get; internal set; }
+			public FixField.Text? SymbolSfx => _symbolSfx;
+			internal FixField.Text? _symbolSfx;
 
 			/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityID { get; internal set; }
+			public FixField.Text? SecurityID => _securityID;
+			internal FixField.Text? _securityID;
 
 			/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? IDSource { get; internal set; }
+			public FixField.Text? IDSource => _iDSource;
+			internal FixField.Text? _iDSource;
 
 			/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityType { get; internal set; }
+			public FixField.Text? SecurityType => _securityType;
+			internal FixField.Text? _securityType;
 
 			/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-			public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+			public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+			internal FixField.MonthYear? _maturityMonthYear;
 
 			/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-			public FixField.Integer? MaturityDay { get; internal set; }
+			public FixField.Integer? MaturityDay => _maturityDay;
+			internal FixField.Integer? _maturityDay;
 
 			/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? PutOrCall { get; internal set; }
+			public FixField.Integer? PutOrCall => _putOrCall;
+			internal FixField.Integer? _putOrCall;
 
 			/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? StrikePrice { get; internal set; }
+			public FixField.Decimal? StrikePrice => _strikePrice;
+			internal FixField.Decimal? _strikePrice;
 
 			/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? OptAttribute { get; internal set; }
+			public FixField.Character? OptAttribute => _optAttribute;
+			internal FixField.Character? _optAttribute;
 
 			/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? ContractMultiplier { get; internal set; }
+			public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+			internal FixField.Decimal? _contractMultiplier;
 
 			/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? CouponRate { get; internal set; }
+			public FixField.Decimal? CouponRate => _couponRate;
+			internal FixField.Decimal? _couponRate;
 
 			/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityExchange { get; internal set; }
+			public FixField.Text? SecurityExchange => _securityExchange;
+			internal FixField.Text? _securityExchange;
 
 			/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Issuer { get; internal set; }
+			public FixField.Text? Issuer => _issuer;
+			internal FixField.Text? _issuer;
 
 			/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedIssuerLen { get; internal set; }
+			public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+			internal FixField.Integer? _encodedIssuerLen;
 
 			/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedIssuer { get; internal set; }
+			public FixField.Data? EncodedIssuer => _encodedIssuer;
+			internal FixField.Data? _encodedIssuer;
 
 			/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityDesc { get; internal set; }
+			public FixField.Text? SecurityDesc => _securityDesc;
+			internal FixField.Text? _securityDesc;
 
 			/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+			public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+			internal FixField.Integer? _encodedSecurityDescLen;
 
 			/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedSecurityDesc { get; internal set; }
+			public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+			internal FixField.Data? _encodedSecurityDesc;
 
 			/// <summary>The FIX PrevClosePx, tag 140, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? PrevClosePx { get; internal set; }
+			public FixField.Decimal? PrevClosePx => _prevClosePx;
+			internal FixField.Decimal? _prevClosePx;
 
 			/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? Side { get; internal set; }
+			public FixField.Character? Side => _side;
+			internal FixField.Character? _side;
 
 			/// <summary>The FIX SideValueInd, tag 401, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? SideValueInd { get; internal set; }
+			public FixField.Integer? SideValueInd => _sideValueInd;
+			internal FixField.Integer? _sideValueInd;
 
 			/// <summary>The FIX LocateReqd, tag 114, wire type <c>Boolean</c>; null when the field is absent.</summary>
-			public FixField.Boolean? LocateReqd { get; internal set; }
+			public FixField.Boolean? LocateReqd => _locateReqd;
+			internal FixField.Boolean? _locateReqd;
 
 			/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-			public FixField.Timestamp? TransactTime { get; internal set; }
+			public FixField.Timestamp? TransactTime => _transactTime;
+			internal FixField.Timestamp? _transactTime;
 
 			/// <summary>The FIX OrderQty, tag 38, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? OrderQty { get; internal set; }
+			public FixField.Decimal? OrderQty => _orderQty;
+			internal FixField.Decimal? _orderQty;
 
 			/// <summary>The FIX CashOrderQty, tag 152, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? CashOrderQty { get; internal set; }
+			public FixField.Decimal? CashOrderQty => _cashOrderQty;
+			internal FixField.Decimal? _cashOrderQty;
 
 			/// <summary>The FIX OrdType, tag 40, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? OrdType { get; internal set; }
+			public FixField.Character? OrdType => _ordType;
+			internal FixField.Character? _ordType;
 
 			/// <summary>The FIX Price, tag 44, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? Price { get; internal set; }
+			public FixField.Decimal? Price => _price;
+			internal FixField.Decimal? _price;
 
 			/// <summary>The FIX StopPx, tag 99, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? StopPx { get; internal set; }
+			public FixField.Decimal? StopPx => _stopPx;
+			internal FixField.Decimal? _stopPx;
 
 			/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
-			public FixField.Text? Currency { get; internal set; }
+			public FixField.Text? Currency => _currency;
+			internal FixField.Text? _currency;
 
 			/// <summary>The FIX ComplianceID, tag 376, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? ComplianceID { get; internal set; }
+			public FixField.Text? ComplianceID => _complianceID;
+			internal FixField.Text? _complianceID;
 
 			/// <summary>The FIX SolicitedFlag, tag 377, wire type <c>Boolean</c>; null when the field is absent.</summary>
-			public FixField.Boolean? SolicitedFlag { get; internal set; }
+			public FixField.Boolean? SolicitedFlag => _solicitedFlag;
+			internal FixField.Boolean? _solicitedFlag;
 
 			/// <summary>The FIX IOIid, tag 23, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? IOIid { get; internal set; }
+			public FixField.Text? IOIid => _iOIid;
+			internal FixField.Text? _iOIid;
 
 			/// <summary>The FIX QuoteID, tag 117, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? QuoteID { get; internal set; }
+			public FixField.Text? QuoteID => _quoteID;
+			internal FixField.Text? _quoteID;
 
 			/// <summary>The FIX TimeInForce, tag 59, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? TimeInForce { get; internal set; }
+			public FixField.Character? TimeInForce => _timeInForce;
+			internal FixField.Character? _timeInForce;
 
 			/// <summary>The FIX EffectiveTime, tag 168, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-			public FixField.Timestamp? EffectiveTime { get; internal set; }
+			public FixField.Timestamp? EffectiveTime => _effectiveTime;
+			internal FixField.Timestamp? _effectiveTime;
 
 			/// <summary>The FIX ExpireDate, tag 432, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-			public FixField.Date? ExpireDate { get; internal set; }
+			public FixField.Date? ExpireDate => _expireDate;
+			internal FixField.Date? _expireDate;
 
 			/// <summary>The FIX ExpireTime, tag 126, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-			public FixField.Timestamp? ExpireTime { get; internal set; }
+			public FixField.Timestamp? ExpireTime => _expireTime;
+			internal FixField.Timestamp? _expireTime;
 
 			/// <summary>The FIX GTBookingInst, tag 427, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? GTBookingInst { get; internal set; }
+			public FixField.Integer? GTBookingInst => _gTBookingInst;
+			internal FixField.Integer? _gTBookingInst;
 
 			/// <summary>The FIX Commission, tag 12, wire type <c>Amt</c>; null when the field is absent.</summary>
-			public FixField.Decimal? Commission { get; internal set; }
+			public FixField.Decimal? Commission => _commission;
+			internal FixField.Decimal? _commission;
 
 			/// <summary>The FIX CommType, tag 13, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? CommType { get; internal set; }
+			public FixField.Character? CommType => _commType;
+			internal FixField.Character? _commType;
 
 			/// <summary>The FIX Rule80A, tag 47, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? Rule80A { get; internal set; }
+			public FixField.Character? Rule80A => _rule80A;
+			internal FixField.Character? _rule80A;
 
 			/// <summary>The FIX ForexReq, tag 121, wire type <c>Boolean</c>; null when the field is absent.</summary>
-			public FixField.Boolean? ForexReq { get; internal set; }
+			public FixField.Boolean? ForexReq => _forexReq;
+			internal FixField.Boolean? _forexReq;
 
 			/// <summary>The FIX SettlCurrency, tag 120, wire type <c>Currency</c>; null when the field is absent.</summary>
-			public FixField.Text? SettlCurrency { get; internal set; }
+			public FixField.Text? SettlCurrency => _settlCurrency;
+			internal FixField.Text? _settlCurrency;
 
 			/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Text { get; internal set; }
+			public FixField.Text? Text => _text;
+			internal FixField.Text? _text;
 
 			/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedTextLen { get; internal set; }
+			public FixField.Integer? EncodedTextLen => _encodedTextLen;
+			internal FixField.Integer? _encodedTextLen;
 
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedText { get; internal set; }
+			public FixField.Data? EncodedText => _encodedText;
+			internal FixField.Data? _encodedText;
 
 			/// <summary>The FIX FutSettDate2, tag 193, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-			public FixField.Date? FutSettDate2 { get; internal set; }
+			public FixField.Date? FutSettDate2 => _futSettDate2;
+			internal FixField.Date? _futSettDate2;
 
 			/// <summary>The FIX OrderQty2, tag 192, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? OrderQty2 { get; internal set; }
+			public FixField.Decimal? OrderQty2 => _orderQty2;
+			internal FixField.Decimal? _orderQty2;
 
 			/// <summary>The FIX OpenClose, tag 77, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? OpenClose { get; internal set; }
+			public FixField.Character? OpenClose => _openClose;
+			internal FixField.Character? _openClose;
 
 			/// <summary>The FIX CoveredOrUncovered, tag 203, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? CoveredOrUncovered { get; internal set; }
+			public FixField.Integer? CoveredOrUncovered => _coveredOrUncovered;
+			internal FixField.Integer? _coveredOrUncovered;
 
 			/// <summary>The FIX CustomerOrFirm, tag 204, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? CustomerOrFirm { get; internal set; }
+			public FixField.Integer? CustomerOrFirm => _customerOrFirm;
+			internal FixField.Integer? _customerOrFirm;
 
 			/// <summary>The FIX MaxShow, tag 210, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? MaxShow { get; internal set; }
+			public FixField.Decimal? MaxShow => _maxShow;
+			internal FixField.Decimal? _maxShow;
 
 			/// <summary>The FIX PegDifference, tag 211, wire type <c>PriceOffset</c>; null when the field is absent.</summary>
-			public FixField.Decimal? PegDifference { get; internal set; }
+			public FixField.Decimal? PegDifference => _pegDifference;
+			internal FixField.Decimal? _pegDifference;
 
 			/// <summary>The FIX DiscretionInst, tag 388, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? DiscretionInst { get; internal set; }
+			public FixField.Character? DiscretionInst => _discretionInst;
+			internal FixField.Character? _discretionInst;
 
 			/// <summary>The FIX DiscretionOffset, tag 389, wire type <c>PriceOffset</c>; null when the field is absent.</summary>
-			public FixField.Decimal? DiscretionOffset { get; internal set; }
+			public FixField.Decimal? DiscretionOffset => _discretionOffset;
+			internal FixField.Decimal? _discretionOffset;
 
 			/// <summary>The FIX ClearingFirm, tag 439, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? ClearingFirm { get; internal set; }
+			public FixField.Text? ClearingFirm => _clearingFirm;
+			internal FixField.Text? _clearingFirm;
 
 			/// <summary>The FIX ClearingAccount, tag 440, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? ClearingAccount { get; internal set; }
+			public FixField.Text? ClearingAccount => _clearingAccount;
+			internal FixField.Text? _clearingAccount;
 
 			/// <summary>One entry of the group counted by NoAllocs, tag 78.</summary>
 			public sealed class NoAllocsGroup : IFixEntry
@@ -7118,7 +7872,8 @@ public abstract partial class FixMessage
 				public FixField.Text AllocAccount { get; }
 
 				/// <summary>The FIX AllocShares, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
-				public FixField.Decimal? AllocShares { get; internal set; }
+				public FixField.Decimal? AllocShares => _allocShares;
+				internal FixField.Decimal? _allocShares;
 
 				FixField IFixEntry.Opener => AllocAccount;
 
@@ -7201,93 +7956,93 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.ClOrdID: if (ClOrdID is not null) Duplicate(field); ClOrdID = (FixField.Text)field; break;
-					case FixTag.ClientID: if (ClientID is not null) Duplicate(field); ClientID = (FixField.Text)field; break;
-					case FixTag.ExecBroker: if (ExecBroker is not null) Duplicate(field); ExecBroker = (FixField.Text)field; break;
-					case FixTag.Account: if (Account is not null) Duplicate(field); Account = (FixField.Text)field; break;
-					case FixTag.NoAllocs: if (NoAllocs is not null) Duplicate(field); NoAllocs = (FixField.Integer)field; break;
+					case FixTag.ClOrdID: if (_clOrdID is not null) Duplicate(field); _clOrdID = (FixField.Text)field; break;
+					case FixTag.ClientID: if (_clientID is not null) Duplicate(field); _clientID = (FixField.Text)field; break;
+					case FixTag.ExecBroker: if (_execBroker is not null) Duplicate(field); _execBroker = (FixField.Text)field; break;
+					case FixTag.Account: if (_account is not null) Duplicate(field); _account = (FixField.Text)field; break;
+					case FixTag.NoAllocs: if (_noAllocs is not null) Duplicate(field); _noAllocs = (FixField.Integer)field; break;
 					case FixTag.AllocAccount:
-						if (noAllocsGroups is null && NoAllocs is null) Uncounted(FixTag.NoAllocs, field);
+						if (noAllocsGroups is null && _noAllocs is null) Uncounted(FixTag.NoAllocs, field);
 						(noAllocsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.AllocQty:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].AllocShares is not null)
+						else if (noAllocsGroups![^1]._allocShares is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].AllocShares = (FixField.Decimal)field;
+							noAllocsGroups![^1]._allocShares = (FixField.Decimal)field;
 						break;
-					case FixTag.SettlType: if (SettlmntTyp is not null) Duplicate(field); SettlmntTyp = (FixField.Character)field; break;
-					case FixTag.SettlDate: if (FutSettDate is not null) Duplicate(field); FutSettDate = (FixField.Date)field; break;
-					case FixTag.HandlInst: if (HandlInst is not null) Duplicate(field); HandlInst = (FixField.Character)field; break;
-					case FixTag.ExecInst: if (ExecInst is not null) Duplicate(field); ExecInst = (FixField.Multiple)field; break;
-					case FixTag.MinQty: if (MinQty is not null) Duplicate(field); MinQty = (FixField.Decimal)field; break;
-					case FixTag.MaxFloor: if (MaxFloor is not null) Duplicate(field); MaxFloor = (FixField.Decimal)field; break;
-					case FixTag.ExDestination: if (ExDestination is not null) Duplicate(field); ExDestination = (FixField.Text)field; break;
-					case FixTag.NoTradingSessions: if (NoTradingSessions is not null) Duplicate(field); NoTradingSessions = (FixField.Integer)field; break;
+					case FixTag.SettlType: if (_settlmntTyp is not null) Duplicate(field); _settlmntTyp = (FixField.Character)field; break;
+					case FixTag.SettlDate: if (_futSettDate is not null) Duplicate(field); _futSettDate = (FixField.Date)field; break;
+					case FixTag.HandlInst: if (_handlInst is not null) Duplicate(field); _handlInst = (FixField.Character)field; break;
+					case FixTag.ExecInst: if (_execInst is not null) Duplicate(field); _execInst = (FixField.Multiple)field; break;
+					case FixTag.MinQty: if (_minQty is not null) Duplicate(field); _minQty = (FixField.Decimal)field; break;
+					case FixTag.MaxFloor: if (_maxFloor is not null) Duplicate(field); _maxFloor = (FixField.Decimal)field; break;
+					case FixTag.ExDestination: if (_exDestination is not null) Duplicate(field); _exDestination = (FixField.Text)field; break;
+					case FixTag.NoTradingSessions: if (_noTradingSessions is not null) Duplicate(field); _noTradingSessions = (FixField.Integer)field; break;
 					case FixTag.TradingSessionID:
-						if (noTradingSessionsGroups is null && NoTradingSessions is null) Uncounted(FixTag.NoTradingSessions, field);
+						if (noTradingSessionsGroups is null && _noTradingSessions is null) Uncounted(FixTag.NoTradingSessions, field);
 						(noTradingSessionsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
-					case FixTag.ProcessCode: if (ProcessCode is not null) Duplicate(field); ProcessCode = (FixField.Character)field; break;
-					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.PrevClosePx: if (PrevClosePx is not null) Duplicate(field); PrevClosePx = (FixField.Decimal)field; break;
-					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
-					case FixTag.LocateReqd: if (LocateReqd is not null) Duplicate(field); LocateReqd = (FixField.Boolean)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.OrderQty: if (OrderQty is not null) Duplicate(field); OrderQty = (FixField.Decimal)field; break;
-					case FixTag.CashOrderQty: if (CashOrderQty is not null) Duplicate(field); CashOrderQty = (FixField.Decimal)field; break;
-					case FixTag.OrdType: if (OrdType is not null) Duplicate(field); OrdType = (FixField.Character)field; break;
-					case FixTag.Price: if (Price is not null) Duplicate(field); Price = (FixField.Decimal)field; break;
-					case FixTag.StopPx: if (StopPx is not null) Duplicate(field); StopPx = (FixField.Decimal)field; break;
-					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
-					case FixTag.ComplianceID: if (ComplianceID is not null) Duplicate(field); ComplianceID = (FixField.Text)field; break;
-					case FixTag.SolicitedFlag: if (SolicitedFlag is not null) Duplicate(field); SolicitedFlag = (FixField.Boolean)field; break;
-					case FixTag.IOIID: if (IOIid is not null) Duplicate(field); IOIid = (FixField.Text)field; break;
-					case FixTag.QuoteID: if (QuoteID is not null) Duplicate(field); QuoteID = (FixField.Text)field; break;
-					case FixTag.TimeInForce: if (TimeInForce is not null) Duplicate(field); TimeInForce = (FixField.Character)field; break;
-					case FixTag.EffectiveTime: if (EffectiveTime is not null) Duplicate(field); EffectiveTime = (FixField.Timestamp)field; break;
-					case FixTag.ExpireDate: if (ExpireDate is not null) Duplicate(field); ExpireDate = (FixField.Date)field; break;
-					case FixTag.ExpireTime: if (ExpireTime is not null) Duplicate(field); ExpireTime = (FixField.Timestamp)field; break;
-					case FixTag.GTBookingInst: if (GTBookingInst is not null) Duplicate(field); GTBookingInst = (FixField.Integer)field; break;
-					case FixTag.Commission: if (Commission is not null) Duplicate(field); Commission = (FixField.Decimal)field; break;
-					case FixTag.CommType: if (CommType is not null) Duplicate(field); CommType = (FixField.Character)field; break;
-					case FixTag.Rule80A: if (Rule80A is not null) Duplicate(field); Rule80A = (FixField.Character)field; break;
-					case FixTag.ForexReq: if (ForexReq is not null) Duplicate(field); ForexReq = (FixField.Boolean)field; break;
-					case FixTag.SettlCurrency: if (SettlCurrency is not null) Duplicate(field); SettlCurrency = (FixField.Text)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
-					case FixTag.SettlDate2: if (FutSettDate2 is not null) Duplicate(field); FutSettDate2 = (FixField.Date)field; break;
-					case FixTag.OrderQty2: if (OrderQty2 is not null) Duplicate(field); OrderQty2 = (FixField.Decimal)field; break;
-					case FixTag.PositionEffect: if (OpenClose is not null) Duplicate(field); OpenClose = (FixField.Character)field; break;
-					case FixTag.CoveredOrUncovered: if (CoveredOrUncovered is not null) Duplicate(field); CoveredOrUncovered = (FixField.Integer)field; break;
-					case FixTag.CustomerOrFirm: if (CustomerOrFirm is not null) Duplicate(field); CustomerOrFirm = (FixField.Integer)field; break;
-					case FixTag.MaxShow: if (MaxShow is not null) Duplicate(field); MaxShow = (FixField.Decimal)field; break;
-					case FixTag.PegOffsetValue: if (PegDifference is not null) Duplicate(field); PegDifference = (FixField.Decimal)field; break;
-					case FixTag.DiscretionInst: if (DiscretionInst is not null) Duplicate(field); DiscretionInst = (FixField.Character)field; break;
-					case FixTag.DiscretionOffsetValue: if (DiscretionOffset is not null) Duplicate(field); DiscretionOffset = (FixField.Decimal)field; break;
-					case FixTag.ClearingFirm: if (ClearingFirm is not null) Duplicate(field); ClearingFirm = (FixField.Text)field; break;
-					case FixTag.ClearingAccount: if (ClearingAccount is not null) Duplicate(field); ClearingAccount = (FixField.Text)field; break;
+					case FixTag.ProcessCode: if (_processCode is not null) Duplicate(field); _processCode = (FixField.Character)field; break;
+					case FixTag.Symbol: if (_symbol is not null) Duplicate(field); _symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (_symbolSfx is not null) Duplicate(field); _symbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (_securityID is not null) Duplicate(field); _securityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (_iDSource is not null) Duplicate(field); _iDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (_securityType is not null) Duplicate(field); _securityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (_maturityMonthYear is not null) Duplicate(field); _maturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (_maturityDay is not null) Duplicate(field); _maturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (_putOrCall is not null) Duplicate(field); _putOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (_strikePrice is not null) Duplicate(field); _strikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (_optAttribute is not null) Duplicate(field); _optAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (_contractMultiplier is not null) Duplicate(field); _contractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (_couponRate is not null) Duplicate(field); _couponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (_securityExchange is not null) Duplicate(field); _securityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (_issuer is not null) Duplicate(field); _issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (_encodedIssuerLen is not null) Duplicate(field); _encodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (_encodedIssuer is not null) Duplicate(field); _encodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (_securityDesc is not null) Duplicate(field); _securityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (_encodedSecurityDescLen is not null) Duplicate(field); _encodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (_encodedSecurityDesc is not null) Duplicate(field); _encodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.PrevClosePx: if (_prevClosePx is not null) Duplicate(field); _prevClosePx = (FixField.Decimal)field; break;
+					case FixTag.Side: if (_side is not null) Duplicate(field); _side = (FixField.Character)field; break;
+					case FixTag.LocateReqd: if (_locateReqd is not null) Duplicate(field); _locateReqd = (FixField.Boolean)field; break;
+					case FixTag.TransactTime: if (_transactTime is not null) Duplicate(field); _transactTime = (FixField.Timestamp)field; break;
+					case FixTag.OrderQty: if (_orderQty is not null) Duplicate(field); _orderQty = (FixField.Decimal)field; break;
+					case FixTag.CashOrderQty: if (_cashOrderQty is not null) Duplicate(field); _cashOrderQty = (FixField.Decimal)field; break;
+					case FixTag.OrdType: if (_ordType is not null) Duplicate(field); _ordType = (FixField.Character)field; break;
+					case FixTag.Price: if (_price is not null) Duplicate(field); _price = (FixField.Decimal)field; break;
+					case FixTag.StopPx: if (_stopPx is not null) Duplicate(field); _stopPx = (FixField.Decimal)field; break;
+					case FixTag.Currency: if (_currency is not null) Duplicate(field); _currency = (FixField.Text)field; break;
+					case FixTag.ComplianceID: if (_complianceID is not null) Duplicate(field); _complianceID = (FixField.Text)field; break;
+					case FixTag.SolicitedFlag: if (_solicitedFlag is not null) Duplicate(field); _solicitedFlag = (FixField.Boolean)field; break;
+					case FixTag.IOIID: if (_iOIid is not null) Duplicate(field); _iOIid = (FixField.Text)field; break;
+					case FixTag.QuoteID: if (_quoteID is not null) Duplicate(field); _quoteID = (FixField.Text)field; break;
+					case FixTag.TimeInForce: if (_timeInForce is not null) Duplicate(field); _timeInForce = (FixField.Character)field; break;
+					case FixTag.EffectiveTime: if (_effectiveTime is not null) Duplicate(field); _effectiveTime = (FixField.Timestamp)field; break;
+					case FixTag.ExpireDate: if (_expireDate is not null) Duplicate(field); _expireDate = (FixField.Date)field; break;
+					case FixTag.ExpireTime: if (_expireTime is not null) Duplicate(field); _expireTime = (FixField.Timestamp)field; break;
+					case FixTag.GTBookingInst: if (_gTBookingInst is not null) Duplicate(field); _gTBookingInst = (FixField.Integer)field; break;
+					case FixTag.Commission: if (_commission is not null) Duplicate(field); _commission = (FixField.Decimal)field; break;
+					case FixTag.CommType: if (_commType is not null) Duplicate(field); _commType = (FixField.Character)field; break;
+					case FixTag.Rule80A: if (_rule80A is not null) Duplicate(field); _rule80A = (FixField.Character)field; break;
+					case FixTag.ForexReq: if (_forexReq is not null) Duplicate(field); _forexReq = (FixField.Boolean)field; break;
+					case FixTag.SettlCurrency: if (_settlCurrency is not null) Duplicate(field); _settlCurrency = (FixField.Text)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
+					case FixTag.SettlDate2: if (_futSettDate2 is not null) Duplicate(field); _futSettDate2 = (FixField.Date)field; break;
+					case FixTag.OrderQty2: if (_orderQty2 is not null) Duplicate(field); _orderQty2 = (FixField.Decimal)field; break;
+					case FixTag.PositionEffect: if (_openClose is not null) Duplicate(field); _openClose = (FixField.Character)field; break;
+					case FixTag.CoveredOrUncovered: if (_coveredOrUncovered is not null) Duplicate(field); _coveredOrUncovered = (FixField.Integer)field; break;
+					case FixTag.CustomerOrFirm: if (_customerOrFirm is not null) Duplicate(field); _customerOrFirm = (FixField.Integer)field; break;
+					case FixTag.MaxShow: if (_maxShow is not null) Duplicate(field); _maxShow = (FixField.Decimal)field; break;
+					case FixTag.PegOffsetValue: if (_pegDifference is not null) Duplicate(field); _pegDifference = (FixField.Decimal)field; break;
+					case FixTag.DiscretionInst: if (_discretionInst is not null) Duplicate(field); _discretionInst = (FixField.Character)field; break;
+					case FixTag.DiscretionOffsetValue: if (_discretionOffset is not null) Duplicate(field); _discretionOffset = (FixField.Decimal)field; break;
+					case FixTag.ClearingFirm: if (_clearingFirm is not null) Duplicate(field); _clearingFirm = (FixField.Text)field; break;
+					case FixTag.ClearingAccount: if (_clearingAccount is not null) Duplicate(field); _clearingAccount = (FixField.Text)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -7299,225 +8054,296 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX ClOrdID, tag 11, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClOrdID { get; internal set; }
+		public FixField.Text? ClOrdID => _clOrdID;
+		internal FixField.Text? _clOrdID;
 
 		/// <summary>The FIX ClientID, tag 109, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClientID { get; internal set; }
+		public FixField.Text? ClientID => _clientID;
+		internal FixField.Text? _clientID;
 
 		/// <summary>The FIX ExecBroker, tag 76, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ExecBroker { get; internal set; }
+		public FixField.Text? ExecBroker => _execBroker;
+		internal FixField.Text? _execBroker;
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Account { get; internal set; }
+		public FixField.Text? Account => _account;
+		internal FixField.Text? _account;
 
 		/// <summary>The FIX NoAllocs, tag 78, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoAllocs { get; internal set; }
+		public FixField.Integer? NoAllocs => _noAllocs;
+		internal FixField.Integer? _noAllocs;
 
 		/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
 		public List<FixMessage.NewOrderSingle.NoAllocsGroup>? NoAllocsGroups => noAllocsGroups;
 		internal List<NoAllocsGroup>? noAllocsGroups;
 
 		/// <summary>The FIX SettlmntTyp, tag 63, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? SettlmntTyp { get; internal set; }
+		public FixField.Character? SettlmntTyp => _settlmntTyp;
+		internal FixField.Character? _settlmntTyp;
 
 		/// <summary>The FIX FutSettDate, tag 64, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? FutSettDate { get; internal set; }
+		public FixField.Date? FutSettDate => _futSettDate;
+		internal FixField.Date? _futSettDate;
 
 		/// <summary>The FIX HandlInst, tag 21, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? HandlInst { get; internal set; }
+		public FixField.Character? HandlInst => _handlInst;
+		internal FixField.Character? _handlInst;
 
 		/// <summary>The FIX ExecInst, tag 18, wire type <c>MultipleValueString</c>; null when the field is absent.</summary>
-		public FixField.Multiple? ExecInst { get; internal set; }
+		public FixField.Multiple? ExecInst => _execInst;
+		internal FixField.Multiple? _execInst;
 
 		/// <summary>The FIX MinQty, tag 110, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? MinQty { get; internal set; }
+		public FixField.Decimal? MinQty => _minQty;
+		internal FixField.Decimal? _minQty;
 
 		/// <summary>The FIX MaxFloor, tag 111, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? MaxFloor { get; internal set; }
+		public FixField.Decimal? MaxFloor => _maxFloor;
+		internal FixField.Decimal? _maxFloor;
 
 		/// <summary>The FIX ExDestination, tag 100, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? ExDestination { get; internal set; }
+		public FixField.Text? ExDestination => _exDestination;
+		internal FixField.Text? _exDestination;
 
 		/// <summary>The FIX NoTradingSessions, tag 386, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoTradingSessions { get; internal set; }
+		public FixField.Integer? NoTradingSessions => _noTradingSessions;
+		internal FixField.Integer? _noTradingSessions;
 
 		/// <summary>The entries counted by NoTradingSessions, tag 386; null when the group is absent.</summary>
 		public List<FixMessage.NewOrderSingle.NoTradingSessionsGroup>? NoTradingSessionsGroups => noTradingSessionsGroups;
 		internal List<NoTradingSessionsGroup>? noTradingSessionsGroups;
 
 		/// <summary>The FIX ProcessCode, tag 81, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? ProcessCode { get; internal set; }
+		public FixField.Character? ProcessCode => _processCode;
+		internal FixField.Character? _processCode;
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Symbol { get; internal set; }
+		public FixField.Text? Symbol => _symbol;
+		internal FixField.Text? _symbol;
 
 		/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SymbolSfx { get; internal set; }
+		public FixField.Text? SymbolSfx => _symbolSfx;
+		internal FixField.Text? _symbolSfx;
 
 		/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityID { get; internal set; }
+		public FixField.Text? SecurityID => _securityID;
+		internal FixField.Text? _securityID;
 
 		/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IDSource { get; internal set; }
+		public FixField.Text? IDSource => _iDSource;
+		internal FixField.Text? _iDSource;
 
 		/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityType { get; internal set; }
+		public FixField.Text? SecurityType => _securityType;
+		internal FixField.Text? _securityType;
 
 		/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-		public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+		public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+		internal FixField.MonthYear? _maturityMonthYear;
 
 		/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-		public FixField.Integer? MaturityDay { get; internal set; }
+		public FixField.Integer? MaturityDay => _maturityDay;
+		internal FixField.Integer? _maturityDay;
 
 		/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? PutOrCall { get; internal set; }
+		public FixField.Integer? PutOrCall => _putOrCall;
+		internal FixField.Integer? _putOrCall;
 
 		/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StrikePrice { get; internal set; }
+		public FixField.Decimal? StrikePrice => _strikePrice;
+		internal FixField.Decimal? _strikePrice;
 
 		/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OptAttribute { get; internal set; }
+		public FixField.Character? OptAttribute => _optAttribute;
+		internal FixField.Character? _optAttribute;
 
 		/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? ContractMultiplier { get; internal set; }
+		public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+		internal FixField.Decimal? _contractMultiplier;
 
 		/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CouponRate { get; internal set; }
+		public FixField.Decimal? CouponRate => _couponRate;
+		internal FixField.Decimal? _couponRate;
 
 		/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityExchange { get; internal set; }
+		public FixField.Text? SecurityExchange => _securityExchange;
+		internal FixField.Text? _securityExchange;
 
 		/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Issuer { get; internal set; }
+		public FixField.Text? Issuer => _issuer;
+		internal FixField.Text? _issuer;
 
 		/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedIssuerLen { get; internal set; }
+		public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+		internal FixField.Integer? _encodedIssuerLen;
 
 		/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedIssuer { get; internal set; }
+		public FixField.Data? EncodedIssuer => _encodedIssuer;
+		internal FixField.Data? _encodedIssuer;
 
 		/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityDesc { get; internal set; }
+		public FixField.Text? SecurityDesc => _securityDesc;
+		internal FixField.Text? _securityDesc;
 
 		/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+		public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+		internal FixField.Integer? _encodedSecurityDescLen;
 
 		/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedSecurityDesc { get; internal set; }
+		public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+		internal FixField.Data? _encodedSecurityDesc;
 
 		/// <summary>The FIX PrevClosePx, tag 140, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? PrevClosePx { get; internal set; }
+		public FixField.Decimal? PrevClosePx => _prevClosePx;
+		internal FixField.Decimal? _prevClosePx;
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? Side { get; internal set; }
+		public FixField.Character? Side => _side;
+		internal FixField.Character? _side;
 
 		/// <summary>The FIX LocateReqd, tag 114, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? LocateReqd { get; internal set; }
+		public FixField.Boolean? LocateReqd => _locateReqd;
+		internal FixField.Boolean? _locateReqd;
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TransactTime { get; internal set; }
+		public FixField.Timestamp? TransactTime => _transactTime;
+		internal FixField.Timestamp? _transactTime;
 
 		/// <summary>The FIX OrderQty, tag 38, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? OrderQty { get; internal set; }
+		public FixField.Decimal? OrderQty => _orderQty;
+		internal FixField.Decimal? _orderQty;
 
 		/// <summary>The FIX CashOrderQty, tag 152, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CashOrderQty { get; internal set; }
+		public FixField.Decimal? CashOrderQty => _cashOrderQty;
+		internal FixField.Decimal? _cashOrderQty;
 
 		/// <summary>The FIX OrdType, tag 40, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OrdType { get; internal set; }
+		public FixField.Character? OrdType => _ordType;
+		internal FixField.Character? _ordType;
 
 		/// <summary>The FIX Price, tag 44, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? Price { get; internal set; }
+		public FixField.Decimal? Price => _price;
+		internal FixField.Decimal? _price;
 
 		/// <summary>The FIX StopPx, tag 99, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StopPx { get; internal set; }
+		public FixField.Decimal? StopPx => _stopPx;
+		internal FixField.Decimal? _stopPx;
 
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
-		public FixField.Text? Currency { get; internal set; }
+		public FixField.Text? Currency => _currency;
+		internal FixField.Text? _currency;
 
 		/// <summary>The FIX ComplianceID, tag 376, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ComplianceID { get; internal set; }
+		public FixField.Text? ComplianceID => _complianceID;
+		internal FixField.Text? _complianceID;
 
 		/// <summary>The FIX SolicitedFlag, tag 377, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? SolicitedFlag { get; internal set; }
+		public FixField.Boolean? SolicitedFlag => _solicitedFlag;
+		internal FixField.Boolean? _solicitedFlag;
 
 		/// <summary>The FIX IOIid, tag 23, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IOIid { get; internal set; }
+		public FixField.Text? IOIid => _iOIid;
+		internal FixField.Text? _iOIid;
 
 		/// <summary>The FIX QuoteID, tag 117, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? QuoteID { get; internal set; }
+		public FixField.Text? QuoteID => _quoteID;
+		internal FixField.Text? _quoteID;
 
 		/// <summary>The FIX TimeInForce, tag 59, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? TimeInForce { get; internal set; }
+		public FixField.Character? TimeInForce => _timeInForce;
+		internal FixField.Character? _timeInForce;
 
 		/// <summary>The FIX EffectiveTime, tag 168, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? EffectiveTime { get; internal set; }
+		public FixField.Timestamp? EffectiveTime => _effectiveTime;
+		internal FixField.Timestamp? _effectiveTime;
 
 		/// <summary>The FIX ExpireDate, tag 432, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? ExpireDate { get; internal set; }
+		public FixField.Date? ExpireDate => _expireDate;
+		internal FixField.Date? _expireDate;
 
 		/// <summary>The FIX ExpireTime, tag 126, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? ExpireTime { get; internal set; }
+		public FixField.Timestamp? ExpireTime => _expireTime;
+		internal FixField.Timestamp? _expireTime;
 
 		/// <summary>The FIX GTBookingInst, tag 427, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? GTBookingInst { get; internal set; }
+		public FixField.Integer? GTBookingInst => _gTBookingInst;
+		internal FixField.Integer? _gTBookingInst;
 
 		/// <summary>The FIX Commission, tag 12, wire type <c>Amt</c>; null when the field is absent.</summary>
-		public FixField.Decimal? Commission { get; internal set; }
+		public FixField.Decimal? Commission => _commission;
+		internal FixField.Decimal? _commission;
 
 		/// <summary>The FIX CommType, tag 13, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? CommType { get; internal set; }
+		public FixField.Character? CommType => _commType;
+		internal FixField.Character? _commType;
 
 		/// <summary>The FIX Rule80A, tag 47, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? Rule80A { get; internal set; }
+		public FixField.Character? Rule80A => _rule80A;
+		internal FixField.Character? _rule80A;
 
 		/// <summary>The FIX ForexReq, tag 121, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? ForexReq { get; internal set; }
+		public FixField.Boolean? ForexReq => _forexReq;
+		internal FixField.Boolean? _forexReq;
 
 		/// <summary>The FIX SettlCurrency, tag 120, wire type <c>Currency</c>; null when the field is absent.</summary>
-		public FixField.Text? SettlCurrency { get; internal set; }
+		public FixField.Text? SettlCurrency => _settlCurrency;
+		internal FixField.Text? _settlCurrency;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>The FIX FutSettDate2, tag 193, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? FutSettDate2 { get; internal set; }
+		public FixField.Date? FutSettDate2 => _futSettDate2;
+		internal FixField.Date? _futSettDate2;
 
 		/// <summary>The FIX OrderQty2, tag 192, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? OrderQty2 { get; internal set; }
+		public FixField.Decimal? OrderQty2 => _orderQty2;
+		internal FixField.Decimal? _orderQty2;
 
 		/// <summary>The FIX OpenClose, tag 77, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OpenClose { get; internal set; }
+		public FixField.Character? OpenClose => _openClose;
+		internal FixField.Character? _openClose;
 
 		/// <summary>The FIX CoveredOrUncovered, tag 203, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? CoveredOrUncovered { get; internal set; }
+		public FixField.Integer? CoveredOrUncovered => _coveredOrUncovered;
+		internal FixField.Integer? _coveredOrUncovered;
 
 		/// <summary>The FIX CustomerOrFirm, tag 204, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? CustomerOrFirm { get; internal set; }
+		public FixField.Integer? CustomerOrFirm => _customerOrFirm;
+		internal FixField.Integer? _customerOrFirm;
 
 		/// <summary>The FIX MaxShow, tag 210, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? MaxShow { get; internal set; }
+		public FixField.Decimal? MaxShow => _maxShow;
+		internal FixField.Decimal? _maxShow;
 
 		/// <summary>The FIX PegDifference, tag 211, wire type <c>PriceOffset</c>; null when the field is absent.</summary>
-		public FixField.Decimal? PegDifference { get; internal set; }
+		public FixField.Decimal? PegDifference => _pegDifference;
+		internal FixField.Decimal? _pegDifference;
 
 		/// <summary>The FIX DiscretionInst, tag 388, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? DiscretionInst { get; internal set; }
+		public FixField.Character? DiscretionInst => _discretionInst;
+		internal FixField.Character? _discretionInst;
 
 		/// <summary>The FIX DiscretionOffset, tag 389, wire type <c>PriceOffset</c>; null when the field is absent.</summary>
-		public FixField.Decimal? DiscretionOffset { get; internal set; }
+		public FixField.Decimal? DiscretionOffset => _discretionOffset;
+		internal FixField.Decimal? _discretionOffset;
 
 		/// <summary>The FIX ClearingFirm, tag 439, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClearingFirm { get; internal set; }
+		public FixField.Text? ClearingFirm => _clearingFirm;
+		internal FixField.Text? _clearingFirm;
 
 		/// <summary>The FIX ClearingAccount, tag 440, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClearingAccount { get; internal set; }
+		public FixField.Text? ClearingAccount => _clearingAccount;
+		internal FixField.Text? _clearingAccount;
 
 		/// <summary>One entry of the group counted by NoAllocs, tag 78.</summary>
 		public sealed class NoAllocsGroup : IFixEntry
@@ -7531,7 +8357,8 @@ public abstract partial class FixMessage
 			public FixField.Text AllocAccount { get; }
 
 			/// <summary>The FIX AllocShares, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? AllocShares { get; internal set; }
+			public FixField.Decimal? AllocShares => _allocShares;
+			internal FixField.Decimal? _allocShares;
 
 			FixField IFixEntry.Opener => AllocAccount;
 
@@ -7597,197 +8424,197 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.OrigTime: if (OrigTime is not null) Duplicate(field); OrigTime = (FixField.Timestamp)field; break;
-					case FixTag.Urgency: if (Urgency is not null) Duplicate(field); Urgency = (FixField.Character)field; break;
-					case FixTag.Headline: if (Headline is not null) Duplicate(field); Headline = (FixField.Text)field; break;
-					case FixTag.EncodedHeadlineLen: if (EncodedHeadlineLen is not null) Duplicate(field); EncodedHeadlineLen = (FixField.Integer)field; break;
-					case FixTag.EncodedHeadline: if (EncodedHeadline is not null) Duplicate(field); EncodedHeadline = (FixField.Data)field; break;
-					case FixTag.NoRoutingIDs: if (NoRoutingIDs is not null) Duplicate(field); NoRoutingIDs = (FixField.Integer)field; break;
+					case FixTag.OrigTime: if (_origTime is not null) Duplicate(field); _origTime = (FixField.Timestamp)field; break;
+					case FixTag.Urgency: if (_urgency is not null) Duplicate(field); _urgency = (FixField.Character)field; break;
+					case FixTag.Headline: if (_headline is not null) Duplicate(field); _headline = (FixField.Text)field; break;
+					case FixTag.EncodedHeadlineLen: if (_encodedHeadlineLen is not null) Duplicate(field); _encodedHeadlineLen = (FixField.Integer)field; break;
+					case FixTag.EncodedHeadline: if (_encodedHeadline is not null) Duplicate(field); _encodedHeadline = (FixField.Data)field; break;
+					case FixTag.NoRoutingIDs: if (_noRoutingIDs is not null) Duplicate(field); _noRoutingIDs = (FixField.Integer)field; break;
 					case FixTag.RoutingType:
-						if (noRoutingIDsGroups is null && NoRoutingIDs is null) Uncounted(FixTag.NoRoutingIDs, field);
+						if (noRoutingIDsGroups is null && _noRoutingIDs is null) Uncounted(FixTag.NoRoutingIDs, field);
 						(noRoutingIDsGroups ??= []).Add(new ((FixField.Integer)field));
 						break;
 					case FixTag.RoutingID:
 						if (None(noRoutingIDsGroups))
 							Unentered(field);
-						else if (noRoutingIDsGroups![^1].RoutingID is not null)
+						else if (noRoutingIDsGroups![^1]._routingID is not null)
 							Duplicate(field, FixTag.NoRoutingIDs, noRoutingIDsGroups!.Count - 1);
 						else
-							noRoutingIDsGroups![^1].RoutingID = (FixField.Text)field;
+							noRoutingIDsGroups![^1]._routingID = (FixField.Text)field;
 						break;
-					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) Duplicate(field); NoRelatedSym = (FixField.Integer)field; break;
+					case FixTag.NoRelatedSym: if (_noRelatedSym is not null) Duplicate(field); _noRelatedSym = (FixField.Integer)field; break;
 					case FixTag.RelatdSym:
-						if (noRelatedSymGroups is null && NoRelatedSym is null) Uncounted(FixTag.NoRelatedSym, field);
+						if (noRelatedSymGroups is null && _noRelatedSym is null) Uncounted(FixTag.NoRelatedSym, field);
 						(noRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SymbolSfx is not null)
+						else if (noRelatedSymGroups![^1]._symbolSfx is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SymbolSfx = (FixField.Text)field;
+							noRelatedSymGroups![^1]._symbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SecurityID is not null)
+						else if (noRelatedSymGroups![^1]._securityID is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SecurityID = (FixField.Text)field;
+							noRelatedSymGroups![^1]._securityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].IDSource is not null)
+						else if (noRelatedSymGroups![^1]._iDSource is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].IDSource = (FixField.Text)field;
+							noRelatedSymGroups![^1]._iDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SecurityType is not null)
+						else if (noRelatedSymGroups![^1]._securityType is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SecurityType = (FixField.Text)field;
+							noRelatedSymGroups![^1]._securityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].MaturityMonthYear is not null)
+						else if (noRelatedSymGroups![^1]._maturityMonthYear is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
+							noRelatedSymGroups![^1]._maturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].MaturityDay is not null)
+						else if (noRelatedSymGroups![^1]._maturityDay is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].MaturityDay = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._maturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].PutOrCall is not null)
+						else if (noRelatedSymGroups![^1]._putOrCall is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].PutOrCall = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._putOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].StrikePrice is not null)
+						else if (noRelatedSymGroups![^1]._strikePrice is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].StrikePrice = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._strikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].OptAttribute is not null)
+						else if (noRelatedSymGroups![^1]._optAttribute is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].OptAttribute = (FixField.Character)field;
+							noRelatedSymGroups![^1]._optAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].ContractMultiplier is not null)
+						else if (noRelatedSymGroups![^1]._contractMultiplier is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].ContractMultiplier = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._contractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].CouponRate is not null)
+						else if (noRelatedSymGroups![^1]._couponRate is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].CouponRate = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._couponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SecurityExchange is not null)
+						else if (noRelatedSymGroups![^1]._securityExchange is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SecurityExchange = (FixField.Text)field;
+							noRelatedSymGroups![^1]._securityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].Issuer is not null)
+						else if (noRelatedSymGroups![^1]._issuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].Issuer = (FixField.Text)field;
+							noRelatedSymGroups![^1]._issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedIssuerLen is not null)
+						else if (noRelatedSymGroups![^1]._encodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._encodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedIssuer is not null)
+						else if (noRelatedSymGroups![^1]._encodedIssuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedIssuer = (FixField.Data)field;
+							noRelatedSymGroups![^1]._encodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SecurityDesc is not null)
+						else if (noRelatedSymGroups![^1]._securityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SecurityDesc = (FixField.Text)field;
+							noRelatedSymGroups![^1]._securityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedSecurityDescLen is not null)
+						else if (noRelatedSymGroups![^1]._encodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._encodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedSecurityDesc is not null)
+						else if (noRelatedSymGroups![^1]._encodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
+							noRelatedSymGroups![^1]._encodedSecurityDesc = (FixField.Data)field;
 						break;
-					case FixTag.NoLinesOfText: if (LinesOfText is not null) Duplicate(field); LinesOfText = (FixField.Integer)field; break;
+					case FixTag.NoLinesOfText: if (_linesOfText is not null) Duplicate(field); _linesOfText = (FixField.Integer)field; break;
 					case FixTag.Text:
-						if (linesOfTextGroups is null && LinesOfText is null) Uncounted(FixTag.NoLinesOfText, field);
+						if (linesOfTextGroups is null && _linesOfText is null) Uncounted(FixTag.NoLinesOfText, field);
 						(linesOfTextGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.EncodedTextLen:
 						if (None(linesOfTextGroups))
 							Unentered(field);
-						else if (linesOfTextGroups![^1].EncodedTextLen is not null)
+						else if (linesOfTextGroups![^1]._encodedTextLen is not null)
 							Duplicate(field, FixTag.NoLinesOfText, linesOfTextGroups!.Count - 1);
 						else
-							linesOfTextGroups![^1].EncodedTextLen = (FixField.Integer)field;
+							linesOfTextGroups![^1]._encodedTextLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedText:
 						if (None(linesOfTextGroups))
 							Unentered(field);
-						else if (linesOfTextGroups![^1].EncodedText is not null)
+						else if (linesOfTextGroups![^1]._encodedText is not null)
 							Duplicate(field, FixTag.NoLinesOfText, linesOfTextGroups!.Count - 1);
 						else
-							linesOfTextGroups![^1].EncodedText = (FixField.Data)field;
+							linesOfTextGroups![^1]._encodedText = (FixField.Data)field;
 						break;
-					case FixTag.URLLink: if (URLLink is not null) Duplicate(field); URLLink = (FixField.Text)field; break;
-					case FixTag.RawDataLength: if (RawDataLength is not null) Duplicate(field); RawDataLength = (FixField.Integer)field; break;
-					case FixTag.RawData: if (RawData is not null) Duplicate(field); RawData = (FixField.Data)field; break;
+					case FixTag.URLLink: if (_uRLLink is not null) Duplicate(field); _uRLLink = (FixField.Text)field; break;
+					case FixTag.RawDataLength: if (_rawDataLength is not null) Duplicate(field); _rawDataLength = (FixField.Integer)field; break;
+					case FixTag.RawData: if (_rawData is not null) Duplicate(field); _rawData = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -7799,49 +8626,60 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX OrigTime, tag 42, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? OrigTime { get; internal set; }
+		public FixField.Timestamp? OrigTime => _origTime;
+		internal FixField.Timestamp? _origTime;
 
 		/// <summary>The FIX Urgency, tag 61, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? Urgency { get; internal set; }
+		public FixField.Character? Urgency => _urgency;
+		internal FixField.Character? _urgency;
 
 		/// <summary>The FIX Headline, tag 148, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Headline { get; internal set; }
+		public FixField.Text? Headline => _headline;
+		internal FixField.Text? _headline;
 
 		/// <summary>The FIX EncodedHeadlineLen, tag 358, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedHeadlineLen { get; internal set; }
+		public FixField.Integer? EncodedHeadlineLen => _encodedHeadlineLen;
+		internal FixField.Integer? _encodedHeadlineLen;
 
 		/// <summary>The FIX EncodedHeadline, tag 359, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedHeadline { get; internal set; }
+		public FixField.Data? EncodedHeadline => _encodedHeadline;
+		internal FixField.Data? _encodedHeadline;
 
 		/// <summary>The FIX NoRoutingIDs, tag 215, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoRoutingIDs { get; internal set; }
+		public FixField.Integer? NoRoutingIDs => _noRoutingIDs;
+		internal FixField.Integer? _noRoutingIDs;
 
 		/// <summary>The entries counted by NoRoutingIDs, tag 215; null when the group is absent.</summary>
 		public List<FixMessage.News.NoRoutingIDsGroup>? NoRoutingIDsGroups => noRoutingIDsGroups;
 		internal List<NoRoutingIDsGroup>? noRoutingIDsGroups;
 
 		/// <summary>The FIX NoRelatedSym, tag 146, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoRelatedSym { get; internal set; }
+		public FixField.Integer? NoRelatedSym => _noRelatedSym;
+		internal FixField.Integer? _noRelatedSym;
 
 		/// <summary>The entries counted by NoRelatedSym, tag 146; null when the group is absent.</summary>
 		public List<FixMessage.News.NoRelatedSymGroup>? NoRelatedSymGroups => noRelatedSymGroups;
 		internal List<NoRelatedSymGroup>? noRelatedSymGroups;
 
 		/// <summary>The FIX LinesOfText, tag 33, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? LinesOfText { get; internal set; }
+		public FixField.Integer? LinesOfText => _linesOfText;
+		internal FixField.Integer? _linesOfText;
 
 		/// <summary>The entries counted by LinesOfText, tag 33; null when the group is absent.</summary>
 		public List<FixMessage.News.LinesOfTextGroup>? LinesOfTextGroups => linesOfTextGroups;
 		internal List<LinesOfTextGroup>? linesOfTextGroups;
 
 		/// <summary>The FIX URLLink, tag 149, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? URLLink { get; internal set; }
+		public FixField.Text? URLLink => _uRLLink;
+		internal FixField.Text? _uRLLink;
 
 		/// <summary>The FIX RawDataLength, tag 95, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? RawDataLength { get; internal set; }
+		public FixField.Integer? RawDataLength => _rawDataLength;
+		internal FixField.Integer? _rawDataLength;
 
 		/// <summary>The FIX RawData, tag 96, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? RawData { get; internal set; }
+		public FixField.Data? RawData => _rawData;
+		internal FixField.Data? _rawData;
 
 		/// <summary>One entry of the group counted by NoRoutingIDs, tag 215.</summary>
 		public sealed class NoRoutingIDsGroup : IFixEntry
@@ -7855,7 +8693,8 @@ public abstract partial class FixMessage
 			public FixField.Integer RoutingType { get; }
 
 			/// <summary>The FIX RoutingID, tag 217, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? RoutingID { get; internal set; }
+			public FixField.Text? RoutingID => _routingID;
+			internal FixField.Text? _routingID;
 
 			FixField IFixEntry.Opener => RoutingType;
 
@@ -7884,58 +8723,76 @@ public abstract partial class FixMessage
 			public FixField.Text RelatdSym { get; }
 
 			/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SymbolSfx { get; internal set; }
+			public FixField.Text? SymbolSfx => _symbolSfx;
+			internal FixField.Text? _symbolSfx;
 
 			/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityID { get; internal set; }
+			public FixField.Text? SecurityID => _securityID;
+			internal FixField.Text? _securityID;
 
 			/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? IDSource { get; internal set; }
+			public FixField.Text? IDSource => _iDSource;
+			internal FixField.Text? _iDSource;
 
 			/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityType { get; internal set; }
+			public FixField.Text? SecurityType => _securityType;
+			internal FixField.Text? _securityType;
 
 			/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-			public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+			public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+			internal FixField.MonthYear? _maturityMonthYear;
 
 			/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-			public FixField.Integer? MaturityDay { get; internal set; }
+			public FixField.Integer? MaturityDay => _maturityDay;
+			internal FixField.Integer? _maturityDay;
 
 			/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? PutOrCall { get; internal set; }
+			public FixField.Integer? PutOrCall => _putOrCall;
+			internal FixField.Integer? _putOrCall;
 
 			/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? StrikePrice { get; internal set; }
+			public FixField.Decimal? StrikePrice => _strikePrice;
+			internal FixField.Decimal? _strikePrice;
 
 			/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? OptAttribute { get; internal set; }
+			public FixField.Character? OptAttribute => _optAttribute;
+			internal FixField.Character? _optAttribute;
 
 			/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? ContractMultiplier { get; internal set; }
+			public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+			internal FixField.Decimal? _contractMultiplier;
 
 			/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? CouponRate { get; internal set; }
+			public FixField.Decimal? CouponRate => _couponRate;
+			internal FixField.Decimal? _couponRate;
 
 			/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityExchange { get; internal set; }
+			public FixField.Text? SecurityExchange => _securityExchange;
+			internal FixField.Text? _securityExchange;
 
 			/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Issuer { get; internal set; }
+			public FixField.Text? Issuer => _issuer;
+			internal FixField.Text? _issuer;
 
 			/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedIssuerLen { get; internal set; }
+			public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+			internal FixField.Integer? _encodedIssuerLen;
 
 			/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedIssuer { get; internal set; }
+			public FixField.Data? EncodedIssuer => _encodedIssuer;
+			internal FixField.Data? _encodedIssuer;
 
 			/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityDesc { get; internal set; }
+			public FixField.Text? SecurityDesc => _securityDesc;
+			internal FixField.Text? _securityDesc;
 
 			/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+			public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+			internal FixField.Integer? _encodedSecurityDescLen;
 
 			/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedSecurityDesc { get; internal set; }
+			public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+			internal FixField.Data? _encodedSecurityDesc;
 
 			FixField IFixEntry.Opener => RelatdSym;
 
@@ -7965,10 +8822,12 @@ public abstract partial class FixMessage
 			public FixField.Text Text { get; }
 
 			/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedTextLen { get; internal set; }
+			public FixField.Integer? EncodedTextLen => _encodedTextLen;
+			internal FixField.Integer? _encodedTextLen;
 
 			/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedText { get; internal set; }
+			public FixField.Data? EncodedText => _encodedText;
+			internal FixField.Data? _encodedText;
 
 			FixField IFixEntry.Opener => Text;
 
@@ -8009,21 +8868,21 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.OrderID: if (OrderID is not null) Duplicate(field); OrderID = (FixField.Text)field; break;
-					case FixTag.SecondaryOrderID: if (SecondaryOrderID is not null) Duplicate(field); SecondaryOrderID = (FixField.Text)field; break;
-					case FixTag.ClOrdID: if (ClOrdID is not null) Duplicate(field); ClOrdID = (FixField.Text)field; break;
-					case FixTag.OrigClOrdID: if (OrigClOrdID is not null) Duplicate(field); OrigClOrdID = (FixField.Text)field; break;
-					case FixTag.OrdStatus: if (OrdStatus is not null) Duplicate(field); OrdStatus = (FixField.Character)field; break;
-					case FixTag.ClientID: if (ClientID is not null) Duplicate(field); ClientID = (FixField.Text)field; break;
-					case FixTag.ExecBroker: if (ExecBroker is not null) Duplicate(field); ExecBroker = (FixField.Text)field; break;
-					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
-					case FixTag.Account: if (Account is not null) Duplicate(field); Account = (FixField.Text)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.CxlRejResponseTo: if (CxlRejResponseTo is not null) Duplicate(field); CxlRejResponseTo = (FixField.Character)field; break;
-					case FixTag.CxlRejReason: if (CxlRejReason is not null) Duplicate(field); CxlRejReason = (FixField.Integer)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.OrderID: if (_orderID is not null) Duplicate(field); _orderID = (FixField.Text)field; break;
+					case FixTag.SecondaryOrderID: if (_secondaryOrderID is not null) Duplicate(field); _secondaryOrderID = (FixField.Text)field; break;
+					case FixTag.ClOrdID: if (_clOrdID is not null) Duplicate(field); _clOrdID = (FixField.Text)field; break;
+					case FixTag.OrigClOrdID: if (_origClOrdID is not null) Duplicate(field); _origClOrdID = (FixField.Text)field; break;
+					case FixTag.OrdStatus: if (_ordStatus is not null) Duplicate(field); _ordStatus = (FixField.Character)field; break;
+					case FixTag.ClientID: if (_clientID is not null) Duplicate(field); _clientID = (FixField.Text)field; break;
+					case FixTag.ExecBroker: if (_execBroker is not null) Duplicate(field); _execBroker = (FixField.Text)field; break;
+					case FixTag.ListID: if (_listID is not null) Duplicate(field); _listID = (FixField.Text)field; break;
+					case FixTag.Account: if (_account is not null) Duplicate(field); _account = (FixField.Text)field; break;
+					case FixTag.TransactTime: if (_transactTime is not null) Duplicate(field); _transactTime = (FixField.Timestamp)field; break;
+					case FixTag.CxlRejResponseTo: if (_cxlRejResponseTo is not null) Duplicate(field); _cxlRejResponseTo = (FixField.Character)field; break;
+					case FixTag.CxlRejReason: if (_cxlRejReason is not null) Duplicate(field); _cxlRejReason = (FixField.Integer)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -8035,49 +8894,64 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX OrderID, tag 37, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? OrderID { get; internal set; }
+		public FixField.Text? OrderID => _orderID;
+		internal FixField.Text? _orderID;
 
 		/// <summary>The FIX SecondaryOrderID, tag 198, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecondaryOrderID { get; internal set; }
+		public FixField.Text? SecondaryOrderID => _secondaryOrderID;
+		internal FixField.Text? _secondaryOrderID;
 
 		/// <summary>The FIX ClOrdID, tag 11, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClOrdID { get; internal set; }
+		public FixField.Text? ClOrdID => _clOrdID;
+		internal FixField.Text? _clOrdID;
 
 		/// <summary>The FIX OrigClOrdID, tag 41, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? OrigClOrdID { get; internal set; }
+		public FixField.Text? OrigClOrdID => _origClOrdID;
+		internal FixField.Text? _origClOrdID;
 
 		/// <summary>The FIX OrdStatus, tag 39, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OrdStatus { get; internal set; }
+		public FixField.Character? OrdStatus => _ordStatus;
+		internal FixField.Character? _ordStatus;
 
 		/// <summary>The FIX ClientID, tag 109, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClientID { get; internal set; }
+		public FixField.Text? ClientID => _clientID;
+		internal FixField.Text? _clientID;
 
 		/// <summary>The FIX ExecBroker, tag 76, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ExecBroker { get; internal set; }
+		public FixField.Text? ExecBroker => _execBroker;
+		internal FixField.Text? _execBroker;
 
 		/// <summary>The FIX ListID, tag 66, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ListID { get; internal set; }
+		public FixField.Text? ListID => _listID;
+		internal FixField.Text? _listID;
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Account { get; internal set; }
+		public FixField.Text? Account => _account;
+		internal FixField.Text? _account;
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TransactTime { get; internal set; }
+		public FixField.Timestamp? TransactTime => _transactTime;
+		internal FixField.Timestamp? _transactTime;
 
 		/// <summary>The FIX CxlRejResponseTo, tag 434, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? CxlRejResponseTo { get; internal set; }
+		public FixField.Character? CxlRejResponseTo => _cxlRejResponseTo;
+		internal FixField.Character? _cxlRejResponseTo;
 
 		/// <summary>The FIX CxlRejReason, tag 102, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? CxlRejReason { get; internal set; }
+		public FixField.Integer? CxlRejReason => _cxlRejReason;
+		internal FixField.Integer? _cxlRejReason;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -8095,92 +8969,92 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.OrderID: if (OrderID is not null) Duplicate(field); OrderID = (FixField.Text)field; break;
-					case FixTag.ClientID: if (ClientID is not null) Duplicate(field); ClientID = (FixField.Text)field; break;
-					case FixTag.ExecBroker: if (ExecBroker is not null) Duplicate(field); ExecBroker = (FixField.Text)field; break;
-					case FixTag.OrigClOrdID: if (OrigClOrdID is not null) Duplicate(field); OrigClOrdID = (FixField.Text)field; break;
-					case FixTag.ClOrdID: if (ClOrdID is not null) Duplicate(field); ClOrdID = (FixField.Text)field; break;
-					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
-					case FixTag.Account: if (Account is not null) Duplicate(field); Account = (FixField.Text)field; break;
-					case FixTag.NoAllocs: if (NoAllocs is not null) Duplicate(field); NoAllocs = (FixField.Integer)field; break;
+					case FixTag.OrderID: if (_orderID is not null) Duplicate(field); _orderID = (FixField.Text)field; break;
+					case FixTag.ClientID: if (_clientID is not null) Duplicate(field); _clientID = (FixField.Text)field; break;
+					case FixTag.ExecBroker: if (_execBroker is not null) Duplicate(field); _execBroker = (FixField.Text)field; break;
+					case FixTag.OrigClOrdID: if (_origClOrdID is not null) Duplicate(field); _origClOrdID = (FixField.Text)field; break;
+					case FixTag.ClOrdID: if (_clOrdID is not null) Duplicate(field); _clOrdID = (FixField.Text)field; break;
+					case FixTag.ListID: if (_listID is not null) Duplicate(field); _listID = (FixField.Text)field; break;
+					case FixTag.Account: if (_account is not null) Duplicate(field); _account = (FixField.Text)field; break;
+					case FixTag.NoAllocs: if (_noAllocs is not null) Duplicate(field); _noAllocs = (FixField.Integer)field; break;
 					case FixTag.AllocAccount:
-						if (noAllocsGroups is null && NoAllocs is null) Uncounted(FixTag.NoAllocs, field);
+						if (noAllocsGroups is null && _noAllocs is null) Uncounted(FixTag.NoAllocs, field);
 						(noAllocsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.AllocQty:
 						if (None(noAllocsGroups))
 							Unentered(field);
-						else if (noAllocsGroups![^1].AllocShares is not null)
+						else if (noAllocsGroups![^1]._allocShares is not null)
 							Duplicate(field, FixTag.NoAllocs, noAllocsGroups!.Count - 1);
 						else
-							noAllocsGroups![^1].AllocShares = (FixField.Decimal)field;
+							noAllocsGroups![^1]._allocShares = (FixField.Decimal)field;
 						break;
-					case FixTag.SettlType: if (SettlmntTyp is not null) Duplicate(field); SettlmntTyp = (FixField.Character)field; break;
-					case FixTag.SettlDate: if (FutSettDate is not null) Duplicate(field); FutSettDate = (FixField.Date)field; break;
-					case FixTag.HandlInst: if (HandlInst is not null) Duplicate(field); HandlInst = (FixField.Character)field; break;
-					case FixTag.ExecInst: if (ExecInst is not null) Duplicate(field); ExecInst = (FixField.Multiple)field; break;
-					case FixTag.MinQty: if (MinQty is not null) Duplicate(field); MinQty = (FixField.Decimal)field; break;
-					case FixTag.MaxFloor: if (MaxFloor is not null) Duplicate(field); MaxFloor = (FixField.Decimal)field; break;
-					case FixTag.ExDestination: if (ExDestination is not null) Duplicate(field); ExDestination = (FixField.Text)field; break;
-					case FixTag.NoTradingSessions: if (NoTradingSessions is not null) Duplicate(field); NoTradingSessions = (FixField.Integer)field; break;
+					case FixTag.SettlType: if (_settlmntTyp is not null) Duplicate(field); _settlmntTyp = (FixField.Character)field; break;
+					case FixTag.SettlDate: if (_futSettDate is not null) Duplicate(field); _futSettDate = (FixField.Date)field; break;
+					case FixTag.HandlInst: if (_handlInst is not null) Duplicate(field); _handlInst = (FixField.Character)field; break;
+					case FixTag.ExecInst: if (_execInst is not null) Duplicate(field); _execInst = (FixField.Multiple)field; break;
+					case FixTag.MinQty: if (_minQty is not null) Duplicate(field); _minQty = (FixField.Decimal)field; break;
+					case FixTag.MaxFloor: if (_maxFloor is not null) Duplicate(field); _maxFloor = (FixField.Decimal)field; break;
+					case FixTag.ExDestination: if (_exDestination is not null) Duplicate(field); _exDestination = (FixField.Text)field; break;
+					case FixTag.NoTradingSessions: if (_noTradingSessions is not null) Duplicate(field); _noTradingSessions = (FixField.Integer)field; break;
 					case FixTag.TradingSessionID:
-						if (noTradingSessionsGroups is null && NoTradingSessions is null) Uncounted(FixTag.NoTradingSessions, field);
+						if (noTradingSessionsGroups is null && _noTradingSessions is null) Uncounted(FixTag.NoTradingSessions, field);
 						(noTradingSessionsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
-					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.OrderQty: if (OrderQty is not null) Duplicate(field); OrderQty = (FixField.Decimal)field; break;
-					case FixTag.CashOrderQty: if (CashOrderQty is not null) Duplicate(field); CashOrderQty = (FixField.Decimal)field; break;
-					case FixTag.OrdType: if (OrdType is not null) Duplicate(field); OrdType = (FixField.Character)field; break;
-					case FixTag.Price: if (Price is not null) Duplicate(field); Price = (FixField.Decimal)field; break;
-					case FixTag.StopPx: if (StopPx is not null) Duplicate(field); StopPx = (FixField.Decimal)field; break;
-					case FixTag.PegOffsetValue: if (PegDifference is not null) Duplicate(field); PegDifference = (FixField.Decimal)field; break;
-					case FixTag.DiscretionInst: if (DiscretionInst is not null) Duplicate(field); DiscretionInst = (FixField.Character)field; break;
-					case FixTag.DiscretionOffsetValue: if (DiscretionOffset is not null) Duplicate(field); DiscretionOffset = (FixField.Decimal)field; break;
-					case FixTag.ComplianceID: if (ComplianceID is not null) Duplicate(field); ComplianceID = (FixField.Text)field; break;
-					case FixTag.SolicitedFlag: if (SolicitedFlag is not null) Duplicate(field); SolicitedFlag = (FixField.Boolean)field; break;
-					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
-					case FixTag.TimeInForce: if (TimeInForce is not null) Duplicate(field); TimeInForce = (FixField.Character)field; break;
-					case FixTag.EffectiveTime: if (EffectiveTime is not null) Duplicate(field); EffectiveTime = (FixField.Timestamp)field; break;
-					case FixTag.ExpireDate: if (ExpireDate is not null) Duplicate(field); ExpireDate = (FixField.Date)field; break;
-					case FixTag.ExpireTime: if (ExpireTime is not null) Duplicate(field); ExpireTime = (FixField.Timestamp)field; break;
-					case FixTag.GTBookingInst: if (GTBookingInst is not null) Duplicate(field); GTBookingInst = (FixField.Integer)field; break;
-					case FixTag.Commission: if (Commission is not null) Duplicate(field); Commission = (FixField.Decimal)field; break;
-					case FixTag.CommType: if (CommType is not null) Duplicate(field); CommType = (FixField.Character)field; break;
-					case FixTag.Rule80A: if (Rule80A is not null) Duplicate(field); Rule80A = (FixField.Character)field; break;
-					case FixTag.ForexReq: if (ForexReq is not null) Duplicate(field); ForexReq = (FixField.Boolean)field; break;
-					case FixTag.SettlCurrency: if (SettlCurrency is not null) Duplicate(field); SettlCurrency = (FixField.Text)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
-					case FixTag.SettlDate2: if (FutSettDate2 is not null) Duplicate(field); FutSettDate2 = (FixField.Date)field; break;
-					case FixTag.OrderQty2: if (OrderQty2 is not null) Duplicate(field); OrderQty2 = (FixField.Decimal)field; break;
-					case FixTag.PositionEffect: if (OpenClose is not null) Duplicate(field); OpenClose = (FixField.Character)field; break;
-					case FixTag.CoveredOrUncovered: if (CoveredOrUncovered is not null) Duplicate(field); CoveredOrUncovered = (FixField.Integer)field; break;
-					case FixTag.CustomerOrFirm: if (CustomerOrFirm is not null) Duplicate(field); CustomerOrFirm = (FixField.Integer)field; break;
-					case FixTag.MaxShow: if (MaxShow is not null) Duplicate(field); MaxShow = (FixField.Decimal)field; break;
-					case FixTag.LocateReqd: if (LocateReqd is not null) Duplicate(field); LocateReqd = (FixField.Boolean)field; break;
-					case FixTag.ClearingFirm: if (ClearingFirm is not null) Duplicate(field); ClearingFirm = (FixField.Text)field; break;
-					case FixTag.ClearingAccount: if (ClearingAccount is not null) Duplicate(field); ClearingAccount = (FixField.Text)field; break;
+					case FixTag.Symbol: if (_symbol is not null) Duplicate(field); _symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (_symbolSfx is not null) Duplicate(field); _symbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (_securityID is not null) Duplicate(field); _securityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (_iDSource is not null) Duplicate(field); _iDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (_securityType is not null) Duplicate(field); _securityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (_maturityMonthYear is not null) Duplicate(field); _maturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (_maturityDay is not null) Duplicate(field); _maturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (_putOrCall is not null) Duplicate(field); _putOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (_strikePrice is not null) Duplicate(field); _strikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (_optAttribute is not null) Duplicate(field); _optAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (_contractMultiplier is not null) Duplicate(field); _contractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (_couponRate is not null) Duplicate(field); _couponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (_securityExchange is not null) Duplicate(field); _securityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (_issuer is not null) Duplicate(field); _issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (_encodedIssuerLen is not null) Duplicate(field); _encodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (_encodedIssuer is not null) Duplicate(field); _encodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (_securityDesc is not null) Duplicate(field); _securityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (_encodedSecurityDescLen is not null) Duplicate(field); _encodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (_encodedSecurityDesc is not null) Duplicate(field); _encodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Side: if (_side is not null) Duplicate(field); _side = (FixField.Character)field; break;
+					case FixTag.TransactTime: if (_transactTime is not null) Duplicate(field); _transactTime = (FixField.Timestamp)field; break;
+					case FixTag.OrderQty: if (_orderQty is not null) Duplicate(field); _orderQty = (FixField.Decimal)field; break;
+					case FixTag.CashOrderQty: if (_cashOrderQty is not null) Duplicate(field); _cashOrderQty = (FixField.Decimal)field; break;
+					case FixTag.OrdType: if (_ordType is not null) Duplicate(field); _ordType = (FixField.Character)field; break;
+					case FixTag.Price: if (_price is not null) Duplicate(field); _price = (FixField.Decimal)field; break;
+					case FixTag.StopPx: if (_stopPx is not null) Duplicate(field); _stopPx = (FixField.Decimal)field; break;
+					case FixTag.PegOffsetValue: if (_pegDifference is not null) Duplicate(field); _pegDifference = (FixField.Decimal)field; break;
+					case FixTag.DiscretionInst: if (_discretionInst is not null) Duplicate(field); _discretionInst = (FixField.Character)field; break;
+					case FixTag.DiscretionOffsetValue: if (_discretionOffset is not null) Duplicate(field); _discretionOffset = (FixField.Decimal)field; break;
+					case FixTag.ComplianceID: if (_complianceID is not null) Duplicate(field); _complianceID = (FixField.Text)field; break;
+					case FixTag.SolicitedFlag: if (_solicitedFlag is not null) Duplicate(field); _solicitedFlag = (FixField.Boolean)field; break;
+					case FixTag.Currency: if (_currency is not null) Duplicate(field); _currency = (FixField.Text)field; break;
+					case FixTag.TimeInForce: if (_timeInForce is not null) Duplicate(field); _timeInForce = (FixField.Character)field; break;
+					case FixTag.EffectiveTime: if (_effectiveTime is not null) Duplicate(field); _effectiveTime = (FixField.Timestamp)field; break;
+					case FixTag.ExpireDate: if (_expireDate is not null) Duplicate(field); _expireDate = (FixField.Date)field; break;
+					case FixTag.ExpireTime: if (_expireTime is not null) Duplicate(field); _expireTime = (FixField.Timestamp)field; break;
+					case FixTag.GTBookingInst: if (_gTBookingInst is not null) Duplicate(field); _gTBookingInst = (FixField.Integer)field; break;
+					case FixTag.Commission: if (_commission is not null) Duplicate(field); _commission = (FixField.Decimal)field; break;
+					case FixTag.CommType: if (_commType is not null) Duplicate(field); _commType = (FixField.Character)field; break;
+					case FixTag.Rule80A: if (_rule80A is not null) Duplicate(field); _rule80A = (FixField.Character)field; break;
+					case FixTag.ForexReq: if (_forexReq is not null) Duplicate(field); _forexReq = (FixField.Boolean)field; break;
+					case FixTag.SettlCurrency: if (_settlCurrency is not null) Duplicate(field); _settlCurrency = (FixField.Text)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
+					case FixTag.SettlDate2: if (_futSettDate2 is not null) Duplicate(field); _futSettDate2 = (FixField.Date)field; break;
+					case FixTag.OrderQty2: if (_orderQty2 is not null) Duplicate(field); _orderQty2 = (FixField.Decimal)field; break;
+					case FixTag.PositionEffect: if (_openClose is not null) Duplicate(field); _openClose = (FixField.Character)field; break;
+					case FixTag.CoveredOrUncovered: if (_coveredOrUncovered is not null) Duplicate(field); _coveredOrUncovered = (FixField.Integer)field; break;
+					case FixTag.CustomerOrFirm: if (_customerOrFirm is not null) Duplicate(field); _customerOrFirm = (FixField.Integer)field; break;
+					case FixTag.MaxShow: if (_maxShow is not null) Duplicate(field); _maxShow = (FixField.Decimal)field; break;
+					case FixTag.LocateReqd: if (_locateReqd is not null) Duplicate(field); _locateReqd = (FixField.Boolean)field; break;
+					case FixTag.ClearingFirm: if (_clearingFirm is not null) Duplicate(field); _clearingFirm = (FixField.Text)field; break;
+					case FixTag.ClearingAccount: if (_clearingAccount is not null) Duplicate(field); _clearingAccount = (FixField.Text)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -8192,222 +9066,292 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX OrderID, tag 37, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? OrderID { get; internal set; }
+		public FixField.Text? OrderID => _orderID;
+		internal FixField.Text? _orderID;
 
 		/// <summary>The FIX ClientID, tag 109, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClientID { get; internal set; }
+		public FixField.Text? ClientID => _clientID;
+		internal FixField.Text? _clientID;
 
 		/// <summary>The FIX ExecBroker, tag 76, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ExecBroker { get; internal set; }
+		public FixField.Text? ExecBroker => _execBroker;
+		internal FixField.Text? _execBroker;
 
 		/// <summary>The FIX OrigClOrdID, tag 41, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? OrigClOrdID { get; internal set; }
+		public FixField.Text? OrigClOrdID => _origClOrdID;
+		internal FixField.Text? _origClOrdID;
 
 		/// <summary>The FIX ClOrdID, tag 11, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClOrdID { get; internal set; }
+		public FixField.Text? ClOrdID => _clOrdID;
+		internal FixField.Text? _clOrdID;
 
 		/// <summary>The FIX ListID, tag 66, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ListID { get; internal set; }
+		public FixField.Text? ListID => _listID;
+		internal FixField.Text? _listID;
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Account { get; internal set; }
+		public FixField.Text? Account => _account;
+		internal FixField.Text? _account;
 
 		/// <summary>The FIX NoAllocs, tag 78, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoAllocs { get; internal set; }
+		public FixField.Integer? NoAllocs => _noAllocs;
+		internal FixField.Integer? _noAllocs;
 
 		/// <summary>The entries counted by NoAllocs, tag 78; null when the group is absent.</summary>
 		public List<FixMessage.OrderCancelReplaceRequest.NoAllocsGroup>? NoAllocsGroups => noAllocsGroups;
 		internal List<NoAllocsGroup>? noAllocsGroups;
 
 		/// <summary>The FIX SettlmntTyp, tag 63, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? SettlmntTyp { get; internal set; }
+		public FixField.Character? SettlmntTyp => _settlmntTyp;
+		internal FixField.Character? _settlmntTyp;
 
 		/// <summary>The FIX FutSettDate, tag 64, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? FutSettDate { get; internal set; }
+		public FixField.Date? FutSettDate => _futSettDate;
+		internal FixField.Date? _futSettDate;
 
 		/// <summary>The FIX HandlInst, tag 21, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? HandlInst { get; internal set; }
+		public FixField.Character? HandlInst => _handlInst;
+		internal FixField.Character? _handlInst;
 
 		/// <summary>The FIX ExecInst, tag 18, wire type <c>MultipleValueString</c>; null when the field is absent.</summary>
-		public FixField.Multiple? ExecInst { get; internal set; }
+		public FixField.Multiple? ExecInst => _execInst;
+		internal FixField.Multiple? _execInst;
 
 		/// <summary>The FIX MinQty, tag 110, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? MinQty { get; internal set; }
+		public FixField.Decimal? MinQty => _minQty;
+		internal FixField.Decimal? _minQty;
 
 		/// <summary>The FIX MaxFloor, tag 111, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? MaxFloor { get; internal set; }
+		public FixField.Decimal? MaxFloor => _maxFloor;
+		internal FixField.Decimal? _maxFloor;
 
 		/// <summary>The FIX ExDestination, tag 100, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? ExDestination { get; internal set; }
+		public FixField.Text? ExDestination => _exDestination;
+		internal FixField.Text? _exDestination;
 
 		/// <summary>The FIX NoTradingSessions, tag 386, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoTradingSessions { get; internal set; }
+		public FixField.Integer? NoTradingSessions => _noTradingSessions;
+		internal FixField.Integer? _noTradingSessions;
 
 		/// <summary>The entries counted by NoTradingSessions, tag 386; null when the group is absent.</summary>
 		public List<FixMessage.OrderCancelReplaceRequest.NoTradingSessionsGroup>? NoTradingSessionsGroups => noTradingSessionsGroups;
 		internal List<NoTradingSessionsGroup>? noTradingSessionsGroups;
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Symbol { get; internal set; }
+		public FixField.Text? Symbol => _symbol;
+		internal FixField.Text? _symbol;
 
 		/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SymbolSfx { get; internal set; }
+		public FixField.Text? SymbolSfx => _symbolSfx;
+		internal FixField.Text? _symbolSfx;
 
 		/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityID { get; internal set; }
+		public FixField.Text? SecurityID => _securityID;
+		internal FixField.Text? _securityID;
 
 		/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IDSource { get; internal set; }
+		public FixField.Text? IDSource => _iDSource;
+		internal FixField.Text? _iDSource;
 
 		/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityType { get; internal set; }
+		public FixField.Text? SecurityType => _securityType;
+		internal FixField.Text? _securityType;
 
 		/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-		public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+		public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+		internal FixField.MonthYear? _maturityMonthYear;
 
 		/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-		public FixField.Integer? MaturityDay { get; internal set; }
+		public FixField.Integer? MaturityDay => _maturityDay;
+		internal FixField.Integer? _maturityDay;
 
 		/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? PutOrCall { get; internal set; }
+		public FixField.Integer? PutOrCall => _putOrCall;
+		internal FixField.Integer? _putOrCall;
 
 		/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StrikePrice { get; internal set; }
+		public FixField.Decimal? StrikePrice => _strikePrice;
+		internal FixField.Decimal? _strikePrice;
 
 		/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OptAttribute { get; internal set; }
+		public FixField.Character? OptAttribute => _optAttribute;
+		internal FixField.Character? _optAttribute;
 
 		/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? ContractMultiplier { get; internal set; }
+		public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+		internal FixField.Decimal? _contractMultiplier;
 
 		/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CouponRate { get; internal set; }
+		public FixField.Decimal? CouponRate => _couponRate;
+		internal FixField.Decimal? _couponRate;
 
 		/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityExchange { get; internal set; }
+		public FixField.Text? SecurityExchange => _securityExchange;
+		internal FixField.Text? _securityExchange;
 
 		/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Issuer { get; internal set; }
+		public FixField.Text? Issuer => _issuer;
+		internal FixField.Text? _issuer;
 
 		/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedIssuerLen { get; internal set; }
+		public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+		internal FixField.Integer? _encodedIssuerLen;
 
 		/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedIssuer { get; internal set; }
+		public FixField.Data? EncodedIssuer => _encodedIssuer;
+		internal FixField.Data? _encodedIssuer;
 
 		/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityDesc { get; internal set; }
+		public FixField.Text? SecurityDesc => _securityDesc;
+		internal FixField.Text? _securityDesc;
 
 		/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+		public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+		internal FixField.Integer? _encodedSecurityDescLen;
 
 		/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedSecurityDesc { get; internal set; }
+		public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+		internal FixField.Data? _encodedSecurityDesc;
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? Side { get; internal set; }
+		public FixField.Character? Side => _side;
+		internal FixField.Character? _side;
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TransactTime { get; internal set; }
+		public FixField.Timestamp? TransactTime => _transactTime;
+		internal FixField.Timestamp? _transactTime;
 
 		/// <summary>The FIX OrderQty, tag 38, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? OrderQty { get; internal set; }
+		public FixField.Decimal? OrderQty => _orderQty;
+		internal FixField.Decimal? _orderQty;
 
 		/// <summary>The FIX CashOrderQty, tag 152, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CashOrderQty { get; internal set; }
+		public FixField.Decimal? CashOrderQty => _cashOrderQty;
+		internal FixField.Decimal? _cashOrderQty;
 
 		/// <summary>The FIX OrdType, tag 40, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OrdType { get; internal set; }
+		public FixField.Character? OrdType => _ordType;
+		internal FixField.Character? _ordType;
 
 		/// <summary>The FIX Price, tag 44, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? Price { get; internal set; }
+		public FixField.Decimal? Price => _price;
+		internal FixField.Decimal? _price;
 
 		/// <summary>The FIX StopPx, tag 99, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StopPx { get; internal set; }
+		public FixField.Decimal? StopPx => _stopPx;
+		internal FixField.Decimal? _stopPx;
 
 		/// <summary>The FIX PegDifference, tag 211, wire type <c>PriceOffset</c>; null when the field is absent.</summary>
-		public FixField.Decimal? PegDifference { get; internal set; }
+		public FixField.Decimal? PegDifference => _pegDifference;
+		internal FixField.Decimal? _pegDifference;
 
 		/// <summary>The FIX DiscretionInst, tag 388, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? DiscretionInst { get; internal set; }
+		public FixField.Character? DiscretionInst => _discretionInst;
+		internal FixField.Character? _discretionInst;
 
 		/// <summary>The FIX DiscretionOffset, tag 389, wire type <c>PriceOffset</c>; null when the field is absent.</summary>
-		public FixField.Decimal? DiscretionOffset { get; internal set; }
+		public FixField.Decimal? DiscretionOffset => _discretionOffset;
+		internal FixField.Decimal? _discretionOffset;
 
 		/// <summary>The FIX ComplianceID, tag 376, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ComplianceID { get; internal set; }
+		public FixField.Text? ComplianceID => _complianceID;
+		internal FixField.Text? _complianceID;
 
 		/// <summary>The FIX SolicitedFlag, tag 377, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? SolicitedFlag { get; internal set; }
+		public FixField.Boolean? SolicitedFlag => _solicitedFlag;
+		internal FixField.Boolean? _solicitedFlag;
 
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
-		public FixField.Text? Currency { get; internal set; }
+		public FixField.Text? Currency => _currency;
+		internal FixField.Text? _currency;
 
 		/// <summary>The FIX TimeInForce, tag 59, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? TimeInForce { get; internal set; }
+		public FixField.Character? TimeInForce => _timeInForce;
+		internal FixField.Character? _timeInForce;
 
 		/// <summary>The FIX EffectiveTime, tag 168, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? EffectiveTime { get; internal set; }
+		public FixField.Timestamp? EffectiveTime => _effectiveTime;
+		internal FixField.Timestamp? _effectiveTime;
 
 		/// <summary>The FIX ExpireDate, tag 432, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? ExpireDate { get; internal set; }
+		public FixField.Date? ExpireDate => _expireDate;
+		internal FixField.Date? _expireDate;
 
 		/// <summary>The FIX ExpireTime, tag 126, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? ExpireTime { get; internal set; }
+		public FixField.Timestamp? ExpireTime => _expireTime;
+		internal FixField.Timestamp? _expireTime;
 
 		/// <summary>The FIX GTBookingInst, tag 427, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? GTBookingInst { get; internal set; }
+		public FixField.Integer? GTBookingInst => _gTBookingInst;
+		internal FixField.Integer? _gTBookingInst;
 
 		/// <summary>The FIX Commission, tag 12, wire type <c>Amt</c>; null when the field is absent.</summary>
-		public FixField.Decimal? Commission { get; internal set; }
+		public FixField.Decimal? Commission => _commission;
+		internal FixField.Decimal? _commission;
 
 		/// <summary>The FIX CommType, tag 13, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? CommType { get; internal set; }
+		public FixField.Character? CommType => _commType;
+		internal FixField.Character? _commType;
 
 		/// <summary>The FIX Rule80A, tag 47, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? Rule80A { get; internal set; }
+		public FixField.Character? Rule80A => _rule80A;
+		internal FixField.Character? _rule80A;
 
 		/// <summary>The FIX ForexReq, tag 121, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? ForexReq { get; internal set; }
+		public FixField.Boolean? ForexReq => _forexReq;
+		internal FixField.Boolean? _forexReq;
 
 		/// <summary>The FIX SettlCurrency, tag 120, wire type <c>Currency</c>; null when the field is absent.</summary>
-		public FixField.Text? SettlCurrency { get; internal set; }
+		public FixField.Text? SettlCurrency => _settlCurrency;
+		internal FixField.Text? _settlCurrency;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>The FIX FutSettDate2, tag 193, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? FutSettDate2 { get; internal set; }
+		public FixField.Date? FutSettDate2 => _futSettDate2;
+		internal FixField.Date? _futSettDate2;
 
 		/// <summary>The FIX OrderQty2, tag 192, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? OrderQty2 { get; internal set; }
+		public FixField.Decimal? OrderQty2 => _orderQty2;
+		internal FixField.Decimal? _orderQty2;
 
 		/// <summary>The FIX OpenClose, tag 77, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OpenClose { get; internal set; }
+		public FixField.Character? OpenClose => _openClose;
+		internal FixField.Character? _openClose;
 
 		/// <summary>The FIX CoveredOrUncovered, tag 203, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? CoveredOrUncovered { get; internal set; }
+		public FixField.Integer? CoveredOrUncovered => _coveredOrUncovered;
+		internal FixField.Integer? _coveredOrUncovered;
 
 		/// <summary>The FIX CustomerOrFirm, tag 204, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? CustomerOrFirm { get; internal set; }
+		public FixField.Integer? CustomerOrFirm => _customerOrFirm;
+		internal FixField.Integer? _customerOrFirm;
 
 		/// <summary>The FIX MaxShow, tag 210, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? MaxShow { get; internal set; }
+		public FixField.Decimal? MaxShow => _maxShow;
+		internal FixField.Decimal? _maxShow;
 
 		/// <summary>The FIX LocateReqd, tag 114, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? LocateReqd { get; internal set; }
+		public FixField.Boolean? LocateReqd => _locateReqd;
+		internal FixField.Boolean? _locateReqd;
 
 		/// <summary>The FIX ClearingFirm, tag 439, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClearingFirm { get; internal set; }
+		public FixField.Text? ClearingFirm => _clearingFirm;
+		internal FixField.Text? _clearingFirm;
 
 		/// <summary>The FIX ClearingAccount, tag 440, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClearingAccount { get; internal set; }
+		public FixField.Text? ClearingAccount => _clearingAccount;
+		internal FixField.Text? _clearingAccount;
 
 		/// <summary>One entry of the group counted by NoAllocs, tag 78.</summary>
 		public sealed class NoAllocsGroup : IFixEntry
@@ -8421,7 +9365,8 @@ public abstract partial class FixMessage
 			public FixField.Text AllocAccount { get; }
 
 			/// <summary>The FIX AllocShares, tag 80, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? AllocShares { get; internal set; }
+			public FixField.Decimal? AllocShares => _allocShares;
+			internal FixField.Decimal? _allocShares;
 
 			FixField IFixEntry.Opener => AllocAccount;
 
@@ -8487,41 +9432,41 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.OrigClOrdID: if (OrigClOrdID is not null) Duplicate(field); OrigClOrdID = (FixField.Text)field; break;
-					case FixTag.OrderID: if (OrderID is not null) Duplicate(field); OrderID = (FixField.Text)field; break;
-					case FixTag.ClOrdID: if (ClOrdID is not null) Duplicate(field); ClOrdID = (FixField.Text)field; break;
-					case FixTag.ListID: if (ListID is not null) Duplicate(field); ListID = (FixField.Text)field; break;
-					case FixTag.Account: if (Account is not null) Duplicate(field); Account = (FixField.Text)field; break;
-					case FixTag.ClientID: if (ClientID is not null) Duplicate(field); ClientID = (FixField.Text)field; break;
-					case FixTag.ExecBroker: if (ExecBroker is not null) Duplicate(field); ExecBroker = (FixField.Text)field; break;
-					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.OrderQty: if (OrderQty is not null) Duplicate(field); OrderQty = (FixField.Decimal)field; break;
-					case FixTag.CashOrderQty: if (CashOrderQty is not null) Duplicate(field); CashOrderQty = (FixField.Decimal)field; break;
-					case FixTag.ComplianceID: if (ComplianceID is not null) Duplicate(field); ComplianceID = (FixField.Text)field; break;
-					case FixTag.SolicitedFlag: if (SolicitedFlag is not null) Duplicate(field); SolicitedFlag = (FixField.Boolean)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.OrigClOrdID: if (_origClOrdID is not null) Duplicate(field); _origClOrdID = (FixField.Text)field; break;
+					case FixTag.OrderID: if (_orderID is not null) Duplicate(field); _orderID = (FixField.Text)field; break;
+					case FixTag.ClOrdID: if (_clOrdID is not null) Duplicate(field); _clOrdID = (FixField.Text)field; break;
+					case FixTag.ListID: if (_listID is not null) Duplicate(field); _listID = (FixField.Text)field; break;
+					case FixTag.Account: if (_account is not null) Duplicate(field); _account = (FixField.Text)field; break;
+					case FixTag.ClientID: if (_clientID is not null) Duplicate(field); _clientID = (FixField.Text)field; break;
+					case FixTag.ExecBroker: if (_execBroker is not null) Duplicate(field); _execBroker = (FixField.Text)field; break;
+					case FixTag.Symbol: if (_symbol is not null) Duplicate(field); _symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (_symbolSfx is not null) Duplicate(field); _symbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (_securityID is not null) Duplicate(field); _securityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (_iDSource is not null) Duplicate(field); _iDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (_securityType is not null) Duplicate(field); _securityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (_maturityMonthYear is not null) Duplicate(field); _maturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (_maturityDay is not null) Duplicate(field); _maturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (_putOrCall is not null) Duplicate(field); _putOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (_strikePrice is not null) Duplicate(field); _strikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (_optAttribute is not null) Duplicate(field); _optAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (_contractMultiplier is not null) Duplicate(field); _contractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (_couponRate is not null) Duplicate(field); _couponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (_securityExchange is not null) Duplicate(field); _securityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (_issuer is not null) Duplicate(field); _issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (_encodedIssuerLen is not null) Duplicate(field); _encodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (_encodedIssuer is not null) Duplicate(field); _encodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (_securityDesc is not null) Duplicate(field); _securityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (_encodedSecurityDescLen is not null) Duplicate(field); _encodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (_encodedSecurityDesc is not null) Duplicate(field); _encodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Side: if (_side is not null) Duplicate(field); _side = (FixField.Character)field; break;
+					case FixTag.TransactTime: if (_transactTime is not null) Duplicate(field); _transactTime = (FixField.Timestamp)field; break;
+					case FixTag.OrderQty: if (_orderQty is not null) Duplicate(field); _orderQty = (FixField.Decimal)field; break;
+					case FixTag.CashOrderQty: if (_cashOrderQty is not null) Duplicate(field); _cashOrderQty = (FixField.Decimal)field; break;
+					case FixTag.ComplianceID: if (_complianceID is not null) Duplicate(field); _complianceID = (FixField.Text)field; break;
+					case FixTag.SolicitedFlag: if (_solicitedFlag is not null) Duplicate(field); _solicitedFlag = (FixField.Boolean)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -8533,109 +9478,144 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX OrigClOrdID, tag 41, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? OrigClOrdID { get; internal set; }
+		public FixField.Text? OrigClOrdID => _origClOrdID;
+		internal FixField.Text? _origClOrdID;
 
 		/// <summary>The FIX OrderID, tag 37, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? OrderID { get; internal set; }
+		public FixField.Text? OrderID => _orderID;
+		internal FixField.Text? _orderID;
 
 		/// <summary>The FIX ClOrdID, tag 11, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClOrdID { get; internal set; }
+		public FixField.Text? ClOrdID => _clOrdID;
+		internal FixField.Text? _clOrdID;
 
 		/// <summary>The FIX ListID, tag 66, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ListID { get; internal set; }
+		public FixField.Text? ListID => _listID;
+		internal FixField.Text? _listID;
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Account { get; internal set; }
+		public FixField.Text? Account => _account;
+		internal FixField.Text? _account;
 
 		/// <summary>The FIX ClientID, tag 109, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClientID { get; internal set; }
+		public FixField.Text? ClientID => _clientID;
+		internal FixField.Text? _clientID;
 
 		/// <summary>The FIX ExecBroker, tag 76, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ExecBroker { get; internal set; }
+		public FixField.Text? ExecBroker => _execBroker;
+		internal FixField.Text? _execBroker;
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Symbol { get; internal set; }
+		public FixField.Text? Symbol => _symbol;
+		internal FixField.Text? _symbol;
 
 		/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SymbolSfx { get; internal set; }
+		public FixField.Text? SymbolSfx => _symbolSfx;
+		internal FixField.Text? _symbolSfx;
 
 		/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityID { get; internal set; }
+		public FixField.Text? SecurityID => _securityID;
+		internal FixField.Text? _securityID;
 
 		/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IDSource { get; internal set; }
+		public FixField.Text? IDSource => _iDSource;
+		internal FixField.Text? _iDSource;
 
 		/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityType { get; internal set; }
+		public FixField.Text? SecurityType => _securityType;
+		internal FixField.Text? _securityType;
 
 		/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-		public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+		public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+		internal FixField.MonthYear? _maturityMonthYear;
 
 		/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-		public FixField.Integer? MaturityDay { get; internal set; }
+		public FixField.Integer? MaturityDay => _maturityDay;
+		internal FixField.Integer? _maturityDay;
 
 		/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? PutOrCall { get; internal set; }
+		public FixField.Integer? PutOrCall => _putOrCall;
+		internal FixField.Integer? _putOrCall;
 
 		/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StrikePrice { get; internal set; }
+		public FixField.Decimal? StrikePrice => _strikePrice;
+		internal FixField.Decimal? _strikePrice;
 
 		/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OptAttribute { get; internal set; }
+		public FixField.Character? OptAttribute => _optAttribute;
+		internal FixField.Character? _optAttribute;
 
 		/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? ContractMultiplier { get; internal set; }
+		public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+		internal FixField.Decimal? _contractMultiplier;
 
 		/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CouponRate { get; internal set; }
+		public FixField.Decimal? CouponRate => _couponRate;
+		internal FixField.Decimal? _couponRate;
 
 		/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityExchange { get; internal set; }
+		public FixField.Text? SecurityExchange => _securityExchange;
+		internal FixField.Text? _securityExchange;
 
 		/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Issuer { get; internal set; }
+		public FixField.Text? Issuer => _issuer;
+		internal FixField.Text? _issuer;
 
 		/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedIssuerLen { get; internal set; }
+		public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+		internal FixField.Integer? _encodedIssuerLen;
 
 		/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedIssuer { get; internal set; }
+		public FixField.Data? EncodedIssuer => _encodedIssuer;
+		internal FixField.Data? _encodedIssuer;
 
 		/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityDesc { get; internal set; }
+		public FixField.Text? SecurityDesc => _securityDesc;
+		internal FixField.Text? _securityDesc;
 
 		/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+		public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+		internal FixField.Integer? _encodedSecurityDescLen;
 
 		/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedSecurityDesc { get; internal set; }
+		public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+		internal FixField.Data? _encodedSecurityDesc;
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? Side { get; internal set; }
+		public FixField.Character? Side => _side;
+		internal FixField.Character? _side;
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TransactTime { get; internal set; }
+		public FixField.Timestamp? TransactTime => _transactTime;
+		internal FixField.Timestamp? _transactTime;
 
 		/// <summary>The FIX OrderQty, tag 38, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? OrderQty { get; internal set; }
+		public FixField.Decimal? OrderQty => _orderQty;
+		internal FixField.Decimal? _orderQty;
 
 		/// <summary>The FIX CashOrderQty, tag 152, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CashOrderQty { get; internal set; }
+		public FixField.Decimal? CashOrderQty => _cashOrderQty;
+		internal FixField.Decimal? _cashOrderQty;
 
 		/// <summary>The FIX ComplianceID, tag 376, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ComplianceID { get; internal set; }
+		public FixField.Text? ComplianceID => _complianceID;
+		internal FixField.Text? _complianceID;
 
 		/// <summary>The FIX SolicitedFlag, tag 377, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? SolicitedFlag { get; internal set; }
+		public FixField.Boolean? SolicitedFlag => _solicitedFlag;
+		internal FixField.Boolean? _solicitedFlag;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -8653,31 +9633,31 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.OrderID: if (OrderID is not null) Duplicate(field); OrderID = (FixField.Text)field; break;
-					case FixTag.ClOrdID: if (ClOrdID is not null) Duplicate(field); ClOrdID = (FixField.Text)field; break;
-					case FixTag.ClientID: if (ClientID is not null) Duplicate(field); ClientID = (FixField.Text)field; break;
-					case FixTag.Account: if (Account is not null) Duplicate(field); Account = (FixField.Text)field; break;
-					case FixTag.ExecBroker: if (ExecBroker is not null) Duplicate(field); ExecBroker = (FixField.Text)field; break;
-					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
+					case FixTag.OrderID: if (_orderID is not null) Duplicate(field); _orderID = (FixField.Text)field; break;
+					case FixTag.ClOrdID: if (_clOrdID is not null) Duplicate(field); _clOrdID = (FixField.Text)field; break;
+					case FixTag.ClientID: if (_clientID is not null) Duplicate(field); _clientID = (FixField.Text)field; break;
+					case FixTag.Account: if (_account is not null) Duplicate(field); _account = (FixField.Text)field; break;
+					case FixTag.ExecBroker: if (_execBroker is not null) Duplicate(field); _execBroker = (FixField.Text)field; break;
+					case FixTag.Symbol: if (_symbol is not null) Duplicate(field); _symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (_symbolSfx is not null) Duplicate(field); _symbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (_securityID is not null) Duplicate(field); _securityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (_iDSource is not null) Duplicate(field); _iDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (_securityType is not null) Duplicate(field); _securityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (_maturityMonthYear is not null) Duplicate(field); _maturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (_maturityDay is not null) Duplicate(field); _maturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (_putOrCall is not null) Duplicate(field); _putOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (_strikePrice is not null) Duplicate(field); _strikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (_optAttribute is not null) Duplicate(field); _optAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (_contractMultiplier is not null) Duplicate(field); _contractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (_couponRate is not null) Duplicate(field); _couponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (_securityExchange is not null) Duplicate(field); _securityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (_issuer is not null) Duplicate(field); _issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (_encodedIssuerLen is not null) Duplicate(field); _encodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (_encodedIssuer is not null) Duplicate(field); _encodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (_securityDesc is not null) Duplicate(field); _securityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (_encodedSecurityDescLen is not null) Duplicate(field); _encodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (_encodedSecurityDesc is not null) Duplicate(field); _encodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Side: if (_side is not null) Duplicate(field); _side = (FixField.Character)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -8689,79 +9669,104 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX OrderID, tag 37, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? OrderID { get; internal set; }
+		public FixField.Text? OrderID => _orderID;
+		internal FixField.Text? _orderID;
 
 		/// <summary>The FIX ClOrdID, tag 11, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClOrdID { get; internal set; }
+		public FixField.Text? ClOrdID => _clOrdID;
+		internal FixField.Text? _clOrdID;
 
 		/// <summary>The FIX ClientID, tag 109, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClientID { get; internal set; }
+		public FixField.Text? ClientID => _clientID;
+		internal FixField.Text? _clientID;
 
 		/// <summary>The FIX Account, tag 1, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Account { get; internal set; }
+		public FixField.Text? Account => _account;
+		internal FixField.Text? _account;
 
 		/// <summary>The FIX ExecBroker, tag 76, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ExecBroker { get; internal set; }
+		public FixField.Text? ExecBroker => _execBroker;
+		internal FixField.Text? _execBroker;
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Symbol { get; internal set; }
+		public FixField.Text? Symbol => _symbol;
+		internal FixField.Text? _symbol;
 
 		/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SymbolSfx { get; internal set; }
+		public FixField.Text? SymbolSfx => _symbolSfx;
+		internal FixField.Text? _symbolSfx;
 
 		/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityID { get; internal set; }
+		public FixField.Text? SecurityID => _securityID;
+		internal FixField.Text? _securityID;
 
 		/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IDSource { get; internal set; }
+		public FixField.Text? IDSource => _iDSource;
+		internal FixField.Text? _iDSource;
 
 		/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityType { get; internal set; }
+		public FixField.Text? SecurityType => _securityType;
+		internal FixField.Text? _securityType;
 
 		/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-		public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+		public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+		internal FixField.MonthYear? _maturityMonthYear;
 
 		/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-		public FixField.Integer? MaturityDay { get; internal set; }
+		public FixField.Integer? MaturityDay => _maturityDay;
+		internal FixField.Integer? _maturityDay;
 
 		/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? PutOrCall { get; internal set; }
+		public FixField.Integer? PutOrCall => _putOrCall;
+		internal FixField.Integer? _putOrCall;
 
 		/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StrikePrice { get; internal set; }
+		public FixField.Decimal? StrikePrice => _strikePrice;
+		internal FixField.Decimal? _strikePrice;
 
 		/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OptAttribute { get; internal set; }
+		public FixField.Character? OptAttribute => _optAttribute;
+		internal FixField.Character? _optAttribute;
 
 		/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? ContractMultiplier { get; internal set; }
+		public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+		internal FixField.Decimal? _contractMultiplier;
 
 		/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CouponRate { get; internal set; }
+		public FixField.Decimal? CouponRate => _couponRate;
+		internal FixField.Decimal? _couponRate;
 
 		/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityExchange { get; internal set; }
+		public FixField.Text? SecurityExchange => _securityExchange;
+		internal FixField.Text? _securityExchange;
 
 		/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Issuer { get; internal set; }
+		public FixField.Text? Issuer => _issuer;
+		internal FixField.Text? _issuer;
 
 		/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedIssuerLen { get; internal set; }
+		public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+		internal FixField.Integer? _encodedIssuerLen;
 
 		/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedIssuer { get; internal set; }
+		public FixField.Data? EncodedIssuer => _encodedIssuer;
+		internal FixField.Data? _encodedIssuer;
 
 		/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityDesc { get; internal set; }
+		public FixField.Text? SecurityDesc => _securityDesc;
+		internal FixField.Text? _securityDesc;
 
 		/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+		public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+		internal FixField.Integer? _encodedSecurityDescLen;
 
 		/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedSecurityDesc { get; internal set; }
+		public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+		internal FixField.Data? _encodedSecurityDesc;
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? Side { get; internal set; }
+		public FixField.Character? Side => _side;
+		internal FixField.Character? _side;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -8779,44 +9784,44 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.QuoteReqID: if (QuoteReqID is not null) Duplicate(field); QuoteReqID = (FixField.Text)field; break;
-					case FixTag.QuoteID: if (QuoteID is not null) Duplicate(field); QuoteID = (FixField.Text)field; break;
-					case FixTag.QuoteResponseLevel: if (QuoteResponseLevel is not null) Duplicate(field); QuoteResponseLevel = (FixField.Integer)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.BidPx: if (BidPx is not null) Duplicate(field); BidPx = (FixField.Decimal)field; break;
-					case FixTag.OfferPx: if (OfferPx is not null) Duplicate(field); OfferPx = (FixField.Decimal)field; break;
-					case FixTag.BidSize: if (BidSize is not null) Duplicate(field); BidSize = (FixField.Decimal)field; break;
-					case FixTag.OfferSize: if (OfferSize is not null) Duplicate(field); OfferSize = (FixField.Decimal)field; break;
-					case FixTag.ValidUntilTime: if (ValidUntilTime is not null) Duplicate(field); ValidUntilTime = (FixField.Timestamp)field; break;
-					case FixTag.BidSpotRate: if (BidSpotRate is not null) Duplicate(field); BidSpotRate = (FixField.Decimal)field; break;
-					case FixTag.OfferSpotRate: if (OfferSpotRate is not null) Duplicate(field); OfferSpotRate = (FixField.Decimal)field; break;
-					case FixTag.BidForwardPoints: if (BidForwardPoints is not null) Duplicate(field); BidForwardPoints = (FixField.Decimal)field; break;
-					case FixTag.OfferForwardPoints: if (OfferForwardPoints is not null) Duplicate(field); OfferForwardPoints = (FixField.Decimal)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.SettlDate: if (FutSettDate is not null) Duplicate(field); FutSettDate = (FixField.Date)field; break;
-					case FixTag.OrdType: if (OrdType is not null) Duplicate(field); OrdType = (FixField.Character)field; break;
-					case FixTag.SettlDate2: if (FutSettDate2 is not null) Duplicate(field); FutSettDate2 = (FixField.Date)field; break;
-					case FixTag.OrderQty2: if (OrderQty2 is not null) Duplicate(field); OrderQty2 = (FixField.Decimal)field; break;
-					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
+					case FixTag.QuoteReqID: if (_quoteReqID is not null) Duplicate(field); _quoteReqID = (FixField.Text)field; break;
+					case FixTag.QuoteID: if (_quoteID is not null) Duplicate(field); _quoteID = (FixField.Text)field; break;
+					case FixTag.QuoteResponseLevel: if (_quoteResponseLevel is not null) Duplicate(field); _quoteResponseLevel = (FixField.Integer)field; break;
+					case FixTag.TradingSessionID: if (_tradingSessionID is not null) Duplicate(field); _tradingSessionID = (FixField.Text)field; break;
+					case FixTag.Symbol: if (_symbol is not null) Duplicate(field); _symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (_symbolSfx is not null) Duplicate(field); _symbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (_securityID is not null) Duplicate(field); _securityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (_iDSource is not null) Duplicate(field); _iDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (_securityType is not null) Duplicate(field); _securityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (_maturityMonthYear is not null) Duplicate(field); _maturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (_maturityDay is not null) Duplicate(field); _maturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (_putOrCall is not null) Duplicate(field); _putOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (_strikePrice is not null) Duplicate(field); _strikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (_optAttribute is not null) Duplicate(field); _optAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (_contractMultiplier is not null) Duplicate(field); _contractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (_couponRate is not null) Duplicate(field); _couponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (_securityExchange is not null) Duplicate(field); _securityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (_issuer is not null) Duplicate(field); _issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (_encodedIssuerLen is not null) Duplicate(field); _encodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (_encodedIssuer is not null) Duplicate(field); _encodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (_securityDesc is not null) Duplicate(field); _securityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (_encodedSecurityDescLen is not null) Duplicate(field); _encodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (_encodedSecurityDesc is not null) Duplicate(field); _encodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.BidPx: if (_bidPx is not null) Duplicate(field); _bidPx = (FixField.Decimal)field; break;
+					case FixTag.OfferPx: if (_offerPx is not null) Duplicate(field); _offerPx = (FixField.Decimal)field; break;
+					case FixTag.BidSize: if (_bidSize is not null) Duplicate(field); _bidSize = (FixField.Decimal)field; break;
+					case FixTag.OfferSize: if (_offerSize is not null) Duplicate(field); _offerSize = (FixField.Decimal)field; break;
+					case FixTag.ValidUntilTime: if (_validUntilTime is not null) Duplicate(field); _validUntilTime = (FixField.Timestamp)field; break;
+					case FixTag.BidSpotRate: if (_bidSpotRate is not null) Duplicate(field); _bidSpotRate = (FixField.Decimal)field; break;
+					case FixTag.OfferSpotRate: if (_offerSpotRate is not null) Duplicate(field); _offerSpotRate = (FixField.Decimal)field; break;
+					case FixTag.BidForwardPoints: if (_bidForwardPoints is not null) Duplicate(field); _bidForwardPoints = (FixField.Decimal)field; break;
+					case FixTag.OfferForwardPoints: if (_offerForwardPoints is not null) Duplicate(field); _offerForwardPoints = (FixField.Decimal)field; break;
+					case FixTag.TransactTime: if (_transactTime is not null) Duplicate(field); _transactTime = (FixField.Timestamp)field; break;
+					case FixTag.SettlDate: if (_futSettDate is not null) Duplicate(field); _futSettDate = (FixField.Date)field; break;
+					case FixTag.OrdType: if (_ordType is not null) Duplicate(field); _ordType = (FixField.Character)field; break;
+					case FixTag.SettlDate2: if (_futSettDate2 is not null) Duplicate(field); _futSettDate2 = (FixField.Date)field; break;
+					case FixTag.OrderQty2: if (_orderQty2 is not null) Duplicate(field); _orderQty2 = (FixField.Decimal)field; break;
+					case FixTag.Currency: if (_currency is not null) Duplicate(field); _currency = (FixField.Text)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -8828,118 +9833,156 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX QuoteReqID, tag 131, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? QuoteReqID { get; internal set; }
+		public FixField.Text? QuoteReqID => _quoteReqID;
+		internal FixField.Text? _quoteReqID;
 
 		/// <summary>The FIX QuoteID, tag 117, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? QuoteID { get; internal set; }
+		public FixField.Text? QuoteID => _quoteID;
+		internal FixField.Text? _quoteID;
 
 		/// <summary>The FIX QuoteResponseLevel, tag 301, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? QuoteResponseLevel { get; internal set; }
+		public FixField.Integer? QuoteResponseLevel => _quoteResponseLevel;
+		internal FixField.Integer? _quoteResponseLevel;
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TradingSessionID { get; internal set; }
+		public FixField.Text? TradingSessionID => _tradingSessionID;
+		internal FixField.Text? _tradingSessionID;
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Symbol { get; internal set; }
+		public FixField.Text? Symbol => _symbol;
+		internal FixField.Text? _symbol;
 
 		/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SymbolSfx { get; internal set; }
+		public FixField.Text? SymbolSfx => _symbolSfx;
+		internal FixField.Text? _symbolSfx;
 
 		/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityID { get; internal set; }
+		public FixField.Text? SecurityID => _securityID;
+		internal FixField.Text? _securityID;
 
 		/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IDSource { get; internal set; }
+		public FixField.Text? IDSource => _iDSource;
+		internal FixField.Text? _iDSource;
 
 		/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityType { get; internal set; }
+		public FixField.Text? SecurityType => _securityType;
+		internal FixField.Text? _securityType;
 
 		/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-		public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+		public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+		internal FixField.MonthYear? _maturityMonthYear;
 
 		/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-		public FixField.Integer? MaturityDay { get; internal set; }
+		public FixField.Integer? MaturityDay => _maturityDay;
+		internal FixField.Integer? _maturityDay;
 
 		/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? PutOrCall { get; internal set; }
+		public FixField.Integer? PutOrCall => _putOrCall;
+		internal FixField.Integer? _putOrCall;
 
 		/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StrikePrice { get; internal set; }
+		public FixField.Decimal? StrikePrice => _strikePrice;
+		internal FixField.Decimal? _strikePrice;
 
 		/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OptAttribute { get; internal set; }
+		public FixField.Character? OptAttribute => _optAttribute;
+		internal FixField.Character? _optAttribute;
 
 		/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? ContractMultiplier { get; internal set; }
+		public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+		internal FixField.Decimal? _contractMultiplier;
 
 		/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CouponRate { get; internal set; }
+		public FixField.Decimal? CouponRate => _couponRate;
+		internal FixField.Decimal? _couponRate;
 
 		/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityExchange { get; internal set; }
+		public FixField.Text? SecurityExchange => _securityExchange;
+		internal FixField.Text? _securityExchange;
 
 		/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Issuer { get; internal set; }
+		public FixField.Text? Issuer => _issuer;
+		internal FixField.Text? _issuer;
 
 		/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedIssuerLen { get; internal set; }
+		public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+		internal FixField.Integer? _encodedIssuerLen;
 
 		/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedIssuer { get; internal set; }
+		public FixField.Data? EncodedIssuer => _encodedIssuer;
+		internal FixField.Data? _encodedIssuer;
 
 		/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityDesc { get; internal set; }
+		public FixField.Text? SecurityDesc => _securityDesc;
+		internal FixField.Text? _securityDesc;
 
 		/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+		public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+		internal FixField.Integer? _encodedSecurityDescLen;
 
 		/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedSecurityDesc { get; internal set; }
+		public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+		internal FixField.Data? _encodedSecurityDesc;
 
 		/// <summary>The FIX BidPx, tag 132, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? BidPx { get; internal set; }
+		public FixField.Decimal? BidPx => _bidPx;
+		internal FixField.Decimal? _bidPx;
 
 		/// <summary>The FIX OfferPx, tag 133, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? OfferPx { get; internal set; }
+		public FixField.Decimal? OfferPx => _offerPx;
+		internal FixField.Decimal? _offerPx;
 
 		/// <summary>The FIX BidSize, tag 134, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? BidSize { get; internal set; }
+		public FixField.Decimal? BidSize => _bidSize;
+		internal FixField.Decimal? _bidSize;
 
 		/// <summary>The FIX OfferSize, tag 135, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? OfferSize { get; internal set; }
+		public FixField.Decimal? OfferSize => _offerSize;
+		internal FixField.Decimal? _offerSize;
 
 		/// <summary>The FIX ValidUntilTime, tag 62, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? ValidUntilTime { get; internal set; }
+		public FixField.Timestamp? ValidUntilTime => _validUntilTime;
+		internal FixField.Timestamp? _validUntilTime;
 
 		/// <summary>The FIX BidSpotRate, tag 188, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? BidSpotRate { get; internal set; }
+		public FixField.Decimal? BidSpotRate => _bidSpotRate;
+		internal FixField.Decimal? _bidSpotRate;
 
 		/// <summary>The FIX OfferSpotRate, tag 190, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? OfferSpotRate { get; internal set; }
+		public FixField.Decimal? OfferSpotRate => _offerSpotRate;
+		internal FixField.Decimal? _offerSpotRate;
 
 		/// <summary>The FIX BidForwardPoints, tag 189, wire type <c>PriceOffset</c>; null when the field is absent.</summary>
-		public FixField.Decimal? BidForwardPoints { get; internal set; }
+		public FixField.Decimal? BidForwardPoints => _bidForwardPoints;
+		internal FixField.Decimal? _bidForwardPoints;
 
 		/// <summary>The FIX OfferForwardPoints, tag 191, wire type <c>PriceOffset</c>; null when the field is absent.</summary>
-		public FixField.Decimal? OfferForwardPoints { get; internal set; }
+		public FixField.Decimal? OfferForwardPoints => _offerForwardPoints;
+		internal FixField.Decimal? _offerForwardPoints;
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TransactTime { get; internal set; }
+		public FixField.Timestamp? TransactTime => _transactTime;
+		internal FixField.Timestamp? _transactTime;
 
 		/// <summary>The FIX FutSettDate, tag 64, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? FutSettDate { get; internal set; }
+		public FixField.Date? FutSettDate => _futSettDate;
+		internal FixField.Date? _futSettDate;
 
 		/// <summary>The FIX OrdType, tag 40, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OrdType { get; internal set; }
+		public FixField.Character? OrdType => _ordType;
+		internal FixField.Character? _ordType;
 
 		/// <summary>The FIX FutSettDate2, tag 193, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? FutSettDate2 { get; internal set; }
+		public FixField.Date? FutSettDate2 => _futSettDate2;
+		internal FixField.Date? _futSettDate2;
 
 		/// <summary>The FIX OrderQty2, tag 192, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? OrderQty2 { get; internal set; }
+		public FixField.Decimal? OrderQty2 => _orderQty2;
+		internal FixField.Decimal? _orderQty2;
 
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
-		public FixField.Text? Currency { get; internal set; }
+		public FixField.Text? Currency => _currency;
+		internal FixField.Text? _currency;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -8957,192 +10000,192 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.QuoteReqID: if (QuoteReqID is not null) Duplicate(field); QuoteReqID = (FixField.Text)field; break;
-					case FixTag.QuoteID: if (QuoteID is not null) Duplicate(field); QuoteID = (FixField.Text)field; break;
-					case FixTag.QuoteStatus: if (QuoteAckStatus is not null) Duplicate(field); QuoteAckStatus = (FixField.Integer)field; break;
-					case FixTag.QuoteRejectReason: if (QuoteRejectReason is not null) Duplicate(field); QuoteRejectReason = (FixField.Integer)field; break;
-					case FixTag.QuoteResponseLevel: if (QuoteResponseLevel is not null) Duplicate(field); QuoteResponseLevel = (FixField.Integer)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.NoQuoteSets: if (NoQuoteSets is not null) Duplicate(field); NoQuoteSets = (FixField.Integer)field; break;
+					case FixTag.QuoteReqID: if (_quoteReqID is not null) Duplicate(field); _quoteReqID = (FixField.Text)field; break;
+					case FixTag.QuoteID: if (_quoteID is not null) Duplicate(field); _quoteID = (FixField.Text)field; break;
+					case FixTag.QuoteStatus: if (_quoteAckStatus is not null) Duplicate(field); _quoteAckStatus = (FixField.Integer)field; break;
+					case FixTag.QuoteRejectReason: if (_quoteRejectReason is not null) Duplicate(field); _quoteRejectReason = (FixField.Integer)field; break;
+					case FixTag.QuoteResponseLevel: if (_quoteResponseLevel is not null) Duplicate(field); _quoteResponseLevel = (FixField.Integer)field; break;
+					case FixTag.TradingSessionID: if (_tradingSessionID is not null) Duplicate(field); _tradingSessionID = (FixField.Text)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.NoQuoteSets: if (_noQuoteSets is not null) Duplicate(field); _noQuoteSets = (FixField.Integer)field; break;
 					case FixTag.QuoteSetID:
-						if (noQuoteSetsGroups is null && NoQuoteSets is null) Uncounted(FixTag.NoQuoteSets, field);
+						if (noQuoteSetsGroups is null && _noQuoteSets is null) Uncounted(FixTag.NoQuoteSets, field);
 						(noQuoteSetsGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.UnderlyingSymbol:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingSymbol is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingSymbol is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingSymbol = (FixField.Text)field;
+							noQuoteSetsGroups![^1]._underlyingSymbol = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingSymbolSfx is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingSymbolSfx is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingSymbolSfx = (FixField.Text)field;
+							noQuoteSetsGroups![^1]._underlyingSymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityID:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingSecurityID is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingSecurityID is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingSecurityID = (FixField.Text)field;
+							noQuoteSetsGroups![^1]._underlyingSecurityID = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityIDSource:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingIDSource is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingIDSource is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingIDSource = (FixField.Text)field;
+							noQuoteSetsGroups![^1]._underlyingIDSource = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityType:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingSecurityType is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingSecurityType is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingSecurityType = (FixField.Text)field;
+							noQuoteSetsGroups![^1]._underlyingSecurityType = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingMaturityMonthYear:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingMaturityMonthYear is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingMaturityMonthYear is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingMaturityMonthYear = (FixField.MonthYear)field;
+							noQuoteSetsGroups![^1]._underlyingMaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.UnderlyingMaturityDay:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingMaturityDay is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingMaturityDay is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingMaturityDay = (FixField.Integer)field;
+							noQuoteSetsGroups![^1]._underlyingMaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingPutOrCall:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingPutOrCall is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingPutOrCall is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingPutOrCall = (FixField.Integer)field;
+							noQuoteSetsGroups![^1]._underlyingPutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingStrikePrice:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingStrikePrice is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingStrikePrice is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingStrikePrice = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1]._underlyingStrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingOptAttribute:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingOptAttribute is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingOptAttribute is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingOptAttribute = (FixField.Character)field;
+							noQuoteSetsGroups![^1]._underlyingOptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.UnderlyingContractMultiplier:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingContractMultiplier is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingContractMultiplier is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingContractMultiplier = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1]._underlyingContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingCouponRate:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingCouponRate is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingCouponRate is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingCouponRate = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1]._underlyingCouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingSecurityExchange:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingSecurityExchange is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingSecurityExchange is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingSecurityExchange = (FixField.Text)field;
+							noQuoteSetsGroups![^1]._underlyingSecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingIssuer:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingIssuer is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingIssuer is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingIssuer = (FixField.Text)field;
+							noQuoteSetsGroups![^1]._underlyingIssuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuerLen:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].EncodedUnderlyingIssuerLen is not null)
+						else if (noQuoteSetsGroups![^1]._encodedUnderlyingIssuerLen is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].EncodedUnderlyingIssuerLen = (FixField.Integer)field;
+							noQuoteSetsGroups![^1]._encodedUnderlyingIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuer:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].EncodedUnderlyingIssuer is not null)
+						else if (noQuoteSetsGroups![^1]._encodedUnderlyingIssuer is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].EncodedUnderlyingIssuer = (FixField.Data)field;
+							noQuoteSetsGroups![^1]._encodedUnderlyingIssuer = (FixField.Data)field;
 						break;
 					case FixTag.UnderlyingSecurityDesc:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].UnderlyingSecurityDesc is not null)
+						else if (noQuoteSetsGroups![^1]._underlyingSecurityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].UnderlyingSecurityDesc = (FixField.Text)field;
+							noQuoteSetsGroups![^1]._underlyingSecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDescLen:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDescLen is not null)
+						else if (noQuoteSetsGroups![^1]._encodedUnderlyingSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDescLen = (FixField.Integer)field;
+							noQuoteSetsGroups![^1]._encodedUnderlyingSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDesc:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDesc is not null)
+						else if (noQuoteSetsGroups![^1]._encodedUnderlyingSecurityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].EncodedUnderlyingSecurityDesc = (FixField.Data)field;
+							noQuoteSetsGroups![^1]._encodedUnderlyingSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.TotNoQuoteEntries:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].TotQuoteEntries is not null)
+						else if (noQuoteSetsGroups![^1]._totQuoteEntries is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].TotQuoteEntries = (FixField.Integer)field;
+							noQuoteSetsGroups![^1]._totQuoteEntries = (FixField.Integer)field;
 						break;
 					case FixTag.NoQuoteEntries:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
-						else if (noQuoteSetsGroups![^1].NoQuoteEntries is not null)
+						else if (noQuoteSetsGroups![^1]._noQuoteEntries is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].NoQuoteEntries = (FixField.Integer)field;
+							noQuoteSetsGroups![^1]._noQuoteEntries = (FixField.Integer)field;
 						break;
 					case FixTag.QuoteEntryID:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else
 						{
-							if (noQuoteSetsGroups![^1].noQuoteEntriesGroups is null && noQuoteSetsGroups![^1].NoQuoteEntries is null) Uncounted(FixTag.NoQuoteEntries, field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
+							if (noQuoteSetsGroups![^1].noQuoteEntriesGroups is null && noQuoteSetsGroups![^1]._noQuoteEntries is null) Uncounted(FixTag.NoQuoteEntries, field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
 							(noQuoteSetsGroups![^1].noQuoteEntriesGroups ??= []).Add(new ((FixField.Text)field));
 						}
 						break;
@@ -9151,200 +10194,200 @@ public abstract partial class FixMessage
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Symbol is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._symbol is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Symbol = (FixField.Text)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._symbol = (FixField.Text)field;
 						break;
 					case FixTag.SymbolSfx:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SymbolSfx is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._symbolSfx is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SymbolSfx = (FixField.Text)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._symbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityID is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._securityID is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityID = (FixField.Text)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._securityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].IDSource is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._iDSource is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].IDSource = (FixField.Text)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._iDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityType is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._securityType is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityType = (FixField.Text)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._securityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityMonthYear is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._maturityMonthYear is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._maturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityDay is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._maturityDay is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].MaturityDay = (FixField.Integer)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._maturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].PutOrCall is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._putOrCall is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].PutOrCall = (FixField.Integer)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._putOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].StrikePrice is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._strikePrice is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].StrikePrice = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._strikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OptAttribute is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._optAttribute is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].OptAttribute = (FixField.Character)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._optAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].ContractMultiplier is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._contractMultiplier is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].ContractMultiplier = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._contractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].CouponRate is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._couponRate is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].CouponRate = (FixField.Decimal)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._couponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityExchange is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._securityExchange is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityExchange = (FixField.Text)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._securityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Issuer is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._issuer is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].Issuer = (FixField.Text)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuerLen is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._encodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._encodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuer is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._encodedIssuer is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedIssuer = (FixField.Data)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._encodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityDesc is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._securityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].SecurityDesc = (FixField.Text)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._securityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDescLen is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._encodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._encodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDesc is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._encodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._encodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.QuoteEntryRejectReason:
 						if (None(noQuoteSetsGroups))
 							Unentered(field);
 						else if (None(noQuoteSetsGroups![^1].noQuoteEntriesGroups))
 							Unentered(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1);
-						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].QuoteEntryRejectReason is not null)
+						else if (noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._quoteEntryRejectReason is not null)
 							Duplicate(field, FixTag.NoQuoteSets, noQuoteSetsGroups!.Count - 1, FixTag.NoQuoteEntries, noQuoteSetsGroups![^1].noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1].QuoteEntryRejectReason = (FixField.Integer)field;
+							noQuoteSetsGroups![^1].noQuoteEntriesGroups![^1]._quoteEntryRejectReason = (FixField.Integer)field;
 						break;
 
 					default:
@@ -9357,28 +10400,36 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX QuoteReqID, tag 131, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? QuoteReqID { get; internal set; }
+		public FixField.Text? QuoteReqID => _quoteReqID;
+		internal FixField.Text? _quoteReqID;
 
 		/// <summary>The FIX QuoteID, tag 117, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? QuoteID { get; internal set; }
+		public FixField.Text? QuoteID => _quoteID;
+		internal FixField.Text? _quoteID;
 
 		/// <summary>The FIX QuoteAckStatus, tag 297, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? QuoteAckStatus { get; internal set; }
+		public FixField.Integer? QuoteAckStatus => _quoteAckStatus;
+		internal FixField.Integer? _quoteAckStatus;
 
 		/// <summary>The FIX QuoteRejectReason, tag 300, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? QuoteRejectReason { get; internal set; }
+		public FixField.Integer? QuoteRejectReason => _quoteRejectReason;
+		internal FixField.Integer? _quoteRejectReason;
 
 		/// <summary>The FIX QuoteResponseLevel, tag 301, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? QuoteResponseLevel { get; internal set; }
+		public FixField.Integer? QuoteResponseLevel => _quoteResponseLevel;
+		internal FixField.Integer? _quoteResponseLevel;
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TradingSessionID { get; internal set; }
+		public FixField.Text? TradingSessionID => _tradingSessionID;
+		internal FixField.Text? _tradingSessionID;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX NoQuoteSets, tag 296, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoQuoteSets { get; internal set; }
+		public FixField.Integer? NoQuoteSets => _noQuoteSets;
+		internal FixField.Integer? _noQuoteSets;
 
 		/// <summary>The entries counted by NoQuoteSets, tag 296; null when the group is absent.</summary>
 		public List<FixMessage.QuoteAcknowledgement.NoQuoteSetsGroup>? NoQuoteSetsGroups => noQuoteSetsGroups;
@@ -9396,67 +10447,88 @@ public abstract partial class FixMessage
 			public FixField.Text QuoteSetID { get; }
 
 			/// <summary>The FIX UnderlyingSymbol, tag 311, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSymbol { get; internal set; }
+			public FixField.Text? UnderlyingSymbol => _underlyingSymbol;
+			internal FixField.Text? _underlyingSymbol;
 
 			/// <summary>The FIX UnderlyingSymbolSfx, tag 312, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSymbolSfx { get; internal set; }
+			public FixField.Text? UnderlyingSymbolSfx => _underlyingSymbolSfx;
+			internal FixField.Text? _underlyingSymbolSfx;
 
 			/// <summary>The FIX UnderlyingSecurityID, tag 309, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSecurityID { get; internal set; }
+			public FixField.Text? UnderlyingSecurityID => _underlyingSecurityID;
+			internal FixField.Text? _underlyingSecurityID;
 
 			/// <summary>The FIX UnderlyingIDSource, tag 305, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingIDSource { get; internal set; }
+			public FixField.Text? UnderlyingIDSource => _underlyingIDSource;
+			internal FixField.Text? _underlyingIDSource;
 
 			/// <summary>The FIX UnderlyingSecurityType, tag 310, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSecurityType { get; internal set; }
+			public FixField.Text? UnderlyingSecurityType => _underlyingSecurityType;
+			internal FixField.Text? _underlyingSecurityType;
 
 			/// <summary>The FIX UnderlyingMaturityMonthYear, tag 313, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-			public FixField.MonthYear? UnderlyingMaturityMonthYear { get; internal set; }
+			public FixField.MonthYear? UnderlyingMaturityMonthYear => _underlyingMaturityMonthYear;
+			internal FixField.MonthYear? _underlyingMaturityMonthYear;
 
 			/// <summary>The FIX UnderlyingMaturityDay, tag 314, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-			public FixField.Integer? UnderlyingMaturityDay { get; internal set; }
+			public FixField.Integer? UnderlyingMaturityDay => _underlyingMaturityDay;
+			internal FixField.Integer? _underlyingMaturityDay;
 
 			/// <summary>The FIX UnderlyingPutOrCall, tag 315, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? UnderlyingPutOrCall { get; internal set; }
+			public FixField.Integer? UnderlyingPutOrCall => _underlyingPutOrCall;
+			internal FixField.Integer? _underlyingPutOrCall;
 
 			/// <summary>The FIX UnderlyingStrikePrice, tag 316, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? UnderlyingStrikePrice { get; internal set; }
+			public FixField.Decimal? UnderlyingStrikePrice => _underlyingStrikePrice;
+			internal FixField.Decimal? _underlyingStrikePrice;
 
 			/// <summary>The FIX UnderlyingOptAttribute, tag 317, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? UnderlyingOptAttribute { get; internal set; }
+			public FixField.Character? UnderlyingOptAttribute => _underlyingOptAttribute;
+			internal FixField.Character? _underlyingOptAttribute;
 
 			/// <summary>The FIX UnderlyingContractMultiplier, tag 436, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? UnderlyingContractMultiplier { get; internal set; }
+			public FixField.Decimal? UnderlyingContractMultiplier => _underlyingContractMultiplier;
+			internal FixField.Decimal? _underlyingContractMultiplier;
 
 			/// <summary>The FIX UnderlyingCouponRate, tag 435, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? UnderlyingCouponRate { get; internal set; }
+			public FixField.Decimal? UnderlyingCouponRate => _underlyingCouponRate;
+			internal FixField.Decimal? _underlyingCouponRate;
 
 			/// <summary>The FIX UnderlyingSecurityExchange, tag 308, wire type <c>Exchange</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSecurityExchange { get; internal set; }
+			public FixField.Text? UnderlyingSecurityExchange => _underlyingSecurityExchange;
+			internal FixField.Text? _underlyingSecurityExchange;
 
 			/// <summary>The FIX UnderlyingIssuer, tag 306, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingIssuer { get; internal set; }
+			public FixField.Text? UnderlyingIssuer => _underlyingIssuer;
+			internal FixField.Text? _underlyingIssuer;
 
 			/// <summary>The FIX EncodedUnderlyingIssuerLen, tag 362, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedUnderlyingIssuerLen { get; internal set; }
+			public FixField.Integer? EncodedUnderlyingIssuerLen => _encodedUnderlyingIssuerLen;
+			internal FixField.Integer? _encodedUnderlyingIssuerLen;
 
 			/// <summary>The FIX EncodedUnderlyingIssuer, tag 363, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedUnderlyingIssuer { get; internal set; }
+			public FixField.Data? EncodedUnderlyingIssuer => _encodedUnderlyingIssuer;
+			internal FixField.Data? _encodedUnderlyingIssuer;
 
 			/// <summary>The FIX UnderlyingSecurityDesc, tag 307, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSecurityDesc { get; internal set; }
+			public FixField.Text? UnderlyingSecurityDesc => _underlyingSecurityDesc;
+			internal FixField.Text? _underlyingSecurityDesc;
 
 			/// <summary>The FIX EncodedUnderlyingSecurityDescLen, tag 364, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedUnderlyingSecurityDescLen { get; internal set; }
+			public FixField.Integer? EncodedUnderlyingSecurityDescLen => _encodedUnderlyingSecurityDescLen;
+			internal FixField.Integer? _encodedUnderlyingSecurityDescLen;
 
 			/// <summary>The FIX EncodedUnderlyingSecurityDesc, tag 365, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedUnderlyingSecurityDesc { get; internal set; }
+			public FixField.Data? EncodedUnderlyingSecurityDesc => _encodedUnderlyingSecurityDesc;
+			internal FixField.Data? _encodedUnderlyingSecurityDesc;
 
 			/// <summary>The FIX TotQuoteEntries, tag 304, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? TotQuoteEntries { get; internal set; }
+			public FixField.Integer? TotQuoteEntries => _totQuoteEntries;
+			internal FixField.Integer? _totQuoteEntries;
 
 			/// <summary>The FIX NoQuoteEntries, tag 295, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? NoQuoteEntries { get; internal set; }
+			public FixField.Integer? NoQuoteEntries => _noQuoteEntries;
+			internal FixField.Integer? _noQuoteEntries;
 
 			/// <summary>The entries counted by NoQuoteEntries, tag 295; null when the group is absent.</summary>
 			public List<FixMessage.QuoteAcknowledgement.NoQuoteSetsGroup.NoQuoteEntriesGroup>? NoQuoteEntriesGroups => noQuoteEntriesGroups;
@@ -9474,64 +10546,84 @@ public abstract partial class FixMessage
 				public FixField.Text QuoteEntryID { get; }
 
 				/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-				public FixField.Text? Symbol { get; internal set; }
+				public FixField.Text? Symbol => _symbol;
+				internal FixField.Text? _symbol;
 
 				/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-				public FixField.Text? SymbolSfx { get; internal set; }
+				public FixField.Text? SymbolSfx => _symbolSfx;
+				internal FixField.Text? _symbolSfx;
 
 				/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-				public FixField.Text? SecurityID { get; internal set; }
+				public FixField.Text? SecurityID => _securityID;
+				internal FixField.Text? _securityID;
 
 				/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-				public FixField.Text? IDSource { get; internal set; }
+				public FixField.Text? IDSource => _iDSource;
+				internal FixField.Text? _iDSource;
 
 				/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-				public FixField.Text? SecurityType { get; internal set; }
+				public FixField.Text? SecurityType => _securityType;
+				internal FixField.Text? _securityType;
 
 				/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-				public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+				public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+				internal FixField.MonthYear? _maturityMonthYear;
 
 				/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-				public FixField.Integer? MaturityDay { get; internal set; }
+				public FixField.Integer? MaturityDay => _maturityDay;
+				internal FixField.Integer? _maturityDay;
 
 				/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-				public FixField.Integer? PutOrCall { get; internal set; }
+				public FixField.Integer? PutOrCall => _putOrCall;
+				internal FixField.Integer? _putOrCall;
 
 				/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-				public FixField.Decimal? StrikePrice { get; internal set; }
+				public FixField.Decimal? StrikePrice => _strikePrice;
+				internal FixField.Decimal? _strikePrice;
 
 				/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-				public FixField.Character? OptAttribute { get; internal set; }
+				public FixField.Character? OptAttribute => _optAttribute;
+				internal FixField.Character? _optAttribute;
 
 				/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-				public FixField.Decimal? ContractMultiplier { get; internal set; }
+				public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+				internal FixField.Decimal? _contractMultiplier;
 
 				/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-				public FixField.Decimal? CouponRate { get; internal set; }
+				public FixField.Decimal? CouponRate => _couponRate;
+				internal FixField.Decimal? _couponRate;
 
 				/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-				public FixField.Text? SecurityExchange { get; internal set; }
+				public FixField.Text? SecurityExchange => _securityExchange;
+				internal FixField.Text? _securityExchange;
 
 				/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-				public FixField.Text? Issuer { get; internal set; }
+				public FixField.Text? Issuer => _issuer;
+				internal FixField.Text? _issuer;
 
 				/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-				public FixField.Integer? EncodedIssuerLen { get; internal set; }
+				public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+				internal FixField.Integer? _encodedIssuerLen;
 
 				/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-				public FixField.Data? EncodedIssuer { get; internal set; }
+				public FixField.Data? EncodedIssuer => _encodedIssuer;
+				internal FixField.Data? _encodedIssuer;
 
 				/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-				public FixField.Text? SecurityDesc { get; internal set; }
+				public FixField.Text? SecurityDesc => _securityDesc;
+				internal FixField.Text? _securityDesc;
 
 				/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-				public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+				public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+				internal FixField.Integer? _encodedSecurityDescLen;
 
 				/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-				public FixField.Data? EncodedSecurityDesc { get; internal set; }
+				public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+				internal FixField.Data? _encodedSecurityDesc;
 
 				/// <summary>The FIX QuoteEntryRejectReason, tag 368, wire type <c>int</c>; null when the field is absent.</summary>
-				public FixField.Integer? QuoteEntryRejectReason { get; internal set; }
+				public FixField.Integer? QuoteEntryRejectReason => _quoteEntryRejectReason;
+				internal FixField.Integer? _quoteEntryRejectReason;
 
 				FixField IFixEntry.Opener => QuoteEntryID;
 
@@ -9586,167 +10678,167 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.QuoteReqID: if (QuoteReqID is not null) Duplicate(field); QuoteReqID = (FixField.Text)field; break;
-					case FixTag.QuoteID: if (QuoteID is not null) Duplicate(field); QuoteID = (FixField.Text)field; break;
-					case FixTag.QuoteCancelType: if (QuoteCancelType is not null) Duplicate(field); QuoteCancelType = (FixField.Integer)field; break;
-					case FixTag.QuoteResponseLevel: if (QuoteResponseLevel is not null) Duplicate(field); QuoteResponseLevel = (FixField.Integer)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.NoQuoteEntries: if (NoQuoteEntries is not null) Duplicate(field); NoQuoteEntries = (FixField.Integer)field; break;
+					case FixTag.QuoteReqID: if (_quoteReqID is not null) Duplicate(field); _quoteReqID = (FixField.Text)field; break;
+					case FixTag.QuoteID: if (_quoteID is not null) Duplicate(field); _quoteID = (FixField.Text)field; break;
+					case FixTag.QuoteCancelType: if (_quoteCancelType is not null) Duplicate(field); _quoteCancelType = (FixField.Integer)field; break;
+					case FixTag.QuoteResponseLevel: if (_quoteResponseLevel is not null) Duplicate(field); _quoteResponseLevel = (FixField.Integer)field; break;
+					case FixTag.TradingSessionID: if (_tradingSessionID is not null) Duplicate(field); _tradingSessionID = (FixField.Text)field; break;
+					case FixTag.NoQuoteEntries: if (_noQuoteEntries is not null) Duplicate(field); _noQuoteEntries = (FixField.Integer)field; break;
 					case FixTag.Symbol:
-						if (noQuoteEntriesGroups is null && NoQuoteEntries is null) Uncounted(FixTag.NoQuoteEntries, field);
+						if (noQuoteEntriesGroups is null && _noQuoteEntries is null) Uncounted(FixTag.NoQuoteEntries, field);
 						(noQuoteEntriesGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].SymbolSfx is not null)
+						else if (noQuoteEntriesGroups![^1]._symbolSfx is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].SymbolSfx = (FixField.Text)field;
+							noQuoteEntriesGroups![^1]._symbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].SecurityID is not null)
+						else if (noQuoteEntriesGroups![^1]._securityID is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].SecurityID = (FixField.Text)field;
+							noQuoteEntriesGroups![^1]._securityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].IDSource is not null)
+						else if (noQuoteEntriesGroups![^1]._iDSource is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].IDSource = (FixField.Text)field;
+							noQuoteEntriesGroups![^1]._iDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].SecurityType is not null)
+						else if (noQuoteEntriesGroups![^1]._securityType is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].SecurityType = (FixField.Text)field;
+							noQuoteEntriesGroups![^1]._securityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].MaturityMonthYear is not null)
+						else if (noQuoteEntriesGroups![^1]._maturityMonthYear is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
+							noQuoteEntriesGroups![^1]._maturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].MaturityDay is not null)
+						else if (noQuoteEntriesGroups![^1]._maturityDay is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].MaturityDay = (FixField.Integer)field;
+							noQuoteEntriesGroups![^1]._maturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].PutOrCall is not null)
+						else if (noQuoteEntriesGroups![^1]._putOrCall is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].PutOrCall = (FixField.Integer)field;
+							noQuoteEntriesGroups![^1]._putOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].StrikePrice is not null)
+						else if (noQuoteEntriesGroups![^1]._strikePrice is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].StrikePrice = (FixField.Decimal)field;
+							noQuoteEntriesGroups![^1]._strikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].OptAttribute is not null)
+						else if (noQuoteEntriesGroups![^1]._optAttribute is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].OptAttribute = (FixField.Character)field;
+							noQuoteEntriesGroups![^1]._optAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].ContractMultiplier is not null)
+						else if (noQuoteEntriesGroups![^1]._contractMultiplier is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].ContractMultiplier = (FixField.Decimal)field;
+							noQuoteEntriesGroups![^1]._contractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].CouponRate is not null)
+						else if (noQuoteEntriesGroups![^1]._couponRate is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].CouponRate = (FixField.Decimal)field;
+							noQuoteEntriesGroups![^1]._couponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].SecurityExchange is not null)
+						else if (noQuoteEntriesGroups![^1]._securityExchange is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].SecurityExchange = (FixField.Text)field;
+							noQuoteEntriesGroups![^1]._securityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].Issuer is not null)
+						else if (noQuoteEntriesGroups![^1]._issuer is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].Issuer = (FixField.Text)field;
+							noQuoteEntriesGroups![^1]._issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].EncodedIssuerLen is not null)
+						else if (noQuoteEntriesGroups![^1]._encodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
+							noQuoteEntriesGroups![^1]._encodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].EncodedIssuer is not null)
+						else if (noQuoteEntriesGroups![^1]._encodedIssuer is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].EncodedIssuer = (FixField.Data)field;
+							noQuoteEntriesGroups![^1]._encodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].SecurityDesc is not null)
+						else if (noQuoteEntriesGroups![^1]._securityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].SecurityDesc = (FixField.Text)field;
+							noQuoteEntriesGroups![^1]._securityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].EncodedSecurityDescLen is not null)
+						else if (noQuoteEntriesGroups![^1]._encodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
+							noQuoteEntriesGroups![^1]._encodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].EncodedSecurityDesc is not null)
+						else if (noQuoteEntriesGroups![^1]._encodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
+							noQuoteEntriesGroups![^1]._encodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.UnderlyingSymbol:
 						if (None(noQuoteEntriesGroups))
 							Unentered(field);
-						else if (noQuoteEntriesGroups![^1].UnderlyingSymbol is not null)
+						else if (noQuoteEntriesGroups![^1]._underlyingSymbol is not null)
 							Duplicate(field, FixTag.NoQuoteEntries, noQuoteEntriesGroups!.Count - 1);
 						else
-							noQuoteEntriesGroups![^1].UnderlyingSymbol = (FixField.Text)field;
+							noQuoteEntriesGroups![^1]._underlyingSymbol = (FixField.Text)field;
 						break;
 
 					default:
@@ -9759,22 +10851,28 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX QuoteReqID, tag 131, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? QuoteReqID { get; internal set; }
+		public FixField.Text? QuoteReqID => _quoteReqID;
+		internal FixField.Text? _quoteReqID;
 
 		/// <summary>The FIX QuoteID, tag 117, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? QuoteID { get; internal set; }
+		public FixField.Text? QuoteID => _quoteID;
+		internal FixField.Text? _quoteID;
 
 		/// <summary>The FIX QuoteCancelType, tag 298, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? QuoteCancelType { get; internal set; }
+		public FixField.Integer? QuoteCancelType => _quoteCancelType;
+		internal FixField.Integer? _quoteCancelType;
 
 		/// <summary>The FIX QuoteResponseLevel, tag 301, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? QuoteResponseLevel { get; internal set; }
+		public FixField.Integer? QuoteResponseLevel => _quoteResponseLevel;
+		internal FixField.Integer? _quoteResponseLevel;
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TradingSessionID { get; internal set; }
+		public FixField.Text? TradingSessionID => _tradingSessionID;
+		internal FixField.Text? _tradingSessionID;
 
 		/// <summary>The FIX NoQuoteEntries, tag 295, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoQuoteEntries { get; internal set; }
+		public FixField.Integer? NoQuoteEntries => _noQuoteEntries;
+		internal FixField.Integer? _noQuoteEntries;
 
 		/// <summary>The entries counted by NoQuoteEntries, tag 295; null when the group is absent.</summary>
 		public List<FixMessage.QuoteCancel.NoQuoteEntriesGroup>? NoQuoteEntriesGroups => noQuoteEntriesGroups;
@@ -9792,61 +10890,80 @@ public abstract partial class FixMessage
 			public FixField.Text Symbol { get; }
 
 			/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SymbolSfx { get; internal set; }
+			public FixField.Text? SymbolSfx => _symbolSfx;
+			internal FixField.Text? _symbolSfx;
 
 			/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityID { get; internal set; }
+			public FixField.Text? SecurityID => _securityID;
+			internal FixField.Text? _securityID;
 
 			/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? IDSource { get; internal set; }
+			public FixField.Text? IDSource => _iDSource;
+			internal FixField.Text? _iDSource;
 
 			/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityType { get; internal set; }
+			public FixField.Text? SecurityType => _securityType;
+			internal FixField.Text? _securityType;
 
 			/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-			public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+			public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+			internal FixField.MonthYear? _maturityMonthYear;
 
 			/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-			public FixField.Integer? MaturityDay { get; internal set; }
+			public FixField.Integer? MaturityDay => _maturityDay;
+			internal FixField.Integer? _maturityDay;
 
 			/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? PutOrCall { get; internal set; }
+			public FixField.Integer? PutOrCall => _putOrCall;
+			internal FixField.Integer? _putOrCall;
 
 			/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? StrikePrice { get; internal set; }
+			public FixField.Decimal? StrikePrice => _strikePrice;
+			internal FixField.Decimal? _strikePrice;
 
 			/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? OptAttribute { get; internal set; }
+			public FixField.Character? OptAttribute => _optAttribute;
+			internal FixField.Character? _optAttribute;
 
 			/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? ContractMultiplier { get; internal set; }
+			public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+			internal FixField.Decimal? _contractMultiplier;
 
 			/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? CouponRate { get; internal set; }
+			public FixField.Decimal? CouponRate => _couponRate;
+			internal FixField.Decimal? _couponRate;
 
 			/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityExchange { get; internal set; }
+			public FixField.Text? SecurityExchange => _securityExchange;
+			internal FixField.Text? _securityExchange;
 
 			/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Issuer { get; internal set; }
+			public FixField.Text? Issuer => _issuer;
+			internal FixField.Text? _issuer;
 
 			/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedIssuerLen { get; internal set; }
+			public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+			internal FixField.Integer? _encodedIssuerLen;
 
 			/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedIssuer { get; internal set; }
+			public FixField.Data? EncodedIssuer => _encodedIssuer;
+			internal FixField.Data? _encodedIssuer;
 
 			/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityDesc { get; internal set; }
+			public FixField.Text? SecurityDesc => _securityDesc;
+			internal FixField.Text? _securityDesc;
 
 			/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+			public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+			internal FixField.Integer? _encodedSecurityDescLen;
 
 			/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedSecurityDesc { get; internal set; }
+			public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+			internal FixField.Data? _encodedSecurityDesc;
 
 			/// <summary>The FIX UnderlyingSymbol, tag 311, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSymbol { get; internal set; }
+			public FixField.Text? UnderlyingSymbol => _underlyingSymbol;
+			internal FixField.Text? _underlyingSymbol;
 
 			FixField IFixEntry.Opener => Symbol;
 
@@ -9886,251 +11003,251 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.QuoteReqID: if (QuoteReqID is not null) Duplicate(field); QuoteReqID = (FixField.Text)field; break;
-					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) Duplicate(field); NoRelatedSym = (FixField.Integer)field; break;
+					case FixTag.QuoteReqID: if (_quoteReqID is not null) Duplicate(field); _quoteReqID = (FixField.Text)field; break;
+					case FixTag.NoRelatedSym: if (_noRelatedSym is not null) Duplicate(field); _noRelatedSym = (FixField.Integer)field; break;
 					case FixTag.Symbol:
-						if (noRelatedSymGroups is null && NoRelatedSym is null) Uncounted(FixTag.NoRelatedSym, field);
+						if (noRelatedSymGroups is null && _noRelatedSym is null) Uncounted(FixTag.NoRelatedSym, field);
 						(noRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.SymbolSfx:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SymbolSfx is not null)
+						else if (noRelatedSymGroups![^1]._symbolSfx is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SymbolSfx = (FixField.Text)field;
+							noRelatedSymGroups![^1]._symbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.SecurityID:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SecurityID is not null)
+						else if (noRelatedSymGroups![^1]._securityID is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SecurityID = (FixField.Text)field;
+							noRelatedSymGroups![^1]._securityID = (FixField.Text)field;
 						break;
 					case FixTag.SecurityIDSource:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].IDSource is not null)
+						else if (noRelatedSymGroups![^1]._iDSource is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].IDSource = (FixField.Text)field;
+							noRelatedSymGroups![^1]._iDSource = (FixField.Text)field;
 						break;
 					case FixTag.SecurityType:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SecurityType is not null)
+						else if (noRelatedSymGroups![^1]._securityType is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SecurityType = (FixField.Text)field;
+							noRelatedSymGroups![^1]._securityType = (FixField.Text)field;
 						break;
 					case FixTag.MaturityMonthYear:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].MaturityMonthYear is not null)
+						else if (noRelatedSymGroups![^1]._maturityMonthYear is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].MaturityMonthYear = (FixField.MonthYear)field;
+							noRelatedSymGroups![^1]._maturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.MaturityDay:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].MaturityDay is not null)
+						else if (noRelatedSymGroups![^1]._maturityDay is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].MaturityDay = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._maturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.PutOrCall:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].PutOrCall is not null)
+						else if (noRelatedSymGroups![^1]._putOrCall is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].PutOrCall = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._putOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.StrikePrice:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].StrikePrice is not null)
+						else if (noRelatedSymGroups![^1]._strikePrice is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].StrikePrice = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._strikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.OptAttribute:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].OptAttribute is not null)
+						else if (noRelatedSymGroups![^1]._optAttribute is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].OptAttribute = (FixField.Character)field;
+							noRelatedSymGroups![^1]._optAttribute = (FixField.Character)field;
 						break;
 					case FixTag.ContractMultiplier:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].ContractMultiplier is not null)
+						else if (noRelatedSymGroups![^1]._contractMultiplier is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].ContractMultiplier = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._contractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.CouponRate:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].CouponRate is not null)
+						else if (noRelatedSymGroups![^1]._couponRate is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].CouponRate = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._couponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.SecurityExchange:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SecurityExchange is not null)
+						else if (noRelatedSymGroups![^1]._securityExchange is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SecurityExchange = (FixField.Text)field;
+							noRelatedSymGroups![^1]._securityExchange = (FixField.Text)field;
 						break;
 					case FixTag.Issuer:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].Issuer is not null)
+						else if (noRelatedSymGroups![^1]._issuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].Issuer = (FixField.Text)field;
+							noRelatedSymGroups![^1]._issuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedIssuerLen:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedIssuerLen is not null)
+						else if (noRelatedSymGroups![^1]._encodedIssuerLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedIssuerLen = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._encodedIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedIssuer:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedIssuer is not null)
+						else if (noRelatedSymGroups![^1]._encodedIssuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedIssuer = (FixField.Data)field;
+							noRelatedSymGroups![^1]._encodedIssuer = (FixField.Data)field;
 						break;
 					case FixTag.SecurityDesc:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].SecurityDesc is not null)
+						else if (noRelatedSymGroups![^1]._securityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].SecurityDesc = (FixField.Text)field;
+							noRelatedSymGroups![^1]._securityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedSecurityDescLen:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedSecurityDescLen is not null)
+						else if (noRelatedSymGroups![^1]._encodedSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedSecurityDescLen = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._encodedSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedSecurityDesc:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedSecurityDesc is not null)
+						else if (noRelatedSymGroups![^1]._encodedSecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedSecurityDesc = (FixField.Data)field;
+							noRelatedSymGroups![^1]._encodedSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.PrevClosePx:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].PrevClosePx is not null)
+						else if (noRelatedSymGroups![^1]._prevClosePx is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].PrevClosePx = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._prevClosePx = (FixField.Decimal)field;
 						break;
 					case FixTag.QuoteRequestType:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].QuoteRequestType is not null)
+						else if (noRelatedSymGroups![^1]._quoteRequestType is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].QuoteRequestType = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._quoteRequestType = (FixField.Integer)field;
 						break;
 					case FixTag.TradingSessionID:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].TradingSessionID is not null)
+						else if (noRelatedSymGroups![^1]._tradingSessionID is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].TradingSessionID = (FixField.Text)field;
+							noRelatedSymGroups![^1]._tradingSessionID = (FixField.Text)field;
 						break;
 					case FixTag.Side:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].Side is not null)
+						else if (noRelatedSymGroups![^1]._side is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].Side = (FixField.Character)field;
+							noRelatedSymGroups![^1]._side = (FixField.Character)field;
 						break;
 					case FixTag.OrderQty:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].OrderQty is not null)
+						else if (noRelatedSymGroups![^1]._orderQty is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].OrderQty = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._orderQty = (FixField.Decimal)field;
 						break;
 					case FixTag.SettlDate:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].FutSettDate is not null)
+						else if (noRelatedSymGroups![^1]._futSettDate is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].FutSettDate = (FixField.Date)field;
+							noRelatedSymGroups![^1]._futSettDate = (FixField.Date)field;
 						break;
 					case FixTag.OrdType:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].OrdType is not null)
+						else if (noRelatedSymGroups![^1]._ordType is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].OrdType = (FixField.Character)field;
+							noRelatedSymGroups![^1]._ordType = (FixField.Character)field;
 						break;
 					case FixTag.SettlDate2:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].FutSettDate2 is not null)
+						else if (noRelatedSymGroups![^1]._futSettDate2 is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].FutSettDate2 = (FixField.Date)field;
+							noRelatedSymGroups![^1]._futSettDate2 = (FixField.Date)field;
 						break;
 					case FixTag.OrderQty2:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].OrderQty2 is not null)
+						else if (noRelatedSymGroups![^1]._orderQty2 is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].OrderQty2 = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._orderQty2 = (FixField.Decimal)field;
 						break;
 					case FixTag.ExpireTime:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].ExpireTime is not null)
+						else if (noRelatedSymGroups![^1]._expireTime is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].ExpireTime = (FixField.Timestamp)field;
+							noRelatedSymGroups![^1]._expireTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.TransactTime:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].TransactTime is not null)
+						else if (noRelatedSymGroups![^1]._transactTime is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].TransactTime = (FixField.Timestamp)field;
+							noRelatedSymGroups![^1]._transactTime = (FixField.Timestamp)field;
 						break;
 					case FixTag.Currency:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].Currency is not null)
+						else if (noRelatedSymGroups![^1]._currency is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].Currency = (FixField.Text)field;
+							noRelatedSymGroups![^1]._currency = (FixField.Text)field;
 						break;
 
 					default:
@@ -10143,10 +11260,12 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX QuoteReqID, tag 131, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? QuoteReqID { get; internal set; }
+		public FixField.Text? QuoteReqID => _quoteReqID;
+		internal FixField.Text? _quoteReqID;
 
 		/// <summary>The FIX NoRelatedSym, tag 146, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoRelatedSym { get; internal set; }
+		public FixField.Integer? NoRelatedSym => _noRelatedSym;
+		internal FixField.Integer? _noRelatedSym;
 
 		/// <summary>The entries counted by NoRelatedSym, tag 146; null when the group is absent.</summary>
 		public List<FixMessage.QuoteRequest.NoRelatedSymGroup>? NoRelatedSymGroups => noRelatedSymGroups;
@@ -10164,94 +11283,124 @@ public abstract partial class FixMessage
 			public FixField.Text Symbol { get; }
 
 			/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SymbolSfx { get; internal set; }
+			public FixField.Text? SymbolSfx => _symbolSfx;
+			internal FixField.Text? _symbolSfx;
 
 			/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityID { get; internal set; }
+			public FixField.Text? SecurityID => _securityID;
+			internal FixField.Text? _securityID;
 
 			/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? IDSource { get; internal set; }
+			public FixField.Text? IDSource => _iDSource;
+			internal FixField.Text? _iDSource;
 
 			/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityType { get; internal set; }
+			public FixField.Text? SecurityType => _securityType;
+			internal FixField.Text? _securityType;
 
 			/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-			public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+			public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+			internal FixField.MonthYear? _maturityMonthYear;
 
 			/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-			public FixField.Integer? MaturityDay { get; internal set; }
+			public FixField.Integer? MaturityDay => _maturityDay;
+			internal FixField.Integer? _maturityDay;
 
 			/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? PutOrCall { get; internal set; }
+			public FixField.Integer? PutOrCall => _putOrCall;
+			internal FixField.Integer? _putOrCall;
 
 			/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? StrikePrice { get; internal set; }
+			public FixField.Decimal? StrikePrice => _strikePrice;
+			internal FixField.Decimal? _strikePrice;
 
 			/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? OptAttribute { get; internal set; }
+			public FixField.Character? OptAttribute => _optAttribute;
+			internal FixField.Character? _optAttribute;
 
 			/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? ContractMultiplier { get; internal set; }
+			public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+			internal FixField.Decimal? _contractMultiplier;
 
 			/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? CouponRate { get; internal set; }
+			public FixField.Decimal? CouponRate => _couponRate;
+			internal FixField.Decimal? _couponRate;
 
 			/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityExchange { get; internal set; }
+			public FixField.Text? SecurityExchange => _securityExchange;
+			internal FixField.Text? _securityExchange;
 
 			/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? Issuer { get; internal set; }
+			public FixField.Text? Issuer => _issuer;
+			internal FixField.Text? _issuer;
 
 			/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedIssuerLen { get; internal set; }
+			public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+			internal FixField.Integer? _encodedIssuerLen;
 
 			/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedIssuer { get; internal set; }
+			public FixField.Data? EncodedIssuer => _encodedIssuer;
+			internal FixField.Data? _encodedIssuer;
 
 			/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? SecurityDesc { get; internal set; }
+			public FixField.Text? SecurityDesc => _securityDesc;
+			internal FixField.Text? _securityDesc;
 
 			/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+			public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+			internal FixField.Integer? _encodedSecurityDescLen;
 
 			/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedSecurityDesc { get; internal set; }
+			public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+			internal FixField.Data? _encodedSecurityDesc;
 
 			/// <summary>The FIX PrevClosePx, tag 140, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? PrevClosePx { get; internal set; }
+			public FixField.Decimal? PrevClosePx => _prevClosePx;
+			internal FixField.Decimal? _prevClosePx;
 
 			/// <summary>The FIX QuoteRequestType, tag 303, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? QuoteRequestType { get; internal set; }
+			public FixField.Integer? QuoteRequestType => _quoteRequestType;
+			internal FixField.Integer? _quoteRequestType;
 
 			/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? TradingSessionID { get; internal set; }
+			public FixField.Text? TradingSessionID => _tradingSessionID;
+			internal FixField.Text? _tradingSessionID;
 
 			/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? Side { get; internal set; }
+			public FixField.Character? Side => _side;
+			internal FixField.Character? _side;
 
 			/// <summary>The FIX OrderQty, tag 38, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? OrderQty { get; internal set; }
+			public FixField.Decimal? OrderQty => _orderQty;
+			internal FixField.Decimal? _orderQty;
 
 			/// <summary>The FIX FutSettDate, tag 64, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-			public FixField.Date? FutSettDate { get; internal set; }
+			public FixField.Date? FutSettDate => _futSettDate;
+			internal FixField.Date? _futSettDate;
 
 			/// <summary>The FIX OrdType, tag 40, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? OrdType { get; internal set; }
+			public FixField.Character? OrdType => _ordType;
+			internal FixField.Character? _ordType;
 
 			/// <summary>The FIX FutSettDate2, tag 193, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-			public FixField.Date? FutSettDate2 { get; internal set; }
+			public FixField.Date? FutSettDate2 => _futSettDate2;
+			internal FixField.Date? _futSettDate2;
 
 			/// <summary>The FIX OrderQty2, tag 192, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? OrderQty2 { get; internal set; }
+			public FixField.Decimal? OrderQty2 => _orderQty2;
+			internal FixField.Decimal? _orderQty2;
 
 			/// <summary>The FIX ExpireTime, tag 126, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-			public FixField.Timestamp? ExpireTime { get; internal set; }
+			public FixField.Timestamp? ExpireTime => _expireTime;
+			internal FixField.Timestamp? _expireTime;
 
 			/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-			public FixField.Timestamp? TransactTime { get; internal set; }
+			public FixField.Timestamp? TransactTime => _transactTime;
+			internal FixField.Timestamp? _transactTime;
 
 			/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
-			public FixField.Text? Currency { get; internal set; }
+			public FixField.Text? Currency => _currency;
+			internal FixField.Text? _currency;
 
 			FixField IFixEntry.Opener => Symbol;
 
@@ -10291,28 +11440,28 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.QuoteID: if (QuoteID is not null) Duplicate(field); QuoteID = (FixField.Text)field; break;
-					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
+					case FixTag.QuoteID: if (_quoteID is not null) Duplicate(field); _quoteID = (FixField.Text)field; break;
+					case FixTag.Symbol: if (_symbol is not null) Duplicate(field); _symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (_symbolSfx is not null) Duplicate(field); _symbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (_securityID is not null) Duplicate(field); _securityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (_iDSource is not null) Duplicate(field); _iDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (_securityType is not null) Duplicate(field); _securityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (_maturityMonthYear is not null) Duplicate(field); _maturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (_maturityDay is not null) Duplicate(field); _maturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (_putOrCall is not null) Duplicate(field); _putOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (_strikePrice is not null) Duplicate(field); _strikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (_optAttribute is not null) Duplicate(field); _optAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (_contractMultiplier is not null) Duplicate(field); _contractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (_couponRate is not null) Duplicate(field); _couponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (_securityExchange is not null) Duplicate(field); _securityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (_issuer is not null) Duplicate(field); _issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (_encodedIssuerLen is not null) Duplicate(field); _encodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (_encodedIssuer is not null) Duplicate(field); _encodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (_securityDesc is not null) Duplicate(field); _securityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (_encodedSecurityDescLen is not null) Duplicate(field); _encodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (_encodedSecurityDesc is not null) Duplicate(field); _encodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Side: if (_side is not null) Duplicate(field); _side = (FixField.Character)field; break;
+					case FixTag.TradingSessionID: if (_tradingSessionID is not null) Duplicate(field); _tradingSessionID = (FixField.Text)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -10324,70 +11473,92 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX QuoteID, tag 117, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? QuoteID { get; internal set; }
+		public FixField.Text? QuoteID => _quoteID;
+		internal FixField.Text? _quoteID;
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Symbol { get; internal set; }
+		public FixField.Text? Symbol => _symbol;
+		internal FixField.Text? _symbol;
 
 		/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SymbolSfx { get; internal set; }
+		public FixField.Text? SymbolSfx => _symbolSfx;
+		internal FixField.Text? _symbolSfx;
 
 		/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityID { get; internal set; }
+		public FixField.Text? SecurityID => _securityID;
+		internal FixField.Text? _securityID;
 
 		/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IDSource { get; internal set; }
+		public FixField.Text? IDSource => _iDSource;
+		internal FixField.Text? _iDSource;
 
 		/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityType { get; internal set; }
+		public FixField.Text? SecurityType => _securityType;
+		internal FixField.Text? _securityType;
 
 		/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-		public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+		public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+		internal FixField.MonthYear? _maturityMonthYear;
 
 		/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-		public FixField.Integer? MaturityDay { get; internal set; }
+		public FixField.Integer? MaturityDay => _maturityDay;
+		internal FixField.Integer? _maturityDay;
 
 		/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? PutOrCall { get; internal set; }
+		public FixField.Integer? PutOrCall => _putOrCall;
+		internal FixField.Integer? _putOrCall;
 
 		/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StrikePrice { get; internal set; }
+		public FixField.Decimal? StrikePrice => _strikePrice;
+		internal FixField.Decimal? _strikePrice;
 
 		/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OptAttribute { get; internal set; }
+		public FixField.Character? OptAttribute => _optAttribute;
+		internal FixField.Character? _optAttribute;
 
 		/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? ContractMultiplier { get; internal set; }
+		public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+		internal FixField.Decimal? _contractMultiplier;
 
 		/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CouponRate { get; internal set; }
+		public FixField.Decimal? CouponRate => _couponRate;
+		internal FixField.Decimal? _couponRate;
 
 		/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityExchange { get; internal set; }
+		public FixField.Text? SecurityExchange => _securityExchange;
+		internal FixField.Text? _securityExchange;
 
 		/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Issuer { get; internal set; }
+		public FixField.Text? Issuer => _issuer;
+		internal FixField.Text? _issuer;
 
 		/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedIssuerLen { get; internal set; }
+		public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+		internal FixField.Integer? _encodedIssuerLen;
 
 		/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedIssuer { get; internal set; }
+		public FixField.Data? EncodedIssuer => _encodedIssuer;
+		internal FixField.Data? _encodedIssuer;
 
 		/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityDesc { get; internal set; }
+		public FixField.Text? SecurityDesc => _securityDesc;
+		internal FixField.Text? _securityDesc;
 
 		/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+		public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+		internal FixField.Integer? _encodedSecurityDescLen;
 
 		/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedSecurityDesc { get; internal set; }
+		public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+		internal FixField.Data? _encodedSecurityDesc;
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? Side { get; internal set; }
+		public FixField.Character? Side => _side;
+		internal FixField.Character? _side;
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TradingSessionID { get; internal set; }
+		public FixField.Text? TradingSessionID => _tradingSessionID;
+		internal FixField.Text? _tradingSessionID;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -10405,13 +11576,13 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.RefSeqNum: if (RefSeqNum is not null) Duplicate(field); RefSeqNum = (FixField.Integer)field; break;
-					case FixTag.RefTagID: if (RefTagID is not null) Duplicate(field); RefTagID = (FixField.Integer)field; break;
-					case FixTag.RefMsgType: if (RefMsgType is not null) Duplicate(field); RefMsgType = (FixField.Text)field; break;
-					case FixTag.SessionRejectReason: if (SessionRejectReason is not null) Duplicate(field); SessionRejectReason = (FixField.Integer)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.RefSeqNum: if (_refSeqNum is not null) Duplicate(field); _refSeqNum = (FixField.Integer)field; break;
+					case FixTag.RefTagID: if (_refTagID is not null) Duplicate(field); _refTagID = (FixField.Integer)field; break;
+					case FixTag.RefMsgType: if (_refMsgType is not null) Duplicate(field); _refMsgType = (FixField.Text)field; break;
+					case FixTag.SessionRejectReason: if (_sessionRejectReason is not null) Duplicate(field); _sessionRejectReason = (FixField.Integer)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -10423,25 +11594,32 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX RefSeqNum, tag 45, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? RefSeqNum { get; internal set; }
+		public FixField.Integer? RefSeqNum => _refSeqNum;
+		internal FixField.Integer? _refSeqNum;
 
 		/// <summary>The FIX RefTagID, tag 371, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? RefTagID { get; internal set; }
+		public FixField.Integer? RefTagID => _refTagID;
+		internal FixField.Integer? _refTagID;
 
 		/// <summary>The FIX RefMsgType, tag 372, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? RefMsgType { get; internal set; }
+		public FixField.Text? RefMsgType => _refMsgType;
+		internal FixField.Text? _refMsgType;
 
 		/// <summary>The FIX SessionRejectReason, tag 373, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? SessionRejectReason { get; internal set; }
+		public FixField.Integer? SessionRejectReason => _sessionRejectReason;
+		internal FixField.Integer? _sessionRejectReason;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -10459,8 +11637,8 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.BeginSeqNo: if (BeginSeqNo is not null) Duplicate(field); BeginSeqNo = (FixField.Integer)field; break;
-					case FixTag.EndSeqNo: if (EndSeqNo is not null) Duplicate(field); EndSeqNo = (FixField.Integer)field; break;
+					case FixTag.BeginSeqNo: if (_beginSeqNo is not null) Duplicate(field); _beginSeqNo = (FixField.Integer)field; break;
+					case FixTag.EndSeqNo: if (_endSeqNo is not null) Duplicate(field); _endSeqNo = (FixField.Integer)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -10472,10 +11650,12 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX BeginSeqNo, tag 7, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? BeginSeqNo { get; internal set; }
+		public FixField.Integer? BeginSeqNo => _beginSeqNo;
+		internal FixField.Integer? _beginSeqNo;
 
 		/// <summary>The FIX EndSeqNo, tag 16, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? EndSeqNo { get; internal set; }
+		public FixField.Integer? EndSeqNo => _endSeqNo;
+		internal FixField.Integer? _endSeqNo;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -10493,206 +11673,206 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.SecurityReqID: if (SecurityReqID is not null) Duplicate(field); SecurityReqID = (FixField.Text)field; break;
-					case FixTag.SecurityResponseID: if (SecurityResponseID is not null) Duplicate(field); SecurityResponseID = (FixField.Text)field; break;
-					case FixTag.SecurityResponseType: if (SecurityResponseType is not null) Duplicate(field); SecurityResponseType = (FixField.Integer)field; break;
-					case FixTag.TotNoRelatedSym: if (TotalNumSecurities is not null) Duplicate(field); TotalNumSecurities = (FixField.Integer)field; break;
-					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
-					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) Duplicate(field); NoRelatedSym = (FixField.Integer)field; break;
+					case FixTag.SecurityReqID: if (_securityReqID is not null) Duplicate(field); _securityReqID = (FixField.Text)field; break;
+					case FixTag.SecurityResponseID: if (_securityResponseID is not null) Duplicate(field); _securityResponseID = (FixField.Text)field; break;
+					case FixTag.SecurityResponseType: if (_securityResponseType is not null) Duplicate(field); _securityResponseType = (FixField.Integer)field; break;
+					case FixTag.TotNoRelatedSym: if (_totalNumSecurities is not null) Duplicate(field); _totalNumSecurities = (FixField.Integer)field; break;
+					case FixTag.Symbol: if (_symbol is not null) Duplicate(field); _symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (_symbolSfx is not null) Duplicate(field); _symbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (_securityID is not null) Duplicate(field); _securityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (_iDSource is not null) Duplicate(field); _iDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (_securityType is not null) Duplicate(field); _securityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (_maturityMonthYear is not null) Duplicate(field); _maturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (_maturityDay is not null) Duplicate(field); _maturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (_putOrCall is not null) Duplicate(field); _putOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (_strikePrice is not null) Duplicate(field); _strikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (_optAttribute is not null) Duplicate(field); _optAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (_contractMultiplier is not null) Duplicate(field); _contractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (_couponRate is not null) Duplicate(field); _couponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (_securityExchange is not null) Duplicate(field); _securityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (_issuer is not null) Duplicate(field); _issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (_encodedIssuerLen is not null) Duplicate(field); _encodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (_encodedIssuer is not null) Duplicate(field); _encodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (_securityDesc is not null) Duplicate(field); _securityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (_encodedSecurityDescLen is not null) Duplicate(field); _encodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (_encodedSecurityDesc is not null) Duplicate(field); _encodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Currency: if (_currency is not null) Duplicate(field); _currency = (FixField.Text)field; break;
+					case FixTag.TradingSessionID: if (_tradingSessionID is not null) Duplicate(field); _tradingSessionID = (FixField.Text)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
+					case FixTag.NoRelatedSym: if (_noRelatedSym is not null) Duplicate(field); _noRelatedSym = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
-						if (noRelatedSymGroups is null && NoRelatedSym is null) Uncounted(FixTag.NoRelatedSym, field);
+						if (noRelatedSymGroups is null && _noRelatedSym is null) Uncounted(FixTag.NoRelatedSym, field);
 						(noRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingSymbolSfx is not null)
+						else if (noRelatedSymGroups![^1]._underlyingSymbolSfx is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingSymbolSfx = (FixField.Text)field;
+							noRelatedSymGroups![^1]._underlyingSymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityID:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingSecurityID is not null)
+						else if (noRelatedSymGroups![^1]._underlyingSecurityID is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingSecurityID = (FixField.Text)field;
+							noRelatedSymGroups![^1]._underlyingSecurityID = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityIDSource:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingIDSource is not null)
+						else if (noRelatedSymGroups![^1]._underlyingIDSource is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingIDSource = (FixField.Text)field;
+							noRelatedSymGroups![^1]._underlyingIDSource = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityType:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingSecurityType is not null)
+						else if (noRelatedSymGroups![^1]._underlyingSecurityType is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingSecurityType = (FixField.Text)field;
+							noRelatedSymGroups![^1]._underlyingSecurityType = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingMaturityMonthYear:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingMaturityMonthYear is not null)
+						else if (noRelatedSymGroups![^1]._underlyingMaturityMonthYear is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingMaturityMonthYear = (FixField.MonthYear)field;
+							noRelatedSymGroups![^1]._underlyingMaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.UnderlyingMaturityDay:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingMaturityDay is not null)
+						else if (noRelatedSymGroups![^1]._underlyingMaturityDay is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingMaturityDay = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._underlyingMaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingPutOrCall:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingPutOrCall is not null)
+						else if (noRelatedSymGroups![^1]._underlyingPutOrCall is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingPutOrCall = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._underlyingPutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingStrikePrice:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingStrikePrice is not null)
+						else if (noRelatedSymGroups![^1]._underlyingStrikePrice is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingStrikePrice = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._underlyingStrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingOptAttribute:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingOptAttribute is not null)
+						else if (noRelatedSymGroups![^1]._underlyingOptAttribute is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingOptAttribute = (FixField.Character)field;
+							noRelatedSymGroups![^1]._underlyingOptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.UnderlyingContractMultiplier:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingContractMultiplier is not null)
+						else if (noRelatedSymGroups![^1]._underlyingContractMultiplier is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingContractMultiplier = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._underlyingContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingCouponRate:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingCouponRate is not null)
+						else if (noRelatedSymGroups![^1]._underlyingCouponRate is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingCouponRate = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._underlyingCouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingSecurityExchange:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingSecurityExchange is not null)
+						else if (noRelatedSymGroups![^1]._underlyingSecurityExchange is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingSecurityExchange = (FixField.Text)field;
+							noRelatedSymGroups![^1]._underlyingSecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingIssuer:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingIssuer is not null)
+						else if (noRelatedSymGroups![^1]._underlyingIssuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingIssuer = (FixField.Text)field;
+							noRelatedSymGroups![^1]._underlyingIssuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuerLen:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedUnderlyingIssuerLen is not null)
+						else if (noRelatedSymGroups![^1]._encodedUnderlyingIssuerLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedUnderlyingIssuerLen = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._encodedUnderlyingIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuer:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedUnderlyingIssuer is not null)
+						else if (noRelatedSymGroups![^1]._encodedUnderlyingIssuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedUnderlyingIssuer = (FixField.Data)field;
+							noRelatedSymGroups![^1]._encodedUnderlyingIssuer = (FixField.Data)field;
 						break;
 					case FixTag.UnderlyingSecurityDesc:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingSecurityDesc is not null)
+						else if (noRelatedSymGroups![^1]._underlyingSecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingSecurityDesc = (FixField.Text)field;
+							noRelatedSymGroups![^1]._underlyingSecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDescLen:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedUnderlyingSecurityDescLen is not null)
+						else if (noRelatedSymGroups![^1]._encodedUnderlyingSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedUnderlyingSecurityDescLen = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._encodedUnderlyingSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDesc:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedUnderlyingSecurityDesc is not null)
+						else if (noRelatedSymGroups![^1]._encodedUnderlyingSecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedUnderlyingSecurityDesc = (FixField.Data)field;
+							noRelatedSymGroups![^1]._encodedUnderlyingSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.RatioQty:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].RatioQty is not null)
+						else if (noRelatedSymGroups![^1]._ratioQty is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].RatioQty = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._ratioQty = (FixField.Decimal)field;
 						break;
 					case FixTag.Side:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].Side is not null)
+						else if (noRelatedSymGroups![^1]._side is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].Side = (FixField.Character)field;
+							noRelatedSymGroups![^1]._side = (FixField.Character)field;
 						break;
 					case FixTag.UnderlyingCurrency:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingCurrency is not null)
+						else if (noRelatedSymGroups![^1]._underlyingCurrency is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingCurrency = (FixField.Text)field;
+							noRelatedSymGroups![^1]._underlyingCurrency = (FixField.Text)field;
 						break;
 
 					default:
@@ -10705,91 +11885,120 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX SecurityReqID, tag 320, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityReqID { get; internal set; }
+		public FixField.Text? SecurityReqID => _securityReqID;
+		internal FixField.Text? _securityReqID;
 
 		/// <summary>The FIX SecurityResponseID, tag 322, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityResponseID { get; internal set; }
+		public FixField.Text? SecurityResponseID => _securityResponseID;
+		internal FixField.Text? _securityResponseID;
 
 		/// <summary>The FIX SecurityResponseType, tag 323, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? SecurityResponseType { get; internal set; }
+		public FixField.Integer? SecurityResponseType => _securityResponseType;
+		internal FixField.Integer? _securityResponseType;
 
 		/// <summary>The FIX TotalNumSecurities, tag 393, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? TotalNumSecurities { get; internal set; }
+		public FixField.Integer? TotalNumSecurities => _totalNumSecurities;
+		internal FixField.Integer? _totalNumSecurities;
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Symbol { get; internal set; }
+		public FixField.Text? Symbol => _symbol;
+		internal FixField.Text? _symbol;
 
 		/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SymbolSfx { get; internal set; }
+		public FixField.Text? SymbolSfx => _symbolSfx;
+		internal FixField.Text? _symbolSfx;
 
 		/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityID { get; internal set; }
+		public FixField.Text? SecurityID => _securityID;
+		internal FixField.Text? _securityID;
 
 		/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IDSource { get; internal set; }
+		public FixField.Text? IDSource => _iDSource;
+		internal FixField.Text? _iDSource;
 
 		/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityType { get; internal set; }
+		public FixField.Text? SecurityType => _securityType;
+		internal FixField.Text? _securityType;
 
 		/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-		public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+		public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+		internal FixField.MonthYear? _maturityMonthYear;
 
 		/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-		public FixField.Integer? MaturityDay { get; internal set; }
+		public FixField.Integer? MaturityDay => _maturityDay;
+		internal FixField.Integer? _maturityDay;
 
 		/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? PutOrCall { get; internal set; }
+		public FixField.Integer? PutOrCall => _putOrCall;
+		internal FixField.Integer? _putOrCall;
 
 		/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StrikePrice { get; internal set; }
+		public FixField.Decimal? StrikePrice => _strikePrice;
+		internal FixField.Decimal? _strikePrice;
 
 		/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OptAttribute { get; internal set; }
+		public FixField.Character? OptAttribute => _optAttribute;
+		internal FixField.Character? _optAttribute;
 
 		/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? ContractMultiplier { get; internal set; }
+		public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+		internal FixField.Decimal? _contractMultiplier;
 
 		/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CouponRate { get; internal set; }
+		public FixField.Decimal? CouponRate => _couponRate;
+		internal FixField.Decimal? _couponRate;
 
 		/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityExchange { get; internal set; }
+		public FixField.Text? SecurityExchange => _securityExchange;
+		internal FixField.Text? _securityExchange;
 
 		/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Issuer { get; internal set; }
+		public FixField.Text? Issuer => _issuer;
+		internal FixField.Text? _issuer;
 
 		/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedIssuerLen { get; internal set; }
+		public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+		internal FixField.Integer? _encodedIssuerLen;
 
 		/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedIssuer { get; internal set; }
+		public FixField.Data? EncodedIssuer => _encodedIssuer;
+		internal FixField.Data? _encodedIssuer;
 
 		/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityDesc { get; internal set; }
+		public FixField.Text? SecurityDesc => _securityDesc;
+		internal FixField.Text? _securityDesc;
 
 		/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+		public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+		internal FixField.Integer? _encodedSecurityDescLen;
 
 		/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedSecurityDesc { get; internal set; }
+		public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+		internal FixField.Data? _encodedSecurityDesc;
 
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
-		public FixField.Text? Currency { get; internal set; }
+		public FixField.Text? Currency => _currency;
+		internal FixField.Text? _currency;
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TradingSessionID { get; internal set; }
+		public FixField.Text? TradingSessionID => _tradingSessionID;
+		internal FixField.Text? _tradingSessionID;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>The FIX NoRelatedSym, tag 146, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoRelatedSym { get; internal set; }
+		public FixField.Integer? NoRelatedSym => _noRelatedSym;
+		internal FixField.Integer? _noRelatedSym;
 
 		/// <summary>The entries counted by NoRelatedSym, tag 146; null when the group is absent.</summary>
 		public List<FixMessage.SecurityDefinition.NoRelatedSymGroup>? NoRelatedSymGroups => noRelatedSymGroups;
@@ -10807,67 +12016,88 @@ public abstract partial class FixMessage
 			public FixField.Text UnderlyingSymbol { get; }
 
 			/// <summary>The FIX UnderlyingSymbolSfx, tag 312, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSymbolSfx { get; internal set; }
+			public FixField.Text? UnderlyingSymbolSfx => _underlyingSymbolSfx;
+			internal FixField.Text? _underlyingSymbolSfx;
 
 			/// <summary>The FIX UnderlyingSecurityID, tag 309, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSecurityID { get; internal set; }
+			public FixField.Text? UnderlyingSecurityID => _underlyingSecurityID;
+			internal FixField.Text? _underlyingSecurityID;
 
 			/// <summary>The FIX UnderlyingIDSource, tag 305, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingIDSource { get; internal set; }
+			public FixField.Text? UnderlyingIDSource => _underlyingIDSource;
+			internal FixField.Text? _underlyingIDSource;
 
 			/// <summary>The FIX UnderlyingSecurityType, tag 310, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSecurityType { get; internal set; }
+			public FixField.Text? UnderlyingSecurityType => _underlyingSecurityType;
+			internal FixField.Text? _underlyingSecurityType;
 
 			/// <summary>The FIX UnderlyingMaturityMonthYear, tag 313, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-			public FixField.MonthYear? UnderlyingMaturityMonthYear { get; internal set; }
+			public FixField.MonthYear? UnderlyingMaturityMonthYear => _underlyingMaturityMonthYear;
+			internal FixField.MonthYear? _underlyingMaturityMonthYear;
 
 			/// <summary>The FIX UnderlyingMaturityDay, tag 314, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-			public FixField.Integer? UnderlyingMaturityDay { get; internal set; }
+			public FixField.Integer? UnderlyingMaturityDay => _underlyingMaturityDay;
+			internal FixField.Integer? _underlyingMaturityDay;
 
 			/// <summary>The FIX UnderlyingPutOrCall, tag 315, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? UnderlyingPutOrCall { get; internal set; }
+			public FixField.Integer? UnderlyingPutOrCall => _underlyingPutOrCall;
+			internal FixField.Integer? _underlyingPutOrCall;
 
 			/// <summary>The FIX UnderlyingStrikePrice, tag 316, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? UnderlyingStrikePrice { get; internal set; }
+			public FixField.Decimal? UnderlyingStrikePrice => _underlyingStrikePrice;
+			internal FixField.Decimal? _underlyingStrikePrice;
 
 			/// <summary>The FIX UnderlyingOptAttribute, tag 317, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? UnderlyingOptAttribute { get; internal set; }
+			public FixField.Character? UnderlyingOptAttribute => _underlyingOptAttribute;
+			internal FixField.Character? _underlyingOptAttribute;
 
 			/// <summary>The FIX UnderlyingContractMultiplier, tag 436, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? UnderlyingContractMultiplier { get; internal set; }
+			public FixField.Decimal? UnderlyingContractMultiplier => _underlyingContractMultiplier;
+			internal FixField.Decimal? _underlyingContractMultiplier;
 
 			/// <summary>The FIX UnderlyingCouponRate, tag 435, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? UnderlyingCouponRate { get; internal set; }
+			public FixField.Decimal? UnderlyingCouponRate => _underlyingCouponRate;
+			internal FixField.Decimal? _underlyingCouponRate;
 
 			/// <summary>The FIX UnderlyingSecurityExchange, tag 308, wire type <c>Exchange</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSecurityExchange { get; internal set; }
+			public FixField.Text? UnderlyingSecurityExchange => _underlyingSecurityExchange;
+			internal FixField.Text? _underlyingSecurityExchange;
 
 			/// <summary>The FIX UnderlyingIssuer, tag 306, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingIssuer { get; internal set; }
+			public FixField.Text? UnderlyingIssuer => _underlyingIssuer;
+			internal FixField.Text? _underlyingIssuer;
 
 			/// <summary>The FIX EncodedUnderlyingIssuerLen, tag 362, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedUnderlyingIssuerLen { get; internal set; }
+			public FixField.Integer? EncodedUnderlyingIssuerLen => _encodedUnderlyingIssuerLen;
+			internal FixField.Integer? _encodedUnderlyingIssuerLen;
 
 			/// <summary>The FIX EncodedUnderlyingIssuer, tag 363, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedUnderlyingIssuer { get; internal set; }
+			public FixField.Data? EncodedUnderlyingIssuer => _encodedUnderlyingIssuer;
+			internal FixField.Data? _encodedUnderlyingIssuer;
 
 			/// <summary>The FIX UnderlyingSecurityDesc, tag 307, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSecurityDesc { get; internal set; }
+			public FixField.Text? UnderlyingSecurityDesc => _underlyingSecurityDesc;
+			internal FixField.Text? _underlyingSecurityDesc;
 
 			/// <summary>The FIX EncodedUnderlyingSecurityDescLen, tag 364, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedUnderlyingSecurityDescLen { get; internal set; }
+			public FixField.Integer? EncodedUnderlyingSecurityDescLen => _encodedUnderlyingSecurityDescLen;
+			internal FixField.Integer? _encodedUnderlyingSecurityDescLen;
 
 			/// <summary>The FIX EncodedUnderlyingSecurityDesc, tag 365, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedUnderlyingSecurityDesc { get; internal set; }
+			public FixField.Data? EncodedUnderlyingSecurityDesc => _encodedUnderlyingSecurityDesc;
+			internal FixField.Data? _encodedUnderlyingSecurityDesc;
 
 			/// <summary>The FIX RatioQty, tag 319, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? RatioQty { get; internal set; }
+			public FixField.Decimal? RatioQty => _ratioQty;
+			internal FixField.Decimal? _ratioQty;
 
 			/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? Side { get; internal set; }
+			public FixField.Character? Side => _side;
+			internal FixField.Character? _side;
 
 			/// <summary>The FIX UnderlyingCurrency, tag 318, wire type <c>Currency</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingCurrency { get; internal set; }
+			public FixField.Text? UnderlyingCurrency => _underlyingCurrency;
+			internal FixField.Text? _underlyingCurrency;
 
 			FixField IFixEntry.Opener => UnderlyingSymbol;
 
@@ -10907,204 +12137,204 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.SecurityReqID: if (SecurityReqID is not null) Duplicate(field); SecurityReqID = (FixField.Text)field; break;
-					case FixTag.SecurityRequestType: if (SecurityRequestType is not null) Duplicate(field); SecurityRequestType = (FixField.Integer)field; break;
-					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.NoRelatedSym: if (NoRelatedSym is not null) Duplicate(field); NoRelatedSym = (FixField.Integer)field; break;
+					case FixTag.SecurityReqID: if (_securityReqID is not null) Duplicate(field); _securityReqID = (FixField.Text)field; break;
+					case FixTag.SecurityRequestType: if (_securityRequestType is not null) Duplicate(field); _securityRequestType = (FixField.Integer)field; break;
+					case FixTag.Symbol: if (_symbol is not null) Duplicate(field); _symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (_symbolSfx is not null) Duplicate(field); _symbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (_securityID is not null) Duplicate(field); _securityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (_iDSource is not null) Duplicate(field); _iDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (_securityType is not null) Duplicate(field); _securityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (_maturityMonthYear is not null) Duplicate(field); _maturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (_maturityDay is not null) Duplicate(field); _maturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (_putOrCall is not null) Duplicate(field); _putOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (_strikePrice is not null) Duplicate(field); _strikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (_optAttribute is not null) Duplicate(field); _optAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (_contractMultiplier is not null) Duplicate(field); _contractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (_couponRate is not null) Duplicate(field); _couponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (_securityExchange is not null) Duplicate(field); _securityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (_issuer is not null) Duplicate(field); _issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (_encodedIssuerLen is not null) Duplicate(field); _encodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (_encodedIssuer is not null) Duplicate(field); _encodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (_securityDesc is not null) Duplicate(field); _securityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (_encodedSecurityDescLen is not null) Duplicate(field); _encodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (_encodedSecurityDesc is not null) Duplicate(field); _encodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Currency: if (_currency is not null) Duplicate(field); _currency = (FixField.Text)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
+					case FixTag.TradingSessionID: if (_tradingSessionID is not null) Duplicate(field); _tradingSessionID = (FixField.Text)field; break;
+					case FixTag.NoRelatedSym: if (_noRelatedSym is not null) Duplicate(field); _noRelatedSym = (FixField.Integer)field; break;
 					case FixTag.UnderlyingSymbol:
-						if (noRelatedSymGroups is null && NoRelatedSym is null) Uncounted(FixTag.NoRelatedSym, field);
+						if (noRelatedSymGroups is null && _noRelatedSym is null) Uncounted(FixTag.NoRelatedSym, field);
 						(noRelatedSymGroups ??= []).Add(new ((FixField.Text)field));
 						break;
 					case FixTag.UnderlyingSymbolSfx:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingSymbolSfx is not null)
+						else if (noRelatedSymGroups![^1]._underlyingSymbolSfx is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingSymbolSfx = (FixField.Text)field;
+							noRelatedSymGroups![^1]._underlyingSymbolSfx = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityID:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingSecurityID is not null)
+						else if (noRelatedSymGroups![^1]._underlyingSecurityID is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingSecurityID = (FixField.Text)field;
+							noRelatedSymGroups![^1]._underlyingSecurityID = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityIDSource:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingIDSource is not null)
+						else if (noRelatedSymGroups![^1]._underlyingIDSource is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingIDSource = (FixField.Text)field;
+							noRelatedSymGroups![^1]._underlyingIDSource = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingSecurityType:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingSecurityType is not null)
+						else if (noRelatedSymGroups![^1]._underlyingSecurityType is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingSecurityType = (FixField.Text)field;
+							noRelatedSymGroups![^1]._underlyingSecurityType = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingMaturityMonthYear:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingMaturityMonthYear is not null)
+						else if (noRelatedSymGroups![^1]._underlyingMaturityMonthYear is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingMaturityMonthYear = (FixField.MonthYear)field;
+							noRelatedSymGroups![^1]._underlyingMaturityMonthYear = (FixField.MonthYear)field;
 						break;
 					case FixTag.UnderlyingMaturityDay:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingMaturityDay is not null)
+						else if (noRelatedSymGroups![^1]._underlyingMaturityDay is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingMaturityDay = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._underlyingMaturityDay = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingPutOrCall:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingPutOrCall is not null)
+						else if (noRelatedSymGroups![^1]._underlyingPutOrCall is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingPutOrCall = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._underlyingPutOrCall = (FixField.Integer)field;
 						break;
 					case FixTag.UnderlyingStrikePrice:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingStrikePrice is not null)
+						else if (noRelatedSymGroups![^1]._underlyingStrikePrice is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingStrikePrice = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._underlyingStrikePrice = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingOptAttribute:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingOptAttribute is not null)
+						else if (noRelatedSymGroups![^1]._underlyingOptAttribute is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingOptAttribute = (FixField.Character)field;
+							noRelatedSymGroups![^1]._underlyingOptAttribute = (FixField.Character)field;
 						break;
 					case FixTag.UnderlyingContractMultiplier:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingContractMultiplier is not null)
+						else if (noRelatedSymGroups![^1]._underlyingContractMultiplier is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingContractMultiplier = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._underlyingContractMultiplier = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingCouponRate:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingCouponRate is not null)
+						else if (noRelatedSymGroups![^1]._underlyingCouponRate is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingCouponRate = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._underlyingCouponRate = (FixField.Decimal)field;
 						break;
 					case FixTag.UnderlyingSecurityExchange:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingSecurityExchange is not null)
+						else if (noRelatedSymGroups![^1]._underlyingSecurityExchange is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingSecurityExchange = (FixField.Text)field;
+							noRelatedSymGroups![^1]._underlyingSecurityExchange = (FixField.Text)field;
 						break;
 					case FixTag.UnderlyingIssuer:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingIssuer is not null)
+						else if (noRelatedSymGroups![^1]._underlyingIssuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingIssuer = (FixField.Text)field;
+							noRelatedSymGroups![^1]._underlyingIssuer = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuerLen:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedUnderlyingIssuerLen is not null)
+						else if (noRelatedSymGroups![^1]._encodedUnderlyingIssuerLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedUnderlyingIssuerLen = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._encodedUnderlyingIssuerLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingIssuer:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedUnderlyingIssuer is not null)
+						else if (noRelatedSymGroups![^1]._encodedUnderlyingIssuer is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedUnderlyingIssuer = (FixField.Data)field;
+							noRelatedSymGroups![^1]._encodedUnderlyingIssuer = (FixField.Data)field;
 						break;
 					case FixTag.UnderlyingSecurityDesc:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingSecurityDesc is not null)
+						else if (noRelatedSymGroups![^1]._underlyingSecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingSecurityDesc = (FixField.Text)field;
+							noRelatedSymGroups![^1]._underlyingSecurityDesc = (FixField.Text)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDescLen:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedUnderlyingSecurityDescLen is not null)
+						else if (noRelatedSymGroups![^1]._encodedUnderlyingSecurityDescLen is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedUnderlyingSecurityDescLen = (FixField.Integer)field;
+							noRelatedSymGroups![^1]._encodedUnderlyingSecurityDescLen = (FixField.Integer)field;
 						break;
 					case FixTag.EncodedUnderlyingSecurityDesc:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].EncodedUnderlyingSecurityDesc is not null)
+						else if (noRelatedSymGroups![^1]._encodedUnderlyingSecurityDesc is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].EncodedUnderlyingSecurityDesc = (FixField.Data)field;
+							noRelatedSymGroups![^1]._encodedUnderlyingSecurityDesc = (FixField.Data)field;
 						break;
 					case FixTag.RatioQty:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].RatioQty is not null)
+						else if (noRelatedSymGroups![^1]._ratioQty is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].RatioQty = (FixField.Decimal)field;
+							noRelatedSymGroups![^1]._ratioQty = (FixField.Decimal)field;
 						break;
 					case FixTag.Side:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].Side is not null)
+						else if (noRelatedSymGroups![^1]._side is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].Side = (FixField.Character)field;
+							noRelatedSymGroups![^1]._side = (FixField.Character)field;
 						break;
 					case FixTag.UnderlyingCurrency:
 						if (None(noRelatedSymGroups))
 							Unentered(field);
-						else if (noRelatedSymGroups![^1].UnderlyingCurrency is not null)
+						else if (noRelatedSymGroups![^1]._underlyingCurrency is not null)
 							Duplicate(field, FixTag.NoRelatedSym, noRelatedSymGroups!.Count - 1);
 						else
-							noRelatedSymGroups![^1].UnderlyingCurrency = (FixField.Text)field;
+							noRelatedSymGroups![^1]._underlyingCurrency = (FixField.Text)field;
 						break;
 
 					default:
@@ -11117,85 +12347,112 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX SecurityReqID, tag 320, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityReqID { get; internal set; }
+		public FixField.Text? SecurityReqID => _securityReqID;
+		internal FixField.Text? _securityReqID;
 
 		/// <summary>The FIX SecurityRequestType, tag 321, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? SecurityRequestType { get; internal set; }
+		public FixField.Integer? SecurityRequestType => _securityRequestType;
+		internal FixField.Integer? _securityRequestType;
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Symbol { get; internal set; }
+		public FixField.Text? Symbol => _symbol;
+		internal FixField.Text? _symbol;
 
 		/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SymbolSfx { get; internal set; }
+		public FixField.Text? SymbolSfx => _symbolSfx;
+		internal FixField.Text? _symbolSfx;
 
 		/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityID { get; internal set; }
+		public FixField.Text? SecurityID => _securityID;
+		internal FixField.Text? _securityID;
 
 		/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IDSource { get; internal set; }
+		public FixField.Text? IDSource => _iDSource;
+		internal FixField.Text? _iDSource;
 
 		/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityType { get; internal set; }
+		public FixField.Text? SecurityType => _securityType;
+		internal FixField.Text? _securityType;
 
 		/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-		public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+		public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+		internal FixField.MonthYear? _maturityMonthYear;
 
 		/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-		public FixField.Integer? MaturityDay { get; internal set; }
+		public FixField.Integer? MaturityDay => _maturityDay;
+		internal FixField.Integer? _maturityDay;
 
 		/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? PutOrCall { get; internal set; }
+		public FixField.Integer? PutOrCall => _putOrCall;
+		internal FixField.Integer? _putOrCall;
 
 		/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StrikePrice { get; internal set; }
+		public FixField.Decimal? StrikePrice => _strikePrice;
+		internal FixField.Decimal? _strikePrice;
 
 		/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OptAttribute { get; internal set; }
+		public FixField.Character? OptAttribute => _optAttribute;
+		internal FixField.Character? _optAttribute;
 
 		/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? ContractMultiplier { get; internal set; }
+		public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+		internal FixField.Decimal? _contractMultiplier;
 
 		/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CouponRate { get; internal set; }
+		public FixField.Decimal? CouponRate => _couponRate;
+		internal FixField.Decimal? _couponRate;
 
 		/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityExchange { get; internal set; }
+		public FixField.Text? SecurityExchange => _securityExchange;
+		internal FixField.Text? _securityExchange;
 
 		/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Issuer { get; internal set; }
+		public FixField.Text? Issuer => _issuer;
+		internal FixField.Text? _issuer;
 
 		/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedIssuerLen { get; internal set; }
+		public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+		internal FixField.Integer? _encodedIssuerLen;
 
 		/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedIssuer { get; internal set; }
+		public FixField.Data? EncodedIssuer => _encodedIssuer;
+		internal FixField.Data? _encodedIssuer;
 
 		/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityDesc { get; internal set; }
+		public FixField.Text? SecurityDesc => _securityDesc;
+		internal FixField.Text? _securityDesc;
 
 		/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+		public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+		internal FixField.Integer? _encodedSecurityDescLen;
 
 		/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedSecurityDesc { get; internal set; }
+		public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+		internal FixField.Data? _encodedSecurityDesc;
 
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
-		public FixField.Text? Currency { get; internal set; }
+		public FixField.Text? Currency => _currency;
+		internal FixField.Text? _currency;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TradingSessionID { get; internal set; }
+		public FixField.Text? TradingSessionID => _tradingSessionID;
+		internal FixField.Text? _tradingSessionID;
 
 		/// <summary>The FIX NoRelatedSym, tag 146, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NoRelatedSym { get; internal set; }
+		public FixField.Integer? NoRelatedSym => _noRelatedSym;
+		internal FixField.Integer? _noRelatedSym;
 
 		/// <summary>The entries counted by NoRelatedSym, tag 146; null when the group is absent.</summary>
 		public List<FixMessage.SecurityDefinitionRequest.NoRelatedSymGroup>? NoRelatedSymGroups => noRelatedSymGroups;
@@ -11213,67 +12470,88 @@ public abstract partial class FixMessage
 			public FixField.Text UnderlyingSymbol { get; }
 
 			/// <summary>The FIX UnderlyingSymbolSfx, tag 312, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSymbolSfx { get; internal set; }
+			public FixField.Text? UnderlyingSymbolSfx => _underlyingSymbolSfx;
+			internal FixField.Text? _underlyingSymbolSfx;
 
 			/// <summary>The FIX UnderlyingSecurityID, tag 309, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSecurityID { get; internal set; }
+			public FixField.Text? UnderlyingSecurityID => _underlyingSecurityID;
+			internal FixField.Text? _underlyingSecurityID;
 
 			/// <summary>The FIX UnderlyingIDSource, tag 305, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingIDSource { get; internal set; }
+			public FixField.Text? UnderlyingIDSource => _underlyingIDSource;
+			internal FixField.Text? _underlyingIDSource;
 
 			/// <summary>The FIX UnderlyingSecurityType, tag 310, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSecurityType { get; internal set; }
+			public FixField.Text? UnderlyingSecurityType => _underlyingSecurityType;
+			internal FixField.Text? _underlyingSecurityType;
 
 			/// <summary>The FIX UnderlyingMaturityMonthYear, tag 313, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-			public FixField.MonthYear? UnderlyingMaturityMonthYear { get; internal set; }
+			public FixField.MonthYear? UnderlyingMaturityMonthYear => _underlyingMaturityMonthYear;
+			internal FixField.MonthYear? _underlyingMaturityMonthYear;
 
 			/// <summary>The FIX UnderlyingMaturityDay, tag 314, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-			public FixField.Integer? UnderlyingMaturityDay { get; internal set; }
+			public FixField.Integer? UnderlyingMaturityDay => _underlyingMaturityDay;
+			internal FixField.Integer? _underlyingMaturityDay;
 
 			/// <summary>The FIX UnderlyingPutOrCall, tag 315, wire type <c>int</c>; null when the field is absent.</summary>
-			public FixField.Integer? UnderlyingPutOrCall { get; internal set; }
+			public FixField.Integer? UnderlyingPutOrCall => _underlyingPutOrCall;
+			internal FixField.Integer? _underlyingPutOrCall;
 
 			/// <summary>The FIX UnderlyingStrikePrice, tag 316, wire type <c>Price</c>; null when the field is absent.</summary>
-			public FixField.Decimal? UnderlyingStrikePrice { get; internal set; }
+			public FixField.Decimal? UnderlyingStrikePrice => _underlyingStrikePrice;
+			internal FixField.Decimal? _underlyingStrikePrice;
 
 			/// <summary>The FIX UnderlyingOptAttribute, tag 317, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? UnderlyingOptAttribute { get; internal set; }
+			public FixField.Character? UnderlyingOptAttribute => _underlyingOptAttribute;
+			internal FixField.Character? _underlyingOptAttribute;
 
 			/// <summary>The FIX UnderlyingContractMultiplier, tag 436, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? UnderlyingContractMultiplier { get; internal set; }
+			public FixField.Decimal? UnderlyingContractMultiplier => _underlyingContractMultiplier;
+			internal FixField.Decimal? _underlyingContractMultiplier;
 
 			/// <summary>The FIX UnderlyingCouponRate, tag 435, wire type <c>float</c>; null when the field is absent.</summary>
-			public FixField.Decimal? UnderlyingCouponRate { get; internal set; }
+			public FixField.Decimal? UnderlyingCouponRate => _underlyingCouponRate;
+			internal FixField.Decimal? _underlyingCouponRate;
 
 			/// <summary>The FIX UnderlyingSecurityExchange, tag 308, wire type <c>Exchange</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSecurityExchange { get; internal set; }
+			public FixField.Text? UnderlyingSecurityExchange => _underlyingSecurityExchange;
+			internal FixField.Text? _underlyingSecurityExchange;
 
 			/// <summary>The FIX UnderlyingIssuer, tag 306, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingIssuer { get; internal set; }
+			public FixField.Text? UnderlyingIssuer => _underlyingIssuer;
+			internal FixField.Text? _underlyingIssuer;
 
 			/// <summary>The FIX EncodedUnderlyingIssuerLen, tag 362, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedUnderlyingIssuerLen { get; internal set; }
+			public FixField.Integer? EncodedUnderlyingIssuerLen => _encodedUnderlyingIssuerLen;
+			internal FixField.Integer? _encodedUnderlyingIssuerLen;
 
 			/// <summary>The FIX EncodedUnderlyingIssuer, tag 363, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedUnderlyingIssuer { get; internal set; }
+			public FixField.Data? EncodedUnderlyingIssuer => _encodedUnderlyingIssuer;
+			internal FixField.Data? _encodedUnderlyingIssuer;
 
 			/// <summary>The FIX UnderlyingSecurityDesc, tag 307, wire type <c>String</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingSecurityDesc { get; internal set; }
+			public FixField.Text? UnderlyingSecurityDesc => _underlyingSecurityDesc;
+			internal FixField.Text? _underlyingSecurityDesc;
 
 			/// <summary>The FIX EncodedUnderlyingSecurityDescLen, tag 364, wire type <c>Length</c>; null when the field is absent.</summary>
-			public FixField.Integer? EncodedUnderlyingSecurityDescLen { get; internal set; }
+			public FixField.Integer? EncodedUnderlyingSecurityDescLen => _encodedUnderlyingSecurityDescLen;
+			internal FixField.Integer? _encodedUnderlyingSecurityDescLen;
 
 			/// <summary>The FIX EncodedUnderlyingSecurityDesc, tag 365, wire type <c>data</c>; null when the field is absent.</summary>
-			public FixField.Data? EncodedUnderlyingSecurityDesc { get; internal set; }
+			public FixField.Data? EncodedUnderlyingSecurityDesc => _encodedUnderlyingSecurityDesc;
+			internal FixField.Data? _encodedUnderlyingSecurityDesc;
 
 			/// <summary>The FIX RatioQty, tag 319, wire type <c>Qty</c>; null when the field is absent.</summary>
-			public FixField.Decimal? RatioQty { get; internal set; }
+			public FixField.Decimal? RatioQty => _ratioQty;
+			internal FixField.Decimal? _ratioQty;
 
 			/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
-			public FixField.Character? Side { get; internal set; }
+			public FixField.Character? Side => _side;
+			internal FixField.Character? _side;
 
 			/// <summary>The FIX UnderlyingCurrency, tag 318, wire type <c>Currency</c>; null when the field is absent.</summary>
-			public FixField.Text? UnderlyingCurrency { get; internal set; }
+			public FixField.Text? UnderlyingCurrency => _underlyingCurrency;
+			internal FixField.Text? _underlyingCurrency;
 
 			FixField IFixEntry.Opener => UnderlyingSymbol;
 
@@ -11313,42 +12591,42 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.SecurityStatusReqID: if (SecurityStatusReqID is not null) Duplicate(field); SecurityStatusReqID = (FixField.Text)field; break;
-					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.UnsolicitedIndicator: if (UnsolicitedIndicator is not null) Duplicate(field); UnsolicitedIndicator = (FixField.Boolean)field; break;
-					case FixTag.SecurityTradingStatus: if (SecurityTradingStatus is not null) Duplicate(field); SecurityTradingStatus = (FixField.Integer)field; break;
-					case FixTag.FinancialStatus: if (FinancialStatus is not null) Duplicate(field); FinancialStatus = (FixField.Character)field; break;
-					case FixTag.CorporateAction: if (CorporateAction is not null) Duplicate(field); CorporateAction = (FixField.Character)field; break;
-					case FixTag.HaltReason: if (HaltReason is not null) Duplicate(field); HaltReason = (FixField.Character)field; break;
-					case FixTag.InViewOfCommon: if (InViewOfCommon is not null) Duplicate(field); InViewOfCommon = (FixField.Boolean)field; break;
-					case FixTag.DueToRelated: if (DueToRelated is not null) Duplicate(field); DueToRelated = (FixField.Boolean)field; break;
-					case FixTag.BuyVolume: if (BuyVolume is not null) Duplicate(field); BuyVolume = (FixField.Decimal)field; break;
-					case FixTag.SellVolume: if (SellVolume is not null) Duplicate(field); SellVolume = (FixField.Decimal)field; break;
-					case FixTag.HighPx: if (HighPx is not null) Duplicate(field); HighPx = (FixField.Decimal)field; break;
-					case FixTag.LowPx: if (LowPx is not null) Duplicate(field); LowPx = (FixField.Decimal)field; break;
-					case FixTag.LastPx: if (LastPx is not null) Duplicate(field); LastPx = (FixField.Decimal)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.Adjustment: if (Adjustment is not null) Duplicate(field); Adjustment = (FixField.Integer)field; break;
+					case FixTag.SecurityStatusReqID: if (_securityStatusReqID is not null) Duplicate(field); _securityStatusReqID = (FixField.Text)field; break;
+					case FixTag.Symbol: if (_symbol is not null) Duplicate(field); _symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (_symbolSfx is not null) Duplicate(field); _symbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (_securityID is not null) Duplicate(field); _securityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (_iDSource is not null) Duplicate(field); _iDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (_securityType is not null) Duplicate(field); _securityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (_maturityMonthYear is not null) Duplicate(field); _maturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (_maturityDay is not null) Duplicate(field); _maturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (_putOrCall is not null) Duplicate(field); _putOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (_strikePrice is not null) Duplicate(field); _strikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (_optAttribute is not null) Duplicate(field); _optAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (_contractMultiplier is not null) Duplicate(field); _contractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (_couponRate is not null) Duplicate(field); _couponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (_securityExchange is not null) Duplicate(field); _securityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (_issuer is not null) Duplicate(field); _issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (_encodedIssuerLen is not null) Duplicate(field); _encodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (_encodedIssuer is not null) Duplicate(field); _encodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (_securityDesc is not null) Duplicate(field); _securityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (_encodedSecurityDescLen is not null) Duplicate(field); _encodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (_encodedSecurityDesc is not null) Duplicate(field); _encodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Currency: if (_currency is not null) Duplicate(field); _currency = (FixField.Text)field; break;
+					case FixTag.TradingSessionID: if (_tradingSessionID is not null) Duplicate(field); _tradingSessionID = (FixField.Text)field; break;
+					case FixTag.UnsolicitedIndicator: if (_unsolicitedIndicator is not null) Duplicate(field); _unsolicitedIndicator = (FixField.Boolean)field; break;
+					case FixTag.SecurityTradingStatus: if (_securityTradingStatus is not null) Duplicate(field); _securityTradingStatus = (FixField.Integer)field; break;
+					case FixTag.FinancialStatus: if (_financialStatus is not null) Duplicate(field); _financialStatus = (FixField.Character)field; break;
+					case FixTag.CorporateAction: if (_corporateAction is not null) Duplicate(field); _corporateAction = (FixField.Character)field; break;
+					case FixTag.HaltReason: if (_haltReason is not null) Duplicate(field); _haltReason = (FixField.Character)field; break;
+					case FixTag.InViewOfCommon: if (_inViewOfCommon is not null) Duplicate(field); _inViewOfCommon = (FixField.Boolean)field; break;
+					case FixTag.DueToRelated: if (_dueToRelated is not null) Duplicate(field); _dueToRelated = (FixField.Boolean)field; break;
+					case FixTag.BuyVolume: if (_buyVolume is not null) Duplicate(field); _buyVolume = (FixField.Decimal)field; break;
+					case FixTag.SellVolume: if (_sellVolume is not null) Duplicate(field); _sellVolume = (FixField.Decimal)field; break;
+					case FixTag.HighPx: if (_highPx is not null) Duplicate(field); _highPx = (FixField.Decimal)field; break;
+					case FixTag.LowPx: if (_lowPx is not null) Duplicate(field); _lowPx = (FixField.Decimal)field; break;
+					case FixTag.LastPx: if (_lastPx is not null) Duplicate(field); _lastPx = (FixField.Decimal)field; break;
+					case FixTag.TransactTime: if (_transactTime is not null) Duplicate(field); _transactTime = (FixField.Timestamp)field; break;
+					case FixTag.Adjustment: if (_adjustment is not null) Duplicate(field); _adjustment = (FixField.Integer)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -11360,112 +12638,148 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX SecurityStatusReqID, tag 324, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityStatusReqID { get; internal set; }
+		public FixField.Text? SecurityStatusReqID => _securityStatusReqID;
+		internal FixField.Text? _securityStatusReqID;
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Symbol { get; internal set; }
+		public FixField.Text? Symbol => _symbol;
+		internal FixField.Text? _symbol;
 
 		/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SymbolSfx { get; internal set; }
+		public FixField.Text? SymbolSfx => _symbolSfx;
+		internal FixField.Text? _symbolSfx;
 
 		/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityID { get; internal set; }
+		public FixField.Text? SecurityID => _securityID;
+		internal FixField.Text? _securityID;
 
 		/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IDSource { get; internal set; }
+		public FixField.Text? IDSource => _iDSource;
+		internal FixField.Text? _iDSource;
 
 		/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityType { get; internal set; }
+		public FixField.Text? SecurityType => _securityType;
+		internal FixField.Text? _securityType;
 
 		/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-		public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+		public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+		internal FixField.MonthYear? _maturityMonthYear;
 
 		/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-		public FixField.Integer? MaturityDay { get; internal set; }
+		public FixField.Integer? MaturityDay => _maturityDay;
+		internal FixField.Integer? _maturityDay;
 
 		/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? PutOrCall { get; internal set; }
+		public FixField.Integer? PutOrCall => _putOrCall;
+		internal FixField.Integer? _putOrCall;
 
 		/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StrikePrice { get; internal set; }
+		public FixField.Decimal? StrikePrice => _strikePrice;
+		internal FixField.Decimal? _strikePrice;
 
 		/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OptAttribute { get; internal set; }
+		public FixField.Character? OptAttribute => _optAttribute;
+		internal FixField.Character? _optAttribute;
 
 		/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? ContractMultiplier { get; internal set; }
+		public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+		internal FixField.Decimal? _contractMultiplier;
 
 		/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CouponRate { get; internal set; }
+		public FixField.Decimal? CouponRate => _couponRate;
+		internal FixField.Decimal? _couponRate;
 
 		/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityExchange { get; internal set; }
+		public FixField.Text? SecurityExchange => _securityExchange;
+		internal FixField.Text? _securityExchange;
 
 		/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Issuer { get; internal set; }
+		public FixField.Text? Issuer => _issuer;
+		internal FixField.Text? _issuer;
 
 		/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedIssuerLen { get; internal set; }
+		public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+		internal FixField.Integer? _encodedIssuerLen;
 
 		/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedIssuer { get; internal set; }
+		public FixField.Data? EncodedIssuer => _encodedIssuer;
+		internal FixField.Data? _encodedIssuer;
 
 		/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityDesc { get; internal set; }
+		public FixField.Text? SecurityDesc => _securityDesc;
+		internal FixField.Text? _securityDesc;
 
 		/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+		public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+		internal FixField.Integer? _encodedSecurityDescLen;
 
 		/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedSecurityDesc { get; internal set; }
+		public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+		internal FixField.Data? _encodedSecurityDesc;
 
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
-		public FixField.Text? Currency { get; internal set; }
+		public FixField.Text? Currency => _currency;
+		internal FixField.Text? _currency;
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TradingSessionID { get; internal set; }
+		public FixField.Text? TradingSessionID => _tradingSessionID;
+		internal FixField.Text? _tradingSessionID;
 
 		/// <summary>The FIX UnsolicitedIndicator, tag 325, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? UnsolicitedIndicator { get; internal set; }
+		public FixField.Boolean? UnsolicitedIndicator => _unsolicitedIndicator;
+		internal FixField.Boolean? _unsolicitedIndicator;
 
 		/// <summary>The FIX SecurityTradingStatus, tag 326, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? SecurityTradingStatus { get; internal set; }
+		public FixField.Integer? SecurityTradingStatus => _securityTradingStatus;
+		internal FixField.Integer? _securityTradingStatus;
 
 		/// <summary>The FIX FinancialStatus, tag 291, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? FinancialStatus { get; internal set; }
+		public FixField.Character? FinancialStatus => _financialStatus;
+		internal FixField.Character? _financialStatus;
 
 		/// <summary>The FIX CorporateAction, tag 292, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? CorporateAction { get; internal set; }
+		public FixField.Character? CorporateAction => _corporateAction;
+		internal FixField.Character? _corporateAction;
 
 		/// <summary>The FIX HaltReason, tag 327, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? HaltReason { get; internal set; }
+		public FixField.Character? HaltReason => _haltReason;
+		internal FixField.Character? _haltReason;
 
 		/// <summary>The FIX InViewOfCommon, tag 328, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? InViewOfCommon { get; internal set; }
+		public FixField.Boolean? InViewOfCommon => _inViewOfCommon;
+		internal FixField.Boolean? _inViewOfCommon;
 
 		/// <summary>The FIX DueToRelated, tag 329, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? DueToRelated { get; internal set; }
+		public FixField.Boolean? DueToRelated => _dueToRelated;
+		internal FixField.Boolean? _dueToRelated;
 
 		/// <summary>The FIX BuyVolume, tag 330, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? BuyVolume { get; internal set; }
+		public FixField.Decimal? BuyVolume => _buyVolume;
+		internal FixField.Decimal? _buyVolume;
 
 		/// <summary>The FIX SellVolume, tag 331, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? SellVolume { get; internal set; }
+		public FixField.Decimal? SellVolume => _sellVolume;
+		internal FixField.Decimal? _sellVolume;
 
 		/// <summary>The FIX HighPx, tag 332, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? HighPx { get; internal set; }
+		public FixField.Decimal? HighPx => _highPx;
+		internal FixField.Decimal? _highPx;
 
 		/// <summary>The FIX LowPx, tag 333, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? LowPx { get; internal set; }
+		public FixField.Decimal? LowPx => _lowPx;
+		internal FixField.Decimal? _lowPx;
 
 		/// <summary>The FIX LastPx, tag 31, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? LastPx { get; internal set; }
+		public FixField.Decimal? LastPx => _lastPx;
+		internal FixField.Decimal? _lastPx;
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TransactTime { get; internal set; }
+		public FixField.Timestamp? TransactTime => _transactTime;
+		internal FixField.Timestamp? _transactTime;
 
 		/// <summary>The FIX Adjustment, tag 334, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? Adjustment { get; internal set; }
+		public FixField.Integer? Adjustment => _adjustment;
+		internal FixField.Integer? _adjustment;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -11483,29 +12797,29 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.SecurityStatusReqID: if (SecurityStatusReqID is not null) Duplicate(field); SecurityStatusReqID = (FixField.Text)field; break;
-					case FixTag.Symbol: if (Symbol is not null) Duplicate(field); Symbol = (FixField.Text)field; break;
-					case FixTag.SymbolSfx: if (SymbolSfx is not null) Duplicate(field); SymbolSfx = (FixField.Text)field; break;
-					case FixTag.SecurityID: if (SecurityID is not null) Duplicate(field); SecurityID = (FixField.Text)field; break;
-					case FixTag.SecurityIDSource: if (IDSource is not null) Duplicate(field); IDSource = (FixField.Text)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
-					case FixTag.MaturityMonthYear: if (MaturityMonthYear is not null) Duplicate(field); MaturityMonthYear = (FixField.MonthYear)field; break;
-					case FixTag.MaturityDay: if (MaturityDay is not null) Duplicate(field); MaturityDay = (FixField.Integer)field; break;
-					case FixTag.PutOrCall: if (PutOrCall is not null) Duplicate(field); PutOrCall = (FixField.Integer)field; break;
-					case FixTag.StrikePrice: if (StrikePrice is not null) Duplicate(field); StrikePrice = (FixField.Decimal)field; break;
-					case FixTag.OptAttribute: if (OptAttribute is not null) Duplicate(field); OptAttribute = (FixField.Character)field; break;
-					case FixTag.ContractMultiplier: if (ContractMultiplier is not null) Duplicate(field); ContractMultiplier = (FixField.Decimal)field; break;
-					case FixTag.CouponRate: if (CouponRate is not null) Duplicate(field); CouponRate = (FixField.Decimal)field; break;
-					case FixTag.SecurityExchange: if (SecurityExchange is not null) Duplicate(field); SecurityExchange = (FixField.Text)field; break;
-					case FixTag.Issuer: if (Issuer is not null) Duplicate(field); Issuer = (FixField.Text)field; break;
-					case FixTag.EncodedIssuerLen: if (EncodedIssuerLen is not null) Duplicate(field); EncodedIssuerLen = (FixField.Integer)field; break;
-					case FixTag.EncodedIssuer: if (EncodedIssuer is not null) Duplicate(field); EncodedIssuer = (FixField.Data)field; break;
-					case FixTag.SecurityDesc: if (SecurityDesc is not null) Duplicate(field); SecurityDesc = (FixField.Text)field; break;
-					case FixTag.EncodedSecurityDescLen: if (EncodedSecurityDescLen is not null) Duplicate(field); EncodedSecurityDescLen = (FixField.Integer)field; break;
-					case FixTag.EncodedSecurityDesc: if (EncodedSecurityDesc is not null) Duplicate(field); EncodedSecurityDesc = (FixField.Data)field; break;
-					case FixTag.Currency: if (Currency is not null) Duplicate(field); Currency = (FixField.Text)field; break;
-					case FixTag.SubscriptionRequestType: if (SubscriptionRequestType is not null) Duplicate(field); SubscriptionRequestType = (FixField.Character)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
+					case FixTag.SecurityStatusReqID: if (_securityStatusReqID is not null) Duplicate(field); _securityStatusReqID = (FixField.Text)field; break;
+					case FixTag.Symbol: if (_symbol is not null) Duplicate(field); _symbol = (FixField.Text)field; break;
+					case FixTag.SymbolSfx: if (_symbolSfx is not null) Duplicate(field); _symbolSfx = (FixField.Text)field; break;
+					case FixTag.SecurityID: if (_securityID is not null) Duplicate(field); _securityID = (FixField.Text)field; break;
+					case FixTag.SecurityIDSource: if (_iDSource is not null) Duplicate(field); _iDSource = (FixField.Text)field; break;
+					case FixTag.SecurityType: if (_securityType is not null) Duplicate(field); _securityType = (FixField.Text)field; break;
+					case FixTag.MaturityMonthYear: if (_maturityMonthYear is not null) Duplicate(field); _maturityMonthYear = (FixField.MonthYear)field; break;
+					case FixTag.MaturityDay: if (_maturityDay is not null) Duplicate(field); _maturityDay = (FixField.Integer)field; break;
+					case FixTag.PutOrCall: if (_putOrCall is not null) Duplicate(field); _putOrCall = (FixField.Integer)field; break;
+					case FixTag.StrikePrice: if (_strikePrice is not null) Duplicate(field); _strikePrice = (FixField.Decimal)field; break;
+					case FixTag.OptAttribute: if (_optAttribute is not null) Duplicate(field); _optAttribute = (FixField.Character)field; break;
+					case FixTag.ContractMultiplier: if (_contractMultiplier is not null) Duplicate(field); _contractMultiplier = (FixField.Decimal)field; break;
+					case FixTag.CouponRate: if (_couponRate is not null) Duplicate(field); _couponRate = (FixField.Decimal)field; break;
+					case FixTag.SecurityExchange: if (_securityExchange is not null) Duplicate(field); _securityExchange = (FixField.Text)field; break;
+					case FixTag.Issuer: if (_issuer is not null) Duplicate(field); _issuer = (FixField.Text)field; break;
+					case FixTag.EncodedIssuerLen: if (_encodedIssuerLen is not null) Duplicate(field); _encodedIssuerLen = (FixField.Integer)field; break;
+					case FixTag.EncodedIssuer: if (_encodedIssuer is not null) Duplicate(field); _encodedIssuer = (FixField.Data)field; break;
+					case FixTag.SecurityDesc: if (_securityDesc is not null) Duplicate(field); _securityDesc = (FixField.Text)field; break;
+					case FixTag.EncodedSecurityDescLen: if (_encodedSecurityDescLen is not null) Duplicate(field); _encodedSecurityDescLen = (FixField.Integer)field; break;
+					case FixTag.EncodedSecurityDesc: if (_encodedSecurityDesc is not null) Duplicate(field); _encodedSecurityDesc = (FixField.Data)field; break;
+					case FixTag.Currency: if (_currency is not null) Duplicate(field); _currency = (FixField.Text)field; break;
+					case FixTag.SubscriptionRequestType: if (_subscriptionRequestType is not null) Duplicate(field); _subscriptionRequestType = (FixField.Character)field; break;
+					case FixTag.TradingSessionID: if (_tradingSessionID is not null) Duplicate(field); _tradingSessionID = (FixField.Text)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -11517,73 +12831,96 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX SecurityStatusReqID, tag 324, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityStatusReqID { get; internal set; }
+		public FixField.Text? SecurityStatusReqID => _securityStatusReqID;
+		internal FixField.Text? _securityStatusReqID;
 
 		/// <summary>The FIX Symbol, tag 55, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Symbol { get; internal set; }
+		public FixField.Text? Symbol => _symbol;
+		internal FixField.Text? _symbol;
 
 		/// <summary>The FIX SymbolSfx, tag 65, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SymbolSfx { get; internal set; }
+		public FixField.Text? SymbolSfx => _symbolSfx;
+		internal FixField.Text? _symbolSfx;
 
 		/// <summary>The FIX SecurityID, tag 48, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityID { get; internal set; }
+		public FixField.Text? SecurityID => _securityID;
+		internal FixField.Text? _securityID;
 
 		/// <summary>The FIX IDSource, tag 22, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? IDSource { get; internal set; }
+		public FixField.Text? IDSource => _iDSource;
+		internal FixField.Text? _iDSource;
 
 		/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityType { get; internal set; }
+		public FixField.Text? SecurityType => _securityType;
+		internal FixField.Text? _securityType;
 
 		/// <summary>The FIX MaturityMonthYear, tag 200, wire type <c>MonthYear</c>; null when the field is absent.</summary>
-		public FixField.MonthYear? MaturityMonthYear { get; internal set; }
+		public FixField.MonthYear? MaturityMonthYear => _maturityMonthYear;
+		internal FixField.MonthYear? _maturityMonthYear;
 
 		/// <summary>The FIX MaturityDay, tag 205, wire type <c>DayOfMonth</c>; null when the field is absent.</summary>
-		public FixField.Integer? MaturityDay { get; internal set; }
+		public FixField.Integer? MaturityDay => _maturityDay;
+		internal FixField.Integer? _maturityDay;
 
 		/// <summary>The FIX PutOrCall, tag 201, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? PutOrCall { get; internal set; }
+		public FixField.Integer? PutOrCall => _putOrCall;
+		internal FixField.Integer? _putOrCall;
 
 		/// <summary>The FIX StrikePrice, tag 202, wire type <c>Price</c>; null when the field is absent.</summary>
-		public FixField.Decimal? StrikePrice { get; internal set; }
+		public FixField.Decimal? StrikePrice => _strikePrice;
+		internal FixField.Decimal? _strikePrice;
 
 		/// <summary>The FIX OptAttribute, tag 206, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? OptAttribute { get; internal set; }
+		public FixField.Character? OptAttribute => _optAttribute;
+		internal FixField.Character? _optAttribute;
 
 		/// <summary>The FIX ContractMultiplier, tag 231, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? ContractMultiplier { get; internal set; }
+		public FixField.Decimal? ContractMultiplier => _contractMultiplier;
+		internal FixField.Decimal? _contractMultiplier;
 
 		/// <summary>The FIX CouponRate, tag 223, wire type <c>float</c>; null when the field is absent.</summary>
-		public FixField.Decimal? CouponRate { get; internal set; }
+		public FixField.Decimal? CouponRate => _couponRate;
+		internal FixField.Decimal? _couponRate;
 
 		/// <summary>The FIX SecurityExchange, tag 207, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityExchange { get; internal set; }
+		public FixField.Text? SecurityExchange => _securityExchange;
+		internal FixField.Text? _securityExchange;
 
 		/// <summary>The FIX Issuer, tag 106, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Issuer { get; internal set; }
+		public FixField.Text? Issuer => _issuer;
+		internal FixField.Text? _issuer;
 
 		/// <summary>The FIX EncodedIssuerLen, tag 348, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedIssuerLen { get; internal set; }
+		public FixField.Integer? EncodedIssuerLen => _encodedIssuerLen;
+		internal FixField.Integer? _encodedIssuerLen;
 
 		/// <summary>The FIX EncodedIssuer, tag 349, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedIssuer { get; internal set; }
+		public FixField.Data? EncodedIssuer => _encodedIssuer;
+		internal FixField.Data? _encodedIssuer;
 
 		/// <summary>The FIX SecurityDesc, tag 107, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityDesc { get; internal set; }
+		public FixField.Text? SecurityDesc => _securityDesc;
+		internal FixField.Text? _securityDesc;
 
 		/// <summary>The FIX EncodedSecurityDescLen, tag 350, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedSecurityDescLen { get; internal set; }
+		public FixField.Integer? EncodedSecurityDescLen => _encodedSecurityDescLen;
+		internal FixField.Integer? _encodedSecurityDescLen;
 
 		/// <summary>The FIX EncodedSecurityDesc, tag 351, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedSecurityDesc { get; internal set; }
+		public FixField.Data? EncodedSecurityDesc => _encodedSecurityDesc;
+		internal FixField.Data? _encodedSecurityDesc;
 
 		/// <summary>The FIX Currency, tag 15, wire type <c>Currency</c>; null when the field is absent.</summary>
-		public FixField.Text? Currency { get; internal set; }
+		public FixField.Text? Currency => _currency;
+		internal FixField.Text? _currency;
 
 		/// <summary>The FIX SubscriptionRequestType, tag 263, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? SubscriptionRequestType { get; internal set; }
+		public FixField.Character? SubscriptionRequestType => _subscriptionRequestType;
+		internal FixField.Character? _subscriptionRequestType;
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TradingSessionID { get; internal set; }
+		public FixField.Text? TradingSessionID => _tradingSessionID;
+		internal FixField.Text? _tradingSessionID;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -11601,8 +12938,8 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.GapFillFlag: if (GapFillFlag is not null) Duplicate(field); GapFillFlag = (FixField.Boolean)field; break;
-					case FixTag.NewSeqNo: if (NewSeqNo is not null) Duplicate(field); NewSeqNo = (FixField.Integer)field; break;
+					case FixTag.GapFillFlag: if (_gapFillFlag is not null) Duplicate(field); _gapFillFlag = (FixField.Boolean)field; break;
+					case FixTag.NewSeqNo: if (_newSeqNo is not null) Duplicate(field); _newSeqNo = (FixField.Integer)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -11614,10 +12951,12 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX GapFillFlag, tag 123, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? GapFillFlag { get; internal set; }
+		public FixField.Boolean? GapFillFlag => _gapFillFlag;
+		internal FixField.Boolean? _gapFillFlag;
 
 		/// <summary>The FIX NewSeqNo, tag 36, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? NewSeqNo { get; internal set; }
+		public FixField.Integer? NewSeqNo => _newSeqNo;
+		internal FixField.Integer? _newSeqNo;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -11635,42 +12974,42 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.SettlInstID: if (SettlInstID is not null) Duplicate(field); SettlInstID = (FixField.Text)field; break;
-					case FixTag.SettlInstTransType: if (SettlInstTransType is not null) Duplicate(field); SettlInstTransType = (FixField.Character)field; break;
-					case FixTag.SettlInstRefID: if (SettlInstRefID is not null) Duplicate(field); SettlInstRefID = (FixField.Text)field; break;
-					case FixTag.SettlInstMode: if (SettlInstMode is not null) Duplicate(field); SettlInstMode = (FixField.Character)field; break;
-					case FixTag.SettlInstSource: if (SettlInstSource is not null) Duplicate(field); SettlInstSource = (FixField.Character)field; break;
-					case FixTag.AllocAccount: if (AllocAccount is not null) Duplicate(field); AllocAccount = (FixField.Text)field; break;
-					case FixTag.SettlLocation: if (SettlLocation is not null) Duplicate(field); SettlLocation = (FixField.Text)field; break;
-					case FixTag.TradeDate: if (TradeDate is not null) Duplicate(field); TradeDate = (FixField.Date)field; break;
-					case FixTag.AllocID: if (AllocID is not null) Duplicate(field); AllocID = (FixField.Text)field; break;
-					case FixTag.LastMkt: if (LastMkt is not null) Duplicate(field); LastMkt = (FixField.Text)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.Side: if (Side is not null) Duplicate(field); Side = (FixField.Character)field; break;
-					case FixTag.SecurityType: if (SecurityType is not null) Duplicate(field); SecurityType = (FixField.Text)field; break;
-					case FixTag.EffectiveTime: if (EffectiveTime is not null) Duplicate(field); EffectiveTime = (FixField.Timestamp)field; break;
-					case FixTag.TransactTime: if (TransactTime is not null) Duplicate(field); TransactTime = (FixField.Timestamp)field; break;
-					case FixTag.ClientID: if (ClientID is not null) Duplicate(field); ClientID = (FixField.Text)field; break;
-					case FixTag.ExecBroker: if (ExecBroker is not null) Duplicate(field); ExecBroker = (FixField.Text)field; break;
-					case FixTag.StandInstDbType: if (StandInstDbType is not null) Duplicate(field); StandInstDbType = (FixField.Integer)field; break;
-					case FixTag.StandInstDbName: if (StandInstDbName is not null) Duplicate(field); StandInstDbName = (FixField.Text)field; break;
-					case FixTag.StandInstDbID: if (StandInstDbID is not null) Duplicate(field); StandInstDbID = (FixField.Text)field; break;
-					case FixTag.SettlDeliveryType: if (SettlDeliveryType is not null) Duplicate(field); SettlDeliveryType = (FixField.Integer)field; break;
-					case FixTag.SettlDepositoryCode: if (SettlDepositoryCode is not null) Duplicate(field); SettlDepositoryCode = (FixField.Text)field; break;
-					case FixTag.SettlBrkrCode: if (SettlBrkrCode is not null) Duplicate(field); SettlBrkrCode = (FixField.Text)field; break;
-					case FixTag.SettlInstCode: if (SettlInstCode is not null) Duplicate(field); SettlInstCode = (FixField.Text)field; break;
-					case FixTag.SecuritySettlAgentName: if (SecuritySettlAgentName is not null) Duplicate(field); SecuritySettlAgentName = (FixField.Text)field; break;
-					case FixTag.SecuritySettlAgentCode: if (SecuritySettlAgentCode is not null) Duplicate(field); SecuritySettlAgentCode = (FixField.Text)field; break;
-					case FixTag.SecuritySettlAgentAcctNum: if (SecuritySettlAgentAcctNum is not null) Duplicate(field); SecuritySettlAgentAcctNum = (FixField.Text)field; break;
-					case FixTag.SecuritySettlAgentAcctName: if (SecuritySettlAgentAcctName is not null) Duplicate(field); SecuritySettlAgentAcctName = (FixField.Text)field; break;
-					case FixTag.SecuritySettlAgentContactName: if (SecuritySettlAgentContactName is not null) Duplicate(field); SecuritySettlAgentContactName = (FixField.Text)field; break;
-					case FixTag.SecuritySettlAgentContactPhone: if (SecuritySettlAgentContactPhone is not null) Duplicate(field); SecuritySettlAgentContactPhone = (FixField.Text)field; break;
-					case FixTag.CashSettlAgentName: if (CashSettlAgentName is not null) Duplicate(field); CashSettlAgentName = (FixField.Text)field; break;
-					case FixTag.CashSettlAgentCode: if (CashSettlAgentCode is not null) Duplicate(field); CashSettlAgentCode = (FixField.Text)field; break;
-					case FixTag.CashSettlAgentAcctNum: if (CashSettlAgentAcctNum is not null) Duplicate(field); CashSettlAgentAcctNum = (FixField.Text)field; break;
-					case FixTag.CashSettlAgentAcctName: if (CashSettlAgentAcctName is not null) Duplicate(field); CashSettlAgentAcctName = (FixField.Text)field; break;
-					case FixTag.CashSettlAgentContactName: if (CashSettlAgentContactName is not null) Duplicate(field); CashSettlAgentContactName = (FixField.Text)field; break;
-					case FixTag.CashSettlAgentContactPhone: if (CashSettlAgentContactPhone is not null) Duplicate(field); CashSettlAgentContactPhone = (FixField.Text)field; break;
+					case FixTag.SettlInstID: if (_settlInstID is not null) Duplicate(field); _settlInstID = (FixField.Text)field; break;
+					case FixTag.SettlInstTransType: if (_settlInstTransType is not null) Duplicate(field); _settlInstTransType = (FixField.Character)field; break;
+					case FixTag.SettlInstRefID: if (_settlInstRefID is not null) Duplicate(field); _settlInstRefID = (FixField.Text)field; break;
+					case FixTag.SettlInstMode: if (_settlInstMode is not null) Duplicate(field); _settlInstMode = (FixField.Character)field; break;
+					case FixTag.SettlInstSource: if (_settlInstSource is not null) Duplicate(field); _settlInstSource = (FixField.Character)field; break;
+					case FixTag.AllocAccount: if (_allocAccount is not null) Duplicate(field); _allocAccount = (FixField.Text)field; break;
+					case FixTag.SettlLocation: if (_settlLocation is not null) Duplicate(field); _settlLocation = (FixField.Text)field; break;
+					case FixTag.TradeDate: if (_tradeDate is not null) Duplicate(field); _tradeDate = (FixField.Date)field; break;
+					case FixTag.AllocID: if (_allocID is not null) Duplicate(field); _allocID = (FixField.Text)field; break;
+					case FixTag.LastMkt: if (_lastMkt is not null) Duplicate(field); _lastMkt = (FixField.Text)field; break;
+					case FixTag.TradingSessionID: if (_tradingSessionID is not null) Duplicate(field); _tradingSessionID = (FixField.Text)field; break;
+					case FixTag.Side: if (_side is not null) Duplicate(field); _side = (FixField.Character)field; break;
+					case FixTag.SecurityType: if (_securityType is not null) Duplicate(field); _securityType = (FixField.Text)field; break;
+					case FixTag.EffectiveTime: if (_effectiveTime is not null) Duplicate(field); _effectiveTime = (FixField.Timestamp)field; break;
+					case FixTag.TransactTime: if (_transactTime is not null) Duplicate(field); _transactTime = (FixField.Timestamp)field; break;
+					case FixTag.ClientID: if (_clientID is not null) Duplicate(field); _clientID = (FixField.Text)field; break;
+					case FixTag.ExecBroker: if (_execBroker is not null) Duplicate(field); _execBroker = (FixField.Text)field; break;
+					case FixTag.StandInstDbType: if (_standInstDbType is not null) Duplicate(field); _standInstDbType = (FixField.Integer)field; break;
+					case FixTag.StandInstDbName: if (_standInstDbName is not null) Duplicate(field); _standInstDbName = (FixField.Text)field; break;
+					case FixTag.StandInstDbID: if (_standInstDbID is not null) Duplicate(field); _standInstDbID = (FixField.Text)field; break;
+					case FixTag.SettlDeliveryType: if (_settlDeliveryType is not null) Duplicate(field); _settlDeliveryType = (FixField.Integer)field; break;
+					case FixTag.SettlDepositoryCode: if (_settlDepositoryCode is not null) Duplicate(field); _settlDepositoryCode = (FixField.Text)field; break;
+					case FixTag.SettlBrkrCode: if (_settlBrkrCode is not null) Duplicate(field); _settlBrkrCode = (FixField.Text)field; break;
+					case FixTag.SettlInstCode: if (_settlInstCode is not null) Duplicate(field); _settlInstCode = (FixField.Text)field; break;
+					case FixTag.SecuritySettlAgentName: if (_securitySettlAgentName is not null) Duplicate(field); _securitySettlAgentName = (FixField.Text)field; break;
+					case FixTag.SecuritySettlAgentCode: if (_securitySettlAgentCode is not null) Duplicate(field); _securitySettlAgentCode = (FixField.Text)field; break;
+					case FixTag.SecuritySettlAgentAcctNum: if (_securitySettlAgentAcctNum is not null) Duplicate(field); _securitySettlAgentAcctNum = (FixField.Text)field; break;
+					case FixTag.SecuritySettlAgentAcctName: if (_securitySettlAgentAcctName is not null) Duplicate(field); _securitySettlAgentAcctName = (FixField.Text)field; break;
+					case FixTag.SecuritySettlAgentContactName: if (_securitySettlAgentContactName is not null) Duplicate(field); _securitySettlAgentContactName = (FixField.Text)field; break;
+					case FixTag.SecuritySettlAgentContactPhone: if (_securitySettlAgentContactPhone is not null) Duplicate(field); _securitySettlAgentContactPhone = (FixField.Text)field; break;
+					case FixTag.CashSettlAgentName: if (_cashSettlAgentName is not null) Duplicate(field); _cashSettlAgentName = (FixField.Text)field; break;
+					case FixTag.CashSettlAgentCode: if (_cashSettlAgentCode is not null) Duplicate(field); _cashSettlAgentCode = (FixField.Text)field; break;
+					case FixTag.CashSettlAgentAcctNum: if (_cashSettlAgentAcctNum is not null) Duplicate(field); _cashSettlAgentAcctNum = (FixField.Text)field; break;
+					case FixTag.CashSettlAgentAcctName: if (_cashSettlAgentAcctName is not null) Duplicate(field); _cashSettlAgentAcctName = (FixField.Text)field; break;
+					case FixTag.CashSettlAgentContactName: if (_cashSettlAgentContactName is not null) Duplicate(field); _cashSettlAgentContactName = (FixField.Text)field; break;
+					case FixTag.CashSettlAgentContactPhone: if (_cashSettlAgentContactPhone is not null) Duplicate(field); _cashSettlAgentContactPhone = (FixField.Text)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -11682,112 +13021,148 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX SettlInstID, tag 162, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SettlInstID { get; internal set; }
+		public FixField.Text? SettlInstID => _settlInstID;
+		internal FixField.Text? _settlInstID;
 
 		/// <summary>The FIX SettlInstTransType, tag 163, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? SettlInstTransType { get; internal set; }
+		public FixField.Character? SettlInstTransType => _settlInstTransType;
+		internal FixField.Character? _settlInstTransType;
 
 		/// <summary>The FIX SettlInstRefID, tag 214, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SettlInstRefID { get; internal set; }
+		public FixField.Text? SettlInstRefID => _settlInstRefID;
+		internal FixField.Text? _settlInstRefID;
 
 		/// <summary>The FIX SettlInstMode, tag 160, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? SettlInstMode { get; internal set; }
+		public FixField.Character? SettlInstMode => _settlInstMode;
+		internal FixField.Character? _settlInstMode;
 
 		/// <summary>The FIX SettlInstSource, tag 165, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? SettlInstSource { get; internal set; }
+		public FixField.Character? SettlInstSource => _settlInstSource;
+		internal FixField.Character? _settlInstSource;
 
 		/// <summary>The FIX AllocAccount, tag 79, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? AllocAccount { get; internal set; }
+		public FixField.Text? AllocAccount => _allocAccount;
+		internal FixField.Text? _allocAccount;
 
 		/// <summary>The FIX SettlLocation, tag 166, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SettlLocation { get; internal set; }
+		public FixField.Text? SettlLocation => _settlLocation;
+		internal FixField.Text? _settlLocation;
 
 		/// <summary>The FIX TradeDate, tag 75, wire type <c>LocalMktDate</c>; null when the field is absent.</summary>
-		public FixField.Date? TradeDate { get; internal set; }
+		public FixField.Date? TradeDate => _tradeDate;
+		internal FixField.Date? _tradeDate;
 
 		/// <summary>The FIX AllocID, tag 70, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? AllocID { get; internal set; }
+		public FixField.Text? AllocID => _allocID;
+		internal FixField.Text? _allocID;
 
 		/// <summary>The FIX LastMkt, tag 30, wire type <c>Exchange</c>; null when the field is absent.</summary>
-		public FixField.Text? LastMkt { get; internal set; }
+		public FixField.Text? LastMkt => _lastMkt;
+		internal FixField.Text? _lastMkt;
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TradingSessionID { get; internal set; }
+		public FixField.Text? TradingSessionID => _tradingSessionID;
+		internal FixField.Text? _tradingSessionID;
 
 		/// <summary>The FIX Side, tag 54, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? Side { get; internal set; }
+		public FixField.Character? Side => _side;
+		internal FixField.Character? _side;
 
 		/// <summary>The FIX SecurityType, tag 167, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecurityType { get; internal set; }
+		public FixField.Text? SecurityType => _securityType;
+		internal FixField.Text? _securityType;
 
 		/// <summary>The FIX EffectiveTime, tag 168, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? EffectiveTime { get; internal set; }
+		public FixField.Timestamp? EffectiveTime => _effectiveTime;
+		internal FixField.Timestamp? _effectiveTime;
 
 		/// <summary>The FIX TransactTime, tag 60, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TransactTime { get; internal set; }
+		public FixField.Timestamp? TransactTime => _transactTime;
+		internal FixField.Timestamp? _transactTime;
 
 		/// <summary>The FIX ClientID, tag 109, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ClientID { get; internal set; }
+		public FixField.Text? ClientID => _clientID;
+		internal FixField.Text? _clientID;
 
 		/// <summary>The FIX ExecBroker, tag 76, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? ExecBroker { get; internal set; }
+		public FixField.Text? ExecBroker => _execBroker;
+		internal FixField.Text? _execBroker;
 
 		/// <summary>The FIX StandInstDbType, tag 169, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? StandInstDbType { get; internal set; }
+		public FixField.Integer? StandInstDbType => _standInstDbType;
+		internal FixField.Integer? _standInstDbType;
 
 		/// <summary>The FIX StandInstDbName, tag 170, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? StandInstDbName { get; internal set; }
+		public FixField.Text? StandInstDbName => _standInstDbName;
+		internal FixField.Text? _standInstDbName;
 
 		/// <summary>The FIX StandInstDbID, tag 171, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? StandInstDbID { get; internal set; }
+		public FixField.Text? StandInstDbID => _standInstDbID;
+		internal FixField.Text? _standInstDbID;
 
 		/// <summary>The FIX SettlDeliveryType, tag 172, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? SettlDeliveryType { get; internal set; }
+		public FixField.Integer? SettlDeliveryType => _settlDeliveryType;
+		internal FixField.Integer? _settlDeliveryType;
 
 		/// <summary>The FIX SettlDepositoryCode, tag 173, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SettlDepositoryCode { get; internal set; }
+		public FixField.Text? SettlDepositoryCode => _settlDepositoryCode;
+		internal FixField.Text? _settlDepositoryCode;
 
 		/// <summary>The FIX SettlBrkrCode, tag 174, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SettlBrkrCode { get; internal set; }
+		public FixField.Text? SettlBrkrCode => _settlBrkrCode;
+		internal FixField.Text? _settlBrkrCode;
 
 		/// <summary>The FIX SettlInstCode, tag 175, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SettlInstCode { get; internal set; }
+		public FixField.Text? SettlInstCode => _settlInstCode;
+		internal FixField.Text? _settlInstCode;
 
 		/// <summary>The FIX SecuritySettlAgentName, tag 176, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecuritySettlAgentName { get; internal set; }
+		public FixField.Text? SecuritySettlAgentName => _securitySettlAgentName;
+		internal FixField.Text? _securitySettlAgentName;
 
 		/// <summary>The FIX SecuritySettlAgentCode, tag 177, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecuritySettlAgentCode { get; internal set; }
+		public FixField.Text? SecuritySettlAgentCode => _securitySettlAgentCode;
+		internal FixField.Text? _securitySettlAgentCode;
 
 		/// <summary>The FIX SecuritySettlAgentAcctNum, tag 178, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecuritySettlAgentAcctNum { get; internal set; }
+		public FixField.Text? SecuritySettlAgentAcctNum => _securitySettlAgentAcctNum;
+		internal FixField.Text? _securitySettlAgentAcctNum;
 
 		/// <summary>The FIX SecuritySettlAgentAcctName, tag 179, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecuritySettlAgentAcctName { get; internal set; }
+		public FixField.Text? SecuritySettlAgentAcctName => _securitySettlAgentAcctName;
+		internal FixField.Text? _securitySettlAgentAcctName;
 
 		/// <summary>The FIX SecuritySettlAgentContactName, tag 180, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecuritySettlAgentContactName { get; internal set; }
+		public FixField.Text? SecuritySettlAgentContactName => _securitySettlAgentContactName;
+		internal FixField.Text? _securitySettlAgentContactName;
 
 		/// <summary>The FIX SecuritySettlAgentContactPhone, tag 181, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? SecuritySettlAgentContactPhone { get; internal set; }
+		public FixField.Text? SecuritySettlAgentContactPhone => _securitySettlAgentContactPhone;
+		internal FixField.Text? _securitySettlAgentContactPhone;
 
 		/// <summary>The FIX CashSettlAgentName, tag 182, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? CashSettlAgentName { get; internal set; }
+		public FixField.Text? CashSettlAgentName => _cashSettlAgentName;
+		internal FixField.Text? _cashSettlAgentName;
 
 		/// <summary>The FIX CashSettlAgentCode, tag 183, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? CashSettlAgentCode { get; internal set; }
+		public FixField.Text? CashSettlAgentCode => _cashSettlAgentCode;
+		internal FixField.Text? _cashSettlAgentCode;
 
 		/// <summary>The FIX CashSettlAgentAcctNum, tag 184, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? CashSettlAgentAcctNum { get; internal set; }
+		public FixField.Text? CashSettlAgentAcctNum => _cashSettlAgentAcctNum;
+		internal FixField.Text? _cashSettlAgentAcctNum;
 
 		/// <summary>The FIX CashSettlAgentAcctName, tag 185, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? CashSettlAgentAcctName { get; internal set; }
+		public FixField.Text? CashSettlAgentAcctName => _cashSettlAgentAcctName;
+		internal FixField.Text? _cashSettlAgentAcctName;
 
 		/// <summary>The FIX CashSettlAgentContactName, tag 186, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? CashSettlAgentContactName { get; internal set; }
+		public FixField.Text? CashSettlAgentContactName => _cashSettlAgentContactName;
+		internal FixField.Text? _cashSettlAgentContactName;
 
 		/// <summary>The FIX CashSettlAgentContactPhone, tag 187, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? CashSettlAgentContactPhone { get; internal set; }
+		public FixField.Text? CashSettlAgentContactPhone => _cashSettlAgentContactPhone;
+		internal FixField.Text? _cashSettlAgentContactPhone;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -11805,7 +13180,7 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.TestReqID: if (TestReqID is not null) Duplicate(field); TestReqID = (FixField.Text)field; break;
+					case FixTag.TestReqID: if (_testReqID is not null) Duplicate(field); _testReqID = (FixField.Text)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -11817,7 +13192,8 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX TestReqID, tag 112, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TestReqID { get; internal set; }
+		public FixField.Text? TestReqID => _testReqID;
+		internal FixField.Text? _testReqID;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -11835,21 +13211,21 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.TradSesReqID: if (TradSesReqID is not null) Duplicate(field); TradSesReqID = (FixField.Text)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.TradSesMethod: if (TradSesMethod is not null) Duplicate(field); TradSesMethod = (FixField.Integer)field; break;
-					case FixTag.TradSesMode: if (TradSesMode is not null) Duplicate(field); TradSesMode = (FixField.Integer)field; break;
-					case FixTag.UnsolicitedIndicator: if (UnsolicitedIndicator is not null) Duplicate(field); UnsolicitedIndicator = (FixField.Boolean)field; break;
-					case FixTag.TradSesStatus: if (TradSesStatus is not null) Duplicate(field); TradSesStatus = (FixField.Integer)field; break;
-					case FixTag.TradSesStartTime: if (TradSesStartTime is not null) Duplicate(field); TradSesStartTime = (FixField.Timestamp)field; break;
-					case FixTag.TradSesOpenTime: if (TradSesOpenTime is not null) Duplicate(field); TradSesOpenTime = (FixField.Timestamp)field; break;
-					case FixTag.TradSesPreCloseTime: if (TradSesPreCloseTime is not null) Duplicate(field); TradSesPreCloseTime = (FixField.Timestamp)field; break;
-					case FixTag.TradSesCloseTime: if (TradSesCloseTime is not null) Duplicate(field); TradSesCloseTime = (FixField.Timestamp)field; break;
-					case FixTag.TradSesEndTime: if (TradSesEndTime is not null) Duplicate(field); TradSesEndTime = (FixField.Timestamp)field; break;
-					case FixTag.TotalVolumeTraded: if (TotalVolumeTraded is not null) Duplicate(field); TotalVolumeTraded = (FixField.Decimal)field; break;
-					case FixTag.Text: if (Text is not null) Duplicate(field); Text = (FixField.Text)field; break;
-					case FixTag.EncodedTextLen: if (EncodedTextLen is not null) Duplicate(field); EncodedTextLen = (FixField.Integer)field; break;
-					case FixTag.EncodedText: if (EncodedText is not null) Duplicate(field); EncodedText = (FixField.Data)field; break;
+					case FixTag.TradSesReqID: if (_tradSesReqID is not null) Duplicate(field); _tradSesReqID = (FixField.Text)field; break;
+					case FixTag.TradingSessionID: if (_tradingSessionID is not null) Duplicate(field); _tradingSessionID = (FixField.Text)field; break;
+					case FixTag.TradSesMethod: if (_tradSesMethod is not null) Duplicate(field); _tradSesMethod = (FixField.Integer)field; break;
+					case FixTag.TradSesMode: if (_tradSesMode is not null) Duplicate(field); _tradSesMode = (FixField.Integer)field; break;
+					case FixTag.UnsolicitedIndicator: if (_unsolicitedIndicator is not null) Duplicate(field); _unsolicitedIndicator = (FixField.Boolean)field; break;
+					case FixTag.TradSesStatus: if (_tradSesStatus is not null) Duplicate(field); _tradSesStatus = (FixField.Integer)field; break;
+					case FixTag.TradSesStartTime: if (_tradSesStartTime is not null) Duplicate(field); _tradSesStartTime = (FixField.Timestamp)field; break;
+					case FixTag.TradSesOpenTime: if (_tradSesOpenTime is not null) Duplicate(field); _tradSesOpenTime = (FixField.Timestamp)field; break;
+					case FixTag.TradSesPreCloseTime: if (_tradSesPreCloseTime is not null) Duplicate(field); _tradSesPreCloseTime = (FixField.Timestamp)field; break;
+					case FixTag.TradSesCloseTime: if (_tradSesCloseTime is not null) Duplicate(field); _tradSesCloseTime = (FixField.Timestamp)field; break;
+					case FixTag.TradSesEndTime: if (_tradSesEndTime is not null) Duplicate(field); _tradSesEndTime = (FixField.Timestamp)field; break;
+					case FixTag.TotalVolumeTraded: if (_totalVolumeTraded is not null) Duplicate(field); _totalVolumeTraded = (FixField.Decimal)field; break;
+					case FixTag.Text: if (_text is not null) Duplicate(field); _text = (FixField.Text)field; break;
+					case FixTag.EncodedTextLen: if (_encodedTextLen is not null) Duplicate(field); _encodedTextLen = (FixField.Integer)field; break;
+					case FixTag.EncodedText: if (_encodedText is not null) Duplicate(field); _encodedText = (FixField.Data)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -11861,49 +13237,64 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX TradSesReqID, tag 335, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TradSesReqID { get; internal set; }
+		public FixField.Text? TradSesReqID => _tradSesReqID;
+		internal FixField.Text? _tradSesReqID;
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TradingSessionID { get; internal set; }
+		public FixField.Text? TradingSessionID => _tradingSessionID;
+		internal FixField.Text? _tradingSessionID;
 
 		/// <summary>The FIX TradSesMethod, tag 338, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? TradSesMethod { get; internal set; }
+		public FixField.Integer? TradSesMethod => _tradSesMethod;
+		internal FixField.Integer? _tradSesMethod;
 
 		/// <summary>The FIX TradSesMode, tag 339, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? TradSesMode { get; internal set; }
+		public FixField.Integer? TradSesMode => _tradSesMode;
+		internal FixField.Integer? _tradSesMode;
 
 		/// <summary>The FIX UnsolicitedIndicator, tag 325, wire type <c>Boolean</c>; null when the field is absent.</summary>
-		public FixField.Boolean? UnsolicitedIndicator { get; internal set; }
+		public FixField.Boolean? UnsolicitedIndicator => _unsolicitedIndicator;
+		internal FixField.Boolean? _unsolicitedIndicator;
 
 		/// <summary>The FIX TradSesStatus, tag 340, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? TradSesStatus { get; internal set; }
+		public FixField.Integer? TradSesStatus => _tradSesStatus;
+		internal FixField.Integer? _tradSesStatus;
 
 		/// <summary>The FIX TradSesStartTime, tag 341, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TradSesStartTime { get; internal set; }
+		public FixField.Timestamp? TradSesStartTime => _tradSesStartTime;
+		internal FixField.Timestamp? _tradSesStartTime;
 
 		/// <summary>The FIX TradSesOpenTime, tag 342, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TradSesOpenTime { get; internal set; }
+		public FixField.Timestamp? TradSesOpenTime => _tradSesOpenTime;
+		internal FixField.Timestamp? _tradSesOpenTime;
 
 		/// <summary>The FIX TradSesPreCloseTime, tag 343, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TradSesPreCloseTime { get; internal set; }
+		public FixField.Timestamp? TradSesPreCloseTime => _tradSesPreCloseTime;
+		internal FixField.Timestamp? _tradSesPreCloseTime;
 
 		/// <summary>The FIX TradSesCloseTime, tag 344, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TradSesCloseTime { get; internal set; }
+		public FixField.Timestamp? TradSesCloseTime => _tradSesCloseTime;
+		internal FixField.Timestamp? _tradSesCloseTime;
 
 		/// <summary>The FIX TradSesEndTime, tag 345, wire type <c>UTCTimestamp</c>; null when the field is absent.</summary>
-		public FixField.Timestamp? TradSesEndTime { get; internal set; }
+		public FixField.Timestamp? TradSesEndTime => _tradSesEndTime;
+		internal FixField.Timestamp? _tradSesEndTime;
 
 		/// <summary>The FIX TotalVolumeTraded, tag 387, wire type <c>Qty</c>; null when the field is absent.</summary>
-		public FixField.Decimal? TotalVolumeTraded { get; internal set; }
+		public FixField.Decimal? TotalVolumeTraded => _totalVolumeTraded;
+		internal FixField.Decimal? _totalVolumeTraded;
 
 		/// <summary>The FIX Text, tag 58, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? Text { get; internal set; }
+		public FixField.Text? Text => _text;
+		internal FixField.Text? _text;
 
 		/// <summary>The FIX EncodedTextLen, tag 354, wire type <c>Length</c>; null when the field is absent.</summary>
-		public FixField.Integer? EncodedTextLen { get; internal set; }
+		public FixField.Integer? EncodedTextLen => _encodedTextLen;
+		internal FixField.Integer? _encodedTextLen;
 
 		/// <summary>The FIX EncodedText, tag 355, wire type <c>data</c>; null when the field is absent.</summary>
-		public FixField.Data? EncodedText { get; internal set; }
+		public FixField.Data? EncodedText => _encodedText;
+		internal FixField.Data? _encodedText;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)
@@ -11921,11 +13312,11 @@ public abstract partial class FixMessage
 			{
 				switch (field.Tag)
 				{
-					case FixTag.TradSesReqID: if (TradSesReqID is not null) Duplicate(field); TradSesReqID = (FixField.Text)field; break;
-					case FixTag.TradingSessionID: if (TradingSessionID is not null) Duplicate(field); TradingSessionID = (FixField.Text)field; break;
-					case FixTag.TradSesMethod: if (TradSesMethod is not null) Duplicate(field); TradSesMethod = (FixField.Integer)field; break;
-					case FixTag.TradSesMode: if (TradSesMode is not null) Duplicate(field); TradSesMode = (FixField.Integer)field; break;
-					case FixTag.SubscriptionRequestType: if (SubscriptionRequestType is not null) Duplicate(field); SubscriptionRequestType = (FixField.Character)field; break;
+					case FixTag.TradSesReqID: if (_tradSesReqID is not null) Duplicate(field); _tradSesReqID = (FixField.Text)field; break;
+					case FixTag.TradingSessionID: if (_tradingSessionID is not null) Duplicate(field); _tradingSessionID = (FixField.Text)field; break;
+					case FixTag.TradSesMethod: if (_tradSesMethod is not null) Duplicate(field); _tradSesMethod = (FixField.Integer)field; break;
+					case FixTag.TradSesMode: if (_tradSesMode is not null) Duplicate(field); _tradSesMode = (FixField.Integer)field; break;
+					case FixTag.SubscriptionRequestType: if (_subscriptionRequestType is not null) Duplicate(field); _subscriptionRequestType = (FixField.Character)field; break;
 
 					default:
 						if (!SetStandardField(field))
@@ -11937,19 +13328,24 @@ public abstract partial class FixMessage
 		}
 
 		/// <summary>The FIX TradSesReqID, tag 335, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TradSesReqID { get; internal set; }
+		public FixField.Text? TradSesReqID => _tradSesReqID;
+		internal FixField.Text? _tradSesReqID;
 
 		/// <summary>The FIX TradingSessionID, tag 336, wire type <c>String</c>; null when the field is absent.</summary>
-		public FixField.Text? TradingSessionID { get; internal set; }
+		public FixField.Text? TradingSessionID => _tradingSessionID;
+		internal FixField.Text? _tradingSessionID;
 
 		/// <summary>The FIX TradSesMethod, tag 338, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? TradSesMethod { get; internal set; }
+		public FixField.Integer? TradSesMethod => _tradSesMethod;
+		internal FixField.Integer? _tradSesMethod;
 
 		/// <summary>The FIX TradSesMode, tag 339, wire type <c>int</c>; null when the field is absent.</summary>
-		public FixField.Integer? TradSesMode { get; internal set; }
+		public FixField.Integer? TradSesMode => _tradSesMode;
+		internal FixField.Integer? _tradSesMode;
 
 		/// <summary>The FIX SubscriptionRequestType, tag 263, wire type <c>char</c>; null when the field is absent.</summary>
-		public FixField.Character? SubscriptionRequestType { get; internal set; }
+		public FixField.Character? SubscriptionRequestType => _subscriptionRequestType;
+		internal FixField.Character? _subscriptionRequestType;
 
 		/// <summary>Asks the context for the check of this type and runs it.</summary>
 		private protected override void Check(Fix42Context context, FixCheck check)

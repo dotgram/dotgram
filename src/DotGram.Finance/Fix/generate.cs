@@ -556,6 +556,13 @@ static class Fx
 		return char.ToLowerInvariant(list[0]) + list[1..];
 	}
 
+	// The field a scalar member is kept in: the property reads it, the reader writes it. With the underscore,
+	// since a field's name can be a keyword once lowered (and the contextual `field`).
+	public static string StoreField(string name)
+	{
+		return "_" + char.ToLowerInvariant(name[0]) + name[1..];
+	}
+
 	public static readonly List<Version> Versions = new()
 	{
 		new Version("4.2", "FIX.4.2", "Fix42", "FIX 4.2", "FIX.4.2",
@@ -872,7 +879,8 @@ sealed class Writer
 				else
 				{
 					outLines.Add($"{pad}/// <summary>{docFunc(field)}</summary>");
-					outLines.Add($"{pad}public {field.TypeName}? {field.Name} {{ get; {setter}; }}");
+					outLines.Add($"{pad}public {field.TypeName}? {field.Name} => {Fx.StoreField(field.Name)};");
+					outLines.Add($"{pad}internal {field.TypeName}? {Fx.StoreField(field.Name)};");
 				}
 			}
 			else
@@ -1029,21 +1037,24 @@ sealed class Writer
 
 		void Place(Field f)
 		{
+			var store = Fx.StoreField(f.Name);
+
 			if (lists.Count == 0)
 			{
-				outLines.Add($"{pad}case {f.Const}: if ({f.Name} is not null) Duplicate(field); {f.Name} = ({f.TypeName})field; break;");
+				outLines.Add($"{pad}case {f.Const}: if ({store} is not null) Duplicate(field); {store} = ({f.TypeName})field; break;");
 				return;
 			}
 
 			outLines.Add($"{pad}case {f.Const}:");
 			Unentering();
-			outLines.Add($"{pad}\telse if ({holder}{f.Name} is not null)");
+			outLines.Add($"{pad}\telse if ({holder}{store} is not null)");
 			outLines.Add($"{pad}\t\tDuplicate(field{Path(lists.Count)});");
 			outLines.Add($"{pad}\telse");
-			outLines.Add($"{pad}\t\t{holder}{f.Name} = ({f.TypeName})field;");
+			outLines.Add($"{pad}\t\t{holder}{store} = ({f.TypeName})field;");
 			outLines.Add($"{pad}\tbreak;");
 		}
 
+		// `skip` is the entry's own first field, which its constructor sets and no field of the entry's holds.
 		void Walk(List<Member> walkMembers, int? skip)
 		{
 			foreach (var m in walkMembers)
@@ -1069,7 +1080,7 @@ sealed class Writer
 
 					// The first entry of a group whose counter has not been read is entries nothing counts:
 					// said once, at the entry, by the counter's tag.
-					var uncounted = $"if ({target} is null && {holder}{group.Counter.Name} is null) Uncounted({group.Counter.Const}, field{Path(lists.Count)});";
+					var uncounted = $"if ({target} is null && {holder}{(group.Counter.Tag == skip ? group.Counter.Name : Fx.StoreField(group.Counter.Name))} is null) Uncounted({group.Counter.Const}, field{Path(lists.Count)});";
 					var add       = $"({target} ??= []).Add(new (({opener.TypeName})field));";
 
 					if (lists.Count == 0)
