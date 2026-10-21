@@ -163,9 +163,10 @@ sealed partial class Machine
 			// try each alternative in order through the give-back door, and the first that
 			// matches is final — nothing ever comes back, which is what "atomic" says.
 			// The alternatives may share prefixes freely; what each must be is silent.
+			// Under the view the compile hands the contents (Machine.Compile's Atomic case).
 			Node.Atomic(var kept) => kept is Node.Choice(var options) { Selection: null }
-														  ? AllSilentWithin(options, following)
-														  : SilentWithin(kept, following),
+														  ? AllSilentWithin(options, OverKinds ? following : following.Committed())
+														  : SilentWithin(kept, OverKinds ? following : following.Committed()),
 
 			_ => false,
 		};

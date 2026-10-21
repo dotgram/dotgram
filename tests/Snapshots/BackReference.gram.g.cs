@@ -1673,9 +1673,8 @@ namespace DotGram.Snapshots
 					case 1: goto Accept;
 					case 2:   expected = null; goto Fail;
 					case 3: goto S3;
-					case 6: goto S6;
-					case 18: goto S18;
-					case 19: goto S19;
+					case 21: goto S21;
+					case 22: goto S22;
 					default: expected = null; goto Fail;
 				}
 
@@ -1692,24 +1691,44 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var runStart = p;
-					while (true)
-					{
-						if ((uint)p >= (uint)text.Length) break;
-						c = text[p];
-						if (!(c == '"')) break;
-						p++;
-					}
-					if (p < runStart + 3)
+					if ((uint)p >= (uint)text.Length || text[p] != '"')
 					{
 						expected = ExpectedSet_DotGram(3);
 						goto Fail;
 					}
-					if (p > runStart + 3)
-						entries.Add(new ParserEntry(ParserEntry.Run, 6, runStart + 3, call, atomic, repeat, lookahead, p));
+					p += 1;
 				}
 
-				S6:
+				{
+					if ((uint)p >= (uint)text.Length || text[p] != '"')
+					{
+						expected = ExpectedSet_DotGram(3);
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				{
+					if ((uint)p >= (uint)text.Length || text[p] != '"')
+					{
+						expected = ExpectedSet_DotGram(3);
+						goto Fail;
+					}
+					p += 1;
+				}
+
+				S8:
+				{
+					if ((uint)p >= (uint)text.Length || text[p] != '"')
+					{
+						expected = ExpectedSet_DotGram(3);
+						goto S9;
+					}
+					p += 1;
+					goto S8;
+				}
+
+				S9:
 				{
 					var openedAt = opened0;
 
@@ -1771,12 +1790,12 @@ namespace DotGram.Snapshots
 					if ((uint)p < (uint)text.Length)
 					{
 						c = text[p];
-						if ((c >= '\0' && c <= '\uFFFF')) goto S13;
+						if ((c >= '\0' && c <= '\uFFFF')) goto S16;
 					}
-					if (lookahead < 0 && !failure.Quiet) goto S13;
+					if (lookahead < 0 && !failure.Quiet) goto S16;
 				}
 
-				S10:
+				S13:
 				{
 					global::System.Diagnostics.Debug.Assert(atomic >= 0 && atomic < entries.Count);
 					var boundary = entries[atomic];
@@ -1826,14 +1845,14 @@ namespace DotGram.Snapshots
 					goto Return;
 				}
 
-				S13:
+				S16:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
 				}
 
-				S14:
+				S17:
 				{
 					if ((uint)p < (uint)text.Length)
 					{
@@ -1842,17 +1861,21 @@ namespace DotGram.Snapshots
 						{
 							var untilFound = global::System.MemoryExtensions.IndexOf(text.Slice(p), '"');
 							var until = untilFound < 0 ? -1 : p + untilFound;
-							var untilFrom = p;
 							p = until < 0 ? text.Length : until;
-							entries.Add(new ParserEntry(ParserEntry.Run, 19, untilFrom, call, atomic, repeat, lookahead, p));
 						}
 					}
-					entries.Add(new ParserEntry(ParserEntry.Choice, 19, p, call, atomic, repeat, lookahead, 0));
+					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
+					var repeating = entries[repeat];
+					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
+					{
+						entries.Add(new ParserEntry(ParserEntry.LoopExit, 22, p, call, atomic, repeat, lookahead, 0));
+						entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, repeating.LookaheadIndex, repeating.Value, p);
+					}
 				}
 
 				{
 					var lookaheadIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Lookahead, 18, p, call, atomic, repeat, lookahead, 0));
+					entries.Add(new ParserEntry(ParserEntry.Lookahead, 21, p, call, atomic, repeat, lookahead, 0));
 					lookahead = lookaheadIndex;
 				}
 
@@ -1895,7 +1918,7 @@ namespace DotGram.Snapshots
 					goto Fail;
 				}
 
-				S18:
+				S21:
 				{
 					var scanned = Scan_any_RawString(text, p);
 					if (scanned < 0)
@@ -1905,10 +1928,10 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 					p = scanned;
-					goto S14;
+					goto S17;
 				}
 
-				S19:
+				S22:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
@@ -1917,7 +1940,7 @@ namespace DotGram.Snapshots
 					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
 					repeat = previousRepeat;
 					lookahead = finished.LookaheadIndex;
-					goto S10;
+					goto S13;
 				}
 
 				Return:
@@ -1974,20 +1997,19 @@ namespace DotGram.Snapshots
 						lookahead = entry.LookaheadIndex;
 						goto Dispatch;
 					}
-					if (entry.Kind == ParserEntry.Run)
+					if (entry.Kind == ParserEntry.LoopExit)
 					{
-						if (entry.Value <= entry.Position) continue;
+						if (entry.RepeatIndex < 0 || entries[entry.RepeatIndex].Kind != ParserEntry.Repeat || entries[entry.RepeatIndex].RuleIndex != entry.Position)
+							continue;
 
 						state  = entry.State;
-						p      = entry.Value - 1;
+						p      = entry.Position;
 						call   = entry.CallIndex;
 						atomic = entry.AtomicIndex;
 						repeat = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
-						entries.Add(new ParserEntry(ParserEntry.Run, entry.State, entry.Position, entry.CallIndex, entry.AtomicIndex, entry.RepeatIndex, entry.LookaheadIndex, p));
 						goto Dispatch;
 					}
-
 					if (entry.Kind == ParserEntry.Capture || entry.Kind == ParserEntry.Construct || entry.Kind == ParserEntry.RuleCapture || entry.Kind == ParserEntry.CaptureOpen || entry.Kind == ParserEntry.Dead)
 						continue;
 
