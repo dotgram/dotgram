@@ -459,8 +459,16 @@ public static class Retention
 				for (var first = 0; first < options.Count; first++)
 					for (var then = first + 1; then < options.Count; then++)
 					{
+						// An alternative whose text this cannot say may begin the other wherever the
+						// two can begin alike, unless the literals they open with part ways first.
 						if (Text(options[first]) is not { } earlier || Text(options[then]) is not { } later)
+						{
+							if (!Diverge(Lead(options[first]), Lead(options[then])) &&
+								FirstSets.Of(options[first], graph).Overlaps(FirstSets.Of(options[then], graph)))
+								return true;
+
 							continue;
+						}
 
 						if (later.Count > earlier.Count && Begins(later, earlier))
 							return true;
@@ -511,6 +519,10 @@ public static class Retention
 	/// </summary>
 	static IReadOnlyList<FirstSets.First>? Text(Node option)
 	{
+		// An alternative with its own `=>`, or captured, reads what is inside.
+		for (var inside = Inside(option); inside is not null; inside = Inside(option))
+			option = inside;
+
 		switch (option)
 		{
 			case Node.Literal literal:
@@ -532,6 +544,46 @@ public static class Retention
 			default:
 				return null;
 		}
+	}
+
+	/// <summary>The characters an alternative opens with, a set per position, as far as its leading literals go.</summary>
+	static List<FirstSets.First> Lead(Node option)
+	{
+		for (var inside = Inside(option); inside is not null; inside = Inside(option))
+			option = inside;
+
+		var lead = new List<FirstSets.First>();
+
+		foreach (var node in option is Node.Sequence(var nodes) ? nodes : [option])
+		{
+			if (Text(node) is not { } text)
+				break;
+
+			lead.AddRange(text);
+		}
+
+		return lead;
+	}
+
+	/// <summary>Whether two leads cannot both match the same input: some position neither shares.</summary>
+	static bool Diverge(IReadOnlyList<FirstSets.First> one, IReadOnlyList<FirstSets.First> other)
+	{
+		for (var at = 0; at < one.Count && at < other.Count; at++)
+			if (!one[at].Overlaps(other[at]))
+				return true;
+
+		return false;
+	}
+
+	static Node? Inside(Node option)
+	{
+		return option switch
+		{
+			Node.Construct(var built, _) => built,
+			Node.Capture(_, var held) => held,
+			Node.Sequence([var only]) => only,
+			_ => null,
+		};
 	}
 
 	/// <summary>Whether some input read by <paramref name="shorter"/> also begins one read by <paramref name="longer"/>.</summary>
@@ -803,6 +855,11 @@ public static class Retention
 		// after every seam, inside every seamed turn, and the last part.
 		Node? Overlapped(Node trivia)
 		{
+			// Trivia in braces is read once over a string too: it gives nothing back.
+			if (trivia is Node.Atomic || trivia is Node.Call(var reads, { Count: 0 }) &&
+				graph.Bodies.TryGetValue(reads, out var read) && read is Node.Atomic)
+				return null;
+
 			var spaces = FirstSets.Of(trivia, graph);
 
 			for (var at = -1; at < parts.Count; at++)

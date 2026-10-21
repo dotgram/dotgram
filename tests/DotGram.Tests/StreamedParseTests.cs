@@ -147,6 +147,7 @@ public sealed class StreamedParseTests
 	[InlineData("Start : @string[] = Row* & ((\"a\" | \"ab\") & \"b\" & ';')*", true, new[] { "[x]\nabb;ab;", "ab;abb;" })]
 	[InlineData("trivia = { ' '* }\nC : @string = 'c' => @(\"c\")\nStart : @string[] = (\"a\" | \"ab\") & \"b\" & C*", true, new[] { "a b c", "ab b c c", "abb c", " abb" })]
 	[InlineData("X : @string = (\"a\" | \"Ab\"i) => @(\"x\")\nStart : @string[] = X* & 'b' & eol", true, new[] { "abb\n", "ab\n" })]
+	[InlineData("X : @string = \"a\" => @(\"short\") | \"Ab\"i => @(\"long\")\nStart : @string[] = X+ & 'b'", true, new[] { "abb", "ab" })]
 	[InlineData("X : @string = (\"a\" | \"Cb\"i) => @(\"x\")\nStart : @string[] = X* & 'b' & eol", false, new[] { "ab\n", "cbab\n", "Cbb\n" })]
 	public void A_part_that_can_end_two_ways_is_not_read_one_way(string rule, bool refused, string[] inputs)
 	{
@@ -180,12 +181,14 @@ public sealed class StreamedParseTests
 	/// <summary>
 	/// The trivia a whole parse reads around the rule and between its parts takes all it can, and
 	/// over a string gives back what the part after it needed: where it can read what a part begins
-	/// with, or what the last part reads, the rule gets no reader.
+	/// with, or what the last part reads, the rule gets no reader. Trivia in braces gives nothing
+	/// back over a string either, and keeps the reader.
 	/// </summary>
 	[Theory]
 	[InlineData("trivia = 'a'*\nA : @string = 'a' => @(\"a\")\nStart : @string[] = A+", true, new[] { "a", "aa" })]
 	[InlineData("trivia = 'a'*\nA : @string = 'b' => @(\"b\")\nB : @string = 'a' => @(\"a\")\nStart : @string[] = A* & B", true, new[] { "ba", "a" })]
 	[InlineData("trivia = { ' '* }\nA : @string = 'a' => @(\"a\")\nStart : @string[] = A+", false, new[] { "a", " a a ", "a  a" })]
+	[InlineData("trivia = { ' '* }\nA : @string = 'a'? & 'b' => @(\"b\")\nStart : @string[] = A+", false, new[] { " b b ", "ab b", "b", " a b" })]
 	public void Trivia_that_reads_into_a_part_is_not_read_once(string grammar, bool refused, string[] inputs)
 	{
 		var told = Compiled(grammar, CarrierKind.Auto, direct: true).Diagnostics;
@@ -257,7 +260,7 @@ public sealed class StreamedParseTests
 	[InlineData(
 		"Start : @string[] = Line* & ('[' & Word & ']' & eol)* recover eol",
 		"Start : @string[] = Line* & Row* recover eol",
-		"collects values without being a call of a rule",
+		"not a repetition of a rule",
 		"a\nb\n[c]\n[9]\n[d]\n")]
 	[InlineData(
 		"Start : @string[] = Line* & ('#' & Word & eol)?",
