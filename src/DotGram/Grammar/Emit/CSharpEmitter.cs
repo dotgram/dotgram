@@ -759,6 +759,7 @@ public static partial class CSharpEmitter
 
 				EmitStreamingParse(
 					file, graph, publication, results, stages, parts,
+					streamedParts.TryGetValue((publication.Rule, -1), out var trivia) ? trivia.Name : null,
 					found?.Recovery, sync, factory,
 					stage => continuationProbes.TryGetValue((publication.Rule, stage), out var probe)
 						? probe.Name
@@ -1488,7 +1489,11 @@ public static partial class CSharpEmitter
 
 
 
-					// A parse continuation includes the implicit end-of-input check.
+					// A parse continuation includes the implicit end-of-input check, and the
+					// trivia a whole parse allows before it.
+					if (graph.Trivia.TryGetValue(publication.Rule, out var trailing))
+						suffix.Add(trailing);
+
 					suffix.Add(new Node.Lookahead(false, new Node.Element(true, [], [], [])));
 
 					var continuation = suffix.Count switch
@@ -1514,6 +1519,18 @@ public static partial class CSharpEmitter
 				}
 
 
+
+				// A whole parse allows the rule's trivia before it and after it, as the string reads
+				// it (Machine.BodyOf); the driver skips it on either side of the stages.
+				if (graph.Trivia.TryGetValue(publication.Rule, out var around) &&
+					!streamedParts.ContainsKey((publication.Rule, -1)))
+				{
+					var name = WholeOf(publication.Rule) + "_Trivia";
+					var at   = machine.Register(around);
+
+					streamedParts[(publication.Rule, -1)] = (name, at);
+					mine.Add((name, at, Sync: false));
+				}
 
 				if (RecoveryIn(graph, results, publication.Rule) is { } recoveryFound &&
 

@@ -41,7 +41,9 @@ public sealed class StreamedParseTests
 	/// <summary>The rules a shape is read with: the ones it calls, and what they call.</summary>
 	static string Rules(string start)
 	{
-		return "Word : @string = t: ['a'..'z']+ => @(t)\n" +
+		var words = new[] { "Word", "Line", "Row", "Hash" }.Any(name => start.Contains(name, StringComparison.Ordinal));
+
+		return (words ? "Word : @string = t: ['a'..'z']+ => @(t)\n" : "") +
 			(start.Contains("Line", StringComparison.Ordinal) ? "Line : @string = w: Word & eol => @(w)\n" : "") +
 			(start.Contains("Row", StringComparison.Ordinal) ? "Row : @string = '[' & w: Word & ']' & eol => @(w)\n" : "") +
 			start;
@@ -57,8 +59,24 @@ public sealed class StreamedParseTests
 			start;
 	}
 
+	/// <summary>Two one-letter rules and the trivia between them, for what a whole parse allows around a rule.</summary>
+	static string Letters(string start)
+	{
+		return "trivia = { ' '* }\n" +
+			"A : @string = 'a' => @(\"a\")\n" +
+			(start.Contains('B', StringComparison.Ordinal) ? "B : @string = 'b' => @(\"b\")\n" : "") +
+			start;
+	}
+
 	public static TheoryData<string, string, string[]> Shapes => new()
 	{
+		// A whole parse reads the rule's trivia before it and after it, and so does the rest of
+		// the rule the marked one asks: without it, the last element and the space after it were
+		// stepped over as a bad one.
+		{ "trivia around the rule", Letters("Start : @string[] = A? & B?"), ["a b ", " a b", " a", " ", "", "b a"] },
+		{ "trivia after the marked one's continuation", Letters("Start : @string[] = A* recover ';' & B?"), ["a b ", "a x; b", "a a; b ", " a a b"] },
+		{ "a => that hands back a spaced collection", Letters("Start : @string[] = xs: A* => @(xs)"), ["a a", " a a ", "", "a b"] },
+		{ "a least on an ordinary one refused inside an element", Rules("Start : @string[] = Row{2,3}"), ["[a]\n[a", "[a]\n[b]\n", "[a]\n[b]\n[c]\n[d]\n", "[a]\n"] },
 		// The rest of the rule recovers, so it can always be read: asked first, it took every
 		// line for a bad row, and the lines were lost.
 		{ "an ordinary repetition before the marked one", Rules("Start : @string[] = Line* & Row* recover eol"), ["a\nb\n[c]\n[9]\n[d]\n", "a\nb\n", "[c]\n9\n[d]\n", ""] },
@@ -105,7 +123,7 @@ public sealed class StreamedParseTests
 					var streamed = Streamed(host, input);
 
 					Assert.True(
-						whole == streamed || whole.StartsWith('!') && streamed.StartsWith('!'),
+						whole == streamed || whole.StartsWith('!') && streamed.StartsWith('!') && Place(whole) == Place(streamed),
 						$"{name}, {carrier}, direct {direct}, [{input}]: string {whole}, reader {streamed}");
 				}
 			}
@@ -157,6 +175,16 @@ public sealed class StreamedParseTests
 		"collects values without being a call of a rule",
 		"a\nb\n#c\n")]
 	[InlineData(
+		"A : @string = 'a' => @(\"a\")\nStart : @string[] = A? & A+",
+		null,
+		"can begin with the same input as what follows it",
+		"a")]
+	[InlineData(
+		"Start : @string[] = Line{1,2} & Line",
+		null,
+		"can begin with the same input as what follows it",
+		"a\nb\n")]
+	[InlineData(
 		"Start : @string[] = l: Line* => @(new[] { \"x\" })",
 		null,
 		"builds its value with '=>'",
@@ -201,6 +229,33 @@ public sealed class StreamedParseTests
 		var host = "[DotGram.Gram(\"\"\"\"\n" + grammar + "\nparse Start\n\"\"\"\")]\npublic partial class Host { }\n";
 
 		Assert.Contains(GeneratorDriverTests.RunGenerator(host).Diagnostics, static one => one.Id == "GRAM4008");
+	}
+
+	/// <summary>
+	/// Without a compilation to ask, an array is still taken for the types every array is, and for
+	/// no other element of its own.
+	/// </summary>
+	[Theory]
+	[InlineData("string[]", "string", false)]
+	[InlineData("Row[]", "Row", false)]
+	[InlineData("global::Feed.Row[]", "global::Feed.Row", false)]
+	[InlineData("object[]", "object", true)]
+	[InlineData("System.Collections.IEnumerable[]", "System.Collections.IEnumerable", true)]
+	[InlineData("global::System.Collections.IList[]", "global::System.Collections.IList", true)]
+	[InlineData("System.Array[]", "System.Array", true)]
+	[InlineData("System.Collections.Generic.IEnumerable<object>[]", "System.Collections.Generic.IEnumerable<object>", true)]
+	[InlineData("Row", "Item", true)]
+	public void An_array_is_its_own_element_only_where_every_array_is(string from, string to, bool assignable)
+	{
+		Assert.Equal(assignable, PermissiveSymbolResolver.Instance.IsAssignable(from, to));
+	}
+
+	/// <summary>Where a refusal says it stopped: the number in its last <c>at N.</c>.</summary>
+	static string Place(string refused)
+	{
+		var at = refused.LastIndexOf(" at ", StringComparison.Ordinal);
+
+		return at < 0 ? refused : refused.Substring(at);
 	}
 
 	static GramCompilation Compiled(string grammar, CarrierKind carrier, bool direct)
