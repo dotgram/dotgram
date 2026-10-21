@@ -24,19 +24,40 @@ namespace DotGram.Grammar.Model;
 /// Two shapes are deliberately left alone. A capture of a rule's value collects an
 /// array (§4.1 case 2), where every turn's record is the point; only a capture whose
 /// body is pure text moves. And an optional — <c>min == 0, max == 1</c> — keeps the
-/// difference §10 pins between the capture that did not happen (<c>null</c>) and the
+/// difference §7.3 pins between the capture that did not happen (<c>null</c>) and the
 /// run of no turns (<c>""</c>): hoisted, the capture would always record, and null
 /// would quietly become empty.
+/// </para>
+/// <para>
+/// Every other bound moves, <c>{0,m}</c> included. A run that may take no turn is a run
+/// all the same, and its text is <c>""</c> when it took none — which is what the record
+/// around the loop says, and what the turns' records could not: none of them was written,
+/// and in a rule of several alternatives the capture they leave unwritten reads as one that
+/// never happened.
 /// </para>
 /// </remarks>
 public sealed partial class GrammarNormalizer
 {
 	/// <summary>
-	/// Rewrite <c>(t: X)+</c> as <c>t: (X+)</c> wherever the two mean the same text.
+	/// Rewrite <c>(t: X)+</c> as <c>t: (X+)</c> wherever the two mean the same text, and give
+	/// a run whose turns cannot be one record the record of its start.
 	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <c>(t: X &amp; ',')*</c> cannot move: the comma between two turns is in the extent and
+	/// not in the text. A run of it that takes no turn writes nothing, and where the rule has a
+	/// route that never reaches the run — another alternative, an option around it — nothing is
+	/// what that route leaves too, so <c>""</c> and null would be one answer. Such a run is
+	/// given an empty capture of the same name in front of it: one more piece of no text, which
+	/// changes no join and says the run was reached. Only where the name is optional in the
+	/// rule: where every route writes it, no record already reads as <c>""</c>.
+	/// </para>
+	/// </remarks>
 	void HoistTextCaptures()
 	{
 		Dictionary<RuleSymbol, bool>? textRules = null;
+		List<string> optional = [];
+		var looking = 0;
 
 		foreach (var rule in _rules)
 		{
@@ -46,6 +67,8 @@ public sealed partial class GrammarNormalizer
 			if (_folds.ContainsKey(rule) || _climbing.ContainsKey(rule))
 				continue;
 
+			optional = OptionalText(_bodies[rule]);
+
 			_bodies[rule] = Hoist(_bodies[rule]);
 		}
 
@@ -54,17 +77,16 @@ public sealed partial class GrammarNormalizer
 			switch (node)
 			{
 				case Node.Repeat(Node.Capture(var name, var captured), var min, var max)
-					when (min >= 1 || max is null) &&
+					when (min > 0 || max != 1) &&
 						!_recoveries.ContainsKey(node) &&
 						PureText(captured):
 					return new Node.Capture(name, Placed(node, new Node.Repeat(Hoist(captured), min, max)));
 
-				// A count by a length, on the same terms: its turns are as contiguous. A length may
-				// be zero, so a lower bound that is one counts as none, and only a count with no
-				// upper bound then moves — as `*` does and `{0,m}` does not.
+				// A count by a length, on the same terms: its turns are as contiguous. It is never
+				// the option `{0,1}`, since a length is not a number the parser is generated with,
+				// so every count moves.
 				case Node.Counted(Node.Capture(var name, var captured), var min, var max)
-					when (min is CountBound.Items { Count: >= 1 } || max is null) &&
-						PureText(captured):
+					when PureText(captured):
 					return new Node.Capture(name, Placed(node, new Node.Counted(Hoist(captured), min, max)));
 
 				case Node.Sequence(var parts):
@@ -82,9 +104,11 @@ public sealed partial class GrammarNormalizer
 				}
 
 				case Node.Repeat(var body, var min, var max) when !_recoveries.ContainsKey(node):
-					return Hoist(body) is var repeated && ReferenceEquals(repeated, body)
-						? node
-						: new Node.Repeat(repeated, min, max);
+					return Seeded(
+						Hoist(body) is var repeated && ReferenceEquals(repeated, body)
+							? node
+							: new Node.Repeat(repeated, min, max),
+						min == 0 && max != 1);
 
 				case Node.Atomic(var kept):
 					return Hoist(kept) is var atomic && ReferenceEquals(atomic, kept)
@@ -107,9 +131,15 @@ public sealed partial class GrammarNormalizer
 						: new Node.Construct(built, how);
 
 				case Node.Lookahead(var positive, var seen):
-					return Hoist(seen) is var looked && ReferenceEquals(looked, seen)
-						? node
-						: new Node.Lookahead(positive, looked);
+				{
+					looking++;
+
+					var looked = Hoist(seen);
+
+					looking--;
+
+					return ReferenceEquals(looked, seen) ? node : new Node.Lookahead(positive, looked);
+				}
 
 				// A binding was lifted out of its own repetitions while lowering; what is left is
 				// the captures inside it.
@@ -119,13 +149,52 @@ public sealed partial class GrammarNormalizer
 						: new Node.Bind(binding, rebound, at);
 
 				case Node.Counted(var body, var min, var max):
-					return Hoist(body) is var counted && ReferenceEquals(counted, body)
-						? node
-						: new Node.Counted(counted, min, max);
+					return Seeded(
+						Hoist(body) is var counted && ReferenceEquals(counted, body)
+							? node
+							: new Node.Counted(counted, min, max),
+						min is not CountBound.Items { Count: >= 1 });
 
 				default:
 					return node;
 			}
+		}
+
+		// A run that may take no turn, whose every turn writes a text capture the rule may also
+		// leave unwritten: an empty capture of each such name in front of it.
+		Node Seeded(Node run, bool mayTakeNone)
+		{
+			if (!mayTakeNone || looking > 0 || optional.Count == 0)
+				return run;
+
+			var body  = run is Node.Repeat(var repeated, _, _) ? repeated : ((Node.Counted)run).Body;
+			var seeds = new List<Node>();
+
+			foreach (var name in optional)
+				if (Writes(body, name))
+					seeds.Add(new Node.Capture(name, new Node.Empty()));
+
+			return seeds.Count == 0 ? run : new Node.Sequence([.. seeds, run]);
+		}
+
+		// The names a rule captures as text and may leave unwritten, as its result says: those
+		// whose member is optional. In the order they are first captured, so that the seeds of
+		// one run stand in an order the next generation repeats.
+		List<string> OptionalText(Node body)
+		{
+			var seen  = new HashSet<string>(StringComparer.Ordinal);
+			var names = new List<string>();
+
+			foreach (var one in Unlooked(body))
+				if (one is Node.Capture(var name, var captured) &&
+					CaptureLayout.ValuedCall(captured, BuildsValue) is null &&
+					seen.Add(name) &&
+					!Writes(body, name))
+				{
+					names.Add(name);
+				}
+
+			return names;
 		}
 
 		IReadOnlyList<Node>? Rebuilt(IReadOnlyList<Node> nodes)
@@ -168,6 +237,18 @@ public sealed partial class GrammarNormalizer
 				Node.Same => true,
 				_ => false,
 			};
+		}
+
+		static IEnumerable<Node> Unlooked(Node node)
+		{
+			yield return node;
+
+			if (node is Node.Lookahead)
+				yield break;
+
+			foreach (var child in node.Children)
+				foreach (var one in Unlooked(child))
+					yield return one;
 		}
 
 		bool PureRule(RuleSymbol rule)
