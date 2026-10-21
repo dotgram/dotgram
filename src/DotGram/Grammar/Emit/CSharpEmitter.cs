@@ -1467,7 +1467,12 @@ public static partial class CSharpEmitter
 
 
 
-					if (!stages[stage].Repeated || continuationProbes.ContainsKey((publication.Rule, stage)))
+					// Only the marked repetition asks the rest of the rule first: §8.2 makes it
+					// possessive and lets the continuation refuse each element. Any other one is read
+					// greedily, as over a string, and a continuation that recovers would otherwise
+					// take its first element for a bad one of its own.
+					if (!stages[stage].Repeated || !graph.Recoveries.ContainsKey(stages[stage].Node) ||
+						continuationProbes.ContainsKey((publication.Rule, stage)))
 
 						continue;
 

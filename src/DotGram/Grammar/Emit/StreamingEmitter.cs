@@ -182,9 +182,10 @@ public static partial class CSharpEmitter
 	/// The stages are run in order rather than compiled into one machine, and that is the
 	/// whole difference from the parse over a string. A machine may backtrack anywhere
 	/// inside the rule; a stream may not go back past what it has handed over. What makes
-/// the two agree is the mark: at every boundary the complete continuation gets first
-/// refusal, and an element actually accepted or recovered is then committed. The stages
-/// around it are read once each.
+	/// the two agree is the mark: at every boundary of the marked repetition the complete
+	/// continuation gets first refusal, and an element actually accepted or recovered is then
+	/// committed. Any other repetition is read for as long as its element matches, which is
+	/// what the string reads where the analysis let it stream, and the other stages once each.
 	/// </para>
 	/// <para>
 	/// Each stage reads through the window with the same provisional rule <c>find</c> uses:
@@ -242,15 +243,37 @@ public static partial class CSharpEmitter
 					: parts[i];
 				var built  = stage.Rule is { } called ? results.QualifiedOf(called) : null;
 
+				// Only the repetition that was marked steps over a bad element. Another one in
+				// the same rule is an ordinary repetition, read for as long as its element
+				// matches, as it is over a string.
+				var marked = stage.Repeated && recovery is not null && graph.Recoveries.ContainsKey(stage.Node);
+
+				// How many elements it may have, held to as over a string: fewer than its least
+				// is a refusal, and its most ends it. The marked one counts what it stepped over
+				// too, which its ordinal already does.
+				var (least, most) = stage.Node is Node.Repeat(_, var min, var max) ? (min, max) : (0, (int?)null);
+				var counted       = stage.Repeated && !marked && (least > 0 || most is not null);
+				var count         = marked ? $"ordinal{i}" : $"count{i}";
+
 				file.Line();
 				file.Line("// " + Comment(stage));
 
 				// Outside the loop, because it counts the elements of the whole repetition
 				// and a rejected one holds its place in the numbering (§8.2).
-				if (stage.Repeated && recovery is not null)
+				if (marked)
 					file.Line($"var ordinal{i} = 0;");
 
+				if (counted)
+					file.Line($"var count{i} = 0;");
+
 				var loop = stage.Repeated ? file.Block("while (true)") : null;
+
+				if ((counted || marked) && most is { } limit)
+				{
+					file.Line($"if ({count} >= {limit})");
+					file.Then("break;");
+					file.Line();
+				}
 
 				// The seam of a spaced collection, skipped before anything else is asked
 				// at this turn — the continuation probe and the element both begin past
@@ -289,42 +312,73 @@ public static partial class CSharpEmitter
 
 				if (stage.Repeated && continuation(i) is { } probe)
 				{
-					file.Line($"var continuationFailure{i} = new {FailureType}();");
-					file.Line($"var continuationEnd{i} = -1;");
-					file.Line();
-
-					using (file.Block("while (true)"))
+					// Not before it has its least: until then an element is owed, and what does not
+					// read as one is a bad one, which is how a string reads it too.
+					using (marked && least > 0 ? file.Block($"if ({count} >= {least})") : null)
 					{
-						file.Line($"continuationFailure{i} = new {FailureType}();");
-						file.Line($"continuationEnd{i} = {probe}(window.Span(), start, ref continuationFailure{i});");
+						file.Line($"var continuationFailure{i} = new {FailureType}();");
+						file.Line($"var continuationEnd{i} = -1;");
 						file.Line();
 
-						using (file.Block(
-							$"if (((continuationEnd{i} < 0 ? continuationFailure{i}.Position : continuationEnd{i}) " +
-							$">= window.Length || continuationFailure{i}.Starved) && !window.Ended)"))
+						using (file.Block("while (true)"))
 						{
-							file.Line("window.Extend(ref start);");
-							file.Line("continue;");
+							file.Line($"continuationFailure{i} = new {FailureType}();");
+							file.Line($"continuationEnd{i} = {probe}(window.Span(), start, ref continuationFailure{i});");
+							file.Line();
+
+							using (file.Block(
+								$"if (((continuationEnd{i} < 0 ? continuationFailure{i}.Position : continuationEnd{i}) " +
+								$">= window.Length || continuationFailure{i}.Starved) && !window.Ended)"))
+							{
+								file.Line("window.Extend(ref start);");
+								file.Line("continue;");
+							}
+
+							file.Line();
+							file.Line("break;");
 						}
 
 						file.Line();
-						file.Line("break;");
+						file.Line($"if (continuationEnd{i} >= 0)");
+						file.Then("break;");
 					}
 
 					file.Line();
-					file.Line($"if (continuationEnd{i} >= 0)");
-					file.Then("break;");
-					file.Line();
 				}
 
-				Read(i, stage, method, built);
+				Read(i, stage, method, built, marked, counted);
 
 				loop?.Dispose();
+
+				if ((counted || marked) && least > 0)
+				{
+					file.Line();
+					file.Line($"if ({count} < {least})");
+					file.Then(
+						"throw new global::System.FormatException(" +
+						$"\"Input does not match '{EscapeDiagnostic(Named(stage))}' at \" + " +
+						"(window.Offset + start).ToString(" +
+						"global::System.Globalization.CultureInfo.InvariantCulture) + \".\");");
+				}
 			}
+
+			// A parse reads the whole input, as over a string: what is left after the last part
+			// is not the rule's, and the window may not yet hold whether anything is.
+			file.Line();
+
+			using (file.Block("while (start >= window.Length && !window.Ended)"))
+				file.Line("window.Extend(ref start);");
+
+			file.Line();
+			file.Line("if (start < window.Length)");
+			file.Then(
+				"throw new global::System.FormatException(" +
+				"\"Expected end of input at \" + (window.Offset + start).ToString(" +
+				"global::System.Globalization.CultureInfo.InvariantCulture) + \".\");");
 
 			// Names per stage rather than one set reused: a stage that is not a repetition
 			// declares its locals in the method's own scope, and two of them cannot share.
-			void Read(int i, Stage stage, string method, string? built)
+			void Read(int i, Stage stage, string method, string? built, bool marked, bool counted)
 			{
 				// No whole input from a window, and nothing here can ask for one: a
 				// publication whose rules do is refused a stream (Retention, GRAM5001).
@@ -373,7 +427,7 @@ public static partial class CSharpEmitter
 
 				file.Line();
 
-				if (stage.Repeated && recovery is not null)
+				if (marked && recovery is not null)
 				{
 					// The complete continuation was tried before the element. A failed
 					// element with remaining input is therefore an error, including a
@@ -468,8 +522,11 @@ public static partial class CSharpEmitter
 				if (built is not null)
 					file.Line($"yield return value{i};");
 
-				if (stage.Repeated && recovery is not null)
+				if (marked)
 					file.Line($"ordinal{i}++;");
+
+				if (counted)
+					file.Line($"count{i}++;");
 
 				file.Line($"start = end{i};");
 			}

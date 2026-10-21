@@ -363,6 +363,45 @@ public static class Retention
 			ReferenceEquals(lead, seam);
 	}
 
+	/// <summary>Whether a part is one whose values a streamed parse hands over: a call, or a repetition of one.</summary>
+	static bool Handed(Node part, RuleSymbol? seam)
+	{
+		if (part is
+			Node.Capture(_, Node.Call) or
+			Node.Repeat(Node.Capture(_, Node.Call), _, _))
+			return true;
+
+		return seam is not null &&
+			part is Node.Repeat(
+				Node.Sequence([Node.Call(var lead, _), Node.Capture(_, Node.Call)]), _, _) &&
+			ReferenceEquals(lead, seam);
+	}
+
+	/// <summary>
+	/// Whether a rule's <c>=&gt;</c> is its one capture handed back as it stands, and that capture
+	/// the elements of a repetition: <c>ranges: Range* =&gt; @(ranges)</c>.
+	/// </summary>
+	static bool HandsBack(Construction how, IReadOnlyList<Node> parts)
+	{
+		if (how is not Construction.Expression(var text, _))
+			return false;
+
+		var name = text.Trim();
+
+		while (name.Length > 1 && name[0] == '(' && name[name.Length - 1] == ')')
+			name = name.Substring(1, name.Length - 2).Trim();
+
+		var captured = parts
+			.SelectMany(static part => NodeWalk.Descendants(part))
+			.OfType<Node.Capture>()
+			.Select(static capture => capture.Name)
+			.Distinct(StringComparer.Ordinal)
+			.ToList();
+
+		return captured.Count == 1 && captured[0] == name &&
+			parts.Any(part => part is Node.Repeat(Node.Capture(var repeated, Node.Call), _, _) && repeated == name);
+	}
+
 	/// <summary>The seamed turn with the seam taken off — the element the window holds.</summary>
 	/// <remarks>
 	/// The seam is not part of what has to be held: the driver skips it before the
@@ -480,6 +519,25 @@ public static class Retention
 				"two tellable apart, or mark the repetition 'recover', which commits it " +
 				"(docs/syntax.md §8.2).";
 		}
+
+		// The elements are handed over as they are read, so nothing is left to build from
+		// them afterwards: a `=>` on the rule would be skipped, and its value never seen. One
+		// that hands back the repetition it captured, as it stands, is what the stream does.
+		if (graph.Bodies[rule] is Node.Construct(_, var how) && how is not Construction.Sequence &&
+			!HandsBack(how, parts))
+			return $"'{rule.Name}' builds its value with '=>', and a streamed parse hands each element " +
+				"to the caller as it reads it, with nothing left to build from. Let the rule collect " +
+				"its sequence itself (docs/syntax.md §4.1 case 2), or read it over a string.";
+
+		// What a stage hands over is the value of the rule it calls. A part that is not one
+		// is read whole by a recognizer of its own and hands over nothing, so a value collected
+		// inside it — a call in a group, `('[' & Word & ']')*` — would be missing from what the
+		// stream gives back, where the string form has it.
+		foreach (var part in parts)
+			if (!Handed(part, seam) && NodeWalk.Descendants(part).Any(static node => node is Node.Capture))
+				return $"in '{rule.Name}', '{part}' collects values without being a call of a rule, " +
+					"and a streamed parse hands over the values of the rules it calls, one at a time. " +
+					"Give the part its own rule (docs/syntax.md §6.3).";
 
 		var extents   = ExtentOf(graph);
 		var consuming = Consuming(graph);

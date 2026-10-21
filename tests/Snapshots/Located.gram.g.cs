@@ -269,7 +269,6 @@ namespace DotGram.Snapshots
 				var lookahead = -1;
 				var c       = '\0';
 				string[]? expected = null;
-				var turn0 = 0;
 				var completedCall = -1;
 				var opened6 = -1;
 				var opened7 = -1;
@@ -294,7 +293,6 @@ namespace DotGram.Snapshots
 					case 28: goto S28;
 					case 34: goto S34;
 					case 35: goto S35;
-					case 36: goto S36;
 					default: expected = null; goto Fail;
 				}
 
@@ -663,33 +661,6 @@ namespace DotGram.Snapshots
 					goto S27;
 				}
 
-				S36:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = ExpectedSet_DotGram(7);
-						goto S39;
-					}
-					p++;
-				}
-
-				{
-					p = turn0;
-					expected = ExpectedSet_DotGram(6);
-					goto Fail;
-				}
-
-				S39:
-				{
-					p = turn0;
-					goto Return;
-				}
-
 				Return:
 				global::System.Diagnostics.Debug.Assert(call >= 0 && call < entries.Count);
 				var returned = entries[call];
@@ -926,12 +897,6 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static int Recognize_Config_Whole_Continue0(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			object? ignored;
-			return Recognize_DotGram(text, pos, 36, -1, false, false, ref failure, out ignored);
-		}
-
 		/// <summary>Reads <c>Config</c> from a reader, a part at a time.</summary>
 		/// <remarks>
 		/// The input is read through a buffer that is reused, so what is held is the part
@@ -966,26 +931,6 @@ namespace DotGram.Snapshots
 				if (seamEnd0 >= 0)
 					start = seamEnd0;
 
-				var continuationFailure0 = new Failure();
-				var continuationEnd0 = -1;
-
-				while (true)
-				{
-					continuationFailure0 = new Failure();
-					continuationEnd0 = Recognize_Config_Whole_Continue0(window.Span(), start, ref continuationFailure0);
-
-					if (((continuationEnd0 < 0 ? continuationFailure0.Position : continuationEnd0) >= window.Length || continuationFailure0.Starved) && !window.Ended)
-					{
-						window.Extend(ref start);
-						continue;
-					}
-
-					break;
-				}
-
-				if (continuationEnd0 >= 0)
-					break;
-
 				var failure0 = new Failure();
 				Entry value0 = default!;
 				int end0;
@@ -1010,6 +955,14 @@ namespace DotGram.Snapshots
 				yield return value0;
 				start = end0;
 			}
+
+			while (start >= window.Length && !window.Ended)
+			{
+				window.Extend(ref start);
+			}
+
+			if (start < window.Length)
+				throw new global::System.FormatException("Expected end of input at " + (window.Offset + start).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>The same, over a sequence of lines (docs/syntax.md §6.3).</summary>
@@ -2050,8 +2003,8 @@ namespace DotGram.Snapshots
 
 		static string[] ExpectedDecoded_DotGram(int id)
 		{
-			var data = "AEHJLNPRDABCCACBABBBDBEBFBG";
-			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[8], null) ?? ExpectedBuilt_DotGram!;
+			var data = "AEHJLNPDABCCACBABBBDBEBF";
+			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[7], null) ?? ExpectedBuilt_DotGram!;
 			var items = ExpectedItems_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedItems_DotGram, new string[]
 				{
 					"\"\\r\\n\"",
@@ -2060,7 +2013,6 @@ namespace DotGram.Snapshots
 					"'='",
 					"['a'..'z']",
 					"end of input",
-					"[^ ]",
 				}, null) ?? ExpectedItems_DotGram!;
 			var starts = ExpectedStarts_DotGram;
 			var at = 0;
@@ -2068,7 +2020,7 @@ namespace DotGram.Snapshots
 
 			if (starts == null)
 			{
-				starts = new int[8];
+				starts = new int[7];
 
 				for (var i = 0; i < starts.Length; i++)
 				{

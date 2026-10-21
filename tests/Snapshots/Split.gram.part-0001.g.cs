@@ -24,7 +24,6 @@ namespace DotGram.Snapshots
 				var lookahead = -1;
 				var c       = '\0';
 				string[]? expected = null;
-				var turn0 = 0;
 				var completedCall = -1;
 				var opened13 = -1;
 				var opened14 = -1;
@@ -61,7 +60,6 @@ namespace DotGram.Snapshots
 					case 114: goto S114;
 					case 120: goto S120;
 					case 121: goto S121;
-					case 122: goto S122;
 					default: expected = null; goto Fail;
 				}
 
@@ -1373,33 +1371,6 @@ namespace DotGram.Snapshots
 					repeat = previousRepeat;
 					lookahead = finished.LookaheadIndex;
 					goto S113;
-				}
-
-				S122:
-				{
-					turn0 = p;
-				}
-
-				{
-					if ((uint)p >= (uint)text.Length)
-					{
-						failure.Starved = true;
-						expected = ExpectedSet_DotGram(20);
-						goto S125;
-					}
-					p++;
-				}
-
-				{
-					p = turn0;
-					expected = ExpectedSet_DotGram(19);
-					goto Fail;
-				}
-
-				S125:
-				{
-					p = turn0;
-					goto Return;
 				}
 
 				Return:

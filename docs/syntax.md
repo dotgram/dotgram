@@ -2213,6 +2213,15 @@ backtracking. A streamed parse hands each element to the caller as it reads it a
 cannot take one back. docs/syntax.md §6.3 says which rules get one, and why.
 ```
 
+**What the reader hands over is what the string reads.** The parts are read in order, and
+what is handed over is the value of each call, or of each element of a repeated call; a part
+that is not a call — `('[' & Word & ']')*`, `('#' & Word)?` — is read whole and hands over
+nothing, so one that collects a value inside it gets no reader, and neither does a rule that
+builds its own value with `=>`, since the elements are gone by the time it could. Only the
+repetition marked `recover` asks the rest of the rule first and steps over a bad element; any
+other one is read for as long as its element matches, as over a string. A repetition is held
+to its least and its most, and input left over after the last part is refused.
+
 Which is the shared responsibility: the author picks an overload, and the compiler
 offers one only where it provably works.
 

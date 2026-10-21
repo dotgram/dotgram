@@ -343,12 +343,6 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static int Recognize_Script_Whole_Continue0(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
-		{
-			object? ignored;
-			return Recognize_DotGram(text, pos, 122, -1, false, false, ref failure, out ignored);
-		}
-
 		/// <summary>Reads <c>Script</c> from a reader, a part at a time.</summary>
 		/// <remarks>
 		/// The input is read through a buffer that is reused, so what is held is the part
@@ -383,26 +377,6 @@ namespace DotGram.Snapshots
 				if (seamEnd0 >= 0)
 					start = seamEnd0;
 
-				var continuationFailure0 = new Failure();
-				var continuationEnd0 = -1;
-
-				while (true)
-				{
-					continuationFailure0 = new Failure();
-					continuationEnd0 = Recognize_Script_Whole_Continue0(window.Span(), start, ref continuationFailure0);
-
-					if (((continuationEnd0 < 0 ? continuationFailure0.Position : continuationEnd0) >= window.Length || continuationFailure0.Starved) && !window.Ended)
-					{
-						window.Extend(ref start);
-						continue;
-					}
-
-					break;
-				}
-
-				if (continuationEnd0 >= 0)
-					break;
-
 				var failure0 = new Failure();
 				string value0 = default!;
 				int end0;
@@ -427,6 +401,14 @@ namespace DotGram.Snapshots
 				yield return value0;
 				start = end0;
 			}
+
+			while (start >= window.Length && !window.Ended)
+			{
+				window.Extend(ref start);
+			}
+
+			if (start < window.Length)
+				throw new global::System.FormatException("Expected end of input at " + (window.Offset + start).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>The same, over a sequence of lines (docs/syntax.md §6.3).</summary>
@@ -1569,8 +1551,8 @@ namespace DotGram.Snapshots
 
 		static string[] ExpectedDecoded_DotGram(int id)
 		{
-			var data = "ACEGIKMOQSUWY\u005B\u005D\u005FaAaCaNaPaRBABBBCBDBEBFBGBHBIBJBKBLBMBNBOBPBQKHIEQOKJPLFBRBSBT";
-			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[21], null) ?? ExpectedBuilt_DotGram!;
+			var data = "ACEGIKMOQSUWY\u005B\u005D\u005FaAaCaNaPBABBBCBDBEBFBGBHBIBJBKBLBMBNBOBPBQKHIEQOKJPLFBRBS";
+			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[20], null) ?? ExpectedBuilt_DotGram!;
 			var items = ExpectedItems_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedItems_DotGram, new string[]
 				{
 					"';'",
@@ -1592,7 +1574,6 @@ namespace DotGram.Snapshots
 					"\"while\"",
 					"['0'..'9']",
 					"end of input",
-					"[^ ]",
 				}, null) ?? ExpectedItems_DotGram!;
 			var starts = ExpectedStarts_DotGram;
 			var at = 0;
@@ -1600,7 +1581,7 @@ namespace DotGram.Snapshots
 
 			if (starts == null)
 			{
-				starts = new int[21];
+				starts = new int[20];
 
 				for (var i = 0; i < starts.Length; i++)
 				{
