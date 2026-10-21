@@ -304,11 +304,15 @@ The spelling comes from .NET regular expressions. `?=X` is a recognizer in its o
 right and **produces X's value** (which can be captured) without moving the input.
 `?!X` produces nothing. Neither is sugar over the other.
 
+Captured, `n: ?=Number` holds what `n: Number` would: the value of a rule that builds
+one, of that rule's type. Where `X` is a pattern, or a rule whose value is the text it
+matched, the capture holds the text the lookahead saw, and a captured `?!X` holds `""`.
+
 Postfix `?` and prefix `?=`/`?!` do not clash: the postfix follows an operand, the
 prefix opens one, and between operands there is always `&` or `|`.
 
 ```dotgram
-SmallNumber = n: ?=Number & when @IsSmall(n) & value: Number => value
+SmallNumber : @int = n: ?=Number & when @IsSmall(n) & value: Number => value
 Identifier  = ?!Keyword & Letter & LetterOrDigit*
 ```
 
@@ -588,7 +592,7 @@ outcome of its own — it is an ordinary operand, and its failure means whatever
 failure of any operand in that place means:
 
 ```dotgram
-SmallNumber = n: ?=Number & when @IsSmall(n) & value: Number => value
+SmallNumber : @int = n: ?=Number & when @IsSmall(n) & value: Number => value
 ```
 
 nothing has been consumed before the guard (lookahead does not move the input), so
