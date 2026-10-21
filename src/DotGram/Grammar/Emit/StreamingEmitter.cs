@@ -201,7 +201,7 @@ public static partial class CSharpEmitter
 	/// </param>
 	static void EmitStreamingParse(
 		Writer file, RecognitionGraph graph, Publication publication, ResultTypes results,
-		IReadOnlyList<Stage> stages, IReadOnlyList<string> parts,
+		IReadOnlyList<Stage> stages, IReadOnlyList<string> parts, string? trivia,
 		Recovery? recovery, string? sync, string factory, Func<int, string?> continuation,
 		bool input, Func<RuleSymbol, string> recognize, TraceTables? tracing = null)
 	{
@@ -234,6 +234,14 @@ public static partial class CSharpEmitter
 		{
 			file.Line($"var window = new {WindowType}(input, {WindowSize});");
 			file.Line("var start  = 0;");
+
+			// The furthest any reading got, which is where a refusal is reported, as over a
+			// string: a part that fell short of it is not what went wrong.
+			file.Line("var furthest = 0L;");
+
+			// The trivia a whole parse allows before the rule.
+			if (trivia is not null)
+				Skip(trivia, "Lead");
 
 			for (var i = 0; i < stages.Count; i++)
 			{
@@ -305,6 +313,7 @@ public static partial class CSharpEmitter
 					}
 
 					file.Line();
+					Furthest($"seamFailure{i}");
 					file.Line($"if (seamEnd{i} >= 0)");
 					file.Then($"start = seamEnd{i};");
 					file.Line();
@@ -339,6 +348,7 @@ public static partial class CSharpEmitter
 						}
 
 						file.Line();
+						Furthest($"continuationFailure{i}");
 						file.Line($"if (continuationEnd{i} >= 0)");
 						file.Then("break;");
 					}
@@ -357,10 +367,14 @@ public static partial class CSharpEmitter
 					file.Then(
 						"throw new global::System.FormatException(" +
 						$"\"Input does not match '{EscapeDiagnostic(Named(stage))}' at \" + " +
-						"(window.Offset + start).ToString(" +
+						"(furthest > window.Offset + start ? furthest : window.Offset + start).ToString(" +
 						"global::System.Globalization.CultureInfo.InvariantCulture) + \".\");");
 				}
 			}
+
+			// And the trivia it allows after it.
+			if (trivia is not null)
+				Skip(trivia, "Trail");
 
 			// A parse reads the whole input, as over a string: what is left after the last part
 			// is not the rule's, and the window may not yet hold whether anything is.
@@ -373,8 +387,52 @@ public static partial class CSharpEmitter
 			file.Line("if (start < window.Length)");
 			file.Then(
 				"throw new global::System.FormatException(" +
-				"\"Expected end of input at \" + (window.Offset + start).ToString(" +
+				"\"Expected end of input at \" + (furthest > window.Offset + start ? furthest : window.Offset + start).ToString(" +
 				"global::System.Globalization.CultureInfo.InvariantCulture) + \".\");");
+
+			// The furthest a reading that failed got, kept as the window moves.
+			void Furthest(string failure, bool spaced = true)
+			{
+				file.Line($"if (window.Offset + {failure}.Position > furthest)");
+				file.Then($"furthest = window.Offset + {failure}.Position;");
+
+				if (spaced)
+					file.Line();
+			}
+
+			// Trivia read where nothing is handed over, growing the window while it may go on.
+			void Skip(string recognizer, string tag)
+			{
+				var hands = $"ref triviaFailure{tag}" + (input ? ", null!" : "");
+
+				file.Line();
+				file.Line($"var triviaFailure{tag} = new {FailureType}();");
+				file.Line($"int triviaEnd{tag};");
+				file.Line();
+
+				using (file.Block("while (true)"))
+				{
+					file.Line($"triviaFailure{tag} = new {FailureType}();");
+					file.Line($"triviaEnd{tag} = {recognizer}(window.Span(), start, {hands});");
+					file.Line();
+
+					using (file.Block(
+						$"if (((triviaEnd{tag} < 0 ? triviaFailure{tag}.Position : triviaEnd{tag}) >= window.Length || " +
+						$"triviaFailure{tag}.Starved) && !window.Ended)"))
+					{
+						file.Line("window.Extend(ref start);");
+						file.Line("continue;");
+					}
+
+					file.Line();
+					file.Line("break;");
+				}
+
+				file.Line();
+				Furthest($"triviaFailure{tag}");
+				file.Line($"if (triviaEnd{tag} >= 0)");
+				file.Then($"start = triviaEnd{tag};");
+			}
 
 			// Names per stage rather than one set reused: a stage that is not a repetition
 			// declares its locals in the method's own scope, and two of them cannot share.
@@ -427,6 +485,17 @@ public static partial class CSharpEmitter
 
 				file.Line();
 
+				// A bad element of the marked one is stepped over, and what it failed at goes with it.
+				if (marked)
+				{
+					using (file.Block($"if (end{i} >= 0)"))
+						Furthest($"failure{i}", spaced: false);
+
+					file.Line();
+				}
+				else
+					Furthest($"failure{i}");
+
 				if (marked && recovery is not null)
 				{
 					// The complete continuation was tried before the element. A failed
@@ -434,8 +503,12 @@ public static partial class CSharpEmitter
 					// mismatch on its first token. EOF cannot supply another recovery.
 					using (file.Block($"if (end{i} < 0)"))
 					{
-						file.Line("if (start >= window.Length && window.Ended)");
-						file.Then("break;");
+						// The end, where no bad element can begin: what it failed at is the parse's.
+						using (file.Block("if (start >= window.Length && window.Ended)"))
+						{
+							Furthest($"failure{i}", spaced: false);
+							file.Line("break;");
+						}
 						file.Line();
 						file.Line("var from = start;");
 						file.Line("var to   = start;");
@@ -513,8 +586,7 @@ public static partial class CSharpEmitter
 					file.Then(
 						"throw new global::System.FormatException(" +
 						$"\"Input does not match '{EscapeDiagnostic(Named(stage))}' at \" + " +
-						$"(window.Offset + failure{i}.Position).ToString(" +
-						"global::System.Globalization.CultureInfo.InvariantCulture) + \".\");");
+						"furthest.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\");");
 				}
 
 				file.Line();

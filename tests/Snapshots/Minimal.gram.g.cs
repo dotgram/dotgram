@@ -5302,6 +5302,7 @@ namespace DotGram.Snapshots
 		{
 			var window = new Window(input, 4096);
 			var start  = 0;
+			var furthest = 0L;
 
 			// every Row
 			var ordinal0 = 0;
@@ -5324,6 +5325,9 @@ namespace DotGram.Snapshots
 					break;
 				}
 
+				if (window.Offset + continuationFailure0.Position > furthest)
+					furthest = window.Offset + continuationFailure0.Position;
+
 				if (continuationEnd0 >= 0)
 					break;
 
@@ -5345,10 +5349,20 @@ namespace DotGram.Snapshots
 					break;
 				}
 
+				if (end0 >= 0)
+				{
+					if (window.Offset + failure0.Position > furthest)
+						furthest = window.Offset + failure0.Position;
+				}
+
 				if (end0 < 0)
 				{
 					if (start >= window.Length && window.Ended)
+					{
+						if (window.Offset + failure0.Position > furthest)
+							furthest = window.Offset + failure0.Position;
 						break;
+					}
 
 					var from = start;
 					var to   = start;
@@ -5419,8 +5433,11 @@ namespace DotGram.Snapshots
 				break;
 			}
 
+			if (window.Offset + failure1.Position > furthest)
+				furthest = window.Offset + failure1.Position;
+
 			if (end1 < 0)
-				throw new global::System.FormatException("Input does not match 'eof' at " + (window.Offset + failure1.Position).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
+				throw new global::System.FormatException("Input does not match 'eof' at " + furthest.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 
 			start = end1;
 
@@ -5430,7 +5447,7 @@ namespace DotGram.Snapshots
 			}
 
 			if (start < window.Length)
-				throw new global::System.FormatException("Expected end of input at " + (window.Offset + start).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
+				throw new global::System.FormatException("Expected end of input at " + (furthest > window.Offset + start ? furthest : window.Offset + start).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
 		/// <summary>The same, over a sequence of lines (docs/syntax.md §6.3).</summary>

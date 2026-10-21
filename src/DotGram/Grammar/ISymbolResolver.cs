@@ -189,10 +189,12 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 	}
 
 	/// <remarks>
-	/// But for an array asked about as its own element: <c>T[]</c> is a <c>T</c> only where every
-	/// array is, and of those only <c>object</c> is a type a grammar would collect into. Saying yes
-	/// had a sequence of <c>T</c> take a rule that builds a <c>T[]</c> as one of its elements, in
-	/// code that did not compile (CS0029), where a compilation refuses the grammar (§4.1 case 2).
+	/// But for an array asked about as its own element: <c>T[]</c> is a <c>T</c> only where <c>T</c>
+	/// is one of the types every array is — <c>object</c>, <c>Array</c> and the interfaces arrays
+	/// implement. Saying yes for any other had a sequence of <c>T</c> take a rule that builds a
+	/// <c>T[]</c> as one of its elements, in code that did not compile (CS0029), where a compilation
+	/// refuses the grammar (§4.1 case 2). A generic interface is left to the answer of yes: whether
+	/// one is an array's depends on its argument, which there is nothing here to ask about.
 	/// </remarks>
 	public bool IsAssignable(string from, string to)
 	{
@@ -202,8 +204,23 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 		if (to is null)
 			throw new ArgumentNullException(nameof(to));
 
-		return !(from.Length == to.Length + 2 && from.StartsWith(to, StringComparison.Ordinal) &&
-			from.EndsWith("[]", StringComparison.Ordinal) && to is not ("object" or "System.Object" or "global::System.Object"));
+		if (!(from.Length == to.Length + 2 && from.StartsWith(to, StringComparison.Ordinal) &&
+			from.EndsWith("[]", StringComparison.Ordinal)))
+			return true;
+
+		var name = to.StartsWith("global::", StringComparison.Ordinal) ? to.Substring("global::".Length) : to;
+
+		foreach (var space in new[] { "System.Collections.Generic.", "System.Collections.", "System." })
+			if (name.StartsWith(space, StringComparison.Ordinal))
+			{
+				name = name.Substring(space.Length);
+
+				break;
+			}
+
+		return name.IndexOf('<') >= 0 || name is
+			"object" or "Object" or "Array" or "ICloneable" or "IEnumerable" or "ICollection" or "IList" or
+			"IStructuralComparable" or "IStructuralEquatable";
 	}
 
 	/// <remarks>

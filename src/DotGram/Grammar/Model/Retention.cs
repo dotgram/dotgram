@@ -378,10 +378,31 @@ public static class Retention
 	}
 
 	/// <summary>
-	/// Whether a rule's <c>=&gt;</c> is its one capture handed back as it stands, and that capture
-	/// the elements of a repetition: <c>ranges: Range* =&gt; @(ranges)</c>.
+	/// The parts with one repetition's most taken off, for the question of where it ends.
 	/// </summary>
-	static bool HandsBack(Construction how, IReadOnlyList<Node> parts)
+	/// <remarks>
+	/// A most does not settle it: <c>A? &amp; A+</c> over <c>a</c> reads the <c>a</c> into the
+	/// second only once the first has given it back, which a stream that handed it over cannot do.
+	/// So a bounded repetition is asked the same question as one without a bound.
+	/// </remarks>
+	static IReadOnlyList<Node> Unbounded(IReadOnlyList<Node> parts, int at)
+	{
+		if (parts[at] is not Node.Repeat(var body, var min, not null))
+			return parts;
+
+		var asked = parts.ToList();
+
+		asked[at] = new Node.Repeat(body, min, null);
+
+		return asked;
+	}
+
+	/// <summary>
+	/// Whether a rule's <c>=&gt;</c> is its one capture handed back as it stands, and that capture
+	/// the elements of a repetition: <c>ranges: Range* =&gt; @(ranges)</c>, or the turn of a spaced
+	/// collection that captures them.
+	/// </summary>
+	static bool HandsBack(Construction how, IReadOnlyList<Node> parts, RuleSymbol? seam)
 	{
 		if (how is not Construction.Expression(var text, _))
 			return false;
@@ -399,7 +420,9 @@ public static class Retention
 			.ToList();
 
 		return captured.Count == 1 && captured[0] == name &&
-			parts.Any(part => part is Node.Repeat(Node.Capture(var repeated, Node.Call), _, _) && repeated == name);
+			parts.Any(part => Handed(part, seam) && part is Node.Repeat(var turn, _, _) &&
+				(turn is Node.Sequence([_, var element]) ? element : turn) is Node.Capture(var repeated, _) &&
+				repeated == name);
 	}
 
 	/// <summary>The seamed turn with the seam taken off — the element the window holds.</summary>
@@ -484,7 +507,7 @@ public static class Retention
 			if (graph.Recoveries.ContainsKey(parts[i]))
 				continue;
 
-			if (!FirstSets.Undecided(parts, i, graph, seam))
+			if (!FirstSets.Undecided(Unbounded(parts, i), i, graph, seam))
 				continue;
 
 			return $"in '{rule.Name}', the repetition '{parts[i]}' can begin with the same input as " +
@@ -498,7 +521,7 @@ public static class Retention
 		// them afterwards: a `=>` on the rule would be skipped, and its value never seen. One
 		// that hands back the repetition it captured, as it stands, is what the stream does.
 		if (graph.Bodies[rule] is Node.Construct(_, var how) && how is not Construction.Sequence &&
-			!HandsBack(how, parts))
+			!HandsBack(how, parts, seam))
 			return $"'{rule.Name}' builds its value with '=>', and a streamed parse hands each element " +
 				"to the caller as it reads it, with nothing left to build from. Let the rule collect " +
 				"its sequence itself (docs/syntax.md §4.1 case 2), or read it over a string.";
