@@ -24,29 +24,74 @@ namespace DotGram.Grammar.Model;
 /// Two shapes are deliberately left alone. A capture of a rule's value collects an
 /// array (§4.1 case 2), where every turn's record is the point; only a capture whose
 /// body is pure text moves. And an optional — <c>min == 0, max == 1</c> — keeps the
-/// difference §10 pins between the capture that did not happen (<c>null</c>) and the
+/// difference §7.3 pins between the capture that did not happen (<c>null</c>) and the
 /// run of no turns (<c>""</c>): hoisted, the capture would always record, and null
 /// would quietly become empty.
+/// </para>
+/// <para>
+/// Every other bound moves, <c>{0,m}</c> included. A run that may take no turn is a run
+/// all the same, and its text is <c>""</c> when it took none — which is what the record
+/// around the loop says, and what the turns' records could not: none of them was written,
+/// and in a rule of several alternatives the capture they leave unwritten reads as one that
+/// never happened.
 /// </para>
 /// </remarks>
 public sealed partial class GrammarNormalizer
 {
 	/// <summary>
-	/// Rewrite <c>(t: X)+</c> as <c>t: (X+)</c> wherever the two mean the same text.
+	/// Rewrite <c>(t: X)+</c> as <c>t: (X+)</c> wherever the two mean the same text, and give
+	/// a run whose turns cannot be one record the record of its start.
 	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <c>(t: X &amp; ',')*</c> cannot move: the comma between two turns is in the extent and
+	/// not in the text. A run of it that takes no turn writes nothing, and where the rule has a
+	/// route that never reaches the run — another alternative, an option around it — nothing is
+	/// what that route leaves too, so <c>""</c> and null would be one answer. Such a run is
+	/// given an empty capture of the same name in front of it: one more piece of no text, which
+	/// changes no join and says the run was reached. Only where the name is optional in the
+	/// rule: where every route writes it, no record already reads as <c>""</c>.
+	/// </para>
+	/// <para>
+	/// Every rule, a left-recursive one and one with binding powers included, and inside the
+	/// element of a repetition marked <c>recover</c>: a run there is the author's as anywhere.
+	/// What was worked out against a node this rebuilds — the fold's loop and accumulators, a
+	/// climb's levels, a recovery — is handed to the node that replaces it.
+	/// </para>
+	/// </remarks>
 	void HoistTextCaptures()
 	{
 		Dictionary<RuleSymbol, bool>? textRules = null;
+		var replaced = new List<Node>();
+		var syncs    = new Dictionary<Node, Node>(NodeIdentity.Instance);
+		List<string> optional = [];
+		Node? loop = null;
+		var looking = 0;
 
 		foreach (var rule in _rules)
 		{
-			// A fold's loop and a climb's calls are facts keyed to the nodes they were
-			// found on; a rule that owns either is compiled by the general machinery
-			// regardless, and is not worth re-keying them for.
-			if (_folds.ContainsKey(rule) || _climbing.ContainsKey(rule))
-				continue;
+			// A fold's loop is the fold's and not a run of the author's: it is neither lifted
+			// out of nor seeded, and what is rebuilt inside it carries the fold's facts over.
+			loop = _folds.TryGetValue(rule, out var fold) ? fold.Loop : null;
+
+			optional = OptionalText(_bodies[rule]);
 
 			_bodies[rule] = Hoist(_bodies[rule]);
+		}
+
+		Forget(replaced);
+
+		// A node rebuilt in place of another, handed what was recorded against the old one: a
+		// recovery, a fold's loop and accumulators, a climb's level (Carry). The old one keeps
+		// its facts for now: one node may stand in several places — a parameter's argument
+		// stands wherever the parameter does — and each place is rebuilt on its own.
+		Node Kept(Node old, Node rebuilt)
+		{
+			Carry(old, rebuilt);
+
+			replaced.Add(old);
+
+			return rebuilt;
 		}
 
 		Node Hoist(Node node)
@@ -54,78 +99,158 @@ public sealed partial class GrammarNormalizer
 			switch (node)
 			{
 				case Node.Repeat(Node.Capture(var name, var captured), var min, var max)
-					when (min >= 1 || max is null) &&
+					when (min > 0 || max != 1) &&
 						!_recoveries.ContainsKey(node) &&
+						!ReferenceEquals(node, loop) &&
 						PureText(captured):
 					return new Node.Capture(name, Placed(node, new Node.Repeat(Hoist(captured), min, max)));
 
-				// A count by a length, on the same terms: its turns are as contiguous. A length may
-				// be zero, so a lower bound that is one counts as none, and only a count with no
-				// upper bound then moves — as `*` does and `{0,m}` does not.
+				// A count by a length, on the same terms: its turns are as contiguous. It is never
+				// the option `{0,1}`, since a length is not a number the parser is generated with,
+				// so every count moves.
 				case Node.Counted(Node.Capture(var name, var captured), var min, var max)
-					when (min is CountBound.Items { Count: >= 1 } || max is null) &&
-						PureText(captured):
+					when PureText(captured):
 					return new Node.Capture(name, Placed(node, new Node.Counted(Hoist(captured), min, max)));
 
 				case Node.Sequence(var parts):
 				{
 					var rebuilt = Rebuilt(parts);
 
-					return rebuilt is null ? node : new Node.Sequence(rebuilt);
+					return rebuilt is null ? node : Kept(node, new Node.Sequence(rebuilt));
 				}
 
 				case Node.Choice(var alternatives):
 				{
 					var rebuilt = Rebuilt(alternatives);
 
-					return rebuilt is null ? node : ((Node.Choice)node).Rebuild(rebuilt);
+					return rebuilt is null ? node : Kept(node, ((Node.Choice)node).Rebuild(rebuilt));
 				}
 
-				case Node.Repeat(var body, var min, var max) when !_recoveries.ContainsKey(node):
-					return Hoist(body) is var repeated && ReferenceEquals(repeated, body)
+				// A repetition marked `recover` is read into as well — what its element captures
+				// is the rule's like anything else — and keeps its recovery; it is not seeded, as
+				// its element is what it recovers.
+				case Node.Repeat(var body, var min, var max):
+				{
+					var own = !_recoveries.ContainsKey(node) && !ReferenceEquals(node, loop);
+					var run = Hoist(body) is var repeated && ReferenceEquals(repeated, body)
 						? node
-						: new Node.Repeat(repeated, min, max);
+						: Kept(node, new Node.Repeat(repeated, min, max));
+
+					// The synchronization is read as the element is, and rebuilt the same way —
+					// once for each, however many repetitions share it.
+					if (_recoveries.TryGetValue(run, out var recovery))
+					{
+						if (!syncs.TryGetValue(recovery.Sync, out var sync))
+							syncs[recovery.Sync] = sync = Hoist(recovery.Sync);
+
+						if (!ReferenceEquals(sync, recovery.Sync))
+							_recoveries[run] = recovery with { Sync = sync };
+					}
+
+					return Seeded(run, own && min == 0 && max != 1);
+				}
 
 				case Node.Atomic(var kept):
 					return Hoist(kept) is var atomic && ReferenceEquals(atomic, kept)
 						? node
-						: new Node.Atomic(atomic);
+						: Kept(node, new Node.Atomic(atomic));
 
 				case Node.Marked(var kept, var text):
 					return Hoist(kept) is var marked && ReferenceEquals(marked, kept)
 						? node
-						: new Node.Marked(marked, text);
+						: Kept(node, new Node.Marked(marked, text));
 
 				case Node.Capture(var name, var body):
 					return Hoist(body) is var inner && ReferenceEquals(inner, body)
 						? node
-						: new Node.Capture(name, inner);
+						: Kept(node, new Node.Capture(name, inner));
 
 				case Node.Construct(var body, var how):
 					return Hoist(body) is var built && ReferenceEquals(built, body)
 						? node
-						: new Node.Construct(built, how);
+						: Kept(node, new Node.Construct(built, how));
 
 				case Node.Lookahead(var positive, var seen):
-					return Hoist(seen) is var looked && ReferenceEquals(looked, seen)
-						? node
-						: new Node.Lookahead(positive, looked);
+				{
+					looking++;
+
+					var looked = Hoist(seen);
+
+					looking--;
+
+					return ReferenceEquals(looked, seen) ? node : Kept(node, new Node.Lookahead(positive, looked));
+				}
 
 				// A binding was lifted out of its own repetitions while lowering; what is left is
 				// the captures inside it.
 				case Node.Bind(var binding, var bound, var at):
 					return Hoist(bound) is var rebound && ReferenceEquals(rebound, bound)
 						? node
-						: new Node.Bind(binding, rebound, at);
+						: Kept(node, new Node.Bind(binding, rebound, at));
 
 				case Node.Counted(var body, var min, var max):
-					return Hoist(body) is var counted && ReferenceEquals(counted, body)
-						? node
-						: new Node.Counted(counted, min, max);
+					return Seeded(
+						Hoist(body) is var counted && ReferenceEquals(counted, body)
+							? node
+							: Kept(node, new Node.Counted(counted, min, max)),
+						min is not CountBound.Items { Count: >= 1 });
 
 				default:
 					return node;
 			}
+		}
+
+		// A run that may take no turn, whose every turn writes a text capture the rule may also
+		// leave unwritten: an empty capture of each such name in front of it.
+		Node Seeded(Node run, bool mayTakeNone)
+		{
+			if (!mayTakeNone || looking > 0 || optional.Count == 0)
+				return run;
+
+			var body  = run is Node.Repeat(var repeated, _, _) ? repeated : ((Node.Counted)run).Body;
+			var seeds = new List<Node>();
+
+			foreach (var name in optional)
+				if (Writes(body, name))
+					seeds.Add(new Node.Capture(name, new Node.Empty()));
+
+			return seeds.Count == 0 ? run : new Node.Sequence([.. seeds, run]);
+		}
+
+		// The names a rule captures as text and may leave unwritten where a value is built from
+		// them: the rule's members that are optional, and the names an alternative that builds —
+		// a `=>`, the base or a step of a fold — may leave unwritten. A fold's step writing a
+		// name says nothing of the base, which is built before any step is read. In the order
+		// they are first captured, so that the seeds of one run stand in an order the next
+		// generation repeats.
+		List<string> OptionalText(Node body)
+		{
+			var seen   = new HashSet<string>(StringComparer.Ordinal);
+			var names  = new List<string>();
+			var builds = new List<Node>();
+
+			foreach (var one in Unlooked(body))
+				if (one is Node.Construct)
+					builds.Add(one);
+
+			if (loop is not null && body is Node.Sequence([var start, ..]) && !ReferenceEquals(start, loop))
+				builds.Add(start);
+
+			foreach (var one in Unlooked(body))
+				if (one is Node.Capture(var name, var captured) &&
+					CaptureLayout.ValuedCall(captured, BuildsValue) is null &&
+					seen.Add(name) &&
+					(!Writes(body, name) || builds.Exists(built => Captures(built, name) && !Writes(built, name))))
+				{
+					names.Add(name);
+				}
+
+			return names;
+		}
+
+		static bool Captures(Node node, string name)
+		{
+			return Unlooked(node).Any(one => one is Node.Capture(var captured, _) && captured == name);
 		}
 
 		IReadOnlyList<Node>? Rebuilt(IReadOnlyList<Node> nodes)
@@ -170,6 +295,18 @@ public sealed partial class GrammarNormalizer
 			};
 		}
 
+		static IEnumerable<Node> Unlooked(Node node)
+		{
+			yield return node;
+
+			if (node is Node.Lookahead)
+				yield break;
+
+			foreach (var child in node.Children)
+				foreach (var one in Unlooked(child))
+					yield return one;
+		}
+
 		bool PureRule(RuleSymbol rule)
 		{
 			textRules ??= [];
@@ -190,6 +327,48 @@ public sealed partial class GrammarNormalizer
 			textRules[rule] = pure;
 
 			return pure;
+		}
+	}
+
+	/// <summary>
+	/// The facts of nodes a rebuild replaced, taken off the tables the graph's integrity check
+	/// reads, once no body, fold loop or trivia holds them any more: left there, each is a fact
+	/// about nothing.
+	/// </summary>
+	void Forget(IReadOnlyCollection<Node> replaced)
+	{
+		if (replaced.Count == 0)
+			return;
+
+		// Every tree that holds nodes: the bodies, a fold's loop, the trivia, and each recovery's
+		// synchronization, which a parameter's argument may stand in as much as in a body.
+		var live = NodeWalk.ByIdentity(NodeWalk.Descendants(
+			_bodies.Values
+				.Concat(_folds.Values.Select(static fold => fold.Loop))
+				.Concat(_trivia.Values)
+				.Concat(_recoveries.Values.Select(static recovery => recovery.Sync))
+				.ToList()));
+
+		foreach (var old in replaced)
+		{
+			if (live.Contains(old))
+				continue;
+
+			_recoveries.Remove(old);
+			_powers.Remove(old);
+			_ceilings.Remove(old);
+
+			foreach (var climbed in _climbing.Keys.ToList())
+				if (_climbing[climbed].ContainsKey(old))
+				{
+					var levels = new Dictionary<Node, int>(NodeIdentity.Instance);
+
+					foreach (var pair in _climbing[climbed])
+						if (!ReferenceEquals(pair.Key, old))
+							levels[pair.Key] = pair.Value;
+
+					_climbing[climbed] = levels;
+				}
 		}
 	}
 }

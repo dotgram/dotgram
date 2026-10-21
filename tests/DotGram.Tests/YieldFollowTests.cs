@@ -253,9 +253,9 @@ public sealed class YieldFollowTests
 			var positional = Compiled(element + "parse I as P\n", direct, positionalFollow: true).Assembly;
 			var yielded    = Compiled(element.Replace("I :", "I0 :") + "F0 : @string[] = I0*\n" + Published(0, bytes: false), direct);
 
-			// Read by the reader where it was asked for, but for the captured bounded repetition,
-			// which the reader is not chosen for: said here, so that the day it is this fails.
-			Backend(yielded.Source, 0, direct && !Selectors[index].Contains("{0,2}", StringComparison.Ordinal), bytes: false);
+			// Read by the reader wherever it was asked for, the captured bounded repetition included:
+			// its capture is one record around the run, as a starred one's is.
+			Backend(yielded.Source, 0, direct, bytes: false);
 
 			foreach (var text in Inputs(['a', '1', '2', 'z'], 5))
 			{
