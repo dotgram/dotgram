@@ -190,7 +190,7 @@ reads `""` after zero turns.
 RawString = { $q: '"'{3,} } & { (?!$q & any)* } & $q & ?!'"'
 ```
 
-It works over characters only; over tokens use a guard. A terminal of a grammar cut in two
+It works over characters and over a `TextReader` or a stream; over token kinds use a guard. A terminal of a grammar cut in two
 (`Lexical = true`) may bind text when its body is atomic (`{ … }`) and no other token, nor
 trivia, can match a longer text that begins like it: the lexer begins it with what an
 automaton can read, its own rule reads the whole token from its start, and where that rule

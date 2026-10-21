@@ -276,7 +276,8 @@ keeps every one and reads them all.
 * named captures and generated result types;
 * back-references — `$q: X` binds the text `X` matched, `$q` matches it again, and
   `X{#q}` repeats by its length — for raw strings, heredocs, Lua long brackets and the
-  like, over characters;
+  like, over a string, a span, a `TextReader` or a stream, and in an atomic terminal the
+  lexer begins;
 * existing C# result types, filled by constructor or by `required` properties;
 * semantic actions, guards, external C# predicates and recognizers;
 * parameterized rules, rule rebinding and parser specialization;

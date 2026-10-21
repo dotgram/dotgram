@@ -3200,6 +3200,16 @@ ordered reading tells them apart, the same in both forms. A terminal that begins
 nothing an automaton reads — a lookahead, a host recognizer, a rule that reaches itself
 first — is refused by name (`GRAM4034`).
 
+A terminal that binds nothing gets the same reading where the automaton would otherwise read
+it wider than its rule does, which is a token its rule refuses and a value that is null:
+a guard, which the automaton takes as an empty match; an atomic group it reads with a way
+back that the group does not take; an ordered choice whose earlier alternative matches a
+proper prefix of a later one, where the rule stops at the earlier and the automaton reads
+on. Such a terminal is begun by the automaton's reading and measured by its own rule from the
+token's start, and where the rule refuses the position is lexed again without it. This is
+done only for a terminal in braces; one that is not atomic stays over characters with a
+`GRAM5004`.
+
 The beginning has to be the terminal's alone. One that can be empty, or that is also a
 token of its own, is refused (`GRAM5004`): the lexer would have a string it cannot give
 one meaning to. A terminal that is nothing but `@M` has no beginning at all, so the host
