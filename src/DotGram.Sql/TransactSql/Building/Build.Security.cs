@@ -53,14 +53,21 @@ static partial class Build
 				return made;
 
 			// The elements are the five statements a schema declares in its own breath: read as a script, the text after the owner.
-			var text = tail[tokens[at].At..];
+			// Cut from the statement's own text where it can be, so that the nodes can be told where they stand in the input.
+			var written = AsWritten(old, tail, at);
+			var text    = written?.Text ?? tail[tokens[at].At..];
 			// Read with that text as the one its rules carry their parts with, as the elements are carried below.
 			var read = Inside(text, () => Reread(text, located: true));
 
 			if (!read.IsSuccess || read.Value is not { Length: > 0 } elements)
 				throw BuildGap.Open(old, "inventory Statement.SchemaDefinition (elements that a script does not read)");
 
-			return made with { Elements = Inside(text, () => elements.Select(StatementOf).ToSqlList()) };
+			var items = Inside(text, () => elements.Select(StatementOf).ToSqlList());
+
+			if (written is { } where)
+				Shift(items, where.At);
+
+			return made with { Elements = items };
 		}
 
 		// ── GRANT, DENY and REVOKE ─────────────────────────────────────────────────

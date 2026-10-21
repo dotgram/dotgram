@@ -2089,12 +2089,21 @@ static partial class Build
 
 				case ["AS", "TABLE", "(", ..]:
 					// The body read as a table's, its parts carried with the text it is read from.
-					var body = "CREATE TABLE t " + tail[SqlTokens.Find(tail, "(")..];
-					var read = Inside(body, () => Reread(body, located: true));
+					// Cut from the statement's own text where it can be, so that the nodes can be told where they stand in the input.
+					const string Head    = "CREATE TABLE t ";
+					var          written = AsWritten(old, tail, 2);
+					var          body    = Head + (written?.Text ?? tail[SqlTokens.Find(tail, "(")..]);
+					var          read    = Inside(body, () => Reread(body, located: true));
 
 					if (read is not { IsSuccess: true, Value: [Statement.Built table] }
 						|| StatementOf(table) is not Ast.Statement.CreateTable { Contents: Ast.TableContents.Elements(var elements), Kind: null, Placements.Count: 0 } made)
 						throw BuildGap.Open(old, "inventory Statement.TypeDefinition (a table type's body that a table's does not read)");
+
+					if (written is { } where)
+					{
+						Shift(elements, where.At - Head.Length);
+						Shift(made.Options, where.At - Head.Length);
+					}
 
 					return new Ast.Statement.CreateTableType(name, elements) { Options = made.Options };
 

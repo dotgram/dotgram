@@ -234,6 +234,71 @@ public sealed class LocatedReadingTests
 		Assert.Equal(call, text.Substring(spanned.Span.At, spanned.Span.Length));
 	}
 
+	/// <summary>An item of a select list is spanned with its alias, written after the value or in front of it.</summary>
+	[Theory]
+	[InlineData("SELECT a, b AS c,  x  =  d,  e f FROM t", new[] { "a", "b AS c", "x  =  d", "e f" })]
+	[InlineData("SELECT 1; SELECT -- c\n a /* c */ AS b, SUM(x) OVER (ORDER BY x) FROM t", new[] { "a /* c */ AS b", "SUM(x) OVER (ORDER BY x)" })]
+	public void An_item_of_a_select_list_is_spanned_with_its_alias(string text, string[] items)
+	{
+		var statement = TransactSqlParser.Located.ParseSql(text).Last();
+		var spanned   = Nodes(statement).OfType<Ast.SelectColumn.ExpressionItem>().ToList();
+
+		Assert.Equal(items, spanned.Select(one => Cut(text, one.Span)));
+		Assert.All(Nodes(TransactSqlParser.ParseSql(text).Last()).OfType<Ast.SelectColumn.ExpressionItem>(), static one => Assert.False(one.Span.Known));
+	}
+
+	/// <summary>An <c>OVER</c> is spanned as its window is: the name, or what the brackets hold, and not the keyword in front.</summary>
+	[Theory]
+	[InlineData("SELECT SUM(x) OVER w FROM t WINDOW w AS (ORDER BY x)", "w")]
+	[InlineData("SELECT SUM(x) OVER (  w ORDER BY x ) FROM t WINDOW w AS (ORDER BY x)", "w ORDER BY x")]
+	[InlineData("SELECT SUM(x) OVER (PARTITION BY y ORDER BY x ROWS UNBOUNDED PRECEDING) FROM t", "PARTITION BY y ORDER BY x ROWS UNBOUNDED PRECEDING")]
+	[InlineData("SELECT SUM(x) OVER () FROM t", "")]
+	public void An_over_is_spanned_with_its_window(string text, string window)
+	{
+		var statement = TransactSqlParser.Located.ParseStatement(text);
+		var spanned   = Assert.Single(Nodes(statement).OfType<Ast.WindowReference>());
+
+		Assert.Equal(window, Cut(text, spanned.Span));
+		Assert.False(Assert.Single(Nodes(TransactSqlParser.ParseStatement(text)).OfType<Ast.WindowReference>()).Span.Known);
+	}
+
+	/// <summary>
+	/// The parts of a table type and the statements of a schema are read again from the statement's own text, and are
+	/// spanned where they stand in the input, whatever stands in front of the statement and between its words.
+	/// </summary>
+	[Theory]
+	[InlineData("CREATE TYPE tt AS TABLE (a INT DEFAULT 1 + 2, b INT CHECK (b > 0))", new[] { "1 + 2", "b > 0" })]
+	[InlineData("SELECT 1;\r\nCREATE  TYPE\ttt\r\n AS   TABLE ( a INT DEFAULT  (1  +   2) -- c\r\n, b INT, CHECK ( a<b ) ) ; SELECT 2", new[] { "(1  +   2)", "a<b" })]
+	[InlineData("CREATE TYPE tt AS TABLE (a INT PRIMARY KEY, b INT, INDEX ix (b)) WITH (MEMORY_OPTIMIZED = ON)", new string[0])]
+	public void The_parts_of_a_table_type_are_spanned_in_the_input(string text, string[] values)
+	{
+		var cut = Nodes(TransactSqlParser.Located.ParseSql(text).Single(static one => one is Ast.Statement.CreateTableType)).OfType<Ast.Expression>()
+			.Where(static one => one.Span.Known)
+			.Select(one => Cut(text, one.Span))
+			.ToList();
+
+		Assert.All(values, value => Assert.Contains(value, cut));
+
+		// Every expression is a piece of the text, with no blank at either end.
+		Assert.All(cut, one => Assert.Equal(one.Trim(), one));
+	}
+
+	[Theory]
+	[InlineData("CREATE SCHEMA s AUTHORIZATION o CREATE TABLE t (a INT) GRANT SELECT ON t TO u", new[] { "CREATE TABLE t (a INT)", "GRANT SELECT ON t TO u" })]
+	[InlineData("SELECT 1; CREATE  SCHEMA\ts\r\n AUTHORIZATION  o /* c */ CREATE   TABLE t (a INT, CHECK (a  >  0)) -- c\r\n  CREATE VIEW v AS SELECT 1 AS x ; SELECT 2", new[] { "CREATE   TABLE t (a INT, CHECK (a  >  0))", "CREATE VIEW v AS SELECT 1 AS x" })]
+	[InlineData("CREATE SCHEMA AUTHORIZATION o DENY SELECT ON t TO u REVOKE SELECT ON t FROM u", new[] { "DENY SELECT ON t TO u", "REVOKE SELECT ON t FROM u" })]
+	[InlineData("CREATE SCHEMA s CREATE TABLE t (a INT)", new[] { "CREATE TABLE t (a INT)" })]
+	public void The_statements_of_a_schema_are_spanned_in_the_input(string text, string[] elements)
+	{
+		var schema = (Ast.Statement.CreateSchema)TransactSqlParser.Located.ParseSql(text).Single(static one => one is Ast.Statement.CreateSchema);
+
+		Assert.Equal(elements, schema.Elements.Select(one => Cut(text, one.Span).TrimEnd()));
+
+		// What they hold lies in the statement they are in.
+		foreach (var element in schema.Elements)
+			Assert.All(Nodes(element).Where(static one => one.Span.Known), one => Assert.InRange(one.Span.At, element.Span.At, element.Span.End));
+	}
+
 	/// <summary>
 	/// A window the lexer stopped short in was not read to its end, and a match says so: through
 	/// either door, the reading stopped looking where the tokens stopped.
@@ -655,18 +720,10 @@ public sealed class LocatedReadingTests
 	/// Every located node, which must stand no earlier than the reading and inside the text, with the gap in front of it
 	/// over trivia.
 	/// </summary>
-	/// <remarks>
-	/// A table type's columns and indexes, and the statements a CREATE SCHEMA holds, are read again from the statement's
-	/// own text, and their nodes are told positions in that text rather than in the input's, so they are left out until
-	/// that is put right.
-	/// </remarks>
 	static int Gaps(Ast.Statement statement, string text, int floor)
 	{
 		var count = 0;
 		var seen  = new HashSet<ISqlSpan>(ReferenceEqualityComparer.Instance);
-
-		if (statement is Ast.Statement.CreateTableType or Ast.Statement.CreateSchema)
-			return 0;
 
 		SqlWalker.Walk(statement, node =>
 		{

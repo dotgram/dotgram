@@ -66,12 +66,17 @@ static partial class Build
 
 	/// <summary>
 	/// The definition the words name, on the common tree, where the T-SQL tree kept the name and no more: the words as the
-	/// rule names them, the name, what was written after it, the verb it opened with and the settings among the words.
+	/// rule names them, the name, what was written after it, the verb it opened with and the settings among the words. Where the
+	/// rule says where it stands (<paramref name="at"/>), the builder may read the text the statement was written in.
 	/// </summary>
-	internal static Statement Defined(string what, string name, string? tail = null, string? verb = null, SqlList<Clause>? options = null)
+	internal static Statement Defined(string what, string name, string? tail = null, string? verb = null, SqlList<Clause>? options = null, SqlSpan? at = null)
 	{
 		var (record, build) = Definition(what);
 		var old             = new Defining(record, name) { Tail = tail, Verb = verb is null ? null : Syntax.Squared(verb), Options = options };
+
+		// Told where it was written, for a definition that reads a part of its own text again.
+		if (at is { } where)
+			old.Span = where;
 
 		return Hold(old, build);
 	}

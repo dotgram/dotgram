@@ -1374,11 +1374,12 @@ static partial class Build
 				throw BuildGap.Open(over, "inventory Clause.Window (an OVER that is not a window)");
 
 			// `OVER w` and `OVER (w)` are one old node; the text says which, and without it the name alone is taken.
+			// Located where the window is: the name, or what the brackets hold, and not the OVER in front of it.
 			if (window is { Name: { } named, PartitionBy.Length: 0, By: null, Frame: null }
 				&& !Recover(Spelled(window), static text => text.TrimStart().StartsWith('('), false))
-				return new Ast.WindowReference.NameRef(Part(over, named));
+				return Build.Placed(new Ast.WindowReference.NameRef(Part(over, named)), window, locating);
 
-			return new Ast.WindowReference.Specification(Specification(window));
+			return Build.Placed(new Ast.WindowReference.Specification(Specification(window)), window, locating);
 		}
 
 		public static Ast.WindowSpecification Specification(Clause.Window window)

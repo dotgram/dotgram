@@ -14,7 +14,7 @@ namespace DotGram.Sql.TransactSql;
 /// <item><see cref="NeedsDecision"/>: the shape is open, and the inventory row that says so is named.</item>
 /// <item><see cref="NotKept"/>: the old tree does not keep what the new tree records, so no arm could
 /// say which text was written.</item>
-/// <item><see cref="NoBuilderArm"/>: the target exists and the writer writes it; no builder has an arm for it yet.</item>
+/// <item><see cref="NoConversion"/>: the target exists and the writer writes it; no builder converts the reading to it yet.</item>
 /// </list>
 /// </remarks>
 sealed class BuildGap : Exception
@@ -23,8 +23,7 @@ sealed class BuildGap : Exception
 	public const string NoWriterArm   = "target exists, no writer arm";
 	public const string NeedsDecision = "needs decision";
 	public const string NotKept       = "not kept by the old tree";
-	// The words an extension's kind has always said for it, which a consumer may match on.
-	public const string NoBuilderArm  = "bridge arm missing";
+	public const string NoConversion  = "no conversion";
 
 	BuildGap(string oldType, string kind, string detail)
 		: base($"{oldType}: {kind}: {detail}")
@@ -69,9 +68,9 @@ sealed class BuildGap : Exception
 		return new(Build.NameOf(old), NeedsDecision, row);
 	}
 
-	public static BuildGap Unarmed(object old, string detail)
+	public static BuildGap Unconverted(object old, string detail)
 	{
-		return new(Build.NameOf(old), NoBuilderArm, detail);
+		return new(Build.NameOf(old), NoConversion, detail);
 	}
 
 	public static BuildGap Lost(object old, string detail)

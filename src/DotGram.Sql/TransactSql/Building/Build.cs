@@ -213,8 +213,7 @@ static partial class Build
 	/// </summary>
 	static BuildGap Unconverted(object read)
 	{
-		// The words an extension's kind has always said for it, which a consumer may match on.
-		return BuildGap.Unarmed(read, "the bridge has no arm for it");
+		return BuildGap.Unconverted(read, "the reading has no conversion to the shared tree");
 	}
 
 	/// <summary>
@@ -254,6 +253,72 @@ static partial class Build
 			return null;
 
 		return source.Substring(span.At, span.Length);
+	}
+
+	/// <summary>
+	/// A statement's own text from the token at <paramref name="from"/> of the tail its rule kept to its end, as it was
+	/// written, and where that text starts in the text the reading is over. The tail has its blanks made one space, so a
+	/// position in it is no position in the input; the statement's text is cut by tokens instead, and null stands where
+	/// it cannot be cut or its tokens are not the tail's.
+	/// </summary>
+	static (string Text, int At)? AsWritten(ISqlSpan old, string tail, int from)
+	{
+		var span = SpanOf(old);
+
+		if (!Cuttable(span) || span.End > source.Length)
+			return null;
+
+		var whole = source.Substring(span.At, span.Length);
+		var kept  = SqlTokens.Located(tail);
+		var all   = SqlTokens.Located(whole);
+		var count = all.Count;
+
+		// A terminator is the statement's, not the tail's.
+		if (count > kept.Count && all[count - 1].Token is { Kind: SqlTokens.Kind.Punctuation, Text: ";" })
+			count--;
+
+		if (count < kept.Count || from >= kept.Count)
+			return null;
+
+		var first = count - kept.Count;
+
+		for (var i = 0; i < kept.Count; i++)
+			if (kept[i].Token != all[first + i].Token)
+				return null;
+
+		var start = all[first + from].At;
+		var end   = count < all.Count ? all[count].At : whole.Length;
+
+		return (whole[start..end], span.At + start);
+	}
+
+	/// <summary>
+	/// A part read again from a text cut out of the statement, whose nodes were told where they stand in that text: told
+	/// where they stand in the text the reading is over, where the reading keeps the spans it tells.
+	/// </summary>
+	static void Shift<T>(IEnumerable<T> nodes, int by)
+		where T : ISqlSpan
+	{
+		if (by == 0 || !SqlReading.Publishes)
+			return;
+
+		var seen = new HashSet<ISqlSpan>(Rules.ByReference.Instance);
+
+		foreach (var root in nodes)
+		{
+			SqlWalker.Walk(root, node =>
+			{
+				if (node.Span is { Known: true } span && seen.Add(node))
+				{
+					if (node is ISqlLocatable located)
+						located.Locate(span.At + by, span.Length, span.GapStart + by);
+					else
+						node.Locate(span.At + by, span.Length);
+				}
+
+				return true;
+			});
+		}
 	}
 
 	/// <summary>

@@ -62,7 +62,7 @@ static partial class Build
 				Top        = Top(parts.top),
 				IntoTable  = parts.into is null ? null : IntoTable(parts.into),
 				Quantifier = Quantifier(SpecificationName, parts.quantifier),
-				Columns    = Each(parts.columns, Column),
+				Columns    = Each(parts.columns, static one => Convert<Ast.SelectColumn>(one)),
 				From       = parts.from.Length > 0 ? new Ast.FromClause(Each(parts.from, Source)) : null,
 				Where      = parts.where is null ? null : Values.Of(parts.where),
 				GroupBy    = parts.group is null ? null : Group(parts.group),

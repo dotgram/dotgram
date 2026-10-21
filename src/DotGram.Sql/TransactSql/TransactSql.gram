@@ -2887,7 +2887,7 @@ TypeStatement : @Build.Statement
 	  & tail: ("FROM"i & TSqlDataType & NullSpec?
 			  | "EXTERNAL"i & "NAME"i & TSqlIdentifier & ('.' & TSqlIdentifier)?
 			  | "AS"i & "TABLE"i & TableTypeBody & ("WITH"i & '(' & "MEMORY_OPTIMIZED"i & '=' & OnOff & ')')?)
-		=> @(Build.Defined("TYPE", name, Syntax.Tail(tail)))
+		=> @(Build.Defined("TYPE", name, Syntax.Tail(tail), at: new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| "CREATE"i & "XML"i & "SCHEMA"i & "COLLECTION"i & name: TSqlQualifiedName & tail: ("AS"i & TSqlValueExpression)
 		=> @(Build.Defined("XML SCHEMA COLLECTION", name, Syntax.Tail(tail)))
 	| "ALTER"i & "XML"i & "SCHEMA"i & "COLLECTION"i & name: TSqlQualifiedName & tail: ("ADD"i & TSqlValueExpression)
@@ -6403,11 +6403,11 @@ PrincipalStatement : @Build.Statement
 	// T-SQL that holds others without a `BEGIN`.
 	| "CREATE"i & "SCHEMA"i & name: TSqlIdentifier
 	  & tail: ("AUTHORIZATION"i & TSqlIdentifier & SchemaElement*)
-		=> @(Build.Defined("CREATE SCHEMA", name, Syntax.Tail(tail)))
+		=> @(Build.Defined("CREATE SCHEMA", name, Syntax.Tail(tail), at: new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| "CREATE"i & "SCHEMA"i & tail: ("AUTHORIZATION"i & TSqlIdentifier & SchemaElement*)
-		=> @(Build.Defined("CREATE SCHEMA", "", Syntax.Tail(tail)))
+		=> @(Build.Defined("CREATE SCHEMA", "", Syntax.Tail(tail), at: new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| "CREATE"i & "SCHEMA"i & name: TSqlIdentifier & tail: (SchemaElement*)
-		=> @(Build.Defined("CREATE SCHEMA", name, Syntax.Tail(tail)))
+		=> @(Build.Defined("CREATE SCHEMA", name, Syntax.Tail(tail), at: new SqlSpan(parserSpan.Start, parserSpan.Length)))
 	| "ALTER"i & "SCHEMA"i & name: TSqlIdentifier
 	  & tail: ("TRANSFER"i & SecurableClass? & TSqlQualifiedName)
 		=> @(Build.Defined("ALTER SCHEMA", name, Syntax.Tail(tail)))

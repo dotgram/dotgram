@@ -1605,7 +1605,7 @@ static partial class Build
 		}
 
 		/// <summary>Nodes told apart by identity, which a record's own equality does not do.</summary>
-		sealed class ByReference : IEqualityComparer<ISqlSpan>
+		internal sealed class ByReference : IEqualityComparer<ISqlSpan>
 		{
 			public static readonly ByReference Instance = new();
 
