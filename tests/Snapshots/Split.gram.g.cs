@@ -297,7 +297,7 @@ namespace DotGram.Snapshots
 		static int Recognize_Script_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string[] value)
 		{
 			object? recognized;
-			var end = Recognize_DotGram(text, pos, 114, 1, true, true, ref failure, out recognized);
+			var end = Recognize_DotGram(text, pos, 112, 1, true, true, ref failure, out recognized);
 			value = end < 0 ? default! : (string[])recognized!;
 			return end;
 		}
@@ -305,13 +305,13 @@ namespace DotGram.Snapshots
 		static int Recognize_Script(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string[] value)
 		{
 			object? recognized;
-			var began = Recognize_DotGram(text, pos, 113, -1, false, true, ref failure, out recognized);
+			var began = Recognize_DotGram(text, pos, 111, -1, false, true, ref failure, out recognized);
 
 			if (began < 0) began = pos;
 
 			failure.Began = began;
 
-			var end = Recognize_DotGram(text, began, 6, 1, false, true, ref failure, out recognized);
+			var end = Recognize_DotGram(text, began, 4, 1, false, true, ref failure, out recognized);
 			value = end < 0 ? default! : (string[])recognized!;
 			return end;
 		}
@@ -319,7 +319,7 @@ namespace DotGram.Snapshots
 		static int Recognize_trivia(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			object? recognized;
-			var began = Recognize_DotGram(text, pos, 113, -1, false, true, ref failure, out recognized);
+			var began = Recognize_DotGram(text, pos, 111, -1, false, true, ref failure, out recognized);
 
 			if (began < 0) began = pos;
 
@@ -332,13 +332,13 @@ namespace DotGram.Snapshots
 		static int Recognize_Command(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
 		{
 			object? recognized;
-			var began = Recognize_DotGram(text, pos, 113, -1, false, true, ref failure, out recognized);
+			var began = Recognize_DotGram(text, pos, 111, -1, false, true, ref failure, out recognized);
 
 			if (began < 0) began = pos;
 
 			failure.Began = began;
 
-			var end = Recognize_DotGram(text, began, 11, 2, false, true, ref failure, out recognized);
+			var end = Recognize_DotGram(text, began, 9, 2, false, true, ref failure, out recognized);
 			value = end < 0 ? default! : (string)recognized!;
 			return end;
 		}
@@ -346,7 +346,7 @@ namespace DotGram.Snapshots
 		static int Recognize_Script_Whole_Trivia(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			object? ignored;
-			return Recognize_DotGram(text, pos, 113, -1, false, false, ref failure, out ignored);
+			return Recognize_DotGram(text, pos, 111, -1, false, false, ref failure, out ignored);
 		}
 
 		/// <summary>Reads <c>Script</c> from a reader, a part at a time.</summary>
@@ -579,16 +579,16 @@ namespace DotGram.Snapshots
 		{
 			switch (alternative)
 			{
-				case 0: return 7;
-				case 1: return 8;
-				case 2: return 4;
-				case 3: return 16;
-				case 4: return 14;
-				case 5: return 10;
-				case 6: return 9;
-				case 7: return 15;
-				case 8: return 11;
-				case 9: return 5;
+				case 0: return 8;
+				case 1: return 9;
+				case 2: return 5;
+				case 3: return 17;
+				case 4: return 15;
+				case 5: return 11;
+				case 6: return 10;
+				case 7: return 16;
+				case 8: return 12;
+				case 9: return 6;
 			}
 			return -1;
 		}
@@ -1610,10 +1610,11 @@ namespace DotGram.Snapshots
 
 		static string[] ExpectedDecoded_DotGram(int id)
 		{
-			var data = "ACEGIKMOQSUWY\u005B\u005D\u005FaAaCaNaPBABBBCBDBEBFBGBHBIBJBKBLBMBNBOBPBQKHIEQOKJPLFBRBS";
-			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[20], null) ?? ExpectedBuilt_DotGram!;
+			var data = "ACEGIKMOQSUWY\u005B\u005D\u005FaAaCaEaPaRBABBBCBDBEBFBGBHBIBJBKBLBMBNBOBPBQBRKIJFRPLKQMGBSBT";
+			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[21], null) ?? ExpectedBuilt_DotGram!;
 			var items = ExpectedItems_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedItems_DotGram, new string[]
 				{
+					"' '",
 					"';'",
 					"')'",
 					"['a'..'z']",
@@ -1640,7 +1641,7 @@ namespace DotGram.Snapshots
 
 			if (starts == null)
 			{
-				starts = new int[20];
+				starts = new int[21];
 
 				for (var i = 0; i < starts.Length; i++)
 				{
