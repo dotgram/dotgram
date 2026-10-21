@@ -855,22 +855,19 @@ public static class Retention
 		// after every seam, inside every seamed turn, and the last part.
 		Node? Overlapped(Node trivia)
 		{
-			// Trivia in braces is read once over a string too: it gives nothing back.
-			if (trivia is Node.Atomic || trivia is Node.Call(var reads, { Count: 0 }) &&
-				graph.Bodies.TryGetValue(reads, out var read) && read is Node.Atomic)
-				return null;
-
 			var spaces = FirstSets.Of(trivia, graph);
 
 			for (var at = -1; at < parts.Count; at++)
 			{
 				if (at >= 0 && !IsSeam(parts[at]))
 				{
-					if (parts[at] is Node.Repeat(var turn, _, _) && !ReferenceEquals(PastSeam(turn, seam), turn) &&
-						spaces.Overlaps(FirstSets.Of(PastSeam(turn, seam), graph)))
-						return parts[at];
+					// A seamed turn reads its seam before its element, and the seam of the turn
+					// that fails stands before what follows the run.
+					if (parts[at] is not Node.Repeat(var turn, _, _) || ReferenceEquals(PastSeam(turn, seam), turn))
+						continue;
 
-					continue;
+					if (spaces.Overlaps(FirstSets.Of(PastSeam(turn, seam), graph)))
+						return parts[at];
 				}
 
 				for (var next = at + 1; next < parts.Count; next++)
