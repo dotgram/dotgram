@@ -211,6 +211,24 @@ public sealed class NestedRecoveryTests
 			]),
 
 		new(
+			"a guard on a capture in an inner synchronization",
+			Words + "Start : @string[] = (Word & eol)* recover ('#' & (k: 'x' & when @(k.Length > 0) & ';')* recover ';' & eol)",
+			Words + "Sync = '#' & (k: 'x' & when @(k.Length > 0) & ';')* recover ';' & eol\nStart : @string[] = (Word & eol)* recover Sync",
+			["Sync"],
+			[("a\n9#x;y;x;\nb\n", "a,b")]),
+
+		new(
+			"an inner guard's capture named again in another alternative",
+			"Start : @string = ((('[' & (k: 'a' & when @(k.Length > 0) & ';')* recover ';' & ']' & eol) | ('{' & k: 'b' & '}' & eol))* recover eol)" +
+				" => @(k ?? \"\")",
+			"Inner = (k: 'a' & when @(k.Length > 0) & ';')* recover ';'\n" +
+				"Start = (('[' & Inner & ']' & eol) | ('{' & k: 'b' & '}' & eol))* recover eol",
+			["Inner"],
+			// The guard reads the `k` its own part captured; the other alternative's is the rule's.
+			[("[a;]\n{b}\n", "ab")],
+			TwinValues: false),
+
+		new(
 			"the enclosing rule's on fail",
 			Words +
 				"Blocks : @string[] on fail \"Expected a block.\" = ('[' & (Word & ';')+ recover ';' & ']' & eol)+ recover eol\n" +
@@ -346,13 +364,18 @@ public sealed class NestedRecoveryTests
 
 			foreach (var input in inputs)
 			{
-				Assert.Equal(Through(one, Recorded(twin, input)), Recorded(inline, input));
+				var stepped = Recorded(inline, input);
+				var twins   = Through(one, Recorded(twin, input));
 
-				var told  = Outcome(inline, input);
-				var twins = Through(one, Outcome(twin, input));
+				Assert.True(
+					stepped.SequenceEqual(twins),
+					$"{one.Name}, {carrier}, direct {direct}, [{input}]: {string.Join(" | ", stepped)} where the twin {string.Join(" | ", twins)}");
 
-				if (one.TwinValues || told.StartsWith("!", StringComparison.Ordinal) || twins.StartsWith("!", StringComparison.Ordinal))
-					Assert.True(told == twins, $"{one.Name}, {carrier}, direct {direct}, [{input}]: {told} where the twin {twins}");
+				var told = Outcome(inline, input);
+				var said = Through(one, Outcome(twin, input));
+
+				if (one.TwinValues || told.StartsWith("!", StringComparison.Ordinal) || said.StartsWith("!", StringComparison.Ordinal))
+					Assert.True(told == said, $"{one.Name}, {carrier}, direct {direct}, [{input}]: {told} where the twin {said}");
 			}
 		}
 	}
@@ -379,7 +402,7 @@ public sealed class NestedRecoveryTests
 	[InlineData(
 		"Count : @int = d: ['0'..'9'] => @(int.Parse(d))\n" +
 		"Start : @string = ((n: Count & ':' & (w: Word & when @(w.Length <= n.Length) & ';')* recover ';' & eol)* recover eol) => @(string.Join(\"+\", w))",
-		"reads 'n', which is captured outside it")]
+		"reads 'n', which is captured only outside it")]
 	[InlineData(
 		"Start : @string = (('[' & (w: Word & ';')* recover ';' & when @(w.Length > 0) & ']' & eol)* recover eol) => @(string.Join(\"+\", w))",
 		"reads 'w', which is captured inside it")]
@@ -429,6 +452,28 @@ public sealed class NestedRecoveryTests
 			.OrderBy(static one => one, StringComparer.Ordinal);
 
 		Assert.Equal(at.Split('|').OrderBy(static one => one, StringComparer.Ordinal), told);
+
+		// Named as the author wrote it, the inner one too: not the rule the inner part was made into.
+		Assert.All(
+			GramCompiler.Compile(grammar, Options(CarrierKind.Auto, true, true, false, false)).Diagnostics
+				.Where(static one => one.Id == GrammarNormalizer.RecoveryInToken),
+			static one => Assert.StartsWith("'recover' in 'Tok' ", one.Message, StringComparison.Ordinal));
+	}
+
+	/// <summary>
+	/// No diagnostic names a rule the author did not write: the rule a nested part was made into is
+	/// told as the rule it was written in, on every carrier, over characters and over tokens.
+	/// </summary>
+	[Fact]
+	public void Nothing_said_names_a_rule_the_author_did_not_write()
+	{
+		foreach (var one in All)
+			foreach (var carrier in Carriers)
+				foreach (var direct in new[] { true, false })
+					foreach (var grammar in new[] { one.Inline, one.Twin ?? one.Inline })
+						Assert.All(
+							Compiled(grammar, carrier, direct, one.Lexical, false, false).Diagnostics,
+							told => Assert.False(told.Message.Contains("_Nested", StringComparison.Ordinal), $"{one.Name}: {told.Message}"));
 	}
 
 	/// <summary>

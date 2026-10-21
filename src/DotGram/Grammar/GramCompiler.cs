@@ -336,7 +336,7 @@ public static class GramCompiler
 				if (said.Add((recovery.At.Position, recovery.At.Length)))
 					refused.Add(new GramDiagnostic(
 						GrammarNormalizer.RecoveryInToken,
-						$"'recover' in '{rule.Name}' would be read as a plain repetition: the grammar is cut in two " +
+						$"'recover' in '{graph.Origin(rule).Name}' would be read as a plain repetition: the grammar is cut in two " +
 						"(Lexical = true) and the lexer reads this rule as part of a token, the longest match of a " +
 						"regular language, which has no element in it to step over. Recover in the syntax that " +
 						"reads the tokens, or read this grammar over characters: leave Lexical off (docs/syntax.md §8.2).",

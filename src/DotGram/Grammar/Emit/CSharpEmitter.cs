@@ -1148,7 +1148,7 @@ public static partial class CSharpEmitter
 
 						diagnostics.Add(new GramDiagnostic(
 							Machine.Backtracks,
-							$"'{(rule ?? compiled.Publications[0].Rule).Name}' cannot be read by methods because " +
+							$"'{graph.Origin(rule ?? compiled.Publications[0].Rule).Name}' cannot be read by methods because " +
 							$"{why}, so this grammar's syntactic half runs on the shared engine. It reads what " +
 							"the methods would — a rule's answer stands, and a choice or a repetition that has " +
 							"matched is revisited only inside a rule marked '?' (docs/syntax.md §4) — but it is " +
@@ -3754,7 +3754,7 @@ file.Line("return spare;");
 			compiled.Publications.Any(one => Streams(graph, one, overKinds))
 				? "it is read a window at a time, which the engine does" :
 			compiled.Machine.Refusal is var (rule, why)
-				? (rule is null ? "it" : $"'{rule.Name}'") + $" cannot be read by methods because {why}"
+				? (rule is null ? "it" : $"'{graph.Origin(rule).Name}'") + $" cannot be read by methods because {why}"
 				: "it is not read by methods");
 	}
 

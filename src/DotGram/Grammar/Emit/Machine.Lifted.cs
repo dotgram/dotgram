@@ -40,6 +40,42 @@ sealed partial class Machine
 	}
 
 	/// <summary>
+	/// The members a guard of a rule may read: the rule's own, or for one lifted out of a
+	/// synchronization, which builds no value and so has none, what its captures would be.
+	/// </summary>
+	/// <remarks>
+	/// A synchronization's value is read by nothing, and one made a rule keeps it that way; what a
+	/// guard in it is handed is still what the rule captured before it, as in a rule written for it.
+	/// </remarks>
+	IReadOnlyList<ResultMember> GuardMembers(RuleSymbol rule)
+	{
+		if (!_graph.Lifted.TryGetValue(rule, out var lift) || lift.Transparent)
+			return _graph.Results[rule];
+
+		if (_guardMembers.TryGetValue(rule, out var known))
+			return known;
+
+		var layout  = CaptureLayout.Of(
+			_graph.Bodies[rule], other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other),
+			lifted: _graph.LiftedBody);
+		var members = new List<ResultMember>();
+
+		foreach (var slot in layout.Slots)
+		{
+			var at = members.FindIndex(one => one.Name == slot.Name);
+
+			if (at < 0)
+				members.Add(new ResultMember(slot.Name, slot.Rule, slot.IsSequence, IsOptional: false, [slot.Index]));
+			else
+				members[at] = members[at] with { Slots = [.. members[at].Slots, slot.Index] };
+		}
+
+		return _guardMembers[rule] = members;
+	}
+
+	readonly Dictionary<RuleSymbol, IReadOnlyList<ResultMember>> _guardMembers = [];
+
+	/// <summary>
 	/// Where a rule lifted out of an element keeps its captures: the slot of the rule whose value
 	/// they are part of at which its call stands; null for every other rule.
 	/// </summary>

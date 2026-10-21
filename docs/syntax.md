@@ -3729,7 +3729,7 @@ It is a rule of its own in every other way too. A guard inside reads what the in
 captured in this reading of it, not what earlier lines did: `(w: Word & when @(w.Length <= 1) &
 ';')*` is handed this line's words. What a rule of its own could not be handed or hand back is
 refused where the inner `recover` is written (`GRAM4045`): a guard inside reading a capture made
-outside it, a guard outside reading one made inside, a value built inside it, a capture of a
+only outside it, a guard outside reading one made inside, a value built inside it, a capture of a
 lookahead inside it. Move the part into its own rule and pass it what it needs; a `=>` of the
 enclosing rule reads what was captured inside, which is built after the parse.
 
