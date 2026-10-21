@@ -293,6 +293,7 @@ public sealed class LexicalSplit
 				// characters, and the syntactic half is asked it.
 				PositionalFollow = graph.PositionalFollow,
 				PositionalSplit  = graph.PositionalSplit,
+				OverKinds        = true,
 
 				// A rule that is told where it was written goes on being told: the split
 				// changes what the syntactic machine reads, not what its values are.

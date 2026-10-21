@@ -2628,6 +2628,38 @@ sealed partial class Machine
 	/// chose; what it holds is braced as before.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// Whether an atomic group's contents are told that nothing after the group can fail
+	/// (<see cref="FollowSets.Continuation.Committed"/>): over characters always; over kinds
+	/// only inside a rule marked <c>?</c>, the one place a choice or a repetition is revisited
+	/// there (§4). Elsewhere over kinds nothing gives a turn back whatever follows, and every
+	/// call, choice and repetition is read as braced (<see cref="Stands"/>): told the stop, they
+	/// would only prove more and be emitted otherwise — flat, without their positional forms —
+	/// so there the contents see the continuation as it stands. The same question
+	/// <see cref="FollowSets"/> asks of the rule it walks.
+	/// </summary>
+	bool Commits(Node atomic)
+	{
+		return !OverKinds || _owners.TryGetValue(atomic, out var owner) && owner.GivesBack;
+	}
+
+	/// <summary>
+	/// How many atomic groups over kinds whose owner does not give back the compile is inside
+	/// (<see cref="CompileAtomic"/>, and <see cref="Silent"/>'s Atomic case alike).
+	/// </summary>
+	int _committing;
+
+	/// <summary>
+	/// The continuation a rule compiled in place is handed: the caller's, or, for a rule
+	/// marked <c>?</c> inside a group over kinds whose owner does not give back, the caller's
+	/// with the group's stop — what <see cref="FollowSets"/> hands the rule where it is called
+	/// rather than inlined, and what the rule gives back against.
+	/// </summary>
+	FollowSets.Continuation Handed(RuleSymbol rule, FollowSets.Continuation following)
+	{
+		return _committing > 0 && rule.GivesBack ? following.Committed() : following;
+	}
+
 	bool Stands(Node node)
 	{
 		return OverKinds && !_standing.Contains(node) && !HoldsRecovery(node) && node switch
@@ -3000,7 +3032,7 @@ sealed partial class Machine
 						_flatRuleOf[site] = called;
 						_flatInstance     = site;
 
-						var siteBody = Compile(_graph.Bodies[called], next, following);
+						var siteBody = Compile(_graph.Bodies[called], next, Handed(called, following));
 
 						_flatInstance = parent;
 
@@ -3211,7 +3243,7 @@ sealed partial class Machine
 					// is no use inside — the same crossing FollowSets makes at a call it
 					// does not inline.
 					var outerSeam = _seam;
-					var handed    = following;
+					var handed    = Handed(rule, following);
 
 					_seam = FollowSets.SeamOf(rule, _graph);
 
@@ -3703,161 +3735,24 @@ sealed partial class Machine
 				return opened;
 			}
 
-			case Node.Atomic(var body):
+			case Node.Atomic atomic:
 			{
-				// A committed choice whose tails read nothing — the fold's residue, where
-				// past the shared operand the alternatives differ in which factory runs
-				// and not in what the text says. Compiled as the decision it is: each
-				// guard is evaluated where it stands and the first tail to pass is taken,
-				// with a refused guard falling to the tail behind it. No choice entry, no
-				// atomic boundary, no commit walk — nothing is written that a commit
-				// would have to put out, which is the whole of what the braces meant.
-				if (body is Node.Choice(var decided) { Selection: null } && decided.Count > 1 &&
-					decided.All(Weightless))
+				// Over kinds, inside a group whose owner does not give back, a rule marked `?` the
+				// contents call is handed the group's stop whether it is called or inlined (Handed).
+				var committing = OverKinds && !Commits(node);
+
+				if (committing)
+					_committing++;
+
+				try
 				{
-					var chosen = Compile(decided[decided.Count - 1], next, following);
-
-					for (var at = decided.Count - 2; at >= 0; at--)
-					{
-						var saved = _fail;
-
-						_fail  = chosen;
-						chosen = Compile(decided[at], next, following);
-						_fail  = saved;
-					}
-
-					return chosen;
+					return CompileAtomic(atomic, next, following);
 				}
-
-				// First-match-commits held in locals: each alternative is tried through
-				// the give-back door, and the first that matches is final. The same test
-				// `Silent`'s own Atomic case asks, so the two agree.
-				if (body is Node.Choice(var options) { Selection: null }
-					? AllSilent(options, following, sequence: false)
-					: Silent(body, following))
+				finally
 				{
-					// No pending site may open inside: the chain's doors are where a
-					// failure goes here, and a way back they jumped past would stand
-					// armed for ever. The same flag `Silent`'s Atomic case put down.
-					var checkpoints = _checkpointsAllowed;
-
-					_checkpointsAllowed = false;
-
-					if (body is not Node.Choice(var tried) || tried.Count == 1)
-					{
-						var kept = Compile(body is Node.Choice(var only) ? only[0] : body, next, following);
-
-						_checkpointsAllowed = checkpoints;
-
-						return kept;
-					}
-
-					var mine  = _depth++;
-					var doors = false;
-
-					// Built back to front: the last alternative fails outward, and each
-					// earlier one fails into the door that rewinds and tries the next —
-					// unless it fails where it began, in which case the next alternative
-					// is the failure target directly. A capture a failed alternative
-					// opened is unset on the way through.
-					var target = Compile(tried[tried.Count - 1], next, following);
-
-					for (var at = tried.Count - 2; at >= 0; at--)
-					{
-						List<string>? undone = null;
-
-						if (_valuesInLocals)
-							foreach (var descendant in NodeWalk.Descendants(tried[at]))
-								if (descendant is Node.Capture)
-									(undone ??= []).Add(
-										$"flat{_flatInstance}_{_captureSlots[descendant]}Start");
-
-						var saved  = _fail;
-						var direct = undone is null && FailsWhereItBegan(tried[at]);
-
-						if (!direct)
-							doors = true;
-
-						_fail  = direct ? target : GiveBack(target, mine, out _, undone, tried[at]);
-						target = Compile(tried[at], next, following);
-						_fail  = saved;
-					}
-
-					var entered = Reserve(out var atEnter);
-
-					// Declared wherever it is written, and not only where a door reads it: an
-					// alternative after one that cannot fail is never tried, so its door is never
-					// written, and the local this line sets went undeclared (CS0103).
-					if (doors)
-					{
-						atEnter.Line($"turn{mine} = p;");
-
-						_turns.Add((mine, entered));
-					}
-					atEnter.Line($"goto {Label(atEnter, target)};");
-
-					_depth = mine;
-					_checkpointsAllowed = checkpoints;
-
-					return entered;
+					if (committing)
+						_committing--;
 				}
-
-				var commit = Reserve(out var atCommit);
-				var inner  = Compile(body, commit, following);
-				var state  = Reserve(out var writer);
-
-				writer.Line("var atomicIndex = entries.Count;");
-				writer.Line("entries.Add(new ParserEntry(ParserEntry.Atomic, 0, p, call, atomic, repeat, lookahead, 0));");
-				writer.Line("atomic = atomicIndex;");
-				writer.Line($"Step_DotGram(\"enter atomic\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
-				writer.Line($"goto {Label(writer, inner)};");
-
-				atCommit.Line("global::System.Diagnostics.Debug.Assert(atomic >= 0 && atomic < entries.Count);");
-				atCommit.Line("var boundary = entries[atomic];");
-				atCommit.Line("global::System.Diagnostics.Debug.Assert(boundary.Kind == ParserEntry.Atomic);");
-
-				// The arena holds two unlike things — where the parse could return to, and
-				// what it recognised on the way — and committing is about the first only.
-				// Taking the length off the end took both, which is why a capture written
-				// inside `{ … }` did not come out of it.
-				//
-				// Where the group recognised nothing worth keeping, the length still comes
-				// off: nothing above the boundary is named by anything below it, and a group
-				// under a repetition would otherwise leave its entries behind on every turn.
-				// Where it did, the ways back are put out and everything stays where it is,
-				// because an entry's index is its name — a capture of a rule's value names
-				// the entry the call completed into — and closing the gaps would rename them.
-				if (KeepsRecords(body))
-				{
-					_usesDead = true;
-
-					using (atCommit.Block("for (var back = entries.Count - 1; back > atomic; back--)"))
-					{
-						atCommit.Line("var inside = entries[back];");
-						atCommit.Line(
-							"if (inside.Kind != ParserEntry.Choice && inside.Kind != ParserEntry.Run && " +
-							"inside.Kind != ParserEntry.Lookahead) continue;");
-						atCommit.Line(
-							"entries[back] = new ParserEntry(ParserEntry.Dead, inside.State, inside.Position, " +
-							"inside.CallIndex, inside.AtomicIndex, inside.RepeatIndex, inside.LookaheadIndex, " +
-							"inside.Value);");
-					}
-				}
-				else
-				{
-					if (Caches)
-						atCommit.Line("parser.Truncate(atomic, entries);");
-
-					atCommit.Line("entries.RemoveRange(atomic, entries.Count - atomic);");
-				}
-
-				atCommit.Line("atomic = boundary.AtomicIndex;");
-				atCommit.Line("repeat = boundary.RepeatIndex;");
-				atCommit.Line("lookahead = boundary.LookaheadIndex;");
-				atCommit.Line($"Step_DotGram(\"commit\", {Mark(Lands, next)}, p, entries.Count{Traced});");
-				atCommit.Line($"goto {Label(atCommit, next)};");
-
-				return state;
 			}
 
 			case Node.Repeat repeat:
@@ -5948,6 +5843,173 @@ sealed partial class Machine
 		_checkpointsAllowed = checkpoints;
 
 		return target;
+	}
+
+	/// <summary>The states of an atomic group: <see cref="Compile"/>'s Atomic case.</summary>
+	int CompileAtomic(Node.Atomic node, int next, FollowSets.Continuation following)
+	{
+		var body = node.Body;
+
+		// What the contents are followed by: the group's continuation, which commits
+		// the first reading and so never asks the contents back for another
+		// (Continuation.Committed) — the same view FollowSets hands a rule called inside
+		// the braces, and Silent's own Atomic case asks of (Commits).
+		var inside = Commits(node) ? following.Committed() : following;
+
+		// A committed choice whose tails read nothing — the fold's residue, where
+		// past the shared operand the alternatives differ in which factory runs
+		// and not in what the text says. Compiled as the decision it is: each
+		// guard is evaluated where it stands and the first tail to pass is taken,
+		// with a refused guard falling to the tail behind it. No choice entry, no
+		// atomic boundary, no commit walk — nothing is written that a commit
+		// would have to put out, which is the whole of what the braces meant.
+		if (body is Node.Choice(var decided) { Selection: null } && decided.Count > 1 &&
+			decided.All(Weightless))
+		{
+			var chosen = Compile(decided[decided.Count - 1], next, inside);
+
+			for (var at = decided.Count - 2; at >= 0; at--)
+			{
+				var saved = _fail;
+
+				_fail  = chosen;
+				chosen = Compile(decided[at], next, inside);
+				_fail  = saved;
+			}
+
+			return chosen;
+		}
+
+		// First-match-commits held in locals: each alternative is tried through
+		// the give-back door, and the first that matches is final. The same test
+		// `Silent`'s own Atomic case asks, so the two agree.
+		if (body is Node.Choice(var options) { Selection: null }
+			? AllSilent(options, inside, sequence: false)
+			: Silent(body, inside))
+		{
+			// No pending site may open inside: the chain's doors are where a
+			// failure goes here, and a way back they jumped past would stand
+			// armed for ever. The same flag `Silent`'s Atomic case put down.
+			var checkpoints = _checkpointsAllowed;
+
+			_checkpointsAllowed = false;
+
+			if (body is not Node.Choice(var tried) || tried.Count == 1)
+			{
+				var kept = Compile(body is Node.Choice(var only) ? only[0] : body, next, inside);
+
+				_checkpointsAllowed = checkpoints;
+
+				return kept;
+			}
+
+			var mine  = _depth++;
+			var doors = false;
+
+			// Built back to front: the last alternative fails outward, and each
+			// earlier one fails into the door that rewinds and tries the next —
+			// unless it fails where it began, in which case the next alternative
+			// is the failure target directly. A capture a failed alternative
+			// opened is unset on the way through.
+			var target = Compile(tried[tried.Count - 1], next, inside);
+
+			for (var at = tried.Count - 2; at >= 0; at--)
+			{
+				List<string>? undone = null;
+
+				if (_valuesInLocals)
+					foreach (var descendant in NodeWalk.Descendants(tried[at]))
+						if (descendant is Node.Capture)
+							(undone ??= []).Add(
+								$"flat{_flatInstance}_{_captureSlots[descendant]}Start");
+
+				var saved  = _fail;
+				var direct = undone is null && FailsWhereItBegan(tried[at]);
+
+				if (!direct)
+					doors = true;
+
+				_fail  = direct ? target : GiveBack(target, mine, out _, undone, tried[at]);
+				target = Compile(tried[at], next, inside);
+				_fail  = saved;
+			}
+
+			var entered = Reserve(out var atEnter);
+
+			// Declared wherever it is written, and not only where a door reads it: an
+			// alternative after one that cannot fail is never tried, so its door is never
+			// written, and the local this line sets went undeclared (CS0103).
+			if (doors)
+			{
+				atEnter.Line($"turn{mine} = p;");
+
+				_turns.Add((mine, entered));
+			}
+			atEnter.Line($"goto {Label(atEnter, target)};");
+
+			_depth = mine;
+			_checkpointsAllowed = checkpoints;
+
+			return entered;
+		}
+
+		var commit = Reserve(out var atCommit);
+		var inner  = Compile(body, commit, inside);
+		var state  = Reserve(out var writer);
+
+		writer.Line("var atomicIndex = entries.Count;");
+		writer.Line("entries.Add(new ParserEntry(ParserEntry.Atomic, 0, p, call, atomic, repeat, lookahead, 0));");
+		writer.Line("atomic = atomicIndex;");
+		writer.Line($"Step_DotGram(\"enter atomic\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
+		writer.Line($"goto {Label(writer, inner)};");
+
+		atCommit.Line("global::System.Diagnostics.Debug.Assert(atomic >= 0 && atomic < entries.Count);");
+		atCommit.Line("var boundary = entries[atomic];");
+		atCommit.Line("global::System.Diagnostics.Debug.Assert(boundary.Kind == ParserEntry.Atomic);");
+
+		// The arena holds two unlike things — where the parse could return to, and
+		// what it recognised on the way — and committing is about the first only.
+		// Taking the length off the end took both, which is why a capture written
+		// inside `{ … }` did not come out of it.
+		//
+		// Where the group recognised nothing worth keeping, the length still comes
+		// off: nothing above the boundary is named by anything below it, and a group
+		// under a repetition would otherwise leave its entries behind on every turn.
+		// Where it did, the ways back are put out and everything stays where it is,
+		// because an entry's index is its name — a capture of a rule's value names
+		// the entry the call completed into — and closing the gaps would rename them.
+		if (KeepsRecords(body))
+		{
+			_usesDead = true;
+
+			using (atCommit.Block("for (var back = entries.Count - 1; back > atomic; back--)"))
+			{
+				atCommit.Line("var inside = entries[back];");
+				atCommit.Line(
+					"if (inside.Kind != ParserEntry.Choice && inside.Kind != ParserEntry.Run && " +
+					"inside.Kind != ParserEntry.Lookahead) continue;");
+				atCommit.Line(
+					"entries[back] = new ParserEntry(ParserEntry.Dead, inside.State, inside.Position, " +
+					"inside.CallIndex, inside.AtomicIndex, inside.RepeatIndex, inside.LookaheadIndex, " +
+					"inside.Value);");
+			}
+		}
+		else
+		{
+			if (Caches)
+				atCommit.Line("parser.Truncate(atomic, entries);");
+
+			atCommit.Line("entries.RemoveRange(atomic, entries.Count - atomic);");
+		}
+
+		atCommit.Line("atomic = boundary.AtomicIndex;");
+		atCommit.Line("repeat = boundary.RepeatIndex;");
+		atCommit.Line("lookahead = boundary.LookaheadIndex;");
+		atCommit.Line($"Step_DotGram(\"commit\", {Mark(Lands, next)}, p, entries.Count{Traced});");
+		atCommit.Line($"goto {Label(atCommit, next)};");
+
+		return state;
+	
 	}
 
 	int CompileRepeat(Node.Repeat repeatNode, int next, FollowSets.Continuation following)
