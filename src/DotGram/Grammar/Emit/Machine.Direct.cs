@@ -422,7 +422,8 @@ sealed partial class Machine
 		var layout = CaptureLayout.Of(
 			_graph.Bodies[rule],
 			other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other),
-			_graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null);
+			_graph.Folds.TryGetValue(rule, out var fold) ? fold.Loop : null,
+			_graph.LiftedBody);
 		var before  = layout.Before(guard);
 		var visible = new List<(ResultMember, IReadOnlyList<int>)>();
 

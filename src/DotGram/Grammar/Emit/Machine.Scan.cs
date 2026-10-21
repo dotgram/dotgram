@@ -172,6 +172,12 @@ sealed partial class Machine
 	/// </remarks>
 	bool Scans(RuleSymbol rule, Node body)
 	{
+		// Not a rule lifted out of a marked repetition (§8.2): its body is a repetition marked
+		// `recover`, which a scanner, committing to what it reads and recording nothing, would read
+		// as a plain one.
+		if (_graph.Lifted.ContainsKey(rule))
+			return false;
+
 		if (body is Node.Atomic(var kept))
 			return !KeepsRecords(kept) && Scannable(kept, FirstSets.First.None);
 
