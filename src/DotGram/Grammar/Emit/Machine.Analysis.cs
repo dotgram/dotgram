@@ -164,8 +164,8 @@ sealed partial class Machine
 			// matches is final — nothing ever comes back, which is what "atomic" says.
 			// The alternatives may share prefixes freely; what each must be is silent.
 			Node.Atomic(var kept) => kept is Node.Choice(var options) { Selection: null }
-														  ? AllSilentWithin(options, following)
-														  : SilentWithin(kept, following),
+														  ? AllSilentWithin(options, following.Committed())
+														  : SilentWithin(kept, following.Committed()),
 
 			_ => false,
 		};
