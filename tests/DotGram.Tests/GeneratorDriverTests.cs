@@ -2940,6 +2940,83 @@ public sealed class GeneratorDriverTests
 			Assembly.Load(stream.ToArray()));
 	}
 
+	// ── Below the C# a parser is written in ─────────────────────────────────────────
+
+	/// <summary>
+	/// A project at C# 7.3 — the default for netstandard2.0 and .NET Framework — that has the
+	/// generator without writing a <c>[Gram]</c>, as a library does when something it references
+	/// carries the package: it gets the attributes, and they compile there.
+	/// </summary>
+	[Fact]
+	public void A_project_below_C_sharp_8_without_a_grammar_builds_clean()
+	{
+		var (diagnostics, generated, errors) = BuiltBelowTheFloor("public class Plain { public int One; }");
+
+		Assert.Empty(diagnostics);
+		Assert.All(generated, static hint => Assert.True(IsSupport(hint), hint));
+		Assert.Empty(errors);
+	}
+
+	/// <summary>
+	/// And one that does write a <c>[Gram]</c> is told once, at the first, which version it needs —
+	/// no parser, and none of the compiler errors a parser written above its version would raise.
+	/// </summary>
+	[Fact]
+	public void A_grammar_below_C_sharp_8_is_one_error_at_the_first_host()
+	{
+		// A verbatim string and not a raw one, which is C# 11.
+		var (diagnostics, generated, errors) = BuiltBelowTheFloor(
+			"""
+			using DotGram;
+
+			[Gram(@"
+				Start = 'a'+
+				parse Start
+				")]
+			public partial class First { }
+
+			[Gram(@"
+				Start = 'b'+
+				parse Start
+				")]
+			public partial class Second { }
+			""");
+
+		var only = Assert.Single(diagnostics);
+
+		Assert.Equal("GRAM0010", only.Id);
+		Assert.Equal(DiagnosticSeverity.Error, only.Severity);
+		Assert.Equal(
+			"The generated parser needs C# 8 or later; this project compiles C# 7.3. Set <LangVersion>8.0</LangVersion> or later.",
+			only.GetMessage(System.Globalization.CultureInfo.InvariantCulture));
+		Assert.Equal(2, only.Location.GetLineSpan().StartLinePosition.Line);
+		Assert.All(generated, static hint => Assert.True(IsSupport(hint), hint));
+		Assert.Empty(errors);
+	}
+
+	/// <summary>The generator's diagnostics, the hints it wrote, and the errors and warnings of what it built, at C# 7.3.</summary>
+	static (ImmutableArray<Diagnostic> Diagnostics, string[] Generated, Diagnostic[] Errors) BuiltBelowTheFloor(string source)
+	{
+		var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.CSharp7_3);
+
+		var compilation = CSharpCompilation.Create(
+			"DotGram.Tests.BelowTheFloor",
+			[CSharpSyntaxTree.ParseText(source, parseOptions, "Hosts.cs")],
+			GetMetadataReferences(),
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+
+		var run = CSharpGeneratorDriver
+			.Create([new GramGenerator().AsSourceGenerator()], parseOptions: parseOptions)
+			.RunGeneratorsAndUpdateCompilation(compilation, out var output, out _, TestContext.Current.CancellationToken)
+			.GetRunResult();
+
+		return (
+			run.Diagnostics,
+			[.. run.Results.SelectMany(static result => result.GeneratedSources).Select(static generated => generated.HintName)],
+			[.. output.GetDiagnostics(TestContext.Current.CancellationToken)
+				.Where(static diagnostic => diagnostic.Severity is DiagnosticSeverity.Error or DiagnosticSeverity.Warning)]);
+	}
+
 	// ── Where a C# error lands (§7.6) ────────────────────────────────────────────
 
 	[Fact]
