@@ -303,6 +303,20 @@ public sealed class BuildEqualTests
 		Assert.Same(insensitive ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal, probed);
 	}
 
+	/// <summary>Threads asking at once about one folder get one answer from one probe, which leaves nothing behind.</summary>
+	[Fact]
+	public void The_output_folder_is_probed_once_however_many_ask()
+	{
+		using var scratch = new Scratch();
+
+		Directory.CreateDirectory(scratch.Path("out"));
+
+		var answers = Enumerable.Range(0, 64).AsParallel().WithDegreeOfParallelism(16).Select(_ => FileSystem.NamesIn(scratch.Path("out"))).ToList();
+
+		Assert.All(answers, answer => Assert.Same(answers[0], answer));
+		Assert.Empty(Directory.GetFileSystemEntries(scratch.Path("out")));
+	}
+
 	/// <summary>On a file system that tells case apart, Model.cs and model.cs are two files, and both are compiled.</summary>
 	[Fact]
 	public void Two_files_differing_in_case_are_both_compiled()
