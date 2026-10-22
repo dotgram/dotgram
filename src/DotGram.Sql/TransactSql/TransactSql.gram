@@ -853,14 +853,13 @@ TSqlTrimSpecification = ("LEADING"i | "TRAILING"i | "BOTH"i) & when Version is S
 // answers `OVER (w)` with `Incorrect syntax` at every level, and reads `OVER w` and
 // `OVER (w ORDER BY c)`. A `WINDOW` clause's own definitions may be a name alone —
 // `w2 AS (w1)` reads — so the refusal is this rule's and not the specification's.
+//
+// The window is told the place of the whole `OVER`, the keyword with the name or the brackets after
+// it, as the standard's reading tells it: the one in brackets is a copy, since a rule that hands on
+// what another built leaves it where that one put it.
 Over : @Build.Clause.Window
-	= "OVER"i & '(' & ?!(WindowName & ')') & w: WindowSpecification & ')' => @(w)
-	| "OVER"i & w: NamedWindow => @(w)
-
-// A window named and nothing else: a rule of its own, so that the window it builds is told the
-// name's place and not the `OVER` in front of it, as a window written out in brackets is.
-NamedWindow : @Build.Clause.Window
-	= only: TSqlIdentifier => @(new Build.Clause.Window(only, Build.Values.None, null, null))
+	= "OVER"i & '(' & ?!(WindowName & ')') & w: WindowSpecification & ')' => @(w with { })
+	| "OVER"i & only: TSqlIdentifier => @(new Build.Clause.Window(only, Build.Values.None, null, null))
 
 // SQL:2003's <window specification>: the window it is built on, the partition, the order,
 // the frame — each optional, in that order. What `OVER (…)` holds, and what a `WINDOW`
