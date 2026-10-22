@@ -628,7 +628,13 @@ public static partial class CSharpEmitter
 			using (file.Block(perCall.Declared
 				? $"static partial class {perCall.Facade}"
 				: $"public static partial class {perCall.Facade}"))
+			{
+				results.Facade = perCall.Facade;
+
 				Publish(true);
+
+				results.Facade = null;
+			}
 
 			file.Line();
 		}
