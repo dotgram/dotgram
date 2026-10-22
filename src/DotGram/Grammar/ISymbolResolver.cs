@@ -116,6 +116,13 @@ public interface ISymbolResolver
 	/// cannot be sure answers no, which keeps the cast.
 	/// </remarks>
 	bool IsReferenceType(string qualifiedName);
+
+	/// <summary>Whether this is the framework's <c>System.Nullable&lt;T&gt;</c>, as the name is spelled.</summary>
+	/// <remarks>
+	/// Asked for a declared type spelled <c>Nullable&lt;…&gt;</c>, which may as well be a class of the
+	/// grammar's own with that name. A resolver that cannot be sure answers no.
+	/// </remarks>
+	bool IsNullable(string qualifiedName);
 }
 
 /// <summary>What asking about an external recognizer's value overload found.</summary>
@@ -271,6 +278,11 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 	}
 
 	/// <remarks>No, which keeps the cast a struct needs: without a host nothing says which the type is.</remarks>
+	public bool IsNullable(string qualifiedName)
+	{
+		return false;
+	}
+
 	public bool IsReferenceType(string qualifiedName)
 	{
 		return false;

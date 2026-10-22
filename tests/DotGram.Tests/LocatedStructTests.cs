@@ -123,6 +123,52 @@ public sealed class LocatedStructTests
 		Assert.DoesNotContain(GeneratorDriverTests.RunGenerator(source).Diagnostics, static one => one.Id == "GRAM4046");
 
 		// And it compiles.
-		Assert.NotNull(GeneratorDriverTests.Build(source));
+		Assert.NotNull(GeneratorDriverTests.Build(source, permittedWarning: "GRAM5004"));
+	}
+
+	/// <summary>
+	/// A class of the grammar's own that happens to be called <c>Nullable</c> is a class: only the
+	/// framework's is refused.
+	/// </summary>
+	[Fact]
+	public void A_class_named_Nullable_is_located_as_any_class_is()
+	{
+		var source = $$""""
+			using DotGram;
+
+			namespace LocatedStructProbe
+			{
+				{{Types}}
+
+				public sealed class Nullable<T> : ILoc
+				{
+					public int At = -1;
+
+					public void Locate(int at, int length)
+					{
+						At = at;
+					}
+
+					public void Locate(int at, int length, int gapStart)
+					{
+						At = at;
+					}
+				}
+
+				[Gram("""
+					using Std;
+
+					Start : @Nullable<Mark> = Identifier => @(new Nullable<Mark>())
+
+					parse Start
+					""", Lexical = true, LocationType = typeof(ILoc))]
+				public static partial class P
+				{
+				}
+			}
+			"""";
+
+		Assert.DoesNotContain(GeneratorDriverTests.RunGenerator(source).Diagnostics, static one => one.Id == "GRAM4046");
+		Assert.NotNull(GeneratorDriverTests.Build(source, permittedWarning: "GRAM5004"));
 	}
 }
