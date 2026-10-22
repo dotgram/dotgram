@@ -384,17 +384,23 @@ public sealed partial class GrammarNormalizer
 	void CheckLocatedAreNotNullable(
 		IReadOnlyCollection<RuleSymbol> located, ISymbolResolver? resolver, IReadOnlyList<string> imports)
 	{
-		bool IsNullable(string type)
+		// The first spelling that names a type at all decides, the way C# binds the name in the
+		// generated file: a class of the grammar's own called Nullable is what a bare name means,
+		// beside a using of System (as in ReferenceTypes).
+		bool IsNullable(string type, string? definition)
 		{
 			if (resolver is null)
 				return false;
 
-			if (resolver.IsNullable(type))
-				return true;
+			if (definition is null)
+				return resolver.IsNullable(type) || imports.Any(import => resolver.IsNullable(import + "." + type));
+
+			if (resolver.TypeExists(definition))
+				return resolver.IsNullable(type);
 
 			foreach (var import in imports)
-				if (resolver.IsNullable(import + "." + type))
-					return true;
+				if (resolver.TypeExists(import + "." + definition))
+					return resolver.IsNullable(import + "." + type);
 
 			return false;
 		}
@@ -405,7 +411,8 @@ public sealed partial class GrammarNormalizer
 				continue;
 
 			// By what the host says the name is: a class of the grammar's own may be called Nullable.
-			if (!type.EndsWith("?", StringComparison.Ordinal) && !IsNullable(type))
+			if (!type.EndsWith("?", StringComparison.Ordinal) &&
+				!IsNullable(type, declaration.Type is { IsCSharp: true } written ? written.Definition : null))
 				continue;
 
 			Report(

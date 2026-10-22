@@ -130,8 +130,10 @@ public sealed class LocatedStructTests
 	/// A class of the grammar's own that happens to be called <c>Nullable</c> is a class: only the
 	/// framework's is refused.
 	/// </summary>
-	[Fact]
-	public void A_class_named_Nullable_is_located_as_any_class_is()
+	[Theory]
+	[InlineData("")]
+	[InlineData("@using System;")]
+	public void A_class_named_Nullable_is_located_as_any_class_is(string import)
 	{
 		var source = $$""""
 			using DotGram;
@@ -157,6 +159,7 @@ public sealed class LocatedStructTests
 
 				[Gram("""
 					using Std;
+					{{import}}
 
 					Start : @Nullable<Mark> = Identifier => @(new Nullable<Mark>())
 
