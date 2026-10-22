@@ -368,7 +368,7 @@ public sealed partial class GrammarNormalizer
 			handed = handed[1..^1].Trim();
 
 		foreach (var c in handed)
-			if (!char.IsLetterOrDigit(c) && c != '_')
+			if (!UnicodeCategories.IsLetterOrDigit(c) && c != '_')
 				return null;
 
 		return handed.Length == 0 ? null : handed;

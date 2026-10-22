@@ -267,11 +267,11 @@ public sealed partial class GrammarNormalizer
 
 	static bool IsIdentifierStart(char c)
 	{
-		return char.IsLetter(c) || c == '_';
+		return UnicodeCategories.IsLetter(c) || c == '_';
 	}
 
 	static bool IsIdentifierPart(char c)
 	{
-		return char.IsLetterOrDigit(c) || c == '_';
+		return UnicodeCategories.IsLetterOrDigit(c) || c == '_';
 	}
 }
