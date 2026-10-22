@@ -118,7 +118,7 @@ public sealed class GrammarBinder
 	/// </summary>
 	public static readonly string[] BuiltIn =
 
-		["any", "none", "eol", "eof", "trivia", "word", "wordboundary"];
+		["any", "none", "eol", "eof", "eos", "trivia", "word", "wordboundary"];
 
 	const string TriviaRule = "trivia";
 

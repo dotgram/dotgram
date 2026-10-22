@@ -193,7 +193,8 @@ public sealed partial class GrammarNormalizer
 
 		var normalizer = new GrammarNormalizer(model, resolver ?? PermissiveSymbolResolver.Instance)
 		{
-			_scanner = scanner,
+			_scanner    = scanner,
+			_segmented  = NamesEndOfSegment(model),
 		};
 
 		normalizer.Collect(model.Root);
@@ -292,6 +293,7 @@ public sealed partial class GrammarNormalizer
 		normalizer.BuildByConstructor();
 
 		normalizer.Check();
+		normalizer.CheckSegmentedText();
 
 		// After the checks, which read the grammar as it was written, and before the fold, which
 		// then sees each turn begin past the seam, as every analysis after it does: the same
@@ -329,6 +331,11 @@ public sealed partial class GrammarNormalizer
 
 		var located = Locating(normalizer, resolver, locationType, Imports(model.Root));
 
+		// Last, so that every check above said what the author named: a grammar that names `eos`
+		// publishes its forms over text under names of their own, read through those over segments.
+		if (normalizer._segmented)
+			normalizer._publications = [.. normalizer._publications.Select(static publication => publication with { Joined = true })];
+
 		normalizer.CheckLocatedAreNotNullable(located, resolver, Imports(model.Root));
 
 		return new RecognitionGraph(
@@ -359,6 +366,7 @@ public sealed partial class GrammarNormalizer
 			FreeNames  = FreeNames(normalizer._bodies.Values, scanner),
 			WhenSound  = normalizer._whenSound,
 			Located    = located,
+			Segmented  = normalizer._segmented,
 
 			// The declared types the host vouches for as classes, for the one cast the emitter writes by kind.
 			ReferenceTypes = ReferenceTypes(normalizer, resolver, model.Root, Imports(model.Root)),

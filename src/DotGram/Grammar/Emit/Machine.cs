@@ -7465,8 +7465,17 @@ sealed partial class Machine
 	{
 		switch (node)
 		{
+			case Node.Literal or Node.Element when _graph.Segmented && Unjoined(node) is { } spoken:
+				foreach (var one in spoken)
+					Add(one);
+				break;
+
 			case Node.Literal or Node.Element or Node.External:
 				Add(node.ToString());
+				break;
+
+			case Node.Call({ IsBuiltIn: true, Name: "eos" }, _):
+				Add(EndOfSegmentSaid);
 				break;
 
 			// By the name the author gave it: a publication's `with` reads a clone of the rule, and
@@ -7994,6 +8003,50 @@ sealed partial class Machine
 
 	/// <summary>How a refusal says the end of the input: <c>eof</c> is the grammar's word for it, not a reader's.</summary>
 	const string EndOfInputSaid = "end of input";
+
+	/// <summary>How a refusal says the end of a segment, which a grammar that names <c>eos</c> reads as the joiner.</summary>
+	const string EndOfSegmentSaid = "end of segment";
+
+	/// <summary>
+	/// What a literal or a class is said as in a grammar that names <c>eos</c>, where it holds the
+	/// joiner (GrammarNormalizer.Joiner); null where it does not. The joiner is the end of a
+	/// segment and no character: <c>eos</c>'s own literal is said as that, a class that takes it is
+	/// said as the rest of it and the end of a segment, and one that refuses it as though it were
+	/// not there, which is how the grammar wrote it.
+	/// </summary>
+	static IReadOnlyList<string>? Unjoined(Node node)
+	{
+		const char joiner = GrammarNormalizer.Joiner;
+
+		switch (node)
+		{
+			case Node.Literal(var text) when text.Length == 1 && text[0] == joiner:
+				return [EndOfSegmentSaid];
+
+			case Node.Element element when element.Ranges.Any(static range => range.From <= joiner && joiner <= range.To):
+			{
+				var ranges = new List<CharRange>();
+
+				foreach (var range in element.Ranges)
+					if (range.From > joiner || range.To < joiner)
+						ranges.Add(range);
+					else if (range.To > joiner)
+						ranges.Add(new CharRange((char)(joiner + 1), range.To));
+
+				var rest = element with { Ranges = ranges };
+
+				if (element.IsNegated)
+					return [rest.ToString()];
+
+				return ranges.Count > 0 || element.Categories.Count > 0 || element.References.Count > 0
+					? [rest.ToString(), EndOfSegmentSaid]
+					: [EndOfSegmentSaid];
+			}
+
+			default:
+				return null;
+		}
+	}
 
 	/// <summary>One item of what was expected, as a refusal says it.</summary>
 	/// <remarks>
