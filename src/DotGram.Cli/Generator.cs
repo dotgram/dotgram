@@ -33,9 +33,6 @@ sealed class GeneratorOutput
 	/// <summary>The name of every type the generated files declare, nested ones included.</summary>
 	public required ImmutableHashSet<string> GeneratedTypeNames { get; init; }
 
-	/// <summary>The generated trees in <see cref="Updated"/>.</summary>
-	public required ImmutableArray<SyntaxTree> Generated { get; init; }
-
 	/// <summary>Every identifier in a type name some grammar asks the compilation about.</summary>
 	public required ImmutableHashSet<string> AskedTypeNames { get; init; }
 
@@ -94,8 +91,6 @@ static class Generator
 				files.Add(source.HintName, text);
 		}
 
-		var generated = result.GeneratedSources.Select(static source => source.SyntaxTree).ToHashSet();
-
 		return new GeneratorOutput
 		{
 			Files          = files,
@@ -104,7 +99,6 @@ static class Generator
 			Input          = compilation,
 			Updated        = updated,
 			GeneratedTypeNames = DeclaredTypeNames(result.GeneratedSources.Select(static source => source.SyntaxTree)),
-			Generated      = [.. updated.SyntaxTrees.Where(generated.Contains)],
 			AskedTypeNames = AskedTypeNames(result),
 			Elapsed        = clock.Elapsed,
 		};
