@@ -135,8 +135,8 @@ public static partial class CSharpEmitter
 		file.Line();
 
 		EmitOverLines(
-			file, AccessOf(publication), $"global::System.Collections.Generic.IEnumerable<{match}>", method,
-			results.MemberOf(method), name, takes);
+			file, PublishedAccess(publication), $"global::System.Collections.Generic.IEnumerable<{match}>",
+			publication.Joined ? publication.MethodName : method, results.MemberOf(method), name, takes, publication.Joined);
 	}
 
 	/// <summary>
@@ -147,15 +147,31 @@ public static partial class CSharpEmitter
 	/// back. Written out rather than left to the caller so that <c>File.ReadLines</c> and
 	/// a <c>List&lt;string&gt;</c> are as ordinary an input as a string is.
 	/// </remarks>
+	/// <param name="segments">
+	/// Whether the grammar names <c>eos</c>, so that the lines are its segments, each read with the
+	/// end of a segment after it, and the method is the only form the publication streams in.
+	/// </param>
 	static void EmitOverLines(
-		Writer file, string access, string returns, string method, string called, string name, string takes = "")
+		Writer file, string access, string returns, string method, string called, string name, string takes = "",
+		bool segments = false)
 	{
-		file.Line($"/// <summary>The same, over a sequence of lines (docs/syntax.md §6.3).</summary>");
-		file.Line("/// <remarks>");
-		file.Line("/// The lines are read as though they were a file, with a newline put back on the");
-		file.Line($"/// end of each: a sequence of lines has had its terminators taken off, and <c>{name}</c>");
-		file.Line("/// may well be looking for one.");
-		file.Line("/// </remarks>");
+		if (segments)
+		{
+			file.Line($"/// <summary>Reads <c>{name}</c> from a sequence of segments, as they are asked for (docs/syntax.md §6.3).</summary>");
+			file.Line("/// <remarks>");
+			file.Line("/// Each segment is read with the end of a segment after it, which <c>eos</c> matches; a");
+			file.Line("/// segment that holds U+0000 throws a <see cref=\"global::System.FormatException\"/> when it is reached.");
+			file.Line("/// </remarks>");
+		}
+		else
+		{
+			file.Line($"/// <summary>The same, over a sequence of lines (docs/syntax.md §6.3).</summary>");
+			file.Line("/// <remarks>");
+			file.Line("/// The lines are read as though they were a file, with a newline put back on the");
+			file.Line($"/// end of each: a sequence of lines has had its terminators taken off, and <c>{name}</c>");
+			file.Line("/// may well be looking for one.");
+			file.Line("/// </remarks>");
+		}
 
 		using (file.Block(
 			$"{access} static {returns} {method}(" +
@@ -257,15 +273,15 @@ public static partial class CSharpEmitter
 		// whose body runs at the first MoveNext.
 		if (tracing is not null)
 		{
-			using (file.Block($"{AccessOf(publication)} static {returns} {publication.MethodName}(global::System.IO.TextReader input{takes})"))
-				file.Line($"return {publication.MethodName}_DotGram(input{context}, Tracing_DotGram.Value);");
+			using (file.Block($"{AccessOf(publication)} static {returns} {publication.EmittedName}(global::System.IO.TextReader input{takes})"))
+				file.Line($"return {publication.EmittedName}_DotGram(input{context}, Tracing_DotGram.Value);");
 
 			file.Line();
 		}
 
 		using (file.Block(tracing is null
-			? $"{AccessOf(publication)} static {returns} {publication.MethodName}(global::System.IO.TextReader input{takes})"
-			: $"static {returns} {publication.MethodName}_DotGram(global::System.IO.TextReader input{takes}, GramTrace? trace)"))
+			? $"{AccessOf(publication)} static {returns} {publication.EmittedName}(global::System.IO.TextReader input{takes})"
+			: $"static {returns} {publication.EmittedName}_DotGram(global::System.IO.TextReader input{takes}, GramTrace? trace)"))
 		{
 			file.Line($"var window = new {WindowType}(input, {WindowSize});");
 			file.Line("var start  = 0;");
@@ -643,12 +659,13 @@ public static partial class CSharpEmitter
 
 		EmitOverLines(
 			file,
-			AccessOf(publication),
+			PublishedAccess(publication),
 			$"global::System.Collections.Generic.IEnumerable<{element}>",
 			publication.MethodName,
-			results.MemberOf(publication.MethodName),
+			results.MemberOf(publication.EmittedName),
 			publication.Rule.Name,
-			takes);
+			takes,
+			publication.Joined);
 	}
 
 	static string Comment(Stage stage)

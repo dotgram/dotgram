@@ -152,7 +152,7 @@ $q                      the same text again (a back-reference)
 X{#q}  X{#q,}  X{n,#q}  repeat X by the length of q
 ```
 
-Seven rules exist without being declared, and any of them may be shadowed by declaring
+Eight rules exist without being declared, and any of them may be shadowed by declaring
 one of that name:
 
 ```dotgram
@@ -160,6 +160,8 @@ any             one input item, whatever it is; fails only where there is none l
 none            zero items — always succeeds, consumes nothing
 eol             one line ending: "\r\n" | "\n" | "\r", CRLF first
 eof             the end of input
+eos             the end of a segment: a grammar that names it reads a sequence of
+                strings (arguments, lines) and is published over sequences only
 trivia          empty by default (below)
 wordboundary    empty by default: what continues a word, for keyword boundaries
 word            one whole word, whatever `wordboundary` says a word is

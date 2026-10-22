@@ -377,6 +377,17 @@ public sealed record Publication(
 	/// </remarks>
 	public PublishAccess Access { get; init; }
 
+	/// <summary>
+	/// Whether the grammar names <c>eos</c>, so that this publication is read over segments: its
+	/// forms over a string, a reader or a window are the parser's own, private and under a name of
+	/// their own (<see cref="EmittedName"/>), and what is published under <see cref="MethodName"/>
+	/// takes a sequence of segments and reads it through them (docs/syntax.md §6.3).
+	/// </summary>
+	public bool Joined { get; init; }
+
+	/// <summary>What the methods this publication makes over text are called in the generated class.</summary>
+	public string EmittedName => Joined ? MethodName + "_DotGram" : MethodName;
+
 	public override string ToString()
 	{
 		return $"{Kind} {Rule.Name} -> {MethodName}";

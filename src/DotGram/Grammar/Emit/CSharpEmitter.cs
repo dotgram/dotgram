@@ -791,6 +791,25 @@ public static partial class CSharpEmitter
 			}
 		}
 
+		// What a grammar that names `eos` publishes: its forms over segments, read through the forms
+		// over text written above (SegmentEmitter).
+		foreach (var publication in graph.Publications)
+		{
+			if (!publication.Joined)
+				continue;
+
+			var compiled = machines.Find(one => one.Publications.Contains(publication));
+			var context  = compiled is { Machine.UsesContext: true } ? $", {graph.Context} context" : "";
+			var value    = publication.ResultType is { } contract
+				? contract.Name + (contract.IsSequence ? "[]" : "")
+				: results.QualifiedOf(publication.Rule) ?? "string";
+			var streamed = !bufferedInput && !publication.BufferedInput && Streams(graph, publication, overKinds) &&
+				(publication.Kind == PublishKind.Find ||
+				 publication.Kind == PublishKind.Parse && StagesOf(graph, publication.Rule) is not null);
+
+			EmitOverSegments(file, publication, value, context, streamed);
+		}
+
 		// Every machine's, not one machine's: a materializer and its guards belong to the
 		// machine that named them, and a file has one set per machine. The sets a refusal
 		// names are the class's, and written once at its end (ExpectedSets).
@@ -956,9 +975,15 @@ public static partial class CSharpEmitter
 
 		if (Streaming(graph, overKinds))
 		{
-			file.Write(WindowClass);
+			file.Write(graph.Segmented ? Segmented(WindowClass) : WindowClass);
 			file.Line();
-			file.Write(LinesClass);
+			file.Write(graph.Segmented ? Segmented(LinesClass) : LinesClass);
+			file.Line();
+		}
+
+		if (graph.Segmented)
+		{
+			file.Write(SegmentSupport());
 			file.Line();
 		}
 
@@ -970,7 +995,7 @@ public static partial class CSharpEmitter
 
 		if (Locating(graph) || Wording(graph))
 		{
-			file.Write(LocateHelper);
+			file.Write(graph.Segmented ? Segmented(LocateHelper) : LocateHelper);
 			file.Line();
 		}
 
@@ -1773,7 +1798,7 @@ public static partial class CSharpEmitter
 		// parser is the reading, and nothing about it is chosen while it runs.
 		var numbered = (reading is { } number ? $", {number}" : "") + (locating is null ? "" : ", " + LocatingFloor);
 
-		var method = publication.MethodName;
+		var method = publication.EmittedName;
 		// What the author called it, which is not always what the rule is called by now: a
 		// publication carrying `with (...)` publishes a clone of the rule, and `Lambda_With1`
 		// is a name that appears nowhere in the grammar and should appear nowhere a reader
@@ -2004,7 +2029,9 @@ public static partial class CSharpEmitter
 		// need nothing more only against the end of the input — so it has no entry for these
 		// to call. §6.3 says so, and the grammar is not told on every compilation: the
 		// overload's absence is plain where it is called, and nothing in the grammar is wrong.
-		if (!flat)
+		// Over segments a position is the caller's to make only by joining the segments, which is the
+		// parser's to do: no form begins where it is told.
+		if (!flat && !publication.Joined)
 		{
 			file.Line();
 			file.Line($"/// <summary>Reads a <c>{name}</c> beginning at <paramref name=\"at\"/>.</summary>");
@@ -4746,6 +4773,10 @@ file.Line("return spare;");
 	/// <summary>What a publication's methods are declared as: what its directive said (§6).</summary>
 	internal static string AccessOf(Publication publication)
 	{
+		// Over segments the forms over text are the parser's own, read through those (SegmentEmitter).
+		if (publication.Joined)
+			return "private";
+
 		return publication.Access switch
 		{
 			PublishAccess.Internal => "internal",

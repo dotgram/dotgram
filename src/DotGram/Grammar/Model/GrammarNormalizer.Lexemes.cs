@@ -233,7 +233,7 @@ public sealed partial class GrammarNormalizer
 					found.HasClass = true;
 					return ItemKind.Reads;
 
-				case "eol":
+				case "eol" or "eos":
 					return ItemKind.Reads;
 
 				case "none" or "eof" or "wordboundary":

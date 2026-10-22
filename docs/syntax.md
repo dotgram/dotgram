@@ -236,13 +236,14 @@ alternation, which means something else.
 
 #### 3.1.1 Built-in rules
 
-Seven ordinary rules, not keywords, that every grammar has without declaring them:
+Eight ordinary rules, not keywords, that every grammar has without declaring them:
 
 ```dotgram
 any             one input item, whatever it is — fails only where there is none left
 none            zero input items — always succeeds, consumes nothing
 eol             one line ending: "\r\n" | "\n" | "\r", CRLF checked first
 eof             the end of input — succeeds exactly where `any` would fail, consuming nothing
+eos             the end of a segment — see below
 trivia          none by default (§4.5)
 wordboundary    none by default (§4.6)
 word            one whole word, whatever it says (§4.6)
@@ -262,6 +263,37 @@ name `any` — each carries its own copy of "one input item, whatever it is."
 Shadowing `any` therefore changes what `any` itself matches and nothing else;
 `eof` still means the true end of input even in a grammar that redefines `any` to
 mean something narrower.
+
+**`eos`, the end of a segment.** A grammar that names `eos` reads a sequence of
+segments — the arguments of a command line, the lines of a feed — rather than one
+text. At a boundary between two segments there is no character: `any`, every
+literal and every class fail there as they fail at the end of the input, so
+`any*`, `(?!X & any)*`, `Std.Quoted` and the rest of the until idioms stop at the end
+of their segment by themselves. `eos` matches at a boundary and passes it, to the
+start of the next segment; every segment ends with one, the last included, and `eof`
+comes after the last `eos`. So `["a", "b"]` reads as `a eos b eos eof`, `["a", ""]`
+as `a eos eos eof`, `[""]` as `eos eof`, and `[]` as `eof` alone. `eol` still means a
+line ending inside a segment, and `\n` in a segment is a character like another.
+
+```dotgram
+Args   : @string[] = items: Arg* => @(items)
+Arg    : @string   = ("--output" | "-o") & eos & v: Value & eos => @("out=" + v)
+                   | v: Value & eos => @(v)
+Value  = any*
+parse Args
+```
+
+Such a grammar publishes forms over sequences only (§6.3). A position counts one for
+every character and one for every boundary, so a position before an `eos` and after
+it differ; where a line and a column are asked for (§8.2), a line is a segment and a
+column the offset in it, both from 1. A refusal at a boundary says `end of segment`.
+What is not built yet is refused rather than guessed at: text captured, bound or
+published across an `eos` (`GRAM4048`) — capture the parts on either side, or a value
+built from them, which may be kept: `(rows: Row & eos)*` holds rows — and an `eos`
+grammar split into tokens (`GRAM4049`) or read from a reader or bytes (`GRAM4050`).
+U+0000 is how a boundary is read in this version, so no segment may hold it: a
+literal or a class that names it is an error (`GRAM4047`), and a segment that holds
+it is refused before it is read.
 
 ### 3.2 Composition
 
@@ -2214,6 +2246,17 @@ because it is a property of the data rather than of the grammar.
 The shape of what comes back does not change with the input: `parse` of a sequence
 rule yields a sequence either way, and `find` yields one either way. What changes is
 how much is held while it is walked.
+
+**A grammar that names `eos` takes sequences and nothing else** (§3.1.1). Each of its
+`parse` publications is `Parse…`, `TryParse…` answering a `Match<T>`, and `TryParse…`
+with an `out` value, over `IReadOnlyList<string>` and over `IEnumerable<string>`, and
+each `find` and `yield` publication takes the same two; no string, span, reader,
+position or window form is generated. A string is passed as a list of one. Where the
+publication streams, the form over `IEnumerable<string>` is the streamed one — the
+segments read as they are asked for, `File.ReadLines(path)` a feed of them — and the
+list is read whole. A segment that holds U+0000 is refused: `Parse…` throws a
+`FormatException`, `TryParse…` answers a refusal at it, and a streamed reading throws
+when it reaches it.
 
 A reader and a string give the same result for constructions without side effects. A construction
 that changes state — the `context` included — may run a different number of times in a streamed

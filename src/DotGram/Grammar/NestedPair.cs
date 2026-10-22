@@ -75,10 +75,12 @@ static class NestedPair
 	/// The whole body is asked, not only its ends: a <c>with</c> makes a copy of the rule with
 	/// the same declaration and something else in it — <c>Std.Nested("(", ")") with (any =
 	/// 'x')</c> — and that copy means something the counter does not, so it is read as written.
+	/// Not in a grammar that names <c>eos</c>, either: the counter reads every character, and a
+	/// pair left open there stops at the end of the segment, as the rule written out does.
 	/// </remarks>
 	public static Delimiters? Of(RuleSymbol rule, RecognitionGraph graph)
 	{
-		return graph.Bodies.TryGetValue(rule, out var body) &&
+		return !graph.Segmented && graph.Bodies.TryGetValue(rule, out var body) &&
 			Shape(body) is ({ } open, { } close) && Refusal(open, close) is null &&
 			Faithful(rule, body, open, close)
 				? new Delimiters(open.Text, open.IgnoreCase, close.Text, close.IgnoreCase)
