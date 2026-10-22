@@ -55,6 +55,9 @@
 		</Project>
 	</Folder>
 	<Folder Name="/src/">
+		<Project Path="src/DotGram.Cli/DotGram.Cli.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<Project Path="src/DotGram.Finance/DotGram.Finance.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
@@ -76,6 +79,9 @@
 		</Project>
 	</Folder>
 	<Folder Name="/tests/">
+		<Project Path="tests/DotGram.Cli.Tests/DotGram.Cli.Tests.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<Project Path="tests/DotGram.Examples.Tape/DotGram.Examples.Tape.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
