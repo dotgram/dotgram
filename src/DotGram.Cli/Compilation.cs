@@ -63,7 +63,8 @@ sealed class GenerationInputs
 	}
 
 	/// <summary>Reads and parses C# files, in parallel, each under its full path.</summary>
-	public static ImmutableArray<SyntaxTree> Parse(IReadOnlyList<string> paths, CSharpParseOptions options)
+	/// <param name="codePage">The encoding the compiler was told with <c>/codepage:</c>, or null.</param>
+	public static ImmutableArray<SyntaxTree> Parse(IReadOnlyList<string> paths, CSharpParseOptions options, Encoding? codePage = null)
 	{
 		var trees = new SyntaxTree[paths.Count];
 
@@ -71,7 +72,7 @@ sealed class GenerationInputs
 		{
 			Parallel.For(0, paths.Count, index =>
 			{
-				trees[index] = CSharpSyntaxTree.ParseText(Read(paths[index]), options, paths[index]);
+				trees[index] = CSharpSyntaxTree.ParseText(Read(paths[index], codePage), options, paths[index]);
 			});
 		}
 		catch (AggregateException exception) when (exception.Flatten().InnerExceptions.OfType<ToolException>().FirstOrDefault() is { } first)
@@ -83,19 +84,26 @@ sealed class GenerationInputs
 		return [.. trees];
 	}
 
-	/// <summary>A file's text, its encoding told by its byte order mark and UTF-8 otherwise, as csc reads it.</summary>
-	public static SourceText Read(string path)
+	/// <summary>
+	/// A file's text as csc reads it: its encoding told by its byte order mark; otherwise the compiler's
+	/// <c>/codepage:</c> where there is one, even for bytes that are valid UTF-8; otherwise UTF-8, with a
+	/// replacement character for each byte that is no UTF-8.
+	/// </summary>
+	/// <param name="codePage">The encoding the compiler was told with <c>/codepage:</c>, or null.</param>
+	public static SourceText Read(string path, Encoding? codePage = null)
 	{
+		byte[] bytes;
+
 		try
 		{
-			using var stream = File.OpenRead(path);
-
-			return SourceText.From(stream, Encoding.UTF8, SourceHashAlgorithm.Sha256);
+			bytes = File.ReadAllBytes(path);
 		}
 		catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
 		{
 			throw ToolException.Failure($"cannot read '{path}': {exception.Message}");
 		}
+
+		return SourceText.From(bytes, bytes.Length, codePage ?? new UTF8Encoding(false), SourceHashAlgorithm.Sha256, throwIfBinaryDetected: false);
 	}
 
 	/// <summary>The references for a framework: the tool's own, then <c>--reference</c> and <c>--package</c>.</summary>

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
@@ -80,15 +81,14 @@ static class MSBuild
 			if (exit != 0)
 				throw Failed(project, what, exit, output + error);
 
-			var text = answer is not null && File.Exists(answer) ? File.ReadAllText(answer, Encoding.UTF8) : output;
-			var start = text.IndexOf('{');
-
-			if (start < 0)
-				throw ToolException.Failure($"{what}: dotnet msbuild exited 0 and printed no result.{Environment.NewLine}{(output + error).Trim()}");
-
 			try
 			{
-				return JsonDocument.Parse(text.Substring(start));
+				// A file holds the answer and nothing else; what MSBuild printed holds it after whatever the
+				// project's targets printed before it.
+				if (answer is not null && File.Exists(answer))
+					return JsonDocument.Parse(File.ReadAllText(answer, Encoding.UTF8));
+
+				return Answer(output) ?? throw ToolException.Failure($"{what}: dotnet msbuild exited 0 and printed no result.{Environment.NewLine}{(output + error).Trim()}");
 			}
 			catch (JsonException exception)
 			{
@@ -109,6 +109,32 @@ static class MSBuild
 				}
 			}
 		}
+	}
+
+	/// <summary>
+	/// The JSON answer in what MSBuild printed: the text from a line that begins with <c>{</c> to the end
+	/// of the output. A target may print a brace of its own earlier, in a message or in the middle of a
+	/// line; none of that is the answer, which is the one that reads as JSON to the end.
+	/// </summary>
+	/// <returns>The answer, or null where nothing printed is one.</returns>
+	public static JsonDocument? Answer(string output)
+	{
+		for (var start = output.IndexOf('{'); start >= 0; start = output.IndexOf('{', start + 1))
+		{
+			if (start > 0 && output[start - 1] != '\n')
+				continue;
+
+			try
+			{
+				return JsonDocument.Parse(output.Substring(start));
+			}
+			catch (JsonException)
+			{
+				// Not the answer: a line of something else that happens to begin with a brace.
+			}
+		}
+
+		return null;
 	}
 
 	/// <summary>One <c>dotnet msbuild</c> that answers nothing the tool reads: it only has to succeed.</summary>
@@ -178,7 +204,9 @@ static class MSBuild
 			throw ToolException.Failure($"cannot run '{start.FileName}' to ask MSBuild about the project: {exception.Message}");
 		}
 
-		using (process)
+		Running.TryAdd(process, 0);
+
+		try
 		{
 			var output = process.StandardOutput.ReadToEndAsync();
 			var error  = process.StandardError.ReadToEndAsync();
@@ -186,6 +214,46 @@ static class MSBuild
 			process.WaitForExit();
 
 			return (process.ExitCode, output.GetAwaiter().GetResult(), error.GetAwaiter().GetResult());
+		}
+		finally
+		{
+			// However the run ends, nothing of MSBuild's is left running: not the process, and not what a
+			// target of the project started under it.
+			Stop(process);
+			Running.TryRemove(process, out _);
+			process.Dispose();
+		}
+	}
+
+	/// <summary>The <c>dotnet msbuild</c> processes this tool is waiting for.</summary>
+	static readonly ConcurrentDictionary<Process, byte> Running = new();
+
+	/// <summary>How many <c>dotnet msbuild</c> processes the tool is waiting for.</summary>
+	public static int RunningCount
+	{
+		get { return Running.Count; }
+	}
+
+	/// <summary>
+	/// Ends every <c>dotnet msbuild</c> the tool started, and what they started: for Ctrl+C and any
+	/// other end of the tool. A build has no timeout, so this is the only thing that ends one early.
+	/// </summary>
+	public static void StopRunning()
+	{
+		foreach (var process in Running.Keys)
+			Stop(process);
+	}
+
+	static void Stop(Process process)
+	{
+		try
+		{
+			if (!process.HasExited)
+				process.Kill(entireProcessTree: true);
+		}
+		catch (Exception exception) when (exception is InvalidOperationException or System.ComponentModel.Win32Exception or NotSupportedException)
+		{
+			// It ended by itself in the meantime.
 		}
 	}
 

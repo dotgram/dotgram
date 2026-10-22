@@ -34,8 +34,14 @@ static class AnalyzerGenerators
 	/// Loads the generators of the given analyzer assemblies, all through one loader that knows every
 	/// directory they are in, as the compiler does: a dependency of one may sit beside another.
 	/// </summary>
+	/// <param name="compiler">
+	/// The version of the compiler the build runs, where it is known. A generator that references a
+	/// newer <c>Microsoft.CodeAnalysis</c> than that is not loaded by the build, which warns and goes
+	/// on (CS9057); it is not loaded here either, whatever Roslyn the tool carries. Where it is null,
+	/// only the tool's own Roslyn is the measure.
+	/// </param>
 	/// <exception cref="ToolException">A generator would not load; the message names its assembly.</exception>
-	public static AnalyzerSet Load(IEnumerable<string> assemblies)
+	public static AnalyzerSet Load(IEnumerable<string> assemblies, Version? compiler = null)
 	{
 		var paths      = assemblies.Distinct(StringComparer.Ordinal).ToList();
 		var loader     = new Loader(paths.Select(static path => Path.GetDirectoryName(path)!).Distinct(StringComparer.Ordinal));
@@ -67,6 +73,13 @@ static class AnalyzerGenerators
 
 			if (!HasGenerator(path))
 				continue;
+
+			if (compiler is not null && CompilerReferenced(path) is { } wanted && wanted > compiler)
+			{
+				// The compiler warns (CS9057) and goes on without its generators.
+				warnings.Add($"the analyzer {path} references Microsoft.CodeAnalysis {wanted}, which is newer than the compiler's {compiler}: the build does not load it (CS9057), so its generators are not run.");
+				continue;
+			}
 
 			var reference = new AnalyzerFileReference(path, loader);
 			var failures  = new List<AnalyzerLoadFailureEventArgs>();
@@ -138,6 +151,35 @@ static class AnalyzerGenerators
 		catch (Exception exception) when (exception is BadImageFormatException or IOException or UnauthorizedAccessException)
 		{
 			return (null, null);
+		}
+	}
+
+	/// <summary>The version of <c>Microsoft.CodeAnalysis</c> an assembly references, read from its metadata without loading it; null where it names none.</summary>
+	static Version? CompilerReferenced(string path)
+	{
+		try
+		{
+			using var stream = File.OpenRead(path);
+			using var pe     = new PEReader(stream);
+
+			if (!pe.HasMetadata)
+				return null;
+
+			var reader = pe.GetMetadataReader();
+
+			foreach (var handle in reader.AssemblyReferences)
+			{
+				var reference = reader.GetAssemblyReference(handle);
+
+				if (reader.StringComparer.Equals(reference.Name, "Microsoft.CodeAnalysis"))
+					return reference.Version;
+			}
+
+			return null;
+		}
+		catch (Exception exception) when (exception is BadImageFormatException or IOException or UnauthorizedAccessException)
+		{
+			return null;
 		}
 	}
 

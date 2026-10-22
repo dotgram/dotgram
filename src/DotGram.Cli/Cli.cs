@@ -16,6 +16,10 @@ static class Cli
 {
 	public static int Main(string[] arguments)
 	{
+		// A build the tool waits for does not outlive it.
+		Console.CancelKeyPress += static (_, _) => MSBuild.StopRunning();
+		AppDomain.CurrentDomain.ProcessExit += static (_, _) => MSBuild.StopRunning();
+
 		return Run(arguments, Console.Out, Console.Error, Directory.GetCurrentDirectory());
 	}
 
@@ -242,8 +246,10 @@ static class Cli
 	static Pass PassFor(CompilerInputs inputs, GenerateOptions options, IReadOnlyList<string> listed)
 	{
 		var arguments = inputs.Arguments;
-		var analyzers = AnalyzerGenerators.Load(arguments.AnalyzerReferences.Select(reference => Path.GetFullPath(reference.FilePath, inputs.ProjectDirectory)));
-		var warnings  = new List<string>(analyzers.Warnings);
+		var analyzers = AnalyzerGenerators.Load(arguments.AnalyzerReferences.Select(reference => Path.GetFullPath(reference.FilePath, inputs.ProjectDirectory)), inputs.CompilerVersion);
+		var warnings  = new List<string>(inputs.Warnings);
+
+		warnings.AddRange(analyzers.Warnings);
 		var notes     = new List<string>
 		{
 			string.Create(
@@ -271,8 +277,8 @@ static class Cli
 			.ToList();
 
 		var parsing = arguments.ParseOptions;
-		var trees   = GenerationInputs.Parse(sources, parsing);
-		var files   = arguments.AdditionalFiles.Select(static file => (AdditionalText)new FileText(file.Path, GenerationInputs.Read(file.Path))).ToImmutableArray();
+		var trees   = GenerationInputs.Parse(sources, parsing, arguments.Encoding);
+		var files   = arguments.AdditionalFiles.Select(file => (AdditionalText)new FileText(file.Path, GenerationInputs.Read(file.Path, arguments.Encoding))).ToImmutableArray();
 
 		var generation = new GenerationInputs
 		{

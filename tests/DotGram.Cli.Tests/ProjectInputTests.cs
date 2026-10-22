@@ -550,6 +550,164 @@ public sealed class ProjectInputTests
 		}
 	}
 
+
+	/// <summary>
+	/// <c>/codepage:</c> (the project's <c>CodePage</c>) is how the compiler reads a source without a
+	/// byte order mark, and the additional files with it: a Windows-1252 host with an <c>\u00e9</c> in an
+	/// inline grammar is the build's with the code page told and without it (no code page: a
+	/// replacement character, as csc reads it), and a UTF-8 host is read in the code page when one is
+	/// told, as csc reads it.
+	/// </summary>
+	[Theory]
+	[InlineData("1252", 1252)]
+	[InlineData("", 1252)]
+	[InlineData("1252", 65001)]
+	[InlineData("", 65001)]
+	public void A_source_in_a_code_page_is_read_as_the_compiler_reads_it(string codePage, int encoding)
+	{
+		using var scratch = new Scratch();
+
+		var project = App(
+			scratch,
+			"p",
+			"using DotGram;\n\nnamespace Demo\n{\n\t[Gram(@\"Pair = key: Word & \"\"\u00e9\"\" & value: Word\n\nWord = ['a'..'z']+\n\nparse Pair\")]\n\tpublic static partial class Pairs { }\n}\n",
+			settings: codePage.Length > 0 ? $"<CodePage>{codePage}</CodePage>" : "");
+
+		File.WriteAllBytes(
+			scratch.Path("p", "Pairs.cs"),
+			(encoding == 65001 ? new UTF8Encoding(false) : System.Text.CodePagesEncodingProvider.Instance.GetEncoding(encoding)!).GetBytes(File.ReadAllText(scratch.Path("p", "Pairs.cs"))));
+
+		Same(scratch, project);
+
+		// The letter survives where the file's encoding is the one the compiler reads it in.
+		var written = File.ReadAllText(scratch.Path("out", "Demo.Pairs.g.cs"));
+
+		Assert.Equal(codePage.Length > 0 ? encoding == 1252 : encoding == 65001, written.Contains('\u00e9', StringComparison.Ordinal));
+	}
+
+	/// <summary>The same for an additional file: a grammar saved in Windows-1252 with the project's <c>CodePage</c>.</summary>
+	[Fact]
+	public void An_additional_file_in_a_code_page_is_read_as_the_compiler_reads_it()
+	{
+		using var scratch = new Scratch();
+
+		var project = App(scratch, "p", settings: "<CodePage>1252</CodePage>");
+
+		File.WriteAllBytes(
+			scratch.Path("p", "Pairs.gram"),
+			System.Text.CodePagesEncodingProvider.Instance.GetEncoding(1252)!.GetBytes("Pair = key: Word & '\u00e9' & value: Word\n\nWord = ['a'..'z']+\n\nparse Pair\n"));
+
+		Same(scratch, project);
+
+		Assert.Contains("\u00e9", File.ReadAllText(scratch.Path("out", "Demo.Pairs.g.cs")), StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The file's encoding is the compiler's for what is read, and the output is written as the build
+	/// writes it: UTF-8 with a byte order mark, which the comparison holds by bytes. A source with
+	/// non-ASCII text that is UTF-8 with no mark is read as UTF-8.
+	/// </summary>
+	[Fact]
+	public void Non_ascii_in_utf8_is_written_as_the_build_writes_it()
+	{
+		using var scratch = new Scratch();
+
+		var project = App(scratch, "p", grammar: "Pair = key: Word & \"\u00e9\u4e2d\" & value: Word\n\nWord = ['a'..'z']+\n\nparse Pair\n");
+
+		Same(scratch, project);
+
+		Assert.Equal(new byte[] { 0xEF, 0xBB, 0xBF }, File.ReadAllBytes(scratch.Path("out", "Demo.Pairs.g.cs")).Take(3));
+	}
+
+	/// <summary>
+	/// The tool runs what an IDE runs, as a design-time build: a target that follows <c>Compile</c> and
+	/// skips design-time builds is not run.
+	/// </summary>
+	[Fact]
+	public void A_target_after_compile_that_skips_design_time_builds_does_not_run()
+	{
+		using var scratch = new Scratch();
+
+		var project = App(scratch, "p", targets: """
+			<Target Name="AfterTheCompiler" AfterTargets="Compile" Condition="'$(DesignTimeBuild)' != 'true'">
+			  <WriteLinesToFile File="$(MSBuildProjectDirectory)/obj/after-compile" Lines="ran" Overwrite="true" />
+			</Target>
+			""");
+
+		Dotnet.Restore(project);
+
+		Directory.CreateDirectory(scratch.Path("p", "obj"));
+		File.Delete(scratch.Path("p", "obj", "after-compile"));
+
+		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
+
+		Assert.True(run.Exit == 0, run.ToString());
+		Assert.False(File.Exists(scratch.Path("p", "obj", "after-compile")));
+	}
+
+	/// <summary>
+	/// A target that prints a message with a brace in it does not stand in for MSBuild's answer, on
+	/// the SDKs that print it instead of writing it to a file.
+	/// </summary>
+	[Fact]
+	public void A_brace_in_what_a_target_prints_is_not_the_answer()
+	{
+		using var scratch = new Scratch();
+
+		var project = App(scratch, "p", targets: """
+			<Target Name="Say" BeforeTargets="CoreCompile">
+			  <Warning Text="Using {profile}" />
+			  <Message Importance="high" Text="{profile}" />
+			</Target>
+			""");
+
+		Same(scratch, project);
+	}
+
+	[Theory]
+	[InlineData("MSBUILD : warning : Using {profile}\n{\n  \"Items\": { \"A\": [] }\n}\n")]
+	[InlineData("{profile}\n{ \"x\": 1\n{\n  \"Items\": { \"A\": [] }\n}\n")]
+	[InlineData("{ not json\n{\n  \"Items\": { \"A\": [] }\n}\n")]
+	[InlineData("{\n  \"Items\": { \"A\": [] }\n}\n")]
+	public void The_answer_is_the_json_that_runs_to_the_end_of_the_output(string printed)
+	{
+		using var answer = MSBuild.Answer(printed);
+
+		Assert.NotNull(answer);
+		Assert.True(answer.RootElement.GetProperty("Items").TryGetProperty("A", out _));
+	}
+
+	[Fact]
+	public void Output_with_no_json_in_it_has_no_answer()
+	{
+		Assert.Null(MSBuild.Answer("MSBUILD : warning : Using {profile}\n{ \"x\": 1 } and more\n"));
+	}
+
+	/// <summary>A restore older than the project file is said to be, once; a fresh one is not.</summary>
+	[Fact]
+	public void A_restore_older_than_the_project_is_warned_about()
+	{
+		using var scratch = new Scratch();
+
+		var project = App(scratch, "p");
+		var props   = scratch.Write("p/Directory.Build.props", "<Project />");
+
+		Dotnet.Restore(project);
+
+		var fresh = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("fresh"));
+
+		Assert.True(fresh.Exit == 0, fresh.ToString());
+		Assert.DoesNotContain("restore may be stale", fresh.Output, StringComparison.Ordinal);
+
+		File.SetLastWriteTimeUtc(props, DateTime.UtcNow.AddHours(1));
+
+		var stale = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("stale"));
+
+		Assert.True(stale.Exit == 0, stale.ToString());
+		Assert.Equal(1, stale.Output.Split("restore may be stale", StringSplitOptions.None).Length - 1);
+		Assert.Contains("Directory.Build.props", stale.Output, StringComparison.Ordinal);
+	}
+
 	/// <summary><c>#if DEBUG</c> in a host: the default configuration is Release, and Debug is asked for.</summary>
 	[Theory]
 	[InlineData("Release")]

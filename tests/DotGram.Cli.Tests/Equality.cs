@@ -35,12 +35,19 @@ static class Equality
 
 			if (name == Embedded)
 			{
+				// The text is compared decoded, so the byte order mark, which decoding hides, is held on its own.
+				Assert.Equal(HasMark(a), HasMark(b));
 				Assert.Equal(Normal(a), Normal(b));
 				continue;
 			}
 
 			if (!a.AsSpan().SequenceEqual(b))
 				Assert.Fail($"{name}: the tool's file differs from the build's ({a.Length} and {b.Length} bytes); diff {Path.Combine(built, name!)} {Path.Combine(tool, name!)}");
+		}
+
+		static bool HasMark(byte[] bytes)
+		{
+			return bytes.AsSpan().StartsWith(new byte[] { 0xEF, 0xBB, 0xBF });
 		}
 
 		static string Normal(byte[] bytes)

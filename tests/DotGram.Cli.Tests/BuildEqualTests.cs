@@ -139,6 +139,45 @@ public sealed class BuildEqualTests
 	{
 		using var scratch = new Scratch();
 
+		var gen = NewerGenerator(scratch);
+
+		Assert.True(AnalyzerGenerators.HasGenerator(gen));
+
+		// The build's compiler is newer than the generator's, and the tool's is not: the tool is the one to update.
+		var exception = Assert.Throws<ToolException>(() => AnalyzerGenerators.Load([gen], new Version(100, 0)));
+
+		Assert.Equal(ExitCode.Failure, exception.ExitCode);
+		Assert.Contains("Newer.dll", exception.Message, StringComparison.Ordinal);
+		Assert.Contains("newer compiler than DotGram.Cli's: update DotGram.Cli", exception.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A generator built for a compiler newer than the one the build runs is skipped with a warning, as
+	/// the compiler skips it (CS9057), whatever Roslyn the tool carries; the files are the build's.
+	/// </summary>
+	[Fact]
+	public void A_generator_built_for_a_newer_compiler_than_the_builds_is_skipped_with_a_warning()
+	{
+		using var scratch = new Scratch();
+
+		var gen = NewerGenerator(scratch);
+		var set = AnalyzerGenerators.Load([gen], new Version(5, 0));
+
+		Assert.Empty(set.Generators);
+		Assert.Contains(set.Warnings, warning => warning.Contains("Newer.dll", StringComparison.Ordinal) && warning.Contains("CS9057", StringComparison.Ordinal));
+
+		var project = Project(scratch, "net10.0", PlainHost, items: Analyzer + $"""<Analyzer Include="{gen}" />""");
+		var built   = Build.Generated(project);
+		var run     = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--line-paths", "absolute");
+
+		Assert.True(run.Exit == 0, run.ToString());
+		Assert.Contains("CS9057", run.Output, StringComparison.Ordinal);
+		Equality.Same(built, scratch.Path("out"));
+	}
+
+	/// <summary>A generator that references a Microsoft.CodeAnalysis of version 99.</summary>
+	static string NewerGenerator(Scratch scratch)
+	{
 		var framework = Basic.Reference.Assemblies.Net100.References.All.ToList();
 
 		// An assembly called Microsoft.CodeAnalysis of version 99, with just the types a generator names.
@@ -162,7 +201,7 @@ public sealed class BuildEqualTests
 			""",
 			framework);
 
-		var gen = Emit(
+		return Emit(
 			scratch.Path("gen", "Newer.dll"),
 			"Newer",
 			"""
@@ -175,14 +214,6 @@ public sealed class BuildEqualTests
 			}
 			""",
 			[.. framework, MetadataReference.CreateFromFile(newer)]);
-
-		Assert.True(AnalyzerGenerators.HasGenerator(gen));
-
-		var exception = Assert.Throws<ToolException>(() => AnalyzerGenerators.Load([gen]));
-
-		Assert.Equal(ExitCode.Failure, exception.ExitCode);
-		Assert.Contains("Newer.dll", exception.Message, StringComparison.Ordinal);
-		Assert.Contains("newer compiler than DotGram.Cli's: update DotGram.Cli", exception.Message, StringComparison.Ordinal);
 	}
 
 	/// <summary>A file that is no assembly at all might hold a generator: loading it says why it will not.</summary>
