@@ -98,6 +98,20 @@ static class Diagnostics
 		description:        "MaxRetained is the most a buffered parse may hold and BufferSize the capacity it starts with; neither can be zero or negative.");
 
 	/// <summary>
+	/// What a generated parser is written in is C# 8 at the least, and a project compiling an
+	/// earlier version would otherwise meet that as a wall of compiler errors in files it never
+	/// wrote.
+	/// </summary>
+	public static readonly DiagnosticDescriptor LanguageVersionTooLow = new(
+		id:                 "GRAM0010",
+		title:              "The generated parser needs C# 8 or later",
+		messageFormat:      "The generated parser needs C# 8 or later; this project compiles C# {0}. Set <LangVersion>8.0</LangVersion> or later.",
+		category:           Category,
+		defaultSeverity:    DiagnosticSeverity.Error,
+		isEnabledByDefault: true,
+		description:        "C# 7.3 is the default for netstandard2.0 and .NET Framework projects. No parser is generated below C# 8; the attributes [Gram] is written with still are, so a project without a [Gram] builds as it did.");
+
+	/// <summary>
 	/// The descriptor for an id, made once and kept.
 	/// </summary>
 	/// <remarks>
