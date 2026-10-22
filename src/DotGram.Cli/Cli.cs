@@ -200,10 +200,6 @@ static class Cli
 			if (frameworks.Count == 0)
 				throw ToolException.Failure($"{options.Input} names no target framework.");
 
-			// A project with one TargetFramework was evaluated for it already.
-			if (outer.TargetFrameworks.Length == 0)
-				return new[] { outer };
-
 			return await Task.WhenAll(frameworks.Select(framework => ProjectEvaluation.RunAsync(options.Input, framework, options.Configuration))).ConfigureAwait(false);
 		}).GetAwaiter().GetResult();
 
@@ -220,17 +216,19 @@ static class Cli
 				$"{evaluation.Project} targets '{moniker}', which the tool carries no reference assemblies for ({Framework.Supported}). " +
 				"Pass --framework with one it does, into an output folder of its own.");
 
+		// The project's symbols are the build's already, the framework's and platform's among them
+		// (ProjectEvaluation); only what the command line adds goes beside them.
 		var parsing = GenerationInputs.Parsing(
 			framework,
 			options.LanguageVersion ?? evaluation.LanguageVersion,
-			[.. evaluation.DefineConstants, .. framework.ImplicitSymbols, .. options.Defines]);
+			[.. evaluation.DefineConstants, .. options.Defines]);
 
 		// What this tool wrote into the folder, where the project compiles it: the generator in a
 		// build never sees its own output, and a parser that saw the last one could answer otherwise.
 		var output = Path.GetFullPath(options.Output);
 		var sources = evaluation.Compile
 			.Where(path => !IsOurs(path, output, listed))
-			.Distinct(StringComparer.Ordinal)
+			.Distinct(FileSystem.Names)
 			.ToList();
 
 		var trees = GenerationInputs.Parse(sources, parsing);
@@ -253,15 +251,14 @@ static class Cli
 		};
 	}
 
-	/// <summary>A file in the output folder that the last run wrote, or that is named as the generator names its files.</summary>
+	/// <summary>
+	/// A file in the output folder that the last run wrote, as its manifest says: nothing else, so that
+	/// another generator's checked-in <c>.g.cs</c> beside it is compiled as the build compiles it.
+	/// </summary>
 	static bool IsOurs(string path, string output, IReadOnlyList<string> listed)
 	{
-		if (!string.Equals(Path.GetDirectoryName(path), output.TrimEnd(Path.DirectorySeparatorChar), StringComparison.Ordinal))
-			return false;
-
-		var name = Path.GetFileName(path);
-
-		return listed.Contains(name, StringComparer.Ordinal) || name.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase);
+		return FileSystem.Names.Equals(Path.GetDirectoryName(path), Path.TrimEndingDirectorySeparator(output)) &&
+			listed.Contains(Path.GetFileName(path), FileSystem.Names);
 	}
 
 	/// <summary>A <c>.gram</c> input: its host synthesized, its options from the command line.</summary>
@@ -270,7 +267,13 @@ static class Cli
 		if (!File.Exists(options.Input))
 			throw ToolException.Failure($"grammar '{options.Input}' does not exist.");
 
-		var moniker   = options.Framework ?? "net10.0";
+		var moniker = options.Framework ?? "net10.0";
+
+		// A platform's symbols and version come from the SDK's data for it, which a project asks for and
+		// a lone grammar has nobody to ask.
+		if (moniker.Contains('-', StringComparison.Ordinal))
+			throw ToolException.Usage($"--framework '{moniker}' names a platform, which only a project can say how to compile for; generate the project.");
+
 		var framework = Framework.Of(moniker)
 			?? throw ToolException.Usage($"--framework '{moniker}' is not one the tool carries references for ({Framework.Supported}).");
 
@@ -333,7 +336,8 @@ static class Cli
 			.Where(name => mode || !(generated.GeneratedTypeNames.Contains(name.Name) || generated.GeneratedTypeNames.Contains(name.Name + "Attribute")))
 			.ToList();
 
-		var (asked, other) = Unresolved.Split(unresolved, generated.AskedTypeNames);
+		var dependencies   = Unresolved.Dependencies(run.Inputs.Sources.AddRange(run.ExtraSources.IsDefault ? [] : run.ExtraSources), generated.AskedTypeNames);
+		var (asked, other) = Unresolved.Split(unresolved, generated.AskedTypeNames, dependencies);
 		var moniker        = run.Inputs.Framework.Moniker;
 
 		if (other.Count > 0)
@@ -349,7 +353,10 @@ static class Cli
 				: "pass the assembly that declares it with --reference <file.dll|dir> or --package <Name>@<Version>";
 
 			foreach (var name in asked.DistinctBy(static name => name.Name))
-				output.WriteLine($"{name.Where}: {(options.AllowUnresolved ? "warning" : "error")}: '{name.Name}' cannot be resolved for {moniker} ({name.Diagnostic.Id}), and a grammar asks about it: {advice}.");
+				output.WriteLine(
+					$"{name.Where}: {(options.AllowUnresolved ? "warning" : "error")}: '{name.Name}' cannot be resolved for {moniker} ({name.Diagnostic.Id}), and " +
+					(name.Through is null ? "a grammar asks about it" : $"the declaration of '{name.Through}', which a grammar's answer depends on, names it") +
+					$": {advice}.");
 
 			if (!options.AllowUnresolved)
 			{
@@ -394,7 +401,7 @@ static class Cli
 			var files  = new SortedDictionary<string, string>(StringComparer.Ordinal);
 
 			foreach (var (name, text) in generated.Files)
-				files[name] = options.LinePaths == LinePaths.Relative ? LineDirectives.Relative(text, inputs, directory) : text;
+				files[name] = options.LinePaths == LinePaths.Relative ? LineDirectives.Relative(text, inputs, directory, generated.Trees[name]) : text;
 
 			if (run.HostFile is not null)
 				files[run.HostFile] = run.HostText!;

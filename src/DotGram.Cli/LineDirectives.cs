@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Text;
 
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+
 namespace DotGram.Cli;
 
 /// <summary>
@@ -16,18 +19,23 @@ namespace DotGram.Cli;
 /// the debugger, to the real grammar wherever the repository is.
 /// </para>
 /// <para>
-/// Only lines that are exactly <c>#line n "path"</c>, and only where the path is one of the files
-/// the compilation read: a hook's string that happens to hold <c>#line 1 "x"</c> on a line of its
-/// own names no input and is left as it is. Every other byte is untouched.
+/// Only lines that are exactly <c>#line n "path"</c>, only where the path is one of the files the
+/// compilation read, and only where the line is not inside a token: a hook's multi-line string that
+/// holds such a line, even with an input's path, is the hook's text and is left as it is. Every
+/// other byte is untouched. The line is told from the file's tree, which the driver has parsed
+/// already; a directive in a region a symbol leaves out is not in any token either, and is
+/// rewritten like one that is in.
 /// </para>
 /// </remarks>
 static class LineDirectives
 {
 	const string Directive = "#line ";
 
-	public static string Relative(string text, IReadOnlySet<string> inputs, string outputDirectory)
+	/// <param name="tree">The file's tree, if it has been parsed; otherwise the text is parsed here.</param>
+	public static string Relative(string text, IReadOnlySet<string> inputs, string outputDirectory, SyntaxTree? tree = null)
 	{
 		StringBuilder? rewritten = null;
+		SyntaxNode?    root      = null;
 
 		var copied = 0;
 		var at     = 0;
@@ -43,7 +51,7 @@ static class LineDirectives
 			{
 				var path = text.Substring(pathStart, pathEnd - pathStart);
 
-				if (inputs.Contains(path))
+				if (inputs.Contains(path) && !(root ??= (tree ?? CSharpSyntaxTree.ParseText(text)).GetRoot()).FindToken(at).Span.Contains(at))
 				{
 					rewritten ??= new StringBuilder(text.Length);
 

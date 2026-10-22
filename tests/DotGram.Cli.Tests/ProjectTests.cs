@@ -376,4 +376,126 @@ public sealed class ProjectTests
 		Assert.Contains("  net8.0: ", run.Output, StringComparison.Ordinal);
 		Assert.Contains("  net10.0: ", run.Output, StringComparison.Ordinal);
 	}
+
+	/// <summary>
+	/// A host whose types the grammar builds exist only under a symbol the SDK adds for the framework or
+	/// platform: the symbols are the build's, so the parser is.
+	/// </summary>
+	[Theory]
+	[InlineData("net8.0-windows", "WINDOWS", "<EnableWindowsTargeting>true</EnableWindowsTargeting>")]
+	[InlineData("net8.0-windows", "WINDOWS7_0_OR_GREATER", "<EnableWindowsTargeting>true</EnableWindowsTargeting>")]
+	[InlineData("net10.0", "NET10_0_OR_GREATER", "")]
+	[InlineData("net10.0", "!NET10_0_OR_GREATER", "<DisableImplicitFrameworkDefines>true</DisableImplicitFrameworkDefines>")]
+	public void The_framework_s_symbols_are_the_build_s(string framework, string symbol, string settings)
+	{
+		using var scratch = new Scratch();
+
+		scratch.Write("p/Pairs.gram", "Pair : @Pair = key: Word & '=' & value: Word\n\nWord = ['a'..'z']+\n\nparse Pair\n");
+		scratch.Write("p/Pairs.cs", $$"""
+			using DotGram;
+
+			namespace Demo
+			{
+				[Gram("Pairs.gram")]
+				public static partial class Pairs { }
+
+			#if {{symbol}}
+				public sealed class Pair
+				{
+					public Pair(string key, string value) { Key = key; Value = value; }
+
+					public string Key { get; }
+					public string Value { get; }
+				}
+			#else
+				public sealed class Pair
+				{
+					public string Key { get; set; } = "";
+					public string Value { get; set; } = "";
+				}
+			#endif
+			}
+			""");
+
+		var project = scratch.Write("p/p.csproj", $"""
+			<Project Sdk="Microsoft.NET.Sdk">
+			  <PropertyGroup>
+			    <TargetFramework>{framework}</TargetFramework>
+			    <Nullable>enable</Nullable>
+			    {settings}
+			  </PropertyGroup>
+			  <ItemGroup>
+			    <AdditionalFiles Include="Pairs.gram" />
+			  </ItemGroup>
+			  {Build.AnalyzerItems}
+			</Project>
+			""");
+
+		var built = Build.Generated(project);
+		var run   = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--line-paths", "absolute");
+
+		Assert.True(run.Exit == 0, run.ToString());
+		Equality.Same(built, scratch.Path("out"));
+
+		// And the symbol decided something: with the other Pair the parser builds it otherwise.
+		var host = scratch.Path("p", "Pairs.cs");
+
+		File.WriteAllText(host, File.ReadAllText(host).Replace("#if " + symbol, "#if !(" + symbol + ")", StringComparison.Ordinal));
+
+		var other = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("other"), "--line-paths", "absolute");
+
+		Assert.True(other.Exit == 0, other.ToString());
+		Assert.NotEqual(File.ReadAllText(scratch.Path("out", "Demo.Pairs.g.cs")), File.ReadAllText(scratch.Path("other", "Demo.Pairs.g.cs")));
+	}
+
+	/// <summary>Two frameworks that generate different parsers for one folder: refused, naming both.</summary>
+	[Fact]
+	public void Frameworks_that_generate_differently_are_refused()
+	{
+		using var scratch = new Scratch();
+
+		scratch.Write("p/Pairs.gram", "Pair : @Pair = key: Word & '=' & value: Word\n\nWord = ['a'..'z']+\n\nparse Pair\n");
+		scratch.Write("p/Pairs.cs", """
+			using DotGram;
+
+			namespace Demo
+			{
+				[Gram("Pairs.gram")]
+				public static partial class Pairs { }
+
+			#if NET10_0_OR_GREATER
+				public sealed class Pair
+				{
+					public Pair(string key, string value) { Key = key; Value = value; }
+
+					public string Key { get; }
+					public string Value { get; }
+				}
+			#else
+				public sealed class Pair
+				{
+					public string Key { get; set; } = "";
+					public string Value { get; set; } = "";
+				}
+			#endif
+			}
+			""");
+
+		var project = scratch.Write("p/p.csproj", """
+			<Project Sdk="Microsoft.NET.Sdk">
+			  <PropertyGroup>
+			    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+			  </PropertyGroup>
+			  <ItemGroup>
+			    <AdditionalFiles Include="Pairs.gram" />
+			  </ItemGroup>
+			</Project>
+			""");
+
+		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
+
+		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
+		Assert.Contains("the parser generated for net8.0 differs from the one for net10.0", run.Error, StringComparison.Ordinal);
+		Assert.False(Directory.Exists(scratch.Path("out")));
+	}
 }
