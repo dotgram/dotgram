@@ -130,6 +130,61 @@ public sealed class BuildEqualTests
 		Assert.Contains("could not be loaded", exception.Message, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// A generator built against a compiler newer than the tool's: the run stops and says that the tool
+	/// is to be updated, rather than describing a binding failure.
+	/// </summary>
+	[Fact]
+	public void A_generator_built_for_a_newer_compiler_says_to_update_the_tool()
+	{
+		using var scratch = new Scratch();
+
+		var framework = Basic.Reference.Assemblies.Net100.References.All.ToList();
+
+		// An assembly called Microsoft.CodeAnalysis of version 99, with just the types a generator names.
+		var newer = Emit(
+			scratch.Path("newer", "Microsoft.CodeAnalysis.dll"),
+			"Microsoft.CodeAnalysis",
+			"""
+			[assembly: System.Reflection.AssemblyVersion("99.0.0.0")]
+
+			namespace Microsoft.CodeAnalysis
+			{
+				public sealed class GeneratorAttribute : System.Attribute { }
+
+				public struct IncrementalGeneratorInitializationContext { }
+
+				public interface IIncrementalGenerator
+				{
+					void Initialize(IncrementalGeneratorInitializationContext context);
+				}
+			}
+			""",
+			framework);
+
+		var gen = Emit(
+			scratch.Path("gen", "Newer.dll"),
+			"Newer",
+			"""
+			using Microsoft.CodeAnalysis;
+
+			[Generator]
+			public sealed class G : IIncrementalGenerator
+			{
+				public void Initialize(IncrementalGeneratorInitializationContext context) { }
+			}
+			""",
+			[.. framework, MetadataReference.CreateFromFile(newer)]);
+
+		Assert.True(AnalyzerGenerators.HasGenerator(gen));
+
+		var exception = Assert.Throws<ToolException>(() => AnalyzerGenerators.Load([gen]));
+
+		Assert.Equal(ExitCode.Failure, exception.ExitCode);
+		Assert.Contains("Newer.dll", exception.Message, StringComparison.Ordinal);
+		Assert.Contains("newer compiler than DotGram.Cli's: update DotGram.Cli", exception.Message, StringComparison.Ordinal);
+	}
+
 	/// <summary>A file that is no assembly at all might hold a generator: loading it says why it will not.</summary>
 	[Fact]
 	public void A_file_that_is_no_assembly_is_not_ruled_out()
