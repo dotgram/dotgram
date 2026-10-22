@@ -167,8 +167,10 @@ static class AnalyzerGenerators
 	/// <summary>
 	/// Whether the assembly declares a generator, read from its metadata without loading it: a type
 	/// carrying <c>[Generator]</c> or implementing one of the two generator interfaces. Most analyzer
-	/// assemblies have none, and are large. One that cannot be read at all is not ruled out: loading it
-	/// says why it will not.
+	/// assemblies have none, and are large. Skipping them saves little time (a few milliseconds a run,
+	/// measured); what it saves is a load that cannot matter: a diagnostic analyzer built for a newer
+	/// compiler than the tool's is nothing this tool runs, and must not stop it. One that cannot be read
+	/// at all is not ruled out: loading it says why it will not.
 	/// </summary>
 	public static bool HasGenerator(string path)
 	{
