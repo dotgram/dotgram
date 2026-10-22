@@ -384,7 +384,7 @@ static partial class Build
 		/// Which conversation or group they are from: one comparison, of one of those two columns.
 		/// </param>
 		public sealed record Receive(
-			Clause? Top, SqlList<Clause> Columns, string Queue, string? Into = null, Ast.Expression? Where = null) : Statement;
+			Clause? Top, SqlList<Ast.SelectColumn> Columns, string Queue, string? Into = null, Ast.Expression? Where = null) : Statement;
 
 		/// <summary><c>GET CONVERSATION GROUP</c>: the group of a queue's next message, into a variable.</summary>
 		public sealed record GetConversationGroup(string Group, string Queue) : Statement;
@@ -1026,7 +1026,7 @@ static partial class Build
 		public sealed record Specification(
 			string? Quantifier,
 			Clause? Top,
-			SqlList<Clause> Columns,
+			SqlList<Ast.SelectColumn> Columns,
 			Clause? Into,
 			SqlList<TableReference> From,
 			Ast.Expression? Where,
@@ -1151,8 +1151,11 @@ static partial class Build
 			/// <summary>What the rules that hold the query ask of it.</summary>
 			internal Facts Is { get; }
 
-			/// <summary>A specification's select list, as the rules read it.</summary>
-			internal SqlList<Clause> Columns { get; init; }
+			/// <summary>
+			/// A specification's select list, as the rules read it: its values as read, which building the query resolves;
+			/// the query's own list where none needed resolving.
+			/// </summary>
+			internal SqlList<Ast.SelectColumn> Columns { get; init; }
 
 			/// <summary>A specification's condition, as the rules read it.</summary>
 			internal Ast.Expression? Where { get; init; }
@@ -1410,12 +1413,6 @@ static partial class Build
 			_location = new SqlSyntaxLocation(new SqlSpan(at, length, gapStart));
 		}
 
-		/// <summary>§7.12 one entry of a select list: what it is, and what it is called.</summary>
-		public sealed record DerivedColumn(Ast.Expression Value, string? Name) : Clause;
-
-		/// <summary>§7.12 <c>*</c>, or <c>t.*</c> — which is no column, so it is not one.</summary>
-		public sealed record QualifiedAsterisk(string? Qualifier) : Clause;
-
 		/// <summary>§10.10 one <c>ORDER BY</c> entry: what to sort by, and which way.</summary>
 		/// <remarks>
 		/// <see cref="Order"/> is what was written and not what it means: the standard makes
@@ -1538,13 +1535,6 @@ static partial class Build
 		/// </summary>
 		public sealed record Placement(string Kind, string Target, SqlList<string>? Columns) : Clause;
 
-		/// <summary>
-		/// T-SQL's assignment written in a select list — <c>SELECT @a += 1</c>, which takes the
-		/// value rather than returning it and is not a column however much it looks like one.
-		/// </summary>
-		public sealed record VariableAssignment(
-			string Variable, string Operator, Ast.Expression Value) : Clause;
-
 		/// <summary>§6.12 one <c>WHEN … THEN …</c> of a <c>CASE</c>.</summary>
 		public sealed record When(Ast.Expression Test, Ast.Expression Result) : Clause;
 
@@ -1561,7 +1551,7 @@ static partial class Build
 		/// anywhere, that table's columns, and a second <c>OUTPUT</c> after it where there is one.
 		/// </summary>
 		public sealed record Output(
-			SqlList<Clause> Items, TableReference? Target = null, SqlList<string>? Columns = null, Clause? Next = null) : Clause;
+			SqlList<Ast.SelectColumn> Items, TableReference? Target = null, SqlList<string>? Columns = null, Clause? Next = null) : Clause;
 
 		/// <summary>
 		/// T-SQL's <c>EXECUTE ('…') AS USER = 'u'</c>: whom a string is run as, <c>LOGIN</c> or

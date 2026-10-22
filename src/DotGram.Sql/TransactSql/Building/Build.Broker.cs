@@ -391,7 +391,7 @@ static partial class Build
 
 		static Ast.Statement.Receive Receive(Statement.Receive old)
 		{
-			return new Ast.Statement.Receive(Each(old.Columns, static one => Convert<Ast.SelectColumn>(one)), Values.Name(old, old.Queue))
+			return new Ast.Statement.Receive(Queries.Columns(old.Columns), Values.Name(old, old.Queue))
 			{
 				Top   = Queries.Topped(old.Top),
 				Into  = old.Into is null ? null : Variable(old, old.Into),
@@ -442,7 +442,7 @@ static partial class Build
 		}
 
 		/// <summary>RECEIVE, on the common tree.</summary>
-		internal static Statement Receive(Clause? top, SqlList<Clause> columns, string queue, string? into, Ast.Expression? where)
+		internal static Statement Receive(Clause? top, SqlList<Ast.SelectColumn> columns, string queue, string? into, Ast.Expression? where)
 		{
 			return Carry(new Statement.Receive(top, columns, queue, into, where), Receive);
 		}
@@ -857,8 +857,8 @@ static partial class Build
 				var text = Rest();
 
 				return Queries.Specified("SELECT " + text.Trim()) is { Columns: var columns }
-					&& columns.All(static one => one is Clause.DerivedColumn { Name: null })
-					? Each(columns, static one => Values.Of(((Clause.DerivedColumn)one).Value))
+					&& columns.All(static one => one is Ast.SelectColumn.ExpressionItem { Alias: null })
+					? Each(columns, static one => Values.Of(((Ast.SelectColumn.ExpressionItem)one).Expression))
 					: throw Unread();
 			}
 
