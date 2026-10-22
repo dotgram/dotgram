@@ -117,6 +117,116 @@ public sealed class PerCallLocationTests
 		Assert.Equal((7, 3, 6, 1), Location(located[1]));
 	}
 
+	static string FlatSource(string carrier, bool lexical)
+	{
+		return $$""""
+			using DotGram;
+
+			namespace PerCallFlatProbe
+			{
+				public interface ILoc
+				{
+					void Locate(int at, int length);
+
+					void Locate(int at, int length, int gapStart);
+				}
+
+				public sealed class Name : ILoc
+				{
+					public Name(string text)
+					{
+						Text = text;
+					}
+
+					public string Text { get; }
+
+					public int At = -1;
+
+					public int Length = -1;
+
+					public void Locate(int at, int length)
+					{
+						At     = at;
+						Length = length;
+					}
+
+					public void Locate(int at, int length, int gapStart)
+					{
+						At     = at;
+						Length = length;
+					}
+				}
+
+				public sealed class Pair
+				{
+					public Pair(Name key, Name value)
+					{
+						Key   = key;
+						Value = value;
+					}
+
+					public Name Key { get; }
+
+					public Name Value { get; }
+				}
+
+				[Gram("""
+					using Std;
+
+					trivia = { Spacing* }
+
+					Entry : @Pair = k: Key & '=' & v: Key & eof => @(new Pair(k, v))
+					Key   : @Name = w: Identifier => @(new Name(w))
+
+					parse Entry
+					""", Lexical = {{(lexical ? "true" : "false")}}, Carrier = GramCarrier.{{carrier}})]
+				[GramOptions(LocationType = typeof(ILoc), Suffix = "Located", PerCall = true)]
+				public static partial class P
+				{
+				}
+			}
+			"""";
+	}
+
+	/// <summary>
+	/// A grammar small enough to be compiled flat — no recursion, no backtracking, nothing held
+	/// back — still says where its values were read through the per-call door: a flat rendering
+	/// keeps no range to offer, so a located rule is not rendered flat, as it is not where every
+	/// rule is located.
+	/// </summary>
+	[Theory]
+	[InlineData("Tape", true)]
+	[InlineData("Tape", false)]
+	[InlineData("Immediate", true)]
+	[InlineData("Immediate", false)]
+	public void A_per_call_reading_of_a_flat_grammar_locates(string carrier, bool lexical)
+	{
+		var assembly = GeneratorDriverTests.Build(FlatSource(carrier, lexical), permittedWarning: "GRAM5007");
+		var host     = assembly.GetType("PerCallFlatProbe.P")!;
+		var text     = "ab = cde";
+
+		var plain   = ReadEntry(host, text);
+		var located = ReadEntry(host.GetNestedType("Located")!, text);
+
+		Assert.Equal(-1, Field(Name(plain, "Key"), "At"));
+		Assert.Equal(-1, Field(Name(plain, "Value"), "At"));
+
+		Assert.Equal((0, 2), (Field(Name(located, "Key"), "At"), Field(Name(located, "Key"), "Length")));
+		Assert.Equal((5, 3), (Field(Name(located, "Value"), "At"), Field(Name(located, "Value"), "Length")));
+	}
+
+	static object ReadEntry(Type door, string text)
+	{
+		var parse = door.GetMethod("ParseEntry", BindingFlags.Public | BindingFlags.Static, [typeof(string)])!;
+
+		return parse.Invoke(null, [text])!;
+	}
+
+	static object Name(object pair, string property)
+	{
+		return pair.GetType().GetProperty(property)!.GetValue(pair)!;
+	}
+
 	static object[] Read(Type door, string text)
 	{
 		var parse = door.GetMethod("ParseList", BindingFlags.Public | BindingFlags.Static, [typeof(string)])!;

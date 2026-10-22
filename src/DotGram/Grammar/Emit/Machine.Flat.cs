@@ -281,9 +281,10 @@ sealed partial class Machine
 				return false;
 
 			// Nor the range the rule was read over, which a construction told where it was
-			// written takes as a parameter in a grammar that locates every rule (no per-call
-			// door): a flat rendering keeps no record of where the rule began.
-			if (CSharpEmitter.TakesSpan(_graph, factory))
+			// written takes as a parameter in a grammar that locates every rule, and which a
+			// per-call door offers it after the call: a flat rendering keeps no record of
+			// where the rule began, and its call offers nothing.
+			if (factory.Located || CSharpEmitter.TakesSpan(_graph, factory))
 				return false;
 
 			foreach (var member in factory.Members)
