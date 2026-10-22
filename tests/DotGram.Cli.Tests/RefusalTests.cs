@@ -52,6 +52,9 @@ public sealed class RefusalTests
 		using var scratch = new Scratch();
 
 		var project = ProjectWithForeignType(scratch);
+
+		Dotnet.Restore(project);
+
 		var run     = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
 
 		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
@@ -85,7 +88,7 @@ public sealed class RefusalTests
 	}
 
 	[Fact]
-	public void A_missing_type_no_grammar_asks_about_is_one_line()
+	public void Any_name_the_build_would_not_resolve_stops_the_run()
 	{
 		using var scratch = new Scratch();
 
@@ -119,11 +122,20 @@ public sealed class RefusalTests
 			</Project>
 			""");
 
+		Dotnet.Restore(project);
+
 		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
 
-		Assert.True(run.Exit == 0, run.ToString());
-		Assert.Contains("unresolved names no grammar asks about", run.Output, StringComparison.Ordinal);
-		Assert.Contains("Elsewhere", run.Output, StringComparison.Ordinal);
+		// The build would fail on it too, whether a grammar asks about it or not.
+		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
+		Assert.Contains("'Elsewhere' cannot be resolved for net10.0", run.Output, StringComparison.Ordinal);
+		Assert.Contains("the project's build would report this too", run.Output, StringComparison.Ordinal);
+		Assert.Contains("a half-written file too", run.Output, StringComparison.Ordinal);
+
+		var allowed = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--allow-unresolved");
+
+		Assert.True(allowed.Exit == 0, allowed.ToString());
+		Assert.Contains("warning: 'Elsewhere' cannot be resolved", allowed.Output, StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -216,7 +228,7 @@ public sealed class RefusalTests
 	}
 
 	/// <summary>A project whose grammar builds Node from the sources, Node and what it rests on declared as given.</summary>
-	static string ProjectBuildingNode(Scratch scratch, string declarations)
+	static string ProjectBuildingNode(Scratch scratch, string declarations, string outside = "")
 	{
 		scratch.Write("p/Nodes.gram", """
 			Node : @Node = name: Word => @(new Node(name))
@@ -228,6 +240,7 @@ public sealed class RefusalTests
 
 		scratch.Write("p/Nodes.cs", $$"""
 			using DotGram;
+			{{outside}}
 
 			namespace Demo
 			{
@@ -251,37 +264,32 @@ public sealed class RefusalTests
 	}
 
 	/// <summary>
-	/// The grammar asks about Node, and what Node is depends on its base, which cannot be resolved: what
-	/// it fits, what it is built with, could be other than in a build that has the base.
+	/// A name nothing resolves, wherever it stands in the sources — a base, an alias to one, a delegate's
+	/// return, a type in another namespace of the same simple name as the parser's, a constructor's
+	/// initializer, a body: the build would fail on it, and the run stops.
 	/// </summary>
 	[Theory]
 	[InlineData("public class Node : Models.Base { public Node(string name) { } }")]
 	[InlineData("public class Node : Base { public Node(string name) { } } public class Base : Models.Root { }")]
 	[InlineData("public class Node { public Node(string name) { } public Models.Kind Kind { get; set; } }")]
-	public void A_missing_name_a_queried_type_rests_on_stops_the_run(string declarations)
+	[InlineData("public class Node : Parent { public Node(string name) { } } public class Base : Models.Root { }", "using Parent = Demo.Base;")]
+	[InlineData("public class Node { public Node(string name) { } public Factory? Make { get; set; } } public delegate Models.Kind Factory();")]
+	[InlineData("public class Node : Foreign.Demo { public Node(string name) { } }", "namespace Foreign { public class Other { } }")]
+	[InlineData("public class Node { public Node(string name) : this(new Models.Thing()) { } Node(object value) { } }")]
+	[InlineData("public class Node { public Node(string name) { var x = new Models.Thing(); } }")]
+	public void A_missing_name_anywhere_in_the_sources_stops_the_run(string declarations, string outside = "")
 	{
 		using var scratch = new Scratch();
 
-		var project = ProjectBuildingNode(scratch, declarations);
-		var run     = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
+		var project = ProjectBuildingNode(scratch, declarations, outside);
+
+		Dotnet.Restore(project);
+
+		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
 
 		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
-		Assert.Contains("'Models' cannot be resolved for net10.0", run.Output, StringComparison.Ordinal);
-		Assert.Matches("the declaration of '(Node|Base)', which a grammar's answer depends on, names it", run.Output);
+		Assert.Matches("'(Models|Foreign|Demo)' cannot be resolved for net10.0", run.Output);
 		Assert.False(Directory.Exists(scratch.Path("out")));
-	}
-
-	/// <summary>A missing name inside a body decides nothing the generator asks.</summary>
-	[Fact]
-	public void A_missing_name_in_a_body_is_one_line()
-	{
-		using var scratch = new Scratch();
-
-		var project = ProjectBuildingNode(scratch, "public class Node { public Node(string name) { var x = new Models.Thing(); } }");
-		var run     = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
-
-		Assert.True(run.Exit == 0, run.ToString());
-		Assert.Contains("unresolved names no grammar asks about", run.Output, StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -299,6 +307,8 @@ public sealed class RefusalTests
 			  </ItemGroup>
 			</Project>
 			""");
+
+		Dotnet.Restore(project);
 
 		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
 

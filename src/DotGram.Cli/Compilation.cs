@@ -153,7 +153,8 @@ sealed class GenerationInputs
 			foreach (var file in Packages.Assemblies(package, framework))
 				all.Add(MetadataReference.CreateFromFile(file));
 
-		return [.. all];
+		// One assembly named twice — a package restore resolved and --package as well — is one reference.
+		return [.. all.DistinctBy(static reference => reference is PortableExecutableReference { FilePath: { } path } ? path : (object)reference)];
 	}
 }
 
