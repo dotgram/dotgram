@@ -445,14 +445,14 @@ namespace DotGram.Snapshots
 				if (input is null)
 					throw new global::System.ArgumentNullException(nameof(input));
 
-				return OverLines(input);
+				return OverLines_DotGram(input);
 
-				static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> OverLines(global::System.Collections.Generic.IEnumerable<string> input)
+				static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> OverLines_DotGram(global::System.Collections.Generic.IEnumerable<string> input)
 				{
-					using var lines = new Lines(input);
+					using var lines_DotGram = new Lines(input);
 
-					foreach (var item in AllUrls(lines))
-						yield return item;
+					foreach (var item_DotGram in AllUrls(lines_DotGram))
+						yield return item_DotGram;
 				}
 			}
 

@@ -1415,14 +1415,14 @@ namespace DotGram.Snapshots
 			if (input is null)
 				throw new global::System.ArgumentNullException(nameof(input));
 
-			return OverLines(input);
+			return OverLines_DotGram(input);
 
-			static global::System.Collections.Generic.IEnumerable<Match<string>> OverLines(global::System.Collections.Generic.IEnumerable<string> input)
+			static global::System.Collections.Generic.IEnumerable<Match<string>> OverLines_DotGram(global::System.Collections.Generic.IEnumerable<string> input)
 			{
-				using var lines = new Lines(input);
+				using var lines_DotGram = new Lines(input);
 
-				foreach (var item in Words(lines))
-					yield return item;
+				foreach (var item_DotGram in Words(lines_DotGram))
+					yield return item_DotGram;
 			}
 		}
 

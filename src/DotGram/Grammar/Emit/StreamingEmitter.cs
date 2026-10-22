@@ -160,7 +160,7 @@ public static partial class CSharpEmitter
 			$"{access} static {returns} {method}(" +
 			$"global::System.Collections.Generic.IEnumerable<string> input{takes})"))
 		{
-			var call = $"{method}(lines{(takes.Length > 0 ? ", context" : "")})";
+			var call = $"{method}(lines_DotGram{(takes.Length > 0 ? ", context" : "")})";
 
 			if (returns.StartsWith("global::System.Collections.Generic.IEnumerable<", StringComparison.Ordinal))
 			{
@@ -169,24 +169,24 @@ public static partial class CSharpEmitter
 				file.Line("if (input is null)");
 				file.Then("throw new global::System.ArgumentNullException(nameof(input));");
 				file.Line();
-				file.Line($"return OverLines(input{(takes.Length > 0 ? ", context" : "")});");
+				file.Line($"return OverLines_DotGram(input{(takes.Length > 0 ? ", context" : "")});");
 				file.Line();
 
 				var element = returns.Substring(returns.IndexOf('<') + 1, returns.Length - returns.IndexOf('<') - 2);
 
 				using (file.Block(
-					$"static global::System.Collections.Generic.IEnumerable<{element}> OverLines(" +
+					$"static global::System.Collections.Generic.IEnumerable<{element}> OverLines_DotGram(" +
 					$"global::System.Collections.Generic.IEnumerable<string> input{takes})"))
 				{
-					file.Line($"using var lines = new {LinesType}(input);");
+					file.Line($"using var lines_DotGram = new {LinesType}(input);");
 					file.Line();
-					file.Line($"foreach (var item in {call})");
-					file.Then("yield return item;");
+					file.Line($"foreach (var item_DotGram in {call})");
+					file.Then("yield return item_DotGram;");
 				}
 			}
 			else
 			{
-				file.Line($"using var lines = new {LinesType}(input);");
+				file.Line($"using var lines_DotGram = new {LinesType}(input);");
 				file.Line();
 				file.Line($"return {call};");
 			}
