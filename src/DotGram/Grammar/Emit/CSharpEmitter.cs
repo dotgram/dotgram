@@ -645,6 +645,14 @@ public static partial class CSharpEmitter
 			Publish(null);
 		}
 
+		// What a publication read from a reader or lines may do differently from one read from a string.
+		if (diagnostics is not null && graph.Context is not null)
+			foreach (var compiled in machines)
+				foreach (var publication in compiled.Publications)
+					if (compiled.Machine.BufferedInput || publication.BufferedInput || publication.BufferedBytes ||
+						!bufferedInput && Streams(graph, publication, overKinds))
+						ContextChanges(graph, publication, diagnostics);
+
 		// The hooks a reading handed to another stack calls, once a class however many machines probe.
 		if (machines.Any(static one => one.Machine.Probes))
 		{

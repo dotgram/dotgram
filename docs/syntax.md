@@ -2215,6 +2215,12 @@ The shape of what comes back does not change with the input: `parse` of a sequen
 rule yields a sequence either way, and `find` yields one either way. What changes is
 how much is held while it is walked.
 
+A reader and a string give the same result for constructions without side effects. A construction
+that changes state — the `context` included — may run a different number of times in a streamed
+reading than over a string: a result that reaches the end of what is held is not an answer while the
+reader has more, and is read again. A construction that assigns to, or increments, a member of
+`context` is told as it is written (`GRAM5017`, information; syntactic and best-effort).
+
 The same grammar serves both. `Feed : FeedItem[] = Header & Row* & Trailer & eof`
 checks that there is exactly one header, that the trailer is there and that nothing
 follows — which is precisely what is lost when the caller chops the input into records
