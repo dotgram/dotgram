@@ -288,9 +288,9 @@ namespace DotGram.Snapshots
 				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 		/// <summary>The same, over bytes the caller already holds.</summary>
-		public static Match<byte[]> TryParseFeed(byte[] input) => TryParseFeed(new global::System.ReadOnlyMemory<byte>(input ?? throw new global::System.ArgumentNullException(nameof(input))));
+		public static Match<byte[]> TryParseFeed(byte[] input) => global::DotGram.Snapshots.Buffered.TryParseFeed(new global::System.ReadOnlyMemory<byte>(input ?? throw new global::System.ArgumentNullException(nameof(input))));
 		/// <summary>The same, over bytes the caller already holds.</summary>
-		public static byte[] ParseFeed(byte[] input) => ParseFeed(new global::System.ReadOnlyMemory<byte>(input ?? throw new global::System.ArgumentNullException(nameof(input))));
+		public static byte[] ParseFeed(byte[] input) => global::DotGram.Snapshots.Buffered.ParseFeed(new global::System.ReadOnlyMemory<byte>(input ?? throw new global::System.ArgumentNullException(nameof(input))));
 		/// <summary>Parses buffered input synchronously without retrying at refill boundaries.</summary>
 		/// <remarks>The caller owns input. Pending backtracking and captures may retain the whole input.</remarks>
 		public static Match<byte[]> TryParseFeed(global::System.ReadOnlyMemory<byte> input)
@@ -390,7 +390,7 @@ namespace DotGram.Snapshots
 			}
 		}
 		/// <summary>The same, over bytes the caller already holds.</summary>
-		public static global::System.Collections.Generic.IEnumerable<Match<byte[]>> FindRecord(byte[] input) => FindRecord(new global::System.ReadOnlyMemory<byte>(input ?? throw new global::System.ArgumentNullException(nameof(input))));
+		public static global::System.Collections.Generic.IEnumerable<Match<byte[]>> FindRecord(byte[] input) => global::DotGram.Snapshots.Buffered.FindRecord(new global::System.ReadOnlyMemory<byte>(input ?? throw new global::System.ArgumentNullException(nameof(input))));
 		/// <summary>Lazily finds occurrences through a reusable buffer; leaves input open.</summary>
 		public static global::System.Collections.Generic.IEnumerable<Match<byte[]>> FindRecord(global::System.ReadOnlyMemory<byte> input)
 		{

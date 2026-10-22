@@ -1748,7 +1748,7 @@ namespace DotGram.Snapshots
 		/// </remarks>
 		public static global::System.Collections.Generic.IEnumerable<Match<string>> AnyItem(global::System.Collections.Generic.IEnumerable<string> input)
 		{
-			return AnyItem(new Lines(input));
+			return global::DotGram.Snapshots.Minimal.AnyItem(new Lines(input));
 		}
 
 		static partial void OnHandingOff(ref object? state);
@@ -5458,7 +5458,7 @@ namespace DotGram.Snapshots
 		/// </remarks>
 		public static global::System.Collections.Generic.IEnumerable<string> ParseSheet(global::System.Collections.Generic.IEnumerable<string> input)
 		{
-			return ParseSheet(new Lines(input));
+			return global::DotGram.Snapshots.Minimal.ParseSheet(new Lines(input));
 		}
 
 		static int Recognize_DotGram_C_Sharpen0(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)

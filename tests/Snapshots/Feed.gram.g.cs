@@ -276,7 +276,7 @@ namespace DotGram.Snapshots
 		/// </remarks>
 		public static global::System.Collections.Generic.IEnumerable<Match<string>> FindName(global::System.Collections.Generic.IEnumerable<string> input)
 		{
-			return FindName(new Lines(input));
+			return global::DotGram.Snapshots.Feed.FindName(new Lines(input));
 		}
 
 		/// <summary>Every occurrence of <c>Row</c>, in order, found as it is asked for.</summary>
@@ -350,7 +350,7 @@ namespace DotGram.Snapshots
 		/// </remarks>
 		public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Feed.Row>> AllRows(global::System.Collections.Generic.IEnumerable<string> input)
 		{
-			return AllRows(new Lines(input));
+			return global::DotGram.Snapshots.Feed.AllRows(new Lines(input));
 		}
 
 		/// <summary>What the rule <c>Feed</c> recognized.</summary>

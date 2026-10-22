@@ -1412,7 +1412,7 @@ namespace DotGram.Snapshots
 		/// </remarks>
 		public static global::System.Collections.Generic.IEnumerable<Match<string>> Words(global::System.Collections.Generic.IEnumerable<string> input)
 		{
-			return Words(new Lines(input));
+			return global::DotGram.Snapshots.Notation.Words(new Lines(input));
 		}
 
 		static string Construct_Word(string w) =>

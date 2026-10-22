@@ -442,7 +442,7 @@ namespace DotGram.Snapshots
 			/// </remarks>
 			public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> AllUrls(global::System.Collections.Generic.IEnumerable<string> input)
 			{
-				return AllUrls(new Lines(input));
+				return global::DotGram.Snapshots.Url.Traced.AllUrls(new Lines(input));
 			}
 
 			/// <summary>What the rule <c>Url</c> recognized.</summary>

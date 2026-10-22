@@ -1015,7 +1015,7 @@ namespace DotGram.Snapshots
 		/// </remarks>
 		public static global::System.Collections.Generic.IEnumerable<Entry> ParseConfig(global::System.Collections.Generic.IEnumerable<string> input)
 		{
-			return ParseConfig(new Lines(input));
+			return global::DotGram.Snapshots.Located.ParseConfig(new Lines(input));
 		}
 
 		static int Recognize_DotGram_Sharpen0(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)

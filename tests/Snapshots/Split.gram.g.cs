@@ -478,7 +478,7 @@ namespace DotGram.Snapshots
 		/// </remarks>
 		public static global::System.Collections.Generic.IEnumerable<string> ParseScript(global::System.Collections.Generic.IEnumerable<string> input)
 		{
-			return ParseScript(new Lines(input));
+			return global::DotGram.Snapshots.Split.ParseScript(new Lines(input));
 		}
 
 		private static readonly int[] Prefix_DotGram_0_Next = new int[]

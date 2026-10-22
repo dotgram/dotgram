@@ -1932,7 +1932,7 @@ public static partial class CSharpEmitter
 				file.Line();
 
 				EmitStreamingFind(
-					file, publication, method, name, match, streamedHands, built is not null, takes, tracing, machine, built);
+					file, results, publication, method, name, match, streamedHands, built is not null, takes, tracing, machine, built);
 			}
 
 			return;
