@@ -5623,13 +5623,22 @@ sealed partial class Machine
 	/// </summary>
 	char[]? StopCharacters(Node body)
 	{
-		var stop = body switch
+		Node? stop   = null;
+		var   except = (char[])[];
+
+		if (body is Node.Element { IsNegated: true })
+			stop = body;
+		else if (body is Node.Sequence({ Count: 2 } parts) && parts[0] is Node.Lookahead(false, var guard))
 		{
-			Node.Element { IsNegated: true } negated => negated,
-			Node.Sequence({ Count: 2 } parts) when parts[0] is Node.Lookahead(false, var guard) &&
-				RunTest(parts[1]) == "true" => DelimiterBody(guard),
-			_ => null,
-		};
+			// `?!Stop & [^ S]` stops at S as well, where its own item fails.
+			if (RunTest(parts[1]) == "true")
+				stop = DelimiterBody(guard);
+			else if (ExceptFew(parts[1]) is { Length: > 0 } few)
+			{
+				stop   = DelimiterBody(guard);
+				except = few;
+			}
+		}
 
 		IReadOnlyList<CharRange> ranges;
 
@@ -5638,7 +5647,11 @@ sealed partial class Machine
 			// An ignore-case literal stops at every character its matcher folds together,
 			// not just the written one. Leave those literals to the per-turn matcher.
 			case Node.Literal(var text) { IgnoreCase: false } when text.Length == 1:
-				return [text[0]];
+				if (except.Length == 0)
+					return [text[0]];
+
+				ranges = [new CharRange(text[0], text[0])];
+				break;
 
 			// The body's own negated class, or a class the lookahead refuses: never a negated
 			// one there, which would stop at nearly everything.
@@ -5661,6 +5674,20 @@ sealed partial class Machine
 
 				made.Add((char)c);
 			}
+
+		// The characters the turn's own item refuses count against the same five, and are searched
+		// for only where a search can find them: no half of a surrogate pair, no character a byte
+		// does not hold.
+		foreach (var one in except)
+		{
+			if (made.Contains(one))
+				continue;
+
+			if (made.Count == 5 || char.IsSurrogate(one) || BufferedBytes && one > 0x7F)
+				return null;
+
+			made.Add(one);
+		}
 
 		return made.Count == 0 ? null : [.. made];
 	}
