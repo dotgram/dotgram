@@ -4800,7 +4800,7 @@ namespace DotGram.Snapshots
 					goto Fail;
 				}
 				c = text[p];
-				if (!((c < 128 ? (c >= 'A' && c <= 'Z') : (global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == global::System.Globalization.UnicodeCategory.UppercaseLetter))))
+				if (!((c < 128 ? (c >= 'A' && c <= 'Z') : (Categories_DotGram_1(c)))))
 				{
 					expected = ExpectedSet_DotGram(34);
 					goto Fail;
@@ -4817,7 +4817,7 @@ namespace DotGram.Snapshots
 					goto S6;
 				}
 				c = text[p];
-				if (!((c < 128 ? (c >= 'A' && c <= 'Z') : (global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == global::System.Globalization.UnicodeCategory.UppercaseLetter))))
+				if (!((c < 128 ? (c >= 'A' && c <= 'Z') : (Categories_DotGram_1(c)))))
 				{
 					expected = ExpectedSet_DotGram(34);
 					goto S6;
@@ -7168,6 +7168,54 @@ namespace DotGram.Snapshots
 			else if (_deeperParserCount < 3)
 				(_deeperParsers ??= new Parser?[3])[_deeperParserCount++] = parser;
 		}
+
+		// Whether a character is Lu in Unicode 16.0.0: its high byte picks one of
+		// the blocks of 256 bits after the 256 bytes that number them, its low byte the bit.
+		[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+		static bool Categories_DotGram_1(char c)
+		{
+			var bits = Categories_DotGram_1_Bits;
+
+			return (bits[256 + (bits[c >> 8] << 5) + ((c & 0xFF) >> 3)] & (1 << (c & 7))) != 0;
+		}
+
+		static global::System.ReadOnlySpan<byte> Categories_DotGram_1_Bits => new byte[]
+		{
+			0,1,2,3,4,5,6,6,6,6,6,6,6,6,6,6,
+			7,6,6,8,6,6,6,6,6,6,6,6,9,6,10,11,
+			6,12,6,6,6,6,6,6,6,6,6,6,13,6,6,6,
+			6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
+			6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
+			6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
+			6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
+			6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
+			6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
+			6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
+			6,6,6,6,6,6,14,15,6,6,6,6,6,6,6,6,
+			6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
+			6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
+			6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
+			6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
+			6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,16,
+			0,0,0,0,0,0,0,0,254,255,255,7,0,0,0,0,0,0,0,0,0,0,0,0,255,255,127,127,0,0,0,0,
+			85,85,85,85,85,85,85,170,170,84,85,85,85,85,85,43,214,206,219,177,213,210,174,17,144,164,170,74,85,85,210,85,
+			85,85,85,85,85,85,5,108,122,85,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,69,128,64,215,254,255,251,15,0,0,0,128,28,85,85,85,144,230,
+			255,255,255,255,255,255,0,0,0,0,0,0,85,85,85,85,1,84,85,85,85,85,85,85,171,42,85,85,85,85,85,85,
+			85,85,85,85,85,85,254,255,255,255,127,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,255,255,255,191,32,0,0,0,0,0,0,
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,255,255,255,255,255,255,255,255,255,255,63,0,
+			0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,255,255,255,255,255,231,0,0,0,0,0,0,0,0,
+			85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,85,21,64,85,85,85,85,85,85,85,85,85,85,85,85,
+			0,255,0,63,0,255,0,255,0,63,0,170,0,255,0,0,0,0,0,0,0,0,0,15,0,15,0,15,0,31,0,15,
+			132,56,39,62,80,61,15,192,32,0,0,0,0,0,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+			255,255,255,255,255,255,0,0,0,0,0,0,157,234,37,192,85,85,85,85,85,85,85,85,85,85,85,85,5,40,4,0,
+			0,0,0,0,0,0,0,0,85,85,85,85,85,21,0,0,85,85,85,5,0,0,0,0,0,0,0,0,0,0,0,0,
+			0,0,0,0,84,85,84,85,85,85,85,85,85,85,0,106,85,40,69,85,85,125,95,85,245,26,65,21,0,0,32,0,
+			0,0,0,0,254,255,255,7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		};
+
 
 		// The sets a refusal names, by number: built the first time a refusal asks for one, never in the
 		// type's initializer, and then the same array for as long as the process lives, because refusals

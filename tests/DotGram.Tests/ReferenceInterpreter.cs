@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Globalization;
 using System.Linq;
 
 using DotGram.Grammar;
@@ -251,7 +250,7 @@ public static class ReferenceInterpreter
 		var inside = element.Ranges.Any(range => range.From <= text[at] && text[at] <= range.To) ||
 			element.Categories
 				.SelectMany(UnicodeCategories.Expand)
-				.Any(name => CharUnicodeInfo.GetUnicodeCategory(text[at]).ToString() == name);
+				.Any(name => UnicodeCategories.Of(text[at]).ToString() == name);
 
 		return inside != element.IsNegated;
 	}

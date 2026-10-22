@@ -123,8 +123,8 @@ Sheet : @string[] = Row* recover ';' & eof
 // ── Case folding and categories ─────────────────────────────────────────────────────
 //
 // `Ci` compares each character folded — the one literal shape `SequenceEqual` cannot
-// take. `Upper` tests via `GetUnicodeCategory`, and its first set still knows its exact
-// ranges at compile time.
+// take. `Upper` reads ASCII from a table and the rest from Unicode 16.0's bits for `Lu`,
+// and its first set knows the same ranges at compile time.
 
 Ci    : @string = t: "go"i     => @(t)
 Upper : @string = t: [\p{Lu}]+ => @(t)

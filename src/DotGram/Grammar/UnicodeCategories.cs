@@ -98,6 +98,18 @@ public static partial class UnicodeCategories
 		return [];
 	}
 
+	/// <summary>How a regular expression writes <paramref name="category"/>: <c>Lu</c> for <c>UppercaseLetter</c>.</summary>
+	public static string Abbreviation(System.Globalization.UnicodeCategory category)
+	{
+		var name = category.ToString();
+
+		foreach (var pair in _names)
+			if (pair.Value == name)
+				return pair.Key;
+
+		throw new ArgumentOutOfRangeException(nameof(category));
+	}
+
 	public static bool Exists(string abbreviation)
 	{
 		return Expand(abbreviation).Count > 0;
