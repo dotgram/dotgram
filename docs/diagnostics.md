@@ -39,6 +39,7 @@ underlined where it was written, in the base's own file — see §5.1.
 | `GRAM0007` | The name a grammar is compiled under is not an identifier. | `[GramOptions(Suffix = "…")]` names a nested class, and a class is named by an identifier. |
 | `GRAM0008` | Two grammars are included under one name. | An included grammar is wrapped in a namespace named after it, which is what keeps two grammars' rules apart: `Sql92.Identifier` and `Lex.Identifier` are different names. Two under one name are one namespace, and their rules do collide — give all but one an `As` of its own. |
 | `GRAM0009` | A buffer option is not positive. | `[Gram(MaxRetained = …)]` is the most a buffered parse may hold and `BufferSize` the capacity it starts with, so either is at least 1. Leave it out for no limit, or give a call its own `maxRetained`. |
+| `GRAM0010` | The generated parser needs C# 8 or later. | The project compiles an earlier version — C# 7.3 is the default for `netstandard2.0` and .NET Framework — and no parser is generated below C# 8. Set `<LangVersion>8.0</LangVersion>` or later in the project. Reported once, at the first `[Gram]`; a project with none builds at any version.
 
 ## GRAM1xxx — reading the characters
 

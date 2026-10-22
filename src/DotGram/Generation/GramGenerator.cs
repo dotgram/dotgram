@@ -67,11 +67,43 @@ public sealed class GramGenerator : IIncrementalGenerator
 			static (candidate, _) => Host.All(candidate))
 			.SelectMany(static (all, _) => all);
 
+		// The version of C# the project compiles, where it is one a generated parser cannot be
+		// written in: below C# 8 no host is compiled at all, and the first is told why (GRAM0010)
+		// rather than every generated file failing with errors about features of a language the
+		// author did not choose. The effective version, which is what the compiler will read.
+		var tooOld = context.ParseOptionsProvider.Select(static (options, _) =>
+			options is CSharpParseOptions { LanguageVersion: < LanguageVersion.CSharp8 } parse
+				? parse.LanguageVersion.ToDisplayString()
+				: null);
+
 		// What a host says, and where it says it, go separate ways (D145). The compile reads the
 		// first alone, so an edit that moves an attribute and leaves what it says as it was stops
 		// here: the host compares equal and nothing below it runs. Where it is — the attribute,
 		// the literal's line and column — is gathered for the two steps at the end that need it.
-		var hosts = found.Select(static (one, _) => one.Host);
+		var hosts = found
+			.Combine(tooOld)
+			.Where(static input => input.Right is null)
+			.Select(static (input, _) => input.Left.Host);
+
+		context.RegisterSourceOutput(
+			found
+				.Select(static (one, _) => one.Site.At)
+				.Collect()
+				.Combine(tooOld)
+				.Combine(context.CompilationProvider.Select(static (compilation, _) => compilation.SyntaxTrees.ToImmutableArray())),
+			static (production, input) =>
+			{
+				var ((places, version), trees) = input;
+
+				if (version is null || places.IsEmpty)
+					return;
+
+				production.ReportDiagnostic(Diagnostic.Create(
+					Diagnostics.LanguageVersionTooLow,
+					Foremost(places)?.ToLocation(path => trees.FirstOrDefault(tree => tree.FilePath == path)) ?? Location.None,
+					version));
+			});
+
 		var sites = found
 			.Select(static (one, _) => one.Site)
 			.Collect()
@@ -759,6 +791,30 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 	/// <summary>A compiled parser and where its host is written, met at the end of the pipeline.</summary>
 	readonly record struct Located(Parser Parser, Site Site);
+
+	/// <summary>The place that comes first in the project: by file, then by where in it.</summary>
+	static Place? Foremost(ImmutableArray<Place?> places)
+	{
+		Place? first = null;
+
+		foreach (var place in places)
+		{
+			if (place is not { } one)
+				continue;
+
+			if (first is { } best)
+			{
+				var order = string.CompareOrdinal(one.Path, best.Path);
+
+				if (order > 0 || order == 0 && one.Span.Start >= best.Span.Start)
+					continue;
+			}
+
+			first = one;
+		}
+
+		return first;
+	}
 
 	/// <summary>Every host's <see cref="Site"/>, by its key.</summary>
 	/// <remarks>

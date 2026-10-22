@@ -24,6 +24,12 @@ target framework, next to the consumer's own code. That changes the rules.
   generated code at `LangVersion 8.0` for `netstandard2.0`, so a feature the emitter
   starts using fails there rather than in somebody else's build.
 
+  One file sits below the floor on purpose: the attributes post-initialization adds to
+  every compilation (`SupportEmitter.Attributes`) are C# 7.3, with no `#nullable` and no
+  `?` on a reference type, because a project that references the generator without writing
+  a `[Gram]` gets them too and must build at its default version. A project below C# 8 that
+  does write one is told so by GRAM0010 and gets no parser.
+
   Emitting *above* the floor is allowed where the consumer's own compiler is known to
   accept it: a generator runs on every compilation, so nothing generated outlives the
   compilation that produced it, and `context.ParseOptionsProvider` gives the effective

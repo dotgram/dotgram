@@ -374,7 +374,8 @@ The generated parser is C# 8 and targets whatever the project around it targets.
 
 * A grammar written inside `[Gram]` is a raw string literal, which is C# 11. On
   `netstandard2.0` and `net472` the default is C# 7.3, so `<LangVersion>` has to be set.
-  A grammar in a `.gram` file asks for nothing.
+  A grammar in a `.gram` file still needs C# 8: below it the build reports GRAM0010
+  and generates no parser.
 * `netstandard2.0` and `net472` need `System.Memory`, for the `ReadOnlySpan<char>` the
   generated methods take.
 
