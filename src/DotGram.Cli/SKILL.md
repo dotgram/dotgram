@@ -34,29 +34,29 @@ Types the grammar builds that live in another assembly: `--reference <file.dll|d
 `--package System.Memory@<version>`). If a type a grammar asks about cannot be resolved, the tool
 names it, writes nothing and exits 3.
 
-## In CI
+## Keeping it current
 
-Run the same command with `--verify`: it generates in memory, writes nothing, and exits 1 with the
-first difference when a grammar, an option, a type it builds or the generator changed without the
-files being regenerated. Keep the arguments in a response file so both runs use the same ones:
+Nothing in the build notices that a grammar changed: run the command again after editing a grammar
+or a type it builds, and read the diff of the folder. Keep the arguments in a response file so that
+every run uses the same ones:
 
 ```shell
-dotnet dotgram generate @grammars.rsp           # regenerate
-dotnet dotgram generate @grammars.rsp --verify  # in CI
+dotnet dotgram generate @grammars.rsp
 ```
 
-Line ends are not compared; `Generated/** -text` in `.gitattributes` keeps the files as written.
+To check it in CI, run it there and fail on `git diff --exit-code` over the folder.
+`Generated/** -text` in `.gitattributes` keeps the files as the generator writes them (CRLF).
 
 ## Reading what it says
 
 - The first line is the arguments as the tool understood them, response files expanded.
 - Diagnostics are `path(line,col): error GRAMnnnn: message`, as csc writes them.
-- Exit codes: 0 done or equal; 1 `--verify` differs; 2 grammar errors (nothing written);
-  3 usage, evaluation, an unresolved type a grammar asks about, frameworks that differ.
+- Exit codes: 0 done; 2 grammar errors (nothing written); 3 usage, evaluation, an unresolved type
+  a grammar asks about (nothing written), frameworks that differ.
 
 ## What not to do
 
 - Do not reference the `DotGram` package and compile the generated folder in the same project.
-- Do not edit the generated files: `--verify` reports the edit, and the next run overwrites it.
+- Do not edit the generated files: the next run overwrites them.
 - Do not commit the output of one framework for a multi-targeted project generated with
   `--framework`: the folder is compiled by every framework the project targets.

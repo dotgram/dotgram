@@ -23,42 +23,33 @@ static class Cli
 	{
 		try
 		{
-			var expanded = ResponseFile.Expand(arguments, currentDirectory);
-
-			if (expanded.Count == 0)
+			switch (CommandLine.Parse(arguments, currentDirectory))
 			{
-				error.WriteLine(Help.Usage);
-				return ExitCode.Failure;
-			}
+				case Command.Usage:
+					error.WriteLine(Help.Usage);
+					return ExitCode.Failure;
 
-			var command = expanded[0].Text;
-			var rest    = expanded.Skip(1).ToList();
-
-			switch (command)
-			{
-				case "-h" or "--help" or "-?" or "help":
+				case Command.Help:
 					output.WriteLine(Help.Text);
 					return ExitCode.Done;
 
-				case "--version":
+				case Command.GenerateHelp:
+					output.WriteLine(Help.Generate);
+					return ExitCode.Done;
+
+				case Command.Version:
 					output.WriteLine($"dotnet-dotgram {ToolVersion} (generator {GeneratorVersion})");
 					return ExitCode.Done;
 
-				case "--skill":
+				case Command.Skill:
 					output.Write(Help.Skill());
 					return ExitCode.Done;
 
-				case "generate":
-					if (rest.Any(static argument => argument.Text is "-h" or "--help" or "-?"))
-					{
-						output.WriteLine(Help.Generate);
-						return ExitCode.Done;
-					}
-
-					return Generate(GenerateOptions.Parse(rest), output);
+				case Command.Generate(var options):
+					return Generate(options, output);
 
 				default:
-					throw ToolException.Usage($"unknown command '{command}'.");
+					throw new InvalidOperationException("A command the dispatch does not know.");
 			}
 		}
 		catch (ToolException exception)
@@ -129,8 +120,20 @@ static class Cli
 
 		if (outputs.Any(static one => one.Output.HasErrors))
 		{
+			var errors = reported.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToList();
+
+			// A C# type the grammar names that is not in view: a typo, or a type the tool was not given.
+			// Where that is every error, it is the second as much as the first, and said so.
+			if (errors.Any(static diagnostic => diagnostic.Id == NotInView))
+				output.WriteLine(
+					"A C# type the grammar names is not in view. If it is declared elsewhere, " +
+					(options.Kind == InputKind.Grammar
+						? "add the file that declares it with --sources (or --reference its assembly)."
+						: "pass the assembly that declares it with --reference <file.dll|dir> or --package <Name>@<Version>."));
+
 			output.WriteLine("Grammar errors: nothing written.");
-			return ExitCode.GrammarErrors;
+
+			return errors.All(static diagnostic => diagnostic.Id == NotInView) ? ExitCode.Failure : ExitCode.GrammarErrors;
 		}
 
 		foreach (var (run, generated) in outputs)
@@ -144,26 +147,6 @@ static class Cli
 		var files = Files(outputs, options);
 
 		var manifest = OutputFolder.Manifest(files, ToolVersion, GeneratorVersion);
-
-		if (options.Verify)
-		{
-			var comparison = OutputFolder.Verify(options.Output, files, manifest);
-
-			if (!comparison.Equal)
-			{
-				output.WriteLine("Differs: " + comparison.Difference);
-				output.WriteLine("Run the same command without --verify to regenerate, and commit the result.");
-				return ExitCode.Differs;
-			}
-
-			if (comparison.LineEndsOnly)
-				output.WriteLine(
-					"Line endings differ from the generator's (CRLF) but nothing else does; see .gitattributes " +
-					$"('{Relative(options.Output)}/** -text' keeps the files byte for byte).");
-
-			output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"Equal: {files.Count} files in {options.Output} ({clock.Elapsed.TotalSeconds:F1} s)."));
-			return ExitCode.Done;
-		}
 
 		var (written, unchanged, deleted) = OutputFolder.Write(options.Output, files, manifest);
 
@@ -181,6 +164,9 @@ static class Cli
 			return Path.GetFileName(path.TrimEnd('/', '\\'));
 		}
 	}
+
+	/// <summary>The generator's "no C# type of this name is in view".</summary>
+	const string NotInView = "GRAM3004";
 
 	/// <summary>One generation to run: its inputs, and in <c>.gram</c> mode the host it is given.</summary>
 	sealed record Pass(GenerationInputs Inputs, ImmutableArray<SyntaxTree> ExtraSources, bool CompileOutput, string? HostFile, string? HostText);
@@ -331,7 +317,7 @@ static class Cli
 			: Unresolved.Diagnostics(generated.Input, run.Inputs.Sources);
 
 		var unresolved = Unresolved.Of(diagnostics)
-			.Where(name => mode || !generated.GeneratedTypeNames.Contains(name.Name))
+			.Where(name => mode || !(generated.GeneratedTypeNames.Contains(name.Name) || generated.GeneratedTypeNames.Contains(name.Name + "Attribute")))
 			.ToList();
 
 		var (asked, other) = Unresolved.Split(unresolved, generated.AskedTypeNames);
