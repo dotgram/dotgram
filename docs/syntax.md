@@ -192,7 +192,10 @@ asked would accept different characters on different runtimes, and could be buil
 differently by Visual Studio and by the .NET SDK. A later Unicode version is taken by a
 new release of the generator, as a behaviour change. A category is tested on a UTF-16
 code unit, as every element is: a character outside the Basic Multilingual Plane is two
-units, each `Cs`, so `\p{L}` does not match a letter there.
+units, each `Cs`, so `\p{L}` does not match a letter there. Names are not categories:
+a rule's or a capture's name becomes a C# identifier and follows C#'s identifier rules
+as the compiler building it reads them, so a name with a letter beyond ASCII may be
+taken by one runtime and refused by another, as it is in C# itself.
 
 A trailing `i` — no space before it — is spelled as in Lark, but it folds less: a
 character at a time, each character of the literal matches itself and its simple upper
