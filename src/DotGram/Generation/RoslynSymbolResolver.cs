@@ -189,6 +189,13 @@ public sealed class RoslynSymbolResolver(
 		return ValueTypeNamed(qualifiedName) is { IsReferenceType: true };
 	}
 
+	/// <summary>Whether the name is the framework's <c>Nullable&lt;T&gt;</c>, constructed.</summary>
+	public bool IsNullable(string qualifiedName)
+	{
+		return ValueTypeNamed(qualifiedName) is INamedTypeSymbol { IsGenericType: true } named &&
+			named.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
+	}
+
 	/// <summary>Whether a context of this type has a <c>Mark()</c> and a <c>Rollback</c> of what it returns.</summary>
 	/// <remarks>
 	/// Instance methods, searched through the base types, and callable from the assembly the

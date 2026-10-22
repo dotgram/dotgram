@@ -516,6 +516,11 @@ public sealed class GrammarBinderTests
 			return false;
 		}
 
+		public bool IsNullable(string qualifiedName)
+		{
+			return false;
+		}
+
 		public bool Rewinds(string qualifiedName)
 		{
 			return false;

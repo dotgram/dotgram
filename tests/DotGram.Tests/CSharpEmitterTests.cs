@@ -3096,5 +3096,10 @@ public sealed class CSharpEmitterTests
 		{
 			return Array.IndexOf(classes, qualifiedName) >= 0;
 		}
+
+		public bool IsNullable(string qualifiedName)
+		{
+			return false;
+		}
 	}
 }

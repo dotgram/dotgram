@@ -329,7 +329,7 @@ public sealed partial class GrammarNormalizer
 
 		var located = Locating(normalizer, resolver, locationType, Imports(model.Root));
 
-		normalizer.CheckLocatedAreNotNullable(located);
+		normalizer.CheckLocatedAreNotNullable(located, resolver, Imports(model.Root));
 
 		return new RecognitionGraph(
 			normalizer._rules,
@@ -381,16 +381,31 @@ public sealed partial class GrammarNormalizer
 	/// it keeps something only if it holds it by reference, and one that derives where it was
 	/// written from its parts loses nothing.
 	/// </remarks>
-	void CheckLocatedAreNotNullable(IReadOnlyCollection<RuleSymbol> located)
+	void CheckLocatedAreNotNullable(
+		IReadOnlyCollection<RuleSymbol> located, ISymbolResolver? resolver, IReadOnlyList<string> imports)
 	{
+		bool IsNullable(string type)
+		{
+			if (resolver is null)
+				return false;
+
+			if (resolver.IsNullable(type))
+				return true;
+
+			foreach (var import in imports)
+				if (resolver.IsNullable(import + "." + type))
+					return true;
+
+			return false;
+		}
+
 		foreach (var rule in located)
 		{
 			if (rule.Declaration is not { } declaration || !_types.TryGetValue(rule, out var type))
 				continue;
 
-			if (!type.EndsWith("?", StringComparison.Ordinal) &&
-				!type.StartsWith("Nullable<", StringComparison.Ordinal) &&
-				!type.StartsWith("System.Nullable<", StringComparison.Ordinal))
+			// By what the host says the name is: a class of the grammar's own may be called Nullable.
+			if (!type.EndsWith("?", StringComparison.Ordinal) && !IsNullable(type))
 				continue;
 
 			Report(

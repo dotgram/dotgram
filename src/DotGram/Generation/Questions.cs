@@ -67,6 +67,12 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 	/// </summary>
 	public const int ReferenceType = -9;
 
+	/// <summary>
+	/// And whether a declared type spelled <c>Nullable&lt;…&gt;</c> is the framework's
+	/// (<see cref="ISymbolResolver.IsNullable"/>).
+	/// </summary>
+	public const int NullableType = -10;
+
 	public static Question Fits(string from, string to)
 	{
 		return new(from, Assignability, to);
@@ -114,6 +120,11 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 	public static Question References(string type)
 	{
 		return new(type, ReferenceType);
+	}
+
+	public static Question IsFrameworkNullable(string type)
+	{
+		return new(type, NullableType);
 	}
 
 	/// <summary>The role an <see cref="ExternalMethod"/> question asks about.</summary>
@@ -234,6 +245,18 @@ static class Questions
 
 			foreach (var import in imports)
 				questions.Add(Question.References(import + "." + type));
+
+			// Whether a located rule's `Nullable<…>` is the framework's, which has nothing to be
+			// told where it was written on, or a class of the grammar's own that is called so.
+			if (type.StartsWith("Nullable<", StringComparison.Ordinal) ||
+				type.StartsWith("System.Nullable<", StringComparison.Ordinal) ||
+				type.StartsWith("global::System.Nullable<", StringComparison.Ordinal))
+			{
+				questions.Add(Question.IsFrameworkNullable(type));
+
+				foreach (var import in imports)
+					questions.Add(Question.IsFrameworkNullable(import + "." + type));
+			}
 		}
 
 		// Both ways round, because the effective contract is whichever of them satisfies the
@@ -508,6 +531,8 @@ static class Questions
 
 				Question.ReferenceType => new Answer(question, resolver.IsReferenceType(question.Name)),
 
+				Question.NullableType => new Answer(question, resolver.IsNullable(question.Name)),
+
 				Question.Fitting => new Answer(question, true, Fits: Fitted(question.Name, among, resolver)),
 
 				_ => throw new InvalidOperationException($"Unknown question kind {question.Kind}."),
@@ -612,6 +637,12 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 	public bool IsReferenceType(string qualifiedName)
 	{
 		return _answers.TryGetValue(Question.References(qualifiedName), out var answer) && answer.Yes;
+	}
+
+	/// <remarks>No for a name nobody foresaw, as for <see cref="IsReferenceType"/>.</remarks>
+	public bool IsNullable(string qualifiedName)
+	{
+		return _answers.TryGetValue(Question.IsFrameworkNullable(qualifiedName), out var answer) && answer.Yes;
 	}
 
 	public bool TryResolveSettableProperties(string qualifiedName, out IReadOnlyList<ObjectMember> properties)

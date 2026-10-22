@@ -818,6 +818,11 @@ public sealed class GrammarNormalizerTests
 			return false;
 		}
 
+		public bool IsNullable(string qualifiedName)
+		{
+			return false;
+		}
+
 		public bool Rewinds(string qualifiedName)
 		{
 			return false;
@@ -879,6 +884,11 @@ public sealed class GrammarNormalizerTests
 		}
 
 		public bool IsReferenceType(string qualifiedName)
+		{
+			return false;
+		}
+
+		public bool IsNullable(string qualifiedName)
 		{
 			return false;
 		}
@@ -974,6 +984,11 @@ public sealed class GrammarNormalizerTests
 			return false;
 		}
 
+		public bool IsNullable(string qualifiedName)
+		{
+			return false;
+		}
+
 		public bool Rewinds(string qualifiedName)
 		{
 			return false;
@@ -1052,6 +1067,11 @@ public sealed class GrammarNormalizerTests
 		}
 
 		public bool IsReferenceType(string qualifiedName)
+		{
+			return false;
+		}
+
+		public bool IsNullable(string qualifiedName)
 		{
 			return false;
 		}
