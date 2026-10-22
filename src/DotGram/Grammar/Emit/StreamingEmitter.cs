@@ -160,7 +160,36 @@ public static partial class CSharpEmitter
 			$"{access} static {returns} {method}(" +
 			$"global::System.Collections.Generic.IEnumerable<string> input{takes})"))
 		{
-			file.Line($"return {method}(new {LinesType}(input){(takes.Length > 0 ? ", context" : "")});");
+			var call = $"{method}(lines{(takes.Length > 0 ? ", context" : "")})";
+
+			if (returns.StartsWith("global::System.Collections.Generic.IEnumerable<", StringComparison.Ordinal))
+			{
+				// Lazy: the enumerator is taken at the first MoveNext and let go when the
+				// caller's loop ends, breaks or throws. The null check stays eager.
+				file.Line("if (input is null)");
+				file.Then("throw new global::System.ArgumentNullException(nameof(input));");
+				file.Line();
+				file.Line($"return OverLines(input{(takes.Length > 0 ? ", context" : "")});");
+				file.Line();
+
+				var element = returns.Substring(returns.IndexOf('<') + 1, returns.Length - returns.IndexOf('<') - 2);
+
+				using (file.Block(
+					$"static global::System.Collections.Generic.IEnumerable<{element}> OverLines(" +
+					$"global::System.Collections.Generic.IEnumerable<string> input{takes})"))
+				{
+					file.Line($"using var lines = new {LinesType}(input);");
+					file.Line();
+					file.Line($"foreach (var item in {call})");
+					file.Then("yield return item;");
+				}
+			}
+			else
+			{
+				file.Line($"using var lines = new {LinesType}(input);");
+				file.Line();
+				file.Line($"return {call};");
+			}
 		}
 	}
 

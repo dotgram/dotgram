@@ -2290,6 +2290,9 @@ their declared result type. Context, when used, precedes the buffer parameters.
 The caller owns the reader or stream; parsing does not dispose it. Parsing consumes
 input and may read ahead, including when recognition fails; it cannot restore the
 underlying source for another consumer.
+A sequence of lines is the exception in one respect: the enumerator the parse takes from an
+`IEnumerable<string>` is its own, so it is disposed when the parse ends, or when the caller
+stops walking a lazy result; the sequence itself stays the caller's.
 
 `[Gram(..., BufferedInput = true)]` adds the character form to parse and find publications;
 `BufferedBytes = true` adds the byte form. Both default to false. `GramOptions`

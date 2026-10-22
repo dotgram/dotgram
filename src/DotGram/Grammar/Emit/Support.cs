@@ -169,6 +169,7 @@ public static partial class CSharpEmitter
 			private int    _at;
 			private bool   _ending;
 			private bool   _ended;
+			private bool   _disposed;
 
 			public Lines(global::System.Collections.Generic.IEnumerable<string> lines)
 			{
@@ -229,8 +230,11 @@ public static partial class CSharpEmitter
 
 			protected override void Dispose(bool disposing)
 			{
-				if (disposing)
+				if (disposing && !_disposed)
+				{
+					_disposed = true;
 					_lines.Dispose();
+				}
 
 				base.Dispose(disposing);
 			}

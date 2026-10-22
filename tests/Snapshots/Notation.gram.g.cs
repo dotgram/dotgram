@@ -1412,7 +1412,18 @@ namespace DotGram.Snapshots
 		/// </remarks>
 		public static global::System.Collections.Generic.IEnumerable<Match<string>> Words(global::System.Collections.Generic.IEnumerable<string> input)
 		{
-			return Words(new Lines(input));
+			if (input is null)
+				throw new global::System.ArgumentNullException(nameof(input));
+
+			return OverLines(input);
+
+			static global::System.Collections.Generic.IEnumerable<Match<string>> OverLines(global::System.Collections.Generic.IEnumerable<string> input)
+			{
+				using var lines = new Lines(input);
+
+				foreach (var item in Words(lines))
+					yield return item;
+			}
 		}
 
 		static string Construct_Word(string w) =>
@@ -4430,6 +4441,7 @@ namespace DotGram.Snapshots
 			return tied;
 		}
 
+
 		sealed class Window
 		{
 			private readonly global::System.IO.TextReader _input;
@@ -4574,6 +4586,7 @@ namespace DotGram.Snapshots
 			private int    _at;
 			private bool   _ending;
 			private bool   _ended;
+			private bool   _disposed;
 
 			public Lines(global::System.Collections.Generic.IEnumerable<string> lines)
 			{
@@ -4630,8 +4643,11 @@ namespace DotGram.Snapshots
 
 			protected override void Dispose(bool disposing)
 			{
-				if (disposing)
+				if (disposing && !_disposed)
+				{
+					_disposed = true;
 					_lines.Dispose();
+				}
 
 				base.Dispose(disposing);
 			}
