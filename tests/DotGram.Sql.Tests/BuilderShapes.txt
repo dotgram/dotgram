@@ -1,0 +1,3899 @@
+CREATE TABLE t (a int)
+CREATE TABLE dbo.t (id int NOT NULL, a int NOT NULL DEFAULT 0, b int NULL, c int COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c int
+SELECT CAST (a AS int)
+SELECT CAST(a AS int) AS x FROM t
+SELECT CONVERT(int, a)
+SELECT CONVERT(int, a, 126)
+SELECT TRY_CAST (a AS int)
+SELECT TRY_CONVERT(int, a, 1)
+SELECT PARSE (a AS int)
+SELECT TRY_PARSE (a AS int USING 'en-US')
+DECLARE @v int
+DECLARE @v int = NULL, @w int
+DECLARE @t TABLE (a int, b int)
+CREATE PROCEDURE p @a int, @b int = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a int) RETURNS int AS BEGIN RETURN @a END
+CREATE TYPE x FROM int
+CREATE TYPE x FROM int NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a int '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING int)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a int
+CREATE TABLE t (a int, b AS CAST (a AS int))
+CREATE TABLE t (a INTEGER)
+CREATE TABLE dbo.t (id int NOT NULL, a INTEGER NOT NULL DEFAULT 0, b INTEGER NULL, c INTEGER COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c INTEGER
+SELECT CAST (a AS INTEGER)
+SELECT CAST(a AS INTEGER) AS x FROM t
+SELECT CONVERT(INTEGER, a)
+SELECT CONVERT(INTEGER, a, 126)
+SELECT TRY_CAST (a AS INTEGER)
+SELECT TRY_CONVERT(INTEGER, a, 1)
+SELECT PARSE (a AS INTEGER)
+SELECT TRY_PARSE (a AS INTEGER USING 'en-US')
+DECLARE @v INTEGER
+DECLARE @v INTEGER = NULL, @w INTEGER
+DECLARE @t TABLE (a INTEGER, b int)
+CREATE PROCEDURE p @a INTEGER, @b INTEGER = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a INTEGER) RETURNS INTEGER AS BEGIN RETURN @a END
+CREATE TYPE x FROM INTEGER
+CREATE TYPE x FROM INTEGER NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a INTEGER '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING INTEGER)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a INTEGER
+CREATE TABLE t (a INTEGER, b AS CAST (a AS INTEGER))
+CREATE TABLE t (a smallint)
+CREATE TABLE dbo.t (id int NOT NULL, a smallint NOT NULL DEFAULT 0, b smallint NULL, c smallint COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c smallint
+SELECT CAST (a AS smallint)
+SELECT CAST(a AS smallint) AS x FROM t
+SELECT CONVERT(smallint, a)
+SELECT CONVERT(smallint, a, 126)
+SELECT TRY_CAST (a AS smallint)
+SELECT TRY_CONVERT(smallint, a, 1)
+SELECT PARSE (a AS smallint)
+SELECT TRY_PARSE (a AS smallint USING 'en-US')
+DECLARE @v smallint
+DECLARE @v smallint = NULL, @w smallint
+DECLARE @t TABLE (a smallint, b int)
+CREATE PROCEDURE p @a smallint, @b smallint = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a smallint) RETURNS smallint AS BEGIN RETURN @a END
+CREATE TYPE x FROM smallint
+CREATE TYPE x FROM smallint NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a smallint '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING smallint)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a smallint
+CREATE TABLE t (a smallint, b AS CAST (a AS smallint))
+CREATE TABLE t (a bigint)
+CREATE TABLE dbo.t (id int NOT NULL, a bigint NOT NULL DEFAULT 0, b bigint NULL, c bigint COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c bigint
+SELECT CAST (a AS bigint)
+SELECT CAST(a AS bigint) AS x FROM t
+SELECT CONVERT(bigint, a)
+SELECT CONVERT(bigint, a, 126)
+SELECT TRY_CAST (a AS bigint)
+SELECT TRY_CONVERT(bigint, a, 1)
+SELECT PARSE (a AS bigint)
+SELECT TRY_PARSE (a AS bigint USING 'en-US')
+DECLARE @v bigint
+DECLARE @v bigint = NULL, @w bigint
+DECLARE @t TABLE (a bigint, b int)
+CREATE PROCEDURE p @a bigint, @b bigint = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a bigint) RETURNS bigint AS BEGIN RETURN @a END
+CREATE TYPE x FROM bigint
+CREATE TYPE x FROM bigint NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a bigint '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING bigint)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a bigint
+CREATE TABLE t (a bigint, b AS CAST (a AS bigint))
+CREATE TABLE t (a tinyint)
+CREATE TABLE dbo.t (id int NOT NULL, a tinyint NOT NULL DEFAULT 0, b tinyint NULL, c tinyint COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c tinyint
+SELECT CAST (a AS tinyint)
+SELECT CAST(a AS tinyint) AS x FROM t
+SELECT CONVERT(tinyint, a)
+SELECT CONVERT(tinyint, a, 126)
+SELECT TRY_CAST (a AS tinyint)
+SELECT TRY_CONVERT(tinyint, a, 1)
+SELECT PARSE (a AS tinyint)
+SELECT TRY_PARSE (a AS tinyint USING 'en-US')
+DECLARE @v tinyint
+DECLARE @v tinyint = NULL, @w tinyint
+DECLARE @t TABLE (a tinyint, b int)
+CREATE PROCEDURE p @a tinyint, @b tinyint = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a tinyint) RETURNS tinyint AS BEGIN RETURN @a END
+CREATE TYPE x FROM tinyint
+CREATE TYPE x FROM tinyint NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a tinyint '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING tinyint)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a tinyint
+CREATE TABLE t (a tinyint, b AS CAST (a AS tinyint))
+CREATE TABLE t (a bit)
+CREATE TABLE dbo.t (id int NOT NULL, a bit NOT NULL DEFAULT 0, b bit NULL, c bit COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c bit
+SELECT CAST (a AS bit)
+SELECT CAST(a AS bit) AS x FROM t
+SELECT CONVERT(bit, a)
+SELECT CONVERT(bit, a, 126)
+SELECT TRY_CAST (a AS bit)
+SELECT TRY_CONVERT(bit, a, 1)
+SELECT PARSE (a AS bit)
+SELECT TRY_PARSE (a AS bit USING 'en-US')
+DECLARE @v bit
+DECLARE @v bit = NULL, @w bit
+DECLARE @t TABLE (a bit, b int)
+CREATE PROCEDURE p @a bit, @b bit = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a bit) RETURNS bit AS BEGIN RETURN @a END
+CREATE TYPE x FROM bit
+CREATE TYPE x FROM bit NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a bit '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING bit)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a bit
+CREATE TABLE t (a bit, b AS CAST (a AS bit))
+CREATE TABLE t (a real)
+CREATE TABLE dbo.t (id int NOT NULL, a real NOT NULL DEFAULT 0, b real NULL, c real COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c real
+SELECT CAST (a AS real)
+SELECT CAST(a AS real) AS x FROM t
+SELECT CONVERT(real, a)
+SELECT CONVERT(real, a, 126)
+SELECT TRY_CAST (a AS real)
+SELECT TRY_CONVERT(real, a, 1)
+SELECT PARSE (a AS real)
+SELECT TRY_PARSE (a AS real USING 'en-US')
+DECLARE @v real
+DECLARE @v real = NULL, @w real
+DECLARE @t TABLE (a real, b int)
+CREATE PROCEDURE p @a real, @b real = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a real) RETURNS real AS BEGIN RETURN @a END
+CREATE TYPE x FROM real
+CREATE TYPE x FROM real NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a real '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING real)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a real
+CREATE TABLE t (a real, b AS CAST (a AS real))
+CREATE TABLE t (a float)
+CREATE TABLE dbo.t (id int NOT NULL, a float NOT NULL DEFAULT 0, b float NULL, c float COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c float
+SELECT CAST (a AS float)
+SELECT CAST(a AS float) AS x FROM t
+SELECT CONVERT(float, a)
+SELECT CONVERT(float, a, 126)
+SELECT TRY_CAST (a AS float)
+SELECT TRY_CONVERT(float, a, 1)
+SELECT PARSE (a AS float)
+SELECT TRY_PARSE (a AS float USING 'en-US')
+DECLARE @v float
+DECLARE @v float = NULL, @w float
+DECLARE @t TABLE (a float, b int)
+CREATE PROCEDURE p @a float, @b float = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a float) RETURNS float AS BEGIN RETURN @a END
+CREATE TYPE x FROM float
+CREATE TYPE x FROM float NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a float '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING float)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a float
+CREATE TABLE t (a float, b AS CAST (a AS float))
+CREATE TABLE t (a float(24))
+CREATE TABLE dbo.t (id int NOT NULL, a float(24) NOT NULL DEFAULT 0, b float(24) NULL, c float(24) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c float(24)
+SELECT CAST (a AS float(24))
+SELECT CAST(a AS float(24)) AS x FROM t
+SELECT CONVERT(float(24), a)
+SELECT CONVERT(float(24), a, 126)
+SELECT TRY_CAST (a AS float(24))
+SELECT TRY_CONVERT(float(24), a, 1)
+SELECT PARSE (a AS float(24))
+SELECT TRY_PARSE (a AS float(24) USING 'en-US')
+DECLARE @v float(24)
+DECLARE @v float(24) = NULL, @w float(24)
+DECLARE @t TABLE (a float(24), b int)
+CREATE PROCEDURE p @a float(24), @b float(24) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a float(24)) RETURNS float(24) AS BEGIN RETURN @a END
+CREATE TYPE x FROM float(24)
+CREATE TYPE x FROM float(24) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a float(24) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING float(24))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a float(24)
+CREATE TABLE t (a float(24), b AS CAST (a AS float(24)))
+CREATE TABLE t (a FLOAT ( 53 ))
+CREATE TABLE dbo.t (id int NOT NULL, a FLOAT ( 53 ) NOT NULL DEFAULT 0, b FLOAT ( 53 ) NULL, c FLOAT ( 53 ) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c FLOAT ( 53 )
+SELECT CAST (a AS FLOAT ( 53 ))
+SELECT CAST(a AS FLOAT ( 53 )) AS x FROM t
+SELECT CONVERT(FLOAT ( 53 ), a)
+SELECT CONVERT(FLOAT ( 53 ), a, 126)
+SELECT TRY_CAST (a AS FLOAT ( 53 ))
+SELECT TRY_CONVERT(FLOAT ( 53 ), a, 1)
+SELECT PARSE (a AS FLOAT ( 53 ))
+SELECT TRY_PARSE (a AS FLOAT ( 53 ) USING 'en-US')
+DECLARE @v FLOAT ( 53 )
+DECLARE @v FLOAT ( 53 ) = NULL, @w FLOAT ( 53 )
+DECLARE @t TABLE (a FLOAT ( 53 ), b int)
+CREATE PROCEDURE p @a FLOAT ( 53 ), @b FLOAT ( 53 ) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a FLOAT ( 53 )) RETURNS FLOAT ( 53 ) AS BEGIN RETURN @a END
+CREATE TYPE x FROM FLOAT ( 53 )
+CREATE TYPE x FROM FLOAT ( 53 ) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a FLOAT ( 53 ) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING FLOAT ( 53 ))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a FLOAT ( 53 )
+CREATE TABLE t (a FLOAT ( 53 ), b AS CAST (a AS FLOAT ( 53 )))
+CREATE TABLE t (a double precision)
+CREATE TABLE dbo.t (id int NOT NULL, a double precision NOT NULL DEFAULT 0, b double precision NULL, c double precision COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c double precision
+SELECT CAST (a AS double precision)
+SELECT CAST(a AS double precision) AS x FROM t
+SELECT CONVERT(double precision, a)
+SELECT CONVERT(double precision, a, 126)
+SELECT TRY_CAST (a AS double precision)
+SELECT TRY_CONVERT(double precision, a, 1)
+SELECT PARSE (a AS double precision)
+SELECT TRY_PARSE (a AS double precision USING 'en-US')
+DECLARE @v double precision
+DECLARE @v double precision = NULL, @w double precision
+DECLARE @t TABLE (a double precision, b int)
+CREATE PROCEDURE p @a double precision, @b double precision = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a double precision) RETURNS double precision AS BEGIN RETURN @a END
+CREATE TYPE x FROM double precision
+CREATE TYPE x FROM double precision NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a double precision '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING double precision)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a double precision
+CREATE TABLE t (a double precision, b AS CAST (a AS double precision))
+CREATE TABLE t (a decimal)
+CREATE TABLE dbo.t (id int NOT NULL, a decimal NOT NULL DEFAULT 0, b decimal NULL, c decimal COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c decimal
+SELECT CAST (a AS decimal)
+SELECT CAST(a AS decimal) AS x FROM t
+SELECT CONVERT(decimal, a)
+SELECT CONVERT(decimal, a, 126)
+SELECT TRY_CAST (a AS decimal)
+SELECT TRY_CONVERT(decimal, a, 1)
+SELECT PARSE (a AS decimal)
+SELECT TRY_PARSE (a AS decimal USING 'en-US')
+DECLARE @v decimal
+DECLARE @v decimal = NULL, @w decimal
+DECLARE @t TABLE (a decimal, b int)
+CREATE PROCEDURE p @a decimal, @b decimal = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a decimal) RETURNS decimal AS BEGIN RETURN @a END
+CREATE TYPE x FROM decimal
+CREATE TYPE x FROM decimal NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a decimal '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING decimal)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a decimal
+CREATE TABLE t (a decimal, b AS CAST (a AS decimal))
+CREATE TABLE t (a DECIMAL(18, 2))
+CREATE TABLE dbo.t (id int NOT NULL, a DECIMAL(18, 2) NOT NULL DEFAULT 0, b DECIMAL(18, 2) NULL, c DECIMAL(18, 2) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c DECIMAL(18, 2)
+SELECT CAST (a AS DECIMAL(18, 2))
+SELECT CAST(a AS DECIMAL(18, 2)) AS x FROM t
+SELECT CONVERT(DECIMAL(18, 2), a)
+SELECT CONVERT(DECIMAL(18, 2), a, 126)
+SELECT TRY_CAST (a AS DECIMAL(18, 2))
+SELECT TRY_CONVERT(DECIMAL(18, 2), a, 1)
+SELECT PARSE (a AS DECIMAL(18, 2))
+SELECT TRY_PARSE (a AS DECIMAL(18, 2) USING 'en-US')
+DECLARE @v DECIMAL(18, 2)
+DECLARE @v DECIMAL(18, 2) = NULL, @w DECIMAL(18, 2)
+DECLARE @t TABLE (a DECIMAL(18, 2), b int)
+CREATE PROCEDURE p @a DECIMAL(18, 2), @b DECIMAL(18, 2) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a DECIMAL(18, 2)) RETURNS DECIMAL(18, 2) AS BEGIN RETURN @a END
+CREATE TYPE x FROM DECIMAL(18, 2)
+CREATE TYPE x FROM DECIMAL(18, 2) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a DECIMAL(18, 2) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING DECIMAL(18, 2))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a DECIMAL(18, 2)
+CREATE TABLE t (a DECIMAL(18, 2), b AS CAST (a AS DECIMAL(18, 2)))
+CREATE TABLE t (a decimal(18))
+CREATE TABLE dbo.t (id int NOT NULL, a decimal(18) NOT NULL DEFAULT 0, b decimal(18) NULL, c decimal(18) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c decimal(18)
+SELECT CAST (a AS decimal(18))
+SELECT CAST(a AS decimal(18)) AS x FROM t
+SELECT CONVERT(decimal(18), a)
+SELECT CONVERT(decimal(18), a, 126)
+SELECT TRY_CAST (a AS decimal(18))
+SELECT TRY_CONVERT(decimal(18), a, 1)
+SELECT PARSE (a AS decimal(18))
+SELECT TRY_PARSE (a AS decimal(18) USING 'en-US')
+DECLARE @v decimal(18)
+DECLARE @v decimal(18) = NULL, @w decimal(18)
+DECLARE @t TABLE (a decimal(18), b int)
+CREATE PROCEDURE p @a decimal(18), @b decimal(18) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a decimal(18)) RETURNS decimal(18) AS BEGIN RETURN @a END
+CREATE TYPE x FROM decimal(18)
+CREATE TYPE x FROM decimal(18) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a decimal(18) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING decimal(18))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a decimal(18)
+CREATE TABLE t (a decimal(18), b AS CAST (a AS decimal(18)))
+CREATE TABLE t (a decimal ( 18 , 2 ))
+CREATE TABLE dbo.t (id int NOT NULL, a decimal ( 18 , 2 ) NOT NULL DEFAULT 0, b decimal ( 18 , 2 ) NULL, c decimal ( 18 , 2 ) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c decimal ( 18 , 2 )
+SELECT CAST (a AS decimal ( 18 , 2 ))
+SELECT CAST(a AS decimal ( 18 , 2 )) AS x FROM t
+SELECT CONVERT(decimal ( 18 , 2 ), a)
+SELECT CONVERT(decimal ( 18 , 2 ), a, 126)
+SELECT TRY_CAST (a AS decimal ( 18 , 2 ))
+SELECT TRY_CONVERT(decimal ( 18 , 2 ), a, 1)
+SELECT PARSE (a AS decimal ( 18 , 2 ))
+SELECT TRY_PARSE (a AS decimal ( 18 , 2 ) USING 'en-US')
+DECLARE @v decimal ( 18 , 2 )
+DECLARE @v decimal ( 18 , 2 ) = NULL, @w decimal ( 18 , 2 )
+DECLARE @t TABLE (a decimal ( 18 , 2 ), b int)
+CREATE PROCEDURE p @a decimal ( 18 , 2 ), @b decimal ( 18 , 2 ) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a decimal ( 18 , 2 )) RETURNS decimal ( 18 , 2 ) AS BEGIN RETURN @a END
+CREATE TYPE x FROM decimal ( 18 , 2 )
+CREATE TYPE x FROM decimal ( 18 , 2 ) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a decimal ( 18 , 2 ) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING decimal ( 18 , 2 ))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a decimal ( 18 , 2 )
+CREATE TABLE t (a decimal ( 18 , 2 ), b AS CAST (a AS decimal ( 18 , 2 )))
+CREATE TABLE t (a decimal(18,\n2))
+CREATE TABLE dbo.t (id int NOT NULL, a decimal(18,\n2) NOT NULL DEFAULT 0, b decimal(18,\n2) NULL, c decimal(18,\n2) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c decimal(18,\n2)
+SELECT CAST (a AS decimal(18,\n2))
+SELECT CAST(a AS decimal(18,\n2)) AS x FROM t
+SELECT CONVERT(decimal(18,\n2), a)
+SELECT CONVERT(decimal(18,\n2), a, 126)
+SELECT TRY_CAST (a AS decimal(18,\n2))
+SELECT TRY_CONVERT(decimal(18,\n2), a, 1)
+SELECT PARSE (a AS decimal(18,\n2))
+SELECT TRY_PARSE (a AS decimal(18,\n2) USING 'en-US')
+DECLARE @v decimal(18,\n2)
+DECLARE @v decimal(18,\n2) = NULL, @w decimal(18,\n2)
+DECLARE @t TABLE (a decimal(18,\n2), b int)
+CREATE PROCEDURE p @a decimal(18,\n2), @b decimal(18,\n2) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a decimal(18,\n2)) RETURNS decimal(18,\n2) AS BEGIN RETURN @a END
+CREATE TYPE x FROM decimal(18,\n2)
+CREATE TYPE x FROM decimal(18,\n2) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a decimal(18,\n2) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING decimal(18,\n2))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a decimal(18,\n2)
+CREATE TABLE t (a decimal(18,\n2), b AS CAST (a AS decimal(18,\n2)))
+CREATE TABLE t (a numeric(10,3))
+CREATE TABLE dbo.t (id int NOT NULL, a numeric(10,3) NOT NULL DEFAULT 0, b numeric(10,3) NULL, c numeric(10,3) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c numeric(10,3)
+SELECT CAST (a AS numeric(10,3))
+SELECT CAST(a AS numeric(10,3)) AS x FROM t
+SELECT CONVERT(numeric(10,3), a)
+SELECT CONVERT(numeric(10,3), a, 126)
+SELECT TRY_CAST (a AS numeric(10,3))
+SELECT TRY_CONVERT(numeric(10,3), a, 1)
+SELECT PARSE (a AS numeric(10,3))
+SELECT TRY_PARSE (a AS numeric(10,3) USING 'en-US')
+DECLARE @v numeric(10,3)
+DECLARE @v numeric(10,3) = NULL, @w numeric(10,3)
+DECLARE @t TABLE (a numeric(10,3), b int)
+CREATE PROCEDURE p @a numeric(10,3), @b numeric(10,3) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a numeric(10,3)) RETURNS numeric(10,3) AS BEGIN RETURN @a END
+CREATE TYPE x FROM numeric(10,3)
+CREATE TYPE x FROM numeric(10,3) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a numeric(10,3) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING numeric(10,3))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a numeric(10,3)
+CREATE TABLE t (a numeric(10,3), b AS CAST (a AS numeric(10,3)))
+CREATE TABLE t (a dec(5,2))
+CREATE TABLE dbo.t (id int NOT NULL, a dec(5,2) NOT NULL DEFAULT 0, b dec(5,2) NULL, c dec(5,2) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c dec(5,2)
+SELECT CAST (a AS dec(5,2))
+SELECT CAST(a AS dec(5,2)) AS x FROM t
+SELECT CONVERT(dec(5,2), a)
+SELECT CONVERT(dec(5,2), a, 126)
+SELECT TRY_CAST (a AS dec(5,2))
+SELECT TRY_CONVERT(dec(5,2), a, 1)
+SELECT PARSE (a AS dec(5,2))
+SELECT TRY_PARSE (a AS dec(5,2) USING 'en-US')
+DECLARE @v dec(5,2)
+DECLARE @v dec(5,2) = NULL, @w dec(5,2)
+DECLARE @t TABLE (a dec(5,2), b int)
+CREATE PROCEDURE p @a dec(5,2), @b dec(5,2) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a dec(5,2)) RETURNS dec(5,2) AS BEGIN RETURN @a END
+CREATE TYPE x FROM dec(5,2)
+CREATE TYPE x FROM dec(5,2) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a dec(5,2) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING dec(5,2))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a dec(5,2)
+CREATE TABLE t (a dec(5,2), b AS CAST (a AS dec(5,2)))
+CREATE TABLE t (a char)
+CREATE TABLE dbo.t (id int NOT NULL, a char NOT NULL DEFAULT 0, b char NULL, c char COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c char
+SELECT CAST (a AS char)
+SELECT CAST(a AS char) AS x FROM t
+SELECT CONVERT(char, a)
+SELECT CONVERT(char, a, 126)
+SELECT TRY_CAST (a AS char)
+SELECT TRY_CONVERT(char, a, 1)
+SELECT PARSE (a AS char)
+SELECT TRY_PARSE (a AS char USING 'en-US')
+DECLARE @v char
+DECLARE @v char = NULL, @w char
+DECLARE @t TABLE (a char, b int)
+CREATE PROCEDURE p @a char, @b char = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a char) RETURNS char AS BEGIN RETURN @a END
+CREATE TYPE x FROM char
+CREATE TYPE x FROM char NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a char '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING char)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a char
+CREATE TABLE t (a char, b AS CAST (a AS char))
+CREATE TABLE t (a char(10))
+CREATE TABLE dbo.t (id int NOT NULL, a char(10) NOT NULL DEFAULT 0, b char(10) NULL, c char(10) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c char(10)
+SELECT CAST (a AS char(10))
+SELECT CAST(a AS char(10)) AS x FROM t
+SELECT CONVERT(char(10), a)
+SELECT CONVERT(char(10), a, 126)
+SELECT TRY_CAST (a AS char(10))
+SELECT TRY_CONVERT(char(10), a, 1)
+SELECT PARSE (a AS char(10))
+SELECT TRY_PARSE (a AS char(10) USING 'en-US')
+DECLARE @v char(10)
+DECLARE @v char(10) = NULL, @w char(10)
+DECLARE @t TABLE (a char(10), b int)
+CREATE PROCEDURE p @a char(10), @b char(10) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a char(10)) RETURNS char(10) AS BEGIN RETURN @a END
+CREATE TYPE x FROM char(10)
+CREATE TYPE x FROM char(10) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a char(10) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING char(10))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a char(10)
+CREATE TABLE t (a char(10), b AS CAST (a AS char(10)))
+CREATE TABLE t (a CHAR ( 10 ))
+CREATE TABLE dbo.t (id int NOT NULL, a CHAR ( 10 ) NOT NULL DEFAULT 0, b CHAR ( 10 ) NULL, c CHAR ( 10 ) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c CHAR ( 10 )
+SELECT CAST (a AS CHAR ( 10 ))
+SELECT CAST(a AS CHAR ( 10 )) AS x FROM t
+SELECT CONVERT(CHAR ( 10 ), a)
+SELECT CONVERT(CHAR ( 10 ), a, 126)
+SELECT TRY_CAST (a AS CHAR ( 10 ))
+SELECT TRY_CONVERT(CHAR ( 10 ), a, 1)
+SELECT PARSE (a AS CHAR ( 10 ))
+SELECT TRY_PARSE (a AS CHAR ( 10 ) USING 'en-US')
+DECLARE @v CHAR ( 10 )
+DECLARE @v CHAR ( 10 ) = NULL, @w CHAR ( 10 )
+DECLARE @t TABLE (a CHAR ( 10 ), b int)
+CREATE PROCEDURE p @a CHAR ( 10 ), @b CHAR ( 10 ) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a CHAR ( 10 )) RETURNS CHAR ( 10 ) AS BEGIN RETURN @a END
+CREATE TYPE x FROM CHAR ( 10 )
+CREATE TYPE x FROM CHAR ( 10 ) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a CHAR ( 10 ) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING CHAR ( 10 ))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a CHAR ( 10 )
+CREATE TABLE t (a CHAR ( 10 ), b AS CAST (a AS CHAR ( 10 )))
+CREATE TABLE t (a varchar(50))
+CREATE TABLE dbo.t (id int NOT NULL, a varchar(50) NOT NULL DEFAULT 0, b varchar(50) NULL, c varchar(50) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c varchar(50)
+SELECT CAST (a AS varchar(50))
+SELECT CAST(a AS varchar(50)) AS x FROM t
+SELECT CONVERT(varchar(50), a)
+SELECT CONVERT(varchar(50), a, 126)
+SELECT TRY_CAST (a AS varchar(50))
+SELECT TRY_CONVERT(varchar(50), a, 1)
+SELECT PARSE (a AS varchar(50))
+SELECT TRY_PARSE (a AS varchar(50) USING 'en-US')
+DECLARE @v varchar(50)
+DECLARE @v varchar(50) = NULL, @w varchar(50)
+DECLARE @t TABLE (a varchar(50), b int)
+CREATE PROCEDURE p @a varchar(50), @b varchar(50) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a varchar(50)) RETURNS varchar(50) AS BEGIN RETURN @a END
+CREATE TYPE x FROM varchar(50)
+CREATE TYPE x FROM varchar(50) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a varchar(50) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING varchar(50))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a varchar(50)
+CREATE TABLE t (a varchar(50), b AS CAST (a AS varchar(50)))
+CREATE TABLE t (a varchar(MAX))
+CREATE TABLE dbo.t (id int NOT NULL, a varchar(MAX) NOT NULL DEFAULT 0, b varchar(MAX) NULL, c varchar(MAX) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c varchar(MAX)
+SELECT CAST (a AS varchar(MAX))
+SELECT CAST(a AS varchar(MAX)) AS x FROM t
+SELECT CONVERT(varchar(MAX), a)
+SELECT CONVERT(varchar(MAX), a, 126)
+SELECT TRY_CAST (a AS varchar(MAX))
+SELECT TRY_CONVERT(varchar(MAX), a, 1)
+SELECT PARSE (a AS varchar(MAX))
+SELECT TRY_PARSE (a AS varchar(MAX) USING 'en-US')
+DECLARE @v varchar(MAX)
+DECLARE @v varchar(MAX) = NULL, @w varchar(MAX)
+DECLARE @t TABLE (a varchar(MAX), b int)
+CREATE PROCEDURE p @a varchar(MAX), @b varchar(MAX) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a varchar(MAX)) RETURNS varchar(MAX) AS BEGIN RETURN @a END
+CREATE TYPE x FROM varchar(MAX)
+CREATE TYPE x FROM varchar(MAX) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a varchar(MAX) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING varchar(MAX))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a varchar(MAX)
+CREATE TABLE t (a varchar(MAX), b AS CAST (a AS varchar(MAX)))
+CREATE TABLE t (a varchar ( max ))
+CREATE TABLE dbo.t (id int NOT NULL, a varchar ( max ) NOT NULL DEFAULT 0, b varchar ( max ) NULL, c varchar ( max ) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c varchar ( max )
+SELECT CAST (a AS varchar ( max ))
+SELECT CAST(a AS varchar ( max )) AS x FROM t
+SELECT CONVERT(varchar ( max ), a)
+SELECT CONVERT(varchar ( max ), a, 126)
+SELECT TRY_CAST (a AS varchar ( max ))
+SELECT TRY_CONVERT(varchar ( max ), a, 1)
+SELECT PARSE (a AS varchar ( max ))
+SELECT TRY_PARSE (a AS varchar ( max ) USING 'en-US')
+DECLARE @v varchar ( max )
+DECLARE @v varchar ( max ) = NULL, @w varchar ( max )
+DECLARE @t TABLE (a varchar ( max ), b int)
+CREATE PROCEDURE p @a varchar ( max ), @b varchar ( max ) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a varchar ( max )) RETURNS varchar ( max ) AS BEGIN RETURN @a END
+CREATE TYPE x FROM varchar ( max )
+CREATE TYPE x FROM varchar ( max ) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a varchar ( max ) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING varchar ( max ))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a varchar ( max )
+CREATE TABLE t (a varchar ( max ), b AS CAST (a AS varchar ( max )))
+CREATE TABLE t (a nchar(5))
+CREATE TABLE dbo.t (id int NOT NULL, a nchar(5) NOT NULL DEFAULT 0, b nchar(5) NULL, c nchar(5) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c nchar(5)
+SELECT CAST (a AS nchar(5))
+SELECT CAST(a AS nchar(5)) AS x FROM t
+SELECT CONVERT(nchar(5), a)
+SELECT CONVERT(nchar(5), a, 126)
+SELECT TRY_CAST (a AS nchar(5))
+SELECT TRY_CONVERT(nchar(5), a, 1)
+SELECT PARSE (a AS nchar(5))
+SELECT TRY_PARSE (a AS nchar(5) USING 'en-US')
+DECLARE @v nchar(5)
+DECLARE @v nchar(5) = NULL, @w nchar(5)
+DECLARE @t TABLE (a nchar(5), b int)
+CREATE PROCEDURE p @a nchar(5), @b nchar(5) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a nchar(5)) RETURNS nchar(5) AS BEGIN RETURN @a END
+CREATE TYPE x FROM nchar(5)
+CREATE TYPE x FROM nchar(5) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a nchar(5) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING nchar(5))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a nchar(5)
+CREATE TABLE t (a nchar(5), b AS CAST (a AS nchar(5)))
+CREATE TABLE t (a nvarchar(200))
+CREATE TABLE dbo.t (id int NOT NULL, a nvarchar(200) NOT NULL DEFAULT 0, b nvarchar(200) NULL, c nvarchar(200) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c nvarchar(200)
+SELECT CAST (a AS nvarchar(200))
+SELECT CAST(a AS nvarchar(200)) AS x FROM t
+SELECT CONVERT(nvarchar(200), a)
+SELECT CONVERT(nvarchar(200), a, 126)
+SELECT TRY_CAST (a AS nvarchar(200))
+SELECT TRY_CONVERT(nvarchar(200), a, 1)
+SELECT PARSE (a AS nvarchar(200))
+SELECT TRY_PARSE (a AS nvarchar(200) USING 'en-US')
+DECLARE @v nvarchar(200)
+DECLARE @v nvarchar(200) = NULL, @w nvarchar(200)
+DECLARE @t TABLE (a nvarchar(200), b int)
+CREATE PROCEDURE p @a nvarchar(200), @b nvarchar(200) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a nvarchar(200)) RETURNS nvarchar(200) AS BEGIN RETURN @a END
+CREATE TYPE x FROM nvarchar(200)
+CREATE TYPE x FROM nvarchar(200) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a nvarchar(200) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING nvarchar(200))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a nvarchar(200)
+CREATE TABLE t (a nvarchar(200), b AS CAST (a AS nvarchar(200)))
+CREATE TABLE t (a nvarchar(MAX))
+CREATE TABLE dbo.t (id int NOT NULL, a nvarchar(MAX) NOT NULL DEFAULT 0, b nvarchar(MAX) NULL, c nvarchar(MAX) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c nvarchar(MAX)
+SELECT CAST (a AS nvarchar(MAX))
+SELECT CAST(a AS nvarchar(MAX)) AS x FROM t
+SELECT CONVERT(nvarchar(MAX), a)
+SELECT CONVERT(nvarchar(MAX), a, 126)
+SELECT TRY_CAST (a AS nvarchar(MAX))
+SELECT TRY_CONVERT(nvarchar(MAX), a, 1)
+SELECT PARSE (a AS nvarchar(MAX))
+SELECT TRY_PARSE (a AS nvarchar(MAX) USING 'en-US')
+DECLARE @v nvarchar(MAX)
+DECLARE @v nvarchar(MAX) = NULL, @w nvarchar(MAX)
+DECLARE @t TABLE (a nvarchar(MAX), b int)
+CREATE PROCEDURE p @a nvarchar(MAX), @b nvarchar(MAX) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a nvarchar(MAX)) RETURNS nvarchar(MAX) AS BEGIN RETURN @a END
+CREATE TYPE x FROM nvarchar(MAX)
+CREATE TYPE x FROM nvarchar(MAX) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a nvarchar(MAX) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING nvarchar(MAX))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a nvarchar(MAX)
+CREATE TABLE t (a nvarchar(MAX), b AS CAST (a AS nvarchar(MAX)))
+CREATE TABLE t (a character)
+CREATE TABLE dbo.t (id int NOT NULL, a character NOT NULL DEFAULT 0, b character NULL, c character COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c character
+SELECT CAST (a AS character)
+SELECT CAST(a AS character) AS x FROM t
+SELECT CONVERT(character, a)
+SELECT CONVERT(character, a, 126)
+SELECT TRY_CAST (a AS character)
+SELECT TRY_CONVERT(character, a, 1)
+SELECT PARSE (a AS character)
+SELECT TRY_PARSE (a AS character USING 'en-US')
+DECLARE @v character
+DECLARE @v character = NULL, @w character
+DECLARE @t TABLE (a character, b int)
+CREATE PROCEDURE p @a character, @b character = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a character) RETURNS character AS BEGIN RETURN @a END
+CREATE TYPE x FROM character
+CREATE TYPE x FROM character NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a character '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING character)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a character
+CREATE TABLE t (a character, b AS CAST (a AS character))
+CREATE TABLE t (a character(3))
+CREATE TABLE dbo.t (id int NOT NULL, a character(3) NOT NULL DEFAULT 0, b character(3) NULL, c character(3) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c character(3)
+SELECT CAST (a AS character(3))
+SELECT CAST(a AS character(3)) AS x FROM t
+SELECT CONVERT(character(3), a)
+SELECT CONVERT(character(3), a, 126)
+SELECT TRY_CAST (a AS character(3))
+SELECT TRY_CONVERT(character(3), a, 1)
+SELECT PARSE (a AS character(3))
+SELECT TRY_PARSE (a AS character(3) USING 'en-US')
+DECLARE @v character(3)
+DECLARE @v character(3) = NULL, @w character(3)
+DECLARE @t TABLE (a character(3), b int)
+CREATE PROCEDURE p @a character(3), @b character(3) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a character(3)) RETURNS character(3) AS BEGIN RETURN @a END
+CREATE TYPE x FROM character(3)
+CREATE TYPE x FROM character(3) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a character(3) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING character(3))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a character(3)
+CREATE TABLE t (a character(3), b AS CAST (a AS character(3)))
+CREATE TABLE t (a character varying(20))
+CREATE TABLE dbo.t (id int NOT NULL, a character varying(20) NOT NULL DEFAULT 0, b character varying(20) NULL, c character varying(20) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c character varying(20)
+SELECT CAST (a AS character varying(20))
+SELECT CAST(a AS character varying(20)) AS x FROM t
+SELECT CONVERT(character varying(20), a)
+SELECT CONVERT(character varying(20), a, 126)
+SELECT TRY_CAST (a AS character varying(20))
+SELECT TRY_CONVERT(character varying(20), a, 1)
+SELECT PARSE (a AS character varying(20))
+SELECT TRY_PARSE (a AS character varying(20) USING 'en-US')
+DECLARE @v character varying(20)
+DECLARE @v character varying(20) = NULL, @w character varying(20)
+DECLARE @t TABLE (a character varying(20), b int)
+CREATE PROCEDURE p @a character varying(20), @b character varying(20) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a character varying(20)) RETURNS character varying(20) AS BEGIN RETURN @a END
+CREATE TYPE x FROM character varying(20)
+CREATE TYPE x FROM character varying(20) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a character varying(20) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING character varying(20))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a character varying(20)
+CREATE TABLE t (a character varying(20), b AS CAST (a AS character varying(20)))
+CREATE TABLE t (a char varying(10))
+CREATE TABLE dbo.t (id int NOT NULL, a char varying(10) NOT NULL DEFAULT 0, b char varying(10) NULL, c char varying(10) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c char varying(10)
+SELECT CAST (a AS char varying(10))
+SELECT CAST(a AS char varying(10)) AS x FROM t
+SELECT CONVERT(char varying(10), a)
+SELECT CONVERT(char varying(10), a, 126)
+SELECT TRY_CAST (a AS char varying(10))
+SELECT TRY_CONVERT(char varying(10), a, 1)
+SELECT PARSE (a AS char varying(10))
+SELECT TRY_PARSE (a AS char varying(10) USING 'en-US')
+DECLARE @v char varying(10)
+DECLARE @v char varying(10) = NULL, @w char varying(10)
+DECLARE @t TABLE (a char varying(10), b int)
+CREATE PROCEDURE p @a char varying(10), @b char varying(10) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a char varying(10)) RETURNS char varying(10) AS BEGIN RETURN @a END
+CREATE TYPE x FROM char varying(10)
+CREATE TYPE x FROM char varying(10) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a char varying(10) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING char varying(10))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a char varying(10)
+CREATE TABLE t (a char varying(10), b AS CAST (a AS char varying(10)))
+CREATE TABLE t (a CHAR  VARYING (5))
+CREATE TABLE dbo.t (id int NOT NULL, a CHAR  VARYING (5) NOT NULL DEFAULT 0, b CHAR  VARYING (5) NULL, c CHAR  VARYING (5) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c CHAR  VARYING (5)
+SELECT CAST (a AS CHAR  VARYING (5))
+SELECT CAST(a AS CHAR  VARYING (5)) AS x FROM t
+SELECT CONVERT(CHAR  VARYING (5), a)
+SELECT CONVERT(CHAR  VARYING (5), a, 126)
+SELECT TRY_CAST (a AS CHAR  VARYING (5))
+SELECT TRY_CONVERT(CHAR  VARYING (5), a, 1)
+SELECT PARSE (a AS CHAR  VARYING (5))
+SELECT TRY_PARSE (a AS CHAR  VARYING (5) USING 'en-US')
+DECLARE @v CHAR  VARYING (5)
+DECLARE @v CHAR  VARYING (5) = NULL, @w CHAR  VARYING (5)
+DECLARE @t TABLE (a CHAR  VARYING (5), b int)
+CREATE PROCEDURE p @a CHAR  VARYING (5), @b CHAR  VARYING (5) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a CHAR  VARYING (5)) RETURNS CHAR  VARYING (5) AS BEGIN RETURN @a END
+CREATE TYPE x FROM CHAR  VARYING (5)
+CREATE TYPE x FROM CHAR  VARYING (5) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a CHAR  VARYING (5) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING CHAR  VARYING (5))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a CHAR  VARYING (5)
+CREATE TABLE t (a CHAR  VARYING (5), b AS CAST (a AS CHAR  VARYING (5)))
+CREATE TABLE t (a national char(5))
+CREATE TABLE dbo.t (id int NOT NULL, a national char(5) NOT NULL DEFAULT 0, b national char(5) NULL, c national char(5) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c national char(5)
+SELECT CAST (a AS national char(5))
+SELECT CAST(a AS national char(5)) AS x FROM t
+SELECT CONVERT(national char(5), a)
+SELECT CONVERT(national char(5), a, 126)
+SELECT TRY_CAST (a AS national char(5))
+SELECT TRY_CONVERT(national char(5), a, 1)
+SELECT PARSE (a AS national char(5))
+SELECT TRY_PARSE (a AS national char(5) USING 'en-US')
+DECLARE @v national char(5)
+DECLARE @v national char(5) = NULL, @w national char(5)
+DECLARE @t TABLE (a national char(5), b int)
+CREATE PROCEDURE p @a national char(5), @b national char(5) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a national char(5)) RETURNS national char(5) AS BEGIN RETURN @a END
+CREATE TYPE x FROM national char(5)
+CREATE TYPE x FROM national char(5) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a national char(5) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING national char(5))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a national char(5)
+CREATE TABLE t (a national char(5), b AS CAST (a AS national char(5)))
+CREATE TABLE t (a national character(5))
+CREATE TABLE dbo.t (id int NOT NULL, a national character(5) NOT NULL DEFAULT 0, b national character(5) NULL, c national character(5) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c national character(5)
+SELECT CAST (a AS national character(5))
+SELECT CAST(a AS national character(5)) AS x FROM t
+SELECT CONVERT(national character(5), a)
+SELECT CONVERT(national character(5), a, 126)
+SELECT TRY_CAST (a AS national character(5))
+SELECT TRY_CONVERT(national character(5), a, 1)
+SELECT PARSE (a AS national character(5))
+SELECT TRY_PARSE (a AS national character(5) USING 'en-US')
+DECLARE @v national character(5)
+DECLARE @v national character(5) = NULL, @w national character(5)
+DECLARE @t TABLE (a national character(5), b int)
+CREATE PROCEDURE p @a national character(5), @b national character(5) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a national character(5)) RETURNS national character(5) AS BEGIN RETURN @a END
+CREATE TYPE x FROM national character(5)
+CREATE TYPE x FROM national character(5) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a national character(5) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING national character(5))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a national character(5)
+CREATE TABLE t (a national character(5), b AS CAST (a AS national character(5)))
+CREATE TABLE t (a national char varying(5))
+CREATE TABLE dbo.t (id int NOT NULL, a national char varying(5) NOT NULL DEFAULT 0, b national char varying(5) NULL, c national char varying(5) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c national char varying(5)
+SELECT CAST (a AS national char varying(5))
+SELECT CAST(a AS national char varying(5)) AS x FROM t
+SELECT CONVERT(national char varying(5), a)
+SELECT CONVERT(national char varying(5), a, 126)
+SELECT TRY_CAST (a AS national char varying(5))
+SELECT TRY_CONVERT(national char varying(5), a, 1)
+SELECT PARSE (a AS national char varying(5))
+SELECT TRY_PARSE (a AS national char varying(5) USING 'en-US')
+DECLARE @v national char varying(5)
+DECLARE @v national char varying(5) = NULL, @w national char varying(5)
+DECLARE @t TABLE (a national char varying(5), b int)
+CREATE PROCEDURE p @a national char varying(5), @b national char varying(5) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a national char varying(5)) RETURNS national char varying(5) AS BEGIN RETURN @a END
+CREATE TYPE x FROM national char varying(5)
+CREATE TYPE x FROM national char varying(5) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a national char varying(5) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING national char varying(5))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a national char varying(5)
+CREATE TABLE t (a national char varying(5), b AS CAST (a AS national char varying(5)))
+CREATE TABLE t (a national character varying (MAX))
+CREATE TABLE dbo.t (id int NOT NULL, a national character varying (MAX) NOT NULL DEFAULT 0, b national character varying (MAX) NULL, c national character varying (MAX) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c national character varying (MAX)
+SELECT CAST (a AS national character varying (MAX))
+SELECT CAST(a AS national character varying (MAX)) AS x FROM t
+SELECT CONVERT(national character varying (MAX), a)
+SELECT CONVERT(national character varying (MAX), a, 126)
+SELECT TRY_CAST (a AS national character varying (MAX))
+SELECT TRY_CONVERT(national character varying (MAX), a, 1)
+SELECT PARSE (a AS national character varying (MAX))
+SELECT TRY_PARSE (a AS national character varying (MAX) USING 'en-US')
+DECLARE @v national character varying (MAX)
+DECLARE @v national character varying (MAX) = NULL, @w national character varying (MAX)
+DECLARE @t TABLE (a national character varying (MAX), b int)
+CREATE PROCEDURE p @a national character varying (MAX), @b national character varying (MAX) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a national character varying (MAX)) RETURNS national character varying (MAX) AS BEGIN RETURN @a END
+CREATE TYPE x FROM national character varying (MAX)
+CREATE TYPE x FROM national character varying (MAX) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a national character varying (MAX) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING national character varying (MAX))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a national character varying (MAX)
+CREATE TABLE t (a national character varying (MAX), b AS CAST (a AS national character varying (MAX)))
+CREATE TABLE t (a nchar varying(5))
+CREATE TABLE dbo.t (id int NOT NULL, a nchar varying(5) NOT NULL DEFAULT 0, b nchar varying(5) NULL, c nchar varying(5) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c nchar varying(5)
+SELECT CAST (a AS nchar varying(5))
+SELECT CAST(a AS nchar varying(5)) AS x FROM t
+SELECT CONVERT(nchar varying(5), a)
+SELECT CONVERT(nchar varying(5), a, 126)
+SELECT TRY_CAST (a AS nchar varying(5))
+SELECT TRY_CONVERT(nchar varying(5), a, 1)
+SELECT PARSE (a AS nchar varying(5))
+SELECT TRY_PARSE (a AS nchar varying(5) USING 'en-US')
+DECLARE @v nchar varying(5)
+DECLARE @v nchar varying(5) = NULL, @w nchar varying(5)
+DECLARE @t TABLE (a nchar varying(5), b int)
+CREATE PROCEDURE p @a nchar varying(5), @b nchar varying(5) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a nchar varying(5)) RETURNS nchar varying(5) AS BEGIN RETURN @a END
+CREATE TYPE x FROM nchar varying(5)
+CREATE TYPE x FROM nchar varying(5) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a nchar varying(5) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING nchar varying(5))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a nchar varying(5)
+CREATE TABLE t (a nchar varying(5), b AS CAST (a AS nchar varying(5)))
+CREATE TABLE t (a binary(16))
+CREATE TABLE dbo.t (id int NOT NULL, a binary(16) NOT NULL DEFAULT 0, b binary(16) NULL, c binary(16) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c binary(16)
+SELECT CAST (a AS binary(16))
+SELECT CAST(a AS binary(16)) AS x FROM t
+SELECT CONVERT(binary(16), a)
+SELECT CONVERT(binary(16), a, 126)
+SELECT TRY_CAST (a AS binary(16))
+SELECT TRY_CONVERT(binary(16), a, 1)
+SELECT PARSE (a AS binary(16))
+SELECT TRY_PARSE (a AS binary(16) USING 'en-US')
+DECLARE @v binary(16)
+DECLARE @v binary(16) = NULL, @w binary(16)
+DECLARE @t TABLE (a binary(16), b int)
+CREATE PROCEDURE p @a binary(16), @b binary(16) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a binary(16)) RETURNS binary(16) AS BEGIN RETURN @a END
+CREATE TYPE x FROM binary(16)
+CREATE TYPE x FROM binary(16) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a binary(16) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING binary(16))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a binary(16)
+CREATE TABLE t (a binary(16), b AS CAST (a AS binary(16)))
+CREATE TABLE t (a binary varying(8))
+CREATE TABLE dbo.t (id int NOT NULL, a binary varying(8) NOT NULL DEFAULT 0, b binary varying(8) NULL, c binary varying(8) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c binary varying(8)
+SELECT CAST (a AS binary varying(8))
+SELECT CAST(a AS binary varying(8)) AS x FROM t
+SELECT CONVERT(binary varying(8), a)
+SELECT CONVERT(binary varying(8), a, 126)
+SELECT TRY_CAST (a AS binary varying(8))
+SELECT TRY_CONVERT(binary varying(8), a, 1)
+SELECT PARSE (a AS binary varying(8))
+SELECT TRY_PARSE (a AS binary varying(8) USING 'en-US')
+DECLARE @v binary varying(8)
+DECLARE @v binary varying(8) = NULL, @w binary varying(8)
+DECLARE @t TABLE (a binary varying(8), b int)
+CREATE PROCEDURE p @a binary varying(8), @b binary varying(8) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a binary varying(8)) RETURNS binary varying(8) AS BEGIN RETURN @a END
+CREATE TYPE x FROM binary varying(8)
+CREATE TYPE x FROM binary varying(8) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a binary varying(8) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING binary varying(8))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a binary varying(8)
+CREATE TABLE t (a binary varying(8), b AS CAST (a AS binary varying(8)))
+CREATE TABLE t (a varbinary(8))
+CREATE TABLE dbo.t (id int NOT NULL, a varbinary(8) NOT NULL DEFAULT 0, b varbinary(8) NULL, c varbinary(8) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c varbinary(8)
+SELECT CAST (a AS varbinary(8))
+SELECT CAST(a AS varbinary(8)) AS x FROM t
+SELECT CONVERT(varbinary(8), a)
+SELECT CONVERT(varbinary(8), a, 126)
+SELECT TRY_CAST (a AS varbinary(8))
+SELECT TRY_CONVERT(varbinary(8), a, 1)
+SELECT PARSE (a AS varbinary(8))
+SELECT TRY_PARSE (a AS varbinary(8) USING 'en-US')
+DECLARE @v varbinary(8)
+DECLARE @v varbinary(8) = NULL, @w varbinary(8)
+DECLARE @t TABLE (a varbinary(8), b int)
+CREATE PROCEDURE p @a varbinary(8), @b varbinary(8) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a varbinary(8)) RETURNS varbinary(8) AS BEGIN RETURN @a END
+CREATE TYPE x FROM varbinary(8)
+CREATE TYPE x FROM varbinary(8) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a varbinary(8) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING varbinary(8))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a varbinary(8)
+CREATE TABLE t (a varbinary(8), b AS CAST (a AS varbinary(8)))
+CREATE TABLE t (a varbinary(max))
+CREATE TABLE dbo.t (id int NOT NULL, a varbinary(max) NOT NULL DEFAULT 0, b varbinary(max) NULL, c varbinary(max) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c varbinary(max)
+SELECT CAST (a AS varbinary(max))
+SELECT CAST(a AS varbinary(max)) AS x FROM t
+SELECT CONVERT(varbinary(max), a)
+SELECT CONVERT(varbinary(max), a, 126)
+SELECT TRY_CAST (a AS varbinary(max))
+SELECT TRY_CONVERT(varbinary(max), a, 1)
+SELECT PARSE (a AS varbinary(max))
+SELECT TRY_PARSE (a AS varbinary(max) USING 'en-US')
+DECLARE @v varbinary(max)
+DECLARE @v varbinary(max) = NULL, @w varbinary(max)
+DECLARE @t TABLE (a varbinary(max), b int)
+CREATE PROCEDURE p @a varbinary(max), @b varbinary(max) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a varbinary(max)) RETURNS varbinary(max) AS BEGIN RETURN @a END
+CREATE TYPE x FROM varbinary(max)
+CREATE TYPE x FROM varbinary(max) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a varbinary(max) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING varbinary(max))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a varbinary(max)
+CREATE TABLE t (a varbinary(max), b AS CAST (a AS varbinary(max)))
+CREATE TABLE t (a date)
+CREATE TABLE dbo.t (id int NOT NULL, a date NOT NULL DEFAULT 0, b date NULL, c date COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c date
+SELECT CAST (a AS date)
+SELECT CAST(a AS date) AS x FROM t
+SELECT CONVERT(date, a)
+SELECT CONVERT(date, a, 126)
+SELECT TRY_CAST (a AS date)
+SELECT TRY_CONVERT(date, a, 1)
+SELECT PARSE (a AS date)
+SELECT TRY_PARSE (a AS date USING 'en-US')
+DECLARE @v date
+DECLARE @v date = NULL, @w date
+DECLARE @t TABLE (a date, b int)
+CREATE PROCEDURE p @a date, @b date = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a date) RETURNS date AS BEGIN RETURN @a END
+CREATE TYPE x FROM date
+CREATE TYPE x FROM date NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a date '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING date)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a date
+CREATE TABLE t (a date, b AS CAST (a AS date))
+CREATE TABLE t (a time)
+CREATE TABLE dbo.t (id int NOT NULL, a time NOT NULL DEFAULT 0, b time NULL, c time COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c time
+SELECT CAST (a AS time)
+SELECT CAST(a AS time) AS x FROM t
+SELECT CONVERT(time, a)
+SELECT CONVERT(time, a, 126)
+SELECT TRY_CAST (a AS time)
+SELECT TRY_CONVERT(time, a, 1)
+SELECT PARSE (a AS time)
+SELECT TRY_PARSE (a AS time USING 'en-US')
+DECLARE @v time
+DECLARE @v time = NULL, @w time
+DECLARE @t TABLE (a time, b int)
+CREATE PROCEDURE p @a time, @b time = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a time) RETURNS time AS BEGIN RETURN @a END
+CREATE TYPE x FROM time
+CREATE TYPE x FROM time NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a time '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING time)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a time
+CREATE TABLE t (a time, b AS CAST (a AS time))
+CREATE TABLE t (a time(3))
+CREATE TABLE dbo.t (id int NOT NULL, a time(3) NOT NULL DEFAULT 0, b time(3) NULL, c time(3) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c time(3)
+SELECT CAST (a AS time(3))
+SELECT CAST(a AS time(3)) AS x FROM t
+SELECT CONVERT(time(3), a)
+SELECT CONVERT(time(3), a, 126)
+SELECT TRY_CAST (a AS time(3))
+SELECT TRY_CONVERT(time(3), a, 1)
+SELECT PARSE (a AS time(3))
+SELECT TRY_PARSE (a AS time(3) USING 'en-US')
+DECLARE @v time(3)
+DECLARE @v time(3) = NULL, @w time(3)
+DECLARE @t TABLE (a time(3), b int)
+CREATE PROCEDURE p @a time(3), @b time(3) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a time(3)) RETURNS time(3) AS BEGIN RETURN @a END
+CREATE TYPE x FROM time(3)
+CREATE TYPE x FROM time(3) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a time(3) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING time(3))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a time(3)
+CREATE TABLE t (a time(3), b AS CAST (a AS time(3)))
+CREATE TABLE t (a datetime)
+CREATE TABLE dbo.t (id int NOT NULL, a datetime NOT NULL DEFAULT 0, b datetime NULL, c datetime COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c datetime
+SELECT CAST (a AS datetime)
+SELECT CAST(a AS datetime) AS x FROM t
+SELECT CONVERT(datetime, a)
+SELECT CONVERT(datetime, a, 126)
+SELECT TRY_CAST (a AS datetime)
+SELECT TRY_CONVERT(datetime, a, 1)
+SELECT PARSE (a AS datetime)
+SELECT TRY_PARSE (a AS datetime USING 'en-US')
+DECLARE @v datetime
+DECLARE @v datetime = NULL, @w datetime
+DECLARE @t TABLE (a datetime, b int)
+CREATE PROCEDURE p @a datetime, @b datetime = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a datetime) RETURNS datetime AS BEGIN RETURN @a END
+CREATE TYPE x FROM datetime
+CREATE TYPE x FROM datetime NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a datetime '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING datetime)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a datetime
+CREATE TABLE t (a datetime, b AS CAST (a AS datetime))
+CREATE TABLE t (a datetime2)
+CREATE TABLE dbo.t (id int NOT NULL, a datetime2 NOT NULL DEFAULT 0, b datetime2 NULL, c datetime2 COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c datetime2
+SELECT CAST (a AS datetime2)
+SELECT CAST(a AS datetime2) AS x FROM t
+SELECT CONVERT(datetime2, a)
+SELECT CONVERT(datetime2, a, 126)
+SELECT TRY_CAST (a AS datetime2)
+SELECT TRY_CONVERT(datetime2, a, 1)
+SELECT PARSE (a AS datetime2)
+SELECT TRY_PARSE (a AS datetime2 USING 'en-US')
+DECLARE @v datetime2
+DECLARE @v datetime2 = NULL, @w datetime2
+DECLARE @t TABLE (a datetime2, b int)
+CREATE PROCEDURE p @a datetime2, @b datetime2 = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a datetime2) RETURNS datetime2 AS BEGIN RETURN @a END
+CREATE TYPE x FROM datetime2
+CREATE TYPE x FROM datetime2 NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a datetime2 '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING datetime2)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a datetime2
+CREATE TABLE t (a datetime2, b AS CAST (a AS datetime2))
+CREATE TABLE t (a DATETIME2(7))
+CREATE TABLE dbo.t (id int NOT NULL, a DATETIME2(7) NOT NULL DEFAULT 0, b DATETIME2(7) NULL, c DATETIME2(7) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c DATETIME2(7)
+SELECT CAST (a AS DATETIME2(7))
+SELECT CAST(a AS DATETIME2(7)) AS x FROM t
+SELECT CONVERT(DATETIME2(7), a)
+SELECT CONVERT(DATETIME2(7), a, 126)
+SELECT TRY_CAST (a AS DATETIME2(7))
+SELECT TRY_CONVERT(DATETIME2(7), a, 1)
+SELECT PARSE (a AS DATETIME2(7))
+SELECT TRY_PARSE (a AS DATETIME2(7) USING 'en-US')
+DECLARE @v DATETIME2(7)
+DECLARE @v DATETIME2(7) = NULL, @w DATETIME2(7)
+DECLARE @t TABLE (a DATETIME2(7), b int)
+CREATE PROCEDURE p @a DATETIME2(7), @b DATETIME2(7) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a DATETIME2(7)) RETURNS DATETIME2(7) AS BEGIN RETURN @a END
+CREATE TYPE x FROM DATETIME2(7)
+CREATE TYPE x FROM DATETIME2(7) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a DATETIME2(7) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING DATETIME2(7))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a DATETIME2(7)
+CREATE TABLE t (a DATETIME2(7), b AS CAST (a AS DATETIME2(7)))
+CREATE TABLE t (a datetimeoffset(3))
+CREATE TABLE dbo.t (id int NOT NULL, a datetimeoffset(3) NOT NULL DEFAULT 0, b datetimeoffset(3) NULL, c datetimeoffset(3) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c datetimeoffset(3)
+SELECT CAST (a AS datetimeoffset(3))
+SELECT CAST(a AS datetimeoffset(3)) AS x FROM t
+SELECT CONVERT(datetimeoffset(3), a)
+SELECT CONVERT(datetimeoffset(3), a, 126)
+SELECT TRY_CAST (a AS datetimeoffset(3))
+SELECT TRY_CONVERT(datetimeoffset(3), a, 1)
+SELECT PARSE (a AS datetimeoffset(3))
+SELECT TRY_PARSE (a AS datetimeoffset(3) USING 'en-US')
+DECLARE @v datetimeoffset(3)
+DECLARE @v datetimeoffset(3) = NULL, @w datetimeoffset(3)
+DECLARE @t TABLE (a datetimeoffset(3), b int)
+CREATE PROCEDURE p @a datetimeoffset(3), @b datetimeoffset(3) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a datetimeoffset(3)) RETURNS datetimeoffset(3) AS BEGIN RETURN @a END
+CREATE TYPE x FROM datetimeoffset(3)
+CREATE TYPE x FROM datetimeoffset(3) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a datetimeoffset(3) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING datetimeoffset(3))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a datetimeoffset(3)
+CREATE TABLE t (a datetimeoffset(3), b AS CAST (a AS datetimeoffset(3)))
+CREATE TABLE t (a smalldatetime)
+CREATE TABLE dbo.t (id int NOT NULL, a smalldatetime NOT NULL DEFAULT 0, b smalldatetime NULL, c smalldatetime COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c smalldatetime
+SELECT CAST (a AS smalldatetime)
+SELECT CAST(a AS smalldatetime) AS x FROM t
+SELECT CONVERT(smalldatetime, a)
+SELECT CONVERT(smalldatetime, a, 126)
+SELECT TRY_CAST (a AS smalldatetime)
+SELECT TRY_CONVERT(smalldatetime, a, 1)
+SELECT PARSE (a AS smalldatetime)
+SELECT TRY_PARSE (a AS smalldatetime USING 'en-US')
+DECLARE @v smalldatetime
+DECLARE @v smalldatetime = NULL, @w smalldatetime
+DECLARE @t TABLE (a smalldatetime, b int)
+CREATE PROCEDURE p @a smalldatetime, @b smalldatetime = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a smalldatetime) RETURNS smalldatetime AS BEGIN RETURN @a END
+CREATE TYPE x FROM smalldatetime
+CREATE TYPE x FROM smalldatetime NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a smalldatetime '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING smalldatetime)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a smalldatetime
+CREATE TABLE t (a smalldatetime, b AS CAST (a AS smalldatetime))
+CREATE TABLE t (a money)
+CREATE TABLE dbo.t (id int NOT NULL, a money NOT NULL DEFAULT 0, b money NULL, c money COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c money
+SELECT CAST (a AS money)
+SELECT CAST(a AS money) AS x FROM t
+SELECT CONVERT(money, a)
+SELECT CONVERT(money, a, 126)
+SELECT TRY_CAST (a AS money)
+SELECT TRY_CONVERT(money, a, 1)
+SELECT PARSE (a AS money)
+SELECT TRY_PARSE (a AS money USING 'en-US')
+DECLARE @v money
+DECLARE @v money = NULL, @w money
+DECLARE @t TABLE (a money, b int)
+CREATE PROCEDURE p @a money, @b money = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a money) RETURNS money AS BEGIN RETURN @a END
+CREATE TYPE x FROM money
+CREATE TYPE x FROM money NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a money '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING money)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a money
+CREATE TABLE t (a money, b AS CAST (a AS money))
+CREATE TABLE t (a smallmoney)
+CREATE TABLE dbo.t (id int NOT NULL, a smallmoney NOT NULL DEFAULT 0, b smallmoney NULL, c smallmoney COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c smallmoney
+SELECT CAST (a AS smallmoney)
+SELECT CAST(a AS smallmoney) AS x FROM t
+SELECT CONVERT(smallmoney, a)
+SELECT CONVERT(smallmoney, a, 126)
+SELECT TRY_CAST (a AS smallmoney)
+SELECT TRY_CONVERT(smallmoney, a, 1)
+SELECT PARSE (a AS smallmoney)
+SELECT TRY_PARSE (a AS smallmoney USING 'en-US')
+DECLARE @v smallmoney
+DECLARE @v smallmoney = NULL, @w smallmoney
+DECLARE @t TABLE (a smallmoney, b int)
+CREATE PROCEDURE p @a smallmoney, @b smallmoney = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a smallmoney) RETURNS smallmoney AS BEGIN RETURN @a END
+CREATE TYPE x FROM smallmoney
+CREATE TYPE x FROM smallmoney NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a smallmoney '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING smallmoney)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a smallmoney
+CREATE TABLE t (a smallmoney, b AS CAST (a AS smallmoney))
+CREATE TABLE t (a text)
+CREATE TABLE dbo.t (id int NOT NULL, a text NOT NULL DEFAULT 0, b text NULL, c text COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c text
+SELECT CAST (a AS text)
+SELECT CAST(a AS text) AS x FROM t
+SELECT CONVERT(text, a)
+SELECT CONVERT(text, a, 126)
+SELECT TRY_CAST (a AS text)
+SELECT TRY_CONVERT(text, a, 1)
+SELECT PARSE (a AS text)
+SELECT TRY_PARSE (a AS text USING 'en-US')
+DECLARE @v text
+DECLARE @v text = NULL, @w text
+DECLARE @t TABLE (a text, b int)
+CREATE PROCEDURE p @a text, @b text = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a text) RETURNS text AS BEGIN RETURN @a END
+CREATE TYPE x FROM text
+CREATE TYPE x FROM text NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a text '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING text)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a text
+CREATE TABLE t (a text, b AS CAST (a AS text))
+CREATE TABLE t (a ntext)
+CREATE TABLE dbo.t (id int NOT NULL, a ntext NOT NULL DEFAULT 0, b ntext NULL, c ntext COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c ntext
+SELECT CAST (a AS ntext)
+SELECT CAST(a AS ntext) AS x FROM t
+SELECT CONVERT(ntext, a)
+SELECT CONVERT(ntext, a, 126)
+SELECT TRY_CAST (a AS ntext)
+SELECT TRY_CONVERT(ntext, a, 1)
+SELECT PARSE (a AS ntext)
+SELECT TRY_PARSE (a AS ntext USING 'en-US')
+DECLARE @v ntext
+DECLARE @v ntext = NULL, @w ntext
+DECLARE @t TABLE (a ntext, b int)
+CREATE PROCEDURE p @a ntext, @b ntext = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a ntext) RETURNS ntext AS BEGIN RETURN @a END
+CREATE TYPE x FROM ntext
+CREATE TYPE x FROM ntext NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a ntext '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING ntext)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a ntext
+CREATE TABLE t (a ntext, b AS CAST (a AS ntext))
+CREATE TABLE t (a image)
+CREATE TABLE dbo.t (id int NOT NULL, a image NOT NULL DEFAULT 0, b image NULL, c image COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c image
+SELECT CAST (a AS image)
+SELECT CAST(a AS image) AS x FROM t
+SELECT CONVERT(image, a)
+SELECT CONVERT(image, a, 126)
+SELECT TRY_CAST (a AS image)
+SELECT TRY_CONVERT(image, a, 1)
+SELECT PARSE (a AS image)
+SELECT TRY_PARSE (a AS image USING 'en-US')
+DECLARE @v image
+DECLARE @v image = NULL, @w image
+DECLARE @t TABLE (a image, b int)
+CREATE PROCEDURE p @a image, @b image = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a image) RETURNS image AS BEGIN RETURN @a END
+CREATE TYPE x FROM image
+CREATE TYPE x FROM image NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a image '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING image)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a image
+CREATE TABLE t (a image, b AS CAST (a AS image))
+CREATE TABLE t (a uniqueidentifier)
+CREATE TABLE dbo.t (id int NOT NULL, a uniqueidentifier NOT NULL DEFAULT 0, b uniqueidentifier NULL, c uniqueidentifier COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c uniqueidentifier
+SELECT CAST (a AS uniqueidentifier)
+SELECT CAST(a AS uniqueidentifier) AS x FROM t
+SELECT CONVERT(uniqueidentifier, a)
+SELECT CONVERT(uniqueidentifier, a, 126)
+SELECT TRY_CAST (a AS uniqueidentifier)
+SELECT TRY_CONVERT(uniqueidentifier, a, 1)
+SELECT PARSE (a AS uniqueidentifier)
+SELECT TRY_PARSE (a AS uniqueidentifier USING 'en-US')
+DECLARE @v uniqueidentifier
+DECLARE @v uniqueidentifier = NULL, @w uniqueidentifier
+DECLARE @t TABLE (a uniqueidentifier, b int)
+CREATE PROCEDURE p @a uniqueidentifier, @b uniqueidentifier = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a uniqueidentifier) RETURNS uniqueidentifier AS BEGIN RETURN @a END
+CREATE TYPE x FROM uniqueidentifier
+CREATE TYPE x FROM uniqueidentifier NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a uniqueidentifier '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING uniqueidentifier)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a uniqueidentifier
+CREATE TABLE t (a uniqueidentifier, b AS CAST (a AS uniqueidentifier))
+CREATE TABLE t (a sql_variant)
+CREATE TABLE dbo.t (id int NOT NULL, a sql_variant NOT NULL DEFAULT 0, b sql_variant NULL, c sql_variant COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c sql_variant
+SELECT CAST (a AS sql_variant)
+SELECT CAST(a AS sql_variant) AS x FROM t
+SELECT CONVERT(sql_variant, a)
+SELECT CONVERT(sql_variant, a, 126)
+SELECT TRY_CAST (a AS sql_variant)
+SELECT TRY_CONVERT(sql_variant, a, 1)
+SELECT PARSE (a AS sql_variant)
+SELECT TRY_PARSE (a AS sql_variant USING 'en-US')
+DECLARE @v sql_variant
+DECLARE @v sql_variant = NULL, @w sql_variant
+DECLARE @t TABLE (a sql_variant, b int)
+CREATE PROCEDURE p @a sql_variant, @b sql_variant = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a sql_variant) RETURNS sql_variant AS BEGIN RETURN @a END
+CREATE TYPE x FROM sql_variant
+CREATE TYPE x FROM sql_variant NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a sql_variant '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING sql_variant)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a sql_variant
+CREATE TABLE t (a sql_variant, b AS CAST (a AS sql_variant))
+CREATE TABLE t (a sysname)
+CREATE TABLE dbo.t (id int NOT NULL, a sysname NOT NULL DEFAULT 0, b sysname NULL, c sysname COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c sysname
+SELECT CAST (a AS sysname)
+SELECT CAST(a AS sysname) AS x FROM t
+SELECT CONVERT(sysname, a)
+SELECT CONVERT(sysname, a, 126)
+SELECT TRY_CAST (a AS sysname)
+SELECT TRY_CONVERT(sysname, a, 1)
+SELECT PARSE (a AS sysname)
+SELECT TRY_PARSE (a AS sysname USING 'en-US')
+DECLARE @v sysname
+DECLARE @v sysname = NULL, @w sysname
+DECLARE @t TABLE (a sysname, b int)
+CREATE PROCEDURE p @a sysname, @b sysname = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a sysname) RETURNS sysname AS BEGIN RETURN @a END
+CREATE TYPE x FROM sysname
+CREATE TYPE x FROM sysname NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a sysname '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING sysname)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a sysname
+CREATE TABLE t (a sysname, b AS CAST (a AS sysname))
+CREATE TABLE t (a rowversion)
+CREATE TABLE dbo.t (id int NOT NULL, a rowversion NOT NULL DEFAULT 0, b rowversion NULL, c rowversion COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c rowversion
+SELECT CAST (a AS rowversion)
+SELECT CAST(a AS rowversion) AS x FROM t
+SELECT CONVERT(rowversion, a)
+SELECT CONVERT(rowversion, a, 126)
+SELECT TRY_CAST (a AS rowversion)
+SELECT TRY_CONVERT(rowversion, a, 1)
+SELECT PARSE (a AS rowversion)
+SELECT TRY_PARSE (a AS rowversion USING 'en-US')
+DECLARE @v rowversion
+DECLARE @v rowversion = NULL, @w rowversion
+DECLARE @t TABLE (a rowversion, b int)
+CREATE PROCEDURE p @a rowversion, @b rowversion = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a rowversion) RETURNS rowversion AS BEGIN RETURN @a END
+CREATE TYPE x FROM rowversion
+CREATE TYPE x FROM rowversion NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a rowversion '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING rowversion)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a rowversion
+CREATE TABLE t (a rowversion, b AS CAST (a AS rowversion))
+CREATE TABLE t (a timestamp)
+CREATE TABLE dbo.t (id int NOT NULL, a timestamp NOT NULL DEFAULT 0, b timestamp NULL, c timestamp COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c timestamp
+SELECT CAST (a AS timestamp)
+SELECT CAST(a AS timestamp) AS x FROM t
+SELECT CONVERT(timestamp, a)
+SELECT CONVERT(timestamp, a, 126)
+SELECT TRY_CAST (a AS timestamp)
+SELECT TRY_CONVERT(timestamp, a, 1)
+SELECT PARSE (a AS timestamp)
+SELECT TRY_PARSE (a AS timestamp USING 'en-US')
+DECLARE @v timestamp
+DECLARE @v timestamp = NULL, @w timestamp
+DECLARE @t TABLE (a timestamp, b int)
+CREATE PROCEDURE p @a timestamp, @b timestamp = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a timestamp) RETURNS timestamp AS BEGIN RETURN @a END
+CREATE TYPE x FROM timestamp
+CREATE TYPE x FROM timestamp NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a timestamp '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING timestamp)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a timestamp
+CREATE TABLE t (a timestamp, b AS CAST (a AS timestamp))
+CREATE TABLE t (a geography)
+CREATE TABLE dbo.t (id int NOT NULL, a geography NOT NULL DEFAULT 0, b geography NULL, c geography COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c geography
+SELECT CAST (a AS geography)
+SELECT CAST(a AS geography) AS x FROM t
+SELECT CONVERT(geography, a)
+SELECT CONVERT(geography, a, 126)
+SELECT TRY_CAST (a AS geography)
+SELECT TRY_CONVERT(geography, a, 1)
+SELECT PARSE (a AS geography)
+SELECT TRY_PARSE (a AS geography USING 'en-US')
+DECLARE @v geography
+DECLARE @v geography = NULL, @w geography
+DECLARE @t TABLE (a geography, b int)
+CREATE PROCEDURE p @a geography, @b geography = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a geography) RETURNS geography AS BEGIN RETURN @a END
+CREATE TYPE x FROM geography
+CREATE TYPE x FROM geography NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a geography '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING geography)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a geography
+CREATE TABLE t (a geography, b AS CAST (a AS geography))
+CREATE TABLE t (a geometry)
+CREATE TABLE dbo.t (id int NOT NULL, a geometry NOT NULL DEFAULT 0, b geometry NULL, c geometry COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c geometry
+SELECT CAST (a AS geometry)
+SELECT CAST(a AS geometry) AS x FROM t
+SELECT CONVERT(geometry, a)
+SELECT CONVERT(geometry, a, 126)
+SELECT TRY_CAST (a AS geometry)
+SELECT TRY_CONVERT(geometry, a, 1)
+SELECT PARSE (a AS geometry)
+SELECT TRY_PARSE (a AS geometry USING 'en-US')
+DECLARE @v geometry
+DECLARE @v geometry = NULL, @w geometry
+DECLARE @t TABLE (a geometry, b int)
+CREATE PROCEDURE p @a geometry, @b geometry = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a geometry) RETURNS geometry AS BEGIN RETURN @a END
+CREATE TYPE x FROM geometry
+CREATE TYPE x FROM geometry NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a geometry '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING geometry)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a geometry
+CREATE TABLE t (a geometry, b AS CAST (a AS geometry))
+CREATE TABLE t (a hierarchyid)
+CREATE TABLE dbo.t (id int NOT NULL, a hierarchyid NOT NULL DEFAULT 0, b hierarchyid NULL, c hierarchyid COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c hierarchyid
+SELECT CAST (a AS hierarchyid)
+SELECT CAST(a AS hierarchyid) AS x FROM t
+SELECT CONVERT(hierarchyid, a)
+SELECT CONVERT(hierarchyid, a, 126)
+SELECT TRY_CAST (a AS hierarchyid)
+SELECT TRY_CONVERT(hierarchyid, a, 1)
+SELECT PARSE (a AS hierarchyid)
+SELECT TRY_PARSE (a AS hierarchyid USING 'en-US')
+DECLARE @v hierarchyid
+DECLARE @v hierarchyid = NULL, @w hierarchyid
+DECLARE @t TABLE (a hierarchyid, b int)
+CREATE PROCEDURE p @a hierarchyid, @b hierarchyid = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a hierarchyid) RETURNS hierarchyid AS BEGIN RETURN @a END
+CREATE TYPE x FROM hierarchyid
+CREATE TYPE x FROM hierarchyid NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a hierarchyid '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING hierarchyid)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a hierarchyid
+CREATE TABLE t (a hierarchyid, b AS CAST (a AS hierarchyid))
+CREATE TABLE t (a json)
+CREATE TABLE dbo.t (id int NOT NULL, a json NOT NULL DEFAULT 0, b json NULL, c json COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c json
+SELECT CAST (a AS json)
+SELECT CAST(a AS json) AS x FROM t
+SELECT CONVERT(json, a)
+SELECT CONVERT(json, a, 126)
+SELECT TRY_CAST (a AS json)
+SELECT TRY_CONVERT(json, a, 1)
+SELECT PARSE (a AS json)
+SELECT TRY_PARSE (a AS json USING 'en-US')
+DECLARE @v json
+DECLARE @v json = NULL, @w json
+DECLARE @t TABLE (a json, b int)
+CREATE PROCEDURE p @a json, @b json = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a json) RETURNS json AS BEGIN RETURN @a END
+CREATE TYPE x FROM json
+CREATE TYPE x FROM json NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a json '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING json)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a json
+CREATE TABLE t (a json, b AS CAST (a AS json))
+CREATE TABLE t (a cursor)
+CREATE TABLE dbo.t (id int NOT NULL, a cursor NOT NULL DEFAULT 0, b cursor NULL, c cursor COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c cursor
+SELECT CAST (a AS cursor)
+SELECT CAST(a AS cursor) AS x FROM t
+SELECT CONVERT(cursor, a)
+SELECT CONVERT(cursor, a, 126)
+SELECT TRY_CAST (a AS cursor)
+SELECT TRY_CONVERT(cursor, a, 1)
+SELECT PARSE (a AS cursor)
+SELECT TRY_PARSE (a AS cursor USING 'en-US')
+DECLARE @v cursor
+DECLARE @v cursor = NULL, @w cursor
+DECLARE @t TABLE (a cursor, b int)
+CREATE PROCEDURE p @a cursor, @b cursor = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a cursor) RETURNS cursor AS BEGIN RETURN @a END
+CREATE TYPE x FROM cursor
+CREATE TYPE x FROM cursor NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a cursor '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING cursor)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a cursor
+CREATE TABLE t (a cursor, b AS CAST (a AS cursor))
+CREATE TABLE t (a xml)
+CREATE TABLE dbo.t (id int NOT NULL, a xml NOT NULL DEFAULT 0, b xml NULL, c xml COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c xml
+SELECT CAST (a AS xml)
+SELECT CAST(a AS xml) AS x FROM t
+SELECT CONVERT(xml, a)
+SELECT CONVERT(xml, a, 126)
+SELECT TRY_CAST (a AS xml)
+SELECT TRY_CONVERT(xml, a, 1)
+SELECT PARSE (a AS xml)
+SELECT TRY_PARSE (a AS xml USING 'en-US')
+DECLARE @v xml
+DECLARE @v xml = NULL, @w xml
+DECLARE @t TABLE (a xml, b int)
+CREATE PROCEDURE p @a xml, @b xml = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a xml) RETURNS xml AS BEGIN RETURN @a END
+CREATE TYPE x FROM xml
+CREATE TYPE x FROM xml NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a xml '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING xml)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a xml
+CREATE TABLE t (a xml, b AS CAST (a AS xml))
+CREATE TABLE t (a xml(s))
+CREATE TABLE dbo.t (id int NOT NULL, a xml(s) NOT NULL DEFAULT 0, b xml(s) NULL, c xml(s) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c xml(s)
+SELECT CAST (a AS xml(s))
+SELECT CAST(a AS xml(s)) AS x FROM t
+SELECT CONVERT(xml(s), a)
+SELECT CONVERT(xml(s), a, 126)
+SELECT TRY_CAST (a AS xml(s))
+SELECT TRY_CONVERT(xml(s), a, 1)
+SELECT PARSE (a AS xml(s))
+SELECT TRY_PARSE (a AS xml(s) USING 'en-US')
+DECLARE @v xml(s)
+DECLARE @v xml(s) = NULL, @w xml(s)
+DECLARE @t TABLE (a xml(s), b int)
+CREATE PROCEDURE p @a xml(s), @b xml(s) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a xml(s)) RETURNS xml(s) AS BEGIN RETURN @a END
+CREATE TYPE x FROM xml(s)
+CREATE TYPE x FROM xml(s) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a xml(s) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING xml(s))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a xml(s)
+CREATE TABLE t (a xml(s), b AS CAST (a AS xml(s)))
+CREATE TABLE t (a xml(dbo.s))
+CREATE TABLE dbo.t (id int NOT NULL, a xml(dbo.s) NOT NULL DEFAULT 0, b xml(dbo.s) NULL, c xml(dbo.s) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c xml(dbo.s)
+SELECT CAST (a AS xml(dbo.s))
+SELECT CAST(a AS xml(dbo.s)) AS x FROM t
+SELECT CONVERT(xml(dbo.s), a)
+SELECT CONVERT(xml(dbo.s), a, 126)
+SELECT TRY_CAST (a AS xml(dbo.s))
+SELECT TRY_CONVERT(xml(dbo.s), a, 1)
+SELECT PARSE (a AS xml(dbo.s))
+SELECT TRY_PARSE (a AS xml(dbo.s) USING 'en-US')
+DECLARE @v xml(dbo.s)
+DECLARE @v xml(dbo.s) = NULL, @w xml(dbo.s)
+DECLARE @t TABLE (a xml(dbo.s), b int)
+CREATE PROCEDURE p @a xml(dbo.s), @b xml(dbo.s) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a xml(dbo.s)) RETURNS xml(dbo.s) AS BEGIN RETURN @a END
+CREATE TYPE x FROM xml(dbo.s)
+CREATE TYPE x FROM xml(dbo.s) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a xml(dbo.s) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING xml(dbo.s))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a xml(dbo.s)
+CREATE TABLE t (a xml(dbo.s), b AS CAST (a AS xml(dbo.s)))
+CREATE TABLE t (a xml(CONTENT s))
+CREATE TABLE dbo.t (id int NOT NULL, a xml(CONTENT s) NOT NULL DEFAULT 0, b xml(CONTENT s) NULL, c xml(CONTENT s) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c xml(CONTENT s)
+SELECT CAST (a AS xml(CONTENT s))
+SELECT CAST(a AS xml(CONTENT s)) AS x FROM t
+SELECT CONVERT(xml(CONTENT s), a)
+SELECT CONVERT(xml(CONTENT s), a, 126)
+SELECT TRY_CAST (a AS xml(CONTENT s))
+SELECT TRY_CONVERT(xml(CONTENT s), a, 1)
+SELECT PARSE (a AS xml(CONTENT s))
+SELECT TRY_PARSE (a AS xml(CONTENT s) USING 'en-US')
+DECLARE @v xml(CONTENT s)
+DECLARE @v xml(CONTENT s) = NULL, @w xml(CONTENT s)
+DECLARE @t TABLE (a xml(CONTENT s), b int)
+CREATE PROCEDURE p @a xml(CONTENT s), @b xml(CONTENT s) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a xml(CONTENT s)) RETURNS xml(CONTENT s) AS BEGIN RETURN @a END
+CREATE TYPE x FROM xml(CONTENT s)
+CREATE TYPE x FROM xml(CONTENT s) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a xml(CONTENT s) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING xml(CONTENT s))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a xml(CONTENT s)
+CREATE TABLE t (a xml(CONTENT s), b AS CAST (a AS xml(CONTENT s)))
+CREATE TABLE t (a xml(DOCUMENT dbo.s))
+CREATE TABLE dbo.t (id int NOT NULL, a xml(DOCUMENT dbo.s) NOT NULL DEFAULT 0, b xml(DOCUMENT dbo.s) NULL, c xml(DOCUMENT dbo.s) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c xml(DOCUMENT dbo.s)
+SELECT CAST (a AS xml(DOCUMENT dbo.s))
+SELECT CAST(a AS xml(DOCUMENT dbo.s)) AS x FROM t
+SELECT CONVERT(xml(DOCUMENT dbo.s), a)
+SELECT CONVERT(xml(DOCUMENT dbo.s), a, 126)
+SELECT TRY_CAST (a AS xml(DOCUMENT dbo.s))
+SELECT TRY_CONVERT(xml(DOCUMENT dbo.s), a, 1)
+SELECT PARSE (a AS xml(DOCUMENT dbo.s))
+SELECT TRY_PARSE (a AS xml(DOCUMENT dbo.s) USING 'en-US')
+DECLARE @v xml(DOCUMENT dbo.s)
+DECLARE @v xml(DOCUMENT dbo.s) = NULL, @w xml(DOCUMENT dbo.s)
+DECLARE @t TABLE (a xml(DOCUMENT dbo.s), b int)
+CREATE PROCEDURE p @a xml(DOCUMENT dbo.s), @b xml(DOCUMENT dbo.s) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a xml(DOCUMENT dbo.s)) RETURNS xml(DOCUMENT dbo.s) AS BEGIN RETURN @a END
+CREATE TYPE x FROM xml(DOCUMENT dbo.s)
+CREATE TYPE x FROM xml(DOCUMENT dbo.s) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a xml(DOCUMENT dbo.s) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING xml(DOCUMENT dbo.s))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a xml(DOCUMENT dbo.s)
+CREATE TABLE t (a xml(DOCUMENT dbo.s), b AS CAST (a AS xml(DOCUMENT dbo.s)))
+CREATE TABLE t (a xml(CONTENT))
+CREATE TABLE dbo.t (id int NOT NULL, a xml(CONTENT) NOT NULL DEFAULT 0, b xml(CONTENT) NULL, c xml(CONTENT) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c xml(CONTENT)
+SELECT CAST (a AS xml(CONTENT))
+SELECT CAST(a AS xml(CONTENT)) AS x FROM t
+SELECT CONVERT(xml(CONTENT), a)
+SELECT CONVERT(xml(CONTENT), a, 126)
+SELECT TRY_CAST (a AS xml(CONTENT))
+SELECT TRY_CONVERT(xml(CONTENT), a, 1)
+SELECT PARSE (a AS xml(CONTENT))
+SELECT TRY_PARSE (a AS xml(CONTENT) USING 'en-US')
+DECLARE @v xml(CONTENT)
+DECLARE @v xml(CONTENT) = NULL, @w xml(CONTENT)
+DECLARE @t TABLE (a xml(CONTENT), b int)
+CREATE PROCEDURE p @a xml(CONTENT), @b xml(CONTENT) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a xml(CONTENT)) RETURNS xml(CONTENT) AS BEGIN RETURN @a END
+CREATE TYPE x FROM xml(CONTENT)
+CREATE TYPE x FROM xml(CONTENT) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a xml(CONTENT) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING xml(CONTENT))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a xml(CONTENT)
+CREATE TABLE t (a xml(CONTENT), b AS CAST (a AS xml(CONTENT)))
+CREATE TABLE t (a xml([s]))
+CREATE TABLE dbo.t (id int NOT NULL, a xml([s]) NOT NULL DEFAULT 0, b xml([s]) NULL, c xml([s]) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c xml([s])
+SELECT CAST (a AS xml([s]))
+SELECT CAST(a AS xml([s])) AS x FROM t
+SELECT CONVERT(xml([s]), a)
+SELECT CONVERT(xml([s]), a, 126)
+SELECT TRY_CAST (a AS xml([s]))
+SELECT TRY_CONVERT(xml([s]), a, 1)
+SELECT PARSE (a AS xml([s]))
+SELECT TRY_PARSE (a AS xml([s]) USING 'en-US')
+DECLARE @v xml([s])
+DECLARE @v xml([s]) = NULL, @w xml([s])
+DECLARE @t TABLE (a xml([s]), b int)
+CREATE PROCEDURE p @a xml([s]), @b xml([s]) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a xml([s])) RETURNS xml([s]) AS BEGIN RETURN @a END
+CREATE TYPE x FROM xml([s])
+CREATE TYPE x FROM xml([s]) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a xml([s]) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING xml([s]))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a xml([s])
+CREATE TABLE t (a xml([s]), b AS CAST (a AS xml([s])))
+CREATE TABLE t (a xml(CONTENT s t))
+CREATE TABLE dbo.t (id int NOT NULL, a xml(CONTENT s t) NOT NULL DEFAULT 0, b xml(CONTENT s t) NULL, c xml(CONTENT s t) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c xml(CONTENT s t)
+SELECT CAST (a AS xml(CONTENT s t))
+SELECT CAST(a AS xml(CONTENT s t)) AS x FROM t
+SELECT CONVERT(xml(CONTENT s t), a)
+SELECT CONVERT(xml(CONTENT s t), a, 126)
+SELECT TRY_CAST (a AS xml(CONTENT s t))
+SELECT TRY_CONVERT(xml(CONTENT s t), a, 1)
+SELECT PARSE (a AS xml(CONTENT s t))
+SELECT TRY_PARSE (a AS xml(CONTENT s t) USING 'en-US')
+DECLARE @v xml(CONTENT s t)
+DECLARE @v xml(CONTENT s t) = NULL, @w xml(CONTENT s t)
+DECLARE @t TABLE (a xml(CONTENT s t), b int)
+CREATE PROCEDURE p @a xml(CONTENT s t), @b xml(CONTENT s t) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a xml(CONTENT s t)) RETURNS xml(CONTENT s t) AS BEGIN RETURN @a END
+CREATE TYPE x FROM xml(CONTENT s t)
+CREATE TYPE x FROM xml(CONTENT s t) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a xml(CONTENT s t) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING xml(CONTENT s t))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a xml(CONTENT s t)
+CREATE TABLE t (a xml(CONTENT s t), b AS CAST (a AS xml(CONTENT s t)))
+CREATE TABLE t (a vector(3))
+CREATE TABLE dbo.t (id int NOT NULL, a vector(3) NOT NULL DEFAULT 0, b vector(3) NULL, c vector(3) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c vector(3)
+SELECT CAST (a AS vector(3))
+SELECT CAST(a AS vector(3)) AS x FROM t
+SELECT CONVERT(vector(3), a)
+SELECT CONVERT(vector(3), a, 126)
+SELECT TRY_CAST (a AS vector(3))
+SELECT TRY_CONVERT(vector(3), a, 1)
+SELECT PARSE (a AS vector(3))
+SELECT TRY_PARSE (a AS vector(3) USING 'en-US')
+DECLARE @v vector(3)
+DECLARE @v vector(3) = NULL, @w vector(3)
+DECLARE @t TABLE (a vector(3), b int)
+CREATE PROCEDURE p @a vector(3), @b vector(3) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a vector(3)) RETURNS vector(3) AS BEGIN RETURN @a END
+CREATE TYPE x FROM vector(3)
+CREATE TYPE x FROM vector(3) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a vector(3) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING vector(3))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a vector(3)
+CREATE TABLE t (a vector(3), b AS CAST (a AS vector(3)))
+CREATE TABLE t (a vector(1536, float32))
+CREATE TABLE dbo.t (id int NOT NULL, a vector(1536, float32) NOT NULL DEFAULT 0, b vector(1536, float32) NULL, c vector(1536, float32) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c vector(1536, float32)
+SELECT CAST (a AS vector(1536, float32))
+SELECT CAST(a AS vector(1536, float32)) AS x FROM t
+SELECT CONVERT(vector(1536, float32), a)
+SELECT CONVERT(vector(1536, float32), a, 126)
+SELECT TRY_CAST (a AS vector(1536, float32))
+SELECT TRY_CONVERT(vector(1536, float32), a, 1)
+SELECT PARSE (a AS vector(1536, float32))
+SELECT TRY_PARSE (a AS vector(1536, float32) USING 'en-US')
+DECLARE @v vector(1536, float32)
+DECLARE @v vector(1536, float32) = NULL, @w vector(1536, float32)
+DECLARE @t TABLE (a vector(1536, float32), b int)
+CREATE PROCEDURE p @a vector(1536, float32), @b vector(1536, float32) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a vector(1536, float32)) RETURNS vector(1536, float32) AS BEGIN RETURN @a END
+CREATE TYPE x FROM vector(1536, float32)
+CREATE TYPE x FROM vector(1536, float32) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a vector(1536, float32) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING vector(1536, float32))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a vector(1536, float32)
+CREATE TABLE t (a vector(1536, float32), b AS CAST (a AS vector(1536, float32)))
+CREATE TABLE t (a vector(3, float16))
+CREATE TABLE dbo.t (id int NOT NULL, a vector(3, float16) NOT NULL DEFAULT 0, b vector(3, float16) NULL, c vector(3, float16) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c vector(3, float16)
+SELECT CAST (a AS vector(3, float16))
+SELECT CAST(a AS vector(3, float16)) AS x FROM t
+SELECT CONVERT(vector(3, float16), a)
+SELECT CONVERT(vector(3, float16), a, 126)
+SELECT TRY_CAST (a AS vector(3, float16))
+SELECT TRY_CONVERT(vector(3, float16), a, 1)
+SELECT PARSE (a AS vector(3, float16))
+SELECT TRY_PARSE (a AS vector(3, float16) USING 'en-US')
+DECLARE @v vector(3, float16)
+DECLARE @v vector(3, float16) = NULL, @w vector(3, float16)
+DECLARE @t TABLE (a vector(3, float16), b int)
+CREATE PROCEDURE p @a vector(3, float16), @b vector(3, float16) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a vector(3, float16)) RETURNS vector(3, float16) AS BEGIN RETURN @a END
+CREATE TYPE x FROM vector(3, float16)
+CREATE TYPE x FROM vector(3, float16) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a vector(3, float16) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING vector(3, float16))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a vector(3, float16)
+CREATE TABLE t (a vector(3, float16), b AS CAST (a AS vector(3, float16)))
+CREATE TABLE t (a vector(MAX))
+CREATE TABLE dbo.t (id int NOT NULL, a vector(MAX) NOT NULL DEFAULT 0, b vector(MAX) NULL, c vector(MAX) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c vector(MAX)
+SELECT CAST (a AS vector(MAX))
+SELECT CAST(a AS vector(MAX)) AS x FROM t
+SELECT CONVERT(vector(MAX), a)
+SELECT CONVERT(vector(MAX), a, 126)
+SELECT TRY_CAST (a AS vector(MAX))
+SELECT TRY_CONVERT(vector(MAX), a, 1)
+SELECT PARSE (a AS vector(MAX))
+SELECT TRY_PARSE (a AS vector(MAX) USING 'en-US')
+DECLARE @v vector(MAX)
+DECLARE @v vector(MAX) = NULL, @w vector(MAX)
+DECLARE @t TABLE (a vector(MAX), b int)
+CREATE PROCEDURE p @a vector(MAX), @b vector(MAX) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a vector(MAX)) RETURNS vector(MAX) AS BEGIN RETURN @a END
+CREATE TYPE x FROM vector(MAX)
+CREATE TYPE x FROM vector(MAX) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a vector(MAX) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING vector(MAX))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a vector(MAX)
+CREATE TABLE t (a vector(MAX), b AS CAST (a AS vector(MAX)))
+CREATE TABLE t (a vector)
+CREATE TABLE dbo.t (id int NOT NULL, a vector NOT NULL DEFAULT 0, b vector NULL, c vector COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c vector
+SELECT CAST (a AS vector)
+SELECT CAST(a AS vector) AS x FROM t
+SELECT CONVERT(vector, a)
+SELECT CONVERT(vector, a, 126)
+SELECT TRY_CAST (a AS vector)
+SELECT TRY_CONVERT(vector, a, 1)
+SELECT PARSE (a AS vector)
+SELECT TRY_PARSE (a AS vector USING 'en-US')
+DECLARE @v vector
+DECLARE @v vector = NULL, @w vector
+DECLARE @t TABLE (a vector, b int)
+CREATE PROCEDURE p @a vector, @b vector = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a vector) RETURNS vector AS BEGIN RETURN @a END
+CREATE TYPE x FROM vector
+CREATE TYPE x FROM vector NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a vector '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING vector)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a vector
+CREATE TABLE t (a vector, b AS CAST (a AS vector))
+CREATE TABLE t (a vector(3, float64))
+CREATE TABLE dbo.t (id int NOT NULL, a vector(3, float64) NOT NULL DEFAULT 0, b vector(3, float64) NULL, c vector(3, float64) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c vector(3, float64)
+SELECT CAST (a AS vector(3, float64))
+SELECT CAST(a AS vector(3, float64)) AS x FROM t
+SELECT CONVERT(vector(3, float64), a)
+SELECT CONVERT(vector(3, float64), a, 126)
+SELECT TRY_CAST (a AS vector(3, float64))
+SELECT TRY_CONVERT(vector(3, float64), a, 1)
+SELECT PARSE (a AS vector(3, float64))
+SELECT TRY_PARSE (a AS vector(3, float64) USING 'en-US')
+DECLARE @v vector(3, float64)
+DECLARE @v vector(3, float64) = NULL, @w vector(3, float64)
+DECLARE @t TABLE (a vector(3, float64), b int)
+CREATE PROCEDURE p @a vector(3, float64), @b vector(3, float64) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a vector(3, float64)) RETURNS vector(3, float64) AS BEGIN RETURN @a END
+CREATE TYPE x FROM vector(3, float64)
+CREATE TYPE x FROM vector(3, float64) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a vector(3, float64) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING vector(3, float64))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a vector(3, float64)
+CREATE TABLE t (a vector(3, float64), b AS CAST (a AS vector(3, float64)))
+CREATE TABLE t (a vector(x))
+CREATE TABLE dbo.t (id int NOT NULL, a vector(x) NOT NULL DEFAULT 0, b vector(x) NULL, c vector(x) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c vector(x)
+SELECT CAST (a AS vector(x))
+SELECT CAST(a AS vector(x)) AS x FROM t
+SELECT CONVERT(vector(x), a)
+SELECT CONVERT(vector(x), a, 126)
+SELECT TRY_CAST (a AS vector(x))
+SELECT TRY_CONVERT(vector(x), a, 1)
+SELECT PARSE (a AS vector(x))
+SELECT TRY_PARSE (a AS vector(x) USING 'en-US')
+DECLARE @v vector(x)
+DECLARE @v vector(x) = NULL, @w vector(x)
+DECLARE @t TABLE (a vector(x), b int)
+CREATE PROCEDURE p @a vector(x), @b vector(x) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a vector(x)) RETURNS vector(x) AS BEGIN RETURN @a END
+CREATE TYPE x FROM vector(x)
+CREATE TYPE x FROM vector(x) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a vector(x) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING vector(x))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a vector(x)
+CREATE TABLE t (a vector(x), b AS CAST (a AS vector(x)))
+CREATE TABLE t (a national sys.char varying(10))
+CREATE TABLE dbo.t (id int NOT NULL, a national sys.char varying(10) NOT NULL DEFAULT 0, b national sys.char varying(10) NULL, c national sys.char varying(10) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c national sys.char varying(10)
+SELECT CAST (a AS national sys.char varying(10))
+SELECT CAST(a AS national sys.char varying(10)) AS x FROM t
+SELECT CONVERT(national sys.char varying(10), a)
+SELECT CONVERT(national sys.char varying(10), a, 126)
+SELECT TRY_CAST (a AS national sys.char varying(10))
+SELECT TRY_CONVERT(national sys.char varying(10), a, 1)
+SELECT PARSE (a AS national sys.char varying(10))
+SELECT TRY_PARSE (a AS national sys.char varying(10) USING 'en-US')
+DECLARE @v national sys.char varying(10)
+DECLARE @v national sys.char varying(10) = NULL, @w national sys.char varying(10)
+DECLARE @t TABLE (a national sys.char varying(10), b int)
+CREATE PROCEDURE p @a national sys.char varying(10), @b national sys.char varying(10) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a national sys.char varying(10)) RETURNS national sys.char varying(10) AS BEGIN RETURN @a END
+CREATE TYPE x FROM national sys.char varying(10)
+CREATE TYPE x FROM national sys.char varying(10) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a national sys.char varying(10) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING national sys.char varying(10))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a national sys.char varying(10)
+CREATE TABLE t (a national sys.char varying(10), b AS CAST (a AS national sys.char varying(10)))
+CREATE TABLE t (a national sys.char(10))
+CREATE TABLE dbo.t (id int NOT NULL, a national sys.char(10) NOT NULL DEFAULT 0, b national sys.char(10) NULL, c national sys.char(10) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c national sys.char(10)
+SELECT CAST (a AS national sys.char(10))
+SELECT CAST(a AS national sys.char(10)) AS x FROM t
+SELECT CONVERT(national sys.char(10), a)
+SELECT CONVERT(national sys.char(10), a, 126)
+SELECT TRY_CAST (a AS national sys.char(10))
+SELECT TRY_CONVERT(national sys.char(10), a, 1)
+SELECT PARSE (a AS national sys.char(10))
+SELECT TRY_PARSE (a AS national sys.char(10) USING 'en-US')
+DECLARE @v national sys.char(10)
+DECLARE @v national sys.char(10) = NULL, @w national sys.char(10)
+DECLARE @t TABLE (a national sys.char(10), b int)
+CREATE PROCEDURE p @a national sys.char(10), @b national sys.char(10) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a national sys.char(10)) RETURNS national sys.char(10) AS BEGIN RETURN @a END
+CREATE TYPE x FROM national sys.char(10)
+CREATE TYPE x FROM national sys.char(10) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a national sys.char(10) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING national sys.char(10))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a national sys.char(10)
+CREATE TABLE t (a national sys.char(10), b AS CAST (a AS national sys.char(10)))
+CREATE TABLE t (a sys.char varying(10))
+CREATE TABLE dbo.t (id int NOT NULL, a sys.char varying(10) NOT NULL DEFAULT 0, b sys.char varying(10) NULL, c sys.char varying(10) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c sys.char varying(10)
+SELECT CAST (a AS sys.char varying(10))
+SELECT CAST(a AS sys.char varying(10)) AS x FROM t
+SELECT CONVERT(sys.char varying(10), a)
+SELECT CONVERT(sys.char varying(10), a, 126)
+SELECT TRY_CAST (a AS sys.char varying(10))
+SELECT TRY_CONVERT(sys.char varying(10), a, 1)
+SELECT PARSE (a AS sys.char varying(10))
+SELECT TRY_PARSE (a AS sys.char varying(10) USING 'en-US')
+DECLARE @v sys.char varying(10)
+DECLARE @v sys.char varying(10) = NULL, @w sys.char varying(10)
+DECLARE @t TABLE (a sys.char varying(10), b int)
+CREATE PROCEDURE p @a sys.char varying(10), @b sys.char varying(10) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a sys.char varying(10)) RETURNS sys.char varying(10) AS BEGIN RETURN @a END
+CREATE TYPE x FROM sys.char varying(10)
+CREATE TYPE x FROM sys.char varying(10) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a sys.char varying(10) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING sys.char varying(10))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a sys.char varying(10)
+CREATE TABLE t (a sys.char varying(10), b AS CAST (a AS sys.char varying(10)))
+CREATE TABLE t (a national [char] varying(10))
+CREATE TABLE dbo.t (id int NOT NULL, a national [char] varying(10) NOT NULL DEFAULT 0, b national [char] varying(10) NULL, c national [char] varying(10) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c national [char] varying(10)
+SELECT CAST (a AS national [char] varying(10))
+SELECT CAST(a AS national [char] varying(10)) AS x FROM t
+SELECT CONVERT(national [char] varying(10), a)
+SELECT CONVERT(national [char] varying(10), a, 126)
+SELECT TRY_CAST (a AS national [char] varying(10))
+SELECT TRY_CONVERT(national [char] varying(10), a, 1)
+SELECT PARSE (a AS national [char] varying(10))
+SELECT TRY_PARSE (a AS national [char] varying(10) USING 'en-US')
+DECLARE @v national [char] varying(10)
+DECLARE @v national [char] varying(10) = NULL, @w national [char] varying(10)
+DECLARE @t TABLE (a national [char] varying(10), b int)
+CREATE PROCEDURE p @a national [char] varying(10), @b national [char] varying(10) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a national [char] varying(10)) RETURNS national [char] varying(10) AS BEGIN RETURN @a END
+CREATE TYPE x FROM national [char] varying(10)
+CREATE TYPE x FROM national [char] varying(10) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a national [char] varying(10) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING national [char] varying(10))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a national [char] varying(10)
+CREATE TABLE t (a national [char] varying(10), b AS CAST (a AS national [char] varying(10)))
+CREATE TABLE t (a national "char"(10))
+CREATE TABLE dbo.t (id int NOT NULL, a national "char"(10) NOT NULL DEFAULT 0, b national "char"(10) NULL, c national "char"(10) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c national "char"(10)
+SELECT CAST (a AS national "char"(10))
+SELECT CAST(a AS national "char"(10)) AS x FROM t
+SELECT CONVERT(national "char"(10), a)
+SELECT CONVERT(national "char"(10), a, 126)
+SELECT TRY_CAST (a AS national "char"(10))
+SELECT TRY_CONVERT(national "char"(10), a, 1)
+SELECT PARSE (a AS national "char"(10))
+SELECT TRY_PARSE (a AS national "char"(10) USING 'en-US')
+DECLARE @v national "char"(10)
+DECLARE @v national "char"(10) = NULL, @w national "char"(10)
+DECLARE @t TABLE (a national "char"(10), b int)
+CREATE PROCEDURE p @a national "char"(10), @b national "char"(10) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a national "char"(10)) RETURNS national "char"(10) AS BEGIN RETURN @a END
+CREATE TYPE x FROM national "char"(10)
+CREATE TYPE x FROM national "char"(10) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a national "char"(10) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING national "char"(10))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a national "char"(10)
+CREATE TABLE t (a national "char"(10), b AS CAST (a AS national "char"(10)))
+CREATE TABLE t (a [sys].[char] varying(10))
+CREATE TABLE dbo.t (id int NOT NULL, a [sys].[char] varying(10) NOT NULL DEFAULT 0, b [sys].[char] varying(10) NULL, c [sys].[char] varying(10) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [sys].[char] varying(10)
+SELECT CAST (a AS [sys].[char] varying(10))
+SELECT CAST(a AS [sys].[char] varying(10)) AS x FROM t
+SELECT CONVERT([sys].[char] varying(10), a)
+SELECT CONVERT([sys].[char] varying(10), a, 126)
+SELECT TRY_CAST (a AS [sys].[char] varying(10))
+SELECT TRY_CONVERT([sys].[char] varying(10), a, 1)
+SELECT PARSE (a AS [sys].[char] varying(10))
+SELECT TRY_PARSE (a AS [sys].[char] varying(10) USING 'en-US')
+DECLARE @v [sys].[char] varying(10)
+DECLARE @v [sys].[char] varying(10) = NULL, @w [sys].[char] varying(10)
+DECLARE @t TABLE (a [sys].[char] varying(10), b int)
+CREATE PROCEDURE p @a [sys].[char] varying(10), @b [sys].[char] varying(10) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [sys].[char] varying(10)) RETURNS [sys].[char] varying(10) AS BEGIN RETURN @a END
+CREATE TYPE x FROM [sys].[char] varying(10)
+CREATE TYPE x FROM [sys].[char] varying(10) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [sys].[char] varying(10) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [sys].[char] varying(10))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [sys].[char] varying(10)
+CREATE TABLE t (a [sys].[char] varying(10), b AS CAST (a AS [sys].[char] varying(10)))
+CREATE TABLE t (a [char] varying)
+CREATE TABLE dbo.t (id int NOT NULL, a [char] varying NOT NULL DEFAULT 0, b [char] varying NULL, c [char] varying COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [char] varying
+SELECT CAST (a AS [char] varying)
+SELECT CAST(a AS [char] varying) AS x FROM t
+SELECT CONVERT([char] varying, a)
+SELECT CONVERT([char] varying, a, 126)
+SELECT TRY_CAST (a AS [char] varying)
+SELECT TRY_CONVERT([char] varying, a, 1)
+SELECT PARSE (a AS [char] varying)
+SELECT TRY_PARSE (a AS [char] varying USING 'en-US')
+DECLARE @v [char] varying
+DECLARE @v [char] varying = NULL, @w [char] varying
+DECLARE @t TABLE (a [char] varying, b int)
+CREATE PROCEDURE p @a [char] varying, @b [char] varying = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [char] varying) RETURNS [char] varying AS BEGIN RETURN @a END
+CREATE TYPE x FROM [char] varying
+CREATE TYPE x FROM [char] varying NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [char] varying '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [char] varying)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [char] varying
+CREATE TABLE t (a [char] varying, b AS CAST (a AS [char] varying))
+CREATE TABLE t (a "char" varying)
+CREATE TABLE dbo.t (id int NOT NULL, a "char" varying NOT NULL DEFAULT 0, b "char" varying NULL, c "char" varying COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c "char" varying
+SELECT CAST (a AS "char" varying)
+SELECT CAST(a AS "char" varying) AS x FROM t
+SELECT CONVERT("char" varying, a)
+SELECT CONVERT("char" varying, a, 126)
+SELECT TRY_CAST (a AS "char" varying)
+SELECT TRY_CONVERT("char" varying, a, 1)
+SELECT PARSE (a AS "char" varying)
+SELECT TRY_PARSE (a AS "char" varying USING 'en-US')
+DECLARE @v "char" varying
+DECLARE @v "char" varying = NULL, @w "char" varying
+DECLARE @t TABLE (a "char" varying, b int)
+CREATE PROCEDURE p @a "char" varying, @b "char" varying = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a "char" varying) RETURNS "char" varying AS BEGIN RETURN @a END
+CREATE TYPE x FROM "char" varying
+CREATE TYPE x FROM "char" varying NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a "char" varying '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING "char" varying)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a "char" varying
+CREATE TABLE t (a "char" varying, b AS CAST (a AS "char" varying))
+CREATE TABLE t (a nchar [varying])
+CREATE TABLE dbo.t (id int NOT NULL, a nchar [varying] NOT NULL DEFAULT 0, b nchar [varying] NULL, c nchar [varying] COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c nchar [varying]
+SELECT CAST (a AS nchar [varying])
+SELECT CAST(a AS nchar [varying]) AS x FROM t
+SELECT CONVERT(nchar [varying], a)
+SELECT CONVERT(nchar [varying], a, 126)
+SELECT TRY_CAST (a AS nchar [varying])
+SELECT TRY_CONVERT(nchar [varying], a, 1)
+SELECT PARSE (a AS nchar [varying])
+SELECT TRY_PARSE (a AS nchar [varying] USING 'en-US')
+DECLARE @v nchar [varying]
+DECLARE @v nchar [varying] = NULL, @w nchar [varying]
+DECLARE @t TABLE (a nchar [varying], b int)
+CREATE PROCEDURE p @a nchar [varying], @b nchar [varying] = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a nchar [varying]) RETURNS nchar [varying] AS BEGIN RETURN @a END
+CREATE TYPE x FROM nchar [varying]
+CREATE TYPE x FROM nchar [varying] NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a nchar [varying] '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING nchar [varying])
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a nchar [varying]
+CREATE TABLE t (a nchar [varying], b AS CAST (a AS nchar [varying]))
+CREATE TABLE t (a [int])
+CREATE TABLE dbo.t (id int NOT NULL, a [int] NOT NULL DEFAULT 0, b [int] NULL, c [int] COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [int]
+SELECT CAST (a AS [int])
+SELECT CAST(a AS [int]) AS x FROM t
+SELECT CONVERT([int], a)
+SELECT CONVERT([int], a, 126)
+SELECT TRY_CAST (a AS [int])
+SELECT TRY_CONVERT([int], a, 1)
+SELECT PARSE (a AS [int])
+SELECT TRY_PARSE (a AS [int] USING 'en-US')
+DECLARE @v [int]
+DECLARE @v [int] = NULL, @w [int]
+DECLARE @t TABLE (a [int], b int)
+CREATE PROCEDURE p @a [int], @b [int] = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [int]) RETURNS [int] AS BEGIN RETURN @a END
+CREATE TYPE x FROM [int]
+CREATE TYPE x FROM [int] NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [int] '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [int])
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [int]
+CREATE TABLE t (a [int], b AS CAST (a AS [int]))
+CREATE TABLE t (a "int")
+CREATE TABLE dbo.t (id int NOT NULL, a "int" NOT NULL DEFAULT 0, b "int" NULL, c "int" COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c "int"
+SELECT CAST (a AS "int")
+SELECT CAST(a AS "int") AS x FROM t
+SELECT CONVERT("int", a)
+SELECT CONVERT("int", a, 126)
+SELECT TRY_CAST (a AS "int")
+SELECT TRY_CONVERT("int", a, 1)
+SELECT PARSE (a AS "int")
+SELECT TRY_PARSE (a AS "int" USING 'en-US')
+DECLARE @v "int"
+DECLARE @v "int" = NULL, @w "int"
+DECLARE @t TABLE (a "int", b int)
+CREATE PROCEDURE p @a "int", @b "int" = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a "int") RETURNS "int" AS BEGIN RETURN @a END
+CREATE TYPE x FROM "int"
+CREATE TYPE x FROM "int" NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a "int" '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING "int")
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a "int"
+CREATE TABLE t (a "int", b AS CAST (a AS "int"))
+CREATE TABLE t (a [INT])
+CREATE TABLE dbo.t (id int NOT NULL, a [INT] NOT NULL DEFAULT 0, b [INT] NULL, c [INT] COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [INT]
+SELECT CAST (a AS [INT])
+SELECT CAST(a AS [INT]) AS x FROM t
+SELECT CONVERT([INT], a)
+SELECT CONVERT([INT], a, 126)
+SELECT TRY_CAST (a AS [INT])
+SELECT TRY_CONVERT([INT], a, 1)
+SELECT PARSE (a AS [INT])
+SELECT TRY_PARSE (a AS [INT] USING 'en-US')
+DECLARE @v [INT]
+DECLARE @v [INT] = NULL, @w [INT]
+DECLARE @t TABLE (a [INT], b int)
+CREATE PROCEDURE p @a [INT], @b [INT] = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [INT]) RETURNS [INT] AS BEGIN RETURN @a END
+CREATE TYPE x FROM [INT]
+CREATE TYPE x FROM [INT] NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [INT] '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [INT])
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [INT]
+CREATE TABLE t (a [INT], b AS CAST (a AS [INT]))
+CREATE TABLE t (a sys.int)
+CREATE TABLE dbo.t (id int NOT NULL, a sys.int NOT NULL DEFAULT 0, b sys.int NULL, c sys.int COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c sys.int
+SELECT CAST (a AS sys.int)
+SELECT CAST(a AS sys.int) AS x FROM t
+SELECT CONVERT(sys.int, a)
+SELECT CONVERT(sys.int, a, 126)
+SELECT TRY_CAST (a AS sys.int)
+SELECT TRY_CONVERT(sys.int, a, 1)
+SELECT PARSE (a AS sys.int)
+SELECT TRY_PARSE (a AS sys.int USING 'en-US')
+DECLARE @v sys.int
+DECLARE @v sys.int = NULL, @w sys.int
+DECLARE @t TABLE (a sys.int, b int)
+CREATE PROCEDURE p @a sys.int, @b sys.int = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a sys.int) RETURNS sys.int AS BEGIN RETURN @a END
+CREATE TYPE x FROM sys.int
+CREATE TYPE x FROM sys.int NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a sys.int '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING sys.int)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a sys.int
+CREATE TABLE t (a sys.int, b AS CAST (a AS sys.int))
+CREATE TABLE t (a [sys].[int])
+CREATE TABLE dbo.t (id int NOT NULL, a [sys].[int] NOT NULL DEFAULT 0, b [sys].[int] NULL, c [sys].[int] COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [sys].[int]
+SELECT CAST (a AS [sys].[int])
+SELECT CAST(a AS [sys].[int]) AS x FROM t
+SELECT CONVERT([sys].[int], a)
+SELECT CONVERT([sys].[int], a, 126)
+SELECT TRY_CAST (a AS [sys].[int])
+SELECT TRY_CONVERT([sys].[int], a, 1)
+SELECT PARSE (a AS [sys].[int])
+SELECT TRY_PARSE (a AS [sys].[int] USING 'en-US')
+DECLARE @v [sys].[int]
+DECLARE @v [sys].[int] = NULL, @w [sys].[int]
+DECLARE @t TABLE (a [sys].[int], b int)
+CREATE PROCEDURE p @a [sys].[int], @b [sys].[int] = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [sys].[int]) RETURNS [sys].[int] AS BEGIN RETURN @a END
+CREATE TYPE x FROM [sys].[int]
+CREATE TYPE x FROM [sys].[int] NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [sys].[int] '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [sys].[int])
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [sys].[int]
+CREATE TABLE t (a [sys].[int], b AS CAST (a AS [sys].[int]))
+CREATE TABLE t (a sys.[varchar](10))
+CREATE TABLE dbo.t (id int NOT NULL, a sys.[varchar](10) NOT NULL DEFAULT 0, b sys.[varchar](10) NULL, c sys.[varchar](10) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c sys.[varchar](10)
+SELECT CAST (a AS sys.[varchar](10))
+SELECT CAST(a AS sys.[varchar](10)) AS x FROM t
+SELECT CONVERT(sys.[varchar](10), a)
+SELECT CONVERT(sys.[varchar](10), a, 126)
+SELECT TRY_CAST (a AS sys.[varchar](10))
+SELECT TRY_CONVERT(sys.[varchar](10), a, 1)
+SELECT PARSE (a AS sys.[varchar](10))
+SELECT TRY_PARSE (a AS sys.[varchar](10) USING 'en-US')
+DECLARE @v sys.[varchar](10)
+DECLARE @v sys.[varchar](10) = NULL, @w sys.[varchar](10)
+DECLARE @t TABLE (a sys.[varchar](10), b int)
+CREATE PROCEDURE p @a sys.[varchar](10), @b sys.[varchar](10) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a sys.[varchar](10)) RETURNS sys.[varchar](10) AS BEGIN RETURN @a END
+CREATE TYPE x FROM sys.[varchar](10)
+CREATE TYPE x FROM sys.[varchar](10) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a sys.[varchar](10) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING sys.[varchar](10))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a sys.[varchar](10)
+CREATE TABLE t (a sys.[varchar](10), b AS CAST (a AS sys.[varchar](10)))
+CREATE TABLE t (a [sys].[nvarchar](MAX))
+CREATE TABLE dbo.t (id int NOT NULL, a [sys].[nvarchar](MAX) NOT NULL DEFAULT 0, b [sys].[nvarchar](MAX) NULL, c [sys].[nvarchar](MAX) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [sys].[nvarchar](MAX)
+SELECT CAST (a AS [sys].[nvarchar](MAX))
+SELECT CAST(a AS [sys].[nvarchar](MAX)) AS x FROM t
+SELECT CONVERT([sys].[nvarchar](MAX), a)
+SELECT CONVERT([sys].[nvarchar](MAX), a, 126)
+SELECT TRY_CAST (a AS [sys].[nvarchar](MAX))
+SELECT TRY_CONVERT([sys].[nvarchar](MAX), a, 1)
+SELECT PARSE (a AS [sys].[nvarchar](MAX))
+SELECT TRY_PARSE (a AS [sys].[nvarchar](MAX) USING 'en-US')
+DECLARE @v [sys].[nvarchar](MAX)
+DECLARE @v [sys].[nvarchar](MAX) = NULL, @w [sys].[nvarchar](MAX)
+DECLARE @t TABLE (a [sys].[nvarchar](MAX), b int)
+CREATE PROCEDURE p @a [sys].[nvarchar](MAX), @b [sys].[nvarchar](MAX) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [sys].[nvarchar](MAX)) RETURNS [sys].[nvarchar](MAX) AS BEGIN RETURN @a END
+CREATE TYPE x FROM [sys].[nvarchar](MAX)
+CREATE TYPE x FROM [sys].[nvarchar](MAX) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [sys].[nvarchar](MAX) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [sys].[nvarchar](MAX))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [sys].[nvarchar](MAX)
+CREATE TABLE t (a [sys].[nvarchar](MAX), b AS CAST (a AS [sys].[nvarchar](MAX)))
+CREATE TABLE t (a sys.nvarchar(max))
+CREATE TABLE dbo.t (id int NOT NULL, a sys.nvarchar(max) NOT NULL DEFAULT 0, b sys.nvarchar(max) NULL, c sys.nvarchar(max) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c sys.nvarchar(max)
+SELECT CAST (a AS sys.nvarchar(max))
+SELECT CAST(a AS sys.nvarchar(max)) AS x FROM t
+SELECT CONVERT(sys.nvarchar(max), a)
+SELECT CONVERT(sys.nvarchar(max), a, 126)
+SELECT TRY_CAST (a AS sys.nvarchar(max))
+SELECT TRY_CONVERT(sys.nvarchar(max), a, 1)
+SELECT PARSE (a AS sys.nvarchar(max))
+SELECT TRY_PARSE (a AS sys.nvarchar(max) USING 'en-US')
+DECLARE @v sys.nvarchar(max)
+DECLARE @v sys.nvarchar(max) = NULL, @w sys.nvarchar(max)
+DECLARE @t TABLE (a sys.nvarchar(max), b int)
+CREATE PROCEDURE p @a sys.nvarchar(max), @b sys.nvarchar(max) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a sys.nvarchar(max)) RETURNS sys.nvarchar(max) AS BEGIN RETURN @a END
+CREATE TYPE x FROM sys.nvarchar(max)
+CREATE TYPE x FROM sys.nvarchar(max) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a sys.nvarchar(max) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING sys.nvarchar(max))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a sys.nvarchar(max)
+CREATE TABLE t (a sys.nvarchar(max), b AS CAST (a AS sys.nvarchar(max)))
+CREATE TABLE t (a [varchar](10))
+CREATE TABLE dbo.t (id int NOT NULL, a [varchar](10) NOT NULL DEFAULT 0, b [varchar](10) NULL, c [varchar](10) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [varchar](10)
+SELECT CAST (a AS [varchar](10))
+SELECT CAST(a AS [varchar](10)) AS x FROM t
+SELECT CONVERT([varchar](10), a)
+SELECT CONVERT([varchar](10), a, 126)
+SELECT TRY_CAST (a AS [varchar](10))
+SELECT TRY_CONVERT([varchar](10), a, 1)
+SELECT PARSE (a AS [varchar](10))
+SELECT TRY_PARSE (a AS [varchar](10) USING 'en-US')
+DECLARE @v [varchar](10)
+DECLARE @v [varchar](10) = NULL, @w [varchar](10)
+DECLARE @t TABLE (a [varchar](10), b int)
+CREATE PROCEDURE p @a [varchar](10), @b [varchar](10) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [varchar](10)) RETURNS [varchar](10) AS BEGIN RETURN @a END
+CREATE TYPE x FROM [varchar](10)
+CREATE TYPE x FROM [varchar](10) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [varchar](10) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [varchar](10))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [varchar](10)
+CREATE TABLE t (a [varchar](10), b AS CAST (a AS [varchar](10)))
+CREATE TABLE t (a "varchar"(10))
+CREATE TABLE dbo.t (id int NOT NULL, a "varchar"(10) NOT NULL DEFAULT 0, b "varchar"(10) NULL, c "varchar"(10) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c "varchar"(10)
+SELECT CAST (a AS "varchar"(10))
+SELECT CAST(a AS "varchar"(10)) AS x FROM t
+SELECT CONVERT("varchar"(10), a)
+SELECT CONVERT("varchar"(10), a, 126)
+SELECT TRY_CAST (a AS "varchar"(10))
+SELECT TRY_CONVERT("varchar"(10), a, 1)
+SELECT PARSE (a AS "varchar"(10))
+SELECT TRY_PARSE (a AS "varchar"(10) USING 'en-US')
+DECLARE @v "varchar"(10)
+DECLARE @v "varchar"(10) = NULL, @w "varchar"(10)
+DECLARE @t TABLE (a "varchar"(10), b int)
+CREATE PROCEDURE p @a "varchar"(10), @b "varchar"(10) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a "varchar"(10)) RETURNS "varchar"(10) AS BEGIN RETURN @a END
+CREATE TYPE x FROM "varchar"(10)
+CREATE TYPE x FROM "varchar"(10) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a "varchar"(10) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING "varchar"(10))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a "varchar"(10)
+CREATE TABLE t (a "varchar"(10), b AS CAST (a AS "varchar"(10)))
+CREATE TABLE t (a [decimal](18, 2))
+CREATE TABLE dbo.t (id int NOT NULL, a [decimal](18, 2) NOT NULL DEFAULT 0, b [decimal](18, 2) NULL, c [decimal](18, 2) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [decimal](18, 2)
+SELECT CAST (a AS [decimal](18, 2))
+SELECT CAST(a AS [decimal](18, 2)) AS x FROM t
+SELECT CONVERT([decimal](18, 2), a)
+SELECT CONVERT([decimal](18, 2), a, 126)
+SELECT TRY_CAST (a AS [decimal](18, 2))
+SELECT TRY_CONVERT([decimal](18, 2), a, 1)
+SELECT PARSE (a AS [decimal](18, 2))
+SELECT TRY_PARSE (a AS [decimal](18, 2) USING 'en-US')
+DECLARE @v [decimal](18, 2)
+DECLARE @v [decimal](18, 2) = NULL, @w [decimal](18, 2)
+DECLARE @t TABLE (a [decimal](18, 2), b int)
+CREATE PROCEDURE p @a [decimal](18, 2), @b [decimal](18, 2) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [decimal](18, 2)) RETURNS [decimal](18, 2) AS BEGIN RETURN @a END
+CREATE TYPE x FROM [decimal](18, 2)
+CREATE TYPE x FROM [decimal](18, 2) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [decimal](18, 2) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [decimal](18, 2))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [decimal](18, 2)
+CREATE TABLE t (a [decimal](18, 2), b AS CAST (a AS [decimal](18, 2)))
+CREATE TABLE t (a [datetime2](3))
+CREATE TABLE dbo.t (id int NOT NULL, a [datetime2](3) NOT NULL DEFAULT 0, b [datetime2](3) NULL, c [datetime2](3) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [datetime2](3)
+SELECT CAST (a AS [datetime2](3))
+SELECT CAST(a AS [datetime2](3)) AS x FROM t
+SELECT CONVERT([datetime2](3), a)
+SELECT CONVERT([datetime2](3), a, 126)
+SELECT TRY_CAST (a AS [datetime2](3))
+SELECT TRY_CONVERT([datetime2](3), a, 1)
+SELECT PARSE (a AS [datetime2](3))
+SELECT TRY_PARSE (a AS [datetime2](3) USING 'en-US')
+DECLARE @v [datetime2](3)
+DECLARE @v [datetime2](3) = NULL, @w [datetime2](3)
+DECLARE @t TABLE (a [datetime2](3), b int)
+CREATE PROCEDURE p @a [datetime2](3), @b [datetime2](3) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [datetime2](3)) RETURNS [datetime2](3) AS BEGIN RETURN @a END
+CREATE TYPE x FROM [datetime2](3)
+CREATE TYPE x FROM [datetime2](3) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [datetime2](3) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [datetime2](3))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [datetime2](3)
+CREATE TABLE t (a [datetime2](3), b AS CAST (a AS [datetime2](3)))
+CREATE TABLE t (a [time](3))
+CREATE TABLE dbo.t (id int NOT NULL, a [time](3) NOT NULL DEFAULT 0, b [time](3) NULL, c [time](3) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [time](3)
+SELECT CAST (a AS [time](3))
+SELECT CAST(a AS [time](3)) AS x FROM t
+SELECT CONVERT([time](3), a)
+SELECT CONVERT([time](3), a, 126)
+SELECT TRY_CAST (a AS [time](3))
+SELECT TRY_CONVERT([time](3), a, 1)
+SELECT PARSE (a AS [time](3))
+SELECT TRY_PARSE (a AS [time](3) USING 'en-US')
+DECLARE @v [time](3)
+DECLARE @v [time](3) = NULL, @w [time](3)
+DECLARE @t TABLE (a [time](3), b int)
+CREATE PROCEDURE p @a [time](3), @b [time](3) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [time](3)) RETURNS [time](3) AS BEGIN RETURN @a END
+CREATE TYPE x FROM [time](3)
+CREATE TYPE x FROM [time](3) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [time](3) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [time](3))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [time](3)
+CREATE TABLE t (a [time](3), b AS CAST (a AS [time](3)))
+CREATE TABLE t (a [timestamp])
+CREATE TABLE dbo.t (id int NOT NULL, a [timestamp] NOT NULL DEFAULT 0, b [timestamp] NULL, c [timestamp] COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [timestamp]
+SELECT CAST (a AS [timestamp])
+SELECT CAST(a AS [timestamp]) AS x FROM t
+SELECT CONVERT([timestamp], a)
+SELECT CONVERT([timestamp], a, 126)
+SELECT TRY_CAST (a AS [timestamp])
+SELECT TRY_CONVERT([timestamp], a, 1)
+SELECT PARSE (a AS [timestamp])
+SELECT TRY_PARSE (a AS [timestamp] USING 'en-US')
+DECLARE @v [timestamp]
+DECLARE @v [timestamp] = NULL, @w [timestamp]
+DECLARE @t TABLE (a [timestamp], b int)
+CREATE PROCEDURE p @a [timestamp], @b [timestamp] = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [timestamp]) RETURNS [timestamp] AS BEGIN RETURN @a END
+CREATE TYPE x FROM [timestamp]
+CREATE TYPE x FROM [timestamp] NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [timestamp] '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [timestamp])
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [timestamp]
+CREATE TABLE t (a [timestamp], b AS CAST (a AS [timestamp]))
+CREATE TABLE t (a sys.timestamp)
+CREATE TABLE dbo.t (id int NOT NULL, a sys.timestamp NOT NULL DEFAULT 0, b sys.timestamp NULL, c sys.timestamp COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c sys.timestamp
+SELECT CAST (a AS sys.timestamp)
+SELECT CAST(a AS sys.timestamp) AS x FROM t
+SELECT CONVERT(sys.timestamp, a)
+SELECT CONVERT(sys.timestamp, a, 126)
+SELECT TRY_CAST (a AS sys.timestamp)
+SELECT TRY_CONVERT(sys.timestamp, a, 1)
+SELECT PARSE (a AS sys.timestamp)
+SELECT TRY_PARSE (a AS sys.timestamp USING 'en-US')
+DECLARE @v sys.timestamp
+DECLARE @v sys.timestamp = NULL, @w sys.timestamp
+DECLARE @t TABLE (a sys.timestamp, b int)
+CREATE PROCEDURE p @a sys.timestamp, @b sys.timestamp = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a sys.timestamp) RETURNS sys.timestamp AS BEGIN RETURN @a END
+CREATE TYPE x FROM sys.timestamp
+CREATE TYPE x FROM sys.timestamp NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a sys.timestamp '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING sys.timestamp)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a sys.timestamp
+CREATE TABLE t (a sys.timestamp, b AS CAST (a AS sys.timestamp))
+CREATE TABLE t (a [xml])
+CREATE TABLE dbo.t (id int NOT NULL, a [xml] NOT NULL DEFAULT 0, b [xml] NULL, c [xml] COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [xml]
+SELECT CAST (a AS [xml])
+SELECT CAST(a AS [xml]) AS x FROM t
+SELECT CONVERT([xml], a)
+SELECT CONVERT([xml], a, 126)
+SELECT TRY_CAST (a AS [xml])
+SELECT TRY_CONVERT([xml], a, 1)
+SELECT PARSE (a AS [xml])
+SELECT TRY_PARSE (a AS [xml] USING 'en-US')
+DECLARE @v [xml]
+DECLARE @v [xml] = NULL, @w [xml]
+DECLARE @t TABLE (a [xml], b int)
+CREATE PROCEDURE p @a [xml], @b [xml] = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [xml]) RETURNS [xml] AS BEGIN RETURN @a END
+CREATE TYPE x FROM [xml]
+CREATE TYPE x FROM [xml] NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [xml] '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [xml])
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [xml]
+CREATE TABLE t (a [xml], b AS CAST (a AS [xml]))
+CREATE TABLE t (a [xml](CONTENT s))
+CREATE TABLE dbo.t (id int NOT NULL, a [xml](CONTENT s) NOT NULL DEFAULT 0, b [xml](CONTENT s) NULL, c [xml](CONTENT s) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [xml](CONTENT s)
+SELECT CAST (a AS [xml](CONTENT s))
+SELECT CAST(a AS [xml](CONTENT s)) AS x FROM t
+SELECT CONVERT([xml](CONTENT s), a)
+SELECT CONVERT([xml](CONTENT s), a, 126)
+SELECT TRY_CAST (a AS [xml](CONTENT s))
+SELECT TRY_CONVERT([xml](CONTENT s), a, 1)
+SELECT PARSE (a AS [xml](CONTENT s))
+SELECT TRY_PARSE (a AS [xml](CONTENT s) USING 'en-US')
+DECLARE @v [xml](CONTENT s)
+DECLARE @v [xml](CONTENT s) = NULL, @w [xml](CONTENT s)
+DECLARE @t TABLE (a [xml](CONTENT s), b int)
+CREATE PROCEDURE p @a [xml](CONTENT s), @b [xml](CONTENT s) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [xml](CONTENT s)) RETURNS [xml](CONTENT s) AS BEGIN RETURN @a END
+CREATE TYPE x FROM [xml](CONTENT s)
+CREATE TYPE x FROM [xml](CONTENT s) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [xml](CONTENT s) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [xml](CONTENT s))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [xml](CONTENT s)
+CREATE TABLE t (a [xml](CONTENT s), b AS CAST (a AS [xml](CONTENT s)))
+CREATE TABLE t (a sys.xml)
+CREATE TABLE dbo.t (id int NOT NULL, a sys.xml NOT NULL DEFAULT 0, b sys.xml NULL, c sys.xml COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c sys.xml
+SELECT CAST (a AS sys.xml)
+SELECT CAST(a AS sys.xml) AS x FROM t
+SELECT CONVERT(sys.xml, a)
+SELECT CONVERT(sys.xml, a, 126)
+SELECT TRY_CAST (a AS sys.xml)
+SELECT TRY_CONVERT(sys.xml, a, 1)
+SELECT PARSE (a AS sys.xml)
+SELECT TRY_PARSE (a AS sys.xml USING 'en-US')
+DECLARE @v sys.xml
+DECLARE @v sys.xml = NULL, @w sys.xml
+DECLARE @t TABLE (a sys.xml, b int)
+CREATE PROCEDURE p @a sys.xml, @b sys.xml = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a sys.xml) RETURNS sys.xml AS BEGIN RETURN @a END
+CREATE TYPE x FROM sys.xml
+CREATE TYPE x FROM sys.xml NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a sys.xml '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING sys.xml)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a sys.xml
+CREATE TABLE t (a sys.xml, b AS CAST (a AS sys.xml))
+CREATE TABLE t (a [sys].[xml])
+CREATE TABLE dbo.t (id int NOT NULL, a [sys].[xml] NOT NULL DEFAULT 0, b [sys].[xml] NULL, c [sys].[xml] COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [sys].[xml]
+SELECT CAST (a AS [sys].[xml])
+SELECT CAST(a AS [sys].[xml]) AS x FROM t
+SELECT CONVERT([sys].[xml], a)
+SELECT CONVERT([sys].[xml], a, 126)
+SELECT TRY_CAST (a AS [sys].[xml])
+SELECT TRY_CONVERT([sys].[xml], a, 1)
+SELECT PARSE (a AS [sys].[xml])
+SELECT TRY_PARSE (a AS [sys].[xml] USING 'en-US')
+DECLARE @v [sys].[xml]
+DECLARE @v [sys].[xml] = NULL, @w [sys].[xml]
+DECLARE @t TABLE (a [sys].[xml], b int)
+CREATE PROCEDURE p @a [sys].[xml], @b [sys].[xml] = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [sys].[xml]) RETURNS [sys].[xml] AS BEGIN RETURN @a END
+CREATE TYPE x FROM [sys].[xml]
+CREATE TYPE x FROM [sys].[xml] NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [sys].[xml] '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [sys].[xml])
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [sys].[xml]
+CREATE TABLE t (a [sys].[xml], b AS CAST (a AS [sys].[xml]))
+CREATE TABLE t (a "xml")
+CREATE TABLE dbo.t (id int NOT NULL, a "xml" NOT NULL DEFAULT 0, b "xml" NULL, c "xml" COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c "xml"
+SELECT CAST (a AS "xml")
+SELECT CAST(a AS "xml") AS x FROM t
+SELECT CONVERT("xml", a)
+SELECT CONVERT("xml", a, 126)
+SELECT TRY_CAST (a AS "xml")
+SELECT TRY_CONVERT("xml", a, 1)
+SELECT PARSE (a AS "xml")
+SELECT TRY_PARSE (a AS "xml" USING 'en-US')
+DECLARE @v "xml"
+DECLARE @v "xml" = NULL, @w "xml"
+DECLARE @t TABLE (a "xml", b int)
+CREATE PROCEDURE p @a "xml", @b "xml" = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a "xml") RETURNS "xml" AS BEGIN RETURN @a END
+CREATE TYPE x FROM "xml"
+CREATE TYPE x FROM "xml" NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a "xml" '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING "xml")
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a "xml"
+CREATE TABLE t (a "xml", b AS CAST (a AS "xml"))
+CREATE TABLE t (a sys.xml(s))
+CREATE TABLE dbo.t (id int NOT NULL, a sys.xml(s) NOT NULL DEFAULT 0, b sys.xml(s) NULL, c sys.xml(s) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c sys.xml(s)
+SELECT CAST (a AS sys.xml(s))
+SELECT CAST(a AS sys.xml(s)) AS x FROM t
+SELECT CONVERT(sys.xml(s), a)
+SELECT CONVERT(sys.xml(s), a, 126)
+SELECT TRY_CAST (a AS sys.xml(s))
+SELECT TRY_CONVERT(sys.xml(s), a, 1)
+SELECT PARSE (a AS sys.xml(s))
+SELECT TRY_PARSE (a AS sys.xml(s) USING 'en-US')
+DECLARE @v sys.xml(s)
+DECLARE @v sys.xml(s) = NULL, @w sys.xml(s)
+DECLARE @t TABLE (a sys.xml(s), b int)
+CREATE PROCEDURE p @a sys.xml(s), @b sys.xml(s) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a sys.xml(s)) RETURNS sys.xml(s) AS BEGIN RETURN @a END
+CREATE TYPE x FROM sys.xml(s)
+CREATE TYPE x FROM sys.xml(s) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a sys.xml(s) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING sys.xml(s))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a sys.xml(s)
+CREATE TABLE t (a sys.xml(s), b AS CAST (a AS sys.xml(s)))
+CREATE TABLE t (a [vector](3))
+CREATE TABLE dbo.t (id int NOT NULL, a [vector](3) NOT NULL DEFAULT 0, b [vector](3) NULL, c [vector](3) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [vector](3)
+SELECT CAST (a AS [vector](3))
+SELECT CAST(a AS [vector](3)) AS x FROM t
+SELECT CONVERT([vector](3), a)
+SELECT CONVERT([vector](3), a, 126)
+SELECT TRY_CAST (a AS [vector](3))
+SELECT TRY_CONVERT([vector](3), a, 1)
+SELECT PARSE (a AS [vector](3))
+SELECT TRY_PARSE (a AS [vector](3) USING 'en-US')
+DECLARE @v [vector](3)
+DECLARE @v [vector](3) = NULL, @w [vector](3)
+DECLARE @t TABLE (a [vector](3), b int)
+CREATE PROCEDURE p @a [vector](3), @b [vector](3) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [vector](3)) RETURNS [vector](3) AS BEGIN RETURN @a END
+CREATE TYPE x FROM [vector](3)
+CREATE TYPE x FROM [vector](3) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [vector](3) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [vector](3))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [vector](3)
+CREATE TABLE t (a [vector](3), b AS CAST (a AS [vector](3)))
+CREATE TABLE t (a sys.vector(3, float32))
+CREATE TABLE dbo.t (id int NOT NULL, a sys.vector(3, float32) NOT NULL DEFAULT 0, b sys.vector(3, float32) NULL, c sys.vector(3, float32) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c sys.vector(3, float32)
+SELECT CAST (a AS sys.vector(3, float32))
+SELECT CAST(a AS sys.vector(3, float32)) AS x FROM t
+SELECT CONVERT(sys.vector(3, float32), a)
+SELECT CONVERT(sys.vector(3, float32), a, 126)
+SELECT TRY_CAST (a AS sys.vector(3, float32))
+SELECT TRY_CONVERT(sys.vector(3, float32), a, 1)
+SELECT PARSE (a AS sys.vector(3, float32))
+SELECT TRY_PARSE (a AS sys.vector(3, float32) USING 'en-US')
+DECLARE @v sys.vector(3, float32)
+DECLARE @v sys.vector(3, float32) = NULL, @w sys.vector(3, float32)
+DECLARE @t TABLE (a sys.vector(3, float32), b int)
+CREATE PROCEDURE p @a sys.vector(3, float32), @b sys.vector(3, float32) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a sys.vector(3, float32)) RETURNS sys.vector(3, float32) AS BEGIN RETURN @a END
+CREATE TYPE x FROM sys.vector(3, float32)
+CREATE TYPE x FROM sys.vector(3, float32) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a sys.vector(3, float32) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING sys.vector(3, float32))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a sys.vector(3, float32)
+CREATE TABLE t (a sys.vector(3, float32), b AS CAST (a AS sys.vector(3, float32)))
+CREATE TABLE t (a [sys].[vector](3, [float32]))
+CREATE TABLE dbo.t (id int NOT NULL, a [sys].[vector](3, [float32]) NOT NULL DEFAULT 0, b [sys].[vector](3, [float32]) NULL, c [sys].[vector](3, [float32]) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [sys].[vector](3, [float32])
+SELECT CAST (a AS [sys].[vector](3, [float32]))
+SELECT CAST(a AS [sys].[vector](3, [float32])) AS x FROM t
+SELECT CONVERT([sys].[vector](3, [float32]), a)
+SELECT CONVERT([sys].[vector](3, [float32]), a, 126)
+SELECT TRY_CAST (a AS [sys].[vector](3, [float32]))
+SELECT TRY_CONVERT([sys].[vector](3, [float32]), a, 1)
+SELECT PARSE (a AS [sys].[vector](3, [float32]))
+SELECT TRY_PARSE (a AS [sys].[vector](3, [float32]) USING 'en-US')
+DECLARE @v [sys].[vector](3, [float32])
+DECLARE @v [sys].[vector](3, [float32]) = NULL, @w [sys].[vector](3, [float32])
+DECLARE @t TABLE (a [sys].[vector](3, [float32]), b int)
+CREATE PROCEDURE p @a [sys].[vector](3, [float32]), @b [sys].[vector](3, [float32]) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [sys].[vector](3, [float32])) RETURNS [sys].[vector](3, [float32]) AS BEGIN RETURN @a END
+CREATE TYPE x FROM [sys].[vector](3, [float32])
+CREATE TYPE x FROM [sys].[vector](3, [float32]) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [sys].[vector](3, [float32]) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [sys].[vector](3, [float32]))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [sys].[vector](3, [float32])
+CREATE TABLE t (a [sys].[vector](3, [float32]), b AS CAST (a AS [sys].[vector](3, [float32])))
+CREATE TABLE t (a sys.vector(MAX))
+CREATE TABLE dbo.t (id int NOT NULL, a sys.vector(MAX) NOT NULL DEFAULT 0, b sys.vector(MAX) NULL, c sys.vector(MAX) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c sys.vector(MAX)
+SELECT CAST (a AS sys.vector(MAX))
+SELECT CAST(a AS sys.vector(MAX)) AS x FROM t
+SELECT CONVERT(sys.vector(MAX), a)
+SELECT CONVERT(sys.vector(MAX), a, 126)
+SELECT TRY_CAST (a AS sys.vector(MAX))
+SELECT TRY_CONVERT(sys.vector(MAX), a, 1)
+SELECT PARSE (a AS sys.vector(MAX))
+SELECT TRY_PARSE (a AS sys.vector(MAX) USING 'en-US')
+DECLARE @v sys.vector(MAX)
+DECLARE @v sys.vector(MAX) = NULL, @w sys.vector(MAX)
+DECLARE @t TABLE (a sys.vector(MAX), b int)
+CREATE PROCEDURE p @a sys.vector(MAX), @b sys.vector(MAX) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a sys.vector(MAX)) RETURNS sys.vector(MAX) AS BEGIN RETURN @a END
+CREATE TYPE x FROM sys.vector(MAX)
+CREATE TYPE x FROM sys.vector(MAX) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a sys.vector(MAX) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING sys.vector(MAX))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a sys.vector(MAX)
+CREATE TABLE t (a sys.vector(MAX), b AS CAST (a AS sys.vector(MAX)))
+CREATE TABLE t (a sys.sysname)
+CREATE TABLE dbo.t (id int NOT NULL, a sys.sysname NOT NULL DEFAULT 0, b sys.sysname NULL, c sys.sysname COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c sys.sysname
+SELECT CAST (a AS sys.sysname)
+SELECT CAST(a AS sys.sysname) AS x FROM t
+SELECT CONVERT(sys.sysname, a)
+SELECT CONVERT(sys.sysname, a, 126)
+SELECT TRY_CAST (a AS sys.sysname)
+SELECT TRY_CONVERT(sys.sysname, a, 1)
+SELECT PARSE (a AS sys.sysname)
+SELECT TRY_PARSE (a AS sys.sysname USING 'en-US')
+DECLARE @v sys.sysname
+DECLARE @v sys.sysname = NULL, @w sys.sysname
+DECLARE @t TABLE (a sys.sysname, b int)
+CREATE PROCEDURE p @a sys.sysname, @b sys.sysname = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a sys.sysname) RETURNS sys.sysname AS BEGIN RETURN @a END
+CREATE TYPE x FROM sys.sysname
+CREATE TYPE x FROM sys.sysname NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a sys.sysname '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING sys.sysname)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a sys.sysname
+CREATE TABLE t (a sys.sysname, b AS CAST (a AS sys.sysname))
+CREATE TABLE t (a [sysname])
+CREATE TABLE dbo.t (id int NOT NULL, a [sysname] NOT NULL DEFAULT 0, b [sysname] NULL, c [sysname] COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [sysname]
+SELECT CAST (a AS [sysname])
+SELECT CAST(a AS [sysname]) AS x FROM t
+SELECT CONVERT([sysname], a)
+SELECT CONVERT([sysname], a, 126)
+SELECT TRY_CAST (a AS [sysname])
+SELECT TRY_CONVERT([sysname], a, 1)
+SELECT PARSE (a AS [sysname])
+SELECT TRY_PARSE (a AS [sysname] USING 'en-US')
+DECLARE @v [sysname]
+DECLARE @v [sysname] = NULL, @w [sysname]
+DECLARE @t TABLE (a [sysname], b int)
+CREATE PROCEDURE p @a [sysname], @b [sysname] = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [sysname]) RETURNS [sysname] AS BEGIN RETURN @a END
+CREATE TYPE x FROM [sysname]
+CREATE TYPE x FROM [sysname] NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [sysname] '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [sysname])
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [sysname]
+CREATE TABLE t (a [sysname], b AS CAST (a AS [sysname]))
+CREATE TABLE t (a sys.datetime)
+CREATE TABLE dbo.t (id int NOT NULL, a sys.datetime NOT NULL DEFAULT 0, b sys.datetime NULL, c sys.datetime COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c sys.datetime
+SELECT CAST (a AS sys.datetime)
+SELECT CAST(a AS sys.datetime) AS x FROM t
+SELECT CONVERT(sys.datetime, a)
+SELECT CONVERT(sys.datetime, a, 126)
+SELECT TRY_CAST (a AS sys.datetime)
+SELECT TRY_CONVERT(sys.datetime, a, 1)
+SELECT PARSE (a AS sys.datetime)
+SELECT TRY_PARSE (a AS sys.datetime USING 'en-US')
+DECLARE @v sys.datetime
+DECLARE @v sys.datetime = NULL, @w sys.datetime
+DECLARE @t TABLE (a sys.datetime, b int)
+CREATE PROCEDURE p @a sys.datetime, @b sys.datetime = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a sys.datetime) RETURNS sys.datetime AS BEGIN RETURN @a END
+CREATE TYPE x FROM sys.datetime
+CREATE TYPE x FROM sys.datetime NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a sys.datetime '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING sys.datetime)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a sys.datetime
+CREATE TABLE t (a sys.datetime, b AS CAST (a AS sys.datetime))
+CREATE TABLE t (a [geography])
+CREATE TABLE dbo.t (id int NOT NULL, a [geography] NOT NULL DEFAULT 0, b [geography] NULL, c [geography] COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [geography]
+SELECT CAST (a AS [geography])
+SELECT CAST(a AS [geography]) AS x FROM t
+SELECT CONVERT([geography], a)
+SELECT CONVERT([geography], a, 126)
+SELECT TRY_CAST (a AS [geography])
+SELECT TRY_CONVERT([geography], a, 1)
+SELECT PARSE (a AS [geography])
+SELECT TRY_PARSE (a AS [geography] USING 'en-US')
+DECLARE @v [geography]
+DECLARE @v [geography] = NULL, @w [geography]
+DECLARE @t TABLE (a [geography], b int)
+CREATE PROCEDURE p @a [geography], @b [geography] = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [geography]) RETURNS [geography] AS BEGIN RETURN @a END
+CREATE TYPE x FROM [geography]
+CREATE TYPE x FROM [geography] NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [geography] '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [geography])
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [geography]
+CREATE TABLE t (a [geography], b AS CAST (a AS [geography]))
+CREATE TABLE t (a [json])
+CREATE TABLE dbo.t (id int NOT NULL, a [json] NOT NULL DEFAULT 0, b [json] NULL, c [json] COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [json]
+SELECT CAST (a AS [json])
+SELECT CAST(a AS [json]) AS x FROM t
+SELECT CONVERT([json], a)
+SELECT CONVERT([json], a, 126)
+SELECT TRY_CAST (a AS [json])
+SELECT TRY_CONVERT([json], a, 1)
+SELECT PARSE (a AS [json])
+SELECT TRY_PARSE (a AS [json] USING 'en-US')
+DECLARE @v [json]
+DECLARE @v [json] = NULL, @w [json]
+DECLARE @t TABLE (a [json], b int)
+CREATE PROCEDURE p @a [json], @b [json] = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [json]) RETURNS [json] AS BEGIN RETURN @a END
+CREATE TYPE x FROM [json]
+CREATE TYPE x FROM [json] NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [json] '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [json])
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [json]
+CREATE TABLE t (a [json], b AS CAST (a AS [json]))
+CREATE TABLE t (a sys.json)
+CREATE TABLE dbo.t (id int NOT NULL, a sys.json NOT NULL DEFAULT 0, b sys.json NULL, c sys.json COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c sys.json
+SELECT CAST (a AS sys.json)
+SELECT CAST(a AS sys.json) AS x FROM t
+SELECT CONVERT(sys.json, a)
+SELECT CONVERT(sys.json, a, 126)
+SELECT TRY_CAST (a AS sys.json)
+SELECT TRY_CONVERT(sys.json, a, 1)
+SELECT PARSE (a AS sys.json)
+SELECT TRY_PARSE (a AS sys.json USING 'en-US')
+DECLARE @v sys.json
+DECLARE @v sys.json = NULL, @w sys.json
+DECLARE @t TABLE (a sys.json, b int)
+CREATE PROCEDURE p @a sys.json, @b sys.json = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a sys.json) RETURNS sys.json AS BEGIN RETURN @a END
+CREATE TYPE x FROM sys.json
+CREATE TYPE x FROM sys.json NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a sys.json '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING sys.json)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a sys.json
+CREATE TABLE t (a sys.json, b AS CAST (a AS sys.json))
+CREATE TABLE t (a mytype)
+CREATE TABLE dbo.t (id int NOT NULL, a mytype NOT NULL DEFAULT 0, b mytype NULL, c mytype COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c mytype
+SELECT CAST (a AS mytype)
+SELECT CAST(a AS mytype) AS x FROM t
+SELECT CONVERT(mytype, a)
+SELECT CONVERT(mytype, a, 126)
+SELECT TRY_CAST (a AS mytype)
+SELECT TRY_CONVERT(mytype, a, 1)
+SELECT PARSE (a AS mytype)
+SELECT TRY_PARSE (a AS mytype USING 'en-US')
+DECLARE @v mytype
+DECLARE @v mytype = NULL, @w mytype
+DECLARE @t TABLE (a mytype, b int)
+CREATE PROCEDURE p @a mytype, @b mytype = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a mytype) RETURNS mytype AS BEGIN RETURN @a END
+CREATE TYPE x FROM mytype
+CREATE TYPE x FROM mytype NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a mytype '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING mytype)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a mytype
+CREATE TABLE t (a mytype, b AS CAST (a AS mytype))
+CREATE TABLE t (a mytype(10))
+CREATE TABLE dbo.t (id int NOT NULL, a mytype(10) NOT NULL DEFAULT 0, b mytype(10) NULL, c mytype(10) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c mytype(10)
+SELECT CAST (a AS mytype(10))
+SELECT CAST(a AS mytype(10)) AS x FROM t
+SELECT CONVERT(mytype(10), a)
+SELECT CONVERT(mytype(10), a, 126)
+SELECT TRY_CAST (a AS mytype(10))
+SELECT TRY_CONVERT(mytype(10), a, 1)
+SELECT PARSE (a AS mytype(10))
+SELECT TRY_PARSE (a AS mytype(10) USING 'en-US')
+DECLARE @v mytype(10)
+DECLARE @v mytype(10) = NULL, @w mytype(10)
+DECLARE @t TABLE (a mytype(10), b int)
+CREATE PROCEDURE p @a mytype(10), @b mytype(10) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a mytype(10)) RETURNS mytype(10) AS BEGIN RETURN @a END
+CREATE TYPE x FROM mytype(10)
+CREATE TYPE x FROM mytype(10) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a mytype(10) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING mytype(10))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a mytype(10)
+CREATE TABLE t (a mytype(10), b AS CAST (a AS mytype(10)))
+CREATE TABLE t (a mytype(10, 2))
+CREATE TABLE dbo.t (id int NOT NULL, a mytype(10, 2) NOT NULL DEFAULT 0, b mytype(10, 2) NULL, c mytype(10, 2) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c mytype(10, 2)
+SELECT CAST (a AS mytype(10, 2))
+SELECT CAST(a AS mytype(10, 2)) AS x FROM t
+SELECT CONVERT(mytype(10, 2), a)
+SELECT CONVERT(mytype(10, 2), a, 126)
+SELECT TRY_CAST (a AS mytype(10, 2))
+SELECT TRY_CONVERT(mytype(10, 2), a, 1)
+SELECT PARSE (a AS mytype(10, 2))
+SELECT TRY_PARSE (a AS mytype(10, 2) USING 'en-US')
+DECLARE @v mytype(10, 2)
+DECLARE @v mytype(10, 2) = NULL, @w mytype(10, 2)
+DECLARE @t TABLE (a mytype(10, 2), b int)
+CREATE PROCEDURE p @a mytype(10, 2), @b mytype(10, 2) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a mytype(10, 2)) RETURNS mytype(10, 2) AS BEGIN RETURN @a END
+CREATE TYPE x FROM mytype(10, 2)
+CREATE TYPE x FROM mytype(10, 2) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a mytype(10, 2) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING mytype(10, 2))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a mytype(10, 2)
+CREATE TABLE t (a mytype(10, 2), b AS CAST (a AS mytype(10, 2)))
+CREATE TABLE t (a mytype(10, 2, 3))
+CREATE TABLE dbo.t (id int NOT NULL, a mytype(10, 2, 3) NOT NULL DEFAULT 0, b mytype(10, 2, 3) NULL, c mytype(10, 2, 3) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c mytype(10, 2, 3)
+SELECT CAST (a AS mytype(10, 2, 3))
+SELECT CAST(a AS mytype(10, 2, 3)) AS x FROM t
+SELECT CONVERT(mytype(10, 2, 3), a)
+SELECT CONVERT(mytype(10, 2, 3), a, 126)
+SELECT TRY_CAST (a AS mytype(10, 2, 3))
+SELECT TRY_CONVERT(mytype(10, 2, 3), a, 1)
+SELECT PARSE (a AS mytype(10, 2, 3))
+SELECT TRY_PARSE (a AS mytype(10, 2, 3) USING 'en-US')
+DECLARE @v mytype(10, 2, 3)
+DECLARE @v mytype(10, 2, 3) = NULL, @w mytype(10, 2, 3)
+DECLARE @t TABLE (a mytype(10, 2, 3), b int)
+CREATE PROCEDURE p @a mytype(10, 2, 3), @b mytype(10, 2, 3) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a mytype(10, 2, 3)) RETURNS mytype(10, 2, 3) AS BEGIN RETURN @a END
+CREATE TYPE x FROM mytype(10, 2, 3)
+CREATE TYPE x FROM mytype(10, 2, 3) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a mytype(10, 2, 3) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING mytype(10, 2, 3))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a mytype(10, 2, 3)
+CREATE TABLE t (a mytype(10, 2, 3), b AS CAST (a AS mytype(10, 2, 3)))
+CREATE TABLE t (a mytype(MAX))
+CREATE TABLE dbo.t (id int NOT NULL, a mytype(MAX) NOT NULL DEFAULT 0, b mytype(MAX) NULL, c mytype(MAX) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c mytype(MAX)
+SELECT CAST (a AS mytype(MAX))
+SELECT CAST(a AS mytype(MAX)) AS x FROM t
+SELECT CONVERT(mytype(MAX), a)
+SELECT CONVERT(mytype(MAX), a, 126)
+SELECT TRY_CAST (a AS mytype(MAX))
+SELECT TRY_CONVERT(mytype(MAX), a, 1)
+SELECT PARSE (a AS mytype(MAX))
+SELECT TRY_PARSE (a AS mytype(MAX) USING 'en-US')
+DECLARE @v mytype(MAX)
+DECLARE @v mytype(MAX) = NULL, @w mytype(MAX)
+DECLARE @t TABLE (a mytype(MAX), b int)
+CREATE PROCEDURE p @a mytype(MAX), @b mytype(MAX) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a mytype(MAX)) RETURNS mytype(MAX) AS BEGIN RETURN @a END
+CREATE TYPE x FROM mytype(MAX)
+CREATE TYPE x FROM mytype(MAX) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a mytype(MAX) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING mytype(MAX))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a mytype(MAX)
+CREATE TABLE t (a mytype(MAX), b AS CAST (a AS mytype(MAX)))
+CREATE TABLE t (a mytype(x))
+CREATE TABLE dbo.t (id int NOT NULL, a mytype(x) NOT NULL DEFAULT 0, b mytype(x) NULL, c mytype(x) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c mytype(x)
+SELECT CAST (a AS mytype(x))
+SELECT CAST(a AS mytype(x)) AS x FROM t
+SELECT CONVERT(mytype(x), a)
+SELECT CONVERT(mytype(x), a, 126)
+SELECT TRY_CAST (a AS mytype(x))
+SELECT TRY_CONVERT(mytype(x), a, 1)
+SELECT PARSE (a AS mytype(x))
+SELECT TRY_PARSE (a AS mytype(x) USING 'en-US')
+DECLARE @v mytype(x)
+DECLARE @v mytype(x) = NULL, @w mytype(x)
+DECLARE @t TABLE (a mytype(x), b int)
+CREATE PROCEDURE p @a mytype(x), @b mytype(x) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a mytype(x)) RETURNS mytype(x) AS BEGIN RETURN @a END
+CREATE TYPE x FROM mytype(x)
+CREATE TYPE x FROM mytype(x) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a mytype(x) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING mytype(x))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a mytype(x)
+CREATE TABLE t (a mytype(x), b AS CAST (a AS mytype(x)))
+CREATE TABLE t (a mytype([x]))
+CREATE TABLE dbo.t (id int NOT NULL, a mytype([x]) NOT NULL DEFAULT 0, b mytype([x]) NULL, c mytype([x]) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c mytype([x])
+SELECT CAST (a AS mytype([x]))
+SELECT CAST(a AS mytype([x])) AS x FROM t
+SELECT CONVERT(mytype([x]), a)
+SELECT CONVERT(mytype([x]), a, 126)
+SELECT TRY_CAST (a AS mytype([x]))
+SELECT TRY_CONVERT(mytype([x]), a, 1)
+SELECT PARSE (a AS mytype([x]))
+SELECT TRY_PARSE (a AS mytype([x]) USING 'en-US')
+DECLARE @v mytype([x])
+DECLARE @v mytype([x]) = NULL, @w mytype([x])
+DECLARE @t TABLE (a mytype([x]), b int)
+CREATE PROCEDURE p @a mytype([x]), @b mytype([x]) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a mytype([x])) RETURNS mytype([x]) AS BEGIN RETURN @a END
+CREATE TYPE x FROM mytype([x])
+CREATE TYPE x FROM mytype([x]) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a mytype([x]) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING mytype([x]))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a mytype([x])
+CREATE TABLE t (a mytype([x]), b AS CAST (a AS mytype([x])))
+CREATE TABLE t (a dbo.mytype)
+CREATE TABLE dbo.t (id int NOT NULL, a dbo.mytype NOT NULL DEFAULT 0, b dbo.mytype NULL, c dbo.mytype COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c dbo.mytype
+SELECT CAST (a AS dbo.mytype)
+SELECT CAST(a AS dbo.mytype) AS x FROM t
+SELECT CONVERT(dbo.mytype, a)
+SELECT CONVERT(dbo.mytype, a, 126)
+SELECT TRY_CAST (a AS dbo.mytype)
+SELECT TRY_CONVERT(dbo.mytype, a, 1)
+SELECT PARSE (a AS dbo.mytype)
+SELECT TRY_PARSE (a AS dbo.mytype USING 'en-US')
+DECLARE @v dbo.mytype
+DECLARE @v dbo.mytype = NULL, @w dbo.mytype
+DECLARE @t TABLE (a dbo.mytype, b int)
+CREATE PROCEDURE p @a dbo.mytype, @b dbo.mytype = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a dbo.mytype) RETURNS dbo.mytype AS BEGIN RETURN @a END
+CREATE TYPE x FROM dbo.mytype
+CREATE TYPE x FROM dbo.mytype NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a dbo.mytype '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING dbo.mytype)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a dbo.mytype
+CREATE TABLE t (a dbo.mytype, b AS CAST (a AS dbo.mytype))
+CREATE TABLE t (a dbo.mytype(5))
+CREATE TABLE dbo.t (id int NOT NULL, a dbo.mytype(5) NOT NULL DEFAULT 0, b dbo.mytype(5) NULL, c dbo.mytype(5) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c dbo.mytype(5)
+SELECT CAST (a AS dbo.mytype(5))
+SELECT CAST(a AS dbo.mytype(5)) AS x FROM t
+SELECT CONVERT(dbo.mytype(5), a)
+SELECT CONVERT(dbo.mytype(5), a, 126)
+SELECT TRY_CAST (a AS dbo.mytype(5))
+SELECT TRY_CONVERT(dbo.mytype(5), a, 1)
+SELECT PARSE (a AS dbo.mytype(5))
+SELECT TRY_PARSE (a AS dbo.mytype(5) USING 'en-US')
+DECLARE @v dbo.mytype(5)
+DECLARE @v dbo.mytype(5) = NULL, @w dbo.mytype(5)
+DECLARE @t TABLE (a dbo.mytype(5), b int)
+CREATE PROCEDURE p @a dbo.mytype(5), @b dbo.mytype(5) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a dbo.mytype(5)) RETURNS dbo.mytype(5) AS BEGIN RETURN @a END
+CREATE TYPE x FROM dbo.mytype(5)
+CREATE TYPE x FROM dbo.mytype(5) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a dbo.mytype(5) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING dbo.mytype(5))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a dbo.mytype(5)
+CREATE TABLE t (a dbo.mytype(5), b AS CAST (a AS dbo.mytype(5)))
+CREATE TABLE t (a dbo.mytype(MAX))
+CREATE TABLE dbo.t (id int NOT NULL, a dbo.mytype(MAX) NOT NULL DEFAULT 0, b dbo.mytype(MAX) NULL, c dbo.mytype(MAX) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c dbo.mytype(MAX)
+SELECT CAST (a AS dbo.mytype(MAX))
+SELECT CAST(a AS dbo.mytype(MAX)) AS x FROM t
+SELECT CONVERT(dbo.mytype(MAX), a)
+SELECT CONVERT(dbo.mytype(MAX), a, 126)
+SELECT TRY_CAST (a AS dbo.mytype(MAX))
+SELECT TRY_CONVERT(dbo.mytype(MAX), a, 1)
+SELECT PARSE (a AS dbo.mytype(MAX))
+SELECT TRY_PARSE (a AS dbo.mytype(MAX) USING 'en-US')
+DECLARE @v dbo.mytype(MAX)
+DECLARE @v dbo.mytype(MAX) = NULL, @w dbo.mytype(MAX)
+DECLARE @t TABLE (a dbo.mytype(MAX), b int)
+CREATE PROCEDURE p @a dbo.mytype(MAX), @b dbo.mytype(MAX) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a dbo.mytype(MAX)) RETURNS dbo.mytype(MAX) AS BEGIN RETURN @a END
+CREATE TYPE x FROM dbo.mytype(MAX)
+CREATE TYPE x FROM dbo.mytype(MAX) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a dbo.mytype(MAX) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING dbo.mytype(MAX))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a dbo.mytype(MAX)
+CREATE TABLE t (a dbo.mytype(MAX), b AS CAST (a AS dbo.mytype(MAX)))
+CREATE TABLE t (a [dbo].[mytype])
+CREATE TABLE dbo.t (id int NOT NULL, a [dbo].[mytype] NOT NULL DEFAULT 0, b [dbo].[mytype] NULL, c [dbo].[mytype] COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [dbo].[mytype]
+SELECT CAST (a AS [dbo].[mytype])
+SELECT CAST(a AS [dbo].[mytype]) AS x FROM t
+SELECT CONVERT([dbo].[mytype], a)
+SELECT CONVERT([dbo].[mytype], a, 126)
+SELECT TRY_CAST (a AS [dbo].[mytype])
+SELECT TRY_CONVERT([dbo].[mytype], a, 1)
+SELECT PARSE (a AS [dbo].[mytype])
+SELECT TRY_PARSE (a AS [dbo].[mytype] USING 'en-US')
+DECLARE @v [dbo].[mytype]
+DECLARE @v [dbo].[mytype] = NULL, @w [dbo].[mytype]
+DECLARE @t TABLE (a [dbo].[mytype], b int)
+CREATE PROCEDURE p @a [dbo].[mytype], @b [dbo].[mytype] = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [dbo].[mytype]) RETURNS [dbo].[mytype] AS BEGIN RETURN @a END
+CREATE TYPE x FROM [dbo].[mytype]
+CREATE TYPE x FROM [dbo].[mytype] NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [dbo].[mytype] '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [dbo].[mytype])
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [dbo].[mytype]
+CREATE TABLE t (a [dbo].[mytype], b AS CAST (a AS [dbo].[mytype]))
+CREATE TABLE t (a [dbo].[mytype](MAX))
+CREATE TABLE dbo.t (id int NOT NULL, a [dbo].[mytype](MAX) NOT NULL DEFAULT 0, b [dbo].[mytype](MAX) NULL, c [dbo].[mytype](MAX) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [dbo].[mytype](MAX)
+SELECT CAST (a AS [dbo].[mytype](MAX))
+SELECT CAST(a AS [dbo].[mytype](MAX)) AS x FROM t
+SELECT CONVERT([dbo].[mytype](MAX), a)
+SELECT CONVERT([dbo].[mytype](MAX), a, 126)
+SELECT TRY_CAST (a AS [dbo].[mytype](MAX))
+SELECT TRY_CONVERT([dbo].[mytype](MAX), a, 1)
+SELECT PARSE (a AS [dbo].[mytype](MAX))
+SELECT TRY_PARSE (a AS [dbo].[mytype](MAX) USING 'en-US')
+DECLARE @v [dbo].[mytype](MAX)
+DECLARE @v [dbo].[mytype](MAX) = NULL, @w [dbo].[mytype](MAX)
+DECLARE @t TABLE (a [dbo].[mytype](MAX), b int)
+CREATE PROCEDURE p @a [dbo].[mytype](MAX), @b [dbo].[mytype](MAX) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [dbo].[mytype](MAX)) RETURNS [dbo].[mytype](MAX) AS BEGIN RETURN @a END
+CREATE TYPE x FROM [dbo].[mytype](MAX)
+CREATE TYPE x FROM [dbo].[mytype](MAX) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [dbo].[mytype](MAX) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [dbo].[mytype](MAX))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [dbo].[mytype](MAX)
+CREATE TABLE t (a [dbo].[mytype](MAX), b AS CAST (a AS [dbo].[mytype](MAX)))
+CREATE TABLE t (a [my type])
+CREATE TABLE dbo.t (id int NOT NULL, a [my type] NOT NULL DEFAULT 0, b [my type] NULL, c [my type] COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [my type]
+SELECT CAST (a AS [my type])
+SELECT CAST(a AS [my type]) AS x FROM t
+SELECT CONVERT([my type], a)
+SELECT CONVERT([my type], a, 126)
+SELECT TRY_CAST (a AS [my type])
+SELECT TRY_CONVERT([my type], a, 1)
+SELECT PARSE (a AS [my type])
+SELECT TRY_PARSE (a AS [my type] USING 'en-US')
+DECLARE @v [my type]
+DECLARE @v [my type] = NULL, @w [my type]
+DECLARE @t TABLE (a [my type], b int)
+CREATE PROCEDURE p @a [my type], @b [my type] = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [my type]) RETURNS [my type] AS BEGIN RETURN @a END
+CREATE TYPE x FROM [my type]
+CREATE TYPE x FROM [my type] NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [my type] '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [my type])
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [my type]
+CREATE TABLE t (a [my type], b AS CAST (a AS [my type]))
+CREATE TABLE t (a "my type"(3))
+CREATE TABLE dbo.t (id int NOT NULL, a "my type"(3) NOT NULL DEFAULT 0, b "my type"(3) NULL, c "my type"(3) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c "my type"(3)
+SELECT CAST (a AS "my type"(3))
+SELECT CAST(a AS "my type"(3)) AS x FROM t
+SELECT CONVERT("my type"(3), a)
+SELECT CONVERT("my type"(3), a, 126)
+SELECT TRY_CAST (a AS "my type"(3))
+SELECT TRY_CONVERT("my type"(3), a, 1)
+SELECT PARSE (a AS "my type"(3))
+SELECT TRY_PARSE (a AS "my type"(3) USING 'en-US')
+DECLARE @v "my type"(3)
+DECLARE @v "my type"(3) = NULL, @w "my type"(3)
+DECLARE @t TABLE (a "my type"(3), b int)
+CREATE PROCEDURE p @a "my type"(3), @b "my type"(3) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a "my type"(3)) RETURNS "my type"(3) AS BEGIN RETURN @a END
+CREATE TYPE x FROM "my type"(3)
+CREATE TYPE x FROM "my type"(3) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a "my type"(3) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING "my type"(3))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a "my type"(3)
+CREATE TABLE t (a "my type"(3), b AS CAST (a AS "my type"(3)))
+CREATE TABLE t (a db.dbo.mytype)
+CREATE TABLE dbo.t (id int NOT NULL, a db.dbo.mytype NOT NULL DEFAULT 0, b db.dbo.mytype NULL, c db.dbo.mytype COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c db.dbo.mytype
+SELECT CAST (a AS db.dbo.mytype)
+SELECT CAST(a AS db.dbo.mytype) AS x FROM t
+SELECT CONVERT(db.dbo.mytype, a)
+SELECT CONVERT(db.dbo.mytype, a, 126)
+SELECT TRY_CAST (a AS db.dbo.mytype)
+SELECT TRY_CONVERT(db.dbo.mytype, a, 1)
+SELECT PARSE (a AS db.dbo.mytype)
+SELECT TRY_PARSE (a AS db.dbo.mytype USING 'en-US')
+DECLARE @v db.dbo.mytype
+DECLARE @v db.dbo.mytype = NULL, @w db.dbo.mytype
+DECLARE @t TABLE (a db.dbo.mytype, b int)
+CREATE PROCEDURE p @a db.dbo.mytype, @b db.dbo.mytype = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a db.dbo.mytype) RETURNS db.dbo.mytype AS BEGIN RETURN @a END
+CREATE TYPE x FROM db.dbo.mytype
+CREATE TYPE x FROM db.dbo.mytype NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a db.dbo.mytype '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING db.dbo.mytype)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a db.dbo.mytype
+CREATE TABLE t (a db.dbo.mytype, b AS CAST (a AS db.dbo.mytype))
+CREATE TABLE t (a srv.db.dbo.mytype)
+CREATE TABLE dbo.t (id int NOT NULL, a srv.db.dbo.mytype NOT NULL DEFAULT 0, b srv.db.dbo.mytype NULL, c srv.db.dbo.mytype COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c srv.db.dbo.mytype
+SELECT CAST (a AS srv.db.dbo.mytype)
+SELECT CAST(a AS srv.db.dbo.mytype) AS x FROM t
+SELECT CONVERT(srv.db.dbo.mytype, a)
+SELECT CONVERT(srv.db.dbo.mytype, a, 126)
+SELECT TRY_CAST (a AS srv.db.dbo.mytype)
+SELECT TRY_CONVERT(srv.db.dbo.mytype, a, 1)
+SELECT PARSE (a AS srv.db.dbo.mytype)
+SELECT TRY_PARSE (a AS srv.db.dbo.mytype USING 'en-US')
+DECLARE @v srv.db.dbo.mytype
+DECLARE @v srv.db.dbo.mytype = NULL, @w srv.db.dbo.mytype
+DECLARE @t TABLE (a srv.db.dbo.mytype, b int)
+CREATE PROCEDURE p @a srv.db.dbo.mytype, @b srv.db.dbo.mytype = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a srv.db.dbo.mytype) RETURNS srv.db.dbo.mytype AS BEGIN RETURN @a END
+CREATE TYPE x FROM srv.db.dbo.mytype
+CREATE TYPE x FROM srv.db.dbo.mytype NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a srv.db.dbo.mytype '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING srv.db.dbo.mytype)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a srv.db.dbo.mytype
+CREATE TABLE t (a srv.db.dbo.mytype, b AS CAST (a AS srv.db.dbo.mytype))
+CREATE TABLE t (a sys.mytype)
+CREATE TABLE dbo.t (id int NOT NULL, a sys.mytype NOT NULL DEFAULT 0, b sys.mytype NULL, c sys.mytype COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c sys.mytype
+SELECT CAST (a AS sys.mytype)
+SELECT CAST(a AS sys.mytype) AS x FROM t
+SELECT CONVERT(sys.mytype, a)
+SELECT CONVERT(sys.mytype, a, 126)
+SELECT TRY_CAST (a AS sys.mytype)
+SELECT TRY_CONVERT(sys.mytype, a, 1)
+SELECT PARSE (a AS sys.mytype)
+SELECT TRY_PARSE (a AS sys.mytype USING 'en-US')
+DECLARE @v sys.mytype
+DECLARE @v sys.mytype = NULL, @w sys.mytype
+DECLARE @t TABLE (a sys.mytype, b int)
+CREATE PROCEDURE p @a sys.mytype, @b sys.mytype = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a sys.mytype) RETURNS sys.mytype AS BEGIN RETURN @a END
+CREATE TYPE x FROM sys.mytype
+CREATE TYPE x FROM sys.mytype NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a sys.mytype '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING sys.mytype)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a sys.mytype
+CREATE TABLE t (a sys.mytype, b AS CAST (a AS sys.mytype))
+CREATE TABLE t (a dbo.int)
+CREATE TABLE dbo.t (id int NOT NULL, a dbo.int NOT NULL DEFAULT 0, b dbo.int NULL, c dbo.int COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c dbo.int
+SELECT CAST (a AS dbo.int)
+SELECT CAST(a AS dbo.int) AS x FROM t
+SELECT CONVERT(dbo.int, a)
+SELECT CONVERT(dbo.int, a, 126)
+SELECT TRY_CAST (a AS dbo.int)
+SELECT TRY_CONVERT(dbo.int, a, 1)
+SELECT PARSE (a AS dbo.int)
+SELECT TRY_PARSE (a AS dbo.int USING 'en-US')
+DECLARE @v dbo.int
+DECLARE @v dbo.int = NULL, @w dbo.int
+DECLARE @t TABLE (a dbo.int, b int)
+CREATE PROCEDURE p @a dbo.int, @b dbo.int = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a dbo.int) RETURNS dbo.int AS BEGIN RETURN @a END
+CREATE TYPE x FROM dbo.int
+CREATE TYPE x FROM dbo.int NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a dbo.int '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING dbo.int)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a dbo.int
+CREATE TABLE t (a dbo.int, b AS CAST (a AS dbo.int))
+CREATE TABLE t (a dbo.xml)
+CREATE TABLE dbo.t (id int NOT NULL, a dbo.xml NOT NULL DEFAULT 0, b dbo.xml NULL, c dbo.xml COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c dbo.xml
+SELECT CAST (a AS dbo.xml)
+SELECT CAST(a AS dbo.xml) AS x FROM t
+SELECT CONVERT(dbo.xml, a)
+SELECT CONVERT(dbo.xml, a, 126)
+SELECT TRY_CAST (a AS dbo.xml)
+SELECT TRY_CONVERT(dbo.xml, a, 1)
+SELECT PARSE (a AS dbo.xml)
+SELECT TRY_PARSE (a AS dbo.xml USING 'en-US')
+DECLARE @v dbo.xml
+DECLARE @v dbo.xml = NULL, @w dbo.xml
+DECLARE @t TABLE (a dbo.xml, b int)
+CREATE PROCEDURE p @a dbo.xml, @b dbo.xml = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a dbo.xml) RETURNS dbo.xml AS BEGIN RETURN @a END
+CREATE TYPE x FROM dbo.xml
+CREATE TYPE x FROM dbo.xml NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a dbo.xml '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING dbo.xml)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a dbo.xml
+CREATE TABLE t (a dbo.xml, b AS CAST (a AS dbo.xml))
+CREATE TABLE t (a int(5))
+CREATE TABLE dbo.t (id int NOT NULL, a int(5) NOT NULL DEFAULT 0, b int(5) NULL, c int(5) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c int(5)
+SELECT CAST (a AS int(5))
+SELECT CAST(a AS int(5)) AS x FROM t
+SELECT CONVERT(int(5), a)
+SELECT CONVERT(int(5), a, 126)
+SELECT TRY_CAST (a AS int(5))
+SELECT TRY_CONVERT(int(5), a, 1)
+SELECT PARSE (a AS int(5))
+SELECT TRY_PARSE (a AS int(5) USING 'en-US')
+DECLARE @v int(5)
+DECLARE @v int(5) = NULL, @w int(5)
+DECLARE @t TABLE (a int(5), b int)
+CREATE PROCEDURE p @a int(5), @b int(5) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a int(5)) RETURNS int(5) AS BEGIN RETURN @a END
+CREATE TYPE x FROM int(5)
+CREATE TYPE x FROM int(5) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a int(5) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING int(5))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a int(5)
+CREATE TABLE t (a int(5), b AS CAST (a AS int(5)))
+CREATE TABLE t (a int(MAX))
+CREATE TABLE dbo.t (id int NOT NULL, a int(MAX) NOT NULL DEFAULT 0, b int(MAX) NULL, c int(MAX) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c int(MAX)
+SELECT CAST (a AS int(MAX))
+SELECT CAST(a AS int(MAX)) AS x FROM t
+SELECT CONVERT(int(MAX), a)
+SELECT CONVERT(int(MAX), a, 126)
+SELECT TRY_CAST (a AS int(MAX))
+SELECT TRY_CONVERT(int(MAX), a, 1)
+SELECT PARSE (a AS int(MAX))
+SELECT TRY_PARSE (a AS int(MAX) USING 'en-US')
+DECLARE @v int(MAX)
+DECLARE @v int(MAX) = NULL, @w int(MAX)
+DECLARE @t TABLE (a int(MAX), b int)
+CREATE PROCEDURE p @a int(MAX), @b int(MAX) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a int(MAX)) RETURNS int(MAX) AS BEGIN RETURN @a END
+CREATE TYPE x FROM int(MAX)
+CREATE TYPE x FROM int(MAX) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a int(MAX) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING int(MAX))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a int(MAX)
+CREATE TABLE t (a int(MAX), b AS CAST (a AS int(MAX)))
+CREATE TABLE t (a float(1, 2, 3))
+CREATE TABLE dbo.t (id int NOT NULL, a float(1, 2, 3) NOT NULL DEFAULT 0, b float(1, 2, 3) NULL, c float(1, 2, 3) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c float(1, 2, 3)
+SELECT CAST (a AS float(1, 2, 3))
+SELECT CAST(a AS float(1, 2, 3)) AS x FROM t
+SELECT CONVERT(float(1, 2, 3), a)
+SELECT CONVERT(float(1, 2, 3), a, 126)
+SELECT TRY_CAST (a AS float(1, 2, 3))
+SELECT TRY_CONVERT(float(1, 2, 3), a, 1)
+SELECT PARSE (a AS float(1, 2, 3))
+SELECT TRY_PARSE (a AS float(1, 2, 3) USING 'en-US')
+DECLARE @v float(1, 2, 3)
+DECLARE @v float(1, 2, 3) = NULL, @w float(1, 2, 3)
+DECLARE @t TABLE (a float(1, 2, 3), b int)
+CREATE PROCEDURE p @a float(1, 2, 3), @b float(1, 2, 3) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a float(1, 2, 3)) RETURNS float(1, 2, 3) AS BEGIN RETURN @a END
+CREATE TYPE x FROM float(1, 2, 3)
+CREATE TYPE x FROM float(1, 2, 3) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a float(1, 2, 3) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING float(1, 2, 3))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a float(1, 2, 3)
+CREATE TABLE t (a float(1, 2, 3), b AS CAST (a AS float(1, 2, 3)))
+CREATE TABLE t (a varchar(x))
+CREATE TABLE dbo.t (id int NOT NULL, a varchar(x) NOT NULL DEFAULT 0, b varchar(x) NULL, c varchar(x) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c varchar(x)
+SELECT CAST (a AS varchar(x))
+SELECT CAST(a AS varchar(x)) AS x FROM t
+SELECT CONVERT(varchar(x), a)
+SELECT CONVERT(varchar(x), a, 126)
+SELECT TRY_CAST (a AS varchar(x))
+SELECT TRY_CONVERT(varchar(x), a, 1)
+SELECT PARSE (a AS varchar(x))
+SELECT TRY_PARSE (a AS varchar(x) USING 'en-US')
+DECLARE @v varchar(x)
+DECLARE @v varchar(x) = NULL, @w varchar(x)
+DECLARE @t TABLE (a varchar(x), b int)
+CREATE PROCEDURE p @a varchar(x), @b varchar(x) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a varchar(x)) RETURNS varchar(x) AS BEGIN RETURN @a END
+CREATE TYPE x FROM varchar(x)
+CREATE TYPE x FROM varchar(x) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a varchar(x) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING varchar(x))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a varchar(x)
+CREATE TABLE t (a varchar(x), b AS CAST (a AS varchar(x)))
+CREATE TABLE t (a varchar(-1))
+CREATE TABLE dbo.t (id int NOT NULL, a varchar(-1) NOT NULL DEFAULT 0, b varchar(-1) NULL, c varchar(-1) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c varchar(-1)
+SELECT CAST (a AS varchar(-1))
+SELECT CAST(a AS varchar(-1)) AS x FROM t
+SELECT CONVERT(varchar(-1), a)
+SELECT CONVERT(varchar(-1), a, 126)
+SELECT TRY_CAST (a AS varchar(-1))
+SELECT TRY_CONVERT(varchar(-1), a, 1)
+SELECT PARSE (a AS varchar(-1))
+SELECT TRY_PARSE (a AS varchar(-1) USING 'en-US')
+DECLARE @v varchar(-1)
+DECLARE @v varchar(-1) = NULL, @w varchar(-1)
+DECLARE @t TABLE (a varchar(-1), b int)
+CREATE PROCEDURE p @a varchar(-1), @b varchar(-1) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a varchar(-1)) RETURNS varchar(-1) AS BEGIN RETURN @a END
+CREATE TYPE x FROM varchar(-1)
+CREATE TYPE x FROM varchar(-1) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a varchar(-1) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING varchar(-1))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a varchar(-1)
+CREATE TABLE t (a varchar(-1), b AS CAST (a AS varchar(-1)))
+CREATE TABLE t (a decimal(18, x))
+CREATE TABLE dbo.t (id int NOT NULL, a decimal(18, x) NOT NULL DEFAULT 0, b decimal(18, x) NULL, c decimal(18, x) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c decimal(18, x)
+SELECT CAST (a AS decimal(18, x))
+SELECT CAST(a AS decimal(18, x)) AS x FROM t
+SELECT CONVERT(decimal(18, x), a)
+SELECT CONVERT(decimal(18, x), a, 126)
+SELECT TRY_CAST (a AS decimal(18, x))
+SELECT TRY_CONVERT(decimal(18, x), a, 1)
+SELECT PARSE (a AS decimal(18, x))
+SELECT TRY_PARSE (a AS decimal(18, x) USING 'en-US')
+DECLARE @v decimal(18, x)
+DECLARE @v decimal(18, x) = NULL, @w decimal(18, x)
+DECLARE @t TABLE (a decimal(18, x), b int)
+CREATE PROCEDURE p @a decimal(18, x), @b decimal(18, x) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a decimal(18, x)) RETURNS decimal(18, x) AS BEGIN RETURN @a END
+CREATE TYPE x FROM decimal(18, x)
+CREATE TYPE x FROM decimal(18, x) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a decimal(18, x) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING decimal(18, x))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a decimal(18, x)
+CREATE TABLE t (a decimal(18, x), b AS CAST (a AS decimal(18, x)))
+CREATE TABLE t (a nvarchar(MAX, 1))
+CREATE TABLE dbo.t (id int NOT NULL, a nvarchar(MAX, 1) NOT NULL DEFAULT 0, b nvarchar(MAX, 1) NULL, c nvarchar(MAX, 1) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c nvarchar(MAX, 1)
+SELECT CAST (a AS nvarchar(MAX, 1))
+SELECT CAST(a AS nvarchar(MAX, 1)) AS x FROM t
+SELECT CONVERT(nvarchar(MAX, 1), a)
+SELECT CONVERT(nvarchar(MAX, 1), a, 126)
+SELECT TRY_CAST (a AS nvarchar(MAX, 1))
+SELECT TRY_CONVERT(nvarchar(MAX, 1), a, 1)
+SELECT PARSE (a AS nvarchar(MAX, 1))
+SELECT TRY_PARSE (a AS nvarchar(MAX, 1) USING 'en-US')
+DECLARE @v nvarchar(MAX, 1)
+DECLARE @v nvarchar(MAX, 1) = NULL, @w nvarchar(MAX, 1)
+DECLARE @t TABLE (a nvarchar(MAX, 1), b int)
+CREATE PROCEDURE p @a nvarchar(MAX, 1), @b nvarchar(MAX, 1) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a nvarchar(MAX, 1)) RETURNS nvarchar(MAX, 1) AS BEGIN RETURN @a END
+CREATE TYPE x FROM nvarchar(MAX, 1)
+CREATE TYPE x FROM nvarchar(MAX, 1) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a nvarchar(MAX, 1) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING nvarchar(MAX, 1))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a nvarchar(MAX, 1)
+CREATE TABLE t (a nvarchar(MAX, 1), b AS CAST (a AS nvarchar(MAX, 1)))
+CREATE TABLE t (a datetime(3))
+CREATE TABLE dbo.t (id int NOT NULL, a datetime(3) NOT NULL DEFAULT 0, b datetime(3) NULL, c datetime(3) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c datetime(3)
+SELECT CAST (a AS datetime(3))
+SELECT CAST(a AS datetime(3)) AS x FROM t
+SELECT CONVERT(datetime(3), a)
+SELECT CONVERT(datetime(3), a, 126)
+SELECT TRY_CAST (a AS datetime(3))
+SELECT TRY_CONVERT(datetime(3), a, 1)
+SELECT PARSE (a AS datetime(3))
+SELECT TRY_PARSE (a AS datetime(3) USING 'en-US')
+DECLARE @v datetime(3)
+DECLARE @v datetime(3) = NULL, @w datetime(3)
+DECLARE @t TABLE (a datetime(3), b int)
+CREATE PROCEDURE p @a datetime(3), @b datetime(3) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a datetime(3)) RETURNS datetime(3) AS BEGIN RETURN @a END
+CREATE TYPE x FROM datetime(3)
+CREATE TYPE x FROM datetime(3) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a datetime(3) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING datetime(3))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a datetime(3)
+CREATE TABLE t (a datetime(3), b AS CAST (a AS datetime(3)))
+CREATE TABLE t (a date(2))
+CREATE TABLE dbo.t (id int NOT NULL, a date(2) NOT NULL DEFAULT 0, b date(2) NULL, c date(2) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c date(2)
+SELECT CAST (a AS date(2))
+SELECT CAST(a AS date(2)) AS x FROM t
+SELECT CONVERT(date(2), a)
+SELECT CONVERT(date(2), a, 126)
+SELECT TRY_CAST (a AS date(2))
+SELECT TRY_CONVERT(date(2), a, 1)
+SELECT PARSE (a AS date(2))
+SELECT TRY_PARSE (a AS date(2) USING 'en-US')
+DECLARE @v date(2)
+DECLARE @v date(2) = NULL, @w date(2)
+DECLARE @t TABLE (a date(2), b int)
+CREATE PROCEDURE p @a date(2), @b date(2) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a date(2)) RETURNS date(2) AS BEGIN RETURN @a END
+CREATE TYPE x FROM date(2)
+CREATE TYPE x FROM date(2) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a date(2) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING date(2))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a date(2)
+CREATE TABLE t (a date(2), b AS CAST (a AS date(2)))
+CREATE TABLE t (a time(1, 2))
+CREATE TABLE dbo.t (id int NOT NULL, a time(1, 2) NOT NULL DEFAULT 0, b time(1, 2) NULL, c time(1, 2) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c time(1, 2)
+SELECT CAST (a AS time(1, 2))
+SELECT CAST(a AS time(1, 2)) AS x FROM t
+SELECT CONVERT(time(1, 2), a)
+SELECT CONVERT(time(1, 2), a, 126)
+SELECT TRY_CAST (a AS time(1, 2))
+SELECT TRY_CONVERT(time(1, 2), a, 1)
+SELECT PARSE (a AS time(1, 2))
+SELECT TRY_PARSE (a AS time(1, 2) USING 'en-US')
+DECLARE @v time(1, 2)
+DECLARE @v time(1, 2) = NULL, @w time(1, 2)
+DECLARE @t TABLE (a time(1, 2), b int)
+CREATE PROCEDURE p @a time(1, 2), @b time(1, 2) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a time(1, 2)) RETURNS time(1, 2) AS BEGIN RETURN @a END
+CREATE TYPE x FROM time(1, 2)
+CREATE TYPE x FROM time(1, 2) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a time(1, 2) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING time(1, 2))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a time(1, 2)
+CREATE TABLE t (a time(1, 2), b AS CAST (a AS time(1, 2)))
+CREATE TABLE t (a char varying)
+CREATE TABLE dbo.t (id int NOT NULL, a char varying NOT NULL DEFAULT 0, b char varying NULL, c char varying COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c char varying
+SELECT CAST (a AS char varying)
+SELECT CAST(a AS char varying) AS x FROM t
+SELECT CONVERT(char varying, a)
+SELECT CONVERT(char varying, a, 126)
+SELECT TRY_CAST (a AS char varying)
+SELECT TRY_CONVERT(char varying, a, 1)
+SELECT PARSE (a AS char varying)
+SELECT TRY_PARSE (a AS char varying USING 'en-US')
+DECLARE @v char varying
+DECLARE @v char varying = NULL, @w char varying
+DECLARE @t TABLE (a char varying, b int)
+CREATE PROCEDURE p @a char varying, @b char varying = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a char varying) RETURNS char varying AS BEGIN RETURN @a END
+CREATE TYPE x FROM char varying
+CREATE TYPE x FROM char varying NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a char varying '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING char varying)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a char varying
+CREATE TABLE t (a char varying, b AS CAST (a AS char varying))
+CREATE TABLE t (a varchar varying(5))
+CREATE TABLE dbo.t (id int NOT NULL, a varchar varying(5) NOT NULL DEFAULT 0, b varchar varying(5) NULL, c varchar varying(5) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c varchar varying(5)
+SELECT CAST (a AS varchar varying(5))
+SELECT CAST(a AS varchar varying(5)) AS x FROM t
+SELECT CONVERT(varchar varying(5), a)
+SELECT CONVERT(varchar varying(5), a, 126)
+SELECT TRY_CAST (a AS varchar varying(5))
+SELECT TRY_CONVERT(varchar varying(5), a, 1)
+SELECT PARSE (a AS varchar varying(5))
+SELECT TRY_PARSE (a AS varchar varying(5) USING 'en-US')
+DECLARE @v varchar varying(5)
+DECLARE @v varchar varying(5) = NULL, @w varchar varying(5)
+DECLARE @t TABLE (a varchar varying(5), b int)
+CREATE PROCEDURE p @a varchar varying(5), @b varchar varying(5) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a varchar varying(5)) RETURNS varchar varying(5) AS BEGIN RETURN @a END
+CREATE TYPE x FROM varchar varying(5)
+CREATE TYPE x FROM varchar varying(5) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a varchar varying(5) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING varchar varying(5))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a varchar varying(5)
+CREATE TABLE t (a varchar varying(5), b AS CAST (a AS varchar varying(5)))
+CREATE TABLE t (a national int)
+CREATE TABLE dbo.t (id int NOT NULL, a national int NOT NULL DEFAULT 0, b national int NULL, c national int COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c national int
+SELECT CAST (a AS national int)
+SELECT CAST(a AS national int) AS x FROM t
+SELECT CONVERT(national int, a)
+SELECT CONVERT(national int, a, 126)
+SELECT TRY_CAST (a AS national int)
+SELECT TRY_CONVERT(national int, a, 1)
+SELECT PARSE (a AS national int)
+SELECT TRY_PARSE (a AS national int USING 'en-US')
+DECLARE @v national int
+DECLARE @v national int = NULL, @w national int
+DECLARE @t TABLE (a national int, b int)
+CREATE PROCEDURE p @a national int, @b national int = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a national int) RETURNS national int AS BEGIN RETURN @a END
+CREATE TYPE x FROM national int
+CREATE TYPE x FROM national int NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a national int '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING national int)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a national int
+CREATE TABLE t (a national int, b AS CAST (a AS national int))
+CREATE TABLE t (a national varchar(5))
+CREATE TABLE dbo.t (id int NOT NULL, a national varchar(5) NOT NULL DEFAULT 0, b national varchar(5) NULL, c national varchar(5) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c national varchar(5)
+SELECT CAST (a AS national varchar(5))
+SELECT CAST(a AS national varchar(5)) AS x FROM t
+SELECT CONVERT(national varchar(5), a)
+SELECT CONVERT(national varchar(5), a, 126)
+SELECT TRY_CAST (a AS national varchar(5))
+SELECT TRY_CONVERT(national varchar(5), a, 1)
+SELECT PARSE (a AS national varchar(5))
+SELECT TRY_PARSE (a AS national varchar(5) USING 'en-US')
+DECLARE @v national varchar(5)
+DECLARE @v national varchar(5) = NULL, @w national varchar(5)
+DECLARE @t TABLE (a national varchar(5), b int)
+CREATE PROCEDURE p @a national varchar(5), @b national varchar(5) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a national varchar(5)) RETURNS national varchar(5) AS BEGIN RETURN @a END
+CREATE TYPE x FROM national varchar(5)
+CREATE TYPE x FROM national varchar(5) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a national varchar(5) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING national varchar(5))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a national varchar(5)
+CREATE TABLE t (a national varchar(5), b AS CAST (a AS national varchar(5)))
+CREATE TABLE t (a integer(4))
+CREATE TABLE dbo.t (id int NOT NULL, a integer(4) NOT NULL DEFAULT 0, b integer(4) NULL, c integer(4) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c integer(4)
+SELECT CAST (a AS integer(4))
+SELECT CAST(a AS integer(4)) AS x FROM t
+SELECT CONVERT(integer(4), a)
+SELECT CONVERT(integer(4), a, 126)
+SELECT TRY_CAST (a AS integer(4))
+SELECT TRY_CONVERT(integer(4), a, 1)
+SELECT PARSE (a AS integer(4))
+SELECT TRY_PARSE (a AS integer(4) USING 'en-US')
+DECLARE @v integer(4)
+DECLARE @v integer(4) = NULL, @w integer(4)
+DECLARE @t TABLE (a integer(4), b int)
+CREATE PROCEDURE p @a integer(4), @b integer(4) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a integer(4)) RETURNS integer(4) AS BEGIN RETURN @a END
+CREATE TYPE x FROM integer(4)
+CREATE TYPE x FROM integer(4) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a integer(4) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING integer(4))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a integer(4)
+CREATE TABLE t (a integer(4), b AS CAST (a AS integer(4)))
+CREATE TABLE t (a varchar /* c */ (5))
+CREATE TABLE dbo.t (id int NOT NULL, a varchar /* c */ (5) NOT NULL DEFAULT 0, b varchar /* c */ (5) NULL, c varchar /* c */ (5) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c varchar /* c */ (5)
+SELECT CAST (a AS varchar /* c */ (5))
+SELECT CAST(a AS varchar /* c */ (5)) AS x FROM t
+SELECT CONVERT(varchar /* c */ (5), a)
+SELECT CONVERT(varchar /* c */ (5), a, 126)
+SELECT TRY_CAST (a AS varchar /* c */ (5))
+SELECT TRY_CONVERT(varchar /* c */ (5), a, 1)
+SELECT PARSE (a AS varchar /* c */ (5))
+SELECT TRY_PARSE (a AS varchar /* c */ (5) USING 'en-US')
+DECLARE @v varchar /* c */ (5)
+DECLARE @v varchar /* c */ (5) = NULL, @w varchar /* c */ (5)
+DECLARE @t TABLE (a varchar /* c */ (5), b int)
+CREATE PROCEDURE p @a varchar /* c */ (5), @b varchar /* c */ (5) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a varchar /* c */ (5)) RETURNS varchar /* c */ (5) AS BEGIN RETURN @a END
+CREATE TYPE x FROM varchar /* c */ (5)
+CREATE TYPE x FROM varchar /* c */ (5) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a varchar /* c */ (5) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING varchar /* c */ (5))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a varchar /* c */ (5)
+CREATE TABLE t (a varchar /* c */ (5), b AS CAST (a AS varchar /* c */ (5)))
+CREATE TABLE t (a varchar -- c\n(5))
+CREATE TABLE dbo.t (id int NOT NULL, a varchar -- c\n(5) NOT NULL DEFAULT 0, b varchar -- c\n(5) NULL, c varchar -- c\n(5) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c varchar -- c\n(5)
+SELECT CAST (a AS varchar -- c\n(5))
+SELECT CAST(a AS varchar -- c\n(5)) AS x FROM t
+SELECT CONVERT(varchar -- c\n(5), a)
+SELECT CONVERT(varchar -- c\n(5), a, 126)
+SELECT TRY_CAST (a AS varchar -- c\n(5))
+SELECT TRY_CONVERT(varchar -- c\n(5), a, 1)
+SELECT PARSE (a AS varchar -- c\n(5))
+SELECT TRY_PARSE (a AS varchar -- c\n(5) USING 'en-US')
+DECLARE @v varchar -- c\n(5)
+DECLARE @v varchar -- c\n(5) = NULL, @w varchar -- c\n(5)
+DECLARE @t TABLE (a varchar -- c\n(5), b int)
+CREATE PROCEDURE p @a varchar -- c\n(5), @b varchar -- c\n(5) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a varchar -- c\n(5)) RETURNS varchar -- c\n(5) AS BEGIN RETURN @a END
+CREATE TYPE x FROM varchar -- c\n(5)
+CREATE TYPE x FROM varchar -- c\n(5) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a varchar -- c\n(5) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING varchar -- c\n(5))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a varchar -- c\n(5)
+CREATE TABLE t (a varchar -- c\n(5), b AS CAST (a AS varchar -- c\n(5)))
+CREATE TABLE t (a decimal(18 /* c */, 2))
+CREATE TABLE dbo.t (id int NOT NULL, a decimal(18 /* c */, 2) NOT NULL DEFAULT 0, b decimal(18 /* c */, 2) NULL, c decimal(18 /* c */, 2) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c decimal(18 /* c */, 2)
+SELECT CAST (a AS decimal(18 /* c */, 2))
+SELECT CAST(a AS decimal(18 /* c */, 2)) AS x FROM t
+SELECT CONVERT(decimal(18 /* c */, 2), a)
+SELECT CONVERT(decimal(18 /* c */, 2), a, 126)
+SELECT TRY_CAST (a AS decimal(18 /* c */, 2))
+SELECT TRY_CONVERT(decimal(18 /* c */, 2), a, 1)
+SELECT PARSE (a AS decimal(18 /* c */, 2))
+SELECT TRY_PARSE (a AS decimal(18 /* c */, 2) USING 'en-US')
+DECLARE @v decimal(18 /* c */, 2)
+DECLARE @v decimal(18 /* c */, 2) = NULL, @w decimal(18 /* c */, 2)
+DECLARE @t TABLE (a decimal(18 /* c */, 2), b int)
+CREATE PROCEDURE p @a decimal(18 /* c */, 2), @b decimal(18 /* c */, 2) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a decimal(18 /* c */, 2)) RETURNS decimal(18 /* c */, 2) AS BEGIN RETURN @a END
+CREATE TYPE x FROM decimal(18 /* c */, 2)
+CREATE TYPE x FROM decimal(18 /* c */, 2) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a decimal(18 /* c */, 2) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING decimal(18 /* c */, 2))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a decimal(18 /* c */, 2)
+CREATE TABLE t (a decimal(18 /* c */, 2), b AS CAST (a AS decimal(18 /* c */, 2)))
+CREATE TABLE t (a nvarchar(5 ))
+CREATE TABLE dbo.t (id int NOT NULL, a nvarchar(5 ) NOT NULL DEFAULT 0, b nvarchar(5 ) NULL, c nvarchar(5 ) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c nvarchar(5 )
+SELECT CAST (a AS nvarchar(5 ))
+SELECT CAST(a AS nvarchar(5 )) AS x FROM t
+SELECT CONVERT(nvarchar(5 ), a)
+SELECT CONVERT(nvarchar(5 ), a, 126)
+SELECT TRY_CAST (a AS nvarchar(5 ))
+SELECT TRY_CONVERT(nvarchar(5 ), a, 1)
+SELECT PARSE (a AS nvarchar(5 ))
+SELECT TRY_PARSE (a AS nvarchar(5 ) USING 'en-US')
+DECLARE @v nvarchar(5 )
+DECLARE @v nvarchar(5 ) = NULL, @w nvarchar(5 )
+DECLARE @t TABLE (a nvarchar(5 ), b int)
+CREATE PROCEDURE p @a nvarchar(5 ), @b nvarchar(5 ) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a nvarchar(5 )) RETURNS nvarchar(5 ) AS BEGIN RETURN @a END
+CREATE TYPE x FROM nvarchar(5 )
+CREATE TYPE x FROM nvarchar(5 ) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a nvarchar(5 ) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING nvarchar(5 ))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a nvarchar(5 )
+CREATE TABLE t (a nvarchar(5 ), b AS CAST (a AS nvarchar(5 )))
+CREATE TABLE t (a varchar(0x10))
+CREATE TABLE dbo.t (id int NOT NULL, a varchar(0x10) NOT NULL DEFAULT 0, b varchar(0x10) NULL, c varchar(0x10) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c varchar(0x10)
+SELECT CAST (a AS varchar(0x10))
+SELECT CAST(a AS varchar(0x10)) AS x FROM t
+SELECT CONVERT(varchar(0x10), a)
+SELECT CONVERT(varchar(0x10), a, 126)
+SELECT TRY_CAST (a AS varchar(0x10))
+SELECT TRY_CONVERT(varchar(0x10), a, 1)
+SELECT PARSE (a AS varchar(0x10))
+SELECT TRY_PARSE (a AS varchar(0x10) USING 'en-US')
+DECLARE @v varchar(0x10)
+DECLARE @v varchar(0x10) = NULL, @w varchar(0x10)
+DECLARE @t TABLE (a varchar(0x10), b int)
+CREATE PROCEDURE p @a varchar(0x10), @b varchar(0x10) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a varchar(0x10)) RETURNS varchar(0x10) AS BEGIN RETURN @a END
+CREATE TYPE x FROM varchar(0x10)
+CREATE TYPE x FROM varchar(0x10) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a varchar(0x10) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING varchar(0x10))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a varchar(0x10)
+CREATE TABLE t (a varchar(0x10), b AS CAST (a AS varchar(0x10)))
+CREATE TABLE t (a varchar(1.5))
+CREATE TABLE dbo.t (id int NOT NULL, a varchar(1.5) NOT NULL DEFAULT 0, b varchar(1.5) NULL, c varchar(1.5) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c varchar(1.5)
+SELECT CAST (a AS varchar(1.5))
+SELECT CAST(a AS varchar(1.5)) AS x FROM t
+SELECT CONVERT(varchar(1.5), a)
+SELECT CONVERT(varchar(1.5), a, 126)
+SELECT TRY_CAST (a AS varchar(1.5))
+SELECT TRY_CONVERT(varchar(1.5), a, 1)
+SELECT PARSE (a AS varchar(1.5))
+SELECT TRY_PARSE (a AS varchar(1.5) USING 'en-US')
+DECLARE @v varchar(1.5)
+DECLARE @v varchar(1.5) = NULL, @w varchar(1.5)
+DECLARE @t TABLE (a varchar(1.5), b int)
+CREATE PROCEDURE p @a varchar(1.5), @b varchar(1.5) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a varchar(1.5)) RETURNS varchar(1.5) AS BEGIN RETURN @a END
+CREATE TYPE x FROM varchar(1.5)
+CREATE TYPE x FROM varchar(1.5) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a varchar(1.5) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING varchar(1.5))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a varchar(1.5)
+CREATE TABLE t (a varchar(1.5), b AS CAST (a AS varchar(1.5)))
+CREATE TABLE t (a varchar(\n5\n))
+CREATE TABLE dbo.t (id int NOT NULL, a varchar(\n5\n) NOT NULL DEFAULT 0, b varchar(\n5\n) NULL, c varchar(\n5\n) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c varchar(\n5\n)
+SELECT CAST (a AS varchar(\n5\n))
+SELECT CAST(a AS varchar(\n5\n)) AS x FROM t
+SELECT CONVERT(varchar(\n5\n), a)
+SELECT CONVERT(varchar(\n5\n), a, 126)
+SELECT TRY_CAST (a AS varchar(\n5\n))
+SELECT TRY_CONVERT(varchar(\n5\n), a, 1)
+SELECT PARSE (a AS varchar(\n5\n))
+SELECT TRY_PARSE (a AS varchar(\n5\n) USING 'en-US')
+DECLARE @v varchar(\n5\n)
+DECLARE @v varchar(\n5\n) = NULL, @w varchar(\n5\n)
+DECLARE @t TABLE (a varchar(\n5\n), b int)
+CREATE PROCEDURE p @a varchar(\n5\n), @b varchar(\n5\n) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a varchar(\n5\n)) RETURNS varchar(\n5\n) AS BEGIN RETURN @a END
+CREATE TYPE x FROM varchar(\n5\n)
+CREATE TYPE x FROM varchar(\n5\n) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a varchar(\n5\n) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING varchar(\n5\n))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a varchar(\n5\n)
+CREATE TABLE t (a varchar(\n5\n), b AS CAST (a AS varchar(\n5\n)))
+CREATE TABLE t (a varchar\t(5))
+CREATE TABLE dbo.t (id int NOT NULL, a varchar\t(5) NOT NULL DEFAULT 0, b varchar\t(5) NULL, c varchar\t(5) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c varchar\t(5)
+SELECT CAST (a AS varchar\t(5))
+SELECT CAST(a AS varchar\t(5)) AS x FROM t
+SELECT CONVERT(varchar\t(5), a)
+SELECT CONVERT(varchar\t(5), a, 126)
+SELECT TRY_CAST (a AS varchar\t(5))
+SELECT TRY_CONVERT(varchar\t(5), a, 1)
+SELECT PARSE (a AS varchar\t(5))
+SELECT TRY_PARSE (a AS varchar\t(5) USING 'en-US')
+DECLARE @v varchar\t(5)
+DECLARE @v varchar\t(5) = NULL, @w varchar\t(5)
+DECLARE @t TABLE (a varchar\t(5), b int)
+CREATE PROCEDURE p @a varchar\t(5), @b varchar\t(5) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a varchar\t(5)) RETURNS varchar\t(5) AS BEGIN RETURN @a END
+CREATE TYPE x FROM varchar\t(5)
+CREATE TYPE x FROM varchar\t(5) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a varchar\t(5) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING varchar\t(5))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a varchar\t(5)
+CREATE TABLE t (a varchar\t(5), b AS CAST (a AS varchar\t(5)))
+CREATE TABLE t (a int /* c */)
+CREATE TABLE dbo.t (id int NOT NULL, a int /* c */ NOT NULL DEFAULT 0, b int /* c */ NULL, c int /* c */ COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c int /* c */
+SELECT CAST (a AS int /* c */)
+SELECT CAST(a AS int /* c */) AS x FROM t
+SELECT CONVERT(int /* c */, a)
+SELECT CONVERT(int /* c */, a, 126)
+SELECT TRY_CAST (a AS int /* c */)
+SELECT TRY_CONVERT(int /* c */, a, 1)
+SELECT PARSE (a AS int /* c */)
+SELECT TRY_PARSE (a AS int /* c */ USING 'en-US')
+DECLARE @v int /* c */
+DECLARE @v int /* c */ = NULL, @w int /* c */
+DECLARE @t TABLE (a int /* c */, b int)
+CREATE PROCEDURE p @a int /* c */, @b int /* c */ = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a int /* c */) RETURNS int /* c */ AS BEGIN RETURN @a END
+CREATE TYPE x FROM int /* c */
+CREATE TYPE x FROM int /* c */ NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a int /* c */ '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING int /* c */)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a int /* c */
+CREATE TABLE t (a int /* c */, b AS CAST (a AS int /* c */))
+CREATE TABLE t (a /* c */ int)
+CREATE TABLE dbo.t (id int NOT NULL, a /* c */ int NOT NULL DEFAULT 0, b /* c */ int NULL, c /* c */ int COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c /* c */ int
+SELECT CAST (a AS /* c */ int)
+SELECT CAST(a AS /* c */ int) AS x FROM t
+SELECT CONVERT(/* c */ int, a)
+SELECT CONVERT(/* c */ int, a, 126)
+SELECT TRY_CAST (a AS /* c */ int)
+SELECT TRY_CONVERT(/* c */ int, a, 1)
+SELECT PARSE (a AS /* c */ int)
+SELECT TRY_PARSE (a AS /* c */ int USING 'en-US')
+DECLARE @v /* c */ int
+DECLARE @v /* c */ int = NULL, @w /* c */ int
+DECLARE @t TABLE (a /* c */ int, b int)
+CREATE PROCEDURE p @a /* c */ int, @b /* c */ int = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a /* c */ int) RETURNS /* c */ int AS BEGIN RETURN @a END
+CREATE TYPE x FROM /* c */ int
+CREATE TYPE x FROM /* c */ int NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a /* c */ int '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING /* c */ int)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a /* c */ int
+CREATE TABLE t (a /* c */ int, b AS CAST (a AS /* c */ int))
+CREATE TABLE t (a [a]]b])
+CREATE TABLE dbo.t (id int NOT NULL, a [a]]b] NOT NULL DEFAULT 0, b [a]]b] NULL, c [a]]b] COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [a]]b]
+SELECT CAST (a AS [a]]b])
+SELECT CAST(a AS [a]]b]) AS x FROM t
+SELECT CONVERT([a]]b], a)
+SELECT CONVERT([a]]b], a, 126)
+SELECT TRY_CAST (a AS [a]]b])
+SELECT TRY_CONVERT([a]]b], a, 1)
+SELECT PARSE (a AS [a]]b])
+SELECT TRY_PARSE (a AS [a]]b] USING 'en-US')
+DECLARE @v [a]]b]
+DECLARE @v [a]]b] = NULL, @w [a]]b]
+DECLARE @t TABLE (a [a]]b], b int)
+CREATE PROCEDURE p @a [a]]b], @b [a]]b] = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [a]]b]) RETURNS [a]]b] AS BEGIN RETURN @a END
+CREATE TYPE x FROM [a]]b]
+CREATE TYPE x FROM [a]]b] NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [a]]b] '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [a]]b])
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [a]]b]
+CREATE TABLE t (a [a]]b], b AS CAST (a AS [a]]b]))
+CREATE TABLE t (a [a b](5))
+CREATE TABLE dbo.t (id int NOT NULL, a [a b](5) NOT NULL DEFAULT 0, b [a b](5) NULL, c [a b](5) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [a b](5)
+SELECT CAST (a AS [a b](5))
+SELECT CAST(a AS [a b](5)) AS x FROM t
+SELECT CONVERT([a b](5), a)
+SELECT CONVERT([a b](5), a, 126)
+SELECT TRY_CAST (a AS [a b](5))
+SELECT TRY_CONVERT([a b](5), a, 1)
+SELECT PARSE (a AS [a b](5))
+SELECT TRY_PARSE (a AS [a b](5) USING 'en-US')
+DECLARE @v [a b](5)
+DECLARE @v [a b](5) = NULL, @w [a b](5)
+DECLARE @t TABLE (a [a b](5), b int)
+CREATE PROCEDURE p @a [a b](5), @b [a b](5) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [a b](5)) RETURNS [a b](5) AS BEGIN RETURN @a END
+CREATE TYPE x FROM [a b](5)
+CREATE TYPE x FROM [a b](5) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [a b](5) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [a b](5))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [a b](5)
+CREATE TABLE t (a [a b](5), b AS CAST (a AS [a b](5)))
+CREATE TABLE t (a national\nchar\nvarying(5))
+CREATE TABLE dbo.t (id int NOT NULL, a national\nchar\nvarying(5) NOT NULL DEFAULT 0, b national\nchar\nvarying(5) NULL, c national\nchar\nvarying(5) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c national\nchar\nvarying(5)
+SELECT CAST (a AS national\nchar\nvarying(5))
+SELECT CAST(a AS national\nchar\nvarying(5)) AS x FROM t
+SELECT CONVERT(national\nchar\nvarying(5), a)
+SELECT CONVERT(national\nchar\nvarying(5), a, 126)
+SELECT TRY_CAST (a AS national\nchar\nvarying(5))
+SELECT TRY_CONVERT(national\nchar\nvarying(5), a, 1)
+SELECT PARSE (a AS national\nchar\nvarying(5))
+SELECT TRY_PARSE (a AS national\nchar\nvarying(5) USING 'en-US')
+DECLARE @v national\nchar\nvarying(5)
+DECLARE @v national\nchar\nvarying(5) = NULL, @w national\nchar\nvarying(5)
+DECLARE @t TABLE (a national\nchar\nvarying(5), b int)
+CREATE PROCEDURE p @a national\nchar\nvarying(5), @b national\nchar\nvarying(5) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a national\nchar\nvarying(5)) RETURNS national\nchar\nvarying(5) AS BEGIN RETURN @a END
+CREATE TYPE x FROM national\nchar\nvarying(5)
+CREATE TYPE x FROM national\nchar\nvarying(5) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a national\nchar\nvarying(5) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING national\nchar\nvarying(5))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a national\nchar\nvarying(5)
+CREATE TABLE t (a national\nchar\nvarying(5), b AS CAST (a AS national\nchar\nvarying(5)))
+CREATE TABLE t (a national /* c */ char varying(5))
+CREATE TABLE dbo.t (id int NOT NULL, a national /* c */ char varying(5) NOT NULL DEFAULT 0, b national /* c */ char varying(5) NULL, c national /* c */ char varying(5) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c national /* c */ char varying(5)
+SELECT CAST (a AS national /* c */ char varying(5))
+SELECT CAST(a AS national /* c */ char varying(5)) AS x FROM t
+SELECT CONVERT(national /* c */ char varying(5), a)
+SELECT CONVERT(national /* c */ char varying(5), a, 126)
+SELECT TRY_CAST (a AS national /* c */ char varying(5))
+SELECT TRY_CONVERT(national /* c */ char varying(5), a, 1)
+SELECT PARSE (a AS national /* c */ char varying(5))
+SELECT TRY_PARSE (a AS national /* c */ char varying(5) USING 'en-US')
+DECLARE @v national /* c */ char varying(5)
+DECLARE @v national /* c */ char varying(5) = NULL, @w national /* c */ char varying(5)
+DECLARE @t TABLE (a national /* c */ char varying(5), b int)
+CREATE PROCEDURE p @a national /* c */ char varying(5), @b national /* c */ char varying(5) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a national /* c */ char varying(5)) RETURNS national /* c */ char varying(5) AS BEGIN RETURN @a END
+CREATE TYPE x FROM national /* c */ char varying(5)
+CREATE TYPE x FROM national /* c */ char varying(5) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a national /* c */ char varying(5) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING national /* c */ char varying(5))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a national /* c */ char varying(5)
+CREATE TABLE t (a national /* c */ char varying(5), b AS CAST (a AS national /* c */ char varying(5)))
+CREATE TABLE t (a sys . char(5))
+CREATE TABLE dbo.t (id int NOT NULL, a sys . char(5) NOT NULL DEFAULT 0, b sys . char(5) NULL, c sys . char(5) COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c sys . char(5)
+SELECT CAST (a AS sys . char(5))
+SELECT CAST(a AS sys . char(5)) AS x FROM t
+SELECT CONVERT(sys . char(5), a)
+SELECT CONVERT(sys . char(5), a, 126)
+SELECT TRY_CAST (a AS sys . char(5))
+SELECT TRY_CONVERT(sys . char(5), a, 1)
+SELECT PARSE (a AS sys . char(5))
+SELECT TRY_PARSE (a AS sys . char(5) USING 'en-US')
+DECLARE @v sys . char(5)
+DECLARE @v sys . char(5) = NULL, @w sys . char(5)
+DECLARE @t TABLE (a sys . char(5), b int)
+CREATE PROCEDURE p @a sys . char(5), @b sys . char(5) = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a sys . char(5)) RETURNS sys . char(5) AS BEGIN RETURN @a END
+CREATE TYPE x FROM sys . char(5)
+CREATE TYPE x FROM sys . char(5) NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a sys . char(5) '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING sys . char(5))
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a sys . char(5)
+CREATE TABLE t (a sys . char(5), b AS CAST (a AS sys . char(5)))
+CREATE TABLE t (a sys. int)
+CREATE TABLE dbo.t (id int NOT NULL, a sys. int NOT NULL DEFAULT 0, b sys. int NULL, c sys. int COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c sys. int
+SELECT CAST (a AS sys. int)
+SELECT CAST(a AS sys. int) AS x FROM t
+SELECT CONVERT(sys. int, a)
+SELECT CONVERT(sys. int, a, 126)
+SELECT TRY_CAST (a AS sys. int)
+SELECT TRY_CONVERT(sys. int, a, 1)
+SELECT PARSE (a AS sys. int)
+SELECT TRY_PARSE (a AS sys. int USING 'en-US')
+DECLARE @v sys. int
+DECLARE @v sys. int = NULL, @w sys. int
+DECLARE @t TABLE (a sys. int, b int)
+CREATE PROCEDURE p @a sys. int, @b sys. int = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a sys. int) RETURNS sys. int AS BEGIN RETURN @a END
+CREATE TYPE x FROM sys. int
+CREATE TYPE x FROM sys. int NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a sys. int '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING sys. int)
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a sys. int
+CREATE TABLE t (a sys. int, b AS CAST (a AS sys. int))
+CREATE TABLE t (a [sys] . [int])
+CREATE TABLE dbo.t (id int NOT NULL, a [sys] . [int] NOT NULL DEFAULT 0, b [sys] . [int] NULL, c [sys] . [int] COLLATE Latin1_General_CI_AS)
+ALTER TABLE t ADD c [sys] . [int]
+SELECT CAST (a AS [sys] . [int])
+SELECT CAST(a AS [sys] . [int]) AS x FROM t
+SELECT CONVERT([sys] . [int], a)
+SELECT CONVERT([sys] . [int], a, 126)
+SELECT TRY_CAST (a AS [sys] . [int])
+SELECT TRY_CONVERT([sys] . [int], a, 1)
+SELECT PARSE (a AS [sys] . [int])
+SELECT TRY_PARSE (a AS [sys] . [int] USING 'en-US')
+DECLARE @v [sys] . [int]
+DECLARE @v [sys] . [int] = NULL, @w [sys] . [int]
+DECLARE @t TABLE (a [sys] . [int], b int)
+CREATE PROCEDURE p @a [sys] . [int], @b [sys] . [int] = NULL OUTPUT AS SELECT 1
+CREATE FUNCTION f (@a [sys] . [int]) RETURNS [sys] . [int] AS BEGIN RETURN @a END
+CREATE TYPE x FROM [sys] . [int]
+CREATE TYPE x FROM [sys] . [int] NOT NULL
+SELECT * FROM OPENJSON (@j) WITH (a [sys] . [int] '$.a', b int)
+SELECT JSON_VALUE (a, '$.x' RETURNING [sys] . [int])
+SELECT * INTO #t FROM u; ALTER TABLE t ALTER COLUMN a [sys] . [int]
+CREATE TABLE t (a [sys] . [int], b AS CAST (a AS [sys] . [int]))
+SELECT a FROM t
+SELECT t.a FROM t
+SELECT a.b FROM t
+SELECT a.b.c FROM t
+SELECT a.b.c.d FROM t
+SELECT a . b FROM t
+SELECT a./* c */b FROM t
+SELECT t.* FROM t
+SELECT t . * FROM t
+SELECT a.b.* FROM t
+SELECT * FROM t
+SELECT [t].[a] FROM [t]
+SELECT "t"."a" FROM "t"
+SELECT [t].a, t.[a], "t".a FROM t
+SELECT dbo.t.c FROM dbo.t
+SELECT [a b], x.[y z], [a]]b], "a""b" FROM [c d]
+SELECT [a.b], [a.b].c, a.[b.c] FROM t
+SELECT @v, @@ROWCOUNT, #t.a, ##g.b FROM #t
+SELECT $action, a$b, a#b, _a, a_1 FROM t
+SELECT COUNT(*), COUNT(t.a), SUM(t.a * u.b) FROM t JOIN u ON t.id = u.id
+SELECT a AS "x", b AS [y z], c d FROM t
+SELECT t.a FROM dbo.Orders o
+SELECT o.Total FROM dbo.Orders o
+SELECT o.Total FROM dbo.Orders AS o
+SELECT o.Total FROM [dbo].[Orders] [o]
+SELECT o.Total FROM [dbo].[Orders] AS [o]
+SELECT o.Total FROM "dbo"."Orders" "o"
+SELECT o.Total FROM dbo.Orders /* c */ o
+SELECT o.Total FROM dbo.Orders -- c\n o
+SELECT o.Total FROM dbo.Orders AS /* c */ o
+SELECT o.Total FROM dbo.Orders "as"
+SELECT o.Total FROM dbo.Orders [as]
+SELECT o.Total FROM dbo.Orders AS [as]
+SELECT o.Total FROM dbo.Orders [AS] WHERE 1 = 1
+SELECT * FROM db..t
+SELECT * FROM db..t x
+SELECT * FROM db.dbo.t x
+SELECT * FROM srv.db.dbo.t AS x
+SELECT * FROM srv.db.dbo.t
+SELECT * FROM a.b.c.d.e
+SELECT * FROM #temp
+SELECT * FROM #temp x
+SELECT * FROM ##g AS g
+SELECT * FROM @tv
+SELECT * FROM @tv x
+SELECT * FROM @tv AS x
+SELECT * FROM [a b].[c d]
+SELECT * FROM [a b].[c d] [e f]
+SELECT * FROM [a]]b]
+SELECT * FROM "a""b" x
+SELECT * FROM [a.b].c
+SELECT * FROM [a.b]
+SELECT * FROM a . b
+SELECT * FROM a . b AS x
+SELECT * FROM t WITH (NOLOCK)
+SELECT * FROM t x WITH (NOLOCK)
+SELECT * FROM t AS x WITH (NOLOCK, INDEX (1))
+SELECT * FROM t TABLESAMPLE (10 PERCENT)
+SELECT * FROM t x TABLESAMPLE (10 PERCENT) REPEATABLE (1)
+SELECT * FROM t FOR SYSTEM_TIME AS OF '2020-01-01' AS x
+SELECT * FROM t FOR SYSTEM_TIME AS OF '2020-01-01' x
+SELECT * FROM t FOR SYSTEM_TIME ALL
+SELECT * FROM t FOR SYSTEM_TIME BETWEEN '2020-01-01' AND '2021-01-01' AS x
+SELECT * FROM (SELECT 1 a) AS d
+SELECT * FROM (SELECT 1 a) d
+SELECT * FROM (SELECT 1 a) d (x)
+SELECT * FROM (VALUES (1, 2)) v (a, b)
+SELECT * FROM (VALUES (1, 2)) AS v (a, b)
+SELECT * FROM f(1) x
+SELECT * FROM dbo.f(1) AS x (a, b)
+SELECT * FROM @v.f(1) x
+SELECT * FROM t a JOIN u b ON a.id = b.id
+SELECT * FROM t AS a INNER JOIN dbo.u AS b ON a.id = b.id LEFT JOIN [v] [c] ON c.id = b.id
+SELECT * FROM t a, u b, dbo.v c
+SELECT * FROM t CROSS APPLY dbo.f(t.id) AS x
+SELECT * FROM t PIVOT (SUM(a) FOR b IN ([x], [y])) AS p
+SELECT * FROM t UNPIVOT (v FOR n IN (a, b)) AS u
+SELECT * FROM OPENROWSET (BULK 'f', SINGLE_BLOB) AS x
+SELECT * FROM OPENQUERY (srv, 'select 1') AS x
+SELECT * FROM OPENXML (@h, '/r') WITH (a int) AS x
+SELECT * FROM OPENJSON (@j) AS x
+SELECT * FROM OPENDATASOURCE ('p', 'c').db.dbo.t AS x
+SELECT * FROM t WHERE t.a = 1 AND b.c = 2 OR d.e.f = 3
+SELECT * FROM t WHERE a IN (SELECT b.c FROM dbo.b b WHERE b.d = t.a)
+SELECT * FROM t ORDER BY t.a, [t].[b] DESC, 2
+SELECT t.a FROM t GROUP BY t.a HAVING COUNT(t.a) > 1
+UPDATE t SET t.a = 1 FROM t
+UPDATE o SET o.Total = (SELECT SUM(l.Price * l.Quantity) FROM dbo.Lines AS l WHERE l.OrderId = o.OrderId) FROM dbo.Orders AS o WHERE o.Placed >= '2026-01-01'
+UPDATE o SET o.Total = (SELECT SUM(l.Price) FROM dbo.Lines l WHERE l.OrderId = o.OrderId) FROM dbo.Orders o
+UPDATE dbo.Orders SET Total = 1 WHERE Id = 2
+UPDATE [dbo].[Orders] SET [Total] = 1, "Note" = 'x' WHERE [Id] = 2
+UPDATE o SET o.a = 1, o.b = u.c FROM dbo.Orders o JOIN u ON u.id = o.id
+UPDATE t SET @v = a, a = b
+DELETE FROM t WHERE a = 1
+DELETE t FROM t JOIN u ON u.id = t.id
+DELETE FROM dbo.t AS x WHERE x.a = 1
+DELETE x FROM dbo.t x
+INSERT INTO dbo.t (a, [b], "c") VALUES (1, 2, 3)
+INSERT dbo.t (a) SELECT b.c FROM u b
+INSERT INTO t SELECT * FROM u
+INSERT INTO #t (a) VALUES (1)
+INSERT INTO @t (a) VALUES (1)
+MERGE dbo.t AS tgt USING dbo.s AS src ON tgt.id = src.id WHEN MATCHED THEN UPDATE SET tgt.a = src.a WHEN NOT MATCHED THEN INSERT (id, a) VALUES (src.id, src.a);
+MERGE t USING s ON t.id = s.id WHEN MATCHED THEN DELETE;
+CREATE TABLE dbo.t (id int, [b c] int, "d" int)
+CREATE TABLE [db].[dbo].[t] (a int)
+CREATE TABLE #t (a int)
+CREATE TABLE ##t (a int)
+CREATE TABLE db..t (a int)
+CREATE TABLE t (a int CONSTRAINT [pk] PRIMARY KEY, b int REFERENCES dbo.u (id))
+CREATE TABLE t (a int, CONSTRAINT pk PRIMARY KEY (a), CONSTRAINT fk FOREIGN KEY (a) REFERENCES dbo.u ([id]))
+CREATE TABLE t (a int, b int, UNIQUE (a, [b]))
+CREATE TABLE dbo.Orders (OrderId INT NOT NULL PRIMARY KEY, CustomerId INT NOT NULL REFERENCES dbo.Customers (CustomerId), Total DECIMAL(18, 2) NOT NULL DEFAULT 0, Placed DATETIME2 NULL, Note NVARCHAR(200) NULL)
+CREATE TABLE t (a int IDENTITY (1, 1), b int SPARSE, c AS (a + 1) PERSISTED)
+CREATE INDEX ix ON dbo.t (a, [b] DESC)
+CREATE UNIQUE NONCLUSTERED INDEX [ix] ON [dbo].[t] (a) INCLUDE (b, c) WHERE a > 1
+CREATE VIEW dbo.v AS SELECT t.a FROM dbo.t t
+CREATE VIEW v (a, [b]) AS SELECT 1, 2
+SELECT a INTO dbo.t FROM u
+SELECT a INTO #t FROM u
+EXEC dbo.p @a = 1
+EXEC [dbo].[p] 1
+EXEC db..p
+EXEC p @a = 1, @b = DEFAULT
+DROP TABLE dbo.t
+DROP TABLE IF EXISTS [dbo].[t], #u
+TRUNCATE TABLE db.dbo.t
+SELECT t.a FROM t t
+SELECT a FROM t AS t
+SELECT x.a FROM t AS x(c)
+SELECT * FROM t AS
+SELECT * FROM t AS 1
+SELECT * FROM 1
+SELECT * FROM 'a'
+SELECT * FROM t.
+SELECT * FROM .t
+SELECT * FROM t..
+SELECT * FROM t. .u
+SELECT * FROM [a
+SELECT * FROM "a
+SELECT * FROM t x y
+SELECT a. FROM t
+SELECT .a FROM t
+SELECT a.1 FROM t
+SELECT 1.a FROM t
+SELECT a..b FROM t
+SELECT [a]  .  [b] FROM t
+SELECT [a] /* c */ . [b] FROM t
+SELECT a.[b c].d FROM t
+SELECT a.b FROM t WHERE a.b IS NULL
+SELECT @a.b FROM t
+SELECT @a.b.c FROM t
+SELECT CAST (t.a AS int) FROM t
+SELECT t.a.b() FROM t
+SELECT a.b.c(1) FROM t
+SELECT dbo.f(1), sys.f(2), [dbo].[f](3) FROM t
+SELECT NEXT VALUE FOR dbo.s
+SELECT t.a COLLATE Latin1_General_CI_AS FROM t
+SELECT CASE WHEN t.a = 1 THEN u.b ELSE v.c END FROM t
