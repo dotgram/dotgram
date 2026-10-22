@@ -12,8 +12,17 @@ readonly record struct GlobalUsing(string Name, string? Alias, bool Static);
 /// grammars and settings.
 /// </summary>
 /// <remarks>
+/// <para>
 /// An evaluation reads the project file and everything it imports — <c>Directory.Build.props</c>,
-/// the SDK's own defaults — and runs no target: nothing is restored, built or written.
+/// the SDK's own defaults. Nothing is restored, built or written.
+/// </para>
+/// <para>
+/// One target runs: the SDK's <c>AddImplicitDefineConstants</c>, which only works out the symbols a
+/// build adds for the framework and platform (<c>NET8_0_OR_GREATER</c>, <c>WINDOWS</c>,
+/// <c>WINDOWS7_0_OR_GREATER</c>, …), by the SDK's own rules and properties
+/// (<c>DisableImplicitFrameworkDefines</c>, <c>DisableDiagnosticTracing</c>), so that the defines are
+/// the build's and not a copy of its rules. It reads properties and writes nothing.
+/// </para>
 /// </remarks>
 sealed class ProjectEvaluation
 {
@@ -42,7 +51,10 @@ sealed class ProjectEvaluation
 		return several.Length > 0 ? several : TargetFramework is { Length: > 0 } one ? [one] : [];
 	}
 
-	/// <summary>Evaluates the project once, for a framework or (null) as it stands.</summary>
+	/// <summary>
+	/// Evaluates the project once, for a framework — with the SDK's implicit symbols worked out — or
+	/// (null) as it stands, which says only what frameworks it targets.
+	/// </summary>
 	/// <exception cref="ToolException">The SDK cannot be run, or the evaluation fails.</exception>
 	public static async Task<ProjectEvaluation> RunAsync(string project, string? framework, string configuration)
 	{
@@ -54,6 +66,10 @@ sealed class ProjectEvaluation
 
 		if (framework is not null)
 			arguments.Add("-p:TargetFramework=" + framework);
+
+		// The target is the inner build's: a project of several frameworks has none outside them.
+		if (framework is not null)
+			arguments.Add("-t:AddImplicitDefineConstants");
 
 		arguments.Add("-getProperty:" + string.Join(",", ["TargetFrameworks", "TargetFramework", "AssemblyName", "LangVersion", "DefineConstants", "Nullable", .. GeneratorProperties]));
 		arguments.Add("-getItem:Compile,Using,AdditionalFiles");

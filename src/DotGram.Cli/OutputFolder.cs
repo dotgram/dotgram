@@ -72,10 +72,15 @@ static class OutputFolder
 	/// temporary file and a rename, deletes those the last manifest listed that this run did not write,
 	/// and writes the manifest last.
 	/// </summary>
+	/// <param name="names">How the file system compares names; <see cref="FileSystem.Names"/> but in a test.</param>
 	/// <returns>How many files were written, how many were already as they are, and how many deleted.</returns>
-	public static (int Written, int Unchanged, int Deleted) Write(string directory, IReadOnlyDictionary<string, string> files, string manifest)
+	public static (int Written, int Unchanged, int Deleted) Write(
+		string directory, IReadOnlyDictionary<string, string> files, string manifest, StringComparer? names = null)
 	{
+		names ??= FileSystem.Names;
+
 		var previous = Listed(directory);
+		var current  = new HashSet<string>(files.Keys, names);
 
 		try
 		{
@@ -87,15 +92,23 @@ static class OutputFolder
 
 			foreach (var (name, text) in files)
 			{
+				// A file the last run wrote under another case of the same name, where the file system
+				// takes the two for one: removed first, so that the file now has the name it is given.
+				foreach (var old in previous)
+					if (names.Equals(old, name) && !string.Equals(old, name, StringComparison.Ordinal) && File.Exists(Path.Combine(directory, old)))
+						File.Delete(Path.Combine(directory, old));
+
 				if (WriteIfChanged(Path.Combine(directory, name), Bytes(text, bom: true)))
 					written++;
 				else
 					unchanged++;
 			}
 
+			// What the last run wrote and this one does not, by the file system's own sense of a name:
+			// a spelling that differs only in case from one just written is that file, and stays.
 			foreach (var name in previous)
 			{
-				if (files.ContainsKey(name))
+				if (current.Contains(name))
 					continue;
 
 				var path = Path.Combine(directory, name);

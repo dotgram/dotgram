@@ -214,4 +214,129 @@ public sealed class RefusalTests
 		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
 		Assert.Contains("'net472'", run.Error, StringComparison.Ordinal);
 	}
+
+	/// <summary>A project whose grammar builds Node from the sources, Node and what it rests on declared as given.</summary>
+	static string ProjectBuildingNode(Scratch scratch, string declarations)
+	{
+		scratch.Write("p/Nodes.gram", """
+			Node : @Node = name: Word => @(new Node(name))
+
+			Word = ['a'..'z']+
+
+			parse Node
+			""");
+
+		scratch.Write("p/Nodes.cs", $$"""
+			using DotGram;
+
+			namespace Demo
+			{
+				[Gram("Nodes.gram")]
+				public static partial class Nodes { }
+
+				{{declarations}}
+			}
+			""");
+
+		return scratch.Write("p/p.csproj", """
+			<Project Sdk="Microsoft.NET.Sdk">
+			  <PropertyGroup>
+			    <TargetFramework>net10.0</TargetFramework>
+			  </PropertyGroup>
+			  <ItemGroup>
+			    <AdditionalFiles Include="Nodes.gram" />
+			  </ItemGroup>
+			</Project>
+			""");
+	}
+
+	/// <summary>
+	/// The grammar asks about Node, and what Node is depends on its base, which cannot be resolved: what
+	/// it fits, what it is built with, could be other than in a build that has the base.
+	/// </summary>
+	[Theory]
+	[InlineData("public class Node : Models.Base { public Node(string name) { } }")]
+	[InlineData("public class Node : Base { public Node(string name) { } } public class Base : Models.Root { }")]
+	[InlineData("public class Node { public Node(string name) { } public Models.Kind Kind { get; set; } }")]
+	public void A_missing_name_a_queried_type_rests_on_stops_the_run(string declarations)
+	{
+		using var scratch = new Scratch();
+
+		var project = ProjectBuildingNode(scratch, declarations);
+		var run     = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
+
+		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
+		Assert.Contains("'Models' cannot be resolved for net10.0", run.Output, StringComparison.Ordinal);
+		Assert.Matches("the declaration of '(Node|Base)', which a grammar's answer depends on, names it", run.Output);
+		Assert.False(Directory.Exists(scratch.Path("out")));
+	}
+
+	/// <summary>A missing name inside a body decides nothing the generator asks.</summary>
+	[Fact]
+	public void A_missing_name_in_a_body_is_one_line()
+	{
+		using var scratch = new Scratch();
+
+		var project = ProjectBuildingNode(scratch, "public class Node { public Node(string name) { var x = new Models.Thing(); } }");
+		var run     = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
+
+		Assert.True(run.Exit == 0, run.ToString());
+		Assert.Contains("unresolved names no grammar asks about", run.Output, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void A_compile_item_that_does_not_exist_exits_3()
+	{
+		using var scratch = new Scratch();
+
+		var project = scratch.Write("p/p.csproj", """
+			<Project Sdk="Microsoft.NET.Sdk">
+			  <PropertyGroup>
+			    <TargetFramework>net10.0</TargetFramework>
+			  </PropertyGroup>
+			  <ItemGroup>
+			    <Compile Include="Missing.cs" />
+			  </ItemGroup>
+			</Project>
+			""");
+
+		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
+
+		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
+		Assert.Contains("cannot read", run.Error, StringComparison.Ordinal);
+		Assert.Contains("Missing.cs", run.Error, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// Each framework its own references: System.Threading.Lock came with .NET 9, and a grammar that
+	/// builds one is refused for net8.0 as a net8.0 build refuses it.
+	/// </summary>
+	[Fact]
+	public void A_type_a_later_framework_added_is_missing_from_an_earlier_one()
+	{
+		using var scratch = new Scratch();
+
+		var grammar = scratch.Write("Locks.gram", "Gate : @System.Threading.Lock = 'g' => @(new System.Threading.Lock())\n\nparse Gate\n");
+
+		var net9 = Tool.Run(scratch.Root, "generate", grammar, "-o", scratch.Path("net9"), "--framework", "net9.0");
+		var net8 = Tool.Run(scratch.Root, "generate", grammar, "-o", scratch.Path("net8"), "--framework", "net8.0");
+
+		Assert.True(net9.Exit == 0, net9.ToString());
+		Assert.True(net8.Exit == ExitCode.Failure, net8.ToString());
+		Assert.Contains("System.Threading.Lock", net8.Output, StringComparison.Ordinal);
+
+		Assert.NotSame(Framework.Of("net8.0")!.References[0], Framework.Of("net10.0")!.References[0]);
+	}
+
+	[Fact]
+	public void A_platform_framework_for_a_lone_grammar_is_refused()
+	{
+		using var scratch = new Scratch();
+
+		var grammar = scratch.Write("Calc.gram", "Row = 'a'\n\nparse Row\n");
+		var run     = Tool.Run(scratch.Root, "generate", grammar, "-o", scratch.Path("out"), "--framework", "net8.0-windows");
+
+		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
+		Assert.Contains("only a project can say", run.Error, StringComparison.Ordinal);
+	}
 }

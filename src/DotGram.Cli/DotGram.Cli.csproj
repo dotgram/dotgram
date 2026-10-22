@@ -45,6 +45,8 @@
 
 		<!-- The framework's reference assemblies, carried in the tool, so that what a type is does not
 		     depend on which SDK or targeting pack happens to be installed where it runs. -->
+		<PackageReference Include="Basic.Reference.Assemblies.Net80" />
+		<PackageReference Include="Basic.Reference.Assemblies.Net90" />
 		<PackageReference Include="Basic.Reference.Assemblies.Net100" />
 		<PackageReference Include="Basic.Reference.Assemblies.NetStandard20" />
 	</ItemGroup>

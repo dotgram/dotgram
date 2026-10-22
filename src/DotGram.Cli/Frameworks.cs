@@ -14,8 +14,9 @@ namespace DotGram.Cli;
 /// </summary>
 /// <param name="Moniker">As written: <c>net10.0</c>, <c>netstandard2.0</c>.</param>
 /// <param name="ImplicitSymbols">
-/// What the SDK adds to <c>DefineConstants</c> in a target, which an evaluation does not run:
-/// <c>NET10_0</c>, <c>NET10_0_OR_GREATER</c> and the rest.
+/// What the SDK adds to <c>DefineConstants</c> for the framework — <c>NET10_0</c>,
+/// <c>NET10_0_OR_GREATER</c> and the rest — for a <c>.gram</c> input, where there is no project to
+/// ask. A project's are asked of the SDK itself (ProjectEvaluation).
 /// </param>
 /// <param name="DefaultLanguageVersion">The SDK's default <c>LangVersion</c> for the framework.</param>
 /// <param name="PackageFolders">
@@ -30,6 +31,12 @@ sealed record Framework(
 {
 	/// <summary>What <c>--framework</c> takes, and what a project may target.</summary>
 	public const string Supported = "net8.0, net9.0, net10.0 (and later .NET, compiled against net10.0's references), netstandard2.0";
+
+	static readonly Lazy<ImmutableArray<MetadataReference>> Net80 = new(static () =>
+		[.. Basic.Reference.Assemblies.Net80.References.All]);
+
+	static readonly Lazy<ImmutableArray<MetadataReference>> Net90 = new(static () =>
+		[.. Basic.Reference.Assemblies.Net90.References.All]);
 
 	static readonly Lazy<ImmutableArray<MetadataReference>> Net100 = new(static () =>
 		[.. Basic.Reference.Assemblies.Net100.References.All]);
@@ -77,9 +84,18 @@ sealed record Framework(
 
 			var majorText = major.ToString(CultureInfo.InvariantCulture);
 
+			// Each framework's own references, so that a type a later framework added is missing where it
+			// is missing in a build; a framework newer than the tool knows takes the newest it carries.
+			var references = major switch
+			{
+				8 => Net80.Value,
+				9 => Net90.Value,
+				_ => Net100.Value,
+			};
+
 			return new Framework(
 				moniker,
-				Net100.Value,
+				references,
 				[
 					"NET", "NET" + majorText + "_0", "NETCOREAPP",
 					.. Upward("NET", versions),
