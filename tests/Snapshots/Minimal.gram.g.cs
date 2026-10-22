@@ -1748,7 +1748,18 @@ namespace DotGram.Snapshots
 		/// </remarks>
 		public static global::System.Collections.Generic.IEnumerable<Match<string>> AnyItem(global::System.Collections.Generic.IEnumerable<string> input)
 		{
-			return AnyItem(new Lines(input));
+			if (input is null)
+				throw new global::System.ArgumentNullException(nameof(input));
+
+			return OverLines(input);
+
+			static global::System.Collections.Generic.IEnumerable<Match<string>> OverLines(global::System.Collections.Generic.IEnumerable<string> input)
+			{
+				using var lines = new Lines(input);
+
+				foreach (var item in AnyItem(lines))
+					yield return item;
+			}
 		}
 
 		static partial void OnHandingOff(ref object? state);
@@ -5458,7 +5469,18 @@ namespace DotGram.Snapshots
 		/// </remarks>
 		public static global::System.Collections.Generic.IEnumerable<string> ParseSheet(global::System.Collections.Generic.IEnumerable<string> input)
 		{
-			return ParseSheet(new Lines(input));
+			if (input is null)
+				throw new global::System.ArgumentNullException(nameof(input));
+
+			return OverLines(input);
+
+			static global::System.Collections.Generic.IEnumerable<string> OverLines(global::System.Collections.Generic.IEnumerable<string> input)
+			{
+				using var lines = new Lines(input);
+
+				foreach (var item in ParseSheet(lines))
+					yield return item;
+			}
 		}
 
 		static int Recognize_DotGram_C_Sharpen0(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
@@ -6060,6 +6082,7 @@ namespace DotGram.Snapshots
 			return tied;
 		}
 
+
 		sealed class Window
 		{
 			private readonly global::System.IO.TextReader _input;
@@ -6204,6 +6227,7 @@ namespace DotGram.Snapshots
 			private int    _at;
 			private bool   _ending;
 			private bool   _ended;
+			private bool   _disposed;
 
 			public Lines(global::System.Collections.Generic.IEnumerable<string> lines)
 			{
@@ -6260,8 +6284,11 @@ namespace DotGram.Snapshots
 
 			protected override void Dispose(bool disposing)
 			{
-				if (disposing)
+				if (disposing && !_disposed)
+				{
+					_disposed = true;
 					_lines.Dispose();
+				}
 
 				base.Dispose(disposing);
 			}

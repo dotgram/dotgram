@@ -276,7 +276,18 @@ namespace DotGram.Snapshots
 		/// </remarks>
 		public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.UrlValue>> AllUrls(global::System.Collections.Generic.IEnumerable<string> input)
 		{
-			return AllUrls(new Lines(input));
+			if (input is null)
+				throw new global::System.ArgumentNullException(nameof(input));
+
+			return OverLines(input);
+
+			static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.UrlValue>> OverLines(global::System.Collections.Generic.IEnumerable<string> input)
+			{
+				using var lines = new Lines(input);
+
+				foreach (var item in AllUrls(lines))
+					yield return item;
+			}
 		}
 
 		/// <summary>What the rule <c>Url</c> recognized.</summary>
@@ -4345,6 +4356,7 @@ namespace DotGram.Snapshots
 			return tied;
 		}
 
+
 		sealed class Window
 		{
 			private readonly global::System.IO.TextReader _input;
@@ -4489,6 +4501,7 @@ namespace DotGram.Snapshots
 			private int    _at;
 			private bool   _ending;
 			private bool   _ended;
+			private bool   _disposed;
 
 			public Lines(global::System.Collections.Generic.IEnumerable<string> lines)
 			{
@@ -4545,8 +4558,11 @@ namespace DotGram.Snapshots
 
 			protected override void Dispose(bool disposing)
 			{
-				if (disposing)
+				if (disposing && !_disposed)
+				{
+					_disposed = true;
 					_lines.Dispose();
+				}
 
 				base.Dispose(disposing);
 			}

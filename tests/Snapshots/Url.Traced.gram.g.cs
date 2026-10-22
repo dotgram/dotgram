@@ -442,7 +442,18 @@ namespace DotGram.Snapshots
 			/// </remarks>
 			public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> AllUrls(global::System.Collections.Generic.IEnumerable<string> input)
 			{
-				return AllUrls(new Lines(input));
+				if (input is null)
+					throw new global::System.ArgumentNullException(nameof(input));
+
+				return OverLines(input);
+
+				static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> OverLines(global::System.Collections.Generic.IEnumerable<string> input)
+				{
+					using var lines = new Lines(input);
+
+					foreach (var item in AllUrls(lines))
+						yield return item;
+				}
 			}
 
 			/// <summary>What the rule <c>Url</c> recognized.</summary>
@@ -4453,6 +4464,7 @@ namespace DotGram.Snapshots
 				return ties == null || ties.Count == 0 ? null : ties.ToArray();
 			}
 
+
 			/// <summary>
 			/// What a traced reading of this grammar does, told one call a thing it does (docs/syntax.md, §6.9).
 			/// </summary>
@@ -6546,6 +6558,7 @@ namespace DotGram.Snapshots
 				private int    _at;
 				private bool   _ending;
 				private bool   _ended;
+				private bool   _disposed;
 
 				public Lines(global::System.Collections.Generic.IEnumerable<string> lines)
 				{
@@ -6602,8 +6615,11 @@ namespace DotGram.Snapshots
 
 				protected override void Dispose(bool disposing)
 				{
-					if (disposing)
+					if (disposing && !_disposed)
+					{
+						_disposed = true;
 						_lines.Dispose();
+					}
 
 					base.Dispose(disposing);
 				}

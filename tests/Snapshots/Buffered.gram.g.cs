@@ -3085,6 +3085,7 @@ namespace DotGram.Snapshots
 			return tied;
 		}
 
+
 		internal interface IParserInputSource<T>
 		{
 			bool Ensure(int position, int length);
@@ -3707,6 +3708,7 @@ namespace DotGram.Snapshots
 			private int    _at;
 			private bool   _ending;
 			private bool   _ended;
+			private bool   _disposed;
 
 			public Lines(global::System.Collections.Generic.IEnumerable<string> lines)
 			{
@@ -3763,8 +3765,11 @@ namespace DotGram.Snapshots
 
 			protected override void Dispose(bool disposing)
 			{
-				if (disposing)
+				if (disposing && !_disposed)
+				{
+					_disposed = true;
 					_lines.Dispose();
+				}
 
 				base.Dispose(disposing);
 			}

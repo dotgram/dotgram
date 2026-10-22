@@ -276,7 +276,18 @@ namespace DotGram.Snapshots
 		/// </remarks>
 		public static global::System.Collections.Generic.IEnumerable<Match<string>> FindName(global::System.Collections.Generic.IEnumerable<string> input)
 		{
-			return FindName(new Lines(input));
+			if (input is null)
+				throw new global::System.ArgumentNullException(nameof(input));
+
+			return OverLines(input);
+
+			static global::System.Collections.Generic.IEnumerable<Match<string>> OverLines(global::System.Collections.Generic.IEnumerable<string> input)
+			{
+				using var lines = new Lines(input);
+
+				foreach (var item in FindName(lines))
+					yield return item;
+			}
 		}
 
 		/// <summary>Every occurrence of <c>Row</c>, in order, found as it is asked for.</summary>
@@ -350,7 +361,18 @@ namespace DotGram.Snapshots
 		/// </remarks>
 		public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Feed.Row>> AllRows(global::System.Collections.Generic.IEnumerable<string> input)
 		{
-			return AllRows(new Lines(input));
+			if (input is null)
+				throw new global::System.ArgumentNullException(nameof(input));
+
+			return OverLines(input);
+
+			static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Feed.Row>> OverLines(global::System.Collections.Generic.IEnumerable<string> input)
+			{
+				using var lines = new Lines(input);
+
+				foreach (var item in AllRows(lines))
+					yield return item;
+			}
 		}
 
 		/// <summary>What the rule <c>Feed</c> recognized.</summary>
@@ -2549,6 +2571,7 @@ namespace DotGram.Snapshots
 			return tied;
 		}
 
+
 		sealed class Window
 		{
 			private readonly global::System.IO.TextReader _input;
@@ -2693,6 +2716,7 @@ namespace DotGram.Snapshots
 			private int    _at;
 			private bool   _ending;
 			private bool   _ended;
+			private bool   _disposed;
 
 			public Lines(global::System.Collections.Generic.IEnumerable<string> lines)
 			{
@@ -2749,8 +2773,11 @@ namespace DotGram.Snapshots
 
 			protected override void Dispose(bool disposing)
 			{
-				if (disposing)
+				if (disposing && !_disposed)
+				{
+					_disposed = true;
 					_lines.Dispose();
+				}
 
 				base.Dispose(disposing);
 			}
