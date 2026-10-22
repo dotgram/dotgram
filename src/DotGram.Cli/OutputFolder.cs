@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
@@ -14,9 +13,8 @@ static class OutputFolder
 	public const string ManifestName = ".dotgram.json";
 
 	/// <summary>
-	/// What the manifest says and how it is written: one format, versioned, the files sorted, each
-	/// with the SHA-256 of its text with line ends made LF — so that a checkout that stores LF and one
-	/// that stores CRLF hold the same manifest.
+	/// What the manifest says and how it is written: one format, versioned, the tool and generator that
+	/// wrote the folder, and the files, sorted — what the next run deletes when it no longer writes one.
 	/// </summary>
 	public static string Manifest(IReadOnlyDictionary<string, string> files, string toolVersion, string generatorVersion)
 	{
@@ -30,11 +28,10 @@ static class OutputFolder
 
 		var first = true;
 
-		foreach (var (name, content) in files.OrderBy(static pair => pair.Key, StringComparer.Ordinal))
+		foreach (var name in files.Keys.Order(StringComparer.Ordinal))
 		{
 			text.Append(first ? "\n" : ",\n");
-			text.Append("    { \"name\": ").Append(JsonSerializer.Serialize(name))
-				.Append(", \"sha256\": \"").Append(Hash(content)).Append("\" }");
+			text.Append("    { \"name\": ").Append(JsonSerializer.Serialize(name)).Append(" }");
 
 			first = false;
 		}
@@ -43,20 +40,6 @@ static class OutputFolder
 		text.Append("}\n");
 
 		return text.ToString();
-	}
-
-	static string Hash(string text)
-	{
-		return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Normalized(text)))).ToLowerInvariant();
-	}
-
-	/// <summary>Line ends as LF, and no byte order mark: the text as two checkouts agree on it.</summary>
-	public static string Normalized(string text)
-	{
-		if (text.Length > 0 && text[0] == '﻿')
-			text = text.Substring(1);
-
-		return text.Replace("\r\n", "\n").Replace('\r', '\n');
 	}
 
 	/// <summary>The file names a manifest in the folder lists, or none.</summary>
@@ -172,85 +155,5 @@ static class OutputFolder
 		}
 
 		return true;
-	}
-
-	/// <summary>How the folder compares with what a run would write.</summary>
-	/// <param name="Equal">Whether every file is there, equal once line ends are made alike, and no listed file is left over.</param>
-	/// <param name="LineEndsOnly">Equal, but only once line ends (or the byte order mark) are made alike.</param>
-	/// <param name="Difference">The first difference, in words, where there is one.</param>
-	public readonly record struct Comparison(bool Equal, bool LineEndsOnly, string? Difference);
-
-	/// <summary>Compares the folder with what a run would write, writing nothing.</summary>
-	public static Comparison Verify(string directory, IReadOnlyDictionary<string, string> files, string manifest)
-	{
-		var lineEnds = false;
-
-		foreach (var (name, text) in files.Append(new KeyValuePair<string, string>(ManifestName, manifest)))
-		{
-			var path = Path.Combine(directory, name);
-
-			if (!File.Exists(path))
-				return new Comparison(false, false, $"{path}: missing; the run would write it.");
-
-			var bytes  = File.ReadAllBytes(path);
-			var wanted = Bytes(text, bom: name != ManifestName);
-
-			if (bytes.AsSpan().SequenceEqual(wanted))
-				continue;
-
-			var actual   = Normalized(Encoding.UTF8.GetString(bytes));
-			var expected = Normalized(text);
-
-			if (actual == expected)
-			{
-				lineEnds = true;
-				continue;
-			}
-
-			return new Comparison(false, false, $"{path}: {FirstDifference(expected, actual)}");
-		}
-
-		var listed = Listed(directory);
-
-		foreach (var name in listed)
-			if (!files.ContainsKey(name) && File.Exists(Path.Combine(directory, name)))
-				return new Comparison(false, false, $"{Path.Combine(directory, name)}: the manifest lists it and the run would not write it.");
-
-		return new Comparison(true, lineEnds, null);
-	}
-
-	/// <summary>The first line the two texts differ on, both of them, cut to a readable length.</summary>
-	static string FirstDifference(string expected, string actual)
-	{
-		var wanted = expected.Split('\n');
-		var found  = actual.Split('\n');
-
-		for (var line = 0; ; line++)
-		{
-			var a = line < wanted.Length ? wanted[line] : null;
-			var b = line < found.Length ? found[line] : null;
-
-			if (a == b)
-			{
-				if (a is null)
-					return "differs";
-
-				continue;
-			}
-
-			var number = (line + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
-
-			return $"differs from line {number}:" + Environment.NewLine +
-				"  generated: " + Shown(a) + Environment.NewLine +
-				"  in folder: " + Shown(b);
-		}
-	}
-
-	static string Shown(string? line)
-	{
-		if (line is null)
-			return "(end of file)";
-
-		return line.Length <= 160 ? line : line.Substring(0, 160) + "…";
 	}
 }

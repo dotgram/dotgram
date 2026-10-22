@@ -5,11 +5,8 @@ namespace DotGram.Cli;
 /// <summary>What the tool's process exits with.</summary>
 static class ExitCode
 {
-	/// <summary>Generated, or under <c>--verify</c> equal.</summary>
+	/// <summary>Generated. (1 is not used.)</summary>
 	public const int Done = 0;
-
-	/// <summary><c>--verify</c> found the folder different from what the run would write.</summary>
-	public const int Differs = 1;
 
 	/// <summary>The grammar has errors, or in <c>.gram</c> mode the generated parser does not compile.</summary>
 	public const int GrammarErrors = 2;
