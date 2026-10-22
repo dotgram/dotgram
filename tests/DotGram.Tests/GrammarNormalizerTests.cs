@@ -823,6 +823,11 @@ public sealed class GrammarNormalizerTests
 			return false;
 		}
 
+		public string? DeclaringTypeOfExternal(string methodName, ExternalMethodRole role)
+		{
+			return null;
+		}
+
 		public bool Rewinds(string qualifiedName)
 		{
 			return false;
@@ -891,6 +896,11 @@ public sealed class GrammarNormalizerTests
 		public bool IsNullable(string qualifiedName)
 		{
 			return false;
+		}
+
+		public string? DeclaringTypeOfExternal(string methodName, ExternalMethodRole role)
+		{
+			return null;
 		}
 
 		public bool Rewinds(string qualifiedName)
@@ -989,6 +999,11 @@ public sealed class GrammarNormalizerTests
 			return false;
 		}
 
+		public string? DeclaringTypeOfExternal(string methodName, ExternalMethodRole role)
+		{
+			return null;
+		}
+
 		public bool Rewinds(string qualifiedName)
 		{
 			return false;
@@ -1074,6 +1089,11 @@ public sealed class GrammarNormalizerTests
 		public bool IsNullable(string qualifiedName)
 		{
 			return false;
+		}
+
+		public string? DeclaringTypeOfExternal(string methodName, ExternalMethodRole role)
+		{
+			return null;
 		}
 
 		public bool Rewinds(string qualifiedName)

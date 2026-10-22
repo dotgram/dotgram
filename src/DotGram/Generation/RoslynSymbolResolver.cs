@@ -314,6 +314,21 @@ public sealed class RoslynSymbolResolver(
 	/// and where there is no host to look from nothing is looked for at all.
 	/// </para>
 	/// </remarks>
+	public string? DeclaringTypeOfExternal(string methodName, ExternalMethodRole role)
+	{
+		if (_host is null || _compilation.GetTypeByMetadataName(_host) is not { } host)
+			return null;
+
+		// Where a simple name written in the host binds: the first class that has a method it can
+		// call. A method found only elsewhere in the compilation is not one the call reaches.
+		foreach (var type in Reached(host))
+			foreach (var member in type.GetMembers(methodName))
+				if (member is IMethodSymbol method && Callable(method, host, role))
+					return method.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+		return null;
+	}
+
 	public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role)
 	{
 		if (_host is null || _compilation.GetTypeByMetadataName(_host) is not { } host)
