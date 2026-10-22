@@ -94,16 +94,6 @@ public interface ISymbolResolver
 	ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role);
 
 	/// <summary>
-	/// The class that declares the method a call to <paramref name="methodName"/> from the host binds to,
-	/// fully qualified, or null where nothing says.
-	/// </summary>
-	/// <remarks>
-	/// For writing the call through the class: the generated methods declare locals and parameters of
-	/// their own, and a method of the author's called <c>text</c> or <c>p</c> would be hidden by them.
-	/// </remarks>
-	string? DeclaringTypeOfExternal(string methodName, ExternalMethodRole role);
-
-	/// <summary>
 	/// Whether a context of this type can be put back as it was: it has an instance
 	/// <c>Mark()</c> returning something, and an instance <c>Rollback</c> taking exactly that,
 	/// both callable from the generated parser (§7.7).
@@ -275,11 +265,6 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 	/// Yes, unlike the answers above: here a no is an error, and a grammar tested without a host
 	/// names methods that are nowhere.
 	/// </remarks>
-	public string? DeclaringTypeOfExternal(string methodName, ExternalMethodRole role)
-	{
-		return null;
-	}
-
 	public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role)
 	{
 		return ExternalMethodResolution.Found;

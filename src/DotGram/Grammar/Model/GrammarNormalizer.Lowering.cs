@@ -322,18 +322,9 @@ public sealed partial class GrammarNormalizer
 
 		return new Node.External(method)
 		{
-			Qualified     = Qualified(method, ExternalMethodRole.Recognizer),
 			UsesInputView = resolution is ExternalMethodResolution.FoundInput or ExternalMethodResolution.FoundInputWithContext,
 			UsesContext   = resolution is ExternalMethodResolution.FoundInputWithContext,
 		};
-	}
-
-	/// <summary>The method written through the class the host says declares it, or null.</summary>
-	string? Qualified(string method, ExternalMethodRole role)
-	{
-		return _resolver.DeclaringTypeOfExternal(method, role) is { Length: > 0 } declaring
-			? declaring + "." + method
-			: null;
 	}
 
 	/// <summary>Every value-returning external recognizer synthesized so far, by method name.</summary>
@@ -1305,7 +1296,7 @@ public sealed partial class GrammarNormalizer
 						break;
 				}
 
-				unresolved.Add(predicate with { Qualified = Qualified(predicate.Name, ExternalMethodRole.Predicate) });
+				unresolved.Add(symbol);
 				return;
 			}
 

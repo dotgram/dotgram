@@ -3101,10 +3101,5 @@ public sealed class CSharpEmitterTests
 		{
 			return false;
 		}
-
-		public string? DeclaringTypeOfExternal(string methodName, ExternalMethodRole role)
-		{
-			return null;
-		}
 	}
 }
