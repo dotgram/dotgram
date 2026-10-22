@@ -18,19 +18,21 @@ sealed class ConfiguredOptions : AnalyzerConfigOptionsProvider
 
 	static readonly Options None = new(NoValues);
 
+	readonly AnalyzerConfigSet?               _set;
 	readonly Options                          _global;
 	readonly Dictionary<SyntaxTree, Options>  _trees;
 	readonly Dictionary<AdditionalText, Options> _texts;
 
-	ConfiguredOptions(Options global, Dictionary<SyntaxTree, Options> trees, Dictionary<AdditionalText, Options> texts)
+	ConfiguredOptions(AnalyzerConfigSet? set, Options global, Dictionary<SyntaxTree, Options> trees, Dictionary<AdditionalText, Options> texts)
 	{
+		_set    = set;
 		_global = global;
 		_trees  = trees;
 		_texts  = texts;
 	}
 
 	/// <summary>No configuration at all: a lone grammar has no build to give any.</summary>
-	public static ConfiguredOptions Empty { get; } = new(None, [], []);
+	public static ConfiguredOptions Empty { get; } = new(null, None, [], []);
 
 	/// <summary>The configuration files the compiler was given, in its order, applied to each source and additional file.</summary>
 	/// <exception cref="ToolException">A configuration file cannot be read.</exception>
@@ -61,14 +63,31 @@ sealed class ConfiguredOptions : AnalyzerConfigOptionsProvider
 		foreach (var text in texts)
 			byText[text] = new Options(set.GetOptionsForSourcePath(text.Path).AnalyzerOptions);
 
-		return new ConfiguredOptions(new Options(set.GlobalConfigOptions.AnalyzerOptions), byTree, byText);
+		return new ConfiguredOptions(set, new Options(set.GlobalConfigOptions.AnalyzerOptions), byTree, byText);
 	}
 
 	/// <summary>The same, with one more global option: what the tool itself asks of the generator.</summary>
 	public ConfiguredOptions WithGlobal(string key, string value)
 	{
-		return new ConfiguredOptions(new Options(_global.Values.SetItem(key, value)), _trees, _texts);
+		return new ConfiguredOptions(_set, new Options(_global.Values.SetItem(key, value)), _trees, _texts);
 	}
+
+	/// <summary>
+	/// The severities the configuration files give diagnostics (<c>dotnet_diagnostic.ID.severity</c>) for a
+	/// file, by its full path: those of the sections that apply to it, then those of the global files.
+	/// </summary>
+	/// <param name="path">The file a diagnostic is in, or empty where it is in none.</param>
+	public (ImmutableDictionary<string, ReportDiagnostic> ForFile, ImmutableDictionary<string, ReportDiagnostic> Global) SeveritiesFor(string path)
+	{
+		if (_set is null)
+			return (NoSeverities, NoSeverities);
+
+		var global = _set.GlobalConfigOptions.TreeOptions;
+
+		return (path.Length > 0 ? _set.GetOptionsForSourcePath(path).TreeOptions : NoSeverities, global);
+	}
+
+	static readonly ImmutableDictionary<string, ReportDiagnostic> NoSeverities = ImmutableDictionary.Create<string, ReportDiagnostic>(StringComparer.OrdinalIgnoreCase);
 
 	public override AnalyzerConfigOptions GlobalOptions
 	{

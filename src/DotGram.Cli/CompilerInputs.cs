@@ -40,9 +40,6 @@ sealed class CompilerInputs
 	/// <summary>The version of the compiler this project's build runs, or null where it could not be told.</summary>
 	public required Version?                   CompilerVersion   { get; init; }
 
-	/// <summary>What the tool noticed about the project that its user should know, said once per project.</summary>
-	public required IReadOnlyList<string>      Warnings          { get; init; }
-
 	/// <exception cref="ToolException">MSBuild fails, the project is not restored, or its arguments do not parse.</exception>
 	public static CompilerInputs Read(string project, string moniker, string configuration, Version sdk)
 	{
@@ -63,7 +60,7 @@ sealed class CompilerInputs
 			[
 				.. properties, "-t:Compile", "-p:SkipCompilerExecution=true", "-p:ProvideCommandLineArgs=true", "-p:BuildProjectReferences=false",
 				"-p:DesignTimeBuild=true", "-p:NonExistentFile=" + absent, "-getItem:CscCommandLineArgs",
-				"-getProperty:RoslynTargetsPath,CscToolPath,ProjectAssetsFile,MSBuildAllProjects",
+				"-getProperty:RoslynTargetsPath,CscToolPath",
 			],
 			sdk,
 			"MSBuild failed for " + moniker);
@@ -95,7 +92,6 @@ sealed class CompilerInputs
 			ReferencesElapsed = references,
 			InputsElapsed     = inputs,
 			CompilerVersion   = CompilerVersionOf(json.RootElement),
-			Warnings          = StaleRestore(project, json.RootElement),
 		};
 	}
 
@@ -138,38 +134,5 @@ sealed class CompilerInputs
 		}
 
 		return null;
-	}
-
-	/// <summary>
-	/// A warning where the restore the project was last given is older than a file that can change
-	/// it: the project file, and the <c>Directory.Packages.props</c> and <c>Directory.Build.*</c> files
-	/// it imports. The tool does not restore; the build would.
-	/// </summary>
-	static IReadOnlyList<string> StaleRestore(string project, JsonElement root)
-	{
-		var assets = Property(root, "ProjectAssetsFile");
-
-		if (assets.Length == 0 || !File.Exists(assets))
-			return [];
-
-		var restored = File.GetLastWriteTimeUtc(assets);
-		var warnings = new List<string>();
-
-		var files = Property(root, "MSBuildAllProjects")
-			.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-			.Where(static file =>
-			{
-				var name = Path.GetFileName(file);
-
-				return name.Equals("Directory.Packages.props", StringComparison.OrdinalIgnoreCase) || name.StartsWith("Directory.Build.", StringComparison.OrdinalIgnoreCase);
-			})
-			.Prepend(project)
-			.Distinct(StringComparer.Ordinal);
-
-		foreach (var file in files)
-			if (File.Exists(file) && File.GetLastWriteTimeUtc(file) > restored)
-				warnings.Add($"restore may be stale: {file} is newer than {assets}; if package references changed, run `dotnet restore` (the tool never restores).");
-
-		return warnings;
 	}
 }

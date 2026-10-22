@@ -585,6 +585,43 @@ public sealed class ProjectInputTests
 		Assert.Equal(codePage.Length > 0 ? encoding == 1252 : encoding == 65001, written.Contains('\u00e9', StringComparison.Ordinal));
 	}
 
+	/// <summary>
+	/// Without a code page a file is UTF-8 where it is valid UTF-8, and otherwise in the system's default
+	/// code page, as the compiler falls back to it (UTF-8 itself on Linux and macOS, the ANSI page on
+	/// Windows); a byte order mark and an explicit code page decide before that.
+	/// </summary>
+	[Fact]
+	public void A_file_that_is_no_utf8_is_read_in_the_default_code_page()
+	{
+		using var scratch = new Scratch();
+
+		System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+
+		var invalid = scratch.Path("invalid.cs");
+
+		File.WriteAllBytes(invalid, [(byte)'a', 0xE9, (byte)'b']);
+
+		Assert.Equal(System.Text.Encoding.GetEncoding(0).GetString([(byte)'a', 0xE9, (byte)'b']), GenerationInputs.Read(invalid).ToString());
+
+		var valid = scratch.Path("valid.cs");
+
+		File.WriteAllBytes(valid, new UTF8Encoding(false).GetBytes("a\u00e9b"));
+
+		Assert.Equal("a\u00e9b", GenerationInputs.Read(valid).ToString());
+
+		// A code page told to the compiler is used for bytes that are valid UTF-8 as well.
+		Assert.Equal(
+			System.Text.Encoding.Latin1.GetString(new UTF8Encoding(false).GetBytes("a\u00e9b")),
+			GenerationInputs.Read(valid, System.Text.Encoding.Latin1).ToString());
+
+		// A byte order mark is read as the mark says.
+		var marked = scratch.Path("marked.cs");
+
+		File.WriteAllBytes(marked, [.. new byte[] { 0xEF, 0xBB, 0xBF }, .. new UTF8Encoding(false).GetBytes("a\u00e9b")]);
+
+		Assert.Equal("a\u00e9b", GenerationInputs.Read(marked, System.Text.Encoding.Latin1).ToString());
+	}
+
 	/// <summary>The same for an additional file: a grammar saved in Windows-1252 with the project's <c>CodePage</c>.</summary>
 	[Fact]
 	public void An_additional_file_in_a_code_page_is_read_as_the_compiler_reads_it()
@@ -716,9 +753,144 @@ public sealed class ProjectInputTests
 		Equality.Same(built, scratch.Path("out"));
 	}
 
-	/// <summary>A restore older than the project file is said to be, once; a fresh one is not.</summary>
+	/// <summary>A grammar with a rule nothing reaches, which the generator warns about (GRAM4018).</summary>
+	const string Unreached = Pairs + "\nSpare = 'x'\n";
+
+	const string NoWarn = "<NoWarn>$(NoWarn);GRAM4018</NoWarn>";
+	const string AsError = "<WarningsAsErrors>$(WarningsAsErrors);GRAM4018</WarningsAsErrors>";
+	const string AllAsErrors = "<TreatWarningsAsErrors>true</TreatWarningsAsErrors>";
+	const string AllButOne = AllAsErrors + "<WarningsNotAsErrors>GRAM4018</WarningsNotAsErrors>";
+
+	/// <summary>
+	/// The generator's own diagnostics take the severity the build gives them: the <c>.editorconfig</c>
+	/// sections that apply to the C# file the diagnostic is in (a diagnostic in a grammar file has none),
+	/// the global configuration, <c>/nowarn</c> and <c>/warnaserror</c>, in the order the compiler applies
+	/// them: the project's <c>NoWarn</c> and <c>WarningsAsErrors</c> win over any configuration file. The tool's word for GRAM4018 is the build's, and it stops the run when it is an error.
+	/// </summary>
+	[Theory]
+	[InlineData(false, "", "", "", "warning")]
+	[InlineData(false, "[*.gram]\ndotnet_diagnostic.GRAM4018.severity = error", "", "", "warning")]
+	[InlineData(false, "", "error", "", "error")]
+	[InlineData(false, "", "none", "", "none")]
+	[InlineData(false, "", "suggestion", "", "none")]
+	[InlineData(false, "", "", NoWarn, "none")]
+	[InlineData(false, "", "", AsError, "error")]
+	[InlineData(false, "", "", AllAsErrors, "error")]
+	[InlineData(false, "", "warning", AllAsErrors, "error")]
+	[InlineData(false, "", "error", NoWarn, "none")]
+	[InlineData(false, "", "", AllButOne, "warning")]
+	[InlineData(false, "", "suggestion", AllAsErrors, "none")]
+	[InlineData(false, "", "none", AsError, "error")]
+	[InlineData(true, "", "", "", "warning")]
+	[InlineData(true, "[*.cs]\ndotnet_diagnostic.GRAM4018.severity = error", "", "", "error")]
+	[InlineData(true, "[*.cs]\ndotnet_diagnostic.GRAM4018.severity = none", "", "", "none")]
+	[InlineData(true, "[*.cs]\ndotnet_diagnostic.GRAM4018.severity = suggestion", "", "", "none")]
+	[InlineData(true, "[*.gram]\ndotnet_diagnostic.GRAM4018.severity = error", "", "", "warning")]
+	[InlineData(true, "", "error", "", "error")]
+	[InlineData(true, "", "", NoWarn, "none")]
+	[InlineData(true, "", "", AsError, "error")]
+	[InlineData(true, "[*.cs]\ndotnet_diagnostic.GRAM4018.severity = warning", "", AllAsErrors, "error")]
+	[InlineData(true, "[*.cs]\ndotnet_diagnostic.GRAM4018.severity = error", "", NoWarn, "none")]
+	[InlineData(true, "[*.cs]\ndotnet_diagnostic.GRAM4018.severity = none", "", AsError, "error")]
+	[InlineData(true, "[*.cs]\ndotnet_diagnostic.GRAM4018.severity = none", "error", "", "none")]
+	[InlineData(true, "[*.cs]\ndotnet_diagnostic.GRAM4018.severity = warning", "error", "", "warning")]
+	[InlineData(true, "", "error", NoWarn, "none")]
+	[InlineData(true, "", "none", AsError, "error")]
+	public void The_generators_diagnostics_take_the_severity_of_the_build(bool inline, string editorConfig, string globalSeverity, string settings, string expected)
+	{
+		using var scratch = new Scratch();
+
+		var host = inline
+			? "using DotGram;\n\nnamespace Demo\n{\n\t[Gram(@\"" + Unreached.Replace("\"", "\"\"", StringComparison.Ordinal) + "\")]\n\tpublic static partial class Pairs { }\n}\n"
+			: PlainHost;
+
+		var project = App(
+			scratch,
+			"p",
+			host,
+			items: globalSeverity.Length > 0 ? "<GlobalAnalyzerConfigFiles Include=\"severities.globalconfig\" />" : "",
+			settings: settings,
+			grammar: inline ? Pairs : Unreached);
+
+		if (editorConfig.Length > 0)
+			scratch.Write("p/.editorconfig", "root = true\n\n" + editorConfig + "\n");
+
+		if (globalSeverity.Length > 0)
+			scratch.Write("p/severities.globalconfig", $"is_global = true\n\ndotnet_diagnostic.GRAM4018.severity = {globalSeverity}\n");
+
+		var (_, text, built) = Build.TryGenerated(project);
+		var run              = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--line-paths", "absolute");
+
+		Assert.True(expected == SeverityOf(text, "GRAM4018"), "the build:\n" + text);
+		Assert.True(expected == SeverityOf(run.Output, "GRAM4018"), run.ToString());
+		Assert.Equal(expected == "error" ? ExitCode.GrammarErrors : ExitCode.Done, run.Exit);
+
+		if (expected != "error")
+			Equality.Same(built, scratch.Path("out"));
+	}
+
+	/// <summary>The word the output gives a diagnostic (<c>error</c> or <c>warning</c>), or <c>none</c> where it does not show it.</summary>
+	static string SeverityOf(string output, string id)
+	{
+		var match = System.Text.RegularExpressions.Regex.Match(output, @"\b(error|warning) " + id + ":");
+
+		return match.Success ? match.Groups[1].Value : "none";
+	}
+
+	/// <summary>
+	/// A compiler older than the DotGram the tool carries cannot run it: the build skips DotGram
+	/// (CS9057) and generates nothing, and so does not the tool. The compiler's version is the one of
+	/// the <c>Microsoft.CodeAnalysis</c> beside the project's compiler.
+	/// </summary>
 	[Fact]
-	public void A_restore_older_than_the_project_is_warned_about()
+	public void A_compiler_older_than_dotgram_needs_is_refused()
+	{
+		using var scratch = new Scratch();
+
+		var older = new Version(AnalyzerGenerators.DotGramNeeds.Major - 1, 0, 0, 0);
+
+		// MSBuild wants the compiler's executable to be there, though a design-time build never runs it.
+		scratch.Write("compiler/csc", "");
+
+		var stub = CSharpCompilation.Create(
+				"Microsoft.CodeAnalysis",
+				[CSharpSyntaxTree.ParseText($"[assembly: System.Reflection.AssemblyVersion(\"{older}\")]", cancellationToken: TestContext.Current.CancellationToken)],
+				Basic.Reference.Assemblies.Net100.References.All,
+				new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+			.Emit(scratch.Path("compiler", "Microsoft.CodeAnalysis.dll"), cancellationToken: TestContext.Current.CancellationToken);
+
+		Assert.True(stub.Success, string.Join("\n", stub.Diagnostics));
+
+		var project = App(scratch, "p", settings: $"<CscToolPath>{scratch.Path("compiler")}</CscToolPath>");
+
+		Dotnet.Restore(project);
+
+		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
+
+		Assert.Equal(ExitCode.Failure, run.Exit);
+		Assert.True(run.Error.Contains($"this SDK's compiler (Roslyn {older}) cannot run DotGram", StringComparison.Ordinal), run.ToString());
+		Assert.Contains("CS9057", run.Error, StringComparison.Ordinal);
+		Assert.False(Directory.Exists(scratch.Path("out")));
+	}
+
+	/// <summary>A compiler as new as DotGram's, or one that cannot be told, is not refused.</summary>
+	[Fact]
+	public void A_compiler_as_new_as_dotgram_needs_is_accepted()
+	{
+		var needed = AnalyzerGenerators.DotGramNeeds;
+
+		AnalyzerGenerators.RequireCompilerFor(needed, needed, "x");
+		AnalyzerGenerators.RequireCompilerFor(new Version(needed.Major + 1, 0), needed, "x");
+		AnalyzerGenerators.RequireCompilerFor(null, needed, "x");
+
+		var exception = Assert.Throws<ToolException>(() => AnalyzerGenerators.RequireCompilerFor(new Version(needed.Major - 1, 0), needed, "x"));
+
+		Assert.Equal(ExitCode.Failure, exception.ExitCode);
+	}
+
+	/// <summary>No restore warning: a no-op restore does not rewrite the assets file, so its age says nothing.</summary>
+	[Fact]
+	public void A_project_file_newer_than_the_restore_is_not_warned_about()
 	{
 		using var scratch = new Scratch();
 
@@ -726,19 +898,12 @@ public sealed class ProjectInputTests
 		var props   = scratch.Write("p/Directory.Build.props", "<Project />");
 
 		Dotnet.Restore(project);
-
-		var fresh = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("fresh"));
-
-		Assert.True(fresh.Exit == 0, fresh.ToString());
-		Assert.DoesNotContain("restore may be stale", fresh.Output, StringComparison.Ordinal);
-
 		File.SetLastWriteTimeUtc(props, DateTime.UtcNow.AddHours(1));
 
-		var stale = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("stale"));
+		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
 
-		Assert.True(stale.Exit == 0, stale.ToString());
-		Assert.Equal(1, stale.Output.Split("restore may be stale", StringSplitOptions.None).Length - 1);
-		Assert.Contains("Directory.Build.props", stale.Output, StringComparison.Ordinal);
+		Assert.True(run.Exit == 0, run.ToString());
+		Assert.DoesNotContain("restore may be stale", run.Output, StringComparison.Ordinal);
 	}
 
 	/// <summary><c>#if DEBUG</c> in a host: the default configuration is Release, and Debug is asked for.</summary>

@@ -37,6 +37,14 @@ static class Help
 		inputs outside the IDE's design-time pass. A difference on a project inside that condition,
 		which every ordinary SDK-style project is, is a defect in the tool: report it.
 
+		Two differences by design: #line paths are relative to the output folder (--line-paths absolute
+		gives the build's text), and the generation report files (DotGramReportGeneration) are not
+		written. The EmbeddedAttribute definition is the compiler's text and may differ in line endings
+		from your SDK's. The diagnostics of DotGram itself are shown at the severities the build gives
+		them (.editorconfig, /nowarn, /warnaserror); an error among them stops the run (exit 2).
+		The SDK's compiler must be at least as new as the one DotGram was built for, as for the build,
+		which skips a generator built for a newer compiler (CS9057): the run then exits 3.
+
 		What it does not do: it does not compile the project and does not tell you whether it builds;
 		errors in grammar actions, in the generated parser or anywhere else in the project show when
 		your build compiles the files. It reports the errors in your own sources that it sees, at the
@@ -46,8 +54,7 @@ static class Help
 		MSBuild's Compile target with the compiler skipped, as a design-time build
 		(DesignTimeBuild=true), so a custom target that does not skip design-time builds runs too,
 		and one that follows the compiler finds no new assembly. It does not restore: after changing
-		package references, run dotnet restore first (it warns when the restore looks older than the
-		project files). When this is not good enough, build with EmitCompilerGeneratedFiles=true and
+		package references, run dotnet restore first. When this is not good enough, build with EmitCompilerGeneratedFiles=true and
 		copy the generated files.
 
 		Options:

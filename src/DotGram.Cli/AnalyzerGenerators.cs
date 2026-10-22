@@ -111,6 +111,27 @@ static class AnalyzerGenerators
 		return new AnalyzerSet(generators, hasDotGram, dotGramVersion, warnings);
 	}
 
+	/// <summary>The version of <c>Microsoft.CodeAnalysis</c> the DotGram the tool carries was built against: the oldest compiler that loads it.</summary>
+	public static Version DotGramNeeds { get; } = typeof(DotGram.Generation.GramGenerator).Assembly.GetReferencedAssemblies()
+		.Where(static reference => reference.Name == "Microsoft.CodeAnalysis")
+		.Select(static reference => reference.Version!)
+		.DefaultIfEmpty(new Version(0, 0))
+		.Max()!;
+
+	/// <summary>
+	/// A compiler older than the one DotGram was built against does not load it: the build skips it
+	/// with CS9057 and generates nothing, so there is nothing to match.
+	/// </summary>
+	/// <param name="compiler">The version of the compiler the build runs, or null where it could not be told.</param>
+	/// <exception cref="ToolException">The compiler is older than <paramref name="needed"/>.</exception>
+	public static void RequireCompilerFor(Version? compiler, Version needed, string generatorVersion)
+	{
+		if (compiler is not null && compiler < needed)
+			throw ToolException.Failure(
+				$"this SDK's compiler (Roslyn {compiler}) cannot run DotGram {generatorVersion}, which needs Roslyn {needed} or newer: " +
+				"the build would skip DotGram (CS9057) and generate nothing. Use an SDK whose compiler is that new.");
+	}
+
 	/// <summary>The name and the informational version of an assembly, read from its metadata without loading it.</summary>
 	static (string? Name, string? Version) Identity(string path)
 	{

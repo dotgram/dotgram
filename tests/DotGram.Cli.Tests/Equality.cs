@@ -12,9 +12,9 @@ static class Equality
 	/// nothing the build did not, its own manifest and host aside.
 	/// </summary>
 	/// <remarks>
-	/// <c>EmbeddedAttribute</c>'s text is Roslyn's, and the tool's Roslyn is newer than the SDK's: the
-	/// two are held to the same text with line ends made alike, and whether it compiles is what the
-	/// pack smoke test asks.
+	/// <c>EmbeddedAttribute</c>'s text is Roslyn's, not the generator's, and differs between compiler
+	/// versions: that one file is not compared by bytes. It must be in both folders and parse; every
+	/// other file is held byte for byte, with no normalisation.
 	/// </remarks>
 	public static void Same(string built, string tool, params string[] alsoWritten)
 	{
@@ -35,24 +35,15 @@ static class Equality
 
 			if (name == Embedded)
 			{
-				// The text is compared decoded, so the byte order mark, which decoding hides, is held on its own.
-				Assert.Equal(HasMark(a), HasMark(b));
-				Assert.Equal(Normal(a), Normal(b));
+				var tree = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(System.Text.Encoding.UTF8.GetString(b));
+
+				Assert.Empty(tree.GetDiagnostics());
+				Assert.Contains("class EmbeddedAttribute", tree.GetRoot().ToFullString(), StringComparison.Ordinal);
 				continue;
 			}
 
 			if (!a.AsSpan().SequenceEqual(b))
 				Assert.Fail($"{name}: the tool's file differs from the build's ({a.Length} and {b.Length} bytes); diff {Path.Combine(built, name!)} {Path.Combine(tool, name!)}");
-		}
-
-		static bool HasMark(byte[] bytes)
-		{
-			return bytes.AsSpan().StartsWith(new byte[] { 0xEF, 0xBB, 0xBF });
-		}
-
-		static string Normal(byte[] bytes)
-		{
-			return System.Text.Encoding.UTF8.GetString(bytes).TrimStart('\uFEFF').Replace("\r\n", "\n", StringComparison.Ordinal);
 		}
 	}
 }

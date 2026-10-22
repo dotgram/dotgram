@@ -245,11 +245,11 @@ static class Cli
 	/// <summary>One framework of a project: what its build gives the compiler, and the generators among its analyzers.</summary>
 	static Pass PassFor(CompilerInputs inputs, GenerateOptions options, IReadOnlyList<string> listed)
 	{
+		AnalyzerGenerators.RequireCompilerFor(inputs.CompilerVersion, AnalyzerGenerators.DotGramNeeds, GeneratorVersion);
+
 		var arguments = inputs.Arguments;
 		var analyzers = AnalyzerGenerators.Load(arguments.AnalyzerReferences.Select(reference => Path.GetFullPath(reference.FilePath, inputs.ProjectDirectory)), inputs.CompilerVersion);
-		var warnings  = new List<string>(inputs.Warnings);
-
-		warnings.AddRange(analyzers.Warnings);
+		var warnings  = new List<string>(analyzers.Warnings);
 		var notes     = new List<string>
 		{
 			string.Create(

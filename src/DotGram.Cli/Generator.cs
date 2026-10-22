@@ -117,7 +117,7 @@ static class Generator
 		{
 			Files       = files,
 			Trees       = trees,
-			Diagnostics = result.Diagnostics,
+			Diagnostics = Severities.Apply(result.Diagnostics, inputs.Options, inputs.CompilationOptions),
 			Summaries   = summaries.ToImmutable(),
 			Updated     = updated,
 			Checked     = compilation.AddSyntaxTrees(otherTrees),

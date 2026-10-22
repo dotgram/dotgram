@@ -45,13 +45,21 @@ same SDK, whose own targets do not change the compiler's inputs outside the IDE'
 A difference on a project inside that condition, which every ordinary SDK-style project is, is a
 defect in the tool: report it.
 
+Two differences by design: `#line` paths are relative to the output folder (`--line-paths absolute`
+gives the build's text), and the generation report files (`DotGramReportGeneration`) are not written.
+The `EmbeddedAttribute` definition is the compiler's text and may differ in line endings from your
+SDK's. The diagnostics of DotGram itself are shown at the severities the build gives them
+(`.editorconfig`, `/nowarn`, `/warnaserror`); an error among them stops the run with exit 2. If the
+SDK's compiler is older than the one DotGram was built for, the build skips DotGram (CS9057) and the
+tool exits 3 instead of generating.
+
 **What it does not do.** It does not compile the project and does not tell you whether it builds:
 errors in grammar actions, in the generated parser or anywhere else in the project show when your
 build compiles the files. It runs what an IDE runs when it opens the project — MSBuild's `Compile`
 target with the compiler skipped, as a design-time build (`DesignTimeBuild=true`) — so a custom target
 that does not skip design-time builds runs too, and one that follows the compiler finds no new
 assembly. It does not restore: the project must be restored, and after changing package references
-you run `dotnet restore` first (the tool warns when the restore looks older than the project files).
+you run `dotnet restore` first.
 When this is not good enough, build with `EmitCompilerGeneratedFiles=true` and copy the generated
 files.
 

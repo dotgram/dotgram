@@ -86,8 +86,8 @@ sealed class GenerationInputs
 
 	/// <summary>
 	/// A file's text as csc reads it: its encoding told by its byte order mark; otherwise the compiler's
-	/// <c>/codepage:</c> where there is one, even for bytes that are valid UTF-8; otherwise UTF-8, with a
-	/// replacement character for each byte that is no UTF-8.
+	/// <c>/codepage:</c> where there is one, even for bytes that are valid UTF-8; otherwise UTF-8, and
+	/// for bytes that are no UTF-8 the system's default code page, as the compiler falls back to it.
 	/// </summary>
 	/// <param name="codePage">The encoding the compiler was told with <c>/codepage:</c>, or null.</param>
 	public static SourceText Read(string path, Encoding? codePage = null)
@@ -103,8 +103,41 @@ sealed class GenerationInputs
 			throw ToolException.Failure($"cannot read '{path}': {exception.Message}");
 		}
 
-		return SourceText.From(bytes, bytes.Length, codePage ?? new UTF8Encoding(false), SourceHashAlgorithm.Sha256, throwIfBinaryDetected: false);
+		if (codePage is not null)
+			return SourceText.From(bytes, bytes.Length, codePage, SourceHashAlgorithm.Sha256, throwIfBinaryDetected: false);
+
+		try
+		{
+			return SourceText.From(bytes, bytes.Length, new UTF8Encoding(false, throwOnInvalidBytes: true), SourceHashAlgorithm.Sha256, throwIfBinaryDetected: false);
+		}
+		catch (DecoderFallbackException)
+		{
+			return SourceText.From(bytes, bytes.Length, FallbackEncoding.Value, SourceHashAlgorithm.Sha256, throwIfBinaryDetected: false);
+		}
 	}
+
+	/// <summary>
+	/// The encoding the compiler reads a file with that is no UTF-8: the operating system's default
+	/// (ANSI) code page, else Windows-1252, else Latin-1. On Linux and macOS the default is UTF-8.
+	/// </summary>
+	static readonly Lazy<Encoding> FallbackEncoding = new(static () =>
+	{
+		Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+		return CodePage(0) ?? CodePage(1252) ?? Encoding.GetEncoding("Latin1");
+
+		static Encoding? CodePage(int number)
+		{
+			try
+			{
+				return Encoding.GetEncoding(number);
+			}
+			catch (Exception exception) when (exception is ArgumentException or NotSupportedException)
+			{
+				return null;
+			}
+		}
+	});
 
 	/// <summary>The references for a framework: the tool's own, then <c>--reference</c> and <c>--package</c>.</summary>
 	public static ImmutableArray<MetadataReference> ReferencesFor(Framework framework, IReadOnlyList<string> references, IReadOnlyList<string> packages)
