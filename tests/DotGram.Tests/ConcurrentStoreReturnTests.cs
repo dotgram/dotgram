@@ -191,7 +191,7 @@ public sealed class ConcurrentStoreReturnTests
 	static string Sql<T>(SqlStandardParser.Match<T> match)
 		where T : Ast.ISqlNode
 	{
-		return match.IsSuccess ? "OK:" + Ast.Sql2023Writer.Write(match.Value) : Refused(match.Position, match.Error);
+		return match.IsSuccess ? "OK:" + Ast.SqlWriter.Write(match.Value) : Refused(match.Position, match.Error);
 	}
 
 	static string El(ExpressionParser.Match<System.Linq.Expressions.LambdaExpression> match)

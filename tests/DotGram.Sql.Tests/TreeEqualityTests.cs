@@ -162,7 +162,7 @@ public sealed class TreeEqualityTests
 
 	/// <summary>
 	/// Every query the corpus holds that SQL-92 can read is the same tree after
-	/// <see cref="Ast.Sql2023Writer"/> writes it and <see cref="Sql92Parser"/> reads it back.
+	/// <see cref="Ast.SqlWriter"/> writes it and <see cref="Sql92Parser"/> reads it back.
 	/// </summary>
 	/// <remarks>
 	/// SQL-92 has no cutter of its own for somebody else's T-SQL: this asks what
@@ -214,7 +214,7 @@ public sealed class TreeEqualityTests
 
 					try
 					{
-						written = Ast.Sql2023Writer.Write(firstRead.Value!);
+						written = Ast.SqlWriter.Write(firstRead.Value!);
 					}
 					catch (Exception failure)
 					{
@@ -238,7 +238,7 @@ public sealed class TreeEqualityTests
 
 	/// <summary>
 	/// Every query the corpus holds that SQL:2023 can read is the same tree after
-	/// <see cref="Ast.Sql2023Writer"/> writes it and <see cref="SqlStandardParser"/> reads it back.
+	/// <see cref="Ast.SqlWriter"/> writes it and <see cref="SqlStandardParser"/> reads it back.
 	/// </summary>
 	/// <remarks>
 	/// The same corpus of T-SQL, asked the same way as the SQL-92 test above: most of it is not
@@ -287,7 +287,7 @@ public sealed class TreeEqualityTests
 
 					try
 					{
-						written = Ast.Sql2023Writer.Write(firstRead.Value!);
+						written = Ast.SqlWriter.Write(firstRead.Value!);
 					}
 					catch (Exception failure)
 					{

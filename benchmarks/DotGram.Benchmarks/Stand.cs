@@ -789,12 +789,12 @@ static partial class Stand
 		}
 	}
 
-	/// <summary>A SQL-92 tree written back as text, by the writer of the tree it is (DotGram.Sql.Ast, Sql2023Writer).</summary>
+	/// <summary>A SQL-92 tree written back as text, by the writer of the tree it is (DotGram.Sql.Ast, SqlWriter).</summary>
 	static string Sql92Written<T>(T value)
 	{
 		return value switch
 		{
-			DotGram.Sql.Ast.ISqlNode node => DotGram.Sql.Ast.Sql2023Writer.Write(node),
+			DotGram.Sql.Ast.ISqlNode node => DotGram.Sql.Ast.SqlWriter.Write(node),
 			_                             => value?.ToString() ?? "null",
 		};
 	}

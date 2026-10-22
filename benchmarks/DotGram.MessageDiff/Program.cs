@@ -109,7 +109,7 @@ static string Standard(string text)
 {
 	var read = SqlStandardParser.TryParseStatement(text);
 
-	return read.IsSuccess ? "ok " + Sql2023Writer.Write(read.Value!) : Refused(read.Position, read.Error);
+	return read.IsSuccess ? "ok " + SqlWriter.Write(read.Value!) : Refused(read.Position, read.Error);
 }
 
 static string Refused(long position, string? error)

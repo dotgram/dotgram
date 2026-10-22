@@ -16,7 +16,7 @@ using QualifiedName = DotGram.Sql.Ast.QualifiedName;
 using Statement = DotGram.Sql.Ast.Statement;
 
 /// <summary>
-/// The Server family's writer (Sql2023Writer.TransactSql.Server.cs): each record written as the words of its kind, read back by
+/// The Server family's writer (SqlWriter.TransactSql.Server.cs): each record written as the words of its kind, read back by
 /// TransactSqlParser to the same tree, and every tree whose text would read back as another tree or not at all refused.
 /// </summary>
 public sealed class ServerWriterTests

@@ -22,7 +22,7 @@ using Statement = DotGram.Sql.Ast.Statement;
 using TableElement = DotGram.Sql.Ast.TableElement;
 
 /// <summary>
-/// The Routines family's writer (Sql2023Writer.TransactSql.Routines.cs): each record written and read back by
+/// The Routines family's writer (SqlWriter.TransactSql.Routines.cs): each record written and read back by
 /// TransactSqlParser to the same tree, and every tree whose text would read back as another refused.
 /// </summary>
 public sealed class RoutinesWriterTests
@@ -231,7 +231,7 @@ public sealed class RoutinesWriterTests
 	[InlineData("INSERT EXEC a string", "INSERT INTO t EXECUTE ('SELECT 1')")]
 	public void Each_record_writes_its_text(string which, string text)
 	{
-		Assert.Equal(text, Sql2023Writer.Write(Tree(which)));
+		Assert.Equal(text, SqlWriter.Write(Tree(which)));
 	}
 
 	/// <summary>
@@ -609,6 +609,6 @@ public sealed class RoutinesWriterTests
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 
-		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(node));
+		Assert.ThrowsAny<ArgumentException>(() => SqlWriter.Write(node));
 	}
 }

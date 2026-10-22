@@ -212,7 +212,7 @@ public sealed class SetOperationTests
 	public void A_set_operation_is_written_as_it_was_read(string input)
 	{
 		var tree    = Both.ParseQueryExpression(input);
-		var written = Sql2023Writer.Write(tree);
+		var written = SqlWriter.Write(tree);
 
 		Assert.Equal(input, written);
 		Assert.Equal(tree, Both.ParseQueryExpression(written));
@@ -225,7 +225,7 @@ public sealed class SetOperationTests
 		var select    = Assert.IsType<Statement.Select>(statement);
 
 		Assert.Equal(new LockingClause(LockingMode.Update, [new Identifier("x")]), Assert.Single(select.Query.Locking));
-		Assert.Equal("(TABLE a) UNION TABLE b FOR UPDATE OF x", Sql2023Writer.Write(statement));
+		Assert.Equal("(TABLE a) UNION TABLE b FOR UPDATE OF x", SqlWriter.Write(statement));
 	}
 
 	// ── A tree built by hand ───────────────────────────────────────────────────
@@ -239,11 +239,11 @@ public sealed class SetOperationTests
 	{
 		Assert.Equal(
 			"(TABLE a UNION TABLE b) INTERSECT TABLE c",
-			Sql2023Writer.Write(A with { SetOperations = [Op(SetOperator.Union, B), Op(SetOperator.Intersect, C)] }));
+			SqlWriter.Write(A with { SetOperations = [Op(SetOperator.Union, B), Op(SetOperator.Intersect, C)] }));
 
 		Assert.Equal(
 			"((TABLE a UNION TABLE b) INTERSECT TABLE c UNION TABLE d) INTERSECT TABLE a",
-			Sql2023Writer.Write(A with
+			SqlWriter.Write(A with
 			{
 				SetOperations = [Op(SetOperator.Union, B), Op(SetOperator.Intersect, C), Op(SetOperator.Union, D), Op(SetOperator.Intersect, A)],
 			}));
@@ -266,7 +266,7 @@ public sealed class SetOperationTests
 			: new[] { Op(first, C) };
 
 		var operand = B with { SetOperations = [.. operations] };
-		var written = Sql2023Writer.Write(A with { SetOperations = [Op(outer, operand)] });
+		var written = SqlWriter.Write(A with { SetOperations = [Op(outer, operand)] });
 
 		Assert.Equal(expected, written);
 
@@ -282,7 +282,7 @@ public sealed class SetOperationTests
 	{
 		var sorted = B with { OrderBy = new OrderByClause([new SortItem(Column("x"))]) };
 
-		Assert.Equal("TABLE a UNION (TABLE b ORDER BY x)", Sql2023Writer.Write(A with { SetOperations = [Op(SetOperator.Union, sorted)] }));
+		Assert.Equal("TABLE a UNION (TABLE b ORDER BY x)", SqlWriter.Write(A with { SetOperations = [Op(SetOperator.Union, sorted)] }));
 	}
 
 	[Fact]
@@ -290,15 +290,15 @@ public sealed class SetOperationTests
 	{
 		var query = A with { SetOperations = [Op(SetOperator.UnionAll, B) with { Distinct = true }] };
 
-		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(query));
+		Assert.Throws<ArgumentException>(() => SqlWriter.Write(query));
 	}
 
 	[Fact]
 	public void TABLE_is_written_only_while_the_query_is_still_SELECT_star_FROM_the_table()
 	{
-		Assert.Equal("TABLE a", Sql2023Writer.Write(A));
-		Assert.Equal("SELECT * FROM a WHERE x", Sql2023Writer.Write(A with { Where = Column("x") }));
-		Assert.Equal("SELECT x FROM a", Sql2023Writer.Write(A with { Columns = [new SelectColumn.ExpressionItem(Column("x"))] }));
+		Assert.Equal("TABLE a", SqlWriter.Write(A));
+		Assert.Equal("SELECT * FROM a WHERE x", SqlWriter.Write(A with { Where = Column("x") }));
+		Assert.Equal("SELECT x FROM a", SqlWriter.Write(A with { Columns = [new SelectColumn.ExpressionItem(Column("x"))] }));
 	}
 
 	[Fact]
@@ -306,9 +306,9 @@ public sealed class SetOperationTests
 	{
 		var rows = new Query.Select { Values = [new RowValue([Column("x")])] };
 
-		Assert.Equal("VALUES x", Sql2023Writer.Write(rows));
-		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(rows with { Columns = [new SelectColumn.All()] }));
-		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(new Query.Select()));
+		Assert.Equal("VALUES x", SqlWriter.Write(rows));
+		Assert.Throws<ArgumentException>(() => SqlWriter.Write(rows with { Columns = [new SelectColumn.All()] }));
+		Assert.Throws<ArgumentException>(() => SqlWriter.Write(new Query.Select()));
 	}
 
 	// ── Helpers ────────────────────────────────────────────────────────────────
@@ -333,7 +333,7 @@ public sealed class SetOperationTests
 		var sorted = A with { OrderBy = new OrderByClause([new SortItem(Column("x"))]) };
 
 		Assert.Equal(new Query.Parenthesized(sorted) { SetOperations = [union] }, sorted.Combine(union));
-		Assert.Equal("(TABLE a ORDER BY x) UNION TABLE c", Sql2023Writer.Write(sorted.Combine(union)));
+		Assert.Equal("(TABLE a ORDER BY x) UNION TABLE c", SqlWriter.Write(sorted.Combine(union)));
 	}
 
 	/// <summary>
@@ -347,9 +347,9 @@ public sealed class SetOperationTests
 		var with = new WithClause(false, [new CommonTableExpression(new Identifier("q"), [], A)]);
 		var q    = Table("q") with { With = with };
 
-		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(A with { SetOperations = [Op(SetOperator.Union, q)] }));
-		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(new Query.Parenthesized(q)));
-		Assert.Equal("WITH q AS (TABLE a) (TABLE q)", Sql2023Writer.Write(new Query.Parenthesized(Table("q")) { With = with }));
+		Assert.Throws<ArgumentException>(() => SqlWriter.Write(A with { SetOperations = [Op(SetOperator.Union, q)] }));
+		Assert.Throws<ArgumentException>(() => SqlWriter.Write(new Query.Parenthesized(q)));
+		Assert.Equal("WITH q AS (TABLE a) (TABLE q)", SqlWriter.Write(new Query.Parenthesized(Table("q")) { With = with }));
 	}
 
 	/// <summary>
@@ -370,17 +370,17 @@ public sealed class SetOperationTests
 
 		var shared = (sorted with { With = null }).Combine(collision) with { With = with };
 
-		Assert.Equal("WITH q AS (TABLE a) (TABLE q ORDER BY x) UNION ALL TABLE q", Sql2023Writer.Write(shared));
-		Assert.Equal(shared, Both.ParseQueryExpression(Sql2023Writer.Write(shared)));
+		Assert.Equal("WITH q AS (TABLE a) (TABLE q ORDER BY x) UNION ALL TABLE q", SqlWriter.Write(shared));
+		Assert.Equal(shared, Both.ParseQueryExpression(SqlWriter.Write(shared)));
 	}
 
 	[Fact]
 	public void A_limit_that_holds_what_its_text_has_no_place_for_is_refused()
 	{
-		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(A with { Limit = new Limit() }));
-		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(A with { Limit = new Limit { Count = Column("n"), OffsetRowWord = RowWord.Row } }));
-		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(A with { Limit = new Limit { Offset = Column("n"), Position = FetchPosition.Next } }));
-		Assert.Equal("TABLE a OFFSET n ROWS", Sql2023Writer.Write(A with { Limit = new Limit { Offset = Column("n") } }));
+		Assert.Throws<ArgumentException>(() => SqlWriter.Write(A with { Limit = new Limit() }));
+		Assert.Throws<ArgumentException>(() => SqlWriter.Write(A with { Limit = new Limit { Count = Column("n"), OffsetRowWord = RowWord.Row } }));
+		Assert.Throws<ArgumentException>(() => SqlWriter.Write(A with { Limit = new Limit { Offset = Column("n"), Position = FetchPosition.Next } }));
+		Assert.Equal("TABLE a OFFSET n ROWS", SqlWriter.Write(A with { Limit = new Limit { Offset = Column("n") } }));
 	}
 
 	/// <summary>
@@ -422,23 +422,23 @@ public sealed class SetOperationTests
 
 		Assert.Equal(
 			"SELECT DISTINCT TOP (10) PERCENT x FROM t",
-			Sql2023Writer.Write(new Query.Select
+			SqlWriter.Write(new Query.Select
 			{
 				Quantifier = SetQuantifier.Distinct,
 				Top = top,
 				Columns = [new SelectColumn.ExpressionItem(Column("x"))],
 				From = new FromClause([t]),
 			}));
-		Assert.Equal("DELETE TOP (10) PERCENT FROM t", Sql2023Writer.Write(new Statement.Delete { Top = top, Target = t }).TrimEnd(';', ' '));
+		Assert.Equal("DELETE TOP (10) PERCENT FROM t", SqlWriter.Write(new Statement.Delete { Top = top, Target = t }).TrimEnd(';', ' '));
 		Assert.Equal(
 			"UPDATE TOP (10) PERCENT t SET x = 1",
-			Sql2023Writer.Write(new Statement.Update
+			SqlWriter.Write(new Statement.Update
 			{
 				Top = top,
 				Target = t,
 				Assignments = [new Assignment([new AssignmentTarget(Name("x"))], new LiteralValue.Numeric("1", NumericLiteralKind.DecimalInteger))],
 			}).TrimEnd(';', ' '));
-		Assert.StartsWith("INSERT TOP (10) PERCENT INTO t", Sql2023Writer.Write(new Statement.Insert { Top = top, Target = t }), StringComparison.Ordinal);
+		Assert.StartsWith("INSERT TOP (10) PERCENT INTO t", SqlWriter.Write(new Statement.Insert { Top = top, Target = t }), StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -450,6 +450,6 @@ public sealed class SetOperationTests
 			Hints = [new QueryHint.Named(new Identifier("RECOMPILE"), [])],
 		};
 
-		Assert.EndsWith(" OPTION (RECOMPILE)", Sql2023Writer.Write(statement).TrimEnd(';', ' '), StringComparison.Ordinal);
+		Assert.EndsWith(" OPTION (RECOMPILE)", SqlWriter.Write(statement).TrimEnd(';', ' '), StringComparison.Ordinal);
 	}
 }

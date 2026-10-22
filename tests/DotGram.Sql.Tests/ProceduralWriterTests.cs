@@ -21,7 +21,7 @@ using Statement = DotGram.Sql.Ast.Statement;
 using TableElement = DotGram.Sql.Ast.TableElement;
 
 /// <summary>
-/// The Procedural family's writer (Sql2023Writer.TransactSql.Procedural.cs): each record written and read back by
+/// The Procedural family's writer (SqlWriter.TransactSql.Procedural.cs): each record written and read back by
 /// TransactSqlParser to the same tree, and every tree whose text would read back as another refused.
 /// </summary>
 public sealed class ProceduralWriterTests
@@ -250,7 +250,7 @@ public sealed class ProceduralWriterTests
 	[InlineData("SET a cursor", "SET @a = CURSOR FORWARD_ONLY FAST_FORWARD READ_ONLY FOR SELECT 1 FOR READ ONLY")]
 	public void Each_record_writes_its_text(string which, string text)
 	{
-		Assert.Equal(text, Sql2023Writer.Write(Tree(which)));
+		Assert.Equal(text, SqlWriter.Write(Tree(which)));
 	}
 
 	/// <summary>
@@ -639,6 +639,6 @@ public sealed class ProceduralWriterTests
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 
-		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(node));
+		Assert.ThrowsAny<ArgumentException>(() => SqlWriter.Write(node));
 	}
 }

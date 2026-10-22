@@ -315,7 +315,7 @@ static partial class Build
 
 			foreach (var kind in Enum.GetValues<Ast.SecurableClass>())
 			{
-				var granted = Ast.Sql2023Writer.Write(new Ast.Statement.Grant
+				var granted = Ast.SqlWriter.Write(new Ast.Statement.Grant
 				{
 					Body = new Ast.GrantBody.Privileges(
 						[new Ast.Privilege(Ast.PrivilegeKind.Control, [], [])],

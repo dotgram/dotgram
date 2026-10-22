@@ -579,7 +579,7 @@ public sealed class SqlStandardTreeTests
 	// ── The tree written back ──────────────────────────────────────────────────
 
 	/// <summary>
-	/// <see cref="Sql2023Writer"/> writes what the tree holds, so what it writes reads back into the same
+	/// <see cref="SqlWriter"/> writes what the tree holds, so what it writes reads back into the same
 	/// tree and is written again the same way. `benchmarks --standard "~production" file` asks it of every
 	/// fuzz line; these are a line or two of each chapter, held here so a build asks it too.
 	/// </summary>
@@ -652,11 +652,11 @@ public sealed class SqlStandardTreeTests
 	static void WrittenBack<T>(string input, Func<string, T> parse) where T : ISqlNode
 	{
 		var tree    = parse(input);
-		var written = Sql2023Writer.Write(tree);
+		var written = SqlWriter.Write(tree);
 		var again   = parse(written);
 
 		Assert.Equal(Show(tree), Show(again));
-		Assert.Equal(written, Sql2023Writer.Write(again));
+		Assert.Equal(written, SqlWriter.Write(again));
 	}
 
 	/// <summary>

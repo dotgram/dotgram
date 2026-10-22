@@ -14,7 +14,7 @@ using QualifiedName = DotGram.Sql.Ast.QualifiedName;
 using Statement = DotGram.Sql.Ast.Statement;
 
 /// <summary>
-/// The DROP family's writer (Sql2023Writer.TransactSql.Drop.cs): each record written as its kind's words and the
+/// The DROP family's writer (SqlWriter.TransactSql.Drop.cs): each record written as its kind's words and the
 /// slots the grammar reads for it, and every tree whose text would read back as another tree refused.
 /// </summary>
 public sealed class DropWriterTests
@@ -190,7 +190,7 @@ public sealed class DropWriterTests
 	[InlineData("Counter signature", "DROP COUNTER SIGNATURE FROM OBJECT::dbo.q BY CERTIFICATE x")]
 	public void Each_record_writes_its_kind(string which, string text)
 	{
-		Assert.Equal(text, Sql2023Writer.Write(Tree(which)));
+		Assert.Equal(text, SqlWriter.Write(Tree(which)));
 	}
 
 	/// <summary>
@@ -368,6 +368,6 @@ public sealed class DropWriterTests
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 
-		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(node));
+		Assert.ThrowsAny<ArgumentException>(() => SqlWriter.Write(node));
 	}
 }

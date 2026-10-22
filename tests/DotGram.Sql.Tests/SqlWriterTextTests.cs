@@ -6,7 +6,7 @@ using Xunit;
 
 namespace DotGram.Sql.Tests;
 
-// As in Sql2023WriterCoverageTests: inside this namespace an unqualified name is the old tree's.
+// As in SqlWriterCoverageTests: inside this namespace an unqualified name is the old tree's.
 using Expression = DotGram.Sql.Ast.Expression;
 using Identifier = DotGram.Sql.Ast.Identifier;
 using LiteralValue = DotGram.Sql.Ast.LiteralValue;
@@ -14,7 +14,7 @@ using QualifiedName = DotGram.Sql.Ast.QualifiedName;
 using Statement = DotGram.Sql.Ast.Statement;
 
 /// <summary>
-/// What <see cref="Sql2023Writer"/> prints for trees the standard's grammar does not build — T-SQL's forms
+/// What <see cref="SqlWriter"/> prints for trees the standard's grammar does not build — T-SQL's forms
 /// of FETCH, RETURN and the DROP statements — and that no two tokens it prints side by side make a
 /// comment of themselves.
 /// </summary>
@@ -22,7 +22,7 @@ using Statement = DotGram.Sql.Ast.Statement;
 /// The standard's parser cannot read these back, so they are asserted as text on a tree built by hand;
 /// what the standard does read is held to a round trip in <see cref="SqlStandardTreeTests"/>.
 /// </remarks>
-public sealed class Sql2023WriterTextTests
+public sealed class SqlWriterTextTests
 {
 	static readonly Expression A = Name("a");
 	static readonly Expression B = Name("b");
@@ -64,7 +64,7 @@ public sealed class Sql2023WriterTextTests
 			Cursor      = new CursorReference(Named("c")),
 		};
 
-		Assert.Equal("FETCH NEXT FROM c", Sql2023Writer.Write(fetch));
+		Assert.Equal("FETCH NEXT FROM c", SqlWriter.Write(fetch));
 	}
 
 	// ── RETURN ─────────────────────────────────────────────────────────────────
@@ -72,15 +72,15 @@ public sealed class Sql2023WriterTextTests
 	[Fact]
 	public void A_bare_return_writes_no_value()
 	{
-		Assert.Equal("RETURN", Sql2023Writer.Write(new Statement.Return()));
+		Assert.Equal("RETURN", SqlWriter.Write(new Statement.Return()));
 	}
 
 	[Fact]
 	public void A_return_of_NULL_writes_it()
 	{
-		Assert.Equal("RETURN NULL", Sql2023Writer.Write(new Statement.Return { NullKeyword = true }));
-		Assert.Equal("RETURN NULL", Sql2023Writer.Write(new Statement.Return { Value = new LiteralValue.Null() }));
-		Assert.Equal("RETURN a", Sql2023Writer.Write(new Statement.Return { Value = A }));
+		Assert.Equal("RETURN NULL", SqlWriter.Write(new Statement.Return { NullKeyword = true }));
+		Assert.Equal("RETURN NULL", SqlWriter.Write(new Statement.Return { Value = new LiteralValue.Null() }));
+		Assert.Equal("RETURN a", SqlWriter.Write(new Statement.Return { Value = A }));
 	}
 
 	// ── DROP FUNCTION, DROP PROCEDURE ──────────────────────────────────────────
@@ -90,7 +90,7 @@ public sealed class Sql2023WriterTextTests
 	{
 		var drop = new Statement.DropRoutine { Routines = [Routine(RoutineKind.Function, "f")], IfExists = true };
 
-		Assert.Equal("DROP FUNCTION IF EXISTS f", Sql2023Writer.Write(drop));
+		Assert.Equal("DROP FUNCTION IF EXISTS f", SqlWriter.Write(drop));
 	}
 
 	[Fact]
@@ -98,8 +98,8 @@ public sealed class Sql2023WriterTextTests
 	{
 		var drop = new Statement.DropRoutine { Routines = [Routine(RoutineKind.Procedure, "x"), Routine(RoutineKind.Procedure, "y")] };
 
-		Assert.Equal("DROP PROCEDURE x, y", Sql2023Writer.Write(drop));
-		Assert.Equal("DROP PROC IF EXISTS x, y", Sql2023Writer.Write(drop with { IfExists = true, Proc = true }));
+		Assert.Equal("DROP PROCEDURE x, y", SqlWriter.Write(drop));
+		Assert.Equal("DROP PROC IF EXISTS x, y", SqlWriter.Write(drop with { IfExists = true, Proc = true }));
 	}
 
 	// ── DROP TRIGGER ───────────────────────────────────────────────────────────
@@ -111,13 +111,13 @@ public sealed class Sql2023WriterTextTests
 	{
 		var drop = new Statement.DropTrigger { Names = [Named("tr")], IfExists = true, On = scope };
 
-		Assert.Equal(expected, Sql2023Writer.Write(drop));
+		Assert.Equal(expected, SqlWriter.Write(drop));
 	}
 
 	[Fact]
 	public void A_DML_trigger_dropped_has_no_scope()
 	{
-		Assert.Equal("DROP TRIGGER s.a, b", Sql2023Writer.Write(new Statement.DropTrigger { Names = [new QualifiedName([new Identifier("s"), new Identifier("a")]), Named("b")] }));
+		Assert.Equal("DROP TRIGGER s.a, b", SqlWriter.Write(new Statement.DropTrigger { Names = [new QualifiedName([new Identifier("s"), new Identifier("a")]), Named("b")] }));
 	}
 
 	// ── Comment delimiters ─────────────────────────────────────────────────────
@@ -134,7 +134,7 @@ public sealed class Sql2023WriterTextTests
 	[MemberData(nameof(Signs))]
 	public void No_two_tokens_side_by_side_open_a_comment(Expression expression, bool transactSql, string expected)
 	{
-		var written = transactSql ? TransactSqlWriter.Write(expression) : Sql2023Writer.Write(expression);
+		var written = transactSql ? TransactSqlWriter.Write(expression) : SqlWriter.Write(expression);
 
 		Assert.Equal(expected, written);
 		Assert.DoesNotContain("--", written, StringComparison.Ordinal);

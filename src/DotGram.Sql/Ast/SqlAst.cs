@@ -31,7 +31,7 @@ public interface ISqlNode : ISqlSpan;
 /// two spellings are one tree and the writer has to pick one, which loses the other.
 /// </para>
 /// <para>
-/// It is here so that the check can find them. <c>Sql2023WriterCoverageTests</c> asks of every property
+/// It is here so that the check can find them. <c>SqlWriterCoverageTests</c> asks of every property
 /// marked this way that turning it on changes what the writer prints, and refuses to pass while one of
 /// them has no such row — so a flag added later joins the check by being a flag rather than by anyone
 /// remembering it. Internal, so it is not part of what a consumer sees; the test reads it by name.
@@ -288,7 +288,7 @@ public abstract partial record Statement : ISqlNode
 	// T-SQL writes after `ROLLBACK TRAN`, which its page says may be a transaction or a savepoint and
 	// which the syntax cannot tell apart; `ToSavepoint` is the standard's `TO SAVEPOINT s`, a different
 	// construct that knows what it names. At most one of the two is set — the writer refuses a node with
-	// both, and `Sql2023WriterCoverageTests` holds each grammar to the one it may use.
+	// both, and `SqlWriterCoverageTests` holds each grammar to the one it may use.
 	public record Rollback : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } public Identifier? ToSavepoint { get; init; } [Spelling] public TransactionKeyword? Keyword { get; init; } public TransactionName? Name { get; init; } }
 
 	// BNF: connection/session statements
@@ -1730,7 +1730,7 @@ public enum IdentityRestart { Continue, Restart }
 /// </para>
 /// <para>
 /// <c>default(QualifiedName)</c> has no parts and is no name: no parser builds one,
-/// <see cref="Sql2023Writer"/> refuses to write one, and <see cref="SqlWalker"/> to walk one.
+/// <see cref="SqlWriter"/> refuses to write one, and <see cref="SqlWalker"/> to walk one.
 /// </para>
 /// <para>
 /// It stores no span of its own: <see cref="Span"/> runs from its first part's start to its last
