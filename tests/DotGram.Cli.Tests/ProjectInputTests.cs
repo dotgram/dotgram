@@ -683,6 +683,39 @@ public sealed class ProjectInputTests
 		Assert.Null(MSBuild.Answer("MSBUILD : warning : Using {profile}\n{ \"x\": 1 } and more\n"));
 	}
 
+	/// <summary>
+	/// The check refuses on the errors the compiler reports by default. A warning the project's build
+	/// turns into an error (<c>TreatWarningsAsErrors</c>) is the build's to fail on, not the tool's
+	/// to refuse: the files are written, and are the build's.
+	/// </summary>
+	[Fact]
+	public void A_warning_the_build_makes_an_error_does_not_stop_the_run()
+	{
+		using var scratch = new Scratch();
+
+		var project = App(scratch, "p", """
+			using DotGram;
+
+			namespace Demo
+			{
+				[Gram("Pairs.gram")]
+				public static partial class Pairs
+				{
+					static void Unused() { int never = 0; }
+				}
+			}
+			""", settings: "<TreatWarningsAsErrors>true</TreatWarningsAsErrors>");
+
+		var (exit, text, built) = Build.TryGenerated(project);
+
+		Assert.True(exit != 0 && text.Contains("CS0219", StringComparison.Ordinal), text);
+
+		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--line-paths", "absolute");
+
+		Assert.True(run.Exit == 0, run.ToString());
+		Equality.Same(built, scratch.Path("out"));
+	}
+
 	/// <summary>A restore older than the project file is said to be, once; a fresh one is not.</summary>
 	[Fact]
 	public void A_restore_older_than_the_project_is_warned_about()

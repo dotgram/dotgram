@@ -15,7 +15,7 @@ static class Refusal
 	/// project's other generators add. First each tree's own diagnostics in the compilation the build
 	/// has without DotGram's files; a tree with an error is then checked again in the full compilation,
 	/// where what DotGram adds (the attribute a host carries, the parser its code calls) can resolve
-	/// what was missing. What is left is an error the build reports as well.
+	/// what was missing. What is left is an error the build reports as well, at the compiler's default severities.
 	/// </summary>
 	/// <param name="written">The trees the user wrote, the synthesized host of a <c>.gram</c> among them.</param>
 	/// <returns>The errors, in the order of their places, and how long the two passes took.</returns>
@@ -24,7 +24,7 @@ static class Refusal
 		var clock  = System.Diagnostics.Stopwatch.StartNew();
 		var cheap  = Diagnostics(generated.Checked, written.Concat(generated.OtherTrees));
 		var failed = cheap
-			.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error && diagnostic.Location.SourceTree is not null)
+			.Where(static diagnostic => IsError(diagnostic) && diagnostic.Location.SourceTree is not null)
 			.Select(static diagnostic => diagnostic.Location.SourceTree!)
 			.Distinct()
 			.ToList();
@@ -49,8 +49,18 @@ static class Refusal
 	static List<Diagnostic> Of(IEnumerable<Diagnostic> diagnostics)
 	{
 		return [.. diagnostics
-			.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+			.Where(static diagnostic => IsError(diagnostic))
 			.OrderBy(static diagnostic => Report.Format(diagnostic), StringComparer.Ordinal)];
+	}
+
+	/// <summary>
+	/// Whether the compiler reports the diagnostic as an error by default. The severities a build
+	/// applies on top of that (<c>/warnaserror</c>, <c>/nowarn</c>, a ruleset, <c>.editorconfig</c>) are
+	/// not applied: the check is not a build, and half of a build's severities would contradict that.
+	/// </summary>
+	static bool IsError(Diagnostic diagnostic)
+	{
+		return diagnostic.DefaultSeverity == DiagnosticSeverity.Error;
 	}
 
 	/// <summary>The diagnostics of the given trees of a compilation, each tree's own only.</summary>

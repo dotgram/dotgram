@@ -18,20 +18,37 @@ static class Help
 		reference the DotGram package: referencing both generates every parser twice.
 
 		The input's kind is its extension:
-		  .csproj   the whole project, as its own build compiles it. The tool does not compile it: it
-		            asks MSBuild for the compiler's inputs (the design-time pass an IDE runs), for each
-		            target framework. That runs the project's InitialTargets and the targets that run
-		            before CoreCompile (generating AssemblyInfo, global usings, the analyzer config under
-		            obj/, and any of the project's own targets hooked there), not Build, AfterBuild or
-		            anything after the compiler. The project must be restored (dotnet restore: the tool
-		            never restores); referenced projects are built if not up to date; needs .NET SDK
-		            8.0.100 or newer. Every framework must generate the same files. The project's other
-		            generators run beside DotGram's; the language version, symbols, references and
-		            packages are the build's to decide.
+		  .csproj   the whole project, as its own build gives the compiler its inputs. The tool does not
+		            compile it: it asks MSBuild for those inputs, for each target framework. That runs
+		            the project's InitialTargets and the targets that run before CoreCompile (generating
+		            AssemblyInfo, global usings, the analyzer config under obj/, and any of the project's
+		            own targets hooked there), not Build, AfterBuild or anything after the compiler.
+		            The project must be restored (dotnet restore: the tool never restores); referenced
+		            projects are built if not up to date; needs .NET SDK 8.0.100 or newer. Every
+		            framework must generate the same files. The project's other generators run beside
+		            DotGram's; the language version, symbols, references, packages and source encoding
+		            (CodePage) are the build's to decide.
 		  .gram     one grammar, its host class written from the options below (<Name>.Host.g.cs)
 
-		An error the project's build would report in its own code stops generation, as it stops the
-		build: a half-written file too. --allow-unresolved generates anyway.
+		What a .csproj run promises: it writes the files DotGram would generate in `dotnet build` of the
+		project (configuration Release unless --configuration says otherwise), byte for byte, in the
+		encoding the compiler writes them (UTF-8 with a byte order mark), with the tool's DotGram, for
+		a restored project, built with the same SDK, whose own targets do not change the compiler's
+		inputs outside the IDE's design-time pass. A difference on a project inside that condition,
+		which every ordinary SDK-style project is, is a defect in the tool: report it.
+
+		What it does not do: it does not compile the project and does not tell you whether it builds;
+		errors in grammar actions, in the generated parser or anywhere else in the project show when
+		your build compiles the files. It reports the errors in your own sources that it sees, at the
+		compiler's default severities (/warnaserror, /nowarn, rulesets and .editorconfig severities are
+		not applied), and stops there as the build would; it does not check the project as a whole.
+		--allow-unresolved generates anyway. It runs what an IDE runs when it opens the project:
+		MSBuild's Compile target with the compiler skipped, as a design-time build
+		(DesignTimeBuild=true), so a custom target that does not skip design-time builds runs too,
+		and one that follows the compiler finds no new assembly. It does not restore: after changing
+		package references, run dotnet restore first (it warns when the restore looks older than the
+		project files). When this is not good enough, build with EmitCompilerGeneratedFiles=true and
+		copy the generated files.
 
 		Options:
 		  -o, --output <dir>          where the files go (required); nothing else in it is touched
