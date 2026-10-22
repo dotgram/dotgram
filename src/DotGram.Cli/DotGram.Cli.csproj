@@ -1,0 +1,59 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<RootNamespace>DotGram.Cli</RootNamespace>
+		<AssemblyName>dotnet-dotgram</AssemblyName>
+
+		<!-- Built for the oldest runtime still in support, so that it runs on 8, 9, 10 and later, and run
+		     on the NEWEST one installed rather than on the oldest that fits (LatestMajor, not Major). The
+		     generator reads Unicode categories from the runtime it runs in, and the compiler of the SDK
+		     runs on the newest runtime there is: on .NET 8 a grammar with a category in it gets other
+		     tables than the build writes. -->
+		<TargetFramework>net8.0</TargetFramework>
+		<RollForward>LatestMajor</RollForward>
+
+		<!-- NETSDK1138 says net8.0 leaves support (2026-11-10). It is the floor on purpose, above, and
+		     warnings are errors here, so the day the SDK starts saying so must not be the day the tool
+		     stops building. -->
+		<NoWarn>$(NoWarn);NETSDK1138</NoWarn>
+
+		<PackAsTool>true</PackAsTool>
+		<PackageId>DotGram.Cli</PackageId>
+		<ToolCommandName>dotnet-dotgram</ToolCommandName>
+		<Description>The DotGram generator outside the build: writes the parsers a build would generate, so that a project compiles them without referencing the generator.</Description>
+		<PackageTags>parser;parser-generator;grammar;dotnet-tool;codegen;csharp</PackageTags>
+
+		<!-- Roslyn carries a dozen resource cultures, several megabytes, that a tool printing English
+		     never reads. -->
+		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- The generator itself, the same build of it the DotGram package ships: the tool hosts it. And
+		     as an analyzer too, for the one grammar the tool is written with — the response-file lexer. -->
+		<ProjectReference Include="..\DotGram\DotGram.csproj" PrivateAssets="all" />
+		<ProjectReference Include="..\DotGram\DotGram.csproj"
+		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- The newest Roslyn rather than the generator's floor: the tool parses the user's sources, and
+		     those may be written in a C# newer than the oldest compiler the generator loads into. The
+		     generator, built against the floor, runs on this one as it does in any newer compiler. -->
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" VersionOverride="$(DotGramCliRoslynVersion)" />
+
+		<!-- The framework's reference assemblies, carried in the tool, so that what a type is does not
+		     depend on which SDK or targeting pack happens to be installed where it runs. -->
+		<PackageReference Include="Basic.Reference.Assemblies.Net100" />
+		<PackageReference Include="Basic.Reference.Assemblies.NetStandard20" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<AdditionalFiles Include="ResponseFile.gram" />
+		<EmbeddedResource Include="SKILL.md" LogicalName="DotGram.Cli.SKILL.md" />
+		<None Include="SKILL.md" Pack="true" PackagePath="\" />
+		<InternalsVisibleTo Include="DotGram.Cli.Tests" />
+	</ItemGroup>
+
+</Project>

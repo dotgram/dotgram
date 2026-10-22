@@ -23,6 +23,20 @@
 		<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
 	</ItemGroup>
 
+	<!-- The newest Roslyn, for DotGram.Cli alone (and its tests), which takes it by VersionOverride: the
+	     tool parses its users' sources, which may be written in a newer C# than the generator's floor
+	     above, and the generator built against that floor runs inside it as in any newer compiler. -->
+	<PropertyGroup>
+		<DotGramCliRoslynVersion>5.9.0</DotGramCliRoslynVersion>
+	</PropertyGroup>
+
+	<ItemGroup Label="DotGram.Cli">
+		<!-- The framework's reference assemblies, carried inside the tool so that what a type is does
+		     not depend on the SDK or targeting packs installed where it runs. MIT. -->
+		<PackageVersion Include="Basic.Reference.Assemblies.Net100" Version="1.8.13" />
+		<PackageVersion Include="Basic.Reference.Assemblies.NetStandard20" Version="1.8.13" />
+	</ItemGroup>
+
 	<ItemGroup Label="Public API">
 		<!-- Holds a package's public surface to the PublicAPI.*.txt files beside its project, so
 		     that a member added or removed without being written down fails the build. It runs
