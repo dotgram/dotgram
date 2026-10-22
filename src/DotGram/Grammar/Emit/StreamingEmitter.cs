@@ -235,8 +235,11 @@ public static partial class CSharpEmitter
 		Writer file, RecognitionGraph graph, Publication publication, ResultTypes results,
 		IReadOnlyList<Stage> stages, IReadOnlyList<string> parts, string? trivia,
 		Recovery? recovery, string? sync, string factory, Func<int, string?> continuation,
-		bool input, Func<RuleSymbol, string> recognize, TraceTables? tracing = null)
+		bool input, Func<RuleSymbol, string> recognize, TraceTables? tracing = null, string takes = "")
 	{
+		// The grammar's context, where the parts take one: handed to every part the stages read.
+		var context = takes.Length > 0 ? ", context" : "";
+
 		var element = graph.Types[publication.Rule];
 
 		element = element.Substring(0, element.Length - "[]".Length);
@@ -254,15 +257,15 @@ public static partial class CSharpEmitter
 		// whose body runs at the first MoveNext.
 		if (tracing is not null)
 		{
-			using (file.Block($"{AccessOf(publication)} static {returns} {publication.MethodName}(global::System.IO.TextReader input)"))
-				file.Line($"return {publication.MethodName}_DotGram(input, Tracing_DotGram.Value);");
+			using (file.Block($"{AccessOf(publication)} static {returns} {publication.MethodName}(global::System.IO.TextReader input{takes})"))
+				file.Line($"return {publication.MethodName}_DotGram(input{context}, Tracing_DotGram.Value);");
 
 			file.Line();
 		}
 
 		using (file.Block(tracing is null
-			? $"{AccessOf(publication)} static {returns} {publication.MethodName}(global::System.IO.TextReader input)"
-			: $"static {returns} {publication.MethodName}_DotGram(global::System.IO.TextReader input, GramTrace? trace)"))
+			? $"{AccessOf(publication)} static {returns} {publication.MethodName}(global::System.IO.TextReader input{takes})"
+			: $"static {returns} {publication.MethodName}_DotGram(global::System.IO.TextReader input{takes}, GramTrace? trace)"))
 		{
 			file.Line($"var window = new {WindowType}(input, {WindowSize});");
 			file.Line("var start  = 0;");
@@ -329,7 +332,7 @@ public static partial class CSharpEmitter
 						file.Line($"seamFailure{i} = new {FailureType}();");
 						file.Line(
 							$"seamEnd{i}     = {recognize(seamRule)}" +
-							$"(window.Span(), start, ref seamFailure{i});");
+							$"(window.Span(), start, ref seamFailure{i}{context});");
 						file.Line();
 
 						using (file.Block(
@@ -364,7 +367,7 @@ public static partial class CSharpEmitter
 						using (file.Block("while (true)"))
 						{
 							file.Line($"continuationFailure{i} = new {FailureType}();");
-							file.Line($"continuationEnd{i} = {probe}(window.Span(), start, ref continuationFailure{i});");
+							file.Line($"continuationEnd{i} = {probe}(window.Span(), start, ref continuationFailure{i}{context});");
 							file.Line();
 
 							using (file.Block(
@@ -435,7 +438,7 @@ public static partial class CSharpEmitter
 			// Trivia read where nothing is handed over, growing the window while it may go on.
 			void Skip(string recognizer, string tag)
 			{
-				var hands = $"ref triviaFailure{tag}" + (input ? ", null!" : "");
+				var hands = $"ref triviaFailure{tag}" + (input ? ", null!" : "") + context;
 
 				file.Line();
 				file.Line($"var triviaFailure{tag} = new {FailureType}();");
@@ -473,7 +476,7 @@ public static partial class CSharpEmitter
 				// No whole input from a window, and nothing here can ask for one: a
 				// publication whose rules do is refused a stream (Retention, GRAM5001).
 				var hands = (built is null ? "ref failure" + i : $"ref failure{i}, out value{i}") +
-					(input ? ", null!" : "");
+					(input ? ", null!" : "") + context;
 
 				file.Line($"var failure{i} = new {FailureType}();");
 
@@ -558,7 +561,7 @@ public static partial class CSharpEmitter
 							using (file.Block("while (to <= window.Length)"))
 							{
 								file.Line($"var syncFailure = new {FailureType}();");
-								file.Line($"at = {sync}(window.Span(), to, ref syncFailure);");
+								file.Line($"at = {sync}(window.Span(), to, ref syncFailure{context});");
 								file.Line();
 
 								// Retry this candidate after refill: advancing here skips the first
@@ -644,7 +647,8 @@ public static partial class CSharpEmitter
 			$"global::System.Collections.Generic.IEnumerable<{element}>",
 			publication.MethodName,
 			results.MemberOf(publication.MethodName),
-			publication.Rule.Name);
+			publication.Rule.Name,
+			takes);
 	}
 
 	static string Comment(Stage stage)

@@ -775,7 +775,8 @@ public static partial class CSharpEmitter
 						: null,
 					machines.Exists(static compiled => compiled.Machine.UsesInput),
 					Recognizer,
-					tracing);
+					tracing,
+					compiled is { Machine.UsesContext: true } ? $", {graph.Context} context" : "");
 				file.Line();
 			}
 		}
@@ -1665,9 +1666,11 @@ public static partial class CSharpEmitter
 
 				file.Write(probe.Sync
 					? Machine.RenderSyncProbe(
-						probe.Name, engine, entry, graph.Climbing.Count > 0, machine.UsesInput)
+						probe.Name, engine, entry, graph.Climbing.Count > 0, machine.UsesInput,
+						machine.UsesContext ? graph.Context : null)
 					: Machine.RenderProbe(
-						probe.Name, engine, entry, graph.Climbing.Count > 0, machine.UsesInput));
+						probe.Name, engine, entry, graph.Climbing.Count > 0, machine.UsesInput,
+						machine.UsesContext ? graph.Context : null));
 				file.Line();
 			}
 		}
