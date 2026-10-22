@@ -1,4 +1,6 @@
-﻿namespace DotGram.Sql;
+﻿using System;
+
+namespace DotGram.Sql;
 
 /// <summary>What a statement does, which a reader filters on without naming every record.</summary>
 public enum StatementCategory

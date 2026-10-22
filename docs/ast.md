@@ -137,7 +137,8 @@ common table expressions. `SqlWalker.Walk` is what covers a statement whole.
 ## The nodes
 
 Every record of every family that can be made, named by the family and the records it is nested in.
-The families stand in alphabetical order, each family's records in the order they are declared.
+A family may be part of another — a `LiteralValue` is an `Expression` — and its records are named by
+it. The families stand in alphabetical order, each family's records in the order they are declared.
 
 ### `Statement`
 
@@ -912,6 +913,14 @@ The families stand in alphabetical order, each family's records in the order the
 | `KeyEncryptor.ServiceMasterKey` | T-SQL | ALTER MASTER KEY (Transact-SQL) |
 | `ListenerChange.AddIp` | T-SQL | ADD IP ('address' [, 'mask']) — under ALTER AVAILABILITY GROUP (Transact-SQL) |
 | `ListenerChange.Port` | T-SQL | PORT = n, whole digits — under ALTER AVAILABILITY GROUP (Transact-SQL) |
+| `LiteralValue.Numeric` | SQL:2023 | under &lt;literal value&gt; |
+| `LiteralValue.String` | SQL:2023 | Text is the literal's spelling as written, from its first quote to its last — under &lt;literal value&gt; |
+| `LiteralValue.Binary` | T-SQL | Constants (Transact-SQL) |
+| `LiteralValue.Boolean` | SQL:2023 | under &lt;literal value&gt; |
+| `LiteralValue.DateTime` | SQL:2023 | &lt;date literal&gt; |
+| `LiteralValue.Interval` | SQL:2023 | the sign written after INTERVAL, null where none was — &lt;interval literal&gt; |
+| `LiteralValue.Null` | SQL:2023 | &lt;value&gt; |
+| `LiteralValue.BitString` | SQL-92 | §5.3 &lt;bit string literal&gt; |
 | `LoginSource.Password` | T-SQL | WITH PASSWORD = 'p' [HASHED] [MUST_CHANGE] — under CREATE LOGIN (Transact-SQL) |
 | `LoginSource.Windows` | T-SQL | FROM WINDOWS — under CREATE LOGIN (Transact-SQL) |
 | `LoginSource.ExternalProvider` | T-SQL | FROM EXTERNAL PROVIDER — under CREATE LOGIN (Transact-SQL) |
