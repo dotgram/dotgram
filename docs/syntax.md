@@ -290,7 +290,7 @@ column the offset in it, both from 1. A refusal at a boundary says `end of segme
 What is not built yet is refused rather than guessed at: text captured, bound or
 published across an `eos` (`GRAM4048`) — capture the parts on either side, or a value
 built from them, which may be kept: `(rows: Row & eos)*` holds rows — and an `eos`
-grammar split into tokens (`GRAM4049`) or read from a reader or bytes (`GRAM4050`).
+grammar split into tokens (`GRAM4049`) or asked for buffered or byte forms (`GRAM4050`).
 U+0000 is how a boundary is read in this version, so no segment may hold it: a
 literal or a class that names it is an error (`GRAM4047`), and a segment that holds
 it is refused before it is read.
@@ -2249,14 +2249,17 @@ how much is held while it is walked.
 
 **A grammar that names `eos` takes sequences and nothing else** (§3.1.1). Each of its
 `parse` publications is `Parse…`, `TryParse…` answering a `Match<T>`, and `TryParse…`
-with an `out` value, over `IReadOnlyList<string>` and over `IEnumerable<string>`, and
-each `find` and `yield` publication takes the same two; no string, span, reader,
-position or window form is generated. A string is passed as a list of one. Where the
-publication streams, the form over `IEnumerable<string>` is the streamed one — the
-segments read as they are asked for, `File.ReadLines(path)` a feed of them — and the
-list is read whole. A segment that holds U+0000 is refused: `Parse…` throws a
-`FormatException`, `TryParse…` answers a refusal at it, and a streamed reading throws
-when it reaches it.
+with an `out` value, over `IReadOnlyList<string>`, over `IEnumerable<string>` and over
+a `TextReader`, and each `find` and `yield` publication takes the same three; no
+string, span, position or window form is generated. A string is passed as a list of
+one. A reader is a sequence of lines, split as `File.ReadLines` splits a file: every
+line ending — `\r\n`, `\n` or `\r` — ends a segment, a last line without one is a
+segment all the same, and a last line ending makes no empty segment after it. Where
+the publication streams, the forms over `IEnumerable<string>` and over a reader are the
+streamed ones — the segments read as they are asked for — and the list is read whole.
+A segment that holds U+0000 is refused: `Parse…` throws a `FormatException`,
+`TryParse…` answers a refusal at it, and a streamed reading throws when it reaches it;
+over a reader, what is said names the line.
 
 A reader and a string give the same result for constructions without side effects. A construction
 that changes state — the `context` included — may run a different number of times in a streamed

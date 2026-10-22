@@ -143,9 +143,9 @@ public static class GramCompiler
 			graph.Segmented && GrammarNormalizer.EndOfSegmentAt(model) is { } segmented)
 			diagnostics.Add(new GramDiagnostic(
 				GrammarNormalizer.BufferedSegments,
-				"A grammar that names 'eos' reads a sequence of segments, and a reader or bytes are no such " +
-				"thing: its publications take a list or a sequence of strings and nothing else. Leave the " +
-				"buffered and byte forms off for it (docs/syntax.md §6.3).",
+				"A grammar that names 'eos' reads a sequence of segments: its publications take a list, a " +
+				"sequence or a reader of lines, and the buffered and byte forms read neither. Leave them off " +
+				"for it (docs/syntax.md §6.3).",
 				segmented.Position, segmented.Length, GramSeverity.Error));
 
 		var lexical = options.Lexical && !HasErrors(diagnostics) ? Cut(graph, diagnostics) : null;
