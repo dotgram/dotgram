@@ -313,10 +313,11 @@ public static partial class CSharpEmitter
 			var passed = "new global::System.ReadOnlyMemory<byte>(input ?? throw new global::System.ArgumentNullException(nameof(input)))" +
 				(machine.UsesContext ? ", context" : "");
 
+			// Called through the class: the parameter is `input`, and so may the publication be.
 			void Forward(string returns, string name)
 			{
 				file.Line("/// <summary>The same, over bytes the caller already holds.</summary>");
-				file.Line($"{AccessOf(publication)} static {returns} {name}(byte[] input{context}) => {name}({passed});");
+				file.Line($"{AccessOf(publication)} static {returns} {name}(byte[] input{context}) => {results.MemberOf(name)}({passed});");
 			}
 
 			if (publication.Kind == PublishKind.Yield)

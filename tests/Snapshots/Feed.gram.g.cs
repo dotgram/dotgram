@@ -285,7 +285,7 @@ namespace DotGram.Snapshots
 			{
 				using var lines_DotGram = new Lines(input);
 
-				foreach (var item_DotGram in FindName(lines_DotGram))
+				foreach (var item_DotGram in global::DotGram.Snapshots.Feed.FindName(lines_DotGram))
 					yield return item_DotGram;
 			}
 		}
@@ -370,7 +370,7 @@ namespace DotGram.Snapshots
 			{
 				using var lines_DotGram = new Lines(input);
 
-				foreach (var item_DotGram in AllRows(lines_DotGram))
+				foreach (var item_DotGram in global::DotGram.Snapshots.Feed.AllRows(lines_DotGram))
 					yield return item_DotGram;
 			}
 		}

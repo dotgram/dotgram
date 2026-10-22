@@ -1757,7 +1757,7 @@ namespace DotGram.Snapshots
 			{
 				using var lines_DotGram = new Lines(input);
 
-				foreach (var item_DotGram in AnyItem(lines_DotGram))
+				foreach (var item_DotGram in global::DotGram.Snapshots.Minimal.AnyItem(lines_DotGram))
 					yield return item_DotGram;
 			}
 		}
@@ -5478,7 +5478,7 @@ namespace DotGram.Snapshots
 			{
 				using var lines_DotGram = new Lines(input);
 
-				foreach (var item_DotGram in ParseSheet(lines_DotGram))
+				foreach (var item_DotGram in global::DotGram.Snapshots.Minimal.ParseSheet(lines_DotGram))
 					yield return item_DotGram;
 			}
 		}
