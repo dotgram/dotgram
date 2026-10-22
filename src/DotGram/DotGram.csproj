@@ -55,7 +55,9 @@ Fixed: a rule that is told where it was written (LocationType) and builds a Null
 
 Fixed: a publication named input, or context in a grammar that declares one, did not compile (CS0149): the forms generated beside it that hand their argument on — the one taking bytes the caller holds, and the one taking a sequence of lines — call the publication by its simple name, which is their own parameter. They now call it through its class. The parameter names of the public forms are unchanged.
 
-Fixed: a parse read from a TextReader or a sequence of lines, whose rule has a repetition marked recover, in a grammar that declares a context its constructions read, did not compile (CS7036): the reader form took no context and called the parts of the rule without it. It now takes the context after the reader, as the form over a string does, and hands it to every part it reads.</PackageReleaseNotes>
+Fixed: a parse read from a TextReader or a sequence of lines, whose rule has a repetition marked recover, in a grammar that declares a context its constructions read, did not compile (CS7036): the reader form took no context and called the parts of the rule without it. It now takes the context after the reader, as the form over a string does, and hands it to every part it reads.
+
+Fixed: an external recognizer or a predicate of an element set whose method is called text, p, c, failure, value, context and the like did not compile (CS0149): the generated method that calls it declares a local of that name. The call now names the class that declares the method.</PackageReleaseNotes>
 
 		<!-- The symbols inside the assembly rather than beside it. When the generator fails
 		     in somebody else's build — GRAM0001, with the exception in the message — the
