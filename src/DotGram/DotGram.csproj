@@ -118,9 +118,10 @@ Behaviour change: a captured lookahead at a rule that builds a value holds that 
 		     file for it to come from. -->
 		<EmbeddedResource Include="Grammar\Std.gram" LogicalName="DotGram.Std.gram" />
 
-		<!-- The writer of the case-fold tables is a file-based app (top-level statements, run with
-		     `dotnet run`), not part of the generator: the default globbing would compile it in. -->
+		<!-- The writers of the case-fold and category tables are file-based apps (top-level statements, run with
+		     `dotnet run`), not part of the generator: the default globbing would compile them in. -->
 		<Compile Remove="Grammar/Model/CaseFold.generate.cs" />
+		<Compile Remove="Grammar/UnicodeCategories.generate.cs" />
 
 		<!-- The package's own README, not the repository's. The two answer different
 		     questions: the front page argues for the project and the package tells
