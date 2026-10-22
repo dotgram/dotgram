@@ -171,4 +171,28 @@ public sealed class LocatedStructTests
 		Assert.DoesNotContain(GeneratorDriverTests.RunGenerator(source).Diagnostics, static one => one.Id == "GRAM4046");
 		Assert.NotNull(GeneratorDriverTests.Build(source, permittedWarning: "GRAM5004"));
 	}
+
+	/// <summary>
+	/// A mutable struct that keeps what it is told keeps it: it is told on the value the rule returns,
+	/// not on a boxed copy of it.
+	/// </summary>
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void A_struct_keeps_the_location_it_is_told(bool perCall)
+	{
+		var assembly = GeneratorDriverTests.Build(Source("Mark", perCall));
+		var host     = assembly.GetType("LocatedStructProbe.P")!;
+		var door     = perCall ? host.GetNestedType("Located")! : host;
+		var value    = door.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["  ab"])!;
+
+		Assert.Equal(2, (int)value.GetType().GetField("At")!.GetValue(value)!);
+
+		if (perCall)
+		{
+			var plain = host.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["  ab"])!;
+
+			Assert.Equal(0, (int)plain.GetType().GetField("At")!.GetValue(plain)!);
+		}
+	}
 }

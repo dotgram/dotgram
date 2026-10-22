@@ -2791,10 +2791,8 @@ the trivia around it, so that a comment falls between two values rather than ins
 property is written once, by the reader, on a value it has just made and nothing has yet
 seen.
 
-A struct is told through a copy of it, so it keeps what it is told only if it holds it by reference,
-and a rule whose value is a `Nullable` of a struct has no property to write it on: it is refused
-(`GRAM4046`). Implementations are classes, or records, in practice; a struct that derives where it
-was written from its parts, as the SQL tree's `QualifiedName` does, loses nothing.
+An implementor may be a class or a struct; a struct is told on the value the rule returns. A rule
+whose value is a `Nullable` of a struct has nothing to write it on, and is refused (`GRAM4046`).
 
 It changes nothing about what is read, and a grammar that names no interface pays nothing.
 Being an option, it may be given to one reading of a grammar and not to another (§6.6).
