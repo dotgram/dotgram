@@ -126,11 +126,15 @@ static class Build
 
 	/// <summary>
 	/// Builds the project, which may fail: the compiler writes the generator's files before it
-	/// compiles them, so the folder holds them either way.
+	/// compiles them, so the folder holds them either way. In Release unless a configuration is given,
+	/// the tool's own default.
 	/// </summary>
 	public static (int Exit, string Output, string Folder) TryGenerated(string project, params string[] properties)
 	{
 		var generated = System.IO.Path.Combine(System.IO.Path.GetDirectoryName(project)!, "obj", "generated-by-build");
+
+		if (!properties.Any(static property => property.StartsWith("Configuration=", StringComparison.Ordinal)))
+			properties = ["Configuration=Release", .. properties];
 
 		var (exit, text) = Try(project, [.. properties, "EmitCompilerGeneratedFiles=true", "CompilerGeneratedFilesOutputPath=" + generated]);
 

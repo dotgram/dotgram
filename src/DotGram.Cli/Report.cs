@@ -11,13 +11,17 @@ static class Report
 	/// <summary><c>path(line,col): error GRAM1234: message</c>, through any <c>#line</c>.</summary>
 	public static string Format(Diagnostic diagnostic)
 	{
-		var severity = diagnostic.Severity switch
+		return Format(diagnostic, diagnostic.Severity switch
 		{
 			DiagnosticSeverity.Error   => "error",
 			DiagnosticSeverity.Warning => "warning",
 			_                          => "info",
-		};
+		});
+	}
 
+	/// <summary>The same under another word for its severity: an error the user has allowed is a warning.</summary>
+	public static string Format(Diagnostic diagnostic, string severity)
+	{
 		var place = Place(diagnostic.Location);
 
 		return (place.Length > 0 ? place + ": " : "") +

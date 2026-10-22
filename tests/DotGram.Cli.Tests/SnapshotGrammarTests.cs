@@ -104,7 +104,7 @@ public sealed class SnapshotGrammarTests
 			"""<ItemGroup><PackageReference Include="System.Memory" Version="4.6.3" /></ItemGroup></Project>"""));
 
 		var built = Build.Generated(project);
-		var run   = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--line-paths", "absolute", "--package", "System.Memory@4.6.3");
+		var run   = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--line-paths", "absolute");
 
 		Assert.True(run.Exit == 0, run.ToString());
 		Equality.Same(built, scratch.Path("out"));

@@ -37,7 +37,7 @@ public sealed class CommandLineTests
 
 		scratch.Write("config/grammars.rsp", """
 			# What CI and the developer both run.
-			generate ../src/Grammars.csproj
+			generate ../src/Grammars.gram
 			-o "../src/Generated Files"
 			--define DOTGRAM_CHECKS --define "WITH SPACE"
 			@more/common.rsp
@@ -53,7 +53,7 @@ public sealed class CommandLineTests
 
 		Assert.Equal(
 			[
-				"generate", "../src/Grammars.csproj", "-o", "../src/Generated Files", "--define", "DOTGRAM_CHECKS", "--define", "WITH SPACE",
+				"generate", "../src/Grammars.gram", "-o", "../src/Generated Files", "--define", "DOTGRAM_CHECKS", "--define", "WITH SPACE",
 				"--reference", "refs/Lib.dll", "--package", "System.Memory@4.6.3", "--line-paths", "absolute", "--allow-unresolved",
 			],
 			expanded.Select(static argument => argument.Text));
@@ -64,7 +64,7 @@ public sealed class CommandLineTests
 
 		var options = GenerateOptions.Parse(CommandLine.Read(expanded).Skip(1).ToList());
 
-		Assert.Equal(scratch.Path("src", "Grammars.csproj"), options.Input);
+		Assert.Equal(scratch.Path("src", "Grammars.gram"), options.Input);
 		Assert.Equal(scratch.Path("src", "Generated Files"), options.Output);
 		Assert.Equal([scratch.Path("config", "more", "refs", "Lib.dll")], options.References);
 		Assert.Equal(["DOTGRAM_CHECKS", "WITH SPACE"], options.Defines);
@@ -74,7 +74,7 @@ public sealed class CommandLineTests
 
 		// And the line a run begins with says all of it, so that a token the file lost is seen.
 		Assert.Equal(
-			$"generate {scratch.Path("src", "Grammars.csproj")} --output \"{scratch.Path("src", "Generated Files")}\" --configuration Release " +
+			$"generate {scratch.Path("src", "Grammars.gram")} --output \"{scratch.Path("src", "Generated Files")}\" --configuration Release " +
 			$"--reference {scratch.Path("config", "more", "refs", "Lib.dll")} --package System.Memory@4.6.3 --define DOTGRAM_CHECKS --define \"WITH SPACE\" --line-paths absolute --allow-unresolved",
 			options.Describe());
 	}

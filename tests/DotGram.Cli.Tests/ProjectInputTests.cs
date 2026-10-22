@@ -56,10 +56,7 @@ public sealed class ProjectInputTests
 	/// <summary>Builds the project and generates it with the tool; the two folders are the same.</summary>
 	static ToolRun Same(Scratch scratch, string project, string output = "out", string[]? build = null, params string[] arguments)
 	{
-		build ??= [];
-
-		// The tool's configuration is Release unless it is told otherwise, and the build is held to the same.
-		var built = Build.Generated(project, build.Any(static property => property.StartsWith("Configuration=", StringComparison.Ordinal)) ? build : ["Configuration=Release", .. build]);
+		var built = Build.Generated(project, build ?? []);
 		var run   = Tool.Run(scratch.Root, ["generate", project, "-o", scratch.Path(output), "--line-paths", "absolute", .. arguments]);
 
 		Assert.True(run.Exit == 0, run.ToString());
@@ -493,9 +490,9 @@ public sealed class ProjectInputTests
 			</Target>
 			""");
 
+		// Restore evaluates the project and runs its initial targets too: the stamp is the run's to write.
 		Dotnet.Restore(project);
-
-		Assert.False(File.Exists(scratch.Path("p", "obj", "stamp")));
+		File.Delete(scratch.Path("p", "obj", "stamp"));
 
 		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
 
@@ -503,7 +500,7 @@ public sealed class ProjectInputTests
 		Assert.True(File.Exists(scratch.Path("p", "obj", "stamp")));
 
 		Assert.Empty(Directory.GetFiles(scratch.Path("p", "obj"), "p.dll", SearchOption.AllDirectories));
-		Assert.Empty(Directory.GetFiles(scratch.Path("p", "bin"), "*", SearchOption.AllDirectories));
+		Assert.Empty(Directory.Exists(scratch.Path("p", "bin")) ? Directory.GetFiles(scratch.Path("p", "bin"), "*", SearchOption.AllDirectories) : []);
 	}
 
 	/// <summary>A target before the compiler adds a source file: it is in the tool's inputs, as in the build's.</summary>
@@ -542,7 +539,7 @@ public sealed class ProjectInputTests
 		using var scratch = new Scratch();
 
 		var project = App(scratch, "p");
-		var built   = Build.Generated(project, "Configuration=Release");
+		var built   = Build.Generated(project);
 
 		foreach (var folder in new[] { "first", "second" })
 		{
@@ -610,6 +607,31 @@ public sealed class ProjectInputTests
 	}
 
 	/// <summary>
+	/// <c>-getItem</c> exists from SDK 8.0.100; an older one is said to be too old, wherever the
+	/// version is read from.
+	/// </summary>
+	[Theory]
+	[InlineData("8.0.100", true)]
+	[InlineData("8.0.100-rc.1.23455.8", true)]
+	[InlineData("10.0.401", true)]
+	[InlineData("11.0.100-rc.2.26504.105", true)]
+	[InlineData("7.0.410", false)]
+	[InlineData("6.0.428", false)]
+	public void An_sdk_older_than_8_0_100_is_refused(string version, bool accepted)
+	{
+		if (accepted)
+		{
+			MSBuild.RequireSdk(version);
+			return;
+		}
+
+		var exception = Assert.Throws<ToolException>(() => MSBuild.RequireSdk(version));
+
+		Assert.Equal(ExitCode.Failure, exception.ExitCode);
+		Assert.Contains("needs .NET SDK 8.0.100 or newer", exception.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
 	/// A project that references another DotGram than the tool carries: generated with the tool's, in
 	/// one warning naming both, and the files are what the project's own build of this version writes.
 	/// </summary>
@@ -619,7 +641,7 @@ public sealed class ProjectInputTests
 		using var scratch = new Scratch();
 
 		var project = App(scratch, "p");
-		var built   = Build.Generated(project, "Configuration=Release");
+		var built   = Build.Generated(project);
 
 		var stub = StubDotGram(scratch, "0.0.1");
 

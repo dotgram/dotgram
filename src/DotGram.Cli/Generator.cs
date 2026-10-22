@@ -36,8 +36,8 @@ sealed class GeneratorOutput
 	/// <summary>The other generators' trees, which <see cref="Checked"/> holds.</summary>
 	public required ImmutableArray<SyntaxTree> OtherTrees { get; init; }
 
-	/// <summary>What went wrong with the other generators, said as warnings.</summary>
-	public required ImmutableArray<string> Warnings { get; init; }
+	/// <summary>The errors the other generators reported: the build fails on them.</summary>
+	public required ImmutableArray<Diagnostic> OtherErrors { get; init; }
 
 	public required TimeSpan Elapsed { get; init; }
 
@@ -66,14 +66,13 @@ static class Generator
 		if (!extraSources.IsDefaultOrEmpty)
 			compilation = compilation.AddSyntaxTrees(extraSources);
 
-		var properties = inputs.BuildProperties.SetItem(ReportProperty, "summary");
-		var gram       = new GramGenerator().AsSourceGenerator();
+		var gram = new GramGenerator().AsSourceGenerator();
 
 		GeneratorDriver driver = CSharpGeneratorDriver.Create(
 			[gram, .. others],
-			inputs.Grammars,
+			inputs.AdditionalFiles,
 			inputs.ParseOptions,
-			new BuildPropertiesProvider(properties),
+			inputs.Options.WithGlobal("build_property." + ReportProperty, "summary"),
 			new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None));
 
 		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var updated, out _);
@@ -101,7 +100,14 @@ static class Generator
 			}
 		}
 
-		// A generator that throws adds nothing, and says so in the build as a warning (CS8785); here too.
+		// A generator that throws adds nothing, and the build says so as an error (CS8785): the run stops.
+		if (results.FirstOrDefault(one => !ReferenceEquals(one.Generator, gram) && one.Exception is not null) is { Exception: { } failure } failed)
+		{
+			var type = failed.Generator.GetGeneratorType();
+
+			throw ToolException.Failure($"the generator {type.FullName} in {type.Assembly.Location} failed: {failure.Message}");
+		}
+
 		var otherTrees = results
 			.Where(one => !ReferenceEquals(one.Generator, gram))
 			.SelectMany(static one => one.GeneratedSources.Select(static source => source.SyntaxTree))
@@ -116,10 +122,10 @@ static class Generator
 			Updated     = updated,
 			Checked     = compilation.AddSyntaxTrees(otherTrees),
 			OtherTrees  = otherTrees,
-			Warnings    = [.. results.Where(one => !ReferenceEquals(one.Generator, gram) && one.Exception is not null)
-				.Select(static one => $"the generator {one.Generator.GetGeneratorType().FullName} failed: {one.Exception!.Message}")],
+			OtherErrors = [.. results.Where(one => !ReferenceEquals(one.Generator, gram))
+				.SelectMany(static one => one.Diagnostics)
+				.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)],
 			Elapsed     = clock.Elapsed,
 		};
 	}
-
 }

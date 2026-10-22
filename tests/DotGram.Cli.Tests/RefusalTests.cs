@@ -59,7 +59,7 @@ public sealed class RefusalTests
 
 		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
 		Assert.Contains("error GRAM3004: No C# type named 'Shapes.Point'", run.Output, StringComparison.Ordinal);
-		Assert.Contains("--reference", run.Output, StringComparison.Ordinal);
+		Assert.Contains("reference the project or assembly that declares it", run.Output, StringComparison.Ordinal);
 		Assert.False(Directory.Exists(scratch.Path("out")));
 	}
 
@@ -76,7 +76,7 @@ public sealed class RefusalTests
 		var run     = Tool.Run(scratch.Root, "generate", grammar, "-o", scratch.Path("out"), "--option", "LocationType=Shapes.ISpan");
 
 		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
-		Assert.Contains("'Shapes' cannot be resolved", run.Output, StringComparison.Ordinal);
+		Assert.Contains("error CS0246: The type or namespace name 'Shapes' could not be found", run.Output, StringComparison.Ordinal);
 		Assert.Contains("--sources", run.Output, StringComparison.Ordinal);
 		Assert.False(Directory.Exists(scratch.Path("out")));
 
@@ -84,7 +84,7 @@ public sealed class RefusalTests
 
 		// Allowed, and then a parser that does not compile, which in this mode is checked.
 		Assert.True(allowed.Exit == ExitCode.GrammarErrors, allowed.ToString());
-		Assert.Contains("warning: 'Shapes' cannot be resolved", allowed.Output, StringComparison.Ordinal);
+		Assert.Contains("warning CS0246: The type or namespace name 'Shapes' could not be found", allowed.Output, StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -128,14 +128,14 @@ public sealed class RefusalTests
 
 		// The build would fail on it too, whether a grammar asks about it or not.
 		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
-		Assert.Contains("'Elsewhere' cannot be resolved for net10.0", run.Output, StringComparison.Ordinal);
-		Assert.Contains("the project's build would report this too", run.Output, StringComparison.Ordinal);
-		Assert.Contains("a half-written file too", run.Output, StringComparison.Ordinal);
+		Assert.Matches("Rows\\.cs\\(\\d+,\\d+\\): error CS0246: The type or namespace name 'Elsewhere' could not be found", run.Output);
+		Assert.Contains("your project's build reports this too", run.Output, StringComparison.Ordinal);
+		Assert.Contains("a half-written file does too", run.Output, StringComparison.Ordinal);
 
 		var allowed = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--allow-unresolved");
 
 		Assert.True(allowed.Exit == 0, allowed.ToString());
-		Assert.Contains("warning: 'Elsewhere' cannot be resolved", allowed.Output, StringComparison.Ordinal);
+		Assert.Contains("warning CS0246: The type or namespace name 'Elsewhere' could not be found", allowed.Output, StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -179,6 +179,10 @@ public sealed class RefusalTests
 	[InlineData("generate", "x.gram", "y.gram", "-o", "a")]
 	[InlineData("generate", "x.gram", "-o", "a", "--line-paths", "sideways")]
 	[InlineData("generate", "x.csproj", "-o", "a", "--namespace", "N")]
+	[InlineData("generate", "x.csproj", "-o", "a", "--define", "A")]
+	[InlineData("generate", "x.csproj", "-o", "a", "--langversion", "10")]
+	[InlineData("generate", "x.csproj", "-o", "a", "--reference", "r.dll")]
+	[InlineData("generate", "x.csproj", "-o", "a", "--package", "Name@1.0.0")]
 	[InlineData("generate", "x.gram", "-o", "a", "--package", "NoVersion")]
 	[InlineData("frobnicate")]
 	public void Usage_errors_exit_3_and_point_at_help(params string[] arguments)
@@ -189,6 +193,17 @@ public sealed class RefusalTests
 
 		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
 		Assert.Contains("--help", run.Error, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Options_a_project_s_build_decides_are_for_a_gram_only()
+	{
+		using var scratch = new Scratch();
+
+		var run = Tool.Run(scratch.Root, "generate", "x.csproj", "-o", "a", "--define", "A", "--langversion", "10");
+
+		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
+		Assert.Contains("--define, --langversion: only for a .gram input; a project's build decides this", run.Error, StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -213,18 +228,6 @@ public sealed class RefusalTests
 
 		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
 		Assert.Contains("evaluating", run.Error, StringComparison.Ordinal);
-	}
-
-	[Fact]
-	public void A_framework_the_tool_has_no_references_for_is_named()
-	{
-		using var scratch = new Scratch();
-
-		var project = scratch.Write("p/p.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net472</TargetFramework></PropertyGroup></Project>");
-		var run     = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
-
-		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
-		Assert.Contains("'net472'", run.Error, StringComparison.Ordinal);
 	}
 
 	/// <summary>A project whose grammar builds Node from the sources, Node and what it rests on declared as given.</summary>
@@ -288,7 +291,7 @@ public sealed class RefusalTests
 		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
 
 		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
-		Assert.Matches("'(Models|Foreign|Demo)' cannot be resolved for net10.0", run.Output);
+		Assert.Matches("error CS\\d{4}: .*'(Models|Foreign|Demo)'", run.Output);
 		Assert.False(Directory.Exists(scratch.Path("out")));
 	}
 
