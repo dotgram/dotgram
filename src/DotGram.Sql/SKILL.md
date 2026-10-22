@@ -56,7 +56,7 @@ is what to decide before using one, the contract they share, and what is easy to
   (in `DotGram.Sql.Ast`) prints a tree back as text; `TransactSqlWriter.Write` prints the same
   text and refuses a tree T-SQL would read as another one.
 - **`SqlWalker.Walk(root, visit)`** hands every node under `root` to `visit`, parent first,
-  until `visit` answers false. It walks either tree; a check is a pattern match in the lambda.
+  until `visit` answers false. A check is a pattern match in the lambda.
 
 ```csharp
 using System.Collections.Generic;

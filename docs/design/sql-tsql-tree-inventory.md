@@ -1,5 +1,8 @@
 # T-SQL tree inventory: `SqlSyntax.cs` against `SqlAst.cs`
 
+Done, 2026-10-21: `SqlSyntax.cs` and its writer are gone; T-SQL builds the SQL:2023 tree, and
+`docs/ast.md` is the map of it. The inventory below is kept as it was written.
+
 Every nested record and every enum of `src/DotGram.Sql/SqlSyntax.cs` (namespace `DotGram.Sql`),
 held against `src/DotGram.Sql/Ast/SqlAst.cs` (namespace `DotGram.Sql.Ast`). Sources are
 `docs/ast.md`'s. Both files were read in full; every target named below exists in `SqlAst.cs`
