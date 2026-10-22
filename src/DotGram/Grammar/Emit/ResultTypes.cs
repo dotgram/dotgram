@@ -137,6 +137,19 @@ sealed class ResultTypes
 		return member.Element ?? ValueOf(member.Rule);
 	}
 
+	/// <summary>
+	/// A member of the host class, written through the class: <c>global::Ns.Host.Member</c>.
+	/// </summary>
+	/// <remarks>
+	/// For a call that a form of a publication makes to the publication itself. A publication takes
+	/// the name its author gave it, and a form names its parameters <c>input</c> and <c>context</c>,
+	/// so the simple name inside the form can be the parameter and not the method (CS0149).
+	/// </remarks>
+	public string MemberOf(string member)
+	{
+		return _prefix + member;
+	}
+
 	/// <summary>The innermost class, without its type parameters.</summary>
 	static string SimpleNameOf(string className)
 	{

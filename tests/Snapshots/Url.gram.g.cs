@@ -285,7 +285,7 @@ namespace DotGram.Snapshots
 			{
 				using var lines_DotGram = new Lines(input);
 
-				foreach (var item_DotGram in AllUrls(lines_DotGram))
+				foreach (var item_DotGram in global::DotGram.Snapshots.Url.AllUrls(lines_DotGram))
 					yield return item_DotGram;
 			}
 		}

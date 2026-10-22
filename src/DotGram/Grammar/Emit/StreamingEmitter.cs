@@ -53,7 +53,7 @@ public static partial class CSharpEmitter
 	/// <param name="machine">What reads the rule: <c>methods</c> or <c>engine</c>.</param>
 	/// <param name="built">The type of the value the rule builds, where it builds one.</param>
 	static void EmitStreamingFind(
-		Writer file, Publication publication, string method, string name,
+		Writer file, ResultTypes results, Publication publication, string method, string name,
 		string match, string hands, bool builds, string takes,
 		TraceTables? tracing = null, string machine = "engine", string? built = null)
 	{
@@ -135,7 +135,8 @@ public static partial class CSharpEmitter
 		file.Line();
 
 		EmitOverLines(
-			file, AccessOf(publication), $"global::System.Collections.Generic.IEnumerable<{match}>", method, name, takes);
+			file, AccessOf(publication), $"global::System.Collections.Generic.IEnumerable<{match}>", method,
+			results.MemberOf(method), name, takes);
 	}
 
 	/// <summary>
@@ -147,7 +148,7 @@ public static partial class CSharpEmitter
 	/// a <c>List&lt;string&gt;</c> are as ordinary an input as a string is.
 	/// </remarks>
 	static void EmitOverLines(
-		Writer file, string access, string returns, string method, string name, string takes = "")
+		Writer file, string access, string returns, string method, string called, string name, string takes = "")
 	{
 		file.Line($"/// <summary>The same, over a sequence of lines (docs/syntax.md §6.3).</summary>");
 		file.Line("/// <remarks>");
@@ -160,7 +161,9 @@ public static partial class CSharpEmitter
 			$"{access} static {returns} {method}(" +
 			$"global::System.Collections.Generic.IEnumerable<string> input{takes})"))
 		{
-			var call = $"{method}(lines_DotGram{(takes.Length > 0 ? ", context" : "")})";
+			// Through the class: this overload's own parameters are called `input` and `context`, and a
+			// publication may be named either.
+			var call = $"{called}(lines_DotGram{(takes.Length > 0 ? ", context" : "")})";
 
 			if (returns.StartsWith("global::System.Collections.Generic.IEnumerable<", StringComparison.Ordinal))
 			{
@@ -640,6 +643,7 @@ public static partial class CSharpEmitter
 			AccessOf(publication),
 			$"global::System.Collections.Generic.IEnumerable<{element}>",
 			publication.MethodName,
+			results.MemberOf(publication.MethodName),
 			publication.Rule.Name);
 	}
 
