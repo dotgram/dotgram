@@ -8,8 +8,9 @@ using Xunit;
 namespace DotGram.Cli.Tests;
 
 /// <summary>
-/// What makes the tool's compilation the build's: the project's other generators, its packages from
-/// what restore wrote, the SDK's own symbols — and nothing of the project's run to get them.
+/// What makes the tool's compilation the build's where a project has generators of its own: their
+/// types resolve, a generator that will not load stops the run, and the output folder is read as its
+/// file system reads names.
 /// </summary>
 public sealed class BuildEqualTests
 {
@@ -47,19 +48,6 @@ public sealed class BuildEqualTests
 			public static partial class Pairs { }
 		}
 		""";
-
-	[Fact]
-	public void A_project_not_restored_is_refused()
-	{
-		using var scratch = new Scratch();
-
-		var project = Project(scratch, "net10.0", PlainHost);
-		var run     = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
-
-		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
-		Assert.Contains("run `dotnet restore`", run.Error, StringComparison.Ordinal);
-		Assert.False(Directory.Exists(scratch.Path("p", "obj")));
-	}
 
 	/// <summary>
 	/// A host whose code names what DotGram generates — the parser's own class of a rule — and a
@@ -106,50 +94,12 @@ public sealed class BuildEqualTests
 		Equality.Same(built, scratch.Path("out"));
 	}
 
-	/// <summary>An analyzer project reference is the one generator the tool cannot run, and says so.</summary>
-	[Fact]
-	public void An_analyzer_project_reference_is_warned_about()
-	{
-		using var scratch = new Scratch();
-
-		scratch.Write("gen/Gen.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>netstandard2.0</TargetFramework></PropertyGroup></Project>");
-
-		var project = Project(scratch, "net10.0", PlainHost, items: """<ProjectReference Include="../gen/Gen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />""");
-
-		Dotnet.Restore(project);
-
-		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
-
-		Assert.True(run.Exit == 0, run.ToString());
-		Assert.Contains("Gen.csproj is an analyzer project reference: a project generator is not run", run.Output, StringComparison.Ordinal);
-	}
-
-	[Fact]
-	public void The_newest_roslyn_folder_the_tool_can_load_wins()
-	{
-		Assert.Equal(
-			["analyzers/dotnet/roslyn4.8/cs/G.dll"],
-			ProjectAssets.AnalyzerFiles(
-			[
-				"analyzers/dotnet/cs/G.dll",
-				"analyzers/dotnet/roslyn3.11/cs/G.dll",
-				"analyzers/dotnet/roslyn4.8/cs/G.dll",
-				"analyzers/dotnet/roslyn4.8/vb/G.dll",
-				"analyzers/dotnet/roslyn99.0/cs/G.dll",
-				"lib/netstandard2.0/G.dll",
-			]));
-
-		Assert.Equal(
-			["analyzers/dotnet/cs/G.dll", "analyzers/dotnet/H.dll"],
-			ProjectAssets.AnalyzerFiles(["analyzers/dotnet/cs/G.dll", "analyzers/dotnet/H.dll", "analyzers/dotnet/vb/G.dll"]));
-	}
-
 	/// <summary>
 	/// A generator whose type cannot be loaded (its base class is in an assembly that is not there):
-	/// a warning naming it, and no generator.
+	/// the run stops, and the message names its assembly.
 	/// </summary>
 	[Fact]
-	public void A_generator_that_does_not_load_is_a_warning()
+	public void A_generator_that_does_not_load_stops_the_run()
 	{
 		using var scratch = new Scratch();
 
@@ -170,13 +120,26 @@ public sealed class BuildEqualTests
 			""",
 			[.. references, MetadataReference.CreateFromFile(missing)]);
 
-		Assert.True(OtherGenerators.HasGenerator(gen));
-		Assert.False(OtherGenerators.HasGenerator(missing));
+		Assert.True(AnalyzerGenerators.HasGenerator(gen));
+		Assert.False(AnalyzerGenerators.HasGenerator(missing));
 
-		var (generators, warnings) = OtherGenerators.Load([gen]);
+		var exception = Assert.Throws<ToolException>(() => AnalyzerGenerators.Load([gen]));
 
-		Assert.Empty(generators);
-		Assert.Contains(warnings, warning => warning.Contains("Gen.dll could not be loaded", StringComparison.Ordinal));
+		Assert.Equal(ExitCode.Failure, exception.ExitCode);
+		Assert.Contains("Gen.dll", exception.Message, StringComparison.Ordinal);
+		Assert.Contains("could not be loaded", exception.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>A file that is no assembly at all might hold a generator: loading it says why it will not.</summary>
+	[Fact]
+	public void A_file_that_is_no_assembly_is_not_ruled_out()
+	{
+		using var scratch = new Scratch();
+
+		var path = scratch.Write("junk/Junk.dll", "not an assembly");
+
+		Assert.True(AnalyzerGenerators.HasGenerator(path));
+		Assert.Throws<ToolException>(() => AnalyzerGenerators.Load([path]));
 	}
 
 	static string Emit(string path, string name, string source, IEnumerable<MetadataReference> references)
@@ -189,99 +152,6 @@ public sealed class BuildEqualTests
 		Assert.True(result.Success, string.Join("\n", result.Diagnostics));
 
 		return path;
-	}
-
-	/// <summary>
-	/// The symbols the tool works out are the build's, for every pair of the two properties that take
-	/// them away, in both configurations: held to the build's own final DefineConstants.
-	/// </summary>
-	[Theory]
-	[InlineData("false", "false", "Release")]
-	[InlineData("true", "false", "Release")]
-	[InlineData("false", "true", "Release")]
-	[InlineData("true", "true", "Release")]
-	[InlineData("true", "true", "Debug")]
-	[InlineData("false", "false", "Debug")]
-	public async Task The_symbols_are_the_build_s(string noFramework, string noTracing, string configuration)
-	{
-		using var scratch = new Scratch();
-
-		var project = Project(scratch, "net10.0", PlainHost, $"""
-			<DisableImplicitFrameworkDefines>{noFramework}</DisableImplicitFrameworkDefines>
-			<DisableDiagnosticTracing>{noTracing}</DisableDiagnosticTracing>
-			<DefineConstants>$(DefineConstants);MINE</DefineConstants>
-			""", Analyzer);
-
-		var built = Dotnet.Ok(scratch.Path("p"), "msbuild", project, "-restore", "-nologo", "-nodeReuse:false", "-t:Build", "-p:Configuration=" + configuration, "-getProperty:DefineConstants").Trim();
-		var tool  = await ProjectEvaluation.RunAsync(project, "net10.0", configuration);
-
-		Assert.Equal(
-			built.Split(';', StringSplitOptions.RemoveEmptyEntries).Order(StringComparer.Ordinal),
-			tool.DefineConstants.Order(StringComparer.Ordinal));
-	}
-
-	[Fact]
-	public async Task A_platform_framework_has_its_platform_s_symbols()
-	{
-		using var scratch = new Scratch();
-
-		var project = Project(scratch, "net10.0-windows", PlainHost, "<EnableWindowsTargeting>true</EnableWindowsTargeting>");
-		var tool    = await ProjectEvaluation.RunAsync(project, "net10.0-windows", "Release");
-
-		Assert.Contains("WINDOWS", tool.DefineConstants);
-		Assert.Contains("NET10_0_OR_GREATER", tool.DefineConstants);
-	}
-
-	/// <summary>The SDK's targets in the tool's own project need nothing restored: it never is.</summary>
-	[Fact]
-	public async Task The_symbols_need_no_restore()
-	{
-		using var scratch = new Scratch();
-
-		var project = Project(scratch, "net8.0", PlainHost);
-		var (defines, _) = await ProjectEvaluation.ImplicitDefinesAsync(project, "net8.0", "Release", ["TRACE", "RELEASE"], new Dictionary<string, string?>());
-
-		Assert.Contains("NET8_0_OR_GREATER", defines);
-		Assert.DoesNotContain("NET9_0_OR_GREATER", defines);
-		Assert.False(Directory.Exists(scratch.Path("p", "obj")));
-	}
-
-	/// <summary>
-	/// A project whose InitialTargets write a file: generating it runs none of its targets, so nothing
-	/// appears under it that was not there before.
-	/// </summary>
-	[Fact]
-	public void None_of_the_project_s_targets_runs()
-	{
-		using var scratch = new Scratch();
-
-		var project = Project(scratch, "net10.0", PlainHost);
-
-		File.WriteAllText(project, File.ReadAllText(project)
-			.Replace("<Project Sdk=\"Microsoft.NET.Sdk\">", "<Project Sdk=\"Microsoft.NET.Sdk\" InitialTargets=\"Stamp\">", StringComparison.Ordinal)
-			.Replace("</Project>", """
-				  <Target Name="Stamp">
-				    <WriteLinesToFile File="$(MSBuildProjectDirectory)/obj/stamp" Lines="ran" Overwrite="true" />
-				  </Target>
-				</Project>
-				""", StringComparison.Ordinal));
-
-		Dotnet.Restore(project);
-		File.Delete(scratch.Path("p", "obj", "stamp"));
-
-		var before = Listing(scratch.Path("p"));
-		var run    = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
-
-		Assert.True(run.Exit == 0, run.ToString());
-		Assert.False(File.Exists(scratch.Path("p", "obj", "stamp")));
-		Assert.Equal(before, Listing(scratch.Path("p")));
-	}
-
-	static List<string> Listing(string directory)
-	{
-		return [.. Directory.GetFiles(directory, "*", SearchOption.AllDirectories)
-			.Select(path => Path.GetRelativePath(directory, path) + " " + File.GetLastWriteTimeUtc(path).Ticks)
-			.Order(StringComparer.Ordinal)];
 	}
 
 	[Fact]
@@ -317,9 +187,12 @@ public sealed class BuildEqualTests
 		Assert.Empty(Directory.GetFileSystemEntries(scratch.Path("out")));
 	}
 
-	/// <summary>On a file system that tells case apart, Model.cs and model.cs are two files, and both are compiled.</summary>
+	/// <summary>
+	/// On a file system that tells case apart, Model.cs and model.cs are two files, and the SDK refuses
+	/// them as duplicate Compile items: the build fails, and so does the run, with MSBuild's words.
+	/// </summary>
 	[Fact]
-	public void Two_files_differing_in_case_are_both_compiled()
+	public void Two_files_differing_in_case_are_refused_as_the_build_refuses_them()
 	{
 		using var scratch = new Scratch();
 
@@ -333,10 +206,14 @@ public sealed class BuildEqualTests
 		scratch.Write("p/Model.cs", "namespace Demo { public sealed class Model1 { } }");
 		scratch.Write("p/model.cs", "namespace Demo { public sealed class Model2 { public Model2(string key) { } } }");
 
-		Dotnet.Restore(project);
+		var (exit, text) = Build.Try(project);
+
+		Assert.True(exit != 0 && text.Contains("NETSDK1022", StringComparison.Ordinal), text);
 
 		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
 
-		Assert.True(run.Exit == 0, run.ToString());
+		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
+		Assert.Contains("NETSDK1022", run.Error, StringComparison.Ordinal);
+		Assert.False(Directory.Exists(scratch.Path("out")));
 	}
 }

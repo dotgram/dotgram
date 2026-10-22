@@ -75,25 +75,33 @@ public sealed class ProjectTests
 		Assert.Contains("GramTrace", File.ReadAllText(scratch.Path("out", "Demo.Url.g.cs")), StringComparison.Ordinal);
 	}
 
-	/// <summary>The same two settings from the command line, held to a build given them on its own.</summary>
+	/// <summary>
+	/// The language version and the symbols are a project's own: its build decides them, and an
+	/// option that would decide them is for a lone grammar.
+	/// </summary>
 	[Fact]
-	public void Settings_on_the_command_line_reach_the_generator()
+	public void The_language_version_and_symbols_are_the_build_s_to_decide()
 	{
 		using var scratch = new Scratch();
 
 		var project = Project(scratch, "net10.0", "Lexical.gram");
-		var built   = Build.Generated(project, "LangVersion=10", "DefineConstants=DOTGRAM_CHECKS");
-		var run     = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--line-paths", "absolute", "--langversion", "10", "--define", "DOTGRAM_CHECKS");
 
-		Assert.True(run.Exit == 0, run.ToString());
+		foreach (var option in new[] { new[] { "--langversion", "10" }, ["--define", "DOTGRAM_CHECKS"], ["--package", "System.Memory@4.6.3"], ["--reference", "x.dll"] })
+		{
+			var run = Tool.Run(scratch.Root, ["generate", project, "-o", scratch.Path("out"), .. option]);
+
+			Assert.True(run.Exit == ExitCode.Failure, run.ToString());
+			Assert.Contains("a project's build decides this", run.Error, StringComparison.Ordinal);
+		}
+
+		// Set in the project, as the build takes them: the same as the build.
+		File.WriteAllText(project, File.ReadAllText(project).Replace("<Nullable>", "<LangVersion>10</LangVersion><DefineConstants>$(DefineConstants);DOTGRAM_CHECKS</DefineConstants><Nullable>", StringComparison.Ordinal));
+
+		var built = Build.Generated(project);
+		var run2  = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--line-paths", "absolute");
+
+		Assert.True(run2.Exit == 0, run2.ToString());
 		Equality.Same(built, scratch.Path("out"));
-
-		var plain = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("latest"), "--line-paths", "absolute");
-
-		Assert.True(plain.Exit == 0, plain.ToString());
-
-		// C# 14 writes the lexer's tables as UTF-8 literals, C# 10 cannot: the version made a difference.
-		Assert.NotEqual(File.ReadAllText(scratch.Path("out", "Demo.Lexical.g.cs")), File.ReadAllText(scratch.Path("latest", "Demo.Lexical.g.cs")));
 	}
 
 	/// <summary>
@@ -282,8 +290,8 @@ public sealed class ProjectTests
 	}
 
 	/// <summary>
-	/// A grammar built on one in a referenced assembly (<c>[GramInclude]</c>), the assembly passed with
-	/// <c>--reference</c>: the generator reads the included grammar from it, as in a build.
+	/// A grammar built on one in a referenced assembly (<c>[GramInclude]</c>): the generator reads the
+	/// included grammar from it, as in a build.
 	/// </summary>
 	[Fact]
 	public void A_grammar_included_from_an_assembly()
@@ -348,12 +356,14 @@ public sealed class ProjectTests
 			""");
 
 		var built = Build.Generated(consumer);
-		var run   = Tool.Run(scratch.Root, "generate", consumer, "-o", scratch.Path("out"), "--line-paths", "absolute", "--reference", assembly);
+		var run   = Tool.Run(scratch.Root, "generate", consumer, "-o", scratch.Path("out"), "--line-paths", "absolute");
 
 		Assert.True(run.Exit == 0, run.ToString());
 		Equality.Same(built, scratch.Path("out"));
 
-		// And without it the include is a type that cannot be found, which the grammar asks about.
+		// And without the reference the include is a type that cannot be found, which the build reports too.
+		File.WriteAllText(consumer, File.ReadAllText(consumer).Replace($"<Reference Include=\"{assembly}\" />", "", StringComparison.Ordinal));
+
 		var without = Tool.Run(scratch.Root, "generate", consumer, "-o", scratch.Path("without"));
 
 		Assert.True(without.Exit != 0, without.ToString());

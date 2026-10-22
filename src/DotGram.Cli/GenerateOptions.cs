@@ -28,14 +28,14 @@ sealed class GenerateOptions
 	public required string    Output           { get; init; }
 	public string?            Framework        { get; init; }
 	public string             Configuration    { get; init; } = "Release";
+	public LinePaths          LinePaths        { get; init; }
+	public bool               AllowUnresolved  { get; init; }
+
+	// `.gram` input only. A project's build decides the first four, and its hosts say the rest.
 	public List<string>       References       { get; } = [];
 	public List<string>       Packages         { get; } = [];
 	public List<string>       Defines          { get; } = [];
 	public string?            LanguageVersion  { get; init; }
-	public LinePaths          LinePaths        { get; init; }
-	public bool               AllowUnresolved  { get; init; }
-
-	// `.gram` input only.
 	public string?            Namespace        { get; init; }
 	public string?            ClassName        { get; init; }
 	public bool               Public           { get; init; }
@@ -173,10 +173,13 @@ sealed class GenerateOptions
 					break;
 
 				case "--reference":
+					gramOnly.Add(name);
 					references.Add(full);
 					break;
 
 				case "--package":
+					gramOnly.Add(name);
+
 					if (!global::DotGram.Cli.Packages.TryParse(value, out _, out _))
 						throw ToolException.Usage($"--package takes Name@Version, not '{value}'.");
 
@@ -184,12 +187,15 @@ sealed class GenerateOptions
 					break;
 
 				case "--define":
+					gramOnly.Add(name);
+
 					foreach (var symbol in value.Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
 						defines.Add(symbol);
 
 					break;
 
 				case "--langversion":
+					gramOnly.Add(name);
 					languageVersion = Once(languageVersion, name, value);
 					break;
 
@@ -249,7 +255,7 @@ sealed class GenerateOptions
 		};
 
 		if (kind == InputKind.Project && gramOnly.Count > 0)
-			throw ToolException.Usage($"{string.Join(", ", gramOnly.Distinct())}: only for a .gram input; a project's hosts say these themselves.");
+			throw ToolException.Usage($"{string.Join(", ", gramOnly.Distinct())}: only for a .gram input; a project's build decides this.");
 
 		var options = new GenerateOptions
 		{
