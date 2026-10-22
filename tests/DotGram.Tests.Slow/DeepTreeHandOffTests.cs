@@ -61,12 +61,12 @@ public sealed class DeepTreeHandOffTests
 	{
 		const int depth = 500_000;
 
-		Expression made = new Expression.Literal(SqlLiteralKind.Number, "1");
+		DotGram.Sql.Ast.Expression made = new DotGram.Sql.Ast.LiteralValue.Numeric("1", DotGram.Sql.Ast.NumericLiteralKind.DecimalInteger);
 
 		for (var i = 0; i < depth; i++)
-			made = new Expression.Parenthesized(made);
+			made = new DotGram.Sql.Ast.Expression.Parenthesized(made);
 
-		var (written, thrown) = OnStack(() => SqlWriter.Write(made));
+		var (written, thrown) = OnStack(() => DotGram.Sql.Ast.Sql2023Writer.Write(made));
 
 		Assert.Null(thrown);
 		Assert.Equal(new string('(', depth) + "1" + new string(')', depth), written);

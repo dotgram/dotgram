@@ -199,31 +199,7 @@ public abstract class FailureMemoEqualityTests(ITestOutputHelper output, string 
 				return "[" + string.Join("; ", items.Cast<object?>().Select(Written)) + "]";
 		}
 
-		var writer = typeof(SqlWriter).GetMethods(BindingFlags.Public | BindingFlags.Static)
-			.Where(one => one.Name == "Write" && one.GetParameters() is [var only] && only.ParameterType.IsInstanceOfType(value))
-			.OrderBy(one => Depth(one.GetParameters()[0].ParameterType))
-			.LastOrDefault();
-
-		try
-		{
-			return writer is not null
-				? (string)writer.Invoke(null, [value])!
-				: PositionalSplitWebTests.Dump(value);
-		}
-		catch (TargetInvocationException thrown)
-		{
-			return "the writer threw " + thrown.InnerException?.GetType().Name + "; " + PositionalSplitWebTests.Dump(value);
-		}
-	}
-
-	static int Depth(Type type)
-	{
-		var depth = 0;
-
-		for (var at = type; at is not null; at = at.BaseType)
-			depth++;
-
-		return depth;
+		return PositionalSplitWebTests.Dump(value);
 	}
 
 	/// <summary>Every publication of a parser that answers with a match.</summary>

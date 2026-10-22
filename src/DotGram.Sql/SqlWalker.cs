@@ -18,11 +18,9 @@ namespace DotGram.Sql;
 /// what should be, and each of them is a few lines against the nodes the tree already has.
 /// </para>
 /// <para>
-/// A node is anything the five roots derive from, which is <see cref="ISqlSpan"/>: a
-/// <see cref="Statement"/>, a <see cref="Query"/>, an <see cref="Expression"/>, a
-/// <see cref="TableReference"/> or a <see cref="Clause"/> — and every node of the SQL:2023 tree,
-/// whose <c>ISqlNode</c> is one too. What a node holds of them — one, or a list of nodes or of lists
-/// of them, which may be absent — is found from its type once and kept, so a record added to either tree is
+/// A node is anything that is an <see cref="ISqlSpan"/>, which every node of the tree is: its
+/// <see cref="Ast.ISqlNode"/> is one. What a node holds of them — one, or a list of nodes or of lists
+/// of them, which may be absent — is found from its type once and kept, so a record added to the tree is
 /// walked without this file hearing of it. Everything else a record holds is its own words and not
 /// a node.
 /// </para>

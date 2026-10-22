@@ -23,7 +23,7 @@ namespace DotGram.Benchmarks;
 /// </para>
 /// <list type="number">
 /// <item>ScriptDom parses the original and prints it — call that <b>A</b>;</item>
-/// <item>this grammar parses the original, <see cref="SqlWriter"/> prints it, ScriptDom
+/// <item>this grammar parses the original, <see cref="DotGram.Sql.Ast.TransactSqlWriter"/> prints it, ScriptDom
 /// parses <em>that</em> and prints it — call that <b>B</b>.</item>
 /// </list>
 /// <para>

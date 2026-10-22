@@ -3,8 +3,8 @@ using System.Runtime.CompilerServices;
 
 namespace DotGram.Sql;
 
-// Where a node was written: shared by every tree a SQL parser builds, the one in SqlSyntax.cs and
-// the SQL:2023 tree in Ast/SqlAst.cs, whose ISqlNode extends ISqlSpan.
+// Where a node was written: shared by the tree every SQL parser builds, in Ast/SqlAst.cs, whose
+// ISqlNode extends ISqlSpan, and by the records the T-SQL rules read before they build it.
 
 /// <summary>
 /// Where a node was written, in characters of the input the parser was given.

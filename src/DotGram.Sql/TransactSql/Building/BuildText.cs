@@ -285,15 +285,6 @@ static class BuildText
 	/// </summary>
 	public static bool SameTokens(object node, string member, string one, string two)
 	{
-		// A binary literal's introducer is a key word whose case the tree does not keep: `0XFF` is `0xFF`.
-		if (member == "Expression.Literal.Text" && node is Expression.Literal { Kind: SqlLiteralKind.Hex })
-			return one.Length == two.Length && one.Length > 2 && one[0] == '0' && two[0] == '0' && one[1] is 'x' or 'X' && two[1] is 'x' or 'X'
-				&& string.Equals(one[2..], two[2..], StringComparison.Ordinal);
-
-		// A literal's text is free only where it is a key word (`current_user`) or a national string.
-		if (member == "Expression.Literal.Text" && node is Expression.Literal { Kind: not (SqlLiteralKind.Special or SqlLiteralKind.National) })
-			return false;
-
 		var x = SqlTokens.Of(one);
 		var y = SqlTokens.Of(two);
 

@@ -40,8 +40,8 @@ namespace DotGram.Tests;
 /// <b>What "the same answer" means here.</b> A generated tree's own equality is not
 /// trustworthy for this — a record's compiler-written <c>Equals</c> compares an array field
 /// by reference, and two separate parses never share an array — so every row below reduces
-/// its result to a string before two readings are compared: <see cref="SqlWriter"/> and
-/// <see cref="Ast.Sql2023Writer"/> print a tree back as text, a <c>LambdaExpression</c>
+/// its result to a string before two readings are compared: <see cref="Ast.Sql2023Writer"/>
+/// prints a tree back as text, a <c>LambdaExpression</c>
 /// prints itself, and a plain record of strings (<see cref="UriReference"/>, a mailbox) is
 /// joined into one line. A refusal is its position and message, or, where the public surface
 /// is a bare <c>bool</c>, the bool itself. Where a tree carries positions — today, only the
