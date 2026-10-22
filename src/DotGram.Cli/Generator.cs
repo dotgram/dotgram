@@ -24,9 +24,6 @@ sealed class GeneratorOutput
 	/// <summary>The generator's own one-line summary of each parser, as a build prints it.</summary>
 	public required ImmutableArray<string> Summaries { get; init; }
 
-	/// <summary>The compilation the generator was handed: what the user wrote, and nothing generated.</summary>
-	public required Compilation Input { get; init; }
-
 	/// <summary>The compilation with the generated files in it.</summary>
 	public required Compilation Updated { get; init; }
 
@@ -96,7 +93,6 @@ static class Generator
 			Files          = files,
 			Diagnostics    = driverDiagnostics,
 			Summaries      = summaries.ToImmutable(),
-			Input          = compilation,
 			Updated        = updated,
 			GeneratedTypeNames = DeclaredTypeNames(result.GeneratedSources.Select(static source => source.SyntaxTree)),
 			AskedTypeNames = AskedTypeNames(result),

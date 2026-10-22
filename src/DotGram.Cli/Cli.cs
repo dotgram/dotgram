@@ -90,9 +90,19 @@ static class Cli
 
 		var outputs = new List<(Pass Run, GeneratorOutput Output)>();
 
-		foreach (var run in runs)
+		// Each framework's generation at once: a large grammar takes seconds of one core for each, and
+		// the frameworks of one project share nothing while they are generated.
+		var generations = runs.Select(static run => Task.Run(() => Generator.Run(run.Inputs, run.ExtraSources))).ToArray();
+
+		// And beside them what a project's own files cannot resolve, which needs nothing generated.
+		var unresolved = runs.Select(static run => run.CompileOutput
+			? null
+			: Task.Run(() => Unresolved.Diagnostics(run.Inputs.Compile(), run.Inputs.Sources))).ToArray();
+
+		for (var index = 0; index < runs.Count; index++)
 		{
-			var generated = Generator.Run(run.Inputs, run.ExtraSources);
+			var run       = runs[index];
+			var generated = generations[index].GetAwaiter().GetResult();
 
 			outputs.Add((run, generated));
 
@@ -136,9 +146,11 @@ static class Cli
 			return errors.All(static diagnostic => diagnostic.Id == NotInView) ? ExitCode.Failure : ExitCode.GrammarErrors;
 		}
 
-		foreach (var (run, generated) in outputs)
+		for (var index = 0; index < outputs.Count; index++)
 		{
-			var exit = Check(run, generated, options, output);
+			var (run, generated) = outputs[index];
+
+			var exit = Check(run, generated, unresolved[index]?.GetAwaiter().GetResult(), options, output);
 
 			if (exit != ExitCode.Done)
 				return exit;
@@ -302,7 +314,8 @@ static class Cli
 	/// What stops a run between generating and writing: a type a grammar asks about that the
 	/// compilation cannot resolve, and in <c>.gram</c> mode a parser that does not compile.
 	/// </summary>
-	static int Check(Pass run, GeneratorOutput generated, GenerateOptions options, TextWriter output)
+	/// <param name="sourceDiagnostics">A project's own files' diagnostics, found while it was generated; null in <c>.gram</c> mode.</param>
+	static int Check(Pass run, GeneratorOutput generated, List<Diagnostic>? sourceDiagnostics, GenerateOptions options, TextWriter output)
 	{
 		var mode  = run.CompileOutput;
 		var clock = Stopwatch.StartNew();
@@ -314,7 +327,7 @@ static class Cli
 		// large grammar — with every name the generated files declare taken back out.
 		var diagnostics = mode
 			? Unresolved.Diagnostics(generated.Updated, generated.Updated.SyntaxTrees)
-			: Unresolved.Diagnostics(generated.Input, run.Inputs.Sources);
+			: sourceDiagnostics!;
 
 		var unresolved = Unresolved.Of(diagnostics)
 			.Where(name => mode || !(generated.GeneratedTypeNames.Contains(name.Name) || generated.GeneratedTypeNames.Contains(name.Name + "Attribute")))
