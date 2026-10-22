@@ -1768,26 +1768,30 @@ sealed partial class Machine
 	/// </remarks>
 	const string NoInput = ", null!";
 
-	public static string RenderProbe(string name, string engine, int entry, bool powers, bool input)
+	/// <param name="context">
+	/// The type of the grammar's context where the machine takes one, which a probe is then handed
+	/// and hands on: a streamed publication passes it to every part it reads.
+	/// </param>
+	public static string RenderProbe(string name, string engine, int entry, bool powers, bool input, string? context = null)
 	{
 		var file = new Writer(0);
 
 		using (file.Block(
 			$"static int {name}(global::System.ReadOnlySpan<char> text, int pos, " +
-			$"ref {CSharpEmitter.FailureType} failure)"))
+			$"ref {CSharpEmitter.FailureType} failure{(context is null ? "" : $", {context} context")})"))
 		{
 			file.Line("object? ignored;");
 			file.Line(
 				$"return {engine}(text, pos, {entry}, -1{(powers ? ", 0" : "")}, " +
-				$"false, false{(input ? NoInput : "")}, ref failure, out ignored);");
+				$"false, false{(input ? NoInput : "")}{(context is null ? "" : ", context")}, ref failure, out ignored);");
 		}
 
 		return file.ToString();
 	}
 
-	public static string RenderSyncProbe(string name, string engine, int entry, bool powers, bool input)
+	public static string RenderSyncProbe(string name, string engine, int entry, bool powers, bool input, string? context = null)
 	{
-		return RenderProbe(name, engine, entry, powers, input);
+		return RenderProbe(name, engine, entry, powers, input, context);
 	}
 
 	/// <param name="root">The rule the wrapper reads.</param>
