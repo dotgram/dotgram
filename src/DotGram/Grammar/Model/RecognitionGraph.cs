@@ -437,15 +437,6 @@ public abstract record Node
 
 		public bool UsesInputView { get; init; }
 
-		/// <summary>
-		/// The name written through the class that declares the method, where the host said which:
-		/// a call by the simple name could meet a local of the generated code instead.
-		/// </summary>
-		public string? Qualified { get; init; }
-
-		/// <summary>What a call is written as.</summary>
-		public string Callee => Qualified ?? Name;
-
 		public bool UsesContext { get; init; }
 
 		public override string ToString()

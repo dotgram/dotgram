@@ -521,11 +521,6 @@ public sealed class GrammarBinderTests
 			return false;
 		}
 
-		public string? DeclaringTypeOfExternal(string methodName, ExternalMethodRole role)
-		{
-			return null;
-		}
-
 		public bool Rewinds(string qualifiedName)
 		{
 			return false;

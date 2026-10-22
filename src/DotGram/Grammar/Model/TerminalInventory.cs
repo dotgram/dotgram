@@ -422,11 +422,8 @@ public sealed class TerminalInventory
 		/// is written this way. So it never reaches the automaton, and its kind is numbered
 		/// after every kind the automaton gives.
 		/// </remarks>
-		public sealed record External(int Index, RuleSymbol Rule, string Method, string? Qualified = null) : Pattern(Index)
+		public sealed record External(int Index, RuleSymbol Rule, string Method) : Pattern(Index)
 		{
-			/// <summary>What a call is written as.</summary>
-			public string Callee => Qualified ?? Method;
-
 			public override string ToString()
 			{
 				return $"@{Method}";
@@ -611,7 +608,7 @@ public sealed class TerminalInventory
 		readonly List<RuleSymbol> _classes = [];
 
 		/// <summary>The terminals host code measures, in the order the grammar names them.</summary>
-		readonly List<(RuleSymbol Rule, string Method, string? Qualified)> _externals = [];
+		readonly List<(RuleSymbol Rule, string Method)> _externals = [];
 		readonly HashSet<string>  _seen    = [];
 		readonly HashSet<string>  _refused = [];
 		readonly List<string>     _reasons = [];
@@ -733,10 +730,10 @@ public sealed class TerminalInventory
 					// itself, which is refused below: a terminal is a rule, and what the lexer
 					// hands the syntactic half is a kind, so there has to be a rule to name it.
 					if (graph.Bodies.TryGetValue(called, out var only) &&
-						only is Node.External { Name: var measured } measuredCall)
+						only is Node.External(var measured))
 					{
 						if (_seen.Add("external " + called.Namespace + "." + called.Name))
-							_externals.Add((called, measured, measuredCall.Qualified));
+							_externals.Add((called, measured));
 
 						return;
 					}
@@ -1235,9 +1232,9 @@ public sealed class TerminalInventory
 			// automaton already decided. Each is a kind of its own and matches nothing but
 			// itself — two strings cannot make one of these accept together, there being no
 			// automaton to accept in.
-			foreach (var (rule, method, qualified) in _externals)
+			foreach (var (rule, method) in _externals)
 			{
-				var pattern = new Pattern.External(patterns.Count, rule, method, qualified);
+				var pattern = new Pattern.External(patterns.Count, rule, method);
 
 				patterns.Add(pattern);
 				kinds.Add(new Kind(kinds.Count + 1, [pattern]));
