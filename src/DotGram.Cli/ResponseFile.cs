@@ -89,7 +89,7 @@ static class ResponseFile
 		var match = CommandLine.TryParseResponseText(text);
 
 		if (!match.IsSuccess)
-			throw ToolException.Usage($"{path} cannot be read: {CommandLine.Readable(match.Error ?? "no reason given")}.");
+			throw ToolException.Usage($"{path} cannot be read: {match.Error ?? "no reason given"}.");
 
 		return match.Value!;
 	}

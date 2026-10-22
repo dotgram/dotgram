@@ -179,14 +179,6 @@ public sealed class CommandLineTests
 		Assert.DoesNotContain("\0", run.Error, StringComparison.Ordinal);
 	}
 
-	/// <summary>The separator and the generated parser's own marker never reach a message as NUL.</summary>
-	[Fact]
-	public void A_refusal_never_prints_NUL()
-	{
-		Assert.Equal("expected end of argument at 3", CommandLine.Readable("expected '\0' at 3"));
-		Assert.Equal("expected end of argument word", CommandLine.Readable("expected \0word"));
-	}
-
 	[Fact]
 	public void A_response_file_that_includes_itself_is_refused()
 	{

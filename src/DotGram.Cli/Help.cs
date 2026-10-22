@@ -45,6 +45,8 @@ static class Help
 		  --sources <file.cs|glob>    C# the grammar builds, and a partial host with the members its
 		                              hooks call (no [Gram] on it)
 
+		-- ends the options: every argument after it is the input, a dash in front or not.
+
 		@file.rsp anywhere is replaced by the arguments in that file: separated by blanks or line
 		ends, "quoted" to keep blanks, # starting a comment line, @ nesting. A relative path in it is
 		read against the file's own directory.
