@@ -1526,6 +1526,11 @@ sealed partial class Machine
 		using (helper.Block(
 			$"static void Locate_DotGram{_tag}({located} made, int floor{tokens}, int from, int length)"))
 		{
+			// A rule may hand back null for what was not written, and null is no value made.
+			helper.Line("if (made is null)");
+			helper.Then("return;");
+			helper.Line();
+
 			if (!OverKinds)
 			{
 				// Over characters the trivia is not set apart from what it stands between, so
