@@ -18,30 +18,35 @@ static class Help
 		reference the DotGram package: referencing both generates every parser twice.
 
 		The input's kind is its extension:
-		  .csproj   the whole project: its C# files, global usings, grammars, LangVersion and symbols,
-		            read by an MSBuild evaluation for each target framework, and its packages and
-		            their generators from what restore wrote (obj/project.assets.json: run dotnet
-		            restore first; nothing is restored or built); every framework must generate the
-		            same files
-
-		A name in the project's code that nothing resolves stops generation, as it stops the build:
-		a half-written file too. --allow-unresolved generates anyway.
+		  .csproj   the whole project, as its own build compiles it. The tool does not compile it: it
+		            asks MSBuild for the compiler's inputs (the design-time pass an IDE runs), for each
+		            target framework. That runs the project's InitialTargets and the targets that run
+		            before CoreCompile (generating AssemblyInfo, global usings, the analyzer config under
+		            obj/, and any of the project's own targets hooked there), not Build, AfterBuild or
+		            anything after the compiler. The project must be restored (dotnet restore: the tool
+		            never restores); referenced projects are built if not up to date; needs .NET SDK
+		            8.0.100 or newer. Every framework must generate the same files. The project's other
+		            generators run beside DotGram's; the language version, symbols, references and
+		            packages are the build's to decide.
 		  .gram     one grammar, its host class written from the options below (<Name>.Host.g.cs)
+
+		An error the project's build would report in its own code stops generation, as it stops the
+		build: a half-written file too. --allow-unresolved generates anyway.
 
 		Options:
 		  -o, --output <dir>          where the files go (required); nothing else in it is touched
 		  --framework <tfm>           one framework only: net8.0, net9.0, net10.0, netstandard2.0
 		                              (default: the project's; net10.0 for a .gram)
-		  --configuration <name>      evaluated as this configuration (default Release)
-		  --reference <file.dll|dir>  an assembly the grammar's types come from (every *.dll of a dir)
-		  --package <Name>@<Version>  a package's assemblies, from the global packages folder
-		  --define <SYMBOL>           a preprocessor symbol, beside the project's and the framework's
-		  --langversion <version>     the C# version (default: the project's, or the SDK's for the framework)
+		  --configuration <name>      the project's configuration (default Release)
 		  --line-paths relative|absolute
 		                              #line paths relative to <dir> (default), or as a build writes them
-		  --allow-unresolved          generate even where a name in the project cannot be resolved
+		  --allow-unresolved          generate even where the project's code has errors (reported as warnings)
 
-		For a .gram input only:
+		For a .gram input only (a project's build decides these for a project):
+		  --reference <file.dll|dir>  an assembly the grammar's types come from (every *.dll of a dir)
+		  --package <Name>@<Version>  a package's assemblies, from the global packages folder
+		  --define <SYMBOL>           a preprocessor symbol, beside the framework's
+		  --langversion <version>     the C# version (default: the SDK's for the framework)
 		  --namespace <Ns>            the host's namespace (default: none)
 		  --class <Name>              the host's name (default: the file's name)
 		  --public                    a public host (default: internal)
@@ -59,8 +64,9 @@ static class Help
 		Exit codes:
 		  0  generated
 		  2  grammar errors (nothing written); for a .gram, a parser that does not compile
-		  3  usage, input or output, a project not restored, evaluation failure, a name the build would
-		     not resolve either (nothing written), frameworks that generate different files
+		  3  usage, input or output, a project not restored, MSBuild failing for a framework, a generator
+		     that will not load, an error the project's build would report too (nothing written),
+		     frameworks that generate different files
 
 		Examples:
 		  dotnet dotgram generate src/Grammars/Grammars.csproj -o src/Grammars/Generated

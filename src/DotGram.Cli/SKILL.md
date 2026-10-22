@@ -22,20 +22,30 @@ parser twice (CS0102/CS0111 on every member).
 The input's kind is its extension.
 
 ```shell
-# A project: its C# files, global usings, grammars and settings, read by an MSBuild evaluation.
+# A project: the compiler's inputs for it, as its own build gives them.
 dotnet dotgram generate src/Grammars/Grammars.csproj -o src/Grammars/Generated
 
 # One grammar, no project: the [Gram] options as --option, the C# it builds with --sources.
 dotnet dotgram generate calc.gram -o out --namespace Demo --option Lexical=true
 ```
 
-A project's own packages, and the generators among their analyzers, are read from what restore
-wrote (`obj/project.assets.json`): run `dotnet restore` first; the tool never restores. Types that
-come from elsewhere — another project's build output, a `.gram` without a project — take
-`--reference <file.dll|dir>` or `--package <Name>@<Version>` (from the global packages folder).
+The tool does not compile the project. It asks MSBuild for the compiler's inputs — the design-time
+pass an IDE runs when it opens a project — for each target framework: the C# files, the references,
+the language version and symbols, the additional files, the analyzer configuration and the analyzers,
+the generators of other packages among them, which run beside DotGram's. That pass runs the project's
+`InitialTargets` and the targets that run before `CoreCompile` (they write `AssemblyInfo`, the global
+usings and the analyzer configuration under `obj/`, and anything of the project's own hooked there),
+and not `Build`, `AfterBuild` or anything after the compiler. The project must be restored
+(`dotnet restore`: the tool never restores); the projects it references are built if they are not up
+to date; the configuration is Release unless `--configuration` says otherwise. It needs .NET SDK
+8.0.100 or newer.
 
-If a name in the project's code cannot be resolved — a missing reference, or a half-written file —
-the tool names it, writes nothing and exits 3, as the build would fail.
+What a project's build decides, the project decides here: `--define`, `--langversion`, `--reference`
+and `--package` are for a lone `.gram` input only, which has no build to ask.
+
+If the project's own code has an error its build would report — a missing reference, a half-written
+file — the tool lists it as the compiler does, writes nothing and exits 3. A stale `obj/project.assets.json`
+is not noticed: after changing package references, run `dotnet restore`.
 
 ## Keeping it current
 
@@ -54,8 +64,11 @@ To check it in CI, run it there and fail on `git diff --exit-code` over the fold
 
 - The first line is the arguments as the tool understood them, response files expanded.
 - Diagnostics are `path(line,col): error GRAMnnnn: message`, as csc writes them.
-- Exit codes: 0 done; 2 grammar errors (nothing written); 3 usage, evaluation, an unresolved type
-  a grammar asks about (nothing written), frameworks that differ.
+- Exit codes: 0 done; 2 grammar errors (nothing written); 3 usage, MSBuild failing for a framework, a
+  project not restored, a generator that will not load, an error the project's build would report
+  too (nothing written), frameworks that differ.
+- A project that references another version of `DotGram` than the tool carries is generated with the
+  tool's, with a warning naming both; if that output does not compile in the project, exit 3.
 
 ## What not to do
 

@@ -48,7 +48,7 @@ static class MSBuild
 	/// <summary>The frameworks the project targets, in its order: <c>TargetFrameworks</c>, or its one <c>TargetFramework</c>.</summary>
 	public static IReadOnlyList<string> Frameworks(string project, string configuration, Version sdk)
 	{
-		using var json = Ask(project, ["-p:Configuration=" + configuration, "-getProperty:TargetFramework,TargetFrameworks"], sdk, "evaluating " + project);
+		using var json = Ask(project, ["-p:Configuration=" + configuration, "-getProperty:TargetFramework,TargetFrameworks"], sdk, "evaluating " + project + " failed");
 
 		string Property(string name)
 		{
@@ -65,7 +65,7 @@ static class MSBuild
 	/// asked for, and its JSON answer: read from a file where MSBuild writes one (the encoding is then
 	/// its own), and otherwise from what it printed, as UTF-8.
 	/// </summary>
-	/// <param name="what">What the run is for, as the message of a failure begins.</param>
+	/// <param name="what">What the run is for, said as a failure: the message of one begins with it.</param>
 	/// <exception cref="ToolException">MSBuild exits otherwise than 0, or says nothing the tool can read.</exception>
 	public static JsonDocument Ask(string project, IEnumerable<string> arguments, Version sdk, string what)
 	{
@@ -84,7 +84,7 @@ static class MSBuild
 			var start = text.IndexOf('{');
 
 			if (start < 0)
-				throw ToolException.Failure($"{what} failed: dotnet msbuild exited 0 and printed no result.{Environment.NewLine}{(output + error).Trim()}");
+				throw ToolException.Failure($"{what}: dotnet msbuild exited 0 and printed no result.{Environment.NewLine}{(output + error).Trim()}");
 
 			try
 			{
@@ -92,7 +92,7 @@ static class MSBuild
 			}
 			catch (JsonException exception)
 			{
-				throw ToolException.Failure($"{what} failed: the result of dotnet msbuild is not JSON ({exception.Message}).");
+				throw ToolException.Failure($"{what}: the result of dotnet msbuild is not JSON ({exception.Message}).");
 			}
 		}
 		finally
@@ -136,7 +136,7 @@ static class MSBuild
 
 		var text = errors.Count > 0 ? string.Join(Environment.NewLine, errors) : Trim(printed);
 
-		return ToolException.Failure($"{what} failed (dotnet msbuild exited {exit}):{Environment.NewLine}{text}");
+		return ToolException.Failure($"{what} (dotnet msbuild exited {exit}):{Environment.NewLine}{text}");
 
 		static string Trim(string text)
 		{

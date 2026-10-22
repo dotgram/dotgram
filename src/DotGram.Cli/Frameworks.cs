@@ -16,7 +16,7 @@ namespace DotGram.Cli;
 /// <param name="ImplicitSymbols">
 /// What the SDK adds to <c>DefineConstants</c> for the framework — <c>NET10_0</c>,
 /// <c>NET10_0_OR_GREATER</c> and the rest — for a <c>.gram</c> input, where there is no project to
-/// ask. A project's are asked of the SDK itself (ProjectEvaluation).
+/// ask. A project's are in the compiler arguments its build gives.
 /// </param>
 /// <param name="DefaultLanguageVersion">The SDK's default <c>LangVersion</c> for the framework.</param>
 /// <param name="PackageFolders">
