@@ -6072,19 +6072,69 @@ file.Line("return spare;");
 		if (masks is null || masks.Count == 0)
 			return "";
 
-		var file = new Writer(0);
+		// Each mask is its own bits, or the tests of the masks inside it that the file tests anyway,
+		// or-ed, with bits of their own only for what they leave out: an identifier's part,
+		// [\p{L} | \p{Nd} | '_'], is the start's \p{L} and the bits of \p{Nd}, rather than a second
+		// set of letters a few digits apart from the first. Taken where it is smaller, which it is
+		// not always: what the others leave out can take as many blocks as the whole.
+		var composed = new SortedDictionary<int, List<int>>();
+		var own      = new SortedSet<int>();
 
 		foreach (var mask in masks)
 		{
-			var name  = CategoryTest(mask);
-			var names = new List<string>();
+			var inside = masks.Where(one => one != mask && (one & mask) == one).ToList();
 
-			for (var category = 0; category < 32; category++)
-				if ((mask & 1 << category) != 0)
-					names.Add(UnicodeCategories.Abbreviation((System.Globalization.UnicodeCategory)category));
+			// The widest only: one inside another adds nothing to the test the other is.
+			inside.RemoveAll(one => inside.Exists(other => other != one && (one & other) == one));
+
+			var covered = 0;
+
+			foreach (var one in inside)
+				covered |= one;
+
+			var rest = mask & ~covered;
+
+			if (inside.Count > 0 && (rest == 0 ? 0 : CategoryBitsSize(rest)) < CategoryBitsSize(mask))
+			{
+				// The one with the most characters first: a letter is answered by the first test.
+				inside.Sort((one, other) => CategoryBitsCount(other).CompareTo(CategoryBitsCount(one)));
+
+				if (rest != 0)
+				{
+					inside.Add(rest);
+					own.Add(rest);
+				}
+
+				composed.Add(mask, inside);
+			}
+			else
+			{
+				own.Add(mask);
+			}
+		}
+
+		var file = new Writer(0);
+
+		foreach (var mask in own.Union(composed.Keys).OrderBy(static one => one))
+		{
+			var name = CategoryTest(mask);
 
 			// Comments and not documentation, which a generated file keeps for public members only.
-			file.Line($"// Whether a character is {string.Join(", ", names)} in Unicode {UnicodeCategories.UnicodeVersion}: its high byte picks one of");
+			if (composed.TryGetValue(mask, out var parts))
+			{
+				file.Line($"// Whether a character is {CategoryNames(mask)} in Unicode {UnicodeCategories.UnicodeVersion}: the tests of " +
+					string.Join(" and of ", parts.Select(CategoryNames)) + ".");
+				file.Line("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+
+				using (file.Block($"static bool {name}(char c)"))
+					file.Line($"return {string.Join(" || ", parts.Select(static one => CategoryTest(one) + "(c)"))};");
+
+				file.Line();
+
+				continue;
+			}
+
+			file.Line($"// Whether a character is {CategoryNames(mask)} in Unicode {UnicodeCategories.UnicodeVersion}: its high byte picks one of");
 			file.Line("// the blocks of 256 bits after the 256 bytes that number them, its low byte the bit.");
 			file.Line("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
 
@@ -6100,7 +6150,7 @@ file.Line("return spare;");
 			file.Line("{");
 
 			using (file.Indent())
-				foreach (var line in CategoryBits(mask))
+				foreach (var line in CategoryBitsLines(mask))
 					file.Line(line);
 
 			file.Line("};");
@@ -6110,9 +6160,54 @@ file.Line("return spare;");
 		return file.ToString();
 	}
 
+	/// <summary>The categories a mask holds, as a regular expression writes them: <c>Lu, Ll</c>.</summary>
+	static string CategoryNames(int mask)
+	{
+		var names = new List<string>();
+
+		for (var category = 0; category < 32; category++)
+			if ((mask & 1 << category) != 0)
+				names.Add(UnicodeCategories.Abbreviation((System.Globalization.UnicodeCategory)category));
+
+		return string.Join(", ", names);
+	}
+
+	/// <summary>How many code units of the plane a mask holds.</summary>
+	static int CategoryBitsCount(int mask)
+	{
+		var count = 0;
+
+		for (var c = 0; c <= char.MaxValue; c++)
+			if ((1 << (int)UnicodeCategories.Of((char)c) & mask) != 0)
+				count++;
+
+		return count;
+	}
+
+	/// <summary>How many bytes a mask's bits are: the index and its distinct blocks.</summary>
+	static int CategoryBitsSize(int mask)
+	{
+		return 256 + 32 * CategoryBits(mask).Blocks.Count;
+	}
+
 	/// <summary>The lines of a mask's bits: the index, sixteen high bytes a line, then a line a block.</summary>
 	/// <remarks>Decimal and unspaced, as the class tables are: a parser's source is read by its compiler far more often than by anyone.</remarks>
-	static List<string> CategoryBits(int mask)
+	static List<string> CategoryBitsLines(int mask)
+	{
+		var (index, blocks) = CategoryBits(mask);
+		var lines           = new List<string>();
+
+		for (var high = 0; high < 256; high += 16)
+			lines.Add(string.Join(",", index.Skip(high).Take(16).Select(static one => one.ToString(System.Globalization.CultureInfo.InvariantCulture))) + ",");
+
+		foreach (var block in blocks)
+			lines.Add(string.Join(",", block.Select(static one => one.ToString(System.Globalization.CultureInfo.InvariantCulture))) + ",");
+
+		return lines;
+	}
+
+	/// <summary>A mask's two levels: the block number of each high byte, and the distinct blocks of 256 bits.</summary>
+	static (byte[] Index, List<byte[]> Blocks) CategoryBits(int mask)
 	{
 		var index  = new byte[256];
 		var blocks = new List<byte[]>();
@@ -6138,15 +6233,7 @@ file.Line("return spare;");
 			index[high] = (byte)number;
 		}
 
-		var lines = new List<string>();
-
-		for (var high = 0; high < 256; high += 16)
-			lines.Add(string.Join(",", index.Skip(high).Take(16).Select(static one => one.ToString(System.Globalization.CultureInfo.InvariantCulture))) + ",");
-
-		foreach (var block in blocks)
-			lines.Add(string.Join(",", block.Select(static one => one.ToString(System.Globalization.CultureInfo.InvariantCulture))) + ",");
-
-		return lines;
+		return (index, blocks);
 	}
 
 	/// <summary>The characters below <see cref="AsciiSize"/> an element admits, as ranges.</summary>
