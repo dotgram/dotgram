@@ -126,9 +126,9 @@ public sealed class ProjectTests
 
 	/// <summary>
 	/// <c>dotnet new classlib</c> for netstandard2.0: C# 7.3 by the SDK's default, which a generated
-	/// parser cannot be compiled at — in a build as much as here. The tool writes what the build
-	/// writes all the same, its <c>.gram</c> mode refuses the parser that does not compile, and with
-	/// <c>LangVersion</c> 8 the folder compiles.
+	/// parser cannot be compiled at: the generator says so in a build as much as here, and the tool
+	/// writes nothing. With <c>LangVersion</c> 8 the project generates what its build does, and the
+	/// folder compiles.
 	/// </summary>
 	[Fact]
 	public void A_new_netstandard20_class_library()
@@ -136,20 +136,20 @@ public sealed class ProjectTests
 		using var scratch = new Scratch();
 
 		var project = NewLibrary(scratch, "netstandard2.0", """<PackageReference Include="System.Memory" Version="4.6.3" />""");
-		var (exit, text, built) = Build.TryGenerated(project);
+		var (exit, text, _) = Build.TryGenerated(project);
 
-		Assert.True(exit != 0 && text.Contains("CS8370", StringComparison.Ordinal), text);
+		Assert.True(exit != 0 && text.Contains("GRAM0010", StringComparison.Ordinal), text);
 
-		var fromProject = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--line-paths", "absolute", "--package", "System.Memory@4.6.3");
+		var refused = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--line-paths", "absolute");
 
-		Assert.True(fromProject.Exit == 0, fromProject.ToString());
-		Equality.Same(built, scratch.Path("out"));
+		Assert.True(refused.Exit == ExitCode.GrammarErrors && refused.Output.Contains("GRAM0010", StringComparison.Ordinal), refused.ToString());
+		Assert.False(Directory.Exists(scratch.Path("out")));
 
 		var fromGrammar = Tool.Run(
 			scratch.Root, "generate", scratch.Path("lib", "Csv.gram"), "-o", scratch.Path("gram"),
 			"--framework", "netstandard2.0", "--package", "System.Memory@4.6.3", "--namespace", "Lib", "--class", "Csv", "--public");
 
-		Assert.True(fromGrammar.Exit == ExitCode.GrammarErrors && fromGrammar.Output.Contains("CS8370", StringComparison.Ordinal), fromGrammar.ToString());
+		Assert.True(fromGrammar.Exit == ExitCode.GrammarErrors && fromGrammar.Output.Contains("GRAM0010", StringComparison.Ordinal), fromGrammar.ToString());
 		Assert.False(Directory.Exists(scratch.Path("gram")));
 
 		var at8 = Tool.Run(
@@ -164,11 +164,10 @@ public sealed class ProjectTests
 
 		Assert.Equal(File.ReadAllBytes(Path.Combine(built8, "Lib.Csv.g.cs")), File.ReadAllBytes(scratch.Path("gram", "Lib.Csv.g.cs")));
 
-		Directory.Delete(scratch.Path("out"), recursive: true);
+		var fromProject = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--line-paths", "absolute");
 
-		var again = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--package", "System.Memory@4.6.3");
-
-		Assert.True(again.Exit == 0, again.ToString());
+		Assert.True(fromProject.Exit == 0, fromProject.ToString());
+		Equality.Same(built8, scratch.Path("out"));
 
 		CompilesWithoutTheGenerator(scratch, project);
 	}
