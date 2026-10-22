@@ -4118,9 +4118,24 @@ file.Line("return spare;");
 					file.Line($"{graph.Types[rule]} made =");
 					Handed(file, lines, (Node.Construct)factory.Of);
 					file.Line();
-					file.Line("made.Locate(parserSpan.Start, parserSpan.Length);");
-					file.Line();
-					file.Line("return made;");
+					// A rule may hand back null for what was not written (`null!`), and null is no
+					// value made: nothing is told. A struct is never null and is not asked. The
+					// test teaches the compiler that the value may be null, which the rule's type
+					// says it is not; it is handed back as the author's C# made it (CS8603).
+					if (IsReferenceType(graph, graph.Types[rule]))
+					{
+						// Not `is not null`, which a consumer on C# 8 cannot compile.
+						file.Line("if (!(made is null))");
+						file.Then("made.Locate(parserSpan.Start, parserSpan.Length);");
+						file.Line();
+						file.Line("return made!;");
+					}
+					else
+					{
+						file.Line("made.Locate(parserSpan.Start, parserSpan.Length);");
+						file.Line();
+						file.Line("return made;");
+					}
 				}
 
 				break;
@@ -4397,6 +4412,20 @@ file.Line("return spare;");
 		return graph is not null && graph.FreeNames.TryGetValue(text, out var free)
 			? free.Contains(name)
 			: name.StartsWith("parser", StringComparison.Ordinal) ? text.Contains(name) : Names(text, name);
+	}
+
+	/// <summary>
+	/// Whether a value of this type can be null: a string, any array, or a class the host said is
+	/// one. Not knowing is answered as a struct.
+	/// </summary>
+	internal static bool IsReferenceType(RecognitionGraph graph, string type)
+	{
+		if (type.EndsWith("?", StringComparison.Ordinal))
+			type = type.Substring(0, type.Length - 1);
+
+		return type is "string" or "object" ||
+			type.EndsWith("[]", StringComparison.Ordinal) ||
+			graph.ReferenceTypes.Contains(type);
 	}
 
 	/// <summary>The same, for a factory whose graph is in hand.</summary>

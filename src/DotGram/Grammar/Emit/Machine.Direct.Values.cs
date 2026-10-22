@@ -2271,12 +2271,7 @@ sealed partial class Machine
 	/// </remarks>
 	bool IsReferenceType(string type)
 	{
-		if (type.EndsWith("?", StringComparison.Ordinal))
-			type = type.Substring(0, type.Length - 1);
-
-		return type is "string" or "object" ||
-			type.EndsWith("[]", StringComparison.Ordinal) ||
-			_graph.ReferenceTypes.Contains(type);
+		return CSharpEmitter.IsReferenceType(_graph, type);
 	}
 
 	/// <summary>The factory's arguments as the walk over the log supplies them.</summary>

@@ -484,13 +484,13 @@ public sealed class LocatedReadingTests
 	/// to — those a helper used to make from a word as well: <c>MODULE</c> in front of a module's table,
 	/// column or cursor, and the SQL language identifier that ends a character set's name, after
 	/// <c>CHARACTER SET</c> and after an introducer.
+	/// A table written without a correlation name has none, and the reading tells nothing about it.
 	/// </summary>
-	/// <remarks>
-	/// No row reads a FROM clause: two rules of the grammar hand back null for a correlation that
-	/// was not written, and a reading that locates every rule cannot locate that (see
-	/// <c>SqlStandardLocated</c>).
-	/// </remarks>
 	[Theory]
+	[InlineData("Statement", "SELECT a FROM t", "t")]
+	[InlineData("Statement", "SELECT s.t.c FROM s.t", "s.t")]
+	[InlineData("Statement", "SELECT x.a FROM s.t AS x JOIN u ON x.a = u.a", "u.a")]
+	[InlineData("Statement", "SELECT a FROM t, s.u WHERE a IN (SELECT b FROM v)", "s.u")]
 	[InlineData("Statement", "UPDATE c.s.t SET a = x.y + s.t.c WHERE z = 1", "c.s.t")]
 	[InlineData("Expression", "MODULE.t.c + 1", "MODULE.t.c")]
 	[InlineData("Statement", "DELETE FROM MODULE.t WHERE CURRENT OF MODULE.c", "MODULE.c")]

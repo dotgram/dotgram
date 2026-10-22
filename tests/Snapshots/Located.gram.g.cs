@@ -223,9 +223,10 @@ namespace DotGram.Snapshots
                                                          (new Entry(key, value));
 #line default
 
-			made.Locate(parserSpan.Start, parserSpan.Length);
+			if (!(made is null))
+				made.Locate(parserSpan.Start, parserSpan.Length);
 
-			return made;
+			return made!;
 		}
 
 		static Place Construct_Name(SourceSpan parserSpan, string w)
@@ -235,9 +236,10 @@ namespace DotGram.Snapshots
                             (new Place(w));
 #line default
 
-			made.Locate(parserSpan.Start, parserSpan.Length);
+			if (!(made is null))
+				made.Locate(parserSpan.Start, parserSpan.Length);
 
-			return made;
+			return made!;
 		}
 
 		static string Construct_Word(string t) =>
