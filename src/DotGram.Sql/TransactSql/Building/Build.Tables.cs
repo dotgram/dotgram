@@ -437,23 +437,9 @@ static partial class Build
 			if (name is null)
 				return null;
 
-			var said = Recover(before is null ? Spelled(old) : WordsAfter(before, old), static text =>
-			{
-				// A word AS, not a name `"as"` or `[as]`, not the AS of FOR SYSTEM_TIME AS OF, and not one inside
-				// brackets, a method's arguments (`@v.f (CAST (1 AS INT))`).
-				var words = Words(text);
-				var depth = 0;
-
-				for (var at = 0; at < words.Count; at++)
-				{
-					depth += words[at] switch { "(" => 1, ")" => -1, _ => 0 };
-
-					if (depth == 0 && words[at] == "AS" && (at + 1 >= words.Count || words[at + 1] != "OF"))
-						return true;
-				}
-
-				return false;
-			}, false);
+			// A word AS, not a name `"as"` or `[as]`, not the AS of FOR SYSTEM_TIME AS OF, and not one inside
+			// brackets, a method's arguments (`@v.f (CAST (1 AS INT))`).
+			var said = Recover(before is null ? Spelled(old) : WordsAfter(before, old), static text => SqlTokens.AliasAs(text), false);
 
 			return new Ast.Alias(Values.Part(old, name), columns is { } list ? Values.Parts(old, list) : null, said);
 		}

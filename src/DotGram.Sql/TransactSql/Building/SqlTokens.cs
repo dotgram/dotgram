@@ -73,6 +73,44 @@ static class SqlTokens
 	}
 
 	/// <summary>
+	/// Whether a word AS stands in a text outside round brackets and is not followed by the word OF (the AS of
+	/// <c>FOR SYSTEM_TIME AS OF</c> is not an alias's), a word in any case and never a name in brackets or quotes: what
+	/// <c>Words</c> would show of the text, found without making a list of its tokens.
+	/// </summary>
+	public static bool AliasAs(string text)
+	{
+		var depth   = 0;
+		var pending = false;
+
+		for (var at = 0; Next(text, ref at, out var kind, out var start);)
+		{
+			var token = text.AsSpan(start, at - start);
+
+			// An AS outside the brackets is an alias's unless OF is the next word.
+			if (pending)
+			{
+				if (kind != Kind.Word || !Upper(token, 'O', 'F'))
+					return true;
+
+				pending = false;
+			}
+
+			if (kind == Kind.Punctuation)
+				depth += token[0] switch { '(' => 1, ')' => -1, _ => 0 };
+			else if (kind == Kind.Word && depth == 0 && Upper(token, 'A', 'S'))
+				pending = true;
+		}
+
+		return pending;
+	}
+
+	/// <summary>Whether a token of two characters is the two given upper-case ones when it is upper-cased, as the words of a text are.</summary>
+	static bool Upper(ReadOnlySpan<char> token, char first, char second)
+	{
+		return token.Length == 2 && char.ToUpperInvariant(token[0]) == first && char.ToUpperInvariant(token[1]) == second;
+	}
+
+	/// <summary>
 	/// The first token of a text from a position on, or null where there is none: what is written after a node,
 	/// comments and blanks skipped.
 	/// </summary>
@@ -87,7 +125,7 @@ static class SqlTokens
 	/// The next token from a position on: its kind and where it starts, with the position moved past its end; false where
 	/// only blanks and comments are left. Nothing is allocated: a caller that wants the token's text cuts it.
 	/// </summary>
-	static bool Next(string text, ref int at, out Kind kind, out int start)
+	internal static bool Next(string text, ref int at, out Kind kind, out int start)
 	{
 		while (at < text.Length)
 		{

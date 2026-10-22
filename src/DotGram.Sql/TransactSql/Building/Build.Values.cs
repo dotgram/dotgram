@@ -1724,12 +1724,66 @@ static partial class Build
 			if (text.IndexOf('.') < 0)
 				return new Ast.QualifiedName(Part(owner, text, split: false));
 
+			if (Dotted(text) is { } dotted)
+				return dotted;
+
 			var parts = Split(text);
 			var first = Part(owner, parts[0], split: false);
 			var rest  = new Ast.Identifier[parts.Count - 1];
 
 			for (var at = 0; at < rest.Length; at++)
 				rest[at] = Part(owner, parts[at + 1], split: false);
+
+			return new Ast.QualifiedName(first, rest);
+		}
+
+		/// <summary>
+		/// A name of several parts that are all bare words (<c>dbo.Orders</c>, <c>o.Total</c>, <c>db.dbo.t</c>), cut at its dots
+		/// without the tokens a delimited part would need; null for any other text, which <see cref="Name"/> cuts as it always did.
+		/// A part is ASCII letters, digits and underscores, never empty and never starting with a digit, so that none of the
+		/// checks <see cref="Part(object, string)"/> makes can refuse it.
+		/// </summary>
+		static Ast.QualifiedName? Dotted(string text)
+		{
+			var dots = 0;
+
+			for (var at = 0; at < text.Length; at++)
+			{
+				var c = text[at];
+
+				if (c == '.')
+				{
+					if (at == 0 || at == text.Length - 1 || text[at - 1] == '.')
+						return null;
+
+					dots++;
+				}
+				else if (c is >= '0' and <= '9')
+				{
+					if (at == 0 || text[at - 1] == '.')
+						return null;
+				}
+				else if (!(IsAsciiLetter(c) || c == '_'))
+					return null;
+			}
+
+			if (dots == 0)
+				return null;
+
+			var rest  = new Ast.Identifier[dots];
+			var start = text.IndexOf('.');
+			var first = new Ast.Identifier(text.Substring(0, start));
+
+			for (var one = 0; one < dots; one++)
+			{
+				var end = text.IndexOf('.', start + 1);
+
+				if (end < 0)
+					end = text.Length;
+
+				rest[one] = new Ast.Identifier(text.Substring(start + 1, end - start - 1));
+				start     = end;
+			}
 
 			return new Ast.QualifiedName(first, rest);
 		}
@@ -1892,6 +1946,9 @@ static partial class Build
 		/// </summary>
 		public static Ast.DataType Type(object owner, string text)
 		{
+			if (Plain(text) is { } plain)
+				return plain;
+
 			var open  = SqlTokens.Find(text, "(");
 			var head  = (open < 0 ? text : text[..open]).Trim();
 			var words = string.Join(' ', Spaced(head).Split([' '], StringSplitOptions.RemoveEmptyEntries)).ToUpperInvariant();
@@ -1966,6 +2023,143 @@ static partial class Build
 					=> new Ast.DataType.UserDefined(name) { Arguments = [.. arguments.Select(static one => Value(new Ast.LiteralValue.Numeric(one, Ast.NumericLiteralKind.DecimalInteger)))] },
 				_ => throw BuildGap.Open(owner, $"inventory DataType (`{text}`: a user-defined type with arguments)"),
 			};
+		}
+
+		/// <summary>
+		/// The type a bare word spells, with numbers or <c>MAX</c> in brackets after it (<c>int</c>, <c>DECIMAL(18, 2)</c>,
+		/// <c>nvarchar(50)</c>, <c>varchar(MAX)</c>), which nearly every type is, answered without cutting the text into tokens;
+		/// null for any other text, which <see cref="Type"/> reads as it always did. The answers are the ones its steps give
+		/// such a text, in their order: a standard spelling, <c>xml</c> and <c>vector</c> left to them, a system type as
+		/// <see cref="Ast.DataType.Named"/>, any other word as <see cref="Ast.DataType.UserDefined"/>. Where those steps would
+		/// refuse the text (arguments they have no place for) this answers null as well, so that they refuse it.
+		/// </summary>
+		static Ast.DataType? Plain(string text)
+		{
+			if (text.Length == 0 || !(IsAsciiLetter(text[0]) || text[0] == '_'))
+				return null;
+
+			var end = 1;
+
+			while (end < text.Length && (IsAsciiLetter(text[end]) || text[end] is >= '0' and <= '9' || text[end] == '_'))
+				end++;
+
+			var arguments = Array.Empty<string>();
+			var at        = end;
+
+			while (at < text.Length && IsBlank(text[at]))
+				at++;
+
+			if (at < text.Length)
+			{
+				var last = text.Length;
+
+				while (IsBlank(text[last - 1]))
+					last--;
+
+				if (text[at] != '(' || last - at < 3 || text[last - 1] != ')')
+					return null;
+
+				// The arguments between the brackets, each without the blanks around it: whole numbers, or MAX.
+				var count = 1;
+
+				for (var i = at + 1; i < last - 1; i++)
+				{
+					var c = text[i];
+
+					if (c == ',')
+						count++;
+					else if (!(IsAsciiLetter(c) || c is >= '0' and <= '9' || IsBlank(c)))
+						return null;
+				}
+
+				arguments = new string[count];
+
+				var from = at + 1;
+
+				for (var one = 0; one < count; one++)
+				{
+					var to = from;
+
+					while (to < last - 1 && text[to] != ',')
+						to++;
+
+					var start = from;
+					var stop  = to;
+
+					while (start < stop && IsBlank(text[start]))
+						start++;
+
+					while (stop > start && IsBlank(text[stop - 1]))
+						stop--;
+
+					var argument = text.Substring(start, stop - start);
+
+					if (argument.Length == 0 || !(IsNumber(argument) || argument.Equals("MAX", StringComparison.OrdinalIgnoreCase)))
+						return null;
+
+					arguments[one] = argument;
+					from           = to + 1;
+				}
+			}
+
+			var word = text.Substring(0, end);
+
+			if (StandardWords.Contains(word) && Standard(word.ToUpperInvariant(), arguments) is { } standard)
+				return standard;
+
+			if (word.Equals("xml", StringComparison.OrdinalIgnoreCase) || word.Equals("vector", StringComparison.OrdinalIgnoreCase))
+				return null;
+
+			var name = new Ast.QualifiedName(new Ast.Identifier(word));
+			var max  = arguments is [var only] && only.Equals("MAX", StringComparison.OrdinalIgnoreCase);
+
+			if (SystemTypes.Contains(word))
+			{
+				if (max)
+					return new Ast.DataType.Named(name, []) { Max = true };
+
+				return Numbers(arguments)
+					? new Ast.DataType.Named(name, [.. arguments.Select(static one => Value(new Ast.LiteralValue.Numeric(one, Ast.NumericLiteralKind.DecimalInteger)))])
+					: null;
+			}
+
+			if (arguments.Length == 0)
+				return new Ast.DataType.UserDefined(name);
+
+			if (max)
+				return new Ast.DataType.UserDefined(name) { Max = true };
+
+			return arguments.Length is 1 or 2 && Numbers(arguments)
+				? new Ast.DataType.UserDefined(name) { Arguments = [.. arguments.Select(static one => Value(new Ast.LiteralValue.Numeric(one, Ast.NumericLiteralKind.DecimalInteger)))] }
+				: null;
+		}
+
+		static bool IsAsciiLetter(char c)
+		{
+			return c is >= 'a' and <= 'z' or >= 'A' and <= 'Z';
+		}
+
+		static bool IsBlank(char c)
+		{
+			return c is ' ' or '\t' or '\r' or '\n';
+		}
+
+		static bool IsNumber(string text)
+		{
+			foreach (var c in text)
+				if (c is < '0' or > '9')
+					return false;
+
+			return text.Length > 0;
+		}
+
+		static bool Numbers(string[] arguments)
+		{
+			foreach (var one in arguments)
+				if (!IsNumber(one))
+					return false;
+
+			return true;
 		}
 
 		/// <summary>
