@@ -6052,7 +6052,7 @@ file.Line("return spare;");
 			}
 
 		if (!takes && mask != 0)
-			takes = (1 << (int)System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) & mask) != 0;
+			takes = (1 << (int)UnicodeCategories.Of(c) & mask) != 0;
 
 		return takes != element.IsNegated;
 	}
