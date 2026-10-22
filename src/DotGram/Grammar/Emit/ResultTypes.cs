@@ -157,7 +157,7 @@ sealed class ResultTypes
 	{
 		var name = member.Name.Length == 0
 			? member.Name
-			: CaseFold.Upper(member.Name[0]) + member.Name.Substring(1);
+			: char.ToUpperInvariant(member.Name[0]) + member.Name.Substring(1);
 
 		return name == owner ? name + "Value" : name;
 	}

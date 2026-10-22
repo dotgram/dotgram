@@ -320,7 +320,7 @@ public sealed partial class GrammarNormalizer
 
 		static bool Continues(char c)
 		{
-			return UnicodeCategories.IsLetterOrDigit(c) || c is '_' or '@';
+			return char.IsLetterOrDigit(c) || c is '_' or '@';
 		}
 	}
 }

@@ -1651,12 +1651,12 @@ sealed partial class Machine
 			var candidate = trimmed[..colon];
 
 			foreach (var symbol in candidate)
-				if (!UnicodeCategories.IsLetterOrDigit(symbol) && symbol != '_')
+				if (!char.IsLetterOrDigit(symbol) && symbol != '_')
 					return false;
 
 			// `case 3:` is a label to C# but not to this pass; nothing here emits
 			// switches, and a name that is a keyword or starts with a digit is not ours.
-			if (candidate.Length == 0 || UnicodeCategories.IsDigit(candidate[0]) || candidate == "default")
+			if (candidate.Length == 0 || char.IsDigit(candidate[0]) || candidate == "default")
 				return false;
 
 			name = candidate;

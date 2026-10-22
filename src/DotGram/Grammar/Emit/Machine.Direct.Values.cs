@@ -1725,7 +1725,7 @@ sealed partial class Machine
 
 		static bool IsWordPart(char c)
 		{
-			return UnicodeCategories.IsLetterOrDigit(c) || c == '_';
+			return char.IsLetterOrDigit(c) || c == '_';
 		}
 	}
 
