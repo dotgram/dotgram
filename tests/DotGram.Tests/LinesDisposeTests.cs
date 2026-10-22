@@ -26,12 +26,12 @@ public sealed class LinesDisposeTests
 	const string Members =
 		"static string Check(string text) { if (text == \"13\") throw new global::System.InvalidOperationException(\"unlucky\"); return text; }\n";
 
-	static readonly Type Host = Compiled();
+	static readonly Type Host = Compiled(Grammar);
 
-	static Type Compiled()
+	static Type Compiled(string grammar)
 	{
 		var result = GramCompiler.Compile(
-			Grammar,
+			grammar,
 			new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Direct = true });
 
 		Assert.DoesNotContain(result.Diagnostics, one => one.Severity == GramSeverity.Error);
@@ -94,9 +94,9 @@ public sealed class LinesDisposeTests
 		}
 	}
 
-	static IEnumerable<string> Find(IEnumerable<string> lines)
+	static IEnumerable<string> Find(IEnumerable<string> lines, Type? host = null, string name = "FindNum")
 	{
-		var method = Host.GetMethod("FindNum", [typeof(IEnumerable<string>)])!;
+		var method = (host ?? Host).GetMethod(name, [typeof(IEnumerable<string>)])!;
 
 		try
 		{
@@ -203,7 +203,7 @@ public sealed class LinesDisposeTests
 
 		var path = Path.Combine(Path.GetTempPath(), "lines-dispose-" + Guid.NewGuid().ToString("N") + ".txt");
 
-		File.WriteAllLines(path, ["1", "2", "3"]);
+		File.WriteAllLines(path, Enumerable.Repeat("1", 20_000));
 
 		try
 		{
@@ -216,5 +216,18 @@ public sealed class LinesDisposeTests
 		{
 			File.Delete(path);
 		}
+	}
+
+	[Theory]
+	[InlineData("OverLines")]
+	[InlineData("lines")]
+	[InlineData("item")]
+	public void APublicationMayBeNamedLikeTheLocalsOfTheOverload(string name)
+	{
+		var host = Compiled(Grammar.Replace("find Num", "find Num as " + name, StringComparison.Ordinal));
+		var spy  = new Spy("1", "2");
+
+		Assert.Equal(["1", "2"], Find(spy, host, name).ToArray());
+		Assert.Equal(1, spy.Disposed);
 	}
 }
