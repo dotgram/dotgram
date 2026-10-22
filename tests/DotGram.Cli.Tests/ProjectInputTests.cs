@@ -1,0 +1,707 @@
+﻿using System;
+using System.IO.Compression;
+using System.Text;
+
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+
+using Xunit;
+
+namespace DotGram.Cli.Tests;
+
+/// <summary>
+/// A project's compiler inputs are the ones its build gives the compiler, whatever the project does
+/// to get them: every case here is held to the files a build of the same project generates, byte for
+/// byte, and a case a build would refuse is refused.
+/// </summary>
+public sealed class ProjectInputTests
+{
+	const string Pairs = "Pair = key: Word & '=' & value: Word\n\nWord = ['a'..'z']+\n\nparse Pair\n";
+
+	const string PlainHost = """
+		using DotGram;
+
+		namespace Demo
+		{
+			[Gram("Pairs.gram")]
+			public static partial class Pairs { }
+		}
+		""";
+
+	/// <summary>A project in <c>directory</c> with one grammar and its host; its inner items and settings as given.</summary>
+	static string App(
+		Scratch scratch, string directory, string host = PlainHost, string items = "", string settings = "", string framework = "net10.0", string attributes = "",
+		string targets = "", string grammar = Pairs, string grammarName = "Pairs.gram")
+	{
+		scratch.Write(directory + "/" + grammarName, grammar);
+		scratch.Write(directory + "/Pairs.cs", host);
+
+		return scratch.Write(directory + "/p.csproj", $"""
+			<Project Sdk="Microsoft.NET.Sdk"{attributes}>
+			  <PropertyGroup>
+			    <TargetFramework>{framework}</TargetFramework>
+			    <Nullable>enable</Nullable>
+			    {settings}
+			  </PropertyGroup>
+			  <ItemGroup>
+			    <AdditionalFiles Include="{grammarName}" />
+			    {items}
+			  </ItemGroup>
+			  {Build.AnalyzerItems}
+			  {targets}
+			</Project>
+			""");
+	}
+
+	/// <summary>Builds the project and generates it with the tool; the two folders are the same.</summary>
+	static ToolRun Same(Scratch scratch, string project, string output = "out", string[]? build = null, params string[] arguments)
+	{
+		build ??= [];
+
+		// The tool's configuration is Release unless it is told otherwise, and the build is held to the same.
+		var built = Build.Generated(project, build.Any(static property => property.StartsWith("Configuration=", StringComparison.Ordinal)) ? build : ["Configuration=Release", .. build]);
+		var run   = Tool.Run(scratch.Root, ["generate", project, "-o", scratch.Path(output), "--line-paths", "absolute", .. arguments]);
+
+		Assert.True(run.Exit == 0, run.ToString());
+		Equality.Same(built, scratch.Path(output));
+
+		return run;
+	}
+
+	/// <summary>A generator, compiled here: its source is a class <c>G</c> in a file that opens with the usual usings.</summary>
+	static string Generator(Scratch scratch, string name, string body)
+	{
+		var references = Basic.Reference.Assemblies.Net100.References.All
+			.Append(MetadataReference.CreateFromFile(typeof(Compilation).Assembly.Location))
+			.Append(MetadataReference.CreateFromFile(typeof(CSharpCompilation).Assembly.Location))
+			.ToList();
+
+		var path = scratch.Path("generators", name + ".dll");
+
+		Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+
+		var result = CSharpCompilation.Create(
+				name,
+				[CSharpSyntaxTree.ParseText("using System;\nusing System.Linq;\nusing Microsoft.CodeAnalysis;\nusing Microsoft.CodeAnalysis.Text;\n\n[Generator]\npublic sealed class G : IIncrementalGenerator\n{\n" + body + "\n}\n")],
+				references,
+				new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+			.Emit(path);
+
+		Assert.True(result.Success, string.Join("\n", result.Diagnostics));
+
+		return path;
+	}
+
+	static string Analyzer(string path)
+	{
+		return $"""<Analyzer Include="{path}" />""";
+	}
+
+	/// <summary>A library project whose one source file declares what the application uses.</summary>
+	static string Library(Scratch scratch, string directory, string source)
+	{
+		scratch.Write(directory + "/Lib.cs", source);
+
+		return scratch.Write(directory + "/Lib.csproj", """
+			<Project Sdk="Microsoft.NET.Sdk">
+			  <PropertyGroup>
+			    <TargetFramework>net10.0</TargetFramework>
+			    <Nullable>enable</Nullable>
+			  </PropertyGroup>
+			</Project>
+			""");
+	}
+
+	const string TracedHost = """
+		using DotGram;
+
+		namespace Demo
+		{
+			[Gram("Pairs.gram", Trace = Lib.Settings.Enabled)]
+			public static partial class Pairs { }
+		}
+		""";
+
+	/// <summary>
+	/// An attribute argument that is a constant of a referenced project: the build reads it and the
+	/// parser is a trace build; the tool must read it as well, not default. With the reference's
+	/// source broken the referenced project does not build, and neither does the run.
+	/// </summary>
+	[Fact]
+	public void A_constant_from_a_referenced_project_reaches_the_generator()
+	{
+		using var scratch = new Scratch();
+
+		Library(scratch, "lib", "namespace Lib { public static class Settings { public const bool Enabled = true; } }");
+
+		var project = App(scratch, "p", TracedHost, """<ProjectReference Include="../lib/Lib.csproj" />""");
+
+		Same(scratch, project);
+
+		Assert.Contains("GramTrace", File.ReadAllText(scratch.Path("out", "Demo.Pairs.g.cs")), StringComparison.Ordinal);
+
+		scratch.Write("lib/Lib.cs", "namespace Lib { public static class Settings { public const bool Enabled = ; } }");
+
+		var broken = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("broken"));
+
+		Assert.True(broken.Exit == ExitCode.Failure, broken.ToString());
+		Assert.Contains("MSBuild failed", broken.Error, StringComparison.Ordinal);
+		Assert.False(Directory.Exists(scratch.Path("broken")));
+	}
+
+	/// <summary>A referenced project that was never built is built by the run; the project is restored, nothing else.</summary>
+	[Fact]
+	public void A_referenced_project_that_was_never_built_is_built()
+	{
+		using var scratch = new Scratch();
+
+		Library(scratch, "lib", "namespace Lib { public static class Settings { public const bool Enabled = true; } }");
+
+		var project = App(scratch, "p", TracedHost, """<ProjectReference Include="../lib/Lib.csproj" />""");
+
+		Dotnet.Restore(project);
+
+		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--line-paths", "absolute");
+
+		Assert.True(run.Exit == 0, run.ToString());
+		Assert.True(File.Exists(scratch.Path("lib", "bin", "Release", "net10.0", "Lib.dll")));
+
+		var built = Build.Generated(project);
+
+		Equality.Same(built, scratch.Path("out"));
+	}
+
+	/// <summary>
+	/// A generator whose post-initialization output adds a constructor to the partial class the grammar
+	/// builds, named by <c>&lt;Analyzer Include&gt;</c>: it is loaded and run, so that what it adds is
+	/// there when the sources are checked; unloadable, the run stops and names it.
+	/// </summary>
+	[Fact]
+	public void A_generator_the_project_names_is_run_and_one_that_will_not_load_stops_the_run()
+	{
+		using var scratch = new Scratch();
+
+		var generator = Generator(scratch, "Constructor", """
+			public void Initialize(IncrementalGeneratorInitializationContext context)
+			{
+				context.RegisterPostInitializationOutput(static output => output.AddSource("Node.Ctor.g.cs",
+					"namespace Demo { public partial class Node { public Node(string name) { Name = name; } public string Name { get; } } }"));
+			}
+			""");
+
+		var project = App(scratch, "p", """
+			using DotGram;
+
+			namespace Demo
+			{
+				[Gram("Nodes.gram")]
+				public static partial class Nodes { }
+
+				public partial class Node
+				{
+					public static string Shout(Node node) { return node.Name.ToUpperInvariant(); }
+				}
+			}
+			""", Analyzer(generator), grammar: "Node : @Node = name: Word => @(new Node(name))\n\nWord = ['a'..'z']+\n\nparse Node\n", grammarName: "Nodes.gram");
+
+		Same(scratch, project);
+
+		File.WriteAllBytes(generator, [1, 2, 3, 4]);
+
+		var broken = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("broken"));
+
+		Assert.True(broken.Exit == ExitCode.Failure, broken.ToString());
+		Assert.Contains("Constructor.dll", broken.Error, StringComparison.Ordinal);
+		Assert.False(Directory.Exists(scratch.Path("broken")));
+	}
+
+	/// <summary>
+	/// An analyzer project reference: the run builds it (the build would), loads its generator, and the
+	/// names it supplies resolve.
+	/// </summary>
+	[Fact]
+	public void An_analyzer_project_reference_is_built_and_run()
+	{
+		using var scratch = new Scratch();
+
+		scratch.Write("gen/G.cs", """
+			using Microsoft.CodeAnalysis;
+
+			[Generator]
+			public sealed class G : IIncrementalGenerator
+			{
+				public void Initialize(IncrementalGeneratorInitializationContext context)
+				{
+					context.RegisterPostInitializationOutput(static output => output.AddSource("Supplied.g.cs", "namespace Demo { public static class Supplied { public const int Value = 1; } }"));
+				}
+			}
+			""");
+
+		scratch.Write("gen/Gen.csproj", """
+			<Project Sdk="Microsoft.NET.Sdk">
+			  <PropertyGroup>
+			    <TargetFramework>netstandard2.0</TargetFramework>
+			    <LangVersion>latest</LangVersion>
+			    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+			  </PropertyGroup>
+			  <ItemGroup>
+			    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
+			  </ItemGroup>
+			</Project>
+			""");
+
+		var project = App(scratch, "p", """
+			using DotGram;
+
+			namespace Demo
+			{
+				[Gram("Pairs.gram")]
+				public static partial class Pairs
+				{
+					public const int Twice = Supplied.Value * 2;
+				}
+			}
+			""", """<ProjectReference Include="../gen/Gen.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />""");
+
+		Same(scratch, project);
+	}
+
+	/// <summary>
+	/// A package that has an assembly in <c>analyzers/dotnet/cs</c> and another in
+	/// <c>analyzers/dotnet/roslyn4.8/cs</c>: the build runs what the SDK picks of them, and so does the run.
+	/// </summary>
+	[Fact]
+	public void The_generators_of_a_package_are_the_ones_the_build_picks()
+	{
+		using var scratch = new Scratch();
+
+		string Supplier(string name, string type)
+		{
+			return Generator(scratch, name, $$"""
+				public void Initialize(IncrementalGeneratorInitializationContext context)
+				{
+					context.RegisterPostInitializationOutput(static output => output.AddSource("{{type}}.g.cs", "namespace Demo { public static class {{type}} { public const int Value = 1; } }"));
+				}
+				""");
+		}
+
+		var feed = scratch.Path("feed");
+
+		Directory.CreateDirectory(feed);
+
+		using (var package = ZipFile.Open(Path.Combine(feed, "Suppliers.1.0.0.nupkg"), ZipArchiveMode.Create))
+		{
+			void Add(string name, byte[] bytes)
+			{
+				using var stream = package.CreateEntry(name).Open();
+
+				stream.Write(bytes);
+			}
+
+			Add("Suppliers.nuspec", Encoding.UTF8.GetBytes("""
+				<?xml version="1.0"?>
+				<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+				  <metadata>
+				    <id>Suppliers</id>
+				    <version>1.0.0</version>
+				    <authors>test</authors>
+				    <description>test</description>
+				    <developmentDependency>true</developmentDependency>
+				  </metadata>
+				</package>
+				"""));
+
+			Add("analyzers/dotnet/cs/Generic.dll", File.ReadAllBytes(Supplier("Generic", "FromGeneric")));
+			Add("analyzers/dotnet/roslyn4.8/cs/Versioned.dll", File.ReadAllBytes(Supplier("Versioned", "FromVersioned")));
+		}
+
+		var project = App(
+			scratch, "p",
+			"""
+			using DotGram;
+
+			namespace Demo
+			{
+				[Gram("Pairs.gram")]
+				public static partial class Pairs
+				{
+					public const int Sum = FromGeneric.Value + FromVersioned.Value;
+				}
+			}
+			""",
+			"""<PackageReference Include="Suppliers" Version="1.0.0" PrivateAssets="all" />""",
+			$"<RestoreSources>{feed}</RestoreSources><RestorePackagesPath>{scratch.Path("packages")}</RestorePackagesPath>");
+
+		Same(scratch, project);
+	}
+
+	/// <summary>An alias given to a reference is kept: <c>extern alias</c> in the sources binds.</summary>
+	[Fact]
+	public void An_alias_on_a_reference_is_kept()
+	{
+		using var scratch = new Scratch();
+
+		var library = Library(scratch, "lib", "namespace Ext { public sealed class Thing { } }");
+
+		Build.Run(library, "OutputPath=" + scratch.Path("lib-bin") + "/");
+
+		var project = App(scratch, "p", """
+			extern alias Lib;
+
+			using DotGram;
+
+			using Thing = Lib::Ext.Thing;
+
+			namespace Demo
+			{
+				[Gram("Pairs.gram")]
+				public static partial class Pairs
+				{
+					public static Thing? Made { get; set; }
+				}
+			}
+			""", $"""<Reference Include="{scratch.Path("lib-bin", "Lib.dll")}" Aliases="Lib" />""");
+
+		Same(scratch, project);
+	}
+
+	/// <summary>An <c>AdditionalFiles</c> item that is no grammar reaches the project's other generators.</summary>
+	[Fact]
+	public void An_additional_file_reaches_another_generator()
+	{
+		using var scratch = new Scratch();
+
+		var generator = Generator(scratch, "Json", """
+			public void Initialize(IncrementalGeneratorInitializationContext context)
+			{
+				var texts = context.AdditionalTextsProvider
+					.Where(static text => text.Path.EndsWith(".json", StringComparison.Ordinal))
+					.Select(static (text, token) => text.GetText(token)!.ToString().Trim())
+					.Collect();
+
+				context.RegisterSourceOutput(texts, static (output, all) =>
+					output.AddSource("Seen.g.cs", "namespace Demo { static class Seen { public const int " + string.Join("_", all) + " = 1; } }"));
+			}
+			""");
+
+		scratch.Write("p/settings.json", "Json_on\n");
+
+		var project = App(scratch, "p", """
+			using DotGram;
+
+			namespace Demo
+			{
+				[Gram("Pairs.gram")]
+				public static partial class Pairs
+				{
+					public const int Value = Seen.Json_on;
+				}
+			}
+			""", Analyzer(generator) + """<AdditionalFiles Include="settings.json" />""");
+
+		Same(scratch, project);
+	}
+
+	/// <summary>
+	/// What the build tells a generator through analyzer configuration: a compiler-visible property, a
+	/// global configuration file, an <c>.editorconfig</c> section for a source file.
+	/// </summary>
+	[Fact]
+	public void Analyzer_configuration_reaches_another_generator()
+	{
+		using var scratch = new Scratch();
+
+		var generator = Generator(scratch, "Options", """
+			public void Initialize(IncrementalGeneratorInitializationContext context)
+			{
+				var inputs = context.CompilationProvider.Combine(context.AnalyzerConfigOptionsProvider);
+
+				context.RegisterSourceOutput(inputs, static (output, pair) =>
+				{
+					var (compilation, provider) = pair;
+
+					provider.GlobalOptions.TryGetValue("build_property.Mine", out var property);
+					provider.GlobalOptions.TryGetValue("my_global", out var global);
+
+					var tree = compilation.SyntaxTrees.First(static tree => tree.FilePath.EndsWith("Pairs.cs", StringComparison.Ordinal));
+
+					provider.GetOptions(tree).TryGetValue("my_key", out var key);
+
+					output.AddSource("Seen.g.cs", "namespace Demo { static class Seen { public const int " + property + "_" + global + "_" + key + " = 1; } }");
+				});
+			}
+			""");
+
+		scratch.Write("p/mine.globalconfig", "is_global = true\nmy_global = global\n");
+		scratch.Write("p/.editorconfig", "root = true\n\n[Pairs.cs]\nmy_key = key\n");
+
+		var project = App(scratch, "p", """
+			using DotGram;
+
+			namespace Demo
+			{
+				[Gram("Pairs.gram")]
+				public static partial class Pairs
+				{
+					public const int Value = Seen.property_global_key;
+				}
+			}
+			""", Analyzer(generator) + """<CompilerVisibleProperty Include="Mine" /><GlobalAnalyzerConfigFiles Include="mine.globalconfig" />""", "<Mine>property</Mine>");
+
+		Same(scratch, project);
+	}
+
+	/// <summary>A project that was restored and never built: the run restores nothing and leaves it as it found it.</summary>
+	[Fact]
+	public void A_project_not_restored_is_refused_and_nothing_is_restored()
+	{
+		using var scratch = new Scratch();
+
+		var project = App(scratch, "p");
+		var run     = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
+
+		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
+		Assert.Contains("dotnet restore", run.Error, StringComparison.Ordinal);
+		Assert.False(File.Exists(scratch.Path("p", "obj", "project.assets.json")));
+		Assert.False(Directory.Exists(scratch.Path("out")));
+	}
+
+	/// <summary>Directories with a blank in their names, and with letters outside ASCII.</summary>
+	[Theory]
+	[InlineData("a project/with blanks")]
+	[InlineData("projekt üß/日本語")]
+	public void A_path_with_blanks_or_non_ascii_letters_is_the_builds(string directory)
+	{
+		using var scratch = new Scratch();
+
+		Same(scratch, App(scratch, directory));
+	}
+
+	/// <summary>
+	/// A project whose <c>InitialTargets</c> write a file, never built. The run asks MSBuild for the
+	/// compiler's inputs as an IDE does, which runs the project's initial targets and those before the
+	/// compiler: the file is written. No assembly of the project is.
+	/// </summary>
+	[Fact]
+	public void Initial_targets_run_and_no_assembly_is_made()
+	{
+		using var scratch = new Scratch();
+
+		var project = App(scratch, "p", attributes: " InitialTargets=\"Stamp\"", targets: """
+			<Target Name="Stamp">
+			  <WriteLinesToFile File="$(MSBuildProjectDirectory)/obj/stamp" Lines="ran" Overwrite="true" />
+			</Target>
+			""");
+
+		Dotnet.Restore(project);
+
+		Assert.False(File.Exists(scratch.Path("p", "obj", "stamp")));
+
+		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
+
+		Assert.True(run.Exit == 0, run.ToString());
+		Assert.True(File.Exists(scratch.Path("p", "obj", "stamp")));
+
+		Assert.Empty(Directory.GetFiles(scratch.Path("p", "obj"), "p.dll", SearchOption.AllDirectories));
+		Assert.Empty(Directory.GetFiles(scratch.Path("p", "bin"), "*", SearchOption.AllDirectories));
+	}
+
+	/// <summary>A target before the compiler adds a source file: it is in the tool's inputs, as in the build's.</summary>
+	[Fact]
+	public void A_file_a_target_before_the_compiler_adds_is_compiled()
+	{
+		using var scratch = new Scratch();
+
+		var project = App(scratch, "p", """
+			using DotGram;
+
+			namespace Demo
+			{
+				[Gram("Pairs.gram")]
+				public static partial class Pairs
+				{
+					public const int Value = Added.Value;
+				}
+			}
+			""", targets: """
+			<Target Name="Add" BeforeTargets="CoreCompile">
+			  <WriteLinesToFile File="$(MSBuildProjectDirectory)/obj/Added.cs" Lines="namespace Demo { static class Added { public const int Value = 1%3B } }" Overwrite="true" />
+			  <ItemGroup>
+			    <Compile Include="$(MSBuildProjectDirectory)/obj/Added.cs" />
+			  </ItemGroup>
+			</Target>
+			""");
+
+		Same(scratch, project);
+	}
+
+	/// <summary>The project built, then generated twice: both are the build's.</summary>
+	[Fact]
+	public void A_project_already_built_is_generated_all_the_same()
+	{
+		using var scratch = new Scratch();
+
+		var project = App(scratch, "p");
+		var built   = Build.Generated(project, "Configuration=Release");
+
+		foreach (var folder in new[] { "first", "second" })
+		{
+			var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path(folder), "--line-paths", "absolute");
+
+			Assert.True(run.Exit == 0, run.ToString());
+			Equality.Same(built, scratch.Path(folder));
+		}
+	}
+
+	/// <summary><c>#if DEBUG</c> in a host: the default configuration is Release, and Debug is asked for.</summary>
+	[Theory]
+	[InlineData("Release")]
+	[InlineData("Debug")]
+	public void The_configuration_decides_as_it_does_in_the_build(string configuration)
+	{
+		using var scratch = new Scratch();
+
+		var project = App(scratch, "p", """
+			using DotGram;
+
+			namespace Demo
+			{
+				[Gram("Pairs.gram")]
+				public static partial class Pairs { }
+
+			#if DEBUG
+				public sealed class Pair
+				{
+					public Pair(string key, string value) { Key = key; Value = value; }
+
+					public string Key { get; }
+					public string Value { get; }
+				}
+			#else
+				public sealed class Pair
+				{
+					public string Key { get; set; } = "";
+					public string Value { get; set; } = "";
+				}
+			#endif
+			}
+			""", grammar: "Pair : @Pair = key: Word & '=' & value: Word\n\nWord = ['a'..'z']+\n\nparse Pair\n");
+
+		var arguments = configuration == "Release" ? [] : new[] { "--configuration", "Debug" };
+
+		Same(scratch, project, build: ["Configuration=" + configuration], arguments: arguments);
+	}
+
+	/// <summary>A global.json that pins an SDK the machine has not: the run stops, and says so.</summary>
+	[Fact]
+	public void An_sdk_that_is_not_there_stops_the_run()
+	{
+		using var scratch = new Scratch();
+
+		var project = App(scratch, "p");
+
+		scratch.Write("p/global.json", """{ "sdk": { "version": "7.0.100", "rollForward": "disable" } }""");
+
+		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
+
+		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
+		Assert.Contains("SDK", run.Error, StringComparison.Ordinal);
+		Assert.False(Directory.Exists(scratch.Path("out")));
+	}
+
+	/// <summary>
+	/// A project that references another DotGram than the tool carries: generated with the tool's, in
+	/// one warning naming both, and the files are what the project's own build of this version writes.
+	/// </summary>
+	[Fact]
+	public void Another_version_of_dotgram_in_the_project_is_one_warning()
+	{
+		using var scratch = new Scratch();
+
+		var project = App(scratch, "p");
+		var built   = Build.Generated(project, "Configuration=Release");
+
+		var stub = StubDotGram(scratch, "0.0.1");
+
+		File.WriteAllText(project, File.ReadAllText(project).Replace(Build.Generator, stub, StringComparison.Ordinal));
+
+		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--line-paths", "absolute");
+
+		Assert.True(run.Exit == 0, run.ToString());
+		Assert.Contains($"warning: the project references DotGram 0.0.1; generating with {Cli.GeneratorVersion}", run.Output, StringComparison.Ordinal);
+		Assert.Equal(1, run.Output.Split("the project references DotGram", StringSplitOptions.None).Length - 1);
+		Equality.Same(built, scratch.Path("out"));
+	}
+
+	/// <summary>
+	/// The same, where the tool's output does not compile in the project (it declares what DotGram's
+	/// parser declares): refused with both versions named.
+	/// </summary>
+	[Fact]
+	public void Output_of_another_version_that_does_not_compile_is_refused_with_both_versions()
+	{
+		using var scratch = new Scratch();
+
+		var project = App(scratch, "p", """
+			using DotGram;
+
+			namespace Demo
+			{
+				[Gram("Pairs.gram")]
+				public static partial class Pairs
+				{
+					sealed class Ways { }
+				}
+			}
+			""");
+
+		Dotnet.Restore(project);
+
+		var stub = StubDotGram(scratch, "0.0.1");
+
+		File.WriteAllText(project, File.ReadAllText(project).Replace(Build.Generator, stub, StringComparison.Ordinal));
+
+		var other = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("other"));
+
+		Assert.True(other.Exit == ExitCode.Failure, other.ToString());
+		Assert.Contains("0.0.1", other.Error, StringComparison.Ordinal);
+		Assert.Contains(Cli.GeneratorVersion, other.Error, StringComparison.Ordinal);
+		Assert.False(Directory.Exists(scratch.Path("other")));
+	}
+
+	/// <summary>An assembly named DotGram of a version of its own, with a generator that adds nothing.</summary>
+	static string StubDotGram(Scratch scratch, string version)
+	{
+		var references = Basic.Reference.Assemblies.Net100.References.All
+			.Append(MetadataReference.CreateFromFile(typeof(Compilation).Assembly.Location))
+			.ToList();
+
+		var path = scratch.Path("stub", "DotGram.dll");
+
+		Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+
+		var result = CSharpCompilation.Create(
+				"DotGram",
+				[CSharpSyntaxTree.ParseText($$"""
+					using Microsoft.CodeAnalysis;
+
+					[assembly: System.Reflection.AssemblyInformationalVersion("{{version}}")]
+
+					namespace Stub
+					{
+						[Generator]
+						public sealed class G : IIncrementalGenerator
+						{
+							public void Initialize(IncrementalGeneratorInitializationContext context) { }
+						}
+					}
+					""")],
+				references,
+				new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+			.Emit(path);
+
+		Assert.True(result.Success, string.Join("\n", result.Diagnostics));
+
+		return path;
+	}
+}
