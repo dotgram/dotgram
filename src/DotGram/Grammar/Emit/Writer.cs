@@ -141,7 +141,7 @@ sealed class Writer(int depth)
 
 		static bool Continues(char c)
 		{
-			return UnicodeCategories.IsLetterOrDigit(c) || c == '_';
+			return char.IsLetterOrDigit(c) || c == '_';
 		}
 	}
 

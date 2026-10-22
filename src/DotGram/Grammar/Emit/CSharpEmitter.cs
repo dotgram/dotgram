@@ -149,7 +149,7 @@ public static partial class CSharpEmitter
 
 			var at = opens;
 
-			while (at > first && (UnicodeCategories.IsLetterOrDigit(text[at - 1]) || text[at - 1] == '_'))
+			while (at > first && (char.IsLetterOrDigit(text[at - 1]) || text[at - 1] == '_'))
 				at--;
 
 			if (at < opens)
@@ -4467,7 +4467,7 @@ file.Line("return spare;");
 
 		static bool Continues(char c)
 		{
-			return UnicodeCategories.IsLetterOrDigit(c) || c == '_';
+			return char.IsLetterOrDigit(c) || c == '_';
 		}
 	}
 
@@ -5920,7 +5920,7 @@ file.Line("return spare;");
 	static bool IsIdentifier(string name)
 	{
 		foreach (var c in name)
-			if (!UnicodeCategories.IsLetterOrDigit(c) && c != '_')
+			if (!char.IsLetterOrDigit(c) && c != '_')
 				return false;
 
 		return true;

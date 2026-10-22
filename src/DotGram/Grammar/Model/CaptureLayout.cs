@@ -527,7 +527,7 @@ public sealed record Recovery(Node Sync, string? Factory)
 
 	static bool IsPartOfAName(char c)
 	{
-		return UnicodeCategories.IsLetterOrDigit(c) || c is '_' or '@';
+		return char.IsLetterOrDigit(c) || c is '_' or '@';
 	}
 }
 
