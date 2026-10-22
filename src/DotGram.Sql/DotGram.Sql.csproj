@@ -144,6 +144,15 @@ Fixed: SqlStandardParser read a string literal through a simple comment: `'a' --
 	</ItemGroup>
 
 	<ItemGroup>
+		<!-- The public surface, held to PublicAPI.*.txt beside this file, so that a type or a member made public, or
+		     changed, is a line in a diff and not an accident. What only one framework has is in PublicAPI/<framework>/:
+		     a record's clone returns its own type on net10.0 and the base type on netstandard2.0, which has no covariant
+		     returns. Unshipped until the package ships with it. -->
+		<PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+		<AdditionalFiles Include="PublicAPI/$(TargetFramework)/PublicAPI.*.txt" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<!-- The grammars as files the generator reads: a .gram beside the class that hosts
 		     it, so that another project can point the generator at the same text and compile
 		     it another way — which is what DotGram.Benchmarks does with the SQL grammar. -->
