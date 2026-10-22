@@ -623,11 +623,63 @@ sealed partial class Machine
 	/// A turn that consumes anything at all — <c>?!"*&#47;" &amp; any</c> — stops exactly
 	/// where the delimiter first occurs. A turn narrower than that — <c>?!X &amp;
 	/// [^ '\n']</c> — can also stop because its own character test refused, which a
-	/// search for the delimiter would run straight past, so that shape keeps the loop.
+	/// search for the delimiter alone would run straight past: where the characters it refuses
+	/// are few they are searched for in what that search passed over (<see cref="EmitScanUntil"/>),
+	/// and otherwise that shape keeps the loop.
 	/// </remarks>
-	static bool ScansUntil(Node.Repeat repeat, RecognitionGraph graph)
+	/// <returns>
+	/// The characters the turn refuses: none for a turn of <c>any</c>, null where the pair is
+	/// not a search.
+	/// </returns>
+	static char[]? ScansUntil(Node.Repeat repeat, RecognitionGraph graph)
 	{
-		return repeat.Body is Node.Sequence({ Count: 2 } parts) && Anything(parts[1], graph, []);
+		if (repeat.Body is not Node.Sequence({ Count: 2 } parts))
+			return null;
+
+		if (Anything(parts[1], graph, []))
+			return [];
+
+		return GuardOf(repeat) is { Length: > 0 } && Except(parts[1], graph, []) is { Length: > 0 } except && !except.Any(char.IsSurrogate)
+			? except
+			: null;
+	}
+
+	/// <summary>
+	/// The characters a node that is one character refuses, where it is a negated class of at most
+	/// five characters and nothing else; null otherwise.
+	/// </summary>
+	static char[]? Except(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
+	{
+		switch (node)
+		{
+			case Node.Element { IsNegated: true, Categories.Count: 0, References.Count: 0 } element when !ReadsFewOneByOne.Value:
+			{
+				var made = new List<char>();
+
+				foreach (var range in element.Ranges)
+					for (int c = range.From; c <= range.To; c++)
+					{
+						if (made.Contains((char)c))
+							continue;
+
+						if (made.Count == 5)
+							return null;
+
+						made.Add((char)c);
+					}
+
+				return [.. made];
+			}
+
+			case Node.Atomic(var kept):
+				return Except(kept, graph, seen);
+
+			case Node.Call(var called, _) when seen.Add(called) && graph.Bodies.TryGetValue(called, out var body):
+				return Except(body, graph, seen);
+
+			default:
+				return null;
+		}
 	}
 
 	/// <summary>Whether a node is one character, whichever character it is.</summary>
@@ -1045,9 +1097,9 @@ sealed partial class Machine
 							// literal it stops at is the part after it and the two are
 							// emitted together — as one search where the body is a bare
 							// character, and as loop plus literal where it is more.
-							if (ScansUntil(scan, graph))
+							if (ScansUntil(scan, graph) is { } except)
 							{
-								EmitScanUntil(buffer, guard, i == 0 ? fail : restore);
+								EmitScanUntil(buffer, guard, except, i == 0 ? fail : restore);
 								i++;
 
 								continue;
@@ -1389,8 +1441,16 @@ sealed partial class Machine
 		/// occurrence, which is where the guard would first have held; not found is the
 		/// literal failing after a scan to the end, which is the pair failing.
 		/// </para>
+		/// <para>
+		/// Where the turn is <c>?!L &amp; [^ S]</c>, the turns stop at a character of <c>S</c> as
+		/// well, where the turn's own item refuses: the loop ends there and <c>L</c> after it fails,
+		/// unless <c>L</c> begins there. So the pair is the first <c>L</c> where no character of
+		/// <c>S</c> stands before it, and two searches: one for <c>L</c>, and one for <c>S</c> in what
+		/// it passed over. A character of <c>S</c> where <c>L</c> begins is not before it, which is
+		/// right when <c>L</c> begins with a character of <c>S</c>.
+		/// </para>
 		/// </remarks>
-		void EmitScanUntil(Writer code, string delimiter, string fail)
+		void EmitScanUntil(Writer code, string delimiter, char[] except, string fail)
 		{
 			var found = $"found{_founds++}";
 
@@ -1398,6 +1458,19 @@ sealed partial class Machine
 				$"var {found} = global::System.MemoryExtensions.IndexOf(text.Slice(p), " +
 				$"{Spanned(delimiter)});");
 			code.Line($"if ({found} < 0) goto {fail};");
+
+			if (except.Length > 0)
+			{
+				var before = except.Length switch
+				{
+					1    => $"global::System.MemoryExtensions.IndexOf(text.Slice(p, {found}), {CSharpEmitter.Char(except[0])})",
+					<= 3 => $"global::System.MemoryExtensions.IndexOfAny(text.Slice(p, {found}), {string.Join(", ", except.Select(CSharpEmitter.Char))})",
+					_    => $"global::System.MemoryExtensions.IndexOfAny(text.Slice(p, {found}), global::System.MemoryExtensions.AsSpan({CSharpEmitter.Quoted(new string(except))}))",
+				};
+
+				code.Line($"if ({before} >= 0) goto {fail};");
+			}
+
 			code.Line($"p += {found} + {delimiter.Length};");
 		}
 

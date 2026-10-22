@@ -12,11 +12,73 @@ sealed partial class Machine
 	string? GuardedCharacterTest(Node body)
 	{
 		if (OverKinds || _starves || body is not Node.Sequence({ Count: 2 } parts) ||
-			parts[0] is not Node.Lookahead(false, var delimiter) || RunTest(parts[1]) != "true" ||
-			RunTest(delimiter) is not { } stop || stop == "true")
+			parts[0] is not Node.Lookahead(false, var delimiter) || RunTest(parts[1]) is not { } item)
 			return null;
 
-		return $"!({stop})";
+		// `?!X & [^ S]` is a character that is neither in X nor in S: one test still, where the
+		// two together are few enough to search for (StopCharacters).
+		if (item != "true" && (ExceptFew(parts[1]) is not { Length: > 0 } || StopCharacters(body) is null))
+			return null;
+
+		if (RunTest(delimiter) is not { } stop || stop == "true")
+			return null;
+
+		return item == "true" ? $"!({stop})" : $"!({stop}) && ({item})";
+	}
+
+	/// <summary>
+	/// Whether a turn of <c>[^ S]</c> is read one character at a time, as it was before the searches
+	/// took it (<see cref="ExceptFew"/>): set only by the tests that hold the searches against the
+	/// loops they replace, which compile the same grammar both ways.
+	/// </summary>
+	internal static readonly System.Threading.AsyncLocal<bool> ReadsFewOneByOne = new();
+
+	/// <summary>
+	/// The characters a node that reads one character does not read, where they are few: none for
+	/// <c>any</c>, and <c>S</c> for <c>[^ S]</c>, a negated class of at most five characters and
+	/// nothing else. Null for anything else.
+	/// </summary>
+	/// <remarks>
+	/// The scans that search for where <c>(?!X &amp; any)*</c> may stop (<see cref="StopCharacters"/>,
+	/// <see cref="UntilStops"/>) search for <c>S</c> as well where the turn's character is
+	/// <c>[^ S]</c>: at a character of <c>S</c> the turn's item fails, which is a place the loop
+	/// would have stopped at too, and everywhere else the turn reads as it does over <c>any</c>.
+	/// </remarks>
+	char[]? ExceptFew(Node node)
+	{
+		switch (node)
+		{
+			case Node.Element { IsNegated: true, Categories.Count: 0, References.Count: 0 } element when !ReadsFewOneByOne.Value:
+			{
+				var made = new List<char>();
+
+				foreach (var range in element.Ranges)
+					for (int c = range.From; c <= range.To; c++)
+					{
+						if (made.Contains((char)c))
+							continue;
+
+						if (made.Count == 5)
+							return null;
+
+						made.Add((char)c);
+					}
+
+				return [.. made];
+			}
+
+			case Node.Element element:
+				return ReadsAnything(element) ? [] : null;
+
+			case Node.Call(var rule, _) when CanInline(rule):
+				return ExceptFew(_graph.Bodies[rule]);
+
+			case Node.Sequence([var only]):
+				return ExceptFew(only);
+
+			default:
+				return null;
+		}
 	}
 
 	// Recognize only pure character tests after publication specialization. Calls with
@@ -157,6 +219,11 @@ sealed partial class Machine
 	/// look tries. A delimiter of one character is already a run (<see cref="StopCharacters"/>),
 	/// and is left to it. More than five characters is a class, and a class is read.
 	/// </para>
+	/// <para>
+	/// A turn of <c>[^ S]</c> in place of <c>any</c> stops at <c>S</c> as well, where its own item
+	/// fails (<see cref="ExceptFew"/>): <c>S</c> is searched for beside the refused bodies' first
+	/// characters, within the same five, and the turn there is read as it always was.
+	/// </para>
 	/// </remarks>
 	internal UntilScan? UntilStops(Node.Repeat repeat)
 	{
@@ -166,9 +233,21 @@ sealed partial class Machine
 			return null;
 
 		if (repeat.Body is not Node.Sequence({ Count: >= 2 } parts) ||
-			parts.Take(parts.Count - 1).Any(part => part is not Node.Lookahead(false, _)) || !ReadsAnything(parts[^1]))
+			parts.Take(parts.Count - 1).Any(part => part is not Node.Lookahead(false, _)) || ExceptFew(parts[^1]) is not { } except)
 			return ThroughTurns(repeat.Body);
 
+		// A turn of `[^ S]` that the search cannot take is read as before, which for such a body
+		// was as the turns of a choice.
+		return Until(parts, except) ?? (except.Length > 0 ? ThroughTurns(repeat.Body) : null);
+	}
+
+	/// <summary>
+	/// <see cref="UntilStops"/> for looks that refuse before a character that is anything but
+	/// <paramref name="except"/>: the characters the refused bodies begin with and those of
+	/// <paramref name="except"/>, at which the turn's own item fails.
+	/// </summary>
+	UntilScan? Until(IReadOnlyList<Node> parts, char[] except)
+	{
 		var made    = new List<char>();
 		var longest = 1;
 
@@ -189,6 +268,17 @@ sealed partial class Machine
 					if (!made.Contains((char)c))
 						made.Add((char)c);
 				}
+		}
+
+		foreach (var one in except)
+		{
+			if (made.Contains(one))
+				continue;
+
+			if (made.Count == 5 || char.IsSurrogate(one) || BufferedBytes && one > 0x7F)
+				return null;
+
+			made.Add(one);
 		}
 
 		// Over a buffer the end is not known until it is read, and the search does not stop short
