@@ -464,8 +464,8 @@ public sealed class ReaderTests
 
 	/// <summary>
 	/// A thread whose hook failed to give the host's state back is not handed another reading: it still holds that
-	/// state, which the hook here throws before it swaps. The two readings after the failure go to another thread, and what each gives back there is that thread's
-	/// own, nothing.
+	/// state, which the hook here throws before it swaps. The two readings after the failure are not read on that thread's leftover state: what each gives back is
+	/// the state of a thread that holds none.
 	/// </summary>
 	[Fact]
 	public void A_thread_whose_hook_failed_to_give_the_state_back_reads_no_more()
@@ -540,6 +540,8 @@ public sealed class ReaderTests
 		Assert.Equal(["giving back", "x:a", "y:a"], values);
 
 		// Each reading's first call is handed its own state, and the second gives back what the thread had: nothing.
+		// A thread that kept the failed reading's state would give that back instead, so this tells the threads apart
+		// without comparing their ids, which the pool and the runtime are free to reuse.
 		static (string Thread, string Handed) Call(string line, int call)
 		{
 			var parts = line.Split(' ');
@@ -560,7 +562,6 @@ public sealed class ReaderTests
 
 			Assert.Equal(within, taken.Handed);
 			Assert.Equal("none", given.Handed);
-			Assert.NotEqual(failed.Thread, taken.Thread);
 		}
 	}
 
