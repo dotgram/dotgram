@@ -7,14 +7,25 @@ namespace DotGram.Grammar;
 /// The regular-expression spelling of a Unicode category, and what .NET calls it.
 /// </summary>
 /// <remarks>
+/// <para>
 /// <c>\p{Lu}</c> is written the way .NET regular expressions write it (docs/syntax.md
 /// §3.1), but <c>System.Globalization.UnicodeCategory</c> spells the same thing
 /// <c>UppercaseLetter</c>. Something has to translate, and it has to be the same
 /// something that decides which abbreviations exist at all — otherwise an unknown one
 /// is not caught here and turns up as a C# compiler error about a member of an enum
 /// the author never mentioned.
+/// </para>
+/// <para>
+/// What each category holds is the generator's own too: Unicode <see cref="UnicodeVersion"/>,
+/// written from the Unicode Character Database into <c>UnicodeCategories.Table.cs</c> by
+/// <c>UnicodeCategories.generate.cs</c>, and never <c>CharUnicodeInfo</c>'s. The runtime answers
+/// from its own Unicode version — 8.0 on .NET Framework, where an editor may host the generator,
+/// and a later one with each .NET release — so asking it would make one grammar generate two
+/// parsers on two build machines, and a parser that asked at run time accept different characters
+/// on different runtimes. The analysis and the emitted test both read <see cref="Of"/>.
+/// </para>
 /// </remarks>
-public static class UnicodeCategories
+public static partial class UnicodeCategories
 {
 	static readonly Dictionary<string, string> _names = new(StringComparer.Ordinal)
 	{
@@ -90,5 +101,41 @@ public static class UnicodeCategories
 	public static bool Exists(string abbreviation)
 	{
 		return Expand(abbreviation).Count > 0;
+	}
+
+	/// <summary>
+	/// The general category of <paramref name="c"/> in Unicode <see cref="UnicodeVersion"/>: a
+	/// surrogate is <see cref="System.Globalization.UnicodeCategory.Surrogate"/>, a code point not
+	/// assigned there <see cref="System.Globalization.UnicodeCategory.OtherNotAssigned"/>.
+	/// </summary>
+	public static System.Globalization.UnicodeCategory Of(char c)
+	{
+		return (System.Globalization.UnicodeCategory)Spelled.ByCodeUnit[c];
+	}
+
+	/// <summary>The table's runs spelled out, a byte a code unit, built the first time one is asked for.</summary>
+	/// <remarks>
+	/// A class of its own because the runs are a field of the other half of this partial class, and
+	/// the order in which two files' static initializers run is not defined: reading them from
+	/// here runs all of the outer class's first.
+	/// </remarks>
+	static class Spelled
+	{
+		public static readonly byte[] ByCodeUnit = Build();
+
+		static byte[] Build()
+		{
+			var table = new byte[char.MaxValue + 1];
+
+			for (var i = 0; i < Runs.Length; i += 2)
+			{
+				var to = i + 2 < Runs.Length ? Runs[i + 2] : table.Length;
+
+				for (var c = Runs[i]; c < to; c++)
+					table[c] = (byte)Runs[i + 1];
+			}
+
+			return table;
+		}
 	}
 }
