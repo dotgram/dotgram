@@ -247,12 +247,12 @@ public sealed class LocatedReadingTests
 		Assert.All(Nodes(TransactSqlParser.ParseSql(text).Last()).OfType<Ast.SelectColumn.ExpressionItem>(), static one => Assert.False(one.Span.Known));
 	}
 
-	/// <summary>An <c>OVER</c> is spanned as its window is: the name, or what the brackets hold, and not the keyword in front.</summary>
+	/// <summary>An <c>OVER</c> is spanned as its window: the keyword, and the name or the brackets after it.</summary>
 	[Theory]
-	[InlineData("SELECT SUM(x) OVER w FROM t WINDOW w AS (ORDER BY x)", "w")]
-	[InlineData("SELECT SUM(x) OVER (  w ORDER BY x ) FROM t WINDOW w AS (ORDER BY x)", "w ORDER BY x")]
-	[InlineData("SELECT SUM(x) OVER (PARTITION BY y ORDER BY x ROWS UNBOUNDED PRECEDING) FROM t", "PARTITION BY y ORDER BY x ROWS UNBOUNDED PRECEDING")]
-	[InlineData("SELECT SUM(x) OVER () FROM t", "")]
+	[InlineData("SELECT SUM(x) OVER w FROM t WINDOW w AS (ORDER BY x)", "OVER w")]
+	[InlineData("SELECT SUM(x) OVER (  w ORDER BY x ) FROM t WINDOW w AS (ORDER BY x)", "OVER (  w ORDER BY x )")]
+	[InlineData("SELECT SUM(x) OVER (PARTITION BY y ORDER BY x ROWS UNBOUNDED PRECEDING) FROM t", "OVER (PARTITION BY y ORDER BY x ROWS UNBOUNDED PRECEDING)")]
+	[InlineData("SELECT SUM(x) OVER () FROM t", "OVER ()")]
 	public void An_over_is_spanned_with_its_window(string text, string window)
 	{
 		var statement = TransactSqlParser.Located.ParseStatement(text);
@@ -260,6 +260,22 @@ public sealed class LocatedReadingTests
 
 		Assert.Equal(window, Cut(text, spanned.Span));
 		Assert.False(Assert.Single(Nodes(TransactSqlParser.ParseStatement(text)).OfType<Ast.WindowReference>()).Span.Known);
+	}
+
+	/// <summary>An <c>OVER</c> is spanned as the standard's own reading spans it, the keyword and all.</summary>
+	[Theory]
+	[InlineData("SUM(x) OVER (PARTITION BY y ORDER BY x ROWS UNBOUNDED PRECEDING)")]
+	[InlineData("ROW_NUMBER() OVER ( ORDER BY x )")]
+	[InlineData("SUM(x) OVER (w ORDER BY x)")]
+	[InlineData("SUM(x) OVER ()")]
+	[InlineData("SUM(x) OVER w")]
+	public void An_over_is_spanned_as_the_standard_spans_it(string text)
+	{
+		var ours   = Assert.Single(Nodes(TransactSqlParser.Located.ParseExpression(text)).OfType<Ast.WindowReference>());
+		var theirs = Assert.Single(Nodes(Productions.SqlStandardLocated.ParseExpression(text)).OfType<Ast.WindowReference>());
+
+		Assert.True(theirs.Span.Known);
+		Assert.Equal(Cut(text, theirs.Span), Cut(text, ours.Span));
 	}
 
 	/// <summary>
