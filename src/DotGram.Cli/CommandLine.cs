@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Text;
 
 using DotGram;
 
@@ -22,7 +21,7 @@ abstract record Command
 	public sealed record Generate(GenerateOptions Options) : Command;
 }
 
-/// <summary>What one item of the argument vector is, as the grammar tells it.</summary>
+/// <summary>What one item of the argument vector is.</summary>
 enum ItemKind
 {
 	/// <summary>An option and the argument after it, its value.</summary>
@@ -41,9 +40,6 @@ enum ItemKind
 	Positional,
 }
 
-/// <summary>An item as the grammar builds it, at its offset in the joined vector.</summary>
-sealed record Item(ItemKind Kind, string? Name, string? Value, int At);
-
 /// <summary>A word of a response file, at its offset in the file's text.</summary>
 sealed record Word(string Text, int At);
 
@@ -51,14 +47,21 @@ sealed record Word(string Text, int At);
 readonly record struct Option(ItemKind Kind, string? Name, string? Value, Argument Argument, Argument? ValueArgument);
 
 /// <summary>
-/// The one place the argument vector is read: response files expanded, the arguments joined by NUL
-/// and read by the tool's grammar of its own command line, the command told. Everything after it
-/// works on a <see cref="Command"/>.
+/// The one place the argument vector is read: response files expanded, each argument told for what
+/// it is, the command told. Everything after it works on a <see cref="Command"/>.
 /// </summary>
 [Gram("CommandLine.gram")]
 static partial class CommandLine
 {
-	const char Separator = '\0';
+	/// <summary>The options that take the next argument as their value, whatever it begins with.</summary>
+	static readonly HashSet<string> Valued =
+	[
+		"-o", "--output", "--framework", "--configuration", "--reference", "--package", "--define",
+		"--langversion", "--line-paths", "--namespace", "--class", "--option", "--sources",
+	];
+
+	/// <summary>The options that take none.</summary>
+	static readonly HashSet<string> Flags = ["--allow-unresolved", "--public", "--help", "-h", "-?", "--version", "--skill"];
 
 	/// <exception cref="ToolException">An unknown command or option, or a value that does not fit.</exception>
 	public static Command Parse(IReadOnlyList<string> arguments, string currentDirectory)
@@ -69,6 +72,10 @@ static partial class CommandLine
 			return new Command.Usage();
 
 		var options = Read(expanded);
+
+		if (options.Count == 0)
+			return new Command.Usage();
+
 		var first   = options[0];
 		var rest    = options.Skip(1).ToList();
 
@@ -99,52 +106,37 @@ static partial class CommandLine
 		}
 	}
 
-	/// <summary>The arguments read into options, each with the argument it came from.</summary>
+	/// <summary>
+	/// The arguments read into options, each with the argument it came from: an option that takes a
+	/// value takes the next argument, <c>--</c> ends the options, and anything else beginning with a
+	/// dash is an option the tool does not have.
+	/// </summary>
 	public static List<Option> Read(IReadOnlyList<Argument> arguments)
 	{
-		var joined = new StringBuilder();
-		var starts = new int[arguments.Count];
-
-		for (var index = 0; index < arguments.Count; index++)
-		{
-			if (index > 0)
-				joined.Append(Separator);
-
-			starts[index] = joined.Length;
-			joined.Append(arguments[index].Text);
-		}
-
-		var match = TryParseArguments(joined.ToString());
-
-		if (!match.IsSuccess)
-			throw ToolException.Usage("the arguments cannot be read: " + Readable(match.Error ?? "no reason given") + ".");
-
 		var options = new List<Option>();
+		var ended   = false;
 
-		foreach (var item in match.Value!)
+		for (var at = 0; at < arguments.Count; at++)
 		{
-			var index = Array.BinarySearch(starts, item.At);
+			var argument = arguments[at];
+			var text     = argument.Text;
 
-			if (index < 0)
-				throw new InvalidOperationException($"An item at {item.At} begins no argument.");
-
-			options.Add(new Option(
-				item.Kind,
-				item.Name,
-				item.Value,
-				arguments[index],
-				item.Kind == ItemKind.Value ? arguments[index + 1] : null));
+			if (ended)
+				options.Add(new Option(ItemKind.Positional, null, text, argument, null));
+			else if (text == "--")
+				ended = true;
+			else if (Valued.Contains(text))
+				options.Add(at + 1 < arguments.Count
+					? new Option(ItemKind.Value, text, arguments[at + 1].Text, argument, arguments[++at])
+					: new Option(ItemKind.Missing, text, null, argument, null));
+			else if (Flags.Contains(text))
+				options.Add(new Option(ItemKind.Flag, text, null, argument, null));
+			else if (text.Length > 1 && text[0] == '-')
+				options.Add(new Option(ItemKind.Unknown, text, null, argument, null));
+			else
+				options.Add(new Option(ItemKind.Positional, null, text, argument, null));
 		}
 
 		return options;
-	}
-
-	/// <summary>
-	/// A refusal of the grammar in words: the separator is the end of an argument, and the generated
-	/// parser marks its own words with a NUL in front, neither of which is ever printed as one.
-	/// </summary>
-	public static string Readable(string message)
-	{
-		return message.Replace("'\0'", "end of argument", StringComparison.Ordinal).Replace("\0", "end of argument ", StringComparison.Ordinal);
 	}
 }
