@@ -205,7 +205,7 @@ static partial class Build
 				throw BuildGap.Open(old, "inventory Clause.Output");
 
 			return new Ast.OutputClause(
-				Each(items, static one => Convert<Ast.SelectColumn>(one)),
+				Queries.Columns(items),
 				into is null ? null : Target(into),
 				columns is null ? null : Values.Parts(old, columns),
 				Output(next));

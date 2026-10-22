@@ -1188,22 +1188,22 @@ WindowDef : @Build.Clause
 // §7.9 makes a bare `*` the whole list; T-SQL makes it an item, which may stand anywhere
 // in the list and more than once: `SELECT 1, *, 2` and `SELECT *, t.*, *` are read. It is
 // not named, not bracketed and not assigned — `* AS x`, `(*)` and `x = *` are refused.
-TSqlSelectList : @Build.Clause[]
+TSqlSelectList : @Ast.SelectColumn[]
 	= first: TSqlSelectSublist & (',' & rest: TSqlSelectSublist)* => @(Syntax.Listed(first, rest))
 
 // Two things stand where a value does. A variable takes the value rather than the query
 // returning it — `SELECT @a += 1` is an assignment written as a query — and an alias may
 // be written in front with `=` rather than behind with `AS`. And an alias may be a
 // string, which the standard does not allow and every dialect does.
-TSqlSelectSublist : @Build.Clause
-	= '*'                                          => @(new Build.Clause.QualifiedAsterisk(null))
-	| qualifier: TSqlQualifiedName & '.' & '*'        => @(new Build.Clause.QualifiedAsterisk(qualifier))
+TSqlSelectSublist : @Ast.SelectColumn
+	= '*'                                          => @(Build.Queries.All(null))
+	| qualifier: TSqlQualifiedName & '.' & '*'        => @(Build.Queries.All(qualifier))
 	| into: TSql.Variable & by: AssignOp & v: TSqlValueExpression
-		=> @(new Build.Clause.VariableAssignment(into, by, v))
-	| label: TSqlAlias & '=' & v: IdentityFunction => @(new Build.Clause.DerivedColumn(v, label))
-	| v: IdentityFunction & alias: TSqlAsClause    => @(new Build.Clause.DerivedColumn(v, alias))
-	| label: TSqlAlias & '=' & v: TSqlValueExpression  => @(new Build.Clause.DerivedColumn(v, label))
-	| v: TSqlValueExpression & alias: TSqlAsClause?    => @(new Build.Clause.DerivedColumn(v, alias))
+		=> @(Build.Queries.Assigned(into, by, v))
+	| label: TSqlAlias & '=' & v: IdentityFunction => @(Build.Queries.Item(v, label, true))
+	| v: IdentityFunction & alias: TSqlAsClause    => @(Build.Queries.Item(v, alias, false))
+	| label: TSqlAlias & '=' & v: TSqlValueExpression  => @(Build.Queries.Item(v, label, true))
+	| v: TSqlValueExpression & alias: TSqlAsClause?    => @(Build.Queries.Item(v, alias, false))
 
 // T-SQL's `IDENTITY` function, which gives the table a `SELECT … INTO` makes an identity
 // column: a type, and a seed and a step, numbers with a sign or without — `@a`, `1 + 1`,
@@ -2369,11 +2369,11 @@ OutputClause : @Build.Clause
 	| "OUTPUT"i & items: OutputList
 		=> @(new Build.Clause.Output(SqlList.Own(items)))
 
-OutputList : @Build.Clause[] = first: OutputItem & (',' & rest: OutputItem)* => @(Syntax.Listed(first, rest))
+OutputList : @Ast.SelectColumn[] = first: OutputItem & (',' & rest: OutputItem)* => @(Syntax.Listed(first, rest))
 
-OutputItem : @Build.Clause
-	= q: TSqlQualifiedName & '.' & '*'          => @(new Build.Clause.QualifiedAsterisk(q))
-	| v: TSqlValueExpression & alias: TSqlAsClause? => @(new Build.Clause.DerivedColumn(v, alias))
+OutputItem : @Ast.SelectColumn
+	= q: TSqlQualifiedName & '.' & '*'          => @(Build.Queries.All(q))
+	| v: TSqlValueExpression & alias: TSqlAsClause? => @(Build.Queries.Item(v, alias, false))
 
 // ── The procedural level ────────────────────────────────────────────────────
 //
@@ -3370,10 +3370,10 @@ ReceiveStatement : @Build.Statement
 
 ReceiveTop : @Build.Clause = "TOP"i & '(' & v: TSqlValueExpression & ')' => @(Build.Clause.Topped(Build.Values.Parenthesized(v), null))
 
-ReceiveColumn : @Build.Clause
-	= '*'                                                     => @(new Build.Clause.QualifiedAsterisk(null))
-	| into: TSql.Variable & by: AssignOp & v: TSqlValueExpression => @(new Build.Clause.VariableAssignment(into, by, v))
-	| v: TSqlValueExpression & alias: TSqlAsClause?               => @(new Build.Clause.DerivedColumn(v, alias))
+ReceiveColumn : @Ast.SelectColumn
+	= '*'                                                     => @(Build.Queries.All(null))
+	| into: TSql.Variable & by: AssignOp & v: TSqlValueExpression => @(Build.Queries.Assigned(into, by, v))
+	| v: TSqlValueExpression & alias: TSqlAsClause?               => @(Build.Queries.Item(v, alias, false))
 
 ReceiveWhere : @Ast.Expression
 	= t: ("CONVERSATION_HANDLE"i | "CONVERSATION_GROUP_ID"i) & '=' & v: BrokerTarget

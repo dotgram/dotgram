@@ -96,12 +96,21 @@ static partial class Build
 		/// may: the engine refuses one without the <c>INTO</c> when it compiles the statement,
 		/// <c>Msg 177</c>.
 		/// </summary>
-		public static bool HasIdentity(Clause[] columns)
+		public static bool HasIdentity(Ast.SelectColumn[] columns)
 		{
 			foreach (var one in columns)
-				if (one is Clause.DerivedColumn { Value: Values.Call { Name: var name, Word: not null } }
-					&& string.Equals(name, "IDENTITY", StringComparison.OrdinalIgnoreCase))
+			{
+				// An item with no place on the common tree is asked of the value it was read over, as any other.
+				var value = one switch
+				{
+					Ast.SelectColumn.ExpressionItem item         => item.Expression,
+					Queries.Unplaced { Assigns: false } unplaced => unplaced.Value,
+					_                                            => null,
+				};
+
+				if (value is Values.Call { Name: var name, Word: not null } && string.Equals(name, "IDENTITY", StringComparison.OrdinalIgnoreCase))
 					return true;
+			}
 
 			return false;
 		}
@@ -485,7 +494,7 @@ static partial class Build
 			if (query is Query.Built built)
 				return (built.Is & Query.Built.Facts.Assigns) != 0;
 
-			return query is Query.Specification { Columns: var columns } && columns.Exists(static one => one is Clause.VariableAssignment);
+			return query is Query.Specification { Columns: var columns } && columns.Exists(static one => Queries.Assigns(one));
 		}
 
 		/// <summary>
@@ -547,13 +556,13 @@ static partial class Build
 		}
 
 		/// <summary>Whether a <c>RECEIVE</c>'s list assigns variables or retrieves columns, and not both.</summary>
-		public static bool OneWay(Clause? first, Clause[]? rest)
+		public static bool OneWay(Ast.SelectColumn? first, Ast.SelectColumn[]? rest)
 		{
 			var assigns  = false;
 			var retrieves = false;
 
 			foreach (var one in first is null ? [] : Syntax.Listed(first, rest))
-				if (one is Clause.VariableAssignment)
+				if (Queries.Assigns(one))
 					assigns = true;
 				else
 					retrieves = true;
