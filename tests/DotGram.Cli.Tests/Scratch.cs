@@ -187,6 +187,12 @@ static class Dotnet
 		return (process.ExitCode, output.Result + error.Result);
 	}
 
+	/// <summary>Restores a project, which the tool needs and never does itself.</summary>
+	public static void Restore(string project)
+	{
+		Ok(System.IO.Path.GetDirectoryName(project)!, "restore", project, "-nologo");
+	}
+
 	/// <summary>Runs it and fails with what it printed where it exits otherwise than 0.</summary>
 	public static string Ok(string directory, params string[] arguments)
 	{

@@ -72,23 +72,23 @@ static class OutputFolder
 	/// temporary file and a rename, deletes those the last manifest listed that this run did not write,
 	/// and writes the manifest last.
 	/// </summary>
-	/// <param name="names">How the file system compares names; <see cref="FileSystem.Names"/> but in a test.</param>
+	/// <param name="names">How the file system compares names; asked of it (<see cref="FileSystem.NamesIn"/>) but in a test.</param>
 	/// <returns>How many files were written, how many were already as they are, and how many deleted.</returns>
 	public static (int Written, int Unchanged, int Deleted) Write(
 		string directory, IReadOnlyDictionary<string, string> files, string manifest, StringComparer? names = null)
 	{
-		names ??= FileSystem.Names;
-
 		var previous = Listed(directory);
-		var current  = new HashSet<string>(files.Keys, names);
-
 		try
 		{
 			Directory.CreateDirectory(directory);
 
+			names ??= FileSystem.NamesIn(directory);
+
 			var written   = 0;
 			var unchanged = 0;
 			var deleted   = 0;
+
+			var current = new HashSet<string>(files.Keys, names);
 
 			foreach (var (name, text) in files)
 			{

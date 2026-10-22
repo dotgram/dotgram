@@ -8,38 +8,52 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace DotGram.Cli;
 
 /// <summary>A name the C# compiler could not resolve, and where.</summary>
-/// <param name="Through">
-/// The type a grammar asks about whose declaration the name is in — its base list or a member's
-/// signature — or, for one it depends on, that type; null where the grammar names it itself.
-/// </param>
-readonly record struct UnresolvedName(string Name, Diagnostic Diagnostic, string? Through = null)
+readonly record struct UnresolvedName(string Name, Diagnostic Diagnostic)
 {
 	public string Where => Report.Place(Diagnostic.Location);
 }
 
 /// <summary>
-/// The names the compilation cannot resolve, split into those a grammar asks about — where the
-/// generator's answer would differ from a build that has them — and the rest, which change nothing
-/// the generator writes.
+/// The names a project's build would report it cannot resolve: those the compilation the tool checks
+/// cannot resolve — the user's files and what the project's other generators add — and that DotGram's
+/// own output does not supply either.
 /// </summary>
 static class Unresolved
 {
-	/// <summary>The compiler's "cannot find this type or namespace" family.</summary>
-	static readonly ImmutableHashSet<string> Ids = ["CS0246", "CS0234", "CS0400", "CS0012"];
+	/// <summary>The compiler's "cannot find this type or namespace" family, a type nested in another included.</summary>
+	static readonly ImmutableHashSet<string> Ids = ["CS0246", "CS0234", "CS0400", "CS0426", "CS0012"];
 
-	/// <summary>The diagnostics of the given trees of the generator-updated compilation, each tree's own only.</summary>
+	/// <summary>
+	/// The names the project's build would report it cannot resolve. Looked for in the compilation the
+	/// build has before DotGram's files are added — the user's files and the other generators' — each
+	/// tree's own diagnostics only; a name is excused only where it binds once DotGram's files are
+	/// there: the parser a host's code calls, the attribute it carries.
+	/// </summary>
+	/// <param name="written">The trees the user wrote, the synthesized host of a <c>.gram</c> among them.</param>
+	/// <returns>The names, and how long finding the diagnostics and then excusing took.</returns>
+	public static (List<UnresolvedName> Names, TimeSpan Diagnostics, TimeSpan Excusing) Find(IEnumerable<SyntaxTree> written, GeneratorOutput generated)
+	{
+		var clock       = System.Diagnostics.Stopwatch.StartNew();
+		var diagnostics = Diagnostics(generated.Checked, written.Concat(generated.OtherTrees));
+		var found       = clock.Elapsed;
+		var names       = Of(diagnostics, generated.Updated);
+
+		return (names, found, clock.Elapsed - found);
+	}
+
+	/// <summary>The diagnostics of the given trees of a compilation, each tree's own only.</summary>
 	/// <remarks>
-	/// Never the whole compilation's diagnostics: those bind every generated line as well, which on
-	/// a grammar of a thousand rules costs as much again as generating it.
+	/// Never the whole compilation's diagnostics, which would bind every generated parser's lines as
+	/// well: on a grammar of a thousand rules that costs as much again as generating it.
 	/// </remarks>
-	public static List<Diagnostic> Diagnostics(Compilation updated, IEnumerable<SyntaxTree> trees)
+	public static List<Diagnostic> Diagnostics(Compilation compilation, IEnumerable<SyntaxTree> trees)
 	{
 		var all  = new List<Diagnostic>();
 		var gate = new object();
 
 		Parallel.ForEach(trees, tree =>
 		{
-			var mine = updated.GetSemanticModel(tree).GetDiagnostics();
+			var mine = compilation.GetSemanticModel(tree).GetDiagnostics();
 
 			lock (gate)
 				all.AddRange(mine);
@@ -48,18 +62,48 @@ static class Unresolved
 		return all;
 	}
 
-	/// <summary>The names the diagnostics say cannot be found, in the order of their places.</summary>
-	public static List<UnresolvedName> Of(IEnumerable<Diagnostic> diagnostics)
+	/// <summary>
+	/// The names the diagnostics say cannot be found, less those that resolve once DotGram's files are
+	/// in the compilation — the parser class a host's code calls, the attribute its host carries — in
+	/// the order of their places.
+	/// </summary>
+	/// <param name="updated">The compilation with DotGram's files in it, holding the same trees.</param>
+	public static List<UnresolvedName> Of(IEnumerable<Diagnostic> diagnostics, Compilation updated)
 	{
-		var found = new List<UnresolvedName>();
+		var found  = new List<UnresolvedName>();
+		var models = new Dictionary<SyntaxTree, SemanticModel>();
 
 		foreach (var diagnostic in diagnostics)
-			if (Ids.Contains(diagnostic.Id) && NameOf(diagnostic) is { } name)
-				found.Add(new UnresolvedName(name, diagnostic));
+		{
+			if (!Ids.Contains(diagnostic.Id) || NameOf(diagnostic) is not { } name)
+				continue;
+
+			if (diagnostic.Id != "CS0012" && diagnostic.Location.SourceTree is { } tree && Resolves(tree, diagnostic.Location.SourceSpan, updated, models))
+				continue;
+
+			found.Add(new UnresolvedName(name, diagnostic));
+		}
 
 		found.Sort(static (a, b) => string.CompareOrdinal(a.Where, b.Where));
 
 		return found;
+	}
+
+	/// <summary>Whether the name at the span binds in the compilation with DotGram's files, where it stands.</summary>
+	static bool Resolves(SyntaxTree tree, Microsoft.CodeAnalysis.Text.TextSpan span, Compilation updated, Dictionary<SyntaxTree, SemanticModel> models)
+	{
+		if (!models.TryGetValue(tree, out var model))
+			models[tree] = model = updated.GetSemanticModel(tree);
+
+		var node = tree.GetRoot().FindNode(span, getInnermostNodeForTie: true);
+
+		// The whole of a qualified name, `Foreign.Demo` rather than its last part.
+		while (node.Parent is QualifiedNameSyntax qualified && qualified.Right == node || node.Parent is AliasQualifiedNameSyntax { } alias && alias.Name == node)
+			node = node.Parent;
+
+		var info = model.GetSymbolInfo(node);
+
+		return info.Symbol is not null;
 	}
 
 	/// <summary>
@@ -86,91 +130,5 @@ static class Unresolved
 		var dot = name.LastIndexOf('.');
 
 		return dot >= 0 ? name.Substring(dot + 1) : name;
-	}
-
-	/// <summary>
-	/// Those of <paramref name="names"/> that can change what is generated, and the rest: a name a
-	/// grammar asks about, and a name in the declaration of a type it asks about or of one such a type
-	/// depends on (<see cref="Dependencies"/>) outside any body — its base list, its interfaces, the
-	/// signature of a member — where it decides what the type is, fits or is built with.
-	/// </summary>
-	public static (List<UnresolvedName> Asked, List<UnresolvedName> Other) Split(
-		IEnumerable<UnresolvedName> names, ImmutableHashSet<string> asked, ImmutableHashSet<string> dependencies)
-	{
-		var yes = new List<UnresolvedName>();
-		var no  = new List<UnresolvedName>();
-
-		foreach (var name in names)
-		{
-			if (asked.Contains(name.Name))
-				yes.Add(name);
-			else if (SignatureOf(name.Diagnostic) is { } type && dependencies.Contains(type))
-				yes.Add(name with { Through = type });
-			else
-				no.Add(name);
-		}
-
-		return (yes, no);
-	}
-
-	/// <summary>
-	/// The types a grammar asks about, and every type their declarations name outside a body, and so
-	/// on to the end: what a question's answer can depend on. Found from the syntax of the given trees
-	/// by simple name, so it is wider than the answer's real dependencies and never narrower.
-	/// </summary>
-	public static ImmutableHashSet<string> Dependencies(IEnumerable<SyntaxTree> trees, ImmutableHashSet<string> asked)
-	{
-		var declared = new Dictionary<string, List<BaseTypeDeclarationSyntax>>(StringComparer.Ordinal);
-
-		foreach (var tree in trees)
-			foreach (var type in tree.GetRoot().DescendantNodes().OfType<BaseTypeDeclarationSyntax>())
-			{
-				if (!declared.TryGetValue(type.Identifier.ValueText, out var all))
-					declared[type.Identifier.ValueText] = all = [];
-
-				all.Add(type);
-			}
-
-		var found = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
-		var next  = new Queue<string>(asked.Where(declared.ContainsKey));
-
-		while (next.Count > 0)
-		{
-			var name = next.Dequeue();
-
-			if (!found.Add(name))
-				continue;
-
-			foreach (var type in declared[name])
-				foreach (var used in type.DescendantNodes(node => node == type || !IsBody(node) && node is not BaseTypeDeclarationSyntax).OfType<SimpleNameSyntax>())
-					if (declared.ContainsKey(used.Identifier.ValueText) && !found.Contains(used.Identifier.ValueText))
-						next.Enqueue(used.Identifier.ValueText);
-		}
-
-		return found.ToImmutable();
-	}
-
-	/// <summary>The type whose declaration the diagnostic is in, outside any body; null inside one, or outside a type.</summary>
-	static string? SignatureOf(Diagnostic diagnostic)
-	{
-		if (diagnostic.Location.SourceTree is not { } tree)
-			return null;
-
-		for (SyntaxNode? node = tree.GetRoot().FindNode(diagnostic.Location.SourceSpan, getInnermostNodeForTie: true); node is not null; node = node.Parent)
-		{
-			if (node is BaseTypeDeclarationSyntax type)
-				return type.Identifier.ValueText;
-
-			if (IsBody(node))
-				return null;
-		}
-
-		return null;
-	}
-
-	/// <summary>What runs rather than declares: a body, an initializer, an attribute's arguments.</summary>
-	static bool IsBody(SyntaxNode node)
-	{
-		return node is BlockSyntax or ArrowExpressionClauseSyntax or EqualsValueClauseSyntax or AttributeListSyntax;
 	}
 }

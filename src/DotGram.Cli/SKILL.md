@@ -29,10 +29,13 @@ dotnet dotgram generate src/Grammars/Grammars.csproj -o src/Grammars/Generated
 dotnet dotgram generate calc.gram -o out --namespace Demo --option Lexical=true
 ```
 
-Types the grammar builds that live in another assembly: `--reference <file.dll|dir>` or
-`--package <Name>@<Version>` (from the global packages folder; netstandard2.0 projects need
-`--package System.Memory@<version>`). If a type a grammar asks about cannot be resolved, the tool
-names it, writes nothing and exits 3.
+A project's own packages, and the generators among their analyzers, are read from what restore
+wrote (`obj/project.assets.json`): run `dotnet restore` first; the tool never restores. Types that
+come from elsewhere — another project's build output, a `.gram` without a project — take
+`--reference <file.dll|dir>` or `--package <Name>@<Version>` (from the global packages folder).
+
+If a name in the project's code cannot be resolved — a missing reference, or a half-written file —
+the tool names it, writes nothing and exits 3, as the build would fail.
 
 ## Keeping it current
 

@@ -90,21 +90,37 @@ static class Cli
 
 		var outputs = new List<(Pass Run, GeneratorOutput Output)>();
 
+		foreach (var warning in runs.SelectMany(static run => run.Warnings).Distinct(StringComparer.Ordinal))
+			output.WriteLine("warning: " + warning);
+
 		// Each framework's generation at once: a large grammar takes seconds of one core for each, and
 		// the frameworks of one project share nothing while they are generated.
-		var generations = runs.Select(static run => Task.Run(() => Generator.Run(run.Inputs, run.ExtraSources))).ToArray();
+		// And, as each is done, what its compilation cannot resolve: a few seconds of binding on a large project.
+		var generations = runs
+			.Select(static run => Task.Run(() =>
+			{
+				var generated = Generator.Run(run.Inputs, run.ExtraSources, run.Others);
+				var names     = Unresolved.Find(run.Inputs.Sources.AddRange(run.ExtraSources.IsDefault ? [] : run.ExtraSources), generated);
 
-		// And beside them what a project's own files cannot resolve, which needs nothing generated.
-		var unresolved = runs.Select(static run => run.CompileOutput
-			? null
-			: Task.Run(() => Unresolved.Diagnostics(run.Inputs.Compile(), run.Inputs.Sources))).ToArray();
+				return (Generated: generated, Unresolved: names.Names, Checked: (names.Diagnostics, names.Excusing));
+			}))
+			.ToArray();
+
+		var found = new List<(List<UnresolvedName> Names, (TimeSpan Diagnostics, TimeSpan Excusing) Elapsed)>();
 
 		for (var index = 0; index < runs.Count; index++)
 		{
 			var run       = runs[index];
-			var generated = generations[index].GetAwaiter().GetResult();
+			var (generated, names, took) = generations[index].GetAwaiter().GetResult();
 
 			outputs.Add((run, generated));
+			found.Add((names, took));
+
+			foreach (var warning in generated.Warnings)
+				output.WriteLine("warning: " + warning);
+
+			if (run.DefinesElapsed is { } defines)
+				output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  {run.Inputs.Framework.Moniker}: the SDK's symbols in {defines.TotalSeconds:F1} s"));
 
 			foreach (var summary in generated.Summaries)
 				output.WriteLine($"  {run.Inputs.Framework.Moniker}: {summary}");
@@ -150,7 +166,7 @@ static class Cli
 		{
 			var (run, generated) = outputs[index];
 
-			var exit = Check(run, generated, unresolved[index]?.GetAwaiter().GetResult(), options, output);
+			var exit = Check(run, generated, found[index], options, output);
 
 			if (exit != ExitCode.Done)
 				return exit;
@@ -181,7 +197,17 @@ static class Cli
 	const string NotInView = "GRAM3004";
 
 	/// <summary>One generation to run: its inputs, and in <c>.gram</c> mode the host it is given.</summary>
-	sealed record Pass(GenerationInputs Inputs, ImmutableArray<SyntaxTree> ExtraSources, bool CompileOutput, string? HostFile, string? HostText);
+	/// <param name="Others">The project's other generators, run beside DotGram's.</param>
+	/// <param name="Warnings">What the tool could not do as the build does: a generator it does not run, one that would not load.</param>
+	sealed record Pass(
+		GenerationInputs                 Inputs,
+		ImmutableArray<SyntaxTree>       ExtraSources,
+		bool                             CompileOutput,
+		string?                          HostFile,
+		string?                          HostText,
+		IReadOnlyList<ISourceGenerator>  Others,
+		IReadOnlyList<string>            Warnings,
+		TimeSpan?                        DefinesElapsed);
 
 	/// <summary>The project evaluated for each of its frameworks, in parallel, and the inputs of each.</summary>
 	static List<Pass> Projects(GenerateOptions options)
@@ -205,10 +231,37 @@ static class Cli
 
 		var listed = OutputFolder.Listed(options.Output);
 
-		return [.. evaluations.Select(evaluation => new Pass(Inputs(evaluation, options, listed), default, false, null, null))];
+		return [.. evaluations.Select(evaluation => PassFor(evaluation, options, listed))];
 	}
 
-	static GenerationInputs Inputs(ProjectEvaluation evaluation, GenerateOptions options, IReadOnlyList<string> listed)
+	/// <summary>One framework of a project: what restore resolved for it, its generators, its inputs.</summary>
+	static Pass PassFor(ProjectEvaluation evaluation, GenerateOptions options, IReadOnlyList<string> listed)
+	{
+		var moniker  = evaluation.TargetFramework ?? options.Framework ?? "";
+
+		if (Framework.Of(moniker) is null)
+			throw ToolException.Failure(
+				$"{evaluation.Project} targets '{moniker}', which the tool carries no reference assemblies for ({Framework.Supported}). " +
+				"Pass --framework with one it does, into an output folder of its own.");
+
+		var assets   = ProjectAssets.Read(evaluation.AssetsFile, moniker, evaluation.Project);
+		var folders  = ProjectAssets.PackageFolders(evaluation.AssetsFile!);
+		var warnings = new List<string>();
+
+		var (others, failed) = OtherGenerators.Load([.. assets.Analyzers, .. ProjectAssets.FrameworkAnalyzers(evaluation, assets, folders)]);
+
+		warnings.AddRange(failed);
+
+		// A generator a build makes from another project of the solution is that project's build output,
+		// which the tool does not build. DotGram's own is the one the tool carries.
+		foreach (var project in evaluation.AnalyzerProjects)
+			if (!string.Equals(Path.GetFileName(project), "DotGram.csproj", StringComparison.OrdinalIgnoreCase))
+				warnings.Add($"{project} is an analyzer project reference: a project generator is not run, and names it supplies will refuse.");
+
+		return new Pass(Inputs(evaluation, options, listed, assets.References), default, false, null, null, others, warnings, evaluation.DefinesElapsed);
+	}
+
+	static GenerationInputs Inputs(ProjectEvaluation evaluation, GenerateOptions options, IReadOnlyList<string> listed, IReadOnlyList<string> packageReferences)
 	{
 		var moniker   = evaluation.TargetFramework ?? options.Framework ?? "";
 		var framework = Framework.Of(moniker)
@@ -225,10 +278,12 @@ static class Cli
 
 		// What this tool wrote into the folder, where the project compiles it: the generator in a
 		// build never sees its own output, and a parser that saw the last one could answer otherwise.
+		// Distinct by the full path as MSBuild gives it, case and all: on a file system that tells case
+		// apart, Model.cs and model.cs are two files, and the build compiles both.
 		var output = Path.GetFullPath(options.Output);
 		var sources = evaluation.Compile
 			.Where(path => !IsOurs(path, output, listed))
-			.Distinct(FileSystem.Names)
+			.Distinct(StringComparer.Ordinal)
 			.ToList();
 
 		var trees = GenerationInputs.Parse(sources, parsing);
@@ -246,7 +301,7 @@ static class Cli
 			Nullable        = GenerationInputs.NullableOf(evaluation.Nullable),
 			Sources         = usings is null ? trees : trees.Add(usings),
 			Grammars        = [.. evaluation.Grammars.Distinct(StringComparer.Ordinal).Select(static path => (AdditionalText)new GrammarText(path, GenerationInputs.Read(path)))],
-			References      = GenerationInputs.ReferencesFor(framework, options.References, options.Packages),
+			References      = GenerationInputs.ReferencesFor(framework, [.. packageReferences, .. options.References], options.Packages),
 			BuildProperties = evaluation.BuildProperties.ToImmutableDictionary(),
 		};
 	}
@@ -257,8 +312,10 @@ static class Cli
 	/// </summary>
 	static bool IsOurs(string path, string output, IReadOnlyList<string> listed)
 	{
-		return FileSystem.Names.Equals(Path.GetDirectoryName(path), Path.TrimEndingDirectorySeparator(output)) &&
-			listed.Contains(Path.GetFileName(path), FileSystem.Names);
+		var names = FileSystem.NamesIn(output);
+
+		return names.Equals(Path.GetDirectoryName(path), Path.TrimEndingDirectorySeparator(output)) &&
+			listed.Contains(Path.GetFileName(path), names);
 	}
 
 	/// <summary>A <c>.gram</c> input: its host synthesized, its options from the command line.</summary>
@@ -310,63 +367,48 @@ static class Cli
 			BuildProperties = ImmutableDictionary<string, string>.Empty,
 		};
 
-		return new Pass(inputs, [host], true, hostFile, hostText);
+		return new Pass(inputs, [host], true, hostFile, hostText, [], [], null);
 	}
 
 	/// <summary>
-	/// What stops a run between generating and writing: a type a grammar asks about that the
-	/// compilation cannot resolve, and in <c>.gram</c> mode a parser that does not compile.
+	/// What stops a run between generating and writing: a name the project's build would report it
+	/// cannot resolve, and in <c>.gram</c> mode a parser that does not compile.
 	/// </summary>
-	/// <param name="sourceDiagnostics">A project's own files' diagnostics, found while it was generated; null in <c>.gram</c> mode.</param>
-	static int Check(Pass run, GeneratorOutput generated, List<Diagnostic>? sourceDiagnostics, GenerateOptions options, TextWriter output)
+	/// <param name="found">What <see cref="Unresolved.Find"/> found, and how long it took.</param>
+	static int Check(Pass run, GeneratorOutput generated, (List<UnresolvedName> Names, (TimeSpan Diagnostics, TimeSpan Excusing) Elapsed) found, GenerateOptions options, TextWriter output)
 	{
-		var mode  = run.CompileOutput;
-		var clock = Stopwatch.StartNew();
+		var mode       = run.CompileOutput;
+		var moniker    = run.Inputs.Framework.Moniker;
+		var unresolved = found.Names;
 
-		// In `.gram` mode the host and the parser are compiled with the sources, since nothing else
-		// would compile them before they are written. A project's are not: what is looked for there
-		// is the names its own files cannot resolve, and those are found in the compilation the
-		// generator was handed — binding them against the generated files as well costs seconds on a
-		// large grammar — with every name the generated files declare taken back out.
-		var diagnostics = mode
-			? Unresolved.Diagnostics(generated.Updated, generated.Updated.SyntaxTrees)
-			: sourceDiagnostics!;
-
-		var unresolved = Unresolved.Of(diagnostics)
-			.Where(name => mode || !(generated.GeneratedTypeNames.Contains(name.Name) || generated.GeneratedTypeNames.Contains(name.Name + "Attribute")))
-			.ToList();
-
-		var dependencies   = Unresolved.Dependencies(run.Inputs.Sources.AddRange(run.ExtraSources.IsDefault ? [] : run.ExtraSources), generated.AskedTypeNames);
-		var (asked, other) = Unresolved.Split(unresolved, generated.AskedTypeNames, dependencies);
-		var moniker        = run.Inputs.Framework.Moniker;
-
-		if (other.Count > 0)
-			output.WriteLine(
-				$"  {moniker}: {other.Count} unresolved names no grammar asks about, which change nothing generated: " +
-				string.Join(", ", other.Select(static name => name.Name).Distinct(StringComparer.Ordinal).Take(10)) +
-				(other.Select(static name => name.Name).Distinct(StringComparer.Ordinal).Count() > 10 ? ", …" : ""));
-
-		if (asked.Count > 0)
+		if (unresolved.Count > 0)
 		{
 			var advice = mode
-				? "add the file that declares it with --sources (or --reference its assembly)"
-				: "pass the assembly that declares it with --reference <file.dll|dir> or --package <Name>@<Version>";
+				? "add the file that declares it with --sources, or --reference its assembly"
+				: "pass the missing reference (--reference <file.dll|dir>, --package <Name>@<Version>) or fix the source";
 
-			foreach (var name in asked.DistinctBy(static name => name.Name))
+			foreach (var name in unresolved)
 				output.WriteLine(
-					$"{name.Where}: {(options.AllowUnresolved ? "warning" : "error")}: '{name.Name}' cannot be resolved for {moniker} ({name.Diagnostic.Id}), and " +
-					(name.Through is null ? "a grammar asks about it" : $"the declaration of '{name.Through}', which a grammar's answer depends on, names it") +
-					$": {advice}.");
+					$"{name.Where}: {(options.AllowUnresolved ? "warning" : "error")}: '{name.Name}' cannot be resolved for {moniker} ({name.Diagnostic.Id}); " +
+					$"the project's build would report this too: {advice}.");
 
 			if (!options.AllowUnresolved)
 			{
-				output.WriteLine("A type a grammar asks about is missing, and the parser could differ from a build's: nothing written. --allow-unresolved generates anyway.");
+				output.WriteLine(
+					"A name nothing resolves stops generation as it stops the build — a half-written file too: nothing written. " +
+					"--allow-unresolved generates anyway.");
+
 				return ExitCode.Failure;
 			}
 		}
 
+		output.WriteLine(string.Create(
+			CultureInfo.InvariantCulture,
+			$"  {moniker}: names checked in {(found.Elapsed.Diagnostics + found.Elapsed.Excusing).TotalSeconds:F1} s ({found.Elapsed.Diagnostics.TotalSeconds:F1} s the sources' diagnostics, {found.Elapsed.Excusing.TotalSeconds:F1} s binding against the parsers)"));
+
 		if (mode)
 		{
+			var diagnostics = Unresolved.Diagnostics(generated.Updated, generated.Updated.SyntaxTrees);
 			var errors = diagnostics
 				.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
 				.OrderBy(static diagnostic => Report.Format(diagnostic), StringComparer.Ordinal)
@@ -379,8 +421,6 @@ static class Cli
 				return ExitCode.GrammarErrors;
 			}
 		}
-
-		output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  {moniker}: names checked in {clock.Elapsed.TotalSeconds:F1} s"));
 
 		return ExitCode.Done;
 	}
