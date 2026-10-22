@@ -63,6 +63,28 @@ public sealed class LineDirectiveTests
 			LineDirectives.Relative(text, Inputs, In("src", "Generated")));
 	}
 
+	/// <summary>The same line with an input's own path, inside a hook's raw string: the hook's text, untouched.</summary>
+	[Fact]
+	public void A_raw_string_holding_an_input_s_directive_is_untouched()
+	{
+		var path = In("src", "Calc.gram");
+		var text = $"class C\r\n{{\r\n\tstring s = \"\"\"\r\n#line 4 \"{path}\"\r\n\"\"\";\r\n#line 9 \"{path}\"\r\n\tint x;\r\n}}\r\n";
+
+		Assert.Equal(
+			text.Replace($"#line 9 \"{path}\"", "#line 9 \"../Calc.gram\"", StringComparison.Ordinal),
+			LineDirectives.Relative(text, Inputs, In("src", "Generated")));
+	}
+
+	/// <summary>And in an interpolated raw string, whose text is a token of its own.</summary>
+	[Fact]
+	public void An_interpolated_raw_string_is_untouched()
+	{
+		var path = In("src", "Calc.gram");
+		var text = $"class C\r\n{{\r\n\tstring s = $\"\"\"\r\n{{1}}\r\n#line 4 \"{path}\"\r\n\"\"\";\r\n}}\r\n";
+
+		Assert.Same(text, LineDirectives.Relative(text, Inputs, In("src", "Generated")));
+	}
+
 	/// <summary>On a real parser: every byte outside the rewritten paths is the generator's.</summary>
 	[Fact]
 	public void Nothing_but_the_paths_changes_in_a_generated_parser()

@@ -83,10 +83,18 @@ sealed class GenerationInputs
 	{
 		var trees = new SyntaxTree[paths.Count];
 
-		Parallel.For(0, paths.Count, index =>
+		try
 		{
-			trees[index] = CSharpSyntaxTree.ParseText(Read(paths[index]), options, paths[index]);
-		});
+			Parallel.For(0, paths.Count, index =>
+			{
+				trees[index] = CSharpSyntaxTree.ParseText(Read(paths[index]), options, paths[index]);
+			});
+		}
+		catch (AggregateException exception) when (exception.Flatten().InnerExceptions.OfType<ToolException>().FirstOrDefault() is { } first)
+		{
+			// A file that cannot be read, said as the tool says it, not as an unhandled parallel loop.
+			throw first;
+		}
 
 		return [.. trees];
 	}

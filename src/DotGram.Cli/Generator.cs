@@ -18,6 +18,9 @@ sealed class GeneratorOutput
 	/// <summary>Each file by the name a build gives it (its hint name), with the text the generator wrote.</summary>
 	public required SortedDictionary<string, string> Files { get; init; }
 
+	/// <summary>Each file's tree, as the driver parsed it, by the same name.</summary>
+	public required Dictionary<string, SyntaxTree> Trees { get; init; }
+
 	/// <summary>What the generator reported: GRAM errors, warnings, information.</summary>
 	public required ImmutableArray<Diagnostic> Diagnostics { get; init; }
 
@@ -27,7 +30,7 @@ sealed class GeneratorOutput
 	/// <summary>The compilation with the generated files in it.</summary>
 	public required Compilation Updated { get; init; }
 
-	/// <summary>The name of every type the generated files declare, nested ones included.</summary>
+	/// <summary>The name of every type the generated files declare, nested ones included, and of their namespaces.</summary>
 	public required ImmutableHashSet<string> GeneratedTypeNames { get; init; }
 
 	/// <summary>Every identifier in a type name some grammar asks the compilation about.</summary>
@@ -76,6 +79,7 @@ static class Generator
 			throw ToolException.Failure($"the generator failed: {exception}");
 
 		var files     = new SortedDictionary<string, string>(StringComparer.Ordinal);
+		var trees     = new Dictionary<string, SyntaxTree>(StringComparer.Ordinal);
 		var summaries = ImmutableArray.CreateBuilder<string>();
 
 		foreach (var source in result.GeneratedSources)
@@ -85,12 +89,16 @@ static class Generator
 			if (source.HintName.EndsWith(ReportSuffix, StringComparison.Ordinal))
 				summaries.Add(text.TrimStart('/', ' ').TrimEnd());
 			else if (!source.HintName.EndsWith(ReportDetailSuffix, StringComparison.Ordinal))
+			{
 				files.Add(source.HintName, text);
+				trees.Add(source.HintName, source.SyntaxTree);
+			}
 		}
 
 		return new GeneratorOutput
 		{
 			Files          = files,
+			Trees          = trees,
 			Diagnostics    = driverDiagnostics,
 			Summaries      = summaries.ToImmutable(),
 			Updated        = updated,
@@ -139,7 +147,7 @@ static class Generator
 		return names.ToImmutable();
 	}
 
-	/// <summary>Every type a tree declares, read from its declarations alone: no member body is looked into.</summary>
+	/// <summary>Every type a tree declares, and every namespace it declares them in, read from its declarations alone: no member body is looked into.</summary>
 	static ImmutableHashSet<string> DeclaredTypeNames(IEnumerable<SyntaxTree> trees)
 	{
 		var names = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
@@ -154,6 +162,11 @@ static class Generator
 
 					case DelegateDeclarationSyntax @delegate:
 						names.Add(@delegate.Identifier.ValueText);
+						break;
+
+					// And the namespaces they are in, which a `using` of the user's names before they exist.
+					case BaseNamespaceDeclarationSyntax @namespace:
+						Identifiers(@namespace.Name.ToString(), names);
 						break;
 				}
 

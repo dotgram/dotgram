@@ -33,6 +33,8 @@
 	<ItemGroup Label="DotGram.Cli">
 		<!-- The framework's reference assemblies, carried inside the tool so that what a type is does
 		     not depend on the SDK or targeting packs installed where it runs. MIT. -->
+		<PackageVersion Include="Basic.Reference.Assemblies.Net80" Version="1.8.13" />
+		<PackageVersion Include="Basic.Reference.Assemblies.Net90" Version="1.8.13" />
 		<PackageVersion Include="Basic.Reference.Assemblies.Net100" Version="1.8.13" />
 		<PackageVersion Include="Basic.Reference.Assemblies.NetStandard20" Version="1.8.13" />
 	</ItemGroup>
