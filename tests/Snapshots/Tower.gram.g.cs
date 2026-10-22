@@ -3103,7 +3103,6 @@ namespace DotGram.Snapshots
 			return tied;
 		}
 
-
 		sealed class Ways
 		{
 			internal int[] Items = new int[32];

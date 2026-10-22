@@ -1159,7 +1159,6 @@ namespace DotGram.Snapshots
 			return tied;
 		}
 
-
 		static readonly byte[] Scan_Runs =
 		{
 				0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 2, 0, 0,

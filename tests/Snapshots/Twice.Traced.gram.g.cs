@@ -1725,7 +1725,6 @@ namespace DotGram.Snapshots
 				return ties == null || ties.Count == 0 ? null : ties.ToArray();
 			}
 
-
 			/// <summary>
 			/// What a traced reading of this grammar does, told one call a thing it does (docs/syntax.md, §6.9).
 			/// </summary>

@@ -4432,7 +4432,6 @@ namespace DotGram.Snapshots
 				return tied;
 			}
 
-
 			sealed class Window
 			{
 				private readonly global::System.IO.TextReader _input;

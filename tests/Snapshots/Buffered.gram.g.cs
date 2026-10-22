@@ -3085,7 +3085,6 @@ namespace DotGram.Snapshots
 			return tied;
 		}
 
-
 		internal interface IParserInputSource<T>
 		{
 			bool Ensure(int position, int length);
