@@ -196,6 +196,8 @@ public static partial class CSharpEmitter
 
 		// The masks of categories this file tests, as the tests are written (CategoryTests).
 		_categoryMasks = new SortedSet<int>();
+		_hostCalls     = new SortedDictionary<string, string>(StringComparer.Ordinal);
+		_hostCallKeys  = new Dictionary<string, string>(StringComparer.Ordinal);
 
 		// A grammar left to choose is compiled exactly as one that asks for the immediate carrier:
 		// every machine that carrier does not refuse is carried by it, and a refused one is on the
@@ -1127,6 +1129,20 @@ public static partial class CSharpEmitter
 			file.Line();
 			file.Write(categoryTests);
 		}
+
+		// The methods of the author's that the generated readers call, each through a method of its
+		// own whose parameters carry names the author cannot have used (HostCall).
+		var hostCalls = _hostCalls;
+
+		_hostCalls    = null;
+		_hostCallKeys = null;
+
+		if (hostCalls is { Count: > 0 })
+			foreach (var declaration in hostCalls.Values)
+			{
+				file.Line();
+				file.Write(declaration);
+			}
 
 		// The sets every machine's refusals name, last: what a machine writes a call to is known
 		// only once all of them are written, the lexical half's included.
@@ -3187,7 +3203,7 @@ file.Line("return spare;");
 						file.Line($"var {at} = p;");
 						file.Line();
 
-						using (file.Block($"if (kind == 0 && {pattern.Method}(text, ref {at}) && {at} > p)"))
+						using (file.Block($"if (kind == 0 && {HostCall(pattern.Method, (Chars, ""), ("int", "ref"))}(text, ref {at}) && {at} > p)"))
 						{
 							file.Line($"kind = {number};");
 							file.Line($"end  = {at};");
@@ -5806,13 +5822,16 @@ file.Line("return spare;");
 	/// wanted here: the lexer asks how far, and a terminal that builds reads its value again.
 	/// </remarks>
 
+	const string Chars = "global::System.ReadOnlySpan<char>";
+
 	static string HostMeasure(LexicalSplit lexical, Node tail)
 	{
 		return tail switch
 		{
-			Node.External(var method) => $"{method}(text, ref measured)",
+			Node.External(var method) =>
+				$"{HostCall(method, (Chars, ""), ("int", "ref"))}(text, ref measured)",
 			Node.Call(var rule, _) when lexical.Source.Bodies[rule] is Node.External(var method) =>
-				$"{method}(text, ref measured, out _)",
+				$"{HostCall(method, (Chars, ""), ("int", "ref"), ("", "discard"))}(text, ref measured)",
 			_ => throw new InvalidOperationException($"{tail} is not measured by the host"),
 		};
 	}
@@ -6018,7 +6037,7 @@ file.Line("return spare;");
 		// they are there for — rather than qualified, which nothing here could do.
 		foreach (var reference in element.References)
 			if (reference is CSharpSymbol predicate)
-				tests.Add($"{predicate.Name}(c)");
+				tests.Add($"{HostCall(predicate.Name, ("char", ""))}(c)");
 
 		// An empty set admits nothing, and its complement admits everything. Said as
 		// constants rather than as `!(false)`, so the caller can drop the test — and with
@@ -6082,6 +6101,81 @@ file.Line("return spare;");
 	/// </remarks>
 	[ThreadStatic]
 	static SortedSet<int>? _categoryMasks;
+
+	/// <summary>The methods that call the author's, by their names, as <see cref="HostCall"/> writes them.</summary>
+	[ThreadStatic]
+	static SortedDictionary<string, string>? _hostCalls;
+
+	/// <summary>The name of the method <see cref="HostCall"/> wrote, by the call it stands for.</summary>
+	[ThreadStatic]
+	static Dictionary<string, string>? _hostCallKeys;
+
+	/// <summary>
+	/// The name of a method of the generated class that calls the author's <paramref name="method"/> with
+	/// parameters of these types, and whose own parameters cannot hide it.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A reader names its parameters and locals <c>text</c>, <c>p</c>, <c>value</c>, <c>failure</c> and so
+	/// on, and a method of the author's with one of those names, written as a call inside it, would be
+	/// found as the local and not as the method (CS0149). The call is made from a method whose
+	/// parameters end in <c>_DotGram</c>, which is a name nothing of the author's has: what it calls
+	/// is found by the compiler as it would have been — in the class, around it, in what it derives
+	/// from or imports — and the overload is the one the arguments choose.
+	/// </para>
+	/// <para>
+	/// A mode of <c>discard</c> is a parameter the author's method has and the reader does not want:
+	/// it is not a parameter of the wrapper, and is passed as <c>out _</c>.
+	/// </para>
+	/// </remarks>
+	internal static string HostCall(string method, params (string Type, string Mode)[] parameters)
+	{
+		if (_hostCalls is not { } calls || _hostCallKeys is not { } keys)
+			return method;
+
+		var key = method + "(" + string.Join(", ", parameters.Select(static one => one.Mode + " " + one.Type)) + ")";
+
+		if (keys.TryGetValue(key, out var known))
+			return known;
+
+		var bare = new System.Text.StringBuilder();
+
+		foreach (var one in method)
+			bare.Append(char.IsLetterOrDigit(one) ? one : '_');
+
+		var name = $"Host_DotGram_{bare}_{keys.Count}";
+
+		var written = new List<string>();
+		var passed  = new List<string>();
+		var index   = 0;
+
+		foreach (var (type, mode) in parameters)
+		{
+			if (mode == "discard")
+			{
+				passed.Add("out _");
+
+				continue;
+			}
+
+			var local = "argument" + index++ + "_DotGram";
+
+			written.Add((mode.Length > 0 ? mode + " " : "") + type + " " + local);
+			passed.Add((mode.Length > 0 ? mode + " " : "") + local);
+		}
+
+		var file = new Writer(1);
+
+		file.Line("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+
+		using (file.Block($"static bool {name}({string.Join(", ", written)})"))
+			file.Line($"return {method}({string.Join(", ", passed)});");
+
+		keys[key]   = name;
+		calls[name] = file.ToString();
+
+		return name;
+	}
 
 	/// <summary>
 	/// The test and the bits of every mask of categories in <paramref name="masks"/>, in the order of
