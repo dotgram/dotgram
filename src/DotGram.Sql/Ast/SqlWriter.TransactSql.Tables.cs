@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace DotGram.Sql.Ast;
 
-public static partial class Sql2023Writer
+public static partial class SqlWriter
 {
 	sealed partial class Text
 	{
@@ -684,7 +684,7 @@ public static partial class Sql2023Writer
 			if (type is null)
 				return false;
 
-			var text  = Sql2023Writer.Write(type, true);
+			var text  = SqlWriter.Write(type, true);
 			var until = '\0';
 
 			foreach (var c in text)

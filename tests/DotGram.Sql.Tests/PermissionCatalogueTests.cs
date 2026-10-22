@@ -11,7 +11,7 @@ using Xunit;
 
 namespace DotGram.Sql.Tests;
 
-// Inside this namespace an unqualified name is the OLD tree's; see Sql2023WriterCoverageTests.
+// Inside this namespace an unqualified name is the OLD tree's; see SqlWriterCoverageTests.
 using Identifier = DotGram.Sql.Ast.Identifier;
 using QualifiedName = DotGram.Sql.Ast.QualifiedName;
 using Statement = DotGram.Sql.Ast.Statement;
@@ -115,7 +115,7 @@ public sealed class PermissionCatalogueTests
 	/// </summary>
 	static string Words(PrivilegeKind kind)
 	{
-		var granted = Sql2023Writer.Write(new Statement.Grant
+		var granted = SqlWriter.Write(new Statement.Grant
 		{
 			Body = new GrantBody.Privileges([new Privilege(kind, [], [])], null, [new Grantee.Public()], false, false, null),
 		});
@@ -129,7 +129,7 @@ public sealed class PermissionCatalogueTests
 	static string Words(SecurableClass kind)
 	{
 		var on      = new PrivilegeObject.Classed(kind, new QualifiedName([new Identifier("s")]));
-		var granted = Sql2023Writer.Write(new Statement.Grant
+		var granted = SqlWriter.Write(new Statement.Grant
 		{
 			Body = new GrantBody.Privileges(
 				[new Privilege(PrivilegeKind.Control, [], [])], on, [new Grantee.Public()], false, false, null),
@@ -148,7 +148,7 @@ public sealed class PermissionCatalogueTests
 	/// </summary>
 	static IReadOnlyList<string[]> Pairs()
 	{
-		var catalogue = typeof(Sql2023Writer).Assembly.GetType("DotGram.Sql.TransactSql.PermissionCatalogue", throwOnError: true)!;
+		var catalogue = typeof(SqlWriter).Assembly.GetType("DotGram.Sql.TransactSql.PermissionCatalogue", throwOnError: true)!;
 		var pairs     = (IEnumerable<string>)catalogue.GetField("Pairs", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
 
 		return pairs.Select(one => one.Split('|')).ToList();

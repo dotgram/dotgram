@@ -193,7 +193,7 @@ public abstract class FailureMemoEqualityTests(ITestOutputHelper output, string 
 				return $"extension {extension.Dialect}: {extension.Kind}";
 
 			case ISqlNode node:
-				return Sql2023Writer.Write(node);
+				return SqlWriter.Write(node);
 
 			case System.Collections.IEnumerable items when value is not string:
 				return "[" + string.Join("; ", items.Cast<object?>().Select(Written)) + "]";

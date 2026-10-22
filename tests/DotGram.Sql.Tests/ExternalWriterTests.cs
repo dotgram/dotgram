@@ -16,7 +16,7 @@ using QualifiedName = DotGram.Sql.Ast.QualifiedName;
 using Statement = DotGram.Sql.Ast.Statement;
 
 /// <summary>
-/// The External family's writer (Sql2023Writer.TransactSql.External.cs): each record written as the words of its kind and the
+/// The External family's writer (SqlWriter.TransactSql.External.cs): each record written as the words of its kind and the
 /// settings its place's catalogue reads, and every tree whose text would read back as another tree refused.
 /// </summary>
 public sealed class ExternalWriterTests

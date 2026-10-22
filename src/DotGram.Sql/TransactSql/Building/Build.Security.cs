@@ -126,7 +126,7 @@ static partial class Build
 
 			foreach (var kind in Enum.GetValues<Ast.PrivilegeKind>())
 			{
-				var granted = Ast.Sql2023Writer.Write(new Ast.Statement.Grant
+				var granted = Ast.SqlWriter.Write(new Ast.Statement.Grant
 				{
 					Body = new Ast.GrantBody.Privileges([new Ast.Privilege(kind, [], [])], null, [new Ast.Grantee.Public()], false, false, null),
 				});
@@ -143,7 +143,7 @@ static partial class Build
 
 			foreach (var kind in Enum.GetValues<Ast.SecurableClass>())
 			{
-				var granted = Ast.Sql2023Writer.Write(new Ast.Statement.Grant
+				var granted = Ast.SqlWriter.Write(new Ast.Statement.Grant
 				{
 					Body = new Ast.GrantBody.Privileges(
 						[new Ast.Privilege(Ast.PrivilegeKind.Control, [], [])],

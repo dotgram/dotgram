@@ -15,7 +15,7 @@ using QualifiedName = DotGram.Sql.Ast.QualifiedName;
 using Statement = DotGram.Sql.Ast.Statement;
 
 /// <summary>
-/// The Security family's writer (Sql2023Writer.TransactSql.Security.cs): each record written as the words of its kind and the
+/// The Security family's writer (SqlWriter.TransactSql.Security.cs): each record written as the words of its kind and the
 /// slots the grammar reads for it, and every tree whose text would read back as another tree refused.
 /// </summary>
 public sealed class SecurityWriterTests

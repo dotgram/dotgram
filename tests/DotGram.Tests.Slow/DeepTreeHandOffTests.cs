@@ -37,8 +37,8 @@ public sealed class DeepTreeHandOffTests
 		var (written, thrown) = OnStack(() =>
 		{
 			var transact = DotGram.Sql.Ast.TransactSqlWriter.Write(TransactSqlParser.ParseStatement(chain));
-			var standard = DotGram.Sql.Ast.Sql2023Writer.Write(SqlStandardParser.ParseStatement(from));
-			var sql92    = DotGram.Sql.Ast.Sql2023Writer.Write(Sql92Parser.ParseSelect(from));
+			var standard = DotGram.Sql.Ast.SqlWriter.Write(SqlStandardParser.ParseStatement(from));
+			var sql92    = DotGram.Sql.Ast.SqlWriter.Write(Sql92Parser.ParseSelect(from));
 
 			Assert.Equal(chain, transact);
 			Assert.Equal(from, standard);
@@ -66,7 +66,7 @@ public sealed class DeepTreeHandOffTests
 		for (var i = 0; i < depth; i++)
 			made = new DotGram.Sql.Ast.Expression.Parenthesized(made);
 
-		var (written, thrown) = OnStack(() => DotGram.Sql.Ast.Sql2023Writer.Write(made));
+		var (written, thrown) = OnStack(() => DotGram.Sql.Ast.SqlWriter.Write(made));
 
 		Assert.Null(thrown);
 		Assert.Equal(new string('(', depth) + "1" + new string(')', depth), written);

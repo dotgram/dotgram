@@ -119,7 +119,7 @@ public sealed class SqlStandardEntryTests
 
 		Assert.IsType<LiteralValue.Numeric>(value);
 		Assert.False(expression is LiteralValue.Numeric { Text: "-1" });
-		Assert.Equal("-1", Sql2023Writer.Write(expression));
+		Assert.Equal("-1", SqlWriter.Write(expression));
 	}
 
 	// ── A statement ────────────────────────────────────────────────────────────

@@ -69,7 +69,7 @@ src/
 	                      tree the SQL grammars meet in, its writer and walker, in the
 	                      DotGram.Sql namespace, and a directory and namespace per dialect
 		Ast/              the new tree every SQL parser is moving onto, in DotGram.Sql.Ast:
-		                  its records (SqlAst*.cs) and Sql2023Writer
+		                  its records (SqlAst*.cs) and SqlWriter
 		Standard/         ISO SQL: SqlStandardParser (SQL:2023) and, for now, Sql92Parser;
 		                  Specification/ holds the ISO BNF
 		TransactSql/      T-SQL, TransactSqlParser; Specification/ holds Microsoft's

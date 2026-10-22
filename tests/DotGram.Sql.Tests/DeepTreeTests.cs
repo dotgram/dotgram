@@ -171,8 +171,8 @@ public sealed class DeepTreeTests
 		{
 			var transact = Ast.TransactSqlWriter.Write(TransactSqlParser.ParseStatement(chain));
 			var located  = Ast.TransactSqlWriter.Write(TransactSqlParser.Located.ParseStatement(chain));
-			var standard = Ast.Sql2023Writer.Write(SqlStandardParser.ParseStatement(from));
-			var sql92    = Ast.Sql2023Writer.Write(Sql92Parser.ParseSelect(from));
+			var standard = Ast.SqlWriter.Write(SqlStandardParser.ParseStatement(from));
+			var sql92    = Ast.SqlWriter.Write(Sql92Parser.ParseSelect(from));
 
 			Assert.Equal(chain, transact);
 			Assert.Equal(chain, located);
@@ -198,7 +198,7 @@ public sealed class DeepTreeTests
 	{
 		var text = Nested(prefix, open, middle, close, suffix, Depth);
 
-		var (written, thrown) = OnStack(() => RoundTrip(text, SqlStandardParser.ParseStatement, Ast.Sql2023Writer.Write));
+		var (written, thrown) = OnStack(() => RoundTrip(text, SqlStandardParser.ParseStatement, Ast.SqlWriter.Write));
 
 		Assert.True(thrown is null, $"{shape}: {thrown}");
 		Assert.NotEmpty(written);
@@ -221,7 +221,7 @@ public sealed class DeepTreeTests
 
 		var (written, thrown) = OnStack(() =>
 		{
-			var caught = Assert.Throws<NotSupportedException>(() => Ast.Sql2023Writer.Write(made));
+			var caught = Assert.Throws<NotSupportedException>(() => Ast.SqlWriter.Write(made));
 
 			Assert.Contains(nameof(Unwritable), caught.Message, StringComparison.Ordinal);
 

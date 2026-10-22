@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace DotGram.Sql.Ast;
 
-public static partial class Sql2023Writer
+public static partial class SqlWriter
 {
 	sealed partial class Text
 	{

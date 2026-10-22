@@ -430,10 +430,10 @@ public sealed class UndefinedEnumTests
 			Check(text, TransactSqlParser.Located.ParseStatement(text), static node => TransactSqlWriter.Write(node), static text => TransactSqlParser.Located.ParseStatement(text), "T-SQL");
 
 		foreach (var text in StandardStatements)
-			Check(text, SqlStandardParser.ParseStatement(text), static node => Sql2023Writer.Write(node), static text => SqlStandardParser.ParseStatement(text), "the standard");
+			Check(text, SqlStandardParser.ParseStatement(text), static node => SqlWriter.Write(node), static text => SqlStandardParser.ParseStatement(text), "the standard");
 
 		foreach (var text in StandardExpressions)
-			Check(text, SqlStandardParser.ParseExpression(text), static node => Sql2023Writer.Write(node), static text => SqlStandardParser.ParseExpression(text), "the standard");
+			Check(text, SqlStandardParser.ParseExpression(text), static node => SqlWriter.Write(node), static text => SqlStandardParser.ParseExpression(text), "the standard");
 
 		static string Site(string key)
 		{
@@ -487,7 +487,7 @@ public sealed class UndefinedEnumTests
 			{
 				var changed = Mutated(tree, at, out var site)!;
 
-				foreach (var (write, writer) in new (Func<ISqlNode, string>, string)[] { (TransactSqlWriter.Write, "T-SQL"), (Sql2023Writer.Write, "the standard") })
+				foreach (var (write, writer) in new (Func<ISqlNode, string>, string)[] { (TransactSqlWriter.Write, "T-SQL"), (SqlWriter.Write, "the standard") })
 					try
 					{
 						written.Add(site + " (" + writer + ") -> " + write(changed));
@@ -509,7 +509,7 @@ public sealed class UndefinedEnumTests
 
 			Assert.True(count > 0, text);
 			members += count;
-			Assert.NotEmpty(Sql2023Writer.Write(tree));
+			Assert.NotEmpty(SqlWriter.Write(tree));
 
 			for (var at = 0; at < count; at++)
 			{
@@ -517,7 +517,7 @@ public sealed class UndefinedEnumTests
 
 				try
 				{
-					written.Add(site + " (the standard) -> " + Sql2023Writer.Write(changed));
+					written.Add(site + " (the standard) -> " + SqlWriter.Write(changed));
 				}
 				catch (Exception thrown) when (thrown is ArgumentException or NotSupportedException or InvalidOperationException)
 				{

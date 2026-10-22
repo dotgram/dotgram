@@ -35,7 +35,7 @@ namespace DotGram.Sql.Ast;
 /// checks the stack first and, where it runs low, goes on on a thread of its own (<c>SqlStack</c>).
 /// </para>
 /// </remarks>
-public static partial class Sql2023Writer
+public static partial class SqlWriter
 {
 	/// <summary>The tree's text, as the standard reads it. For text T-SQL reads, use <see cref="TransactSqlWriter.Write"/>.</summary>
 	public static string Write(ISqlNode node)

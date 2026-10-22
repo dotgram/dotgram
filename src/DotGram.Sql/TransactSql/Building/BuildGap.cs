@@ -10,7 +10,7 @@ namespace DotGram.Sql.TransactSql;
 /// The reasons are a closed set, so that the gap report counts them rather than reads them:
 /// <list type="bullet">
 /// <item><see cref="NoTarget"/>: the new tree has no record or member for what the old node holds.</item>
-/// <item><see cref="NoWriterArm"/>: the target exists and <c>Sql2023Writer</c> refuses it.</item>
+/// <item><see cref="NoWriterArm"/>: the target exists and <c>SqlWriter</c> refuses it.</item>
 /// <item><see cref="NeedsDecision"/>: the shape is open, and the inventory row that says so is named.</item>
 /// <item><see cref="NotKept"/>: the old tree does not keep what the new tree records, so no arm could
 /// say which text was written.</item>

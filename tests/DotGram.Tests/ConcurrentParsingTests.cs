@@ -40,7 +40,7 @@ namespace DotGram.Tests;
 /// <b>What "the same answer" means here.</b> A generated tree's own equality is not
 /// trustworthy for this — a record's compiler-written <c>Equals</c> compares an array field
 /// by reference, and two separate parses never share an array — so every row below reduces
-/// its result to a string before two readings are compared: <see cref="Ast.Sql2023Writer"/>
+/// its result to a string before two readings are compared: <see cref="Ast.SqlWriter"/>
 /// prints a tree back as text, a <c>LambdaExpression</c>
 /// prints itself, and a plain record of strings (<see cref="UriReference"/>, a mailbox) is
 /// joined into one line. A refusal is its position and message, or, where the public surface
@@ -148,7 +148,7 @@ public sealed class ConcurrentParsingTests
 				{
 					var match = SqlStandardParser.TryParseStatement("SELECT a FROM t WHERE a = 1");
 					return Signature(match.IsSuccess, match.Position, match.Error,
-						() => Ast.Sql2023Writer.Write(match.Value) + "|" + SpansSignature(match.Value));
+						() => Ast.SqlWriter.Write(match.Value) + "|" + SpansSignature(match.Value));
 				},
 			},
 			new Row
@@ -158,7 +158,7 @@ public sealed class ConcurrentParsingTests
 				Compute = () =>
 				{
 					var match = SqlStandardParser.TryParseStatement("SELECT TOP 1 a FROM t");
-					return Signature(match.IsSuccess, match.Position, match.Error, () => Ast.Sql2023Writer.Write(match.Value));
+					return Signature(match.IsSuccess, match.Position, match.Error, () => Ast.SqlWriter.Write(match.Value));
 				},
 			},
 			new Row
@@ -167,7 +167,7 @@ public sealed class ConcurrentParsingTests
 				Compute = () =>
 				{
 					var match = Sql92Parser.TryParseSelect("SELECT DISTINCT a, t.* FROM u AS t WHERE a > 1");
-					return Signature(match.IsSuccess, match.Position, match.Error, () => Ast.Sql2023Writer.Write(match.Value));
+					return Signature(match.IsSuccess, match.Position, match.Error, () => Ast.SqlWriter.Write(match.Value));
 				},
 			},
 			new Row
@@ -176,7 +176,7 @@ public sealed class ConcurrentParsingTests
 				Compute = () =>
 				{
 					var match = Sql92Parser.TryParseSearchCondition("a AND");
-					return Signature(match.IsSuccess, match.Position, match.Error, () => Ast.Sql2023Writer.Write(match.Value));
+					return Signature(match.IsSuccess, match.Position, match.Error, () => Ast.SqlWriter.Write(match.Value));
 				},
 			},
 			new Row

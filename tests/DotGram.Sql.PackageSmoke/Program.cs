@@ -11,8 +11,8 @@ var written = DotGram.Sql.Ast.TransactSqlWriter.Write(select);
 if (DotGram.Sql.Ast.TransactSqlWriter.Write(TransactSqlParser.ParseSelect(written)) != written)
 	throw new Exception("T-SQL did not survive a writer round trip.");
 var standard = SqlStandardParser.ParseStatement("SELECT a FROM t WHERE a > 1");
-var standardText = DotGram.Sql.Ast.Sql2023Writer.Write(standard);
-if (DotGram.Sql.Ast.Sql2023Writer.Write(SqlStandardParser.ParseStatement(standardText)) != standardText)
+var standardText = DotGram.Sql.Ast.SqlWriter.Write(standard);
+if (DotGram.Sql.Ast.SqlWriter.Write(SqlStandardParser.ParseStatement(standardText)) != standardText)
 	throw new Exception("SQL:2023 did not survive a writer round trip.");
 if (Sql92Parser.ParseValueExpression("1 + 2") is null)
 	throw new Exception("Expected a SQL-92 expression.");

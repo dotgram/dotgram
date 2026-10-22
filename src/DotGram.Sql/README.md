@@ -15,7 +15,7 @@ so nothing here carries a parser runtime, and neither does anything that referen
 ## The dialects
 
 Each dialect is a directory, a namespace and a grammar of its own, and all of them build one tree, the
-standard's own, in `DotGram.Sql.Ast`: the records, `Sql2023Writer` and `TransactSqlWriter`, which print them back, and
+standard's own, in `DotGram.Sql.Ast`: the records, `SqlWriter` and `TransactSqlWriter`, which print them back, and
 [`SqlWalker`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/SqlWalker.cs), which visits them. What each parser publishes is
 under the table.
 
@@ -32,7 +32,7 @@ out in `TransactSql.gram` beside T-SQL's own.
 All three build one tree, the standard's, laid out in
 [`SqlAst.cs`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Ast/SqlAst.cs) in `DotGram.Sql.Ast`, with T-SQL's own
 constructs in the standard's families and beside them, and printed back by
-[`Sql2023Writer`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Ast/Sql2023Writer.cs), or by `TransactSqlWriter` as T-SQL
+[`SqlWriter`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/Ast/SqlWriter.cs), or by `TransactSqlWriter` as T-SQL
 reads it. Its records are named for the standard's constructs. The writers print key words and date
 parts in capitals, whatever case they were read in: the tree holds what a key word means, not how it
 was spelled. A text two parsers read is the same tree, in the shape

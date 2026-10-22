@@ -77,7 +77,7 @@ public sealed class SetOperationReviewTests
 	public void Is_written_as_read_and_read_back_the_same(string input)
 	{
 		var tree    = Both.ParseQueryExpression(input);
-		var written = Sql2023Writer.Write(tree);
+		var written = SqlWriter.Write(tree);
 
 		Assert.Equal(input, written);
 		Assert.Equal(tree, Both.ParseQueryExpression(written));
@@ -93,7 +93,7 @@ public sealed class SetOperationReviewTests
 	public void An_insert_source_with_set_operations_round_trips(string input)
 	{
 		var tree    = Both.ParseInsertStatement(input);
-		var written = Sql2023Writer.Write(tree);
+		var written = SqlWriter.Write(tree);
 
 		Assert.Equal(input, written);
 		Assert.Equal(tree, Both.ParseInsertStatement(written));
@@ -107,7 +107,7 @@ public sealed class SetOperationReviewTests
 	public void A_statement_round_trips(string input)
 	{
 		var tree    = SqlStandardParser.ParseStatement(input);
-		var written = Sql2023Writer.Write(tree);
+		var written = SqlWriter.Write(tree);
 
 		Assert.Equal(input, written);
 		Assert.Equal(tree, SqlStandardParser.ParseStatement(written));
@@ -141,7 +141,7 @@ public sealed class SetOperationReviewTests
 
 			Assert.Equal(1999, tree.SetOperations.Count);
 			Assert.Equal(2000, tree.Operands().Count());
-			Assert.Equal(text, Sql2023Writer.Write(tree));
+			Assert.Equal(text, SqlWriter.Write(tree));
 			Assert.Equal(tree, again);
 			Assert.Equal(tree.GetHashCode(), again.GetHashCode());
 		});
@@ -169,7 +169,7 @@ public sealed class SetOperationReviewTests
 				var tree  = SqlStandardParser.ParseStatement(text);
 				var again = SqlStandardParser.ParseStatement(text);
 
-				Assert.Equal(text, Sql2023Writer.Write(tree));
+				Assert.Equal(text, SqlWriter.Write(tree));
 
 				// Deeper than the stack, equality and the hash may end in a catchable exception, as
 				// they do for every deep tree (DeepTreeTests); never in anything else. A nested operand
@@ -201,9 +201,9 @@ public sealed class SetOperationReviewTests
 		var locked  = Table("a") with { Locking = [new LockingClause(LockingMode.Update, [])] };
 		var outer   = new Query.Parenthesized(Table("a")) { OrderBy = new OrderByClause([new SortItem(Column("x"))]) };
 
-		Assert.Equal("(TABLE a FETCH FIRST 1 ROWS ONLY) UNION TABLE c", Sql2023Writer.Write(limited.Combine(union)));
-		Assert.Equal("(TABLE a FOR UPDATE) UNION TABLE c", Sql2023Writer.Write(locked.Combine(union)));
-		Assert.Equal("((TABLE a) ORDER BY x) UNION TABLE c", Sql2023Writer.Write(outer.Combine(union)));
+		Assert.Equal("(TABLE a FETCH FIRST 1 ROWS ONLY) UNION TABLE c", SqlWriter.Write(limited.Combine(union)));
+		Assert.Equal("(TABLE a FOR UPDATE) UNION TABLE c", SqlWriter.Write(locked.Combine(union)));
+		Assert.Equal("((TABLE a) ORDER BY x) UNION TABLE c", SqlWriter.Write(outer.Combine(union)));
 	}
 
 	/// <summary>
@@ -221,8 +221,8 @@ public sealed class SetOperationReviewTests
 
 		var combined = (q with { With = null }).Combine(b) with { With = with };
 
-		Assert.Equal("WITH q AS (TABLE a) TABLE q UNION TABLE b", Sql2023Writer.Write(combined));
-		Assert.Equal(combined, Both.ParseQueryExpression(Sql2023Writer.Write(combined)));
+		Assert.Equal("WITH q AS (TABLE a) TABLE q UNION TABLE b", SqlWriter.Write(combined));
+		Assert.Equal(combined, Both.ParseQueryExpression(SqlWriter.Write(combined)));
 	}
 
 	[Fact]
@@ -232,7 +232,7 @@ public sealed class SetOperationReviewTests
 
 		Assert.Equal(
 			"TABLE a UNION ((TABLE b) FETCH FIRST 1 ROW ONLY)",
-			Sql2023Writer.Write(Table("a") with { SetOperations = [new(SetOperator.Union, outer)] }));
+			SqlWriter.Write(Table("a") with { SetOperations = [new(SetOperator.Union, outer)] }));
 	}
 
 	/// <summary>
@@ -255,7 +255,7 @@ public sealed class SetOperationReviewTests
 
 			try
 			{
-				written = Sql2023Writer.Write(query);
+				written = SqlWriter.Write(query);
 			}
 			catch (ArgumentException)
 			{
@@ -274,8 +274,8 @@ public sealed class SetOperationReviewTests
 		var ties    = Table("a") with { Limit = new Limit { WithTies = true } };
 		var percent = Table("a") with { Limit = new Limit { Offset = Number(1), Percent = true } };
 
-		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(ties));
-		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(percent));
+		Assert.ThrowsAny<ArgumentException>(() => SqlWriter.Write(ties));
+		Assert.ThrowsAny<ArgumentException>(() => SqlWriter.Write(percent));
 	}
 
 	[Fact]
@@ -311,12 +311,12 @@ public sealed class SetOperationReviewTests
 		{
 			var budget  = random.Next(3, 6);
 			var tree    = RandomQuery(random, ref budget, 0);
-			var written = Sql2023Writer.Write(tree);
+			var written = SqlWriter.Write(tree);
 			var read    = Both.ParseQueryExpression(written);
 
 			Assert.True(Same(Evaluate(tree), Evaluate(read)), $"round {round}: {written}");
-			Assert.Equal(written, Sql2023Writer.Write(read));
-			Assert.Equal(read, Both.ParseQueryExpression(Sql2023Writer.Write(read)));
+			Assert.Equal(written, SqlWriter.Write(read));
+			Assert.Equal(read, Both.ParseQueryExpression(SqlWriter.Write(read)));
 		}
 	}
 
@@ -332,7 +332,7 @@ public sealed class SetOperationReviewTests
 			var text   = RandomText(random, ref budget, 0);
 			var tree   = Both.ParseQueryExpression(text);
 
-			Assert.Equal(text, Sql2023Writer.Write(tree));
+			Assert.Equal(text, SqlWriter.Write(tree));
 			Assert.Equal(tree, Both.ParseQueryExpression(text));
 		}
 	}
