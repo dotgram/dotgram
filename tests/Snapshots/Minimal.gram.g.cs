@@ -6202,6 +6202,7 @@ namespace DotGram.Snapshots
 
 			private string _line = "";
 			private int    _at;
+			private bool   _ending;
 			private bool   _ended;
 
 			public Lines(global::System.Collections.Generic.IEnumerable<string> lines)
@@ -6215,15 +6216,24 @@ namespace DotGram.Snapshots
 
 				while (written < count)
 				{
-					if (_at >= _line.Length && !Next())
+					if (_at < _line.Length)
+					{
+						var taking = global::System.Math.Min(count - written, _line.Length - _at);
+
+						_line.CopyTo(_at, buffer, index + written, taking);
+
+						_at     += taking;
+						written += taking;
+					}
+					else if (_ending)
+					{
+						buffer[index + written] = '\n';
+
+						_ending = false;
+						written++;
+					}
+					else if (!Next())
 						break;
-
-					var taking = global::System.Math.Min(count - written, _line.Length - _at);
-
-					_line.CopyTo(_at, buffer, index + written, taking);
-
-					_at     += taking;
-					written += taking;
 				}
 
 				return written;
@@ -6241,8 +6251,9 @@ namespace DotGram.Snapshots
 					return false;
 				}
 
-				_line = _lines.Current + "\n";
-				_at    = 0;
+				_line   = _lines.Current ?? "";
+				_at     = 0;
+				_ending = true;
 
 				return true;
 			}
