@@ -7,7 +7,7 @@ namespace DotGram.Sql;
 /// statement whose list mixes them can say all of its groups.
 /// </summary>
 [Flags]
-public enum SetCategory
+internal enum SetCategory
 {
 	/// <summary>No setting.</summary>
 	None = 0,
@@ -34,28 +34,13 @@ public enum SetCategory
 	Transactions = 64,
 }
 
-/// <summary>§8.2 <c>&lt;comp op&gt;</c>, which the standard writes as a production of its own.</summary>
-public enum SqlComparison
-{
-	Equal, NotEqual, Less, LessOrEqual, Greater, GreaterOrEqual,
-
-	/// <summary>T-SQL's <c>!=</c>, which means what <c>&lt;&gt;</c> does and is kept apart because it is written apart.</summary>
-	NotEqualBang,
-
-	/// <summary>T-SQL's <c>!&lt;</c>, not less than.</summary>
-	NotLess,
-
-	/// <summary>T-SQL's <c>!&gt;</c>, not greater than.</summary>
-	NotGreater,
-}
-
 /// <summary>Which join (§7.7), and the two T-SQL adds.</summary>
 /// <remarks>
 /// An apply reads its right side once per row of its left, which is a question about
 /// evaluation rather than shape — but it is written differently and refused where a join
 /// would be read, so the tree says which was written.
 /// </remarks>
-public enum SqlJoin
+internal enum SqlJoin
 {
 	/// <summary>
 	/// No word was written — a bare <c>JOIN</c>. What that means is an inner join, and
@@ -68,20 +53,14 @@ public enum SqlJoin
 }
 
 /// <summary>Which way a sort was asked for, and whether it was asked for at all (§10.10).</summary>
-public enum SqlOrder
+internal enum SqlOrder
 {
 	Unspecified, Ascending, Descending,
 }
 
 /// <summary>What a literal is, where the text alone does not say.</summary>
-public enum SqlLiteralKind
+internal enum SqlLiteralKind
 {
 	Number, Text, National, Bit, Hex, Date, Time, Timestamp, Interval,
 	Null, Default, Parameter, Special,
-}
-
-/// <summary>The three truth values a test compares against (§6.39).</summary>
-public enum SqlTruth
-{
-	True, False, Unknown,
 }

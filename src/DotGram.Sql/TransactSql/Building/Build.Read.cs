@@ -485,7 +485,7 @@ static partial class Build
 		/// </remarks>
 		/// <param name="Command">The command as written, <c>CHECKDB</c> or a library's name.</param>
 		/// <param name="Arguments">
-		/// A value each, or a <see cref="Expression.NamedArgument"/>. Null where there were no
+		/// A value each, or a <see cref="Values.NamedArgument"/>. Null where there were no
 		/// brackets, and empty where they held nothing.
 		/// </param>
 		/// <param name="Options">What followed <c>WITH</c>, a <see cref="Clause.Option"/> each.</param>
@@ -1037,7 +1037,7 @@ static partial class Build
 		/// <summary>§7.3 <c>VALUES (…), (…)</c> — a table written out.</summary>
 		public sealed record TableValueConstructor(SqlList<Ast.Expression> Rows) : Query;
 
-		/// <summary>§7.13 a query in brackets, for <see cref="Expression.Parenthesized"/>'s reason.</summary>
+		/// <summary>§7.13 a query in brackets, for <see cref="Ast.Expression.Parenthesized"/>'s reason.</summary>
 		public sealed record Parenthesized(Query Query) : Query;
 
 		/// <summary>
@@ -1123,16 +1123,16 @@ static partial class Build
 			{
 				None = 0,
 
-				/// <summary>A select that assigns a variable in its select list, in brackets or not (<see cref="Syntax.Assigns"/>).</summary>
+				/// <summary>A select that assigns a variable in its select list, in brackets or not (<see cref="Rules.Assigns"/>).</summary>
 				Assigns = 1,
 
-				/// <summary>A select that assigns a variable and has nothing to select from (<see cref="Syntax.AssignsFromNothing"/>).</summary>
+				/// <summary>A select that assigns a variable and has nothing to select from (<see cref="Rules.AssignsFromNothing"/>).</summary>
 				AssignsFromNothing = 2,
 
-				/// <summary>A query a cursor may be declared for (<see cref="Syntax.Cursorable"/>).</summary>
+				/// <summary>A query a cursor may be declared for (<see cref="Rules.Cursorable"/>).</summary>
 				Cursorable = 4,
 
-				/// <summary>A query that combines a select that assigns a variable (<see cref="Syntax.AssignsCombined"/>).</summary>
+				/// <summary>A query that combines a select that assigns a variable (<see cref="Rules.AssignsCombined"/>).</summary>
 				AssignsCombined = 8,
 			}
 
@@ -1279,7 +1279,7 @@ static partial class Build
 			Values.Call Function, string? Name, SqlList<string>? Columns,
 			SqlList<Clause> Schema) : TableReference;
 
-		/// <summary>§7.6 a source in brackets, for <see cref="Expression.Parenthesized"/>'s reason.</summary>
+		/// <summary>§7.6 a source in brackets, for <see cref="Ast.Expression.Parenthesized"/>'s reason.</summary>
 		public sealed record Parenthesized(TableReference Of) : TableReference;
 
 		/// <summary>

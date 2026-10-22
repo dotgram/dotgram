@@ -114,8 +114,8 @@ public sealed class ShippedExampleTests
 	}
 
 	public static TheoryData<string, int> Pages => ShippedPages.Every(
-		ShippedPages.PageOf(typeof(SqlWriter), "README.md"),
-		ShippedPages.PageOf(typeof(SqlWriter), "SKILL.md"));
+		ShippedPages.PageOf(typeof(Ast.Sql2023Writer), "README.md"),
+		ShippedPages.PageOf(typeof(Ast.Sql2023Writer), "SKILL.md"));
 
 	/// <summary>The SKILL's second example: the standard's own parser, its writer, and what it refuses.</summary>
 	[Fact]

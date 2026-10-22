@@ -384,33 +384,30 @@ public sealed class LocatedReadingTests
 	}
 
 	/// <summary>
-	/// A node of the SQL:2023 tree keeps its span in eight bytes, where and how much, and a node of the
-	/// old T-SQL tree in twelve, the start of the gap in front of it with them, as do the records the T-SQL rules read
-	/// before they build the common tree: every record of each that declares the field, found by reflection, so a
-	/// record added later is held to it too.
+	/// A node of the SQL:2023 tree keeps its span in eight bytes, where and how much, and a record the T-SQL rules read
+	/// before they build the common tree in twelve, the start of the gap in front of it with them: every record of each
+	/// that declares the field, found by reflection, so a record added later is held to it too.
 	/// </summary>
 	[Fact]
 	public void A_SQL2023_node_keeps_its_span_in_eight_bytes()
 	{
-		var holders = typeof(Statement).Assembly.GetTypes()
+		var holders = typeof(ISqlSpan).Assembly.GetTypes()
 			.Where(static type => !type.IsInterface && typeof(ISqlSpan).IsAssignableFrom(type))
 			.Select(static type => (Type: type, Field: type.GetField("_location", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly)))
 			.Where(static holder => holder.Field is not null)
 			.ToList();
 
 		var ast    = holders.Where(static holder => holder.Type.Namespace == "DotGram.Sql.Ast").ToList();
-		var syntax = holders.Where(static holder => holder.Type.Namespace == "DotGram.Sql").ToList();
 		var read   = holders.Where(static holder => holder.Type.Namespace == "DotGram.Sql.TransactSql").ToList();
 
 		Assert.True(ast.Count > 100, $"{ast.Count} records of the SQL:2023 tree hold a span");
-		Assert.Equal(6, syntax.Count);
 		Assert.NotEmpty(read);
-		Assert.Equal(holders.Count, ast.Count + syntax.Count + read.Count);
+		Assert.Equal(holders.Count, ast.Count + read.Count);
 
 		foreach (var holder in ast)
 			Assert.True(SizeOf(holder.Field!.FieldType) == 8, holder.Type.FullName);
 
-		foreach (var holder in syntax.Concat(read))
+		foreach (var holder in read)
 			Assert.True(SizeOf(holder.Field!.FieldType) == 12, holder.Type.FullName);
 	}
 
@@ -596,18 +593,18 @@ public sealed class LocatedReadingTests
 	}
 
 	/// <summary>
-	/// A copy of a node of the old T-SQL tree made with <c>with</c> keeps where its original was written and the gap in
-	/// front of it, and says it is stale; the original does not change, and an unlocated node's copy is unlocated. No
-	/// parser builds that tree any more, so the node is built and located by hand.
+	/// A copy of a record the T-SQL rules read, made with <c>with</c>, keeps where its original was written and the gap
+	/// in front of it, and says it is stale; the original does not change, and an unlocated record's copy is unlocated.
+	/// The record is built and located by hand, as a rule would.
 	/// </summary>
 	[Fact]
 	public void A_copy_keeps_the_span_and_is_stale()
 	{
-		var original = new Expression.Comparison(new Expression.ColumnReference("a"), SqlComparison.Equal, new Expression.Literal(SqlLiteralKind.Number, "1"));
+		var original = new Build.Clause.Option("a", null, Build.Clause.None);
 
 		((ISqlLocatable)original).Locate(16, 5, 14);
 
-		var copy = original with { Left = original.Right };
+		var copy = original with { Name = "b" };
 
 		Assert.False(original.Span.IsStale);
 		Assert.True(copy.Span.IsStale);
@@ -615,9 +612,9 @@ public sealed class LocatedReadingTests
 		Assert.Equal(original.Span.Length, copy.Span.Length);
 		Assert.Equal(original.Span.GapStart, copy.Span.GapStart);
 
-		var plain = new Expression.Comparison(new Expression.ColumnReference("a"), SqlComparison.Equal, new Expression.Literal(SqlLiteralKind.Number, "1"));
+		var plain = new Build.Clause.Option("a", null, Build.Clause.None);
 
-		Assert.False((plain with { Left = plain.Right }).Span.IsStale);
+		Assert.False((plain with { Name = "b" }).Span.IsStale);
 	}
 
 	/// <summary>A copy of a node of the common tree made with <c>with</c> keeps where its original was written.</summary>
@@ -639,8 +636,9 @@ public sealed class LocatedReadingTests
 	[Fact]
 	public void A_record_that_holds_a_span_holds_nothing_else()
 	{
-		var holders = typeof(Statement).Assembly.GetTypes()
-			.Where(static type => type.Namespace == "DotGram.Sql" && type.IsAbstract && !type.IsInterface && type.GetProperty(nameof(ISqlSpan.Span))?.DeclaringType == type &&
+		var holders = typeof(ISqlSpan).Assembly.GetTypes()
+			.Where(static type => type.Namespace == "DotGram.Sql.TransactSql" && type.IsAbstract && !type.IsInterface && type.GetProperty(nameof(ISqlSpan.Span))?.DeclaringType == type &&
+				type.GetField("_location", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly) is not null &&
 				typeof(ISqlSpan).IsAssignableFrom(type))
 			.ToList();
 

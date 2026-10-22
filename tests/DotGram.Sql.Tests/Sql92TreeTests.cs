@@ -27,7 +27,7 @@ namespace DotGram.Sql.Tests;
 /// <para>
 /// The texts are the ones SQL-92 is known by: every string of <see cref="Sql92ParserTests"/>, the
 /// SQL-92 rows of the benchmarks' stand, and the ScriptDom corpus, each statement as it is written and
-/// as <see cref="SqlWriter"/> prints what <see cref="TransactSqlParser"/> read of it. Each is put to
+/// as <see cref="Ast.TransactSqlWriter"/> prints what <see cref="TransactSqlParser"/> read of it. Each is put to
 /// every entry of SQL-92, and where it reads, to the standard's entry at the same level:
 /// <c>ParseSearchCondition</c> to <c>ParseSearchCondition</c>, <c>ParseValueExpression</c> to
 /// <c>ParseExpression</c>, and <c>ParseSelect</c> and <c>ParseQuery</c> to <c>ParseStatement</c>, whose

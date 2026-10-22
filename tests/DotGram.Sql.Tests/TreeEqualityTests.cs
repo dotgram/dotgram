@@ -357,23 +357,23 @@ public sealed class TreeEqualityTests
 	[Fact]
 	public void A_list_hash_is_ordered_and_counts_duplicates()
 	{
-		var a = new Expression.Literal(SqlLiteralKind.Number, "1");
-		var b = new Expression.Literal(SqlLiteralKind.Number, "2");
+		var a = new Ast.LiteralValue.Numeric("1", Ast.NumericLiteralKind.DecimalInteger);
+		var b = new Ast.LiteralValue.Numeric("2", Ast.NumericLiteralKind.DecimalInteger);
 
-		SqlList<Expression> ab  = [a, b];
-		SqlList<Expression> ba  = [b, a];
-		SqlList<Expression> aa  = [a, a];
-		SqlList<Expression> bb  = [b, b];
-		SqlList<Expression> aab = [a, a, b];
-		SqlList<Expression> one = [b];
+		SqlList<Ast.Expression> ab  = [a, b];
+		SqlList<Ast.Expression> ba  = [b, a];
+		SqlList<Ast.Expression> aa  = [a, a];
+		SqlList<Ast.Expression> bb  = [b, b];
+		SqlList<Ast.Expression> aab = [a, a, b];
+		SqlList<Ast.Expression> one = [b];
 
 		Assert.NotEqual(ab, ba);
 		Assert.NotEqual(ab.GetHashCode(), ba.GetHashCode());
 		Assert.NotEqual(aa.GetHashCode(), bb.GetHashCode());
 		Assert.NotEqual(aab.GetHashCode(), one.GetHashCode());
-		Assert.NotEqual(new Expression.RowValueConstructor(ab), new Expression.RowValueConstructor(ba));
-		Assert.NotEqual(new Expression.RowValueConstructor(ab).GetHashCode(), new Expression.RowValueConstructor(ba).GetHashCode());
-		Assert.Equal(new Expression.RowValueConstructor(ab), new Expression.RowValueConstructor([new Expression.Literal(SqlLiteralKind.Number, "1"), b]));
+		Assert.NotEqual(new Ast.Expression.Row(ab), new Ast.Expression.Row(ba));
+		Assert.NotEqual(new Ast.Expression.Row(ab).GetHashCode(), new Ast.Expression.Row(ba).GetHashCode());
+		Assert.Equal(new Ast.Expression.Row(ab), new Ast.Expression.Row([new Ast.LiteralValue.Numeric("1", Ast.NumericLiteralKind.DecimalInteger), b]));
 
 		SqlList<int> numbers  = [1, 2];
 		SqlList<int> reversed = [2, 1];
@@ -405,14 +405,13 @@ public sealed class TreeEqualityTests
 		Assert.Throws<IndexOutOfRangeException>(() => none[0]);
 		Assert.NotEqual<SqlList<string>?>(empty, missing);
 
-		var table   = new TableReference.Named("t", null, false, null, null, null, Clause.None);
-		var query   = new Query.TableValueConstructor([new Expression.RowValueConstructor([new Expression.Literal(SqlLiteralKind.Number, "1")])]);
-		var listed  = new Statement.Insert(table, [], query);
-		var omitted = new Statement.Insert(table, null, query);
+		var table   = new Ast.QualifiedName(new Ast.Identifier("t"));
+		var listed  = new Ast.PrivilegeObject.Named(Ast.PrivilegeObjectKind.Table, table, Columns: []);
+		var omitted = new Ast.PrivilegeObject.Named(Ast.PrivilegeObjectKind.Table, table, Columns: null);
 
 		Assert.NotEqual(listed, omitted);
-		Assert.Equal(omitted, new Statement.Insert(table, null, query));
-		Assert.Equal(listed, new Statement.Insert(table, default(SqlList<string>), query));
+		Assert.Equal(omitted, new Ast.PrivilegeObject.Named(Ast.PrivilegeObjectKind.Table, table));
+		Assert.Equal(listed, new Ast.PrivilegeObject.Named(Ast.PrivilegeObjectKind.Table, table, Columns: default(SqlList<Ast.Identifier>)));
 	}
 
 	/// <summary>
@@ -500,7 +499,7 @@ public sealed class TreeEqualityTests
 	}
 
 	/// <summary>
-	/// Every member through which a node can hold another of its own type, in either tree: found
+	/// Every member through which a node can hold another of its own type: found
 	/// by reflection, so a record added later is asked too.
 	/// </summary>
 	public static TheoryData<string, string> RecursiveMembers()
@@ -699,23 +698,22 @@ public sealed class TreeEqualityTests
 		Assert.NotEqual(Chain(1_000), Chain(1_001));
 	}
 
-	static Expression Chain(int depth)
+	static Ast.Expression Chain(int depth)
 	{
-		Expression made = new Expression.Literal(SqlLiteralKind.Number, "1");
+		Ast.Expression made = new Ast.LiteralValue.Numeric("1", Ast.NumericLiteralKind.DecimalInteger);
 
 		for (var i = 0; i < depth; i++)
-			made = new Expression.Add(made, new Expression.Literal(SqlLiteralKind.Number, "2"));
+			made = new Ast.Expression.Binary(made, Ast.BinaryOperator.Add, new Ast.LiteralValue.Numeric("2", Ast.NumericLiteralKind.DecimalInteger));
 
 		return made;
 	}
 
 	/// <summary>The deepest numeric or text literal of a tree, or null where it has none.</summary>
-	/// <summary>A literal of either tree with a digit more in its text.</summary>
+	/// <summary>A literal with a digit more in its text.</summary>
 	static ISqlSpan Retexted(ISqlSpan literal)
 	{
 		return literal switch
 		{
-			Expression.Literal old                       => old with { Text = old.Text + "0" },
 			DotGram.Sql.Ast.LiteralValue.Numeric numeric => numeric with { Text = numeric.Text + "0" },
 			DotGram.Sql.Ast.LiteralValue.String text     => text with { Text = text.Text + "0" },
 			_                                            => throw new ArgumentException(literal.GetType().Name, nameof(literal)),
@@ -736,7 +734,7 @@ public sealed class TreeEqualityTests
 
 		void Visit(object value, int depth)
 		{
-			if (value is Expression.Literal { Kind: SqlLiteralKind.Number or SqlLiteralKind.Text or SqlLiteralKind.National } or DotGram.Sql.Ast.LiteralValue.Numeric or DotGram.Sql.Ast.LiteralValue.String && depth > deepest)
+			if (value is DotGram.Sql.Ast.LiteralValue.Numeric or DotGram.Sql.Ast.LiteralValue.String && depth > deepest)
 			{
 				found   = (ISqlSpan)value;
 				deepest = depth;

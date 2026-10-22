@@ -39,7 +39,7 @@ namespace DotGram.Tests;
 /// <b>Counted, not timed</b> (D144). Every rule the reader reads by a method of its own counts its
 /// entries where the compilation defines <c>DOTGRAM_COUNTS</c>, and the count here is their sum. The
 /// grammars are <c>TransactSql.gram</c> and <c>SqlStandard92.gram</c> as they ship, each standing alone
-/// and each building its own tree — T-SQL's of SqlSyntax.cs, SQL-92 the SQL:2023 tree of DotGram.Sql.Ast —
+/// and each building the tree of DotGram.Sql.Ast —
 /// run through the generator here with the symbol defined, under a name the package shows its internals to, since
 /// the code beside the grammars uses them. A count is a function of the grammar and the generator,
 /// so it is what the shipped parser does, without a clock or a quiet machine.

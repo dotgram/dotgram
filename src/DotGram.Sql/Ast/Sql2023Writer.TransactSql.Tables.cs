@@ -1764,32 +1764,77 @@ public static partial class Sql2023Writer
 				if (!read)
 					throw Misplaced(index, "Options", "set to other than a number, a string, a binary string, NULL, ON, OFF or a name of one part, a bracket of such values by position, or a bracket of settings by name, the values a spatial option reads (SpatialSet)");
 
-				if (!Syntax.Spatial(option.Name.Text, SpatialRead(option)))
-					throw Misplaced(index, "Options", "that say a word the engine refuses of their name (Syntax.Spatial), such as a FILLFACTOR outside 1 to 100, a MAXDOP that is not a whole number or ONLINE = ON");
+				if (!SpatialAgrees(option))
+					throw Misplaced(index, "Options", "that say a word the engine refuses of their name (SpatialAgrees), such as a FILLFACTOR outside 1 to 100, a MAXDOP that is not a whole number or ONLINE = ON");
 			}
 		}
 
 		/// <summary>
-		/// An option as the grammar's <c>SpatialSet</c> builds it, for <c>Syntax.Spatial</c> to judge: a number as a number, a
-		/// plain name in upper case, as the grammar writes <c>ON</c> and <c>OFF</c>, any other name in brackets, which no word
-		/// is, and any other value as text.
+		/// Whether a spatial index takes an option set so, as the engine reads its list and as the grammar's <c>SpatialSet</c>
+		/// judges it: any name set to any plain value, and then a word about a few names.
 		/// </summary>
-		static Clause.Option SpatialRead(Option option)
+		/// <remarks>
+		/// <c>XML_COMPRESSION</c> and <c>STATISTICS_INCREMENTAL</c> are refused whatever they are set to (<c>Msg 155</c>). A bare
+		/// <c>ON</c> or <c>OFF</c> is taken by the switches alone, and <c>ON</c> is refused to the four a spatial index cannot be
+		/// (<c>Msg 153</c>), though <c>[ON]</c>, a name, is not. A fill factor is a number with no exponent and not money, a whole
+		/// one from 1 to 100 (<c>Msg 129</c>) or one with a fraction; a degree of parallelism a whole number from 0 to 32767
+		/// (<c>Msg 304</c>) or a switch; a compression one of its words, in brackets or not. A bracket is no number and no
+		/// switch.
+		/// </remarks>
+		static bool SpatialAgrees(Option option)
 		{
-			// A bracket is no number and no switch, which is all Syntax.Spatial asks of a value.
-			if (option.Value is null or Expression.Row)
-				return new Clause.Option(option.Name.Text, null, Clause.None);
-
-			DotGram.Sql.Expression value = option.Value switch
+			var key    = option.Name.Text.ToUpperInvariant();
+			var number = option.Value is LiteralValue.Numeric numeric ? Syntax.Compacted(numeric.Text) : null;
+			var word   = option.Value switch
 			{
-				LiteralValue.Numeric number => new DotGram.Sql.Expression.Literal(SqlLiteralKind.Number, Syntax.Compacted(number.Text)),
-				Expression.Reference { Name.Parts: [{ Style: IdentifierStyle.Regular } part] } => new DotGram.Sql.Expression.ColumnReference(part.Text.ToUpperInvariant()),
-				Expression.Reference { Name.Parts: [var part] } => new DotGram.Sql.Expression.ColumnReference("[" + part.Text + "]"),
-				_ => new DotGram.Sql.Expression.Literal(SqlLiteralKind.Text, "''"),
+				Expression.Reference { Name.Parts: [{ Style: IdentifierStyle.Regular } part] } => part.Text.ToUpperInvariant(),
+				Expression.Reference { Name.Parts: [var part] }                                => "[" + part.Text + "]",
+				_                                                                              => null,
 			};
+			var on  = word == "ON";
+			var off = word == "OFF";
 
-			return new Clause.Option(option.Name.Text, value, Clause.None);
+			switch (key)
+			{
+				case "XML_COMPRESSION":
+				case "STATISTICS_INCREMENTAL":
+					return false;
+
+				case "FILLFACTOR":
+					return number is not null && Plain(number) && (number.IndexOf('.') >= 0 || Whole(number) is >= 1 and <= 100);
+
+				case "MAXDOP":
+					return on || off || number is not null && Plain(number) && number.IndexOf('.') < 0 && Whole(number) is >= 0 and <= 32767;
+
+				case "DATA_COMPRESSION":
+					return word is not null &&
+						Array.Exists(SpatialCompressions, one => string.Equals(one, word.Trim('[', ']', '"'), StringComparison.OrdinalIgnoreCase));
+			}
+
+			return !(on || off) || Array.IndexOf(SpatialSwitches, key) >= 0 && !(on && Array.IndexOf(SpatialUnswitched, key) >= 0);
+
+			// Digits, perhaps a point and a sign: no exponent, and no currency in front.
+			static bool Plain(string number)
+			{
+				return number.IndexOfAny(['e', 'E']) < 0 && number.TrimStart('-') is { Length: > 0 } digits && (char.IsDigit(digits[0]) || digits[0] == '.');
+			}
+
+			static long Whole(string number)
+			{
+				return long.TryParse(number, System.Globalization.NumberStyles.AllowLeadingSign, System.Globalization.CultureInfo.InvariantCulture, out var whole)
+					? whole
+					: long.MinValue;
+			}
 		}
+
+		static readonly string[] SpatialSwitches =
+		[
+			"PAD_INDEX", "SORT_IN_TEMPDB", "IGNORE_DUP_KEY", "STATISTICS_NORECOMPUTE", "DROP_EXISTING", "ONLINE",
+			"ALLOW_ROW_LOCKS", "ALLOW_PAGE_LOCKS", "RESUMABLE", "OPTIMIZE_FOR_SEQUENTIAL_KEY",
+		];
+
+		static readonly string[] SpatialUnswitched   = ["ONLINE", "IGNORE_DUP_KEY", "RESUMABLE", "OPTIMIZE_FOR_SEQUENTIAL_KEY"];
+		static readonly string[] SpatialCompressions = ["NONE", "ROW", "PAGE", "COLUMNSTORE", "COLUMNSTORE_ARCHIVE"];
 
 		/// <summary>
 		/// T-SQL: CREATE COLUMNSTORE INDEX (Transact-SQL). The grammar's ColumnstoreOptionSyntax:
