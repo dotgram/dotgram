@@ -1,14 +1,11 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics;
-using System.Reflection;
 
 using DotGram.Generation;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace DotGram.Cli;
 
@@ -27,14 +24,20 @@ sealed class GeneratorOutput
 	/// <summary>The generator's own one-line summary of each parser, as a build prints it.</summary>
 	public required ImmutableArray<string> Summaries { get; init; }
 
-	/// <summary>The compilation with the generated files in it.</summary>
+	/// <summary>The compilation with every generator's files in it, DotGram's among them.</summary>
 	public required Compilation Updated { get; init; }
 
-	/// <summary>The name of every type the generated files declare, nested ones included, and of their namespaces.</summary>
-	public required ImmutableHashSet<string> GeneratedTypeNames { get; init; }
+	/// <summary>
+	/// The compilation as the build has it before DotGram's files are added: what the user wrote, and
+	/// what the project's other generators add to it.
+	/// </summary>
+	public required Compilation Checked { get; init; }
 
-	/// <summary>Every identifier in a type name some grammar asks the compilation about.</summary>
-	public required ImmutableHashSet<string> AskedTypeNames { get; init; }
+	/// <summary>The other generators' trees, which <see cref="Checked"/> holds.</summary>
+	public required ImmutableArray<SyntaxTree> OtherTrees { get; init; }
+
+	/// <summary>What went wrong with the other generators, said as warnings.</summary>
+	public required ImmutableArray<string> Warnings { get; init; }
 
 	public required TimeSpan Elapsed { get; init; }
 
@@ -53,7 +56,8 @@ static class Generator
 	const string ReportSuffix       = ".DotGramReport.g.cs";
 	const string ReportDetailSuffix = ".DotGramReportDetail.g.cs";
 
-	public static GeneratorOutput Run(GenerationInputs inputs, ImmutableArray<SyntaxTree> extraSources = default)
+	/// <param name="others">The project's other generators, run beside DotGram's as the build runs them.</param>
+	public static GeneratorOutput Run(GenerationInputs inputs, ImmutableArray<SyntaxTree> extraSources, IReadOnlyList<ISourceGenerator> others)
 	{
 		var clock = Stopwatch.StartNew();
 
@@ -63,17 +67,19 @@ static class Generator
 			compilation = compilation.AddSyntaxTrees(extraSources);
 
 		var properties = inputs.BuildProperties.SetItem(ReportProperty, "summary");
+		var gram       = new GramGenerator().AsSourceGenerator();
 
 		GeneratorDriver driver = CSharpGeneratorDriver.Create(
-			[new GramGenerator().AsSourceGenerator()],
+			[gram, .. others],
 			inputs.Grammars,
 			inputs.ParseOptions,
 			new BuildPropertiesProvider(properties),
-			new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: true));
+			new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None));
 
-		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var updated, out var driverDiagnostics);
+		driver = driver.RunGeneratorsAndUpdateCompilation(compilation, out var updated, out _);
 
-		var result = driver.GetRunResult().Results.Single();
+		var results = driver.GetRunResult().Results;
+		var result  = results.Single(one => ReferenceEquals(one.Generator, gram));
 
 		if (result.Exception is { } exception)
 			throw ToolException.Failure($"the generator failed: {exception}");
@@ -95,123 +101,25 @@ static class Generator
 			}
 		}
 
+		// A generator that throws adds nothing, and says so in the build as a warning (CS8785); here too.
+		var otherTrees = results
+			.Where(one => !ReferenceEquals(one.Generator, gram))
+			.SelectMany(static one => one.GeneratedSources.Select(static source => source.SyntaxTree))
+			.ToImmutableArray();
+
 		return new GeneratorOutput
 		{
-			Files          = files,
-			Trees          = trees,
-			Diagnostics    = driverDiagnostics,
-			Summaries      = summaries.ToImmutable(),
-			Updated        = updated,
-			GeneratedTypeNames = DeclaredTypeNames(result.GeneratedSources.Select(static source => source.SyntaxTree)),
-			AskedTypeNames = AskedTypeNames(result),
-			Elapsed        = clock.Elapsed,
+			Files       = files,
+			Trees       = trees,
+			Diagnostics = result.Diagnostics,
+			Summaries   = summaries.ToImmutable(),
+			Updated     = updated,
+			Checked     = compilation.AddSyntaxTrees(otherTrees),
+			OtherTrees  = otherTrees,
+			Warnings    = [.. results.Where(one => !ReferenceEquals(one.Generator, gram) && one.Exception is not null)
+				.Select(static one => $"the generator {one.Generator.GetGeneratorType().FullName} failed: {one.Exception!.Message}")],
+			Elapsed     = clock.Elapsed,
 		};
 	}
 
-	/// <summary>
-	/// The identifiers of every type a grammar asks the compilation about — constructors, settable
-	/// properties, whether it exists, what it fits — read from the generator's first stage.
-	/// </summary>
-	/// <remarks>
-	/// The questions are the generator's own and not public, so they are read from the values the
-	/// driver tracks for the stage the generator names. A generator that changes their shape fails
-	/// here, loudly, and a test of the tool says where; it never silently asks nothing.
-	/// </remarks>
-	static ImmutableHashSet<string> AskedTypeNames(GeneratorRunResult result)
-	{
-		var names = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
-
-		if (!result.TrackedSteps.TryGetValue(GramGenerator.AskedStage, out var steps))
-			return names.ToImmutable();
-
-		foreach (var step in steps)
-			foreach (var (value, _) in step.Outputs)
-			{
-				var questions = Member(value, "Questions");
-				var items     = Member(questions, "Items") as IEnumerable
-					?? throw Unreadable("Questions.Items is not a sequence");
-
-				foreach (var question in items)
-				{
-					var kind = (int)(Member(question, "Kind") ?? throw Unreadable("a question has no Kind"));
-
-					// The two that ask about methods name a method, not a type; what the others name,
-					// and what any of them is asked against, is a type.
-					if (kind is not (ExternalValueKind or ExternalMethodKind))
-						Identifiers((string?)Member(question, "Name"), names);
-
-					Identifiers((string?)Member(question, "Against"), names);
-				}
-			}
-
-		return names.ToImmutable();
-	}
-
-	/// <summary>Every type a tree declares, and every namespace it declares them in, read from its declarations alone: no member body is looked into.</summary>
-	static ImmutableHashSet<string> DeclaredTypeNames(IEnumerable<SyntaxTree> trees)
-	{
-		var names = ImmutableHashSet.CreateBuilder<string>(StringComparer.Ordinal);
-
-		foreach (var tree in trees)
-			foreach (var node in tree.GetRoot().DescendantNodes(static node => node is CompilationUnitSyntax or BaseNamespaceDeclarationSyntax or TypeDeclarationSyntax))
-				switch (node)
-				{
-					case BaseTypeDeclarationSyntax type:
-						names.Add(type.Identifier.ValueText);
-						break;
-
-					case DelegateDeclarationSyntax @delegate:
-						names.Add(@delegate.Identifier.ValueText);
-						break;
-
-					// And the namespaces they are in, which a `using` of the user's names before they exist.
-					case BaseNamespaceDeclarationSyntax @namespace:
-						Identifiers(@namespace.Name.ToString(), names);
-						break;
-				}
-
-		return names.ToImmutable();
-	}
-
-	const int ExternalValueKind  = -5;
-	const int ExternalMethodKind = -6;
-
-	static object? Member(object? instance, string name)
-	{
-		if (instance is null)
-			throw Unreadable($"no value to read {name} from");
-
-		var property = instance.GetType().GetProperty(name, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-			?? throw Unreadable($"{instance.GetType().Name} has no {name}");
-
-		return property.GetValue(instance);
-	}
-
-	static InvalidOperationException Unreadable(string what)
-	{
-		return new InvalidOperationException(
-			$"The generator's questions could not be read ({what}). This is a defect in DotGram.Cli, not in the grammar.");
-	}
-
-	/// <summary>The identifiers in a C# type name: <c>List&lt;Ast.Node&gt;[]</c> gives List, Ast and Node.</summary>
-	public static void Identifiers(string? name, ImmutableHashSet<string>.Builder into)
-	{
-		if (name is null)
-			return;
-
-		var start = -1;
-
-		for (var at = 0; at <= name.Length; at++)
-		{
-			var part = at < name.Length && (char.IsLetterOrDigit(name[at]) || name[at] == '_');
-
-			if (part && start < 0)
-				start = at;
-			else if (!part && start >= 0)
-			{
-				into.Add(name.Substring(start, at - start));
-				start = -1;
-			}
-		}
-	}
 }

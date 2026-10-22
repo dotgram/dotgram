@@ -158,6 +158,8 @@ public sealed class OutputTests
 			</Project>
 			""");
 
+		Dotnet.Restore(project);
+
 		string[] arguments = ["generate", project, "-o", scratch.Path("p", "Generated")];
 
 		Assert.True(Tool.Run(scratch.Root, arguments).Exit == 0);

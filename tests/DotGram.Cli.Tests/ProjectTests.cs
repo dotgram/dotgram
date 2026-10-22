@@ -266,6 +266,8 @@ public sealed class ProjectTests
 			</Project>
 			""");
 
+		Dotnet.Restore(project);
+
 		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("before", "Generated"));
 
 		Assert.True(run.Exit == 0, run.ToString());
@@ -369,6 +371,8 @@ public sealed class ProjectTests
 
 		File.WriteAllText(project, File.ReadAllText(project)
 			.Replace("<TargetFramework>net10.0</TargetFramework>", "<TargetFrameworks>net8.0;net10.0</TargetFrameworks>", StringComparison.Ordinal));
+
+		Dotnet.Restore(project);
 
 		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
 
@@ -491,6 +495,8 @@ public sealed class ProjectTests
 			  </ItemGroup>
 			</Project>
 			""");
+
+		Dotnet.Restore(project);
 
 		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
 

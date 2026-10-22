@@ -17,11 +17,10 @@ readonly record struct GlobalUsing(string Name, string? Alias, bool Static);
 /// the SDK's own defaults. Nothing is restored, built or written.
 /// </para>
 /// <para>
-/// One target runs: the SDK's <c>AddImplicitDefineConstants</c>, which only works out the symbols a
-/// build adds for the framework and platform (<c>NET8_0_OR_GREATER</c>, <c>WINDOWS</c>,
-/// <c>WINDOWS7_0_OR_GREATER</c>, …), by the SDK's own rules and properties
-/// (<c>DisableImplicitFrameworkDefines</c>, <c>DisableDiagnosticTracing</c>), so that the defines are
-/// the build's and not a copy of its rules. It reads properties and writes nothing.
+/// No target of the project runs. The symbols a build adds for the framework and platform
+/// (<c>NET8_0_OR_GREATER</c>, <c>WINDOWS</c>, <c>WINDOWS7_0_OR_GREATER</c>, …) are worked out by the SDK's
+/// own targets in a project of the tool's, in a directory of its own (<see cref="ImplicitDefinesAsync"/>),
+/// from what the evaluation says, so that they are the build's and not a copy of its rules.
 /// </para>
 /// </remarks>
 sealed class ProjectEvaluation
@@ -37,7 +36,27 @@ sealed class ProjectEvaluation
 	public required List<GlobalUsing>  Usings           { get; init; }
 	public required List<string>       Grammars         { get; init; }
 
-	/// <summary>The build properties the generator reads, by name, where the project sets them.</summary>
+	/// <summary>Where restore wrote what it resolved: packages, versions, their files.</summary>
+	public required string?            AssetsFile       { get; init; }
+
+	/// <summary>The SDK's folder of targeting packs, and the version of .NET it bundles.</summary>
+	public required string?            TargetingPacks   { get; init; }
+	public required string?            BundledVersion   { get; init; }
+
+	/// <summary>What the framework is: <c>.NETCoreApp</c> and <c>v10.0</c>, say.</summary>
+	public required string?            FrameworkIdentifier { get; init; }
+	public required string?            FrameworkVersion    { get; init; }
+
+	/// <summary>Project references the build runs as analyzers, which the tool does not.</summary>
+	public required List<string>       AnalyzerProjects { get; init; }
+
+	/// <summary>How long working out the SDK's symbols took.</summary>
+	public required TimeSpan           DefinesElapsed   { get; init; }
+
+	/// <summary>
+	/// The build properties generators are shown, by name: the two DotGram reads, and every
+	/// <c>CompilerVisibleProperty</c> the project's packages declare for theirs.
+	/// </summary>
 	public required Dictionary<string, string> BuildProperties { get; init; }
 
 	/// <summary>The properties a build passes to the generator that change what it writes.</summary>
@@ -51,39 +70,35 @@ sealed class ProjectEvaluation
 		return several.Length > 0 ? several : TargetFramework is { Length: > 0 } one ? [one] : [];
 	}
 
+	/// <summary>The properties the SDK's define targets read, passed to the project that runs them.</summary>
+	static readonly string[] DefineInputs =
+	[
+		"DisableImplicitFrameworkDefines", "DisableDiagnosticTracing", "TargetPlatformIdentifier", "TargetPlatformVersion",
+		"SupportedOSPlatformVersion",
+	];
+
 	/// <summary>
-	/// Evaluates the project once, for a framework — with the SDK's implicit symbols worked out — or
-	/// (null) as it stands, which says only what frameworks it targets.
+	/// Evaluates the project once, for a framework — with the SDK's implicit symbols worked out beside
+	/// it — or (null) as it stands, which says only what frameworks it targets.
 	/// </summary>
 	/// <exception cref="ToolException">The SDK cannot be run, or the evaluation fails.</exception>
 	public static async Task<ProjectEvaluation> RunAsync(string project, string? framework, string configuration)
 	{
-		var arguments = new List<string>
-		{
-			"msbuild", project, "-nologo", "-nodeReuse:false",
-			"-p:Configuration=" + configuration,
-		};
+		var arguments = new List<string> { "-p:Configuration=" + configuration };
 
 		if (framework is not null)
 			arguments.Add("-p:TargetFramework=" + framework);
 
-		// The target is the inner build's: a project of several frameworks has none outside them.
-		if (framework is not null)
-			arguments.Add("-t:AddImplicitDefineConstants");
+		arguments.Add("-getProperty:" + string.Join(",",
+		[
+			"TargetFrameworks", "TargetFramework", "AssemblyName", "LangVersion", "DefineConstants", "Nullable",
+			"ProjectAssetsFile", "NetCoreTargetingPackRoot", "BundledNETCoreAppPackageVersion",
+			"TargetFrameworkIdentifier", "TargetFrameworkVersion",
+			.. DefineInputs, .. GeneratorProperties,
+		]));
+		arguments.Add("-getItem:Compile,Using,AdditionalFiles,ProjectReference,CompilerVisibleProperty");
 
-		arguments.Add("-getProperty:" + string.Join(",", ["TargetFrameworks", "TargetFramework", "AssemblyName", "LangVersion", "DefineConstants", "Nullable", .. GeneratorProperties]));
-		arguments.Add("-getItem:Compile,Using,AdditionalFiles");
-
-		var (exit, output, error) = await RunAsync(arguments).ConfigureAwait(false);
-
-		var start = output.IndexOf('{');
-
-		if (exit != 0 || start < 0)
-			throw ToolException.Failure(
-				$"evaluating {project}{(framework is null ? "" : " for " + framework)} failed (dotnet msbuild exited {exit}):" +
-				Environment.NewLine + (output + error).Trim());
-
-		using var json = JsonDocument.Parse(output.Substring(start));
+		using var json = await EvaluateAsync(project, arguments, framework).ConfigureAwait(false);
 
 		var properties = json.RootElement.GetProperty("Properties");
 		var items      = json.RootElement.GetProperty("Items");
@@ -98,31 +113,181 @@ sealed class ProjectEvaluation
 			return items.TryGetProperty(name, out var value) ? value.EnumerateArray() : [];
 		}
 
+		static string? Metadata(JsonElement item, string name)
+		{
+			return item.TryGetProperty(name, out var value) && value.GetString() is { Length: > 0 } text ? text : null;
+		}
+
 		var buildProperties = new Dictionary<string, string>(StringComparer.Ordinal);
 
 		foreach (var name in GeneratorProperties)
 			if (Property(name) is { } value)
 				buildProperties[name] = value;
 
+		var defines = new List<string>((Property("DefineConstants") ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+		var elapsed = TimeSpan.Zero;
+
+		if (framework is not null)
+		{
+			var visible = Items("CompilerVisibleProperty")
+				.Select(static item => item.GetProperty("Identity").GetString()!)
+				.Where(name => !buildProperties.ContainsKey(name))
+				.Distinct(StringComparer.Ordinal)
+				.ToList();
+
+			var symbols = ImplicitDefinesAsync(project, framework, configuration, defines, DefineInputs.ToDictionary(static name => name, Property));
+			var values  = visible.Count == 0 ? Task.FromResult(new Dictionary<string, string>()) : PropertiesAsync(project, framework, configuration, visible);
+
+			var (computed, took) = await symbols.ConfigureAwait(false);
+
+			defines = computed;
+			elapsed = took;
+
+			foreach (var (name, value) in await values.ConfigureAwait(false))
+				buildProperties[name] = value;
+		}
+
 		return new ProjectEvaluation
 		{
-			Project          = project,
-			TargetFramework  = Property("TargetFramework"),
-			TargetFrameworks = Property("TargetFrameworks") ?? "",
-			AssemblyName     = Property("AssemblyName") ?? Path.GetFileNameWithoutExtension(project),
-			LanguageVersion  = Property("LangVersion"),
-			DefineConstants  = [.. (Property("DefineConstants") ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)],
-			Nullable         = Property("Nullable"),
-			Compile          = [.. Items("Compile").Select(static item => item.GetProperty("FullPath").GetString()!)],
-			Usings           = [.. Items("Using").Select(static item => new GlobalUsing(
+			Project             = project,
+			TargetFramework     = Property("TargetFramework"),
+			TargetFrameworks    = Property("TargetFrameworks") ?? "",
+			AssemblyName        = Property("AssemblyName") ?? Path.GetFileNameWithoutExtension(project),
+			LanguageVersion     = Property("LangVersion"),
+			DefineConstants     = defines,
+			Nullable            = Property("Nullable"),
+			Compile             = [.. Items("Compile").Select(static item => Path.GetFullPath(item.GetProperty("FullPath").GetString()!))],
+			Usings              = [.. Items("Using").Select(static item => new GlobalUsing(
 				item.GetProperty("Identity").GetString()!,
-				item.TryGetProperty("Alias", out var alias) && alias.GetString() is { Length: > 0 } text ? text : null,
-				item.TryGetProperty("Static", out var isStatic) && string.Equals(isStatic.GetString(), "true", StringComparison.OrdinalIgnoreCase)))],
-			Grammars         = [.. Items("AdditionalFiles")
+				Metadata(item, "Alias"),
+				string.Equals(Metadata(item, "Static"), "true", StringComparison.OrdinalIgnoreCase)))],
+			Grammars            = [.. Items("AdditionalFiles")
 				.Select(static item => item.GetProperty("FullPath").GetString()!)
 				.Where(static path => path.EndsWith(".gram", StringComparison.OrdinalIgnoreCase))],
-			BuildProperties  = buildProperties,
+			AssetsFile          = Property("ProjectAssetsFile"),
+			TargetingPacks      = Property("NetCoreTargetingPackRoot"),
+			BundledVersion      = Property("BundledNETCoreAppPackageVersion"),
+			FrameworkIdentifier = Property("TargetFrameworkIdentifier"),
+			FrameworkVersion    = Property("TargetFrameworkVersion"),
+			AnalyzerProjects    = [.. Items("ProjectReference")
+				.Where(static item => string.Equals(Metadata(item, "OutputItemType"), "Analyzer", StringComparison.OrdinalIgnoreCase))
+				.Select(static item => item.GetProperty("FullPath").GetString()!)
+				.Distinct(StringComparer.Ordinal)],
+			BuildProperties     = buildProperties,
+			DefinesElapsed      = elapsed,
 		};
+	}
+
+	/// <summary>The values of the named properties, by a second evaluation.</summary>
+	static async Task<Dictionary<string, string>> PropertiesAsync(string project, string framework, string configuration, IReadOnlyList<string> names)
+	{
+		using var json = await EvaluateAsync(
+			project,
+			["-p:Configuration=" + configuration, "-p:TargetFramework=" + framework, "-getProperty:" + string.Join(",", names) + ",TargetFramework"],
+			framework).ConfigureAwait(false);
+
+		var values = new Dictionary<string, string>(StringComparer.Ordinal);
+
+		foreach (var property in json.RootElement.GetProperty("Properties").EnumerateObject())
+			if (names.Contains(property.Name) && property.Value.GetString() is { Length: > 0 } value)
+				values[property.Name] = value;
+
+		return values;
+	}
+
+	/// <summary>
+	/// The symbols a build compiles with, worked out by the SDK's own targets — and nothing else — in a
+	/// project of the tool's, in a temporary directory: the project's evaluated symbols and the
+	/// properties those targets read are handed to it, and both targets that add and remove symbols are
+	/// named, so that <c>TRACE</c> goes where <c>DisableDiagnosticTracing</c> sends it even with the
+	/// framework's symbols disabled. The user's project is only evaluated; none of its targets runs.
+	/// </summary>
+	public static async Task<(List<string> Defines, TimeSpan Elapsed)> ImplicitDefinesAsync(
+		string project, string framework, string configuration, IReadOnlyList<string> defines, IReadOnlyDictionary<string, string?> inputs)
+	{
+		var clock     = System.Diagnostics.Stopwatch.StartNew();
+		var directory = Path.Combine(Path.GetTempPath(), "dotgram-cli-" + Guid.NewGuid().ToString("N"));
+
+		Directory.CreateDirectory(directory);
+
+		try
+		{
+			// The SDK the project builds with, which a global.json above it may pin.
+			if (GlobalJson(Path.GetDirectoryName(project)!) is { } pin)
+				File.Copy(pin, Path.Combine(directory, "global.json"));
+
+			var properties = new System.Text.StringBuilder();
+
+			void Add(string name, string? value)
+			{
+				if (value is not null)
+					properties.Append("    <").Append(name).Append('>').Append(System.Security.SecurityElement.Escape(value)).Append("</").Append(name).Append(">\n");
+			}
+
+			Add("TargetFramework", framework);
+			Add("Configuration", configuration);
+			Add("EnableWindowsTargeting", "true");
+
+			// The project's evaluated symbols, its configuration's among them already: the SDK adds that
+			// one again in evaluation unless told not to.
+			Add("DefineConstants", string.Join(";", defines));
+			Add("DisableImplicitConfigurationDefines", "true");
+
+			foreach (var (name, input) in inputs)
+				Add(name, input);
+
+			var wrapper = Path.Combine(directory, "defines.csproj");
+
+			File.WriteAllText(wrapper, "<Project Sdk=\"Microsoft.NET.Sdk\">\n  <PropertyGroup>\n" + properties + "  </PropertyGroup>\n</Project>\n");
+
+			using var json = await EvaluateAsync(
+				wrapper,
+				[
+					"-p:ImportDirectoryBuildProps=false", "-p:ImportDirectoryBuildTargets=false", "-p:ImportDirectoryPackagesProps=false",
+					"-t:_DisableDiagnosticTracing;AddImplicitDefineConstants", "-getProperty:DefineConstants,TargetFramework",
+				],
+				framework).ConfigureAwait(false);
+
+			var value = json.RootElement.GetProperty("Properties").GetProperty("DefineConstants").GetString() ?? "";
+
+			return ([.. value.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)], clock.Elapsed);
+		}
+		finally
+		{
+			try
+			{
+				Directory.Delete(directory, recursive: true);
+			}
+			catch (IOException)
+			{
+				// The temporary folder is the system's to clear; nothing in it is anyone's.
+			}
+		}
+	}
+
+	/// <summary>The nearest <c>global.json</c> at or above a directory.</summary>
+	static string? GlobalJson(string directory)
+	{
+		for (var at = directory; at is not null; at = Path.GetDirectoryName(at))
+			if (File.Exists(Path.Combine(at, "global.json")))
+				return Path.Combine(at, "global.json");
+
+		return null;
+	}
+
+	/// <summary>One <c>dotnet msbuild</c> of a project, its JSON answer.</summary>
+	static async Task<JsonDocument> EvaluateAsync(string project, IEnumerable<string> arguments, string? framework)
+	{
+		var (exit, output, error) = await RunAsync(["msbuild", project, "-nologo", "-nodeReuse:false", .. arguments]).ConfigureAwait(false);
+
+		var start = output.IndexOf('{');
+
+		if (exit != 0 || start < 0)
+			throw ToolException.Failure(
+				$"evaluating {project}{(framework is null ? "" : " for " + framework)} failed (dotnet msbuild exited {exit}):" +
+				Environment.NewLine + (output + error).Trim());
+
+		return JsonDocument.Parse(output.Substring(start));
 	}
 
 	static async Task<(int Exit, string Output, string Error)> RunAsync(IEnumerable<string> arguments)

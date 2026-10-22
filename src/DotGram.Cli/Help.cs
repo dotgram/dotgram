@@ -19,8 +19,13 @@ static class Help
 
 		The input's kind is its extension:
 		  .csproj   the whole project: its C# files, global usings, grammars, LangVersion and symbols,
-		            read by an MSBuild evaluation for each target framework (nothing is restored or
-		            built); every framework must generate the same files
+		            read by an MSBuild evaluation for each target framework, and its packages and
+		            their generators from what restore wrote (obj/project.assets.json: run dotnet
+		            restore first; nothing is restored or built); every framework must generate the
+		            same files
+
+		A name in the project's code that nothing resolves stops generation, as it stops the build:
+		a half-written file too. --allow-unresolved generates anyway.
 		  .gram     one grammar, its host class written from the options below (<Name>.Host.g.cs)
 
 		Options:
@@ -34,7 +39,7 @@ static class Help
 		  --langversion <version>     the C# version (default: the project's, or the SDK's for the framework)
 		  --line-paths relative|absolute
 		                              #line paths relative to <dir> (default), or as a build writes them
-		  --allow-unresolved          generate even where a type a grammar asks about is missing
+		  --allow-unresolved          generate even where a name in the project cannot be resolved
 
 		For a .gram input only:
 		  --namespace <Ns>            the host's namespace (default: none)
@@ -54,8 +59,8 @@ static class Help
 		Exit codes:
 		  0  generated
 		  2  grammar errors (nothing written); for a .gram, a parser that does not compile
-		  3  usage, input or output, evaluation failure, a type a grammar asks about that cannot be
-		     resolved (nothing written), frameworks that generate different files
+		  3  usage, input or output, a project not restored, evaluation failure, a name the build would
+		     not resolve either (nothing written), frameworks that generate different files
 
 		Examples:
 		  dotnet dotgram generate src/Grammars/Grammars.csproj -o src/Grammars/Generated
