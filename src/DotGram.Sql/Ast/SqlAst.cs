@@ -522,13 +522,20 @@ public abstract partial record Query : ISqlNode
 }
 
 /// <summary>BNF: <c>&lt;select list&gt;</c>, <c>&lt;select sublist&gt;</c>, <c>&lt;derived column&gt;</c>, <c>&lt;qualified asterisk&gt;</c>, <c>&lt;all fields reference&gt;</c>.</summary>
-public abstract partial record SelectColumn : ISqlNode
+public abstract partial record SelectColumn : ISqlNode, ISqlLocatable
 {
 	SqlLocation _location;
 	public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	// The T-SQL reader builds the items of a select list in its actions, as it builds values, and tells each where it
+	// was written; the span is everybody's only where the reading was asked for locations (SqlLocation.Told).
+	void ISqlLocatable.Locate(int at, int length, int gapStart)
+	{
+		_location = SqlLocation.Told(at, length);
 	}
 
 	public record All : SelectColumn;

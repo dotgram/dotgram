@@ -255,6 +255,14 @@ static partial class Build
 		return source.Substring(span.At, span.Length);
 	}
 
+	/// <summary>Whether the text a node was read from can be told (<see cref="Spelled"/>), without cutting it.</summary>
+	static bool Cut(ISqlSpan node)
+	{
+		var span = SpanOf(node);
+
+		return Cuttable(span) && span.End <= source.Length;
+	}
+
 	/// <summary>
 	/// Where each character of the tail its rule kept, from the token at <paramref name="from"/> to its end, stands in the
 	/// text the reading is over, or null where that cannot be told. The tail has its blanks made one space, so a position

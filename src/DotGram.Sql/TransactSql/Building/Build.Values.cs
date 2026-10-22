@@ -1146,7 +1146,7 @@ static partial class Build
 				var at   = located[parameters].At;
 				var read = Queries.Specified("SELECT " + words[(at + "PARAMETERS".Length)..]);
 
-				given = read is { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] }
+				given = read is { Columns: [Ast.SelectColumn.ExpressionItem { Expression: var value, Alias: null }] }
 					? Of(value)
 					: throw BuildGap.Open(old, $"inventory Expression.Hinted (`{words}` after AI_GENERATE_EMBEDDINGS)");
 			}

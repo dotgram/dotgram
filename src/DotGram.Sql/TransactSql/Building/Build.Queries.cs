@@ -20,17 +20,15 @@ static partial class Build
 			"Statement.Select",
 			"Query.Specification", "Query.TableValueConstructor", "Query.Parenthesized", "Query.Ordered",
 			"Query.ExplicitTable", "Query.Union", "Query.Except", "Query.Intersect",
-			"Clause.DerivedColumn", "Clause.QualifiedAsterisk", "Clause.SortSpecification", "Clause.OrderBy",
+			"Clause.SortSpecification", "Clause.OrderBy",
 			"Clause.Top", "Clause.GroupBy", "Clause.Into", "Clause.For", "Clause.Hint",
-			"Clause.CommonTableExpression", "Clause.VariableAssignment",
+			"Clause.CommonTableExpression",
 		];
 
 		public static bool TryConvert(object old, [NotNullWhen(true)] out Ast.ISqlNode? made)
 		{
 			made = old switch
 			{
-				Clause.DerivedColumn or Clause.QualifiedAsterisk
-					or Clause.VariableAssignment                   => Column((Clause)old),
 				Clause.CommonTableExpression common                => Common(common),
 				Clause.SortSpecification sort                      => Sort(sort),
 				Clause when Owned(Owns, old)                       => throw BuildGap.Open(old, $"inventory {NameOf(old)} (stands only inside a query)"),
@@ -49,10 +47,10 @@ static partial class Build
 
 		/// <summary>SELECT and the clauses under it, on the common tree.</summary>
 		internal static Query Specification(
-			string? quantifier, Clause? top, SqlList<Clause> columns, Clause? into, SqlList<TableReference> from, Ast.Expression? where,
+			string? quantifier, Clause? top, SqlList<Ast.SelectColumn> columns, Clause? into, SqlList<TableReference> from, Ast.Expression? where,
 			Clause? group, Ast.Expression? having, SqlList<Clause>? windows)
 		{
-			var assigns = columns.Exists(static one => one is Clause.VariableAssignment);
+			var assigns = columns.Exists(static one => Assigns(one));
 			var facts   = (assigns ? Query.Built.Facts.Assigns : Query.Built.Facts.None)
 				| (assigns && from.IsEmpty ? Query.Built.Facts.AssignsFromNothing : Query.Built.Facts.None)
 				| (into is null ? Query.Built.Facts.Cursorable : Query.Built.Facts.None);
@@ -62,7 +60,7 @@ static partial class Build
 				Top        = Top(parts.top),
 				IntoTable  = parts.into is null ? null : IntoTable(parts.into),
 				Quantifier = Quantifier(SpecificationName, parts.quantifier),
-				Columns    = Each(parts.columns, static one => Convert<Ast.SelectColumn>(one)),
+				Columns    = Columns(parts.columns),
 				From       = parts.from.Length > 0 ? new Ast.FromClause(Each(parts.from, Source)) : null,
 				Where      = parts.where is null ? null : Values.Of(parts.where),
 				GroupBy    = parts.group is null ? null : Group(parts.group),
@@ -261,7 +259,7 @@ static partial class Build
 			var close = SqlTokens.FindLast(text, ")");
 			var read  = close > open ? Specified("SELECT " + text.Substring(open + 1, close - open - 1)) : null;
 
-			return read is { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] }
+			return read is { Columns: [Ast.SelectColumn.ExpressionItem { Expression: var value, Alias: null }] }
 				? Values.Of(value)
 				: throw BuildGap.Open(old, $"inventory Clause.Option (a CHANGE_TRACKING_CONTEXT `{text}` that does not read)");
 		}
@@ -746,7 +744,7 @@ static partial class Build
 
 			var text = string.Join(" ", tokens.Select(static one => one.Text));
 
-			return Specified("SELECT " + text) is { Columns: [Clause.DerivedColumn(var expression, null)] }
+			return Specified("SELECT " + text) is { Columns: [Ast.SelectColumn.ExpressionItem { Expression: var expression, Alias: null }] }
 				? Values.Of(expression)
 				: throw Unread(old);
 		}
@@ -814,59 +812,126 @@ static partial class Build
 
 		// ── The select list ───────────────────────────────────────────────────────
 
-		static Ast.SelectColumn Column(Clause old)
+		// Each item is built as its rule reads it, on the common tree, with its value as read; building the query resolves the
+		// values (Columns), which is where a value with no place on the tree says its gap, as it would anywhere else. An item
+		// that has no place itself is held with its gap (Unplaced) until then, since a rule's action does not throw.
+
+		/// <summary>A value, perhaps given a name: written after it, with or without <c>AS</c>, or in front of it with <c>=</c>.</summary>
+		internal static Ast.SelectColumn Item(Ast.Expression value, string? name, bool front)
 		{
-			switch (old)
+			if (name is null)
+				return new Ast.SelectColumn.ExpressionItem(value);
+
+			Ast.Identifier alias;
+
+			try
 			{
-				case Clause.DerivedColumn(var value, null):
-					return new Ast.SelectColumn.ExpressionItem(Values.Of(value));
+				// A string alias, 'x' or N'x': its content, the doubled quotes undone.
+				alias = name[0] is '\'' or 'N' or 'n' && name.Length > 1 && name.EndsWith('\'') && name.IndexOf('\'') is 0 or 1
+					? new Ast.Identifier(name[(name.IndexOf('\'') + 1)..^1].Replace("''", "'"), name[0] == '\'' ? Ast.IdentifierStyle.String : Ast.IdentifierStyle.NationalString)
+					: Values.Part(DerivedColumn, name);
+			}
+			catch (BuildGap gap)
+			{
+				return new Unplaced(gap, value, false);
+			}
 
-				case Clause.DerivedColumn(var value, var name):
-				{
-					// A string alias, 'x' or N'x': its content, the doubled quotes undone.
-					var alias = name![0] is '\'' or 'N' or 'n' && name.Length > 1 && name.EndsWith('\'') && name.IndexOf('\'') is 0 or 1
-						? new Ast.Identifier(name[(name.IndexOf('\'') + 1)..^1].Replace("''", "'"), name[0] == '\'' ? Ast.IdentifierStyle.String : Ast.IdentifierStyle.NationalString)
-						: Values.Part(old, name);
+			// The alias is said to stand in front where the text it was read from says so, and AS to be written where it
+			// follows the value; a reading with no text to look at says neither.
+			var first = front && Cut(value);
 
-					// `x = a` and `a AS x` are one old node; where the value starts after the column, the
-					// alias was written in front of it.
-					var first = Recover(Spelled(old) is not null && Spelled(value) is not null ? "" : null,
-						SpanOf(value).At > old.Span.At ? static _ => true : static _ => false, false);
+			return new Ast.SelectColumn.ExpressionItem(value, alias, !first && Recover(WordAfter(value), static word => word == "AS", false))
+			{
+				AliasFirst = first,
+			};
+		}
 
-					return new Ast.SelectColumn.ExpressionItem(Values.Of(value), alias,
-						!first && Recover(WordAfter(value), static word => word == "AS", false))
-					{
-						AliasFirst = first,
-					};
-				}
+		/// <summary><c>*</c>, or <c>t.*</c>.</summary>
+		internal static Ast.SelectColumn All(string? qualifier)
+		{
+			if (qualifier is null)
+				return new Ast.SelectColumn.All();
 
-				case Clause.QualifiedAsterisk(null):
-					return new Ast.SelectColumn.All();
-
-				case Clause.QualifiedAsterisk(var qualifier):
-					return new Ast.SelectColumn.QualifiedAll(new Ast.Expression.Reference(Values.Name(old, qualifier!)));
-
-				// T-SQL's `SELECT @v = e`, `SELECT @v += e`.
-				case Clause.VariableAssignment(var variable, var op, var value):
-					return new Ast.SelectColumn.VariableAssignment(new Ast.Identifier(variable), op switch
-					{
-						"="   => Ast.AssignmentOperator.Assign,
-						"+="  => Ast.AssignmentOperator.Add,
-						"-="  => Ast.AssignmentOperator.Subtract,
-						"*="  => Ast.AssignmentOperator.Multiply,
-						"/="  => Ast.AssignmentOperator.Divide,
-						"%="  => Ast.AssignmentOperator.Modulo,
-						"&="  => Ast.AssignmentOperator.BitwiseAnd,
-						"|="  => Ast.AssignmentOperator.BitwiseOr,
-						"^="  => Ast.AssignmentOperator.BitwiseXor,
-						"||=" => Ast.AssignmentOperator.Concatenate,
-						_     => throw BuildGap.Open(old, $"inventory Clause.VariableAssignment (operator `{op}`)"),
-					}, Values.Of(value));
-
-				default:
-					throw BuildGap.Open(old, $"inventory {NameOf(old)} (in a select list)");
+			try
+			{
+				return new Ast.SelectColumn.QualifiedAll(new Ast.Expression.Reference(Values.Name(QualifiedAsterisk, qualifier)));
+			}
+			catch (BuildGap gap)
+			{
+				return new Unplaced(gap, null, false);
 			}
 		}
+
+		/// <summary>T-SQL's <c>SELECT @v = e</c>, <c>SELECT @v += e</c>.</summary>
+		internal static Ast.SelectColumn Assigned(string variable, string op, Ast.Expression value)
+		{
+			Ast.AssignmentOperator? by = op switch
+			{
+				"="   => Ast.AssignmentOperator.Assign,
+				"+="  => Ast.AssignmentOperator.Add,
+				"-="  => Ast.AssignmentOperator.Subtract,
+				"*="  => Ast.AssignmentOperator.Multiply,
+				"/="  => Ast.AssignmentOperator.Divide,
+				"%="  => Ast.AssignmentOperator.Modulo,
+				"&="  => Ast.AssignmentOperator.BitwiseAnd,
+				"|="  => Ast.AssignmentOperator.BitwiseOr,
+				"^="  => Ast.AssignmentOperator.BitwiseXor,
+				"||=" => Ast.AssignmentOperator.Concatenate,
+				_     => null,
+			};
+
+			return by is { } known
+				? new Ast.SelectColumn.VariableAssignment(new Ast.Identifier(variable), known, value)
+				: new Unplaced(BuildGap.Open(VariableAssignment, $"inventory Clause.VariableAssignment (operator `{op}`)"), value, true);
+		}
+
+		/// <summary>Whether an item takes a value into a variable rather than returning it.</summary>
+		internal static bool Assigns(Ast.SelectColumn item)
+		{
+			return item is Ast.SelectColumn.VariableAssignment or Unplaced { Assigns: true };
+		}
+
+		/// <summary>
+		/// A select list as its items were read, with every value resolved: the list itself where none needed it, and the
+		/// gap of the first value or item with no place on the common tree.
+		/// </summary>
+		internal static SqlList<Ast.SelectColumn> Columns(SqlList<Ast.SelectColumn> read)
+		{
+			Ast.SelectColumn[]? made = null;
+
+			for (var at = 0; at < read.Count; at++)
+			{
+				var one      = read[at];
+				var resolved = one switch
+				{
+					Unplaced unplaced                                                       => throw unplaced.Gap,
+					Ast.SelectColumn.ExpressionItem { Expression: Values.Held held } item      => item with { Expression = Values.Of(held) },
+					Ast.SelectColumn.VariableAssignment { Value: Values.Held held } assignment => assignment with { Value = Values.Of(held) },
+					_                                                                       => one,
+				};
+
+				// One item resolved is a list of one again, which holds it without an array.
+				if (!ReferenceEquals(resolved, one) && read.Count == 1)
+					return SqlList<Ast.SelectColumn>.Of(resolved);
+
+				if (!ReferenceEquals(resolved, one))
+				{
+					made ??= read.ToArray();
+					made[at] = resolved;
+				}
+			}
+
+			return made is null ? read : SqlList.Own(made);
+		}
+
+		/// <summary>The records a select list's items were read as, under which their gaps are said.</summary>
+		const string DerivedColumn = "Clause.DerivedColumn", QualifiedAsterisk = "Clause.QualifiedAsterisk", VariableAssignment = "Clause.VariableAssignment";
+
+		/// <summary>An item of a select list with no place on the common tree, and why: what building its query throws.</summary>
+		/// <param name="Gap">What the common tree has no place for.</param>
+		/// <param name="Value">The value it was read over, which a rule's condition asks of (<see cref="Rules.HasIdentity"/>).</param>
+		/// <param name="Assigns">Whether it takes a value into a variable.</param>
+		internal sealed record Unplaced(BuildGap Gap, Ast.Expression? Value, bool Assigns) : Ast.SelectColumn;
 
 		static Ast.TopClause? Top(Clause? old)
 		{

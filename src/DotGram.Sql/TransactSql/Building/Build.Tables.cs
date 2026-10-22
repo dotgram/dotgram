@@ -1549,7 +1549,7 @@ static partial class Build
 		/// <summary>A value kept as text, read again as a select list's one value.</summary>
 		static Ast.Expression ValueOf(object owner, string text)
 		{
-			return Queries.Specified("SELECT " + text.Trim()) is { Columns: [Clause.DerivedColumn { Value: var value, Name: null }] }
+			return Queries.Specified("SELECT " + text.Trim()) is { Columns: [Ast.SelectColumn.ExpressionItem { Expression: var value, Alias: null }] }
 				? Values.Of(value)
 				: throw BuildGap.Open(owner, $"inventory Statement.AlterTable (a value `{text.Trim()}`)");
 		}
