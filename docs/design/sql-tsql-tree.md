@@ -5,6 +5,10 @@ A proposal, not a description. T-SQL moves from the tree in `SqlSyntax.cs` onto 
 against the new one in [`sql-tsql-tree-inventory.md`](sql-tsql-tree-inventory.md): 381 records and enums,
 67 with the same concept in the new tree, 44 whose shape needs a decision, 270 that only T-SQL has.
 
+Done, 2026-10-21: no parser builds the old tree, and it is gone from the package with its writer; the
+writer of the SQL:2023 tree, `Sql2023Writer` when the two stood side by side, is `SqlWriter`. What follows
+is kept as it was decided.
+
 What is decided is marked so. The numbered proposals below, principles and all, were accepted by Igor as
 written on 2026-09-15, and are decided too; they stay numbered so the work can cite them.
 

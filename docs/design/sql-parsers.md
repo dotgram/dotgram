@@ -110,7 +110,8 @@ is open until it is built, and `status.md` is what will say when it has been.
     standard; T-SQL's `EXECUTE` of a module is a node of its own, the standard's `Statement.Execute` being
     a prepared statement's; `DROP … IF EXISTS` is a flag on the standard's drop statements, which take a
     list of names and a behavior that may be left out; `OFFSET` and `FETCH` keep the standard's shape;
-    the walker follows lists as well as arrays, and `ISqlSpan` leaves `SqlSyntax.cs` before the old tree goes.
+    the walker follows lists as well as arrays, and `ISqlSpan` leaves `SqlSyntax.cs` before the old tree goes
+    (done, 2026-10-21: the old tree is gone, with its writer).
   - Every commit to `main` keeps T-SQL's measurements where they are — `--engine` with no defects,
     `--roundtrip` at 100% — so the switch itself lands only once they are back.
 - **The specifications are kept beside the parsers that read them**, so that the answer
