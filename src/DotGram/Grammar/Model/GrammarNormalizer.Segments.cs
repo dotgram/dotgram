@@ -28,8 +28,8 @@ public sealed partial class GrammarNormalizer
 	public const string LexicalSegments = "GRAM4049";
 
 	/// <summary>
-	/// A reader or a byte form asked of a grammar that names <c>eos</c>, which reads sequences of
-	/// segments and nothing else.
+	/// A buffered or a byte form asked of a grammar that names <c>eos</c>, which reads sequences of
+	/// segments — a list, a sequence, or a reader as its lines — and nothing else.
 	/// </summary>
 	public const string BufferedSegments = "GRAM4050";
 

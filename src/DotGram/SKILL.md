@@ -161,7 +161,8 @@ none            zero items — always succeeds, consumes nothing
 eol             one line ending: "\r\n" | "\n" | "\r", CRLF first
 eof             the end of input
 eos             the end of a segment: a grammar that names it reads a sequence of
-                strings (arguments, lines) and is published over sequences only
+                strings (arguments, lines; a reader is its lines) and is published
+                over sequences only
 trivia          empty by default (below)
 wordboundary    empty by default: what continues a word, for keyword boundaries
 word            one whole word, whatever `wordboundary` says a word is

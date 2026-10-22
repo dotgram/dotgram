@@ -144,8 +144,9 @@ public sealed class SegmentedInputTests
 	}
 
 	/// <summary>
-	/// What a grammar that names <c>eos</c> publishes takes sequences and nothing else: no string, no
-	/// reader and no position, and the forms over text it reads through are its own.
+	/// What a grammar that names <c>eos</c> publishes takes sequences — a list, a sequence, or a reader
+	/// read as lines — and nothing else: no string and no position, and the forms over text it reads
+	/// through are its own.
 	/// </summary>
 	[Fact]
 	public void Only_sequences_are_published()
@@ -158,11 +159,12 @@ public sealed class SegmentedInputTests
 		foreach (var method in published)
 			Assert.True(
 				method.GetParameters() is [var first, ..] &&
-				(first.ParameterType == typeof(IReadOnlyList<string>) || first.ParameterType == typeof(IEnumerable<string>)),
+				(first.ParameterType == typeof(IReadOnlyList<string>) || first.ParameterType == typeof(IEnumerable<string>) ||
+				 first.ParameterType == typeof(TextReader)),
 				$"{method} takes no sequence");
 
 		Assert.Equal(
-			["ParseArgs", "ParseArgs", "TryParseArgs", "TryParseArgs", "TryParseArgs", "TryParseArgs"],
+			["ParseArgs", "ParseArgs", "ParseArgs", "TryParseArgs", "TryParseArgs", "TryParseArgs", "TryParseArgs", "TryParseArgs", "TryParseArgs"],
 			published.Select(one => one.Name).Order(StringComparer.Ordinal));
 	}
 
@@ -325,7 +327,7 @@ public sealed class SegmentedInputTests
 	public void A_bad_record_is_stepped_over_to_the_end_of_its_segment(CarrierKind carrier, bool direct)
 	{
 		var parser = Build("""
-			Feed   : @string[] = records: Record* recover eos => @("bad " + parserLine + ":" + parserFailureColumn) & eof => @(records)
+			Feed   : @string[] = records: Record* recover eos => @("bad " + parserLine + ":" + parserFailureColumn + ":" + parserText) & eof => @(records)
 			Record : @string   = n: Number & '|' & t: Text & eos => @(n + "=" + t)
 			Number = ['0'..'9']+
 			Text   = [^ '|']+
@@ -335,7 +337,8 @@ public sealed class SegmentedInputTests
 		var (success, value, _, _) = TryParse(parser, "TryParseFeed", ["1|a", "x|b", "2|c\nd", "3|", "4|e"]);
 
 		Assert.True(success);
-		Assert.Equal(["1=a", "bad 2:1", "2=c\nd", "bad 4:3", "4=e"], (string[])value!);
+		// What a rejected record is told is its own segment, with no end of it in its text.
+		Assert.Equal(["1=a", "bad 2:1:x|b", "2=c\nd", "bad 4:3:3|", "4=e"], (string[])value!);
 	}
 
 	/// <summary>
@@ -398,6 +401,98 @@ public sealed class SegmentedInputTests
 		var lengths = ((IEnumerable<int>)type.GetMethod("Lengths", [typeof(IEnumerable<string>)])!.Invoke(null, [new[] { "abc", "d", "ef" }.Select(one => one)])!).ToArray();
 
 		Assert.Equal([3, 1, 2], lengths);
+	}
+
+	/// <summary>
+	/// A reader is a sequence of lines, split as <c>File.ReadLines</c> splits a file: every line
+	/// ending is the end of a segment, a last line without one is a segment all the same, and a last
+	/// line ending makes no empty segment after it. The same answers as the lines as a list, read in
+	/// blocks of any size, a <c>\r\n</c> split between two of them included.
+	/// </summary>
+	[Theory]
+	[InlineData("")]
+	[InlineData("\n")]
+	[InlineData("a")]
+	[InlineData("a\n")]
+	[InlineData("a\n\n")]
+	[InlineData("-o\r\nfile\r\nx y")]
+	[InlineData("a\rb\r\nc\nd")]
+	[InlineData("a\r\r\nb")]
+	[InlineData("\r\n\r\n")]
+	[InlineData("--output\r\n")]
+	public void A_reader_is_read_as_its_lines(string text)
+	{
+		var parser = Build(Argv);
+		var lines  = new List<string>();
+		var split  = new StringReader(text);
+
+		for (var line = split.ReadLine(); line is not null; line = split.ReadLine())
+			lines.Add(line);
+
+		var expected = string.Join(",", (string[])Invoke(parser, "ParseArgs", typeof(IReadOnlyList<string>), lines.ToArray())!);
+
+		foreach (var block in new[] { 1, 2, 3, 4096 })
+		{
+			var read = (string[])Invoke(parser, "ParseArgs", typeof(TextReader), new BlockReader(text, block))!;
+
+			Assert.Equal(expected, string.Join(",", read));
+
+			var match = parser.GetType("Grammar")!.GetMethod("TryParseArgs", [typeof(TextReader)])!.Invoke(null, [new BlockReader(text, block)])!;
+
+			Assert.True((bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!);
+		}
+	}
+
+	/// <summary>
+	/// A line of a reader that holds U+0000 stops the reading with an error that names the line: the
+	/// forms that answer refuse at it, the one that throws throws, and a streamed reading throws when
+	/// it reaches it.
+	/// </summary>
+	[Fact]
+	public void A_line_that_holds_the_joiner_is_refused_by_its_number()
+	{
+		var parser = Build(Argv);
+		var match  = parser.GetType("Grammar")!.GetMethod("TryParseArgs", [typeof(TextReader)])!.Invoke(null, [new StringReader("a\r\nb\0c\nd")])!;
+
+		Assert.False((bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!);
+		Assert.Equal(3L, match.GetType().GetProperty("Position")!.GetValue(match));
+		Assert.StartsWith("Line 2 holds U+0000", (string)match.GetType().GetProperty("Error")!.GetValue(match)!, StringComparison.Ordinal);
+
+		var thrown = Assert.Throws<TargetInvocationException>(() => Invoke(parser, "ParseArgs", typeof(TextReader), new StringReader("a\nb\nc\0")));
+
+		Assert.StartsWith("Line 3 holds U+0000", Assert.IsType<FormatException>(thrown.InnerException).Message, StringComparison.Ordinal);
+
+		var records = Build("""
+			Feed   : @string[] = records: Record* recover eos => @("bad " + parserLine) & eof => @(records)
+			Record : @string   = n: Number & '|' & t: Text & eos => @(n + "=" + t)
+			Number = ['0'..'9']+
+			Text   = [^ '|']+
+			parse Feed
+			""");
+
+		var streamed = (IEnumerable<string>)Invoke(records, "ParseFeed", typeof(TextReader), new BlockReader("1|a\r\nx|b\n2|c", 2))!;
+
+		Assert.Equal(["1=a", "bad 2", "2=c"], streamed.ToArray());
+
+		var broken = Assert.ThrowsAny<Exception>(() => ((IEnumerable<string>)Invoke(records, "ParseFeed", typeof(TextReader), new StringReader("1|a\n2|\0"))!).ToArray());
+
+		Assert.StartsWith("Line 2 holds U+0000", (broken.InnerException ?? broken).Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>A reader that hands its text over a few characters at a time.</summary>
+	sealed class BlockReader(string text, int block) : TextReader
+	{
+		int _at;
+
+		public override int Read(char[] buffer, int index, int count)
+		{
+			var length = Math.Min(Math.Min(block, count), text.Length - _at);
+
+			text.CopyTo(_at, buffer, index, length);
+			_at += length;
+
+			return length;
+		}
 	}
 
 	/// <summary>A grammar that does not name <c>eos</c> reads U+0000 as a character, as it always did.</summary>
