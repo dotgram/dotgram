@@ -31,7 +31,7 @@
 
 	<ItemGroup>
 		<!-- The generator itself, the same build of it the DotGram package ships: the tool hosts it. And
-		     as an analyzer too, for the one grammar the tool is written with — the response-file lexer. -->
+		     as an analyzer too, for the one grammar the tool is written with: its own command line. -->
 		<ProjectReference Include="..\DotGram\DotGram.csproj" PrivateAssets="all" />
 		<ProjectReference Include="..\DotGram\DotGram.csproj"
 		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
@@ -50,7 +50,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<AdditionalFiles Include="ResponseFile.gram" />
+		<AdditionalFiles Include="CommandLine.gram" />
 		<EmbeddedResource Include="SKILL.md" LogicalName="DotGram.Cli.SKILL.md" />
 		<None Include="SKILL.md" Pack="true" PackagePath="\" />
 		<InternalsVisibleTo Include="DotGram.Cli.Tests" />

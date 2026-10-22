@@ -95,9 +95,9 @@ sealed class GenerateOptions
 		return text.Length > 0 && text.IndexOfAny([' ', '\t', '"']) < 0 ? text : "\"" + text.Replace("\"", "\\\"") + "\"";
 	}
 
-	/// <summary>Reads <c>generate</c>'s arguments, everything after the command word.</summary>
-	/// <exception cref="ToolException">An unknown option, a missing value, a value that does not fit.</exception>
-	public static GenerateOptions Parse(IReadOnlyList<Argument> arguments)
+	/// <summary>Reads <c>generate</c>'s options, everything after the command word, as the grammar split them.</summary>
+	/// <exception cref="ToolException">An unknown option, a missing or empty value, a value that does not fit.</exception>
+	public static GenerateOptions Parse(IReadOnlyList<Option> arguments)
 	{
 		string?   input           = null;
 		string?   output          = null;
@@ -117,45 +117,84 @@ sealed class GenerateOptions
 		var sources     = new List<string>();
 		var gramOnly    = new List<string>();
 
-		for (var at = 0; at < arguments.Count; at++)
+		foreach (var argument in arguments)
 		{
-			var argument = arguments[at];
-			var text     = argument.Text;
+			var name = argument.Name ?? "";
 
-			switch (text)
+			switch (argument.Kind)
+			{
+				case ItemKind.Unknown:
+					throw ToolException.Usage($"unknown option '{name}' ({argument.Argument.Source}).");
+
+				case ItemKind.Missing:
+					throw ToolException.Usage($"{name} needs a value ({argument.Argument.Source}).");
+
+				case ItemKind.Positional:
+					if (argument.Value!.Length == 0)
+						throw ToolException.Usage($"an empty argument ({argument.Argument.Source}).");
+
+					if (input is not null)
+						throw ToolException.Usage($"one input only: '{input}' and '{argument.Value}' ({argument.Argument.Source}) were both given.");
+
+					input = Path.GetFullPath(argument.Value, argument.Argument.BaseDirectory);
+					continue;
+
+				case ItemKind.Flag:
+					switch (name)
+					{
+						case "--allow-unresolved": allowUnresolved = true; break;
+						case "--public":           gramOnly.Add(name); @public = true; break;
+						default:                   throw ToolException.Usage($"{name} is not an option of generate ({argument.Argument.Source}).");
+					}
+
+					continue;
+			}
+
+			// An option with its value, which the grammar took from the next argument.
+			var value = argument.Value!;
+
+			if (value.Length == 0)
+				throw ToolException.Usage($"{name} has an empty value ({argument.ValueArgument!.Value.Source}).");
+
+			var full = Path.GetFullPath(value, argument.ValueArgument!.Value.BaseDirectory);
+
+			switch (name)
 			{
 				case "-o" or "--output":
-					output = Once(output, text, PathValue());
+					output = Once(output, name, full);
 					break;
 
 				case "--framework":
-					framework = Once(framework, text, Value());
+					framework = Once(framework, name, value);
 					break;
 
 				case "--configuration":
-					configuration = Once(configuration, text, Value());
+					configuration = Once(configuration, name, value);
 					break;
 
 				case "--reference":
-					references.Add(PathValue());
+					references.Add(full);
 					break;
 
 				case "--package":
-					packages.Add(Value());
+					if (!global::DotGram.Cli.Packages.TryParse(value, out _, out _))
+						throw ToolException.Usage($"--package takes Name@Version, not '{value}'.");
+
+					packages.Add(value);
 					break;
 
 				case "--define":
-					foreach (var symbol in Value().Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+					foreach (var symbol in value.Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
 						defines.Add(symbol);
 
 					break;
 
 				case "--langversion":
-					languageVersion = Once(languageVersion, text, Value());
+					languageVersion = Once(languageVersion, name, value);
 					break;
 
 				case "--line-paths":
-					linePaths = Once(linePaths, text, Value() switch
+					linePaths = Once(linePaths, name, value switch
 					{
 						"relative" => LinePaths.Relative,
 						"absolute" => LinePaths.Absolute,
@@ -163,30 +202,20 @@ sealed class GenerateOptions
 					});
 					break;
 
-				case "--allow-unresolved":
-					allowUnresolved = true;
-					break;
-
 				case "--namespace":
-					gramOnly.Add(text);
-					@namespace = Once(@namespace, text, Value());
+					gramOnly.Add(name);
+					@namespace = Once(@namespace, name, value);
 					break;
 
 				case "--class":
-					gramOnly.Add(text);
-					className = Once(className, text, Value());
-					break;
-
-				case "--public":
-					gramOnly.Add(text);
-					@public = true;
+					gramOnly.Add(name);
+					className = Once(className, name, value);
 					break;
 
 				case "--option":
 				{
-					gramOnly.Add(text);
+					gramOnly.Add(name);
 
-					var value  = Value();
 					var equals = value.IndexOf('=');
 
 					if (equals <= 0)
@@ -197,37 +226,12 @@ sealed class GenerateOptions
 				}
 
 				case "--sources":
-					gramOnly.Add(text);
-					sources.Add(PathValue());
+					gramOnly.Add(name);
+					sources.Add(full);
 					break;
 
 				default:
-					if (text.StartsWith('-') && text.Length > 1)
-						throw ToolException.Usage($"unknown option '{text}'.");
-
-					if (input is not null)
-						throw ToolException.Usage($"one input only: '{input}' and '{text}' were both given.");
-
-					input = Path.GetFullPath(text, argument.BaseDirectory);
-					break;
-			}
-
-			string Value()
-			{
-				if (at + 1 >= arguments.Count)
-					throw ToolException.Usage($"{text} needs a value.");
-
-				return arguments[++at].Text;
-			}
-
-			string PathValue()
-			{
-				if (at + 1 >= arguments.Count)
-					throw ToolException.Usage($"{text} needs a value.");
-
-				var value = arguments[++at];
-
-				return Path.GetFullPath(value.Text, value.BaseDirectory);
+					throw new InvalidOperationException($"The grammar takes a value for {name}, and nothing here reads it.");
 			}
 		}
 
@@ -246,10 +250,6 @@ sealed class GenerateOptions
 
 		if (kind == InputKind.Project && gramOnly.Count > 0)
 			throw ToolException.Usage($"{string.Join(", ", gramOnly.Distinct())}: only for a .gram input; a project's hosts say these themselves.");
-
-		foreach (var package in packages)
-			if (!global::DotGram.Cli.Packages.TryParse(package, out _, out _))
-				throw ToolException.Usage($"--package takes Name@Version, not '{package}'.");
 
 		var options = new GenerateOptions
 		{
