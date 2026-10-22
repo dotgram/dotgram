@@ -18,7 +18,7 @@ public sealed class CommandLineTests
 	[InlineData("", new string[0])]
 	public void A_line_splits_as_csc_splits_it(string line, string[] expected)
 	{
-		Assert.Equal(expected, ResponseFile.Split(line));
+		Assert.Equal(expected, ResponseFile.Split(line).Select(static word => word.Text));
 	}
 
 	[Fact]
@@ -26,7 +26,7 @@ public sealed class CommandLineTests
 	{
 		Assert.Equal(
 			["generate", "x.csproj", "-o", "out dir", "--define", "A"],
-			ResponseFile.Split("# the project\r\ngenerate x.csproj\n  # indented comment\r-o \"out dir\"\n\n--define A\n"));
+			ResponseFile.Split("# the project\r\ngenerate x.csproj\n  # indented comment\r-o \"out dir\"\n\n--define A\n").Select(static word => word.Text));
 	}
 
 	/// <summary>Every token of a fixture as it was meant, in order, nested file included, paths read against each file.</summary>
@@ -58,7 +58,11 @@ public sealed class CommandLineTests
 			],
 			expanded.Select(static argument => argument.Text));
 
-		var options = GenerateOptions.Parse(expanded.Skip(1).ToList());
+		Assert.Equal("grammars.rsp:2", expanded[0].Source);
+		Assert.Equal("common.rsp:2", expanded[10].Source);
+		Assert.Equal("argument 2", expanded[^1].Source);
+
+		var options = GenerateOptions.Parse(CommandLine.Read(expanded).Skip(1).ToList());
 
 		Assert.Equal(scratch.Path("src", "Grammars.csproj"), options.Input);
 		Assert.Equal(scratch.Path("src", "Generated Files"), options.Output);
@@ -73,6 +77,114 @@ public sealed class CommandLineTests
 			$"generate {scratch.Path("src", "Grammars.csproj")} --output \"{scratch.Path("src", "Generated Files")}\" --configuration Release " +
 			$"--reference {scratch.Path("config", "more", "refs", "Lib.dll")} --package System.Memory@4.6.3 --define DOTGRAM_CHECKS --define \"WITH SPACE\" --line-paths absolute --allow-unresolved",
 			options.Describe());
+	}
+
+	static readonly string Base = Path.GetTempPath();
+
+	static ToolRun Generate(Scratch scratch, params string[] arguments)
+	{
+		return Tool.Run(scratch.Root, ["generate", .. arguments]);
+	}
+
+	/// <summary>A value is the next argument, whatever it looks like.</summary>
+	[Fact]
+	public void An_option_s_value_may_begin_with_a_dash()
+	{
+		var options = GenerateOptions.Parse(CommandLine.Read(Arguments("x.gram", "-o", "-out", "--define", "--weird")));
+
+		Assert.Equal(Path.GetFullPath("-out", Base), options.Output);
+		Assert.Equal(["--weird"], options.Defines);
+	}
+
+	/// <summary>After <c>--</c> every argument is an input, a dash in front or not.</summary>
+	[Fact]
+	public void Two_dashes_end_the_options()
+	{
+		var options = GenerateOptions.Parse(CommandLine.Read(Arguments("-o", "out", "--", "-dash.gram")));
+
+		Assert.Equal(Path.GetFullPath("-dash.gram", Base), options.Input);
+
+		var twice = Assert.Throws<ToolException>(() => GenerateOptions.Parse(CommandLine.Read(Arguments("-o", "out", "--", "a.gram", "-o"))));
+
+		Assert.Contains("one input only", twice.Message, StringComparison.Ordinal);
+	}
+
+	static List<Argument> Arguments(params string[] texts)
+	{
+		return [.. texts.Select(static (text, index) => new Argument(text, Base, "argument " + (index + 1)))];
+	}
+
+	[Fact]
+	public void An_unknown_option_is_named_with_where_it_came_from()
+	{
+		using var scratch = new Scratch();
+
+		var direct = Generate(scratch, "x.gram", "-o", "out", "--frobnicate");
+
+		Assert.True(direct.Exit == ExitCode.Failure, direct.ToString());
+		Assert.Contains("unknown option '--frobnicate' (argument 5)", direct.Error, StringComparison.Ordinal);
+
+		scratch.Write("a.rsp", "x.gram\n-o out\n  --frobnicate\n");
+
+		var fromFile = Generate(scratch, "@a.rsp");
+
+		Assert.Contains("unknown option '--frobnicate' (a.rsp:3)", fromFile.Error, StringComparison.Ordinal);
+	}
+
+	[Fact]
+	public void Empty_arguments_are_refused_by_name()
+	{
+		using var scratch = new Scratch();
+
+		var value = Generate(scratch, "x.gram", "-o", "");
+
+		Assert.True(value.Exit == ExitCode.Failure, value.ToString());
+		Assert.Contains("-o has an empty value (argument 4)", value.Error, StringComparison.Ordinal);
+
+		var trailing = Generate(scratch, "x.gram", "-o", "out", "");
+
+		Assert.Contains("an empty argument (argument 5)", trailing.Error, StringComparison.Ordinal);
+
+		var command = Tool.Run(scratch.Root, "");
+
+		Assert.Contains("an empty argument (argument 1) where the command goes", command.Error, StringComparison.Ordinal);
+
+		var missing = Generate(scratch, "x.gram", "-o");
+
+		Assert.Contains("-o needs a value (argument 3)", missing.Error, StringComparison.Ordinal);
+	}
+
+	/// <summary>An <c>@</c> inside an argument is part of it, as in csc.</summary>
+	[Fact]
+	public void An_at_sign_expands_only_at_the_start()
+	{
+		var expanded = ResponseFile.Expand(["--package", "System.Memory@4.6.3", "a@b.rsp"], Base);
+
+		Assert.Equal(["--package", "System.Memory@4.6.3", "a@b.rsp"], expanded.Select(static argument => argument.Text));
+	}
+
+	/// <summary>A response file saved as UTF-16 without a byte order mark reads as text full of NULs.</summary>
+	[Fact]
+	public void A_response_file_holding_NUL_is_refused_with_the_likely_reason()
+	{
+		using var scratch = new Scratch();
+
+		File.WriteAllBytes(scratch.Path("wide.rsp"), System.Text.Encoding.Unicode.GetBytes("generate x.gram -o out\r\n"));
+
+		var run = Tool.Run(scratch.Root, "@wide.rsp");
+
+		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
+		Assert.Contains("wide.rsp:1 holds a NUL character", run.Error, StringComparison.Ordinal);
+		Assert.Contains("UTF-16 without a byte order mark", run.Error, StringComparison.Ordinal);
+		Assert.DoesNotContain("\0", run.Error, StringComparison.Ordinal);
+	}
+
+	/// <summary>The separator and the generated parser's own marker never reach a message as NUL.</summary>
+	[Fact]
+	public void A_refusal_never_prints_NUL()
+	{
+		Assert.Equal("expected end of argument at 3", CommandLine.Readable("expected '\0' at 3"));
+		Assert.Equal("expected end of argument word", CommandLine.Readable("expected \0word"));
 	}
 
 	[Fact]
