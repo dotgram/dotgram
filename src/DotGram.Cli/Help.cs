@@ -25,8 +25,6 @@ static class Help
 
 		Options:
 		  -o, --output <dir>          where the files go (required); nothing else in it is touched
-		  --verify                    generate in memory and compare with <dir>, writing nothing;
-		                              line ends are not compared
 		  --framework <tfm>           one framework only: net8.0, net9.0, net10.0, netstandard2.0
 		                              (default: the project's; net10.0 for a .gram)
 		  --configuration <name>      evaluated as this configuration (default Release)
@@ -52,16 +50,14 @@ static class Help
 		read against the file's own directory.
 
 		Exit codes:
-		  0  generated, or under --verify equal
-		  1  --verify: the folder differs (the first difference is printed)
+		  0  generated
 		  2  grammar errors (nothing written); for a .gram, a parser that does not compile
 		  3  usage, input or output, evaluation failure, a type a grammar asks about that cannot be
-		     resolved, frameworks that generate different files
+		     resolved (nothing written), frameworks that generate different files
 
 		Examples:
 		  dotnet dotgram generate src/Grammars/Grammars.csproj -o src/Grammars/Generated
-		  dotnet dotgram generate src/Grammars/Grammars.csproj -o src/Grammars/Generated --verify
-		  dotnet dotgram generate @grammars.rsp --verify
+		  dotnet dotgram generate @grammars.rsp
 		  dotnet dotgram generate calc.gram -o out --namespace Demo --option Lexical=true
 		""";
 

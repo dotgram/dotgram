@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Globalization;
 using System.Text;
 
 namespace DotGram.Cli;
@@ -27,7 +26,6 @@ sealed class GenerateOptions
 	public required string    Input            { get; init; }
 	public required InputKind Kind             { get; init; }
 	public required string    Output           { get; init; }
-	public bool               Verify           { get; init; }
 	public string?            Framework        { get; init; }
 	public string             Configuration    { get; init; } = "Release";
 	public List<string>       References       { get; } = [];
@@ -51,9 +49,6 @@ sealed class GenerateOptions
 	public string Describe()
 	{
 		var text = new StringBuilder("generate ").Append(Quote(Input)).Append(" --output ").Append(Quote(Output));
-
-		if (Verify)
-			text.Append(" --verify");
 
 		if (Framework is not null)
 			text.Append(" --framework ").Append(Framework);
@@ -106,7 +101,6 @@ sealed class GenerateOptions
 	{
 		string?   input           = null;
 		string?   output          = null;
-		var       verify          = false;
 		string?   framework       = null;
 		string?   configuration   = null;
 		string?   languageVersion = null;
@@ -132,10 +126,6 @@ sealed class GenerateOptions
 			{
 				case "-o" or "--output":
 					output = Once(output, text, PathValue());
-					break;
-
-				case "--verify":
-					verify = true;
 					break;
 
 				case "--framework":
@@ -266,7 +256,6 @@ sealed class GenerateOptions
 			Input           = input,
 			Kind            = kind,
 			Output          = output,
-			Verify          = verify,
 			Framework       = framework,
 			Configuration   = configuration ?? "Release",
 			LanguageVersion = languageVersion,
@@ -292,10 +281,5 @@ sealed class GenerateOptions
 			throw ToolException.Usage($"{option} given twice.");
 
 		return value;
-	}
-
-	public static string Invariant(int value)
-	{
-		return value.ToString(CultureInfo.InvariantCulture);
 	}
 }
