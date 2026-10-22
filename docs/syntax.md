@@ -183,6 +183,17 @@ any                     any single item
 `\p{...}` is the .NET regular-expression spelling, with the same category names
 (`Lu`, `Ll`, `Nd`, `Zs`, `Pc`, …). Character input only.
 
+What a category holds is Unicode 16.0's general categories (`UnicodeData.txt`, the
+version case folding below reads), on every runtime. The generator carries that table
+rather than asking the runtime it is hosted on, and the parser it writes carries the
+bits of each set of categories it tests rather than asking the runtime it runs on: .NET
+Framework's tables are Unicode 8.0 and each .NET release has its own, so a parser that
+asked would accept different characters on different runtimes, and could be built
+differently by Visual Studio and by the .NET SDK. A later Unicode version is taken by a
+new release of the generator, as a behaviour change. A category is tested on a UTF-16
+code unit, as every element is: a character outside the Basic Multilingual Plane is two
+units, each `Cs`, so `\p{L}` does not match a letter there.
+
 A trailing `i` — no space before it — is spelled as in Lark, but it folds less: a
 character at a time, each character of the literal matches itself and its simple upper
 and lower case — the simple mappings of Unicode 16.0 (`UnicodeData.txt`), with no culture
