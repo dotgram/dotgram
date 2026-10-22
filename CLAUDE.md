@@ -118,6 +118,8 @@ tests/
 	                      again with its tape reading, ExpressionParser.Tape, which
 	                      the package does not carry. Not shipped: it is a fixture, read by
 	                      DotGram.Tests and the stand under an extern alias
+	DotGram.Determinism.Tests/ the generator run on .NET 8, held to the snapshots .NET 10
+	                      wrote: what it writes must not depend on the runtime it is on
 	DotGram.Compatibility/ the generated code built for netstandard2.0, net472 and
 	                      net8.0 at the C# 8 floor. Building it is the assertion
 	DotGram.Traced/       the sources of DotGram.Sql, DotGram.ExpressionLanguage and

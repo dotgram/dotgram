@@ -14,9 +14,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # No version here: global.json pins it, so what CI builds with is what the
-      # repository says, and changing it is a commit rather than a workflow edit.
+      # The SDK is global.json's, so what CI builds with is what the repository says, and
+      # changing it is a commit rather than a workflow edit. The .NET 8 runtime beside it is
+      # for DotGram.Determinism.Tests, which runs the generator on .NET 8 on purpose.
       - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          dotnet-version: '8.0.x'
 
       - run: dotnet restore DotGram.slnx
 
@@ -121,7 +125,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # global.json's SDK, and the .NET 8 runtime the determinism tests run on (see `build`).
       - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          dotnet-version: '8.0.x'
 
       - run: dotnet restore DotGram.slnx
 
@@ -239,7 +247,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # global.json's SDK, and the .NET 8 runtime the determinism tests run on (see `build`).
       - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          dotnet-version: '8.0.x'
 
       - run: dotnet restore DotGram.slnx
 

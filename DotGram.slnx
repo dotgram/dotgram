@@ -113,6 +113,9 @@
 		<Project Path="tests/DotGram.Sql.Tests/DotGram.Sql.Tests.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
+		<Project Path="tests/DotGram.Determinism.Tests/DotGram.Determinism.Tests.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<Project Path="tests/DotGram.Compatibility/DotGram.Compatibility.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
