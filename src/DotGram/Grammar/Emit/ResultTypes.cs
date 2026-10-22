@@ -147,8 +147,15 @@ sealed class ResultTypes
 	/// </remarks>
 	public string MemberOf(string member)
 	{
-		return _prefix + member;
+		return _prefix + (Facade is null ? "" : Facade + ".") + member;
 	}
+
+	/// <summary>
+	/// The nested class of the per-call door while its methods are being written: a call such a
+	/// method makes to a publication is to the one beside it, in that class, and not to the plain
+	/// door's.
+	/// </summary>
+	public string? Facade { get; set; }
 
 	/// <summary>The innermost class, without its type parameters.</summary>
 	static string SimpleNameOf(string className)

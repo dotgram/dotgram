@@ -191,4 +191,77 @@ public sealed class PublicationNameTests
 		Assert.NotNull(host.GetMethod("input", [typeof(byte[])]));
 		Assert.NotNull(host.GetNestedType("Other")!.GetMethod("input", [typeof(byte[])]));
 	}
+
+	/// <summary>
+	/// The call a lines overload makes goes through the class it is written in: the located door of
+	/// a per-call reading hands its lines to its own reader overload, not to the plain door's, which
+	/// tells nobody where anything was.
+	/// </summary>
+	[Fact]
+	public void The_located_door_reads_lines_through_its_own_reader_overload()
+	{
+		var source = """
+			using DotGram;
+
+			namespace LinesProbe
+			{
+				public interface ILoc
+				{
+					void Locate(int at, int length);
+
+					void Locate(int at, int length, int gapStart);
+				}
+
+				public sealed class Name : ILoc
+				{
+					public int At = -1;
+
+					public void Locate(int at, int length)
+					{
+						At = at;
+					}
+
+					public void Locate(int at, int length, int gapStart)
+					{
+						At = at;
+					}
+				}
+
+				[Gram(@"
+					using Std;
+					Word : @Name = ['a'..'z']+ => @(new Name())
+					find Word as Scan
+					")]
+				[GramOptions(LocationType = typeof(ILoc), Suffix = "Located", PerCall = true)]
+				public static partial class P
+				{
+				}
+			}
+			""";
+
+		var assembly = GeneratorDriverTests.Build(source);
+		var host     = assembly.GetType("LinesProbe.P")!;
+
+		int At(Type door, Type input, object argument)
+		{
+			var found = (System.Collections.IEnumerable)door.GetMethod("Scan", [input])!.Invoke(null, [argument])!;
+
+			foreach (var match in found)
+			{
+				var name = match.GetType().GetProperty("Value")!.GetValue(match)!;
+
+				return (int)name.GetType().GetField("At")!.GetValue(name)!;
+			}
+
+			throw new InvalidOperationException("nothing found");
+		}
+
+		var lines = new[] { "ab" };
+		var door  = host.GetNestedType("Located")!;
+
+		Assert.Equal(0, At(door, typeof(string), "ab"));
+		Assert.Equal(0, At(door, typeof(System.IO.TextReader), new System.IO.StringReader("ab")));
+		Assert.Equal(0, At(door, typeof(System.Collections.Generic.IEnumerable<string>), lines));
+		Assert.Equal(-1, At(host, typeof(System.Collections.Generic.IEnumerable<string>), lines));
+	}
 }
