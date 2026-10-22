@@ -1567,7 +1567,7 @@ sealed partial class Machine
 		var output  = value is null ? "" : $", out {value}";
 		var context = external.UsesContext ? ", context" : "";
 
-		return $"{external.Name}({input}, ref {position}{output}{context})";
+		return $"{external.Callee}({input}, ref {position}{output}{context})";
 	}
 
 	/// <summary>

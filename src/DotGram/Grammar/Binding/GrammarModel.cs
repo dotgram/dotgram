@@ -91,7 +91,17 @@ public sealed record ParameterSymbol(string Name, RuleSymbol Owner) : Symbol(Nam
 public sealed record ResolvedRebinding(RuleSymbol Left, RuleSymbol Right, Location At);
 
 /// <summary>A name that lives on the C# side.</summary>
-public sealed record CSharpSymbol(string Name) : Symbol(Name);
+public sealed record CSharpSymbol(string Name) : Symbol(Name)
+{
+	/// <summary>
+	/// The name written through the class that declares the method, where the host said which:
+	/// a call by the simple name could meet a local of the generated code instead.
+	/// </summary>
+	public string? Qualified { get; init; }
+
+	/// <summary>What a call is written as.</summary>
+	public string Callee => Qualified ?? Name;
+}
 
 /// <summary>
 /// One lexical namespace: the global one at the top of a file, or a `namespace` block.

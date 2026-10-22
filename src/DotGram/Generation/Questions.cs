@@ -152,7 +152,8 @@ readonly record struct Answer(
 	string? ExternalType = null,
 	bool ExternalAmbiguous = false,
 	ExternalMethodResolution Method = ExternalMethodResolution.Found,
-	EquatableArray<string> Fits = default);
+	EquatableArray<string> Fits = default,
+	string? Declaring = null);
 
 /// <summary>
 /// Everything a grammar could ask the host compilation, worked out from its text alone.
@@ -525,7 +526,10 @@ static class Questions
 					},
 
 				Question.ExternalMethod =>
-					new Answer(question, true, Method: resolver.ResolveExternalMethod(question.Name, question.Role)),
+					new Answer(
+						question, true,
+						Method:    resolver.ResolveExternalMethod(question.Name, question.Role),
+						Declaring: resolver.DeclaringTypeOfExternal(question.Name, question.Role)),
 
 				Question.Rewinds => new Answer(question, resolver.Rewinds(question.Name)),
 
@@ -677,6 +681,11 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 		return answer.Yes ? ExternalValueResolution.Found
 			: answer.ExternalAmbiguous ? ExternalValueResolution.Ambiguous
 			: ExternalValueResolution.NotFound;
+	}
+
+	public string? DeclaringTypeOfExternal(string methodName, ExternalMethodRole role)
+	{
+		return Look(role == ExternalMethodRole.Predicate ? Question.Tests(methodName) : Question.Recognizes(methodName)).Declaring;
 	}
 
 	public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role)

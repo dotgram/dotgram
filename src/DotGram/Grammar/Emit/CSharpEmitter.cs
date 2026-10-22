@@ -3184,7 +3184,7 @@ file.Line("return spare;");
 						file.Line($"var {at} = p;");
 						file.Line();
 
-						using (file.Block($"if (kind == 0 && {pattern.Method}(text, ref {at}) && {at} > p)"))
+						using (file.Block($"if (kind == 0 && {pattern.Callee}(text, ref {at}) && {at} > p)"))
 						{
 							file.Line($"kind = {number};");
 							file.Line($"end  = {at};");
@@ -5807,9 +5807,9 @@ file.Line("return spare;");
 	{
 		return tail switch
 		{
-			Node.External(var method) => $"{method}(text, ref measured)",
-			Node.Call(var rule, _) when lexical.Source.Bodies[rule] is Node.External(var method) =>
-				$"{method}(text, ref measured, out _)",
+			Node.External external => $"{external.Callee}(text, ref measured)",
+			Node.Call(var rule, _) when lexical.Source.Bodies[rule] is Node.External external =>
+				$"{external.Callee}(text, ref measured, out _)",
 			_ => throw new InvalidOperationException($"{tail} is not measured by the host"),
 		};
 	}
@@ -6015,7 +6015,7 @@ file.Line("return spare;");
 		// they are there for — rather than qualified, which nothing here could do.
 		foreach (var reference in element.References)
 			if (reference is CSharpSymbol predicate)
-				tests.Add($"{predicate.Name}(c)");
+				tests.Add($"{predicate.Callee}(c)");
 
 		// An empty set admits nothing, and its complement admits everything. Said as
 		// constants rather than as `!(false)`, so the caller can drop the test — and with
