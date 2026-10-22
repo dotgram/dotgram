@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
+using DotGram.Generation;
 using DotGram.Grammar;
 using DotGram.Grammar.Model;
 
@@ -76,10 +78,7 @@ public sealed class UnicodeCategoryTests(ITestOutputHelper output)
 	[MemberData(nameof(Names))]
 	public void The_analysis_reads_a_category_from_the_table(string name)
 	{
-		var members = new HashSet<UnicodeCategory>();
-
-		foreach (var member in UnicodeCategories.Expand(name))
-			members.Add(Enum.Parse<UnicodeCategory>(member));
+		var members = Members([name]);
 
 		Assert.NotEmpty(members);
 
@@ -96,6 +95,112 @@ public sealed class UnicodeCategoryTests(ITestOutputHelper output)
 			if (refused[c] == inside)
 				Assert.Fail($"[^ \\p{{{name}}}] and U+{c:X4}: the first set says {refused[c]}.");
 		}
+	}
+
+	/// <summary>
+	/// The classes of categories the shipped grammars write, beside the names alone: an identifier's
+	/// start and part in SQL, T-SQL, the expression language and the standard library, and the
+	/// separators of T-SQL's white space.
+	/// </summary>
+	static readonly (string Rule, string Class, string[] Categories, string Others)[] InUse =
+	[
+		("Name",       @"[\p{L} | '_']",                                                          ["L"],                                      "_"),
+		("NamePart",   @"[\p{L} | \p{Nd} | '_']",                                                 ["L", "Nd"],                                "_"),
+		("SqlStart",   @"[\p{L} | \p{Nl}]",                                                       ["L", "Nl"],                                ""),
+		("SqlPart",    @"[\p{L} | \p{Nl} | '·' | \p{Mn} | \p{Mc} | \p{Nd} | \p{Pc} | \p{Cf}]",   ["L", "Nl", "Mn", "Mc", "Nd", "Pc", "Cf"], "·"),
+		("TsqlPart",   @"[\p{L} | \p{Nd} | '_' | '@' | '$' | '#']",                               ["L", "Nd"],                                "_@$#"),
+		("Separator",  @"['\t'..'\r' | '\u0085' | \p{Zs} | \p{Zl} | \p{Zp}]",                     ["Zs", "Zl", "Zp"],                         "\t\n\u000B\f\r\u0085"),
+	];
+
+	delegate bool TryParse(string input, out string value);
+
+	/// <summary>
+	/// What the emitted test admits is the table, for every code unit: each name alone and refused, a
+	/// single character and a run of them, and each class the shipped grammars write — the same
+	/// answer on every runtime, since the parser carries the bits and asks the runtime nothing.
+	/// </summary>
+	/// <remarks>
+	/// One grammar of every reading, compiled once: a compilation a reading would cost more than the
+	/// readings themselves. <c>Cn</c>, the category that moves most between Unicode versions, is
+	/// among the names, and so are the surrogates, which a recognizer over UTF-16 reads as code units
+	/// of their own.
+	/// </remarks>
+	[Fact]
+	public void The_emitted_test_admits_what_the_table_holds()
+	{
+		var grammar  = new System.Text.StringBuilder();
+		var readings = new List<(string Rule, Func<char, bool> Expected, string Suffix)>();
+
+		foreach (var row in Names())
+		{
+			var name    = (string)row.Data;
+			var members = Members([name]);
+
+			grammar.Append($"In{name}  : @string = t: [\\p{{{name}}}]    => @(t)\n");
+			grammar.Append($"Out{name} : @string = t: [^ \\p{{{name}}}] => @(t)\n");
+			grammar.Append($"Run{name} : @string = t: [\\p{{{name}}}]+   => @(t)\n");
+			readings.Add(($"In{name}",  c => members.Contains(UnicodeCategories.Of(c)),  ""));
+			readings.Add(($"Out{name}", c => !members.Contains(UnicodeCategories.Of(c)), ""));
+			readings.Add(($"Run{name}", c => members.Contains(UnicodeCategories.Of(c)),  ""));
+		}
+
+		foreach (var (rule, @class, categories, others) in InUse)
+		{
+			var members = Members(categories);
+			var also    = others;
+
+			grammar.Append($"{rule} : @string = t: {@class} => @(t)\n");
+			grammar.Append($"{rule}Run : @string = t: {@class}+ & ';' => @(t)\n");
+			readings.Add((rule,         c => also.IndexOf(c) >= 0 || members.Contains(UnicodeCategories.Of(c)), ""));
+			readings.Add((rule + "Run", c => also.IndexOf(c) >= 0 || members.Contains(UnicodeCategories.Of(c)), ";"));
+		}
+
+		foreach (var (rule, _, _) in readings)
+			grammar.Append($"parse {rule}\n");
+
+		var result = GramCompiler.Compile(grammar.ToString(), new GramCompilerOptions
+		{
+			CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var source = string.Concat(result.Sources.Select(static one => one.Text));
+
+		Assert.DoesNotContain("CharUnicodeInfo", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("GetUnicodeCategory", source, StringComparison.Ordinal);
+
+		var assembly = EmittedCode.Compile(
+			result.Sources[0].Text, sourceParts: result.Sources.Skip(1).Select(static one => one.Text));
+		var type     = assembly.GetType("Grammar")!;
+		var failures = new List<string>();
+
+		foreach (var (rule, expected, suffix) in readings)
+		{
+			var method = (TryParse)Delegate.CreateDelegate(
+				typeof(TryParse), type.GetMethod("TryParse" + rule, [typeof(string), typeof(string).MakeByRefType()])!);
+
+			for (var c = 0; c <= char.MaxValue; c++)
+			{
+				var input = ((char)c).ToString() + suffix;
+
+				if (method(input, out _) != expected((char)c) && failures.Count < 50)
+					failures.Add($"{rule}: U+{c:X4} read {!expected((char)c)}, the table says {expected((char)c)}");
+			}
+		}
+
+		Assert.True(failures.Count == 0, string.Join("\n", failures));
+	}
+
+	static HashSet<UnicodeCategory> Members(IEnumerable<string> names)
+	{
+		var members = new HashSet<UnicodeCategory>();
+
+		foreach (var name in names)
+			foreach (var member in UnicodeCategories.Expand(name))
+				members.Add(Enum.Parse<UnicodeCategory>(member));
+
+		return members;
 	}
 
 	/// <summary>The code units a first set holds, one flag each.</summary>

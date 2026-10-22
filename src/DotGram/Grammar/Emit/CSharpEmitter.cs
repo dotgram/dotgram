@@ -1106,6 +1106,14 @@ public static partial class CSharpEmitter
 			}
 		}
 
+		// The bits of every mask of categories something wrote a test of, known like the sets below
+		// only once everything is written, the parts of a divided file included.
+		if (CategoryTests([file.ToString(), .. separated]) is { Length: > 0 } categoryTests)
+		{
+			file.Line();
+			file.Write(categoryTests);
+		}
+
 		// The sets every machine's refusals name, last: what a machine writes a call to is known
 		// only once all of them are written, the lexical half's included.
 		if (expectedSets.Render(utf8Literals) is { Length: > 0 } sets)
@@ -2591,8 +2599,8 @@ public static partial class CSharpEmitter
 	/// </para>
 	/// <para>
 	/// The test answers ASCII from two words of bits, since a keyword's neighbour is nearly
-	/// always ASCII and a category would otherwise be a call into <c>CharUnicodeInfo</c> for
-	/// it; the categories of ASCII are settled by the standard. The rest is the boundary's own
+	/// always ASCII and a category would otherwise be a lookup in its bits for it (see
+	/// <see cref="CategoryTests"/>). The rest is the boundary's own
 	/// test, or its ranges above ASCII where it is nothing else.
 	/// </para>
 	/// </remarks>
@@ -5938,9 +5946,9 @@ file.Line("return spare;");
 				: $"(c >= {Char(range.From)} && c <= {Char(range.To)})");
 
 		// `\p{Lu}` is the regular-expression spelling; the enum member is
-		// UppercaseLetter. `\p{L}` is not one category but five — and five categories
-		// used to be five classifications of the same character. The enum's values fit
-		// an int, so several categories are one classification and one mask test.
+		// UppercaseLetter. `\p{L}` is not one category but five, and every category an
+		// element names is one mask over the enum's values — one test, a lookup in that
+		// mask's bits (CategoryTests), and never a question to the runtime's tables.
 		var categories = new List<string>();
 
 		foreach (var category in element.Categories)
@@ -5953,14 +5961,8 @@ file.Line("return spare;");
 		foreach (var name in categories)
 			mask |= 1 << (int)Enum.Parse(typeof(System.Globalization.UnicodeCategory), name);
 
-		if (categories.Count == 1)
-			tests.Add(
-				"global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == " +
-				$"global::System.Globalization.UnicodeCategory.{categories[0]}");
-		else if (categories.Count > 1)
-			tests.Add(
-				"((1 << (int)global::System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c)) & " +
-				$"0x{mask:X}) != 0");
+		if (categories.Count > 0)
+			tests.Add($"{CategoryTest(mask)}(c)");
 
 		// §7.1's element predicate: `bool M(char c)` asks the same question about one item
 		// that a range does, so it joins the set as one more test. Written as the grammar
@@ -5979,11 +5981,10 @@ file.Line("return spare;");
 		var test  = string.Join(" || ", tests);
 		var whole = element.IsNegated ? $"!({test})" : $"({test})";
 
-		// A category is a call into `CharUnicodeInfo` and a mask test, taken once for every
-		// character of every name a grammar reads. Below 128 the answer is a lookup — and
-		// fixed there, because the categories of ASCII are settled by the standard and
-		// cannot drift between the compiler that wrote the table and the runtime that
-		// reads it. Above it the test that was there before, unchanged.
+		// A category is a call and two loads, taken once for every character of every name
+		// a grammar reads, and nearly every one of them is ASCII. Below 128 the answer is the
+		// class's own table, written from the same Unicode table as the bits; above it the
+		// category's test.
 		if (tabulate is null || element.Categories.Count == 0 || element.References.Count > 0)
 			return whole;
 
@@ -6004,14 +6005,143 @@ file.Line("return spare;");
 		return $"(c < {AsciiSize} ? {reached} : {whole})";
 	}
 
-	/// <summary>How far up a class is answered from a table rather than by asking Unicode.</summary>
+	/// <summary>How far up a class naming a category is answered from its own table rather than from the category's bits.</summary>
 	/// <remarks>
-	/// ASCII and no further, deliberately. The general categories of Latin-1 are as settled
-	/// as ASCII's in practice, but "in practice" is the wrong footing for a table baked into
-	/// a consumer's assembly by one runtime and read by another: below 128 the answer is not
-	/// a fact about a Unicode version.
+	/// ASCII, where a keyword's neighbour and nearly every character of a name is. Both answers
+	/// are the generator's Unicode table (<see cref="UnicodeCategories"/>), so where the line
+	/// is drawn changes how fast a character is answered and never what the answer is.
 	/// </remarks>
 	internal const int AsciiSize = 128;
+
+	/// <summary>What the test of a mask of categories is called, and its bits after it.</summary>
+	const string CategoryPrefix = "Categories_DotGram_";
+
+	/// <summary>The method that tests a character against the categories <paramref name="mask"/> holds, a bit per <c>UnicodeCategory</c>.</summary>
+	static string CategoryTest(int mask)
+	{
+		return CategoryPrefix + mask.ToString("X", System.Globalization.CultureInfo.InvariantCulture);
+	}
+
+	/// <summary>
+	/// The test and the bits of every mask of categories <paramref name="texts"/> call a test of,
+	/// in the order of their masks; empty where they call none.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A category is what the generator's table says, Unicode <see cref="UnicodeCategories.UnicodeVersion"/>
+	/// (<see cref="UnicodeCategories"/>), and the parser carries the answer rather than asking
+	/// <c>CharUnicodeInfo</c>: the runtime's tables are its own Unicode version, 8.0 on .NET Framework
+	/// and a later one with each .NET, so the same parser read the same character differently by the
+	/// runtime it ran on, and the analysis, which had read the generator's runtime, could route a
+	/// character away from an alternative the test then accepted.
+	/// </para>
+	/// <para>
+	/// One set of bits a mask, not a table of categories: a grammar names a handful of masks — an
+	/// identifier's start and its part — and the bits of one are about two kilobytes where a byte a
+	/// category would be seventeen. Two levels over the plane: the code unit's high byte picks one of
+	/// the distinct blocks of 256 bits, and its low byte the bit. A span over a literal, which the
+	/// compiler lowers to the assembly's own data at the floor too, so reading it is neither a field
+	/// load nor an allocation. Written for the masks something calls, found in what was written, so
+	/// that nothing is declared and left unread.
+	/// </para>
+	/// </remarks>
+	static string CategoryTests(IEnumerable<string> texts)
+	{
+		var masks = new SortedSet<int>();
+
+		foreach (var text in texts)
+			for (var at = text.IndexOf(CategoryPrefix, StringComparison.Ordinal); at >= 0;
+				at = text.IndexOf(CategoryPrefix, at + CategoryPrefix.Length, StringComparison.Ordinal))
+			{
+				var from = at + CategoryPrefix.Length;
+				var to   = from;
+
+				while (to < text.Length && Uri.IsHexDigit(text[to]))
+					to++;
+
+				if (to < text.Length && text[to] == '(')
+					masks.Add(int.Parse(text.Substring(from, to - from), System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture));
+			}
+
+		if (masks.Count == 0)
+			return "";
+
+		var file = new Writer(0);
+
+		foreach (var mask in masks)
+		{
+			var name  = CategoryTest(mask);
+			var names = new List<string>();
+
+			for (var category = 0; category < 32; category++)
+				if ((mask & 1 << category) != 0)
+					names.Add(UnicodeCategories.Abbreviation((System.Globalization.UnicodeCategory)category));
+
+			// Comments and not documentation, which a generated file keeps for public members only.
+			file.Line($"// Whether a character is {string.Join(", ", names)} in Unicode {UnicodeCategories.UnicodeVersion}: its high byte picks one of");
+			file.Line("// the blocks of 256 bits after the 256 bytes that number them, its low byte the bit.");
+			file.Line("[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]");
+
+			using (file.Block($"static bool {name}(char c)"))
+			{
+				file.Line($"var bits = {name}_Bits;");
+				file.Line();
+				file.Line("return (bits[256 + (bits[c >> 8] << 5) + ((c & 0xFF) >> 3)] & (1 << (c & 7))) != 0;");
+			}
+
+			file.Line();
+			file.Line($"static global::System.ReadOnlySpan<byte> {name}_Bits => new byte[]");
+			file.Line("{");
+
+			using (file.Indent())
+				foreach (var line in CategoryBits(mask))
+					file.Line(line);
+
+			file.Line("};");
+			file.Line();
+		}
+
+		return file.ToString();
+	}
+
+	/// <summary>The lines of a mask's bits: the index, sixteen high bytes a line, then a line a block.</summary>
+	/// <remarks>Decimal and unspaced, as the class tables are: a parser's source is read by its compiler far more often than by anyone.</remarks>
+	static List<string> CategoryBits(int mask)
+	{
+		var index  = new byte[256];
+		var blocks = new List<byte[]>();
+		var seen   = new Dictionary<string, int>(StringComparer.Ordinal);
+
+		for (var high = 0; high < 256; high++)
+		{
+			var block = new byte[32];
+
+			for (var low = 0; low < 256; low++)
+				if ((1 << (int)UnicodeCategories.Of((char)(high << 8 | low)) & mask) != 0)
+					block[low >> 3] |= (byte)(1 << (low & 7));
+
+			var key = Convert.ToBase64String(block);
+
+			if (!seen.TryGetValue(key, out var number))
+			{
+				number = blocks.Count;
+				seen.Add(key, number);
+				blocks.Add(block);
+			}
+
+			index[high] = (byte)number;
+		}
+
+		var lines = new List<string>();
+
+		for (var high = 0; high < 256; high += 16)
+			lines.Add(string.Join(",", index.Skip(high).Take(16).Select(static one => one.ToString(System.Globalization.CultureInfo.InvariantCulture))) + ",");
+
+		foreach (var block in blocks)
+			lines.Add(string.Join(",", block.Select(static one => one.ToString(System.Globalization.CultureInfo.InvariantCulture))) + ",");
+
+		return lines;
+	}
 
 	/// <summary>The characters below <see cref="AsciiSize"/> an element admits, as ranges.</summary>
 	/// <param name="mask">The element's categories, as a bit per <c>UnicodeCategory</c>.</param>
@@ -6036,7 +6166,7 @@ file.Line("return spare;");
 		return found;
 	}
 
-	/// <summary>Whether an element with no C# predicate in it admits a character.</summary>
+	/// <summary>Whether an element with no C# predicate in it admits a character, by the generator's Unicode table.</summary>
 	static bool Admits(Node.Element element, int mask, char c)
 	{
 		var takes  = false;
