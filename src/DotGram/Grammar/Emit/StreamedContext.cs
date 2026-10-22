@@ -18,9 +18,15 @@ public static partial class CSharpEmitter
 	/// by calling a method of the context is not seen at all.
 	/// </remarks>
 	static readonly Regex ContextChange = new(
-		@"(?<![\w.])context\s*(?:\.\s*\w+|\[[^\]]*\])+\s*(?:\+\+|--|(?:[-+*/%&|^]|<<|>>|\?\?)?=(?![=>]))" +
-		@"|(?:\+\+|--)\s*context\s*(?:\.\s*\w+|\[[^\]]*\])",
+		@"(?<![\w.@])\(*\s*context\s*!?" + Members + @"\s*\)*\s*(?:\+\+|--|(?:[-+*/%&|^]|<<|>>|\?\?)?=(?![=>]))" +
+		@"|(?:\+\+|--)\s*\(*\s*context\s*!?" + Members,
 		RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+	/// <summary>One or more members reached from <c>context</c>: <c>.Rows</c>, <c>.@Rows</c>, <c>?.Rows</c>, <c>!.Rows</c>, <c>[0]</c>.</summary>
+	const string Members = @"(?:\s*(?:\?\.|\.)\s*@?\w+\s*!?|\s*\[[^\]]*\])+";
+
+	/// <summary>Comments of the construction, which may spell a change without making one.</summary>
+	static readonly Regex Comments = new(@"//[^\r\n]*|/\*.*?\*/", RegexOptions.CultureInvariant | RegexOptions.Singleline);
 
 	/// <summary>
 	/// Tells a publication that is read from a reader or lines, and reaches a construction that changes the
@@ -39,7 +45,7 @@ public static partial class CSharpEmitter
 
 			foreach (var node in NodeWalk.Descendants(body))
 				if (node is Node.Construct { How: Construction.Expression { Text: var text } } &&
-					ContextChange.Match(text) is { Success: true } change)
+					ContextChange.Match(Comments.Replace(text, " ")) is { Success: true } change)
 				{
 					diagnostics.Add(new GramDiagnostic(
 						GramCompiler.StreamedContextChange,

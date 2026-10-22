@@ -3129,6 +3129,13 @@ in it (§6.2). An input-view recognizer uses the host's generated `ParserInput<T
 instead. Both forms keep the same bare `@M` notation.
 Its value is the text it covered — the same as any rule that captures nothing.
 
+The generated code calls a recognizer or a predicate through a method of its own, so that nothing
+the reader declares can hide the author's method and the overload is chosen as in the author's own
+C#. The names of the generated code contain `_DotGram`; a name written in a grammar that contains it
+is refused (`GRAM1012`), and the members of the host class whose names contain it are reserved for
+generated code. A parameter attributed `[CallerMemberName]` or `[CallerArgumentExpression]` is given
+the generated method's name and its argument's text, not the reader's.
+
 **A recognizer is trusted absolutely, and that is the bargain.** The `ref` is the method
 saying that it moves the position; it is handed the parser's own, and nothing copies it
 away, bounds-checks it afterwards, or reasons about what came back. Move it backwards,

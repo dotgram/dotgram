@@ -39,6 +39,7 @@ public static class GramLexer
 	public const string UnknownCategory        = "GRAM1009";
 	public const string MalformedCharacter     = "GRAM1010";
 	public const string SigilNeedsName         = "GRAM1011";
+	public const string ReservedName           = "GRAM1012";
 
 	/// <param name="scanner">
 	/// Finds where an inline <c>@(...)</c> ends. Null means the grammar may not use
@@ -68,6 +69,17 @@ public static class GramLexer
 		var tokens      = new List<Token>();
 		var diagnostics = new List<GramDiagnostic>();
 		var position    = 0;
+
+		// The generated code gives every name of its own (a parameter, a local, a method that calls the
+		// author's) a `_DotGram` in it, so that none of them can be one of the author's.
+		void Reserved(int start, int length)
+		{
+			if (text.Substring(start, length).Contains("_DotGram"))
+				Report(
+					ReservedName,
+					"A name containing '_DotGram' is reserved for the code the generator writes (docs/syntax.md §7.1).",
+					start, length);
+		}
 
 		void Report(string id, string message, int start, int length)
 		{
@@ -127,6 +139,7 @@ public static class GramLexer
 					position++;
 
 				Add(TokenKind.Identifier, start, position - start, text.Substring(start, position - start));
+				Reserved(start, position - start);
 				continue;
 			}
 
@@ -200,6 +213,7 @@ public static class GramLexer
 						Add(
 							current == '$' ? TokenKind.BindingName : TokenKind.LengthName,
 							start, position - start, text.Substring(start + 1, position - start - 1));
+						Reserved(start, position - start);
 						continue;
 					}
 

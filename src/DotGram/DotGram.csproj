@@ -59,7 +59,9 @@ Fixed: a parse read from a TextReader or a sequence of lines, whose rule has a r
 
 Fixed: an external recognizer or a predicate of an element set whose method is called text, p, c, failure, value, context and the like did not compile (CS0149): the generated method that calls it declares a local of that name. The call is now made from a method of the generated class whose parameters carry names of their own, so the method is found, and the overload chosen, as the author's C# would have found and chosen it.
 
-A reader and a string give the same result for constructions without side effects. A construction that changes state, the context included, may run a different number of times in a streamed reading than over a string (docs/syntax.md section 6.3). New information GRAM5017 says so where a construction of a publication with a reader or lines overload assigns to, or increments, a member of context; it is syntactic and best-effort.</PackageReleaseNotes>
+A reader and a string give the same result for constructions without side effects. A construction that changes state, the context included, may run a different number of times in a streamed reading than over a string (docs/syntax.md section 6.3). New information GRAM5017 says so where a construction of a publication with a reader or lines overload assigns to, or increments, a member of context; it is syntactic and best-effort.
+
+New error GRAM1012: a name written in a grammar that contains _DotGram, which the generated code keeps for its own parameters, locals and the methods that call the author's external recognizers and predicates. GRAM5017 now sees (context.Rows)++, context.@Rows++, context!.Rows++ and skips comments. A parameter of an external method attributed CallerMemberName or CallerArgumentExpression gets the generated method's name and argument text.</PackageReleaseNotes>
 
 		<!-- The symbols inside the assembly rather than beside it. When the generator fails
 		     in somebody else's build — GRAM0001, with the exception in the message — the
