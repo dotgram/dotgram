@@ -370,7 +370,7 @@ internal static class DslRecognitionTrace
 
 			if (!known)
 			{
-				var category = CharUnicodeInfo.GetUnicodeCategory(value).ToString();
+				var category = UnicodeCategories.Of(value).ToString();
 				known = element.Categories.Any(item => UnicodeCategories.Expand(item).Contains(category));
 			}
 

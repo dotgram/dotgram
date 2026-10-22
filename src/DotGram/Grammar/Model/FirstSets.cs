@@ -2102,10 +2102,12 @@ public static class FirstSets
 	/// recognizer reads.
 	/// </summary>
 	/// <remarks>
-	/// Found by asking <see cref="System.Globalization.CharUnicodeInfo"/> once per code
-	/// unit and once per category, and cached: the scan is a compile-time cost paid per
-	/// distinct category a grammar names, and what it buys is that `\p{L}` stops being
-	/// "anything" — which is what let follow sets stay known across an identifier.
+	/// Found by asking <see cref="UnicodeCategories.Of"/> once per code unit and once per
+	/// category, and cached: the scan is a compile-time cost paid per distinct category a
+	/// grammar names, and what it buys is that `\p{L}` stops being "anything" — which is what
+	/// let follow sets stay known across an identifier. The generator's own table and never
+	/// the runtime's, so that the sets, and the code written from them, are the same whatever
+	/// runtime the generator runs on, and the same as what the emitted test admits.
 	/// </remarks>
 	static IReadOnlyList<CharRange> CategoryRanges(string name)
 	{
@@ -2132,7 +2134,7 @@ public static class FirstSets
 			for (var c = 0; c <= char.MaxValue; c++)
 			{
 				var inside =
-					members.Contains(System.Globalization.CharUnicodeInfo.GetUnicodeCategory((char)c));
+					members.Contains(UnicodeCategories.Of((char)c));
 
 				if (inside && start < 0)
 					start = c;

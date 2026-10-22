@@ -56,6 +56,62 @@ public sealed class UnicodeCategoryTests(ITestOutputHelper output)
 			output.WriteLine(one);
 	}
 
+	/// <summary>Every name <c>\p{…}</c> accepts: the thirty categories and the seven groups of them.</summary>
+	public static TheoryData<string> Names()
+	{
+		return new TheoryData<string>(
+		[
+			"Lu", "Ll", "Lt", "Lm", "Lo", "Mn", "Mc", "Me", "Nd", "Nl", "No", "Pc", "Pd", "Ps", "Pe",
+			"Pi", "Pf", "Po", "Sm", "Sc", "Sk", "So", "Zs", "Zl", "Zp", "Cc", "Cf", "Cs", "Co", "Cn",
+			"L", "M", "N", "P", "S", "Z", "C",
+		]);
+	}
+
+	/// <summary>
+	/// What the analysis takes a category to hold — the first set of an element naming it, and of
+	/// one refusing it — is the table's, code unit for code unit, whatever runtime the generator is
+	/// on.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Names))]
+	public void The_analysis_reads_a_category_from_the_table(string name)
+	{
+		var members = new HashSet<UnicodeCategory>();
+
+		foreach (var member in UnicodeCategories.Expand(name))
+			members.Add(Enum.Parse<UnicodeCategory>(member));
+
+		Assert.NotEmpty(members);
+
+		var named   = Holds(FirstSets.OfElement(new Node.Element(false, [], [name], [])));
+		var refused = Holds(FirstSets.OfElement(new Node.Element(true,  [], [name], [])));
+
+		for (var c = 0; c <= char.MaxValue; c++)
+		{
+			var inside = members.Contains(UnicodeCategories.Of((char)c));
+
+			if (named[c] != inside)
+				Assert.Fail($"\\p{{{name}}} and U+{c:X4}: the first set says {named[c]}.");
+
+			if (refused[c] == inside)
+				Assert.Fail($"[^ \\p{{{name}}}] and U+{c:X4}: the first set says {refused[c]}.");
+		}
+	}
+
+	/// <summary>The code units a first set holds, one flag each.</summary>
+	static bool[] Holds(FirstSets.First first)
+	{
+		Assert.False(first.Anything);
+
+		var holds = new bool[char.MaxValue + 1];
+
+		foreach (var range in first.Ranges)
+			for (int c = range.From; c <= range.To; c++)
+				holds[c] = true;
+
+		return holds;
+	}
+
 	[Fact]
 	public void The_table_is_the_version_case_folding_reads()
 	{
