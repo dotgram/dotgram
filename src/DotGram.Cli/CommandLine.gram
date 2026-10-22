@@ -1,75 +1,29 @@
-// The command line, read twice over: the text of a response file, split into its words, and the
-// argument vector — what the shell handed over, with every response file in it replaced by its
-// words — read into options.
-//
-// The vector is given as one text, its arguments joined by NUL, which no argument can hold on any
-// system (and a response file holding one is refused before it gets here). So the grammar sees
-// where each argument ends, and nothing about an argument is lost by the joining.
+// The text of a response file, split into its words.
 
 trivia = none
 
-// ── A response file ──────────────────────────────────────────────────────────────────────────
-//
 // csc's syntax: words separated by blanks and line ends; a run in double quotes kept whole, blanks
 // and all, the quotes dropped — "a b"c is one word, a bc — and a quote that never closes running
 // to the end of its line; a line whose first word begins with # a comment.
 
-ResponseText : @Word[] = Blank & (Comment | (Word & Blank)*) & (eol & Blank & (Comment | (Word & Blank)*))* & eof
+ResponseText : @Word[] = Blank & (Comment | (Word & (Gap & Word)* & Blank)?)
+                         & (eol & Blank & (Comment | (Word & (Gap & Word)* & Blank)?))* & eof
 
 Comment = '#' & [^ '\r' | '\n']*
 
-Word : @Word = pieces: Piece+ => @(new Word(string.Concat(pieces), parserSpan.Start))
+// A word is a run of plain characters and quoted runs, one after the other. Written so that where
+// one run ends and the next begins is never a choice: a plain run stops only at a quote or a blank,
+// and a quoted one begins with its quote.
+Word : @Word = head: Plain & tail: Quoted* => @(new Word(head + string.Concat(tail), parserSpan.Start))
+             | tail: Quoted+               => @(new Word(string.Concat(tail), parserSpan.Start))
 
-Piece : @string = '"' & text: [^ '"' | '\r' | '\n']* & ('"' | ?=eol | eof) => @(text)
-                | text: [^ ' ' | '\t' | '"' | '\r' | '\n']+                => @(text)
+// A quoted run and the plain characters straight after it.
+Quoted : @string = '"' & text: [^ '"' | '\r' | '\n']* & ('"' | ?=eol | eof) & after: Plain? => @(text + (after ?? ""))
+
+Plain : @string = text: [^ ' ' | '\t' | '"' | '\r' | '\n']+ => @(text)
 
 Blank = [' ' | '\t']*
 
-// ── The argument vector ──────────────────────────────────────────────────────────────────────
-//
-// An option that takes a value takes the next argument, whatever it is: `-o -x` writes into a
-// folder called -x. `--` ends the options, and every argument after it is an input. An option
-// this grammar does not know is an item of its own, so that saying so is the tool's message.
-
-Arguments : @Item[] = Item & (Sep & Item)* & (Sep & Ends & (Sep & Plain)*)? & eof
-                    | Ends & (Sep & Plain)* & eof
-
-Item : @Item = item: Valued     => @(item)
-             | item: Missing    => @(item)
-             | item: Flag       => @(item)
-             | item: Unknown    => @(item)
-             | item: Positional => @(item)
-
-Valued : @Item = name: ValueName & End & Sep & value: Text
-                 => @(new Item(ItemKind.Value, name, value, parserSpan.Start))
-
-Missing : @Item = name: ValueName & End & eof
-                  => @(new Item(ItemKind.Missing, name, null, parserSpan.Start))
-
-Flag : @Item = name: FlagName & End
-               => @(new Item(ItemKind.Flag, name, null, parserSpan.Start))
-
-Unknown : @Item = ?!Ends & name: ('-' & [^ '\0']+)
-                  => @(new Item(ItemKind.Unknown, name, null, parserSpan.Start))
-
-Positional : @Item = ?!Ends & value: Text
-                     => @(new Item(ItemKind.Positional, null, value, parserSpan.Start))
-
-Plain : @Item = value: Text => @(new Item(ItemKind.Positional, null, value, parserSpan.Start))
-
-ValueName = "--output" | "-o" | "--framework" | "--configuration" | "--reference" | "--package"
-          | "--define" | "--langversion" | "--line-paths" | "--namespace" | "--class" | "--option"
-          | "--sources"
-
-FlagName = "--allow-unresolved" | "--public" | "--help" | "-h" | "-?" | "--version" | "--skill"
-
-Ends = "--" & End
-
-Text = [^ '\0']*
-
-End = ?=(Sep | eof)
-
-Sep = '\0'
+Gap = [' ' | '\t']+
 
 parse ResponseText
-parse Arguments
