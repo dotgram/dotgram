@@ -194,6 +194,9 @@ public static partial class CSharpEmitter
 	{
 		statics ??= [];
 
+		// The masks of categories this file tests, as the tests are written (CategoryTests).
+		_categoryMasks = new SortedSet<int>();
+
 		// A grammar left to choose is compiled exactly as one that asks for the immediate carrier:
 		// every machine that carrier does not refuse is carried by it, and a refused one is on the
 		// tape, as it would be under the request by name. What was asked is kept for what is said
@@ -1108,7 +1111,11 @@ public static partial class CSharpEmitter
 
 		// The bits of every mask of categories something wrote a test of, known like the sets below
 		// only once everything is written, the parts of a divided file included.
-		if (CategoryTests([file.ToString(), .. separated]) is { Length: > 0 } categoryTests)
+		var categoryMasks = _categoryMasks;
+
+		_categoryMasks = null;
+
+		if (CategoryTests(categoryMasks) is { Length: > 0 } categoryTests)
 		{
 			file.Line();
 			file.Write(categoryTests);
@@ -5991,7 +5998,10 @@ file.Line("return spare;");
 			mask |= 1 << (int)Enum.Parse(typeof(System.Globalization.UnicodeCategory), name);
 
 		if (categories.Count > 0)
+		{
 			tests.Add($"{CategoryTest(mask)}(c)");
+			_categoryMasks?.Add(mask);
+		}
 
 		// §7.1's element predicate: `bool M(char c)` asks the same question about one item
 		// that a range does, so it joins the set as one more test. Written as the grammar
@@ -6052,8 +6062,21 @@ file.Line("return spare;");
 	}
 
 	/// <summary>
-	/// The test and the bits of every mask of categories <paramref name="texts"/> call a test of,
-	/// in the order of their masks; empty where they call none.
+	/// The masks of categories the file being emitted has a test of, recorded by <see cref="Test"/>
+	/// as it writes each; null outside <see cref="Emit"/>.
+	/// </summary>
+	/// <remarks>
+	/// Recorded rather than found again in the text written: a grammar's own C# is in that text too,
+	/// and a string in a construction that happens to spell a test's name is not a test. One per
+	/// thread, because <see cref="Test"/> is asked from every part of the emitter and the generator
+	/// may emit two files at once on two threads; one file is emitted on one thread from start to end.
+	/// </remarks>
+	[ThreadStatic]
+	static SortedSet<int>? _categoryMasks;
+
+	/// <summary>
+	/// The test and the bits of every mask of categories in <paramref name="masks"/>, in the order of
+	/// their masks; empty where there is none.
 	/// </summary>
 	/// <remarks>
 	/// <para>
@@ -6070,29 +6093,12 @@ file.Line("return spare;");
 	/// category would be seventeen. Two levels over the plane: the code unit's high byte picks one of
 	/// the distinct blocks of 256 bits, and its low byte the bit. A span over a literal, which the
 	/// compiler lowers to the assembly's own data at the floor too, so reading it is neither a field
-	/// load nor an allocation. Written for the masks something calls, found in what was written, so
-	/// that nothing is declared and left unread.
+	/// load nor an allocation. Written for the masks a test was written of.
 	/// </para>
 	/// </remarks>
-	static string CategoryTests(IEnumerable<string> texts)
+	static string CategoryTests(SortedSet<int>? masks)
 	{
-		var masks = new SortedSet<int>();
-
-		foreach (var text in texts)
-			for (var at = text.IndexOf(CategoryPrefix, StringComparison.Ordinal); at >= 0;
-				at = text.IndexOf(CategoryPrefix, at + CategoryPrefix.Length, StringComparison.Ordinal))
-			{
-				var from = at + CategoryPrefix.Length;
-				var to   = from;
-
-				while (to < text.Length && Uri.IsHexDigit(text[to]))
-					to++;
-
-				if (to < text.Length && text[to] == '(')
-					masks.Add(int.Parse(text.Substring(from, to - from), System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture));
-			}
-
-		if (masks.Count == 0)
+		if (masks is null || masks.Count == 0)
 			return "";
 
 		var file = new Writer(0);
