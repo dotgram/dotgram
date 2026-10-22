@@ -147,7 +147,7 @@ underlined where it was written, in the base's own file — see §5.1.
 | `GRAM4047` | A literal or a class holds U+0000 in a grammar that names `eos`. | That character is how this version reads the end of a segment, and no segment may hold it. Match the end of a segment with `eos`, and leave U+0000 out of the class (§3.1.1). |
 | `GRAM4048` | Text is captured, bound or published across an `eos`. | A boundary has no character, so there is no text of it to keep. Capture the parts on either side of it, or a value built from them; a capture of a rule that builds a value may span boundaries (§3.1.1). |
 | `GRAM4049` | `Lexical = true` over a grammar that names `eos`. | A token cannot reach over the end of a segment, and the end of a segment is not a kind of token. Leave `Lexical` off for it (§3.1.1). |
-| `GRAM4050` | A reader or a byte form is asked of a grammar that names `eos`. | Such a grammar reads a list or a sequence of strings and nothing else (§6.3). Leave the buffered and byte forms off for it. |
+| `GRAM4050` | A buffered or byte form is asked of a grammar that names `eos`. | Such a grammar reads a list, a sequence or a reader of lines, and nothing else (§6.3). Leave the buffered and byte forms off for it. |
 
 ## GRAM5xxx — what a grammar gets
 

@@ -1212,6 +1212,39 @@ namespace DotGram.Snapshots
 			return TryParseArgs_DotGram(text, out value);
 		}
 
+		/// <summary>Parses the segments as <c>Args</c>.</summary>
+		/// <exception cref="global::System.FormatException">
+		/// The segments are not <c>Args</c>, or one holds U+0000. <c>TryParseArgs</c> answers instead.
+		/// </exception>
+		public static global::DotGram.Snapshots.Segmented.Args ParseArgs(global::System.IO.TextReader input)
+		{
+			return ParseArgs_DotGram(Read_DotGram(input));
+		}
+
+		/// <summary>Parses the segments as <c>Args</c>, answering rather than throwing.</summary>
+		public static Match<global::DotGram.Snapshots.Segmented.Args> TryParseArgs(global::System.IO.TextReader input)
+		{
+			var text = Read_DotGram(input, out var refused, out var why);
+
+			return refused < 0
+				? TryParseArgs_DotGram(text)
+				: Match<global::DotGram.Snapshots.Segmented.Args>.Failed(Outcome.NoMatch, why, refused, null, null);
+		}
+
+		/// <summary>Parses the segments as <c>Args</c>, answering only whether they are one.</summary>
+		public static bool TryParseArgs(global::System.IO.TextReader input, out global::DotGram.Snapshots.Segmented.Args value)
+		{
+			var text = Read_DotGram(input, out var refused, out var why);
+
+			if (refused >= 0)
+			{
+				value = default!;
+				return false;
+			}
+
+			return TryParseArgs_DotGram(text, out value);
+		}
+
 		static int Recognize_DotGram_Sharpen0(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
 		{
 			if ((uint)p < (uint)text.Length && text[p] == '-')
@@ -1544,6 +1577,120 @@ namespace DotGram.Snapshots
 				throw new global::System.ArgumentNullException(nameof(input));
 
 			return input as global::System.Collections.Generic.IReadOnlyList<string> ?? new global::System.Collections.Generic.List<string>(input);
+		}
+
+		private static string Read_DotGram(global::System.IO.TextReader input)
+		{
+			return new SegmentReader_DotGram(input, true).ReadToEnd();
+		}
+
+		private static string Read_DotGram(global::System.IO.TextReader input, out long refused, out string why)
+		{
+			var reader = new SegmentReader_DotGram(input, false);
+			var text   = reader.ReadToEnd();
+
+			refused = reader.Refused;
+			why     = refused < 0 ? "" : SegmentReader_DotGram.Holds(reader.RefusedLine);
+
+			return refused < 0 ? text : "";
+		}
+
+		private sealed class SegmentReader_DotGram : global::System.IO.TextReader
+		{
+			private readonly global::System.IO.TextReader _input;
+			private readonly bool _throws;
+
+			private readonly char[] _block = new char[4096];
+			private int    _at;
+			private int    _filled;
+			private bool   _cr;
+			private bool   _open;
+			private bool   _ended;
+			private long   _position;
+			private int    _line = 1;
+
+			public SegmentReader_DotGram(global::System.IO.TextReader input, bool throws)
+			{
+				_input  = input ?? throw new global::System.ArgumentNullException(nameof(input));
+				_throws = throws;
+			}
+
+			public long Refused { get; private set; } = -1;
+
+			public int RefusedLine { get; private set; }
+
+			public static string Holds(int line)
+			{
+				return "Line " + line.ToString(global::System.Globalization.CultureInfo.InvariantCulture) +
+					" holds U+0000, which this grammar reads as the end of a segment and never as a character of one.";
+			}
+
+			public override int Read(char[] buffer, int index, int count)
+			{
+				var written = 0;
+
+				while (written < count && !_ended)
+				{
+					if (_at == _filled)
+					{
+						_filled = _input.Read(_block, 0, _block.Length);
+						_at     = 0;
+
+						if (_filled <= 0)
+						{
+							_filled = 0;
+							_ended  = true;
+
+							// A last line without its ending ends its segment all the same.
+							if (_open)
+							{
+								buffer[index + written++] = '\0';
+								_open = false;
+							}
+
+							break;
+						}
+					}
+
+					var c = _block[_at++];
+
+					// The `\n` of a `\r\n` whose `\r` was the end of a block, or of the last read.
+					if (_cr && c == '\n')
+					{
+						_cr = false;
+						continue;
+					}
+
+					_cr = c == '\r';
+
+					if (c == '\r' || c == '\n')
+					{
+						buffer[index + written++] = '\0';
+						_open = false;
+						_line++;
+					}
+					else if (c == '\0')
+					{
+						Refused     = _position;
+						RefusedLine = _line;
+						_ended      = true;
+
+						if (_throws)
+							throw new global::System.FormatException(Holds(_line));
+
+						break;
+					}
+					else
+					{
+						buffer[index + written++] = c;
+						_open = true;
+					}
+
+					_position++;
+				}
+
+				return written;
+			}
 		}
 
 		sealed class Ways

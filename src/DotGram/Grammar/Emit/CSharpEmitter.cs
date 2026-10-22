@@ -803,9 +803,15 @@ public static partial class CSharpEmitter
 			var value    = publication.ResultType is { } contract
 				? contract.Name + (contract.IsSequence ? "[]" : "")
 				: results.QualifiedOf(publication.Rule) ?? "string";
-			var streamed = !bufferedInput && !publication.BufferedInput && Streams(graph, publication, overKinds) &&
-				(publication.Kind == PublishKind.Find ||
-				 publication.Kind == PublishKind.Parse && StagesOf(graph, publication.Rule) is not null);
+			var streams  = !bufferedInput && !publication.BufferedInput && Streams(graph, publication, overKinds);
+
+			// What the streamed reading hands back, where there is one (EmitStreamingFind, EmitStreamingParse).
+			var streamed = !streams ? null
+				: publication.Kind == PublishKind.Find
+					? $"global::System.Collections.Generic.IEnumerable<{MatchType}<{value}>>"
+				: publication.Kind == PublishKind.Parse && StagesOf(graph, publication.Rule) is not null
+					? $"global::System.Collections.Generic.IEnumerable<{graph.Types[publication.Rule].Substring(0, graph.Types[publication.Rule].Length - "[]".Length)}>"
+				: null;
 
 			EmitOverSegments(file, publication, value, context, streamed);
 		}
