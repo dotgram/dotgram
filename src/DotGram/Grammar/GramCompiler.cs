@@ -130,6 +130,24 @@ public static class GramCompiler
 		// after the diagnostics because it is a question about a sound grammar, and answered
 		// with the character machine where it cannot be: that machine is correct and right
 		// there, so a refusal is worth a word rather than a failed build.
+		if (options.Lexical && graph.Segmented && GrammarNormalizer.EndOfSegmentAt(model) is { } named)
+			diagnostics.Add(new GramDiagnostic(
+				GrammarNormalizer.LexicalSegments,
+				"A grammar that names 'eos' is read over characters: a token cannot reach over the end of a " +
+				"segment, and the end of a segment is not a kind of token. Leave Lexical off for it " +
+				"(docs/syntax.md §3.1.1).",
+				named.Position, named.Length, GramSeverity.Error));
+
+		if ((options.BufferedInput || options.BufferedBytes ||
+			 graph.Publications.Any(static publication => publication.BufferedInput || publication.BufferedBytes)) &&
+			graph.Segmented && GrammarNormalizer.EndOfSegmentAt(model) is { } segmented)
+			diagnostics.Add(new GramDiagnostic(
+				GrammarNormalizer.BufferedSegments,
+				"A grammar that names 'eos' reads a sequence of segments, and a reader or bytes are no such " +
+				"thing: its publications take a list or a sequence of strings and nothing else. Leave the " +
+				"buffered and byte forms off for it (docs/syntax.md §6.3).",
+				segmented.Position, segmented.Length, GramSeverity.Error));
+
 		var lexical = options.Lexical && !HasErrors(diagnostics) ? Cut(graph, diagnostics) : null;
 
 		// And the one question that has a different answer on the other side of the cut:

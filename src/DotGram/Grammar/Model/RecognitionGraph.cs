@@ -930,6 +930,13 @@ public sealed class RecognitionGraph(
 	/// </remarks>
 	public bool OverKinds { get; init; }
 
+	/// <summary>
+	/// Whether the grammar names <c>eos</c>, so that its input is a sequence of segments, each read
+	/// with the joiner after it (<see cref="GrammarNormalizer.Joiner"/>), and its publications take
+	/// sequences and nothing else.
+	/// </summary>
+	public bool Segmented { get; init; }
+
 	/// <summary>What each rule can begin with, once worked out. A memo, not model state.</summary>
 	/// <remarks>
 	/// Held here because it is a fact about this graph that costs a fixed point to find, and

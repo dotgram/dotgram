@@ -83,8 +83,8 @@ public sealed partial class GrammarNormalizer
 	{
 		return expression switch
 		{
-			Expr.Literal(_, var value) { IgnoreCase: var ignoreCase } => Bounded(value, ns, ignoreCase),
-			Expr.ElementSet(var negated, var items) => LowerElementSet(negated, items, expression),
+			Expr.Literal(_, var value) { IgnoreCase: var ignoreCase } => Bounded(Segmented(value, expression), ns, ignoreCase),
+			Expr.ElementSet(var negated, var items) => SegmentedPredicates(LowerElementSet(negated, items, expression)),
 			Expr.Group(var body) => Lower(body, ns),
 			Expr.Atomic(var body) => new Node.Atomic(Lower(body, ns)),
 			Expr.Capture(var name, var operand) => LowerCapture(name, operand, ns),
@@ -544,7 +544,7 @@ public sealed partial class GrammarNormalizer
 					? new Node.Sequence(
 						[new Node.Repeat(boundary, 1, null), new Node.Lookahead(false, boundary)])
 					: Node.Empty.Instance
-				: BuiltInBody(rule.Name);
+				: BuiltInBody(rule.Name, _segmented);
 		}
 
 		return new Node.Call(rule, arguments);
@@ -1086,11 +1086,15 @@ public sealed partial class GrammarNormalizer
 		return false;
 	}
 
-	static Node BuiltInBody(string name)
+	static Node BuiltInBody(string name, bool segmented)
 	{
 		return name switch
 		{
-			"any" => AnyItem,
+			// In a grammar that names `eos` the boundary is the joiner, which `eos` reads and `any`
+			// does not (GrammarNormalizer.Segments.cs). `eof` stays the end of everything.
+			"any" when segmented => new Node.Element(IsNegated: true, [new CharRange(Joiner, Joiner)], [], []),
+			"eos"                => new Node.Literal(Joiner.ToString()),
+			"any"                => AnyItem,
 			"eol" => new Node.Choice([new Node.Literal("\r\n"), new Node.Literal("\n"), new Node.Literal("\r")]),
 			"eof" => new Node.Lookahead(IsPositive: false, AnyItem),
 
@@ -1251,7 +1255,7 @@ public sealed partial class GrammarNormalizer
 			}
 		}
 
-		return new Node.Element(negated, Coalesce(ranges), categories, references);
+		return Segmented(new Node.Element(negated, Coalesce(ranges), categories, references), set);
 
 		void Merge(Expr.Reference reference, List<CharRange> into, List<string> alsoInto, List<Symbol> unresolved)
 		{
@@ -1309,7 +1313,13 @@ public sealed partial class GrammarNormalizer
 
 			// Not a set but a call: what it refers to must be one item drawn from a set,
 			// or the brackets would be testing something that is not an item.
-			if (BodyOf(rule) is not Node.Element(false, var theirRanges, var theirCategories, var theirReferences))
+			// In a grammar that names `eos` a class that calls a predicate is read where the joiner
+			// is not (SegmentedPredicates), and is still one class to merge.
+			var theirs = BodyOf(rule) is Node.Sequence([Node.Lookahead(false, Node.Literal), Node.Element { IsNegated: false } guarded]) && _segmented
+				? guarded
+				: BodyOf(rule);
+
+			if (theirs is not Node.Element(false, var theirRanges, var theirCategories, var theirReferences))
 			{
 				Report(
 					UnsupportedElement,
