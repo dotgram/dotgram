@@ -29,7 +29,7 @@ using Statement = DotGram.Sql.Ast.Statement;
 /// </summary>
 /// <remarks>
 /// <para>
-/// Written because it was not there. <c>Sql2023Writer</c> ends seventeen switches in a catch-all that
+/// Written because it was not there. <c>SqlWriter</c> ends seventeen switches in a catch-all that
 /// returns a literal and throws nowhere, so a value added to one of those enums printed as the last
 /// arm: <c>ComparisonOperator.NotLess</c> and <c>NotGreater</c>, added on 2026-09-26, both wrote as
 /// <c>&gt;=</c>. Valid SQL with another meaning, which a round trip accepts as readily as the right
@@ -42,7 +42,7 @@ using Statement = DotGram.Sql.Ast.Statement;
 /// loses — so each one is asserted to change the output.
 /// </para>
 /// </remarks>
-public sealed class Sql2023WriterCoverageTests
+public sealed class SqlWriterCoverageTests
 {
 	static readonly Expression A = new Expression.Reference(new QualifiedName([new Identifier("a")]));
 	static readonly Expression B = new Expression.Reference(new QualifiedName([new Identifier("b")]));
@@ -517,10 +517,10 @@ public sealed class Sql2023WriterCoverageTests
 	[Fact]
 	public void No_switch_in_the_writer_ends_in_a_catch_all()
 	{
-		// EVERY file of the writer, not the one named after it. `Sql2023Writer` is three partial files,
+		// EVERY file of the writer, not the one named after it. `SqlWriter` is three partial files,
 		// and reading only the first said "no catch-alls left" while 25 stood in the other two.
 		var written = Directory.GetFiles(
-			Path.Combine(Repository(), "src", "DotGram.Sql", "Ast"), "Sql2023Writer*.cs");
+			Path.Combine(Repository(), "src", "DotGram.Sql", "Ast"), "SqlWriter*.cs");
 
 		Assert.True(written.Length >= 3, "the writer is in " + written.Length + " files; this check expects all of them");
 
@@ -551,10 +551,10 @@ public sealed class Sql2023WriterCoverageTests
 	[Fact]
 	public void Option_values_the_grammar_reads_are_written()
 	{
-		Assert.Contains("MAXDOP = 1e3", Sql2023Writer.Write(XmlWith(new Option(new Identifier("MAXDOP"), Number("1e3", NumericLiteralKind.Approximate), []), Set("IGNORE_DUP_KEY", "OFF"), Set("ONLINE", "off"), Set("PAD_INDEX", "ON"))), StringComparison.Ordinal);
-		Assert.Contains("MAXDOP =", Sql2023Writer.Write(SpatialWith(new Option(new Identifier("MAXDOP"), Number("-0"), []), Set("ONLINE", "OFF"), Set("FILLFACTOR", "A") with { Value = Number("100") })), StringComparison.Ordinal);
-		Assert.Contains("COMPRESSION_DELAY = 2 MINUTE", Sql2023Writer.Write(Created(new IndexDefinition(I) { Storage = IndexStorage.Columnstore, Options = [new Option(new Identifier("COMPRESSION_DELAY"), new Expression.Measured(Two, new Identifier("MINUTE")), []), Set("ONLINE", "ON")] })), StringComparison.Ordinal);
-		Assert.Contains("CACHE", Sql2023Writer.Write(SequenceWith(new SequenceOption.Cache(Two))), StringComparison.Ordinal);
+		Assert.Contains("MAXDOP = 1e3", SqlWriter.Write(XmlWith(new Option(new Identifier("MAXDOP"), Number("1e3", NumericLiteralKind.Approximate), []), Set("IGNORE_DUP_KEY", "OFF"), Set("ONLINE", "off"), Set("PAD_INDEX", "ON"))), StringComparison.Ordinal);
+		Assert.Contains("MAXDOP =", SqlWriter.Write(SpatialWith(new Option(new Identifier("MAXDOP"), Number("-0"), []), Set("ONLINE", "OFF"), Set("FILLFACTOR", "A") with { Value = Number("100") })), StringComparison.Ordinal);
+		Assert.Contains("COMPRESSION_DELAY = 2 MINUTE", SqlWriter.Write(Created(new IndexDefinition(I) { Storage = IndexStorage.Columnstore, Options = [new Option(new Identifier("COMPRESSION_DELAY"), new Expression.Measured(Two, new Identifier("MINUTE")), []), Set("ONLINE", "ON")] })), StringComparison.Ordinal);
+		Assert.Contains("CACHE", SqlWriter.Write(SequenceWith(new SequenceOption.Cache(Two))), StringComparison.Ordinal);
 	}
 
 	/// <summary>That each named exception is true of the writer, and not merely asserted by this file.</summary>
@@ -582,10 +582,10 @@ public sealed class Sql2023WriterCoverageTests
 			claims.Keys.OrderBy(one => one, StringComparer.Ordinal));
 
 		foreach (var (name, pair) in claims)
-			Assert.NotEqual(Sql2023Writer.Write(pair.One), Sql2023Writer.Write(pair.Two));
+			Assert.NotEqual(SqlWriter.Write(pair.One), SqlWriter.Write(pair.Two));
 
 		// And the delimiters the style is derived from are in the text, which is why they are written.
-		Assert.Contains("\"", Sql2023Writer.Write(claims["IdentifierStyle"].Two), StringComparison.Ordinal);
+		Assert.Contains("\"", SqlWriter.Write(claims["IdentifierStyle"].Two), StringComparison.Ordinal);
 	}
 
 	/// <summary>
@@ -897,7 +897,7 @@ public sealed class Sql2023WriterCoverageTests
 	{
 		try
 		{
-			return Sql2023Writer.Write(node);
+			return SqlWriter.Write(node);
 		}
 		catch (NotSupportedException)
 		{
@@ -972,128 +972,128 @@ public sealed class Sql2023WriterCoverageTests
 		var (without, with) = which switch
 		{
 			"Try on a cast" => (
-				Sql2023Writer.Write(new Expression.Cast(A, type)),
-				Sql2023Writer.Write(new Expression.Cast(A, type) { Try = true })),
+				SqlWriter.Write(new Expression.Cast(A, type)),
+				SqlWriter.Write(new Expression.Cast(A, type) { Try = true })),
 			"Try on a convert" => (
-				Sql2023Writer.Write(new Expression.Convert(type, A)),
-				Sql2023Writer.Write(new Expression.Convert(type, A, Try: true))),
+				SqlWriter.Write(new Expression.Convert(type, A)),
+				SqlWriter.Write(new Expression.Convert(type, A, Try: true))),
 			"Try on a parse" => (
-				Sql2023Writer.Write(new Expression.Parse(A, type)),
-				Sql2023Writer.Write(new Expression.Parse(A, type, Try: true))),
+				SqlWriter.Write(new Expression.Parse(A, type)),
+				SqlWriter.Write(new Expression.Parse(A, type, Try: true))),
 			"DefaultValues on a MERGE insert" => (
-				Sql2023Writer.Write(Merged() with { Clauses = [new MergeClause.NotMatched(new MergeInsertAction([], null, []))] }),
-				Sql2023Writer.Write(Merged() with { Clauses = [new MergeClause.NotMatched(new MergeInsertAction([], null, []) { DefaultValues = true })] })),
+				SqlWriter.Write(Merged() with { Clauses = [new MergeClause.NotMatched(new MergeInsertAction([], null, []))] }),
+				SqlWriter.Write(Merged() with { Clauses = [new MergeClause.NotMatched(new MergeInsertAction([], null, []) { DefaultValues = true })] })),
 			"NotMatchedBySource against Matched" => (
-				Sql2023Writer.Write(Merged()),
-				Sql2023Writer.Write(Merged() with { Clauses = [new MergeClause.NotMatchedBySource(new MergeMatchedAction.Delete())] })),
+				SqlWriter.Write(Merged()),
+				SqlWriter.Write(Merged() with { Clauses = [new MergeClause.NotMatchedBySource(new MergeMatchedAction.Delete())] })),
 			"HoldLock on READTEXT" => (
-				Sql2023Writer.Write(new Statement.ReadText(T, P, P, P, false)),
-				Sql2023Writer.Write(new Statement.ReadText(T, P, P, P, true))),
+				SqlWriter.Write(new Statement.ReadText(T, P, P, P, false)),
+				SqlWriter.Write(new Statement.ReadText(T, P, P, P, true))),
 			"Bulk on WRITETEXT" => (
-				Sql2023Writer.Write(new Statement.WriteText(T, P, null, false, false, null)),
-				Sql2023Writer.Write(new Statement.WriteText(T, P, null, true, false, null))),
+				SqlWriter.Write(new Statement.WriteText(T, P, null, false, false, null)),
+				SqlWriter.Write(new Statement.WriteText(T, P, null, true, false, null))),
 			"Log on UPDATETEXT" => (
-				Sql2023Writer.Write(new Statement.UpdateText(T, P, P, P, null, null, null, false, false, null)),
-				Sql2023Writer.Write(new Statement.UpdateText(T, P, P, P, null, null, null, false, true, null))),
+				SqlWriter.Write(new Statement.UpdateText(T, P, P, P, null, null, null, false, false, null)),
+				SqlWriter.Write(new Statement.UpdateText(T, P, P, P, null, null, null, false, true, null))),
 			"ForceSeek on CHANGETABLE CHANGES" => (
-				Sql2023Writer.Write(Joined(new TableSource.ChangeTableChanges(T, A, false))),
-				Sql2023Writer.Write(Joined(new TableSource.ChangeTableChanges(T, A, true)))),
+				SqlWriter.Write(Joined(new TableSource.ChangeTableChanges(T, A, false))),
+				SqlWriter.Write(Joined(new TableSource.ChangeTableChanges(T, A, true)))),
 			"ForceSeek on CHANGETABLE VERSION" => (
-				Sql2023Writer.Write(Joined(new TableSource.ChangeTableVersion(T, [new Identifier("k")], [A], false))),
-				Sql2023Writer.Write(Joined(new TableSource.ChangeTableVersion(T, [new Identifier("k")], [A], true)))),
+				SqlWriter.Write(Joined(new TableSource.ChangeTableVersion(T, [new Identifier("k")], [A], false))),
+				SqlWriter.Write(Joined(new TableSource.ChangeTableVersion(T, [new Identifier("k")], [A], true)))),
 			"ForPath on a table" => (
-				Sql2023Writer.Write(Joined(new TableSource.Named(T))),
-				Sql2023Writer.Write(Joined(new TableSource.Named(T) { ForPath = true }))),
+				SqlWriter.Write(Joined(new TableSource.Named(T))),
+				SqlWriter.Write(Joined(new TableSource.Named(T) { ForPath = true }))),
 			"ForPath on a subquery" => (
-				Sql2023Writer.Write(Joined(new TableSource.Subquery(Selected))),
-				Sql2023Writer.Write(Joined(new TableSource.Subquery(Selected) { ForPath = true }))),
+				SqlWriter.Write(Joined(new TableSource.Subquery(Selected))),
+				SqlWriter.Write(Joined(new TableSource.Subquery(Selected) { ForPath = true }))),
 			"AnchorLast on a shortest path" => (
-				Sql2023Writer.Write(Matched(Shortest(new GraphQuantifier(1, 3, false)))),
-				Sql2023Writer.Write(Matched(Shortest(new GraphQuantifier(1, 3, false), anchorLast: true)))),
+				SqlWriter.Write(Matched(Shortest(new GraphQuantifier(1, 3, false)))),
+				SqlWriter.Write(Matched(Shortest(new GraphQuantifier(1, 3, false), anchorLast: true)))),
 			"LastNode on a graph node" => (
-				Sql2023Writer.Write(Matched(new GraphPattern.Chain(Node("a"), [new GraphStep(new GraphEdge(new Identifier("e"), GraphDirection.Right), Node("b"))]))),
-				Sql2023Writer.Write(Matched(new GraphPattern.Chain(Node("a", true), [new GraphStep(new GraphEdge(new Identifier("e"), GraphDirection.Right), Node("b"))])))),
+				SqlWriter.Write(Matched(new GraphPattern.Chain(Node("a"), [new GraphStep(new GraphEdge(new Identifier("e"), GraphDirection.Right), Node("b"))]))),
+				SqlWriter.Write(Matched(new GraphPattern.Chain(Node("a", true), [new GraphStep(new GraphEdge(new Identifier("e"), GraphDirection.Right), Node("b"))])))),
 			"GraphPath on a call" => (
-				Sql2023Writer.Write(new Expression.Invocation(s, [new Argument(A)])),
-				Sql2023Writer.Write(new Expression.Invocation(s, [new Argument(A)]) { GraphPath = true })),
+				SqlWriter.Write(new Expression.Invocation(s, [new Argument(A)])),
+				SqlWriter.Write(new Expression.Invocation(s, [new Argument(A)]) { GraphPath = true })),
 			"Over on a next value" => (
-				Sql2023Writer.Write(new Expression.NextValue(s)),
-				Sql2023Writer.Write(new Expression.NextValue(s) { Over = new WindowSpecification(null, [], new OrderByClause([new SortItem(A)]), null) })),
+				SqlWriter.Write(new Expression.NextValue(s)),
+				SqlWriter.Write(new Expression.NextValue(s) { Over = new WindowSpecification(null, [], new OrderByClause([new SortItem(A)]), null) })),
 			"NotForReplication on a check" => (
-				Sql2023Writer.Write(Tabled(null, new TableElement.TableConstraint(new Constraint.Check(A)))),
-				Sql2023Writer.Write(Tabled(null, new TableElement.TableConstraint(new Constraint.Check(A) { NotForReplication = true })))),
+				SqlWriter.Write(Tabled(null, new TableElement.TableConstraint(new Constraint.Check(A)))),
+				SqlWriter.Write(Tabled(null, new TableElement.TableConstraint(new Constraint.Check(A) { NotForReplication = true })))),
 			"NotForReplication on a reference" => (
-				Sql2023Writer.Write(Tabled(null, Optioned(new ColumnOption.Constraint(new Constraint.ForeignKey([], null, Referenced()))))),
-				Sql2023Writer.Write(Tabled(null, Optioned(new ColumnOption.Constraint(new Constraint.ForeignKey([], null, Referenced() with { NotForReplication = true })))))),
+				SqlWriter.Write(Tabled(null, Optioned(new ColumnOption.Constraint(new Constraint.ForeignKey([], null, Referenced()))))),
+				SqlWriter.Write(Tabled(null, Optioned(new ColumnOption.Constraint(new Constraint.ForeignKey([], null, Referenced() with { NotForReplication = true })))))),
 			"IfExists on a column dropped" => (
-				Sql2023Writer.Write(Altered(new AlterTableAction.DropColumn(new Identifier("c"), null, true))),
-				Sql2023Writer.Write(Altered(new AlterTableAction.DropColumn(new Identifier("c"), null, true) { IfExists = true }))),
+				SqlWriter.Write(Altered(new AlterTableAction.DropColumn(new Identifier("c"), null, true))),
+				SqlWriter.Write(Altered(new AlterTableAction.DropColumn(new Identifier("c"), null, true) { IfExists = true }))),
 			"IfExists on a constraint dropped" => (
-				Sql2023Writer.Write(Altered(new AlterTableAction.DropConstraint(T, null))),
-				Sql2023Writer.Write(Altered(new AlterTableAction.DropConstraint(T, null) { IfExists = true }))),
+				SqlWriter.Write(Altered(new AlterTableAction.DropConstraint(T, null))),
+				SqlWriter.Write(Altered(new AlterTableAction.DropConstraint(T, null) { IfExists = true }))),
 			"Unique on an index" => (
-				Sql2023Writer.Write(Tabled(null, Indexed(new IndexDefinition(new Identifier("i"))))),
-				Sql2023Writer.Write(Tabled(null, Indexed(new IndexDefinition(new Identifier("i")) { Unique = true })))),
+				SqlWriter.Write(Tabled(null, Indexed(new IndexDefinition(new Identifier("i"))))),
+				SqlWriter.Write(Tabled(null, Indexed(new IndexDefinition(new Identifier("i")) { Unique = true })))),
 			"All on a rebuild" => (
-				Sql2023Writer.Write(Altered(new AlterTableAction.Rebuild(null, false, []))),
-				Sql2023Writer.Write(Altered(new AlterTableAction.Rebuild(null, true, [])))),
+				SqlWriter.Write(Altered(new AlterTableAction.Rebuild(null, false, []))),
+				SqlWriter.Write(Altered(new AlterTableAction.Rebuild(null, true, [])))),
 			"All on CHECK CONSTRAINT" => (
-				Sql2023Writer.Write(Altered(new AlterTableAction.CheckConstraints(ConstraintCheck.Check, false, [new Identifier("c")]))),
-				Sql2023Writer.Write(Altered(new AlterTableAction.CheckConstraints(ConstraintCheck.Check, true, [])))),
+				SqlWriter.Write(Altered(new AlterTableAction.CheckConstraints(ConstraintCheck.Check, false, [new Identifier("c")]))),
+				SqlWriter.Write(Altered(new AlterTableAction.CheckConstraints(ConstraintCheck.Check, true, [])))),
 			"All on ENABLE TRIGGER" => (
-				Sql2023Writer.Write(Altered(new AlterTableAction.Triggers(true, false, [new Identifier("g")]))),
-				Sql2023Writer.Write(Altered(new AlterTableAction.Triggers(true, true, [])))),
+				SqlWriter.Write(Altered(new AlterTableAction.Triggers(true, false, [new Identifier("g")]))),
+				SqlWriter.Write(Altered(new AlterTableAction.Triggers(true, true, [])))),
 			"Enable on triggers" => (
-				Sql2023Writer.Write(Altered(new AlterTableAction.Triggers(false, true, []))),
-				Sql2023Writer.Write(Altered(new AlterTableAction.Triggers(true, true, [])))),
+				SqlWriter.Write(Altered(new AlterTableAction.Triggers(false, true, []))),
+				SqlWriter.Write(Altered(new AlterTableAction.Triggers(true, true, [])))),
 			"Enable on change tracking" => (
-				Sql2023Writer.Write(Altered(new AlterTableAction.ChangeTracking(false, []))),
-				Sql2023Writer.Write(Altered(new AlterTableAction.ChangeTracking(true, [])))),
+				SqlWriter.Write(Altered(new AlterTableAction.ChangeTracking(false, []))),
+				SqlWriter.Write(Altered(new AlterTableAction.ChangeTracking(true, [])))),
 			"Add on a column property" => (
-				Sql2023Writer.Write(Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.Property(false, ColumnPropertyKind.Sparse, null, []), true))),
-				Sql2023Writer.Write(Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.Property(true, ColumnPropertyKind.Sparse, null, []), true)))),
+				SqlWriter.Write(Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.Property(false, ColumnPropertyKind.Sparse, null, []), true))),
+				SqlWriter.Write(Altered(new AlterTableAction.AlterColumn(new Identifier("c"), new AlterColumnAction.Property(true, ColumnPropertyKind.Sparse, null, []), true)))),
 			"OnDeleteCascade on a connection" => (
-				Sql2023Writer.Write(Tabled(TableKind.Edge, new TableElement.TableConstraint(new Constraint.Connection([new EdgeConnection(T, U)], false)))),
-				Sql2023Writer.Write(Tabled(TableKind.Edge, new TableElement.TableConstraint(new Constraint.Connection([new EdgeConnection(T, U)], true))))),
+				SqlWriter.Write(Tabled(TableKind.Edge, new TableElement.TableConstraint(new Constraint.Connection([new EdgeConnection(T, U)], false)))),
+				SqlWriter.Write(Tabled(TableKind.Edge, new TableElement.TableConstraint(new Constraint.Connection([new EdgeConnection(T, U)], true))))),
 			"Unique on CREATE INDEX" => (
-				Sql2023Writer.Write(Created(new IndexDefinition(I))),
-				Sql2023Writer.Write(Created(new IndexDefinition(I) { Unique = true }))),
+				SqlWriter.Write(Created(new IndexDefinition(I))),
+				SqlWriter.Write(Created(new IndexDefinition(I) { Unique = true }))),
 			"Primary on an XML index" => (
-				Sql2023Writer.Write(new Statement.CreateXmlIndex(T, I, C)),
-				Sql2023Writer.Write(new Statement.CreateXmlIndex(T, I, C) { Primary = true })),
+				SqlWriter.Write(new Statement.CreateXmlIndex(T, I, C)),
+				SqlWriter.Write(new Statement.CreateXmlIndex(T, I, C) { Primary = true })),
 			"All on ALTER INDEX" => (
-				Sql2023Writer.Write(new Statement.AlterIndex(T, new IndexAlteration.Disable()) { Name = I }),
-				Sql2023Writer.Write(new Statement.AlterIndex(T, new IndexAlteration.Disable()) { All = true })),
+				SqlWriter.Write(new Statement.AlterIndex(T, new IndexAlteration.Disable()) { Name = I }),
+				SqlWriter.Write(new Statement.AlterIndex(T, new IndexAlteration.Disable()) { All = true })),
 			"AllPartitions on an index rebuilt" => (
-				Sql2023Writer.Write(new Statement.AlterIndex(T, new IndexAlteration.Rebuild(null, false, [])) { Name = I }),
-				Sql2023Writer.Write(new Statement.AlterIndex(T, new IndexAlteration.Rebuild(null, true, [])) { Name = I })),
+				SqlWriter.Write(new Statement.AlterIndex(T, new IndexAlteration.Rebuild(null, false, [])) { Name = I }),
+				SqlWriter.Write(new Statement.AlterIndex(T, new IndexAlteration.Rebuild(null, true, [])) { Name = I })),
 			"StatisticalSemantics on a full-text column" => (
-				Sql2023Writer.Write(FullText(new FullTextAlteration.AddColumns([new FullTextIndexColumn(C)]))),
-				Sql2023Writer.Write(FullText(new FullTextAlteration.AddColumns([new FullTextIndexColumn(C) { StatisticalSemantics = true }])))),
+				SqlWriter.Write(FullText(new FullTextAlteration.AddColumns([new FullTextIndexColumn(C)]))),
+				SqlWriter.Write(FullText(new FullTextAlteration.AddColumns([new FullTextIndexColumn(C) { StatisticalSemantics = true }])))),
 			"Add on a full-text column altered" => (
-				Sql2023Writer.Write(FullText(new FullTextAlteration.AlterColumn(new FullTextIndexColumn(C), false))),
-				Sql2023Writer.Write(FullText(new FullTextAlteration.AlterColumn(new FullTextIndexColumn(C), true)))),
+				SqlWriter.Write(FullText(new FullTextAlteration.AlterColumn(new FullTextIndexColumn(C), false))),
+				SqlWriter.Write(FullText(new FullTextAlteration.AlterColumn(new FullTextIndexColumn(C), true)))),
 			"Off against System on a stoplist" => (
-				Sql2023Writer.Write(FullText(new FullTextAlteration.SetStopList(null, false, true))),
-				Sql2023Writer.Write(FullText(new FullTextAlteration.SetStopList(null, true, false)))),
+				SqlWriter.Write(FullText(new FullTextAlteration.SetStopList(null, false, true))),
+				SqlWriter.Write(FullText(new FullTextAlteration.SetStopList(null, true, false)))),
 			"Off on a search property list" => (
-				Sql2023Writer.Write(FullText(new FullTextAlteration.SetSearchPropertyList(new Identifier("p"), false))),
-				Sql2023Writer.Write(FullText(new FullTextAlteration.SetSearchPropertyList(null, true)))),
+				SqlWriter.Write(FullText(new FullTextAlteration.SetSearchPropertyList(new Identifier("p"), false))),
+				SqlWriter.Write(FullText(new FullTextAlteration.SetSearchPropertyList(null, true)))),
 			"Verb on a view" => (
-				Sql2023Writer.Write(Viewed() with { Verb = DefinitionVerb.Alter }),
-				Sql2023Writer.Write(Viewed() with { Verb = DefinitionVerb.CreateOrAlter })),
+				SqlWriter.Write(Viewed() with { Verb = DefinitionVerb.Alter }),
+				SqlWriter.Write(Viewed() with { Verb = DefinitionVerb.CreateOrAlter })),
 			"a sequence's cache against none" => (
-				Sql2023Writer.Write(new Statement.CreateSequence { Name = T, Options = [new SequenceOption.Cache(null)] }),
-				Sql2023Writer.Write(new Statement.CreateSequence { Name = T, Options = [new SequenceOption.NoCache()] })),
+				SqlWriter.Write(new Statement.CreateSequence { Name = T, Options = [new SequenceOption.Cache(null)] }),
+				SqlWriter.Write(new Statement.CreateSequence { Name = T, Options = [new SequenceOption.NoCache()] })),
 			"Max on a character type" => (
-				Sql2023Writer.Write(new DataType.Character(CharacterTypeKind.Varchar)),
-				Sql2023Writer.Write(new DataType.Character(CharacterTypeKind.Varchar, Max: true))),
+				SqlWriter.Write(new DataType.Character(CharacterTypeKind.Varchar)),
+				SqlWriter.Write(new DataType.Character(CharacterTypeKind.Varchar, Max: true))),
 			"Max on a binary type" => (
-				Sql2023Writer.Write(new DataType.Binary(BinaryTypeKind.Varbinary)),
-				Sql2023Writer.Write(new DataType.Binary(BinaryTypeKind.Varbinary, Max: true))),
+				SqlWriter.Write(new DataType.Binary(BinaryTypeKind.Varbinary)),
+				SqlWriter.Write(new DataType.Binary(BinaryTypeKind.Varbinary, Max: true))),
 			_ => (
-				Sql2023Writer.Write(new Expression.Comparison(A, ComparisonOperator.NotEqual, B)),
-				Sql2023Writer.Write(new Expression.Comparison(A, ComparisonOperator.NotEqual, B, Exclamation: true))),
+				SqlWriter.Write(new Expression.Comparison(A, ComparisonOperator.NotEqual, B)),
+				SqlWriter.Write(new Expression.Comparison(A, ComparisonOperator.NotEqual, B, Exclamation: true))),
 		};
 
 		Assert.NotEqual(without, with);
@@ -1117,12 +1117,12 @@ public sealed class Sql2023WriterCoverageTests
 		var named = new Statement.Rollback { Keyword = TransactionKeyword.Transaction, Name = Saved };
 		var saved = new Statement.Rollback { ToSavepoint = new Identifier("s") };
 
-		Assert.Contains("ROLLBACK TRANSACTION s", Sql2023Writer.Write(named), StringComparison.Ordinal);
-		Assert.Contains("TO SAVEPOINT s", Sql2023Writer.Write(saved), StringComparison.Ordinal);
+		Assert.Contains("ROLLBACK TRANSACTION s", SqlWriter.Write(named), StringComparison.Ordinal);
+		Assert.Contains("TO SAVEPOINT s", SqlWriter.Write(saved), StringComparison.Ordinal);
 
 		var both = named with { ToSavepoint = new Identifier("s") };
 
-		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(both));
+		Assert.Throws<ArgumentException>(() => SqlWriter.Write(both));
 	}
 
 	/// <summary>
@@ -1142,7 +1142,7 @@ public sealed class Sql2023WriterCoverageTests
 
 		Assert.Equal(
 			"DENY SELECT ON t TO PUBLIC CASCADE AS keeper",
-			Sql2023Writer.Write(new Statement.Deny(
+			SqlWriter.Write(new Statement.Deny(
 				[select],
 				[new Grantee.Public()],
 				new PrivilegeObject.Named(PrivilegeObjectKind.Table, table),
@@ -1152,7 +1152,7 @@ public sealed class Sql2023WriterCoverageTests
 		// A server permission names no securable, so there is no ON at all.
 		Assert.Equal(
 			"GRANT SELECT TO PUBLIC",
-			Sql2023Writer.Write(new Statement.Grant
+			SqlWriter.Write(new Statement.Grant
 			{
 				Body = new GrantBody.Privileges([select], null, [new Grantee.Public()], false, false, null),
 			}).TrimEnd(';', ' '));
@@ -1160,7 +1160,7 @@ public sealed class Sql2023WriterCoverageTests
 		// And the column list that follows the SECURABLE rather than the permission.
 		Assert.Contains(
 			"ON t (a, b)",
-			Sql2023Writer.Write(new Statement.Grant
+			SqlWriter.Write(new Statement.Grant
 			{
 				Body = new GrantBody.Privileges(
 					[select],
@@ -1172,7 +1172,7 @@ public sealed class Sql2023WriterCoverageTests
 		// T-SQL's permissions, its two shorter spellings, a securable's class, and NULL among the grantees.
 		Assert.Equal(
 			"GRANT ALL, EXEC, EXECUTE, VIEW DEFINITION (c) ON SCHEMA::s TO u, NULL WITH GRANT OPTION",
-			Sql2023Writer.Write(new Statement.Grant
+			SqlWriter.Write(new Statement.Grant
 			{
 				Body = new GrantBody.Privileges(
 					[
@@ -1190,7 +1190,7 @@ public sealed class Sql2023WriterCoverageTests
 
 		Assert.Equal(
 			"DENY ALTER ON DATABASE SCOPED CREDENTIAL::s TO NULL",
-			Sql2023Writer.Write(new Statement.Deny(
+			SqlWriter.Write(new Statement.Deny(
 				[new Privilege(PrivilegeKind.Alter, [], [])],
 				[new Grantee.Null()],
 				Securable(SecurableClass.DatabaseScopedCredential))).TrimEnd(';', ' '));
@@ -1210,13 +1210,13 @@ public sealed class Sql2023WriterCoverageTests
 	{
 		var select = new Privilege(PrivilegeKind.Select, [], []);
 
-		Assert.Throws<ArgumentOutOfRangeException>(() => Sql2023Writer.Write(Granted(null, select with { Abbreviated = true })));
+		Assert.Throws<ArgumentOutOfRangeException>(() => SqlWriter.Write(Granted(null, select with { Abbreviated = true })));
 
-		Assert.Contains("ON OBJECT::s", Sql2023Writer.Write(Granted(Securable(SecurableClass.Object), select)), StringComparison.Ordinal);
-		Assert.Contains("ON s TO",      Sql2023Writer.Write(Granted(Securable(null), select)), StringComparison.Ordinal);
+		Assert.Contains("ON OBJECT::s", SqlWriter.Write(Granted(Securable(SecurableClass.Object), select)), StringComparison.Ordinal);
+		Assert.Contains("ON s TO",      SqlWriter.Write(Granted(Securable(null), select)), StringComparison.Ordinal);
 		Assert.Contains(
 			"ON SCHEMA::s (c)",
-			Sql2023Writer.Write(Granted(new PrivilegeObject.Classed(SecurableClass.Schema, new QualifiedName([new Identifier("s")]), [new Identifier("c")]), select)),
+			SqlWriter.Write(Granted(new PrivilegeObject.Classed(SecurableClass.Schema, new QualifiedName([new Identifier("s")]), [new Identifier("c")]), select)),
 			StringComparison.Ordinal);
 	}
 
@@ -1224,8 +1224,8 @@ public sealed class Sql2023WriterCoverageTests
 	[Fact]
 	public void A_binary_literal_writes_its_own_introducer()
 	{
-		Assert.Equal("X'0A'", Sql2023Writer.Write(new LiteralValue.Binary("'0A'")));
-		Assert.Equal("0x0A", Sql2023Writer.Write(new LiteralValue.Binary("0A") { ZeroX = true }));
+		Assert.Equal("X'0A'", SqlWriter.Write(new LiteralValue.Binary("'0A'")));
+		Assert.Equal("0x0A", SqlWriter.Write(new LiteralValue.Binary("0A") { ZeroX = true }));
 	}
 
 	/// <summary>
@@ -1894,7 +1894,7 @@ public sealed class Sql2023WriterCoverageTests
 			_                                       => new LiteralValue.Binary("0A"),
 		};
 
-		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(node));
+		Assert.ThrowsAny<ArgumentException>(() => SqlWriter.Write(node));
 	}
 
 	/// <summary><c>2</c>.</summary>
@@ -2141,7 +2141,7 @@ new TableSource.ContainsTable(T, [Searched(), new Expression.Asterisk()], A, nul
 			_                                                    => json([Column("'$.a') AS j; DROP TABLE t; --")]),
 		};
 
-		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(node));
+		Assert.ThrowsAny<ArgumentException>(() => SqlWriter.Write(node));
 	}
 
 	/// <summary>
@@ -2198,12 +2198,12 @@ new TableSource.ContainsTable(T, [Searched(), new Expression.Asterisk()], A, nul
 				new TableSource.Join { Left = t, Right = Pivoted(u), Specification = new JoinSpecification.On(ca) },
 		};
 
-		var text = Sql2023Writer.Write(new Statement.Select { Query = Joined(source) });
+		var text = SqlWriter.Write(new Statement.Select { Query = Joined(source) });
 
 		Assert.Contains("FROM " + written, text, StringComparison.Ordinal);
 
 		if (standard)
-			Assert.Equal(text, Sql2023Writer.Write(SqlStandardParser.ParseStatement(text)));
+			Assert.Equal(text, SqlWriter.Write(SqlStandardParser.ParseStatement(text)));
 
 		if (transactSql)
 			Assert.Equal(text, TransactSqlWriter.Write(TransactSqlParser.Located.ParseStatement(text)));
@@ -2263,16 +2263,16 @@ new TableSource.ContainsTable(T, [Searched(), new Expression.Asterisk()], A, nul
 			_                    => new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([t with { DataSource = Server }]), Table = true },
 		};
 
-		Assert.Contains(written, Sql2023Writer.Write(node), StringComparison.Ordinal);
+		Assert.Contains(written, SqlWriter.Write(node), StringComparison.Ordinal);
 	}
 
 	/// <summary>SQL-92's own nodes, which SQL:2003 removed, written as SQL-92 writes them.</summary>
 	[Fact]
 	public void SQL92s_own_nodes_are_written()
 	{
-		Assert.Equal("SELECT a FROM t UNION JOIN u", Sql2023Writer.Write(Selected with { From = new FromClause([UnionJoin]) }));
-		Assert.Equal("B'0101'", Sql2023Writer.Write(new LiteralValue.BitString("'0101'")));
-		Assert.Equal("BIT VARYING(8)", Sql2023Writer.Write(new DataType.BitString(BitStringTypeKind.BitVarying, 8)));
+		Assert.Equal("SELECT a FROM t UNION JOIN u", SqlWriter.Write(Selected with { From = new FromClause([UnionJoin]) }));
+		Assert.Equal("B'0101'", SqlWriter.Write(new LiteralValue.BitString("'0101'")));
+		Assert.Equal("BIT VARYING(8)", SqlWriter.Write(new DataType.BitString(BitStringTypeKind.BitVarying, 8)));
 	}
 
 	static readonly TableSource.Join UnionJoin = new()
@@ -2288,7 +2288,7 @@ new TableSource.ContainsTable(T, [Searched(), new Expression.Asterisk()], A, nul
 	{
 		var empty = new Statement.Commit { Keyword = TransactionKeyword.Transaction, Name = new TransactionName(null) };
 
-		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(empty));
+		Assert.Throws<ArgumentException>(() => SqlWriter.Write(empty));
 	}
 
 	// A value the writer refuses outright is not a silent one, so a throw is read as "it has text for
@@ -2297,7 +2297,7 @@ new TableSource.ContainsTable(T, [Searched(), new Expression.Asterisk()], A, nul
 	{
 		try
 		{
-			return Sql2023Writer.Write(build(value));
+			return SqlWriter.Write(build(value));
 		}
 		catch (Exception)
 		{

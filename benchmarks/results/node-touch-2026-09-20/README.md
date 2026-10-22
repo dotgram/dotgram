@@ -8,7 +8,7 @@ The question, as the architect put it: of the nodes a parse builds, how many doe
 - **reachable**: nodes in the returned tree (a walk over its properties, by reflection, with the counter off);
 - **fetched**: nodes a consumer got hold of through a getter, with the counter on only around the consumer, plus the node the caller handed to it. **A getter that returns an array or a list counts every element in it as fetched**: for a consumer that takes an array and reads only some elements the true figure is lower, so fetched is an upper bound for such a consumer.
 
-**Consumers.** (1) The writer, `SqlWriter.Write` (`Sql2023Writer.Write` for SQL:2023), what `--roundtrip` runs; it reads the whole tree by definition, so it is the control that the counter counts. (2) A host that asks a script the kind of each statement and does not go inside: the statement is touched and nothing under it. (2) is a count by construction (one node a statement), not a rewritten reading.
+**Consumers.** (1) The writer, `SqlWriter.Write` (`SqlWriter.Write` for SQL:2023), what `--roundtrip` runs; it reads the whole tree by definition, so it is the control that the counter counts. (2) A host that asks a script the kind of each statement and does not go inside: the statement is touched and nothing under it. (2) is a count by construction (one node a statement), not a rewritten reading.
 
 **Corpus.** ScriptDom's own (`tests/Corpus/ScriptDom`, 1,086 files), cut into statements by ScriptDom the way `--roundtrip` cuts them, each read by `TransactSqlParser.TryParseStatement`. 7,694 statements read by this grammar and written by the writer (665 refused, none threw). See `output.txt`.
 

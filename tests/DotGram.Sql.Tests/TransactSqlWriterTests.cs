@@ -12,7 +12,7 @@ using Xunit;
 
 namespace DotGram.Sql.Tests;
 
-// Inside this namespace an unqualified name is the OLD tree's; see Sql2023WriterCoverageTests.
+// Inside this namespace an unqualified name is the OLD tree's; see SqlWriterCoverageTests.
 using Expression = DotGram.Sql.Ast.Expression;
 using Identifier = DotGram.Sql.Ast.Identifier;
 using LiteralValue = DotGram.Sql.Ast.LiteralValue;
@@ -22,7 +22,7 @@ using Query = DotGram.Sql.Ast.Query;
 using Statement = DotGram.Sql.Ast.Statement;
 
 /// <summary>
-/// T-SQL's writer (TransactSqlWriter): the trees T-SQL would read as others refused, which Sql2023Writer.Write still
+/// T-SQL's writer (TransactSqlWriter): the trees T-SQL would read as others refused, which SqlWriter.Write still
 /// writes, the same trees with their names bracketed written and read back, and every place that writes a key word into
 /// a name or value slot written and read back.
 /// </summary>
@@ -77,7 +77,7 @@ public sealed class TransactSqlWriterTests
 	/// <summary>The writer's list, read by reflection: it is internal to the package.</summary>
 	static HashSet<string> Reserved()
 	{
-		var text  = typeof(Sql2023Writer).GetNestedType("Text", BindingFlags.NonPublic)!;
+		var text  = typeof(SqlWriter).GetNestedType("Text", BindingFlags.NonPublic)!;
 		var field = text.GetField("TransactSqlReserved", BindingFlags.NonPublic | BindingFlags.Static)!;
 
 		return (HashSet<string>)field.GetValue(null)!;
@@ -151,7 +151,7 @@ public sealed class TransactSqlWriterTests
 		var tree = Named(which, Plain);
 
 		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(tree));
-		Assert.NotEmpty(Sql2023Writer.Write(tree));
+		Assert.NotEmpty(SqlWriter.Write(tree));
 	}
 
 	/// <summary>The same trees with the name bracketed: written, and read back by TransactSqlParser to the same tree.</summary>
@@ -203,7 +203,7 @@ public sealed class TransactSqlWriterTests
 		}
 
 		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(Atomic(Plain("DEFAULT"))));
-		Assert.NotEmpty(Sql2023Writer.Write(Atomic(Plain("DEFAULT"))));
+		Assert.NotEmpty(SqlWriter.Write(Atomic(Plain("DEFAULT"))));
 
 		var tree   = Atomic(Bracketed("DEFAULT"));
 		var source = "CREATE PROCEDURE p WITH NATIVE_COMPILATION, SCHEMABINDING AS " + TransactSqlWriter.Write(tree);
@@ -296,7 +296,7 @@ public sealed class TransactSqlWriterTests
 
 		Assert.NotEqual(tree, changed);
 		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(changed));
-		Assert.NotEmpty(Sql2023Writer.Write(changed));
+		Assert.NotEmpty(SqlWriter.Write(changed));
 	}
 
 	/// <summary>The same places with the name the grammar reads there: written and read back to the same tree.</summary>
@@ -344,7 +344,7 @@ public sealed class TransactSqlWriterTests
 
 		Assert.NotEqual(tree, changed);
 		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(changed));
-		Assert.NotEmpty(Sql2023Writer.Write(changed));
+		Assert.NotEmpty(SqlWriter.Write(changed));
 	}
 
 	/// <summary>The places that do read one: a column, a call through <c>$PARTITION</c>, and the column lists that name the engine's own.</summary>
@@ -421,7 +421,7 @@ public sealed class TransactSqlWriterTests
 		if (!written)
 		{
 			Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(changed));
-			Assert.NotEmpty(Sql2023Writer.Write(changed));
+			Assert.NotEmpty(SqlWriter.Write(changed));
 
 			return;
 		}
@@ -453,7 +453,7 @@ public sealed class TransactSqlWriterTests
 
 		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(literal));
 		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(other));
-		Assert.NotEmpty(Sql2023Writer.Write(literal));
+		Assert.NotEmpty(SqlWriter.Write(literal));
 	}
 
 	[Fact]
@@ -477,7 +477,7 @@ public sealed class TransactSqlWriterTests
 
 		Assert.Equal(tree, Read(TransactSqlWriter.Write(tree)));
 
-		var text2 = typeof(Sql2023Writer).GetNestedType("Text", BindingFlags.NonPublic)!;
+		var text2 = typeof(SqlWriter).GetNestedType("Text", BindingFlags.NonPublic)!;
 		var table = (Dictionary<string, int>)text2.GetField("StandardTypeArguments", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
 		var wrong = new List<string>();
 
@@ -528,7 +528,7 @@ public sealed class TransactSqlWriterTests
 	[Fact]
 	public void The_system_types_are_the_rules_s()
 	{
-		var text  = typeof(Sql2023Writer).GetNestedType("Text", BindingFlags.NonPublic)!;
+		var text  = typeof(SqlWriter).GetNestedType("Text", BindingFlags.NonPublic)!;
 		var field = text.GetField("TransactSqlSystemTypes", BindingFlags.NonPublic | BindingFlags.Static)!;
 		var types = (HashSet<string>)field.GetValue(null)!;
 
@@ -569,7 +569,7 @@ public sealed class TransactSqlWriterTests
 		if (!written)
 		{
 			Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(changed));
-			Assert.NotEmpty(Sql2023Writer.Write(changed));
+			Assert.NotEmpty(SqlWriter.Write(changed));
 
 			return;
 		}
@@ -633,7 +633,7 @@ public sealed class TransactSqlWriterTests
 	/// <summary>
 	/// Every place T-SQL reads a search condition at writes it through PutCondition: the condition is written and read
 	/// back; a value in its place is refused (Msg 4145, "An expression of non-boolean type specified in a context where a
-	/// condition is expected"), and Sql2023Writer.Write, which has no such check, writes it.
+	/// condition is expected"), and SqlWriter.Write, which has no such check, writes it.
 	/// </summary>
 	[Theory]
 	[InlineData("IF @a = 1 PRINT 1")]
@@ -661,7 +661,7 @@ public sealed class TransactSqlWriterTests
 
 		Assert.NotEqual(tree, swapped);
 		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(swapped));
-		Assert.NotEmpty(Sql2023Writer.Write(swapped));
+		Assert.NotEmpty(SqlWriter.Write(swapped));
 	}
 
 	/// <summary>
@@ -722,7 +722,7 @@ public sealed class TransactSqlWriterTests
 		var select = new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(new Expression.Comparison(new Expression.Reference(Q(Plain("a"))), ComparisonOperator.Greater, one))] } };
 
 		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(select));
-		Assert.Equal("SELECT a > 1", Sql2023Writer.Write(select));
+		Assert.Equal("SELECT a > 1", SqlWriter.Write(select));
 	}
 
 	// ── Signed numbers ───────────────────────────────────────────────────────────
@@ -777,7 +777,7 @@ public sealed class TransactSqlWriterTests
 
 	/// <summary>
 	/// <c>SELECT -1</c> is a minus over 1 where an expression is read, and reads back so; a number whose text begins with a
-	/// sign in its place is refused (T-SQL reads it as the minus), which Sql2023Writer.Write still writes.
+	/// sign in its place is refused (T-SQL reads it as the minus), which SqlWriter.Write still writes.
 	/// </summary>
 	[Fact]
 	public void A_minus_over_a_number_is_an_expression_where_one_is_read()
@@ -793,7 +793,7 @@ public sealed class TransactSqlWriterTests
 		Assert.Equal("SELECT -1", text);
 		Assert.Equal(tree, Read(text));
 		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(Selected(Signed)));
-		Assert.Equal("SELECT -1", Sql2023Writer.Write(Selected(Signed)));
+		Assert.Equal("SELECT -1", SqlWriter.Write(Selected(Signed)));
 	}
 
 	// ── Option placement and the round's spellings ───────────────────────────────
@@ -974,7 +974,7 @@ public sealed class TransactSqlWriterTests
 			: (Statement.Rollback)Read("ROLLBACK TRANSACTION x") with { Name = both };
 
 		Assert.ThrowsAny<ArgumentException>(() => TransactSqlWriter.Write(tree));
-		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(tree));
+		Assert.ThrowsAny<ArgumentException>(() => SqlWriter.Write(tree));
 	}
 
 	/// <summary>
@@ -1112,9 +1112,9 @@ public sealed class TransactSqlWriterTests
 		var tree = WithNumber("SELECT a FROM t WHERE a = 1", new LiteralValue.Numeric(text, kind));
 
 		if (written)
-			Assert.Equal("SELECT a FROM t WHERE a = " + text, Sql2023Writer.Write(tree));
+			Assert.Equal("SELECT a FROM t WHERE a = " + text, SqlWriter.Write(tree));
 		else
-			Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(tree));
+			Assert.ThrowsAny<ArgumentException>(() => SqlWriter.Write(tree));
 	}
 
 	/// <summary>
@@ -1214,7 +1214,7 @@ public sealed class TransactSqlWriterTests
 
 		// The standard's writer has a text for the forms of the standard; the others it refuses for its own reasons.
 		if (which is not ("a boolean literal" or "an interval literal" or "a name as a member" or "a call with a named argument" or "the plain name VALUE" or "the plain name VALUE qualified" or "a dereference"))
-			Sql2023Writer.Write(tree);
+			SqlWriter.Write(tree);
 	}
 
 	/// <summary>The forms T-SQL does read at the places that read them are still written and read back.</summary>
@@ -1352,7 +1352,7 @@ public sealed class TransactSqlWriterTests
 		var tree = new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.ExpressionItem(call)] } };
 
 		Assert.ThrowsAny<Exception>(() => TransactSqlWriter.Write(tree));
-		Assert.ThrowsAny<Exception>(() => Sql2023Writer.Write(tree));
+		Assert.ThrowsAny<Exception>(() => SqlWriter.Write(tree));
 	}
 
 	/// <summary>

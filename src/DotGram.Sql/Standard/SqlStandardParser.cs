@@ -35,7 +35,7 @@ namespace DotGram.Sql.Standard;
 /// direct and diagnostics statements.
 /// It builds the SQL:2023 tree of <c>SqlAst.cs</c> (docs/design/sql-ast.md): names, literals,
 /// data types, expressions, queries, data change statements, schema definitions and the other
-/// statements above. <c>DotGram.Sql.Ast.Sql2023Writer</c> writes the tree back as SQL.
+/// statements above. <c>DotGram.Sql.Ast.SqlWriter</c> writes the tree back as SQL.
 /// </para>
 /// <para>
 /// <b>The towers are carried, not tried.</b> The BNF types its value expressions — numeric,

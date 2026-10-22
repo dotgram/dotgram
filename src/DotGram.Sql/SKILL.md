@@ -36,7 +36,7 @@ is what to decide before using one, the contract they share, and what is easy to
   entries: `ParseSelect` (an `Ast.Statement`, a `Statement.Select`), `ParseQuery` (an `Ast.Query`),
   `ParseSearchCondition` and `ParseValueExpression` (an `Ast.Expression`). It builds the tree in
   `DotGram.Sql.Ast`, the one `SqlStandardParser` builds: a text both read is the same tree, and
-  `Sql2023Writer` prints it back.
+  `SqlWriter` prints it back.
 
 ## The contract they share
 
@@ -52,7 +52,7 @@ is what to decide before using one, the contract they share, and what is easy to
   located or not. Every list a node holds is a `SqlList<T>`, read only and compared element by
   element; make one with `[a, b]`, `[.. items]` or `SqlList.From(items)` — an array does not
   convert. A list a record may leave out is a `SqlList<T>?`. Equality and the hash throw
-  `InsufficientExecutionStackException` on a tree deeper than the stack. `Sql2023Writer.Write`
+  `InsufficientExecutionStackException` on a tree deeper than the stack. `SqlWriter.Write`
   (in `DotGram.Sql.Ast`) prints a tree back as text; `TransactSqlWriter.Write` prints the same
   text and refuses a tree T-SQL would read as another one.
 - **`SqlWalker.Walk(root, visit)`** hands every node under `root` to `visit`, parent first,
@@ -144,13 +144,13 @@ using Ast = DotGram.Sql.Ast;
 using DotGram.Sql.Standard;
 
 Ast.Expression e = SqlStandardParser.ParseExpression("a + b * 2");
-string again     = Ast.Sql2023Writer.Write(e);     // a + b * 2
+string again     = Ast.SqlWriter.Write(e);     // a + b * 2
 
 bool standard = SqlStandardParser.TryParseStatement("SELECT TOP 1 a FROM t").IsSuccess;  // false
 
 // A statement's kind is the type of its node.
 if (SqlStandardParser.ParseStatement("SELECT a FROM t;") is Ast.Statement.Select { Query.Locking.Count: 0 } query)
-	again = Ast.Sql2023Writer.Write(query);         // SELECT a FROM t
+	again = Ast.SqlWriter.Write(query);         // SELECT a FROM t
 
 Ast.Statement[] all = SqlStandardParser.ParseSql("INSERT INTO t VALUES (1); DELETE FROM t");  // two
 ```

@@ -58,6 +58,6 @@ public sealed class LiteralValueTests
 	{
 		var read = SqlStandardParser.ParseExpression(text);
 
-		Assert.Equal(read, SqlStandardParser.ParseExpression(Sql2023Writer.Write(read)));
+		Assert.Equal(read, SqlStandardParser.ParseExpression(SqlWriter.Write(read)));
 	}
 }

@@ -11,7 +11,7 @@ using Xunit;
 
 namespace DotGram.Sql.Tests;
 
-// Inside this namespace an unqualified name is the OLD tree's; see Sql2023WriterCoverageTests.
+// Inside this namespace an unqualified name is the OLD tree's; see SqlWriterCoverageTests.
 using Expression = DotGram.Sql.Ast.Expression;
 using Identifier = DotGram.Sql.Ast.Identifier;
 using LiteralValue = DotGram.Sql.Ast.LiteralValue;
@@ -259,7 +259,7 @@ public sealed class WriterPrecedenceTests
 		"standard",
 		static (expression, condition) =>
 		{
-			return Sql2023Writer.Write(expression);
+			return SqlWriter.Write(expression);
 		},
 		static (text, condition) =>
 		{
@@ -505,8 +505,8 @@ public sealed class WriterPrecedenceTests
 		Standardly(Binary(Unary(UnaryOperator.Minus, A), BinaryOperator.Concatenate, subscripted), "-a || b[1]");
 		Standardly(Binary(Binary(Unary(UnaryOperator.Minus, A), BinaryOperator.Concatenate, C), BinaryOperator.Concatenate, subscripted), "-a || c || b[1]");
 		Standardly(Binary(Binary(A, BinaryOperator.Concatenate, Unary(UnaryOperator.Minus, C)), BinaryOperator.Concatenate, subscripted), "a || (-c) || b[1]");
-		Assert.Equal("-a || b[1]", Sql2023Writer.Write(SqlStandardParser.ParseExpression("-a || b[1]")));
-		Assert.Equal("-a || c || b[1]", Sql2023Writer.Write(SqlStandardParser.ParseExpression("-a || c || b[1]")));
+		Assert.Equal("-a || b[1]", SqlWriter.Write(SqlStandardParser.ParseExpression("-a || b[1]")));
+		Assert.Equal("-a || c || b[1]", SqlWriter.Write(SqlStandardParser.ParseExpression("-a || c || b[1]")));
 
 		// The typed value functions are each of one tower.
 		var date = new Expression.Current(CurrentValue.Date);
@@ -646,9 +646,9 @@ public sealed class WriterPrecedenceTests
 	{
 		var signed = Number("-1");
 
-		Assert.Equal("(-1)[1]", Sql2023Writer.Write(new Expression.Element(signed, One)));
-		Assert.Equal("-(-1)", Sql2023Writer.Write(Unary(UnaryOperator.Minus, signed)));
-		Assert.Equal("(-1) COLLATE x", Sql2023Writer.Write(Collate(signed, "x")));
+		Assert.Equal("(-1)[1]", SqlWriter.Write(new Expression.Element(signed, One)));
+		Assert.Equal("-(-1)", SqlWriter.Write(Unary(UnaryOperator.Minus, signed)));
+		Assert.Equal("(-1) COLLATE x", SqlWriter.Write(Collate(signed, "x")));
 
 		Assert.Equal(Unary(UnaryOperator.Minus, new Expression.Parenthesized(Unary(UnaryOperator.Minus, One))), Both.ParseValueExpression("-(-1)"));
 	}

@@ -24,7 +24,7 @@ using UnaryOperator = DotGram.Sql.Ast.UnaryOperator;
 using ComparisonOperator = DotGram.Sql.Ast.ComparisonOperator;
 
 /// <summary>
-/// The Database family's writer (Sql2023Writer.TransactSql.Database.cs): each record written and read back by
+/// The Database family's writer (SqlWriter.TransactSql.Database.cs): each record written and read back by
 /// TransactSqlParser to the same tree, and every tree whose text would read back as another refused.
 /// </summary>
 public sealed class DatabaseWriterTests
@@ -315,7 +315,7 @@ public sealed class DatabaseWriterTests
 	[InlineData("CHECKPOINT alone", "CHECKPOINT")]
 	public void Each_record_writes_its_text(string which, string text)
 	{
-		Assert.Equal(text, Sql2023Writer.Write(Tree(which)));
+		Assert.Equal(text, SqlWriter.Write(Tree(which)));
 	}
 
 	/// <summary>
@@ -743,6 +743,6 @@ public sealed class DatabaseWriterTests
 			_ => throw new ArgumentOutOfRangeException(nameof(which), which, null),
 		};
 
-		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(node));
+		Assert.ThrowsAny<ArgumentException>(() => SqlWriter.Write(node));
 	}
 }

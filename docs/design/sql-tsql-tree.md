@@ -12,7 +12,7 @@ written on 2026-09-15, and are decided too; they stay numbered so the work can c
 
 - T-SQL's own nodes are typed records in the standard's families, declared in a partial file,
   `SqlAst.TransactSql.cs`.
-- The writer first (done: `Sql2023Writer`), then `Sql92Parser` and T-SQL switch together; every commit
+- The writer first (done: `SqlWriter`), then `Sql92Parser` and T-SQL switch together; every commit
   keeps `--engine` with no defects and `--roundtrip` at 100%.
 - `[x]` is `IdentifierStyle.Bracketed`; `@x` and `@@x` are T-SQL's `Expression.Variable`; `0xFF` is read by
   each grammar as its dialect has it; T-SQL's `EXECUTE` of a module is a node of its own; `DROP … IF EXISTS`
@@ -51,7 +51,7 @@ written on 2026-09-15, and are decided too; they stay numbered so the work can c
   and the grammar's lists to one another; D148 says when the enum would give way to strings.
 - A word that names what — a statement, an object kind, an action — is a record; a word that says how is an enum
   member. So every DROP has a record of its own kind, even where the slots coincide.
-- The T-SQL writer's checks (writer round): `TransactSqlWriter.Write` is `Sql2023Writer`'s text with three refusals besides — a name written plain is never one of the grammar's `TSqlReserved` words (a place whose grammar reads a key word into a name or value slot writes it through `PutKeyWord`), a value never stands where T-SQL reads a search condition nor a condition where it reads a value (`PutCondition`), and a number's text never begins with a sign where an expression is read (`PutSignedNumber`).
+- The T-SQL writer's checks (writer round): `TransactSqlWriter.Write` is `SqlWriter`'s text with three refusals besides — a name written plain is never one of the grammar's `TSqlReserved` words (a place whose grammar reads a key word into a name or value slot writes it through `PutKeyWord`), a value never stands where T-SQL reads a search condition nor a condition where it reads a value (`PutCondition`), and a number's text never begins with a sign where an expression is read (`PutSignedNumber`).
 - A signed number is what the place's grammar builds, as in the standard's tree: where its action keeps a signed token as one literal (`'-'? & digits`: SetInteger, SetConstant, SetNumber, FetchRow, ExecValue, SpatialItem, a sequence's numbers, the text statements' offsets) the tree holds `LiteralValue.Numeric` with the sign in its text, and everywhere else a minus is `Expression.Unary` over the unsigned number.
 - An option that puts what it moves somewhere — `MOVE TO` and DROP INDEX's `FILESTREAM_ON` — holds its target in `Option.Place`, a `Placement` of kind `MoveTo` or `FilestreamOn`, never in its value, so the writer has one place to write a filegroup, a scheme and its column, or a quoted name.
 

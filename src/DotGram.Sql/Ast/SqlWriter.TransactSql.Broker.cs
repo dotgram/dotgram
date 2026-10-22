@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace DotGram.Sql.Ast;
 
-public static partial class Sql2023Writer
+public static partial class SqlWriter
 {
 	sealed partial class Text
 	{
@@ -967,7 +967,7 @@ public static partial class Sql2023Writer
 
 				PutValue(one, "SEND");
 
-				if (Sql2023Writer.Write(one, transactSql: true).StartsWith("(", StringComparison.Ordinal))
+				if (SqlWriter.Write(one, transactSql: true).StartsWith("(", StringComparison.Ordinal))
 					throw Misplaced(send, "Conversations", "that begins with a bracket and is not bracketed, which the grammar reads as the list of handles");
 			}
 

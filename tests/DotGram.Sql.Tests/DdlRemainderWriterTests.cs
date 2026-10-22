@@ -237,8 +237,8 @@ public sealed class DdlRemainderWriterTests
 	{
 		var node = new Statement.AlterTable { Name = Qualified("t"), Actions = [new AlterTableAction.DropPeriod(PeriodKind.SystemTime, null, null)] };
 
-		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(node));
-		Assert.ThrowsAny<ArgumentException>(() => Sql2023Writer.Write(Cast(new DataType.UserDefined(Qualified("t")) { Arguments = [Number("1")] })));
+		Assert.ThrowsAny<ArgumentException>(() => SqlWriter.Write(node));
+		Assert.ThrowsAny<ArgumentException>(() => SqlWriter.Write(Cast(new DataType.UserDefined(Qualified("t")) { Arguments = [Number("1")] })));
 	}
 
 	[Theory]

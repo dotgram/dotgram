@@ -6,7 +6,7 @@ using DotGram.Sql.TransactSql;
 
 namespace DotGram.Sql.Ast;
 
-public static partial class Sql2023Writer
+public static partial class SqlWriter
 {
 	sealed partial class Text
 	{
@@ -1688,8 +1688,8 @@ public static partial class Sql2023Writer
 			Close();
 
 			if (!Syntax.WithoutVariable(function.Arguments.Count == 0
-				? Sql2023Writer.Write(new Expression.Reference(function.Name), transactSql: true)
-				: string.Join(", ", function.Arguments.Select(static one => Sql2023Writer.Write(one, transactSql: true)))))
+				? SqlWriter.Write(new Expression.Reference(function.Name), transactSql: true)
+				: string.Join(", ", function.Arguments.Select(static one => SqlWriter.Write(one, transactSql: true)))))
 				throw Misplaced(function, "Arguments", "with a local variable, which a security policy does not take (Msg 112)");
 		}
 

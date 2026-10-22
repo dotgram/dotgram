@@ -82,13 +82,13 @@ is open until it is built, and `status.md` is what will say when it has been.
     `SqlStandardParser` reads, so that `--roundtrip` works again the moment T-SQL switches.
   - **The writer comes before the tree, and these three follow from it** (2026-09-26, after nine values
     were added to the tree and the writer answered for all nine with valid SQL of another meaning):
-    - A value with no arm is **refused**, not answered. `Sql2023Writer.NoText(value)` names the enum and
+    - A value with no arm is **refused**, not answered. `SqlWriter.NoText(value)` names the enum and
       the value. Before it, every switch ended in a catch-all returning a literal — 31 of them — so
       `ComparisonOperator.NotLess` wrote `>=` and the six bitwise operators wrote `OR`.
     - **A check that a value writes something is not a check that it writes the right thing.**
       Distinctness within an enum is the cheap proxy: two values writing one text is a defect unless
       the record carries the text, as `LiteralValue.Numeric` does and as `Identifier` does with its
-      delimiters. That exception is named in `Sql2023WriterCoverageTests` **and asserted** — change the
+      delimiters. That exception is named in `SqlWriterCoverageTests` **and asserted** — change the
       text, the output must change — so it cannot excuse a real defect by describing one.
     - **Where the reference publishes two words for one meaning, the tree keeps which was written.** One
       node for the meaning and a flag beside it, marked `[Spelling]`, because the round trip has to give
@@ -131,7 +131,7 @@ is open until it is built, and `status.md` is what will say when it has been.
   transaction, connection, session, diagnostics, dynamic and direct statements: every row tried and
   152,000 random verdicts agree with the BNF. Then the tree: begun 2026-09-14 in `sql-ast.md` and
   `Ast/SqlAst.cs`, and since 2026-09-15 `SqlStandardParser` builds the tree for all it reads.
-- ~~**A writer for the SQL:2023 tree.**~~ Done, 2026-09-15: `Ast/Sql2023Writer*.cs`, held by
+- ~~**A writer for the SQL:2023 tree.**~~ Done, 2026-09-15: `Ast/SqlWriter*.cs`, held by
   `--standard "~production" file`, which writes each tree the grammar builds, reads the text back and
   asks for the same tree and the same text — every fuzz family of the standard's grammar, over 60,000
   lines, with no difference. The first step of moving T-SQL onto the tree.

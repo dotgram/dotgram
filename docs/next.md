@@ -22943,7 +22943,7 @@ statement, now built; the other suspect is the generated class itself, grown by 
 ## The SQL:2023 tree written back
 
 T-SQL moves onto the SQL:2023 tree next (Igor, 2026-09-15, in `design/sql-parsers.md`), and its oracle for
-losslessness is a round trip through a writer, so the writer comes first. `Sql2023Writer` writes every node
+losslessness is a round trip through a writer, so the writer comes first. `SqlWriter` writes every node
 the standard's grammar builds, in three partial files: the expressions, the queries and data change
 statements, and the rest of the statements.
 

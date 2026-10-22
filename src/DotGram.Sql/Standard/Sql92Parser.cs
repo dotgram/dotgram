@@ -42,7 +42,7 @@ namespace DotGram.Sql.Standard;
 /// <b>What it reads it builds as the tree of <c>DotGram.Sql.Ast</c></b>, the one
 /// <see cref="SqlStandardParser"/> builds, and in the shape that parser gives the same text: the same
 /// records, members, list order, identifier styles, folds and brackets, so a text both read is one
-/// tree, and <c>Sql2023Writer</c> prints it back. <c>ParseSelect</c> gives a <c>Statement.Select</c>,
+/// tree, and <c>SqlWriter</c> prints it back. <c>ParseSelect</c> gives a <c>Statement.Select</c>,
 /// <c>ParseQuery</c> a <c>Query</c>, and <c>ParseSearchCondition</c> and <c>ParseValueExpression</c> an
 /// <c>Expression</c>. What SQL-92 has and SQL:2003 took out — a bit string literal, <c>BIT</c> and
 /// <c>BIT VARYING</c>, a union join — is SQL-92's own in that tree (<c>Ast/SqlAst.Sql92.cs</c>). An interval

@@ -15,7 +15,7 @@ namespace DotGram.Sql.Tests;
 
 /// <summary>
 /// What <see cref="Sql92Parser"/> builds, held to what <see cref="SqlStandardParser"/> builds for the same
-/// text, and to what <see cref="Sql2023Writer"/> writes back.
+/// text, and to what <see cref="SqlWriter"/> writes back.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -78,7 +78,7 @@ public sealed class Sql92TreeTests
 	const string Removed = "SQL-92's bit string type, bit string literal and union join, which SQL:2003 removed, are SQL-92's own records";
 
 	/// <summary>
-	/// What SQL-92 reads to a tree that no text <see cref="Sql2023Writer"/> writes reads back to, and why. Keyed as
+	/// What SQL-92 reads to a tree that no text <see cref="SqlWriter"/> writes reads back to, and why. Keyed as
 	/// <see cref="ReadBySql92Alone"/> is. Each is held to the writer writing the reading back as the same text, so
 	/// that only the tree the text gives differs, and each listed text is held to being met.
 	/// </summary>
@@ -93,7 +93,7 @@ public sealed class Sql92TreeTests
 	/// </summary>
 	public static bool IsWrittenAsAnotherTree(string text, string written, ISqlNode again)
 	{
-		return WrittenAsAnotherTree.ContainsKey(Spaced(text)) && Sql2023Writer.Write(again) == written;
+		return WrittenAsAnotherTree.ContainsKey(Spaced(text)) && SqlWriter.Write(again) == written;
 	}
 
 	/// <summary>Every text both read, at every level both read it, is the same tree.</summary>
@@ -117,7 +117,7 @@ public sealed class Sql92TreeTests
 				if (Equals(ours, theirs) || Differences.ContainsKey((level, text)))
 					continue;
 
-				faults.Add($"{level} `{text}`: SQL-92 built {Sql2023Writer.Write(ours)}, SQL:2023 built {Sql2023Writer.Write(theirs)}");
+				faults.Add($"{level} `{text}`: SQL-92 built {SqlWriter.Write(ours)}, SQL:2023 built {SqlWriter.Write(theirs)}");
 			}
 
 		Assert.True(compared > 300, $"{compared} readings compared");
@@ -234,7 +234,7 @@ public sealed class Sql92TreeTests
 	}
 
 	/// <summary>
-	/// What SQL-92 reads, <see cref="Sql2023Writer"/> writes, and SQL-92 reads back to the same tree.
+	/// What SQL-92 reads, <see cref="SqlWriter"/> writes, and SQL-92 reads back to the same tree.
 	/// </summary>
 	[Fact]
 	public void Every_text_SQL92_reads_is_the_same_tree_after_the_writer_and_a_reparse()
@@ -255,7 +255,7 @@ public sealed class Sql92TreeTests
 
 				try
 				{
-					written = Sql2023Writer.Write(first);
+					written = SqlWriter.Write(first);
 				}
 				catch (Exception failure)
 				{

@@ -114,15 +114,15 @@ public sealed class ShippedExampleTests
 	}
 
 	public static TheoryData<string, int> Pages => ShippedPages.Every(
-		ShippedPages.PageOf(typeof(Ast.Sql2023Writer), "README.md"),
-		ShippedPages.PageOf(typeof(Ast.Sql2023Writer), "SKILL.md"));
+		ShippedPages.PageOf(typeof(Ast.SqlWriter), "README.md"),
+		ShippedPages.PageOf(typeof(Ast.SqlWriter), "SKILL.md"));
 
 	/// <summary>The SKILL's second example: the standard's own parser, its writer, and what it refuses.</summary>
 	[Fact]
 	public void The_skill_standard_example_runs()
 	{
 		Ast.Expression e = SqlStandardParser.ParseExpression("a + b * 2");
-		string again     = Ast.Sql2023Writer.Write(e);     // a + b * 2
+		string again     = Ast.SqlWriter.Write(e);     // a + b * 2
 
 		Assert.Equal("a + b * 2", again);
 
@@ -132,7 +132,7 @@ public sealed class ShippedExampleTests
 
 		// A statement's kind is the type of its node.
 		if (SqlStandardParser.ParseStatement("SELECT a FROM t;") is Ast.Statement.Select { Query.Locking.Count: 0 } query)
-			again = Ast.Sql2023Writer.Write(query);         // SELECT a FROM t
+			again = Ast.SqlWriter.Write(query);         // SELECT a FROM t
 
 		Ast.Statement[] all = SqlStandardParser.ParseSql("INSERT INTO t VALUES (1); DELETE FROM t");  // two
 

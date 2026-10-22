@@ -118,8 +118,8 @@ public sealed class QualifiedNameTests
 
 		var reference = new Expression.Reference(none);
 
-		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(reference));
-		Assert.Throws<ArgumentException>(() => Sql2023Writer.Write(new LiteralValue.String("'abc'", StringLiteralKind.Character, new CharacterSetName(none))));
+		Assert.Throws<ArgumentException>(() => SqlWriter.Write(reference));
+		Assert.Throws<ArgumentException>(() => SqlWriter.Write(new LiteralValue.String("'abc'", StringLiteralKind.Character, new CharacterSetName(none))));
 		Assert.Throws<InvalidOperationException>(() => SqlWalker.Walk(reference, static _ => true));
 	}
 
@@ -133,8 +133,8 @@ public sealed class QualifiedNameTests
 		Assert.Null(bare.Scope);
 		Assert.True(bare is { Scope: null });
 		Assert.True(scoped is { Scope: [{ Text: "s" }, { Text: "u" }] });
-		Assert.Equal("REF(t)", Sql2023Writer.Write(bare));
-		Assert.Equal("REF(t) SCOPE s.u", Sql2023Writer.Write(scoped));
+		Assert.Equal("REF(t)", SqlWriter.Write(bare));
+		Assert.Equal("REF(t) SCOPE s.u", SqlWriter.Write(scoped));
 	}
 
 	/// <summary>The walker hands out each part of a name once, after the name, in order.</summary>

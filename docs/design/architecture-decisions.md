@@ -9793,7 +9793,7 @@ values stops making sense, where plain strings would be simpler.
   member; every member is a catalogue permission or one of the standard's four the catalogue lacks
   (ALL PRIVILEGES, USAGE, TRIGGER, UNDER); every member is named for its words; the grammar reads the
   catalogue's permissions and `ALL [PRIVILEGES]` and `EXEC`, and the catalogue's classes, and nothing
-  else. `Sql2023WriterCoverageTests` covers both enums, so no two members write one text.
+  else. `SqlWriterCoverageTests` covers both enums, so no two members write one text.
 - **When to revisit: the growth condition.** An enum is right while every dialect's permissions are
   a closed list its own parser refuses outside of, and the union stays in the hundreds. Revisit —
   with Igor, since it changes the public surface — when either stops being true: **a dialect would
@@ -9814,7 +9814,7 @@ values stops making sense, where plain strings would be simpler.
   - the writer's `Spelled`, whose `ALL` and `EXEC` arms become a test of the string;
   - `SqlStandardTreeTests`, whose printed trees change from `Privilege(Select, …)` to the string;
   - `Sql2023Ast.BnfMap.csv`, whose `action` and `object privileges` rows name `PrivilegeKind`;
-  - the `PrivilegeKind` entries of `Sql2023WriterCoverageTests` (`Covered`, the spelling pair and the
+  - the `PrivilegeKind` entries of `SqlWriterCoverageTests` (`Covered`, the spelling pair and the
     permission rows).
   Nothing names a T-SQL member by hand, and that is to stay so: a grammar that builds these nodes
   reaches a member through the generated table, never through a switch of its own.

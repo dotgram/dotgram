@@ -163,7 +163,7 @@ static class Standard
 	}
 
 	/// <summary>
-	/// Each line the rule reads, built, written by <see cref="Sql2023Writer"/>, read and built again: the
+	/// Each line the rule reads, built, written by <see cref="SqlWriter"/>, read and built again: the
 	/// trees must be one, and so must the texts written from them. What does not hold is shown, the first
 	/// of them whole.
 	/// </summary>
@@ -192,11 +192,11 @@ static class Standard
 
 			try
 			{
-				written = Sql2023Writer.Write(first) + terminator;
+				written = SqlWriter.Write(first) + terminator;
 				second  = Tree(parser, written);
 
 				if (second is not null)
-					again = Sql2023Writer.Write(second) + terminator;
+					again = SqlWriter.Write(second) + terminator;
 			}
 			catch (Exception exception)
 			{

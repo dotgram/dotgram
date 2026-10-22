@@ -10,7 +10,7 @@ namespace DotGram.Sql.TransactSql;
 /// </summary>
 /// <remarks>
 /// The old tree keeps some key words as the text they were written in — <c>distinct</c>, <c>current_user</c>, a cast's
-/// <c>varchar (10)</c> — and the new tree keeps the meaning, which <c>Sql2023Writer</c> prints in capitals. The members
+/// <c>varchar (10)</c> — and the new tree keeps the meaning, which <c>SqlWriter</c> prints in capitals. The members
 /// that hold such text are a closed list, <see cref="FreeText"/>, and two texts of one compare token by token
 /// (<see cref="SqlTokens"/>): blanks only between tokens, a word without case only where both are in the closed list
 /// <see cref="KeyWords"/> the writer capitalises, the <c>N</c> of a national string without case, and every other
@@ -205,7 +205,7 @@ static class BuildText
 	}
 
 	/// <summary>
-	/// The key words <c>Sql2023Writer</c> prints in capitals where the old tree keeps what was written: the
+	/// The key words <c>SqlWriter</c> prints in capitals where the old tree keeps what was written: the
 	/// only words <see cref="FreeText"/> compares without case.
 	/// </summary>
 	public static readonly HashSet<string> KeyWords = new(StringComparer.OrdinalIgnoreCase)

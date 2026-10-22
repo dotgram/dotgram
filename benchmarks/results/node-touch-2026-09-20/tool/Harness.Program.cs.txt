@@ -71,7 +71,7 @@ if (args.Length > 1 && args[0] == "--sql2023")
 	Walk(tree, here);
 	Counter.Fetched.Clear();
 	Counter.On = true;
-	DotGram.Sql.Ast.Sql2023Writer.Write(tree);
+	DotGram.Sql.Ast.SqlWriter.Write(tree);
 	Counter.On = false;
 	Counter.Fetched.Add(tree);
 
