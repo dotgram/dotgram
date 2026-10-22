@@ -43,7 +43,8 @@ public sealed class GeneratedOnNet8Tests
 	[MemberData(nameof(Snapshots))]
 	public void A_snapshot_is_what_the_generator_writes_here(string name)
 	{
-		var text = File.ReadAllText(Path.Combine(Directory, name + ".gram"));
+		var text    = File.ReadAllText(Path.Combine(Directory, name + ".gram"));
+		var written = new List<string>();
 
 		foreach (var (options, _) in SnapshotRenderings.Of(name, text, References))
 		{
@@ -53,6 +54,8 @@ public sealed class GeneratedOnNet8Tests
 
 			foreach (var source in result.Sources)
 			{
+				written.Add(source.HintName);
+
 				var held = Path.Combine(Directory, source.HintName);
 
 				Assert.True(File.Exists(held), $"No snapshot '{source.HintName}' to hold the output to.");
@@ -61,6 +64,16 @@ public sealed class GeneratedOnNet8Tests
 					$"On .NET {Environment.Version} the generator wrote '{source.HintName}' differently from the snapshot.");
 			}
 		}
+
+		// And the files themselves: a part the snapshots hold and the generator no longer writes, or
+		// one it writes beside them, is a difference too. Every file of a grammar is named after it.
+		var snapshots = System.IO.Directory
+			.GetFiles(Directory, name + ".*.g.cs")
+			.Select(Path.GetFileName)
+			.OfType<string>()
+			.OrderBy(static one => one, StringComparer.Ordinal);
+
+		Assert.Equal(snapshots, written.OrderBy(static one => one, StringComparer.Ordinal));
 	}
 
 	public static TheoryData<string> Snapshots =>
