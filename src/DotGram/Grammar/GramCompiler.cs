@@ -371,6 +371,12 @@ public static class GramCompiler
 	/// </summary>
 	public const string CarrierCaution = "GRAM5016";
 
+	/// <summary>
+	/// A construction of a publication that is read from a reader or a sequence of lines changes the
+	/// grammar's context, which a streamed reading may do a different number of times than a string.
+	/// </summary>
+	public const string StreamedContextChange = "GRAM5017";
+
 	/// <summary>A terminal the host measures has nothing in front of it to be found by.</summary>
 	public const string Unanchored = "GRAM5011";
 

@@ -94,4 +94,53 @@ public sealed class StreamedContextTests
 
 		Assert.Equal(viaString, viaReader);
 	}
+
+	static string Counting(string change)
+	{
+		return $$""""
+			using DotGram;
+
+			namespace StreamedContextProbe
+			{
+				public sealed class Counter
+				{
+					public int Rows;
+				}
+
+				[Gram("""
+					using Std;
+					context : @Counter
+					Row  : @int   = d: Digits & eol => @(d.Length + {{change}})
+					Rows : @int[] = (Row)* recover eol & eof
+					parse Rows as ReadRows
+					""", Portable = true)]
+				public static partial class P
+				{
+				}
+			}
+			"""";
+	}
+
+	/// <summary>
+	/// A construction that changes the context is told it may run a different number of times in a
+	/// streamed reading (GRAM5017); one that only reads it is not.
+	/// </summary>
+	[Theory]
+	[InlineData("context.Rows++", true)]
+	[InlineData("++context.Rows", true)]
+	[InlineData("(context.Rows = 3)", true)]
+	[InlineData("(context.Rows += 3)", true)]
+	[InlineData("context.Rows * 2", false)]
+	[InlineData("(context.Rows == 3 ? 1 : 0)", false)]
+	[InlineData("(context.Rows >= 3 ? 1 : 0)", false)]
+	public void A_construction_that_changes_the_context_is_told_about_streamed_readings(string change, bool told)
+	{
+		var run = GeneratorDriverTests.RunGenerator(Counting(change));
+		var info = run.Diagnostics.Where(static one => one.Id == "GRAM5017").ToArray();
+
+		Assert.Equal(told, info.Length == 1);
+
+		if (told)
+			Assert.Equal(Microsoft.CodeAnalysis.DiagnosticSeverity.Info, info[0].Severity);
+	}
 }
