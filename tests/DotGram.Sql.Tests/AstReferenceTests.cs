@@ -91,15 +91,17 @@ public sealed class AstReferenceTests
 	/// <summary>The families: every hierarchy the tree is made of.</summary>
 	/// <remarks>
 	/// Found rather than listed, so that a family added to the tree and left out of the
-	/// reference is caught by the same two tests every node is.
+	/// reference is caught by the same two tests every node is. A family is any abstract record of
+	/// the namespace's own whose records are nested in it, whatever it derives from: a
+	/// <c>LiteralValue</c> is an <c>Expression</c>, and its records are its own, not the expression's.
 	/// </remarks>
 	static IEnumerable<Type> Roots()
 	{
 		return typeof(Statement).Assembly
 			.GetExportedTypes()
 			.Where(one =>
-				one.IsAbstract && !one.IsSealed && one.Namespace == typeof(Statement).Namespace &&
-				one.BaseType == typeof(object) && one.GetNestedTypes(BindingFlags.Public).Length > 0);
+				one.IsAbstract && !one.IsSealed && !one.IsNested && one.Namespace == typeof(Statement).Namespace &&
+				one.GetNestedTypes(BindingFlags.Public).Any(nested => nested.IsSubclassOf(one)));
 	}
 
 	/// <summary>Every record of the tree, from the tree itself, named by its family.</summary>
