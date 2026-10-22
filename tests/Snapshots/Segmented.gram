@@ -1,0 +1,20 @@
+// A grammar that names `eos`: its input is a sequence of segments, the arguments of a
+// command line here, and each ends where `eos` stands. At a boundary there is no
+// character, so `any*` and the until idioms stop at the end of their segment; what is
+// published takes a list or a sequence of strings and nothing else.
+//
+// Its neighbour Segmented.gram.g.cs is what the emitter is expected to make of it: the
+// forms over text private and under names of their own, the forms over segments that
+// read through them, and the scans that stop at the end of a segment as well as where
+// a delimiter begins.
+
+Args    = items: Arg* & eof
+Arg     = ("--output" | "-o") & eos & output: Value & eos
+        | "--comment" & eos & comment: Comment & eos
+        | "--quoted" & eos & quoted: Std.Quoted('\'') & eos
+        | plain: Value & eos
+
+Value   = any*
+Comment = "/*" & (?!"*/" & any)* & "*/"
+
+parse Args
