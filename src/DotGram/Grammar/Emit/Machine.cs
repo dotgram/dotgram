@@ -1563,13 +1563,42 @@ sealed partial class Machine
 		return helper.ToString();
 	}
 
-	string ExternalCall(Node.External external, string position, string? value = null)
+	/// <param name="value">
+	/// What the value is written to: <c>_</c> for none wanted, or a declaration, for which
+	/// <paramref name="valueType"/> is the type the method hands back.
+	/// </param>
+	/// <remarks>
+	/// Called through a method of the generated class (<see cref="CSharpEmitter.HostCall"/>), which
+	/// the parameters of this reader cannot hide.
+	/// </remarks>
+	string ExternalCall(Node.External external, string position, string? value = null, string? valueType = null)
 	{
-		var input   = external.UsesInputView ? $"new ParserInput<{(BufferedBytes ? "byte" : "char")}>(text)" : "text";
-		var output  = value is null ? "" : $", out {value}";
-		var context = external.UsesContext ? ", context" : "";
+		var view       = $"ParserInput<{(BufferedBytes ? "byte" : "char")}>";
+		var parameters = new List<(string Type, string Mode)>
+		{
+			(external.UsesInputView ? view : InputType, ""),
+			("int", "ref"),
+		};
 
-		return $"{external.Name}({input}, ref {position}{output}{context})";
+		var arguments = (external.UsesInputView ? $"new {view}(text)" : "text") + ", ref " + position;
+
+		if (value == "_")
+			parameters.Add(("", "discard"));
+		else if (value is not null)
+		{
+			parameters.Add((valueType!, "out"));
+
+			arguments += ", out " + value;
+		}
+
+		if (external.UsesContext)
+		{
+			parameters.Add((_graph.Context!, ""));
+
+			arguments += ", context";
+		}
+
+		return $"{CSharpEmitter.HostCall(external.Name, [.. parameters])}({arguments})";
 	}
 
 	/// <summary>

@@ -24,6 +24,7 @@ public sealed class ExternalNameTests
 		{
 			cases.Add("recognizer", name);
 			cases.Add("valued", name);
+			cases.Add("used", name);
 			cases.Add("predicate", name);
 			cases.Add("view", name);
 		}
@@ -37,6 +38,9 @@ public sealed class ExternalNameTests
 		{
 			"recognizer" => (
 				$"static bool {name}(System.ReadOnlySpan<char> s, ref int q) {{ if (q < s.Length && s[q] == 'a') {{ q++; return true; }} return false; }}",
+				$"@{name}"),
+			"used" => (
+				$"static bool {name}(System.ReadOnlySpan<char> s, ref int q, out int v) {{ v = 7; if (q < s.Length && s[q] == 'a') {{ q++; return true; }} return false; }}",
 				$"@{name}"),
 			"valued" => (
 				$"static bool {name}(System.ReadOnlySpan<char> s, ref int q, out int v) {{ v = 1; if (q < s.Length && s[q] == 'a') {{ q++; return true; }} return false; }}",
@@ -65,7 +69,7 @@ public sealed class ExternalNameTests
 					[Gram("""
 						using Std;
 						{{context}}
-						Start : @int = {{operand}} & eof => @(1)
+						{{(kind == "used" ? "Start : @int = @" + name : "Start : @int = " + operand + " & eof => @(1)")}}
 						parse Start
 						""", {{(kind == "view" ? "BufferedInput = true" : "Portable = true")}})]
 					public static partial class P
@@ -82,5 +86,99 @@ public sealed class ExternalNameTests
 	public void An_external_method_named_like_a_local_of_the_generated_code_is_called(string kind, string name)
 	{
 		Assert.NotNull(GeneratorDriverTests.Build(Source(kind, name)));
+	}
+
+	/// <summary>
+	/// The call is the one the author's C# would have made: the overload is chosen among every method
+	/// the name reaches, here one imported from each of two classes.
+	/// </summary>
+	[Fact]
+	public void The_overload_the_name_reaches_is_the_one_called()
+	{
+		var source = """
+			global using static ExternalProbe.A;
+			global using static ExternalProbe.B;
+
+			using DotGram;
+
+			namespace ExternalProbe
+			{
+				public static class A
+				{
+					public static bool Test(object value)
+					{
+						return false;
+					}
+				}
+
+				public static class B
+				{
+					public static bool Test(char value)
+					{
+						return value == 'a';
+					}
+				}
+
+				[Gram(@"
+					using Std;
+					Start : @int = [@Test]+ & eof => @(1)
+					parse Start
+					")]
+				public static partial class P
+				{
+				}
+			}
+			""";
+
+		var assembly = GeneratorDriverTests.Build(source);
+		var parse    = assembly.GetType("ExternalProbe.P")!.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal(1, parse.Invoke(null, ["aaa"]));
+	}
+
+	/// <summary>A host with a type parameter, and a method found by a <c>global using static</c>.</summary>
+	[Fact]
+	public void A_generic_host_and_a_global_using_static_find_the_method()
+	{
+		var source = """
+			global using static ExternalProbe.Helpers;
+
+			using DotGram;
+
+			namespace ExternalProbe
+			{
+				public static class Helpers
+				{
+					public static bool text(System.ReadOnlySpan<char> s, ref int p)
+					{
+						if (p < s.Length && s[p] == 'a')
+						{
+							p++;
+
+							return true;
+						}
+
+						return false;
+					}
+				}
+
+				public static partial class Outer
+				{
+					[Gram(@"
+						using Std;
+						Start : @int = @text+ & eof => @(1)
+						parse Start
+						")]
+					public static partial class G<T>
+					{
+					}
+				}
+			}
+			""";
+
+		var assembly = GeneratorDriverTests.Build(source);
+		var parse    = assembly.GetType("ExternalProbe.Outer+G`1")!.MakeGenericType(typeof(int)).GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal(1, parse.Invoke(null, ["aaa"]));
 	}
 }
