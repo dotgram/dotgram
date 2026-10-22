@@ -82,6 +82,12 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	public const string WithInArgument      = "GRAM4041";
 
+	/// <summary>
+	/// A rule whose value would be told where it was written, and is a <c>Nullable</c> of a struct,
+	/// which has no property to write it on.
+	/// </summary>
+	public const string LocatedStruct       = "GRAM4046";
+
 	/// <summary>A rule nothing reaches, so nothing it says is ever read.</summary>
 	public const string UnusedRule          = "GRAM4018";
 
@@ -321,6 +327,10 @@ public sealed partial class GrammarNormalizer
 		// breaks nothing.
 		normalizer.CheckMarksHaveState(scanner);
 
+		var located = Locating(normalizer, resolver, locationType, Imports(model.Root));
+
+		normalizer.CheckLocatedAreNotNullable(located);
+
 		return new RecognitionGraph(
 			normalizer._rules,
 			normalizer._bodies,
@@ -348,7 +358,7 @@ public sealed partial class GrammarNormalizer
 			ContextRewinds = normalizer._rewinds,
 			FreeNames  = FreeNames(normalizer._bodies.Values, scanner),
 			WhenSound  = normalizer._whenSound,
-			Located    = Locating(normalizer, resolver, locationType, Imports(model.Root)),
+			Located    = located,
 
 			// The declared types the host vouches for as classes, for the one cast the emitter writes by kind.
 			ReferenceTypes = ReferenceTypes(normalizer, resolver, model.Root, Imports(model.Root)),
@@ -357,6 +367,40 @@ public sealed partial class GrammarNormalizer
 			PositionalFollow = positionalFollow,
 			PositionalSplit  = positionalFollow && positionalSplit,
 		};
+	}
+
+	/// <summary>
+	/// A rule whose value is told where it was written does not build a <c>Nullable</c> of a struct
+	/// (<see cref="LocatedStruct"/>).
+	/// </summary>
+	/// <remarks>
+	/// The interface's property is written on the value the reader has just made, and a
+	/// <c>Nullable</c> has no such property to write: the call did not compile where every rule is
+	/// located, and where the door decides per call the value was boxed, told, and handed back
+	/// without it. A struct itself is allowed to be one of these: it is told through a copy, so
+	/// it keeps something only if it holds it by reference, and one that derives where it was
+	/// written from its parts loses nothing.
+	/// </remarks>
+	void CheckLocatedAreNotNullable(IReadOnlyCollection<RuleSymbol> located)
+	{
+		foreach (var rule in located)
+		{
+			if (rule.Declaration is not { } declaration || !_types.TryGetValue(rule, out var type))
+				continue;
+
+			if (!type.EndsWith("?", StringComparison.Ordinal) &&
+				!type.StartsWith("Nullable<", StringComparison.Ordinal) &&
+				!type.StartsWith("System.Nullable<", StringComparison.Ordinal))
+				continue;
+
+			Report(
+				LocatedStruct,
+				$"'{declaration.Name}' builds a '{type}', which is told where it was written (LocationType), and a " +
+				"Nullable cannot be: its value is a copy of the struct, so the location would be written on a copy or " +
+				"not at all. Build the struct itself, make the type a class or a record class, or keep it out of the " +
+				"located rules (docs/syntax.md §6.8).",
+				declaration.At);
+		}
 	}
 
 	/// <summary>
