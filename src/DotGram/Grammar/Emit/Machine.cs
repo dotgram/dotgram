@@ -1479,7 +1479,7 @@ sealed partial class Machine
 			{
 				// A type test the runtime answers while it compiles each reading of the walk.
 				helper.Line($"if ({LocatingTest})");
-				helper.Then($"Locate_DotGram{_tag}(made, locating{handed}, from, length);");
+				helper.Then($"Locate_DotGram{_tag}(ref made, locating{handed}, from, length);");
 				helper.Line();
 				helper.Line("return made;");
 			}
@@ -1510,7 +1510,7 @@ sealed partial class Machine
 			{
 				// Below nought where the reading did not ask.
 				helper.Line("if (locating >= 0)");
-				helper.Then($"Locate_DotGram{_tag}(made, locating{handed}, from, length);");
+				helper.Then($"Locate_DotGram{_tag}(ref made, locating{handed}, from, length);");
 				helper.Line();
 				helper.Line("return made;");
 			}
@@ -1523,8 +1523,10 @@ sealed partial class Machine
 		helper.Line("/// began: the end of that token, or where the reading began where it is the first.");
 		helper.Line("/// </summary>");
 
+		// Generic over the value, handed by reference, so that a struct is told on the value it is
+		// returned as and not on a boxed copy of it.
 		using (helper.Block(
-			$"static void Locate_DotGram{_tag}({located} made, int floor{tokens}, int from, int length)"))
+			$"static void Locate_DotGram{_tag}<T>(ref T made, int floor{tokens}, int from, int length) where T : {located}"))
 		{
 			// A rule may hand back null for what was not written, and null is no value made.
 			helper.Line("if (made is null)");
