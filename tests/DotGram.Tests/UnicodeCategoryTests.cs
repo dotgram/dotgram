@@ -192,6 +192,32 @@ public sealed class UnicodeCategoryTests(ITestOutputHelper output)
 		Assert.True(failures.Count == 0, string.Join("\n", failures));
 	}
 
+	/// <summary>
+	/// A grammar's own C# that spells the name of a category's test is text, not a test: the
+	/// tests the file carries are the ones the generator wrote, whatever a construction's string
+	/// says.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : @string = 'a' => @(\"Categories_DotGram_(\")", "a", "Categories_DotGram_(")]
+	[InlineData("Start : @string = 'a' => @(\"Categories_DotGram_ZZ(\")", "a", "Categories_DotGram_ZZ(")]
+	[InlineData("Start : @string = t: [\\p{L}]+ => @(\"Categories_DotGram_7(\" + t)", "\u1C89", "Categories_DotGram_7(\u1C89")]
+	public void A_construction_naming_a_test_is_not_a_test(string rules, string input, string expected)
+	{
+		var result = GramCompiler.Compile(rules + "\nparse Start\n", new GramCompilerOptions
+		{
+			CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+
+		EmittedCode.Quiet(result.Diagnostics);
+
+		var assembly = EmittedCode.Compile(
+			result.Sources[0].Text, sourceParts: result.Sources.Skip(1).Select(static one => one.Text));
+		var answer   = EmittedCode.Match(assembly, "Grammar", "TryParseStart", input);
+
+		Assert.True(answer.IsSuccess, answer.Error);
+		Assert.Equal(expected, answer.Value);
+	}
+
 	static HashSet<UnicodeCategory> Members(IEnumerable<string> names)
 	{
 		var members = new HashSet<UnicodeCategory>();
