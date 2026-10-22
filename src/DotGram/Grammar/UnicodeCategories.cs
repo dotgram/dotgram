@@ -125,6 +125,32 @@ public static partial class UnicodeCategories
 		return (System.Globalization.UnicodeCategory)Spelled.ByCodeUnit[c];
 	}
 
+	/// <summary>
+	/// Whether <paramref name="c"/> is a letter, <c>\p{L}</c>, in Unicode <see cref="UnicodeVersion"/>:
+	/// what <see cref="UnicodeCategories.IsLetter(char)"/> asks, answered from the table rather than the runtime.
+	/// </summary>
+	/// <remarks>
+	/// For the generator's own reading of names — a rule, a capture, a C# identifier in a grammar —
+	/// so that which names a grammar may write, and what is generated for them, is the same on
+	/// every runtime the generator runs on, as what a category holds is.
+	/// </remarks>
+	public static bool IsLetter(char c)
+	{
+		return Of(c) <= System.Globalization.UnicodeCategory.OtherLetter;
+	}
+
+	/// <summary>Whether <paramref name="c"/> is a decimal digit, <c>\p{Nd}</c>: <see cref="UnicodeCategories.IsDigit(char)"/> from the table.</summary>
+	public static bool IsDigit(char c)
+	{
+		return Of(c) == System.Globalization.UnicodeCategory.DecimalDigitNumber;
+	}
+
+	/// <summary>Whether <paramref name="c"/> is a letter or a decimal digit: <see cref="UnicodeCategories.IsLetterOrDigit(char)"/> from the table.</summary>
+	public static bool IsLetterOrDigit(char c)
+	{
+		return IsLetter(c) || IsDigit(c);
+	}
+
 	/// <summary>The table's runs spelled out, a byte a code unit, built the first time one is asked for.</summary>
 	/// <remarks>
 	/// A class of its own because the runs are a field of the other half of this partial class, and

@@ -121,18 +121,18 @@ public static class GramLexer
 				}
 			}
 
-			if (current == '_' || char.IsLetter(current))
+			if (current == '_' || UnicodeCategories.IsLetter(current))
 			{
-				while (position < text.Length && (text[position] == '_' || char.IsLetterOrDigit(text[position])))
+				while (position < text.Length && (text[position] == '_' || UnicodeCategories.IsLetterOrDigit(text[position])))
 					position++;
 
 				Add(TokenKind.Identifier, start, position - start, text.Substring(start, position - start));
 				continue;
 			}
 
-			if (char.IsDigit(current))
+			if (UnicodeCategories.IsDigit(current))
 			{
-				while (position < text.Length && char.IsDigit(text[position]))
+				while (position < text.Length && UnicodeCategories.IsDigit(text[position]))
 					position++;
 
 				Add(TokenKind.Integer, start, position - start, text.Substring(start, position - start));
@@ -165,7 +165,7 @@ public static class GramLexer
 					var caseInsensitive =
 						position < text.Length && text[position] == 'i' &&
 						(position + 1 >= text.Length ||
-						 !(char.IsLetterOrDigit(text[position + 1]) || text[position + 1] == '_'));
+						 !(UnicodeCategories.IsLetterOrDigit(text[position + 1]) || text[position + 1] == '_'));
 
 					if (caseInsensitive)
 						position++;
@@ -190,11 +190,11 @@ public static class GramLexer
 				// refers, and that stays a two-token question for the parser.
 				case '$':
 				case '#':
-					if (position + 1 < text.Length && (text[position + 1] == '_' || char.IsLetter(text[position + 1])))
+					if (position + 1 < text.Length && (text[position + 1] == '_' || UnicodeCategories.IsLetter(text[position + 1])))
 					{
 						position++;
 
-						while (position < text.Length && (text[position] == '_' || char.IsLetterOrDigit(text[position])))
+						while (position < text.Length && (text[position] == '_' || UnicodeCategories.IsLetterOrDigit(text[position])))
 							position++;
 
 						Add(

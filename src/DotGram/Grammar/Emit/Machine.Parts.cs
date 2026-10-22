@@ -451,7 +451,7 @@ sealed partial class Machine
 	static bool Word(string body, int start, int end, int at, string word)
 	{
 		if (at + word.Length > end ||
-			at > start && (char.IsLetterOrDigit(body[at - 1]) || body[at - 1] == '_'))
+			at > start && (UnicodeCategories.IsLetterOrDigit(body[at - 1]) || body[at - 1] == '_'))
 		{
 			return false;
 		}

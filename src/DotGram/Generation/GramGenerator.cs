@@ -1249,11 +1249,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// <summary>One identifier, which is all a namespace can be named by.</summary>
 	static bool IsIdentifier(string name)
 	{
-		if (name.Length == 0 || !(char.IsLetter(name[0]) || name[0] == '_'))
+		if (name.Length == 0 || !(UnicodeCategories.IsLetter(name[0]) || name[0] == '_'))
 			return false;
 
 		for (var at = 1; at < name.Length; at++)
-			if (!(char.IsLetterOrDigit(name[at]) || name[at] == '_'))
+			if (!(UnicodeCategories.IsLetterOrDigit(name[at]) || name[at] == '_'))
 				return false;
 
 		return true;
