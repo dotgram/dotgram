@@ -5,7 +5,7 @@
 #
 # It tests the commit checked out (HEAD) in a worktree of its own, so the checkout it is started from is not
 # touched and uncommitted changes are not part of the run. Everything it writes is in one scratch folder,
-# $DOTGRAM_GATES_DIR or a new one under $TMPDIR, deleted at the end (--keep keeps it). docs/development.md,
+# $DOTGRAM_GATES_DIR or a new one under $TMPDIR, deleted at the end (--keep keeps it, and so does any failure). docs/development.md,
 # "The tool's release gates", says what each gate holds and what to do when one fails.
 #
 #   G2   the generator hosted by hand over the compiler arguments of a real build (diagnostic: it isolates the
@@ -50,15 +50,18 @@ logs=$work/logs
 mkdir -p "$logs" "$work/tmp" "$work/built"
 
 cleanup() {
+	local status=$?
 	set +e
+	# Whatever stopped the run, its logs stay: the worktree goes, the rest of the scratch folder is kept.
+	if [ "$status" != 0 ]; then keep=1; fi
 	cd /
 	if [ -d "$tree" ]; then git -C "$repo" worktree remove --force "$tree" > /dev/null 2>&1; fi
 	# The SDK keeps a file-based app's build cache beside the user's data, whatever --artifacts-path says.
 	for cache in "${XDG_DATA_HOME:-$HOME/.local/share}"/dotnet/runfile/Gates-*; do
-		if grep -qsF "$work/app/" "$cache/csc.rsp"; then rm -rf "$cache"; fi
+		if grep -qsF "$work/app/" "$cache/build-start.cache" "$cache/csc.rsp"; then rm -rf "$cache"; fi
 	done
 	git -C "$repo" worktree prune > /dev/null 2>&1
-	if [ "$keep" = 1 ]; then echo "kept: $work"; else rm -rf "$work"; fi
+	if [ "$keep" = 1 ]; then echo "kept: $work (logs in $logs)"; else rm -rf "$work"; fi
 }
 trap cleanup EXIT
 
@@ -120,7 +123,8 @@ echo "nupkg: $(du -k "$work/feed/$package.nupkg" | cut -f1) KB"
 step "the comparisons (gates/Gates.cs)"
 roslyn=$(sed -n 's:.*<DotGramCliRoslynVersion>\(.*\)</DotGramCliRoslynVersion>.*:\1:p' Directory.Packages.props)
 mkdir -p "$work/app"
-sed "s/ROSLYN_VERSION/$roslyn/" "$here/Gates.cs" > "$work/app/Gates.cs"
+# The comparer of the commit under test, not of the checkout the script was started from.
+sed "s/ROSLYN_VERSION/$roslyn/" "$tree/tests/DotGram.Cli.Tests/gates/Gates.cs" > "$work/app/Gates.cs"
 cp global.json "$work/app/"
 (cd "$work/app" && dotnet build Gates.cs --artifacts-path "$work/app/out" > "$logs/gates-app.log" 2>&1) || { tail -20 "$logs/gates-app.log"; die "building Gates.cs failed"; }
 gates_dll=$(find "$work/app/out/bin" -name Gates.dll | head -1)
