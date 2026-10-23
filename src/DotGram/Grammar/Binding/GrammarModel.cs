@@ -386,7 +386,13 @@ public sealed record Publication(
 	public bool Joined { get; init; }
 
 	/// <summary>What the methods this publication makes over text are called in the generated class.</summary>
-	public string EmittedName => Joined ? MethodName + "_DotGram" : MethodName;
+	/// <remarks>
+	/// Over segments, a name that begins with <c>_DotGram_</c>. No name a publication may take holds
+	/// <c>_DotGram</c> (GRAM1012), and none of the generated class's own members begins with it — they
+	/// are <c>Name_DotGram</c>, which the method name of a publication called <c>Name</c> would
+	/// otherwise meet (<c>find Word as Read</c> beside the reader's <c>Read_DotGram</c>).
+	/// </remarks>
+	public string EmittedName => Joined ? "_DotGram_" + MethodName : MethodName;
 
 	public override string ToString()
 	{

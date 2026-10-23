@@ -5,9 +5,9 @@ namespace DotGram.Snapshots
 {
 	partial class Segmented
 	{
-		private static global::DotGram.Snapshots.Segmented.Args ParseArgs_DotGram(string input)
+		private static global::DotGram.Snapshots.Segmented.Args _DotGram_ParseArgs(string input)
 		{
-			var match = TryParseArgs_DotGram(input);
+			var match = Try_DotGram_ParseArgs(input);
 
 			if (match.IsSuccess)
 				return match.Value;
@@ -19,7 +19,7 @@ namespace DotGram.Snapshots
 				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
 		}
 
-		private static Match<global::DotGram.Snapshots.Segmented.Args> TryParseArgs_DotGram(string input)
+		private static Match<global::DotGram.Snapshots.Segmented.Args> Try_DotGram_ParseArgs(string input)
 		{
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
@@ -46,7 +46,7 @@ namespace DotGram.Snapshots
 			return Match<global::DotGram.Snapshots.Segmented.Args>.Success(recognized, 0, end);
 		}
 
-		private static bool TryParseArgs_DotGram(string input, out global::DotGram.Snapshots.Segmented.Args value)
+		private static bool Try_DotGram_ParseArgs(string input, out global::DotGram.Snapshots.Segmented.Args value)
 		{
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
@@ -1152,7 +1152,7 @@ namespace DotGram.Snapshots
 		/// </exception>
 		public static global::DotGram.Snapshots.Segmented.Args ParseArgs(global::System.Collections.Generic.IReadOnlyList<string> input)
 		{
-			return ParseArgs_DotGram(Joined_DotGram(input));
+			return _DotGram_ParseArgs(Joined_DotGram(input));
 		}
 
 		/// <summary>Parses the segments as <c>Args</c>, answering rather than throwing.</summary>
@@ -1161,7 +1161,7 @@ namespace DotGram.Snapshots
 			var text = Joined_DotGram(input, out var refused);
 
 			return refused < 0
-				? TryParseArgs_DotGram(text)
+				? Try_DotGram_ParseArgs(text)
 				: Match<global::DotGram.Snapshots.Segmented.Args>.Failed(Outcome.NoMatch, Holds_DotGram, refused, null, null);
 		}
 
@@ -1176,7 +1176,7 @@ namespace DotGram.Snapshots
 				return false;
 			}
 
-			return TryParseArgs_DotGram(text, out value);
+			return Try_DotGram_ParseArgs(text, out value);
 		}
 
 		/// <summary>Parses the segments as <c>Args</c>.</summary>
@@ -1185,7 +1185,7 @@ namespace DotGram.Snapshots
 		/// </exception>
 		public static global::DotGram.Snapshots.Segmented.Args ParseArgs(global::System.Collections.Generic.IEnumerable<string> input)
 		{
-			return ParseArgs_DotGram(Joined_DotGram(Listed_DotGram(input)));
+			return _DotGram_ParseArgs(Joined_DotGram(Listed_DotGram(input)));
 		}
 
 		/// <summary>Parses the segments as <c>Args</c>, answering rather than throwing.</summary>
@@ -1194,7 +1194,7 @@ namespace DotGram.Snapshots
 			var text = Joined_DotGram(Listed_DotGram(input), out var refused);
 
 			return refused < 0
-				? TryParseArgs_DotGram(text)
+				? Try_DotGram_ParseArgs(text)
 				: Match<global::DotGram.Snapshots.Segmented.Args>.Failed(Outcome.NoMatch, Holds_DotGram, refused, null, null);
 		}
 
@@ -1209,7 +1209,7 @@ namespace DotGram.Snapshots
 				return false;
 			}
 
-			return TryParseArgs_DotGram(text, out value);
+			return Try_DotGram_ParseArgs(text, out value);
 		}
 
 		/// <summary>Parses the segments as <c>Args</c>.</summary>
@@ -1218,7 +1218,7 @@ namespace DotGram.Snapshots
 		/// </exception>
 		public static global::DotGram.Snapshots.Segmented.Args ParseArgs(global::System.IO.TextReader input)
 		{
-			return ParseArgs_DotGram(Read_DotGram(input));
+			return _DotGram_ParseArgs(Read_DotGram(input));
 		}
 
 		/// <summary>Parses the segments as <c>Args</c>, answering rather than throwing.</summary>
@@ -1227,7 +1227,7 @@ namespace DotGram.Snapshots
 			var text = Read_DotGram(input, out var refused, out var why);
 
 			return refused < 0
-				? TryParseArgs_DotGram(text)
+				? Try_DotGram_ParseArgs(text)
 				: Match<global::DotGram.Snapshots.Segmented.Args>.Failed(Outcome.NoMatch, why, refused, null, null);
 		}
 
@@ -1242,7 +1242,7 @@ namespace DotGram.Snapshots
 				return false;
 			}
 
-			return TryParseArgs_DotGram(text, out value);
+			return Try_DotGram_ParseArgs(text, out value);
 		}
 
 		static int Recognize_DotGram_Sharpen0(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
