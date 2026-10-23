@@ -725,6 +725,40 @@ public sealed class SegmentedInputTests
 	}
 
 	/// <summary>
+	/// The end of a segment never reaches a predicate of the host, however the class that calls it
+	/// is written and read: beside ranges, negated, in a look, through a class rule, in a search for
+	/// a delimiter, under a recovery, matching or refusing — by methods and by the engine.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : @int = ([@Ask | '0'..'9']*) & eos & ([@Ask]*) & eos => @(0)")]
+	[InlineData("Start : @int = ([^ @Ask]*) & eos & ([^ @Ask | ';']*) & eos => @(0)")]
+	[InlineData("Start : @int = (?=[@Ask] & any)* & eos & (?![@Ask] & any)* & eos & any* & eos => @(0)")]
+	[InlineData("Letter = [@Ask]\nStart : @int = ([Letter | '-']*) & eos & ([^ Letter]*) & eos => @(0)")]
+	[InlineData("Start : @int = (?!';' & [@Ask])* & eos & (?!\"*/\" & [@Ask])* & eos => @(0)")]
+	[InlineData("Start : @int[] = items: Item* recover eos & eof => @(items)\nItem : @int = [@Ask]+ & ';' & eos => @(0)")]
+	[InlineData("Start : @int = [@Ask]+ & '!' & eos => @(0)")]
+	public void The_end_of_a_segment_never_reaches_a_predicate(string grammar)
+	{
+		foreach (var (carrier, direct) in new[]
+			{ (CarrierKind.Tape, true), (CarrierKind.Immediate, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, false) })
+		{
+			var parser = Build(
+				grammar + "\nparse Start",
+				members: "public static string Asked = \"\"; static bool Ask(char c) { Asked += c; return c != 'z'; }",
+				carrier: carrier, direct: direct);
+			var asked = parser.GetType("Grammar")!.GetField("Asked")!;
+
+			foreach (var segments in new[] { new[] { "ab", "cd", "ef" }, ["a;", "b;"], ["z", "", "q"], [""] })
+				TryParse(parser, "TryParseStart", segments);
+
+			var said = (string)asked.GetValue(null)!;
+
+			Assert.NotEmpty(said);
+			Assert.DoesNotContain('\0', said);
+		}
+	}
+
+	/// <summary>
 	/// Records, one a segment, with bad ones in the middle: <c>recover eos</c> steps over a bad one to
 	/// the end of its segment, and what a rejected record is told counts lines as segments.
 	/// </summary>
