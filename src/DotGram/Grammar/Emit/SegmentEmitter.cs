@@ -261,36 +261,50 @@ public static partial class CSharpEmitter
 			""";
 	}
 
-	/// <summary>What a recognizer of the host is handed in place of the text: the input up to the end of a segment.</summary>
+	/// <summary>What a recognizer of the host is handed in place of the text: the segment it is called in.</summary>
 	internal const string SegmentOf = "SegmentOf_DotGram";
 
+	/// <summary>What puts the position a recognizer of the host moved back into the whole text.</summary>
+	internal const string Rebased = "Rebased_DotGram";
+
 	/// <summary>
-	/// The input a recognizer of the host is handed in a grammar that names <c>eos</c>: everything
-	/// up to the end of the segment it is called in, so that the end of a segment is where its input
-	/// ends. A prefix, so a position means what it meant in the whole.
+	/// The input a recognizer of the host is handed in a grammar that names <c>eos</c>: the segment
+	/// it is called in and nothing else, so that it can read neither the end of a segment nor another
+	/// segment's text, behind it or ahead. The position it is handed is in that segment, and is put
+	/// back into the whole text when it returns (<see cref="Rebased"/>).
 	/// </summary>
 	/// <remarks>
-	/// Where the segment ends is kept by the caller, as the stretch from where it was last asked to
-	/// the end it found, and found again only where the position is outside that stretch: a reading
-	/// that goes forward scans each segment once, however many recognizers it calls.
+	/// Where the segment begins and ends is kept by the caller, and found again only where the
+	/// position is outside it: a reading that goes forward scans each segment once, however many
+	/// recognizers it calls.
 	/// </remarks>
 	static string SegmentCut => $$"""
 		/// <summary>
-		/// The text up to the end of the segment <paramref name="position"/> is in, which is as far as a
-		/// recognizer of the host reads. <paramref name="from"/> to <paramref name="end"/> is where that
-		/// was last found to be, and holds no end of a segment before <paramref name="end"/>.
+		/// The segment <paramref name="position"/> is in, which is all a recognizer of the host reads, with
+		/// the position moved into it. <paramref name="from"/> to <paramref name="end"/> is where that
+		/// segment was last found to be: it holds no end of a segment, and <paramref name="end"/> is its own.
 		/// </summary>
-		private static global::System.ReadOnlySpan<char> SegmentOf_DotGram(global::System.ReadOnlySpan<char> text, int position, ref int from, ref int end)
+		private static global::System.ReadOnlySpan<char> SegmentOf_DotGram(global::System.ReadOnlySpan<char> text, ref int position, ref int from, ref int end)
 		{
 			if (position < from || position > end)
 			{
 				var ends = global::System.MemoryExtensions.IndexOf(text.Slice(position), {{JoinerLiteral}});
 
-				from = position;
+				from = global::System.MemoryExtensions.LastIndexOf(text.Slice(0, position), {{JoinerLiteral}}) + 1;
 				end  = ends < 0 ? text.Length : position + ends;
 			}
 
-			return text.Slice(0, end);
+			position -= from;
+
+			return text.Slice(from, end - from);
+		}
+
+		/// <summary>What a recognizer of the host answered, with the position it moved put back into the whole text.</summary>
+		private static bool Rebased_DotGram(bool read, ref int position, int from)
+		{
+			position += from;
+
+			return read;
 		}
 
 

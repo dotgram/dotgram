@@ -1580,9 +1580,11 @@ sealed partial class Machine
 			("int", "ref"),
 		};
 
-		// In a grammar that names `eos` a recognizer is handed its own segment and nothing past
-		// it, so that it cannot read the end of one as a character or step over it.
-		var input     = _graph.Segmented ? $"{CSharpEmitter.SegmentOf}(text, {position}, ref segmentFrom, ref segmentEnd)" : "text";
+		// In a grammar that names `eos` a recognizer is handed its own segment and nothing else,
+		// so that it cannot read the end of one as a character, step over it, or read another
+		// segment behind it: the position is moved into the segment for the call and back out of
+		// it after, whatever the recognizer answered.
+		var input     = _graph.Segmented ? $"{CSharpEmitter.SegmentOf}(text, ref {position}, ref segmentFrom, ref segmentEnd)" : "text";
 		var arguments = (external.UsesInputView ? $"new {view}({input})" : input) + ", ref " + position;
 
 		if (value == "_")
@@ -1601,7 +1603,9 @@ sealed partial class Machine
 			arguments += ", context";
 		}
 
-		return $"{CSharpEmitter.HostCall(external.Name, [.. parameters])}({arguments})";
+		var call = $"{CSharpEmitter.HostCall(external.Name, [.. parameters])}({arguments})";
+
+		return _graph.Segmented ? $"{CSharpEmitter.Rebased}({call}, ref {position}, segmentFrom)" : call;
 	}
 
 	/// <summary>

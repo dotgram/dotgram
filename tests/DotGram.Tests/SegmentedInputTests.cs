@@ -722,6 +722,29 @@ public sealed class SegmentedInputTests
 			Assert.True(read);
 			Assert.Equal(["ab", "", marked == "#" ? "rest 3" : "view xyz", "e"], (string[])value!);
 		}
+
+		// Nor anything before it: the segment it is handed starts where its own does, and so does the
+		// position it is handed, which is put back where it belongs when it returns. Read by the
+		// engine and asked again for the value, over a span and over a view.
+		var whole = GeneratorDriverTests.Build($$"""
+			using System;
+			[DotGram.Gram("Start : @string = 'a' & eos & v: @Rest & eos & w: @Rest & eos & x: @Seen & eos => @(v + \"|\" + w + \"|\" + x)\nparse Start", Carrier = DotGram.GramCarrier.{{carrier}})]
+			public partial class Grammar
+			{
+				static bool Rest(ReadOnlySpan<char> input, ref int p, out string value) { value = input.ToString() + "@" + p; p = input.Length; return true; }
+				static bool Seen(ParserInput<char> input, ref int p, out string value)
+				{
+					value = "";
+					for (var at = 0; input.Peek(at, out var c); at++) value += c;
+					value += "@" + p;
+					p++;
+					return input.Peek(p - 1, out _);
+				}
+			}
+			""", permittedWarning: "GRAM5007");
+
+		Assert.Equal("bc@0|@0|d@0", TryParse(whole, "TryParseStart", ["a", "bc", "", "d"]).Value);
+		Assert.False(TryParse(whole, "TryParseStart", ["a", "bc", "", ""]).Success);
 	}
 
 	/// <summary>
