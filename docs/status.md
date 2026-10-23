@@ -29,6 +29,8 @@ then quietly mean nothing.
 | the same, on a publication, `parse R with (A = B) as X` §5.1/§6 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same, either side a parameterized rule §5.1 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | standard library `any none eol eof` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `eos`, the end of a segment, and a sequence of segments read as the input §3.1.1/§6.3 | ✓ | ✓ | ✓ | ✓ | ✓ |
+| the same, text across a boundary, tokens and buffered forms refused (`GRAM4048`–`GRAM4050`) §3.1.1 | ✓ | ✓ | ✓ | — | — |
 | `Std.Nested(open, close)`, read with a counter in a scanner and in a token the lexer begins §5.2 | ✓ | ✓ | ✓ | ✓ | ✓ |
 | the same given arguments a counter cannot tell apart, refused (`GRAM4037`) §5.2 | ✓ | ✓ | ✓ | — | — |
 | `trivia` by shadowing | ✓ | ✓ | ✓ | ✓ | ✓ |

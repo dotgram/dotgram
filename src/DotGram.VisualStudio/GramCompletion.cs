@@ -242,6 +242,7 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 			"none" => "DotGram built-in rule: never matches",
 			"eol" => "DotGram built-in rule: matches an end of line",
 			"eof" => "DotGram built-in rule: matches the end of input",
+			"eos" => "DotGram built-in rule: matches the end of a segment; a grammar that names it reads a sequence of them",
 			"trivia" => "DotGram built-in rule: matches grammar trivia",
 			"word" => "DotGram built-in rule: one whole word, as wordboundary defines it",
 			"wordboundary" => "DotGram built-in rule: what a word is made of",
