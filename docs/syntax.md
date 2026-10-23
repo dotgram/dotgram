@@ -297,7 +297,8 @@ whatever it synchronizes on: what it steps over goes on past the end of a segmen
 `when` inside it reads what was stepped over between its turns, and so does one in its
 synchronization, which is read where the element broke. A `when` in a rule that builds no
 value is read as if it stood where the rule is called: such a rule may be compiled there, and
-its `parserText` is then the calling rule's. A count by a length,
+its `parserText` is then the calling rule's. The `parserText` of a left-recursive
+step (§4.3) is the rule's text from its seed on, steps before it included. A count by a length,
 `X{#q}`, is read as any repetition is, and a repetition whose most is nought, `X{0}` or a
 parameter's `{n}` in an instance where it is nought, reads nothing, and one marked `recover`
 never recovers. A `recover` without a
