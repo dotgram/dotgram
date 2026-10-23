@@ -55,6 +55,15 @@ static IEnumerable<string> Built(string folder)
 
 static int Compare(string built, string tool, string? relative)
 {
+	foreach (var folder in new[] { built, tool })
+	{
+		if (!Directory.Exists(folder))
+		{
+			Console.WriteLine($"  no folder {folder}: nothing was generated there");
+			return 1;
+		}
+	}
+
 	var failures = 0;
 	var names    = Built(built).ToList();
 
@@ -89,7 +98,10 @@ static int Compare(string built, string tool, string? relative)
 		}
 
 		if (relative is not null)
-			actual = Absolute(actual, relative);
+		{
+			expected = Absolute(expected, relative);
+			actual   = Absolute(actual, relative);
+		}
 
 		if (!expected.AsSpan().SequenceEqual(actual))
 		{
@@ -119,24 +131,24 @@ static string WithoutCarriageReturns(byte[] bytes)
 	return Encoding.UTF8.GetString(bytes).Replace("\r", "", StringComparison.Ordinal);
 }
 
-// The tool's text with every relative #line path made absolute against the output folder, the bytes
-// otherwise untouched: the only difference the relative default is allowed.
+// The text with every #line path made full: a relative one read against the output folder, an absolute
+// one normalized (a build writes `p/../grams/x.gram` as MSBuild gave it, the tool's relative path reads
+// back as `grams/x.gram`), the bytes otherwise untouched: the only difference the relative default is
+// allowed.
 static byte[] Absolute(byte[] bytes, string folder)
 {
 	var preamble = Encoding.UTF8.GetPreamble();
 	var bom      = bytes.AsSpan().StartsWith(preamble);
 	var text     = Encoding.UTF8.GetString(bom ? bytes[preamble.Length..] : bytes);
 
-	var rewritten = Regex.Replace(text, "^(#line [^\"\\r\\n]*\")((?:[^\"\\\\\\r\\n]|\\\\.)*)(\")", match =>
+	var rewritten = Regex.Replace(text, "^(#line [^\"\\r\\n]*\")([^\"\\r\\n]*)(\")", match =>
 	{
-		var path = Regex.Unescape(match.Groups[2].Value);
+		// Taken as written: on Linux, where this runs, MSBuild cannot build a project whose path has a
+		// backslash or a quote, so there is nothing to unescape.
+		var path = match.Groups[2].Value;
+		var full = Path.GetFullPath(Path.IsPathRooted(path) ? path : Path.Combine(folder, path));
 
-		if (Path.IsPathRooted(path))
-			return match.Value;
-
-		var full = Path.GetFullPath(Path.Combine(folder, path));
-
-		return match.Groups[1].Value + full.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal) + match.Groups[3].Value;
+		return match.Groups[1].Value + full + match.Groups[3].Value;
 	}, RegexOptions.Multiline);
 
 	var body = Encoding.UTF8.GetBytes(rewritten);
