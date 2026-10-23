@@ -945,7 +945,11 @@ public static partial class CSharpEmitter
 
 			if (tracing is not null)
 			{
-				file.Write(TraceSupport(tracing, quietField, moreField, lexical is not null));
+				var traced = TraceSupport(tracing, quietField, moreField, lexical is not null);
+
+				// A trace says where it is as a line and a column, which over segments are a segment
+				// and an offset in it (SegmentEmitter).
+				file.Write(graph.Segmented ? Segmented(traced) : traced);
 				file.Line();
 			}
 		}

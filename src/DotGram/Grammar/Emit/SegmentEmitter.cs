@@ -383,9 +383,10 @@ public static partial class CSharpEmitter
 	}
 
 	/// <summary>
-	/// The support types a streamed reading uses, as a grammar that names <c>eos</c> reads them: a
-	/// sequence of lines is a sequence of segments, each followed by the joiner where a line had its
-	/// newline, and refused where it holds the joiner; and a line ends at the joiner alone.
+	/// The support types a streamed, a located or a traced reading uses, as a grammar that names
+	/// <c>eos</c> reads them: a sequence of lines is a sequence of segments, each followed by the
+	/// joiner where a line had its newline, and refused where it holds the joiner; and a line ends at
+	/// the joiner alone.
 	/// </summary>
 	static string Segmented(string support)
 	{
@@ -423,5 +424,8 @@ public static partial class CSharpEmitter
 		("if (c == '\\r' || _at == 0 || text[_at - 1] != '\\r')", $"if (c == {JoinerLiteral})"),
 		("if (text[at] == '\\r' || text[at] == '\\n' && (at == 0 || text[at - 1] != '\\r'))", $"if (text[at] == {JoinerLiteral})"),
 		("text[_start - 1] != '\\n' && text[_start - 1] != '\\r'", $"text[_start - 1] != {JoinerLiteral}"),
+
+		// GramRead.Locate, which the trace says positions with: a line ends at the joiner alone.
+		("if (text[at] == '\\n')", $"if (text[at] == {JoinerLiteral})"),
 	];
 }
