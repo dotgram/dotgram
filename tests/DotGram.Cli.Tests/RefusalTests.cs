@@ -373,4 +373,25 @@ public sealed class RefusalTests
 		Assert.DoesNotContain("not restored", run.Error, StringComparison.Ordinal);
 		Assert.False(Directory.Exists(scratch.Path("out")));
 	}
+
+	/// <summary>
+	/// A project that names no framework of its own is generated at the <c>--framework</c> it is given, as
+	/// <c>dotnet build -f</c> builds it: only a framework the project does list is checked.
+	/// </summary>
+	[Fact]
+	public void A_project_that_names_no_framework_is_taken_at_the_one_given()
+	{
+		using var scratch = new Scratch();
+
+		var project = ProjectWithForeignType(scratch);
+
+		File.WriteAllText(project, File.ReadAllText(project).Replace("<TargetFramework>net10.0</TargetFramework>", "", StringComparison.Ordinal));
+		Dotnet.Ok(scratch.Root, "restore", project, "-nologo", "-p:TargetFramework=net10.0");
+
+		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--framework", "net10.0");
+
+		// The grammar's type is not in view, so the run stops there: past the frameworks, as it should.
+		Assert.DoesNotContain("names no target framework", run.Error, StringComparison.Ordinal);
+		Assert.Contains("GRAM3004", run.Output, StringComparison.Ordinal);
+	}
 }
