@@ -5,13 +5,12 @@
 		<RootNamespace>DotGram.Cli</RootNamespace>
 		<AssemblyName>dotnet-dotgram</AssemblyName>
 
-		<!-- Built for the oldest runtime still in support, so that it runs on 8, 9, 10 and later, and run
-		     on the NEWEST one installed rather than on the oldest that fits (LatestMajor, not Major). The
-		     generator reads Unicode categories from the runtime it runs in, and the compiler of the SDK
-		     runs on the newest runtime there is: on .NET 8 a grammar with a category in it gets other
-		     tables than the build writes. -->
+		<!-- Built for the oldest runtime still in support, so that it runs on 8, 9, 10 and later, on the
+		     oldest of them that is installed. What it writes does not depend on which: the generator
+		     carries its own Unicode tables instead of asking the runtime for them, and the package smoke
+		     runs the tool on 8 and on 10 and holds the two outputs equal. -->
 		<TargetFramework>net8.0</TargetFramework>
-		<RollForward>LatestMajor</RollForward>
+		<RollForward>Major</RollForward>
 
 		<!-- NETSDK1138 says net8.0 leaves support (2026-11-10). It is the floor on purpose, above, and
 		     warnings are errors here, so the day the SDK starts saying so must not be the day the tool
@@ -23,6 +22,8 @@
 		<ToolCommandName>dotnet-dotgram</ToolCommandName>
 		<Description>The DotGram generator outside the build: writes the parsers a build would generate, so that a project compiles them without referencing the generator.</Description>
 		<PackageTags>parser;parser-generator;grammar;dotnet-tool;codegen;csharp</PackageTags>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageReleaseNotes>New in 0.3.0: dotnet dotgram generate writes the parsers a build would generate, for a project (as its own build gives the compiler its inputs) or for one .gram file, so that the project compiles them and does not reference the DotGram package. For large grammars, whose generation shows in a cold build. The files are byte for byte what DotGram writes in dotnet build of the project, for a restored project built with the same SDK, apart from relative #line paths (--line-paths absolute for the build's), no generation report files, and the line endings of the EmbeddedAttribute definition. Needs .NET SDK 8.0.100 or newer; runs on .NET 8 and later. dotnet dotgram --skill prints the guide for coding agents; docs/cli.md in the repository is the reference.</PackageReleaseNotes>
 
 		<!-- Roslyn carries a dozen resource cultures, several megabytes, that a tool printing English
 		     never reads. -->
@@ -55,6 +56,7 @@
 		<AdditionalFiles Include="CommandLine.gram" />
 		<EmbeddedResource Include="SKILL.md" LogicalName="DotGram.Cli.SKILL.md" />
 		<None Include="SKILL.md" Pack="true" PackagePath="\" />
+		<None Include="README.md" Pack="true" PackagePath="\" />
 		<InternalsVisibleTo Include="DotGram.Cli.Tests" />
 	</ItemGroup>
 

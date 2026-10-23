@@ -45,6 +45,7 @@ construction. A change meant to move a grammar off the tape is measured by its d
 | Document | |
 | --- | --- |
 | [`feeds.md`](feeds.md) | Feeds: trading files in pipes, CSV and fixed width with a header and a trailer, files kept by hand, and a feed of ten million records bulk-loaded into a database. |
+| [`cli.md`](cli.md) | `dotnet dotgram`: the generator run outside the build, every command, option and exit code, and what the files it writes promise. |
 
 Every example of a guide is compiled and run by a test, its output held to the page's, so a
 guide that disagrees with the code is a failing test rather than a stale page. The figures it
