@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace DotGram.Grammar.Emit;
@@ -97,19 +98,8 @@ sealed class Writer(int depth)
 		if (value.Length == 0)
 			return true;
 
-		for (var at = start; at <= _text.Length - value.Length; at++)
-		{
-			if (_text[at] != value[0])
-				continue;
-
-			var length = 1;
-
-			while (length < value.Length && _text[at + length] == value[length])
-				length++;
-
-			if (length == value.Length)
-				return true;
-		}
+		foreach (var _ in Occurrences(value, start))
+			return true;
 
 		return false;
 	}
@@ -120,18 +110,10 @@ sealed class Writer(int depth)
 	/// </summary>
 	public bool Names(string name)
 	{
-		for (var at = 0; at <= _text.Length - name.Length; at++)
+		foreach (var at in Occurrences(name, 0))
 		{
-			var length = 0;
-
-			while (length < name.Length && _text[at + length] == name[length])
-				length++;
-
-			if (length < name.Length)
-				continue;
-
 			var before = at == 0 || !Continues(_text[at - 1]);
-			var after  = at + length == _text.Length || !Continues(_text[at + length]);
+			var after  = at + name.Length == _text.Length || !Continues(_text[at + name.Length]);
 
 			if (before && after)
 				return true;
@@ -142,6 +124,46 @@ sealed class Writer(int depth)
 		static bool Continues(char c)
 		{
 			return char.IsLetterOrDigit(c) || c == '_';
+		}
+	}
+
+	/// <summary>How much of the buffer a search copies out at a time.</summary>
+	const int SearchBlock = 1 << 16;
+
+	/// <summary>Where <paramref name="value"/> begins in the text written, from <paramref name="start"/> on.</summary>
+	/// <remarks>
+	/// The builder's indexer finds its chunk by walking back from the last one at every call, so
+	/// a search by index over a file of several megabytes costs the length times the chunk count:
+	/// it took most of the generator's time over the SQL grammars. The search copies the text out
+	/// a block at a time instead, each block overlapping the last by one less than the value, and
+	/// keeps no copy of the whole.
+	/// </remarks>
+	IEnumerable<int> Occurrences(string value, int start)
+	{
+		var buffer = new char[Math.Max(SearchBlock, 2 * value.Length)];
+
+		for (var from = start; from <= _text.Length - value.Length;)
+		{
+			var count = Math.Min(buffer.Length, _text.Length - from);
+			var last  = count - value.Length;
+
+			_text.CopyTo(from, buffer, 0, count);
+
+			for (var at = 0; at <= last; at++)
+			{
+				if (buffer[at] != value[0])
+					continue;
+
+				var length = 1;
+
+				while (length < value.Length && buffer[at + length] == value[length])
+					length++;
+
+				if (length == value.Length)
+					yield return from + at;
+			}
+
+			from += last + 1;
 		}
 	}
 

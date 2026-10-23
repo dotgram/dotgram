@@ -288,7 +288,7 @@ sealed partial class Machine
 
 		// A recognizer of the host asked again for its value is handed the segment it was handed
 		// while the input was read (CSharpEmitter.SegmentOf), and where that ends is kept the same way.
-		if (file.Contains("ref segmentEnd", declared))
+		if (_graph.Segmented && file.Contains("ref segmentEnd", declared))
 		{
 			declared = file.InsertLine(declared, "var segmentFrom = 0;");
 			file.InsertLine(declared, "var segmentEnd  = -1;");

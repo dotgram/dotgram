@@ -4291,6 +4291,10 @@ sealed partial class Machine
 	/// <summary>Whether a written state hands a recognizer of the host its segment (<see cref="ExternalCall"/>).</summary>
 	bool CutsSegment()
 	{
+		// Only a grammar that names `eos` writes the call.
+		if (!_graph.Segmented)
+			return false;
+
 		foreach (var index in _order)
 			if (_bodies[index].Contains("ref segmentEnd", StringComparison.Ordinal))
 				return true;

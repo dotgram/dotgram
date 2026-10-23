@@ -92,6 +92,50 @@ public sealed class WriterTests
 	}
 
 	[Theory]
+	[InlineData(65536 - 9)]
+	[InlineData(65536 - 4)]
+	[InlineData(65536)]
+	[InlineData(2 * 65536 - 7)]
+	public void Search_finds_a_match_across_the_blocks_it_copies(int before)
+	{
+		// The search copies the buffer out in blocks of 64K: a match is found wherever it falls
+		// against their edges, and a word is told from part of a longer one on either side of them.
+		var writer = Create(0);
+		Call(writer, "Exactly", new string('x', before) + " always ways_ ways");
+		Assert.True(Contains(writer, " always ways_ ways", 0));
+		Assert.True(Contains(writer, "ways", before + 13));
+		Assert.False(Contains(writer, "ways", before + 15));
+		Assert.False(Contains(writer, "xways", 0));
+		Assert.True(Names(writer, "ways"));
+		Assert.False(Names(writer, "alway"));
+
+		var lone = Create(0);
+		Call(lone, "Exactly", new string('x', before) + " always ways_");
+		Assert.False(Names(lone, "ways"));
+	}
+
+	[Fact]
+	public void Search_of_a_large_buffer_is_linear()
+	{
+		// The builder's indexer walks its chunks at every call, so a search by index costs the
+		// length times the chunk count; over the T-SQL reader that made the generator ten times
+		// slower. Sixteen million characters searched that way take minutes; copied out in
+		// blocks, a few tens of milliseconds. The bound is far from both, so that load does not
+		// fail it and the quadratic search cannot pass it.
+		var writer = Create(0);
+		var line   = new string('x', 1000);
+
+		for (var i = 0; i < 16_000; i++)
+			Call(writer, "Exactly", line);
+
+		var watch = System.Diagnostics.Stopwatch.StartNew();
+
+		Assert.False(Contains(writer, "ref segmentEnd", 0));
+		Assert.False(Names(writer, "ways"));
+		Assert.True(watch.Elapsed < TimeSpan.FromSeconds(5), $"Searched in {watch.Elapsed}.");
+	}
+
+	[Theory]
 	[InlineData("Line")]
 	[InlineData("Write")]
 	[InlineData("Exactly")]
@@ -119,6 +163,11 @@ public sealed class WriterTests
 	static bool Contains(object writer, string text, int at)
 	{
 		return (bool)WriterType.GetMethod("Contains")!.Invoke(writer, [text, at])!;
+	}
+
+	static bool Names(object writer, string name)
+	{
+		return (bool)WriterType.GetMethod("Names")!.Invoke(writer, [name])!;
 	}
 
 	static object Create(int depth)

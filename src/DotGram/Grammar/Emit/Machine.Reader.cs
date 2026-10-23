@@ -1449,7 +1449,7 @@ sealed partial class Machine
 		var header    = new Writer(0);
 		var state     = Carrier.ReaderState.ToList();
 		var registers = Carrier.ReaderRegisters.ToList();
-		var cuts      = file.Contains("ref segmentEnd", 0);
+		var cuts      = _graph.Segmented && file.Contains("ref segmentEnd", 0);
 
 		header.Line("/// <summary>The readers of the grammar, and what they all read from, in one place: a call between them passes a position and nothing else.</summary>");
 
