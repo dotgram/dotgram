@@ -294,7 +294,10 @@ rows — and `parserText` of what may hold one, in a `=>`, in a `when` and in a 
 whose synchronization is not `eos`; `parserInput`, which would be the segments as one
 text, is not supplied. Text around a repetition marked `recover` is taken to hold an `eos`,
 whatever it synchronizes on: what it steps over goes on past the end of a segment, and a
-`when` inside it reads what was stepped over between its turns. A count by a length,
+`when` inside it reads what was stepped over between its turns, and so does one in its
+synchronization, which is read where the element broke. A `when` in a rule that builds no
+value is read as if it stood where the rule is called: such a rule may be compiled there, and
+its `parserText` is then the calling rule's. A count by a length,
 `X{#q}`, is read as any repetition is, and a repetition whose most is nought, `X{0}` or a
 parameter's `{n}` in an instance where it is nought, reads nothing. A `recover` without a
 `=>` hands `OnRecovered` (§8.3) the text it stepped over, and is refused unless it
