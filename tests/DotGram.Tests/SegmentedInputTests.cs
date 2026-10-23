@@ -460,6 +460,28 @@ public sealed class SegmentedInputTests
 	}
 
 	/// <summary>
+	/// Rules that reach an <c>eos</c> only through each other: whether one does is answered for the
+	/// whole grammar at once, so no rule is taken for one that reaches none because it was asked about
+	/// while its own answer was still being worked out — whichever publication asks first.
+	/// </summary>
+	[Theory]
+	[InlineData("Probe : @int = A => @(0)\nStart : @string = t: B => @(t)\nparse Probe\nparse Start")]
+	[InlineData("Start : @string = t: B => @(t)\nProbe : @int = A => @(0)\nparse Start\nparse Probe")]
+	[InlineData("Probe : @int = A => @(0)\nStart : @string = t: B => @(t)\nparse Start\nparse Probe")]
+	[InlineData("Probe : @int = A => @(0)\nStart : @int = $q: B & $q => @(0)\nparse Probe\nparse Start")]
+	[InlineData("Probe : @int = A => @(0)\nStart : @int = $q: B & 'z'{#q} & eos => @(0)\nparse Probe\nparse Start")]
+	[InlineData("Probe : @int = A => @(0)\nStart : @string = B => @(parserText)\nparse Probe\nparse Start")]
+	[InlineData("Probe : @int = A => @(0)\nStart : @int = B & when @(parserText.Length > 0) & eos => @(0)\nparse Probe\nparse Start")]
+	[InlineData("Probe : @int = A => @(0)\nparse Probe\nfind B")]
+	[InlineData("Probe : @int = A => @(0)\nItems : @string[] = (B => @(parserText))*\nparse Probe\nparse Items as Bs yield : @string")]
+	public void Text_across_a_boundary_through_recursion_is_refused(string publications)
+	{
+		var result = Compile(publications + "\nA = B | eos\nB = 'x' & A");
+
+		Assert.Contains(result.Diagnostics, one => one.Id == GrammarNormalizer.TextAcrossSegments);
+	}
+
+	/// <summary>
 	/// <c>parserText</c> of what holds no boundary may be read: a rule's own text inside one segment,
 	/// a guard before the first <c>eos</c>, a rejected element's text up to the end of its segment.
 	/// </summary>

@@ -162,7 +162,7 @@ public sealed partial class GrammarNormalizer
 		if (!_segmented)
 			return;
 
-		var reaching = new Dictionary<RuleSymbol, bool>();
+		var reaching = RulesReachingEndOfSegment();
 
 		foreach (var rule in _rules)
 		{
@@ -229,7 +229,7 @@ public sealed partial class GrammarNormalizer
 	/// What a capture or a binding keeps: the text its operand matched, which for a positive
 	/// lookahead is the text the look read, though the look keeps the position where it was.
 	/// </summary>
-	bool KeepsEndOfSegment(Node kept, Dictionary<RuleSymbol, bool> reaching)
+	bool KeepsEndOfSegment(Node kept, HashSet<RuleSymbol> reaching)
 	{
 		return kept switch
 		{
@@ -248,7 +248,7 @@ public sealed partial class GrammarNormalizer
 	/// Whether what the rule read before <paramref name="node"/> may hold an <c>eos</c>: a guard's
 	/// <c>parserText</c> is what its rule has matched so far.
 	/// </param>
-	void CheckSuppliedText(Node node, bool before, RuleSymbol rule, Location at, Dictionary<RuleSymbol, bool> reaching)
+	void CheckSuppliedText(Node node, bool before, RuleSymbol rule, Location at, HashSet<RuleSymbol> reaching)
 	{
 		switch (node)
 		{
@@ -323,10 +323,40 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
-	/// Whether reading a node may read an <c>eos</c>, in it or in a rule it calls. Not in a look,
-	/// which reads past it and keeps nothing.
+	/// The rules whose reading may read an <c>eos</c>, in their own body or in a rule they call.
 	/// </summary>
-	bool ReachesEndOfSegment(Node node, Dictionary<RuleSymbol, bool> reaching)
+	/// <remarks>
+	/// The least answer that holds of every rule at once: every rule starts as reaching none, and a
+	/// pass over all of them adds those whose body reaches one by what is known so far, until a pass
+	/// adds nothing. A rule that calls itself is answered by the rest of its body, and no answer is
+	/// kept that a rule later in the walk could still change, so the order the rules are asked in,
+	/// and the order they are published in, change nothing.
+	/// </remarks>
+	HashSet<RuleSymbol> RulesReachingEndOfSegment()
+	{
+		var reaching = new HashSet<RuleSymbol>();
+
+		for (var changed = true; changed;)
+		{
+			changed = false;
+
+			foreach (var pair in _bodies)
+				if (!reaching.Contains(pair.Key) && ReachesEndOfSegment(pair.Value, reaching))
+				{
+					reaching.Add(pair.Key);
+					changed = true;
+				}
+		}
+
+		return reaching;
+	}
+
+	/// <summary>
+	/// Whether reading a node may read an <c>eos</c>, in it or in a rule it calls, by what
+	/// <paramref name="reaching"/> says of the rules. Not in a look, which reads past it and keeps
+	/// nothing.
+	/// </summary>
+	bool ReachesEndOfSegment(Node node, HashSet<RuleSymbol> reaching)
 	{
 		switch (node)
 		{
@@ -341,15 +371,7 @@ public sealed partial class GrammarNormalizer
 				if (rule.IsBuiltIn)
 					return rule.Name == "eos";
 
-				if (!reaching.TryGetValue(rule, out var reaches))
-				{
-					// Placed before the walk, so that a rule that reaches itself ends it.
-					reaching[rule] = false;
-					reaches        = _bodies.TryGetValue(rule, out var body) && ReachesEndOfSegment(body, reaching);
-					reaching[rule] = reaches;
-				}
-
-				return reaches;
+				return reaching.Contains(rule);
 			}
 
 			default:
