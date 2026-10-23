@@ -107,6 +107,35 @@ public sealed class WorkingDirectoryTests
 	}
 
 	/// <summary>
+	/// A <c>global.json</c> the muxer takes and System.Text.Json does not (a key given twice) is copied as it
+	/// is, not rewritten and not an exception.
+	/// </summary>
+	[Fact]
+	public void A_global_json_with_a_key_given_twice_is_copied_as_it_is()
+	{
+		using var scratch = new Scratch();
+
+		var text = "{ \"sdk\": { \"version\": \"10.0.100\", \"paths\": [ \".dotnet\" ] }, \"x\": 1, \"x\": 2 }\n";
+
+		scratch.Write("global.json", text);
+
+		var deep = scratch.Path("a", "b");
+
+		Directory.CreateDirectory(deep);
+
+		var (directory, temporary) = MSBuild.WorkingDirectoryFor(deep, limit: 1);
+
+		try
+		{
+			Assert.Equal(text, File.ReadAllText(Path.Combine(directory, "global.json")));
+		}
+		finally
+		{
+			Directory.Delete(temporary!, recursive: true);
+		}
+	}
+
+	/// <summary>
 	/// A project in a directory of more than 260 characters is asked about like one in a short directory: the same SDK.
 	/// On Windows such a directory cannot be a current directory, which is what this guards.
 	/// </summary>

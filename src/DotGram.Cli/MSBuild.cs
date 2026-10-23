@@ -201,24 +201,32 @@ static class MSBuild
 
 		Directory.CreateDirectory(temporary);
 
-		for (var folder = new DirectoryInfo(directory); folder is not null; folder = folder.Parent)
+		try
 		{
-			var pinned = Path.Combine(folder.FullName, "global.json");
+			var copy = Path.Combine(temporary, "global.json");
 
-			if (File.Exists(pinned))
+			for (var folder = new DirectoryInfo(directory); folder is not null; folder = folder.Parent)
 			{
-				var copy = Path.Combine(temporary, "global.json");
+				var pinned = Path.Combine(folder.FullName, "global.json");
 
-				if (Relocated(pinned) is { } text)
-					File.WriteAllText(copy, text);
-				else
-					File.Copy(pinned, copy);
+				if (File.Exists(pinned))
+				{
+					if (Relocated(pinned) is { } text)
+						File.WriteAllText(copy, text);
+					else
+						File.Copy(pinned, copy);
 
-				break;
+					return (temporary, temporary);
+				}
 			}
-		}
 
-		return (temporary, temporary);
+			return (temporary, temporary);
+		}
+		catch
+		{
+			Directory.Delete(temporary, recursive: true);
+			throw;
+		}
 	}
 
 	/// <summary>
@@ -227,39 +235,39 @@ static class MSBuild
 	/// <c>$host$</c> against the file's own folder, so a relative one is made full; nothing else in the file
 	/// depends on where it is.
 	/// </summary>
-	/// <returns>The text, or null where nothing needs to change (or the file does not read as JSON: the
-	/// muxer then says what is wrong with it, from the copy as from the original), and the file is copied as it is.</returns>
+	/// <returns>The text, or null where nothing needs to change or the file does not read as JSON here
+	/// (the muxer then reads the copy as it reads the original), and the file is copied as it is.</returns>
 	internal static string? Relocated(string path)
 	{
-		JsonNode? root;
-
+		// What the muxer takes, System.Text.Json may not (a key given twice, which the muxer reads as the
+		// last): such a file is copied as it is, and only a file whose sdk.paths are relative is rewritten.
 		try
 		{
-			root = JsonNode.Parse(
+			var root = JsonNode.Parse(
 				File.ReadAllText(path),
 				documentOptions: new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
-		}
-		catch (JsonException)
-		{
-			return null;
-		}
 
-		if (root is not JsonObject { } file || file["sdk"] is not JsonObject sdk || sdk["paths"] is not JsonArray paths)
-			return null;
+			if (root is not JsonObject { } file || file["sdk"] is not JsonObject sdk || sdk["paths"] is not JsonArray paths)
+				return null;
 
-		var folder  = Path.GetDirectoryName(Path.GetFullPath(path))!;
-		var changed = false;
+			var folder  = Path.GetDirectoryName(Path.GetFullPath(path))!;
+			var changed = false;
 
-		for (var i = 0; i < paths.Count; i++)
-		{
-			if (paths[i] is JsonValue value && value.TryGetValue<string>(out var entry) && entry != "$host$" && entry.Length > 0 && !Path.IsPathRooted(entry))
+			for (var i = 0; i < paths.Count; i++)
 			{
-				paths[i] = Path.GetFullPath(entry, folder);
-				changed  = true;
+				if (paths[i] is JsonValue value && value.TryGetValue<string>(out var entry) && entry != "$host$" && entry.Length > 0 && !Path.IsPathRooted(entry))
+				{
+					paths[i] = Path.GetFullPath(entry, folder);
+					changed  = true;
+				}
 			}
-		}
 
-		return changed ? file.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) : null;
+			return changed ? file.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) : null;
+		}
+		catch (Exception exception) when (exception is JsonException or ArgumentException or InvalidOperationException)
+		{
+			return null;
+		}
 	}
 
 	static (int Exit, string Output, string Error) Run(string directory, IEnumerable<string> arguments)
