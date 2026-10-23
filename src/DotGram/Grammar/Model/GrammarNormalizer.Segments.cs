@@ -147,15 +147,42 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
+	/// Every kind of node the checks of text over segments below classify. Each switch below names
+	/// every one of them, and a kind not named stops the compiler there rather than being taken for
+	/// one that keeps nothing.
+	/// </summary>
+	/// <remarks>
+	/// Held by a test to every kind <see cref="Node"/> declares, so that a kind added to it fails
+	/// that test until it is classified here and in each switch.
+	/// </remarks>
+	public static readonly IReadOnlyList<Type> SegmentClassifiedNodes =
+	[
+		typeof(Node.Empty), typeof(Node.Element), typeof(Node.Literal), typeof(Node.Sequence), typeof(Node.Choice),
+		typeof(Node.Atomic), typeof(Node.Marked), typeof(Node.Repeat), typeof(Node.Lookahead), typeof(Node.Behind),
+		typeof(Node.Reading), typeof(Node.Glue), typeof(Node.Capture), typeof(Node.Bind), typeof(Node.Same),
+		typeof(Node.Counted), typeof(Node.Condition), typeof(Node.Guard), typeof(Node.Construct), typeof(Node.External),
+		typeof(Node.Call),
+	];
+
+	/// <summary>What a switch below is told of a kind of node it does not name.</summary>
+	static InvalidOperationException Unclassified(Node node)
+	{
+		return new InvalidOperationException(
+			$"'{node.GetType().Name}' is not classified by the checks of text over segments (SegmentClassifiedNodes).");
+	}
+
+	/// <summary>
 	/// Text kept across an <c>eos</c>: a capture or a binding of text, a look's included, a
-	/// publication whose value is the text it matched, or <c>parserText</c> of what may hold a
-	/// boundary, and <c>parserInput</c> anywhere.
+	/// publication whose value is the text it matched, <c>parserText</c> of what may hold a
+	/// boundary, the text a recovery hands its hook, and <c>parserInput</c> anywhere.
 	/// </summary>
 	/// <remarks>
 	/// A boundary has no character, so text that spans one would be the segments' characters with
 	/// nothing where the boundary was — or the joiner, which is no character of the input. Refused
 	/// until there is a reason to choose. A value built on either side of a boundary is a value and
-	/// may be kept: <c>rows: (Row &amp; eos)*</c> holds rows, not text.
+	/// may be kept: <c>rows: (Row &amp; eos)*</c> holds rows, not text. A recognizer of the host is
+	/// handed its own segment and nothing else (<see cref="Emit.CSharpEmitter.SegmentOf"/>), so
+	/// neither what it reads nor the value it makes of it can hold one.
 	/// </remarks>
 	void CheckSegmentedText()
 	{
@@ -170,58 +197,47 @@ public sealed partial class GrammarNormalizer
 				continue;
 
 			foreach (var node in NodeWalk.Descendants(body))
-			{
-				var (kept, what) = node switch
-				{
-					Node.Capture(var name, var captured) when !HoldsValue(captured) => (captured, $"The capture '{name}'"),
-					Node.Bind(var binding, var bound, _) => (bound, $"The binding '${binding.Name}'"),
-					_ => (null, null),
-				};
-
-				if (kept is not null && KeepsEndOfSegment(kept, reaching))
+				if (KeptText(node) is ({ } kept, { } what) && KeepsEndOfSegment(kept, reaching))
 					Report(
 						TextAcrossSegments,
 						$"{what} in '{rule.Name}' may hold an 'eos', and the end of a segment is no text: a " +
 						"capture is a piece of one segment. Capture the parts on either side of it, or a value " +
 						"built from them (docs/syntax.md §3.1.1).",
 						declared.At);
-			}
 
 			CheckSuppliedText(body, false, rule, declared.At, reaching);
 		}
 
+		// A rejected element's text runs from where it began to the first synchronization after
+		// that, which, where it is `eos`, is the end of the segment it began in. Anything else may
+		// be found past the end of that segment, or be the end of a segment and more.
 		foreach (var pair in _recoveries)
 		{
-			if (pair.Value.Factory is not { } factory)
+			var recovery = pair.Value;
+
+			if (recovery.Factory is not { } factory)
 			{
-				// OnRecovered, and a streamed reading's rejection, are handed the text of the element
-				// it steps over, up to where it synchronizes, whether or not anything listens: whether
-				// the host implements the hook is not known here. Where that is `eos` it is the rest of
-				// the segment the element began in.
-				if (!EndsSegment(pair.Value.Sync))
+				// OnRecovered, and a streamed reading's rejection, are handed that text whether or
+				// not anything listens: whether the host implements the hook is not known here.
+				if (!EndsSegment(recovery.Sync))
 					Report(
 						TextAcrossSegments,
 						"A 'recover' without a '=>' hands OnRecovered the text of the element it steps over, up " +
 						"to where it synchronizes, which may hold an 'eos', and the end of a segment is no text. " +
 						"Synchronize on 'eos', which stops at the end of the element's own segment, or build the " +
 						"rejection with a '=>' (docs/syntax.md §3.1.1).",
-						pair.Value.At);
-
-				continue;
+						recovery.At);
 			}
-
-			if (Names(factory, "parserInput"))
-				Report(TextAcrossSegments, InputAcrossSegments, pair.Value.At);
-			// A rejected element's text runs from where it began to the first synchronization after
-			// that, which, where it is `eos`, is the end of the segment it began in.
-			else if (Names(factory, "parserText") && !EndsSegment(pair.Value.Sync))
+			else if (Names(factory, "parserInput"))
+				Report(TextAcrossSegments, InputAcrossSegments, recovery.At);
+			else if (Names(factory, "parserText") && !EndsSegment(recovery.Sync))
 				Report(
 					TextAcrossSegments,
 					"'parserText' in this 'recover' is the text of a rejected element up to where it " +
 					"synchronizes, which may hold an 'eos', and the end of a segment is no text. Read it where " +
 					"the synchronization is 'eos', which stops at the end of the element's own segment " +
 					"(docs/syntax.md §3.1.1).",
-					pair.Value.At);
+					recovery.At);
 		}
 
 		foreach (var publication in _publications)
@@ -239,6 +255,45 @@ public sealed partial class GrammarNormalizer
 		"'parserInput' would be the segments read as one text, with nothing where each one ends, and " +
 		"that is no input the caller handed over: a grammar that names 'eos' does not supply it. Read " +
 		"the parts you need with captures (docs/syntax.md §3.1.1).";
+
+	/// <summary>
+	/// The text a node keeps for the host, and what it is called in a message, or null where it
+	/// keeps none of its own.
+	/// </summary>
+	/// <remarks>
+	/// Only what is kept as text: what a construction or a guard reads is
+	/// <see cref="CheckSuppliedText"/>'s to answer, and a value is not text.
+	/// </remarks>
+	(Node Kept, string What)? KeptText(Node node)
+	{
+		switch (node)
+		{
+			// A capture of a value keeps the value.
+			case Node.Capture(var name, var captured):
+				return HoldsValue(captured) ? null : (captured, $"The capture '{name}'");
+
+			case Node.Bind(var binding, var bound, _):
+				return (bound, $"The binding '${binding.Name}'");
+
+			// What reads a binding again, or counts it, reads the text the binding is held to.
+			case Node.Same or Node.Counted:
+				return null;
+
+			// Handed its own segment and nothing else, and a value made of that.
+			case Node.External:
+				return null;
+
+			case Node.Construct or Node.Guard or Node.Condition or Node.Marked:
+				return null;
+
+			case Node.Empty or Node.Element or Node.Literal or Node.Sequence or Node.Choice or Node.Atomic
+				or Node.Repeat or Node.Lookahead or Node.Behind or Node.Reading or Node.Glue or Node.Call:
+				return null;
+
+			default:
+				throw Unclassified(node);
+		}
+	}
 
 	/// <summary>
 	/// What a capture or a binding keeps: the text its operand matched, which for a positive
@@ -279,6 +334,11 @@ public sealed partial class GrammarNormalizer
 
 				return;
 
+			case Node.Marked(var body, var state):
+				CheckSuppliedText(body, before, rule, at, reaching);
+				Supplied(state, before || ReachesEndOfSegment(body, reaching), "a 'with state'");
+				return;
+
 			case Node.Sequence(var parts):
 			{
 				var read = before;
@@ -302,15 +362,30 @@ public sealed partial class GrammarNormalizer
 				CheckSuppliedText(body, before || ReachesEndOfSegment(node, reaching), rule, at, reaching);
 				return;
 
-			// Another rule's guards and constructions stand over that rule's own text.
-			case Node.Call:
+			// Another rule's guards and constructions stand over that rule's own text; what is
+			// handed to it is read there, after whatever that rule read first.
+			case Node.Call(_, var arguments):
+				foreach (var argument in arguments)
+					CheckSuppliedText(argument, true, rule, at, reaching);
+
 				return;
 
-			default:
+			case Node.Choice or Node.Atomic or Node.Capture or Node.Bind or Node.Lookahead:
 				foreach (var child in node.Children)
 					CheckSuppliedText(child, before, rule, at, reaching);
 
 				return;
+
+			// Decided while the parser is generated, and holds no C#.
+			case Node.Condition:
+				return;
+
+			case Node.Empty or Node.Element or Node.Literal or Node.Behind or Node.Reading or Node.Glue
+				or Node.Same or Node.External:
+				return;
+
+			default:
+				throw Unclassified(node);
 		}
 
 		void Supplied(string text, bool reaches, string where)
@@ -387,17 +462,17 @@ public sealed partial class GrammarNormalizer
 			// synchronizes, and both that scan and the synchronization go on past the end of a
 			// segment as past any character: what is around it may hold one, whatever it
 			// synchronizes on. What the recovery hands its own `=>` is answered apart.
-			case Node.Repeat when _recoveries.ContainsKey(node):
+			case Node.Repeat or Node.Counted when _recoveries.ContainsKey(node):
 				return true;
 
 			// A repetition whose most is a written nought never runs its body. A count that is a
 			// parameter's is a number here already, the instance's own, and a length is never
 			// nought ahead of time, so neither is taken for one.
-			case Node.Repeat { Max: 0 }:
-				return false;
+			case Node.Repeat(var body, _, var max):
+				return max != 0 && ReachesEndOfSegment(body, reaching);
 
-			case Node.Counted { Max: CountBound.Items { Count: 0 } }:
-				return false;
+			case Node.Counted(var body, _, var max):
+				return max is not CountBound.Items { Count: 0 } && ReachesEndOfSegment(body, reaching);
 
 			case Node.Call(var rule, var arguments):
 			{
@@ -410,8 +485,35 @@ public sealed partial class GrammarNormalizer
 				return reaching.Contains(rule);
 			}
 
-			default:
+			// `eos` itself, once it is its body, and nothing an author wrote (GRAM4047).
+			case Node.Literal(var text):
+				return text.IndexOf(Joiner) >= 0;
+
+			// A class reads the joiner only where it was left in: a negated one that does not name
+			// it, or a positive one that does. A predicate or a category a class calls is read
+			// behind a look that keeps it off the joiner (SegmentedPredicates).
+			case Node.Element element:
+				return element.IsNegated
+					? !element.Ranges.Any(static range => range.From <= Joiner && Joiner <= range.To)
+					: element.Ranges.Any(static range => range.From <= Joiner && Joiner <= range.To);
+
+			// A reference matches what its binding matched, which may not hold one (KeptText).
+			case Node.Same:
+				return false;
+
+			// Handed its own segment and nothing else.
+			case Node.External:
+				return false;
+
+			case Node.Empty or Node.Behind or Node.Reading or Node.Glue or Node.Guard or Node.Condition:
+				return false;
+
+			case Node.Sequence or Node.Choice or Node.Atomic or Node.Marked or Node.Capture or Node.Bind
+				or Node.Construct:
 				return node.Children.Any(child => ReachesEndOfSegment(child, reaching));
+
+			default:
+				throw Unclassified(node);
 		}
 	}
 }

@@ -569,6 +569,23 @@ public sealed class SegmentedInputTests
 		Assert.Equal("[x;y]3:1;[]7:2;[b]10:4;", (string)told.GetValue(null)!);
 	}
 
+	/// <summary>
+	/// Every kind of node is classified by the checks of text over segments: a kind added to the
+	/// graph fails here until each of those checks says what it keeps, reads and hands over.
+	/// </summary>
+	[Fact]
+	public void Every_kind_of_node_is_classified_for_segments()
+	{
+		var kinds = typeof(Node).Assembly.GetTypes()
+			.Where(static type => type.IsSubclassOf(typeof(Node)) && !type.IsAbstract)
+			.Select(static type => type.FullName)
+			.OrderBy(static name => name, StringComparer.Ordinal);
+
+		Assert.Equal(
+			kinds,
+			GrammarNormalizer.SegmentClassifiedNodes.Select(static type => type.FullName).OrderBy(static name => name, StringComparer.Ordinal));
+	}
+
 	/// <summary>Values built on either side of a boundary may be kept; text inside one segment may.</summary>
 	[Fact]
 	public void Values_across_a_boundary_are_kept()
