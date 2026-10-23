@@ -230,7 +230,10 @@ public sealed class OutputTests
 	public void An_unreadable_manifest_is_refused_with_a_message()
 	{
 		if (OperatingSystem.IsWindows())
+		{
+			Assert.Skip("file modes are Unix's");
 			return;
+		}
 
 		using var scratch = new Scratch();
 
@@ -240,15 +243,8 @@ public sealed class OutputTests
 
 		try
 		{
-			// A process with the rights to read it all the same has nothing to check.
-			try
-			{
-				File.ReadAllText(manifest);
-				return;
-			}
-			catch (UnauthorizedAccessException)
-			{
-			}
+			// A process with the rights to read it all the same (root) cannot be shown the path at all.
+			Assert.SkipWhen(Readable(manifest), "the manifest stays readable to this process");
 
 			var refusal = Assert.Throws<ToolException>(() => OutputFolder.Listed(scratch.Path("out")));
 
@@ -258,6 +254,19 @@ public sealed class OutputTests
 		finally
 		{
 			File.SetUnixFileMode(manifest, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+		}
+
+		static bool Readable(string file)
+		{
+			try
+			{
+				File.ReadAllText(file);
+				return true;
+			}
+			catch (UnauthorizedAccessException)
+			{
+				return false;
+			}
 		}
 	}
 
