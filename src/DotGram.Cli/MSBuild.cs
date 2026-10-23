@@ -220,6 +220,10 @@ static class MSBuild
 				}
 			}
 
+			// The project's directory finds no global.json: neither may the temporary folder, whose own
+			// ancestors may hold one. An empty one ends the muxer's search upwards and pins nothing.
+			File.WriteAllText(copy, "{}\n");
+
 			return (temporary, temporary);
 		}
 		catch
