@@ -2434,58 +2434,133 @@ public static class FirstSets
 		return Nullable(node, rule, null, bound);
 	}
 
-	static bool Nullable(Node node, Func<RuleSymbol, bool> rule, RecognitionGraph? graph, Func<TextBinding, IEnumerable<Node>>? bound)
+	/// <param name="hosts">
+	/// Whether a recognizer of the host may match nothing (<see cref="StandsStill"/>); otherwise it
+	/// is taken at its word, that it consumes.
+	/// </param>
+	static bool Nullable(
+		Node node, Func<RuleSymbol, bool> rule, RecognitionGraph? graph, Func<TextBinding, IEnumerable<Node>>? bound,
+		bool hosts = false)
 	{
 		return node switch
 		{
 			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading => true,
 			Node.Literal(var text) => text.Length == 0,
 			Node.Element => false,
-			Node.Atomic(var body) => Nullable(body, rule, graph, bound),
-			Node.Marked(var body, _) => Nullable(body, rule, graph, bound),
-			Node.Capture(_, var captured) => Nullable(captured, rule, graph, bound),
-			Node.Construct(var built, _) => Nullable(built, rule, graph, bound),
-			Node.Repeat(var body, var min, _) => min == 0 || Nullable(body, rule, graph, bound),
-			Node.Sequence(var parts) => All(parts, rule, graph, bound),
-			Node.Choice(var alternatives) => Any(alternatives, rule, graph, bound),
+			Node.External => hosts,
+			Node.Atomic(var body) => Nullable(body, rule, graph, bound, hosts),
+			Node.Marked(var body, _) => Nullable(body, rule, graph, bound, hosts),
+			Node.Capture(_, var captured) => Nullable(captured, rule, graph, bound, hosts),
+			Node.Construct(var built, _) => Nullable(built, rule, graph, bound, hosts),
+			Node.Repeat(var body, var min, _) => min == 0 || Nullable(body, rule, graph, bound, hosts),
+			Node.Sequence(var parts) => All(parts, rule, graph, bound, hosts),
+			Node.Choice(var alternatives) => Any(alternatives, rule, graph, bound, hosts),
 			Node.Call(var called, _) => rule(called),
 
 			// A binding records what its body matched and reads nothing more.
-			Node.Bind(_, var body, _) => Nullable(body, rule, graph, bound),
+			Node.Bind(_, var body, _) => Nullable(body, rule, graph, bound, hosts),
 
 			// What the binding matched, again: nothing where it may have matched nothing.
-			Node.Same(var binding, _) => MayBeEmpty(binding, rule, graph, bound),
+			Node.Same(var binding, _) => MayBeEmpty(binding, rule, graph, bound, hosts),
 
 			// A length is zero where the text it measures may be empty, and then so many turns
 			// are none.
 			Node.Counted(var body, var min, _) => min switch
 			{
 				CountBound.Items(var count) => count == 0,
-				CountBound.Length(var binding, _) => MayBeEmpty(binding, rule, graph, bound),
+				CountBound.Length(var binding, _) => MayBeEmpty(binding, rule, graph, bound, hosts),
 				_ => true,
-			} || Nullable(body, rule, graph, bound),
+			} || Nullable(body, rule, graph, bound, hosts),
 
 			_ => false,
 		};
 	}
 
-	static bool All(IReadOnlyList<Node> nodes, Func<RuleSymbol, bool> rule, RecognitionGraph? graph, Func<TextBinding, IEnumerable<Node>>? bound)
+	static bool All(
+		IReadOnlyList<Node> nodes, Func<RuleSymbol, bool> rule, RecognitionGraph? graph, Func<TextBinding, IEnumerable<Node>>? bound,
+		bool hosts)
 	{
 		foreach (var node in nodes)
-			if (!Nullable(node, rule, graph, bound))
+			if (!Nullable(node, rule, graph, bound, hosts))
 				return false;
 
 		return true;
 	}
 
-	static bool Any(IReadOnlyList<Node> nodes, Func<RuleSymbol, bool> rule, RecognitionGraph? graph, Func<TextBinding, IEnumerable<Node>>? bound)
+	static bool Any(
+		IReadOnlyList<Node> nodes, Func<RuleSymbol, bool> rule, RecognitionGraph? graph, Func<TextBinding, IEnumerable<Node>>? bound,
+		bool hosts)
 	{
 		foreach (var node in nodes)
-			if (Nullable(node, rule, graph, bound))
+			if (Nullable(node, rule, graph, bound, hosts))
 				return true;
 
 		return false;
 	}
+
+	/// <summary>
+	/// Whether a turn of a repetition over <paramref name="body"/> can end where it began only
+	/// through a recognizer of the host: the body reads something on every path the grammar spells,
+	/// and may read nothing once a recognizer is let match nothing.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// The nullability GRAM4001 asks takes a recognizer at its word, that it consumes: that is what
+	/// its <c>ref</c> says. Nothing in §7.2 asks it to move when it succeeds, though, so a recognizer
+	/// may answer yes and leave the position where it was — and then, since its answer depends only
+	/// on its arguments and the text, every turn after it would answer the same way, and the
+	/// repetition would go round for ever. These are the repetitions whose emitted loop ends at a
+	/// turn that ended where it began; every other one cannot have such a turn and is written as
+	/// it always was.
+	/// </para>
+	/// <para>
+	/// The rules are worked out once a graph, as a fixed point over the rules' own nullability,
+	/// and not at all for a grammar that calls no recognizer.
+	/// </para>
+	/// </remarks>
+	public static bool StandsStill(Node body, RecognitionGraph graph)
+	{
+		var standing = _standing.GetValue(graph, static graph => StandingRules(graph));
+
+		if (ReferenceEquals(standing, NoRecognizers))
+			return false;
+
+		return Nullable(body, standing.Contains, graph, null, hosts: true) && !Nullable(body, graph);
+	}
+
+	/// <summary>
+	/// The rules that may match nothing once a recognizer may, or <see cref="NoRecognizers"/> where no
+	/// rule calls one.
+	/// </summary>
+	static HashSet<RuleSymbol> StandingRules(RecognitionGraph graph)
+	{
+		if (!graph.Bodies.Values.Any(static body => NodeWalk.Descendants(body).Any(static node => node is Node.External)))
+			return NoRecognizers;
+
+		var standing = new HashSet<RuleSymbol>();
+
+		foreach (var pair in graph.Nullable)
+			if (pair.Value)
+				standing.Add(pair.Key);
+
+		for (var grew = true; grew; )
+		{
+			grew = false;
+
+			foreach (var pair in graph.Bodies)
+				if (!standing.Contains(pair.Key) && Nullable(pair.Value, standing.Contains, graph, null, hosts: true))
+				{
+					standing.Add(pair.Key);
+					grew = true;
+				}
+		}
+
+		return standing;
+	}
+
+	static readonly HashSet<RuleSymbol> NoRecognizers = [];
+
+	static readonly System.Runtime.CompilerServices.ConditionalWeakTable<RecognitionGraph, HashSet<RuleSymbol>> _standing = new();
 
 	/// <summary>
 	/// Whether the text a binding holds may be empty: whether any of the bodies it is bound to
@@ -2505,7 +2580,9 @@ public static class FirstSets
 	/// calls a loop safe that is not.
 	/// </para>
 	/// </remarks>
-	static bool MayBeEmpty(TextBinding binding, Func<RuleSymbol, bool> rule, RecognitionGraph? graph, Func<TextBinding, IEnumerable<Node>>? bound)
+	static bool MayBeEmpty(
+		TextBinding binding, Func<RuleSymbol, bool> rule, RecognitionGraph? graph, Func<TextBinding, IEnumerable<Node>>? bound,
+		bool hosts = false)
 	{
 		var bodies = bound is not null ? bound(binding) : graph is not null ? BoundBodies(graph, binding) : null;
 
@@ -2526,7 +2603,7 @@ public static class FirstSets
 			{
 				any = true;
 
-				if (Nullable(body, rule, graph, bound))
+				if (Nullable(body, rule, graph, bound, hosts))
 				{
 					empty = true;
 

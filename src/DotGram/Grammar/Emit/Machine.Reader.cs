@@ -4650,7 +4650,11 @@ sealed partial class Machine
 				code.Line($"var {turn} = {call};");
 				code.Line();
 
-				using (code.Block($"if ({turn} < 0 || {turn} == p)"))
+				// A turn that ends where it began through a recognizer of the host is a turn, kept
+				// with what it built, and the last: it stands for every turn still owed (EmitTurns).
+				var stands = FirstSets.StandsStill(body, _graph);
+
+				using (code.Block(stands ? $"if ({turn} < 0)" : $"if ({turn} < 0 || {turn} == p)"))
 				{
 					if (_gathers && back >= 0)
 						foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{back}"))
@@ -4665,6 +4669,20 @@ sealed partial class Machine
 					code.Line("break;");
 				}
 				code.Line();
+
+				if (stands)
+				{
+					using (code.Block($"if ({turn} == p)"))
+					{
+						if (min > 0)
+							code.Line($"{turns} = {min};");
+
+						code.Line("break;");
+					}
+
+					code.Line();
+				}
+
 				code.Line($"p = {turn};");
 
 				if (turns is not null)
@@ -5451,7 +5469,11 @@ sealed partial class Machine
 			Writer code, Node body, Node.Repeat? repeat, string? min, string? max, FollowSets.Continuation inside, bool settled)
 		{
 			var turn     = min is not null || max is not null ? $"t{_turns++}" : null;
-			var nullable = FirstSets.Nullable(body, _graph);
+
+			// A turn that ends where it began ends the loop, and stands for every turn still owed:
+			// the next would begin where it did and read what it read (FirstSets.StandsStill). A
+			// loop of one turn has no next.
+			var nullable = FirstSets.Nullable(body, _graph) || repeat?.Max != 1 && FirstSets.StandsStill(body, _graph);
 			var (call, undo, opens) = Called(body, inside);
 
 			if (turn is not null)

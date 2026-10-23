@@ -213,6 +213,12 @@ sealed partial class Machine
 		if (Commit.Recovering(_graph, rule, node) is not { } continuation)
 			return Why;
 
+		// The reader tries the continuation before every element and has no turn that ends the
+		// loop without it; an element that may stand still, through a recognizer of the host, ends
+		// the repetition where it stood (FirstSets.StandsStill), which the engine reads.
+		if (node is Node.Repeat { Body: var element } && FirstSets.StandsStill(element, _graph))
+			return "an element of the repetition it recovers in may end where it began";
+
 		_recoveryReads[node] = new RecoveryRead(plan, continuation);
 
 		return null;
