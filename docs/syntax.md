@@ -285,15 +285,20 @@ parse Args
 
 Such a grammar publishes forms over sequences only (§6.3). A position counts one for
 every character and one for every boundary, so a position before an `eos` and after
-it differ; where a line and a column are asked for (§8.2), a line is a segment and a
-column the offset in it, both from 1. A refusal at a boundary says `end of segment`.
-What is not built yet is refused rather than guessed at: text captured, bound or
-published across an `eos` (`GRAM4048`) — capture the parts on either side, or a value
-built from them, which may be kept: `(rows: Row & eos)*` holds rows — and an `eos`
-grammar split into tokens (`GRAM4049`) or asked for buffered or byte forms (`GRAM4050`).
-U+0000 is how a boundary is read in this version, so no segment may hold it: a
-literal or a class that names it is an error (`GRAM4047`), and a segment that holds
-it is refused before it is read.
+it differ; where a line and a column are asked for (§8.2), and where `Parse…` throws, a
+line is a segment and a column the offset in it, both from 1. A refusal at a boundary
+says `end of segment`. What is not built yet is refused rather than guessed at
+(`GRAM4048`): text captured, bound or published across an `eos` — capture the parts on
+either side, or a value built from them, which may be kept: `(rows: Row & eos)*` holds
+rows — and `parserText` of what may hold one, in a `=>`, in a `when` and in a `recover`
+whose synchronization is not `eos`; `parserInput`, which would be the segments as one
+text, is not supplied. An `eos` grammar split into tokens (`GRAM4049`) or asked for
+buffered or byte forms (`GRAM4050`) is refused as well. U+0000 is how a boundary is read
+in this version, so no segment may hold it, and a segment that holds it is refused
+before it is read. A literal or a class item that is U+0000 and nothing else could never match, and
+is an error (`GRAM4047`); a range or a category that merely holds it —
+`['\0'..'\u001F']`, `\p{Cc}` — reads the rest of what it holds. A predicate a class
+calls (§7.1) is never asked about the end of a segment.
 
 ### 3.2 Composition
 
