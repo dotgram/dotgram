@@ -655,6 +655,8 @@ public sealed class SegmentedInputTests
 	[Theory]
 	[InlineData("Start : @int = (t: eos){0} & eof => @(0)\nparse Start", "")]
 	[InlineData("Start : @int = (any & when @(parserText.Length > 0) & eos){0} & any* & eos & eof => @(0)\nparse Start", "abc")]
+	[InlineData("Start : @string = ((Word* recover ';' => @(parserText)) & '!'){0} & v: any* & eos & eof => @(v)\nWord : @string = 'a' => @(\"a\")\nparse Start", "abc")]
+	[InlineData("Start : @string = ((Word* recover ';') & '!'){0} & v: any* & eos & eof => @(v)\nWord : @string = 'a' => @(\"a\")\nparse Start", "abc")]
 	[InlineData("Start : @string = v: Fields(0, any* & eos) & any* & eos & eof => @(v)\nFields(n: int, item) : @string = (t: item & ','){n} => @(t ?? \"\")\nparse Start", "abc")]
 	public void What_a_repetition_that_cannot_run_would_keep_is_not_kept(string grammar, string segment)
 	{
