@@ -285,11 +285,20 @@ public sealed partial class GrammarNormalizer
 		// A rejected element's text runs from where it began to the first synchronization after
 		// that, which, where it is `eos`, is the end of the segment it began in. Anything else may
 		// be found past the end of that segment, or be the end of a segment and more.
+		// Only the recoveries that may run: not one in what a repetition that never runs would read.
+		var live = new HashSet<Node>(NodeIdentity.Instance);
+
+		foreach (var body in _bodies.Values)
+			foreach (var (tree, _) in ReadTrees(body))
+				foreach (var node in Running(tree))
+					if (_recoveries.ContainsKey(node))
+						live.Add(node);
+
 		foreach (var pair in _recoveries)
 		{
 			var recovery = pair.Value;
 
-			if (NeverRuns(pair.Key))
+			if (!live.Contains(pair.Key))
 				continue;
 
 			if (recovery.Factory is not { } factory)
