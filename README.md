@@ -30,7 +30,7 @@ A grammar is read in one of two modes. **Character-level** parsing has no separa
 
 | Input | Types | Character-level | Lexical |
 | ----- | ----- | --------------- | ------- |
-| **Text in memory** | `string`, `ReadOnlySpan<char>` | regex-like matching and search, configs, expressions, formats, queries | SQL and languages with keywords and trivia |
+| **Text in memory** | `string` (whole or a slice by start and length) | regex-like matching and search, configs, expressions, formats, queries | SQL and languages with keywords and trivia |
 | **Text stream** | `TextReader` | feed and log files, sockets — read through a bounded buffer, so a file of tens of gigabytes takes no more memory than one record | — memory only |
 | **Bytes** | `byte[]`, `ReadOnlyMemory<byte>`, `Stream` | binary protocols, FIX wire, byte feeds of any size | — memory only |
 | **Segments** | `IEnumerable<string>`, `IReadOnlyList<string>`, `TextReader` (as lines) | feed files line by line, CSV, argv; a reader over a file or socket is read a line at a time, each line end a segment boundary | — |

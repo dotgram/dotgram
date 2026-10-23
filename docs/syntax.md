@@ -2263,7 +2263,7 @@ because it is a property of the data rather than of the grammar.
 
 | Input | How it runs | Retains |
 | --- | --- | --- |
-| `string`, `ReadOnlySpan<char>` | everything in memory | all of it, and the result may be walked again |
+| `string` (whole or a slice by start and length) | everything in memory | all of it, and the result may be walked again |
 | `IEnumerable<string>`, `TextReader` | through a reused, growable buffer | whatever the parse cannot yet let go of — one record's worth, for a well-formed feed — and the result is walked once |
 
 The shape of what comes back does not change with the input: `parse` of a sequence
