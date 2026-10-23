@@ -16,7 +16,7 @@ namespace DotGram.Snapshots
 
 			throw new global::System.FormatException(
 				(error.EndsWith(".", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +
-				" at " + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
+				" at " + At_DotGram(input, match.Position) + ".");
 		}
 
 		private static Match<global::DotGram.Snapshots.Segmented.Args> Try_DotGram_ParseArgs(string input)
@@ -607,13 +607,13 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				if ((uint)p >= (uint)text.Length)
 				{
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(15));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(3));
 					return -1;
 				}
 				c = text[p];
 				if (!(!(c == '\0')))
 				{
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(15));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(3));
 					return -1;
 				}
 				p++;
@@ -1571,6 +1571,22 @@ namespace DotGram.Snapshots
 			return new string(text);
 		}
 
+		private static string At_DotGram(string text, long position)
+		{
+			var line  = 1;
+			var start = 0L;
+
+			for (var at = 0; at < position && at < text.Length; at++)
+				if (text[at] == '\0')
+				{
+					line++;
+					start = at + 1;
+				}
+
+			return "line " + line.ToString(global::System.Globalization.CultureInfo.InvariantCulture) +
+				", column " + (position - start + 1).ToString(global::System.Globalization.CultureInfo.InvariantCulture);
+		}
+
 		private static global::System.Collections.Generic.IReadOnlyList<string> Listed_DotGram(global::System.Collections.Generic.IEnumerable<string> input)
 		{
 			if (input is null)
@@ -2305,7 +2321,7 @@ namespace DotGram.Snapshots
 
 		static string[] ExpectedDecoded_DotGram(int id)
 		{
-			var data = "ACEGIKMOQSVXZ\u005C\u005Ea@aBaEBABBBCBDBEBFBGBHBICJKBJBKBLBMBNBOCPBBQ";
+			var data = "ACEGIKMOQSVXZ\u005C\u005Ea@aBaEBABBBCBDBEBFBGBHBICJKBJBKBLBMBNBOCDBBP";
 			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[18], null) ?? ExpectedBuilt_DotGram!;
 			var items = ExpectedItems_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedItems_DotGram, new string[]
 				{
@@ -2324,7 +2340,6 @@ namespace DotGram.Snapshots
 					"?!\"*/\"",
 					"\"/*\"",
 					"[^ ]",
-					"['-' | '\\u0001'..'\uFFFF']",
 					"['-']",
 				}, null) ?? ExpectedItems_DotGram!;
 			var starts = ExpectedStarts_DotGram;

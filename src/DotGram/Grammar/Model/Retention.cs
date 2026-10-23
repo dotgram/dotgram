@@ -963,10 +963,16 @@ public static class Retention
 				continue;
 			}
 
+			// Over segments every publication takes a reader and a sequence; what it misses is reading
+			// them as they come.
 			reported.Add(new GramDiagnostic(
 				NotStreamable,
-				$"'{publication.MethodName}' gets no overload taking a reader: {why} " +
-				"docs/syntax.md §6.3 says which rules get one, and why.",
+				graph.Segmented
+					? $"'{publication.MethodName}' reads a sequence of segments whole rather than as they are " +
+					  $"asked for, its forms over a sequence and over a reader alike: {why} " +
+					  "docs/syntax.md §6.3 says which rules stream, and why."
+					: $"'{publication.MethodName}' gets no overload taking a reader: {why} " +
+					  "docs/syntax.md §6.3 says which rules get one, and why.",
 				publication.At.Position,
 				publication.At.Length,
 				GramSeverity.Info));
