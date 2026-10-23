@@ -141,8 +141,9 @@ static class Program
 
 		Run(_work, "dotnet", "restore", "App/App.csproj");
 
+		// The ten is the package's own policy, nothing forced: it has to pick the newest runtime by itself.
 		var onEight = Runtime(roll: "Minor");
-		var onTen   = Runtime(roll: "LatestMajor");
+		var onTen   = Runtime(roll: null);
 
 		// The same folder on both runtimes, the first moved aside before the second: the #line paths are relative to it.
 		Run(_work, "dotnet", ["dotgram", "generate", "App/App.csproj", "-o", "App/Generated"], onEight);
@@ -166,6 +167,15 @@ static class Program
 		Directory.Move(Path.Combine(_work, "FromGram", "Generated"), Path.Combine(_work, "EightGram"));
 		Run(_work, "dotnet", ["dotgram", "generate", "adder.gram", "-o", "FromGram/Generated", "--namespace", "Smoke", "--class", "Adder", "--public"], onTen);
 		AssertEqualFolders("EightGram", "FromGram/Generated", "the grammar, on .NET 8 and on .NET 10");
+
+		// A name only the newer runtime's Unicode tables accept (U+A7CB, added in Unicode 16): the tool has to
+		// decide as a build on the newest runtime does, with the package's own policy and with the newest forced.
+		var plain  = new[] { "dotnet", "dotgram", "generate", "adder.gram", "--namespace", "Smoke", "--class", "Adder", "--public", "--option", "Suffix=\uA7CB" };
+		var forced = Runtime(roll: "LatestMajor");
+
+		Run(_work, "dotnet", [.. plain, "-o", "Unicode/Own"], onTen);
+		Run(_work, "dotnet", [.. plain, "-o", "Unicode/Forced"], forced);
+		AssertEqualFolders("Unicode/Own", "Unicode/Forced", "a non-ASCII identifier option, the package's own roll-forward and the newest forced");
 
 		Write("FromGram/FromGram.csproj", """
 			<Project Sdk="Microsoft.NET.Sdk">
@@ -245,10 +255,15 @@ static class Program
 		Require(run.Contains($"dotnet-dotgram {_version}"), $"dnx printed '{run.Trim()}'");
 	}
 
-	/// <summary>The tool on one runtime only: .NET 8 where it may not leave the major, the newest installed where it is not.</summary>
-	static Dictionary<string, string> Runtime(string roll)
+	/// <summary>The tool on one runtime only: .NET 8 where it may not leave the major, the newest installed where it is forced to. Null forces nothing, so the package's own policy decides.</summary>
+	static Dictionary<string, string> Runtime(string? roll)
 	{
-		return new Dictionary<string, string> { ["DOTNET_ROLL_FORWARD"] = roll };
+		var environment = new Dictionary<string, string>();
+
+		if (roll is not null)
+			environment["DOTNET_ROLL_FORWARD"] = roll;
+
+		return environment;
 	}
 
 	static void AssertEqualFolders(string first, string second, string what)

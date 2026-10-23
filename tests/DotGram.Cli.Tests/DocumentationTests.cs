@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 
 using Xunit;
 
@@ -40,6 +41,28 @@ public sealed class DocumentationTests
 
 		Assert.Contains("--line-paths absolute", skill);
 		Assert.Contains("--line-paths absolute", Help.Text);
+	}
+
+	[Fact]
+	public void The_response_file_example_is_read_as_the_reference_runs_it()
+	{
+		var reference = File.ReadAllText(Path.Combine(RepositoryRoot(), "docs", "cli.md")).Replace("\r\n", "\n", StringComparison.Ordinal);
+		var example   = Regex.Match(reference, "```text\n# grammars\\.rsp\n(?<body>.*?)```", RegexOptions.Singleline);
+
+		Assert.True(example.Success, "the response file example was not found");
+		Assert.Contains("dotnet dotgram generate @grammars.rsp", reference, StringComparison.Ordinal);
+
+		using var scratch = new Scratch();
+
+		File.WriteAllText(scratch.Path("grammars.rsp"), example.Groups["body"].Value);
+
+		// The command line the reference gives, after the program's name.
+		var command = CommandLine.Parse(["generate", "@grammars.rsp"], scratch.Root);
+
+		var generate = Assert.IsType<Command.Generate>(command);
+
+		Assert.Equal(Path.Combine(scratch.Root, "src", "Grammars", "Grammars.csproj"), generate.Options.Input);
+		Assert.Equal(Path.Combine(scratch.Root, "src", "Grammars", "Generated"), generate.Options.Output);
 	}
 
 	static string RepositoryRoot([CallerFilePath] string source = "")

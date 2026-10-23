@@ -16,8 +16,9 @@ dotnet tool install DotGram.Cli            # --global, or --local with a tool ma
 dnx DotGram.Cli generate ...               # .NET 10: run without installing
 ```
 
-The tool runs on .NET 8 and later and needs a .NET SDK 8.0.100 or newer to read a project. The version of the
-tool is the version of the DotGram generator it carries; `dotnet dotgram --version` prints both.
+The tool runs on .NET 8 and later, on the newest runtime installed (what an identifier may be is decided by the
+runtime's Unicode tables, and the tool must decide as the build does), and needs a .NET SDK 8.0.100 or newer to
+read a project. The version of the tool is the version of the DotGram generator it carries; `dotnet dotgram --version` prints both.
 
 ## Commands
 
@@ -69,7 +70,8 @@ Two differences are by design:
 
 The `EmbeddedAttribute` definition is the compiler's text and may differ in line endings from your SDK's. The
 diagnostics of DotGram itself are shown at the severities the build gives them (`.editorconfig`, `/nowarn`,
-`/warnaserror`); an error among them stops the run with exit 2. The SDK's compiler must be at least as new as
+`/warnaserror`); an error among them stops the run with exit 2, except when every one of them is GRAM3004 (a type a grammar names is
+not in view): that run exits 3. The SDK's compiler must be at least as new as
 the one DotGram was built for, as for the build, which skips a generator built for a newer compiler (CS9057):
 the run then exits 3.
 
@@ -131,7 +133,7 @@ arguments as it understood them, response files expanded.
 
 ```text
 # grammars.rsp
-generate src/Grammars/Grammars.csproj
+src/Grammars/Grammars.csproj
 -o src/Grammars/Generated
 ```
 
@@ -160,7 +162,7 @@ the GRAM diagnostics; the editor does not show them in a project that no longer 
 | Code | Meaning |
 | --- | --- |
 | 0 | generated |
-| 2 | grammar errors (nothing written); for a `.gram`, a parser that does not compile |
+| 2 | grammar errors (nothing written), unless every one is GRAM3004, which exits 3; for a `.gram`, a parser that does not compile |
 | 3 | usage, input or output; a project not restored; MSBuild failing for a framework; a generator that will not load; an error the project's build would report too (nothing written); frameworks that generate different files |
 
 ## Not to do
