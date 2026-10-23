@@ -596,6 +596,34 @@ public sealed class SegmentedInputTests
 	}
 
 	/// <summary>
+	/// A yield over segments says where an element was refused as the other forms do, a line a
+	/// segment and a column an offset in it.
+	/// </summary>
+	[Fact]
+	public void A_yield_says_where_an_element_was_refused_by_segment()
+	{
+		var parser = Build("""
+			Start : @int[] = Item*
+			Item  : @int = 'a' & eos => @(1)
+			parse Start yield : @int
+			""");
+
+		foreach (var over in new[] { typeof(IReadOnlyList<string>), typeof(IEnumerable<string>) })
+		{
+			var read = (System.Collections.IEnumerable)Invoke(parser, "ParseStart", over, new[] { "a", "b" })!;
+			var seen = new List<object>();
+			var said = Assert.Throws<FormatException>(() =>
+			{
+				foreach (var item in read)
+					seen.Add(item);
+			});
+
+			Assert.Equal([1], seen.Cast<int>());
+			Assert.Equal("Invalid element at line 2, column 1.", said.Message);
+		}
+	}
+
+	/// <summary>
 	/// What a streamed reading throws says where as the list does, a line a segment and a column an
 	/// offset in it, never an offset into the segments joined.
 	/// </summary>

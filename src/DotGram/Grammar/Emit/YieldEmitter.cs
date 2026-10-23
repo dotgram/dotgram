@@ -17,6 +17,13 @@ public static partial class CSharpEmitter
 	{
 		var type = $"global::System.Collections.Generic.IEnumerable<{publication.ResultType!.Name}>";
 
+		// Over segments the text is the segments joined, and a place in it is said as a segment and
+		// an offset in it, as the other forms say it (SegmentEmitter).
+		var failed = publication.Joined
+			? "\"Invalid element at \" + At_DotGram(input, failure.Position) + \".\""
+			: "\"Invalid element at offset \" + failure.Position.ToString() + \".\"";
+		var none   = publication.Joined ? "line 1, column 1" : "offset 0";
+
 		file.Line("/// <summary>Lazily parses consecutive elements; malformed input throws during enumeration.</summary>");
 
 		if (tracing is not null)
@@ -35,14 +42,14 @@ public static partial class CSharpEmitter
 			if (publication.YieldRecovery) file.Line("var ordinal = 0;");
 			file.Line("if (input == null) throw new global::System.ArgumentNullException(nameof(input));");
 			if (publication.YieldMinimum > 0)
-				file.Line("if (input.Length == 0) throw new global::System.FormatException(\"Expected at least one element at offset 0.\");");
+				file.Line($"if (input.Length == 0) throw new global::System.FormatException(\"Expected at least one element at {none}.\");");
 			using (file.Block("for (var start = 0; start < input.Length; )"))
 			{
 				if (tracing is null)
 				{
 					file.Line($"var failure = new {FailureType}()" + (publication.YieldRecovery ? " { RecoveryOrdinal = ordinal++ };" : ";"));
 					file.Line($"var end = {MethodOf(publication.Rule)}(global::System.MemoryExtensions.AsSpan(input), start{hands});");
-					file.Line("if (end <= start) throw new global::System.FormatException(\"Invalid element at offset \" + failure.Position.ToString() + \".\");");
+					file.Line($"if (end <= start) throw new global::System.FormatException({failed});");
 				}
 				else
 				{
@@ -52,7 +59,7 @@ public static partial class CSharpEmitter
 
 					using (file.Block("if (end <= start)"))
 					{
-						file.Line("var message = \"Invalid element at offset \" + failure.Position.ToString() + \".\";");
+						file.Line($"var message = {failed};");
 						file.Line();
 						file.Line("if (trace != null && trace.HearsRejections)");
 						file.Then("trace.Rejected(failure.Position, message);");
