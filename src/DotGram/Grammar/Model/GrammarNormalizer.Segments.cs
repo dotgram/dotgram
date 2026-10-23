@@ -561,10 +561,29 @@ public sealed partial class GrammarNormalizer
 		return node is Node.Repeat(_, _, 0) or Node.Counted(_, _, CountBound.Items { Count: 0 });
 	}
 
-	/// <summary>Whether a synchronization is <c>eos</c> and nothing else.</summary>
-	static bool EndsSegment(Node sync)
+	/// <summary>
+	/// Whether a synchronization is <c>eos</c> and nothing else: written so, or a call of a rule
+	/// whose body is that and nothing else, through any chain of such rules.
+	/// </summary>
+	bool EndsSegment(Node sync)
 	{
-		return sync is Node.Call({ IsBuiltIn: true, Name: "eos" }, _) || sync is Node.Literal([Joiner]);
+		var seen = new HashSet<RuleSymbol>();
+
+		while (true)
+		{
+			switch (sync)
+			{
+				case Node.Call({ IsBuiltIn: true, Name: "eos" }, _) or Node.Literal([Joiner]):
+					return true;
+
+				case Node.Call({ IsBuiltIn: false } called, []) when seen.Add(called) && _bodies.TryGetValue(called, out var body):
+					sync = body;
+					break;
+
+				default:
+					return false;
+			}
+		}
 	}
 
 	/// <summary>
