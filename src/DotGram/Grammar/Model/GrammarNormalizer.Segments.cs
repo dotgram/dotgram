@@ -277,13 +277,14 @@ public sealed partial class GrammarNormalizer
 				return;
 			}
 
-			// A later turn's guard has read the turns before it.
+			// A later turn's guard has read the turns before it, and what a recovery stepped over
+			// between them: the repetition as a whole, recovery and all, stands before every turn.
 			case Node.Repeat(var body, _, _):
-				CheckSuppliedText(body, before || ReachesEndOfSegment(body, reaching), rule, at, reaching);
+				CheckSuppliedText(body, before || ReachesEndOfSegment(node, reaching), rule, at, reaching);
 				return;
 
 			case Node.Counted(var body, _, _):
-				CheckSuppliedText(body, before || ReachesEndOfSegment(body, reaching), rule, at, reaching);
+				CheckSuppliedText(body, before || ReachesEndOfSegment(node, reaching), rule, at, reaching);
 				return;
 
 			// Another rule's guards and constructions stand over that rule's own text.

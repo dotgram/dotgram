@@ -455,6 +455,7 @@ public sealed class SegmentedInputTests
 	[InlineData("Start : @int = $q: \"xx\" & (when @(parserText.Length > 0) & any* & eos){#q} & eof => @(0)\nparse Start")]
 	[InlineData("Start : @int = $q: ['x']* & (when @(parserText.Length > 0) & any* & eos){#q,} & eof => @(0)\nparse Start")]
 	[InlineData("Start : @int = $q: ['x']* & (t: (any* & eos)){1,#q} & eof => @(t.Length)\nparse Start")]
+	[InlineData("Start : @int = ('a' & when @(parserText.Length > 0))* recover eos & eof => @(0)\nparse Start")]
 	public void Text_across_a_boundary_is_refused(string grammar)
 	{
 		var result = Compile(grammar);
