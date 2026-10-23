@@ -369,7 +369,10 @@ public sealed class RefusalTests
 		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--framework", "net8.0");
 
 		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
-		Assert.Contains("--framework net8.0: " + project + " targets net10.0.", run.Error, StringComparison.Ordinal);
+		// The project's path is printed as MSBuild gives it, which on Windows can differ from the one passed
+		// (a short or a long form of the temporary folder), so only its file name is compared.
+		Assert.Contains("--framework net8.0: ", run.Error, StringComparison.Ordinal);
+		Assert.Contains(Path.GetFileName(project) + " targets net10.0.", run.Error, StringComparison.Ordinal);
 		Assert.DoesNotContain("not restored", run.Error, StringComparison.Ordinal);
 		Assert.False(Directory.Exists(scratch.Path("out")));
 	}
