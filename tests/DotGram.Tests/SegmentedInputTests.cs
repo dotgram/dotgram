@@ -559,6 +559,45 @@ public sealed class SegmentedInputTests
 	}
 
 	/// <summary>
+	/// A recovery on <c>eos</c> hands its <c>=&gt;</c> and its hook the text from where the broken
+	/// element began to the first end of a segment after that, never more, though the element read
+	/// past that end before it broke.
+	/// </summary>
+	[Theory]
+	[InlineData("{1}", CarrierKind.Tape, true)]
+	[InlineData("{1}", CarrierKind.Immediate, true)]
+	[InlineData("{1}", CarrierKind.Tape, false)]
+	[InlineData("{1}", CarrierKind.Immediate, false)]
+	[InlineData("*", CarrierKind.Tape, true)]
+	[InlineData("*", CarrierKind.Immediate, false)]
+	[InlineData("?", CarrierKind.Tape, true)]
+	[InlineData("?", CarrierKind.Immediate, false)]
+	public void A_recovery_on_eos_hands_over_one_segment_after_a_crossing_element(string repeat, CarrierKind carrier, bool direct)
+	{
+		// One turn at most is one value, not a sequence of them.
+		var (type, value) = repeat == "*" ? ("@string[]", "@(items)") : ("@string", "@(items ?? \"\")");
+		var item          = "\nItem : @string = any* & eos & 'x' => @(\"ok\")\nparse Start";
+
+		var built = Build(
+			$"Start : {type} = items: Item{repeat} recover eos => @(parserText) & eof => {value}" + item,
+			carrier: carrier, direct: direct);
+		var (_, read, error, _) = TryParse(built, "TryParseStart", ["a", "b"]);
+
+		Assert.DoesNotContain('\0', (read is string[] many ? string.Join("|", many) : (string?)read ?? "") + error);
+
+		var hooked = Build(
+			$"Start : {type} = items: Item{repeat} recover eos & eof => {value}" + item,
+			members: "public static string Told = \"\"; " +
+				"static partial void OnRecovered(string rule, string text, long position, int line, int column, int ordinal, string message) " +
+				"{ Told += \"[\" + text + \"]\"; }",
+			carrier: carrier, direct: direct);
+		var (_, _, refused, _) = TryParse(hooked, "TryParseStart", ["a", "b"]);
+
+		Assert.DoesNotContain('\0', (string)hooked.GetType("Grammar")!.GetField("Told")!.GetValue(null)! + refused);
+	}
+
+
+	/// <summary>
 	/// A synchronization on a rule that is <c>eos</c> and nothing else, through any chain of such
 	/// rules, is a synchronization on <c>eos</c>: it hands its hook the rest of one segment.
 	/// </summary>
