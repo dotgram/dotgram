@@ -1446,8 +1446,9 @@ sealed partial class Machine
 		/// well, where the turn's own item refuses: the loop ends there and <c>L</c> after it fails,
 		/// unless <c>L</c> begins there. So the pair is the first <c>L</c> where no character of
 		/// <c>S</c> stands before it, and two searches: one for <c>L</c>, and one for <c>S</c> in what
-		/// it passed over. A character of <c>S</c> where <c>L</c> begins is not before it, which is
-		/// right when <c>L</c> begins with a character of <c>S</c>.
+		/// it passed over, or in all of the rest where there is no <c>L</c>. A character of <c>S</c>
+		/// where <c>L</c> begins is not before it, which is right when <c>L</c> begins with a
+		/// character of <c>S</c>. A refusal reaches where the loop stopped, as the loop's does.
 		/// </para>
 		/// </remarks>
 		void EmitScanUntil(Writer code, string delimiter, char[] except, string fail)
@@ -1457,20 +1458,29 @@ sealed partial class Machine
 			code.Line(
 				$"var {found} = global::System.MemoryExtensions.IndexOf(text.Slice(p), " +
 				$"{Spanned(delimiter)});");
-			code.Line($"if ({found} < 0) goto {fail};");
 
-			if (except.Length > 0)
+			if (except.Length == 0)
 			{
-				var before = except.Length switch
-				{
-					1    => $"global::System.MemoryExtensions.IndexOf(text.Slice(p, {found}), {CSharpEmitter.Char(except[0])})",
-					<= 3 => $"global::System.MemoryExtensions.IndexOfAny(text.Slice(p, {found}), {string.Join(", ", except.Select(CSharpEmitter.Char))})",
-					_    => $"global::System.MemoryExtensions.IndexOfAny(text.Slice(p, {found}), global::System.MemoryExtensions.AsSpan({CSharpEmitter.Quoted(new string(except))}))",
-				};
+				code.Line($"if ({found} < 0) goto {fail};");
+				code.Line($"p += {found} + {delimiter.Length};");
 
-				code.Line($"if ({before} >= 0) goto {fail};");
+				return;
 			}
 
+			// Where the loop ends short of L, its last turn refused there and so did L after it: the
+			// furthest the scanner reached is that place, a character of S or the end, as the loop's
+			// own refusals record it. The turns before it refused nothing a scanner records.
+			var stop   = $"stop{_founds - 1}";
+			var within = $"{found} < 0 ? text.Slice(p) : text.Slice(p, {found})";
+
+			code.Line($"var {stop} = " + (except.Length switch
+			{
+				1    => $"global::System.MemoryExtensions.IndexOf({within}, {CSharpEmitter.Char(except[0])});",
+				<= 3 => $"global::System.MemoryExtensions.IndexOfAny({within}, {string.Join(", ", except.Select(CSharpEmitter.Char))});",
+				_    => $"global::System.MemoryExtensions.IndexOfAny({within}, global::System.MemoryExtensions.AsSpan({CSharpEmitter.Quoted(new string(except))}));",
+			}));
+			code.Line($"if ({stop} >= 0) {{ if (p + {stop} > furthest) furthest = p + {stop}; goto {fail}; }}");
+			code.Line($"if ({found} < 0) {{ if (text.Length > furthest) furthest = text.Length; goto {fail}; }}");
 			code.Line($"p += {found} + {delimiter.Length};");
 		}
 

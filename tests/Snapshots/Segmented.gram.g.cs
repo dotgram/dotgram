@@ -347,14 +347,14 @@ namespace DotGram.Snapshots
 				var b3 = -1;
 				if ((uint)p >= (uint)text.Length)
 				{
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(15));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(16));
 					return -1;
 				}
 				c = text[p];
 
 				if (!((c >= '\0' && c <= '\uFFFF')))
 				{
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(15));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(16));
 					return -1;
 				}
 
@@ -440,14 +440,14 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				if ((uint)p >= (uint)text.Length)
 				{
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(16));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(17));
 					return -1;
 				}
 				c = text[p];
 
 				if (!(c == '-'))
 				{
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(16));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(17));
 					return -1;
 				}
 
@@ -456,7 +456,7 @@ namespace DotGram.Snapshots
 				{
 					if ((uint)(p + 2) > (uint)text.Length || !global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("-o")))
 					{
-						string[]? narrowed1 = ExpectedSet_DotGram(7);
+						string[]? narrowed1 = ExpectedSet_DotGram(9);
 						if (!failure.Quiet)
 							p = Recognize_DotGram_Sharpen0(text, p, ref narrowed1);
 						Refused_DotGram(ref failure, p, narrowed1);
@@ -497,14 +497,14 @@ namespace DotGram.Snapshots
 				if ((uint)(p + 9) > (uint)text.Length)
 				{
 					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(6));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(8));
 					return -1;
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 9), global::System.MemoryExtensions.AsSpan("--comment")))
 				{
 					if (!failure.Quiet)
 						p = Recognize_DotGram_Agreeing(text, p, "--comment", false);
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(6));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(8));
 					return -1;
 				}
 				p += 9;
@@ -528,14 +528,14 @@ namespace DotGram.Snapshots
 				if ((uint)(p + 8) > (uint)text.Length)
 				{
 					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(6));
 					return -1;
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 8), global::System.MemoryExtensions.AsSpan("--quoted")))
 				{
 					if (!failure.Quiet)
 						p = Recognize_DotGram_Agreeing(text, p, "--quoted", false);
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(4));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(6));
 					return -1;
 				}
 				p += 8;
@@ -607,13 +607,13 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				if ((uint)p >= (uint)text.Length)
 				{
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(14));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(15));
 					return -1;
 				}
 				c = text[p];
 				if (!(!(c == '\0')))
 				{
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(14));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(15));
 					return -1;
 				}
 				p++;
@@ -627,14 +627,14 @@ namespace DotGram.Snapshots
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
 					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(13));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(14));
 					return -1;
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("/*")))
 				{
 					if (!failure.Quiet)
 						p = Recognize_DotGram_Agreeing(text, p, "/*", false);
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(13));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(14));
 					return -1;
 				}
 				p += 2;
@@ -688,14 +688,14 @@ namespace DotGram.Snapshots
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
 					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(11));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(12));
 					return -1;
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("*/")))
 				{
 					if (!failure.Quiet)
 						p = Recognize_DotGram_Agreeing(text, p, "*/", false);
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(11));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(12));
 					return -1;
 				}
 				p += 2;
@@ -724,14 +724,14 @@ namespace DotGram.Snapshots
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
 					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(11));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(12));
 					return -1;
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("*/")))
 				{
 					if (!failure.Quiet)
 						p = Recognize_DotGram_Agreeing(text, p, "*/", false);
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(11));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(12));
 					return -1;
 				}
 				p += 2;
@@ -865,14 +865,14 @@ namespace DotGram.Snapshots
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
 					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(3));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(5));
 					return -1;
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("''")))
 				{
 					if (!failure.Quiet)
 						p = Recognize_DotGram_Agreeing(text, p, "''", false);
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(3));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(5));
 					return -1;
 				}
 				p += 2;
@@ -971,7 +971,7 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				if ((uint)p >= (uint)text.Length)
 				{
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(14));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(15));
 					return -1;
 				}
 				c = text[p];
@@ -1253,7 +1253,7 @@ namespace DotGram.Snapshots
 				if ((uint)p < (uint)text.Length && text[p] == '-')
 				{
 					p += 1;
-					expected = ExpectedSet_DotGram(8);
+					expected = ExpectedSet_DotGram(10);
 					if ((uint)p < (uint)text.Length && text[p] == 'o')
 					{
 						p += 1;
@@ -1282,7 +1282,7 @@ namespace DotGram.Snapshots
 				else if ((uint)p < (uint)text.Length && text[p] == 'o')
 				{
 					p += 1;
-					expected = ExpectedSet_DotGram(9);
+					expected = ExpectedSet_DotGram(11);
 				}
 			}
 			return p;
@@ -2305,20 +2305,21 @@ namespace DotGram.Snapshots
 
 		static string[] ExpectedDecoded_DotGram(int id)
 		{
-			var data = "ACEGIKMORTVXZ\u005C\u005Ea@aCBABBBCBDBEBFBGCHIBHBIBJBKBLBMBNCOBBP";
-			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[17], null) ?? ExpectedBuilt_DotGram!;
+			var data = "ACEGIKMOQSVXZ\u005C\u005Ea@aBaEBABBBCBDBEBFBGBHBICJKBJBKBLBMBNBOCPBBQ";
+			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[18], null) ?? ExpectedBuilt_DotGram!;
 			var items = ExpectedItems_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedItems_DotGram, new string[]
 				{
 					"end of input",
 					"end of segment",
 					"'\\''",
+					"any",
+					"?!'\\''",
 					"\"''\"",
 					"\"--quoted\"",
 					"Comment",
 					"\"--comment\"",
 					"\"--output\"",
 					"\"-o\"",
-					"any",
 					"\"*/\"",
 					"?!\"*/\"",
 					"\"/*\"",
@@ -2332,7 +2333,7 @@ namespace DotGram.Snapshots
 
 			if (starts == null)
 			{
-				starts = new int[17];
+				starts = new int[18];
 
 				for (var i = 0; i < starts.Length; i++)
 				{
