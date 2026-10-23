@@ -260,4 +260,38 @@ public sealed class OutputTests
 			File.SetUnixFileMode(manifest, UnixFileMode.UserRead | UnixFileMode.UserWrite);
 		}
 	}
+
+	/// <summary>
+	/// The <c>.gitattributes</c> line the tool prints names the folder from the repository's root: a
+	/// pattern with a slash is read against the folder of the file that holds it, so <c>Generated/**</c>
+	/// in the root's file would not match <c>src/Grammars/Generated</c>. Outside a repository, the name
+	/// wherever it is.
+	/// </summary>
+	[Fact]
+	public void The_gitattributes_line_names_the_folder_from_the_repository_root()
+	{
+		using var scratch = new Scratch();
+
+		var outside = scratch.Path("src", "Grammars", "Generated");
+
+		// Only where no folder above the scratch one is a repository of its own.
+		if (!AboveIsRepository(scratch.Root))
+			Assert.Equal("'**/Generated/** -text' in .gitattributes", Cli.Attributes(outside));
+
+		Directory.CreateDirectory(scratch.Path(".git"));
+
+		Assert.Equal("'src/Grammars/Generated/** -text' in the .gitattributes at the repository's root", Cli.Attributes(outside));
+		Assert.Equal("'src/Grammars/Generated/** -text' in the .gitattributes at the repository's root", Cli.Attributes(outside + Path.DirectorySeparatorChar));
+
+		static bool AboveIsRepository(string folder)
+		{
+			for (var above = Path.GetDirectoryName(folder); above is not null; above = Path.GetDirectoryName(above))
+			{
+				if (Directory.Exists(Path.Combine(above, ".git")) || File.Exists(Path.Combine(above, ".git")))
+					return true;
+			}
+
+			return false;
+		}
+	}
 }
