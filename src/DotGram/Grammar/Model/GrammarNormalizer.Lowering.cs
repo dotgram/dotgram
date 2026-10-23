@@ -1255,7 +1255,7 @@ public sealed partial class GrammarNormalizer
 			}
 		}
 
-		return Segmented(new Node.Element(negated, Coalesce(ranges), categories, references), set);
+		return Segmented(new Node.Element(negated, Coalesce(ranges), categories, references), items, set);
 
 		void Merge(Expr.Reference reference, List<CharRange> into, List<string> alsoInto, List<Symbol> unresolved)
 		{
@@ -1314,8 +1314,9 @@ public sealed partial class GrammarNormalizer
 			// Not a set but a call: what it refers to must be one item drawn from a set,
 			// or the brackets would be testing something that is not an item.
 			// In a grammar that names `eos` a class that calls a predicate is read where the joiner
-			// is not (SegmentedPredicates), and is still one class to merge.
-			var theirs = BodyOf(rule) is Node.Sequence([Node.Lookahead(false, Node.Literal), Node.Element { IsNegated: false } guarded]) && _segmented
+			// is not (SegmentedPredicates), and is still one class to merge. Only that look: one the
+			// author wrote is not a class.
+			var theirs = BodyOf(rule) is Node.Sequence([Node.Lookahead { BeforeSegmentEnd: true }, Node.Element { IsNegated: false } guarded])
 				? guarded
 				: BodyOf(rule);
 
