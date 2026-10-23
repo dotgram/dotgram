@@ -487,6 +487,8 @@ public sealed class SegmentedInputTests
 	[InlineData("Root : @string = v: E & eos => @(v)\nE : @string = left: E & 'a' & when @(parserText.Length > 0) => @(left)\n | eos => @(\"seed\")\nparse Root")]
 	[InlineData("Root : @string = v: E & eos => @(v)\nE : @string = left: E & '+' & right: E << 1 => @(parserText)\n | eos & d: ['0'..'9'] => @(d)\nparse Root")]
 	[InlineData("Start : @int = Word* recover End & eof => @(0)\nWord = 'a' & eos\nEnd = eos | ';'\nparse Start")]
+	[InlineData("Start : @int = any* & eos & (when @(parserText.Length > 0) & 'b')? & eos => @(0)\nparse Start")]
+	[InlineData("Start : @int = ((when @(parserText.Length > 0) & any* & eos){1})* & eof => @(0)\nparse Start")]
 	public void Text_across_a_boundary_is_refused(string grammar)
 	{
 		var result = Compile(grammar);
@@ -631,6 +633,19 @@ public sealed class SegmentedInputTests
 	{
 		Assert.DoesNotContain(Compile(grammar).Diagnostics, one => one.Id == GrammarNormalizer.TextAcrossSegments);
 		Assert.Equal("abc", TryParse(Build(grammar), "TryParseStart", ["abc"]).Value);
+	}
+
+	/// <summary>
+	/// A repetition whose most is one has no turn before its only one, so that turn reads what stood
+	/// before the repetition and nothing else, whether it recovers or not.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : @string = v: any* & (when @(parserText.Length < 80) & eos)? => @(v)\nparse Start", "abc")]
+	[InlineData("Start : @int = 'a' & (when @(parserText.Length == 1) & 'b'){1} recover eos & eos & eof => @(0)\nparse Start", "ab")]
+	public void The_only_turn_of_a_repetition_reads_what_stood_before_it(string grammar, string segment)
+	{
+		Assert.DoesNotContain(Compile(grammar).Diagnostics, one => one.Id == GrammarNormalizer.TextAcrossSegments);
+		Assert.True(TryParse(Build(grammar), "TryParseStart", [segment]).Success);
 	}
 
 	/// <summary>

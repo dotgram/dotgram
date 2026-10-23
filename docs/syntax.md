@@ -294,7 +294,8 @@ rows — and `parserText` of what may hold one, in a `=>`, in a `when` and in a 
 whose synchronization is not `eos`; `parserInput`, which would be the segments as one
 text, is not supplied. Text around a repetition marked `recover` is taken to hold an `eos`,
 whatever it synchronizes on: what it steps over goes on past the end of a segment, and a
-`when` inside it reads what was stepped over between its turns, and so does one in its
+`when` inside it reads what was stepped over between its turns — one whose most is one,
+`X?` or `X{1}`, has no turn before its only one — and so does one in its
 synchronization, which is read where the element broke. A `when` in a rule that builds no
 value is read as if it stood where the rule is called: such a rule may be compiled there, and
 its `parserText` is then the calling rule's. The `parserText` of a left-recursive
