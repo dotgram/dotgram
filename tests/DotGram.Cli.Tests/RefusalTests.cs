@@ -352,4 +352,25 @@ public sealed class RefusalTests
 		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
 		Assert.Contains("only a project can say", run.Error, StringComparison.Ordinal);
 	}
+
+	/// <summary>
+	/// <c>--framework</c> naming one the project does not target is said so, not reported as a project
+	/// that is not restored (what MSBuild concludes from the missing assets).
+	/// </summary>
+	[Fact]
+	public void A_framework_the_project_does_not_target_is_named_as_such()
+	{
+		using var scratch = new Scratch();
+
+		var project = ProjectWithForeignType(scratch);
+
+		Dotnet.Restore(project);
+
+		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--framework", "net8.0");
+
+		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
+		Assert.Contains("--framework net8.0: " + project + " targets net10.0.", run.Error, StringComparison.Ordinal);
+		Assert.DoesNotContain("not restored", run.Error, StringComparison.Ordinal);
+		Assert.False(Directory.Exists(scratch.Path("out")));
+	}
 }
