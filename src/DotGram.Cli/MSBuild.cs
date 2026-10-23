@@ -172,7 +172,70 @@ static class MSBuild
 		}
 	}
 
+	/// <summary>
+	/// The longest directory a process can be started in: Win32 <c>CreateProcess</c> rejects a current
+	/// directory of <c>MAX_PATH</c> (260) characters, including the terminator, less room for an 8.3 file
+	/// name, whatever the long-path opt-in says. Fewer than this is always accepted.
+	/// </summary>
+	internal const int MaxWorkingDirectory = 248;
+
+	/// <summary>
+	/// Where to start <c>dotnet</c> for a project in <paramref name="directory"/>. The directory itself, while it
+	/// is short enough: the <c>dotnet</c> muxer reads <c>global.json</c> from the current directory and up, so
+	/// that is what makes it pick the SDK <c>dotnet build</c> picks there. A longer one cannot be a current
+	/// directory, so the process starts in a fresh short folder that holds a copy of the <c>global.json</c> the
+	/// project's directory would find (the same SDK is chosen); MSBuild itself reads the project, its
+	/// <c>Directory.Build.props</c> and the rest by their full paths, not through the current directory.
+	/// </summary>
+	/// <returns>The directory to start in, and the folder to delete afterwards (null where there is none).</returns>
+	internal static (string Directory, string? Temporary) WorkingDirectoryFor(string directory, int limit = MaxWorkingDirectory)
+	{
+		if (directory.Length < limit)
+			return (directory, null);
+
+		var temporary = Path.Combine(Path.GetTempPath(), "dotgram-cli-" + Guid.NewGuid().ToString("N"));
+
+		Directory.CreateDirectory(temporary);
+
+		for (var folder = new DirectoryInfo(directory); folder is not null; folder = folder.Parent)
+		{
+			var pinned = Path.Combine(folder.FullName, "global.json");
+
+			if (File.Exists(pinned))
+			{
+				File.Copy(pinned, Path.Combine(temporary, "global.json"));
+				break;
+			}
+		}
+
+		return (temporary, temporary);
+	}
+
 	static (int Exit, string Output, string Error) Run(string directory, IEnumerable<string> arguments)
+	{
+		var (workingDirectory, temporary) = WorkingDirectoryFor(directory);
+
+		try
+		{
+			return Run(workingDirectory, directory, arguments);
+		}
+		finally
+		{
+			if (temporary is not null)
+			{
+				try
+				{
+					Directory.Delete(temporary, recursive: true);
+				}
+				catch (IOException)
+				{
+					// The temporary folder is the system's to clear.
+				}
+			}
+		}
+	}
+
+	static (int Exit, string Output, string Error) Run(string workingDirectory, string directory, IEnumerable<string> arguments)
 	{
 		var start = new ProcessStartInfo(DotnetHost())
 		{
@@ -181,7 +244,7 @@ static class MSBuild
 			StandardOutputEncoding = Encoding.UTF8,
 			StandardErrorEncoding  = Encoding.UTF8,
 			UseShellExecute        = false,
-			WorkingDirectory       = directory,
+			WorkingDirectory       = workingDirectory,
 		};
 
 		foreach (var argument in arguments)
@@ -201,7 +264,7 @@ static class MSBuild
 		}
 		catch (Exception exception) when (exception is System.ComponentModel.Win32Exception or InvalidOperationException)
 		{
-			throw ToolException.Failure($"cannot run '{start.FileName}' to ask MSBuild about the project: {exception.Message}");
+			throw ToolException.Failure($"cannot run '{start.FileName}' to ask MSBuild about the project in {directory}: {exception.Message}");
 		}
 
 		Running.TryAdd(process, 0);
