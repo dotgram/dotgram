@@ -282,6 +282,10 @@ public sealed partial class GrammarNormalizer
 				CheckSuppliedText(body, before || ReachesEndOfSegment(body, reaching), rule, at, reaching);
 				return;
 
+			case Node.Counted(var body, _, _):
+				CheckSuppliedText(body, before || ReachesEndOfSegment(body, reaching), rule, at, reaching);
+				return;
+
 			// Another rule's guards and constructions stand over that rule's own text.
 			case Node.Call:
 				return;
