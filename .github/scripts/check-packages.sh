@@ -110,3 +110,32 @@ check_library expressions DotGram.ExpressionLanguage "System.Memory" ""
 # checked here too, since check_face only looks at the top-level README.md and SKILL.md.
 test -f "finance/Fix/README.md" || { echo "DotGram.Finance: Fix/README.md missing"; exit 1; }
 if grep -nE '/(blob|tree)/main/' "finance/Fix/README.md"; then echo "DotGram.Finance: Fix/README.md links to main"; exit 1; fi
+
+# The tool is a third shape: a DotnetTool package, its commands in tools/<tfm>/any/, the assemblies it
+# needs beside them (the reference assemblies it compiles against among them, so that nothing depends on
+# what is installed where it runs), the page and the skill at the root, and no dependency at all — least
+# of all on the DotGram package, which the tool carries inside it. It is large, because of those
+# references; a size past the bound below is something that got in.
+check_tool() {
+  local dir="$1" id="$2" size
+  unzip -o -q "$id".[0-9]*.nupkg -d "$dir"
+  grep -q '<packageType name="DotnetTool" />' "$dir/$id.nuspec" || { echo "$id: not a DotnetTool package"; exit 1; }
+  test -f "$dir/tools/net8.0/any/DotnetToolSettings.xml" || { echo "$id: DotnetToolSettings.xml missing"; exit 1; }
+  grep -q 'Name="dotnet-dotgram"' "$dir/tools/net8.0/any/DotnetToolSettings.xml" || { echo "$id: the command is not dotnet-dotgram"; exit 1; }
+  for assembly in dotnet-dotgram DotGram Microsoft.CodeAnalysis.CSharp \
+                  Basic.Reference.Assemblies.Net80 Basic.Reference.Assemblies.Net90 \
+                  Basic.Reference.Assemblies.Net100 Basic.Reference.Assemblies.NetStandard20; do
+    test -f "$dir/tools/net8.0/any/$assembly.dll" || { echo "$id: $assembly.dll missing"; exit 1; }
+  done
+  test -f "$dir/README.md" || { echo "$id: readme missing"; exit 1; }
+  test -f "$dir/SKILL.md"  || { echo "$id: skill missing";  exit 1; }
+  if grep -q '<dependency ' "$dir/$id.nuspec"; then echo "$id depends on:"; grep '<dependency ' "$dir/$id.nuspec"; exit 1; fi
+  check_face "$dir"
+  check_pages "$dir" "$id"
+
+  size=$(stat -c %s "$id".[0-9]*.nupkg)
+  echo "$id: $((size / 1024 / 1024)) MB"
+  test "$size" -le $((40 * 1024 * 1024)) || { echo "$id is larger than 40 MB"; exit 1; }
+}
+
+check_tool tool DotGram.Cli

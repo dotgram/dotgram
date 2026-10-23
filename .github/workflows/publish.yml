@@ -1,7 +1,7 @@
 ﻿name: publish
 
 # A release is a tag. Pushing `v0.2.0` builds the repository at that commit, checks that the
-# tag and the version in Directory.Build.props are the same thing, packs the five packages and
+# tag and the version in Directory.Build.props are the same thing, packs the six packages and
 # publishes them. Everything up to the push happens on a manual run too: without a tag the
 # packages are still built, checked and uploaded as artifacts of the run, so a dry run is the
 # same run with the last job left off.
@@ -67,6 +67,7 @@ jobs:
           dotnet pack src/DotGram.Web/DotGram.Web.csproj         --no-build --configuration Release --output artifacts
           dotnet pack src/DotGram.Finance/DotGram.Finance.csproj --no-build --configuration Release --output artifacts
           dotnet pack src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj --no-build --configuration Release --output artifacts
+          dotnet pack src/DotGram.Cli/DotGram.Cli.csproj --no-build --configuration Release --output artifacts
 
       # What `build.yml` does between packing and keeping, done here too, and for the reason the
       # gate cannot cover: that workflow proves a pack passed, and this one packs AGAIN and sends
@@ -98,6 +99,12 @@ jobs:
               dotnet run --project "tests/DotGram.$library.PackageSmoke/DotGram.$library.PackageSmoke.csproj" --configuration Release --framework "$framework"
             done
           done
+
+      # The tool package, as somebody installs it: from the feed of the packs above into a local tool
+      # manifest, run on .NET 8 and on .NET 10 with the same input, and through `dnx`. .NET 8 is
+      # installed above for this as much as for the libraries.
+      - name: The tool package, in somebody else's build
+        run: dotnet run --project tests/DotGram.Cli.PackageSmoke/DotGram.Cli.PackageSmoke.csproj --configuration Release
 
       - uses: actions/upload-artifact@v4
         with:
