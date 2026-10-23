@@ -12,6 +12,11 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<!-- The release gates' comparisons, a file-based app run-gates.sh builds on its own. -->
+		<Compile Remove="gates/**" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="xunit.v3" />
 
 		<!-- The tool's Roslyn, not the generator's floor: the two meet in this process. -->
