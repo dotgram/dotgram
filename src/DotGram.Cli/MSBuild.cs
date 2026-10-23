@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Nodes;
 
 namespace DotGram.Cli;
 
@@ -237,40 +236,74 @@ static class MSBuild
 	/// The text of a copy of the <c>global.json</c> at <paramref name="path"/> that chooses the SDK the
 	/// original does from another folder. The muxer reads each <c>sdk.paths</c> entry other than
 	/// <c>$host$</c> against the file's own folder, so a relative one is made full; nothing else in the file
-	/// depends on where it is.
+	/// depends on where it is, and nothing else is touched: the entries are found token by token and
+	/// replaced where they stand, so a file the muxer takes and a JSON document model would not (a key
+	/// given twice, which the muxer reads as the last) is relocated all the same.
 	/// </summary>
-	/// <returns>The text, or null where nothing needs to change or the file does not read as JSON here
-	/// (the muxer then reads the copy as it reads the original), and the file is copied as it is.</returns>
+	/// <returns>The text, or null where nothing needs to change or the file is not JSON at all (the muxer
+	/// then reads the copy as it reads the original), and the file is copied as it is.</returns>
 	internal static string? Relocated(string path)
 	{
-		// What the muxer takes, System.Text.Json may not (a key given twice, which the muxer reads as the
-		// last): such a file is copied as it is, and only a file whose sdk.paths are relative is rewritten.
+		var bytes   = File.ReadAllBytes(path);
+		var start   = bytes.AsSpan().StartsWith(Encoding.UTF8.GetPreamble()) ? 3 : 0;
+		var folder  = Path.GetDirectoryName(Path.GetFullPath(path))!;
+		var edits   = new List<(int Start, int Length, string Text)>();
+		var opened  = new List<(JsonTokenType Kind, string? Name)>();
+		var reader  = new Utf8JsonReader(bytes.AsSpan(start), new JsonReaderOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
+		var name    = (string?)null;
+
 		try
 		{
-			var root = JsonNode.Parse(
-				File.ReadAllText(path),
-				documentOptions: new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
-
-			if (root is not JsonObject { } file || file["sdk"] is not JsonObject sdk || sdk["paths"] is not JsonArray paths)
-				return null;
-
-			var folder  = Path.GetDirectoryName(Path.GetFullPath(path))!;
-			var changed = false;
-
-			for (var i = 0; i < paths.Count; i++)
+			while (reader.Read())
 			{
-				if (paths[i] is JsonValue value && value.TryGetValue<string>(out var entry) && entry != "$host$" && entry.Length > 0 && !Path.IsPathRooted(entry))
+				switch (reader.TokenType)
 				{
-					paths[i] = Path.GetFullPath(entry, folder);
-					changed  = true;
-				}
-			}
+					case JsonTokenType.PropertyName:
+						name = reader.GetString();
+						continue;
 
-			return changed ? file.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) : null;
+					case JsonTokenType.StartObject or JsonTokenType.StartArray:
+						opened.Add((reader.TokenType, name));
+						break;
+
+					case JsonTokenType.EndObject or JsonTokenType.EndArray:
+						opened.RemoveAt(opened.Count - 1);
+						break;
+
+					case JsonTokenType.String when IsPathEntry(opened) && reader.GetString() is { Length: > 0 } entry && entry != "$host$" && !Path.IsPathRooted(entry):
+						edits.Add((start + (int)reader.TokenStartIndex, reader.ValueSpan.Length + 2, JsonSerializer.Serialize(Path.GetFullPath(entry, folder))));
+						break;
+				}
+
+				name = null;
+			}
 		}
-		catch (Exception exception) when (exception is JsonException or ArgumentException or InvalidOperationException)
+		catch (JsonException)
 		{
 			return null;
+		}
+
+		if (edits.Count == 0)
+			return null;
+
+		var text = new StringBuilder();
+		var at   = start;
+
+		foreach (var edit in edits)
+		{
+			text.Append(Encoding.UTF8.GetString(bytes, at, edit.Start - at)).Append(edit.Text);
+			at = edit.Start + edit.Length;
+		}
+
+		return text.Append(Encoding.UTF8.GetString(bytes, at, bytes.Length - at)).ToString();
+
+		// An element of the array "paths" of the object "sdk" of the file's top object.
+		static bool IsPathEntry(List<(JsonTokenType Kind, string? Name)> opened)
+		{
+			return opened.Count == 3
+				&& opened[0].Kind == JsonTokenType.StartObject
+				&& opened[1] is (JsonTokenType.StartObject, "sdk")
+				&& opened[2] is (JsonTokenType.StartArray, "paths");
 		}
 	}
 

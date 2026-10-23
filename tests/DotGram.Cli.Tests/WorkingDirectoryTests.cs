@@ -89,7 +89,7 @@ public sealed class WorkingDirectoryTests
 
 		try
 		{
-			using var copy = JsonDocument.Parse(File.ReadAllText(Path.Combine(directory, "global.json")));
+			using var copy = JsonDocument.Parse(File.ReadAllText(Path.Combine(directory, "global.json")), new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
 
 			var sdk = copy.RootElement.GetProperty("sdk");
 
@@ -107,17 +107,15 @@ public sealed class WorkingDirectoryTests
 	}
 
 	/// <summary>
-	/// A <c>global.json</c> the muxer takes and System.Text.Json does not (a key given twice) is copied as it
-	/// is, not rewritten and not an exception.
+	/// A <c>global.json</c> the muxer takes and a JSON document model does not (a key given twice) is
+	/// relocated all the same: its relative <c>sdk.paths</c> made full where they stand, every other byte kept.
 	/// </summary>
 	[Fact]
-	public void A_global_json_with_a_key_given_twice_is_copied_as_it_is()
+	public void A_global_json_with_a_key_given_twice_is_relocated_where_it_stands()
 	{
 		using var scratch = new Scratch();
 
-		var text = "{ \"sdk\": { \"version\": \"10.0.100\", \"paths\": [ \".dotnet\" ] }, \"x\": 1, \"x\": 2 }\n";
-
-		scratch.Write("global.json", text);
+		scratch.Write("global.json", "{ \"sdk\": { \"version\": \"10.0.100\", \"paths\": [ \".dotnet\", \"$host$\" ] }, \"x\": 1, \"x\": 2 }\n");
 
 		var deep = scratch.Path("a", "b");
 
@@ -127,7 +125,65 @@ public sealed class WorkingDirectoryTests
 
 		try
 		{
-			Assert.Equal(text, File.ReadAllText(Path.Combine(directory, "global.json")));
+			Assert.Equal(
+				"{ \"sdk\": { \"version\": \"10.0.100\", \"paths\": [ " + JsonSerializer.Serialize(scratch.Path(".dotnet")) + ", \"$host$\" ] }, \"x\": 1, \"x\": 2 }\n",
+				File.ReadAllText(Path.Combine(directory, "global.json")));
+		}
+		finally
+		{
+			Directory.Delete(temporary!, recursive: true);
+		}
+	}
+
+	/// <summary>
+	/// The SDK the muxer picks from the short folder is the one it picks in the project's directory, for a
+	/// <c>global.json</c> whose only SDK is in a folder beside it, named by a relative <c>sdk.paths</c>
+	/// (and with a key given twice): a dotnet root of links to this machine's SDK and runtimes.
+	/// </summary>
+	[Fact]
+	public void A_relative_sdk_path_picks_the_same_SDK_from_the_short_folder()
+	{
+		if (OperatingSystem.IsWindows())
+		{
+			Assert.Skip("the dotnet root is made of symbolic links");
+			return;
+		}
+
+		using var scratch = new Scratch();
+
+		var (exit, version) = Dotnet.Run(scratch.Root, "--version");
+
+		Assert.True(exit == 0, version);
+		version = version.Trim();
+
+		// The dotnet root this runtime is in: shared/Microsoft.NETCore.App/<version>/ under it.
+		var host = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(typeof(object).Assembly.Location)!, "..", "..", ".."));
+		var root = scratch.Path(".sdk-a");
+
+		Directory.CreateDirectory(Path.Combine(root, "sdk"));
+		Directory.CreateSymbolicLink(Path.Combine(root, "sdk", version), Path.Combine(host, "sdk", version));
+
+		foreach (var folder in new[] { "shared", "host", "packs", "sdk-manifests" })
+			if (Directory.Exists(Path.Combine(host, folder)))
+				Directory.CreateSymbolicLink(Path.Combine(root, folder), Path.Combine(host, folder));
+
+		// Only the folder beside the file: from anywhere it does not name, no SDK is found.
+		scratch.Write("global.json", $$"""{ "sdk": { "version": "{{version}}", "paths": [ ".sdk-a" ] }, "x": 1, "x": 2 }""");
+
+		var deep = scratch.Path("a", "b");
+
+		Directory.CreateDirectory(deep);
+
+		var (directory, temporary) = MSBuild.WorkingDirectoryFor(deep, limit: 1);
+
+		try
+		{
+			var (here, inDeep)  = Dotnet.Run(deep, "--version");
+			var (there, inCopy) = Dotnet.Run(directory, "--version");
+
+			Assert.True(here == 0, inDeep);
+			Assert.True(there == 0, inCopy);
+			Assert.Equal(inDeep.Trim(), inCopy.Trim());
 		}
 		finally
 		{
