@@ -53,6 +53,10 @@ cleanup() {
 	set +e
 	cd /
 	if [ -d "$tree" ]; then git -C "$repo" worktree remove --force "$tree" > /dev/null 2>&1; fi
+	# The SDK keeps a file-based app's build cache beside the user's data, whatever --artifacts-path says.
+	for cache in "${XDG_DATA_HOME:-$HOME/.local/share}"/dotnet/runfile/Gates-*; do
+		if grep -qsF "$work/app/" "$cache/csc.rsp"; then rm -rf "$cache"; fi
+	done
 	git -C "$repo" worktree prune > /dev/null 2>&1
 	if [ "$keep" = 1 ]; then echo "kept: $work"; else rm -rf "$work"; fi
 }
