@@ -43,9 +43,9 @@ public static partial class CSharpEmitter
 	/// What a grammar that names <c>eos</c> carries once per class: the segments joined into the
 	/// text its forms over text read, and what a segment that holds the joiner is told.
 	/// </summary>
-	static string SegmentSupport()
+	static string SegmentSupport(bool recognizers)
 	{
-		return $$"""
+		return (recognizers ? SegmentCut : "") + $$"""
 			/// <summary>What a segment that holds U+0000 is told: in this grammar that is where a segment ends.</summary>
 			private const string Holds_DotGram = "A segment holds U+0000, which this grammar reads as the end of a segment and never as a character of one.";
 
@@ -260,6 +260,41 @@ public static partial class CSharpEmitter
 			}
 			""";
 	}
+
+	/// <summary>What a recognizer of the host is handed in place of the text: the input up to the end of a segment.</summary>
+	internal const string SegmentOf = "SegmentOf_DotGram";
+
+	/// <summary>
+	/// The input a recognizer of the host is handed in a grammar that names <c>eos</c>: everything
+	/// up to the end of the segment it is called in, so that the end of a segment is where its input
+	/// ends. A prefix, so a position means what it meant in the whole.
+	/// </summary>
+	/// <remarks>
+	/// Where the segment ends is kept by the caller, as the stretch from where it was last asked to
+	/// the end it found, and found again only where the position is outside that stretch: a reading
+	/// that goes forward scans each segment once, however many recognizers it calls.
+	/// </remarks>
+	static string SegmentCut => $$"""
+		/// <summary>
+		/// The text up to the end of the segment <paramref name="position"/> is in, which is as far as a
+		/// recognizer of the host reads. <paramref name="from"/> to <paramref name="end"/> is where that
+		/// was last found to be, and holds no end of a segment before <paramref name="end"/>.
+		/// </summary>
+		private static global::System.ReadOnlySpan<char> SegmentOf_DotGram(global::System.ReadOnlySpan<char> text, int position, ref int from, ref int end)
+		{
+			if (position < from || position > end)
+			{
+				var ends = global::System.MemoryExtensions.IndexOf(text.Slice(position), {{JoinerLiteral}});
+
+				from = position;
+				end  = ends < 0 ? text.Length : position + ends;
+			}
+
+			return text.Slice(0, end);
+		}
+
+
+		""";
 
 	/// <summary>
 	/// The publication's forms over segments: a sequence materialized as a list, and the list joined.
