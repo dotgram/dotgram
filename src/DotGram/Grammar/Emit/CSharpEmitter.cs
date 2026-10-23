@@ -999,7 +999,7 @@ public static partial class CSharpEmitter
 
 		if (graph.Segmented)
 		{
-			file.Write(SegmentSupport());
+			file.Write(SegmentSupport(graph.Bodies.Values.Any(body => NodeWalk.Descendants(body).Any(node => node is Node.External))));
 			file.Line();
 		}
 

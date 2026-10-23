@@ -292,13 +292,15 @@ says `end of segment`. What is not built yet is refused rather than guessed at
 either side, or a value built from them, which may be kept: `(rows: Row & eos)*` holds
 rows — and `parserText` of what may hold one, in a `=>`, in a `when` and in a `recover`
 whose synchronization is not `eos`; `parserInput`, which would be the segments as one
-text, is not supplied. An `eos` grammar split into tokens (`GRAM4049`) or asked for
-buffered or byte forms (`GRAM4050`) is refused as well. U+0000 is how a boundary is read
+text, is not supplied. Text around a repetition marked `recover` is taken to hold an `eos`,
+whatever it synchronizes on: what it steps over goes on past the end of a segment. An `eos` grammar split
+into tokens (`GRAM4049`) or asked for buffered or byte forms (`GRAM4050`) is refused as well. U+0000 is how a boundary is read
 in this version, so no segment may hold it, and a segment that holds it is refused
 before it is read. A literal or a class item that is U+0000 and nothing else could never match, and
 is an error (`GRAM4047`); a range or a category that merely holds it —
 `['\0'..'\u001F']`, `\p{Cc}` — reads the rest of what it holds. A predicate a class
-calls (§7.1) is never asked about the end of a segment.
+calls (§7.1) is never asked about the end of a segment, and a recognizer of the
+host (§7.1) sees the current segment: its input ends where the segment does.
 
 ### 3.2 Composition
 

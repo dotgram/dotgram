@@ -662,6 +662,69 @@ public sealed class SegmentedInputTests
 	}
 
 	/// <summary>
+	/// A recognizer of the host is handed its own segment and nothing after it: one that wants more
+	/// than the segment holds refuses there, and what it covers holds no end of a segment.
+	/// </summary>
+	[Theory]
+	[InlineData(CarrierKind.Tape, true)]
+	[InlineData(CarrierKind.Immediate, true)]
+	[InlineData(CarrierKind.Tape, false)]
+	[InlineData(CarrierKind.Immediate, false)]
+	public void A_recognizer_of_the_host_reads_one_segment(CarrierKind carrier, bool direct)
+	{
+		var pair = Build(
+			"Start : @string = t: @Pair & any* & eos => @(t)\nparse Start",
+			members: "static bool Pair(System.ReadOnlySpan<char> input, ref int p) { if (input.Length - p < 2) return false; p += 2; return true; }",
+			carrier: carrier, direct: direct);
+
+		Assert.Equal("ab", TryParse(pair, "TryParseStart", ["abc"]).Value);
+
+		var (success, _, error, position) = TryParse(pair, "TryParseStart", ["a", "b"]);
+
+		Assert.False(success);
+		Assert.Equal(0, position);
+		Assert.DoesNotContain("\\u0000", error!, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A recognizer that reads to the end of its input stops at the end of its segment: over a span
+	/// and over a view, read by methods, and with a value, read by the engine and asked again for it.
+	/// </summary>
+	[Theory]
+	[InlineData("Tape")]
+	[InlineData("Immediate")]
+	public void A_recognizer_of_the_host_reads_to_the_end_of_its_segment(string carrier)
+	{
+		var grammars = new[]
+		{
+			"Items : @string[] = items: Item* & eof => @(items)\\nItem : @string = '!' & v: @Viewed & eos => @(\\\"view \\\" + v) | t: @ToEnd & eos => @(t)\\nparse Items",
+			"Items : @string[] = items: Item* & eof => @(items)\\nItem : @string = '#' & n: @Rest & eos => @(\\\"rest \\\" + n) | t: @ToEnd & eos => @(t)\\nparse Items",
+		};
+
+		foreach (var grammar in grammars)
+		{
+			// A recognizer with a value is read by the engine whatever was asked (GRAM5007).
+			var valued = grammar.Contains("@Rest", StringComparison.Ordinal);
+			var parser = GeneratorDriverTests.Build($$"""
+				using System;
+				[DotGram.Gram("{{grammar}}", Carrier = DotGram.GramCarrier.{{carrier}})]
+				public partial class Grammar
+				{
+					static bool ToEnd(ReadOnlySpan<char> input, ref int p) { p = input.Length; return true; }
+					{{(valued
+						? "static bool Rest(ReadOnlySpan<char> input, ref int p, out int value) { value = input.Length - p; p = input.Length; return true; }"
+						: "static bool Viewed(ParserInput<char> input, ref int p) { while (input.Peek(p, out _)) p++; return true; }")}}
+				}
+				""", permittedWarning: "GRAM5007");
+			var marked = valued ? "#" : "!";
+			var (read, value, _, _) = TryParse(parser, "TryParseItems", ["ab", "", marked + "xyz", "e"]);
+
+			Assert.True(read);
+			Assert.Equal(["ab", "", marked == "#" ? "rest 3" : "view xyz", "e"], (string[])value!);
+		}
+	}
+
+	/// <summary>
 	/// Records, one a segment, with bad ones in the middle: <c>recover eos</c> steps over a bad one to
 	/// the end of its segment, and what a rejected record is told counts lines as segments.
 	/// </summary>

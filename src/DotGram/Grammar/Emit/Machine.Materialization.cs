@@ -55,6 +55,8 @@ sealed partial class Machine
 	/// </summary>
 	void Materialize(Writer file, bool cached)
 	{
+		var declared = file.Length;
+
 		file.Line("var values = parser.Materialization(entries.Count);");
 		DeclareTables(file);
 		if (cached)
@@ -282,6 +284,14 @@ sealed partial class Machine
 						MaterializeRule(file, rule, part * FactoriesPerPart);
 				}
 			}
+		}
+
+		// A recognizer of the host asked again for its value is handed the segment it was handed
+		// while the input was read (CSharpEmitter.SegmentOf), and where that ends is kept the same way.
+		if (file.Contains("ref segmentEnd", declared))
+		{
+			declared = file.InsertLine(declared, "var segmentFrom = 0;");
+			file.InsertLine(declared, "var segmentEnd  = -1;");
 		}
 	}
 

@@ -1580,7 +1580,10 @@ sealed partial class Machine
 			("int", "ref"),
 		};
 
-		var arguments = (external.UsesInputView ? $"new {view}(text)" : "text") + ", ref " + position;
+		// In a grammar that names `eos` a recognizer is handed its own segment and nothing past
+		// it, so that it cannot read the end of one as a character or step over it.
+		var input     = _graph.Segmented ? $"{CSharpEmitter.SegmentOf}(text, {position}, ref segmentFrom, ref segmentEnd)" : "text";
+		var arguments = (external.UsesInputView ? $"new {view}({input})" : input) + ", ref " + position;
 
 		if (value == "_")
 			parameters.Add(("", "discard"));
@@ -1983,6 +1986,14 @@ sealed partial class Machine
 						file.Line("var syncFrom = 0;");
 
 					RecoveryLocals(file);
+				}
+
+				// Where the segment a recognizer of the host is called in ends, as far as the last one
+				// found it (CSharpEmitter.SegmentOf).
+				if (CutsSegment())
+				{
+					file.Line("var segmentFrom = 0;");
+					file.Line("var segmentEnd  = -1;");
 				}
 
 				if (UsesChar)
@@ -4271,6 +4282,16 @@ sealed partial class Machine
 	{
 		if (_bindingsRead.Contains(binding))
 			atClose.Line($"bound{slot} = entries.Count - 1;");
+	}
+
+	/// <summary>Whether a written state hands a recognizer of the host its segment (<see cref="ExternalCall"/>).</summary>
+	bool CutsSegment()
+	{
+		foreach (var index in _order)
+			if (_bodies[index].Contains("ref segmentEnd", StringComparison.Ordinal))
+				return true;
+
+		return false;
 	}
 
 	/// <summary>Whether a written state names a binding's hint.</summary>
