@@ -474,6 +474,17 @@ public sealed partial class GrammarNormalizer
 			case Node.Repeat or Node.Counted when NeverRuns(node):
 				return;
 
+			// A repetition whose most is a written one has no turn before its only one: that turn
+			// reads after what stood before the repetition and nothing else, recovery or not —
+			// what a recovery steps over comes after the turn that broke.
+			case Node.Repeat(var body, _, 1):
+				CheckSuppliedText(body, before, rule, at, reaching, inPlace);
+				return;
+
+			case Node.Counted(var body, _, CountBound.Items { Count: 1 }):
+				CheckSuppliedText(body, before, rule, at, reaching, inPlace);
+				return;
+
 			case Node.Repeat(var body, _, _):
 				CheckSuppliedText(body, before || ReachesEndOfSegment(node, reaching), rule, at, reaching, inPlace);
 				return;
