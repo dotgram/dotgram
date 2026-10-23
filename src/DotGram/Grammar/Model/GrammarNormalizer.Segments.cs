@@ -269,7 +269,7 @@ public sealed partial class GrammarNormalizer
 
 			foreach (var (tree, after) in ReadTrees(body))
 			{
-				foreach (var node in NodeWalk.Descendants(tree))
+				foreach (var node in Running(tree))
 					if (KeptText(node) is ({ } kept, { } what) && KeepsEndOfSegment(kept, reaching))
 						Report(
 							TextAcrossSegments,
@@ -352,8 +352,8 @@ public sealed partial class GrammarNormalizer
 
 			yield return read;
 
-			foreach (var node in NodeWalk.Descendants(read.Tree))
-				if (_recoveries.TryGetValue(node, out var recovery) && !NeverRuns(node) && seen.Add(recovery.Sync))
+			foreach (var node in Running(read.Tree))
+				if (_recoveries.TryGetValue(node, out var recovery) && seen.Add(recovery.Sync))
 					pending.Push((recovery.Sync, true));
 		}
 	}
@@ -470,6 +470,10 @@ public sealed partial class GrammarNormalizer
 
 			// A later turn's guard has read the turns before it, and what a recovery stepped over
 			// between them: the repetition as a whole, recovery and all, stands before every turn.
+			// What a repetition that never runs would read is not read.
+			case Node.Repeat or Node.Counted when NeverRuns(node):
+				return;
+
 			case Node.Repeat(var body, _, _):
 				CheckSuppliedText(body, before || ReachesEndOfSegment(node, reaching), rule, at, reaching, inPlace);
 				return;
@@ -524,6 +528,30 @@ public sealed partial class GrammarNormalizer
 					"segment is no text. Capture the parts on either side of it, or read 'parserSpan', which " +
 					"is two numbers (docs/syntax.md §3.1.1).",
 					at);
+		}
+	}
+
+	/// <summary>
+	/// The node and everything under it that may be read: not the body of a repetition whose most
+	/// is a written nought, nor what it would recover with.
+	/// </summary>
+	static IEnumerable<Node> Running(Node tree)
+	{
+		var pending = new Stack<Node>();
+
+		pending.Push(tree);
+
+		while (pending.Count > 0)
+		{
+			var node = pending.Pop();
+
+			if (NeverRuns(node))
+				continue;
+
+			yield return node;
+
+			foreach (var child in node.Children.Reverse())
+				pending.Push(child);
 		}
 	}
 
