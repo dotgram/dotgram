@@ -5,7 +5,7 @@
 #
 # It tests the commit checked out (HEAD) in a worktree of its own, so the checkout it is started from is not
 # touched and uncommitted changes are not part of the run. Everything it writes is in one scratch folder,
-# $DOTGRAM_GATES_DIR or a new one under $TMPDIR, deleted at the end (--keep keeps it, and so does any failure). docs/development.md,
+# a new one under $DOTGRAM_GATES_DIR or $TMPDIR, deleted at the end (--keep keeps it, and so does any failure). docs/development.md,
 # "The tool's release gates", says what each gate holds and what to do when one fails.
 #
 #   G2   the generator hosted by hand over the compiler arguments of a real build (diagnostic: it isolates the
@@ -38,12 +38,10 @@ here=$(cd "$(dirname "$0")" && pwd)
 repo=$(git -C "$here" rev-parse --show-toplevel)
 commit=$(git -C "$repo" rev-parse --short HEAD)
 
-if [ -n "${DOTGRAM_GATES_DIR:-}" ]; then
-	work=$DOTGRAM_GATES_DIR
-	mkdir -p "$work"
-else
-	work=$(mktemp -d "${TMPDIR:-/tmp}/dotgram-gates.XXXXXX")
-fi
+# A folder of its own, made here, in $DOTGRAM_GATES_DIR or $TMPDIR: the only one the run deletes.
+parent=${DOTGRAM_GATES_DIR:-${TMPDIR:-/tmp}}
+mkdir -p "$parent"
+work=$(mktemp -d "$parent/dotgram-gates.XXXXXX")
 work=$(cd "$work" && pwd)
 tree=$work/tree
 logs=$work/logs
@@ -306,8 +304,9 @@ if [ "$g3" = 1 ]; then
 		fi
 		dotnet test --project "$t/$name.csproj" -c Release --no-build > "$logs/g3-test-$name.log" 2>&1 && code=0 || code=$?
 		summary=$(grep -E '^\s*(total|failed|succeeded|skipped):' "$logs/g3-test-$name.log" | tr -s ' \n' ' ')
-		total=$(grep -m1 -oE '^\s*total:\s*[0-9]+' "$logs/g3-test-$name.log" | grep -oE '[0-9]+' || echo 0)
-		if [ "$code" = 0 ] && [ "${total:-0}" -gt 0 ]; then result G3 "$name" pass "$summary"
+		# Passed, not merely run: a run whose every test is skipped exits 0 too.
+		passed=$(grep -m1 -oE '^\s*succeeded:\s*[0-9]+' "$logs/g3-test-$name.log" | grep -oE '[0-9]+' || echo 0)
+		if [ "$code" = 0 ] && [ "${passed:-0}" -gt 0 ]; then result G3 "$name" pass "$summary"
 		else result G3 "$name" FAIL "exit $code; $summary $logs/g3-test-$name.log"; grep -E '^\s*failed ' "$logs/g3-test-$name.log" | head -20
 		fi
 	done
