@@ -249,12 +249,14 @@ static class Cli
 		var sdk      = MSBuild.SdkOf(options.Input);
 		var targeted = MSBuild.Frameworks(options.Input, options.Configuration, sdk);
 
-		if (targeted.Count == 0)
+		// A project that names no framework of its own (one given on the command line only, or a classic
+		// project's TargetFrameworkVersion) is taken at the --framework it is given.
+		if (targeted.Count == 0 && options.Framework is null)
 			throw ToolException.Failure($"{options.Input} names no target framework.");
 
 		// Asked for a framework the project does not target, MSBuild finds no assets for it and says the
 		// project is not restored, which it is.
-		if (options.Framework is not null && !targeted.Contains(options.Framework, StringComparer.OrdinalIgnoreCase))
+		if (options.Framework is not null && targeted.Count > 0 && !targeted.Contains(options.Framework, StringComparer.OrdinalIgnoreCase))
 			throw ToolException.Usage($"--framework {options.Framework}: {options.Input} targets {string.Join(", ", targeted)}.");
 
 		var frameworks = options.Framework is not null ? [options.Framework] : targeted;
