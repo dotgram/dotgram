@@ -74,8 +74,43 @@ public sealed class UnclosedCommentTests
 	[Fact]
 	public void A_balanced_comment_a_hundred_thousand_deep_reads_in_linear_time()
 	{
-		Quick(() => Assert.True(TransactSqlParser.TryParseStatement("SELECT 1 " + Balanced).IsSuccess));
-		Quick(() => Assert.True(SqlStandardProductions.TryParseLiteral("1 " + Balanced).IsSuccess));
+		Read(Balanced);
+
+		// Four times the depth takes about four times as long when the read is linear and sixteen
+		// times as long when it is quadratic. The ratio of the best times of both, measured in the
+		// same run, does not move with the load of the machine as an absolute bound does; ten
+		// separates the two with room on both sides.
+		var shorter = string.Concat(Enumerable.Repeat("/* ", Openings / 4)) + string.Concat(Enumerable.Repeat("*/ ", Openings / 4));
+
+		Read(shorter);
+
+		var few  = double.MaxValue;
+		var many = double.MaxValue;
+
+		for (var attempt = 0; attempt < 7; attempt++)
+		{
+			few  = Math.Min(few, Time(shorter));
+			many = Math.Min(many, Time(Balanced));
+		}
+
+		var ratio = many / Math.Max(few, 0.001);
+
+		Assert.True(ratio < 10, $"four times the depth took {ratio:F1} times as long ({few:F1} ms, {many:F1} ms)");
+	}
+
+	static void Read(string comment)
+	{
+		Assert.True(TransactSqlParser.TryParseStatement("SELECT 1 " + comment).IsSuccess);
+		Assert.True(SqlStandardProductions.TryParseLiteral("1 " + comment).IsSuccess);
+	}
+
+	static double Time(string comment)
+	{
+		var watch = Stopwatch.StartNew();
+
+		Read(comment);
+
+		return watch.Elapsed.TotalMilliseconds;
 	}
 
 	static void Quick(Action read)

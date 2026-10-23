@@ -145,20 +145,23 @@ public sealed partial class BackReferenceTests
 		Assert.True(few > 0);
 		Assert.Equal(longer.Length / block.Length * few / (shorter.Length / block.Length), many);
 
-		var best = double.MaxValue;
+		// The best time of each size over many runs, so a pause from a busy machine or the
+		// collector in one run does not decide: linear growth gives four, quadratic sixteen.
+		var fewest  = double.MaxValue;
+		var longest = double.MaxValue;
 
-		for (var attempt = 0; attempt < 5; attempt++)
+		for (var attempt = 0; attempt < 15; attempt++)
 		{
 			var a = Stopwatch.StartNew();
 			EmittedCode.FoundAt(assembly, "Grammar", "Find" + rule, shorter);
-			var s = a.Elapsed.TotalMilliseconds;
+			fewest = Math.Min(fewest, a.Elapsed.TotalMilliseconds);
 
 			var b = Stopwatch.StartNew();
 			EmittedCode.FoundAt(assembly, "Grammar", "Find" + rule, longer);
-			var l = b.Elapsed.TotalMilliseconds;
-
-			best = Math.Min(best, l / Math.Max(s, 0.001));
+			longest = Math.Min(longest, b.Elapsed.TotalMilliseconds);
 		}
+
+		var best = longest / Math.Max(fewest, 0.001);
 
 		Assert.True(best < 10, $"four times the text took {best:F1} times as long");
 	}
