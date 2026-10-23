@@ -562,6 +562,13 @@ sinks never throw on their own account.
 The message names the section of `docs/syntax.md` that settles the question. Read it
 rather than guessing at the notation.
 
+## Generating outside the build
+
+For a grammar of hundreds of rules whose generation shows in cold builds, `DotGram.Cli` writes the
+same parsers ahead of time (`dotnet tool install DotGram.Cli`, then `dotnet dotgram generate
+<project.csproj> -o <dir>`) and the project compiles the files and drops its `DotGram` reference —
+never both, or every parser is generated twice. `dotnet dotgram --skill` prints that tool's guide.
+
 ## What is deliberately not there
 
 - **No repair of a broken document.** Recovery is scoped to one repetition, for a feed

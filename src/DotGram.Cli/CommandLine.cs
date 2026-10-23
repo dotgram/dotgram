@@ -54,14 +54,14 @@ readonly record struct Option(ItemKind Kind, string? Name, string? Value, Argume
 static partial class CommandLine
 {
 	/// <summary>The options that take the next argument as their value, whatever it begins with.</summary>
-	static readonly HashSet<string> Valued =
+	internal static readonly HashSet<string> Valued =
 	[
 		"-o", "--output", "--framework", "--configuration", "--reference", "--package", "--define",
 		"--langversion", "--line-paths", "--namespace", "--class", "--option", "--sources",
 	];
 
 	/// <summary>The options that take none.</summary>
-	static readonly HashSet<string> Flags = ["--allow-unresolved", "--public", "--help", "-h", "-?", "--version", "--skill"];
+	internal static readonly HashSet<string> Flags = ["--allow-unresolved", "--public", "--help", "-h", "-?", "--version", "--skill"];
 
 	/// <exception cref="ToolException">An unknown command or option, or a value that does not fit.</exception>
 	public static Command Parse(IReadOnlyList<string> arguments, string currentDirectory)
