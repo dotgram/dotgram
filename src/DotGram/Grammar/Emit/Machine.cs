@@ -7426,6 +7426,10 @@ sealed partial class Machine
 		if (leading && IsEndOfInput(node))
 			return ["eof"];
 
+		// `?!any` where `any` leaves the joiner out holds at the end of a segment, and that is what it wants.
+		if (leading && node is Node.Lookahead(false, var refused) && IsSegmentAny(refused))
+			return [EndOfSegmentSaid];
+
 		if (!OverKinds || _inventory is not { Kinds.Count: > 0 } inventory)
 			return leading && Leading(node) is { Count: > 0 } items ? items
 				: _graph.Segmented ? [Unjoined(node.ToString())]
@@ -7618,10 +7622,34 @@ sealed partial class Machine
 	}
 
 	/// <summary>Whether a node is one item, whatever it is: <c>any</c>, called or written out.</summary>
-	internal static bool IsAny(Node node)
+	/// <param name="segmented">
+	/// Whether the grammar names <c>eos</c>, where <c>any</c> is every character but the joiner and
+	/// so not one item whatever it is (<see cref="IsSegmentAny"/>); only the class written out is.
+	/// </param>
+	internal static bool IsAny(Node node, bool segmented = false)
 	{
-		return node is Node.Call { Rule: { IsBuiltIn: true, Name: "any" } } ||
+		return !segmented && node is Node.Call { Rule: { IsBuiltIn: true, Name: "any" } } ||
 			node is Node.Element { IsNegated: true, Ranges.Count: 0, Categories.Count: 0, References.Count: 0 };
+	}
+
+	/// <summary>
+	/// Whether a node is <c>any</c> in a grammar that names <c>eos</c>: every character but the
+	/// joiner, so that a look refusing it holds at the end of a segment as at the end of the input.
+	/// </summary>
+	internal bool IsSegmentAny(Node node)
+	{
+		return _graph.Segmented &&
+			(node is Node.Call { Rule: { IsBuiltIn: true, Name: "any" } } || node is Node.Element && Unjoined(node) is ["any"]);
+	}
+
+	/// <summary>What a refusal by <c>?!any</c> says in a grammar that names <c>eos</c>: the end of a segment.</summary>
+	internal string EndOfSegmentExpected()
+	{
+		var name = DeclareExpected([EndOfSegmentSaid]);
+
+		_expectedUsed.Add(name);
+
+		return name;
 	}
 
 	/// <summary>
@@ -7765,9 +7793,9 @@ sealed partial class Machine
 	}
 
 	/// <summary>Whether a node is the end of the input: a look that refuses one item, whatever it is — <c>eof</c>'s body.</summary>
-	internal static bool IsEndOfInput(Node node)
+	internal bool IsEndOfInput(Node node)
 	{
-		return node is Node.Lookahead(false, var looked) && IsAny(looked);
+		return node is Node.Lookahead(false, var looked) && IsAny(looked, _graph.Segmented);
 	}
 
 	/// <summary>The same, as one entry: an alternative among literals has exactly one.</summary>
