@@ -277,9 +277,10 @@ tests/DotGram.Cli.Tests/gates/run-gates.sh            # [--keep] [--no-g3] [--no
 
 It tests the commit checked out, in a `git worktree` of its own (uncommitted changes are not in
 it), builds and packs the tool there and installs the package into a folder of its own, from a feed
-that holds nothing else, so that `dotnet dotgram` is the package and not the build. Everything goes
-into one scratch folder under `$TMPDIR` (or `$DOTGRAM_GATES_DIR`), removed at the end with the
-worktree; `--keep` keeps it, and a failure keeps its logs. Linux only (bash, `perl`, GNU `time`);
+that holds nothing else, so that `dotnet dotgram` is the package and not the build. Everything else it
+writes goes into one new folder under `$DOTGRAM_GATES_DIR` or `$TMPDIR`, removed at the end with the
+worktree; `--keep` keeps it, and a failure keeps its logs. The packages its builds restore go to the
+machine's NuGet cache, as any build's do: only the tool's install has a packages folder of its own. Linux only (bash, `perl`, GNU `time`);
 a full run takes about 25 minutes, most of it G3's test runs, and up to 12 GB of memory (the test
 host of `DotGram.Tests`; the tool itself stays under 3 GB, on DotGram.Finance). The projects are every `src/` project that takes the generator
 as an analyzer, found by the script, so a new grammar library is gated without editing it.
