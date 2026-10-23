@@ -163,6 +163,8 @@ static class GrammarHost
 		return text.ToString();
 	}
 
+	static readonly EnumerationOptions Every = new() { RecurseSubdirectories = true, IgnoreInaccessible = true, AttributesToSkip = 0 };
+
 	/// <summary>The C# files <c>--sources</c> names: files, or globs with <c>*</c>, <c>?</c> and <c>**</c>.</summary>
 	public static List<string> Sources(IEnumerable<string> patterns)
 	{
@@ -197,7 +199,9 @@ static class GrammarHost
 					.Replace("\u0001/", "(?:.*/)?").Replace("\u0001", ".*") + "$",
 				RegexOptions.CultureInvariant | (OperatingSystem.IsWindows() ? RegexOptions.IgnoreCase : RegexOptions.None));
 
-			var matched = Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories)
+			// A folder that cannot be read is passed over, as MSBuild's globs pass it over; hidden ones are
+			// looked into, as they were before (the options' default would skip them).
+			var matched = Directory.EnumerateFiles(root, "*", Every)
 				.Where(file => expression.IsMatch(Path.GetRelativePath(root, file).Replace('\\', '/')))
 				.Order(StringComparer.Ordinal)
 				.ToList();
