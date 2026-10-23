@@ -460,6 +460,12 @@ public sealed class SegmentedInputTests
 	[InlineData("Start : @int = Word* recover (eos | ';') & eof => @(0)\nWord = 'a'\nparse Start")]
 	[InlineData("Start : @string = t: Fields(1) & eos => @(t)\nFields(n: int) = any* & (eos & any*){n}\nparse Start")]
 	[InlineData("Start : @string = t: (any* & (eos & any*){0,1}) & eos => @(t)\nparse Start")]
+	[InlineData("Start : @int = G(when @(parserText.Length > 0)) => @(0)\nG(check) : @int = check & eos & Item* recover ('x' & check) => @(0) & eof => @(0)\nItem : @int = 'a' => @(1)\nparse Start")]
+	[InlineData("Start : @int[] = items: Item* recover (';' & when @(parserText.Length > 0)) => @(0) & eof => @(items)\nItem : @int = 'a' & eos => @(1)\nparse Start")]
+	[InlineData("Start : @int[] = items: Item* recover (t: (any* & eos) & ';') => @(0) & eof => @(items)\nItem : @int = 'a' & eos => @(1)\nparse Start")]
+	[InlineData("Start : @int[] = items: Item* recover (Item* recover (';' & when @(parserText.Length > 0)) => @(0)) => @(0) & eof => @(items)\nItem : @int = 'a' & eos => @(1)\nparse Start")]
+	[InlineData("Start : @int[] = items: Item* recover Sync => @(0) & eof => @(items)\nItem : @int = 'a' & eos => @(1)\nSync = when @(parserText.Length > 0) & eos\nparse Start")]
+	[InlineData("Start : @int = 'a' & eos & Sub & eos => @(0)\nSub = when @(parserText.Length > 0) & 'b'\nparse Start")]
 	public void Text_across_a_boundary_is_refused(string grammar)
 	{
 		var result = Compile(grammar);
@@ -527,6 +533,26 @@ public sealed class SegmentedInputTests
 
 		Assert.True(success);
 		Assert.Equal(["ab", "bad x1", "bad abcde", "c"], (string[])value!);
+	}
+
+	/// <summary>
+	/// A synchronization is read where the rule broke, and what it asks of the host that is no text
+	/// is asked there: a guard over the span is two numbers.
+	/// </summary>
+	[Fact]
+	public void A_synchronization_that_reads_no_text_is_kept()
+	{
+		var parser = Build("""
+			Rows : @int[] = rows: Row* recover Sync => @(0) & eof => @(rows)
+			Row  : @int   = 'a' & eos => @(1)
+			Sync = when @(parserSpan.Length >= 0) & eos
+			parse Rows
+			""");
+
+		var (success, value, _, _) = TryParse(parser, "TryParseRows", ["a", "b", "a"]);
+
+		Assert.True(success);
+		Assert.Equal([1, 0, 1], (int[])value!);
 	}
 
 	/// <summary>
@@ -619,6 +645,93 @@ public sealed class SegmentedInputTests
 		Assert.Equal(
 			kinds,
 			GrammarNormalizer.SegmentClassifiedNodes.Select(static type => type.FullName).OrderBy(static name => name, StringComparer.Ordinal));
+	}
+
+	/// <summary>
+	/// Every member that holds a node outside a node's children is classified by the checks of text
+	/// over segments too: a tree hung off a node is read by the parser as its body is, and a walk of
+	/// the bodies does not see it, so one added later fails here until it is said how it is reached.
+	/// </summary>
+	[Fact]
+	public void Every_holder_of_a_node_is_classified_for_segments()
+	{
+		var holders = new SortedSet<string>(StringComparer.Ordinal);
+		var pending = new Queue<Type>(typeof(Node).Assembly.GetTypes().Where(static type => type.IsSubclassOf(typeof(Node))));
+		var seen    = new HashSet<Type>(pending);
+
+		// What the normalizer keeps beside the bodies, and every record a holder leads to.
+		foreach (var field in typeof(GrammarNormalizer).GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
+			Hold(nameof(GrammarNormalizer) + "." + field.Name, field.FieldType);
+
+		while (pending.Count > 0)
+		{
+			var type = pending.Dequeue();
+
+			foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
+				if (property.Name != nameof(Node.Children) && property.GetIndexParameters().Length == 0)
+					Hold(Named(type) + "." + property.Name, property.PropertyType);
+		}
+
+		Assert.Equal(holders, GrammarNormalizer.SegmentClassifiedHolders.Keys.OrderBy(static name => name, StringComparer.Ordinal));
+
+		void Hold(string name, Type type)
+		{
+			if (HoldsNode(type, []))
+				holders.Add(name);
+
+			foreach (var record in Records(type, []))
+				if (seen.Add(record))
+					pending.Enqueue(record);
+		}
+
+		// The graph's own records a member's type names, and every kind of an abstract one.
+		static IEnumerable<Type> Records(Type type, HashSet<Type> visited)
+		{
+			if (!visited.Add(type))
+				yield break;
+
+			if (type.IsArray)
+			{
+				foreach (var record in Records(type.GetElementType()!, visited))
+					yield return record;
+
+				yield break;
+			}
+
+			if (type.IsGenericType)
+				foreach (var argument in type.GetGenericArguments())
+					foreach (var record in Records(argument, visited))
+						yield return record;
+
+			if (type.Namespace != typeof(Node).Namespace || type.IsEnum || type.IsGenericType || typeof(Node).IsAssignableFrom(type) ||
+				type == typeof(RecognitionGraph))
+				yield break;
+
+			yield return type;
+
+			foreach (var kind in type.Assembly.GetTypes())
+				if (kind.IsSubclassOf(type))
+					yield return kind;
+		}
+
+		static bool HoldsNode(Type type, HashSet<Type> visited)
+		{
+			if (typeof(Node).IsAssignableFrom(type))
+				return true;
+
+			if (!visited.Add(type))
+				return false;
+
+			if (type.IsArray)
+				return HoldsNode(type.GetElementType()!, visited);
+
+			return type.IsGenericType && type.GetGenericArguments().Any(argument => HoldsNode(argument, visited));
+		}
+
+		static string Named(Type type)
+		{
+			return type.DeclaringType is { } outer ? Named(outer) + "." + type.Name : type.Name;
+		}
 	}
 
 	/// <summary>Values built on either side of a boundary may be kept; text inside one segment may.</summary>

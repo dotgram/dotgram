@@ -164,6 +164,77 @@ public sealed partial class GrammarNormalizer
 		typeof(Node.Call),
 	];
 
+	/// <summary>
+	/// Every member of the graph's records, and every table of the normalizer, that holds a node,
+	/// with how the checks of text over segments reach what it holds.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A tree that hangs off a node without being one of its <see cref="Node.Children"/> is read by
+	/// the parser all the same, and a walk of the bodies does not see it: a recovery's
+	/// synchronization was one, and its guards were handed text over a boundary unchecked. Held by a
+	/// test to every such member the assembly declares, so one added later fails that test until it
+	/// is said here how it is reached.
+	/// </para>
+	/// <para>
+	/// <c>Walked</c>: the checks walk it as a tree a rule reads. <c>Child</c>: it is a node's
+	/// child, reached by every walk. <c>Index</c>: it names nodes that stand in a walked tree
+	/// already, or answers something about them. <c>Lowering</c>: it is read while rules are
+	/// lowered, and what it holds is in a body by the time the checks run. <c>Decided</c>: it is
+	/// answered while the parser is generated and never read as input. <c>Boundary</c>: the class
+	/// of the <c>wordboundary</c> rule, read behind a keyword as that rule's body is read, which
+	/// was narrowed to leave the joiner out when it was lowered and calls no predicate (a class that
+	/// does is no plain class, and no look behind is made of it).
+	/// </para>
+	/// </remarks>
+	public static readonly IReadOnlyDictionary<string, string> SegmentClassifiedHolders = new Dictionary<string, string>(StringComparer.Ordinal)
+	{
+		["GrammarNormalizer._bodies"]             = "Walked",
+		["Recovery.Sync"]                         = "Walked",
+
+		["Node.Atomic.Body"]                      = "Child",
+		["Node.Bind.Body"]                        = "Child",
+		["Node.Call.Arguments"]                   = "Child",
+		["Node.Capture.Body"]                     = "Child",
+		["Node.Choice.Nodes"]                     = "Child",
+		["Node.Construct.Body"]                   = "Child",
+		["Node.Counted.Body"]                     = "Child",
+		["Node.Lookahead.Body"]                   = "Child",
+		["Node.Marked.Body"]                      = "Child",
+		["Node.Repeat.Body"]                      = "Child",
+		["Node.Sequence.Nodes"]                   = "Child",
+		["Node.SwitchSelection.Selector"]         = "Child",
+
+		["Node.Behind.Test"]                      = "Boundary",
+		["Test.Meets.Left"]                       = "Decided",
+		["Test.Meets.Right"]                      = "Decided",
+
+		// The loop a left recursion became is the last part of the rule's body.
+		["Fold.Accumulators"]                     = "Index",
+		["Fold.Loop"]                             = "Index",
+		// Keyed by the recovering repetition; what it holds is its synchronization, above.
+		["GrammarNormalizer._recoveries"]         = "Index",
+		// A call of the trivia rule, with no arguments: that rule's body is walked with the rest.
+		["GrammarNormalizer._trivia"]             = "Index",
+		["GrammarNormalizer._annotations"]        = "Index",
+		["GrammarNormalizer._argumentOrigins"]    = "Index",
+		["GrammarNormalizer._boundBodies"]        = "Index",
+		["GrammarNormalizer._boundaryCharacters"] = "Index",
+		["GrammarNormalizer._bounds"]             = "Index",
+		["GrammarNormalizer._ceilings"]           = "Index",
+		["GrammarNormalizer._climbing"]           = "Index",
+		["GrammarNormalizer._forwarded"]          = "Index",
+		["GrammarNormalizer._powers"]             = "Index",
+		["GrammarNormalizer._refused"]            = "Index",
+		["GrammarNormalizer._repetitionsAt"]      = "Index",
+		["GrammarNormalizer._withRoots"]          = "Index",
+
+		["GrammarNormalizer._arguments"]          = "Lowering",
+		["GrammarNormalizer._callArguments"]      = "Lowering",
+		["GrammarNormalizer._origins"]            = "Lowering",
+		["GrammarNormalizer.WithSite.Root"]       = "Lowering",
+	};
+
 	/// <summary>What a switch below is told of a kind of node it does not name.</summary>
 	static InvalidOperationException Unclassified(Node node)
 	{
@@ -196,16 +267,19 @@ public sealed partial class GrammarNormalizer
 			if (!_bodies.TryGetValue(rule, out var body) || rule.Declaration is not { } declared)
 				continue;
 
-			foreach (var node in NodeWalk.Descendants(body))
-				if (KeptText(node) is ({ } kept, { } what) && KeepsEndOfSegment(kept, reaching))
-					Report(
-						TextAcrossSegments,
-						$"{what} in '{rule.Name}' may hold an 'eos', and the end of a segment is no text: a " +
-						"capture is a piece of one segment. Capture the parts on either side of it, or a value " +
-						"built from them (docs/syntax.md §3.1.1).",
-						declared.At);
+			foreach (var (tree, after) in ReadTrees(body))
+			{
+				foreach (var node in NodeWalk.Descendants(tree))
+					if (KeptText(node) is ({ } kept, { } what) && KeepsEndOfSegment(kept, reaching))
+						Report(
+							TextAcrossSegments,
+							$"{what} in '{rule.Name}' may hold an 'eos', and the end of a segment is no text: a " +
+							"capture is a piece of one segment. Capture the parts on either side of it, or a value " +
+							"built from them (docs/syntax.md §3.1.1).",
+							declared.At);
 
-			CheckSuppliedText(body, false, rule, declared.At, reaching);
+				CheckSuppliedText(tree, after, rule, declared.At, reaching, []);
+			}
 		}
 
 		// A rejected element's text runs from where it began to the first synchronization after
@@ -248,6 +322,37 @@ public sealed partial class GrammarNormalizer
 					"matched, and it may hold an 'eos': the end of a segment is no text. Give the rule a value " +
 					"(docs/syntax.md §3.1.1).",
 					publication.At);
+	}
+
+	/// <summary>
+	/// The trees a rule's reading runs: its body, and the synchronization of every repetition in it
+	/// that recovers — one in a synchronization included — each with whether what the rule read
+	/// before it may hold an <c>eos</c>.
+	/// </summary>
+	/// <remarks>
+	/// A synchronization is not a child of its repetition (<see cref="Recovery.Sync"/>), so a walk
+	/// of the body does not reach it, yet it is read in the rule as the body is: its guards see the
+	/// rule's text so far and its captures are the rule's. It is read after the element it steps
+	/// over, whose scan goes on past the end of a segment as past any character, so what stands
+	/// before it may always hold one.
+	/// </remarks>
+	IEnumerable<(Node Tree, bool After)> ReadTrees(Node body)
+	{
+		var pending = new Stack<(Node Tree, bool After)>();
+		var seen    = new HashSet<Node>(NodeIdentity.Instance);
+
+		pending.Push((body, false));
+
+		while (pending.Count > 0)
+		{
+			var read = pending.Pop();
+
+			yield return read;
+
+			foreach (var node in NodeWalk.Descendants(read.Tree))
+				if (_recoveries.TryGetValue(node, out var recovery) && seen.Add(recovery.Sync))
+					pending.Push((recovery.Sync, true));
+		}
 	}
 
 	/// <summary>What a construction, a guard or a recovery that reads <c>parserInput</c> is told.</summary>
@@ -318,7 +423,12 @@ public sealed partial class GrammarNormalizer
 	/// Whether what the rule read before <paramref name="node"/> may hold an <c>eos</c>: a guard's
 	/// <c>parserText</c> is what its rule has matched so far.
 	/// </param>
-	void CheckSuppliedText(Node node, bool before, RuleSymbol rule, Location at, HashSet<RuleSymbol> reaching)
+	/// <param name="inPlace">
+	/// The rules read in place so far, with what stood before them, so that a rule called from
+	/// many places, or from itself, is read once for each.
+	/// </param>
+	void CheckSuppliedText(
+		Node node, bool before, RuleSymbol rule, Location at, HashSet<RuleSymbol> reaching, HashSet<(RuleSymbol, bool)> inPlace)
 	{
 		switch (node)
 		{
@@ -327,7 +437,7 @@ public sealed partial class GrammarNormalizer
 				return;
 
 			case Node.Construct(var body, var how):
-				CheckSuppliedText(body, before, rule, at, reaching);
+				CheckSuppliedText(body, before, rule, at, reaching, inPlace);
 
 				if (how is Construction.Expression(var built, _))
 					Supplied(built, ReachesEndOfSegment(body, reaching), "a '=>'");
@@ -335,7 +445,7 @@ public sealed partial class GrammarNormalizer
 				return;
 
 			case Node.Marked(var body, var state):
-				CheckSuppliedText(body, before, rule, at, reaching);
+				CheckSuppliedText(body, before, rule, at, reaching, inPlace);
 				Supplied(state, before || ReachesEndOfSegment(body, reaching), "a 'with state'");
 				return;
 
@@ -345,7 +455,7 @@ public sealed partial class GrammarNormalizer
 
 				foreach (var part in parts)
 				{
-					CheckSuppliedText(part, read, rule, at, reaching);
+					CheckSuppliedText(part, read, rule, at, reaching, inPlace);
 					read = read || ReachesEndOfSegment(part, reaching);
 				}
 
@@ -355,24 +465,32 @@ public sealed partial class GrammarNormalizer
 			// A later turn's guard has read the turns before it, and what a recovery stepped over
 			// between them: the repetition as a whole, recovery and all, stands before every turn.
 			case Node.Repeat(var body, _, _):
-				CheckSuppliedText(body, before || ReachesEndOfSegment(node, reaching), rule, at, reaching);
+				CheckSuppliedText(body, before || ReachesEndOfSegment(node, reaching), rule, at, reaching, inPlace);
 				return;
 
 			case Node.Counted(var body, _, _):
-				CheckSuppliedText(body, before || ReachesEndOfSegment(node, reaching), rule, at, reaching);
+				CheckSuppliedText(body, before || ReachesEndOfSegment(node, reaching), rule, at, reaching, inPlace);
 				return;
 
 			// Another rule's guards and constructions stand over that rule's own text; what is
 			// handed to it is read there, after whatever that rule read first.
-			case Node.Call(_, var arguments):
+			//
+			// A rule that builds no value may be compiled where it is called (ExecutionPlan), and
+			// a guard in it then reads the text of the rule it is written into, from where that
+			// one began: it is read here as well, after what stood before the call.
+			case Node.Call(var called, var arguments):
 				foreach (var argument in arguments)
-					CheckSuppliedText(argument, true, rule, at, reaching);
+					CheckSuppliedText(argument, true, rule, at, reaching, inPlace);
+
+				if (!called.IsBuiltIn && !BuildsValue(called) && _bodies.TryGetValue(called, out var inner) &&
+					inPlace.Add((called, before)))
+					CheckSuppliedText(inner, before, rule, at, reaching, inPlace);
 
 				return;
 
 			case Node.Choice or Node.Atomic or Node.Capture or Node.Bind or Node.Lookahead:
 				foreach (var child in node.Children)
-					CheckSuppliedText(child, before, rule, at, reaching);
+					CheckSuppliedText(child, before, rule, at, reaching, inPlace);
 
 				return;
 
