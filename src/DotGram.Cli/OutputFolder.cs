@@ -61,7 +61,7 @@ static class OutputFolder
 					.Where(static name => name.Length > 0 && Path.GetFileName(name) == name),
 			];
 		}
-		catch (Exception exception) when (exception is JsonException or KeyNotFoundException or InvalidOperationException or IOException)
+		catch (Exception exception) when (exception is JsonException or KeyNotFoundException or InvalidOperationException or IOException or UnauthorizedAccessException)
 		{
 			throw ToolException.Failure($"{path} is not a manifest this tool wrote ({exception.Message}); delete it to start the folder afresh.");
 		}

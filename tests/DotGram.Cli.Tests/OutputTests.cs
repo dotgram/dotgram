@@ -224,4 +224,40 @@ public sealed class OutputTests
 		Assert.Equal(File.ReadAllBytes(Path.Combine(built, "Demo.Pairs.g.cs")), File.ReadAllBytes(scratch.Path("p", "Generated", "Demo.Pairs.g.cs")));
 		Assert.True(File.Exists(scratch.Path("p", "Generated", "Pair.g.cs")));
 	}
+
+	/// <summary>A manifest the tool cannot read stops the run with what to do, not with an unhandled exception.</summary>
+	[Fact]
+	public void An_unreadable_manifest_is_refused_with_a_message()
+	{
+		if (OperatingSystem.IsWindows())
+			return;
+
+		using var scratch = new Scratch();
+
+		var manifest = scratch.Write("out/" + OutputFolder.ManifestName, "{ \"files\": [] }");
+
+		File.SetUnixFileMode(manifest, UnixFileMode.None);
+
+		try
+		{
+			// A process with the rights to read it all the same has nothing to check.
+			try
+			{
+				File.ReadAllText(manifest);
+				return;
+			}
+			catch (UnauthorizedAccessException)
+			{
+			}
+
+			var refusal = Assert.Throws<ToolException>(() => OutputFolder.Listed(scratch.Path("out")));
+
+			Assert.Equal(ExitCode.Failure, refusal.ExitCode);
+			Assert.Contains("delete it to start the folder afresh", refusal.Message, StringComparison.Ordinal);
+		}
+		finally
+		{
+			File.SetUnixFileMode(manifest, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+		}
+	}
 }
