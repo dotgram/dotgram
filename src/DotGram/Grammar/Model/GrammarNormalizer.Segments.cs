@@ -289,6 +289,9 @@ public sealed partial class GrammarNormalizer
 		{
 			var recovery = pair.Value;
 
+			if (NeverRuns(pair.Key))
+				continue;
+
 			if (recovery.Factory is not { } factory)
 			{
 				// OnRecovered, and a streamed reading's rejection, are handed that text whether or
@@ -326,8 +329,8 @@ public sealed partial class GrammarNormalizer
 
 	/// <summary>
 	/// The trees a rule's reading runs: its body, and the synchronization of every repetition in it
-	/// that recovers — one in a synchronization included — each with whether what the rule read
-	/// before it may hold an <c>eos</c>.
+	/// that recovers — one in a synchronization included, and none that never runs — each with
+	/// whether what the rule read before it may hold an <c>eos</c>.
 	/// </summary>
 	/// <remarks>
 	/// A synchronization is not a child of its repetition (<see cref="Recovery.Sync"/>), so a walk
@@ -350,7 +353,7 @@ public sealed partial class GrammarNormalizer
 			yield return read;
 
 			foreach (var node in NodeWalk.Descendants(read.Tree))
-				if (_recoveries.TryGetValue(node, out var recovery) && seen.Add(recovery.Sync))
+				if (_recoveries.TryGetValue(node, out var recovery) && !NeverRuns(node) && seen.Add(recovery.Sync))
 					pending.Push((recovery.Sync, true));
 		}
 	}
@@ -520,6 +523,12 @@ public sealed partial class GrammarNormalizer
 		}
 	}
 
+	/// <summary>Whether a repetition's most is a written nought, so that it never runs, nor recovers.</summary>
+	static bool NeverRuns(Node node)
+	{
+		return node is Node.Repeat(_, _, 0) or Node.Counted(_, _, CountBound.Items { Count: 0 });
+	}
+
 	/// <summary>Whether a synchronization is <c>eos</c> and nothing else.</summary>
 	static bool EndsSegment(Node sync)
 	{
@@ -576,6 +585,12 @@ public sealed partial class GrammarNormalizer
 			case Node.Lookahead:
 				return false;
 
+			// A repetition whose most is a written nought never runs its body, and so never
+			// recovers either. A count that is a parameter's is a number here already, the
+			// instance's own, and a length is never nought ahead of time, so neither is taken for one.
+			case Node.Repeat or Node.Counted when NeverRuns(node):
+				return false;
+
 			// A repetition that recovers steps over what it could not read up to where it
 			// synchronizes, and both that scan and the synchronization go on past the end of a
 			// segment as past any character: what is around it may hold one, whatever it
@@ -583,14 +598,11 @@ public sealed partial class GrammarNormalizer
 			case Node.Repeat or Node.Counted when _recoveries.ContainsKey(node):
 				return true;
 
-			// A repetition whose most is a written nought never runs its body. A count that is a
-			// parameter's is a number here already, the instance's own, and a length is never
-			// nought ahead of time, so neither is taken for one.
-			case Node.Repeat(var body, _, var max):
-				return max != 0 && ReachesEndOfSegment(body, reaching);
+			case Node.Repeat(var body, _, _):
+				return ReachesEndOfSegment(body, reaching);
 
-			case Node.Counted(var body, _, var max):
-				return max is not CountBound.Items { Count: 0 } && ReachesEndOfSegment(body, reaching);
+			case Node.Counted(var body, _, _):
+				return ReachesEndOfSegment(body, reaching);
 
 			case Node.Call(var rule, var arguments):
 			{

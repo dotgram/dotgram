@@ -573,12 +573,15 @@ public sealed class SegmentedInputTests
 
 	/// <summary>
 	/// A repetition whose most is nought never runs, so what it would read is not read: a capture
-	/// around one that holds an <c>eos</c> holds no boundary, written so or made so by a parameter.
+	/// around one that holds an <c>eos</c> holds no boundary, written so or made so by a parameter,
+	/// and one marked <c>recover</c> never recovers either.
 	/// </summary>
 	[Theory]
 	[InlineData("Start : @string = t: Fields(0) & eos => @(t)\nFields(n: int) = any* & (eos & any*){n}\nparse Start")]
 	[InlineData("Start : @string = t: (any* & (eos & any*){0}) & eos => @(t)\nparse Start")]
 	[InlineData("Start : @string = t: (any* & (eos & any*){0,0}) & when @(parserText.Length > 0) & eos => @(t)\nparse Start")]
+	[InlineData("Start : @string = t: (any* & Word{0} recover eos) & eos => @(t)\nWord = 'x'\nparse Start")]
+	[InlineData("Start : @string = t: (any* & Word{0} recover ';') & eos => @(t)\nWord = 'x' & eos\nparse Start")]
 	public void A_repetition_that_cannot_run_reads_no_boundary(string grammar)
 	{
 		Assert.DoesNotContain(Compile(grammar).Diagnostics, one => one.Id == GrammarNormalizer.TextAcrossSegments);
