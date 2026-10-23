@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
+using System.Text;
 
 using DotGram.Generation;
 
@@ -177,22 +178,50 @@ static class Cli
 	/// <summary>
 	/// The <c>.gitattributes</c> line that keeps the output folder's files as written, and where it goes. A
 	/// pattern with a slash in it is read against the folder of the <c>.gitattributes</c> that holds it, so
-	/// the folder's name alone matches only a folder of that name beside that file: the path from the
-	/// repository's root, or, outside a repository, the name wherever it is.
+	/// the folder's name alone matches only a folder of that name beside that file: the path from the root
+	/// of the repository the folder is in (the folder itself, or one above it, with a <c>.git</c> folder or,
+	/// in a worktree or submodule, file), or, outside a repository, the name wherever it is.
 	/// </summary>
 	internal static string Attributes(string output)
 	{
 		var folder = Path.GetFullPath(output).TrimEnd('/', '\\');
 
-		for (var above = Path.GetDirectoryName(folder); above is not null; above = Path.GetDirectoryName(above))
+		for (var root = folder; root is not null; root = Path.GetDirectoryName(root))
 		{
-			var git = Path.Combine(above, ".git");
+			var git = Path.Combine(root, ".git");
 
 			if (Directory.Exists(git) || File.Exists(git))
-				return $"'{Path.GetRelativePath(above, folder).Replace('\\', '/')}/** -text' in the .gitattributes at the repository's root";
+			{
+				var relative = Path.GetRelativePath(root, folder).Replace('\\', '/');
+
+				return $"'{Line("", relative == "." ? "" : relative, relative == "." ? "**" : "/**")}' in the .gitattributes at the repository's root";
+			}
 		}
 
-		return $"'**/{Path.GetFileName(folder)}/** -text' in .gitattributes";
+		return $"'{Line("**/", Path.GetFileName(folder), "/**")}' in .gitattributes";
+
+		// The path between the two globs as gitattributes reads it: a character a glob reads (* ? [ \)
+		// escaped, and the pattern quoted as a C string where it has a blank, a quote or a backslash, which
+		// git unquotes before it matches.
+		static string Line(string before, string path, string after)
+		{
+			var pattern = new StringBuilder(before);
+
+			foreach (var character in path)
+			{
+				if (character is '*' or '?' or '[' or '\\')
+					pattern.Append('\\');
+
+				pattern.Append(character);
+			}
+
+			var text = pattern.Append(after).ToString();
+
+			if (text.IndexOfAny([' ', '\t', '"', '\\']) >= 0)
+				text = "\"" + text.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal) + "\"";
+
+			return text + " -text";
+		}
 	}
 
 	/// <summary>The generator's "no C# type of this name is in view".</summary>
