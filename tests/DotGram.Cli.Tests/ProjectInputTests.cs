@@ -579,10 +579,14 @@ public sealed class ProjectInputTests
 
 		Same(scratch, project);
 
-		// The letter survives where the file's encoding is the one the compiler reads it in.
+		// The letter survives where the file's encoding is the one the compiler reads it in. Without a
+		// code page, bytes that are no UTF-8 are read in the system's default code page: UTF-8 on Linux
+		// (a replacement character), the ANSI page, Windows-1252 here, on Windows.
 		var written = File.ReadAllText(scratch.Path("out", "Demo.Pairs.g.cs"));
 
-		Assert.Equal(codePage.Length > 0 ? encoding == 1252 : encoding == 65001, written.Contains('\u00e9', StringComparison.Ordinal));
+		var survives = codePage.Length > 0 ? encoding == 1252 : encoding == 65001 || (encoding == 1252 && OperatingSystem.IsWindows());
+
+		Assert.Equal(survives, written.Contains('\u00e9', StringComparison.Ordinal));
 	}
 
 	/// <summary>
@@ -874,7 +878,7 @@ public sealed class ProjectInputTests
 		var older = new Version(AnalyzerGenerators.DotGramNeeds.Major - 1, 0, 0, 0);
 
 		// MSBuild wants the compiler's executable to be there, though a design-time build never runs it.
-		scratch.Write("compiler/csc", "");
+		scratch.Write(CompilerExecutable("compiler"), "");
 
 		var stub = CSharpCompilation.Create(
 				"Microsoft.CodeAnalysis",
@@ -897,6 +901,12 @@ public sealed class ProjectInputTests
 		Assert.False(Directory.Exists(scratch.Path("out")));
 	}
 
+	/// <summary>The file MSBuild's Csc task wants to find in the compiler folder: <c>csc.exe</c> on Windows, <c>csc</c> elsewhere.</summary>
+	static string CompilerExecutable(string folder)
+	{
+		return folder + (OperatingSystem.IsWindows() ? "/csc.exe" : "/csc");
+	}
+
 	/// <summary>A compiler path the project gives relative is the project's to resolve, wherever the tool runs.</summary>
 	[Fact]
 	public void A_relative_compiler_path_is_resolved_against_the_project()
@@ -905,7 +915,7 @@ public sealed class ProjectInputTests
 
 		var older = new Version(AnalyzerGenerators.DotGramNeeds.Major - 1, 0, 0, 0);
 
-		scratch.Write("p/compiler/csc", "");
+		scratch.Write(CompilerExecutable("p/compiler"), "");
 
 		var stub = CSharpCompilation.Create(
 				"Microsoft.CodeAnalysis",

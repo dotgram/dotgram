@@ -48,9 +48,11 @@ sealed class Scratch : IDisposable
 		{
 			Directory.Delete(Root, recursive: true);
 		}
-		catch (IOException)
+		catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
 		{
-			// A build server may hold a file a moment longer; the temporary folder is cleared anyway.
+			// A build server may hold a file a moment longer, and Windows refuses to delete an assembly
+			// this process has loaded (a generator the tool ran) with an access error; the temporary
+			// folder is cleared anyway.
 		}
 	}
 }
