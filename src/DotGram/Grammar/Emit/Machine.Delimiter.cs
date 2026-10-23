@@ -12,18 +12,11 @@ sealed partial class Machine
 	string? GuardedCharacterTest(Node body)
 	{
 		if (OverKinds || _starves || body is not Node.Sequence({ Count: 2 } parts) ||
-			parts[0] is not Node.Lookahead(false, var delimiter) || RunTest(parts[1]) is not { } item)
+			parts[0] is not Node.Lookahead(false, var delimiter) || RunTest(parts[1]) != "true" ||
+			RunTest(delimiter) is not { } stop || stop == "true")
 			return null;
 
-		// `?!X & [^ S]` is a character that is neither in X nor in S: one test still, where the
-		// two together are few enough to search for (StopCharacters).
-		if (item != "true" && (ExceptFew(parts[1]) is not { Length: > 0 } || StopCharacters(body) is null))
-			return null;
-
-		if (RunTest(delimiter) is not { } stop || stop == "true")
-			return null;
-
-		return item == "true" ? $"!({stop})" : $"!({stop}) && ({item})";
+		return $"!({stop})";
 	}
 
 	/// <summary>
@@ -39,10 +32,14 @@ sealed partial class Machine
 	/// nothing else. Null for anything else.
 	/// </summary>
 	/// <remarks>
-	/// The scans that search for where <c>(?!X &amp; any)*</c> may stop (<see cref="StopCharacters"/>,
-	/// <see cref="UntilStops"/>) search for <c>S</c> as well where the turn's character is
-	/// <c>[^ S]</c>: at a character of <c>S</c> the turn's item fails, which is a place the loop
-	/// would have stopped at too, and everywhere else the turn reads as it does over <c>any</c>.
+	/// The search that passes over the turns of <c>(?!X &amp; any)*</c> (<see cref="UntilStops"/>)
+	/// searches for <c>S</c> as well where the turn's character is <c>[^ S]</c>: at a character of
+	/// <c>S</c> the turn's item fails, which is a place the loop would have stopped at too, and
+	/// everywhere else the turn reads as it does over <c>any</c>. Only turns that are taken are
+	/// passed over, and they say nothing: the turn that ends the loop is read as the loop reads it,
+	/// so what its refusal says, and where, is the loop's own. A run (<see cref="StopCharacters"/>)
+	/// is not given the shape, since it ends without reading that turn, and the loop says what
+	/// <c>[^ S]</c> refused there.
 	/// </remarks>
 	char[]? ExceptFew(Node node)
 	{

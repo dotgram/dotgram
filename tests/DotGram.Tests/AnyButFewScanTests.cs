@@ -19,11 +19,13 @@ namespace DotGram.Tests;
 
 /// <summary>
 /// The scans that search for where <c>(?!X &amp; any)*</c> stops, taken where the turn's character is
-/// <c>[^ S]</c>, anything but a few characters: a run before a one-character stop
-/// (Machine.StopCharacters), an until scan (Machine.UntilStops) and a scanned rule's delimiter
-/// search (Machine.ScansUntil). Each row is held against the same grammar compiled with those turns
-/// read one character at a time (Machine.ReadsFewOneByOne), which is the loop the search replaces:
-/// the two must answer alike — what was read, how far, and what a refusal says and where.
+/// <c>[^ S]</c>, anything but a few characters: an until scan (Machine.UntilStops), which passes
+/// over the turns that are taken and reads the one that ends the loop as the loop does, and a
+/// scanned rule's delimiter search (Machine.ScansUntil). Each row is held against the same grammar
+/// compiled with those turns read one character at a time (Machine.ReadsFewOneByOne), which is the
+/// loop the search replaces: the two must answer alike — what was read, how far, and what a
+/// refusal says and where, to the last item of what it expected. A run (Machine.StopCharacters)
+/// does not take the shape: it would end without reading the turn whose refusal the loop says.
 /// </summary>
 /// <remarks>
 /// The rows hold what each search has to keep: an <c>S</c> of one character and of several, a
@@ -255,6 +257,331 @@ public sealed class AnyButFewScanTests
 				EmittedCode.Match(fast, "Grammar", "TryParseStart", input));
 	}
 
+	/// <summary>
+	/// The shapes a search may stand for, each held against its loop over every input up to a
+	/// length: where a refusal is said and what it says, the value, and what a <c>find</c> finds —
+	/// over both carriers, the engine and the reader, and a buffered reading refilled a character
+	/// at a time.
+	/// </summary>
+	/// <remarks>
+	/// Short inputs over a few characters are where a search and its loop part: a delimiter cut
+	/// off by the end of the input (<c>/*a*</c>), a character of <c>S</c> inside the delimiter or
+	/// right before it, a turn refused at the very end. Every one is read.
+	/// </remarks>
+	[Theory]
+	[MemberData(nameof(DifferentialNames))]
+	public void Every_short_input_is_refused_as_the_loop_refuses_it(string name)
+	{
+		var row        = Differential.Single(one => one.Name == name);
+		var inputs     = Exhaustive(row.Alphabet, row.Length).Concat(row.Inputs).Distinct().ToArray();
+		var compared   = 0;
+		var seen       = false;
+		var grammar    = row.Grammar + "\nparse Start\n";
+		var publishing = grammar + (row.Finds ? "find Start\n" : "");
+
+		foreach (var (carrier, direct) in new[]
+			{ (CarrierKind.Tape, true), (CarrierKind.Immediate, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, false) })
+		{
+			var (fast, searched) = Build(publishing, carrier, direct, row.Searches);
+			var (slow, _)        = Build(publishing, carrier, direct, null, oneByOne: true);
+
+			seen |= searched;
+
+			foreach (var input in inputs)
+			{
+				var expected = Answer(slow, input);
+				var actual   = Answer(fast, input);
+
+				compared++;
+
+				Assert.True(
+					expected == actual,
+					$"{row.Name}, {carrier}, direct {direct}, \"{Escaped(input)}\": the loop says {expected}, the search {actual}");
+
+				if (!row.Finds)
+					continue;
+
+				var found  = EmittedCode.Found(slow, "Grammar", "FindStart", input);
+				var search = EmittedCode.Found(fast, "Grammar", "FindStart", input);
+
+				compared++;
+
+				Assert.True(
+					found.SequenceEqual(search),
+					$"{row.Name}, find, {carrier}, direct {direct}, \"{Escaped(input)}\": the loop finds " +
+					$"[{string.Join(", ", found)}], the search [{string.Join(", ", search)}]");
+			}
+		}
+
+		{
+			var fast = BuildBuffered(row.Grammar);
+			var slow = BuildBuffered(row.Grammar, oneByOne: true);
+
+			foreach (var input in inputs)
+				foreach (var window in new int?[] { 4, null })
+				{
+					var expected = Read(slow, input, window);
+					var actual   = Read(fast, input, window);
+
+					compared++;
+
+					Assert.True(
+						expected.Equals(actual),
+						$"{row.Name}, buffered {window}, \"{Escaped(input)}\": the loop says {expected}, the search {actual}");
+				}
+		}
+
+		Assert.True(seen || row.Searches is null, $"{row.Name}: no '{row.Searches}' in any rendering");
+		TestContext.Current.TestOutputHelper?.WriteLine($"{row.Name}: {compared} readings compared, none apart");
+	}
+
+	/// <summary>
+	/// The same over segments, in a grammar that names <c>eos</c>, where <c>any</c> is a turn of
+	/// <c>[^ S]</c> that refuses the end of a segment: every list of segments up to a length, and
+	/// each of them read from a reader as its lines.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(SegmentedNames))]
+	public void Every_short_sequence_is_refused_as_the_loop_refuses_it(string name)
+	{
+		var row      = Segmented.Single(one => one.Name == name);
+		var inputs   = SegmentLists(row.Alphabet, row.Length).Concat(row.Inputs.Select(one => one.Split('|'))).ToArray();
+		var compared = 0;
+		var seen     = false;
+
+		foreach (var (carrier, direct) in new[]
+			{ (CarrierKind.Tape, true), (CarrierKind.Immediate, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, false) })
+		{
+			var (fast, searched) = Build(row.Grammar + "\nparse Start\n", carrier, direct, row.Searches);
+			var (slow, _)        = Build(row.Grammar + "\nparse Start\n", carrier, direct, null, oneByOne: true);
+
+			seen |= searched;
+
+			foreach (var input in inputs)
+			{
+				foreach (var over in new[] { typeof(IReadOnlyList<string>), typeof(TextReader) })
+				{
+					var expected = Answer(slow, input, over);
+					var actual   = Answer(fast, input, over);
+
+					compared++;
+
+					Assert.True(
+						expected == actual,
+						$"{row.Name}, {carrier}, direct {direct}, {over.Name}, [{string.Join(", ", input.Select(one => $"\"{Escaped(one)}\""))}]: " +
+						$"the loop says {expected}, the search {actual}");
+				}
+			}
+		}
+
+		Assert.True(seen || row.Searches is null, $"{row.Name}: no '{row.Searches}' in any rendering");
+		TestContext.Current.TestOutputHelper?.WriteLine($"{row.Name}: {compared} readings compared, none apart");
+	}
+
+	/// <param name="Searches">
+	/// What the fast parser's source holds where a search stands for the loop; null for a shape
+	/// that is left to the loop, held here so that it stays where it is told the same.
+	/// </param>
+	/// <param name="Length">The longest input read, every one over <paramref name="Alphabet"/> up to it.</param>
+	sealed record Shape(string Name, string Grammar, string Alphabet, string? Searches, int Length, string[] Inputs, bool Finds = true);
+
+	static readonly Shape[] Differential =
+	[
+		// A run before a one-character stop, refused at the end and at a character of S.
+		new("run",
+			"""
+			Body  = (?!',' & [^ '\0' | '\n'])*
+			Start : @int = t: Body & (',' | ';') => @(t.Length)
+			""",
+			",;\0\na", "var until", 5, []),
+
+		// A run that must turn at least once, left to the loop.
+		new("run, plus",
+			"""
+			Body  = (?!',' & [^ ';'])+
+			Start : @int = b: Body & (',' | ';') & 'z' => @(b.Length)
+			""",
+			",;az", null, 6, []),
+
+		new("run, before more",
+			"""
+			Start : @int = b: ((?!',' & [^ ';'])*) & ',' & 'z' => @(b.Length)
+			      | "a;" => @(-1)
+			""",
+			",;az", "var until", 6, []),
+
+		// An until scan whose delimiter is cut off by the end, or holds a character of S.
+		new("until",
+			"""
+			Body  = (?!"*/" & [^ ';'])*
+			Start : @int = "/*" & b: Body & "*/" => @(b.Length)
+			""",
+			"/*;a", "var until", 6, ["/*a*", "/*ab", "/*a;*/", "/*a*;/"]),
+
+		new("until, S in the delimiter",
+			"""
+			Body  = (?!"a;b" & [^ ';'])*
+			Start : @int = '<' & b: Body & "a;b" => @(b.Length)
+			""",
+			"<a;b", "var until", 6, ["<a;", "<aa;b", "<a;c"]),
+
+		new("until, three",
+			"""
+			Body  = (?!"-->" & [^ '\n'])*
+			Start : @int = '<' & b: Body & "-->" & 'z' => @(b.Length)
+			""",
+			"<->\nz", "var until", 6, ["<--", "<-->z", "<a-->", "<--\n>z"]),
+
+		new("until, first",
+			"""
+			Start : @int = W & 'z' => @(0)
+			W = (?!"*/" & [^ ';'])* & "*/" | "a;"
+			""",
+			"*/;az", "var until", 6, ["a;z", "a*/z", "a*;/z"]),
+
+		// A scanned rule's search for its delimiter.
+		new("scan",
+			"""
+			Start : @int = W => @(0)
+			W = "/*" & (?!"*/" & [^ ';'])* & "*/"
+			""",
+			"/*;a", "text.Slice(p, found", 6, ["/*ab", "/*a*", "/*a;", "/*a*/"]),
+
+		new("scan, S in the delimiter",
+			"""
+			Start : @int = W => @(0)
+			W = '<' & (?!";>" & [^ ';' | '\n'])* & ";>"
+			""",
+			"<;>\na", "text.Slice(p, found", 6, ["<a;", "<a;b;>", "<\n;>"]),
+
+		new("scan, trivia",
+			"""
+			trivia = { (' ' | "/*" & (?!"*/" & [^ ';'])* & "*/")* }
+			Start : @int = n: ['a'..'z']+ => @(n.Length)
+			""",
+			" /*;a", "text.Slice(p, found", 6, ["a /* ;", "/* a */ a", "a /*"]),
+	];
+
+	static readonly Shape[] Segmented =
+	[
+		// A rule of its own, scanned, whose run is left to the loop; and the same turns in place.
+		new("eos, run",
+			"""
+			Body  = (?!',' & any)*
+			Start : @int = b: Body & (',' | eos) & eos & eof => @(b.Length)
+			""",
+			",a\n", null, 6, ["a,|", "a|", ",|"]),
+
+		new("eos, run in place",
+			"""
+			Start : @int = b: ((?!',' & any)*) & (',' | eos) & eos & eof => @(b.Length)
+			""",
+			",a\n", "var until", 6, ["a,|", "a|", ",|"]),
+
+		new("eos, until",
+			"""
+			Body  = (?!"*/" & any)*
+			Start : @int = "/*" & b: Body & "*/" & eos => @(b.Length)
+			""",
+			"/*a", "var until", 6, ["/*a*", "/*ab", "/*a*/", "/*a|*/", "/*a*|/"]),
+
+		new("eos, scan",
+			"""
+			Start : @int = W & eos & (W & eos)? => @(0)
+			W = "/*" & (?!"*/" & any)* & "*/"
+			""",
+			"/*a", "text.Slice(p, found", 6, ["/*ab", "/*a*", "/*a*/|/*", "/*/|*/"]),
+
+		new("eos, trivia",
+			"""
+			trivia = { (' ' | "/*" & (?!"*/" & any)* & "*/")* }
+			Start : @int = n: ['a'..'z']+ & eos => @(n.Length)
+			""",
+			" /*a", "text.Slice(p, found", 6, ["a /* ", "/* a */ a", "a /*|*/"]),
+	];
+
+	public static TheoryData<string> DifferentialNames
+	{
+		get
+		{
+			var rows = new TheoryData<string>();
+
+			foreach (var row in Differential)
+				rows.Add(row.Name);
+
+			return rows;
+		}
+	}
+
+	public static TheoryData<string> SegmentedNames
+	{
+		get
+		{
+			var rows = new TheoryData<string>();
+
+			foreach (var row in Segmented)
+				rows.Add(row.Name);
+
+			return rows;
+		}
+	}
+
+	/// <summary>Every string over <paramref name="alphabet"/> no longer than <paramref name="length"/>.</summary>
+	static IEnumerable<string> Exhaustive(string alphabet, int length)
+	{
+		var level = new List<string> { "" };
+
+		for (var i = 0; i <= length; i++)
+		{
+			foreach (var one in level)
+				yield return one;
+
+			level = [.. level.SelectMany(one => alphabet.Select(c => one + c))];
+		}
+	}
+
+	/// <summary>
+	/// Every list of segments over <paramref name="alphabet"/> whose characters and boundaries
+	/// together are no more than <paramref name="length"/>, the empty list among them.
+	/// </summary>
+	static IEnumerable<string[]> SegmentLists(string alphabet, int length)
+	{
+		// A boundary is one more letter: a string over the alphabet and '|' is a list once split.
+		yield return [];
+
+		foreach (var text in Exhaustive(alphabet + "|", length))
+			if (text.Length > 0 && text[^1] == '|')
+				yield return text.Substring(0, text.Length - 1).Split('|');
+	}
+
+	/// <summary>What a reading answers, all of it: whether, the value, where, how much and what it says.</summary>
+	static string Answer(Assembly assembly, string input)
+	{
+		return Answered(assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(string)])!.Invoke(null, [input])!);
+	}
+
+	/// <summary>The same over segments, as a list or as the lines of a reader.</summary>
+	static string Answer(Assembly assembly, string[] segments, Type over)
+	{
+		object input = over == typeof(TextReader) ? new StringReader(string.Concat(segments.Select(one => one + "\n"))) : segments;
+
+		// A line ending inside a segment is two segments to a reader: only lists that a reader can say.
+		if (over == typeof(TextReader) && segments.Any(one => one.Contains('\n')))
+			return "";
+
+		return Answered(assembly.GetType("Grammar")!.GetMethod("TryParseStart", [over])!.Invoke(null, [input])!);
+	}
+
+	static string Answered(object match)
+	{
+		object? Get(string property)
+		{
+			return match.GetType().GetProperty(property)!.GetValue(match);
+		}
+
+		return $"{Get("Outcome")} {Get("Value")} at {Get("Position")}+{Get("Length")}: {Get("Error")}";
+	}
+
 	/// <param name="searches">What the source must hold where it searches; null where it must not search.</param>
 	/// <param name="oneByOne">Whether the turns of <c>[^ S]</c> are read one character at a time.</param>
 	static (Assembly Assembly, bool Searched) Build(string grammar, CarrierKind carrier, bool direct, string? searches, bool oneByOne = false)
@@ -297,10 +624,10 @@ public sealed class AnyButFewScanTests
 		}
 	}
 
-	static (bool Success, object? Value, long Position, string? Error) Read(Assembly assembly, string input)
+	static (bool Success, object? Value, long Position, string? Error) Read(Assembly assembly, string input, int? window = 4)
 	{
 		var method = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(TextReader), typeof(int?), typeof(int?)])!;
-		var match  = method.Invoke(null, [new ShortReader(input), 4, null])!;
+		var match  = method.Invoke(null, [new ShortReader(input), window, null])!;
 
 		object? Get(string property)
 		{
