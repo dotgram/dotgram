@@ -205,7 +205,23 @@ public sealed class SegmentedInputTests
 
 		var thrown = Assert.Throws<TargetInvocationException>(() => Invoke(parser, "ParseArgs", typeof(IReadOnlyList<string>), new[] { "x", "\0" }));
 
-		Assert.Contains("U+0000", Assert.IsType<FormatException>(thrown.InnerException).Message, StringComparison.Ordinal);
+		Assert.EndsWith(" at line 2, column 1.", Assert.IsType<FormatException>(thrown.InnerException).Message, StringComparison.Ordinal);
+
+		var any = Build("Start : @int = (any* & eos)* => @(0)\nparse Start");
+
+		thrown = Assert.Throws<TargetInvocationException>(() => Invoke(any, "ParseStart", typeof(IReadOnlyList<string>), new[] { "a", "b\0c" }));
+
+		Assert.Equal(
+			"A segment holds U+0000, which this grammar reads as the end of a segment and never as a character of one at line 2, column 2.",
+			Assert.IsType<FormatException>(thrown.InnerException).Message);
+
+		// A sequence a streamed reading takes refuses the segment when it reaches it, and says the same.
+		var feed = Build("Feed : @int[] = rows: Row* recover eos & eof => @(rows)\nRow : @int = 'a' & eos => @(1)\nparse Feed");
+		var read = Assert.Throws<FormatException>(() =>
+			((System.Collections.IEnumerable)Invoke(feed, "ParseFeed", typeof(IEnumerable<string>), new[] { "a", "a", "a\0" }.Select(one => one))!)
+				.Cast<object>().ToList());
+
+		Assert.EndsWith(" at line 3, column 2.", read.Message, StringComparison.Ordinal);
 	}
 
 	/// <summary>
