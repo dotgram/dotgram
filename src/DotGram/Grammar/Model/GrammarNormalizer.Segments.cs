@@ -153,7 +153,7 @@ public sealed partial class GrammarNormalizer
 					_ => (null, null),
 				};
 
-				if (kept is not null && ReachesEndOfSegment(kept, reaching))
+				if (kept is not null && KeepsEndOfSegment(kept, reaching))
 					Report(
 						TextAcrossSegments,
 						$"{what} in '{rule.Name}' may hold an 'eos', and the end of a segment is no text: a " +
@@ -161,6 +161,27 @@ public sealed partial class GrammarNormalizer
 						"built from them (docs/syntax.md §3.1.1).",
 						declared.At);
 			}
+
+			CheckSuppliedText(body, false, rule, declared.At, reaching);
+		}
+
+		foreach (var pair in _recoveries)
+		{
+			if (pair.Value.Factory is not { } factory)
+				continue;
+
+			if (Names(factory, "parserInput"))
+				Report(TextAcrossSegments, InputAcrossSegments, pair.Value.At);
+			// A rejected element's text runs from where it began to the first synchronization after
+			// that, which, where it is `eos`, is the end of the segment it began in.
+			else if (Names(factory, "parserText") && !EndsSegment(pair.Value.Sync))
+				Report(
+					TextAcrossSegments,
+					"'parserText' in this 'recover' is the text of a rejected element up to where it " +
+					"synchronizes, which may hold an 'eos', and the end of a segment is no text. Read it where " +
+					"the synchronization is 'eos', which stops at the end of the element's own segment " +
+					"(docs/syntax.md §3.1.1).",
+					pair.Value.At);
 		}
 
 		foreach (var publication in _publications)
@@ -171,6 +192,100 @@ public sealed partial class GrammarNormalizer
 					"matched, and it may hold an 'eos': the end of a segment is no text. Give the rule a value " +
 					"(docs/syntax.md §3.1.1).",
 					publication.At);
+	}
+
+	/// <summary>What a construction, a guard or a recovery that reads <c>parserInput</c> is told.</summary>
+	const string InputAcrossSegments =
+		"'parserInput' would be the segments read as one text, with nothing where each one ends, and " +
+		"that is no input the caller handed over: a grammar that names 'eos' does not supply it. Read " +
+		"the parts you need with captures (docs/syntax.md §3.1.1).";
+
+	/// <summary>
+	/// What a capture or a binding keeps: the text its operand matched, which for a positive
+	/// lookahead is the text the look read, though the look keeps the position where it was.
+	/// </summary>
+	bool KeepsEndOfSegment(Node kept, Dictionary<RuleSymbol, bool> reaching)
+	{
+		return kept switch
+		{
+			Node.Lookahead(true, var seen) => ReachesEndOfSegment(seen, reaching),
+			Node.Atomic(var body)          => KeepsEndOfSegment(body, reaching),
+			Node.Sequence([var only])      => KeepsEndOfSegment(only, reaching),
+			_                              => ReachesEndOfSegment(kept, reaching),
+		};
+	}
+
+	/// <summary>
+	/// The constructions and guards of a rule that read <c>parserText</c> of what they stand over
+	/// where that may hold an <c>eos</c>, and any that reads <c>parserInput</c>.
+	/// </summary>
+	/// <param name="before">
+	/// Whether what the rule read before <paramref name="node"/> may hold an <c>eos</c>: a guard's
+	/// <c>parserText</c> is what its rule has matched so far.
+	/// </param>
+	void CheckSuppliedText(Node node, bool before, RuleSymbol rule, Location at, Dictionary<RuleSymbol, bool> reaching)
+	{
+		switch (node)
+		{
+			case Node.Guard(var condition, _):
+				Supplied(condition, before, "a 'when'");
+				return;
+
+			case Node.Construct(var body, var how):
+				CheckSuppliedText(body, before, rule, at, reaching);
+
+				if (how is Construction.Expression(var built, _))
+					Supplied(built, ReachesEndOfSegment(body, reaching), "a '=>'");
+
+				return;
+
+			case Node.Sequence(var parts):
+			{
+				var read = before;
+
+				foreach (var part in parts)
+				{
+					CheckSuppliedText(part, read, rule, at, reaching);
+					read = read || ReachesEndOfSegment(part, reaching);
+				}
+
+				return;
+			}
+
+			// A later turn's guard has read the turns before it.
+			case Node.Repeat(var body, _, _):
+				CheckSuppliedText(body, before || ReachesEndOfSegment(body, reaching), rule, at, reaching);
+				return;
+
+			// Another rule's guards and constructions stand over that rule's own text.
+			case Node.Call:
+				return;
+
+			default:
+				foreach (var child in node.Children)
+					CheckSuppliedText(child, before, rule, at, reaching);
+
+				return;
+		}
+
+		void Supplied(string text, bool reaches, string where)
+		{
+			if (Names(text, "parserInput"))
+				Report(TextAcrossSegments, InputAcrossSegments, at);
+			else if (reaches && Names(text, "parserText"))
+				Report(
+					TextAcrossSegments,
+					$"'parserText' in {where} of '{rule.Name}' is text that may hold an 'eos', and the end of a " +
+					"segment is no text. Capture the parts on either side of it, or read 'parserSpan', which " +
+					"is two numbers (docs/syntax.md §3.1.1).",
+					at);
+		}
+	}
+
+	/// <summary>Whether a synchronization is <c>eos</c> and nothing else.</summary>
+	static bool EndsSegment(Node sync)
+	{
+		return sync is Node.Call({ IsBuiltIn: true, Name: "eos" }, _) || sync is Node.Literal([Joiner]);
 	}
 
 	/// <summary>
