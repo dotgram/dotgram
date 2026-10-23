@@ -136,6 +136,36 @@ public sealed class WorkingDirectoryTests
 	}
 
 	/// <summary>
+	/// Where the project's directory finds no <c>global.json</c>, the temporary folder must not find one
+	/// either, among its own ancestors: it holds an empty one, which pins nothing and ends the search.
+	/// </summary>
+	[Fact]
+	public void Without_a_global_json_the_short_directory_pins_nothing()
+	{
+		using var scratch = new Scratch();
+
+		File.Delete(scratch.Path("global.json"));
+
+		for (var above = Path.GetDirectoryName(scratch.Root); above is not null; above = Path.GetDirectoryName(above))
+			Assert.SkipWhen(File.Exists(Path.Combine(above, "global.json")), "a folder above the scratch one has a global.json of its own");
+
+		var deep = scratch.Path("a", "b");
+
+		Directory.CreateDirectory(deep);
+
+		var (directory, temporary) = MSBuild.WorkingDirectoryFor(deep, limit: 1);
+
+		try
+		{
+			Assert.Equal("{}", File.ReadAllText(Path.Combine(directory, "global.json")).Trim());
+		}
+		finally
+		{
+			Directory.Delete(temporary!, recursive: true);
+		}
+	}
+
+	/// <summary>
 	/// A project in a directory of more than 260 characters is asked about like one in a short directory: the same SDK.
 	/// On Windows such a directory cannot be a current directory, which is what this guards.
 	/// </summary>
