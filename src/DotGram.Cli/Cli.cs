@@ -169,15 +169,30 @@ static class Cli
 			CultureInfo.InvariantCulture,
 			$"Wrote {written} files into {options.Output} ({unchanged} unchanged, {deleted} deleted) in {clock.Elapsed.TotalSeconds:F1} s."));
 
-		output.WriteLine(
-			$"The generator writes CRLF line ends: '{Relative(options.Output)}/** -text' in .gitattributes keeps them as written.");
+		output.WriteLine("The generator writes CRLF line ends: " + Attributes(options.Output) + " keeps them as written.");
 
 		return ExitCode.Done;
+	}
 
-		string Relative(string path)
+	/// <summary>
+	/// The <c>.gitattributes</c> line that keeps the output folder's files as written, and where it goes. A
+	/// pattern with a slash in it is read against the folder of the <c>.gitattributes</c> that holds it, so
+	/// the folder's name alone matches only a folder of that name beside that file: the path from the
+	/// repository's root, or, outside a repository, the name wherever it is.
+	/// </summary>
+	internal static string Attributes(string output)
+	{
+		var folder = Path.GetFullPath(output).TrimEnd('/', '\\');
+
+		for (var above = Path.GetDirectoryName(folder); above is not null; above = Path.GetDirectoryName(above))
 		{
-			return Path.GetFileName(path.TrimEnd('/', '\\'));
+			var git = Path.Combine(above, ".git");
+
+			if (Directory.Exists(git) || File.Exists(git))
+				return $"'{Path.GetRelativePath(above, folder).Replace('\\', '/')}/** -text' in the .gitattributes at the repository's root";
 		}
+
+		return $"'**/{Path.GetFileName(folder)}/** -text' in .gitattributes";
 	}
 
 	/// <summary>The generator's "no C# type of this name is in view".</summary>

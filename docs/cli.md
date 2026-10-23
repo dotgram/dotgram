@@ -154,7 +154,9 @@ dotnet dotgram generate @grammars.rsp
 git status --porcelain -- src/Grammars/Generated    # fail if it prints anything
 ```
 
-`Generated/** -text` in `.gitattributes` keeps the files exactly as the generator writes them. The tool prints
+`src/Grammars/Generated/** -text` in the repository's `.gitattributes` keeps the files exactly as the generator
+writes them: the folder's path from the root, since a bare `Generated/**` matches only a folder beside the
+`.gitattributes`; the tool prints the line for its output folder. It prints
 the GRAM diagnostics; the editor does not show them in a project that no longer references the package.
 
 ## Exit codes

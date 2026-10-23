@@ -96,7 +96,9 @@ after changing package references, run `dotnet restore` first. When this is not 
 editing a grammar, or a type it builds. Keep the arguments in a response file (`dotnet dotgram generate
 @grammars.rsp`) so that every run uses the same ones, and check in CI that the committed files are current:
 run the command, then fail if `git status --porcelain -- src/Grammars/Generated` prints anything. A
-`Generated/** -text` line in `.gitattributes` keeps the files as the generator writes them. The tool prints
+`src/Grammars/Generated/** -text` line in the repository's `.gitattributes` keeps the files as the generator
+writes them: the folder's path from the root, since a bare `Generated/**` matches only a folder beside the
+`.gitattributes` (the tool prints the line for its folder). It prints
 the GRAM diagnostics; the editor does not show them for a project that no longer references the package, so
 write the grammar with the package and move to the tool when it is done.
 
