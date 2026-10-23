@@ -231,11 +231,18 @@ static class Cli
 		if (!File.Exists(options.Input))
 			throw ToolException.Failure($"project '{options.Input}' does not exist.");
 
-		var sdk        = MSBuild.SdkOf(options.Input);
-		var frameworks = options.Framework is not null ? [options.Framework] : MSBuild.Frameworks(options.Input, options.Configuration, sdk);
+		var sdk      = MSBuild.SdkOf(options.Input);
+		var targeted = MSBuild.Frameworks(options.Input, options.Configuration, sdk);
 
-		if (frameworks.Count == 0)
+		if (targeted.Count == 0)
 			throw ToolException.Failure($"{options.Input} names no target framework.");
+
+		// Asked for a framework the project does not target, MSBuild finds no assets for it and says the
+		// project is not restored, which it is.
+		if (options.Framework is not null && !targeted.Contains(options.Framework, StringComparer.OrdinalIgnoreCase))
+			throw ToolException.Usage($"--framework {options.Framework}: {options.Input} targets {string.Join(", ", targeted)}.");
+
+		var frameworks = options.Framework is not null ? [options.Framework] : targeted;
 
 		var listed = OutputFolder.Listed(options.Output);
 
