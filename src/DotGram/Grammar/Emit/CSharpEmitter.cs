@@ -634,6 +634,7 @@ public static partial class CSharpEmitter
 				results.Facade = perCall.Facade;
 
 				Publish(true);
+				PublishOverSegments();
 
 				results.Facade = null;
 			}
@@ -793,27 +794,32 @@ public static partial class CSharpEmitter
 
 		// What a grammar that names `eos` publishes: its forms over segments, read through the forms
 		// over text written above (SegmentEmitter).
-		foreach (var publication in graph.Publications)
+		PublishOverSegments();
+
+		void PublishOverSegments()
 		{
-			if (!publication.Joined)
-				continue;
+			foreach (var publication in graph.Publications)
+			{
+				if (!publication.Joined)
+					continue;
 
-			var compiled = machines.Find(one => one.Publications.Contains(publication));
-			var context  = compiled is { Machine.UsesContext: true } ? $", {graph.Context} context" : "";
-			var value    = publication.ResultType is { } contract
-				? contract.Name + (contract.IsSequence ? "[]" : "")
-				: results.QualifiedOf(publication.Rule) ?? "string";
-			var streams  = !bufferedInput && !publication.BufferedInput && Streams(graph, publication, overKinds);
+				var compiled = machines.Find(one => one.Publications.Contains(publication));
+				var context  = compiled is { Machine.UsesContext: true } ? $", {graph.Context} context" : "";
+				var value    = publication.ResultType is { } contract
+					? contract.Name + (contract.IsSequence ? "[]" : "")
+					: results.QualifiedOf(publication.Rule) ?? "string";
+				var streams  = !bufferedInput && !publication.BufferedInput && Streams(graph, publication, overKinds);
 
-			// What the streamed reading hands back, where there is one (EmitStreamingFind, EmitStreamingParse).
-			var streamed = !streams ? null
-				: publication.Kind == PublishKind.Find
-					? $"global::System.Collections.Generic.IEnumerable<{MatchType}<{value}>>"
-				: publication.Kind == PublishKind.Parse && StagesOf(graph, publication.Rule) is not null
-					? $"global::System.Collections.Generic.IEnumerable<{graph.Types[publication.Rule].Substring(0, graph.Types[publication.Rule].Length - "[]".Length)}>"
-				: null;
+				// What the streamed reading hands back, where there is one (EmitStreamingFind, EmitStreamingParse).
+				var streamed = !streams ? null
+					: publication.Kind == PublishKind.Find
+						? $"global::System.Collections.Generic.IEnumerable<{MatchType}<{value}>>"
+					: publication.Kind == PublishKind.Parse && StagesOf(graph, publication.Rule) is not null
+						? $"global::System.Collections.Generic.IEnumerable<{graph.Types[publication.Rule].Substring(0, graph.Types[publication.Rule].Length - "[]".Length)}>"
+					: null;
 
-			EmitOverSegments(file, publication, value, context, streamed);
+				EmitOverSegments(file, publication, value, context, streamed);
+			}
 		}
 
 		// Every machine's, not one machine's: a materializer and its guards belong to the
@@ -2018,7 +2024,7 @@ public static partial class CSharpEmitter
 			file.Line("if (match.IsSuccess)");
 			file.Then("return match.Value;");
 			file.Line();
-			ThrowRefusal(file);
+			ThrowRefusal(file, publication.Joined ? "input" : null);
 		}
 
 		file.Line();
@@ -4700,13 +4706,21 @@ file.Line("return spare;");
 	/// What a published method without a <c>Try</c> throws for a refusal: the sentence
 	/// <c>Match&lt;T&gt;.Error</c> says, with where it was said before its full stop.
 	/// </summary>
-	internal static void ThrowRefusal(Writer file)
+	/// <param name="segments">
+	/// The joined text the parser read, in a grammar that names <c>eos</c>, where the place is said as
+	/// a segment and an offset in it (SegmentEmitter); null where it is said as an offset.
+	/// </param>
+	internal static void ThrowRefusal(Writer file, string? segments = null)
 	{
 		file.Line("var error = match.Error!;");
 		file.Line();
 		file.Line("throw new global::System.FormatException(");
 		file.Then("(error.EndsWith(\".\", global::System.StringComparison.Ordinal) ? error.Substring(0, error.Length - 1) : error) +");
-		file.Then("\" at \" + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\");");
+
+		if (segments is null)
+			file.Then("\" at \" + match.Position.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\");");
+		else
+			file.Then($"\" at \" + At_DotGram({segments}, match.Position) + \".\");");
 	}
 
 	/// <summary>Whether any <c>recover</c> in this grammar is given a message (§8.2's <c>parserMessage</c>, §8.3's hook).</summary>

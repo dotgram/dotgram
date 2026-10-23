@@ -7379,10 +7379,21 @@ sealed partial class Machine
 	/// </summary>
 	IReadOnlyList<string> Displays(Node node, bool leading)
 	{
+		// The look a grammar that names `eos` puts before a class that calls a predicate says
+		// nothing: the end of a segment is no character for the class, and what was wanted is said
+		// by what reads there next.
+		if (node is Node.Lookahead { BeforeSegmentEnd: true })
+			return [];
+
+		// A literal or a class that holds the joiner, or every character but it, said or printed.
+		if (_graph.Segmented && node is Node.Literal or Node.Element && Unjoined(node) is { } unjoined)
+			return unjoined;
+
 		// One character that does not begin something, `(?!Separator & any)+`'s turn, is what a
 		// person would call it: printed as written it is the notation and not what was wanted.
-		if (node is Node.Sequence { Nodes: [Node.Lookahead(false, var excluded), var one] } && IsAny(one))
-			return ["anything but " + excluded];
+		if (node is Node.Sequence { Nodes: [Node.Lookahead(false, var excluded), var one] } &&
+			(IsAny(one) || _graph.Segmented && Unjoined(one) is ["any"]))
+			return ["anything but " + (_graph.Segmented ? Unjoined(excluded.ToString()) : excluded.ToString())];
 
 		// No item at all is the end of the input, which is what `eof` is, and over kinds
 		// it is what `eof` became: the built-in is rewritten through to its body there, so its
@@ -7391,7 +7402,9 @@ sealed partial class Machine
 			return ["eof"];
 
 		if (!OverKinds || _inventory is not { Kinds.Count: > 0 } inventory)
-			return leading && Leading(node) is { Count: > 0 } items ? items : [node.ToString()];
+			return leading && Leading(node) is { Count: > 0 } items ? items
+				: _graph.Segmented ? [Unjoined(node.ToString())]
+				: [node.ToString()];
 
 		return node switch
 		{
@@ -8008,17 +8021,60 @@ sealed partial class Machine
 
 				var rest = element with { Ranges = ranges };
 
+				// `any`, which refuses the end of a segment and nothing else.
 				if (element.IsNegated)
-					return [rest.ToString()];
+					return ranges.Count == 0 && element.Categories.Count == 0 && element.References.Count == 0
+						? ["any"]
+						: [rest.ToString()];
+
+				if (element.Categories.Count == 0 && element.References.Count == 0 && AllButJoiner(ranges))
+					return ["any", EndOfSegmentSaid];
 
 				return ranges.Count > 0 || element.Categories.Count > 0 || element.References.Count > 0
 					? [rest.ToString(), EndOfSegmentSaid]
 					: [EndOfSegmentSaid];
 			}
 
+			// Every character there is, which is what can begin `any` there.
+			case Node.Element { IsNegated: false, Categories.Count: 0, References.Count: 0 } element when AllButJoiner(element.Ranges):
+				return ["any"];
+
 			default:
 				return null;
 		}
+	}
+
+	/// <summary>Whether ranges cover every character but the joiner, the first.</summary>
+	static bool AllButJoiner(IReadOnlyList<CharRange> ranges)
+	{
+		var reached = (int)GrammarNormalizer.Joiner;
+
+		foreach (var range in ranges.OrderBy(static range => range.From))
+		{
+			if (range.From > reached + 1)
+				return false;
+
+			reached = Math.Max(reached, range.To);
+		}
+
+		return reached == char.MaxValue;
+	}
+
+	/// <summary>
+	/// A node printed whole, as a grammar that names <c>eos</c> wrote it: the joiner its lowering put
+	/// into <c>any</c>, into the negated classes and before a class that calls a predicate left out
+	/// again, and the joiner <c>eos</c> reads written <c>eos</c>. No author's literal or class holds it
+	/// (GRAM4047), so what holds it here is the generator's.
+	/// </summary>
+	static string Unjoined(string said)
+	{
+		var made = said
+			.Replace("?!'\0' & ", "")
+			.Replace("[^ '\0']", "any")
+			.Replace("[^ '\0' | ", "[^ ")
+			.Replace("'\0'..", "'\u0001'..");
+
+		return made.Replace("'\0'", "eos");
 	}
 
 	/// <summary>One item of what was expected, as a refusal says it.</summary>

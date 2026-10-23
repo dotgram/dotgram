@@ -119,6 +119,71 @@ public sealed class SegmentedInputTests
 	}
 
 	/// <summary>
+	/// What a refusal says is in the grammar's own words, never U+0000: <c>any</c> as <c>any</c>, a
+	/// class or a look without the end of a segment its lowering left out, and nothing at all for
+	/// the look put before a class that may not read the end of a segment.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : @int = 'a' & any & eos => @(0)", "a", 1, "Expected any.")]
+	[InlineData("Start : @int = 'a' & [^ ','] & eos => @(0)", "a", 1, "Expected [^ ','].")]
+	[InlineData("Start : @int = ?=[^ ','] & any* & eos => @(0)", ",", 0, "Expected ?=[^ ','].")]
+	[InlineData("Start : @int = ?![^ ','] & any* & eos => @(0)", "a", 0, "Expected ?![^ ','].")]
+	[InlineData("Start : @string = t: [\\p{Cc} | 'a'..'z']+ & 'q' & eos => @(t)", "ab", 2, "Expected 'q'.")]
+	public void A_refusal_says_what_the_grammar_wrote(string grammar, string segment, long position, string said)
+	{
+		foreach (var (carrier, direct) in new[]
+			{ (CarrierKind.Tape, true), (CarrierKind.Immediate, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, false) })
+		{
+			var (success, _, error, at) = TryParse(Build(grammar + "\nparse Start", carrier: carrier, direct: direct), "TryParseStart", [segment]);
+
+			Assert.False(success);
+			Assert.Equal(position, at);
+			Assert.Equal(said, error);
+		}
+	}
+
+	/// <summary>
+	/// The form that throws says where as a line and a column, which over segments are the segment
+	/// and the offset in it, both from 1: a <c>\n</c> inside a segment is a character like another.
+	/// </summary>
+	[Fact]
+	public void A_thrown_refusal_says_the_segment_and_the_offset_in_it()
+	{
+		var parser = Build("""
+			Pair : @string = k: Key & '=' & v: Key & eos => @(k + "=" + v)
+			Key  = ['a'..'z' | '\n']+
+			parse Pair
+			""");
+
+		var thrown = Assert.Throws<TargetInvocationException>(() => Invoke(parser, "ParsePair", typeof(IReadOnlyList<string>), new[] { "a\nb=c", "d" }));
+
+		Assert.Equal("Expected end of input at line 2, column 1.", Assert.IsType<FormatException>(thrown.InnerException).Message);
+
+		thrown = Assert.Throws<TargetInvocationException>(() => Invoke(parser, "ParsePair", typeof(IReadOnlyList<string>), new[] { "a\nb=c!" }));
+
+		Assert.Equal("Expected end of segment at line 1, column 6.", Assert.IsType<FormatException>(thrown.InnerException).Message);
+	}
+
+	/// <summary>
+	/// A publication over segments that cannot stream is told so as segments: its forms over a
+	/// sequence and over a reader are there, and read the whole of it.
+	/// </summary>
+	[Fact]
+	public void What_does_not_stream_is_said_of_segments()
+	{
+		var result = Compile("""
+			Start : @int = (any* & eos)* & Last => @(0)
+			Last  = "end" & eos
+			find Start
+			""");
+
+		var said = Assert.Single(result.Diagnostics, one => one.Id == Retention.NotStreamable);
+
+		Assert.Contains("reads a sequence of segments whole", said.Message, StringComparison.Ordinal);
+		Assert.DoesNotContain("overload taking a reader", said.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
 	/// A segment that holds U+0000 is refused at it, before anything is read: the forms that answer
 	/// say so there, and the one that throws throws.
 	/// </summary>
@@ -200,6 +265,74 @@ public sealed class SegmentedInputTests
 			Assert.Equal(
 				2,
 				((System.Collections.IEnumerable)Invoke(parser, name, typeof(IReadOnlyList<string>), new[] { "ab", "cd" })!).Cast<object>().Count());
+	}
+
+	/// <summary>
+	/// A class that carries a grammar naming <c>eos</c>, a second reading of it, a reading told where
+	/// each value was, and inside it a grammar that does not name it: each compiles in its own
+	/// scope and reads what it publishes, and the one told where reads positions as a match says
+	/// them — one for every character and one for every boundary.
+	/// </summary>
+	[Fact]
+	public void Readings_of_segments_sit_beside_a_grammar_of_text()
+	{
+		var assembly = GeneratorDriverTests.Build(""""
+			namespace Segments
+			{
+				public interface ILoc
+				{
+					void Locate(int at, int length);
+
+					void Locate(int at, int length, int gapStart);
+				}
+
+				public sealed class Name : ILoc
+				{
+					public int At = -1;
+
+					public void Locate(int at, int length)
+					{
+						At = at;
+					}
+
+					public void Locate(int at, int length, int gapStart)
+					{
+						At = at;
+					}
+				}
+
+				[DotGram.Gram("""
+					Names : @Name[] = (names: Name & eos)* => @(names)
+					Name  : @Name   = ['a'..'z']+ => @(new Name())
+					parse Names
+					""")]
+				[DotGram.GramOptions(Carrier = DotGram.GramCarrier.Immediate, Suffix = "Immediate")]
+				[DotGram.GramOptions(LocationType = typeof(ILoc), Suffix = "Located", PerCall = true)]
+				public static partial class Args
+				{
+					[DotGram.Gram("""
+						Word : @int = w: ['a'..'z']+ => @(w.Length)
+						parse Word
+						""")]
+					public static partial class Text
+					{
+					}
+				}
+			}
+			"""");
+
+		int[] Read(string scope)
+		{
+			var names = (System.Array)assembly.GetType(scope)!.GetMethod("ParseNames", [typeof(IReadOnlyList<string>)])!.Invoke(null, [new[] { "ab", "c" }])!;
+
+			return [.. names.Cast<object>().Select(one => (int)one.GetType().GetField("At")!.GetValue(one)!)];
+		}
+
+		Assert.Equal([-1, -1], Read("Segments.Args"));
+		Assert.Equal([-1, -1], Read("Segments.Args+Immediate"));
+		Assert.Equal([0, 3], Read("Segments.Args+Located"));
+
+		Assert.Equal(3, assembly.GetType("Segments.Args+Text")!.GetMethod("ParseWord", [typeof(string)])!.Invoke(null, ["abc"]));
 	}
 
 	/// <summary>
@@ -450,8 +583,8 @@ public sealed class SegmentedInputTests
 	}
 
 	/// <summary>
-	/// A predicate of the host in a class is not asked about the joiner: a class that calls one stops
-	/// at a boundary whatever it answers.
+	/// A predicate of the host in a class is never asked about the end of a segment: a class that
+	/// calls one, negated or not and in a look as well, stops at a boundary whatever it would answer.
 	/// </summary>
 	[Fact]
 	public void A_predicate_is_not_asked_about_the_end_of_a_segment()
@@ -468,6 +601,22 @@ public sealed class SegmentedInputTests
 
 		Assert.True(success);
 		Assert.Equal(["ab", "c"], (string[])value!);
+
+		var asking = Build(
+			"""
+			Start : @int = ([@Lower]*) & eos & ([^ @Upper]*) & eos & ?=[@Lower] & ([@Lower]*) & eos => @(0)
+			parse Start
+			""",
+			members: "public static string Asked = \"\"; " +
+				"static bool Lower(char c) { Asked += c; return true; } " +
+				"static bool Upper(char c) { Asked += c; return false; }");
+
+		Assert.True(TryParse(asking, "TryParseStart", ["ab", "cd", "ef"]).Success);
+
+		var asked = (string)asking.GetType("Grammar")!.GetField("Asked")!.GetValue(null)!;
+
+		Assert.Contains('e', asked);
+		Assert.DoesNotContain('\0', asked);
 	}
 
 	/// <summary>

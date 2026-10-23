@@ -103,6 +103,26 @@ public static partial class CSharpEmitter
 				return new string(text);
 			}
 
+			/// <summary>
+			/// Where a position of the text the parser reads is: the segment, and the offset in it, both
+			/// counted from 1. A position past the last segment is the start of one more.
+			/// </summary>
+			private static string At_DotGram(string text, long position)
+			{
+				var line  = 1;
+				var start = 0L;
+
+				for (var at = 0; at < position && at < text.Length; at++)
+					if (text[at] == {{JoinerLiteral}})
+					{
+						line++;
+						start = at + 1;
+					}
+
+				return "line " + line.ToString(global::System.Globalization.CultureInfo.InvariantCulture) +
+					", column " + (position - start + 1).ToString(global::System.Globalization.CultureInfo.InvariantCulture);
+			}
+
 			/// <summary>A sequence of segments as a list, which it may already be.</summary>
 			private static global::System.Collections.Generic.IReadOnlyList<string> Listed_DotGram(global::System.Collections.Generic.IEnumerable<string> input)
 			{
