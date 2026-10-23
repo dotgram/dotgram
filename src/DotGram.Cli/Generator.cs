@@ -41,7 +41,7 @@ sealed class GeneratorOutput
 
 	public required TimeSpan Elapsed { get; init; }
 
-	public bool HasErrors => Diagnostics.Any(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error);
+	public bool HasErrors => Diagnostics.Any(static diagnostic => diagnostic is { Severity: DiagnosticSeverity.Error, IsSuppressed: false });
 }
 
 /// <summary>The generator, run as a build runs it, outside a build.</summary>

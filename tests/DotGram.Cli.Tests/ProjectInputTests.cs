@@ -829,6 +829,30 @@ public sealed class ProjectInputTests
 			Equality.Same(built, scratch.Path("out"));
 	}
 
+	/// <summary>
+	/// A diagnostic the source silences with <c>#pragma warning disable</c> is not an error, whatever the
+	/// project does with warnings: the build generates, and so does the tool.
+	/// </summary>
+	[Fact]
+	public void A_suppressed_diagnostic_is_not_an_error_when_warnings_are_errors()
+	{
+		using var scratch = new Scratch();
+
+		var host =
+			"using DotGram;\n\nnamespace Demo\n{\n#pragma warning disable GRAM4018\n\t[Gram(@\"" +
+			Unreached.Replace("\"", "\"\"", StringComparison.Ordinal) +
+			"\")]\n\tpublic static partial class Pairs { }\n#pragma warning restore GRAM4018\n}\n";
+
+		var project = App(scratch, "p", host, settings: AllAsErrors, grammar: Pairs);
+
+		var (exit, text, built) = Build.TryGenerated(project);
+		var run                 = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--line-paths", "absolute");
+
+		Assert.True(exit == 0, "the build:\n" + text);
+		Assert.True(run.Exit == ExitCode.Done, run.ToString());
+		Equality.Same(built, scratch.Path("out"));
+	}
+
 	/// <summary>The word the output gives a diagnostic (<c>error</c> or <c>warning</c>), or <c>none</c> where it does not show it.</summary>
 	static string SeverityOf(string output, string id)
 	{
@@ -871,6 +895,36 @@ public sealed class ProjectInputTests
 		Assert.True(run.Error.Contains($"this SDK's compiler (Roslyn {older}) cannot run DotGram", StringComparison.Ordinal), run.ToString());
 		Assert.Contains("CS9057", run.Error, StringComparison.Ordinal);
 		Assert.False(Directory.Exists(scratch.Path("out")));
+	}
+
+	/// <summary>A compiler path the project gives relative is the project's to resolve, wherever the tool runs.</summary>
+	[Fact]
+	public void A_relative_compiler_path_is_resolved_against_the_project()
+	{
+		using var scratch = new Scratch();
+
+		var older = new Version(AnalyzerGenerators.DotGramNeeds.Major - 1, 0, 0, 0);
+
+		scratch.Write("p/compiler/csc", "");
+
+		var stub = CSharpCompilation.Create(
+				"Microsoft.CodeAnalysis",
+				[CSharpSyntaxTree.ParseText($"[assembly: System.Reflection.AssemblyVersion(\"{older}\")]", cancellationToken: TestContext.Current.CancellationToken)],
+				Basic.Reference.Assemblies.Net100.References.All,
+				new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary))
+			.Emit(scratch.Path("p", "compiler", "Microsoft.CodeAnalysis.dll"), cancellationToken: TestContext.Current.CancellationToken);
+
+		Assert.True(stub.Success, string.Join("\n", stub.Diagnostics));
+
+		var project = App(scratch, "p", settings: "<CscToolPath>compiler</CscToolPath>");
+
+		Dotnet.Restore(project);
+
+		// From the project's parent, where "compiler" is no folder.
+		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
+
+		Assert.Equal(ExitCode.Failure, run.Exit);
+		Assert.True(run.Error.Contains($"this SDK's compiler (Roslyn {older}) cannot run DotGram", StringComparison.Ordinal), run.ToString());
 	}
 
 	/// <summary>A compiler as new as DotGram's, or one that cannot be told, is not refused.</summary>

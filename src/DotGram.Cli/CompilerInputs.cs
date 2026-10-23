@@ -91,7 +91,7 @@ sealed class CompilerInputs
 			Arguments         = parsed,
 			ReferencesElapsed = references,
 			InputsElapsed     = inputs,
-			CompilerVersion   = CompilerVersionOf(json.RootElement),
+			CompilerVersion   = CompilerVersionOf(json.RootElement, directory),
 		};
 	}
 
@@ -105,18 +105,21 @@ sealed class CompilerInputs
 	/// <c>Microsoft.CodeAnalysis</c> beside the compiler of the SDK, or of the toolset package that
 	/// replaces it. Null where it cannot be found, and then the tool's own is the measure.
 	/// </summary>
-	static Version? CompilerVersionOf(JsonElement root)
+	static Version? CompilerVersionOf(JsonElement root, string directory)
 	{
 		var folders = new List<string>();
 
 		if (Property(root, "CscToolPath") is { Length: > 0 } tool)
 		{
+			// MSBuild resolves a relative path against the project, not against where the tool runs.
+			tool = Path.GetFullPath(tool, directory);
+
 			folders.Add(tool);
 			folders.Add(Path.Combine(tool, "bincore"));
 		}
 
 		if (Property(root, "RoslynTargetsPath") is { Length: > 0 } roslyn)
-			folders.Add(Path.Combine(roslyn, "bincore"));
+			folders.Add(Path.Combine(Path.GetFullPath(roslyn, directory), "bincore"));
 
 		foreach (var folder in folders)
 		{
