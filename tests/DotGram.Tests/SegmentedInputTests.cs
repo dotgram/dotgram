@@ -486,6 +486,7 @@ public sealed class SegmentedInputTests
 	[InlineData("Root : @string = v: E & eos => @(v)\nE : @string = left: E & eos & 'a' => @(parserText)\n | 'b' => @(\"seed\")\nparse Root")]
 	[InlineData("Root : @string = v: E & eos => @(v)\nE : @string = left: E & 'a' & when @(parserText.Length > 0) => @(left)\n | eos => @(\"seed\")\nparse Root")]
 	[InlineData("Root : @string = v: E & eos => @(v)\nE : @string = left: E & '+' & right: E << 1 => @(parserText)\n | eos & d: ['0'..'9'] => @(d)\nparse Root")]
+	[InlineData("Start : @int = Word* recover End & eof => @(0)\nWord = 'a' & eos\nEnd = eos | ';'\nparse Start")]
 	public void Text_across_a_boundary_is_refused(string grammar)
 	{
 		var result = Compile(grammar);
@@ -553,6 +554,27 @@ public sealed class SegmentedInputTests
 
 		Assert.True(success);
 		Assert.Equal(["ab", "bad x1", "bad abcde", "c"], (string[])value!);
+	}
+
+	/// <summary>
+	/// A synchronization on a rule that is <c>eos</c> and nothing else, through any chain of such
+	/// rules, is a synchronization on <c>eos</c>: it hands its hook the rest of one segment.
+	/// </summary>
+	[Theory]
+	[InlineData("End = eos")]
+	[InlineData("End = Stop\nStop = eos")]
+	public void A_synchronization_on_an_alias_of_eos_is_one_on_eos(string alias)
+	{
+		var grammar = "Rows : @int[] = rows: Row* recover End => @(parserText.Length) & eof => @(rows)\nRow : @int = 'a' & eos => @(1)\n" + alias + "\nparse Rows";
+
+		Assert.DoesNotContain(Compile(grammar).Diagnostics, one => one.Id == GrammarNormalizer.TextAcrossSegments);
+		Assert.DoesNotContain(
+			Compile(grammar.Replace(" => @(parserText.Length)", "")).Diagnostics, one => one.Id == GrammarNormalizer.TextAcrossSegments);
+
+		var (success, value, _, _) = TryParse(Build(grammar), "TryParseRows", ["a", "xy", "a"]);
+
+		Assert.True(success);
+		Assert.Equal([1, 2, 1], (int[])value!);
 	}
 
 	/// <summary>
