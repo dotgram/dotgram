@@ -297,6 +297,26 @@ public sealed class TraceTests(ITestOutputHelper output)
 		Assert.Contains("in Sum 1:1 > More 1:2 > Term 1:3 > Sum 1:4 > More 1:5 > Term 1:6", why, StringComparison.Ordinal);
 	}
 
+	/// <summary>
+	/// Over segments a trace says a position as a line and a column of their own: the segment and
+	/// the offset in it, as a match does, whatever the segments hold.
+	/// </summary>
+	[Fact]
+	public void Why_says_a_segment_and_an_offset_in_it()
+	{
+		var assembly = Traced("Start : @int = any* & eos & 'x' & eos => @(0)\nparse Start");
+		var method   = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(IReadOnlyList<string>)])!;
+
+		foreach (var (segments, said) in new[] { (new[] { "a", "b" }, "line 2, column 1"), (new[] { "a\nb", "x", "c" }, "line 3, column 1") })
+		{
+			var why = Probe<string>(assembly, "Explained", () => method.Invoke(null, [segments]));
+
+			output.WriteLine(why);
+
+			Assert.Contains($"({said})", why, StringComparison.Ordinal);
+		}
+	}
+
 	/// <summary>What the package's pages show GramWhy saying, said.</summary>
 	[Fact]
 	public void Why_says_what_the_pages_show()
