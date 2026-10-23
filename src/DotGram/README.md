@@ -21,6 +21,15 @@ The grammar is known at compile time. The generated parser is ordinary C# in you
 assembly — there is no parser engine, grammar graph, or runtime library to interpret, and
 nothing to deploy beside your application.
 
+A grammar is read in one of two modes. **Character-level** parsing has no separate tokenizer: rules match characters directly, and bytes are the same mode over bytes. **Lexical** parsing (`Lexical = true`) cuts the grammar in two: a lexer makes tokens and the syntax above it reads them. The input is chosen at the call site, and the generator offers an overload only where it provably works.
+
+| Input | Types | Character-level | Lexical |
+| ----- | ----- | --------------- | ------- |
+| **Text in memory** | `string`, `ReadOnlySpan<char>` | regex-like matching and search, configs, expressions, formats, queries | SQL and languages with keywords and trivia |
+| **Text stream** | `TextReader` | feed and log files, sockets — read through a bounded buffer, so a file of tens of gigabytes takes no more memory than one record | — memory only |
+| **Bytes** | `byte[]`, `ReadOnlyMemory<byte>`, `Stream` | binary protocols, FIX wire, byte feeds of any size | — memory only |
+| **Segments** | `IEnumerable<string>`, `IReadOnlyList<string>`, `TextReader` (as lines) | feed files line by line, CSV, argv; a reader over a file or socket is read a line at a time, each line end a segment boundary | — |
+
 ## Getting started
 
 ```xml
