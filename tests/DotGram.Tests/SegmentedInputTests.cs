@@ -612,6 +612,20 @@ public sealed class SegmentedInputTests
 	}
 
 	/// <summary>
+	/// What a repetition that never runs would keep is not kept: a capture or a guard in its body
+	/// holds no boundary, written so or made so by a parameter.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : @int = (t: eos){0} & eof => @(0)\nparse Start", "")]
+	[InlineData("Start : @int = (any & when @(parserText.Length > 0) & eos){0} & any* & eos & eof => @(0)\nparse Start", "abc")]
+	[InlineData("Start : @string = v: Fields(0, any* & eos) & any* & eos & eof => @(v)\nFields(n: int, item) : @string = (t: item & ','){n} => @(t ?? \"\")\nparse Start", "abc")]
+	public void What_a_repetition_that_cannot_run_would_keep_is_not_kept(string grammar, string segment)
+	{
+		Assert.DoesNotContain(Compile(grammar).Diagnostics, one => one.Id == GrammarNormalizer.TextAcrossSegments);
+		Assert.True(TryParse(Build(grammar), "TryParseStart", segment.Length == 0 ? [] : [segment]).Success);
+	}
+
+	/// <summary>
 	/// A recovery without a <c>=&gt;</c> hands <c>OnRecovered</c> the text it stepped over: where it
 	/// synchronizes on <c>eos</c> that is the rest of the element's own segment and nothing after it.
 	/// </summary>
