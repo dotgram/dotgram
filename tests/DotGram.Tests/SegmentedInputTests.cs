@@ -456,6 +456,8 @@ public sealed class SegmentedInputTests
 	[InlineData("Start : @int = $q: ['x']* & (when @(parserText.Length > 0) & any* & eos){#q,} & eof => @(0)\nparse Start")]
 	[InlineData("Start : @int = $q: ['x']* & (t: (any* & eos)){1,#q} & eof => @(t.Length)\nparse Start")]
 	[InlineData("Start : @int = ('a' & when @(parserText.Length > 0))* recover eos & eof => @(0)\nparse Start")]
+	[InlineData("Start : @int = Word* recover ';' & eos & eof => @(0)\nWord = 'a'\nparse Start")]
+	[InlineData("Start : @int = Word* recover (eos | ';') & eof => @(0)\nWord = 'a'\nparse Start")]
 	[InlineData("Start : @string = t: Fields(1) & eos => @(t)\nFields(n: int) = any* & (eos & any*){n}\nparse Start")]
 	[InlineData("Start : @string = t: (any* & (eos & any*){0,1}) & eos => @(t)\nparse Start")]
 	public void Text_across_a_boundary_is_refused(string grammar)
@@ -539,6 +541,32 @@ public sealed class SegmentedInputTests
 	{
 		Assert.DoesNotContain(Compile(grammar).Diagnostics, one => one.Id == GrammarNormalizer.TextAcrossSegments);
 		Assert.Equal("abc", TryParse(Build(grammar), "TryParseStart", ["abc"]).Value);
+	}
+
+	/// <summary>
+	/// A recovery without a <c>=&gt;</c> hands <c>OnRecovered</c> the text it stepped over: where it
+	/// synchronizes on <c>eos</c> that is the rest of the element's own segment and nothing after it.
+	/// </summary>
+	[Theory]
+	[InlineData(CarrierKind.Tape, true)]
+	[InlineData(CarrierKind.Immediate, true)]
+	[InlineData(CarrierKind.Tape, false)]
+	[InlineData(CarrierKind.Immediate, false)]
+	public void A_recovery_tells_its_hook_the_text_of_one_segment(CarrierKind carrier, bool direct)
+	{
+		var parser = Build(
+			"Rows : @int[] = rows: Row* recover eos & eof => @(rows)\nRow : @int = 'a' & ['a'..'z']* & eos => @(1)\nparse Rows",
+			members: "public static string Told = \"\"; " +
+				"static partial void OnRecovered(string rule, string text, long position, int line, int column, int ordinal, string message) " +
+				"{ Told += \"[\" + text + \"]\" + position + \":\" + ordinal + \";\"; }",
+			carrier: carrier, direct: direct);
+		var told = parser.GetType("Grammar")!.GetField("Told")!;
+
+		var (success, value, _, _) = TryParse(parser, "TryParseRows", ["ab", "x;y", "", "a", "b"]);
+
+		Assert.True(success);
+		Assert.Equal([1, 1], (int[])value!);
+		Assert.Equal("[x;y]3:1;[]7:2;[b]10:4;", (string)told.GetValue(null)!);
 	}
 
 	/// <summary>Values built on either side of a boundary may be kept; text inside one segment may.</summary>

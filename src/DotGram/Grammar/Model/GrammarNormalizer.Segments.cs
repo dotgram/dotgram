@@ -193,7 +193,22 @@ public sealed partial class GrammarNormalizer
 		foreach (var pair in _recoveries)
 		{
 			if (pair.Value.Factory is not { } factory)
+			{
+				// OnRecovered, and a streamed reading's rejection, are handed the text of the element
+				// it steps over, up to where it synchronizes, whether or not anything listens: whether
+				// the host implements the hook is not known here. Where that is `eos` it is the rest of
+				// the segment the element began in.
+				if (!EndsSegment(pair.Value.Sync))
+					Report(
+						TextAcrossSegments,
+						"A 'recover' without a '=>' hands OnRecovered the text of the element it steps over, up " +
+						"to where it synchronizes, which may hold an 'eos', and the end of a segment is no text. " +
+						"Synchronize on 'eos', which stops at the end of the element's own segment, or build the " +
+						"rejection with a '=>' (docs/syntax.md §3.1.1).",
+						pair.Value.At);
+
 				continue;
+			}
 
 			if (Names(factory, "parserInput"))
 				Report(TextAcrossSegments, InputAcrossSegments, pair.Value.At);
