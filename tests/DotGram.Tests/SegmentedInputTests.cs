@@ -362,14 +362,72 @@ public sealed class SegmentedInputTests
 		Assert.Equal(["ab", "", "c"], (string[])value!);
 	}
 
-	/// <summary>U+0000 is the end of a segment, so a literal or a class that names it is refused.</summary>
+	/// <summary>
+	/// U+0000 is the end of a segment, so a literal or a class item that is U+0000, which could never
+	/// match, is refused.
+	/// </summary>
 	[Theory]
 	[InlineData("Start = \"a\\0\" & eos\nparse Start")]
-	[InlineData("Start = ['\\0'..' '] & eos\nparse Start")]
-	[InlineData("Start = [\\p{Cc}] & eos\nparse Start")]
+	[InlineData("Start = '\\0' & eos\nparse Start")]
+	[InlineData("Start = ['\\0'] & eos\nparse Start")]
+	[InlineData("Start = ['a' | '\\0'] & eos\nparse Start")]
 	public void The_joiner_is_no_character_of_a_segment(string grammar)
 	{
 		Assert.Contains(Compile(grammar).Diagnostics, one => one.Id == GrammarNormalizer.JoinerInSegmentedGrammar);
+	}
+
+	/// <summary>
+	/// A range or a category that merely holds U+0000 is read without it, since no segment holds it:
+	/// it reads the characters it holds, and refuses at a boundary with what a boundary is.
+	/// </summary>
+	[Theory]
+	[InlineData("['\\0'..'\\u001F']")]
+	[InlineData("[\\p{Cc}]")]
+	[InlineData("[\\p{C}]")]
+	public void A_class_that_holds_the_joiner_is_read_without_it(string set)
+	{
+		var parser = Build($"Start : @int = c: ({set}*) & eos => @(c.Length)\nparse Start");
+
+		Assert.Equal(2, TryParse(parser, "TryParseStart", ["\u0001\u001F"]).Value);
+
+		var (success, _, error, position) = TryParse(parser, "TryParseStart", ["\u0001", "\u0001"]);
+
+		Assert.False(success);
+		Assert.Equal(2, position);
+		Assert.DoesNotContain("\\u0000", error!, StringComparison.Ordinal);
+
+		var one = Build($"Start : @int = {set} & eos => @(0)\nparse Start");
+
+		(success, _, error, position) = TryParse(one, "TryParseStart", [""]);
+
+		Assert.False(success);
+		Assert.Equal(0, position);
+		Assert.DoesNotContain("\\u0000", error!, StringComparison.Ordinal);
+
+		(success, _, error, position) = TryParse(one, "TryParseStart", ["\u0001\u0001"]);
+
+		Assert.False(success);
+		Assert.Equal(1, position);
+		Assert.Equal("Expected end of segment.", error);
+	}
+
+	/// <summary>
+	/// A class whose item is a class rule of the author's that only looks like the one a grammar
+	/// naming <c>eos</c> writes before a predicate is no class: a look and a class are two things.
+	/// </summary>
+	[Fact]
+	public void A_look_of_the_author_is_not_merged_into_a_class()
+	{
+		var result = Compile("Letter = ?!'a' & ['a'..'z']\nStart : @string = t: [Letter] & eos => @(t)\nparse Start");
+
+		Assert.Contains(result.Diagnostics, one => one.Id == GrammarNormalizer.UnsupportedElement);
+
+		// And the class the generator guards is still one class to merge.
+		var parser = Build(
+			"Letter = [@Lower]\nStart : @string = t: ([Letter | '-']+) & eos => @(t)\nparse Start",
+			members: "static bool Lower(char c) { return c >= 'a' && c <= 'z'; }");
+
+		Assert.Equal("a-b", TryParse(parser, "TryParseStart", ["a-b"]).Value);
 	}
 
 	[Fact]
