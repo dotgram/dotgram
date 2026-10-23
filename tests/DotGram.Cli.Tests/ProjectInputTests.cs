@@ -203,7 +203,13 @@ public sealed class ProjectInputTests
 
 		Same(scratch, project);
 
-		File.WriteAllBytes(generator, [1, 2, 3, 4]);
+		// The run above loaded the generator into this process, and Windows will not let a loaded assembly
+		// be overwritten: the unloadable one is a new file of the same name, and the project is pointed at it.
+		var unloadable = scratch.Path("unloadable", "Constructor.dll");
+
+		Directory.CreateDirectory(Path.GetDirectoryName(unloadable)!);
+		File.WriteAllBytes(unloadable, [1, 2, 3, 4]);
+		File.WriteAllText(project, File.ReadAllText(project).Replace(generator, unloadable, StringComparison.Ordinal));
 
 		var broken = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("broken"));
 
