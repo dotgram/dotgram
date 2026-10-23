@@ -570,6 +570,41 @@ public sealed class SegmentedInputTests
 	}
 
 	/// <summary>
+	/// What a streamed reading throws says where as the list does, a line a segment and a column an
+	/// offset in it, never an offset into the segments joined.
+	/// </summary>
+	[Fact]
+	public void A_streamed_refusal_says_the_segment_and_the_offset_in_it()
+	{
+		var parser = Build("""
+			Feed : @int[] = rows: Row* recover eos & Tail & eof => @(rows)
+			Row  : @int = 'a' & eos => @(1)
+			Tail = 'z' & eos
+			parse Feed
+			""");
+
+		foreach (var segments in new[] { new[] { "a" }, ["a", "b"], ["a", "z", "a"] })
+		{
+			var listed = Assert.Throws<TargetInvocationException>(() => Invoke(parser, "ParseFeed", typeof(IReadOnlyList<string>), segments));
+			var said   = Assert.IsType<FormatException>(listed.InnerException).Message;
+
+			Assert.Matches(@" at line \d+, column \d+\.$", said);
+
+			var streamed = Assert.Throws<FormatException>(() =>
+				((System.Collections.IEnumerable)Invoke(parser, "ParseFeed", typeof(IEnumerable<string>), segments.Select(one => one))!)
+					.Cast<object>().ToList());
+
+			Assert.Matches(@" at line \d+, column \d+\.$", streamed.Message);
+		}
+
+		Assert.Equal(
+			"Input does not match 'Tail' at line 2, column 1.",
+			Assert.Throws<FormatException>(() =>
+				((System.Collections.IEnumerable)Invoke(parser, "ParseFeed", typeof(IEnumerable<string>), new[] { "a" }.Select(one => one))!)
+					.Cast<object>().ToList()).Message);
+	}
+
+	/// <summary>
 	/// Every kind of node is classified by the checks of text over segments: a kind added to the
 	/// graph fails here until each of those checks says what it keeps, reads and hands over.
 	/// </summary>

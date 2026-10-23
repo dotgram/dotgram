@@ -418,8 +418,10 @@ public static partial class CSharpEmitter
 					file.Then(
 						"throw new global::System.FormatException(" +
 						$"\"Input does not match '{EscapeDiagnostic(Named(stage))}' at \" + " +
-						"(furthest > window.Offset + start ? furthest : window.Offset + start).ToString(" +
-						"global::System.Globalization.CultureInfo.InvariantCulture) + \".\");");
+						(graph.Segmented
+							? SegmentAt("(furthest > window.Offset + start ? furthest : window.Offset + start)")
+							: "(furthest > window.Offset + start ? furthest : window.Offset + start).ToString(" +
+							  "global::System.Globalization.CultureInfo.InvariantCulture)") + " + \".\");");
 				}
 			}
 
@@ -438,8 +440,11 @@ public static partial class CSharpEmitter
 			file.Line("if (start < window.Length)");
 			file.Then(
 				"throw new global::System.FormatException(" +
-				"\"Expected end of input at \" + (furthest > window.Offset + start ? furthest : window.Offset + start).ToString(" +
-				"global::System.Globalization.CultureInfo.InvariantCulture) + \".\");");
+				"\"Expected end of input at \" + " +
+				(graph.Segmented
+					? SegmentAt("(furthest > window.Offset + start ? furthest : window.Offset + start)")
+					: "(furthest > window.Offset + start ? furthest : window.Offset + start).ToString(" +
+					  "global::System.Globalization.CultureInfo.InvariantCulture)") + " + \".\");");
 
 			// The furthest a reading that failed got, kept as the window moves.
 			void Furthest(string failure, bool spaced = true)
@@ -637,7 +642,9 @@ public static partial class CSharpEmitter
 					file.Then(
 						"throw new global::System.FormatException(" +
 						$"\"Input does not match '{EscapeDiagnostic(Named(stage))}' at \" + " +
-						"furthest.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\");");
+						(graph.Segmented
+							? SegmentAt("(furthest > window.Offset + start ? furthest : window.Offset + start)")
+							: "furthest.ToString(global::System.Globalization.CultureInfo.InvariantCulture)") + " + \".\");");
 				}
 
 				file.Line();
@@ -666,6 +673,19 @@ public static partial class CSharpEmitter
 			publication.Rule.Name,
 			takes,
 			publication.Joined);
+	}
+
+	/// <summary>
+	/// Where a streamed reading over segments was refused, as its forms over a list say it: the
+	/// segment and the offset in it, both from 1, which the window counts at the joiner.
+	/// </summary>
+	/// <param name="absolute">The position in the whole input, which the window holds or ends at.</param>
+	static string SegmentAt(string absolute)
+	{
+		var held = $"(int)global::System.Math.Min(window.Length, {absolute} - window.Offset)";
+
+		return $"\"line \" + window.LineAt({held}).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + " +
+			$"\", column \" + window.ColumnAt({held}).ToString(global::System.Globalization.CultureInfo.InvariantCulture)";
 	}
 
 	static string Comment(Stage stage)
