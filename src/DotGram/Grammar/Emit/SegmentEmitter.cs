@@ -159,7 +159,7 @@ public static partial class CSharpEmitter
 				var text   = reader.ReadToEnd();
 
 				refused = reader.Refused;
-				why     = refused < 0 ? "" : SegmentReader_DotGram.Holds(reader.RefusedLine);
+				why     = refused < 0 ? "" : SegmentReader_DotGram.Holds(reader.RefusedLine, reader.RefusedColumn);
 
 				return refused < 0 ? text : "";
 			}
@@ -182,6 +182,7 @@ public static partial class CSharpEmitter
 				private bool   _ended;
 				private long   _position;
 				private int    _line = 1;
+				private int    _column;
 
 				public SegmentReader_DotGram(global::System.IO.TextReader input, bool throws)
 				{
@@ -195,11 +196,15 @@ public static partial class CSharpEmitter
 				/// <summary>Which line held it, from 1.</summary>
 				public int RefusedLine { get; private set; }
 
-				/// <summary>What a line that holds U+0000 is told.</summary>
-				public static string Holds(int line)
+				/// <summary>Where in that line it stood, from 1.</summary>
+				public int RefusedColumn { get; private set; }
+
+				/// <summary>What a line that holds U+0000 is told: the line, and the column it stands at.</summary>
+				public static string Holds(int line, int column)
 				{
-					return "Line " + line.ToString(global::System.Globalization.CultureInfo.InvariantCulture) +
-						" holds U+0000, which this grammar reads as the end of a segment and never as a character of one.";
+					return "A line holds U+0000, which this grammar reads as the end of a segment and never as a character of one at line " +
+						line.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", column " +
+						column.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".";
 				}
 
 				public override int Read(char[] buffer, int index, int count)
@@ -243,17 +248,19 @@ public static partial class CSharpEmitter
 						if (c == '\r' || c == '\n')
 						{
 							buffer[index + written++] = '\0';
-							_open = false;
+							_open   = false;
+							_column = 0;
 							_line++;
 						}
 						else if (c == '\0')
 						{
-							Refused     = _position;
-							RefusedLine = _line;
-							_ended      = true;
+							Refused       = _position;
+							RefusedLine   = _line;
+							RefusedColumn = _column + 1;
+							_ended        = true;
 
 							if (_throws)
-								throw new global::System.FormatException(Holds(_line));
+								throw new global::System.FormatException(Holds(_line, _column + 1));
 
 							break;
 						}
@@ -261,6 +268,7 @@ public static partial class CSharpEmitter
 						{
 							buffer[index + written++] = c;
 							_open = true;
+							_column++;
 						}
 
 						_position++;

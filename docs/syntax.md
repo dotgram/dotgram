@@ -2281,8 +2281,8 @@ the publication streams, the forms over `IEnumerable<string>` and over a reader 
 streamed ones — the segments read as they are asked for — and the list is read whole.
 A segment that holds U+0000 is refused: `Parse…` throws a `FormatException`,
 `TryParse…` answers a refusal at it, and a streamed reading throws when it reaches it;
-what is thrown says where as a line, the segment, and a column, the offset of U+0000 in it,
-and over a reader what is said names the line.
+what is said says where as a line, the segment, and a column, the offset of U+0000 in it,
+over a reader too.
 
 A reader and a string give the same result for constructions without side effects. A construction
 that changes state — the `context` included — may run a different number of times in a streamed

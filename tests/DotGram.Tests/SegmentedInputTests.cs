@@ -1241,11 +1241,13 @@ public sealed class SegmentedInputTests
 
 		Assert.False((bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!);
 		Assert.Equal(3L, match.GetType().GetProperty("Position")!.GetValue(match));
-		Assert.StartsWith("Line 2 holds U+0000", (string)match.GetType().GetProperty("Error")!.GetValue(match)!, StringComparison.Ordinal);
+		Assert.EndsWith(" at line 2, column 2.", (string)match.GetType().GetProperty("Error")!.GetValue(match)!, StringComparison.Ordinal);
 
 		var thrown = Assert.Throws<TargetInvocationException>(() => Invoke(parser, "ParseArgs", typeof(TextReader), new StringReader("a\nb\nc\0")));
 
-		Assert.StartsWith("Line 3 holds U+0000", Assert.IsType<FormatException>(thrown.InnerException).Message, StringComparison.Ordinal);
+		Assert.Equal(
+			"A line holds U+0000, which this grammar reads as the end of a segment and never as a character of one at line 3, column 2.",
+			Assert.IsType<FormatException>(thrown.InnerException).Message);
 
 		var records = Build("""
 			Feed   : @string[] = records: Record* recover eos => @("bad " + parserLine) & eof => @(records)
@@ -1261,7 +1263,11 @@ public sealed class SegmentedInputTests
 
 		var broken = Assert.ThrowsAny<Exception>(() => ((IEnumerable<string>)Invoke(records, "ParseFeed", typeof(TextReader), new StringReader("1|a\n2|\0"))!).ToArray());
 
-		Assert.StartsWith("Line 2 holds U+0000", (broken.InnerException ?? broken).Message, StringComparison.Ordinal);
+		Assert.EndsWith(" at line 2, column 3.", (broken.InnerException ?? broken).Message, StringComparison.Ordinal);
+
+		thrown = Assert.Throws<TargetInvocationException>(() => Invoke(parser, "ParseArgs", typeof(TextReader), new StringReader("a\r\nbc\0")));
+
+		Assert.EndsWith(" at line 2, column 3.", Assert.IsType<FormatException>(thrown.InnerException).Message, StringComparison.Ordinal);
 	}
 
 	/// <summary>A reader that hands its text over a few characters at a time.</summary>
