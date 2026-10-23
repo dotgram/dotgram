@@ -265,6 +265,47 @@ dotnet build src/DotGram.Finance/DotGram.Finance.csproj -c Release -f net10.0 --
     | grep -oP "RS0016: Symbol '\K.*(?=' is not part of the declared public API)" | sort -u
 ```
 
+## The tool's release gates
+
+`DotGram.Cli` promises the files `dotnet build` generates, byte for byte (`docs/cli.md`, "The
+contract"). Its tests hold that on small projects; `tests/DotGram.Cli.Tests/gates/run-gates.sh`
+holds it on the grammars this repository ships, and is what a release of the tool waits for:
+
+```
+tests/DotGram.Cli.Tests/gates/run-gates.sh            # [--keep] [--no-g3] [--no-g9] [--runs <n>]
+```
+
+It tests the commit checked out, in a `git worktree` of its own (uncommitted changes are not in
+it), builds and packs the tool there and installs the package into a folder of its own, from a feed
+that holds nothing else, so that `dotnet dotgram` is the package and not the build. Everything goes
+into one scratch folder under `$TMPDIR` (or `$DOTGRAM_GATES_DIR`), removed at the end with the
+worktree; `--keep` keeps it, and a failure keeps its logs. Linux only (bash, `perl`, GNU `time`);
+a full run takes about 25 minutes, most of it G3's test runs, and up to 12 GB of memory (the test
+host of `DotGram.Tests`; the tool itself stays under 3 GB, on DotGram.Finance). The projects are every `src/` project that takes the generator
+as an analyzer, found by the script, so a new grammar library is gated without editing it.
+
+- **G2** builds each project for each framework, the compiler forced to run, and hosts the
+  generator by hand (`gates/Gates.cs`, a file-based app) over that build's own compiler arguments
+  (`CscCommandLineArgs`): the generator's output from exactly the compiler's inputs. A failure here
+  and not in G2b is in the hosting; in G2b and not here, in how the tool reads the project.
+- **G2b** runs the tool as the README says, `dotnet dotgram generate src/<P>/<P>.csproj -o …`:
+  with `--line-paths absolute` for every framework at once and for each with `--framework`, each
+  compared byte for byte with what that framework's build generated; then the README's command
+  exactly, into `src/<P>/Generated`, compared after each relative `#line` path is read against that
+  folder. The generation report files are not compared (the tool does not write them), and the
+  `EmbeddedAttribute` file is compared without its line ends (the compiler's text).
+- **G3** removes the generator's `ProjectReference` from DotGram.Sql, Web, ExpressionLanguage and
+  Finance, runs the command again as CI would (it must change no file), builds both frameworks
+  (the generator must not run), and builds and runs `DotGram.Sql.Tests`, `DotGram.Tests` and
+  `DotGram.Finance.Tests` over them. The traced and tape test builds compile those projects'
+  sources again by a glob; the script excludes `Generated` there, as such a project would have to.
+- **G9** times the tool on each project (DotGram.Sql `--runs` times) with its peak memory, and
+  a cold compile of DotGram.Sql with `ReportAnalyzer`, for the generator's share of it. The
+  figures are directional on a busy machine; the README's are taken on a quiet one.
+
+The last lines are a table, one per gate, project and framework; the exit code is 0 only when
+every row passed.
+
 ## The snapshot baseline
 
 `tests/Snapshots/*.gram.g.cs` are checked in beside the grammars they come from, and
