@@ -257,4 +257,50 @@ public sealed class GrammarInputTests
 		Assert.Equal(File.ReadAllText(scratch.Path("net10", "Lexical.g.cs")), File.ReadAllText(scratch.Path("net8", "Lexical.g.cs")));
 		Assert.NotEqual(File.ReadAllText(scratch.Path("net10", "Lexical.g.cs")), File.ReadAllText(scratch.Path("at10", "Lexical.g.cs")));
 	}
+
+	/// <summary>
+	/// A folder under a <c>--sources</c> glob that cannot be read is passed over, as MSBuild's globs pass
+	/// it over, rather than ending the tool with an unhandled exception; a hidden folder is still looked into.
+	/// </summary>
+	[Fact]
+	public void A_glob_passes_over_a_folder_it_cannot_read()
+	{
+		if (OperatingSystem.IsWindows())
+			return;
+
+		using var scratch = new Scratch();
+
+		var kept   = scratch.Write("src/a/Kept.cs", "class Kept { }");
+		var hidden = scratch.Write("src/.hidden/Hidden.cs", "class Hidden { }");
+		var locked = scratch.Path("src", "locked");
+
+		scratch.Write("src/locked/Locked.cs", "class Locked { }");
+		File.SetUnixFileMode(locked, UnixFileMode.None);
+
+		try
+		{
+			// Where the folder can be read all the same (a process with the rights to), there is nothing to check.
+			if (Directory.Exists(locked) && CanList(locked))
+				return;
+
+			Assert.Equal([hidden, kept], GrammarHost.Sources([scratch.Path("src") + "/**/*.cs"]));
+		}
+		finally
+		{
+			File.SetUnixFileMode(locked, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+		}
+
+		static bool CanList(string folder)
+		{
+			try
+			{
+				Directory.EnumerateFileSystemEntries(folder).Any();
+				return true;
+			}
+			catch (UnauthorizedAccessException)
+			{
+				return false;
+			}
+		}
+	}
 }
