@@ -456,6 +456,8 @@ public sealed class SegmentedInputTests
 	[InlineData("Start : @int = $q: ['x']* & (when @(parserText.Length > 0) & any* & eos){#q,} & eof => @(0)\nparse Start")]
 	[InlineData("Start : @int = $q: ['x']* & (t: (any* & eos)){1,#q} & eof => @(t.Length)\nparse Start")]
 	[InlineData("Start : @int = ('a' & when @(parserText.Length > 0))* recover eos & eof => @(0)\nparse Start")]
+	[InlineData("Start : @string = t: Fields(1) & eos => @(t)\nFields(n: int) = any* & (eos & any*){n}\nparse Start")]
+	[InlineData("Start : @string = t: (any* & (eos & any*){0,1}) & eos => @(t)\nparse Start")]
 	public void Text_across_a_boundary_is_refused(string grammar)
 	{
 		var result = Compile(grammar);
@@ -523,6 +525,20 @@ public sealed class SegmentedInputTests
 
 		Assert.True(success);
 		Assert.Equal(["ab", "bad x1", "bad abcde", "c"], (string[])value!);
+	}
+
+	/// <summary>
+	/// A repetition whose most is nought never runs, so what it would read is not read: a capture
+	/// around one that holds an <c>eos</c> holds no boundary, written so or made so by a parameter.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : @string = t: Fields(0) & eos => @(t)\nFields(n: int) = any* & (eos & any*){n}\nparse Start")]
+	[InlineData("Start : @string = t: (any* & (eos & any*){0}) & eos => @(t)\nparse Start")]
+	[InlineData("Start : @string = t: (any* & (eos & any*){0,0}) & when @(parserText.Length > 0) & eos => @(t)\nparse Start")]
+	public void A_repetition_that_cannot_run_reads_no_boundary(string grammar)
+	{
+		Assert.DoesNotContain(Compile(grammar).Diagnostics, one => one.Id == GrammarNormalizer.TextAcrossSegments);
+		Assert.Equal("abc", TryParse(Build(grammar), "TryParseStart", ["abc"]).Value);
 	}
 
 	/// <summary>Values built on either side of a boundary may be kept; text inside one segment may.</summary>

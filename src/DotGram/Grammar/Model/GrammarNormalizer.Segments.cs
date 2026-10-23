@@ -375,6 +375,15 @@ public sealed partial class GrammarNormalizer
 			case Node.Repeat when _recoveries.ContainsKey(node):
 				return true;
 
+			// A repetition whose most is a written nought never runs its body. A count that is a
+			// parameter's is a number here already, the instance's own, and a length is never
+			// nought ahead of time, so neither is taken for one.
+			case Node.Repeat { Max: 0 }:
+				return false;
+
+			case Node.Counted { Max: CountBound.Items { Count: 0 } }:
+				return false;
+
 			case Node.Call(var rule, var arguments):
 			{
 				if (arguments.Any(argument => ReachesEndOfSegment(argument, reaching)))
