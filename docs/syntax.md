@@ -293,7 +293,15 @@ either side, or a value built from them, which may be kept: `(rows: Row & eos)*`
 rows — and `parserText` of what may hold one, in a `=>`, in a `when` and in a `recover`
 whose synchronization is not `eos`; `parserInput`, which would be the segments as one
 text, is not supplied. Text around a repetition marked `recover` is taken to hold an `eos`,
-whatever it synchronizes on: what it steps over goes on past the end of a segment. An `eos` grammar split
+whatever it synchronizes on: what it steps over goes on past the end of a segment, and a
+`when` inside it reads what was stepped over between its turns. A count by a length,
+`X{#q}`, is read as any repetition is, and a repetition whose most is nought, `X{0}` or a
+parameter's `{n}` in an instance where it is nought, reads nothing. A `recover` without a
+`=>` hands `OnRecovered` (§8.3) the text it stepped over, and is refused unless it
+synchronizes on `eos`, which stops at the end of the element's own segment: so a feed
+written `Row* recover eos` tells the hook the rest of the bad row's segment and nothing
+after it, and one that synchronizes on anything else builds the rejection with a `=>` that
+does not read `parserText`. An `eos` grammar split
 into tokens (`GRAM4049`) or asked for buffered or byte forms (`GRAM4050`) is refused as well. U+0000 is how a boundary is read
 in this version, so no segment may hold it, and a segment that holds it is refused
 before it is read. A literal or a class item that is U+0000 and nothing else could never match, and
