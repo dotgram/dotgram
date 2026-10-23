@@ -72,9 +72,16 @@ public sealed partial class GrammarNormalizer
 
 	/// <summary>
 	/// A class as a grammar that names <c>eos</c> reads it: a negated one does not take the joiner
-	/// either, and a positive one that names it is refused.
+	/// either, a positive one that names it as an item of its own is refused, and one whose range
+	/// merely holds it is read without it.
 	/// </summary>
-	Node.Element Segmented(Node.Element element, Expr set)
+	/// <remarks>
+	/// No segment holds U+0000, so a class read without it reads every segment as it would with it:
+	/// <c>['\0'..'\x1F']</c> is <c>['\x01'..'\x1F']</c> there, and <c>\p{Cc}</c> is read only where
+	/// the joiner is not (<see cref="SegmentedPredicates"/>). An item that is U+0000 and nothing else
+	/// could never match, which is worth a word.
+	/// </remarks>
+	Node.Element Segmented(Node.Element element, IReadOnlyList<Elem> items, Expr set)
 	{
 		if (!_segmented)
 			return element;
@@ -84,47 +91,65 @@ public sealed partial class GrammarNormalizer
 				? element
 				: element with { Ranges = Coalesce([new CharRange(Joiner, Joiner), .. element.Ranges]) };
 
-		if (element.Ranges.Any(static range => range.From <= Joiner && Joiner <= range.To) ||
-			element.Categories.Any(static category => UnicodeCategories.Expand(category).Contains("Control")))
+		if (items.Any(static item => item is Elem.Chars([Joiner], null or [Joiner])))
 			Report(
 				JoinerInSegmentedGrammar,
-				$"'{set}' holds U+0000, which a grammar that names 'eos' reads as the end of a segment and " +
-				"never as a character of one: a segment that holds it is refused. Leave U+0000 out of the " +
-				"class (docs/syntax.md §3.1.1).",
+				$"'{set}' names U+0000, which a grammar that names 'eos' reads as the end of a segment and " +
+				"never as a character of one: no segment holds it, so the item never matches. Match the end " +
+				"of a segment with 'eos' (docs/syntax.md §3.1.1).",
 				set.At);
 
-		return element;
+		if (!element.Ranges.Any(static range => range.From == Joiner))
+			return element;
+
+		var ranges = new List<CharRange>();
+
+		foreach (var range in element.Ranges)
+			if (range.From != Joiner)
+				ranges.Add(range);
+			else if (range.To != Joiner)
+				ranges.Add(new CharRange((char)(Joiner + 1), range.To));
+
+		return element with { Ranges = ranges };
 	}
 
 	/// <summary>
-	/// A positive class that calls a predicate of the host, in a grammar that names <c>eos</c>:
-	/// what the predicate says of the joiner is not the grammar's to know, so the class is read
-	/// only where the joiner is not.
+	/// A positive class that calls a predicate of the host, or names a category that holds U+0000,
+	/// in a grammar that names <c>eos</c>: what the predicate says of the joiner is not the
+	/// grammar's to know, and the category takes it, so the class is read only where the joiner is
+	/// not.
 	/// </summary>
 	Node SegmentedPredicates(Node.Element element)
 	{
-		return _segmented && !element.IsNegated && element.References.Count > 0
-			? new Node.Sequence([new Node.Lookahead(false, new Node.Literal(Joiner.ToString())), element])
+		return _segmented && !element.IsNegated && (element.References.Count > 0 || element.Categories.Any(HoldsJoiner))
+			? new Node.Sequence([new Node.Lookahead(false, new Node.Literal(Joiner.ToString())) { BeforeSegmentEnd = true }, element])
 			: element;
 	}
 
-	/// <summary>A literal in a grammar that names <c>eos</c> may not hold the joiner.</summary>
+	/// <summary>Whether a Unicode category holds U+0000, the joiner.</summary>
+	static bool HoldsJoiner(string category)
+	{
+		return UnicodeCategories.Expand(category).Contains("Control");
+	}
+
+	/// <summary>A literal in a grammar that names <c>eos</c> may not hold the joiner: it could never match.</summary>
 	string Segmented(string value, Expr literal)
 	{
 		if (_segmented && value.IndexOf(Joiner) >= 0)
 			Report(
 				JoinerInSegmentedGrammar,
 				$"'{literal}' holds U+0000, which a grammar that names 'eos' reads as the end of a segment and " +
-				"never as a character of one: a segment that holds it is refused. Match the end of a segment " +
-				"with 'eos' (docs/syntax.md §3.1.1).",
+				"never as a character of one: no segment holds it, so the literal never matches. Match the end " +
+				"of a segment with 'eos' (docs/syntax.md §3.1.1).",
 				literal.At);
 
 		return value;
 	}
 
 	/// <summary>
-	/// Text kept across an <c>eos</c>: a capture or a binding of text, or a publication whose value
-	/// is the text it matched, that may hold a boundary.
+	/// Text kept across an <c>eos</c>: a capture or a binding of text, a look's included, a
+	/// publication whose value is the text it matched, or <c>parserText</c> of what may hold a
+	/// boundary, and <c>parserInput</c> anywhere.
 	/// </summary>
 	/// <remarks>
 	/// A boundary has no character, so text that spans one would be the segments' characters with

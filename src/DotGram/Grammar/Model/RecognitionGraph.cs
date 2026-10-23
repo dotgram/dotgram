@@ -201,6 +201,13 @@ public abstract record Node
 
 	public sealed record Lookahead(bool IsPositive, Node Body) : Node
 	{
+		/// <summary>
+		/// Whether this is the look a grammar that names <c>eos</c> puts before a class that calls a
+		/// predicate, so that the class is not read at the end of a segment: the generator's, never
+		/// an author's, whatever it refuses.
+		/// </summary>
+		public bool BeforeSegmentEnd { get; init; }
+
 		public override IEnumerable<Node> Children => [Body];
 
 		public override string ToString()
