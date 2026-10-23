@@ -44,13 +44,18 @@ if (args.Length == 4 && args[0] == "g2")
 Console.Error.WriteLine("usage: Gates.cs compare <built> <tool> [--relative-to <dir>] | g2 <csc-arguments.json> <built> <project-directory>");
 return 2;
 
+// Every file under a folder, its subfolders included, by its path from the folder with forward slashes.
+static IEnumerable<string> Files(string folder)
+{
+	return Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories)
+		.Select(file => Path.GetRelativePath(folder, file).Replace('\\', '/'))
+		.Order(StringComparer.Ordinal);
+}
+
 // The build's files, the report files aside: the tool does not write those, by design.
 static IEnumerable<string> Built(string folder)
 {
-	return Directory.EnumerateFiles(folder)
-		.Select(static file => Path.GetFileName(file))
-		.Where(static name => !name.Contains(".DotGramReport", StringComparison.Ordinal))
-		.Order(StringComparer.Ordinal);
+	return Files(folder).Where(static name => !name.Contains(".DotGramReport", StringComparison.Ordinal));
 }
 
 static int Compare(string built, string tool, string? relative)
@@ -67,6 +72,13 @@ static int Compare(string built, string tool, string? relative)
 	var failures = 0;
 	var names    = Built(built).ToList();
 
+	// Nothing compared is no equality: a build that generated nothing, or a folder that is not the one.
+	if (names.Count == 0)
+	{
+		Console.WriteLine($"  no files in {built}: nothing to compare");
+		return 1;
+	}
+
 	foreach (var name in names)
 	{
 		var path = Path.Combine(tool, name);
@@ -81,7 +93,7 @@ static int Compare(string built, string tool, string? relative)
 		var expected = File.ReadAllBytes(Path.Combine(built, name));
 		var actual   = File.ReadAllBytes(path);
 
-		if (name == Embedded)
+		if (Path.GetFileName(name) == Embedded)
 		{
 			if (expected.AsSpan().SequenceEqual(actual))
 				continue;
@@ -97,10 +109,13 @@ static int Compare(string built, string tool, string? relative)
 			continue;
 		}
 
+		// C# reads a relative #line path against the folder of the file that holds it.
 		if (relative is not null)
 		{
-			expected = Absolute(expected, relative);
-			actual   = Absolute(actual, relative);
+			var folder = Path.GetDirectoryName(Path.Combine(relative, name))!;
+
+			expected = Absolute(expected, folder);
+			actual   = Absolute(actual, folder);
 		}
 
 		if (!expected.AsSpan().SequenceEqual(actual))
@@ -110,7 +125,7 @@ static int Compare(string built, string tool, string? relative)
 		}
 	}
 
-	foreach (var extra in Directory.EnumerateFiles(tool).Select(static file => Path.GetFileName(file)).Order(StringComparer.Ordinal))
+	foreach (var extra in Files(tool))
 	{
 		if (extra != ".dotgram.json" && !names.Contains(extra))
 		{
@@ -256,6 +271,12 @@ static int HostByHand(string argumentsFile, string built, string projectDirector
 	var produced = result.GeneratedSources.ToDictionary(static source => source.HintName, static source => source.SourceText.ToString(), StringComparer.Ordinal);
 	var names    = Built(built).ToList();
 
+	if (names.Count == 0)
+	{
+		Console.WriteLine($"  no files in {built}: nothing to compare");
+		return 1;
+	}
+
 	foreach (var name in names)
 	{
 		var bytes    = File.ReadAllBytes(Path.Combine(built, name));
@@ -267,7 +288,7 @@ static int HostByHand(string argumentsFile, string built, string projectDirector
 			Console.WriteLine($"  MISSING {name}");
 			failures++;
 		}
-		else if (name == Embedded ? text.Replace("\r", "", StringComparison.Ordinal) != own.Replace("\r", "", StringComparison.Ordinal) : text != own)
+		else if (Path.GetFileName(name) == Embedded ? text.Replace("\r", "", StringComparison.Ordinal) != own.Replace("\r", "", StringComparison.Ordinal) : text != own)
 		{
 			Console.WriteLine($"  DIFFERS {name}: {FirstDifference(Encoding.UTF8.GetBytes(text), Encoding.UTF8.GetBytes(own))}");
 			failures++;
