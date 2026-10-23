@@ -313,11 +313,37 @@ public sealed class SegmentedInputTests
 	[InlineData("Start : @string = t: (Word & eos & Word) => @(t)\nWord = ['a'..'z']*\nparse Start")]
 	[InlineData("Start : @int = $w: (Word & eos) & Word & eos => @(0)\nWord = ['a'..'z']*\nparse Start")]
 	[InlineData("Start = Word & eos & Word & eos\nWord = ['a'..'z']*\nparse Start")]
+	[InlineData("Start : @string = t: ?=Whole & Whole => @(t)\nWhole = any* & eos & any* & eos\nparse Start")]
+	[InlineData("Start : @int = $q: ?=(Word & eos) & Word & eos & $q => @(0)\nWord = ['a'..'z']*\nparse Start")]
+	[InlineData("Start : @string = any* & eos & any* & eos => @(parserText)\nparse Start")]
+	[InlineData("Start : @int = any* & eos & when @(parserText.Length > 0) & any* & eos => @(0)\nparse Start")]
+	[InlineData("Start : @int = (any* & eos)* => @(parserInput.Length)\nparse Start")]
+	[InlineData("Start : @int[] = items: Item* recover ';' => @(parserText.Length) & eof => @(items)\nItem : @int = ['a'..'z']+ & eos => @(0)\nparse Start")]
 	public void Text_across_a_boundary_is_refused(string grammar)
 	{
 		var result = Compile(grammar);
 
 		Assert.Contains(result.Diagnostics, one => one.Id == GrammarNormalizer.TextAcrossSegments);
+	}
+
+	/// <summary>
+	/// <c>parserText</c> of what holds no boundary may be read: a rule's own text inside one segment,
+	/// a guard before the first <c>eos</c>, a rejected element's text up to the end of its segment.
+	/// </summary>
+	[Fact]
+	public void Text_of_one_segment_may_be_read()
+	{
+		var parser = Build("""
+			Rows : @string[] = rows: Row* recover eos => @("bad " + parserText) & eof => @(rows)
+			Row  : @string   = w: Word & when @(parserText.Length < 4) & eos => @(w)
+			Word : @string   = ['a'..'z']+ => @(parserText)
+			parse Rows
+			""");
+
+		var (success, value, _, _) = TryParse(parser, "TryParseRows", ["ab", "x1", "abcde", "c"]);
+
+		Assert.True(success);
+		Assert.Equal(["ab", "bad x1", "bad abcde", "c"], (string[])value!);
 	}
 
 	/// <summary>Values built on either side of a boundary may be kept; text inside one segment may.</summary>
