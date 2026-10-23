@@ -363,6 +363,13 @@ public sealed partial class GrammarNormalizer
 			case Node.Lookahead:
 				return false;
 
+			// A repetition that recovers steps over what it could not read up to where it
+			// synchronizes, and both that scan and the synchronization go on past the end of a
+			// segment as past any character: what is around it may hold one, whatever it
+			// synchronizes on. What the recovery hands its own `=>` is answered apart.
+			case Node.Repeat when _recoveries.ContainsKey(node):
+				return true;
+
 			case Node.Call(var rule, var arguments):
 			{
 				if (arguments.Any(argument => ReachesEndOfSegment(argument, reaching)))

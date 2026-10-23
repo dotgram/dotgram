@@ -482,6 +482,26 @@ public sealed class SegmentedInputTests
 	}
 
 	/// <summary>
+	/// A repetition that recovers may step over a boundary, scanning for where it synchronizes or
+	/// synchronizing on one, so text kept around it is refused whatever it synchronizes on — in a
+	/// grammar that names <c>eos</c> anywhere, a publication of it elsewhere included.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : @string = t: (Word* recover eos) & eof => @(t)\nparse Start")]
+	[InlineData("Start : @string = (Word* recover eos) & eof => @(parserText)\nparse Start")]
+	[InlineData("Start : @int = (Word* recover eos) & when @(parserText.Length > 0) & eof => @(0)\nparse Start")]
+	[InlineData("Start = Word* recover eos\nparse Start")]
+	[InlineData("Start : @string = t: (Word* recover ';') & eof => @(t)\nOther : @int = 'b' & eos => @(0)\nparse Start\nparse Other")]
+	[InlineData("Start : @string = (Word* recover ';') & eof => @(parserText)\nOther : @int = 'b' & eos => @(0)\nparse Start\nparse Other")]
+	[InlineData("Start : @int = $q: (Word* recover ';') & 'x' & $q => @(0)\nOther : @int = 'b' & eos => @(0)\nparse Start\nparse Other")]
+	public void Text_around_a_recovery_is_refused(string grammar)
+	{
+		var result = Compile(grammar + "\nWord = 'a'");
+
+		Assert.Contains(result.Diagnostics, one => one.Id == GrammarNormalizer.TextAcrossSegments);
+	}
+
+	/// <summary>
 	/// <c>parserText</c> of what holds no boundary may be read: a rule's own text inside one segment,
 	/// a guard before the first <c>eos</c>, a rejected element's text up to the end of its segment.
 	/// </summary>
