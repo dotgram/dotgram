@@ -63,6 +63,7 @@ jobs:
           dotnet pack src/DotGram.Web/DotGram.Web.csproj         --no-build --configuration Release --output artifacts
           dotnet pack src/DotGram.Finance/DotGram.Finance.csproj --no-build --configuration Release --output artifacts
           dotnet pack src/DotGram.ExpressionLanguage/DotGram.ExpressionLanguage.csproj --no-build --configuration Release --output artifacts
+          dotnet pack src/DotGram.Cli/DotGram.Cli.csproj --no-build --configuration Release --output artifacts
 
       # Each package is the opposite shape of the other, and getting either one wrong
       # is silent: the generator with a lib/ folder would be referenced instead of
@@ -96,6 +97,12 @@ jobs:
               dotnet run --project "tests/DotGram.$library.PackageSmoke/DotGram.$library.PackageSmoke.csproj" --configuration Release --framework "$framework"
             done
           done
+
+      # The tool package, as somebody installs it: from the feed of the packs above into a local tool
+      # manifest, run on .NET 8 and on .NET 10 with the same input, and through `dnx`. .NET 8 is
+      # installed above for this as much as for the libraries.
+      - name: The tool package, in somebody else's build
+        run: dotnet run --project tests/DotGram.Cli.PackageSmoke/DotGram.Cli.PackageSmoke.csproj --configuration Release
 
       - uses: actions/upload-artifact@v4
         with:
@@ -268,6 +275,14 @@ jobs:
 
       - name: Test the trace cost alone
         run: dotnet test --project tests/DotGram.Trace.Tests --no-build --configuration Release
+
+      # The tool is the one package whose install and run differ by platform, so it is packed and
+      # smoked here too; it depends on no other package of this repository.
+      - name: Pack the tool
+        run: dotnet pack src/DotGram.Cli/DotGram.Cli.csproj --no-build --configuration Release --output artifacts
+
+      - name: The tool package, in somebody else's build
+        run: dotnet run --project tests/DotGram.Cli.PackageSmoke/DotGram.Cli.PackageSmoke.csproj --configuration Release
 
       - name: Show the refusal exponents
         if: always()
