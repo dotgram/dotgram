@@ -52,8 +52,21 @@ sealed partial class Machine
 				FirstSets.Of(body, _graph).Or(following.Plain), FirstSets.First.All));
 		var sync      = Compile(recovery.Recovery.Sync, synced, FollowSets.Continuation.All);
 
+		// An element that ends where it began ends the repetition (EndsWhenStill), and the count's entry says
+		// where the turn being read began. A run an element read may still be given back once it is
+		// taken, which comes back into its turn: each turn is then counted as the general loop counts
+		// it, so that coming back puts back where it began (StandingTurn).
+		var stands = max != 1 && FirstSets.StandsStill(body, _graph);
+		var began  = stands ? ", p" : "";
+
+		if (stands)
+		{
+			_usesTurns         = true;
+			_usesStandingTurns = true;
+		}
+
 		atEntry.Line("var repeatIndex = entries.Count;");
-		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");
+		atEntry.Line($"entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0{began}));");
 		atEntry.Line("repeat = repeatIndex;");
 		atEntry.Line($"goto {Label(atEntry, loop)};");
 
@@ -185,7 +198,10 @@ sealed partial class Machine
 		atRecovered.Line(
 			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, recoveredRepeat.Position, " +
 			"recoveredRepeat.CallIndex, recoveredRepeat.AtomicIndex, recoveredRepeat.RepeatIndex, " +
-			"recoveredRepeat.LookaheadIndex, recoveredRepeat.Value + 1);");
+			$"recoveredRepeat.LookaheadIndex, recoveredRepeat.Value + 1{began});");
+		if (stands)
+			atRecovered.Line(
+				"entries.Add(new ParserEntry(ParserEntry.TurnDone, 1, p, call, atomic, repeat, lookahead, recoveredRepeat.RuleIndex));");
 		atRecovered.Line($"goto {Label(atRecovered, loop)};");
 
 		DeactivateChoices(atAfter, asked);
@@ -194,10 +210,15 @@ sealed partial class Machine
 			TurnEnds(atAfter, id);
 
 		atAfter.Line("var acceptedRepeat = entries[repeat];");
+		if (stands)
+			atAfter.Line($"if (p == acceptedRepeat.RuleIndex) goto {Label(atAfter, exit)};");
 		atAfter.Line(
 			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, acceptedRepeat.Position, " +
 			"acceptedRepeat.CallIndex, acceptedRepeat.AtomicIndex, acceptedRepeat.RepeatIndex, " +
-			"acceptedRepeat.LookaheadIndex, acceptedRepeat.Value + 1);");
+			$"acceptedRepeat.LookaheadIndex, acceptedRepeat.Value + 1{began});");
+		if (stands)
+			atAfter.Line(
+				"entries.Add(new ParserEntry(ParserEntry.TurnDone, 1, p, call, atomic, repeat, lookahead, acceptedRepeat.RuleIndex));");
 		atAfter.Line($"goto {Label(atAfter, loop)};");
 
 		LeaveRepeat(atExit, next);

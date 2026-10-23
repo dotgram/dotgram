@@ -256,7 +256,9 @@ sealed partial class Machine
 		// the general machinery stays, which is the safe direction for a guess to fail in.
 		// Possessive asks whether what follows can fail after a turn and want one back, so it
 		// reads the view (Continuation.Taught); the body's own nodes are asked under their own.
-		return Unrolls(repeat) &&
+		// Not one that ends at a turn that stood still: the general loop is what asks (EndsWhenStill).
+		return !EndsWhenStill(repeat) &&
+		Unrolls(repeat) &&
 		Possessive(repeat.Body, following.Taught) &&
 		SilentWithin(
 			repeat.Body,

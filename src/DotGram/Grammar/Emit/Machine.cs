@@ -1121,6 +1121,12 @@ sealed partial class Machine
 	bool _usesTurns;
 
 	/// <summary>
+	/// Whether any repetition ends at a turn that ended where it began (<see cref="EndsWhenStill"/>), and so
+	/// has its count's entry say where the turn being read began, which un-counting puts back.
+	/// </summary>
+	bool _usesStandingTurns;
+
+	/// <summary>
 	/// The rule whose body is being compiled, for the trace lines its states carry.
 	/// </summary>
 	/// <remarks>
@@ -2285,11 +2291,13 @@ sealed partial class Machine
 							file.Line("var counted = entries[entry.RepeatIndex];");
 							file.Line();
 							file.Line("global::System.Diagnostics.Debug.Assert(counted.Kind == ParserEntry.Repeat);");
+							// A turn of a repetition that ends at one standing still hands back where it
+							// began, which is where the turn being read begins again.
 							file.Line(
 								"entries[entry.RepeatIndex] = new ParserEntry(ParserEntry.Repeat, 0, " +
 								"counted.Position, counted.CallIndex, counted.AtomicIndex, " +
 								"counted.RepeatIndex, counted.LookaheadIndex, counted.Value - 1, " +
-								"counted.RuleIndex);");
+								(_usesStandingTurns ? "entry.State != 0 ? entry.Value : counted.RuleIndex" : "counted.RuleIndex") + ");");
 							file.Line("Step_DotGram(\"give a turn back\", entry.RepeatIndex, entry.Position, entries.Count, text, \"\");");
 							file.Line("continue;");
 						}
@@ -4430,11 +4438,12 @@ sealed partial class Machine
 				FirstSets.Of(body, _graph).Or(one.Plain),
 				FirstSets.Of(body, _graph).Or(one.Plain))));
 
-		var least = CountBoundRead(atEntry, min, "leastAt");
-		var most  = max is null ? null : SameCountBound(min, max) ? least : CountBoundRead(atEntry, max, "mostAt");
+		var least  = CountBoundRead(atEntry, min, "leastAt");
+		var most   = max is null ? null : SameCountBound(min, max) ? least : CountBoundRead(atEntry, max, "mostAt");
+		var stands = FirstSets.StandsStill(body, _graph);
 
 		atEntry.Line("var repeatIndex = entries.Count;");
-		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");
+		atEntry.Line($"entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0{(stands ? ", p" : "")}));");
 		atEntry.Line(
 			$"entries.Add(new ParserEntry(ParserEntry.Dead, 0, {least}, call, atomic, repeatIndex, lookahead, {most ?? "-1"}));");
 		atEntry.Line("repeat = repeatIndex;");
@@ -4475,15 +4484,21 @@ sealed partial class Machine
 
 		atLoop.Line($"goto {Label(atLoop, inner)};");
 
-		atAfter.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
-		atAfter.Line("var repeated = entries[repeat];");
-		atAfter.Line(
-			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, " +
-			"repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, " +
-			"repeated.LookaheadIndex, repeated.Value + 1);");
-		atAfter.Line(
-			"entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, " +
-			"lookahead, 0));");
+		if (stands)
+			StandingTurn(atAfter, exit);
+		else
+		{
+			atAfter.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
+			atAfter.Line("var repeated = entries[repeat];");
+			atAfter.Line(
+				"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, " +
+				"repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, " +
+				"repeated.LookaheadIndex, repeated.Value + 1);");
+			atAfter.Line(
+				"entries.Add(new ParserEntry(ParserEntry.TurnDone, 0, p, call, atomic, repeat, " +
+				"lookahead, 0));");
+		}
+
 		atAfter.Line($"goto {Label(atAfter, loop)};");
 
 		// The count and its bounds go together, where nothing above them is left to name them.
@@ -6204,7 +6219,11 @@ sealed partial class Machine
 		//
 		// Asked of the view (Continuation.Taught): a turn given back is wanted only where what
 		// follows failed, and a positional stop with nothing that can refuse before it does not.
-		var settled = Determinism.NeverGivesBack(repeatNode, following.Taught, _graph, _seam);
+		//
+		// Not one that ends at a turn that stood still (EndsWhenStill): its count's entry says where the turn
+		// being read began, where a settled one keeps its standing exit's place.
+		var stands  = EndsWhenStill(repeatNode);
+		var settled = !stands && Determinism.NeverGivesBack(repeatNode, following.Taught, _graph, _seam);
 
 		// A settled optional whose body one character decides needs no arena at all. The
 		// character says whether the body is entered; entered, it must finish, because
@@ -6298,7 +6317,7 @@ sealed partial class Machine
 					FirstSets.Of(body, _graph).Or(one.Plain))));
 
 		atEntry.Line("var repeatIndex = entries.Count;");
-		atEntry.Line("entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));");
+		atEntry.Line($"entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0{(stands ? ", p" : "")}));");
 		atEntry.Line("repeat = repeatIndex;");
 		atEntry.Line($"Step_DotGram(\"enter repeat\", {Mark(Lands, loop)}, p, entries.Count{Traced});");
 		atEntry.Line($"goto {Label(atEntry, loop)};");
@@ -6358,7 +6377,9 @@ sealed partial class Machine
 		// counting for a reader that does not exist costs a read and a write of the entry
 		// on every iteration. A settled repetition goes through here whatever its bounds:
 		// the standing exit's position is written by the loop head it is about to re-enter.
-		if (min > 0 || max is not null)
+		if (stands)
+			StandingTurn(atAfter, exit);
+		else if (min > 0 || max is not null)
 		{
 			_usesTurns = true;
 
@@ -6402,7 +6423,11 @@ sealed partial class Machine
 		// nothing — every way back the general machinery keeps is still kept. The body
 		// must not match empty: taking nothing and matching nothing differ by exactly
 		// the records §10 tells apart, and only the first may be chosen here.
-		var barred = Decidable(body) is { } heads
+		// Nor where a turn may stand still: it is then a turn taken wherever it stands, not one that
+		// begins on a character.
+		var barred = stands
+			? null
+			: Decidable(body) is { } heads
 			? RangesTest(heads.Ranges, Tabulate)
 			: !FirstSets.Nullable(body, _graph)
 				? EntryTest(body)
@@ -6553,6 +6578,44 @@ sealed partial class Machine
 				? tests[0]
 				: string.Join(" || ", tests.Select(static test => $"({test})"));
 		}
+	}
+
+	/// <summary>
+	/// Whether a turn of <paramref name="repeat"/> that ends where it began ends the repetition: one
+	/// whose turn may do that only through a recognizer of the host (<see cref="FirstSets.StandsStill"/>),
+	/// where a turn after it would begin where it did and read what it read, round and round. A
+	/// repetition of one turn has no turn after it to stop.
+	/// </summary>
+	bool EndsWhenStill(Node.Repeat repeat)
+	{
+		return repeat.Max != 1 && FirstSets.StandsStill(repeat.Body, _graph);
+	}
+
+	/// <summary>
+	/// The end of a turn of a repetition that <see cref="EndsWhenStill"/>: one that ended where it began is
+	/// the last, kept with what it built and standing for every turn still owed, so it leaves for
+	/// <paramref name="exit"/>; any other is counted, and where it ended is where the next begins.
+	/// </summary>
+	/// <remarks>
+	/// Where the turn being read began is kept in the count's entry (its <c>RuleIndex</c>), and
+	/// each turn's <c>TurnDone</c> holds where that turn began, so that backtracking into a turn
+	/// puts back where it began as it puts back the count (<see cref="_usesStandingTurns"/>).
+	/// </remarks>
+	void StandingTurn(Writer atAfter, int exit)
+	{
+		_usesTurns         = true;
+		_usesStandingTurns = true;
+
+		atAfter.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
+		atAfter.Line("var repeated = entries[repeat];");
+		atAfter.Line($"if (p == repeated.RuleIndex) goto {Label(atAfter, exit)};");
+		atAfter.Line(
+			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, " +
+			"repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, " +
+			"repeated.LookaheadIndex, repeated.Value + 1, p);");
+		atAfter.Line(
+			"entries.Add(new ParserEntry(ParserEntry.TurnDone, 1, p, call, atomic, repeat, " +
+			"lookahead, repeated.RuleIndex));");
 	}
 
 	void LeaveRepeat(Writer writer, int next)
