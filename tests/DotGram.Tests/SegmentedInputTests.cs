@@ -169,6 +169,40 @@ public sealed class SegmentedInputTests
 	}
 
 	/// <summary>
+	/// A publication may be called what the parser's own members are called but for their
+	/// <c>_DotGram</c>: <c>Read</c>, <c>Joined</c>, <c>Located</c> and the rest meet none of them, and
+	/// <c>Parse</c> meets no other publication's forms.
+	/// </summary>
+	[Fact]
+	public void A_publication_may_be_called_what_the_parser_calls_its_own()
+	{
+		var parser = Build("""
+			Word  = ['a'..'z']+
+			Start : @int = w: Word & eos => @(w.Length)
+			parse Start as Read
+			parse Start as Parse
+			parse Start as Joined
+			parse Start as Located
+			find Word as Listed
+			find Word as Holds
+			""");
+
+		foreach (var name in new[] { "Read", "Parse", "Joined", "Located" })
+		{
+			var (success, value, _, _) = TryParse(parser, "Try" + name, ["abc"]);
+
+			Assert.True(success, name);
+			Assert.Equal(3, value);
+			Assert.Equal(2, Invoke(parser, name, typeof(TextReader), new StringReader("ab\n")));
+		}
+
+		foreach (var name in new[] { "Listed", "Holds" })
+			Assert.Equal(
+				2,
+				((System.Collections.IEnumerable)Invoke(parser, name, typeof(IReadOnlyList<string>), new[] { "ab", "cd" })!).Cast<object>().Count());
+	}
+
+	/// <summary>
 	/// The until idioms of the library stop at a boundary as at the end of the input: a string, a
 	/// comment or a pair left open there is refused, not read on into the next segment.
 	/// </summary>
