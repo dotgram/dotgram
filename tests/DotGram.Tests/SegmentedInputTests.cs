@@ -580,6 +580,28 @@ public sealed class SegmentedInputTests
 	}
 
 	/// <summary>
+	/// <c>?!any</c> holds at the end of a segment, where <c>any</c> reads nothing, and a refusal by
+	/// it says so rather than the end of the input.
+	/// </summary>
+	[Theory]
+	[InlineData(CarrierKind.Tape, true)]
+	[InlineData(CarrierKind.Immediate, true)]
+	[InlineData(CarrierKind.Tape, false)]
+	[InlineData(CarrierKind.Immediate, false)]
+	public void A_look_that_refuses_any_says_the_end_of_a_segment(CarrierKind carrier, bool direct)
+	{
+		var parser = Build("Start : @int = 'a' & ?!any & eos => @(0)\nparse Start", carrier: carrier, direct: direct);
+
+		Assert.True(TryParse(parser, "TryParseStart", ["a"]).Success);
+
+		var (success, _, error, position) = TryParse(parser, "TryParseStart", ["ab"]);
+
+		Assert.False(success);
+		Assert.Equal(1, position);
+		Assert.Equal("Expected end of segment.", error);
+	}
+
+	/// <summary>
 	/// A left recursion's text inside one segment may be read: the seed and every step stay in it.
 	/// </summary>
 	[Fact]

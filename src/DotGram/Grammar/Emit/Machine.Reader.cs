@@ -6270,13 +6270,17 @@ sealed partial class Machine
 			// refused at the end after an optional said only that the input did not match,
 			// where the engine names the end. Not in a rule the engine reads as a scan, nor in
 			// the seam or what it calls, which the engine reads without recording.
-			var ends = !positive && Machine.IsAny(inside) &&
+			// In a grammar that names `eos`, `any` leaves the joiner out, and `?!any` holds at the end
+			// of a segment as well: said as that, which is where it holds within the input.
+			var input   = Machine.IsAny(inside, machine._graph.Segmented);
+			var segment = machine.IsSegmentAny(inside);
+			var ends    = !positive && (input || segment) &&
 				machine.ScannerOf(owner) is null && !machine.SeamReached.Contains(owner);
 
 			if (ends)
 			{
 				using (code.Block($"if ({seen} >= 0)"))
-					Refused(code, machine.EndOfInputExpected());
+					Refused(code, input ? machine.EndOfInputExpected() : machine.EndOfSegmentExpected());
 
 				return;
 			}
