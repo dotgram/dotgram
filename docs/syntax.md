@@ -300,7 +300,9 @@ before it is read. A literal or a class item that is U+0000 and nothing else cou
 is an error (`GRAM4047`); a range or a category that merely holds it —
 `['\0'..'\u001F']`, `\p{Cc}` — reads the rest of what it holds. A predicate a class
 calls (§7.1) is never asked about the end of a segment, and a recognizer of the
-host (§7.1) sees the current segment: its input ends where the segment does.
+host (§7.1) is handed the current segment and nothing else: its input begins and ends
+where the segment does, and the position it is handed and moves counts from the
+segment's start, a value-producing one's included.
 
 ### 3.2 Composition
 
