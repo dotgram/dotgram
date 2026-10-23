@@ -394,4 +394,21 @@ public sealed class RefusalTests
 		Assert.DoesNotContain("names no target framework", run.Error, StringComparison.Ordinal);
 		Assert.Contains("GRAM3004", run.Output, StringComparison.Ordinal);
 	}
+
+	/// <summary>
+	/// A project whose path has <c>%XX</c>, which MSBuild reads as an escaped character, is refused as
+	/// that, not as a project that is not restored.
+	/// </summary>
+	[Fact]
+	public void A_project_path_MSBuild_would_unescape_is_said_so()
+	{
+		using var scratch = new Scratch();
+
+		var project = scratch.Write("pct %41/p.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><TargetFramework>net10.0</TargetFramework></PropertyGroup></Project>");
+		var run     = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"));
+
+		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
+		Assert.Contains("'%41', which MSBuild reads as an escaped character", run.Error, StringComparison.Ordinal);
+		Assert.DoesNotContain("not restored", run.Error, StringComparison.Ordinal);
+	}
 }

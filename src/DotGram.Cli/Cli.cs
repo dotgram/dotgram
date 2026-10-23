@@ -275,6 +275,11 @@ static class Cli
 		if (!File.Exists(options.Input))
 			throw ToolException.Failure($"project '{options.Input}' does not exist.");
 
+		// MSBuild reads %XX in a path as an escaped character: it then looks for the project's files, and
+		// for what restore wrote, somewhere else, and says the project is not restored.
+		if (System.Text.RegularExpressions.Regex.Match(Path.GetDirectoryName(options.Input)!, "%[0-9A-Fa-f]{2}") is { Success: true } escape)
+			throw ToolException.Failure($"the project's path has '{escape.Value}', which MSBuild reads as an escaped character: neither dotnet build nor this tool can build {options.Input} where it is.");
+
 		var sdk      = MSBuild.SdkOf(options.Input);
 		var targeted = MSBuild.Frameworks(options.Input, options.Configuration, sdk);
 
