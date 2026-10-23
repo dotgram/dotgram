@@ -271,6 +271,43 @@ public sealed class SegmentedInputTests
 		}
 	}
 
+	/// <summary>
+	/// A recovering repetition whose element reads boundaries reads it as an ordinary reading does
+	/// (docs/syntax.md §8.2): an element that matches by giving back a turn of its own is an
+	/// element, and the next one, refused with input left, is stepped over to the end. As the same
+	/// grammar over one string with a character of its own where each boundary was.
+	/// </summary>
+	[Theory]
+	[InlineData("|a\\", "0:,bad")]
+	[InlineData("|a", "1:")]
+	[InlineData("a\\", "bad")]
+	[InlineData("||a|a\\", "0:,1:,bad")]
+	[InlineData("|", "0:,0:")]
+	public void A_recovering_element_gives_back_a_boundary_as_a_placeholder_would(string written, string expected)
+	{
+		var segments = written.Split('|');
+
+		const string grammar = """
+			Start : @string = parts: Part* recover 'x' => @("bad") & eof => @(string.Join(",", parts))
+			Part  : @string = n: A* & eos => @(n.Length + ":")
+			A     : @string = eos & t: 'a' => @(t)
+			parse Start
+			""";
+
+		foreach (var (carrier, direct) in new[]
+			{ (CarrierKind.Tape, true), (CarrierKind.Immediate, true), (CarrierKind.Tape, false), (CarrierKind.Immediate, false) })
+		{
+			var segmented = Build(grammar, carrier: carrier, direct: direct);
+			var placed    = Build(grammar.Replace("eos", "'\\u0001'"), segmented: false, carrier: carrier, direct: direct);
+
+			var (success, value, _, _) = TryParse(segmented, "TryParseStart", segments);
+
+			Assert.True(success);
+			Assert.Equal(expected, value);
+			Assert.Equal(EmittedCode.Match(placed, "Grammar", "TryParseStart", string.Concat(segments.Select(one => one + "\u0001"))).Value, value);
+		}
+	}
+
 	/// <summary>Text kept across a boundary is refused: there is no text of a boundary to keep.</summary>
 	[Theory]
 	[InlineData("Start : @string = t: (Word & eos & Word) => @(t)\nWord = ['a'..'z']*\nparse Start")]
