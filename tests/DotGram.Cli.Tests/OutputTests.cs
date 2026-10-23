@@ -294,4 +294,82 @@ public sealed class OutputTests
 			return false;
 		}
 	}
+
+	/// <summary>
+	/// The printed line is one git reads as matching the folder's files: checked with <c>git check-attr</c>,
+	/// for a path with blanks, a quote and glob characters, for an output folder that is the repository's
+	/// root, and for one inside a repository whose <c>.git</c> is a file (a worktree or a submodule).
+	/// </summary>
+	[Theory]
+	[InlineData("src/My App/Generated")]
+	[InlineData("src/a\"b [x]*?/Generated")]
+	[InlineData("src/plain/Generated")]
+	[InlineData("")]
+	public void Git_reads_the_printed_line_as_the_output_folder_s(string folder)
+	{
+		Assert.SkipWhen(OperatingSystem.IsWindows() && folder.IndexOfAny(['"', '*', '?']) >= 0, "Windows has no such file name");
+
+		using var scratch = new Scratch();
+
+		var repository = scratch.Path("repo");
+		var output     = folder.Length == 0 ? repository : Path.Combine(repository, folder);
+		var file       = Path.Combine(output, "Parser.g.cs");
+
+		Directory.CreateDirectory(output);
+		File.WriteAllText(file, "");
+
+		var (exit, text) = Git(repository, "init", "-q");
+
+		Assert.SkipWhen(exit < 0, "git is not installed");
+		Assert.True(exit == 0, text);
+
+		var printed = Cli.Attributes(output);
+		var line    = printed.Substring(1, printed.IndexOf("' in ", StringComparison.Ordinal) - 1);
+
+		Assert.EndsWith("at the repository's root", printed, StringComparison.Ordinal);
+
+		File.WriteAllText(Path.Combine(repository, ".gitattributes"), line + "\n");
+
+		(exit, text) = Git(repository, "check-attr", "text", "--", Path.GetRelativePath(repository, file));
+
+		Assert.True(exit == 0, text);
+		Assert.EndsWith(": text: unset", text.Trim(), StringComparison.Ordinal);
+	}
+
+	/// <summary>A <c>.git</c> file, as a worktree or a submodule has, marks the repository's root too, the output folder's own included.</summary>
+	[Fact]
+	public void A_git_file_marks_the_root_and_the_output_folder_s_own_counts()
+	{
+		using var scratch = new Scratch();
+
+		File.WriteAllText(scratch.Path(".git"), "gitdir: elsewhere\n");
+		Directory.CreateDirectory(scratch.Path("module"));
+		File.WriteAllText(scratch.Path("module", ".git"), "gitdir: elsewhere\n");
+
+		Assert.Equal("'src/Generated/** -text' in the .gitattributes at the repository's root", Cli.Attributes(scratch.Path("src", "Generated")));
+		Assert.Equal("'** -text' in the .gitattributes at the repository's root", Cli.Attributes(scratch.Path("module")));
+	}
+
+	static (int Exit, string Output) Git(string directory, params string[] arguments)
+	{
+		var start = new System.Diagnostics.ProcessStartInfo("git") { WorkingDirectory = directory, RedirectStandardOutput = true, RedirectStandardError = true };
+
+		foreach (var argument in arguments)
+			start.ArgumentList.Add(argument);
+
+		try
+		{
+			using var process = System.Diagnostics.Process.Start(start)!;
+
+			var output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
+
+			process.WaitForExit();
+
+			return (process.ExitCode, output);
+		}
+		catch (System.ComponentModel.Win32Exception)
+		{
+			return (-1, "");
+		}
+	}
 }
