@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace DotGram.Cli;
 
@@ -175,22 +176,25 @@ static class MSBuild
 	/// <summary>
 	/// The longest directory a process can be started in: Win32 <c>CreateProcess</c> rejects a current
 	/// directory of <c>MAX_PATH</c> (260) characters, including the terminator, less room for an 8.3 file
-	/// name, whatever the long-path opt-in says. Fewer than this is always accepted.
+	/// name, whatever the long-path opt-in says. Fewer than this is always accepted. Elsewhere any directory
+	/// the project can be in can be a current directory, and the project's own is always used.
 	/// </summary>
-	internal const int MaxWorkingDirectory = 248;
+	internal static readonly int MaxWorkingDirectory = OperatingSystem.IsWindows() ? 248 : int.MaxValue;
 
 	/// <summary>
 	/// Where to start <c>dotnet</c> for a project in <paramref name="directory"/>. The directory itself, while it
 	/// is short enough: the <c>dotnet</c> muxer reads <c>global.json</c> from the current directory and up, so
 	/// that is what makes it pick the SDK <c>dotnet build</c> picks there. A longer one cannot be a current
 	/// directory, so the process starts in a fresh short folder that holds a copy of the <c>global.json</c> the
-	/// project's directory would find (the same SDK is chosen); MSBuild itself reads the project, its
-	/// <c>Directory.Build.props</c> and the rest by their full paths, not through the current directory.
+	/// project's directory would find, its relative <c>sdk.paths</c> made full (<see cref="Relocated"/>), so
+	/// that the same SDK is chosen; MSBuild itself reads the project, its <c>Directory.Build.props</c> and the
+	/// rest by their full paths, not through the current directory, and finds <c>msbuild-sdks</c> in the
+	/// <c>global.json</c> above the project.
 	/// </summary>
 	/// <returns>The directory to start in, and the folder to delete afterwards (null where there is none).</returns>
-	internal static (string Directory, string? Temporary) WorkingDirectoryFor(string directory, int limit = MaxWorkingDirectory)
+	internal static (string Directory, string? Temporary) WorkingDirectoryFor(string directory, int? limit = null)
 	{
-		if (directory.Length < limit)
+		if (directory.Length < (limit ?? MaxWorkingDirectory))
 			return (directory, null);
 
 		var temporary = Path.Combine(Path.GetTempPath(), "dotgram-cli-" + Guid.NewGuid().ToString("N"));
@@ -203,12 +207,59 @@ static class MSBuild
 
 			if (File.Exists(pinned))
 			{
-				File.Copy(pinned, Path.Combine(temporary, "global.json"));
+				var copy = Path.Combine(temporary, "global.json");
+
+				if (Relocated(pinned) is { } text)
+					File.WriteAllText(copy, text);
+				else
+					File.Copy(pinned, copy);
+
 				break;
 			}
 		}
 
 		return (temporary, temporary);
+	}
+
+	/// <summary>
+	/// The text of a copy of the <c>global.json</c> at <paramref name="path"/> that chooses the SDK the
+	/// original does from another folder. The muxer reads each <c>sdk.paths</c> entry other than
+	/// <c>$host$</c> against the file's own folder, so a relative one is made full; nothing else in the file
+	/// depends on where it is.
+	/// </summary>
+	/// <returns>The text, or null where nothing needs to change (or the file does not read as JSON: the
+	/// muxer then says what is wrong with it, from the copy as from the original), and the file is copied as it is.</returns>
+	internal static string? Relocated(string path)
+	{
+		JsonNode? root;
+
+		try
+		{
+			root = JsonNode.Parse(
+				File.ReadAllText(path),
+				documentOptions: new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
+		}
+		catch (JsonException)
+		{
+			return null;
+		}
+
+		if (root is not JsonObject { } file || file["sdk"] is not JsonObject sdk || sdk["paths"] is not JsonArray paths)
+			return null;
+
+		var folder  = Path.GetDirectoryName(Path.GetFullPath(path))!;
+		var changed = false;
+
+		for (var i = 0; i < paths.Count; i++)
+		{
+			if (paths[i] is JsonValue value && value.TryGetValue<string>(out var entry) && entry != "$host$" && entry.Length > 0 && !Path.IsPathRooted(entry))
+			{
+				paths[i] = Path.GetFullPath(entry, folder);
+				changed  = true;
+			}
+		}
+
+		return changed ? file.ToJsonString(new JsonSerializerOptions { WriteIndented = true }) : null;
 	}
 
 	static (int Exit, string Output, string Error) Run(string directory, IEnumerable<string> arguments)
