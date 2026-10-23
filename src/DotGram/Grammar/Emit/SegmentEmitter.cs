@@ -49,15 +49,26 @@ public static partial class CSharpEmitter
 			/// <summary>What a segment that holds U+0000 is told: in this grammar that is where a segment ends.</summary>
 			private const string Holds_DotGram = "A segment holds U+0000, which this grammar reads as the end of a segment and never as a character of one.";
 
-			/// <summary>The segments as the text the parser reads, or a refusal of the first segment that holds U+0000.</summary>
+			/// <summary>
+			/// The segments as the text the parser reads, or a refusal of the first segment that holds U+0000,
+			/// which says where it holds it as a line, the segment, and a column, the offset in it.
+			/// </summary>
 			private static string Joined_DotGram(global::System.Collections.Generic.IReadOnlyList<string> input)
 			{
 				var text = Joined_DotGram(input, out var refused);
 
 				if (refused >= 0)
+				{
+					var line = 0;
+
+					while ((input[line] ?? "").IndexOf({{JoinerLiteral}}) < 0)
+						line++;
+
 					throw new global::System.FormatException(
-						Holds_DotGram.Substring(0, Holds_DotGram.Length - 1) + " at " +
-						refused.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
+						Holds_DotGram.Substring(0, Holds_DotGram.Length - 1) + " at line " +
+						(line + 1).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", column " +
+						(input[line].IndexOf({{JoinerLiteral}}) + 1).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
+				}
 
 				return text;
 			}
@@ -477,12 +488,18 @@ public static partial class CSharpEmitter
 	/// </summary>
 	static readonly (string From, string To)[] SegmentedLines =
 	[
-		// Lines: the joiner where a line had its newline, and no segment that holds it.
+		// Lines: the joiner where a line had its newline, and no segment that holds it, refused at the
+		// line it is and the column it holds it at.
 		("buffer[index + written] = '\\n';", $"buffer[index + written] = {JoinerLiteral};"),
+		("private bool   _disposed;", "private bool   _disposed;\n\tprivate int    _count;"),
 		("_line   = _lines.Current ?? \"\";",
-		 "_line   = _lines.Current ?? \"\";\n\n" +
+		 "_line   = _lines.Current ?? \"\";\n" +
+		 "\t\t_count++;\n\n" +
 		 $"\t\tif (_line.IndexOf({JoinerLiteral}) >= 0)\n" +
-		 "\t\t\tthrow new global::System.FormatException(\"A segment holds U+0000, which this grammar reads as the end of a segment and never as a character of one.\");"),
+		 "\t\t\tthrow new global::System.FormatException(\n" +
+		 "\t\t\t\t\"A segment holds U+0000, which this grammar reads as the end of a segment and never as a character of one at line \" +\n" +
+		 "\t\t\t\t_count.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \", column \" +\n" +
+		 $"\t\t\t\t(_line.IndexOf({JoinerLiteral}) + 1).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + \".\");"),
 
 		// Window: a line ends at the joiner, and at nothing else.
 		("return c == '\\r' || c == '\\n' && !(at > 0 ? _buffer[at - 1] == '\\r' : _droppedCr);", $"return c == {JoinerLiteral};"),

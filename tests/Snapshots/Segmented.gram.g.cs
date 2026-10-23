@@ -1528,9 +1528,17 @@ namespace DotGram.Snapshots
 			var text = Joined_DotGram(input, out var refused);
 
 			if (refused >= 0)
+			{
+				var line = 0;
+
+				while ((input[line] ?? "").IndexOf('\0') < 0)
+					line++;
+
 				throw new global::System.FormatException(
-					Holds_DotGram.Substring(0, Holds_DotGram.Length - 1) + " at " +
-					refused.ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
+					Holds_DotGram.Substring(0, Holds_DotGram.Length - 1) + " at line " +
+					(line + 1).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ", column " +
+					(input[line].IndexOf('\0') + 1).ToString(global::System.Globalization.CultureInfo.InvariantCulture) + ".");
+			}
 
 			return text;
 		}
