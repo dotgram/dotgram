@@ -482,6 +482,10 @@ public sealed class SegmentedInputTests
 	[InlineData("Start : @int[] = items: Item* recover (Item* recover (';' & when @(parserText.Length > 0)) => @(0)) => @(0) & eof => @(items)\nItem : @int = 'a' & eos => @(1)\nparse Start")]
 	[InlineData("Start : @int[] = items: Item* recover Sync => @(0) & eof => @(items)\nItem : @int = 'a' & eos => @(1)\nSync = when @(parserText.Length > 0) & eos\nparse Start")]
 	[InlineData("Start : @int = 'a' & eos & Sub & eos => @(0)\nSub = when @(parserText.Length > 0) & 'b'\nparse Start")]
+	[InlineData("Root : @string = v: E & eos => @(v)\nE : @string = left: E & 'a' => @(parserText)\n | eos => @(\"seed\")\nparse Root")]
+	[InlineData("Root : @string = v: E & eos => @(v)\nE : @string = left: E & eos & 'a' => @(parserText)\n | 'b' => @(\"seed\")\nparse Root")]
+	[InlineData("Root : @string = v: E & eos => @(v)\nE : @string = left: E & 'a' & when @(parserText.Length > 0) => @(left)\n | eos => @(\"seed\")\nparse Root")]
+	[InlineData("Root : @string = v: E & eos => @(v)\nE : @string = left: E & '+' & right: E << 1 => @(parserText)\n | eos & d: ['0'..'9'] => @(d)\nparse Root")]
 	public void Text_across_a_boundary_is_refused(string grammar)
 	{
 		var result = Compile(grammar);
@@ -549,6 +553,25 @@ public sealed class SegmentedInputTests
 
 		Assert.True(success);
 		Assert.Equal(["ab", "bad x1", "bad abcde", "c"], (string[])value!);
+	}
+
+	/// <summary>
+	/// A left recursion's text inside one segment may be read: the seed and every step stay in it.
+	/// </summary>
+	[Fact]
+	public void Text_of_a_left_recursion_in_one_segment_may_be_read()
+	{
+		var parser = Build("""
+			Root : @string[] = (v: E & eos)* => @(v)
+			E    : @string   = left: E & 'a' => @(parserText)
+			                 | 'b' => @("seed")
+			parse Root
+			""");
+
+		var (success, value, _, _) = TryParse(parser, "TryParseRoot", ["baa", "b"]);
+
+		Assert.True(success);
+		Assert.Equal(["baa", "seed"], (string[])value!);
 	}
 
 	/// <summary>

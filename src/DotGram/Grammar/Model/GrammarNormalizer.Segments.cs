@@ -439,11 +439,14 @@ public sealed partial class GrammarNormalizer
 				Supplied(condition, before, "a 'when'");
 				return;
 
+			// What a construction is handed as `parserText` is its rule's text from where the rule
+			// began, and a left recursion's step is read after its seed and the steps before it
+			// (§4.3): what stood before the construction is in that text as well.
 			case Node.Construct(var body, var how):
 				CheckSuppliedText(body, before, rule, at, reaching, inPlace);
 
 				if (how is Construction.Expression(var built, _))
-					Supplied(built, ReachesEndOfSegment(body, reaching), "a '=>'");
+					Supplied(built, before || ReachesEndOfSegment(body, reaching), "a '=>'");
 
 				return;
 
@@ -486,6 +489,7 @@ public sealed partial class GrammarNormalizer
 					CheckSuppliedText(argument, true, rule, at, reaching, inPlace);
 
 				if (!called.IsBuiltIn && !BuildsValue(called) && _bodies.TryGetValue(called, out var inner) &&
+					!NodeWalk.Descendants(inner).Any(static one => one is Node.Construct or Node.Bind) &&
 					inPlace.Add((called, before)))
 					CheckSuppliedText(inner, before, rule, at, reaching, inPlace);
 
