@@ -60,6 +60,14 @@ sealed partial class Machine
 
 			if (UsesChar)
 				file.Line("var c = '\\0';");
+
+			// Where the segment a recognizer of the host is called in ends (CSharpEmitter.SegmentOf).
+			if (CutsSegment())
+			{
+				file.Line("var segmentFrom = 0;");
+				file.Line("var segmentEnd  = -1;");
+			}
+
 			file.Line("string[]? expected = null;");
 			// Set where a room check fails and read where a failure is recorded, so
 			// what it says is of the furthest failure and not of any (§7.5).
@@ -431,6 +439,14 @@ sealed partial class Machine
 
 			if (UsesChar)
 				file.Line("var c = '\\0';");
+
+			// Where the segment a recognizer of the host is called in ends (CSharpEmitter.SegmentOf).
+			if (CutsSegment())
+			{
+				file.Line("var segmentFrom = 0;");
+				file.Line("var segmentEnd  = -1;");
+			}
+
 			file.Line("string[]? expected = null;");
 			// Set where a room check fails and read where a failure is recorded, so
 			// what it says is of the furthest failure and not of any (§7.5).
