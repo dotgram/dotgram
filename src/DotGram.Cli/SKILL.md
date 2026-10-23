@@ -81,8 +81,11 @@ every run uses the same ones:
 dotnet dotgram generate @grammars.rsp
 ```
 
-To check it in CI, run it there and fail on `git diff --exit-code` over the folder.
-`Generated/** -text` in `.gitattributes` keeps the files as the generator writes them (CRLF).
+To check it in CI, run it there and fail if `git status --porcelain -- <folder>` prints anything
+(`git diff --exit-code` misses a file the run added).
+`<folder>/** -text` in the repository's `.gitattributes`, the folder's path from the root, keeps the files as
+the generator writes them (CRLF); a bare `Generated/**` matches only a folder beside the `.gitattributes`.
+The tool prints the line for its output folder.
 
 ## Reading what it says
 
