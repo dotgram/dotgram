@@ -299,7 +299,8 @@ synchronization, which is read where the element broke. A `when` in a rule that 
 value is read as if it stood where the rule is called: such a rule may be compiled there, and
 its `parserText` is then the calling rule's. A count by a length,
 `X{#q}`, is read as any repetition is, and a repetition whose most is nought, `X{0}` or a
-parameter's `{n}` in an instance where it is nought, reads nothing. A `recover` without a
+parameter's `{n}` in an instance where it is nought, reads nothing, and one marked `recover`
+never recovers. A `recover` without a
 `=>` hands `OnRecovered` (§8.3) the text it stepped over, and is refused unless it
 synchronizes on `eos`, which stops at the end of the element's own segment: so a feed
 written `Row* recover eos` tells the hook the rest of the bad row's segment and nothing
