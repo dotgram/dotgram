@@ -266,7 +266,10 @@ public sealed class GrammarInputTests
 	public void A_glob_passes_over_a_folder_it_cannot_read()
 	{
 		if (OperatingSystem.IsWindows())
+		{
+			Assert.Skip("file modes are Unix's");
 			return;
+		}
 
 		using var scratch = new Scratch();
 
@@ -279,9 +282,8 @@ public sealed class GrammarInputTests
 
 		try
 		{
-			// Where the folder can be read all the same (a process with the rights to), there is nothing to check.
-			if (Directory.Exists(locked) && CanList(locked))
-				return;
+			// A process with the rights to read it all the same (root) cannot be shown the path at all.
+			Assert.SkipWhen(CanList(locked), "the folder stays readable to this process");
 
 			Assert.Equal([hidden, kept], GrammarHost.Sources([scratch.Path("src") + "/**/*.cs"]));
 		}
