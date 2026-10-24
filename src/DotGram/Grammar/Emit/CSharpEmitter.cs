@@ -825,9 +825,20 @@ public static partial class CSharpEmitter
 		// Every machine's, not one machine's: a materializer and its guards belong to the
 		// machine that named them, and a file has one set per machine. The sets a refusal
 		// names are the class's, and written once at its end (ExpectedSets).
+		//
+		// A machine compiled once as an engine and then written flat keeps what the engine's
+		// compile asked for: the record of a literal that gives way (Machine.Further) is left out
+		// where nothing written calls it.
+		var furthered = machines.Any(static one => one.Machine.Furthers is not null) ? file.ToString() : null;
+
 		foreach (var compiled in machines)
 			foreach (var extra in compiled.Machine.Extras())
 			{
+				if (compiled.Machine.Furthers is { } further && furthered is not null &&
+					extra.IndexOf($"static void {further}(", StringComparison.Ordinal) >= 0 &&
+					furthered.IndexOf(further + "(", StringComparison.Ordinal) < 0)
+					continue;
+
 				file.Write(extra);
 				file.Line();
 			}
