@@ -2940,6 +2940,13 @@ sealed partial class Machine
 							}
 						}
 
+						// A door that gives a turn or an alternative back records where it stopped,
+						// as Fail: does (GiveBack): told where the literal stopped agreeing rather
+						// than where it began. Not inside a look kept in locals, whose doors record
+						// nothing.
+						else if (_doorLooking == 0)
+							Sharpen(writer, value, ignoreCase);
+
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
 
@@ -7098,8 +7105,12 @@ sealed partial class Machine
 	/// </remarks>
 	void ShortOf(Writer writer, string value, bool ignoreCase, int? fail = null)
 	{
-		var reads = (fail ?? _fail) == Fail;
-		var guard = !reads ? null : _lowering || fail is not null ? "" : "lookahead < 0";
+		// Recorded at Fail:, or at the door a literal of its own fails into, which records how far
+		// the turn or the alternative it gives back got (GiveBack) — but not one inside a look kept
+		// in locals, which records nothing.
+		var door  = fail is null && _fail != Fail && _doorLooking == 0;
+		var reads = (fail ?? _fail) == Fail || door;
+		var guard = !reads ? null : _lowering || fail is not null || door ? "" : "lookahead < 0";
 
 		Reached(writer, value, ignoreCase, guard);
 	}
