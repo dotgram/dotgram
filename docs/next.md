@@ -26221,7 +26221,7 @@ search for the delimiter that found none jumped to the refusal without saying ho
   longer line in each of its seven thousand short branches), the expression language +0.19%. Only failing branches
   change, so nothing that matches is slower.
 
-- **What review found next.** The rule had been put where a literal fails into `Fail:`; four other places
+- **Four more places.** The rule had been put where a literal fails into `Fail:`; four other places
   refused a literal that stopped agreeing as where it began. A literal failing into a door that records how far
   a turn or an alternative got (`GiveBack`) now moves there too, and one that gives way to what is tried next
   from the same place (an alternative after a run, a longer continuation) records the place without moving
@@ -26237,3 +26237,31 @@ search for the delimiter that found none jumped to the refusal without saying ho
   Web grammars +0.3% to +0.6%, T-SQL unchanged; no T-SQL or SQL:2023 refusal of the ScriptDom corpus moved.
   Generator time on DotGram.Sql the same within noise. The parse rows read alike but `sql/select20`, +5% in a
   shared window against an A/A of +2% — inside twice its band, so not a finding until a precise run.
+
+## A count of a standing element holds its fewest turns, and the seam reports how far a comment got
+
+- **Counts.** The stop at a turn that stood still had been put at every turn, so `xs: E{3}` over an `E` that a
+  recognizer of the host lets match nothing held one value, and `xs[2]` threw: against §3.3, where `X{3}` is exactly
+  three, the turns written out one after another. The rule is now that the turns up to the fewest are counted
+  whatever they read — at most that many, so nothing goes round for ever; for `{#q}` at most the input's length —
+  and past the fewest a turn that ends where it began is not taken: `E{3}` holds three values, `E{2,}` two, `E*`
+  none. Not taken, rather than kept as the last turn, because that is what the immediate reader always did with a
+  turn that read nothing; the engine unwinds from it as from a turn that failed, so the turn's other readings are
+  asked first, and the tape reader reads it as a reading that failed. The engine's check of a count whose most is below its fewest, at the end of a
+  turn that stood still, went with it: the loop head already refuses there.
+- **The seam.** `trivia = { (' ' | "--" & [^ '\n']*)* }` refused `-` as NoMatch at 0 over a string and Starved at 1
+  over a reader, `- ` at 0 and 1, `a -` at 2 and 3. The readers record the turn that ends the trivia's loop where
+  it began to agree with a literal; the seam's scanner kept that record only where it was read (`Exits`), and
+  nothing asked the seam how far it got. A seam whose turns hold such a literal now hands it back and the call
+  records it, as for a scanned rule. The seam a lexer skips with is left as it was, asked by its machine's tag:
+  whether it records where the text ran out is set after the machine is built, where this was already asked.
+  The grammars that ship are all cut into a lexer, so none of them moves; of the snapshots only `Minimal`.
+- **A door's walk inside a look.** The walks of a literal on the way into a door that gives a turn back moved
+  inside a look the arena keeps as well, where nothing reads them. The guard is one test with the walk's first,
+  not a block around it; even so one state of a SQL:2023 machine, read after a `W`, moved into the second of the
+  two methods the machine is cut into.
+- **Cost.** Against the commit before these three: generated source of the shipped projects the same but SQL:2023,
+  +0.005% (the one state); no T-SQL or SQL:2023 refusal of the ScriptDom corpus moved (`DotGram.MessageDiff`).
+  Generator time on DotGram.Sql the same within noise (13.06 and 13.72 s against 13.09 and 13.60 s, medians of three,
+  the two frameworks). A paired stand of every `sql/` row, unpinned on a shared machine and so directional: every
+  change inside twice its A/A band; the four rows furthest above their A/A read again six times, -0.6% to +0.7%.
