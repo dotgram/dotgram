@@ -490,7 +490,9 @@ sealed partial class Machine
 				{
 					if (parts[i] is Node.Repeat scan && GuardOf(scan) is { } guard)
 					{
-						if (scan.Min != 0 ||
+						// Only `*`: the pair is written as a search, which counts no turns, so a bound on
+						// them — `{0,2}` — is left to the readings that count them.
+						if (scan.Min != 0 || scan.Max is not null ||
 							i + 1 >= parts.Count ||
 							parts[i + 1] is not Node.Literal(var stop) { IgnoreCase: false } ||
 							!string.Equals(stop, guard, StringComparison.Ordinal) ||
