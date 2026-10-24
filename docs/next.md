@@ -26183,3 +26183,10 @@ grammars; every reading had it.
   the two frameworks: 13.21 and 13.66 s before, 13.12 and 13.82 s after — noise, on a shared machine. A paired stand of four T-SQL
   rows, unpinned and directional: -1.1% to +3.1%, inside the A/A of the same runs (-3.5% to +5.4%), as it must be
   where the generated code is the same.
+- **Three cases it first missed.** A recognizer met only in a recovery's synchronization: the check looked at the
+  rules' bodies alone, took the grammar to call no recognizer, and `'a'* recover ((@M)+ & ';')` went round for ever
+  on `x;`. A count by a length with both bounds in the reader: `(@M){#q}` ended at the standing turn short of its
+  fewest and was refused by the count's own check after the loop, where the engine accepts; the standing turn now
+  sets the count to the turns owed, as many as the most allows. And in the engine the standing turn left past the
+  check of crossed bounds, so `(@M){#q,1}` with a fewest of two was accepted where §3.5.1 refuses it. Each is a row
+  of `StandingTurnTests` over every reading.
