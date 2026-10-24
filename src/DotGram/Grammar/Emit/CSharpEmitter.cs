@@ -5327,7 +5327,7 @@ file.Line("return spare;");
 		{
 			var dropped = false;
 
-			foreach (System.Text.RegularExpressions.Match found in UnwalkedDefinition.Matches(text))
+			foreach (System.Text.RegularExpressions.Match found in UnwalkedSignature.Matches(text))
 			{
 				var name  = found.Groups["name"].Value + "(";
 				var first = text.IndexOf(name, StringComparison.Ordinal);
@@ -5337,7 +5337,20 @@ file.Line("return spare;");
 					parts.Any(part => part.IndexOf(name, StringComparison.Ordinal) >= 0))
 					continue;
 
-				text    = text.Remove(found.Index, found.Length);
+				// The method runs from its line to the brace at its own indentation, and the blank
+				// line after it goes with it.
+				var begins = text.LastIndexOf('\n', found.Index) + 1;
+				var indent = text.Substring(begins, found.Index - begins);
+				var close  = text.IndexOf("\n" + indent + "}", found.Index, StringComparison.Ordinal);
+				var ends   = text.IndexOf('\n', close + 1) + 1;
+
+				if (ends < text.Length && text[ends] == '\r')
+					ends++;
+
+				if (ends < text.Length && text[ends] == '\n')
+					ends++;
+
+				text    = text.Remove(begins, ends - begins);
 				dropped = true;
 
 				break;
@@ -5348,9 +5361,8 @@ file.Line("return spare;");
 		}
 	}
 
-	static readonly System.Text.RegularExpressions.Regex UnwalkedDefinition = new(
-		@"^(?<indent>\t+)static \w+ (?<name>Recognize_DotGram\w*_(?:RanOut|Agreeing|Further))\(.*?\r?\n\k<indent>\}\r?\n(?:\r?\n)?",
-		System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.Singleline |
+	static readonly System.Text.RegularExpressions.Regex UnwalkedSignature = new(
+		@"static \w+ (?<name>Recognize_DotGram\w*_(?:RanOut|Agreeing|Further))\(",
 		System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
 	/// <summary>
