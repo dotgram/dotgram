@@ -4484,7 +4484,22 @@ sealed partial class Machine
 
 		atLoop.Line($"goto {Label(atLoop, inner)};");
 
-		if (stands)
+		// A turn that stood still stands for every turn still owed, which a most below the fewest
+		// cannot give: refused there as at the loop's head.
+		if (stands && max is not null && !SameCountBound(min, max) && min is not CountBound.Items { Count: 0 })
+		{
+			var crossed = Reserve(out var atCrossed);
+
+			atCrossed.Line("var owed = entries[repeat + 1];");
+
+			using (atCrossed.Block("if (owed.Position > owed.Value)"))
+				EmitTerminalFailure(atCrossed, _fail, DeclareExpected(Displays(body)));
+
+			atCrossed.Line($"goto {Label(atCrossed, exit)};");
+
+			StandingTurn(atAfter, crossed);
+		}
+		else if (stands)
 			StandingTurn(atAfter, exit);
 		else
 		{

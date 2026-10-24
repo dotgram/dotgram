@@ -2534,7 +2534,13 @@ public static class FirstSets
 	/// </summary>
 	static HashSet<RuleSymbol> StandingRules(RecognitionGraph graph)
 	{
-		if (!graph.Bodies.Values.Any(static body => NodeWalk.Descendants(body).Any(static node => node is Node.External)))
+		// A recovery's synchronization is read as much as a body is, and is not under one.
+		static bool Calls(Node read)
+		{
+			return NodeWalk.Descendants(read).Any(static node => node is Node.External);
+		}
+
+		if (!graph.Bodies.Values.Any(Calls) && !graph.Recoveries.Values.Any(static one => Calls(one.Sync)))
 			return NoRecognizers;
 
 		var standing = new HashSet<RuleSymbol>();
