@@ -1479,7 +1479,9 @@ sealed partial class Machine
 			// Not found is the loop reading to the end and the literal after it running out there.
 			if (except.Length == 0)
 			{
-				code.Line($"if ({found} < 0) {{ if (text.Length > furthest) furthest = text.Length; goto {fail}; }}");
+				code.Line(_lookingAhead == 0
+					? $"if ({found} < 0) {{ if (text.Length > furthest) furthest = text.Length; goto {fail}; }}"
+					: $"if ({found} < 0) goto {fail};");
 				code.Line($"p += {found} + {delimiter.Length};");
 
 				return;
