@@ -26190,3 +26190,33 @@ grammars; every reading had it.
   sets the count to the turns owed, as many as the most allows. And in the engine the standing turn left past the
   check of crossed bounds, so `(@M){#q,1}` with a fewest of two was accepted where §3.5.1 refuses it. Each is a row
   of `StandingTurnTests` over every reading.
+
+## A literal the input ends inside is refused where it stops agreeing
+
+§7.5 says `NoMatch` is input that was there and did not fit and `Starved` input that ran out, and that the outcome and
+the position are the same in every form of the input. A literal of two or more characters asked for room first and,
+short of it, refused where it began as input that ran out: `T = "/*" & ';'` refused `x` and `/x` as `Starved` at 0, so a
+stream told to wait for more had already been given the character that refused it. Every rendering did it alike, the
+engine, the reader and the scanner's run, so the readings agreed and were all wrong. And over a string a rule read as
+one scan, `W = (?!';' & any)* & ';'`, refused `a` as `NoMatch` at 0 where a reader or a stream said `Starved` at 1: the
+search for the delimiter that found none jumped to the refusal without saying how far it had come.
+
+- **The rule.** On the branch where the input ends inside the literal, the characters there are compared: the first
+  that does not fit is `NoMatch` where it is, and where they all fit the refusal is at the end of the input, which is
+  `Starved`. A stream is told it starved only then. The branch that has room, the one every match takes, is unchanged.
+- **Where the refusal is not recorded** — inside a look, behind a door that puts the position back — the mark that
+  makes a refusal at the literal's beginning read as starved stays, set now only where the characters there agree.
+  Without it `?="ab" & any` on `a` would say `NoMatch`, though `ab` would have been read.
+- **The scan.** A search for a delimiter that finds none reaches the end of the input, as the loop it stands for does.
+- **One call, not a local.** The branch is a call out of line, `RanOut`, which walks the literal as the reader's
+  `Agreeing` does, now bounded by the input. Written first with a local in each branch, the trace build of the SQL
+  parsers took the C# compiler more than half an hour instead of minutes: every local is a variable more in each flow
+  analysis of a state machine with hundreds of such branches.
+- **What moved.** The refusal corpus: the rows of literals that part late, alike in the engine and both carriers
+  (`"lone"` against `"lone!"` is `Starved` at 4, `"lon!"` `NoMatch` at 3). The hand parsers of JSON, URLs and the
+  expression language, which had copied the old answer, now copy this one. On the ScriptDom corpus `DotGram.MessageDiff`
+  shows no T-SQL refusal moved. `RefusalPlaceTests` holds every form of the input to one outcome and position over
+  every short input of twenty shapes.
+- **Cost.** Generated source, every project against its parent: SQL:2023 +0.25%, T-SQL +0.00%, FIX 4.4 +0.60% (a
+  longer line in each of its seven thousand short branches), the expression language +0.19%. Only failing branches
+  change, so nothing that matches is slower.
