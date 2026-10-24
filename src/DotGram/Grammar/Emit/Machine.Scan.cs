@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
@@ -860,6 +861,9 @@ sealed partial class Machine
 		/// <summary>The failure labels that put the position back where a sequence began.</summary>
 		readonly HashSet<string> _restores = [];
 
+		/// <summary>The labels a repetition's turn fails into where the repetition ends.</summary>
+		readonly HashSet<string> _exits = [];
+
 		/// <summary>
 		/// Whether a run that fails into <paramref name="fail"/> has to put the position back
 		/// itself: not into a sequence's own way back, which puts it further back still, and not
@@ -872,14 +876,48 @@ sealed partial class Machine
 
 		/// <summary>
 		/// Whether a refusal that fails into <paramref name="fail"/> raises how far the scan got: the
-		/// scan's own refusal, and a sequence's way back, which raises it to where the sequence
-		/// stopped (a literal's matching beginning included) — but never inside a look, which puts
-		/// the position back and reaches nothing, as the reader's looks record nothing.
+		/// scan's own refusal, a sequence's way back, which raises it to where the sequence stopped
+		/// (a literal's matching beginning included), and a turn that ends its repetition, whose
+		/// refusal the readers record as they try it — but never inside a look, which puts the
+		/// position back and reaches nothing, as the reader's looks record nothing.
 		/// </summary>
 		bool Records(string fail)
 		{
-			return _lookingAhead == 0 && (fail == "Refuse" || _restores.Contains(fail));
+			return _lookingAhead == 0 && (fail == "Refuse" || _restores.Contains(fail) || _exits.Contains(fail));
 		}
+		/// <summary>
+		/// The marks around what a turn that ends its repetition records (<see cref="Exits"/>).
+		/// </summary>
+		const string ExitOpen  = "/*exit*/";
+		const string ExitElse  = "/*else*/";
+		const string ExitClose = "/*end*/";
+
+		/// <summary>
+		/// What a turn that ends its repetition recorded of how far it got, kept where anything reads
+		/// it — the scan's refusal, the place it reports, its running out on a match — and taken out
+		/// where nothing does: the seam's loops end at every operand, and a record nobody reads there
+		/// is a comparison on the path that matches.
+		/// </summary>
+		string Exits(string written, bool read)
+		{
+			if (written.IndexOf(ExitOpen, StringComparison.Ordinal) < 0)
+				return written;
+
+			var keep = read || written.Contains("goto Refuse;", StringComparison.Ordinal);
+			var into = keep ? "$1" : "$2";
+
+			// Each mark holds both: what records, then what does not.
+			written = Regex.Replace(
+				written, @"[ \t]*/\*exit\*/\r?\n(.*?)[ \t]*/\*else\*/\r?\n(.*?)[ \t]*/\*end\*/\r?\n", into,
+				RegexOptions.Singleline | RegexOptions.CultureInvariant);
+			written = Regex.Replace(written, @"/\*exit\*/(.*?)/\*else\*/(.*?)/\*end\*/", into, RegexOptions.Singleline | RegexOptions.CultureInvariant);
+
+			// A walk nothing calls any more is not asked for.
+			_reaches = written.Contains("Reach_DotGram", StringComparison.Ordinal);
+
+			return written;
+		}
+
 		bool _character;
 		bool _reaches;
 
@@ -896,7 +934,7 @@ sealed partial class Machine
 
 			Emit(code, body, "Refuse");
 
-			var written = Threaded(code.ToString());
+			var written = Exits(Threaded(code.ToString()), reports || starves);
 			var head    = new Writer(0);
 
 			head.Line("var p = pos;");
@@ -1014,19 +1052,35 @@ sealed partial class Machine
 							"!global::System.MemoryExtensions.SequenceEqual(" +
 							$"text.Slice(p, {text.Length}), {Spanned(text)}))");
 
-						// Only where this refusal is the scan's answer. A literal that fails
-						// into a loop's exit has not refused anything — the loop simply ends,
-						// and the seam a spaced grammar skips at every operand ends that way
-						// on every character that is not the comment it was looking for.
+						// Where this refusal is the scan's answer or a sequence's way back, and at
+						// a repetition's end — where the readers record the turn they tried — only
+						// where the turn began to agree, the turn that does not begin being how
+						// every such loop ends; and that only where something reads how far the
+						// scan got (Exits): the seam's loops end at every operand.
 						if (Records(fail))
 						{
+							_reaches = true;
+
+							var exit = _exits.Contains(fail);
+
+							if (exit)
+								code.Line(ExitOpen);
+
 							using (code.Block(""))
 							{
-								_reaches = true;
+								if (exit)
+									code.Line($"if ((uint)p >= (uint)text.Length || text[p] != {CSharpEmitter.Char(text[0])}) goto {fail};");
 
 								code.Line($"var reached = Reach_DotGram{tag}(text, p, {Spanned(text)});");
 								code.Line("if (reached > furthest) furthest = reached;");
 								code.Line($"goto {fail};");
+							}
+
+							if (exit)
+							{
+								code.Line(ExitElse);
+								code.Then($"goto {fail};");
+								code.Line(ExitClose);
 							}
 						}
 						else
@@ -1040,6 +1094,11 @@ sealed partial class Machine
 						// character there that agrees, to the end where they all do.
 						if (Records(fail) && text.Length > 1)
 						{
+							var exit = _exits.Contains(fail);
+
+							if (exit)
+								code.Line(ExitOpen);
+
 							code.Line($"if ({Short(text.Length)})");
 
 							using (code.Block(""))
@@ -1048,6 +1107,13 @@ sealed partial class Machine
 								Machine.ReachLadder(code, text, folded, "reached", "text[reached]", "(uint)reached < (uint)text.Length");
 								code.Line("if (reached > furthest) furthest = reached;");
 								code.Line($"goto {fail};");
+							}
+
+							if (exit)
+							{
+								code.Line(ExitElse);
+								code.Line($"if ({Short(text.Length)}) goto {fail};");
+								code.Line(ExitClose);
 							}
 						}
 						else
@@ -1061,10 +1127,13 @@ sealed partial class Machine
 
 							// The offset is known here and no walk is needed: a run refusing
 							// at its fourth character reached its fourth character.
+							var records = $"if ({test}) {{ if (p + {i} > furthest) furthest = p + {i}; goto {fail}; }}";
+							var plain   = $"if ({test}) goto {fail};";
+
 							code.Line(
-								i == 0 || !Records(fail)
-									? $"if ({test}) goto {fail};"
-									: $"if ({test}) {{ if (p + {i} > furthest) furthest = p + {i}; goto {fail}; }}");
+								i == 0 || !Records(fail) ? plain
+								: _exits.Contains(fail) ? ExitOpen + records + ExitElse + plain + ExitClose
+								: records);
 						}
 					}
 
@@ -1411,6 +1480,7 @@ sealed partial class Machine
 			if (max is { } limit)
 				code.Line($"if (turns{turn} >= {limit}) goto {done};");
 
+			_exits.Add(done);
 			Emit(code, body, done);
 
 			if (counted)

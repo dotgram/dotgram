@@ -4993,6 +4993,7 @@ namespace DotGram.Snapshots
 		{
 			var p = pos;
 			var c = '\0';
+			var furthest = pos;
 
 			L0_turn:
 			if ((uint)p >= (uint)text.Length) goto L1_done;
@@ -5003,7 +5004,12 @@ namespace DotGram.Snapshots
 			goto L0_turn;
 			L3_or: ;
 			if (text.Length - p < 2 || !global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("//")))
+			{
+				if ((uint)p >= (uint)text.Length || text[p] != '/') goto L1_done;
+				var reached = Reach_DotGram_Spaced_Pair(text, p, global::System.MemoryExtensions.AsSpan("//"));
+				if (reached > furthest) furthest = reached;
 				goto L1_done;
+			}
 			p += 2;
 			var found6 = global::System.MemoryExtensions.IndexOf(text.Slice(p), '\n');
 			p = found6 < 0 ? text.Length : p + found6;
@@ -5011,7 +5017,7 @@ namespace DotGram.Snapshots
 			L1_done:
 			;
 
-			if (p >= text.Length) failure.Starved = true;
+			if (p >= text.Length || furthest >= text.Length) failure.Starved = true;
 
 			return p;
 		}
@@ -5032,6 +5038,21 @@ namespace DotGram.Snapshots
 
 			Refuse:
 			return -1 - p;
+		}
+
+		static int Reach_DotGram_Spaced_Pair(global::System.ReadOnlySpan<char> text, int pos, global::System.ReadOnlySpan<char> want)
+		{
+			var room = text.Length - pos;
+
+			if (want.Length < room)
+				room = want.Length;
+
+			var at = 0;
+
+			while (at < room && text[pos + at] == want[at])
+				at++;
+
+			return pos + at;
 		}
 
 		static int Recognize_DotGram_Item(global::System.ReadOnlySpan<char> text, int pos, int state, int rootRule, int initialPower, bool whole, bool materialize, ref Failure failure, out object? recognized)
