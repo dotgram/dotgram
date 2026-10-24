@@ -2124,7 +2124,8 @@ public sealed class CSharpEmitterTests
 			"Start = 'a' & 'b'" + '\n' + "parse Start");
 
 		Assert.Contains("static int Scan_trivia(", source, StringComparison.Ordinal);
-		Assert.Contains("p = Scan_trivia(text, p);", source, StringComparison.Ordinal);
+		// Handed back how far it got, too: a comment the input ends inside is refused there (§7.5).
+		Assert.Contains("p = Scan_trivia(text, p, out var scanReached);", source, StringComparison.Ordinal);
 
 		// The seam pays a call, not an arena cycle: no atomic entry anywhere.
 		Assert.DoesNotContain("ParserEntry.Atomic, 0", source, StringComparison.Ordinal);
