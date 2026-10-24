@@ -960,9 +960,79 @@ sealed partial class Machine
 	{
 		var first = FirstSets.Of(alternative, _graph);
 
-		return first.Anything || first.Nothing || FirstSets.Nullable(alternative, _graph)
+		// One that may stand still through a recognizer of the host may match at the end of the
+		// input, where no token stands (FirstSets.StandsStill) — unless it looks for one first.
+		return first.Anything || first.Nothing || FirstSets.Nullable(alternative, _graph) ||
+			FirstSets.StandsStill(alternative, _graph) && !WantsToken(alternative)
 			? null
 			: first;
+	}
+
+	/// <summary>
+	/// Whether <paramref name="node"/> cannot match at the end of the input however its recognizers
+	/// answer: it begins by reading a character, or by looking for something that does.
+	/// </summary>
+	/// <remarks>
+	/// What keeps the door of <c>CsExpr = ?="@(" &amp; @CSharp</c>: the look is the recognizer's
+	/// first set said in the grammar, and a door that did not take it at its word would call the
+	/// host at every place an expression may stand.
+	/// </remarks>
+	readonly Dictionary<RuleSymbol, bool> _wantsToken = [];
+
+	bool WantsToken(Node node)
+	{
+		// Whatever cannot match nothing, recognizers answering nothing or not, reads a character.
+		if (!FirstSets.Nullable(node, _graph) && !FirstSets.StandsStill(node, _graph))
+			return true;
+
+		switch (node)
+		{
+			case Node.Sequence(var parts):
+				foreach (var part in parts)
+				{
+					if (WantsToken(part))
+						return true;
+				}
+
+				return false;
+
+			case Node.Choice { Selection: null } choice:
+				return choice.Nodes.Count > 0 && choice.Nodes.All(one => WantsToken(one));
+
+			case Node.Repeat(var body, var min, _):
+				return min > 0 && WantsToken(body);
+
+			case Node.Capture(_, var body):
+				return WantsToken(body);
+
+			case Node.Construct(var body, _):
+				return WantsToken(body);
+
+			case Node.Atomic(var body):
+				return WantsToken(body);
+
+			case Node.Marked(var body, _):
+				return WantsToken(body);
+
+			case Node.Bind(_, var body, _):
+				return WantsToken(body);
+
+			case Node.Lookahead(true, var body):
+				return WantsToken(body);
+
+			// Once a rule: a rule met again on the way down is taken not to want one, which is never
+			// wrong — the door is only left off.
+			case Node.Call(var rule, _):
+				if (_wantsToken.TryGetValue(rule, out var known))
+					return known;
+
+				_wantsToken[rule] = false;
+
+				return _wantsToken[rule] = _graph.Bodies.TryGetValue(rule, out var called) && WantsToken(called);
+
+			default:
+				return false;
+		}
 	}
 
 	/// <summary>A test over <c>c</c> for membership of a set of ranges.</summary>
