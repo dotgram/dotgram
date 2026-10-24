@@ -322,6 +322,7 @@ public sealed partial class GrammarNormalizer
 		// After everything that rewrites a body, so that what it lifts is final and every instance
 		// is lifted on its own; it only moves a node into a rule of its own.
 		normalizer.LiftNestedRecoveries();
+		normalizer.LiftTabledSyncs();
 
 		normalizer.Prune();
 

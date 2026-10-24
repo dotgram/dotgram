@@ -3867,7 +3867,10 @@ own. Its synchronization is looked for as far as it takes, past the end of the o
 if need be: `[9]` on a line of its own is stepped over to the next `;`, the one in `[e;]`, and
 `e` goes with it. A synchronization the outer element always has, or a choice with the
 outer one's, keeps the inner one inside its element. A `recover` inside a synchronization runs
-at every position the synchronization search tries.
+at every position the synchronization search tries. A guard or a capture written directly in
+a synchronization is a rule of its own in the same way: `recover (c: ';' & when @(c == ";"))` reads as
+`recover Sync` with `Sync = c: ';' & when @(c == ";")`. What it captures is its own and nothing outside
+reads it, and a guard in it reads what it captured before it, not what the rule around it did (`GRAM4045`).
 
 It is a rule of its own in every other way too. A guard inside reads what the inner part has
 captured in this reading of it, not what earlier lines did: `(w: Word & when @(w.Length <= 1) &

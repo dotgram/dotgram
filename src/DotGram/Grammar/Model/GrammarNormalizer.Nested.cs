@@ -65,6 +65,107 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>
+	/// A synchronization that holds a guard, a capture or anything else the rule it stands in keeps
+	/// a table of becomes a rule of its own, called where it stood.
+	/// </summary>
+	/// <remarks>
+	/// The tables of a rule are built from its body, and a synchronization hangs off the repetition
+	/// rather than standing in it, so what was written directly in one had no table to be found in.
+	/// Written as a rule and called, it is what a named synchronization already is, and means the
+	/// same: a guard reads what the part captured before it, a capture is the part's own and is read
+	/// by nothing outside. After <see cref="LiftNestedRecoveries"/>, so that a <c>recover</c> inside
+	/// the synchronization has been made a rule already and the part holds none.
+	/// </remarks>
+	void LiftTabledSyncs()
+	{
+		for (var i = 0; i < _rules.Count; i++)
+		{
+			var rule = _rules[i];
+
+			if (rule.Declaration is null || !_bodies.TryGetValue(rule, out var body))
+				continue;
+
+			foreach (var marked in NodeWalk.Descendants(body).Where(_recoveries.ContainsKey).ToList())
+			{
+				var recovery = _recoveries[marked];
+
+				if (!NodeWalk.Descendants(recovery.Sync).Any(NeedsTable))
+					continue;
+
+				if (ReadsOutside(rule, recovery))
+					continue;
+
+				_recoveries[marked] = recovery with { Sync = LiftedCall(rule, recovery.Sync, recovery.At, transparent: false) };
+			}
+		}
+	}
+
+	/// <summary>
+	/// Whether a guard in a synchronization reads a capture made outside it, said where the
+	/// <c>recover</c> is written.
+	/// </summary>
+	/// <remarks>
+	/// The same rule as a marked repetition inside another one's element (<see cref="Refused"/>): the
+	/// synchronization is a rule of its own, and a guard in it reads what the part itself captured
+	/// before it, not what the rule around it did.
+	/// </remarks>
+	bool ReadsOutside(RuleSymbol rule, Recovery recovery)
+	{
+		var owner = rule;
+
+		while (_lifted.TryGetValue(owner, out var lift) && lift.Transparent)
+			owner = lift.Parent;
+
+		var outside = new HashSet<string>(StringComparer.Ordinal);
+		var pending = new Stack<Node>([_bodies[owner]]);
+
+		while (pending.Count > 0)
+		{
+			var body = pending.Pop();
+
+			foreach (var name in Captured(body))
+				outside.Add(name);
+
+			foreach (var node in NodeWalk.Descendants(body))
+				if (node is Node.Call(var called, _) &&
+					_lifted.TryGetValue(called, out var lift) && lift.Transparent &&
+					_bodies.TryGetValue(called, out var lifted))
+					pending.Push(lifted);
+		}
+
+		var layout = CaptureLayout.Of(recovery.Sync, BuildsValue);
+
+		foreach (var node in Unlifted(recovery.Sync))
+			if (node is Node.Guard guard)
+			{
+				var before = layout.Before(guard);
+
+				if (outside.FirstOrDefault(name => !layout.Slots.Any(slot => slot.Index < before && slot.Name == name) &&
+					Names(guard.Text, name)) is { } read)
+				{
+					Report(
+						NestedRecoveryFlow,
+						$"This 'recover' in '{rule.Declaration!.Name}' has a synchronization with a guard that reads '{read}', " +
+						"which is captured outside the synchronization and not inside it before the guard. A synchronization is " +
+						"a rule of its own there and has only what it captured itself. Move the part into its own rule and " +
+						"pass what it needs (docs/syntax.md §8.2).",
+						recovery.At);
+
+					return true;
+				}
+			}
+
+		return false;
+	}
+
+	/// <summary>Whether a node is one a rule keeps a table for, which a synchronization has none of.</summary>
+	static bool NeedsTable(Node node)
+	{
+		return node is Node.Guard or Node.Capture or Node.Construct or Node.Same or Node.Bind or Node.Marked or Node.Condition
+			|| node is Node.Counted(_, var least, var most) && (least is CountBound.Length || most is CountBound.Length);
+	}
+
+	/// <summary>
 	/// The marked repetitions under a node that stand inside no other under it, and not inside a
 	/// lookahead.
 	/// </summary>
@@ -104,7 +205,7 @@ public sealed partial class GrammarNormalizer
 			if (Refused(rule, inner))
 				continue;
 
-			var call = LiftedCall(rule, inner, transparent: true);
+			var call = LiftedCall(rule, inner, _recoveries[inner].At, transparent: true);
 
 			// The repetition is rebuilt around the call, and what was said of it goes with it.
 			var rebuilt = Replaced(_bodies[rule], inner, call);
@@ -118,7 +219,7 @@ public sealed partial class GrammarNormalizer
 
 		foreach (var inner in Outermost(recovery.Sync))
 		{
-			var call = LiftedCall(rule, inner, transparent: false);
+			var call = LiftedCall(rule, inner, _recoveries[inner].At, transparent: false);
 
 			recovery = recovery with { Sync = Replaced(recovery.Sync, inner, call) };
 		}
@@ -137,7 +238,7 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>The rule a marked repetition becomes, and the call that stands where it stood.</summary>
-	Node.Call LiftedCall(RuleSymbol from, Node inner, bool transparent)
+	Node.Call LiftedCall(RuleSymbol from, Node inner, Location at, bool transparent)
 	{
 		var origin = _lifted.TryGetValue(from, out var outer) ? outer.Origin : from;
 		var count  = _lifted.Values.Count(one => one.Origin == origin) + 1;
@@ -152,7 +253,7 @@ public sealed partial class GrammarNormalizer
 		{
 			Params = [],
 			Type   = null,
-			At     = _recoveries[inner].At,
+			At     = at,
 		};
 		var lifted = new RuleSymbol(name, from.Namespace, declaration);
 
