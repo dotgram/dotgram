@@ -5778,7 +5778,11 @@ sealed partial class Machine
 			}
 		}
 
-		if (!settled)
+		// Not inside a look kept in locals: nothing pops what it pushed when the look is over, and a
+		// failure after the look gave characters back into a reading the look had already decided —
+		// `?!((?!';' & any)* & ';') & 'x'` accepted "xx" over a buffer. A look is kept in locals
+		// only where its body is silent, whose runs nothing asks back.
+		if (!settled && _doorLooking == 0)
 		{
 			writer.Line($"if (p > {floor})");
 			writer.Then(
