@@ -209,10 +209,27 @@ public sealed partial class GrammarNormalizer
 		Drop(_folds);
 		Drop(_climbing);
 
+		// What hangs off a node rather than a rule goes with the node: a recovery, a binding power
+		// or a ceiling that belonged to a dropped rule would otherwise be counted by everything that
+		// asks the whole grammar what it recovers or climbs, and the file would be sized for a
+		// recovery that is not in it.
+		var live = NodeWalk.ByIdentity(NodeWalk.Descendants(
+			_bodies.Values.Concat(_folds.Values.Select(static fold => fold.Loop)).Concat(_trivia.Values)));
+
+		DropNodes(_recoveries);
+		DropNodes(_powers);
+		DropNodes(_ceilings);
+
 		void Drop<T>(Dictionary<RuleSymbol, T> from)
 		{
 			foreach (var rule in from.Keys.Where(one => !reached.Contains(one)).ToList())
 				from.Remove(rule);
+		}
+
+		void DropNodes<T>(Dictionary<Node, T> from)
+		{
+			foreach (var node in from.Keys.Where(one => !live.Contains(one)).ToList())
+				from.Remove(node);
 		}
 	}
 
