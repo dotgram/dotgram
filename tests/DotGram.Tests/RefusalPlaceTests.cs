@@ -55,6 +55,15 @@ public sealed class RefusalPlaceTests
 		("tail",        "W = 'a'* & \"ab;\"\nT = W & eof"),
 		("closing",     "W = \"/*\" & (?!\"*/\" & any)* & \"*/\"\nT = W & eof"),
 		("inline",      "T = (?!\"*/\" & any)* & \"*/\" & eof"),
+
+		// A scan's refusal inside a look, a literal reached behind a scan's way back, a longer
+		// literal tried after a shorter one, and a run of literals beside a class.
+		("scanlooked",  "W = ?!((?!';' & any)* & ';') & 'x'\nT = W & eof"),
+		("given",       "W = 'x'* & \"abc\"\nT = W & eof"),
+		("givencase",   "W = 'x'* & \"abc\"i\nT = W & eof"),
+		("givenwide",   "W = 'x'* & \"äbc\"\nT = W & eof"),
+		("retried",     "T = ('a' | \"abcd\") & eof"),
+		("beside",      "T = (\"abcd\" | \"abce\" | ['x'|'y']) & eof"),
 	];
 
 	public static TheoryData<string> Names()
@@ -118,6 +127,17 @@ public sealed class RefusalPlaceTests
 	[InlineData("looked",  "x",  "NoMatch@0")]
 	[InlineData("until",   "/",  "Starved@1")]
 	[InlineData("until",   "a;b", "Starved@3")]
+	[InlineData("scanlooked", "a",   "NoMatch@0")]
+	[InlineData("given",      "xa",  "Starved@2")]
+	[InlineData("given",      "xaz", "NoMatch@2")]
+	[InlineData("givencase",  "xA",  "Starved@2")]
+	[InlineData("givencase",  "xaz", "NoMatch@2")]
+	[InlineData("givenwide",  "xä",  "Starved@2")]
+	[InlineData("givenwide",  "xäz", "NoMatch@2")]
+	[InlineData("retried",    "ab",  "Starved@2")]
+	[InlineData("retried",    "abx", "NoMatch@2")]
+	[InlineData("beside",     "abc", "Starved@3")]
+	[InlineData("beside",     "ab",  "Starved@2")]
 	public void A_refusal_near_the_end_names_what_is_there(string name, string input, string expected)
 	{
 		var grammar = Shapes.Single(one => one.Name == name).Grammar;
