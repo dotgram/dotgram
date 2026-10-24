@@ -3353,7 +3353,9 @@ ordinary C# rules.
   than success.
 - An external recognizer may succeed without moving `pos`; inside a repetition, a turn that
   ends where it began ends the repetition, kept as one turn with its value and standing for
-  every turn still owed, so `(@M){3,}` over an `M` that does not move reads `M` once.
+  every turn still owed, so `(@M){3,}` over an `M` that does not move reads `M` once. What the
+  repetition builds holds the turns it read: `xs: V{3}` over such a `V` holds one value, not
+  three. A count is still held to its bounds there, so `(@M){#q,1}` with `q` at two is refused.
 - An external recognizer and a `when` guard execute during recognition. Ordered choice
   and lookahead may invoke them repeatedly or abandon the path on which they ran. Their
   code must therefore be safe for speculative invocation and must not perform effects
