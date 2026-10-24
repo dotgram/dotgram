@@ -2725,12 +2725,14 @@ namespace DotGram.Snapshots
 			{
 				if (text.Length - p < 2)
 				{
-					Recognize_DotGram_List_RanOut(text, p, ",a", false, false, ref failure);
+					p = Recognize_DotGram_List_RanOut(text, p, ",a", false, true, ref failure);
 					expected = ExpectedSet_DotGram(17);
 					goto S7;
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan(",a")))
 				{
+					if (text[p] == ',')
+						p += 1;
 					expected = ExpectedSet_DotGram(17);
 					goto S7;
 				}
@@ -3137,12 +3139,14 @@ namespace DotGram.Snapshots
 			{
 				if (text.Length - p < 2)
 				{
-					Recognize_DotGram_Committed_RanOut(text, p, "ab", false, false, ref failure);
+					p = Recognize_DotGram_Committed_RanOut(text, p, "ab", false, true, ref failure);
 					expected = ExpectedSet_DotGram(20);
 					goto S8;
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("ab")))
 				{
+					if (text[p] == 'a')
+						p += 1;
 					expected = ExpectedSet_DotGram(20);
 					goto S8;
 				}
