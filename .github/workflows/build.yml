@@ -56,6 +56,13 @@ jobs:
           path: .build/bin/DotGram.Tests.Slow/release/RefusalExponents.txt
           if-no-files-found: warn
 
+      # How long a block comment takes at every depth it is measured at, passing or not: the test holds
+      # one pair of depths to a ratio, and the whole ladder is what says where a slow runner bends.
+      - name: Show the comment depth times
+        if: always()
+        shell: bash
+        run: cat .build/bin/DotGram.Tests.Slow/release/CommentTimes.txt || echo "no CommentTimes.txt"
+
       - name: Pack
         run: |
           dotnet pack src/DotGram/DotGram.csproj         --no-build --configuration Release --output artifacts
@@ -295,6 +302,13 @@ jobs:
           name: refusal-exponents-windows
           path: .build/bin/DotGram.Tests.Slow/release/RefusalExponents.txt
           if-no-files-found: warn
+
+      # How long a block comment takes at every depth it is measured at, passing or not: the test holds
+      # one pair of depths to a ratio, and the whole ladder is what says where a slow runner bends.
+      - name: Show the comment depth times
+        if: always()
+        shell: bash
+        run: cat .build/bin/DotGram.Tests.Slow/release/CommentTimes.txt || echo "no CommentTimes.txt"
 
       # The third artifact of the tag, and the only one that cannot be built above.
       - name: Check the extension was built
