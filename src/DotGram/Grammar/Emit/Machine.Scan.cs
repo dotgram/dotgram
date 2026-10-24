@@ -1510,8 +1510,29 @@ sealed partial class Machine
 				<= 3 => $"global::System.MemoryExtensions.IndexOfAny({within}, {string.Join(", ", except.Select(CSharpEmitter.Char))});",
 				_    => $"global::System.MemoryExtensions.IndexOfAny({within}, global::System.MemoryExtensions.AsSpan({CSharpEmitter.Quoted(new string(except))}));",
 			}));
-			code.Line($"if ({stop} >= 0) {{ if (p + {stop} > furthest) furthest = p + {stop}; goto {fail}; }}");
-			code.Line($"if ({found} < 0) {{ if (text.Length > furthest) furthest = text.Length; goto {fail}; }}");
+			//
+			// At the character of S the loop stops at, L is read and refused: past what of it agrees
+			// there, which is the end where the input ends inside it. Not inside a look, as above.
+			if (_lookingAhead == 0)
+			{
+				code.Line($"if ({stop} >= 0)");
+
+				using (code.Block(""))
+				{
+					code.Line($"var reached = p + {stop};");
+					Machine.ReachLadder(code, delimiter, false, "reached", "text[reached]", "(uint)reached < (uint)text.Length");
+					code.Line("if (reached > furthest) furthest = reached;");
+					code.Line($"goto {fail};");
+				}
+
+				code.Line($"if ({found} < 0) {{ if (text.Length > furthest) furthest = text.Length; goto {fail}; }}");
+			}
+			else
+			{
+				code.Line($"if ({stop} >= 0) goto {fail};");
+				code.Line($"if ({found} < 0) goto {fail};");
+			}
+
 			code.Line($"p += {found} + {delimiter.Length};");
 		}
 

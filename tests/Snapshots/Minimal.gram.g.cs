@@ -5488,6 +5488,29 @@ namespace DotGram.Snapshots
 			return moves ? reach : p;
 		}
 
+		static int Recognize_DotGram_C_Agreeing(global::System.ReadOnlySpan<char> text, int p, string value, bool fold)
+		{
+			var i = 0;
+
+			while (i < value.Length - 1 && (uint)(p + i) < (uint)text.Length && (text[p + i] == value[i] || fold && (uint)((value[i] | 0x20) - 'a') <= 'z' - 'a' && (text[p + i] | 0x20) == (value[i] | 0x20)))
+				i++;
+
+			return p + i;
+		}
+
+		static int Recognize_DotGram_C_RanOut(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
+		{
+			var reach = Recognize_DotGram_C_Agreeing(text, p, value, fold);
+
+			if ((uint)reach >= (uint)text.Length)
+			{
+				failure.Starved = true;
+				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+			}
+
+			return moves ? reach : p;
+		}
+
 		static int Recognize_DotGram_C_Sharpen0(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
 		{
 			if ((uint)p < (uint)text.Length && text[p] == 'h')
@@ -5526,29 +5549,6 @@ namespace DotGram.Snapshots
 				}
 			}
 			return p;
-		}
-
-		static int Recognize_DotGram_C_Agreeing(global::System.ReadOnlySpan<char> text, int p, string value, bool fold)
-		{
-			var i = 0;
-
-			while (i < value.Length - 1 && (uint)(p + i) < (uint)text.Length && (text[p + i] == value[i] || fold && (uint)((value[i] | 0x20) - 'a') <= 'z' - 'a' && (text[p + i] | 0x20) == (value[i] | 0x20)))
-				i++;
-
-			return p + i;
-		}
-
-		static int Recognize_DotGram_C_RanOut(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
-		{
-			var reach = Recognize_DotGram_C_Agreeing(text, p, value, fold);
-
-			if ((uint)reach >= (uint)text.Length)
-			{
-				failure.Starved = true;
-				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
-			}
-
-			return moves ? reach : p;
 		}
 
 		static int Recognize_DotGram_D_Sharpen0(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)

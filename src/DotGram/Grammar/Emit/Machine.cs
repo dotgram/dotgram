@@ -7181,6 +7181,9 @@ sealed partial class Machine
 
 	string? _furthered;
 
+	/// <summary>The name of the record <see cref="Further"/> calls, where it was asked for.</summary>
+	internal string? Furthers => _furthered;
+
 	/// <summary>The record <see cref="Further"/> calls: <see cref="RecordFurther"/>'s, once for the machine.</summary>
 	string Furthered()
 	{
