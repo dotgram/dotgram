@@ -37,6 +37,7 @@
 	     answers to "does this page compile" would drift, which is the defect it exists to catch. -->
 	<ItemGroup>
 		<Compile Include="..\DotGram.Tests\ShippedPages.cs" Link="ShippedPages.cs" />
+		<Compile Include="..\DotGram.Tests\SourceRoot.cs" Link="SourceRoot.cs" />
 	</ItemGroup>
 
 </Project>

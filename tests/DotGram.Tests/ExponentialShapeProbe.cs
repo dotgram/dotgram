@@ -306,13 +306,6 @@ public sealed class ExponentialShapeProbe
 
 	static string Root()
 	{
-		var at = new DirectoryInfo(AppContext.BaseDirectory);
-
-		while (at is not null && !Directory.Exists(Path.Combine(at.FullName, "src", "DotGram")))
-			at = at.Parent;
-
-		Assert.NotNull(at);
-
-		return at!.FullName;
+		return SourceRoot.Directory;
 	}
 }

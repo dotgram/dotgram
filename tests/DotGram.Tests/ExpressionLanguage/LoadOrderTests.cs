@@ -66,20 +66,12 @@ public sealed class LoadOrderTests
 	static string Program()
 	{
 		var here = new DirectoryInfo(AppContext.BaseDirectory);
-		var root = here;
 
-		while (root is not null && !File.Exists(Path.Combine(root.FullName, "DotGram.slnx")))
-			root = root.Parent;
-
-		if (root is null)
-			throw new InvalidOperationException("The repository root is not above the test binaries.");
-
-		// The same configuration this assembly was built for (the folder's name holds it): the two
-		// projects are built together, so the one that ran this is the one to run.
+		// The other project's output is beside this one's, under the same configuration folder (the
+		// folder's name holds it): the two projects are built together, so the one that ran this is the
+		// one to run. Found from here and not from the repository, which the output need not be under.
 		return Path.Combine(
-			root.FullName,
-			".build",
-			"bin",
+			here.Parent!.Parent!.FullName,
 			"DotGram.Benchmarks",
 			here.Name,
 			"DotGram.Benchmarks" + (OperatingSystem.IsWindows() ? ".exe" : ""));

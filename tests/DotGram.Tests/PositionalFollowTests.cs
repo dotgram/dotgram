@@ -390,7 +390,7 @@ public sealed class PositionalFollowTests
 	[Fact]
 	public void Only_the_listed_proofs_read_the_view()
 	{
-		var source = System.IO.Path.Combine(ReaderCoverageTests.Root(AppContext.BaseDirectory), "src", "DotGram");
+		var source = System.IO.Path.Combine(SourceRoot.Directory, "src", "DotGram");
 		var found  = new List<string>();
 		var reads  = 0;
 

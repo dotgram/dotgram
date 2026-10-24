@@ -74,7 +74,7 @@ public sealed class AstReferenceTests
 	public void Every_statement_says_its_category_as_the_reference_does()
 	{
 		var written = new Dictionary<string, string>(StringComparer.Ordinal);
-		var text    = File.ReadAllText(Path.Combine(Root(AppContext.BaseDirectory), "docs", "ast.md"));
+		var text    = File.ReadAllText(Path.Combine(Root(), "docs", "ast.md"));
 
 		foreach (Match row in Regex.Matches(text, @"^\| `(Statement\.[\w.]+)` \|[^|]+\|[^|]+\| (\w+) \|", RegexOptions.Multiline))
 			written[row.Groups[1].Value] = row.Groups[2].Value;
@@ -133,7 +133,7 @@ public sealed class AstReferenceTests
 
 	static List<(string Node, string Source)> Rows()
 	{
-		var text = File.ReadAllText(Path.Combine(Root(AppContext.BaseDirectory), "docs", "ast.md"));
+		var text = File.ReadAllText(Path.Combine(Root(), "docs", "ast.md"));
 		var rows = new List<(string, string)>();
 
 		foreach (Match row in Regex.Matches(text, @"^\| `([\w.]+)` \| ([^|]+?) \|", RegexOptions.Multiline))
@@ -142,13 +142,8 @@ public sealed class AstReferenceTests
 		return rows;
 	}
 
-	static string Root(string from)
+	static string Root()
 	{
-		var at = new DirectoryInfo(from);
-
-		while (at is not null && !File.Exists(Path.Combine(at.FullName, "DotGram.slnx")))
-			at = at.Parent;
-
-		return at?.FullName ?? from;
+		return SourceRoot.Directory;
 	}
 }

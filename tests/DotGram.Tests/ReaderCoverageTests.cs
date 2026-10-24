@@ -39,7 +39,7 @@ public sealed class ReaderCoverageTests
 	[Fact]
 	public void Every_parser_and_example_is_read_by_the_reader()
 	{
-		var root  = Root(AppContext.BaseDirectory);
+		var root  = Root();
 		var files = Directory.GetFiles(Path.Combine(root, "examples"), "*.cs", SearchOption.AllDirectories)
 			.Concat(Directory.GetFiles(Path.Combine(root, "src", "DotGram.Sql"), "*.cs", SearchOption.AllDirectories))
 			.Concat(Directory.GetFiles(Path.Combine(root, "src", "DotGram.Web"), "*.cs", SearchOption.AllDirectories))
@@ -163,15 +163,8 @@ public sealed class ReaderCoverageTests
 		}
 	}
 
-	internal static string Root(string from)
+	internal static string Root()
 	{
-		var at = new DirectoryInfo(from);
-
-		while (at is not null && !File.Exists(Path.Combine(at.FullName, "DotGram.slnx")))
-			at = at.Parent;
-
-		Assert.NotNull(at);
-
-		return at!.FullName;
+		return SourceRoot.Directory;
 	}
 }

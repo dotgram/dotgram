@@ -38,7 +38,7 @@ public sealed class OneTreeTests
 	{
 		// Put together, so that this file does not name it either.
 		var old  = new Regex(@"\bSql" + "2023" + @"Writer\b");
-		var root = Root(AppContext.BaseDirectory);
+		var root = Root();
 
 		var naming = new[] { "src", "tests" }
 			.SelectMany(top => Directory.EnumerateFiles(Path.Combine(root, top), "*", SearchOption.AllDirectories))
@@ -53,13 +53,8 @@ public sealed class OneTreeTests
 		Assert.Empty(naming);
 	}
 
-	static string Root(string from)
+	static string Root()
 	{
-		var at = new DirectoryInfo(from);
-
-		while (at is not null && !File.Exists(Path.Combine(at.FullName, "DotGram.slnx")))
-			at = at.Parent;
-
-		return at?.FullName ?? from;
+		return SourceRoot.Directory;
 	}
 }

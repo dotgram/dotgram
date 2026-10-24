@@ -16263,7 +16263,7 @@ public sealed class TransactSqlTests
 		// line and the file's own are CRLF.
 		var text = File
 			.ReadAllText(
-				Path.Combine(Root(AppContext.BaseDirectory), "src", "DotGram.Sql", "TransactSql", "TransactSql.gram"))
+				Path.Combine(Root(), "src", "DotGram.Sql", "TransactSql", "TransactSql.gram"))
 			.Replace("\r\n", "\n", StringComparison.Ordinal);
 
 		var kinds = new List<string>();
@@ -16287,14 +16287,9 @@ public sealed class TransactSqlTests
 		return kinds;
 	}
 
-	static string Root(string from)
+	static string Root()
 	{
-		var at = new DirectoryInfo(from);
-
-		while (at is not null && !File.Exists(Path.Combine(at.FullName, "DotGram.slnx")))
-			at = at.Parent;
-
-		return at?.FullName ?? from;
+		return SourceRoot.Directory;
 	}
 
 	/// <summary>A statement comes back as the record its production is named after.</summary>

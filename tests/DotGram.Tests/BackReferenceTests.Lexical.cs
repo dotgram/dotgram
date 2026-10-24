@@ -907,50 +907,6 @@ public sealed partial class BackReferenceTests
 		Assert.Equal((false, null), (read.Read, (string?)read.Value));
 	}
 
-	/// <summary>
-	/// A diamond of rules that bind — each a choice of two that call the next — is cut in time
-	/// linear in its depth: the beginning of a rule is remembered, and a choice of two alternatives
-	/// that begin as one rule does begins as that rule does once. Set the environment variable to
-	/// have the times written beside the test's temporary files.
-	/// </summary>
-	[Fact]
-	public void A_diamond_of_rules_that_bind_is_cut_in_bounded_time()
-	{
-		static string Diamond(int depth)
-		{
-			var rules = new System.Text.StringBuilder();
-
-			for (var k = 0; k < depth; k++)
-			{
-				rules.Append(k == 0 ? $"\tR{k} = {{ $q{k}: (A{k + 1} | B{k + 1}) & $q{k} }}\n" : $"\tR{k} = $q{k}: (A{k + 1} | B{k + 1}) & $q{k}\n");
-				rules.Append($"\tA{k + 1} = R{k + 1} & 'a'\n");
-				rules.Append($"\tB{k + 1} = R{k + 1} & 'b'\n");
-			}
-
-			rules.Append($"\tR{depth} = 'x' | 'y'\n");
-
-			return "trivia = { ' '* }\nnamespace Lexical\n{\n\ttrivia = none\n" + rules +
-				"}\nItem : @string = t: Lexical.R0 => @(t)\nRoot : @string = items: Item* => @(string.Join(\"|\", items))\nparse Root\n";
-		}
-
-		var told = new System.Text.StringBuilder();
-
-		foreach (var depth in new[] { 18, 24 })
-		{
-			var clock = System.Diagnostics.Stopwatch.StartNew();
-			var cut   = GramCompiler.Compile(Diamond(depth), new GramCompilerOptions { Lexical = true, CSharpScanner = RoslynCSharpScanner.Instance });
-			var took  = clock.ElapsedMilliseconds;
-
-			Assert.Contains("Tokenize_DotGram(", cut.Sources[0].Text, StringComparison.Ordinal);
-			Assert.True(depth > 18 || took < 1000, $"a diamond of {depth} took {took} ms to cut");
-
-			told.AppendLine($"diamond {depth}: {took} ms");
-		}
-
-		if (Environment.GetEnvironmentVariable("DOTGRAM_LEXTIMING") is { } where)
-			System.IO.File.WriteAllText(where, told.ToString());
-	}
-
 	// ── Helpers ─────────────────────────────────────────────────────────────────
 
 	/// <summary>

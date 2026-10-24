@@ -176,11 +176,6 @@ public sealed class SqlStandardAstMapTests
 
 	static string Standard()
 	{
-		var at = new DirectoryInfo(AppContext.BaseDirectory);
-
-		while (at is not null && !File.Exists(Path.Combine(at.FullName, "DotGram.slnx")))
-			at = at.Parent;
-
-		return Path.Combine(at?.FullName ?? AppContext.BaseDirectory, "src", "DotGram.Sql", "Standard");
+		return Path.Combine(SourceRoot.Directory, "src", "DotGram.Sql", "Standard");
 	}
 }

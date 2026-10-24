@@ -26,7 +26,10 @@ All build output goes under `.build/` at the repository root (`ArtifactsPath` in
 are in `.build/bin/<project>/<config>` and its intermediate files in `.build/obj/<project>/<config>`,
 lower-case, with the target framework appended (`release_net10.0`) for a project of several. The
 folder is ignored by git; deleting it is a clean, and it is the one folder to leave out of a
-backup. Packages are written where `--output` says (`artifacts/` in CI).
+backup. Packages are written where `--output` says (`artifacts/` in CI). The output may be sent
+elsewhere with `-p:ArtifactsPath=<folder>` (a memory disk, say): a test that reads a source file finds
+the repository from the path the build wrote into its assembly (`SourceRoot`, `DotGramSourceRoot` in
+`Directory.Build.props`), not from where the binary is.
 
 On the Linux machine the solution builds with `-c Linux` (the solution configuration that leaves
 out the Visual Studio extension). A build or test run started by hand or by a script is best run

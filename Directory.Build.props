@@ -10,6 +10,14 @@
 		<ArtifactsPath>$(MSBuildThisFileDirectory).build</ArtifactsPath>
 	</PropertyGroup>
 
+	<!-- Where the repository is, for a test that reads its sources: written into every test assembly,
+	     and only into those, since a path to this checkout in a shipped assembly would make two
+	     builds of one commit differ. Walking up from the binary finds the same place only while the
+	     output is under the repository, which a build that redirects ArtifactsPath is not (SourceRoot). -->
+	<ItemGroup Condition="'$(IsTestProject)' == 'true'">
+		<AssemblyMetadata Include="DotGramSourceRoot" Value="$(MSBuildThisFileDirectory)" />
+	</ItemGroup>
+
 	<PropertyGroup>
 		<LangVersion>latest</LangVersion>
 		<Nullable>enable</Nullable>

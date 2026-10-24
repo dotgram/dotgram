@@ -283,15 +283,5 @@ public sealed class FeedsPageTests
 		return text.Replace("\r\n", "\n", StringComparison.Ordinal).TrimEnd('\n').Split('\n');
 	}
 
-	static string Root { get; } = Repository();
-
-	static string Repository()
-	{
-		var at = new DirectoryInfo(AppContext.BaseDirectory);
-
-		while (at is not null && !File.Exists(Path.Combine(at.FullName, "DotGram.slnx")))
-			at = at.Parent;
-
-		return at?.FullName ?? throw new InvalidOperationException("The repository root is not above the test binaries.");
-	}
+	static string Root => SourceRoot.Directory;
 }

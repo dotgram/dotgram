@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
 using DotGram.Generation;
@@ -136,7 +135,7 @@ public sealed class GeneratedNameTests
 	[Fact]
 	public void Every_type_the_snapshots_nest_is_a_name_the_generator_keeps_apart()
 	{
-		var directory = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Here()))!, "Snapshots");
+		var directory = Path.Combine(SourceRoot.Directory, "tests", "Snapshots");
 		var declaration = new Regex(@"^(\t+)(?:public |internal |private )?(?:sealed |readonly |ref |abstract )*(?:class|struct|enum|interface) ([A-Za-z_]\w*)", RegexOptions.Multiline);
 		var found = new SortedSet<string>(StringComparer.Ordinal);
 		var seen  = 0;
@@ -177,11 +176,6 @@ public sealed class GeneratedNameTests
 			.ToArray();
 
 		Assert.True(unkept.Length == 0, "nested but kept apart from nothing: " + string.Join(", ", unkept));
-	}
-
-	static string Here([CallerFilePath] string path = "")
-	{
-		return path;
 	}
 
 	static GramCompilation Compile(string grammar, bool direct = true, bool buffered = false)

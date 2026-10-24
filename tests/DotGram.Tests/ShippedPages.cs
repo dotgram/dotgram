@@ -264,15 +264,5 @@ static class ShippedPages
 		return Path.Combine(Root, "src", shipped.Assembly.GetName().Name!, name);
 	}
 
-	static string Root { get; } = Repository();
-
-	static string Repository()
-	{
-		var at = new DirectoryInfo(AppContext.BaseDirectory);
-
-		while (at is not null && !File.Exists(Path.Combine(at.FullName, "DotGram.slnx")))
-			at = at.Parent;
-
-		return at?.FullName ?? throw new InvalidOperationException("The repository root is not above the test binaries.");
-	}
+	static string Root => SourceRoot.Directory;
 }

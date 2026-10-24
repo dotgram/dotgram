@@ -182,12 +182,7 @@ public sealed class RenderingTests
 
 	static string SolutionRoot()
 	{
-		var at = AppContext.BaseDirectory;
-
-		while (at is not null && !File.Exists(Path.Combine(at, "DotGram.slnx")))
-			at = Path.GetDirectoryName(at);
-
-		return at ?? throw new InvalidOperationException("No solution root above the test binary.");
+		return SourceRoot.Directory;
 	}
 
 	// ── What a rebuilt node has to carry with it ────────────────────────────────
