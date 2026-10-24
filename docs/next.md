@@ -26220,3 +26220,20 @@ search for the delimiter that found none jumped to the refusal without saying ho
 - **Cost.** Generated source, every project against its parent: SQL:2023 +0.25%, T-SQL +0.00%, FIX 4.4 +0.60% (a
   longer line in each of its seven thousand short branches), the expression language +0.19%. Only failing branches
   change, so nothing that matches is slower.
+
+- **What review found next.** The rule had been put where a literal fails into `Fail:`; four other places
+  refused a literal that stopped agreeing as where it began. A literal failing into a door that records how far
+  a turn or an alternative got (`GiveBack`) now moves there too, and one that gives way to what is tried next
+  from the same place (an alternative after a run, a longer continuation) records the place without moving
+  (`Further`). The scanner raises how far it got also where a literal fails into a sequence's way back or ends a
+  repetition — the latter only where something reads it (`Exits`), since the seam's loops end at every operand
+  and a record nobody reads there is a comparison on the path that matches. Inside a look nothing is raised.
+- **Two that accepted too much**, older than this: over a string a guarded repetition with a most,
+  `(?!';' & any){0,2} & ';'`, was one search that counts no turns; and over a buffer a run inside a negative look
+  kept in locals pushed a way back nothing popped, so a failure after the look gave characters back into it and
+  `?!((?!'b' & any)* & 'b') & any*` accepted `cab`. Left for later: the reader does not record a look ahead that
+  saw nothing, which the engine does only where the look is kept in locals.
+- **Cost, again.** Against main: SQL:2023 +0.44% of source, SQL-92 +0.16%, the expression language +0.43%, the
+  Web grammars +0.3% to +0.6%, T-SQL unchanged; no T-SQL or SQL:2023 refusal of the ScriptDom corpus moved.
+  Generator time on DotGram.Sql the same within noise. The parse rows read alike but `sql/select20`, +5% in a
+  shared window against an A/A of +2% — inside twice its band, so not a finding until a precise run.
