@@ -26265,3 +26265,29 @@ search for the delimiter that found none jumped to the refusal without saying ho
   Generator time on DotGram.Sql the same within noise (13.06 and 13.72 s against 13.09 and 13.60 s, medians of three,
   the two frameworks). A paired stand of every `sql/` row, unpinned on a shared machine and so directional: every
   change inside twice its A/A band; the four rows furthest above their A/A read again six times, -0.6% to +0.7%.
+
+## A standing turn is given up whole, and the seam records what its readers record
+
+- **The turn's other readings.** Giving up a turn that stood still past the fewest as a turn that failed sent the
+  parse into the turn's later alternatives: `{(@Nothing | 'b')*} & 'b' & eof` read the `'b'` inside the braces, which
+  committed it, and refused `b`. A turn that stood still now ends the repetition as it stands. The engine removes
+  what the turn wrote down to the way out its loop head pushed — a turn past the fewest always has one, since a
+  standing repetition is never settled — and leaves by it, without going through `Fail:`, since nothing refused;
+  a recovering repetition removes its element down to the attempt's mark; the tape reader gives the turn up without
+  asking `ways.Retry` for another reading, and records the loop's own way even where the loop is settled, because
+  `ways.Next` on that way is what takes the turn's ways off the tape. `(@Nothing | 'b')* & 'a'` on `ba` is refused
+  at 0 now, where it read `ba` by coming back into the turn.
+- **The next alternative.** A scanned literal recorded how far it agreed where it failed into the scan's refusal,
+  a sequence's way back or a repetition's end, but not where it failed into the alternative after it, so the
+  string form of `trivia = { ("--" & [^ '\n']* | ' ')* }` refused `-` at 0 and the readers at 1. It records there
+  too, as at a repetition's end: only where its first character agreed, since an alternative that does not begin
+  is how a choice goes on, and kept only where something reads it (`Exits`).
+- **A look in the seam.** A look that refused fell into its sequence's way back, which raised how far the scan got
+  to where the look stood. The readers record what a look refuses in a rule read as a scan
+  (`W = (' ' & ?='a')* & 'a'` on a space is refused at 1 by every form) and nothing it refuses in the seam, so
+  only the seam's looks go back past that line now.
+- **What it cost.** Of the shipped grammars' generated files only SQL:2023's moved: its seam's two comment literals
+  record on the branch where they did not match, +460 bytes in each of its four renderings. The refusals of the
+  ScriptDom corpus read by T-SQL and SQL:2023 (33,212 readings) did not move. A paired stand against the parent,
+  unpinned and directional: `sql/select20` -4.8%, `sql/literal` -1.5%, `tsql/select-long` +0.3%, inside the A/A
+  of the same runs. Generator time on DotGram.Sql the same, 12.8-13.5 s against 13.1-13.8 s.
