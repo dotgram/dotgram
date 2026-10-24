@@ -5696,7 +5696,19 @@ sealed partial class Machine
 
 				code.Line();
 
-				if (nullable)
+				// A count with both bounds is held to the fewest after its loop: the turn that stood
+				// still is every turn still owed, as many as the most allows.
+				if (nullable && repeat is null && min is not null && max is not null && FirstSets.StandsStill(body, _graph))
+				{
+					using (code.Block($"if ({took} == p)"))
+					{
+						code.Line(min == max ? $"{turn} = {min};" : $"{turn} = {min} > {max} ? {max} : {min};");
+						code.Line("break;");
+					}
+
+					code.Line();
+				}
+				else if (nullable)
 				{
 					code.Line($"if ({took} == p)");
 					code.Then("break;");

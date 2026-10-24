@@ -84,6 +84,11 @@ public sealed class StandingTurnTests
 		// A count by a length: the turns owed are read where the count is reached.
 		("length",     "T = $q: \"bb\" & (@Nothing){#q,} & 'a'", "|bb|bba|ba"),
 		("lengths",    "E : @int = @Half => @(1)\nT : @int = $q: \"bb\" & xs: E{#q,} & eof => @(xs.Length)", "|bb|bbx|bbxxx"),
+		("exact",      "T = $q: \"bb\" & (@Nothing){#q} & eof", "|bb|bbx"),
+		("crossed",    "T = $q: \"bb\" & (@Nothing){#q,1} & eof", "|bb|bbx"),
+
+		// A recognizer met only in a recovery's synchronization.
+		("sync",       "T = 'a'* recover ((@Nothing)+ & ';') & eof", "|x;|a|ax;|x"),
 	];
 
 	public static TheoryData<string, string, string> Rows()
@@ -124,7 +129,7 @@ public sealed class StandingTurnTests
 
 		foreach (var input in answers.Select(static one => one.Input).Distinct())
 		{
-			var all = answers.Where(one => one.Input == input).ToArray();
+			var all = answers.Where(one => one.Input == input && one.Answer != "none").ToArray();
 
 			Assert.True(
 				all.All(one => one.Answer == all[0].Answer),
@@ -152,6 +157,9 @@ public sealed class StandingTurnTests
 	[InlineData("length",  "bba", "ok@3")]
 	[InlineData("lengths", "bb",  "ok@2 1")]
 	[InlineData("lengths", "bbxxx", "ok@5 4")]
+	[InlineData("exact",   "bb",  "ok@2")]
+	[InlineData("crossed", "bb",  "no@2")]
+	[InlineData("sync",    "x;",  "ok@2")]
 	public void The_answers_are_the_rule_s(string name, string input, string expected)
 	{
 		var grammar = Table.Single(row => row.Name == name).Grammar;
@@ -231,7 +239,7 @@ public sealed class StandingTurnTests
 			CSharpScanner  = RoslynCSharpScanner.Instance,
 		});
 
-		EmittedCode.Quiet(result.Diagnostics);
+		EmittedCode.Quiet(result.Diagnostics.Where(static one => one.Id != GramCompiler.BufferedUnsupported));
 
 		return EmittedCode.Compile(
 			result.Sources[0].Text, className: "Probe", declarationMembers: host,
@@ -297,16 +305,23 @@ public sealed class StandingTurnTests
 	}
 
 	/// <summary>The outcome, where it stopped and the value, read from what the form of <paramref name="over"/> answered.</summary>
+	/// <remarks>"none" where the form is not offered: a grammar that tracks lines reads no bytes.</remarks>
 	static string Answer(Assembly parser, string input, Type over)
 	{
 		Reset(parser);
 
-		var type  = parser.GetType("Probe")!;
-		var bytes = Encoding.ASCII.GetBytes(input);
+		var type   = parser.GetType("Probe")!;
+		var bytes  = Encoding.ASCII.GetBytes(input);
+		var method = over == typeof(string)
+			? type.GetMethod("TryParseT", [typeof(string)])
+			: type.GetMethod("TryParseT", [over, typeof(int?), typeof(int?)]);
+
+		if (method is null)
+			return "none";
+
 		var match = over == typeof(string)
-			? type.GetMethod("TryParseT", [typeof(string)])!.Invoke(null, [input])!
-			: type.GetMethod("TryParseT", [over, typeof(int?), typeof(int?)])!.Invoke(
-				null, [over == typeof(Stream) ? new MemoryStream(bytes) : new StringReader(input), 1, 1 << 16])!;
+			? method.Invoke(null, [input])!
+			: method.Invoke(null, [over == typeof(Stream) ? new MemoryStream(bytes) : new StringReader(input), 1, 1 << 16])!;
 
 		return Said(match);
 	}
