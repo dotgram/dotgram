@@ -291,13 +291,13 @@ public static class HandUrl
 			var mayEnd     = false;
 
 			// A leading colon is only ever the first half of '::', and a '::' that is not there
-			// is refused at its second character, or where it would have begun if the text ends
-			// before one: the generated parser's answer in every rendering.
+			// is refused at its second character, which is the end where the text ends before
+			// one: the generated parser's answer in every rendering (§7.5).
 			if (At(at) == ':')
 			{
 				if (At(at + 1) != ':')
 				{
-					Refused(at + 2 <= _text.Length ? at + 1 : at);
+					Refused(at + 1);
 
 					return -1;
 				}

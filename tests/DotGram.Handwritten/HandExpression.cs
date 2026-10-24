@@ -1564,9 +1564,9 @@ public static class HandExpression
 					continue;
 				}
 
-				// The closing quotes are asked for here next, and where fewer characters are left than
-				// they take, the string wanted more text than there was.
-				return s.Length - at < quotes ? Short() : -1;
+				// The closing quotes are asked for here next, and the brace does not fit them, however
+				// few characters are left: more text would not finish the string (§7.5).
+				return -1;
 			}
 
 			var from = at;

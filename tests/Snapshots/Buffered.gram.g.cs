@@ -716,7 +716,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
-					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+					p = Recognize_DotGram_Feed_RanOut(text, p, "\r\n", false, !failure.Quiet, ref failure);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(3));
 					return -1;
 				}
@@ -990,8 +990,7 @@ namespace DotGram.Snapshots
 				{
 					if (text.Length - p < 2)
 					{
-						failure.Starved = true;
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						p = Recognize_DotGram_Record_RanOut(text, p, "\r\n", false, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(3);
 						goto Fail;
 					}
@@ -1531,7 +1530,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				if (!text.Ensure(p, 2))
 				{
-					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+					p = Recognize_DotGram_Buffered_ParseFeed_RanOut(text, p, "\r\n", false, true, ref failure);
 					Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(3));
 					return -1;
 				}
@@ -2004,7 +2003,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				if (!text.Ensure(p, 2))
 				{
-					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+					p = Recognize_DotGram_Buffered_ParseFeed_Bytes_RanOut(text, p, "\r\n", false, true, ref failure);
 					Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(3));
 					return -1;
 				}
@@ -2310,7 +2309,7 @@ namespace DotGram.Snapshots
 				{
 					if (!text.Ensure(p, 2))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						p = Recognize_DotGram_Buffered_FindRecord_RanOut(text, p, "\r\n", false, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(3);
 						goto Fail;
 					}
@@ -2610,7 +2609,7 @@ namespace DotGram.Snapshots
 				{
 					if (!text.Ensure(p, 2))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						p = Recognize_DotGram_Buffered_FindRecord_Bytes_RanOut(text, p, "\r\n", false, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(3);
 						goto Fail;
 					}
@@ -2794,10 +2793,46 @@ namespace DotGram.Snapshots
 		{
 			var i = 0;
 
-			while (i < value.Length - 1 && (text[p + i] == value[i] || fold && (uint)((value[i] | 0x20) - 'a') <= 'z' - 'a' && (text[p + i] | 0x20) == (value[i] | 0x20)))
+			while (i < value.Length - 1 && (uint)(p + i) < (uint)text.Length && (text[p + i] == value[i] || fold && (uint)((value[i] | 0x20) - 'a') <= 'z' - 'a' && (text[p + i] | 0x20) == (value[i] | 0x20)))
 				i++;
 
 			return p + i;
+		}
+
+		static int Recognize_DotGram_Feed_RanOut(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
+		{
+			var reach = Recognize_DotGram_Feed_Agreeing(text, p, value, fold);
+
+			if ((uint)reach >= (uint)text.Length)
+			{
+				failure.Starved = true;
+				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+			}
+
+			return moves ? reach : p;
+		}
+
+		static int Recognize_DotGram_Record_Agreeing(global::System.ReadOnlySpan<char> text, int p, string value, bool fold)
+		{
+			var i = 0;
+
+			while (i < value.Length - 1 && (uint)(p + i) < (uint)text.Length && (text[p + i] == value[i] || fold && (uint)((value[i] | 0x20) - 'a') <= 'z' - 'a' && (text[p + i] | 0x20) == (value[i] | 0x20)))
+				i++;
+
+			return p + i;
+		}
+
+		static int Recognize_DotGram_Record_RanOut(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
+		{
+			var reach = Recognize_DotGram_Record_Agreeing(text, p, value, fold);
+
+			if ((uint)reach >= (uint)text.Length)
+			{
+				failure.Starved = true;
+				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+			}
+
+			return moves ? reach : p;
 		}
 
 		static int Recognize_DotGram_Buffered_ParseFeed_Sharpen0(BufferedText text, int p, ref string[]? expected)
@@ -2824,10 +2859,22 @@ namespace DotGram.Snapshots
 		{
 			var i = 0;
 
-			while (i < value.Length - 1 && (text.Get(p + i) == value[i] || fold && (uint)((value[i] | 0x20) - 'a') <= 'z' - 'a' && (text.Get(p + i) | 0x20) == (value[i] | 0x20)))
+			while (i < value.Length - 1 && text.Ensure((p + i), 1) && (text.Get(p + i) == value[i] || fold && (uint)((value[i] | 0x20) - 'a') <= 'z' - 'a' && (text.Get(p + i) | 0x20) == (value[i] | 0x20)))
 				i++;
 
 			return p + i;
+		}
+
+		static int Recognize_DotGram_Buffered_ParseFeed_RanOut(BufferedText text, int p, string value, bool fold, bool moves, ref Failure failure)
+		{
+			var reach = Recognize_DotGram_Buffered_ParseFeed_Agreeing(text, p, value, fold);
+
+			if (!text.Ensure(reach, 1))
+			{
+				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+			}
+
+			return moves ? reach : p;
 		}
 
 		static int Recognize_DotGram_Buffered_ParseFeed_Bytes_Sharpen0(BufferedBytes text, int p, ref string[]? expected)
@@ -2854,10 +2901,66 @@ namespace DotGram.Snapshots
 		{
 			var i = 0;
 
-			while (i < value.Length - 1 && (text.Get(p + i) == value[i] || fold && (uint)((value[i] | 0x20) - 'a') <= 'z' - 'a' && (text.Get(p + i) | 0x20) == (value[i] | 0x20)))
+			while (i < value.Length - 1 && text.Ensure((p + i), 1) && (text.Get(p + i) == value[i] || fold && (uint)((value[i] | 0x20) - 'a') <= 'z' - 'a' && (text.Get(p + i) | 0x20) == (value[i] | 0x20)))
 				i++;
 
 			return p + i;
+		}
+
+		static int Recognize_DotGram_Buffered_ParseFeed_Bytes_RanOut(BufferedBytes text, int p, string value, bool fold, bool moves, ref Failure failure)
+		{
+			var reach = Recognize_DotGram_Buffered_ParseFeed_Bytes_Agreeing(text, p, value, fold);
+
+			if (!text.Ensure(reach, 1))
+			{
+				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+			}
+
+			return moves ? reach : p;
+		}
+
+		static int Recognize_DotGram_Buffered_FindRecord_Agreeing(BufferedText text, int p, string value, bool fold)
+		{
+			var i = 0;
+
+			while (i < value.Length - 1 && text.Ensure((p + i), 1) && (text.Get(p + i) == value[i] || fold && (uint)((value[i] | 0x20) - 'a') <= 'z' - 'a' && (text.Get(p + i) | 0x20) == (value[i] | 0x20)))
+				i++;
+
+			return p + i;
+		}
+
+		static int Recognize_DotGram_Buffered_FindRecord_RanOut(BufferedText text, int p, string value, bool fold, bool moves, ref Failure failure)
+		{
+			var reach = Recognize_DotGram_Buffered_FindRecord_Agreeing(text, p, value, fold);
+
+			if (!text.Ensure(reach, 1))
+			{
+				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+			}
+
+			return moves ? reach : p;
+		}
+
+		static int Recognize_DotGram_Buffered_FindRecord_Bytes_Agreeing(BufferedBytes text, int p, string value, bool fold)
+		{
+			var i = 0;
+
+			while (i < value.Length - 1 && text.Ensure((p + i), 1) && (text.Get(p + i) == value[i] || fold && (uint)((value[i] | 0x20) - 'a') <= 'z' - 'a' && (text.Get(p + i) | 0x20) == (value[i] | 0x20)))
+				i++;
+
+			return p + i;
+		}
+
+		static int Recognize_DotGram_Buffered_FindRecord_Bytes_RanOut(BufferedBytes text, int p, string value, bool fold, bool moves, ref Failure failure)
+		{
+			var reach = Recognize_DotGram_Buffered_FindRecord_Bytes_Agreeing(text, p, value, fold);
+
+			if (!text.Ensure(reach, 1))
+			{
+				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+			}
+
+			return moves ? reach : p;
 		}
 
 		/// <summary>What kind of answer a publication gave (docs/syntax.md §7.5).</summary>

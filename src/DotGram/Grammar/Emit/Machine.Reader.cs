@@ -2945,13 +2945,15 @@ sealed partial class Machine
 				? machine.FoldedDiffers($"text.Slice(p, {text.Length})", text)
 				: $"!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, {text.Length}), {Spanned(text)})";
 
-			// As the engine answers, so that the renderings of one grammar name one place: input
-			// that ends inside the literal is refused where it began and says the input ran out;
-			// a character that does not fit is refused where it is, the literal's matching
-			// beginning read on the failing branch alone (Machine.Sharpen).
+			// As the engine answers, so that the renderings of one grammar name one place: a
+			// character that does not fit is refused where it is, the literal's matching beginning
+			// read on the failing branch alone (Machine.Sharpen); and so is one where the input
+			// ends inside the literal, which is refused at the end, as input that ran out, only
+			// where every character there agrees (§7.5).
 			using (code.Block($"if ({machine.LacksRoom(text.Length)})"))
 			{
-				code.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
+				machine.Reached(code, text, folded, machine.Quiets ? "!failure.Quiet" : "");
+
 				Refused(code, name);
 			}
 
@@ -3018,13 +3020,12 @@ sealed partial class Machine
 				shared = shared.Substring(0, common);
 			}
 
-			// Input that ends inside what they all begin with ran out where the run began.
+			// Input that ends inside what they all begin with is walked as the rest is: the walk
+			// reads only what the input holds, and stops at the end where they all agree there.
+			// Where it is not recorded, as a single literal's: ran out at the beginning.
 			if (shared.Length > 1)
 				using (code.Block($"if ({machine.LacksRoom(shared.Length)})"))
-				{
-					code.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
-					Refused(code, all);
-				}
+					machine.Reached(code, shared, false, null);
 
 			var narrowed = $"narrowed{_calls++}";
 

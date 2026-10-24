@@ -2886,10 +2886,7 @@ sealed partial class Machine
 					writer.Line($"if ({Short(value.Length)})");
 					using (writer.Block(""))
 					{
-						if (_starves)
-							writer.Line("failure.Starved = true;");
-
-						writer.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
+						ShortOf(writer, value, ignoreCase);
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
 
@@ -2964,10 +2961,18 @@ sealed partial class Machine
 					writer.Line($"if ({Short(value.Length)})");
 					using (writer.Block(""))
 					{
-						if (_starves)
-							writer.Line("failure.Starved = true;");
+						if (value.Length > 1)
+						{
+							ShortOf(writer, value, ignoreCase);
+						}
+						else
+						{
+							if (_starves)
+								writer.Line("failure.Starved = true;");
 
-						writer.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
+							writer.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
+						}
+
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
 				}
@@ -2991,7 +2996,12 @@ sealed partial class Machine
 						// room exactly at the end of the input, and the boundary reads
 						// that off the position itself (§7.5).
 						if (i == 0 && room is not null && value.Length > 1)
-							writer.Line($"if (({room}) && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
+						{
+							writer.Line($"if ({room})");
+
+							using (writer.Block(""))
+								ShortOf(writer, value, ignoreCase);
+						}
 
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
@@ -4908,13 +4918,12 @@ sealed partial class Machine
 			// constant is folded into word-sized compares and bounds-checked once, where the
 			// chain of text[p + i] it replaces was checked once per character despite the room
 			// test above having proved every one of them in range.
+			// Input that ends inside what they all begin with: refused where the first of
+			// those characters that does not fit stands, or at the end where they all do.
 			writer.Line($"if ({Short(shared.Length)})");
 			using (writer.Block(""))
 			{
-				if (_starves)
-					writer.Line("failure.Starved = true;");
-
-				writer.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
+				ShortOf(writer, shared, false, fail);
 				EmitTerminalFailure(writer, fail, arrayName);
 			}
 
@@ -7050,12 +7059,151 @@ sealed partial class Machine
 	}
 
 	/// <summary>
+	/// The branch of a literal of two or more characters where the input ends inside it. Refused at
+	/// the first character the input holds that does not fit — input that did not fit, which more
+	/// input cannot change — and at the end of the input where every one there agrees: there it ran
+	/// out (§7.5). A stream is told it starved only then.
+	/// </summary>
+	/// <remarks>
+	/// <c>p</c> moves only where the failure is the one recorded, as for a character that does not
+	/// fit (<see cref="Sharpen"/>); a door puts it back, and inside a lookahead nothing reads it.
+	/// The walk is the reader's, out of line, wherever the literal is ASCII or keeps its case.
+	/// </remarks>
+	void ShortOf(Writer writer, string value, bool ignoreCase, int? fail = null)
+	{
+		var reads = (fail ?? _fail) == Fail;
+		var guard = !reads ? null : _lowering || fail is not null ? "" : "lookahead < 0";
+
+		Reached(writer, value, ignoreCase, guard);
+	}
+
+	/// <summary>
+	/// Moves <c>p</c> where a literal the input ends inside stops agreeing, where <paramref name="moves"/>
+	/// says to — always where it is empty, and otherwise where it holds — and marks the refusal at the
+	/// literal's beginning as one of input that ran out where every character there agrees.
+	/// </summary>
+	/// <remarks>
+	/// The mark is for where the refusal is not recorded where the literal stops agreeing — inside a
+	/// look, behind a door — and something recorded at its beginning is what the parse is refused by.
+	/// A call out of line rather than a local: a local in each of the hundreds of such branches of
+	/// one state machine is a variable more in every flow the C# compiler works out over it, and the
+	/// trace build of the SQL parsers took it from minutes to more than half an hour.
+	/// </remarks>
+	internal void Reached(Writer writer, string value, bool ignoreCase, string? moves)
+	{
+		if (ignoreCase && !Ascii(value))
+		{
+			using (writer.Block(""))
+			{
+				writer.Line("var literalReach = p;");
+				ReachLadder(writer, value, true, "literalReach");
+
+				using (writer.Block($"if ({Past("literalReach")})"))
+				{
+					if (_starves)
+						writer.Line("failure.Starved = true;");
+
+					writer.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
+				}
+
+				if (moves is not null)
+					writer.Line(moves.Length == 0 ? "p = literalReach;" : $"if ({moves}) p = literalReach;");
+			}
+
+			return;
+		}
+
+		var call = $"{RanOut()}(text, p, {Quoted(value)}, {(ignoreCase ? "true" : "false")}, " +
+			$"{(moves is null ? "false" : moves.Length == 0 ? "true" : moves)}, ref failure);";
+
+		writer.Line(moves is null ? call : "p = " + call);
+	}
+
+	string? _ranOut;
+
+	/// <summary>
+	/// The walk of <see cref="Agreeing"/> on the branch where the input ends inside the literal, with
+	/// what it says of the input running out (<see cref="Reached"/>): one method for the machine,
+	/// answering where the walk stopped where it is asked to move, and otherwise where it began.
+	/// </summary>
+	string RanOut()
+	{
+		if (_ranOut is not null)
+			return _ranOut;
+
+		_ranOut = $"Recognize_DotGram{_tag}_RanOut";
+
+		var agreeing = Agreeing();
+		var helper   = new Writer(0);
+
+		helper.Line(
+			$"static int {_ranOut}({InputType} text, int p, string value, bool fold, bool moves, " +
+			$"ref {CSharpEmitter.FailureType} failure)");
+
+		using (helper.Block(""))
+		{
+			helper.Line($"var reach = {agreeing}(text, p, value, fold);");
+			helper.Line();
+
+			using (helper.Block($"if ({Past("reach")})"))
+			{
+				if (_starves)
+					helper.Line("failure.Starved = true;");
+
+				helper.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
+			}
+
+			helper.Line();
+			helper.Line("return moves ? reach : p;");
+		}
+
+		_extra.Add(helper.ToString());
+
+		return _ranOut;
+	}
+
+	/// <summary>
+	/// Moves <paramref name="target"/>, which stands where a literal begins, past every character of
+	/// it the input holds and agrees with: to the first that does not fit, or to the end of the input.
+	/// For the branch where the input ends inside the literal, so at most all but its last are read.
+	/// </summary>
+	/// <remarks>
+	/// Nested rather than a walk over the literal, for the one beyond ASCII that ignores case, whose
+	/// characters each fold their own way; and for the scanner, which reads a span of its own.
+	/// </remarks>
+	void ReachLadder(Writer writer, string value, bool ignoreCase, string target = "p")
+	{
+		ReachLadder(writer, value, ignoreCase, target, ReadAt(target), Within(target));
+	}
+
+	/// <summary><see cref="ReachLadder(Writer, string, bool, string)"/> with the read and the bound given, for the scanner.</summary>
+	internal static void ReachLadder(Writer writer, string value, bool ignoreCase, string target, string read, string within)
+	{
+		Level(0);
+
+		void Level(int at)
+		{
+			if (at >= value.Length - 1)
+				return;
+
+			using (writer.Block($"if ({within} && {CSharpEmitter.Agrees(read, value[at], ignoreCase)})"))
+			{
+				writer.Line($"{target} += 1;");
+				Level(at + 1);
+			}
+		}
+	}
+
+	/// <summary>
 	/// <see cref="Sharpen"/> out of line, for the reader: one method for the whole file, called
 	/// with the literal, where the ladder would be written once per literal. The reader tests a
 	/// keyword wherever it may stand, and a ladder at each of those places put a fifth on the
 	/// size of the SQL:2023 parser for a branch that is only ever taken when failing.
 	/// </summary>
-	/// <remarks>Called where there is room for the whole literal, which the method takes on trust.</remarks>
+	/// <remarks>
+	/// Also called where the input ends inside the literal, and then answers the end where every
+	/// character there is agrees: the place a reading that ran out is refused (§7.5).
+	/// </remarks>
 	string Agreeing()
 	{
 		if (_agreeing is not null)
@@ -7076,7 +7224,7 @@ sealed partial class Machine
 			helper.Line("var i = 0;");
 			helper.Line();
 			helper.Line(
-				$"while (i < value.Length - 1 && ({read} == value[i] || fold && " +
+				$"while (i < value.Length - 1 && {Within("(p + i)")} && ({read} == value[i] || fold && " +
 				"(uint)((value[i] | 0x20) - 'a') <= 'z' - 'a' && " +
 				$"({read} | 0x20) == (value[i] | 0x20)))");
 			helper.Then("i++;");
