@@ -352,6 +352,9 @@ sealed partial class Machine
 	/// <summary>What separates this machine's names from a sibling's — the constructor's <c>tag</c>.</summary>
 	readonly string _tag;
 
+	/// <summary>The tag of the machine a lexer skips the trivia with (<c>CSharpEmitter.Seam</c>).</summary>
+	internal const string SeamTag = "_Seam";
+
 	int _fail = Fail;
 	bool _materializer;
 	bool _guardValues;
@@ -2952,19 +2955,7 @@ sealed partial class Machine
 						// than where it began. Not inside a look kept in locals, whose doors record
 						// nothing, nor inside a look the arena keeps, as above.
 						else if (_doorLooking == 0)
-						{
-							if (_lowering)
-							{
-								Sharpen(writer, value, ignoreCase);
-							}
-							else
-							{
-								writer.Line("if (lookahead < 0)");
-
-								using (writer.Block(""))
-									Sharpen(writer, value, ignoreCase);
-							}
-						}
+							Sharpen(writer, value, ignoreCase, _lowering ? "" : "lookahead < 0 && ");
 
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
@@ -7078,9 +7069,10 @@ sealed partial class Machine
 		return true;
 	}
 
-	void Sharpen(Writer writer, string value, bool ignoreCase = false)
+	/// <param name="guard">What the first test is asked after, written with its <c>&amp;&amp;</c>.</param>
+	void Sharpen(Writer writer, string value, bool ignoreCase = false, string guard = "")
 	{
-		writer.Line($"if ({CSharpEmitter.Agrees(At(0), value[0], ignoreCase)})");
+		writer.Line($"if ({guard}{CSharpEmitter.Agrees(At(0), value[0], ignoreCase)})");
 
 		if (value.Length == 2)
 		{
@@ -7123,7 +7115,7 @@ sealed partial class Machine
 		// in locals, which records nothing.
 		var door  = fail is null && _fail != Fail && _doorLooking == 0;
 		var reads = (fail ?? _fail) == Fail || door;
-		var guard = !reads ? null : _lowering || fail is not null || door ? "" : "lookahead < 0";
+		var guard = !reads ? null : _lowering || fail is not null ? "" : "lookahead < 0";
 
 		Reached(writer, value, ignoreCase, guard);
 	}

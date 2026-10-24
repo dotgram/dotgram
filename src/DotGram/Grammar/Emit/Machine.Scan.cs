@@ -351,11 +351,11 @@ sealed partial class Machine
 		// record as they try the turn (§7.5). Only that: its records are kept only where they are
 		// read (ScanWriter.Exits), so it is asked written as it would be read, and a seam whose
 		// turns hold no such literal reports nothing and is written as it was. Not the seam a lexer
-		// skips with (RecordsRunOut), which says where the text ran out on its own and records no
-		// refusal.
+		// skips with, which says where the text ran out on its own (RecordsRunOut) and records no
+		// refusal; asked by its tag, since this is asked while the machine is being built.
 		var body    = ScanBody(rule);
 		var reports = SeamReached.Contains(rule)
-			? !RecordsRunOut && new ScanWriter(_graph, static _ => null, static _ => "true", _tag, _starves, StopCharacters)
+			? _tag != SeamTag && new ScanWriter(_graph, static _ => null, static _ => "true", _tag, _starves, StopCharacters)
 				.Render(body, reports: true)
 				.Contains("> furthest", StringComparison.Ordinal)
 			: new ScanWriter(_graph, static _ => null, static _ => "true", _tag, _starves, StopCharacters)

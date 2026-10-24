@@ -249,7 +249,7 @@ public static partial class CSharpEmitter
 		// names twice. The two the file keeps for itself — the second read of a terminal's value
 		// and the seam — are named by what they are, and a rule may be called that too: a
 		// grammar publishing a rule named `Value` wrote `Recognize_DotGram_Value_Expected0` twice.
-		var tags = new HashSet<string>(StringComparer.Ordinal) { "_Value", "_Seam" };
+		var tags = new HashSet<string>(StringComparer.Ordinal) { "_Value", Machine.SeamTag };
 
 		// What the graph says about readings that may not stand, asked once for every machine the
 		// immediate carrier was asked for, and not at all on the tape. The gates need it to say what
@@ -5908,7 +5908,7 @@ file.Line("return spare;");
 			// Tagged, because everything a machine emits is named after its tag and this one
 			// stands in a file another machine has already filled: without it the seam's
 			// character tables collide with the syntax's, name for name.
-			tag: "_Seam",
+			tag: Machine.SeamTag,
 			expectedSets: expectedSets)
 		{
 			RecordsRunOut = true,
