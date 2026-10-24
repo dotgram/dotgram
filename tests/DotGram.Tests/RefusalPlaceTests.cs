@@ -66,20 +66,12 @@ public sealed class RefusalPlaceTests
 		("beside",      "T = (\"abcd\" | \"abce\" | ['x'|'y']) & eof"),
 	];
 
-	/// <summary>
-	/// Held to their named places only. A scan inside a negative look: the buffered engine leaves
-	/// the run the look's scan pushed on the arena, and a failure after the look gives back into it,
-	/// so on "xx" it accepts what the string refuses — a defect of its own, older than these places.
-	/// </summary>
-	static readonly string[] Apart = ["scanlooked"];
-
 	public static TheoryData<string> Names()
 	{
 		var names = new TheoryData<string>();
 
 		foreach (var (name, _) in Shapes)
-			if (!Apart.Contains(name))
-				names.Add(name);
+			names.Add(name);
 
 		return names;
 	}
