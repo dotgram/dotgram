@@ -2950,9 +2950,21 @@ sealed partial class Machine
 						// A door that gives a turn or an alternative back records where it stopped,
 						// as Fail: does (GiveBack): told where the literal stopped agreeing rather
 						// than where it began. Not inside a look kept in locals, whose doors record
-						// nothing.
+						// nothing, nor inside a look the arena keeps, as above.
 						else if (_doorLooking == 0)
-							Sharpen(writer, value, ignoreCase);
+						{
+							if (_lowering)
+							{
+								Sharpen(writer, value, ignoreCase);
+							}
+							else
+							{
+								writer.Line("if (lookahead < 0)");
+
+								using (writer.Block(""))
+									Sharpen(writer, value, ignoreCase);
+							}
+						}
 
 						EmitTerminalFailure(writer, _fail, arrayName);
 					}
