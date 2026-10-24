@@ -346,15 +346,21 @@ sealed partial class Machine
 		if (_scannerReports.TryGetValue(rule, out var known))
 			return known;
 
-		// Not one the seam reaches, whose refusals nothing records: what it reads past spaces is
-		// never what a refusal says, and the seam is called at every step of a parse.
-		if (SeamReached.Contains(rule))
-			return _scannerReports[rule] = false;
-
+		// The seam reports too where a turn that ends it began to agree with a literal and stopped —
+		// a comment's `--` or `/*` the input ends inside, or does not go on with — which the readers
+		// record as they try the turn (§7.5). Only that: its records are kept only where they are
+		// read (ScanWriter.Exits), so it is asked written as it would be read, and a seam whose
+		// turns hold no such literal reports nothing and is written as it was. Not the seam a lexer
+		// skips with (RecordsRunOut), which says where the text ran out on its own and records no
+		// refusal.
 		var body    = ScanBody(rule);
-		var reports = new ScanWriter(_graph, static _ => null, static _ => "true", _tag, _starves, StopCharacters)
-			.Render(body)
-			.Contains("furthest", StringComparison.Ordinal);
+		var reports = SeamReached.Contains(rule)
+			? !RecordsRunOut && new ScanWriter(_graph, static _ => null, static _ => "true", _tag, _starves, StopCharacters)
+				.Render(body, reports: true)
+				.Contains("> furthest", StringComparison.Ordinal)
+			: new ScanWriter(_graph, static _ => null, static _ => "true", _tag, _starves, StopCharacters)
+				.Render(body)
+				.Contains("furthest", StringComparison.Ordinal);
 
 		_scannerReports[rule] = reports;
 

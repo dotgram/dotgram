@@ -3359,7 +3359,7 @@ namespace DotGram.Snapshots
 
 					if (!o1 && (failure.Quiet || p < failure.Doors))
 					{
-						{ if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(42)); }
+						{ if (!failure.Quiet) Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(43)); }
 						break;
 					}
 
@@ -4853,7 +4853,13 @@ namespace DotGram.Snapshots
 			var flat0_0End = 0;
 
 			{
-				p = Scan_Spaced_trivia_Spaced_Pair(text, p, ref failure);
+				p = Scan_Spaced_trivia_Spaced_Pair(text, p, ref failure, out var scanReached);
+				if (scanReached > p && scanReached > failure.Position)
+				{
+					failure.Position = scanReached;
+					if (!failure.Quiet)
+						failure.Expected = ExpectedSet_DotGram(38);
+				}
 			}
 
 			{
@@ -4872,14 +4878,14 @@ namespace DotGram.Snapshots
 				if (text.Length - p < 2)
 				{
 					p = Recognize_DotGram_Spaced_Pair_RanOut(text, p, "on", false, true, ref failure);
-					expected = ExpectedSet_DotGram(38);
+					expected = ExpectedSet_DotGram(39);
 					goto Fail;
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("on")))
 				{
 					if (text[p] == 'o')
 						p += 1;
-					expected = ExpectedSet_DotGram(38);
+					expected = ExpectedSet_DotGram(39);
 					goto Fail;
 				}
 				p += 2;
@@ -4898,7 +4904,13 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				p = Scan_Spaced_trivia_Spaced_Pair(text, p, ref failure);
+				p = Scan_Spaced_trivia_Spaced_Pair(text, p, ref failure, out var scanReached);
+				if (scanReached > p && scanReached > failure.Position)
+				{
+					failure.Position = scanReached;
+					if (!failure.Quiet)
+						failure.Expected = ExpectedSet_DotGram(38);
+				}
 			}
 
 			{
@@ -4926,7 +4938,13 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				p = Scan_Spaced_trivia_Spaced_Pair(text, p, ref failure);
+				p = Scan_Spaced_trivia_Spaced_Pair(text, p, ref failure, out var scanReached);
+				if (scanReached > p && scanReached > failure.Position)
+				{
+					failure.Position = scanReached;
+					if (!failure.Quiet)
+						failure.Expected = ExpectedSet_DotGram(38);
+				}
 			}
 
 			{
@@ -4976,7 +4994,13 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				p = Scan_Spaced_trivia_Spaced_Pair(text, p, ref failure);
+				p = Scan_Spaced_trivia_Spaced_Pair(text, p, ref failure, out var scanReached);
+				if (scanReached > p && scanReached > failure.Position)
+				{
+					failure.Position = scanReached;
+					if (!failure.Quiet)
+						failure.Expected = ExpectedSet_DotGram(38);
+				}
 				goto Accept;
 			}
 
@@ -4988,12 +5012,15 @@ namespace DotGram.Snapshots
 
 			Fail:
 			value = default!;
-			failure.Position = p;
-			failure.Expected = expected;
+			if (p >= failure.Position)
+			{
+				failure.Position = p;
+				failure.Expected = expected;
+			}
 			return -1;
 		}
 
-		static int Scan_Spaced_trivia_Spaced_Pair(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Scan_Spaced_trivia_Spaced_Pair(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int reachedAt)
 		{
 			var p = pos;
 			var c = '\0';
@@ -5023,6 +5050,7 @@ namespace DotGram.Snapshots
 
 			if (p >= text.Length || furthest >= text.Length) failure.Starved = true;
 
+			reachedAt = furthest;
 			return p;
 		}
 
@@ -7527,8 +7555,8 @@ namespace DotGram.Snapshots
 
 		static string[] ExpectedDecoded_DotGram(int id)
 		{
-			var data = "ACEILNPTWY\u005B\u005D\u005FaAaCaEaGaIaKaMaOaQaSaUaWaYa\u005Ba\u005Da\u005FbAbCbEbGbIbKbMbPbSbVbYb\u005Cb\u005FcBBABBDCDECCDBDBEDDCECDCBFBCBGBHBIBJBKBLBMBNBOBPBQBRBSBTBUBVBWBXBYBZB\u005BB\u005CB\u005DB\u005EB\u005FBa@BaABaBBaCBaDBaEBaFBaG";
-			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[43], null) ?? ExpectedBuilt_DotGram!;
+			var data = "ACEILNPTWY\u005B\u005D\u005FaAaCaEaGaIaKaMaOaQaSaUaWaYa\u005Ba\u005Da\u005FbAbCbEbGbIbKbMbPbSbVbYb\u005Cb\u005FcBcEBABBDCDECCDBDBEDDCECDCBFBCBGBHBIBJBKBLBMBNBOBPBQBRBSBTBUBVBWBXBYBZB\u005BB\u005CB\u005DB\u005EB\u005FBa@BaABaBBaCBaDBaEBaFBaGBaH";
+			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[44], null) ?? ExpectedBuilt_DotGram!;
 			var items = ExpectedItems_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedItems_DotGram, new string[]
 				{
 					"'a'",
@@ -7565,6 +7593,7 @@ namespace DotGram.Snapshots
 					"?!wordboundary",
 					"\"off\"",
 					"?<!['a'..'z']",
+					"trivia",
 					"\"on\"",
 					"' '",
 					"\"//\"",
@@ -7577,7 +7606,7 @@ namespace DotGram.Snapshots
 
 			if (starts == null)
 			{
-				starts = new int[43];
+				starts = new int[44];
 
 				for (var i = 0; i < starts.Length; i++)
 				{
