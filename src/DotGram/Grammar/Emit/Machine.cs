@@ -4873,6 +4873,10 @@ sealed partial class Machine
 				writer.Line($"goto {Label(writer, next)};");
 			}
 
+			// Where this one stopped agreeing, or the end where the input ends inside it, recorded as a
+			// refusal of its own: the next one is tried from the same place, and the last fails here.
+			Further(writer, $"{RanOut()}(text, p, {Quoted(rest)}, false, true, ref failure)", arrayName);
+
 			if (after >= 0)
 				writer.Line($"goto {Label(writer, after)};");
 			else
@@ -4924,6 +4928,7 @@ sealed partial class Machine
 			using (writer.Block(""))
 			{
 				ShortOf(writer, shared, false, fail);
+
 				EmitTerminalFailure(writer, fail, arrayName);
 			}
 
@@ -7120,6 +7125,74 @@ sealed partial class Machine
 	}
 
 	string? _ranOut;
+
+	/// <summary>
+	/// Records a refusal at <paramref name="at"/> where it is further than anything before, leaving the
+	/// position where it is: for a literal that gives way to what is tried next from the same place —
+	/// the alternatives after a run, the next continuation of one — so that where it stopped agreeing,
+	/// or the end where the input ends inside it, is not lost to the refusal of what comes after it.
+	/// </summary>
+	/// <remarks>
+	/// A call out of line (<see cref="Furthered"/>) where nothing but the failure is asked, as
+	/// <see cref="Reached"/> is; written in place, with a local, where the engine also counts how
+	/// far a recovering element got or traces the refusal. Not in a lowered method, whose literals
+	/// give way through its own locals.
+	/// </remarks>
+	void Further(Writer writer, string at, string said)
+	{
+		if (_lowering)
+			return;
+
+		_expectedUsed.Add(said);
+
+		if (_recoveries.Count > 0 || Tracing is not null)
+		{
+			using (writer.Block(""))
+			{
+				writer.Line($"var further = {at};");
+				RecordFurther(writer, "further > p", "further", said);
+			}
+
+			return;
+		}
+
+		writer.Line($"if (lookahead < 0) {Furthered()}(ref failure, {at}, {said});");
+	}
+
+	string? _furthered;
+
+	/// <summary>The record <see cref="Further"/> calls: <see cref="RecordFurther"/>'s, once for the machine.</summary>
+	string Furthered()
+	{
+		if (_furthered is not null)
+			return _furthered;
+
+		_furthered = $"Recognize_DotGram{_tag}_Further";
+
+		var helper = new Writer(0);
+
+		helper.Line($"static void {_furthered}(ref {CSharpEmitter.FailureType} failure, int at, string[]? expected)");
+
+		using (helper.Block(""))
+		{
+			helper.Line(Quiets && !KeepsDoors
+				? "if (failure.Quiet || at <= failure.Position)"
+				: "if (at <= failure.Position)");
+			helper.Then("return;");
+			helper.Line();
+			helper.Line("failure.Position = at;");
+
+			using (KeepsDoors ? helper.Block("if (!failure.Quiet)") : null)
+			{
+				helper.Line("failure.Expected = expected;");
+				helper.Line("failure.ExpectedMore?.Clear();");
+			}
+		}
+
+		_extra.Add(helper.ToString());
+
+		return _furthered;
+	}
 
 	/// <summary>
 	/// The walk of <see cref="Agreeing"/> on the branch where the input ends inside the literal, with
