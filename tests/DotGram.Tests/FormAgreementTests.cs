@@ -85,6 +85,11 @@ public sealed class FormAgreementTests
 		("widefolded",  "T = \"äb\"i & ';'"),
 		("spaced",      "trivia = { ' '* }\nT = \"ab\" & \"cd\" & eof"),
 		("commented",   "trivia = { (' ' | \"--\" & [^ '\\n']*)* }\nT = 'a' & 'b' & eof"),
+		("commentFirst", "trivia = { (\"--\" & [^ '\\n']* | ' ')* }\nT = 'a' & 'b' & eof"),
+		("slashes",     "trivia = { (' ' | '/' & '/' & [^ '\\n']*)* }\nT = 'a' & 'b' & eof"),
+		("lookedSeam",  "trivia = { (' ' & ?='a')* }\nT = 'b' & eof"),
+		("scanlook",    "W = (' ' & ?='a')* & 'a'\nT = W & 'b' & eof"),
+		("scanalt",     "W = (\"ab\" & 'c' | 'x')+ & ';'\nT = W & eof"),
 		("recovered",   "T = (\"ab\" & ';')* recover ';' & eof"),
 		("atomic",      "T = {\"ab\" | 'a'} & 'c' & eof"),
 		("threeway",    "T = (\"abc\" | \"abd\" | \"ab\") & 'x' & eof"),
@@ -153,6 +158,27 @@ public sealed class FormAgreementTests
 			var parser = Build(grammar, config);
 
 			Assert.Equal(expected, Answer(parser, input, typeof(TextReader), 1));
+			Assert.Equal(expected, Answer(parser, input, typeof(string), null));
+		}
+	}
+
+	/// <summary>
+	/// The same where the comment is the first alternative of the trivia, and where a look ends a
+	/// turn of it: a literal that fails into the next alternative is refused as far as it agreed,
+	/// and a look that refuses reaches nothing, as the readers record neither more nor less.
+	/// </summary>
+	[Theory]
+	[InlineData("trivia = { (\"--\" & [^ '\\n']* | ' ')* }\nT = 'a' & 'b' & eof", "-",  "Starved@1")]
+	[InlineData("trivia = { (\"--\" & [^ '\\n']* | ' ')* }\nT = 'a' & 'b' & eof", "- ", "NoMatch@1")]
+	[InlineData("trivia = { (' ' & ?='a')* }\nT = 'b' & eof", " x", "NoMatch@0")]
+	public void A_trivia_turn_is_refused_where_the_readers_refuse_it(string grammar, string input, string expected)
+	{
+		foreach (var config in Configs)
+		{
+			var parser = Build(grammar, config);
+
+			Assert.Equal(expected, Answer(parser, input, typeof(TextReader), 1));
+			Assert.Equal(expected, Answer(parser, input, typeof(Stream), 1));
 			Assert.Equal(expected, Answer(parser, input, typeof(string), null));
 		}
 	}
