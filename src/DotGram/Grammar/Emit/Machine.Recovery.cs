@@ -211,10 +211,28 @@ sealed partial class Machine
 			TurnEnds(atAfter, id);
 
 		atAfter.Line("var acceptedRepeat = entries[repeat];");
+		// An element that stood still past the fewest is not taken: what it wrote goes, down to and
+		// with the mark its attempt left, and the repetition ends where it began (StandingTurn).
 		if (stands)
-			atAfter.Line(min == 0
-				? $"if (p == acceptedRepeat.RuleIndex) goto {Label(atAfter, exit)};"
-				: $"if (p == acceptedRepeat.RuleIndex && acceptedRepeat.Value >= {min}) goto {Label(atAfter, exit)};");
+		{
+			using (atAfter.Block(min == 0
+				? "if (p == acceptedRepeat.RuleIndex)"
+				: $"if (p == acceptedRepeat.RuleIndex && acceptedRepeat.Value >= {min})"))
+			{
+				using (atAfter.Block("while (true)"))
+				{
+					atAfter.Line("var given = entries[entries.Count - 1];");
+					if (Caches)
+						atAfter.Line("parser.Truncate(entries.Count - 1, entries);");
+					atAfter.Line("entries.RemoveAt(entries.Count - 1);");
+					atAfter.Line(
+						$"if (given.RepeatIndex == repeat && given.State == {Mark(Lands, asked)} && " +
+						"(given.Kind == ParserEntry.Dead || given.Kind == ParserEntry.Choice)) break;");
+				}
+
+				atAfter.Line($"goto {Label(atAfter, exit)};");
+			}
+		}
 		atAfter.Line(
 			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, acceptedRepeat.Position, " +
 			"acceptedRepeat.CallIndex, acceptedRepeat.AtomicIndex, acceptedRepeat.RepeatIndex, " +
