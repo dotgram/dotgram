@@ -867,6 +867,17 @@ sealed partial class Machine
 		{
 			return fail != "Refuse" && !_restores.Contains(fail);
 		}
+
+		/// <summary>
+		/// Whether a refusal that fails into <paramref name="fail"/> raises how far the scan got: the
+		/// scan's own refusal, and a sequence's way back, which raises it to where the sequence
+		/// stopped (a literal's matching beginning included) — but never inside a look, which puts
+		/// the position back and reaches nothing, as the reader's looks record nothing.
+		/// </summary>
+		bool Records(string fail)
+		{
+			return _lookingAhead == 0 && (fail == "Refuse" || _restores.Contains(fail));
+		}
 		bool _character;
 		bool _reaches;
 
@@ -1005,7 +1016,7 @@ sealed partial class Machine
 						// into a loop's exit has not refused anything — the loop simply ends,
 						// and the seam a spaced grammar skips at every operand ends that way
 						// on every character that is not the comment it was looking for.
-						if (fail == "Refuse")
+						if (Records(fail))
 						{
 							using (code.Block(""))
 							{
@@ -1025,7 +1036,7 @@ sealed partial class Machine
 					{
 						// Input that ends inside the literal: the refusal reaches past every
 						// character there that agrees, to the end where they all do.
-						if (fail == "Refuse" && text.Length > 1)
+						if (Records(fail) && text.Length > 1)
 						{
 							code.Line($"if ({Short(text.Length)})");
 
@@ -1049,7 +1060,7 @@ sealed partial class Machine
 							// The offset is known here and no walk is needed: a run refusing
 							// at its fourth character reached its fourth character.
 							code.Line(
-								i == 0 || fail != "Refuse"
+								i == 0 || !Records(fail)
 									? $"if ({test}) goto {fail};"
 									: $"if ({test}) {{ if (p + {i} > furthest) furthest = p + {i}; goto {fail}; }}");
 						}
