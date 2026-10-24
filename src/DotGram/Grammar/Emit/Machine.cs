@@ -4927,7 +4927,12 @@ sealed partial class Machine
 			writer.Line($"if ({Short(shared.Length)})");
 			using (writer.Block(""))
 			{
-				ShortOf(writer, shared, false, fail);
+				// Where the run gives way to the alternatives after it, which read from where it
+				// began, the place is recorded and the position left where it is.
+				if (fail == Fail)
+					ShortOf(writer, shared, false, fail);
+				else
+					Further(writer, $"{RanOut()}(text, p, {Quoted(shared)}, false, true, ref failure)", arrayName);
 
 				EmitTerminalFailure(writer, fail, arrayName);
 			}
@@ -4947,6 +4952,8 @@ sealed partial class Machine
 				// and the run this jumps to reads from where this one started.
 				if (fail == Fail)
 					Sharpen(writer, shared);
+				else
+					Further(writer, $"{Agreeing()}(text, p, {Quoted(shared)}, false)", arrayName);
 
 				EmitTerminalFailure(writer, fail, arrayName);
 			}
@@ -5093,7 +5100,18 @@ sealed partial class Machine
 				writer.Line($"goto {Label(writer, fail)};");
 			}
 			else
+			{
+				// Given way to the alternatives after the run: where any of them got is recorded,
+				// and the position is left where they read from.
+				if (!_lowering)
+				{
+					_expectedUsed.Add(arrayName);
+					writer.Line($"expected = {arrayName};");
+					Further(writer, $"{Sharpening(texts, displays)}(text, p, ref expected)", "expected");
+				}
+
 				EmitTerminalFailure(writer, fail, arrayName);
+			}
 		}
 
 		return state;
@@ -7143,7 +7161,9 @@ sealed partial class Machine
 		if (_lowering)
 			return;
 
-		_expectedUsed.Add(said);
+		// The local the walk narrows is not an array of the file's.
+		if (said != "expected")
+			_expectedUsed.Add(said);
 
 		if (_recoveries.Count > 0 || Tracing is not null)
 		{
