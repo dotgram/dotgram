@@ -3500,7 +3500,10 @@ input matched pays nothing for the words.
 where more was needed — the answer a caller reading from a stream acts on differently
 from the one reading a finished document. Both are exact: the furthest position the
 parse reached is either the end of the input, or a place where something wanted more
-characters than remained.
+characters than remained. A literal the input ends inside has run out only where every
+character there agrees with it, and is then refused at the end; where one does not, more
+input could not change that, and the refusal is `NoMatch` at that character. So
+`T = "/*" & ';'` refuses `/` as `Starved` at 1 and `/x` as `NoMatch` at 1.
 
 **What `Error` names is sound, not complete.** An alternative it names would have been
 accepted where it says; the set of them may be narrower in one form of the input than in
