@@ -5562,8 +5562,10 @@ sealed partial class Machine
 					code.Line();
 				}
 
-				// A loop nothing can ask a turn back from has no way to record.
-				var records = !settled;
+				// A loop nothing can ask a turn back from has no way to record — but for one whose
+				// turn may stand still: given up, it leaves by its way, which takes the ways the turn
+				// opened with it, so that nothing asks the turn for another reading afterwards.
+				var records = !settled || stands;
 
 				if (records)
 				{
@@ -5631,10 +5633,20 @@ sealed partial class Machine
 						code.Line($"{took} = {call};");
 						code.Line();
 
+						// Given up as it stands, its other readings not asked for: a turn that stood
+						// still ends the repetition, whatever else it could have read.
 						if (still is not null)
 						{
-							code.Line(still);
-							code.Then($"{took} = -1;");
+							using (code.Block(still))
+							{
+								foreach (var line in restore)
+									code.Line(line);
+								if (defers)
+									Undeferred(code, segment.ToString());
+								code.Line($"{took} = -1;");
+								code.Line("break;");
+							}
+
 							code.Line();
 						}
 

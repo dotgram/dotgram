@@ -67,10 +67,11 @@ public sealed class StandingTurnTests
 		("bounded",    "T = (@Nothing){2,4} & 'a'",      "|a|b"),
 		("half",       "T = (@Half)+ & eof",             "|x|xx|xy"),
 
-		// Ordered choice: a turn that moves where it can, and one that stood still, asked again for the
-		// alternative that moves where what follows refused.
+		// Ordered choice: a turn that moves where it can, and one that stood still, which ends the
+		// repetition without its other alternatives asked for, also where what follows refuses.
 		("after",      "T = ('b' | @Nothing)* & 'a'",    "|a|ba|bba|bb"),
 		("before",     "T = (@Nothing | 'b')* & 'a'",    "|a|ba"),
+		("braced",     "T = {(@Nothing | 'b')*} & 'b' & eof", "|b|bb"),
 
 		// Inside a sequence of the turn, and a turn that moves on some inputs and not on others.
 		("sequence",   "T = (@Nothing & 'b'?)* & 'a'",   "|a|ba|bba|bb"),
@@ -154,7 +155,8 @@ public sealed class StandingTurnTests
 	[InlineData("bounded", "a",   "ok@1")]
 	[InlineData("half",    "xy",  "no@1")]
 	[InlineData("after",   "bba", "ok@3")]
-	[InlineData("before",  "ba",  "ok@2")]
+	[InlineData("before",  "ba",  "no@0")]
+	[InlineData("braced",  "b",   "ok@1")]
 	[InlineData("values",  "a",   "ok@1 1")]
 	[InlineData("owed",    "a",   "ok@1 3")]
 	[InlineData("counted", "",    "ok@0 0")]

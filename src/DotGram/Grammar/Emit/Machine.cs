@@ -1129,9 +1129,6 @@ sealed partial class Machine
 	/// </summary>
 	bool _usesStandingTurns;
 
-	/// <summary>Whether any turn that stood still is given up by unwinding (<see cref="StandingTurn"/>).</summary>
-	bool _unwindsStandingTurns;
-
 	/// <summary>
 	/// The rule whose body is being compiled, for the trace lines its states carry.
 	/// </summary>
@@ -2262,10 +2259,6 @@ sealed partial class Machine
 				}
 				file.Line("Step_DotGram(\"fail\", state, p, entries.Count, text, \"\");");
 				file.Line();
-
-				// Where a turn that stood still is given up (StandingTurn): it refused nothing.
-				if (_unwindsStandingTurns)
-					file.Line("Unwind:");
 
 				using (file.Block("while (entries.Count > 0)"))
 				{
@@ -4513,7 +4506,7 @@ sealed partial class Machine
 
 		// The fewest is read where the count is reached, and kept in the entry above it.
 		if (stands)
-			StandingTurn(atAfter, "entries[repeat + 1].Position");
+			StandingTurn(atAfter, "entries[repeat + 1].Position", exit);
 		else
 		{
 			atAfter.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
@@ -6432,7 +6425,7 @@ sealed partial class Machine
 		// on every iteration. A settled repetition goes through here whatever its bounds:
 		// the standing exit's position is written by the loop head it is about to re-enter.
 		if (stands)
-			StandingTurn(atAfter, min.ToString(CultureInfo.InvariantCulture));
+			StandingTurn(atAfter, min.ToString(CultureInfo.InvariantCulture), exit);
 		else if (min > 0 || max is not null)
 		{
 			_usesTurns = true;
@@ -6648,28 +6641,44 @@ sealed partial class Machine
 	/// <summary>
 	/// The end of a turn of a repetition that <see cref="EndsWhenStill"/>. A turn short of the fewest
 	/// is counted whatever it read, as the turns of the repetition written out one after another
-	/// would be; one that ended where it began once the fewest are read is not taken, and the parse
-	/// unwinds as from a turn that failed — into the turn's own other readings, and then out by the
-	/// exit its loop head pushed. Any other is counted, and where it ended is where the next begins.
+	/// would be; one that ended where it began once the fewest are read is not taken: what it wrote
+	/// goes, its own ways back with it, and the repetition leaves by <paramref name="exit"/> where the
+	/// turn began. Its other readings are not asked for — a turn that stood still ends the
+	/// repetition, whatever else it could have read. Any other is counted, and where it ended is
+	/// where the next begins.
 	/// </summary>
 	/// <remarks>
 	/// Where the turn being read began is kept in the count's entry (its <c>RuleIndex</c>), and
 	/// each turn's <c>TurnDone</c> holds where that turn began, so that backtracking into a turn
 	/// puts back where it began as it puts back the count (<see cref="_usesStandingTurns"/>).
-	/// Unwinding, and not <c>Fail:</c>: the turn refused nothing, and nothing is recorded of it.
+	/// What goes is everything above the way out its loop head pushed, which a turn past the fewest
+	/// always has, and that way out with it; not through <c>Fail:</c>, since the turn refused nothing.
 	/// </remarks>
 	/// <param name="least">The fewest turns, as C# read where the turn ends.</param>
-	void StandingTurn(Writer atAfter, string least)
+	void StandingTurn(Writer atAfter, string least, int exit)
 	{
-		_usesTurns            = true;
-		_usesStandingTurns    = true;
-		_unwindsStandingTurns = true;
+		_usesTurns         = true;
+		_usesStandingTurns = true;
 
 		atAfter.Line("global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);");
 		atAfter.Line("var repeated = entries[repeat];");
-		atAfter.Line(least == "0"
-			? "if (p == repeated.RuleIndex) goto Unwind;"
-			: $"if (p == repeated.RuleIndex && repeated.Value >= {least}) goto Unwind;");
+
+		using (atAfter.Block(least == "0"
+			? "if (p == repeated.RuleIndex)"
+			: $"if (p == repeated.RuleIndex && repeated.Value >= {least})"))
+		{
+			using (atAfter.Block("while (true)"))
+			{
+				atAfter.Line("var given = entries[entries.Count - 1];");
+				if (Caches)
+					atAfter.Line("parser.Truncate(entries.Count - 1, entries);");
+				atAfter.Line("entries.RemoveAt(entries.Count - 1);");
+				atAfter.Line($"if (given.Kind == ParserEntry.Choice && given.RepeatIndex == repeat && given.State == {Mark(Lands, exit)}) break;");
+			}
+
+			atAfter.Line($"goto {Label(atAfter, exit)};");
+		}
+
 		atAfter.Line(
 			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeated.Position, " +
 			"repeated.CallIndex, repeated.AtomicIndex, repeated.RepeatIndex, " +
