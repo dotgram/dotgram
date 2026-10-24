@@ -52,7 +52,8 @@ sealed partial class Machine
 				FirstSets.Of(body, _graph).Or(following.Plain), FirstSets.First.All));
 		var sync      = Compile(recovery.Recovery.Sync, synced, FollowSets.Continuation.All);
 
-		// An element that ends where it began ends the repetition (EndsWhenStill), and the count's entry says
+		// An element that ends where it began once the fewest are read ends the repetition (EndsWhenStill);
+		// one short of them is counted as any other. The count's entry says
 		// where the turn being read began. A run an element read may still be given back once it is
 		// taken, which comes back into its turn: each turn is then counted as the general loop counts
 		// it, so that coming back puts back where it began (StandingTurn).
@@ -211,7 +212,9 @@ sealed partial class Machine
 
 		atAfter.Line("var acceptedRepeat = entries[repeat];");
 		if (stands)
-			atAfter.Line($"if (p == acceptedRepeat.RuleIndex) goto {Label(atAfter, exit)};");
+			atAfter.Line(min == 0
+				? $"if (p == acceptedRepeat.RuleIndex) goto {Label(atAfter, exit)};"
+				: $"if (p == acceptedRepeat.RuleIndex && acceptedRepeat.Value >= {min}) goto {Label(atAfter, exit)};");
 		atAfter.Line(
 			"entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, acceptedRepeat.Position, " +
 			"acceptedRepeat.CallIndex, acceptedRepeat.AtomicIndex, acceptedRepeat.RepeatIndex, " +

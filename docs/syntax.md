@@ -3351,11 +3351,11 @@ ordinary C# rules.
 - A value transformation has no access to the input — it physically never receives it.
 - An external recognizer must restore `pos` to its entry value on any outcome other
   than success.
-- An external recognizer may succeed without moving `pos`; inside a repetition, a turn that
-  ends where it began ends the repetition, kept as one turn with its value and standing for
-  every turn still owed, so `(@M){3,}` over an `M` that does not move reads `M` once. What the
-  repetition builds holds the turns it read: `xs: V{3}` over such a `V` holds one value, not
-  three. A count is still held to its bounds there, so `(@M){#q,1}` with `q` at two is refused.
+- An external recognizer may succeed without moving `pos`. Inside a repetition, the turns up to
+  its fewest are read and counted however far each moved, as the repetition written out turn by
+  turn would read them (§3.3: `xs: V{3}` holds three values); past the fewest, a turn that ends
+  where it began is not taken, and the repetition ends before it. So `(@M){3,}` over an `M` that
+  does not move reads `M` three times, and `(@M)*` none.
 - An external recognizer and a `when` guard execute during recognition. Ordered choice
   and lookahead may invoke them repeatedly or abandon the path on which they ran. Their
   code must therefore be safe for speculative invocation and must not perform effects

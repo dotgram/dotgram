@@ -4651,11 +4651,12 @@ sealed partial class Machine
 				code.Line($"var {turn} = {call};");
 				code.Line();
 
-				// A turn that ends where it began through a recognizer of the host is a turn, kept
-				// with what it built, and the last: it stands for every turn still owed (EmitTurns).
-				var stands = FirstSets.StandsStill(body, _graph);
+				// A turn that ends where it began is not taken, and the loop ends before it — but one
+				// short of the fewest, which a recognizer of the host may give, is counted as the
+				// turns written out one after another would be (EmitTurns).
+				var stands = min > 0 && FirstSets.StandsStill(body, _graph);
 
-				using (code.Block(stands ? $"if ({turn} < 0)" : $"if ({turn} < 0 || {turn} == p)"))
+				using (code.Block(stands ? $"if ({turn} < 0 || {turn} == p && {turns} >= {min})" : $"if ({turn} < 0 || {turn} == p)"))
 				{
 					if (_gathers && back >= 0)
 						foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{back}"))
@@ -4670,20 +4671,6 @@ sealed partial class Machine
 					code.Line("break;");
 				}
 				code.Line();
-
-				if (stands)
-				{
-					using (code.Block($"if ({turn} == p)"))
-					{
-						if (min > 0)
-							code.Line($"{turns} = {min};");
-
-						code.Line("break;");
-					}
-
-					code.Line();
-				}
-
 				code.Line($"p = {turn};");
 
 				if (turns is not null)
@@ -5471,10 +5458,13 @@ sealed partial class Machine
 		{
 			var turn     = min is not null || max is not null ? $"t{_turns++}" : null;
 
-			// A turn that ends where it began ends the loop, and stands for every turn still owed:
-			// the next would begin where it did and read what it read (FirstSets.StandsStill). A
-			// loop of one turn has no next.
-			var nullable = FirstSets.Nullable(body, _graph) || repeat?.Max != 1 && FirstSets.StandsStill(body, _graph);
+			// A turn that ends where it began ends the loop. Where only a recognizer of the host can
+			// end it so (FirstSets.StandsStill), a turn short of the fewest is counted as the turns
+			// written out one after another would be, and one past them is not taken: it is given up
+			// as a turn that failed, and the turn asked for its other readings first. A loop of one
+			// turn has no next to stop.
+			var nullable = FirstSets.Nullable(body, _graph);
+			var stands   = !nullable && repeat?.Max != 1 && FirstSets.StandsStill(body, _graph);
 			var (call, undo, opens) = Called(body, inside);
 
 			if (turn is not null)
@@ -5627,6 +5617,9 @@ sealed partial class Machine
 				code.Line($"var {took} = -1;");
 				code.Line();
 
+				// A reading that stood still past the fewest, read as one that failed.
+				var still = stands ? stops is null ? $"if ({took} == p)" : $"if ({took} == p && {stops})" : null;
+
 				if (opens)
 				{
 					// The failure branch puts back the records and the gathered members and no
@@ -5637,6 +5630,14 @@ sealed partial class Machine
 					{
 						code.Line($"{took} = {call};");
 						code.Line();
+
+						if (still is not null)
+						{
+							code.Line(still);
+							code.Then($"{took} = -1;");
+							code.Line();
+						}
+
 						Stood(code, took, segment, defers, restore);
 						code.Line();
 						foreach (var line in restore)
@@ -5651,6 +5652,13 @@ sealed partial class Machine
 				{
 					code.Line($"{took} = {call};");
 					code.Line();
+
+					if (still is not null)
+					{
+						code.Line(still);
+						code.Then($"{took} = -1;");
+						code.Line();
+					}
 
 					using (code.Block($"if ({took} < 0)"))
 					{
@@ -5697,19 +5705,7 @@ sealed partial class Machine
 
 				code.Line();
 
-				// A count with both bounds is held to the fewest after its loop: the turn that stood
-				// still is every turn still owed, as many as the most allows.
-				if (nullable && repeat is null && min is not null && max is not null && FirstSets.StandsStill(body, _graph))
-				{
-					using (code.Block($"if ({took} == p)"))
-					{
-						code.Line(min == max ? $"{turn} = {min};" : $"{turn} = {min} > {max} ? {max} : {min};");
-						code.Line("break;");
-					}
-
-					code.Line();
-				}
-				else if (nullable)
+				if (nullable)
 				{
 					code.Line($"if ({took} == p)");
 					code.Then("break;");
