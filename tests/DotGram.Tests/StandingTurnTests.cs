@@ -89,6 +89,11 @@ public sealed class StandingTurnTests
 
 		// A recognizer met only in a recovery's synchronization.
 		("sync",       "T = 'a'* recover ((@Nothing)+ & ';') & eof", "|x;|a|ax;|x"),
+
+		// A negative lookahead in the turn that stood still, met at the end of the input.
+		("notahead",   "T = (?!'a' & @Nothing)+ & eof", "|x"),
+		("notahead2",  "T = (?!'a' & @Half){2} & eof", "|x|xx"),
+		("lookedfor",  "T = (?='a' & @Nothing)+ & 'a' & eof", "|a|b|aa"),
 	];
 
 	public static TheoryData<string, string, string> Rows()
@@ -160,6 +165,8 @@ public sealed class StandingTurnTests
 	[InlineData("exact",   "bb",  "ok@2")]
 	[InlineData("crossed", "bb",  "no@2")]
 	[InlineData("sync",    "x;",  "ok@2")]
+	[InlineData("notahead",  "",   "ok@0")]
+	[InlineData("notahead2", "x",  "ok@1")]
 	public void The_answers_are_the_rule_s(string name, string input, string expected)
 	{
 		var grammar = Table.Single(row => row.Name == name).Grammar;
