@@ -266,14 +266,14 @@ public static class HandJson
 		}
 
 		// A literal name is read whole or not at all. One that is not there is refused at the first
-		// character that does not fit it, and where the text ends inside it, where it would have
-		// begun: the generated parser's answer in every rendering.
+		// character that does not fit it, and where the text ends inside it, at the end: the
+		// generated parser's answer in every rendering (§7.5).
 		bool Literal(string name)
 		{
 			for (var index = 0; index < name.Length; index++)
 				if (At(_at + index) != name[index])
 				{
-					Refused(_at + name.Length <= _text.Length ? _at + index : _at);
+					Refused(_at + index);
 
 					return false;
 				}

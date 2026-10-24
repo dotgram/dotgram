@@ -349,10 +349,10 @@ public sealed class TokenReadingFindingsTests
 	/// records tries the optional's turn at 0, which is all that is ever recorded, so the message
 	/// is the optional's, at 0. Were the quiet reading's furthest written where only it goes, the
 	/// turn at 0 would go untried and the message would say only that the input did not match.
-	/// (2) A look before an optional turn's first item reads to the end of the text and writes
-	/// that it ran out there, which is what makes the refusal at the next item starved; the turn
-	/// stands below where the quiet reading got, and is tried all the same. (3) The same, where
-	/// nothing names what was wanted: the fallback still says the input ran out. (4) A fold whose
+	/// (2) A look before an optional turn's first item reads to the last character of the text,
+	/// which does not fit; the turn stands below where the quiet reading got, and is tried all the
+	/// same. (3) The same, where nothing names what was wanted: the fallback says only that the
+	/// input did not match. (4) A fold whose
 	/// loop has ways, ending at a shut door: the quiet reading notes the ladder's tails there and
 	/// the reading that records tries the turn instead, which a look turns away silently — the
 	/// note is the quiet reading's path alone and must not write the furthest either.
@@ -363,10 +363,10 @@ public sealed class TokenReadingFindingsTests
 		"axy", "NoMatch at 0: Expected \"mn\".", "NoMatch at 1: Expected ?!\"xy\".")]
 	[InlineData(
 		"Start = (?!(['a' | 'A'] & \"zz\") & 'b' & 'c')? & 'a' & 'q' & when @(Keep())\nparse Start\n",
-		"ax", "Starved at 1: Expected \"aq\".", null)]
+		"ax", "NoMatch at 1: Expected \"aq\".", null)]
 	[InlineData(
 		"Start = (?!(['a' | 'A'] & \"zz\") & 'b' & 'c')? & 'a' & when @(Reject())\nparse Start\n",
-		"ax", "Starved at 1: Expected more input.", null)]
+		"ax", "NoMatch at 1: Input does not match 'Start'.", null)]
 	[InlineData(
 		"Start = (\"mn\")? & Expr & ?!'x' & when @(Keep())\nExpr : @int = l: Expr & ?!'x' & '+' & 'a' => @(l + 1) | 'a' => @(1)\nparse Start\n",
 		"ax", "NoMatch at 0: Expected \"mn\".", "NoMatch at 1: Expected ?!'x'.")]
@@ -409,7 +409,7 @@ public sealed class TokenReadingFindingsTests
 
 		// The engine names the look's own literal, which the reader does not: today's difference, kept.
 		foreach (var (assembly, engine) in OverCharacters(grammar).Select(static (one, i) => (one, i == 0)))
-			Assert.Equal(engine ? "Starved at 1: Expected \"bcd\" or 'x'." : "Starved at 1: Expected \"zy\" or 'x'.", Refusal(assembly, "abz", null, null));
+			Assert.Equal(engine ? "NoMatch at 1: Expected \"bcd\" or 'x'." : "NoMatch at 1: Expected \"zy\" or 'x'.", Refusal(assembly, "abz", null, null));
 	}
 
 	/// <summary>
@@ -986,8 +986,8 @@ public sealed class TokenReadingFindingsTests
 	/// </para>
 	/// <para>
 	/// The last column is the reading over characters, written out where it differs. A literal
-	/// that wants more characters than remain is starved there where it begins, and over tokens
-	/// at the end of the text, as every token cut short is. A position inside a token begins
+	/// that wants more characters than remain, all of which agree, is starved at the end of the
+	/// text, as every token cut short is over tokens. A position inside a token begins
 	/// over tokens at the next one, of which there is none here. And a reading that ends in an
 	/// optional that read nothing counts the space before it over characters, which is not this
 	/// question.
@@ -996,8 +996,8 @@ public sealed class TokenReadingFindingsTests
 	[Theory]
 	[InlineData("Item & Item", "a \"bc", 0, null, "Starved 5 0", "same")]
 	[InlineData("Item & Item", "a \"bc\"", 0, 4, "Starved 4 0", "same")]
-	[InlineData("Item & Item", "a <=", 0, null, "Starved 4 0", "Starved 2 0")]
-	[InlineData("Item & Item", "a <=>", 0, 4, "Starved 4 0", "Starved 2 0")]
+	[InlineData("Item & Item", "a <=", 0, null, "Starved 4 0", "same")]
+	[InlineData("Item & Item", "a <=>", 0, 4, "Starved 4 0", "same")]
 	[InlineData("Item & Item", "a {- x", 0, null, "Starved 6 0", "same")]
 	[InlineData("Item & Item", "a {- x -}", 0, 6, "Starved 6 0", "same")]
 	[InlineData("Item & Item", "a \"bc", 2, null, "Starved 5 0", "same")]
@@ -1049,7 +1049,7 @@ public sealed class TokenReadingFindingsTests
 	[Theory]
 	[InlineData("Item & Item?", "a \"bc", "Starved 5", "same")]
 	[InlineData("Item & Item?", "\"bc", "Starved 3", "same")]
-	[InlineData("Item & Item?", "a <=", "Starved 4", "Starved 2")]
+	[InlineData("Item & Item?", "a <=", "Starved 4", "same")]
 	[InlineData("Item & Item?", "a {- x", "Starved 6", "same")]
 	[InlineData("Item & Item?", "a {- x -", "Starved 8", "same")]
 	[InlineData("Item & Item?", "a {- x -}", "Success 0", "same")]
@@ -1089,20 +1089,20 @@ public sealed class TokenReadingFindingsTests
 	/// </para>
 	/// <para>
 	/// The columns: from the position or in the window over tokens, the whole reading over tokens,
-	/// and both over characters, which say the same. Over characters a literal wanting more than is
-	/// left is starved where it begins, over tokens at the end. Over tokens <c>@aabx</c> from a
+	/// and both over characters, which say the same. A literal wanting more than is left, where
+	/// what is left agrees, is starved at the end, over characters as over tokens. Over tokens <c>@aabx</c> from a
 	/// position is characters no token begins with, which answer it as they do over characters (§6.3).
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData("@aab", 0, null, "Starved 4", "Starved 4", "Starved 3")]
-	[InlineData("@aaab", 0, null, "Starved 5", "Starved 5", "Starved 4")]
-	[InlineData("@aaaab", 0, null, "Starved 6", "Starved 6", "Starved 5")]
-	[InlineData("@ab", 0, null, "Starved 3", "Starved 3", "Starved 2")]
+	[InlineData("@aab", 0, null, "Starved 4", "Starved 4", "Starved 4")]
+	[InlineData("@aaab", 0, null, "Starved 5", "Starved 5", "Starved 5")]
+	[InlineData("@aaaab", 0, null, "Starved 6", "Starved 6", "Starved 6")]
+	[InlineData("@ab", 0, null, "Starved 3", "Starved 3", "Starved 3")]
 	[InlineData("@aa", 0, null, "Starved 3", "Starved 3", "Starved 3")]
 	[InlineData("@", 0, null, "Starved 1", "Starved 1", "Starved 1")]
-	[InlineData("@aabc", 0, 4, "Starved 4", null, "Starved 3")]
-	[InlineData("@aaabc !", 0, 5, "Starved 5", null, "Starved 4")]
+	[InlineData("@aabc", 0, 4, "Starved 4", null, "Starved 4")]
+	[InlineData("@aaabc !", 0, 5, "Starved 5", null, "Starved 5")]
 	[InlineData("@aabc", 0, null, "Success 0", "Success 0", "Success 0")]
 	[InlineData("@aabx", 0, null, "NoMatch 0", "NoMatch 0", "NoMatch 4")]
 	[InlineData("@aabcz", 0, null, "NoMatch 0", "NoMatch 0", "NoMatch 3")]

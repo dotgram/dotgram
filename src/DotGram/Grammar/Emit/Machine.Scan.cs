@@ -1023,7 +1023,24 @@ sealed partial class Machine
 					}
 					else
 					{
-						code.Line($"if ({Short(text.Length)}) goto {fail};");
+						// Input that ends inside the literal: the refusal reaches past every
+						// character there that agrees, to the end where they all do.
+						if (fail == "Refuse" && text.Length > 1)
+						{
+							code.Line($"if ({Short(text.Length)})");
+
+							using (code.Block(""))
+							{
+								code.Line("var reached = p;");
+								Machine.ReachLadder(code, text, folded, "reached", "text[reached]", "(uint)reached < (uint)text.Length");
+								code.Line("if (reached > furthest) furthest = reached;");
+								code.Line($"goto {fail};");
+							}
+						}
+						else
+						{
+							code.Line($"if ({Short(text.Length)}) goto {fail};");
+						}
 
 						for (var i = 0; i < text.Length; i++)
 						{
@@ -1459,9 +1476,10 @@ sealed partial class Machine
 				$"var {found} = global::System.MemoryExtensions.IndexOf(text.Slice(p), " +
 				$"{Spanned(delimiter)});");
 
+			// Not found is the loop reading to the end and the literal after it running out there.
 			if (except.Length == 0)
 			{
-				code.Line($"if ({found} < 0) goto {fail};");
+				code.Line($"if ({found} < 0) {{ if (text.Length > furthest) furthest = text.Length; goto {fail}; }}");
 				code.Line($"p += {found} + {delimiter.Length};");
 
 				return;

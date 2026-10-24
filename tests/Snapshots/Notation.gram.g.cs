@@ -3575,7 +3575,7 @@ namespace DotGram.Snapshots
 				r0 = last1;
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
-					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+					p = Recognize_DotGram_Primary_RanOut(text, p, "()", false, !failure.Quiet, ref failure);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(8));
 					return -1;
 				}
@@ -3630,7 +3630,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
-					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+					p = Recognize_DotGram_Primary_RanOut(text, p, "()", false, !failure.Quiet, ref failure);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(8));
 					return -1;
 				}
@@ -4122,10 +4122,23 @@ namespace DotGram.Snapshots
 		{
 			var i = 0;
 
-			while (i < value.Length - 1 && (text[p + i] == value[i] || fold && (uint)((value[i] | 0x20) - 'a') <= 'z' - 'a' && (text[p + i] | 0x20) == (value[i] | 0x20)))
+			while (i < value.Length - 1 && (uint)(p + i) < (uint)text.Length && (text[p + i] == value[i] || fold && (uint)((value[i] | 0x20) - 'a') <= 'z' - 'a' && (text[p + i] | 0x20) == (value[i] | 0x20)))
 				i++;
 
 			return p + i;
+		}
+
+		static int Recognize_DotGram_Primary_RanOut(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
+		{
+			var reach = Recognize_DotGram_Primary_Agreeing(text, p, value, fold);
+
+			if ((uint)reach >= (uint)text.Length)
+			{
+				failure.Starved = true;
+				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+			}
+
+			return moves ? reach : p;
 		}
 
 		static void Materialize_DotGram_Word(global::System.ReadOnlySpan<char> text, Parser parser, ParserArena entries)

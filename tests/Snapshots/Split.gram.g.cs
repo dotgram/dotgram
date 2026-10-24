@@ -492,6 +492,29 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		static int Recognize_DotGram_Agreeing(global::System.ReadOnlySpan<char> text, int p, string value, bool fold)
+		{
+			var i = 0;
+
+			while (i < value.Length - 1 && (uint)(p + i) < (uint)text.Length && (text[p + i] == value[i] || fold && (uint)((value[i] | 0x20) - 'a') <= 'z' - 'a' && (text[p + i] | 0x20) == (value[i] | 0x20)))
+				i++;
+
+			return p + i;
+		}
+
+		static int Recognize_DotGram_RanOut(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
+		{
+			var reach = Recognize_DotGram_Agreeing(text, p, value, fold);
+
+			if ((uint)reach >= (uint)text.Length)
+			{
+				failure.Starved = true;
+				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+			}
+
+			return moves ? reach : p;
+		}
+
 		private static readonly int[] Prefix_DotGram_0_Next = new int[]
 		{
 			-1, -1, 7, -1, -1, -1, -1, 32, -1, -1, -1, 1, -1, -1, -1, 3, -1, 19, 29, -1, 14, -1, 10,
@@ -1049,13 +1072,7 @@ namespace DotGram.Snapshots
 		{
 			public int Position;
 
-			// Nothing assigns this here: every test in this grammar wants one character.
-			// A field nothing assigns is CS0649 in somebody else's build, which for one
-			// that treats warnings as errors is a broken compilation of a file they did
-			// not write.
-			#pragma warning disable 0649
 			public int OutOfInput;
-			#pragma warning restore 0649
 		public int Began;
 
 			public bool Starved;
