@@ -838,8 +838,11 @@ public sealed partial class GrammarNormalizer
 			(_refused.Count == 0 || IsNullable(WithoutRefused(looped))))
 			Report(
 				NullableRepetition,
-				$"The body of a repetition in '{rule.Name}' can match without consuming input, so the repetition would not terminate.",
-				_repetitionsAt.TryGetValue(node, out var at) ? at : rule.Declaration!.At);
+				rule.IsBuiltIn && rule.Name == "word"
+					? "'wordboundary' can match without consuming input, and 'word' is a run of it, so the run would " +
+						"not terminate: a boundary names the characters that continue a word (docs/syntax.md §4.6)."
+					: $"The body of a repetition in '{rule.Name}' can match without consuming input, so the repetition would not terminate.",
+				_repetitionsAt.TryGetValue(node, out var at) ? at : rule.Declaration?.At ?? default);
 
 		foreach (var child in node.Children)
 			CheckRepetitions(child, rule);

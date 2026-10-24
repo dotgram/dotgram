@@ -541,13 +541,28 @@ public sealed partial class GrammarNormalizer
 			// alphabet — see `TerminalInventory.WordKinds`.
 			_bodies[rule] = rule.Name == "word"
 				? BoundaryFor(rule.Namespace) is { } boundary
-					? new Node.Sequence(
-						[new Node.Repeat(boundary, 1, null), new Node.Lookahead(false, boundary)])
+					? new Node.Sequence([Boundaries(boundary), new Node.Lookahead(false, boundary)])
 					: Node.Empty.Instance
 				: BuiltInBody(rule.Name, _segmented);
 		}
 
 		return new Node.Call(rule, arguments);
+	}
+
+	/// <summary>The run of a word's boundary that <c>word</c> is, told where the boundary was declared.</summary>
+	/// <remarks>
+	/// The repetition is the grammar's, not the library's: a boundary that can match nothing makes it
+	/// a repetition that does not end, and the mistake is in the declaration of the boundary, which
+	/// is where it is said.
+	/// </remarks>
+	Node Boundaries(Node boundary)
+	{
+		var run = new Node.Repeat(boundary, 1, null);
+
+		if (boundary is Node.Call(var declared, _) && declared.Declaration is { } declaration)
+			_repetitionsAt[run] = declaration.At;
+
+		return run;
 	}
 
 	/// <summary>

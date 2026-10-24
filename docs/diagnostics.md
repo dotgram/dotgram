@@ -99,7 +99,7 @@ underlined where it was written, in the base's own file — see §5.1.
 
 | Id | What it says | What to do |
 | --- | --- | --- |
-| `GRAM4001` | The body of a repetition can match without consuming input. | The repetition would not terminate. |
+| `GRAM4001` | The body of a repetition can match without consuming input. | The repetition would not terminate. A `word` over a `wordboundary` that can match nothing is a repetition of it, and is said at the boundary's declaration (§4.6). |
 | `GRAM4002` | Left recursion the rewrite cannot take. | Direct left recursion is built, and so is an indirect one through rules that only forward. What is refused is an intermediary that does something of its own, a rule with no alternative to start from, and an alternative recursive on both sides (§4.3). |
 | `GRAM4003` | `trivia` must accept empty input. | It is inserted between every pair of operands, and a required match would demand whitespace everywhere (§4.5). |
 | `GRAM4005` | A name in an element set is not a rule. | |

@@ -1646,6 +1646,9 @@ one whole word made of it, whatever that word says:
 OptionName = word           // FILLFACTOR, DATA_COMPRESSION, ONLINE, PAD_INDEX, …
 ```
 
+A boundary is a class of characters, so one that can match nothing (`['a'..'z']?`) would make `word` a run that
+never ends; `word` over it is refused at the boundary's declaration (`GRAM4001`).
+
 It is a run of boundary characters that does not stop short of one — maximal by
 construction, so `word` cannot read half of `FILLFACTOR` however the parse backtracks —
 and it gives back the characters it read, like any rule that names none of its parts.

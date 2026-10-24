@@ -3001,6 +3001,23 @@ public sealed class SemanticTests
 	}
 
 	/// <summary>
+	/// A boundary that can match nothing makes <c>word</c> a run that does not end, and is told where
+	/// the boundary is declared (§4.6), not by a crash of the generator.
+	/// </summary>
+	[Theory]
+	[InlineData("wordboundary = ['a'..'z']?\nStart = word\nparse Start")]
+	[InlineData("wordboundary = ['a'..'z']*\nStart = word\nparse Start")]
+	[InlineData("Letters = ['a'..'z']?\nwordboundary = Letters\nStart = word\nparse Start")]
+	[InlineData("Start = Lexical.Name\nnamespace Lexical\n{\n\twordboundary = ['a'..'z']{0,3}\n\tName = word\n}\nparse Start")]
+	public void A_word_over_a_boundary_that_may_read_nothing_is_refused_at_the_boundary(string grammar)
+	{
+		var told = Compile(grammar).Diagnostics.Where(static one => one.Id == GrammarNormalizer.NullableRepetition).ToArray();
+
+		Assert.Equal(grammar.IndexOf("wordboundary", StringComparison.Ordinal), Assert.Single(told).Position);
+		Assert.Contains("wordboundary", told[0].Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
 	/// A capture that gathers several pieces over kinds is cut whole where they tile.
 	/// </summary>
 	/// <remarks>
