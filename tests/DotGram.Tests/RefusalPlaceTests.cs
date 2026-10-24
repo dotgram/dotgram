@@ -101,7 +101,8 @@ public sealed class RefusalPlaceTests
 				("span",         Answer(direct, input, typeof(string), null)),
 				("reader 1",     Answer(direct, input, typeof(TextReader), 1)),
 				("reader",       Answer(direct, input, typeof(TextReader), null)),
-				("bytes 1",      Answer(direct, input, typeof(Stream), 1)),
+				// Over bytes a character beyond ASCII is two of them, and every place after it another.
+				("bytes 1",      Ascii(input) ? Answer(direct, input, typeof(Stream), 1) : null),
 				("engine",       Answer(engine, input, typeof(string), null)),
 				("engine 1",     Answer(engine, input, typeof(TextReader), 1)),
 			};
@@ -157,7 +158,8 @@ public sealed class RefusalPlaceTests
 			Assert.Equal(expected, Answer(built, input, typeof(string), null));
 			Assert.Equal(expected, Answer(built, input, typeof(TextReader), 1));
 			Assert.Equal(expected, Answer(built, input, typeof(TextReader), null));
-			Assert.Equal(expected, Answer(built, input, typeof(Stream), 1) ?? expected);
+			if (Ascii(input))
+				Assert.Equal(expected, Answer(built, input, typeof(Stream), 1) ?? expected);
 		}
 	}
 
@@ -175,6 +177,11 @@ public sealed class RefusalPlaceTests
 		EmittedCode.Quiet(result.Diagnostics.Where(static one => one.Id != GramCompiler.BufferedUnsupported));
 
 		return EmittedCode.Compile(result.Sources[0].Text, sourceParts: result.Sources.Skip(1).Select(static one => one.Text));
+	}
+
+	static bool Ascii(string input)
+	{
+		return input.All(static one => one < 0x80);
 	}
 
 	/// <summary>The characters a grammar names in quotes, and one it does not.</summary>
