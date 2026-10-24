@@ -7099,8 +7099,9 @@ sealed partial class Machine
 	/// out (§7.5). A stream is told it starved only then.
 	/// </summary>
 	/// <remarks>
-	/// <c>p</c> moves only where the failure is the one recorded, as for a character that does not
-	/// fit (<see cref="Sharpen"/>); a door puts it back, and inside a lookahead nothing reads it.
+	/// <c>p</c> moves only where the failure is recorded, as for a character that does not fit
+	/// (<see cref="Sharpen"/>): at <c>Fail:</c>, or at the door that records how far a turn or an
+	/// alternative it gives back got, which then puts it back; inside a look nothing reads it.
 	/// The walk is the reader's, out of line, wherever the literal is ASCII or keeps its case.
 	/// </remarks>
 	void ShortOf(Writer writer, string value, bool ignoreCase, int? fail = null)
