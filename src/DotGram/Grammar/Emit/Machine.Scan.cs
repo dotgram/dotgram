@@ -355,7 +355,7 @@ sealed partial class Machine
 		// refusal; asked by its tag, since this is asked while the machine is being built.
 		var body    = ScanBody(rule);
 		var reports = SeamReached.Contains(rule)
-			? _tag != SeamTag && new ScanWriter(_graph, static _ => null, static _ => "true", _tag, _starves, StopCharacters)
+			? _tag != SeamTag && new ScanWriter(_graph, static _ => null, static _ => "true", _tag, _starves, StopCharacters) { Seam = true }
 				.Render(body, reports: true)
 				.Contains("> furthest", StringComparison.Ordinal)
 			: new ScanWriter(_graph, static _ => null, static _ => "true", _tag, _starves, StopCharacters)
@@ -405,7 +405,10 @@ sealed partial class Machine
 			var rule = pair.Key;
 			var body = ScanBody(rule);
 
-			var scan  = new ScanWriter(_graph, Tabulate, one => RangesTest(one, Tabulate), _tag, _starves, StopCharacters, RecordsRunOut);
+			var scan  = new ScanWriter(_graph, Tabulate, one => RangesTest(one, Tabulate), _tag, _starves, StopCharacters, RecordsRunOut)
+			{
+				Seam = SeamReached.Contains(rule) && _tag != SeamTag,
+			};
 			var inner = scan.Render(body, ScannerReports(rule));
 
 			reaches |= scan.Reaches;
@@ -870,6 +873,35 @@ sealed partial class Machine
 		/// <summary>The labels a repetition's turn fails into where the repetition ends.</summary>
 		readonly HashSet<string> _exits = [];
 
+		/// <summary>The labels an alternative fails into where the next one is tried.</summary>
+		readonly HashSet<string> _alternatives = [];
+
+		/// <summary>
+		/// Whether a literal that fails into <paramref name="fail"/> raises how far the scan got only where
+		/// it began to agree: a repetition's end and the next alternative are where the scan goes on, and
+		/// the readers record such a literal only as far as it agreed — a turn or an alternative that does
+		/// not begin is how every such loop and choice goes on.
+		/// </summary>
+		bool AgreesFirst(string fail)
+		{
+			return _exits.Contains(fail) || _alternatives.Contains(fail);
+		}
+
+		/// <summary>Whether this is the scan of the seam, whose refusals the readers do not record.</summary>
+		public bool Seam { get; init; }
+
+		/// <summary>
+		/// Where a look that fails into <paramref name="fail"/> goes: in the seam, a sequence's way back
+		/// past the line that raises how far the scan got. A look there puts the position back, and the
+		/// readers record nothing it refused — only a literal of the seam's that began to agree says how
+		/// far it got — so the place it stands is not how far the scan came. Elsewhere the readers record
+		/// what a look refused, and the way back raises as for any part.
+		/// </summary>
+		string Quiet(string fail)
+		{
+			return Seam && _restores.Contains(fail) ? fail + "_q" : fail;
+		}
+
 		/// <summary>
 		/// Whether a run that fails into <paramref name="fail"/> has to put the position back
 		/// itself: not into a sequence's own way back, which puts it further back still, and not
@@ -889,7 +921,7 @@ sealed partial class Machine
 		/// </summary>
 		bool Records(string fail)
 		{
-			return _lookingAhead == 0 && (fail == "Refuse" || _restores.Contains(fail) || _exits.Contains(fail));
+			return _lookingAhead == 0 && (fail == "Refuse" || _restores.Contains(fail) || AgreesFirst(fail));
 		}
 		/// <summary>
 		/// The marks around what a turn that ends its repetition records (<see cref="Exits"/>).
@@ -1067,7 +1099,7 @@ sealed partial class Machine
 						{
 							_reaches = true;
 
-							var exit = _exits.Contains(fail);
+							var exit = AgreesFirst(fail);
 
 							if (exit)
 								code.Line(ExitOpen);
@@ -1100,7 +1132,7 @@ sealed partial class Machine
 						// character there that agrees, to the end where they all do.
 						if (Records(fail) && text.Length > 1)
 						{
-							var exit = _exits.Contains(fail);
+							var exit = AgreesFirst(fail);
 
 							if (exit)
 								code.Line(ExitOpen);
@@ -1111,7 +1143,7 @@ sealed partial class Machine
 							{
 								code.Line("var reached = p;");
 								Machine.ReachLadder(code, text, folded, "reached", "text[reached]", "(uint)reached < (uint)text.Length");
-								code.Line("if (reached > furthest) furthest = reached;");
+								code.Line(exit ? "if (reached > p && reached > furthest) furthest = reached;" : "if (reached > furthest) furthest = reached;");
 								code.Line($"goto {fail};");
 							}
 
@@ -1138,7 +1170,7 @@ sealed partial class Machine
 
 							code.Line(
 								i == 0 || !Records(fail) ? plain
-								: _exits.Contains(fail) ? ExitOpen + records + ExitElse + plain + ExitClose
+								: AgreesFirst(fail) ? ExitOpen + records + ExitElse + plain + ExitClose
 								: records);
 						}
 					}
@@ -1223,13 +1255,24 @@ sealed partial class Machine
 
 					var written = buffer.ToString();
 
-					if (written.Contains($"goto {restore};", StringComparison.Ordinal))
+					var raises = written.Contains($"goto {restore};", StringComparison.Ordinal);
+					var quiet  = written.Contains($"goto {restore}_q;", StringComparison.Ordinal);
+
+					if (raises || quiet)
 					{
 						code.Line($"mark{mark} = p;");
 						code.Write(written);
 						code.Line($"goto {over};");
-						code.Line($"{restore}:");
-						code.Line("if (p > furthest) furthest = p;");
+
+						if (raises)
+						{
+							code.Line($"{restore}:");
+							code.Line("if (p > furthest) furthest = p;");
+						}
+
+						if (quiet)
+							code.Line($"{restore}_q:");
+
 						code.Line($"p = mark{mark};");
 						code.Line($"goto {fail};");
 						code.Line($"{over}: ;");
@@ -1284,6 +1327,7 @@ sealed partial class Machine
 						var next   = $"L{_labels++}_or";
 						var buffer = new Writer(0);
 
+						_alternatives.Add(next);
 						Emit(buffer, alternatives[i], next, loaded);
 
 						// An alternative that cannot fail — `'b'?`, `X*` — is where the choice ends:
@@ -1337,7 +1381,7 @@ sealed partial class Machine
 						code.Line($"p = mark{mark};");
 						code.Line($"goto {over};");
 						code.Line($"{seen}:");
-						code.Line($"goto {fail};");
+						code.Line($"goto {Quiet(fail)};");
 						code.Line($"{over}: ;");
 					}
 					else
@@ -1346,7 +1390,7 @@ sealed partial class Machine
 
 						Emit(code, inside, absent, loaded);
 						code.Line($"p = mark{mark};");
-						code.Line($"goto {fail};");
+						code.Line($"goto {Quiet(fail)};");
 						code.Line($"{absent}: ;");
 					}
 
