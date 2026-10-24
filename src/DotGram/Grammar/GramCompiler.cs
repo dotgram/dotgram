@@ -120,6 +120,13 @@ public static class GramCompiler
 
 			diagnostics.AddRange(Retention.Check(graph));
 			diagnostics.AddRange(FirstSets.Check(graph));
+
+			// What the emitter would write twice into the class, which only the author can rename.
+			diagnostics.AddRange(CSharpEmitter.NameClashes(
+				graph,
+				options.Suffix is { Length: > 0 } nested ? options.ClassName + "." + nested : options.ClassName,
+				options.Namespace,
+				options.Trace));
 		}
 
 		// Every stage runs even after an earlier one failed — a grammar with one bad rule

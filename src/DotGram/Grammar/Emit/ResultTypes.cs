@@ -56,7 +56,9 @@ sealed class ResultTypes
 	{
 		_prefix = "global::" + (@namespace is null ? "" : @namespace + ".") + className + ".";
 
-		var host = SimpleNameOf(className);
+		var host   = SimpleNameOf(className);
+		var taken  = CSharpEmitter.TypeNamesTaken(host, traced);
+		var wanted = new List<(RuleSymbol Rule, string Name)>();
 
 		foreach (var rule in graph.Rules)
 		{
@@ -75,24 +77,36 @@ sealed class ResultTypes
 			// Prefixed by namespace, because two namespaces may each declare a rule of the
 			// same name — that is what a namespace is for — and two types of the same name
 			// is a compile error in the consumer's build rather than a shadowing.
-			var name = CSharpEmitter.IdentifierOf(rule);
-
-			// A member may not be named after the type that contains it, and a host class
-			// named after the grammar's own root rule is the ordinary case. The support
-			// types emitted beside the recognizers claim their names the same way: a rule
-			// called Failure gets FailureValue rather than colliding with one of ours.
-			_names[rule] =
-				name == host ||
-				name == CSharpEmitter.FailureType ||
-				name == CSharpEmitter.MatchType ||
-				name == CSharpEmitter.WindowType ||
-				name == CSharpEmitter.LinesType ||
-				traced && Array.IndexOf(CSharpEmitter.TraceNames, name) >= 0
-					? name + "Value"
-					: name;
-
-			_built.Add(rule);
+			wanted.Add((rule, CSharpEmitter.IdentifierOf(rule)));
 		}
+
+		// A member may not be named after the type that contains it, and a host class
+		// named after the grammar's own root rule is the ordinary case. The types emitted
+		// beside the recognizers claim their names the same way: a rule called Failure gets
+		// FailureValue rather than colliding with one of ours. The rules that keep their
+		// name are settled first, so that the one renamed never takes the name of another:
+		// a rule called FailureValue is FailureValue, and the Failure beside it is not.
+		var used = new HashSet<string>(StringComparer.Ordinal);
+
+		foreach (var (rule, name) in wanted)
+			if (!taken.Contains(name) && used.Add(name))
+				_names[rule] = name;
+
+		foreach (var (rule, name) in wanted)
+		{
+			if (_names.ContainsKey(rule))
+				continue;
+
+			var renamed = name + "Value";
+
+			while (taken.Contains(renamed) || !used.Add(renamed))
+				renamed += "Value";
+
+			_names[rule] = renamed;
+		}
+
+		foreach (var (rule, _) in wanted)
+			_built.Add(rule);
 	}
 
 	/// <summary>Every rule that has a type of its own, in declaration order.</summary>
