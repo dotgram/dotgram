@@ -825,20 +825,9 @@ public static partial class CSharpEmitter
 		// Every machine's, not one machine's: a materializer and its guards belong to the
 		// machine that named them, and a file has one set per machine. The sets a refusal
 		// names are the class's, and written once at its end (ExpectedSets).
-		//
-		// A machine compiled once as an engine and then written flat keeps what the engine's
-		// compile asked for: the record of a literal that gives way (Machine.Further) is left out
-		// where nothing written calls it.
-		var furthered = machines.Any(static one => one.Machine.Furthers is not null) ? file.ToString() : null;
-
 		foreach (var compiled in machines)
 			foreach (var extra in compiled.Machine.Extras())
 			{
-				if (compiled.Machine.Furthers is { } further && furthered is not null &&
-					extra.IndexOf($"static void {further}(", StringComparison.Ordinal) >= 0 &&
-					furthered.IndexOf(further + "(", StringComparison.Ordinal) < 0)
-					continue;
-
 				file.Write(extra);
 				file.Line();
 			}
@@ -1218,6 +1207,12 @@ public static partial class CSharpEmitter
 		// Every value table the machines named by its type, said as its number in the one
 		// order they all share — which is only known now (Machine.TableName).
 		var written = Numbered(file.ToString(), tables);
+
+		// The walks a literal the input ends inside calls (Machine.Reached, Machine.Further), where
+		// nothing written calls them: a machine compiled once and written another way, or a seam
+		// read only by its scanners, keeps what the compile it did not use asked for. Before the
+		// suppressions, which are decided by what assigns a field.
+		written = Unwalked(written, separated);
 
 		// And the suppressions, which could not be decided where the fields were written: a
 		// field is emitted where the capability is present, and its suppression is needed only
@@ -5316,6 +5311,47 @@ file.Line("return spare;");
 			return rule.Declaration?.Name ?? rule.Name;
 		}
 	}
+
+	/// <summary>
+	/// <paramref name="text"/> without the walks of a literal the input ends inside that nothing in it
+	/// or in the <paramref name="parts"/> written apart from it calls, followed out: a walk only an
+	/// uncalled one called goes with it.
+	/// </summary>
+	static string Unwalked(string text, IReadOnlyList<string> parts)
+	{
+		if (text.IndexOf("_RanOut(", StringComparison.Ordinal) < 0 && text.IndexOf("_Further(", StringComparison.Ordinal) < 0 &&
+			text.IndexOf("_Agreeing(", StringComparison.Ordinal) < 0)
+			return text;
+
+		while (true)
+		{
+			var dropped = false;
+
+			foreach (System.Text.RegularExpressions.Match found in UnwalkedDefinition.Matches(text))
+			{
+				var name  = found.Groups["name"].Value + "(";
+				var first = text.IndexOf(name, StringComparison.Ordinal);
+
+				// Its own signature is one mention; a call anywhere is another.
+				if (text.IndexOf(name, first + name.Length, StringComparison.Ordinal) >= 0 ||
+					parts.Any(part => part.IndexOf(name, StringComparison.Ordinal) >= 0))
+					continue;
+
+				text    = text.Remove(found.Index, found.Length);
+				dropped = true;
+
+				break;
+			}
+
+			if (!dropped)
+				return text;
+		}
+	}
+
+	static readonly System.Text.RegularExpressions.Regex UnwalkedDefinition = new(
+		@"^(?<indent>\t+)static \w+ (?<name>Recognize_DotGram\w*_(?:RanOut|Agreeing|Further))\(.*?\r?\n\k<indent>\}\r?\n(?:\r?\n)?",
+		System.Text.RegularExpressions.RegexOptions.Multiline | System.Text.RegularExpressions.RegexOptions.Singleline |
+		System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
 	/// <summary>
 	/// A generated file as it is handed over: the walk's checks only where they were asked for
