@@ -62,7 +62,7 @@ public sealed class StandingTurnTests
 		("rule",       "E = @ToEnd\nT = E* & eof",       "|a|ab"),
 		("nothing",    "T = (@Nothing)* & 'a'",          "|a|b|aa"),
 
-		// A turn that stands still stands for every turn still owed.
+		// Turns short of the fewest are counted however far they read; one past them that stands still ends the repetition.
 		("least",      "T = (@Nothing){3,} & 'a'",       "|a|b"),
 		("bounded",    "T = (@Nothing){2,4} & 'a'",      "|a|b"),
 		("half",       "T = (@Half)+ & eof",             "|x|xx|xy"),
@@ -76,7 +76,7 @@ public sealed class StandingTurnTests
 		("sequence",   "T = (@Nothing & 'b'?)* & 'a'",   "|a|ba|bba|bb"),
 		("nested",     "T = ((@Half)* & ';')* & eof",    "|;|x;|x;xx;|x"),
 
-		// Values: the turn that stood still is one turn, with one value.
+		// Values: a value for every turn counted, none for the turn past the fewest that stood still.
 		("values",     "E : @int = @Nothing => @(1)\nT : @int = xs: E+ & 'a' => @(xs.Length)", "|a|b"),
 		("owed",       "E : @int = @Nothing => @(1)\nT : @int = xs: E{3,} & 'a' => @(xs.Length)", "|a"),
 		("counted",    "E : @int = @Half => @(1)\nT : @int = xs: E* & eof => @(xs.Length)", "|x|xx|xy"),
@@ -156,12 +156,12 @@ public sealed class StandingTurnTests
 	[InlineData("after",   "bba", "ok@3")]
 	[InlineData("before",  "ba",  "ok@2")]
 	[InlineData("values",  "a",   "ok@1 1")]
-	[InlineData("owed",    "a",   "ok@1 1")]
-	[InlineData("counted", "",    "ok@0 1")]
-	[InlineData("counted", "xx",  "ok@2 3")]
+	[InlineData("owed",    "a",   "ok@1 3")]
+	[InlineData("counted", "",    "ok@0 0")]
+	[InlineData("counted", "xx",  "ok@2 2")]
 	[InlineData("length",  "bba", "ok@3")]
-	[InlineData("lengths", "bb",  "ok@2 1")]
-	[InlineData("lengths", "bbxxx", "ok@5 4")]
+	[InlineData("lengths", "bb",  "ok@2 2")]
+	[InlineData("lengths", "bbxxx", "ok@5 3")]
 	[InlineData("exact",   "bb",  "ok@2")]
 	[InlineData("crossed", "bb",  "no@2")]
 	[InlineData("sync",    "x;",  "ok@2")]
@@ -187,7 +187,7 @@ public sealed class StandingTurnTests
 	[InlineData("T : @int = (@ToEnd)* & eos & eof => @(0)", new[] { "" }, "ok@1 0")]
 	[InlineData("T : @int = ((@Half)* & eos)* & eof => @(0)", new[] { "x", "", "xx" }, "ok@6 0")]
 	[InlineData("T : @int = (@Nothing)+ & eos & eof => @(0)", new[] { "a" }, "no@0")]
-	[InlineData("E : @int = @Half => @(1)\nT : @int = xs: E* & eos & eof => @(xs.Length)", new[] { "xx" }, "ok@3 3")]
+	[InlineData("E : @int = @Half => @(1)\nT : @int = xs: E* & eos & eof => @(xs.Length)", new[] { "xx" }, "ok@3 2")]
 	public void A_turn_that_stands_still_in_a_segment_ends_the_repetition(string grammar, string[] segments, string expected)
 	{
 		foreach (var direct in new[] { true, false })
