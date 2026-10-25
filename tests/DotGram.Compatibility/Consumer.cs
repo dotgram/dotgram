@@ -164,6 +164,30 @@ namespace DotGram.Compatibility
 	{
 	}
 
+	// A grammar that names `eos` reads a reader as its lines. The adapter that does it rewrites line
+	// endings in the buffer it is handed, with a vectorized pass where the framework has one and a
+	// loop where it does not (netstandard2.0 and net472), and must not use `System.Index`.
+	/// <summary>Records that end where a line does, streamed from a reader and from a sequence of segments.</summary>
+	[Gram(
+		"Row    : @string   = n: Number & '|' & t: Text & eos => @(n + \"=\" + t)\n" +
+		"Rows   : @string[] = Row* recover eos => @(\"bad \" + parserLine)\n" +
+		"Number = ['0'..'9']+\n" +
+		"Text   = [^ '|']+\n" +
+		"parse Rows")]
+	public partial class SegmentedRows
+	{
+	}
+
+	/// <summary>Arguments that end where a line does, read whole from a reader and from a list of segments.</summary>
+	[Gram(
+		"Arg    : @string   = text: Value & eos => @(text)\n" +
+		"Value  = any*\n" +
+		"Args   : @string[] = Arg* & eof\n" +
+		"parse Args")]
+	public partial class SegmentedArguments
+	{
+	}
+
 	/// <summary>What the grammar above builds, filled from captures by name (§7.3).</summary>
 	public sealed class Entry
 	{
