@@ -135,10 +135,22 @@ public sealed class WindowEdgeSweepTests
 		var grammars  = Shape.All().SelectMany(static shape => new[] { (shape.Name, shape.Grammar, shape.Members), (shape.Name + " over lines", shape.AsLines(), shape.Members) })
 			.Concat(Choice.All().Select(static one => (one.Name, one.Grammar, (string?)null)));
 
+		// Each also split into parts, as a large grammar's code is: the gate reads every part.
 		foreach (var (name, grammar, members) in grammars)
 		{
-			if (WindowEdge.Compiled(grammar, members) is { Streams: true } parser)
-				unflagged.AddRange(WindowEdge.Unflagged(parser.Source).Select(one => name + ": " + one));
+			foreach (var split in new[] { false, true })
+			{
+				if (WindowEdge.Compiled(grammar, members, split) is not { Streams: true } parser)
+					continue;
+
+				var called = split ? name + " split" : name;
+				var (examined, these) = WindowEdge.Unflagged(parser.Source);
+
+				if (examined == 0)
+					unflagged.Add(called + ": no test of the end was examined");
+
+				unflagged.AddRange(these.Select(one => called + ": " + one));
+			}
 		}
 
 		Assert.True(unflagged.Count == 0, string.Join("\n", unflagged.Distinct()));

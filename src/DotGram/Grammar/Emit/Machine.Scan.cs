@@ -1490,7 +1490,7 @@ sealed partial class Machine
 					.. recordsRunOut && _lookingAhead == 0 ? (string[])[$"if (mark{mark} > ranOut) ranOut = mark{mark};"] : [],
 					$"p = mark{mark};",
 					$"goto {fail};",
-				]);
+				], starves);
 			}
 
 			Unmark();

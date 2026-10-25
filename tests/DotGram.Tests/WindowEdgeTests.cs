@@ -208,6 +208,56 @@ public sealed class WindowEdgeTests
 			WindowEdge.Said(() => parser.Call("FindHit", typeof(TextReader), new StringReader(text))));
 	}
 
+	/// <summary>
+	/// <c>eof</c> inside a look of the machine, the window ending after <c>ab</c> of <c>abc</c>: the look may
+	/// not hold there.
+	/// </summary>
+	[Fact]
+	public void An_eof_inside_a_look_of_the_machine_does_not_hold_at_the_window_end()
+	{
+		var parser = WindowEdge.Compile("""
+			Hit = ?=("ab" & eof) & 'a'
+			find Hit
+			""");
+
+		foreach (var text in new[] { "abc", "ab", "xxabc", "xxab" })
+		{
+			var found = new WindowEdge.Mismatches();
+
+			WindowEdge.Edges(parser, found, "reader", text, text.Length, WindowEdge.Said(() => parser.Call("FindHit", typeof(string), text)),
+				() => parser.Call("FindHit", typeof(TextReader), new StringReader(text)));
+
+			found.Assert();
+		}
+	}
+
+	/// <summary>
+	/// A counted pair (Std.Nested) whose opener the window cuts: the cut opener may not be passed over, and
+	/// a closer inside it may not end the pair before the window's end. Read in a look, which is where a
+	/// pair is read from a window — a pair as a record's own part may take more than one line, and
+	/// GRAM5001 refuses that a reader. One closer short, the pair is open and the look refuses; with the
+	/// window ending after <c>qabcdab</c>, the cut opener was passed over and its <c>b</c> closed the pair.
+	/// </summary>
+	[Fact]
+	public void A_counted_pair_whose_opener_the_window_cuts_reads_past_the_window_end()
+	{
+		var parser = WindowEdge.Compile("""
+			Hit : @string = t: 'q' & ?={ Std.Nested("abcd", "b") } => @(t)
+			find Hit
+			""");
+
+		foreach (var text in new[] { new string('x', 4089) + "qabcdabcdb", new string('x', 4089) + "qabcdabcdbb", "xqabcdabcdbx", "xqabcdabcdbbx" })
+		{
+			var found = new WindowEdge.Mismatches();
+
+			WindowEdge.Edges(parser, found, "reader", text.Length > 40 ? "x{4089}" + text[4089..] : text, text.Length,
+				WindowEdge.Said(() => parser.Call("FindHit", typeof(string), text)),
+				() => parser.Call("FindHit", typeof(TextReader), new StringReader(text)));
+
+			found.Assert();
+		}
+	}
+
 	/// <summary>The snapshots with a streamed form.</summary>
 	static readonly string[] Streamed = ["Feed", "Located", "Minimal", "Notation", "Split", "Url"];
 
@@ -282,11 +332,68 @@ public sealed class WindowEdgeTests
 	{
 		var unflagged = new List<string>();
 
-		// Not Buffered: its reader asks a buffer that reads on as it is asked, whose end is the input's.
+		// Not Buffered: its reader asks a buffer that reads on as it is asked, whose end is the input's. A
+		// grammar split into parts is read whole, its engine being in a part.
 		foreach (var name in Streamed)
-			unflagged.AddRange(WindowEdge.Unflagged(File.ReadAllText(Path.Combine(SnapshotDirectory, name + ".gram.g.cs"))).Select(one => name + ": " + one));
+		{
+			var source = string.Concat(Directory.GetFiles(SnapshotDirectory, name + ".gram*.g.cs")
+				.Where(one => Path.GetFileName(one) == name + ".gram.g.cs" || Path.GetFileName(one).StartsWith(name + ".gram.part-", StringComparison.Ordinal))
+				.OrderBy(static one => one, StringComparer.Ordinal)
+				.Select(File.ReadAllText));
+			var (examined, these) = WindowEdge.Unflagged(source);
+
+			Assert.True(examined > 0, name + ": no test of the end was examined");
+			unflagged.AddRange(these.Select(one => name + ": " + one));
+		}
 
 		Assert.True(unflagged.Count == 0, string.Join("\n", unflagged));
+	}
+
+	/// <summary>
+	/// The gate's exemptions are the generator's helpers, known by name and parameters, and not whatever
+	/// ends like one: a rule named <c>Ahead_Agreeing</c> is the scanner <c>Scan_Ahead_Agreeing</c>, read
+	/// like any other. Its flags taken out of the code, the gate has to name it.
+	/// </summary>
+	[Fact]
+	public void The_gate_reads_a_scanner_whose_rule_is_named_like_a_helper()
+	{
+		var parser = WindowEdge.Compile("""
+			Rows  : @string[] = Row* recover ';' => @("bad " + parserFailureColumn) & ("STOP" & ';')? & eof
+			Row   : @string   = t: Word & ';' & ?=Ahead_Agreeing => @(t)
+			Ahead_Agreeing = (Word & ';')* & "STOP" & ';'
+			Word  = ['a'..'z']+
+			parse Rows
+			""");
+
+		Assert.Contains("static int Scan_Ahead_Agreeing(", parser.Source, StringComparison.Ordinal);
+		Assert.Empty(WindowEdge.Unflagged(parser.Source).Unflagged);
+
+		var unflagged = WindowEdge.Unflagged(parser.Source
+			.Replace(" && (failure.Starved = true))", ")", StringComparison.Ordinal)
+			.Replace(" || !(failure.Starved = true))", ")", StringComparison.Ordinal)).Unflagged;
+
+		Assert.Contains(unflagged, static one => one.StartsWith("Scan_Ahead_Agreeing: ", StringComparison.Ordinal));
+	}
+
+	/// <summary>
+	/// The gate reads every part of a grammar whose code is split into parts: here the engine stands in a part.
+	/// </summary>
+	[Fact]
+	public void The_gate_reads_every_part_of_a_split_grammar()
+	{
+		var parser = WindowEdge.Compiled("""
+			Rows  : @string[] = Row* recover ';' => @("bad " + parserFailureColumn) & ("STOP" & ';')? & eof
+			Row   : @string   = t: Word & ';' & ?=Ahead => @(t)
+			Ahead = (Word & ';')* & "STOP" & ';'
+			Word  = ['a'..'z']+
+			parse Rows
+			""", split: true)!;
+
+		var (examined, unflagged) = WindowEdge.Unflagged(parser.Source);
+
+		Assert.True(parser.Files > 1, "the code was not split");
+		Assert.True(examined > 0);
+		Assert.Empty(unflagged);
 	}
 
 	/// <summary>

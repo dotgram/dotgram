@@ -573,3 +573,29 @@ ab
 abc
 a
 !b
+=== x11-counted-pair
+Rows  : @string[] = Row* recover eos => @("bad " + parserLine) & eof
+Row   : @string   = t: Block & eos => @(t)
+Block = { Std.Nested("abcd", "b") }
+parse Rows
+---
+ParseRows
+---
+abcdb
+abcdabcdbb
+abcdxb
+!abcd
+!abcdabcdb
+=== x12-comment-pair
+Rows  : @string[] = Row* recover eos => @("bad " + parserLine) & eof
+Row   : @string   = t: ['a'..'z']* & c: Block & eos => @(t + c)
+Block = { Std.Nested("/*", "*/") }
+parse Rows
+---
+ParseRows
+---
+a/**/
+/* x */
+b/* /* */ */
+!/* x
+!a/* /* */

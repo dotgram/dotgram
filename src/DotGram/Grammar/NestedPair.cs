@@ -175,7 +175,12 @@ static class NestedPair
 	/// What is done where the text ends inside the pair: <paramref name="p"/> stands at the
 	/// position the last stop was found at, and the lines must leave the loop.
 	/// </param>
-	public static void WriteRest(Writer code, Delimiters pair, string p, string id, IReadOnlyList<string> unclosed)
+	/// <param name="starves">
+	/// Whether a window may feed what is written: a delimiter that does not fit before the end of the
+	/// text is then one the end may have cut, and its room test says so, as every test of the end in such
+	/// code does (Machine.Ran).
+	/// </param>
+	public static void WriteRest(Writer code, Delimiters pair, string p, string id, IReadOnlyList<string> unclosed, bool starves = false)
 	{
 		var stops = pair.Stops;
 		var depth = "depth" + id;
@@ -204,7 +209,7 @@ static class NestedPair
 			code.Line();
 
 			// `close` first, as the rule's guard asks it first; the two cannot both stand here.
-			using (code.Block($"if ({At(pair.Close, pair.CloseFolds, p)})"))
+			using (code.Block($"if ({At(pair.Close, pair.CloseFolds, p, starves)})"))
 			{
 				code.Line($"{p} += {pair.Close.Length};");
 				code.Line();
@@ -212,7 +217,7 @@ static class NestedPair
 				code.Then("break;");
 			}
 
-			code.Line($"else if ({At(pair.Open, pair.OpenFolds, p)})");
+			code.Line($"else if ({At(pair.Open, pair.OpenFolds, p, starves)})");
 
 			using (code.Block(""))
 			{
@@ -226,12 +231,12 @@ static class NestedPair
 	}
 
 	/// <summary>The test that <paramref name="literal"/> stands at <paramref name="p"/>.</summary>
-	static string At(string literal, bool folds, string p)
+	static string At(string literal, bool folds, string p, bool starves)
 	{
 		var tests = new List<string>();
 
 		if (literal.Length > 1)
-			tests.Add($"text.Length - {p} >= {literal.Length}");
+			tests.Add(starves ? $"(text.Length - {p} >= {literal.Length} || !(failure.Starved = true))" : $"text.Length - {p} >= {literal.Length}");
 
 		for (var i = 0; i < literal.Length; i++)
 		{

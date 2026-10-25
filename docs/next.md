@@ -26334,6 +26334,15 @@ search for the delimiter that found none jumped to the refusal without saying ho
   and refusing is a test of the end. `WindowEdgeTests` holds the emitted code to it: in every method a streamed
   form calls on the window, and every method those call, each line that reads `text.Length` sets the flag or is
   one of the few listed beside the test with why it may stand.
+- **What the gate did not see, and why.** A counted pair (`Std.Nested`) tests whether its opener or closer fits
+  before the end where the search stops, and that test was written plainly: in a look, the window ending inside a
+  second `abcd` passed over it, and its `b` closed the pair. The gate follows the right methods — the pair is
+  written inside the scanner — but no grammar it read had a pair a window feeds: a pair as a record's own part may
+  take more than one line, which GRAM5001 refuses a reader, so only a pair in a look streams, and none of the
+  fixtures had one. The pair's room test now goes through the same spelling, the sweep has pairs in looks, and the
+  gate fails a grammar that streams but shows it no test of the end. It also reads every part of a grammar split
+  into parts (the engine of `Split` stands in its part), and knows the helpers it lets pass by name and parameters,
+  not by a name a rule could end in.
 - **Checked where the brief was unsure.** A failure remembered while the window was short: the memo is kept only
   over tokens, and a stream is never read over tokens (`StreamingEmitter.Streams`). The lexer's seam scanner is
   written by the same epilogue.

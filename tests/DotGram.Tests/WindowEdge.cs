@@ -40,16 +40,28 @@ static class WindowEdge
 	}
 
 	/// <summary>The parser of <paramref name="grammar"/>, or none where the compiler refuses it.</summary>
-	public static Parser? Compiled(string grammar, string? members = null)
+	/// <param name="split">
+	/// Whether the generated code is to be split into parts, as a large grammar's is: what reads the
+	/// generated code has to read every part (the engine may stand in one).
+	/// </param>
+	public static Parser? Compiled(string grammar, string? members = null, bool split = false)
 	{
-		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		var options = new GramCompilerOptions
 		{
 			ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance,
-		});
+		};
+
+		if (split)
+		{
+			options.SourceFileSize = 1;
+			options.PartSize       = 1;
+		}
+
+		var result = GramCompiler.Compile(grammar, options);
 
 		return result.Diagnostics.Any(static one => one.Severity == GramSeverity.Error)
 			? null
-			: new Parser(Assert.Single(result.Sources).Text, "Grammar", null, members, []);
+			: new Parser(result.Sources[0].Text, "Grammar", null, members, [.. result.Sources.Skip(1).Select(static one => one.Text)]);
 	}
 
 	/// <summary>
@@ -184,7 +196,7 @@ static class WindowEdge
 			else
 				said.Append(Describe(value, 0));
 		}
-		catch (Exception thrown)
+		catch (Exception thrown) when (thrown is not MissingFormException)
 		{
 			var inner = thrown is TargetInvocationException { InnerException: { } cause } ? cause : thrown;
 
@@ -282,11 +294,12 @@ static class WindowEdge
 	/// where the end is met (<c>… &amp;&amp; (failure.Starved = true)</c>, <c>… || !(failure.Starved = true)</c>).
 	/// What is left over is listed in <see cref="Unflagging"/>, each with why it may stand.
 	/// </remarks>
-	public static IReadOnlyList<string> Unflagged(string source)
+	/// <returns>How many tests of the end were looked at, and those that do not say it.</returns>
+	public static (int Examined, IReadOnlyList<string> Unflagged) Unflagged(string source)
 	{
 		source = source.Replace("\r\n", "\n", StringComparison.Ordinal);
 
-		var methods = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+		var methods = new Dictionary<string, List<(string Signature, string Body)>>(StringComparer.Ordinal);
 
 		foreach (Match method in AnyMethod.Matches(source))
 		{
@@ -295,7 +308,7 @@ static class WindowEdge
 			if (!methods.TryGetValue(name, out var bodies))
 				methods[name] = bodies = [];
 
-			bodies.Add(method.Groups["body"].Value);
+			bodies.Add((name + "(" + method.Groups["parameters"].Value + ")", method.Groups["body"].Value));
 		}
 
 		var reached = new HashSet<string>(StringComparer.Ordinal);
@@ -312,7 +325,7 @@ static class WindowEdge
 			if (!methods.TryGetValue(pending.Dequeue(), out var bodies))
 				continue;
 
-			foreach (var body in bodies)
+			foreach (var (_, body) in bodies)
 			{
 				foreach (Match call in Called.Matches(body))
 				{
@@ -327,15 +340,22 @@ static class WindowEdge
 		Assert.True(reached.Count > 0, "no method is called on a window");
 
 		var unflagged = new List<string>();
+		var examined  = 0;
 
 		foreach (var name in reached.OrderBy(static one => one, StringComparer.Ordinal))
 		{
-			if (!methods.TryGetValue(name, out var bodies) || Unflagging.Any(one => one.Method?.IsMatch(name) == true))
+			if (!methods.TryGetValue(name, out var bodies))
 				continue;
 
-			foreach (var line in bodies.SelectMany(static body => body.Split('\n')).Select(static line => line.Trim()))
+			foreach (var line in bodies.Where(static method => !Unflagging.Any(one => one.Method?.IsMatch(method.Signature) == true))
+				.SelectMany(static method => method.Body.Split('\n')).Select(static line => line.Trim()))
 			{
-				if (!line.Contains("text.Length", StringComparison.Ordinal) || line.Contains("failure.Starved = true", StringComparison.Ordinal))
+				if (!line.Contains("text.Length", StringComparison.Ordinal))
+					continue;
+
+				examined++;
+
+				if (line.Contains("failure.Starved = true", StringComparison.Ordinal))
 					continue;
 
 				if (Unflagging.Any(one => one.Line?.IsMatch(line) == true))
@@ -345,7 +365,7 @@ static class WindowEdge
 			}
 		}
 
-		return unflagged;
+		return (examined, unflagged);
 	}
 
 	/// <summary>
@@ -353,14 +373,17 @@ static class WindowEdge
 	/// </summary>
 	public static readonly (Regex? Method, Regex? Line, string Why)[] Unflagging =
 	[
-		(new(@"(_Agreeing|_Sharpen\d+|^Reach_DotGram\w*)$"), null,
+		// By the name and the parameters the generator gives these helpers, which no rule's method can
+		// take: a name with _DotGram in it is refused in a grammar (GRAM1012), and a rule named
+		// Ahead_Agreeing is the scanner Scan_Ahead_Agreeing, read like any other.
+		(new(@"^(Recognize_DotGram\w*_Agreeing\(\S+ text, int p, string value, bool fold\)|Recognize_DotGram\w*_Sharpen\d+\(\S+ text, int p, ref string\[\]\? expected\)|Reach_DotGram\w*\(\S+ text, int pos, global::System\.ReadOnlySpan<char> want\))$"), null,
 			"a walk that measures how far a literal agrees; the caller that refuses on it says whether it reached the end"),
-		(new(@"^Prefix_DotGram\w*_\d+(_Miss)?$"), null,
+		(new(@"^Prefix_DotGram\w*_\d+(\(\S+ text, int p\)|_Miss\(\S+ text, ref int p, int row, int lookahead, ref Failure failure, out string\[\] expected\))$"), null,
 			"the dispatch of a choice by the prefixes of its literals; where the text runs out it answers that nothing is decided, and the alternatives it falls back to test the end themselves"),
 		(null, new(@"^if \(whole && p != text\.Length\)"),
 			"the end a whole reading demands; a window's reading is never whole"),
-		(null, new(@"^var (reached|literalReach) = |\(uint\)(reached|literalReach) < \(uint\)text\.Length"),
-			"the walk of a literal the text ends inside, written in place; the test that sent it there said it ran out"),
+		(null, new(@"^if \(\(uint\)(?<at>reached|literalReach) < \(uint\)text\.Length && .*\btext\[\k<at>\]"),
+			"a rung of the walk of a literal the text ends inside, written in place (Machine.ReachLadder): it reads the character it bounds; the flagged test that sent the code there said it ran out, or the walk raises how far the scan got, which the exits read"),
 		(null, new(@"^if \(text\.Length > furthest\) furthest = text\.Length;|^if \(found\d+ < 0\) \{ if \(text\.Length > furthest\) furthest = text\.Length;"),
 			"a scanner raising how far it got to the end, which both of its exits read and say"),
 		(null, new(@"^p = found\d+ < 0 \? text\.Length : p \+ found\d+;$"),
@@ -369,7 +392,7 @@ static class WindowEdge
 
 	/// <summary>A method's signature at the start of a line, its body, and the brace at its own indent.</summary>
 	static readonly Regex AnyMethod = new(
-		@"^(?<indent>\t+)(?:(?:private|internal|public) )?static [^\n=;]*?\b(?<name>\w+)\([^\n]*\n\k<indent>\{\n(?<body>.*?)\n\k<indent>\}$",
+		@"^(?<indent>\t+)(?:(?:private|internal|public) )?static [^\n=;]*?\b(?<name>\w+)\((?<parameters>[^\n]*)\)\n\k<indent>\{\n(?<body>.*?)\n\k<indent>\}$",
 		RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.CultureInvariant);
 
 	/// <summary>A method a streamed form calls on what the window holds.</summary>
@@ -390,19 +413,27 @@ static class WindowEdge
 	/// <summary>A generated parser whose window's capacity is a field the oracle sets.</summary>
 	public sealed class Parser
 	{
+		/// <param name="parts">What the generator wrote beyond the first file, where it split the code.</param>
 		public Parser(string source, string className, string? @namespace, string? members, string[] parts)
 		{
-			Source  = source;
-			Streams = source.Contains(Window, StringComparison.Ordinal);
+			// Every part, in order: the engine of a split grammar stands in a part, not in the first file.
+			Source  = string.Concat([source, .. parts]);
+			Files   = 1 + parts.Length;
+			Streams = Source.Contains(Window, StringComparison.Ordinal);
 
+			var windowed = "new Window_DotGram(input, " + CapacityField + ")";
 			var assembly = EmittedCode.Compile(
-				source.Replace(Window, "new Window_DotGram(input, " + CapacityField + ")", StringComparison.Ordinal),
-				className, @namespace, (members ?? "") + $" internal static int {CapacityField} = 4096;", parts);
+				source.Replace(Window, windowed, StringComparison.Ordinal),
+				className, @namespace, (members ?? "") + $" internal static int {CapacityField} = 4096;",
+				[.. parts.Select(one => one.Replace(Window, windowed, StringComparison.Ordinal))]);
 
 			Type = assembly.GetType(@namespace is null ? className : @namespace + "." + className)!;
 		}
 
 		public string Source { get; }
+
+		/// <summary>How many files the generator wrote the code in.</summary>
+		public int Files { get; }
 
 		public bool Streams { get; }
 
@@ -421,11 +452,14 @@ static class WindowEdge
 		public object? Call(string method, Type over, object input)
 		{
 			// A form that is not there is the harness's mistake, and must not read as a refusal both sides agree on.
-			var found = Type.GetMethod(method, [over]) ?? throw new InvalidOperationException($"No {method}({over.Name}).");
+			var found = Type.GetMethod(method, [over]) ?? throw new MissingFormException($"No {method}({over.Name}).");
 
 			return found.Invoke(null, [input]);
 		}
 	}
+
+	/// <summary>A form the oracle asked for that the parser does not have: the harness's mistake, never a refusal.</summary>
+	sealed class MissingFormException(string message) : Exception(message);
 
 	/// <summary>What disagreed, by kind and form, with the first few cases of each.</summary>
 	public sealed class Mismatches

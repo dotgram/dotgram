@@ -439,3 +439,22 @@ ParseRows
 stops;
 St;
 STOPS;
+=== k30-counted-pair-in-look text
+Hit : @string = t: 'q' & ?={ Std.Nested("abcd", "b") } => @(t)
+find Hit
+---
+FindHit
+---
+@xqabcdabcdb
+@xqabcdabcdbb
+@qabcdbqabcdabcdbbq
+@qabcdxbq
+=== k31-comment-pair-in-look text
+Hit : @string = t: 'q' & ?!{ Std.Nested("/*", "*/") } => @(t)
+find Hit
+---
+FindHit
+---
+@xq/* /* */ */q
+@q/* /* */q/**/
+@q/*x
