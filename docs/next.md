@@ -26312,6 +26312,16 @@ search for the delimiter that found none jumped to the refusal without saying ho
   setting it moves nothing there (`RefusalPlaceTests` and `FormAgreementTests` unchanged). The flag is sticky for the
   element: a refusal at the end in an alternative that did not matter reads the element again. That is right and
   costs a read only where the window's end falls inside an element.
+- **Every test of the end, inside a look.** The first round flagged a scanner's reads inside a look only where the
+  look's own way back would not raise how far the scan got, and took a character's test for one of those. A negative
+  look turns that test's refusal into a match: `eof` is `?!any`, so `?=("ab" & eof)` was true at the end of a window
+  that cut `abc`, and `?!(?!X)`, `?!['c'..'d']`, `"abc"i & ?!any` and `eos & eof` over segments the same. Every test of
+  the end inside a scanner's look now says it ran out, as does a search that stops at a character where the
+  delimiter it looks for would begin and the end cuts it. In the machine, a choice of literals (`eol` is
+  `"\r\n" | '\n' | '\r'`) refused at the end without the flag; inside a look kept on the arena, which records
+  nothing, `?!Dup` with `Dup = "--" & eol & "--" & eol` then read a record the string refused. The same look without
+  the last `eol` is kept in locals instead, whose failure is recorded where it stands — the end — and the driver read
+  it again: one missing flag, seen only where the look records nothing.
 - **Checked where the brief was unsure.** A failure remembered while the window was short: the memo is kept only
   over tokens, and a stream is never read over tokens (`StreamingEmitter.Streams`). The lexer's seam scanner is
   written by the same epilogue.

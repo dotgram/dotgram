@@ -549,6 +549,7 @@ namespace DotGram.Snapshots
 					}
 					expected = ExpectedSet_DotGram(1);
 					p = Recognize_DotGram_Sharpen0(text, p, ref expected);
+					if (p >= text.Length) failure.Starved = true;
 					goto Fail;
 				}
 

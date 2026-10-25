@@ -2106,6 +2106,7 @@ namespace DotGram.Snapshots
 				}
 				expected = ExpectedSet_DotGram(6);
 				p = Recognize_DotGram_D_Sharpen0(text, p, ref expected);
+				if (p >= text.Length) failure.Starved = true;
 				goto Fail;
 			}
 
@@ -4677,7 +4678,7 @@ namespace DotGram.Snapshots
 			var mark0 = 0;
 
 			mark0 = p;
-			if ((uint)p >= (uint)text.Length) goto L0_absent;
+			if ((uint)p >= (uint)text.Length) { failure.Starved = true; goto L0_absent; }
 			p++;
 			p = mark0;
 			goto Refuse;

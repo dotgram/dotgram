@@ -127,6 +127,67 @@ public sealed class WindowEdgeTests
 		found.Assert();
 	}
 
+	/// <summary>
+	/// Tests of the end inside a scanned rule's look, each with a text the first window of a reader ends
+	/// two characters into: what answers "at the end" there — <c>eof</c>, a read that a negative look turns
+	/// into a match, a run short of its fewest, a delimiter the window cuts after a character the search
+	/// stops at — has to say the window ended, and the reader has to find what the string finds.
+	/// </summary>
+	public static TheoryData<string, string> EndsInsideALook()
+	{
+		return new()
+		{
+			// eof inside a positive look, inside the scanned rule a find looks for.
+			{ "H = { ?=(\"ab\" & eof) & 'a' }", "abc" },
+			// A delimiter split by the window's end after a character the search stops at.
+			{ "H = { ?!((?!\"*/\" & [^ '*'])* & \"*/\") & 'a' }", "a*/" },
+			// A read at the end that a negative look turns into a match.
+			{ "H = { ?!('a' & 'b' & any) & 'a' }", "abc" },
+			{ "H = { ?!(\"ab\" & [^ 'q']) & 'a' }", "abc" },
+			// A run of a search, short of its fewest where the window ends.
+			{ "H = { ?!('a' & [^ ';']{3,}) & 'a' }", "abcd" },
+			// eof under a negative look, and eof in a choice.
+			{ "H = { ?!(\"ab\" & eof) & 'a' & 'b' & 'c' }", "abc" },
+			{ "H = { ?=('a' & ('b' & eof | 'q')) & 'a' }", "abc" },
+			// The same over the machine rather than a scanner.
+			{ "H = ?=(\"ab\" & eof) & 'a'", "abc" },
+			{ "H = ?!('a' & 'b' & any) & 'a'", "abc" },
+			// And a rule that builds a value, which the machine reads in states rather than as a scan.
+			{ "H : @string = ?=(\"ab\" & eof) & t: 'a' => @(t)", "abc" },
+			{ "H : @string = ?!(\"ab\" & eof) & t: 'a' & 'b' & 'c' => @(t)", "abc" },
+			{ "H : @string = ?!('a' & 'b' & any) & t: 'a' => @(t)", "abc" },
+			{ "H : @string = ?!((?!\"*/\" & [^ '*'])* & \"*/\") & t: 'a' => @(t)", "a*/" },
+		};
+	}
+
+	[Theory]
+	[MemberData(nameof(EndsInsideALook))]
+	public void A_test_of_the_end_inside_a_look_is_not_answered_at_the_window_end(string rule, string tail)
+	{
+		var parser = WindowEdge.Compile($"""
+			Hit = ?=H & 'a'
+			{rule}
+			find Hit
+			""");
+
+		var found = new WindowEdge.Mismatches();
+
+		// As reported: the first window of a reader ends two characters into the tail. And a short text
+		// whose every offset the oracle puts the window's end at.
+		var report = new string('x', 4094) + tail;
+
+		Assert.Equal(
+			WindowEdge.Said(() => parser.Call("FindHit", typeof(string), report)),
+			WindowEdge.Said(() => parser.Call("FindHit", typeof(TextReader), new StringReader(report))));
+
+		var text = "xx" + tail + "x" + tail;
+
+		WindowEdge.Edges(parser, found, "reader", text, text.Length, WindowEdge.Said(() => parser.Call("FindHit", typeof(string), text)),
+			() => parser.Call("FindHit", typeof(TextReader), new StringReader(text)));
+
+		found.Assert();
+	}
+
 	/// <summary>The snapshots with a streamed form.</summary>
 	static readonly string[] Streamed = ["Feed", "Located", "Minimal", "Notation", "Split", "Url"];
 

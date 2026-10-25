@@ -59,7 +59,7 @@ static class WindowEdge
 	/// </summary>
 	public static void Edges(
 		Parser parser, Mismatches found, string form, string shown, int length, string whole, Func<object?> read,
-		Func<string, string>? kept = null)
+		Func<string, string>? kept = null, string? beforeNul = null)
 	{
 		kept ??= static one => one;
 
@@ -69,7 +69,7 @@ static class WindowEdge
 
 		found.Runs++;
 
-		if (!Agrees(whole, held))
+		if (!Agrees(whole, held, beforeNul))
 			found.Add("the form over the whole input", form, shown, length + 16, whole, held);
 
 		foreach (var capacity in Capacities(length))
@@ -80,7 +80,7 @@ static class WindowEdge
 
 			found.Runs++;
 
-			if (!Same(held, said))
+			if (!Same(held, said, beforeNul))
 				found.Add("the window's end", form, shown, capacity, held, said);
 		}
 	}
@@ -98,38 +98,57 @@ static class WindowEdge
 	}
 
 	/// <summary>
-	/// Whether a reading over a window that ends sooner said what the reading over the whole input said. Where
-	/// that one is refused, what is handed over before the refusal may be more: a source is read only as far as
-	/// the element being read, and a refusal of the source itself (a NUL in a segment) comes when it is read
-	/// that far. The refusal is the same, and the values on either side one run of the same.
+	/// Whether a reading over a window that ends sooner said what the reading over a window holding the
+	/// whole input said: exactly, with one exception. Read a segment at a time, a source that holds a NUL is
+	/// refused when it is read that far, so a smaller window may hand over more elements before that same
+	/// refusal. Those values may only extend what the larger window handed over, and they have to be what
+	/// the list form reads of the segments before the NUL (<paramref name="beforeNul"/>): a value a stream
+	/// hands over before reading further is one no continuation can change, the end there included.
 	/// </summary>
-	static bool Same(string held, string said)
+	public static bool Same(string held, string said, string? beforeNul)
 	{
 		if (said == held)
 			return true;
 
-		var at   = held.IndexOf(Refused, StringComparison.Ordinal);
-		var also = said.IndexOf(Refused, StringComparison.Ordinal);
-
-		if (at < 0 || also < 0 || held[at..] != said[also..])
+		if (beforeNul is null || !RefusesNul(held) || Refusal(held) != Refusal(said))
 			return false;
 
-		var before = held[..at];
-		var after  = said[..also];
+		var before = Values(held);
+		var after  = Values(said);
 
-		return after.StartsWith(before, StringComparison.Ordinal) || before.StartsWith(after, StringComparison.Ordinal);
+		return after.StartsWith(before, StringComparison.Ordinal) && Values(beforeNul).StartsWith(after, StringComparison.Ordinal);
 	}
 
-	static bool Agrees(string whole, string streamed)
+	public static bool Agrees(string whole, string streamed, string? beforeNul)
 	{
 		// A segment of the reader is a line of the list's, and its refusal of a NUL says so in its own words.
 		streamed = streamed.Replace("A line holds", "A segment holds", StringComparison.Ordinal);
 
-		// Where the whole input is refused, a streamed form has handed over what it read before the
-		// refusal and the whole form nothing: what is held is the refusal and where it stands.
-		return Refusal(whole) is { } refused
-			? Refusal(streamed) is { } also && Where(refused) == Where(also)
-			: streamed == whole;
+		if (Refusal(whole) is not { } refused)
+			return streamed == whole;
+
+		// Where the whole input is refused, a streamed form hands over what it read before the refusal and
+		// the whole form nothing: what is held is the refusal and where it stands — and, where the refusal is
+		// of a NUL in the source, that what was handed over is what the list reads of the segments before it.
+		// Any other refusal of the whole input has no such list to hold the values to.
+		if (Refusal(streamed) is not { } also || Where(refused) != Where(also))
+			return false;
+
+		return !RefusesNul(streamed) || beforeNul is null || Values(beforeNul).StartsWith(Values(streamed), StringComparison.Ordinal);
+	}
+
+	/// <summary>Whether a reading ended in the refusal of a NUL its source holds.</summary>
+	static bool RefusesNul(string said)
+	{
+		return Refusal(said) is { } refusal && refusal.Contains(" holds U+0000", StringComparison.Ordinal);
+	}
+
+	/// <summary>What a reading handed over, without how it ended.</summary>
+	static string Values(string said)
+	{
+		var at = said.IndexOf(Refused, StringComparison.Ordinal);
+
+		return at < 0 ? said : said[..at];
 	}
 
 	static string? Refusal(string said)
@@ -297,7 +316,10 @@ static class WindowEdge
 
 		public object? Call(string method, Type over, object input)
 		{
-			return Type.GetMethod(method, [over])!.Invoke(null, [input]);
+			// A form that is not there is the harness's mistake, and must not read as a refusal both sides agree on.
+			var found = Type.GetMethod(method, [over]) ?? throw new InvalidOperationException($"No {method}({over.Name}).");
+
+			return found.Invoke(null, [input]);
 		}
 	}
 

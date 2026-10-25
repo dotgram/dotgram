@@ -510,3 +510,66 @@ ParseRows
 3 /**/ | d
 !1|/* open
 !2|/* a * / b
+=== x06-eof-in-look
+Rows : @string[] = Row* recover eos => @("bad " + parserLine) & eof
+Row  : @string   = t: Word & eos & ?!(Word & eos & eof) => @(t) | t: Word & eos & eof => @("last " + t)
+Word = ['a'..'z']+
+parse Rows
+---
+ParseRows
+---
+ab
+cd
+efg
+!1
+=== x07-end-of-segment-in-scanner-look
+Rows : @string[] = Row* recover eos => @("bad " + parserLine) & eof
+Row  : @string   = t: Head & ['a'..'z']* & eos => @(t)
+Head = { ?=('a' & 'b' & eos) & 'a' | 'b' }
+parse Rows
+---
+ParseRows
+---
+ab
+b
+bcd
+!abc
+!a
+=== x08-split-delimiter-in-look
+Rows : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn) & eof
+Row  : @string   = t: C & eos => @(t)
+C    = { ?!((?!"*/" & [^ '*'])* & "*/") & ['a'..'z' | '*' | '/']+ }
+parse Rows
+---
+ParseRows
+---
+ab
+a*
+**
+!a*/
+!*/x
+=== x09-run-short-of-its-fewest-in-look
+Rows : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn) & eof
+Row  : @string   = t: Head & [^ ';']* & eos => @(t)
+Head = { ?!('a' & [^ ';']{3,}) & 'a' }
+parse Rows
+---
+ParseRows
+---
+a
+ab
+abc
+!abcd
+!abcde
+=== x10-eof-under-negative-look
+Rows : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn) & eof
+Row  : @string   = t: Head & ['a'..'z']* & eos => @(t)
+Head = { ?!('a' & 'b' & eof) & 'a' }
+parse Rows
+---
+ParseRows
+---
+ab
+abc
+a
+!b

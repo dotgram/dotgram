@@ -868,24 +868,19 @@ sealed partial class Machine
 		/// </summary>
 		/// <remarks>
 		/// A look puts the position back and raises nothing on how far the scan got, so neither of the exits
-		/// can tell afterwards that it read to the end; this read can. Outside a look the refusal or the match
-		/// that follows says it from how far the scan got.
+		/// can tell afterwards that it read to the end; this read can. And a negative look turns the read's
+		/// refusal into a match — <c>eof</c> is <c>?!any</c> — which is the scan answering "at the end" where
+		/// only the window has ended. So every test of the end inside a look says it, whatever the look does
+		/// with the answer. Outside a look the refusal or the match that follows says it from how far the scan
+		/// got.
 		/// </remarks>
 		string RanOut(string fail)
 		{
-			return starves && _lookingAhead > 0 ? $"{{ failure.Starved = true; goto {fail}; }}" : $"goto {fail};";
+			return Inside ? $"{{ failure.Starved = true; goto {fail}; }}" : $"goto {fail};";
 		}
 
-		/// <summary>
-		/// <see cref="RanOut"/> for a read of one character where it stands. Inside a look it stands where
-		/// the look does or past something the look read first: the way back a look's refusal takes raises how
-		/// far the scan got to there, the end, and the exits say so — except in the seam, whose way back past a
-		/// look is quiet.
-		/// </summary>
-		string RanOutHere(string fail)
-		{
-			return Seam ? RanOut(fail) : $"goto {fail};";
-		}
+		/// <summary>Whether a test of the end written here has to say it ran out (<see cref="RanOut"/>).</summary>
+		bool Inside => starves && _lookingAhead > 0;
 
 		/// <summary>How many lookaheads the code being written stands in: a pair left open there is not recorded.</summary>
 		int _lookingAhead;
@@ -1124,11 +1119,11 @@ sealed partial class Machine
 						//
 						// Inside a look the input ending inside the literal is asked first and on its own: the
 						// look records nothing, and this is the one place that knows the scan ran out.
-						if (starves && _lookingAhead > 0)
+						if (Inside)
 							code.Line($"if ({Short(text.Length)}) {RanOut(fail)}");
 
 						code.Line(
-							(starves && _lookingAhead > 0 ? "if (" : $"if ({Short(text.Length)} || ") +
+							(Inside ? "if (" : $"if ({Short(text.Length)} || ") +
 							"!global::System.MemoryExtensions.SequenceEqual(" +
 							$"text.Slice(p, {text.Length}), {Spanned(text)}))");
 
@@ -1227,7 +1222,7 @@ sealed partial class Machine
 					var test = CSharpEmitter.Test(element, tabulate);
 
 					if (!loaded)
-						code.Line($"if ((uint)p >= (uint)text.Length) {RanOutHere(fail)}");
+						code.Line($"if ((uint)p >= (uint)text.Length) {RanOut(fail)}");
 
 					// `any` tests nothing; reading the character just to discard it would
 					// be an unreachable branch in somebody's build.
@@ -1344,7 +1339,7 @@ sealed partial class Machine
 
 						if (!loaded)
 						{
-							code.Line($"if ((uint)p >= (uint)text.Length) {RanOutHere(fail)}");
+							code.Line($"if ((uint)p >= (uint)text.Length) {RanOut(fail)}");
 							code.Line("c = text[p];");
 						}
 						code.Line($"if (!({front})) goto {fail};");
@@ -1533,6 +1528,12 @@ sealed partial class Machine
 				// a search that finds nothing stops at the end, and the loop raised nothing else.
 				code.Line($"p = {found} < 0 ? text.Length : p + {found};");
 
+				// A run that reads to the end inside a look stops there for want of input, and what the look
+				// makes of it — a run short of its fewest, a part after it refused — is an answer only the end of
+				// the input gives.
+				if (Inside)
+					code.Line($"if ({found} < 0) failure.Starved = true;");
+
 				// Short of the least, the run read characters it now gives back: what is tried
 				// next begins where the run did.
 				if (min > 1 && GivesBackTo(fail))
@@ -1693,7 +1694,11 @@ sealed partial class Machine
 			}
 			else
 			{
-				code.Line($"if ({stop} >= 0) goto {fail};");
+				// Where the turn stops at a character of S, L is refused there, which the end of the text can do
+				// by cutting it: say so where it does not fit before the end.
+				code.Line(Inside
+					? $"if ({stop} >= 0) {{ if (text.Length - (p + {stop}) < {delimiter.Length}) failure.Starved = true; goto {fail}; }}"
+					: $"if ({stop} >= 0) goto {fail};");
 				code.Line($"if ({found} < 0) {RanOut(fail)}");
 			}
 

@@ -5106,13 +5106,34 @@ sealed partial class Machine
 
 				SharpenAll(writer, texts, displays);
 
+				// The walk stops at the end of the text only where every character it held agreed with
+				// one of the texts: input that ran out, which a look records nothing of.
+				if (_starves)
+					writer.Line("if (p >= text.Length) failure.Starved = true;");
+
 				writer.Line($"goto {Label(writer, fail)};");
 			}
 			else
 			{
 				// Given way to the alternatives after the run: where any of them got is recorded,
-				// and the position is left where they read from.
-				if (!_lowering)
+				// and the position is left where they read from. Where a stream reads, also whether
+				// they ran into the end of the text — the alternatives after the run may all be refused
+				// inside a look, which records nothing, and a negative look takes that for an answer.
+				if (_starves)
+				{
+					_expectedUsed.Add(arrayName);
+					writer.Line($"expected = {arrayName};");
+
+					using (writer.Block(""))
+					{
+						writer.Line($"var ranTo = {Sharpening(texts, displays)}(text, p, ref expected);");
+						writer.Line("if (ranTo >= text.Length) failure.Starved = true;");
+
+						if (!_lowering)
+							Further(writer, "ranTo", "expected");
+					}
+				}
+				else if (!_lowering)
 				{
 					_expectedUsed.Add(arrayName);
 					writer.Line($"expected = {arrayName};");

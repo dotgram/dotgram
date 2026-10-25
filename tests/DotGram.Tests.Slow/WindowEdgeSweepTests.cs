@@ -61,15 +61,21 @@ public sealed class WindowEdgeSweepTests
 			var whole = eol
 				? WindowEdge.Said(() => parser.Call(shape.Method, typeof(string), text))
 				: WindowEdge.Said(() => parser.Call(shape.Method, typeof(IReadOnlyList<string>), segments));
+			// Read a segment at a time, a NUL in the source is refused where it is read: what the list reads of
+			// the segments before it is what a stream may hand over first.
+			var nul       = Array.FindIndex(segments, static one => one.Contains('\0'));
+			var beforeNul = !eol && nul >= 0
+				? WindowEdge.Said(() => parser.Call(shape.Method, typeof(IReadOnlyList<string>), segments[..nul]))
+				: null;
 			var ended = eol
 				? WindowEdge.Said(() => parser.Call(shape.Method, typeof(string), string.Concat(segments.Select(static one => one + "\n"))))
 				: whole;
 
 			if (segments.All(static one => !one.Contains('\n') && !one.Contains('\r')) && parser.Has(shape.Method, typeof(TextReader)))
-				WindowEdge.Edges(parser, found, "reader", shown, text.Length, whole, () => parser.Call(shape.Method, typeof(TextReader), new StringReader(text)));
+				WindowEdge.Edges(parser, found, "reader", shown, text.Length, whole, () => parser.Call(shape.Method, typeof(TextReader), new StringReader(text)), beforeNul: beforeNul);
 
 			if (parser.Has(shape.Method, typeof(IEnumerable<string>)))
-				WindowEdge.Edges(parser, found, "sequence", shown, text.Length, ended, () => parser.Call(shape.Method, typeof(IEnumerable<string>), segments.Select(static one => one)));
+				WindowEdge.Edges(parser, found, "sequence", shown, text.Length, ended, () => parser.Call(shape.Method, typeof(IEnumerable<string>), segments.Select(static one => one)), beforeNul: beforeNul);
 		}
 
 		found.Assert();
