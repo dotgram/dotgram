@@ -69,19 +69,29 @@ public sealed class StockCountHandTests
 	/// <summary>The generated parser in every form it has, and the hand one, answering alike.</summary>
 	static void Agree(string text)
 	{
-		var expected = Describe(StockCountReader.TryParseCount(text));
+		var expected = Describe(StockCountReader.TryParseCount(new StringReader(text)));
 
 		foreach (var (form, answer) in new[]
 		{
-			("generated, reader",            Describe(StockCountReader.TryParseCount(new StringReader(text)))),
-			("generated, reader, buffer 64", Describe(StockCountReader.TryParseCount(new StringReader(text), 64))),
-			("generated, reader, buffer 1",  Describe(StockCountReader.TryParseCount(new StringReader(text), 1))),
+			("generated, lines",             Describe(StockCountReader.TryParseCount(LinesOf(text)))),
 			("hand",                         Describe(HandStockCount.TryRead(text, out var one, out var at), one, at)),
 			("hand, reader, buffer 64",      Describe(HandStockCount.TryRead(new StringReader(text), out var two, out var there, 64), two, there)),
 			("hand, reader, buffer 1",       Describe(HandStockCount.TryRead(new StringReader(text), out var three, out var where, 1), three, where)),
 		})
 			if (answer != expected)
 				Assert.Fail($"\"{text.Replace("\n", "\\n").Replace("\r", "\\r")}\":\ngenerated: {expected}\n{form}: {answer}");
+	}
+
+	/// <summary>The lines of a text as <c>File.ReadLines</c> reads them.</summary>
+	static List<string> LinesOf(string text)
+	{
+		var lines = new List<string>();
+		using var reader = new StringReader(text);
+
+		while (reader.ReadLine() is { } line)
+			lines.Add(line);
+
+		return lines;
 	}
 
 	static string Describe(StockCountReader.Match<StockCount> match)

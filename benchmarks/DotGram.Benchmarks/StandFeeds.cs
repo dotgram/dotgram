@@ -51,6 +51,14 @@ static partial class Stand
 		+ $"END {(broken ? lines - lines / 10 : lines)}\n";
 	}
 
+	/// <summary>The lines of a text as the segments an <c>eos</c> grammar reads: split at each line feed, with no empty segment after a last one.</summary>
+	internal static string[] SegmentsOf(string text)
+	{
+		var parts = text.Split('\n');
+
+		return parts is [.., ""] ? parts[..^1] : parts;
+	}
+
 	/// <summary>The three inputs of the stock count: the example's four lines, a thousand good ones, and the same with every tenth broken.</summary>
 	static (string Name, string Text)[] StockInputs()
 	{
@@ -81,10 +89,6 @@ static partial class Stand
 			yield return PairedStockRow($"stock-count.{name}.reader",
 				() => HandStockCount.TryRead(new StringReader(text), out var count, out _) ? count : null,
 				before.StockReader(text, null), after.StockReader(text, null));
-
-			yield return PairedStockRow($"stock-count.{name}.reader64",
-				() => HandStockCount.TryRead(new StringReader(text), out var count, out _, 64) ? count : null,
-				before.StockReader(text, 64), after.StockReader(text, 64));
 		}
 	}
 
@@ -129,17 +133,15 @@ static partial class Stand
 
 	static IEnumerable<Workload> StockCountRows(string name, string text)
 	{
+		var lines = SegmentsOf(text);
+
 		yield return StockCountRow($"stock-count.{name}.text",
-			() => StockCountReader.TryParseCount(text),
+			() => StockCountReader.TryParseCount(lines),
 			() => HandStockCount.TryRead(text, out var count, out _) ? count : null);
 
 		yield return StockCountRow($"stock-count.{name}.reader",
 			() => StockCountReader.TryParseCount(new StringReader(text)),
 			() => HandStockCount.TryRead(new StringReader(text), out var count, out _) ? count : null);
-
-		yield return StockCountRow($"stock-count.{name}.reader64",
-			() => StockCountReader.TryParseCount(new StringReader(text), 64),
-			() => HandStockCount.TryRead(new StringReader(text), out var count, out _, 64) ? count : null);
 	}
 
 	static Workload StockCountRow(string name, Func<StockCountReader.Match<StockCount>> generated, Func<StockCount?> hand)

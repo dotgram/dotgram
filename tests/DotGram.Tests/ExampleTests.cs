@@ -584,11 +584,11 @@ public sealed class ExampleTests
 	}
 
 	[Fact]
-	public void And_a_reader_through_a_small_buffer_reads_the_same_count()
+	public void And_a_reader_of_the_same_lines_reads_the_same_count()
 	{
 		const string Text = "apples: 12\na 1\npears: 7\nEND 2\n";
 
-		Assert.Equal(StockCountReader.Read(Text).Lines, StockCountReader.Read(new StringReader(Text), bufferSize: 4).Lines);
+		Assert.Equal(StockCountReader.Read(Text).Lines, StockCountReader.Read(new StringReader(Text)).Lines);
 	}
 
 	// ── Feeds written by people ──────────────────────────────────────────────────
@@ -620,7 +620,7 @@ public sealed class ExampleTests
 	public void And_hands_over_a_line_before_it_has_read_the_rest()
 	{
 		using var reader = new StringReader(Prices);
-		using var lines  = PriceList.Read(reader, bufferSize: 8).GetEnumerator();
+		using var lines  = PriceList.Read(reader).GetEnumerator();
 
 		Assert.True(lines.MoveNext());
 		Assert.Equal(new Price("Espresso", 2.40m), lines.Current);
@@ -782,7 +782,7 @@ public sealed class ExampleTests
 		var text = writer.ToString();
 
 		using var reader = new StringReader(text);
-		using var lines  = EodTrades.Read(reader).GetEnumerator();
+		using var lines  = ((IEnumerable<EodLine>)EodTrades.Read(reader)).GetEnumerator();
 
 		Assert.True(lines.MoveNext());
 		Assert.IsType<EodHeader>(lines.Current);

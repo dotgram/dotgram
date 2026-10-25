@@ -197,7 +197,7 @@ internal static class RefusalLadders
 
 		// ── the feeds ──
 		yield return R("FeedReader", "records, then a cut record", "records", 4096, n => "H|2026-08-13|ACME\n" + Copies("R|AAPL|100|2026-08-12\n", n) + "R|AAPL|100|", static t => FeedAccepts(t));
-		yield return R("StockCountReader", "lines, then no closing count", "lines", 4096, n => string.Concat(Enumerable.Range(0, n).Select(static i => $"{StockItem(i)}: {i % 100}\n")), static t => StockCountReader.TryParseCount(t).IsSuccess);
+		yield return R("StockCountReader", "lines, then no closing count", "lines", 4096, n => string.Concat(Enumerable.Range(0, n).Select(static i => $"{StockItem(i)}: {i % 100}\n")), static t => StockCountReader.TryParseCount(SegmentsOf(t)).IsSuccess);
 
 		// ── SQL ──
 		string Names(int n)
@@ -431,6 +431,14 @@ internal static class RefusalLadders
 	}
 
 	/// <summary>A name the stock count reads (letters only: an item called "item12" is a broken line), base 26.</summary>
+	/// <summary>The lines of a text as the segments an <c>eos</c> grammar reads: split at each line feed, with no empty segment after a last one.</summary>
+	static string[] SegmentsOf(string text)
+	{
+		var parts = text.Split('\n');
+
+		return parts is [.., ""] ? parts[..^1] : parts;
+	}
+
 	static string StockItem(int index)
 	{
 		var name = "";

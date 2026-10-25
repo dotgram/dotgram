@@ -50,7 +50,7 @@ static partial class Stand
 		{
 			var kind = broken ? "stock count, a tenth broken" : "stock count";
 
-			yield return new Series(kind, "generated text",   "lines", [100, 1000, 10000], n => { var t = StockText(n, broken); return () => StockCountReader.TryParseCount(t).IsSuccess; });
+			yield return new Series(kind, "generated text",   "lines", [100, 1000, 10000], n => { var t = StockText(n, broken); var s = SegmentsOf(t); return () => StockCountReader.TryParseCount(s).IsSuccess; });
 			yield return new Series(kind, "hand text",        "lines", [100, 1000, 10000], n => { var t = StockText(n, broken); return () => HandStockCount.TryRead(t, out _, out _); });
 			yield return new Series(kind, "generated reader", "lines", [100, 1000, 10000], n => { var t = StockText(n, broken); return () => StockCountReader.TryParseCount(new StringReader(t)).IsSuccess; });
 			yield return new Series(kind, "hand reader",      "lines", [100, 1000, 10000], n => { var t = StockText(n, broken); return () => HandStockCount.TryRead(new StringReader(t), out _, out _); });

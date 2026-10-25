@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 
 using DotGram;
 
@@ -45,15 +46,15 @@ public sealed record FeedRejection(string Rule, int Line, string Text, string Me
 }
 
 [Gram("""
-	Feed    = header: Header & rows: Row* recover eol & trailer: Trailer & eof
+	Feed    = header: Header & rows: Row* recover eos & trailer: Trailer & eof
 
-	Header  = "H" & '|' & date: Date & '|' & source: Text & eol
-	Trailer = "T" & '|' & count: Digit+ & eol
-	Row     = "R" & '|' & symbol: Text & '|' & qty: Digit+ & '|' & date: Date & eol
+	Header  = "H" & '|' & date: Date & '|' & source: Text & eos
+	Trailer = "T" & '|' & count: Digit+ & eos
+	Row     = "R" & '|' & symbol: Text & '|' & qty: Digit+ & '|' & date: Date & eos
 
 	Date    = year: Digit{4} & '-' & month: Digit{2} & '-' & day: Digit{2}
 
-	Text    = [^ '|' | '\r' | '\n']+
+	Text    = [^ '|']+
 	Digit   = ['0'..'9']
 
 	parse Feed
@@ -77,7 +78,7 @@ public static partial class LoggingFeedReader
 
 		try
 		{
-			return (ParseFeed(text).Rows, reports);
+			return (ParseFeed(new StringReader(text)).Rows, reports);
 		}
 		finally
 		{

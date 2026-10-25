@@ -29,26 +29,26 @@ namespace DotGram.Examples.Feeds;
 // enumeration and lose every entry after it. Refused by the guard, the line is reported and
 // dropped like any other bad one.
 //
-// `stream yield` makes the read lazy, so the report of a bad line is made when that line
+// `yield` makes the read lazy, so the report of a bad line is made when that line
 // is read: between the entry before it and the entry after it, not at the end.
 
 /// <summary>An entry of the logbook.</summary>
 public sealed record LogEntry(DateTime At, string Machine, string Note);
 
 [Gram("""
-	Log   : @LogEntry[] = Entry* recover eol
+	Log   : @LogEntry[] = Entry* recover eos
 
 	Entry : @LogEntry = at: Stamp
 	                    & when @(IsTime(at))
-	                    & ' '+ & machine: Name & ' '+ & note: Rest & eol
+	                    & ' '+ & machine: Name & ' '+ & note: Rest & eos
 	                 => @(new LogEntry(ToTime(at), machine, note))
 
 	Stamp = Digit{4} & '-' & Digit{2} & '-' & Digit{2} & ' ' & Digit{2} & ':' & Digit{2}
-	Name  = [^ ' ' | '\r' | '\n']+
-	Rest  = [^ '\r' | '\n']+
+	Name  = [^ ' ']+
+	Rest  = any+
 	Digit = ['0'..'9']
 
-	parse Log as Read stream yield
+	parse Log as Read yield
 	""")]
 public static partial class Logbook
 {

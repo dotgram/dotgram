@@ -1605,22 +1605,42 @@ static partial class Stand
 			return () => (bool)call.Invoke(null, [text, null])! ? 1 : 0;
 		}
 
-		/// <summary>StockCountReader.TryParseCount(string) of this side, by reflection: the match it returns.</summary>
+		/// <summary>
+		/// StockCountReader.TryParseCount(string) of this side, by reflection: the match it returns. A side whose grammar reads
+		/// segments (<c>eos</c>) has no string form, and is given the lines of the text as a list instead.
+		/// </summary>
 		public Func<object> StockText(string text)
 		{
-			var call = (_stock ?? throw new InvalidOperationException("The side has no DotGram.Examples.dll")).GetMethod("TryParseCount", [typeof(string)])
+			var type = _stock ?? throw new InvalidOperationException("The side has no DotGram.Examples.dll");
+			var call = type.GetMethod("TryParseCount", [typeof(string)]);
+
+			if (call is not null)
+				return () => call.Invoke(null, [text])!;
+
+			var lines = SegmentsOf(text);
+
+			call = type.GetMethod("TryParseCount", [typeof(IReadOnlyList<string>)])
 				?? throw new InvalidOperationException("StockCountReader.TryParseCount(string) not found");
 
-			return () => call.Invoke(null, [text])!;
+			return () => call.Invoke(null, [lines])!;
 		}
 
-		/// <summary>StockCountReader.TryParseCount(TextReader, int?, int?) over a StringReader, with the buffer size given (null: the default).</summary>
+		/// <summary>
+		/// StockCountReader.TryParseCount(TextReader, int?, int?) over a StringReader, with the buffer size given (null: the default).
+		/// A side whose grammar reads segments (<c>eos</c>) has no buffer to size: it is read through TryParseCount(TextReader).
+		/// </summary>
 		public Func<object> StockReader(string text, int? bufferSize)
 		{
-			var call = (_stock ?? throw new InvalidOperationException("The side has no DotGram.Examples.dll")).GetMethod("TryParseCount", [typeof(TextReader), typeof(int?), typeof(int?)])
+			var type = _stock ?? throw new InvalidOperationException("The side has no DotGram.Examples.dll");
+			var call = type.GetMethod("TryParseCount", [typeof(TextReader), typeof(int?), typeof(int?)]);
+
+			if (call is not null)
+				return () => call.Invoke(null, [new StringReader(text), bufferSize, null])!;
+
+			call = type.GetMethod("TryParseCount", [typeof(TextReader)])
 				?? throw new InvalidOperationException("StockCountReader.TryParseCount(TextReader, int?, int?) not found");
 
-			return () => call.Invoke(null, [new StringReader(text), bufferSize, null])!;
+			return () => call.Invoke(null, [new StringReader(text)])!;
 		}
 
 		/// <summary>Whether a match was a success, and the total and the number of lines of what it read.</summary>

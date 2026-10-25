@@ -26,11 +26,12 @@ static class StockSlope
 			foreach (var broken in new[] { false, true })
 			{
 				var text = Text(lines, broken);
+				var segments = Stand.SegmentsOf(text);
 
 				foreach (var (form, hand, generated) in new (string, Func<bool>, Func<bool>)[]
 				{
 					("text",   () => HandStockCount.TryRead(text, out _, out _),
-					           () => StockCountReader.TryParseCount(text).IsSuccess),
+					           () => StockCountReader.TryParseCount(segments).IsSuccess),
 					("reader", () => HandStockCount.TryRead(new StringReader(text), out _, out _),
 					           () => StockCountReader.TryParseCount(new StringReader(text)).IsSuccess),
 				})
