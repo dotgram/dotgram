@@ -2073,8 +2073,6 @@ A publication is a method of the generated class, so its name is one of the clas
 not be `Match`, `Outcome`, `SourceSpan`, `ParserInput` or `OnRecovered`, which the class declares for
 its callers, nor the name of the class itself, nor that of the type made for a rule of the grammar
 (§7.3). That is refused where the directive is written (`GRAM5018`); give it another name with `as`.
-The types the class nests for its own use do not appear in this list and are not reserved: a rule
-that would be called after one gets another type name (§7.3).
 
 The form that describes a refusal may pay for the description, and whether it does is a property
 of the grammar rather than of the form. Where the parse can read without recording — no
