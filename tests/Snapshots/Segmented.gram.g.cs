@@ -1029,51 +1029,6 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_Args_Read(int pos)
-			{
-				var s  = ways.Cursor;
-				var u  = 0;
-
-				while (true)
-				{
-					var q = Recognize_Args_Read_Body(pos);
-
-					if (q >= 0)
-					{
-						if (u > 1)
-						{
-							u = Stood_DotGram(u, s);
-
-							if (u > 0)
-								continue;
-						}
-
-						return q;
-					}
-
-					if (ways.Cursor > s && ways.Retry(s))
-					{
-						u = Retried_DotGram(u);
-
-						continue;
-					}
-
-					Undeferred_DotGram(u);
-
-					return -1;
-				}
-			}
-
-			public int Recognize_Args_Read_Body(int pos)
-			{
-				var p = pos;
-				var rb_1 = values.Count1;
-				var q0 = Read_Args(p);
-				if (q0 < 0) return -1;
-				p = q0;
-				return p;
-			}
-
 		}
 
 		static int Recognize_Args_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Segmented.Args value)
@@ -1089,40 +1044,6 @@ namespace DotGram.Snapshots
 				if (failure.Unasked) reader.unbuilt = 1;
 
 				var end = reader.Recognize_Args_Whole_Read(pos);
-
-				failure = reader.failure;
-
-				if (end < 0)
-				{
-					value = default!;
-
-					return end;
-				}
-
-				value = reader.last0;
-
-				return end;
-			}
-			finally
-			{
-				Ways_DotGram.Return(ways);
-				ImmediateValues_DotGram.Return(values);
-			}
-		}
-
-		static int Recognize_Args(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Segmented.Args value)
-		{
-			var ways = Ways_DotGram.Rent();
-			var values = ImmediateValues_DotGram.Rent();
-
-			try
-			{
-				var reader = new Reader_DotGram(text, ways, values);
-
-				reader.failure = failure;
-				if (failure.Unasked) reader.unbuilt = 1;
-
-				var end = reader.Recognize_Args_Read(pos);
 
 				failure = reader.failure;
 
@@ -1636,15 +1557,15 @@ namespace DotGram.Snapshots
 			private readonly global::System.IO.TextReader _input;
 			private readonly bool _throws;
 
-			private readonly char[] _block = new char[4096];
-			private int    _at;
-			private int    _filled;
 			private bool   _cr;
 			private bool   _open;
 			private bool   _ended;
+
 			private long   _position;
-			private int    _line = 1;
-			private int    _column;
+
+			private int    _lines;
+
+			private long   _lineStart;
 
 			public SegmentReader_DotGram(global::System.IO.TextReader input, bool throws)
 			{
@@ -1667,72 +1588,133 @@ namespace DotGram.Snapshots
 
 			public override int Read(char[] buffer, int index, int count)
 			{
-				var written = 0;
-
-				while (written < count && !_ended)
+				while (count > 0 && !_ended)
 				{
-					if (_at == _filled)
+					var read = _input.Read(buffer, index, count);
+
+					if (read <= 0)
 					{
-						_filled = _input.Read(_block, 0, _block.Length);
-						_at     = 0;
+						_ended = true;
 
-						if (_filled <= 0)
+						// A last line without its ending ends its segment all the same.
+						if (_open)
 						{
-							_filled = 0;
-							_ended  = true;
+							buffer[index] = '\0';
+							_open = false;
 
-							// A last line without its ending ends its segment all the same.
-							if (_open)
-							{
-								buffer[index + written++] = '\0';
-								_open = false;
-							}
+							return 1;
+						}
 
-							break;
+						return 0;
+					}
+
+					// The `\n` of a `\r\n` whose `\r` ended the read before.
+					if (_cr)
+					{
+						_cr = false;
+
+						if (buffer[index] == '\n')
+						{
+							read--;
+
+							if (read == 0)
+								continue;
+
+							global::System.Array.Copy(buffer, index + 1, buffer, index, read);
 						}
 					}
 
-					var c = _block[_at++];
+					#if NET8_0_OR_GREATER
+					// Nothing but `\n` to change: one pass for that, and the counts the refusal will need.
+					var chunk = new global::System.Span<char>(buffer, index, read);
 
-					// The `\n` of a `\r\n` whose `\r` was the end of a block, or of the last read.
-					if (_cr && c == '\n')
+					if (global::System.MemoryExtensions.IndexOfAny(chunk, '\r', '\0') < 0)
 					{
-						_cr = false;
-						continue;
+						var ends = global::System.MemoryExtensions.Count(chunk, '\n');
+
+						if (ends > 0)
+						{
+							_lines    += ends;
+							_lineStart = _position + global::System.MemoryExtensions.LastIndexOf(chunk, '\n') + 1;
+
+							global::System.MemoryExtensions.Replace(chunk, '\n', '\0');
+						}
+
+						_open      = chunk[read - 1] != '\0';
+						_position += read;
+
+						return read;
+					}
+					#endif
+
+					var end   = index + read;
+					var from  = index;
+					var to    = index;
+					var lines = _lines;
+					var start = _lineStart;
+
+					while (from < end)
+					{
+						var run = global::System.MemoryExtensions.IndexOfAny(
+							new global::System.ReadOnlySpan<char>(buffer, from, end - from), '\r', '\n', '\0');
+
+						if (run < 0)
+							run = end - from;
+
+						if (to != from)
+							global::System.Array.Copy(buffer, from, buffer, to, run);
+
+						to   += run;
+						from += run;
+
+						if (from == end)
+							break;
+
+						var c = buffer[from++];
+
+						if (c == '\0')
+						{
+							var at = _position + (to - index);
+
+							Refused       = at;
+							RefusedLine   = lines + 1;
+							RefusedColumn = (int)(at - start) + 1;
+							_ended        = true;
+
+							if (_throws)
+								throw new global::System.FormatException(Holds(RefusedLine, RefusedColumn));
+
+							return to - index;
+						}
+
+						buffer[to++] = '\0';
+						lines++;
+						start = _position + (to - index);
+
+						// A `\r` that ends the read may be followed by its `\n` in the next.
+						if (c == '\r')
+						{
+							if (from < end)
+							{
+								if (buffer[from] == '\n')
+									from++;
+							}
+							else
+							{
+								_cr = true;
+							}
+						}
 					}
 
-					_cr = c == '\r';
+					_lines     = lines;
+					_lineStart = start;
+					_open      = buffer[to - 1] != '\0';
+					_position += to - index;
 
-					if (c == '\r' || c == '\n')
-					{
-						buffer[index + written++] = '\0';
-						_open   = false;
-						_column = 0;
-						_line++;
-					}
-					else if (c == '\0')
-					{
-						Refused       = _position;
-						RefusedLine   = _line;
-						RefusedColumn = _column + 1;
-						_ended        = true;
-
-						if (_throws)
-							throw new global::System.FormatException(Holds(_line, _column + 1));
-
-						break;
-					}
-					else
-					{
-						buffer[index + written++] = c;
-						_open = true;
-						_column++;
-					}
-
-					_position++;
+					return to - index;
 				}
 
-				return written;
+				return 0;
 			}
 		}
 
