@@ -56,6 +56,7 @@ public sealed class StreamedSegmentsTests
 		var parser = Build(Feed);
 
 		AssertStreams(parser, "ParseFeed", Lines);
+		AssertStreams(parser, "ParseFeed", Lines, "\r\n");
 
 		foreach (var segments in new[]
 		{
@@ -311,7 +312,7 @@ public sealed class StreamedSegmentsTests
 	/// two elements are handed over having pulled the same part of the source at two sizes of it — a
 	/// block of the reading's own, not a share of the input.
 	/// </summary>
-	static void AssertStreams(Assembly parser, string method, Func<int, IEnumerable<string>> lines)
+	static void AssertStreams(Assembly parser, string method, Func<int, IEnumerable<string>> lines, string ending = "\n")
 	{
 		var pulled = new List<(int Segments, int Chars)>();
 
@@ -329,7 +330,7 @@ public sealed class StreamedSegmentsTests
 				Assert.True(walked.MoveNext());
 
 				var segments = counted.Pulled;
-				var text     = string.Concat(lines(records).Select(static line => line + "\n"));
+				var text     = string.Concat(lines(records).Select(line => line + ending));
 				var reader   = new CountingReader(text);
 
 				using var overReader = ((IEnumerable<string>)Invoke(parser, method, typeof(TextReader), reader)!).GetEnumerator();
