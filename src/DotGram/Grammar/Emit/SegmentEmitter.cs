@@ -169,20 +169,28 @@ public static partial class CSharpEmitter
 			/// <c>\n</c> or <c>\r</c> — becomes the end of a segment, and a last line without one ends
 			/// its segment as well, as <c>File.ReadLines</c> splits a file.
 			/// </summary>
+			/// <remarks>
+			/// It reads into the buffer it is handed and rewrites the line endings there, so that it holds
+			/// no block of its own. Where and on which line a U+0000 stood is worked out only when one is
+			/// met, from what was counted of the text read before it.
+			/// </remarks>
 			private sealed class SegmentReader_DotGram : global::System.IO.TextReader
 			{
 				private readonly global::System.IO.TextReader _input;
 				private readonly bool _throws;
 
-				private readonly char[] _block = new char[4096];
-				private int    _at;
-				private int    _filled;
 				private bool   _cr;
 				private bool   _open;
 				private bool   _ended;
+
+				/// <summary>How much of the text has been handed over: one for each character and each end of a segment.</summary>
 				private long   _position;
-				private int    _line = 1;
-				private int    _column;
+
+				/// <summary>How many ends of a segment it held.</summary>
+				private int    _lines;
+
+				/// <summary>Where the line after the last of them began in the text read.</summary>
+				private long   _lineStart;
 
 				public SegmentReader_DotGram(global::System.IO.TextReader input, bool throws)
 				{
@@ -209,72 +217,133 @@ public static partial class CSharpEmitter
 
 				public override int Read(char[] buffer, int index, int count)
 				{
-					var written = 0;
-
-					while (written < count && !_ended)
+					while (count > 0 && !_ended)
 					{
-						if (_at == _filled)
+						var read = _input.Read(buffer, index, count);
+
+						if (read <= 0)
 						{
-							_filled = _input.Read(_block, 0, _block.Length);
-							_at     = 0;
+							_ended = true;
 
-							if (_filled <= 0)
+							// A last line without its ending ends its segment all the same.
+							if (_open)
 							{
-								_filled = 0;
-								_ended  = true;
+								buffer[index] = {{JoinerLiteral}};
+								_open = false;
 
-								// A last line without its ending ends its segment all the same.
-								if (_open)
-								{
-									buffer[index + written++] = '\0';
-									_open = false;
-								}
+								return 1;
+							}
 
-								break;
+							return 0;
+						}
+
+						// The `\n` of a `\r\n` whose `\r` ended the read before.
+						if (_cr)
+						{
+							_cr = false;
+
+							if (buffer[index] == '\n')
+							{
+								read--;
+
+								if (read == 0)
+									continue;
+
+								global::System.Array.Copy(buffer, index + 1, buffer, index, read);
 							}
 						}
 
-						var c = _block[_at++];
+			#if NET8_0_OR_GREATER
+						// Nothing but `\n` to change: one pass for that, and the counts the refusal will need.
+						var chunk = new global::System.Span<char>(buffer, index, read);
 
-						// The `\n` of a `\r\n` whose `\r` was the end of a block, or of the last read.
-						if (_cr && c == '\n')
+						if (global::System.MemoryExtensions.IndexOfAny(chunk, '\r', {{JoinerLiteral}}) < 0)
 						{
-							_cr = false;
-							continue;
+							var ends = global::System.MemoryExtensions.Count(chunk, '\n');
+
+							if (ends > 0)
+							{
+								_lines    += ends;
+								_lineStart = _position + global::System.MemoryExtensions.LastIndexOf(chunk, '\n') + 1;
+
+								global::System.MemoryExtensions.Replace(chunk, '\n', {{JoinerLiteral}});
+							}
+
+							_open      = chunk[read - 1] != {{JoinerLiteral}};
+							_position += read;
+
+							return read;
+						}
+			#endif
+
+						var end   = index + read;
+						var from  = index;
+						var to    = index;
+						var lines = _lines;
+						var start = _lineStart;
+
+						while (from < end)
+						{
+							var run = global::System.MemoryExtensions.IndexOfAny(
+								new global::System.ReadOnlySpan<char>(buffer, from, end - from), '\r', '\n', {{JoinerLiteral}});
+
+							if (run < 0)
+								run = end - from;
+
+							if (to != from)
+								global::System.Array.Copy(buffer, from, buffer, to, run);
+
+							to   += run;
+							from += run;
+
+							if (from == end)
+								break;
+
+							var c = buffer[from++];
+
+							if (c == {{JoinerLiteral}})
+							{
+								var at = _position + (to - index);
+
+								Refused       = at;
+								RefusedLine   = lines + 1;
+								RefusedColumn = (int)(at - start) + 1;
+								_ended        = true;
+
+								if (_throws)
+									throw new global::System.FormatException(Holds(RefusedLine, RefusedColumn));
+
+								return to - index;
+							}
+
+							buffer[to++] = {{JoinerLiteral}};
+							lines++;
+							start = _position + (to - index);
+
+							// A `\r` that ends the read may be followed by its `\n` in the next.
+							if (c == '\r')
+							{
+								if (from < end)
+								{
+									if (buffer[from] == '\n')
+										from++;
+								}
+								else
+								{
+									_cr = true;
+								}
+							}
 						}
 
-						_cr = c == '\r';
+						_lines     = lines;
+						_lineStart = start;
+						_open      = buffer[to - 1] != {{JoinerLiteral}};
+						_position += to - index;
 
-						if (c == '\r' || c == '\n')
-						{
-							buffer[index + written++] = '\0';
-							_open   = false;
-							_column = 0;
-							_line++;
-						}
-						else if (c == '\0')
-						{
-							Refused       = _position;
-							RefusedLine   = _line;
-							RefusedColumn = _column + 1;
-							_ended        = true;
-
-							if (_throws)
-								throw new global::System.FormatException(Holds(_line, _column + 1));
-
-							break;
-						}
-						else
-						{
-							buffer[index + written++] = c;
-							_open = true;
-							_column++;
-						}
-
-						_position++;
+						return to - index;
 					}
 
-					return written;
+					return 0;
 				}
 			}
 			""";
@@ -488,7 +557,7 @@ public static partial class CSharpEmitter
 		var made = support;
 
 		foreach (var (from, to) in SegmentedLines)
-			made = made.Replace(from, to.Replace("\n", line));
+			made = made.Replace(from.Replace("\n", line), to.Replace("\n", line));
 
 		if (string.Equals(made, support, StringComparison.Ordinal))
 			throw new InvalidOperationException("A support type was asked for over segments and has no line ending to change.");
@@ -518,6 +587,11 @@ public static partial class CSharpEmitter
 		// Window: a line ends at the joiner, and at nothing else.
 		("return c == '\\r' || c == '\\n' && !(at > 0 ? _buffer[at - 1] == '\\r' : _droppedCr);", $"return c == {JoinerLiteral};"),
 		("if (_buffer[at] == '\\n' || _buffer[at] == '\\r')", $"if (_buffer[at] == {JoinerLiteral})"),
+
+		// Nothing reads whether the last character dropped was a `\r`, once a line ends at the joiner
+		// alone: its field and the store of it go.
+		("\t/// <summary>Whether the last character dropped was a <c>\\r</c>, which a <c>\\n</c> held next closes.</summary>\n\tprivate bool _droppedCr;\n\n", ""),
+		("\t\t\t_droppedCr = _buffer[from - 1] == '\\r';\n\n", ""),
 
 		// Located_DotGram: the same, counted on and back.
 		("if (c != '\\r' && c != '\\n')", $"if (c != {JoinerLiteral})"),
