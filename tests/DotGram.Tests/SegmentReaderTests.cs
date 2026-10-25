@@ -32,15 +32,23 @@ public sealed class SegmentReaderTests
 	/// <summary>How many texts and settings the differential has held, for the run to show it was not empty.</summary>
 	static long _held;
 
-	static readonly Type Adapter = FindAdapter();
+	/// <summary>
+	/// The adapter as emitted, compiled twice: with no symbols, which is the loop netstandard2.0 and net472 run, and
+	/// with <c>NET8_0_OR_GREATER</c>, which adds the vectorized pass for a read without <c>\r</c> or U+0000.
+	/// </summary>
+	static readonly Type[] Adapters = [FindAdapter(false), FindAdapter(true)];
 
-	static Type FindAdapter()
+	static Type FindAdapter(bool vectorized)
 	{
 		var result = GramCompiler.Compile(Feed, new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
 
 		EmittedCode.Quiet(result.Diagnostics);
 
-		var assembly = EmittedCode.Compile(Assert.Single(result.Sources).Text);
+		var source = Assert.Single(result.Sources).Text;
+
+		Assert.Contains("#if NET8_0_OR_GREATER", source, StringComparison.Ordinal);
+
+		var assembly = EmittedCode.Compile(source, symbols: vectorized ? ["NET8_0_OR_GREATER"] : null);
 
 		return assembly.GetType("Grammar")!.GetNestedType("SegmentReader_DotGram", BindingFlags.NonPublic)!;
 	}
@@ -155,9 +163,10 @@ public sealed class SegmentReaderTests
 
 		var expected = string.Concat(lines.Select(static line => line + "\0"));
 
-		foreach (var block in new[] { 1, 2, 3, 4096 })
-			foreach (var asked in new[] { 1, 2, 3, 4096 })
-				Assert.Equal(expected, Drain(Make(text, block, true), asked).Text);
+		foreach (var vectorized in new[] { false, true })
+			foreach (var block in new[] { 1, 2, 3, 4096 })
+				foreach (var asked in new[] { 1, 2, 3, 4096 })
+					Assert.Equal(expected, Drain(Make(text, block, true, vectorized), asked).Text);
 	}
 
 	/// <summary>
@@ -175,40 +184,45 @@ public sealed class SegmentReaderTests
 	[InlineData("a\n\nbc\0d", 5L, 3, 3)]
 	public void A_U0000_is_told_where_it_stands(string text, long refused, int line, int column)
 	{
-		foreach (var block in new[] { 1, 2, 3, 4096 })
-			foreach (var asked in new[] { 1, 2, 4096 })
-			{
-				var read = Drain(Make(text, block, false), asked);
+		foreach (var vectorized in new[] { false, true })
+			foreach (var block in new[] { 1, 2, 3, 4096 })
+				foreach (var asked in new[] { 1, 2, 4096 })
+				{
+					var read = Drain(Make(text, block, false, vectorized), asked);
 
-				Assert.Equal((refused, line, column), (read.Refused, read.Line, read.Column));
-			}
+					Assert.Equal((refused, line, column), (read.Refused, read.Line, read.Column));
+				}
 	}
 
 	/// <summary>One text, one size the source hands it over in, one size the reader is asked for: both adapters, in both modes.</summary>
 	static void Hold(string text, int block, int asked)
 	{
 		// Answering: the text read up to the refusal, and where it was.
-		var now = Drain(Make(text, block, false), asked);
 		var was = Drain(new Reference(new BlockReader(text, block), false), asked);
-
-		Assert.Equal(was, now);
-
-		// Throwing: the refusal, and what it says of the line and the column.
-		var thrownNow = Drain(Make(text, block, true), asked);
 		var thrownWas = Drain(new Reference(new BlockReader(text, block), true), asked);
 
-		Assert.Equal(thrownWas.Thrown, thrownNow.Thrown);
-		Assert.Equal((thrownWas.Refused, thrownWas.Line, thrownWas.Column), (thrownNow.Refused, thrownNow.Line, thrownNow.Column));
+		foreach (var vectorized in new[] { false, true })
+		{
+			var now = Drain(Make(text, block, false, vectorized), asked);
 
-		if (thrownNow.Thrown is null)
-			Assert.Equal(thrownWas.Text, thrownNow.Text);
+			Assert.Equal(was, now);
+
+			// Throwing: the refusal, and what it says of the line and the column.
+			var thrownNow = Drain(Make(text, block, true, vectorized), asked);
+
+			Assert.Equal(thrownWas.Thrown, thrownNow.Thrown);
+			Assert.Equal((thrownWas.Refused, thrownWas.Line, thrownWas.Column), (thrownNow.Refused, thrownNow.Line, thrownNow.Column));
+
+			if (thrownNow.Thrown is null)
+				Assert.Equal(thrownWas.Text, thrownNow.Text);
+		}
 
 		_held++;
 	}
 
-	static TextReader Make(string text, int block, bool throws)
+	static TextReader Make(string text, int block, bool throws, bool vectorized)
 	{
-		return (TextReader)Activator.CreateInstance(Adapter, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, [new BlockReader(text, block), throws], null)!;
+		return (TextReader)Activator.CreateInstance(Adapters[vectorized ? 1 : 0], BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null, [new BlockReader(text, block), throws], null)!;
 	}
 
 	/// <summary>Reads a reader to its end <paramref name="asked"/> characters at a time, and keeps what it says of a refusal.</summary>
