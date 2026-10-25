@@ -148,7 +148,7 @@ sealed class TraceTables
 public static partial class CSharpEmitter
 {
 	/// <summary>The names a trace build declares in the class beside the parser, which a rule's type may not take.</summary>
-	internal static readonly string[] TraceNames = ["GramTrace", "GramRead", "GramWhy", "GramTraceLog", "GramProfile", "Tracing"];
+	public static readonly string[] TraceNames = ["GramTrace", "GramRead", "GramWhy", "GramTraceLog", "GramProfile", "Tracing"];
 
 	/// <summary>
 	/// What a trace build writes beside its parser: the sink and its scope, the helpers its

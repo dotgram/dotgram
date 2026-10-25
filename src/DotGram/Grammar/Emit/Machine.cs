@@ -1971,11 +1971,11 @@ sealed partial class Machine
 			PlanLayout();
 
 			file.Line("Parser_DotGram parser = null!;");
-			file.Line("RentParser(ref parser);");
+			file.Line("RentParser_DotGram(ref parser);");
 			// Whoever handed it over takes it back: a caller that pools its own gets it
 			// returned through the hook, and one that said nothing gets the default pool.
 			file.Line("var lent = parser != null;");
-			file.Line("parser ??= Recycled();");
+			file.Line("parser ??= Recycled_DotGram();");
 			file.Line();
 
 			using (file.Block("try"))
@@ -2503,7 +2503,7 @@ sealed partial class Machine
 			using (file.Block(""))
 			{
 				file.Line("parser.Reset();");
-				file.Line("if (lent) ReturnParser(parser); else Recycle(parser);");
+				file.Line("if (lent) ReturnParser_DotGram(parser); else Recycle_DotGram(parser);");
 			}
 		}
 

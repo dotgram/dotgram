@@ -2069,11 +2069,15 @@ is allowed to sit between the matches.**
 | `parse R` | the whole input is an `R` | `R ParseR(input)` — throws `FormatException`<br>`Match<R> TryParseR(input)`<br>`bool TryParseR(input, out R value)` — whether it is one, and nothing about why not |
 | `find R` | there are `R`s inside something else | `FindR(input)` — a lazy sequence of `Match<R>` |
 
-A publication is a method of the generated class, so its name is one of the class's members: it may
-not be `Match`, `Outcome`, `SourceSpan`, `ParserInput` or `OnRecovered`, which the class declares for
-its callers, nor `Failure` or `ParserEntry`, which it declares for its own use, nor the name of the
-class itself, nor that of the type made for a rule of the grammar (§7.3). That is refused where the
-directive is written (`GRAM5018`); give it another name with `as`. Every other type the class nests
+A publication is a method of the generated class, and a `parse` is two, `Name` and `TryName`, so what
+it is called is the name of members of the class: it may not be `Match`, `Outcome`, `SourceSpan`,
+`ParserInput`, `OnRecovered`, `OnHandingOff`, `OnTakingOver`, `Scan`, `DefaultBufferSize` or
+`DefaultMaxRetained`, which the class declares for its callers, nor `Failure` or `ParserEntry`, which it
+declares for its own use, nor the name of the class itself, nor begin with `Recognize_`, `Scan_`,
+`Construct_` or `ReadBuffered_`, which the methods made from the names of rules and publications begin
+with, and neither of its two names may be the other publication's. That is refused where the directive is
+written (`GRAM5018`); give it another name with `as`. A rule whose type would be called one of them is
+given another name for the type (§7.3). Every other type the class nests
 for its own use has `_DotGram` in its name (§7.1), which no publication can have (`GRAM1012`), so
 `find Word as Lines` and `parse Row as Parser` mean what they say.
 
@@ -3415,9 +3419,12 @@ it was.
 
 A rule that captures gets a type of its own, nested in the generated class and named after the rule,
 with its namespaces joined to the name by `_`. Where that name is already taken in the class — by the
-class itself, by a type it declares under a plain name (`Match`, `Outcome`, `SourceSpan`, `ParserInput`,
-`Failure`, `ParserEntry`), or by another rule's type — `Value` is appended until it is free, and a rule that keeps the name it has is never the one renamed. Two rules whose
-names come out alike once their namespaces are joined (`A.B` and a rule called `A_B`), and two
+class itself, by a type or a member it declares under a plain name (`Match`, `Outcome`, `SourceSpan`,
+`ParserInput`, `Failure`, `ParserEntry`, and the rest of §6's list), by a method it makes from a name of
+the grammar's (the walk, the factory and the scanner of a rule, `Name` and `TryName` of a publication),
+or by another rule's type — `Value` is appended until it is free, and a rule that keeps the name it has is never the one renamed. Two rules whose
+names, or the methods made from them, come out alike once their namespaces are joined (`A.B` and a rule
+called `A_B`; a published `A` and a rule called `A_Whole`), and two
 captures of one rule that become one property (`a` and `A`), cannot be told apart in the code that
 is written, and are refused where they are declared (`GRAM5018`).
 

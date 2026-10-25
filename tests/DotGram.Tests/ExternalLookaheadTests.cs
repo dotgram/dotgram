@@ -14,7 +14,8 @@ namespace DotGram.Tests;
 /// A host recognizer that refuses inside a lookahead is the lookahead's answer, not the parse's:
 /// <c>?!@Odd</c> goes on where <c>Odd</c> refuses. The refusal used to leave for the parse's own
 /// failure door, so the negative form refused everything and wrote code after it that nothing could
-/// reach (CS0162, CS0164).
+/// reach (CS0162, CS0164). An atomic group is read the same way: <c>{ @Odd | 'a' }</c> refused <c>"a"</c>,
+/// the refusal of <c>Odd</c> having left the parse and not gone on to the group's next alternative.
 /// </summary>
 public sealed class ExternalLookaheadTests
 {
@@ -39,6 +40,10 @@ public sealed class ExternalLookaheadTests
 		{ "T = (?!@Odd & any)* & eof",        "|a|abc",     "o|ao|abo" },
 		{ "T = 'a' & (?!@Odd & 'b')* & eof",  "a|ab|abb",   "ao|abo|b" },
 		{ "T = (?!@Odd & 'a' | 'o')* & eof",  "|a|ao|oo",   "b|aob" },
+
+		// An atomic group is read as a look is: what refuses inside it goes to the next alternative of it.
+		{ "T = { @Odd | 'a' } & eof",         "a|o",        "|oa|x|ao" },
+		{ "T = { @Odd & 'x' | 'a' } & eof",   "a|ox",       "|o|oa|x" },
 	};
 
 	[Theory]

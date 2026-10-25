@@ -64,7 +64,7 @@ public sealed class PoolRetentionTests
 		var owner = assembly.GetType("Grammar")!;
 		var type = owner.GetNestedType(name, Flags)!;
 		var rent = (name == "Tokens_DotGram" ? owner.GetMethod("Rented_DotGram", Flags) : type.GetMethod("Rent", Flags))!;
-		var release = (name == "Tokens_DotGram" ? owner.GetMethod("Recycle_DotGram", Flags) : type.GetMethod("Return", Flags))!;
+		var release = (name == "Tokens_DotGram" ? Recycler(owner, "Tokens_DotGram") : type.GetMethod("Return", Flags))!;
 		var arrays = type.GetFields(Flags).Where(field => !field.IsStatic && field.FieldType.IsArray).ToArray();
 
 		object Rent()
@@ -189,16 +189,16 @@ public sealed class PoolRetentionTests
 		var owner = assembly.GetType("Grammar")!;
 		var type = owner.GetNestedType(name, Flags)!;
 		var rent = type.GetMethod("Rent", Flags)
-			?? owner.GetMethod("Rented_DotGram", Flags) ?? owner.GetMethod("Recycled", Flags);
+			?? owner.GetMethod("Rented_DotGram", Flags) ?? owner.GetMethod("Recycled_DotGram", Flags);
 		var release = type.GetMethod("Return", Flags)
-			?? owner.GetMethod("Recycle_DotGram", Flags) ?? owner.GetMethod("Recycle", Flags);
+			?? Recycler(owner, "Tokens_DotGram");
 
 		// The arena keeps its own rental on the host and names it differently again; the point
 		// of this test is that none of those spellings is allowed to mean a different policy.
 		if (name == "Parser_DotGram")
 		{
-			rent = owner.GetMethod("Recycled", Flags);
-			release = owner.GetMethod("Recycle", Flags);
+			rent = owner.GetMethod("Recycled_DotGram", Flags);
+			release = Recycler(owner, "Parser_DotGram");
 		}
 
 		// The slot, its count and where it goes afterwards, found by what they hold rather than
@@ -362,14 +362,14 @@ public sealed class PoolRetentionTests
 		var idle  = held.GetField(slot.Name + "Idle", Flags)!;
 		var letGo = held.GetField(slot.Name + "LetGo", Flags)!;
 		var rent  = type.GetMethod("Rent", Flags)
-			?? owner.GetMethod("Rented_DotGram", Flags) ?? owner.GetMethod("Recycled", Flags);
+			?? owner.GetMethod("Rented_DotGram", Flags) ?? owner.GetMethod("Recycled_DotGram", Flags);
 		var back  = type.GetMethod("Return", Flags)
-			?? owner.GetMethod("Recycle_DotGram", Flags) ?? owner.GetMethod("Recycle", Flags);
+			?? Recycler(owner, "Tokens_DotGram");
 
 		if (engine)
 		{
-			rent = owner.GetMethod("Recycled", Flags);
-			back = owner.GetMethod("Recycle", Flags);
+			rent = owner.GetMethod("Recycled_DotGram", Flags);
+			back = Recycler(owner, "Parser_DotGram");
 		}
 
 		var store  = rent!.Invoke(null, null)!;
@@ -459,5 +459,13 @@ public sealed class PoolRetentionTests
 
 		Assert.True((bool)weak!.GetType().GetMethod("TryGetTarget")!.Invoke(weak, arguments)!);
 		Assert.Same(store, arguments[0]);
+	}
+
+	/// <summary>The method that gives a parser or a set of tokens back: one name, an overload for each.</summary>
+	static System.Reflection.MethodInfo? Recycler(Type owner, string kept)
+	{
+		return Array.Find(
+			owner.GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance),
+			method => method.Name == "Recycle_DotGram" && method.GetParameters()[0].ParameterType.Name == kept);
 	}
 }

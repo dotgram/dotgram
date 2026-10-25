@@ -126,7 +126,8 @@ public static class GramCompiler
 				graph,
 				options.Suffix is { Length: > 0 } nested ? options.ClassName + "." + nested : options.ClassName,
 				options.Namespace,
-				options.Trace));
+				options.Trace,
+				options.Lexical));
 		}
 
 		// Every stage runs even after an earlier one failed — a grammar with one bad rule

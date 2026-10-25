@@ -217,7 +217,7 @@ public static partial class CSharpEmitter
 		var file    = new Writer(0);
 		var scope   = new Stack<IDisposable>();
 		var scoped  = suffix is { Length: > 0 } ? className + "." + suffix : className;
-		var results = new ResultTypes(graph, scoped, @namespace, traced: trace);
+		var results = new ResultTypes(graph, scoped, @namespace, traced: trace, lexical: lexical is not null);
 
 		// What a trace build numbers its events by, one table for every machine of the file; null
 		// where the build is not one, which writes nothing of it anywhere.
@@ -421,7 +421,7 @@ public static partial class CSharpEmitter
 		var valuing = lexical is not null && (lexical.Valued.Count > 0 || Measuring(lexical).Count > 0)
 			? new Machine(
 				lexical.Source,
-				new ResultTypes(lexical.Source, scoped, @namespace),
+				new ResultTypes(lexical.Source, scoped, @namespace, lexical: true),
 				lines,
 				only: Rereads(lexical),
 				tag: "_Value",
@@ -5945,7 +5945,7 @@ file.Line("return spare;");
 	{
 		return new(
 			lexical.Source,
-			new ResultTypes(lexical.Source, "Lexical", null),
+			new ResultTypes(lexical.Source, "Lexical", null, lexical: true),
 			null,
 			only: [.. lexical.Trivia.SelectMany(rule => Reaches(lexical.Source, rule)).Distinct()],
 			// Tagged, because everything a machine emits is named after its tag and this one

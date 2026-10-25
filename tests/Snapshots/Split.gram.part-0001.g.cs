@@ -10,9 +10,9 @@ namespace DotGram.Snapshots
 			recognized = null;
 
 			Parser_DotGram parser = null!;
-			RentParser(ref parser);
+			RentParser_DotGram(ref parser);
 			var lent = parser != null;
-			parser ??= Recycled();
+			parser ??= Recycled_DotGram();
 
 			try
 			{
@@ -1491,7 +1491,7 @@ namespace DotGram.Snapshots
 			finally
 			{
 				parser.Reset();
-				if (lent) ReturnParser(parser); else Recycle(parser);
+				if (lent) ReturnParser_DotGram(parser); else Recycle_DotGram(parser);
 			}
 		}
 	}

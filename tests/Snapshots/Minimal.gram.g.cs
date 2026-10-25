@@ -4162,9 +4162,9 @@ namespace DotGram.Snapshots
 			recognized = null;
 
 			Parser_DotGram parser = null!;
-			RentParser(ref parser);
+			RentParser_DotGram(ref parser);
 			var lent = parser != null;
-			parser ??= Recycled();
+			parser ??= Recycled_DotGram();
 
 			try
 			{
@@ -4667,7 +4667,7 @@ namespace DotGram.Snapshots
 			finally
 			{
 				parser.Reset();
-				if (lent) ReturnParser(parser); else Recycle(parser);
+				if (lent) ReturnParser_DotGram(parser); else Recycle_DotGram(parser);
 			}
 		}
 
@@ -5092,9 +5092,9 @@ namespace DotGram.Snapshots
 			recognized = null;
 
 			Parser_DotGram parser = null!;
-			RentParser(ref parser);
+			RentParser_DotGram(ref parser);
 			var lent = parser != null;
-			parser ??= Recycled();
+			parser ??= Recycled_DotGram();
 
 			try
 			{
@@ -5326,7 +5326,7 @@ namespace DotGram.Snapshots
 			finally
 			{
 				parser.Reset();
-				if (lent) ReturnParser(parser); else Recycle(parser);
+				if (lent) ReturnParser_DotGram(parser); else Recycle_DotGram(parser);
 			}
 		}
 
@@ -7375,8 +7375,8 @@ namespace DotGram.Snapshots
 			internal int Power       { get; }
 		}
 
-		static partial void RentParser(ref Parser_DotGram parser);
-		static partial void ReturnParser(Parser_DotGram parser);
+		static partial void RentParser_DotGram(ref Parser_DotGram parser);
+		static partial void ReturnParser_DotGram(Parser_DotGram parser);
 
 		[global::System.ThreadStatic]
 		static Parser_DotGram? _spareParser;
@@ -7387,7 +7387,7 @@ namespace DotGram.Snapshots
 		[global::System.ThreadStatic]
 		static int _deeperParserCount;
 
-		const int KeptEntries = 65536;
+		const int KeptEntries_DotGram = 65536;
 
 		[global::System.ThreadStatic]
 		static Parser_DotGram? _largeParser;
@@ -7404,11 +7404,11 @@ namespace DotGram.Snapshots
 		[global::System.ThreadStatic]
 		static global::System.WeakReference<Parser_DotGram>? _spareParserLetGo;
 
-		const int LargeParserIdle = 8;
+		const int LargeParserIdle_DotGram = 8;
 
-		const int SpareParserIdle = 8;
+		const int SpareParserIdle_DotGram = 8;
 
-		static Parser_DotGram Recycled()
+		static Parser_DotGram Recycled_DotGram()
 		{
 			var spare = _spareParser;
 
@@ -7439,9 +7439,9 @@ namespace DotGram.Snapshots
 			return spare;
 		}
 
-		static void Recycle(Parser_DotGram parser)
+		static void Recycle_DotGram(Parser_DotGram parser)
 		{
-			if (parser.Entries.Capacity > KeptEntries)
+			if (parser.Entries.Capacity > KeptEntries_DotGram)
 			{
 				if (_largeParser != null && !ReferenceEquals(_largeParser, parser))
 					(_largeParserLetGo ??= new global::System.WeakReference<Parser_DotGram>(_largeParser)).SetTarget(_largeParser);
@@ -7450,7 +7450,7 @@ namespace DotGram.Snapshots
 				// use. The bound decides which slot holds the arena, not whether to keep it.
 				if (parser.Entries.Capacity <= 4 * parser.Entries.Count)
 					_largeParserIdle = 0;
-				else if (++_largeParserIdle >= LargeParserIdle)
+				else if (++_largeParserIdle >= LargeParserIdle_DotGram)
 				{
 					(_largeParserLetGo ??= new global::System.WeakReference<Parser_DotGram>(parser)).SetTarget(parser);
 					_largeParser = null;
@@ -7469,7 +7469,7 @@ namespace DotGram.Snapshots
 			// twice because a list grows by doubling, so one doubling is ordinary slack.
 			if (parser.Entries.Capacity <= 4 * parser.Entries.Count)
 				_spareParserIdle = 0;
-			else if (++_spareParserIdle >= SpareParserIdle)
+			else if (++_spareParserIdle >= SpareParserIdle_DotGram)
 			{
 				(_spareParserLetGo ??= new global::System.WeakReference<Parser_DotGram>(parser)).SetTarget(parser);
 				_spareParserIdle = 0;

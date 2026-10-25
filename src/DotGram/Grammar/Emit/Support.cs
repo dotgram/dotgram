@@ -1462,8 +1462,8 @@ public static partial class CSharpEmitter
 			/*POWER_PROPERTY*/
 		}
 
-		static partial void RentParser(ref Parser_DotGram parser);
-		static partial void ReturnParser(Parser_DotGram parser);
+		static partial void RentParser_DotGram(ref Parser_DotGram parser);
+		static partial void ReturnParser_DotGram(Parser_DotGram parser);
 
 		/// <summary>The last parser this thread used, kept for the next parse on it.</summary>
 		/// <remarks>
@@ -1475,7 +1475,7 @@ public static partial class CSharpEmitter
 		/// <para>
 		/// One slot, taken out of the field while it is in use, so a parse reached from
 		/// inside another — a guard that parses, a value that does — gets its own rather
-		/// than sharing. A parser larger than <c>KeptEntries</c> does not go in it, so a
+		/// than sharing. A parser larger than <c>KeptEntries_DotGram</c> does not go in it, so a
 		/// truly outsized input does not leave every thread holding its arena for
 		/// ever. The bound is generous on purpose, and by measurement: at 4,096 an
 		/// ordinary 12 KB document sat just over it, so every parse of it rebuilt the
@@ -1509,13 +1509,13 @@ public static partial class CSharpEmitter
 		[global::System.ThreadStatic]
 		static int _deeperParserCount;
 
-		const int KeptEntries = 65536;
+		const int KeptEntries_DotGram = 65536;
 
-		/// <summary>A parser past <see cref="KeptEntries"/>, kept while the work still wants it.</summary>
+		/// <summary>A parser past <see cref="KeptEntries_DotGram"/>, kept while the work still wants it.</summary>
 		[global::System.ThreadStatic]
 		static Parser_DotGram? _largeParser;
 
-		/// <summary>Parses in a row that did not use the room; at <see cref="LargeParserIdle"/> it is let go of.</summary>
+		/// <summary>Parses in a row that did not use the room; at <see cref="LargeParserIdle_DotGram"/> it is let go of.</summary>
 		[global::System.ThreadStatic]
 		static int _largeParserIdle;
 
@@ -1537,12 +1537,12 @@ public static partial class CSharpEmitter
 		/// it either. Carrying it through a few small parses costs the memory this thread held
 		/// a moment ago anyway; carrying it through a hundred would be hoarding.
 		/// </summary>
-		const int LargeParserIdle = 8;
+		const int LargeParserIdle_DotGram = 8;
 
 		/// <summary>The same count for the ordinary slot, read the same way.</summary>
-		const int SpareParserIdle = 8;
+		const int SpareParserIdle_DotGram = 8;
 
-		static Parser_DotGram Recycled()
+		static Parser_DotGram Recycled_DotGram()
 		{
 			var spare = _spareParser;
 
@@ -1573,9 +1573,9 @@ public static partial class CSharpEmitter
 			return spare;
 		}
 
-		static void Recycle(Parser_DotGram parser)
+		static void Recycle_DotGram(Parser_DotGram parser)
 		{
-			if (parser.Entries.Capacity > KeptEntries)
+			if (parser.Entries.Capacity > KeptEntries_DotGram)
 			{
 				if (_largeParser != null && !ReferenceEquals(_largeParser, parser))
 					(_largeParserLetGo ??= new global::System.WeakReference<Parser_DotGram>(_largeParser)).SetTarget(_largeParser);
@@ -1584,7 +1584,7 @@ public static partial class CSharpEmitter
 				// use. The bound decides which slot holds the arena, not whether to keep it.
 				if (parser.Entries.Capacity <= 4 * parser.Entries.Count)
 					_largeParserIdle = 0;
-				else if (++_largeParserIdle >= LargeParserIdle)
+				else if (++_largeParserIdle >= LargeParserIdle_DotGram)
 				{
 					(_largeParserLetGo ??= new global::System.WeakReference<Parser_DotGram>(parser)).SetTarget(parser);
 					_largeParser = null;
@@ -1603,7 +1603,7 @@ public static partial class CSharpEmitter
 			// twice because a list grows by doubling, so one doubling is ordinary slack.
 			if (parser.Entries.Capacity <= 4 * parser.Entries.Count)
 				_spareParserIdle = 0;
-			else if (++_spareParserIdle >= SpareParserIdle)
+			else if (++_spareParserIdle >= SpareParserIdle_DotGram)
 			{
 				(_spareParserLetGo ??= new global::System.WeakReference<Parser_DotGram>(parser)).SetTarget(parser);
 				_spareParserIdle = 0;
