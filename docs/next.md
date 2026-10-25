@@ -26356,3 +26356,33 @@ search for the delimiter that found none jumped to the refusal without saying ho
   stream; SQL, the expression language and FIX are byte for byte what they were. A paired stand of `select20` and
   the streamed feed rows, shared window and directional: every row inside its A/A. Generator time the same
   (DotGram.Sql 11.74 s against 11.79 s, medians of four, no compiler server).
+
+## The lines adapter of a grammar that names `eos` reads in place, and the grammar writes only what it calls
+
+- **The cost.** A streamed reader form of a grammar that names `eos` reads through `SegmentReader_DotGram`, which
+  filled a 4096-character block of its own and copied it into the window's buffer one character at a time,
+  testing `\r`, `\n` and U+0000 and counting a line and a column on each. Against the same feed on `eol` that was
+  1.16-1.27x on the TextReader rows and 8 KB more allocated on every parse. It now reads straight into the buffer it
+  is handed and rewrites the line endings there: a read with no `\r` and no U+0000 gets one vectorized replace
+  of `\n` (`#if NET8_0_OR_GREATER`), and any other read goes through an `IndexOfAny` loop that folds `\r\n` into
+  one end of a segment. That loop is the code netstandard2.0 and net472 run, so the same-framework tests exercise it.
+  The line and column of a U+0000 are worked out only when one is met, from the count of ends of segments and the
+  position kept across reads, so one met in a later read is told right.
+- **Held to the old one.** `SegmentReaderTests` compares the adapter with a copy of the character-at-a-time one over
+  every text of up to six characters over `a`, `\r`, `\n` and U+0000 and 3,000 random longer ones (and one with a
+  U+0000 at every offset), with the source handing its text over 1, 3, 7 and 4096 characters at a time, the reader
+  asked for 1, 4, 64 and 4096, in both modes (throwing and answering): equal text, refused position, line, column and
+  message. `File.ReadLines`' splitting is held on its own, and a feed with CRLF endings is held to stream as a
+  LF one does. `DotGram.Compatibility` gains a streamed and a whole-input `eos` grammar, so the adapter is compiled
+  at C# 8 for netstandard2.0 and net472.
+- **Written where called.** For a grammar that names `eos`: the window's `_droppedCr` and its store; the
+  positional `Recognize_<Root>` (the grammar publishes no positional form); the one-argument `Read_DotGram` where no
+  form calls it, and the answering one likewise; a scanner no state calls (`Scan_any` once `any` is read as a class);
+  and the explanation of a refusal that the bool-returning form of a reader dropped unread. Every grammar that
+  does not name `eos` is byte for byte what it was (the five shipped packages and the examples, 1,009 generated files);
+  the `Segmented` snapshot moved.
+- **What it cost.** A paired reading of main's `eol` feeds against the `eos` ones, three readings interleaved in
+  one process (main, a copy of main for the A/A, `eos`), 12 rounds, on a shared window and so directional:
+  Feed 100 and 10,000, WideFeed 100,000 and 1,000,000 from a file, LF and CRLF: the medians of `eos` over main are
+  0.95-1.00, none above 1.001, each as far from 1 as its own A/A reads (0.94-1.00); allocation per parse is main's plus the 64 bytes of the adapter object, where it
+  was 8 KB more. The 10M-line trades feed parses in 7.9-8.9 s on main and 7.9-8.3 s on `eos`, three readings each.
