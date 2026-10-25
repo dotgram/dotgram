@@ -55,7 +55,7 @@ static class WindowEdge
 	/// <summary>
 	/// One streamed form, read over a window that holds the whole input and then with the window's end at
 	/// every offset: the first is held to the whole input's form in values, outcome and where a refusal
-	/// stands (the two word a refusal their own way), and every other reading to the first exactly.
+	/// stands (the two word a refusal their own way), and every other reading to the first (<see cref="Same"/>).
 	/// </summary>
 	public static void Edges(
 		Parser parser, Mismatches found, string form, string shown, int length, string whole, Func<object?> read,
@@ -80,7 +80,7 @@ static class WindowEdge
 
 			found.Runs++;
 
-			if (said != held)
+			if (!Same(held, said))
 				found.Add("the window's end", form, shown, capacity, held, said);
 		}
 	}
@@ -95,6 +95,29 @@ static class WindowEdge
 			yield return capacity;
 
 		yield return 4096;
+	}
+
+	/// <summary>
+	/// Whether a reading over a window that ends sooner said what the reading over the whole input said. Where
+	/// that one is refused, what is handed over before the refusal may be more: a source is read only as far as
+	/// the element being read, and a refusal of the source itself (a NUL in a segment) comes when it is read
+	/// that far. The refusal is the same, and the values on either side one run of the same.
+	/// </summary>
+	static bool Same(string held, string said)
+	{
+		if (said == held)
+			return true;
+
+		var at   = held.IndexOf(Refused, StringComparison.Ordinal);
+		var also = said.IndexOf(Refused, StringComparison.Ordinal);
+
+		if (at < 0 || also < 0 || held[at..] != said[also..])
+			return false;
+
+		var before = held[..at];
+		var after  = said[..also];
+
+		return after.StartsWith(before, StringComparison.Ordinal) || before.StartsWith(after, StringComparison.Ordinal);
 	}
 
 	static bool Agrees(string whole, string streamed)
