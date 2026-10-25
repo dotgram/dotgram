@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 
 using DotGram;
 
@@ -25,14 +26,14 @@ public sealed record TradeFile(DateOnly Date, string Source, IReadOnlyList<Trade
 [Gram("""
 	Feed    = header: Header & rows: Row* & trailer: Trailer & eof
 
-	Header  = "H" & '|' & date: Date & '|' & source: Text & eol
-	Row     = "R" & '|' & symbol: Text & '|' & qty: Digit+ & '|' & date: Date & eol
-	Trailer = "T" & '|' & count: Digit+ & eol
+	Header  = "H" & '|' & date: Date & '|' & source: Text & eos
+	Row     = "R" & '|' & symbol: Text & '|' & qty: Digit+ & '|' & date: Date & eos
+	Trailer = "T" & '|' & count: Digit+ & eos
 
 	Date    = year: Digit{4} & '-' & month: Digit{2} & '-' & day: Digit{2}
 
 	// Anything up to the next separator or the end of the line.
-	Text    = [^ '|' | '\r' | '\n']+
+	Text    = [^ '|']+
 	Digit   = ['0'..'9']
 
 	parse Feed
@@ -60,7 +61,7 @@ public static partial class FeedReader
 	/// </exception>
 	public static TradeFile Read(string text)
 	{
-		var feed   = ParseFeed(text);
+		var feed   = ParseFeed(new StringReader(text));
 		var trades = new Trade[feed.Rows.Length];
 
 		// As many trades as rows, so an array of that length: a list would grow past it by
@@ -94,7 +95,7 @@ public static partial class FeedReader
 	{
 		var trades = new List<Trade>();
 
-		foreach (var found in AllRows(text))
+		foreach (var found in AllRows(new StringReader(text)))
 		{
 			var row = found.Value!;
 

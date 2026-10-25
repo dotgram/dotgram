@@ -591,6 +591,32 @@ public sealed class ExampleTests
 		Assert.Equal(StockCountReader.Read(Text).Lines, StockCountReader.Read(new StringReader(Text), bufferSize: 4).Lines);
 	}
 
+	// ── The same count on eos, as a feed is read ──────────────────────────────────
+
+	[Theory]
+	[InlineData("apples: 12\npears: 7\nEND 2\n")]
+	[InlineData("apples: 12\na 1\npears: 7\nEND 2\n")]
+	[InlineData("apples: 12\na 1\nEND 1")]
+	[InlineData("END 3\nEND 3\n")]
+	[InlineData("apples: 12\r\npears: 7\rEND 1\r\n")]
+	public void And_the_count_on_eos_reads_what_the_count_on_eol_reads(string text)
+	{
+		var before = StockCountReader.Read(text);
+		var after  = StockCountSegments.Read(new StringReader(text));
+
+		Assert.Equal(before.Lines, after.Lines);
+		Assert.Equal(before.Total, after.Total);
+	}
+
+	[Theory]
+	[InlineData("apples: 12\npears: 7\n")]
+	[InlineData("apples: 12\na: 1END 3\n")]
+	[InlineData("")]
+	public void But_a_count_on_eos_without_its_closing_line_is_refused(string text)
+	{
+		Assert.Throws<FormatException>(() => StockCountSegments.Read(new StringReader(text)));
+	}
+
 	// ── Feeds written by people ──────────────────────────────────────────────────
 
 	const string Prices =
@@ -609,8 +635,8 @@ public sealed class ExampleTests
 			[
 				new Price("Espresso",   2.40m),
 				new Price("Cappuccino", 3.10m),
-				new Typo(3, "Flat white     3,20", "Expected '.' at 3:17."),
-				new Typo(4, "Croissant      2.1O", "Expected ['0'..'9'] at 4:19."),
+				new Typo(3, "Flat white     3,20", "Expected Amount at 3:17."),
+				new Typo(4, "Croissant      2.1O", "Expected Amount at 4:19."),
 				new Price("Muffin",     2.80m),
 			],
 			PriceList.Read(reader));
@@ -619,14 +645,14 @@ public sealed class ExampleTests
 	[Fact]
 	public void And_hands_over_a_line_before_it_has_read_the_rest()
 	{
-		using var reader = new StringReader(Prices);
-		using var lines  = PriceList.Read(reader, bufferSize: 8).GetEnumerator();
+		using var reader = new StringReader(Prices + string.Concat(Enumerable.Repeat("Tea            1.50\n", 5000)));
+		using var lines  = PriceList.Read(reader).GetEnumerator();
 
 		Assert.True(lines.MoveNext());
 		Assert.Equal(new Price("Espresso", 2.40m), lines.Current);
 
-		// The muffin is still in the reader: the list is read as it is walked.
-		Assert.Contains("Muffin", reader.ReadToEnd(), StringComparison.Ordinal);
+		// The tea is still in the reader: the list is read as it is walked.
+		Assert.Contains("Tea", reader.ReadToEnd(), StringComparison.Ordinal);
 	}
 
 	[Fact]
@@ -709,7 +735,7 @@ public sealed class ExampleTests
 			Assert.True(entries.MoveNext());
 			Assert.Equal(new LogEntry(new DateTime(2026, 10, 1, 14, 5, 0), "lathe-1", "calibrated"), entries.Current);
 			Assert.Equal(
-				"line 2: Expected ['0'..'9'] at 2:10. (2026-10-1 11:30 press-4 noise from the bearing)",
+				"line 2: Expected Stamp at 2:10. (2026-10-1 11:30 press-4 noise from the bearing)",
 				rejected.ToString().TrimEnd());
 
 			Assert.False(entries.MoveNext());
@@ -766,7 +792,7 @@ public sealed class ExampleTests
 				new EodReject(3, 50, "Quantity",  "D|T-0103|2026-10-02|2026-10-06|GB0002634946|BUY|1,500|7.384|GBP",     "Expected '|' at 3:50."),
 				new EodReject(4, 54, "Price",     "D|T-0104|2026-10-02|2026-10-05|US5949181045|SELL|800|USD",            "Expected Digit at 4:54."),
 				new EodReject(5, 16, "TradeDate", "D|T-0105|2026-1O-02|2026-10-06|NL0010273215|BUY|40|612.10|EUR",       "Expected Date at 5:16."),
-				new EodReject(6, 64, "(extra)",   "D|T-0106|2026-10-02|2026-10-05|US88160R1014|SELL|600|243.85|USD|X", "Expected \"\\r\\n\", '\\n' or '\\r' at 6:64."),
+				new EodReject(6, 64, "(extra)",   "D|T-0106|2026-10-02|2026-10-05|US88160R1014|SELL|600|243.85|USD|X", "Expected end of segment at 6:64."),
 				new EodTrailer(5, 4140),
 			],
 			EodTrades.Read(new StringReader(EodText)));
@@ -835,7 +861,7 @@ public sealed class ExampleTests
 				new Confirmation("T-0101", "US0378331005", "20261005", Direction.Receive, 1200, 273024.00m, "USD", SettlementStatus.Settled),
 				new Confirmation("T-0102", "DE0007164600", "20261006", Direction.Deliver, 350,  74340.00m,  "EUR", SettlementStatus.Pending),
 				new ConfirmReject(4, 65, "Status",  "DT-0104      US594918104520261005D000000000800000000041625600USD",   "Expected ['S' | 'P' | 'F'] at 4:65."),
-				new ConfirmReject(5, 66, "(extra)", "DT-0105      NL001027321520261006R000000000040000000002448400EURSS", "Expected \"\\r\\n\", '\\n' or '\\r' at 5:66."),
+				new ConfirmReject(5, 66, "(extra)", "DT-0105      NL001027321520261006R000000000040000000002448400EURSS", "Expected end of segment at 5:66."),
 				new ConfirmTrailer(4, 788104.00m),
 			],
 			lines);

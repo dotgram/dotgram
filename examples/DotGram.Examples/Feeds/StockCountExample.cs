@@ -26,6 +26,10 @@ namespace DotGram.Examples.Feeds;
 // does not. A last item with no line end, `plums: 7END 3`, is the case that shows the limit:
 // recovering it would take the closing line with it, and giving it back leaves a line that
 // is neither, so the file is refused.
+//
+// This reading stays on `eol` because the hand-written twin, the stand rows and the comparison with
+// earlier releases hold it for what only a text has: a last line with no line end, and the string and
+// buffer-size forms. StockCountSegmentsExample is the same count on `eos`, as a feed reads it.
 
 /// <summary>A line of the count: an item and how many, or a line that is not one.</summary>
 public abstract record StockLine;

@@ -8,6 +8,13 @@ at a time while the file is still being read. A bad line does not cost the file:
 marks the repetition of records, a bad one is handed back in its place with where it is and
 why, and reading goes on at the next line.
 
+A feed grammar here reads segments rather than text: one line is one segment, a record ends with `eos`, the end of
+a segment, and `recover eos` steps over a bad record to the next segment. A `TextReader` is read the way
+`File.ReadLines` reads a file — every line ending, `\r\n`, `\n` or `\r`, ends a segment, and a last one makes no
+empty segment after it — so a segment holds no line ending and a class such as `[^ '|']+` needs no exclusion for
+one. The line a reject carries is the number of its segment. Such a grammar has no string form: text already in
+memory goes in as a `StringReader`, or as a list of lines.
+
 The repository README has the shortest of these, a price list, and the first of the trading
 feeds below. This page has all of them, and then a feed of ten million records
 bulk-loaded into a database.
@@ -89,18 +96,18 @@ public enum Side
 
 [Gram("""
 	EodFile : @EodLine[] = Header
-	                     & Trade* recover eol
+	                     & Trade* recover eos
 	                         => @(new EodReject(parserLine, parserFailureColumn, FieldAt(parserText, parserFailureColumn), parserText, parserMessage))
 	                     & Trailer & eof
 
-	Header  : @EodLine = "H|" & feed: Text & '|' & day: Date & '|' & sender: Text & eol
+	Header  : @EodLine = "H|" & feed: Text & '|' & day: Date & '|' & sender: Text & eos
 	                  => @(new EodHeader(feed, day, sender))
 
 	Trade   : @EodLine = "D|" & id: Text & '|' & traded: Date & '|' & settles: Date & '|' & isin: Isin
-	                   & '|' & side: BuySell & '|' & quantity: Quantity & '|' & price: Price & '|' & currency: Currency & eol
+	                   & '|' & side: BuySell & '|' & quantity: Quantity & '|' & price: Price & '|' & currency: Currency & eos
 	                  => @(new EodTrade(id, traded, settles, isin, side, quantity, price, currency))
 
-	Trailer : @EodLine = "T|" & count: Quantity & '|' & total: Quantity & eol
+	Trailer : @EodLine = "T|" & count: Quantity & '|' & total: Quantity & eos
 	                  => @(new EodTrailer(count, total))
 
 	BuySell  : @Side     = "BUY" => @(Side.Buy) | "SELL" => @(Side.Sell)
@@ -110,7 +117,7 @@ public enum Side
 	Date     = Digit{4} & '-' & Digit{2} & '-' & Digit{2}
 	Isin     = ['A'..'Z']{2} & ['A'..'Z' | '0'..'9']{9} & Digit
 	Currency = ['A'..'Z']{3}
-	Text     = [^ '|' | '\r' | '\n']+
+	Text     = [^ '|']+
 	Digit    = ['0'..'9']
 
 	parse EodFile as Read
@@ -256,21 +263,21 @@ public enum ActionKind
 
 [Gram("""
 	ActionFile : @ActionLine[] = Header
-	                           & Action* recover eol
+	                           & Action* recover eos
 	                               => @(new ActionReject(parserLine, parserFailureColumn, FieldAt(parserText, parserFailureColumn), parserText, parserMessage))
 	                           & Trailer & eof
 
-	Header  : @ActionLine = "H," & feed: Text & ',' & day: Date & ',' & vendor: Text & eol
+	Header  : @ActionLine = "H," & feed: Text & ',' & day: Date & ',' & vendor: Text & eos
 	                     => @(new ActionHeader(feed, day, vendor))
 
 	Action  : @ActionLine = "D," & id: Text & ',' & isin: Isin & ',' & issuer: Text & ',' & kind: Kind
-	                      & ',' & exDate: Date & ',' & payDate: Date & ',' & rate: Rate & ',' & currency: Currency & eol
+	                      & ',' & exDate: Date & ',' & payDate: Date & ',' & rate: Rate & ',' & currency: Currency & eos
 	                     => @(new CorporateAction(id, isin, issuer, kind, exDate, payDate, rate, currency))
 
-	Trailer : @ActionLine = "T," & count: Count & eol => @(new ActionTrailer(count))
+	Trailer : @ActionLine = "T," & count: Count & eos => @(new ActionTrailer(count))
 
 	Text     : @string     = quoted: Quoted                        => @(Unquote(quoted))
-	                       | plain: [^ ',' | '"' | '\r' | '\n']* => @(plain)
+	                       | plain: [^ ',' | '"']* => @(plain)
 	Kind     : @ActionKind = "DIV" => @(ActionKind.Dividend) | "SPLIT" => @(ActionKind.Split) | "RIGHTS" => @(ActionKind.Rights)
 	Rate     : @decimal    = Digit{1,12} & ('.' & Digit{1,8})? => @(Amount(parserText))
 	Count    : @long       = Digit{1,15} => @(Number(parserText))
@@ -279,7 +286,7 @@ public enum ActionKind
 	Isin      = ['A'..'Z']{2} & ['A'..'Z' | '0'..'9']{9} & Digit
 	Currency  = ['A'..'Z']{3} | none
 	Quoted    = '"' & Character* & '"'
-	Character = [^ '"' | '\r' | '\n'] | "\"\""
+	Character = [^ '"'] | "\"\""
 	Digit     = ['0'..'9']
 
 	parse ActionFile as Read
@@ -451,24 +458,24 @@ public enum SettlementStatus
 
 [Gram("""
 	ConfirmFile : @ConfirmLine[] = Header
-	                             & Confirmation* recover eol
+	                             & Confirmation* recover eos
 	                                 => @(new ConfirmReject(parserLine, parserFailureColumn, FieldAt(parserText, parserFailureColumn), parserText, parserMessage))
 	                             & Trailer & eof
 
-	Header       : @ConfirmLine = 'H' & file: Column(10) & day: Digit{8} & custodian: Column(30) & eol
+	Header       : @ConfirmLine = 'H' & file: Column(10) & day: Digit{8} & custodian: Column(30) & eos
 	                           => @(new ConfirmHeader(file.Trim(), day, custodian.Trim()))
 
 	Confirmation : @ConfirmLine = 'D' & reference: Column(12) & isin: Column(12) & settles: Digit{8} & direction: Way
-	                            & quantity: Digit{12} & amount: Digit{15} & currency: ['A'..'Z']{3} & status: Status & eol
+	                            & quantity: Digit{12} & amount: Digit{15} & currency: ['A'..'Z']{3} & status: Status & eos
 	                           => @(new Confirmation(reference.Trim(), isin, settles, direction, Number(quantity), Cents(amount), currency, status))
 
-	Trailer      : @ConfirmLine = 'T' & count: Digit{9} & amount: Digit{18} & eol
+	Trailer      : @ConfirmLine = 'T' & count: Digit{9} & amount: Digit{18} & eos
 	                           => @(new ConfirmTrailer(Number(count), Cents(amount)))
 
 	Way    : @Direction        = 'R' => @(Direction.Receive) | 'D' => @(Direction.Deliver)
 	Status : @SettlementStatus = 'S' => @(SettlementStatus.Settled) | 'P' => @(SettlementStatus.Pending) | 'F' => @(SettlementStatus.Failed)
 
-	Column(width: int) = [^ '\r' | '\n']{width}
+	Column(width: int) = any{width}
 	Digit              = ['0'..'9']
 
 	parse ConfirmFile as Read
@@ -590,18 +597,18 @@ public sealed record Unclear(int Line, string Text, string Message) : SheetLine;
 
 [Gram("""
 	Sheet : @SheetLine[] = Customer & Delivery
-	                     & Line* recover eol => @(new Unclear(parserLine, parserText, parserMessage))
+	                     & Line* recover eos => @(new Unclear(parserLine, parserText, parserMessage))
 	                     & eof
 
-	Customer : @SheetLine = "Order for:" & ' '* & name: Rest & eol => @(new Customer(name))
-	Delivery : @SheetLine = "Deliver:"   & ' '* & time: Rest & eol => @(new Delivery(time))
+	Customer : @SheetLine = "Order for:" & ' '* & name: Rest & eos => @(new Customer(name))
+	Delivery : @SheetLine = "Deliver:"   & ' '* & time: Rest & eos => @(new Delivery(time))
 
 	Line   : @SheetLine = (v: Item | v: Remark) => @(v)
-	Item   : @SheetLine = quantity: Digit{1,9} & ' '* & 'x' & ' '+ & product: Rest & eol
+	Item   : @SheetLine = quantity: Digit{1,9} & ' '* & 'x' & ' '+ & product: Rest & eos
 	                   => @(new Ordered(Number(quantity), product))
-	Remark : @SheetLine = '#' & ' '* & text: Rest & eol => @(new Remark(text))
+	Remark : @SheetLine = '#' & ' '* & text: Rest & eos => @(new Remark(text))
 
-	Rest  = [^ '\r' | '\n']+
+	Rest  = any+
 	Digit = ['0'..'9']
 
 	parse Sheet
@@ -651,19 +658,19 @@ A maintenance logbook the people who run the machines fill in by hand on the sho
 public sealed record LogEntry(DateTime At, string Machine, string Note);
 
 [Gram("""
-	Log   : @LogEntry[] = Entry* recover eol
+	Log   : @LogEntry[] = Entry* recover eos
 
 	Entry : @LogEntry = at: Stamp
 	                    & when @(IsTime(at))
-	                    & ' '+ & machine: Name & ' '+ & note: Rest & eol
+	                    & ' '+ & machine: Name & ' '+ & note: Rest & eos
 	                 => @(new LogEntry(ToTime(at), machine, note))
 
 	Stamp = Digit{4} & '-' & Digit{2} & '-' & Digit{2} & ' ' & Digit{2} & ':' & Digit{2}
-	Name  = [^ ' ' | '\r' | '\n']+
-	Rest  = [^ '\r' | '\n']+
+	Name  = [^ ' ']+
+	Rest  = any+
 	Digit = ['0'..'9']
 
-	parse Log as Read stream yield
+	parse Log as Read
 	""")]
 public static partial class Logbook
 {
@@ -695,7 +702,7 @@ foreach (var entry in Logbook.Read(log))
 ```text
 07:55:00 press-4: oil topped up
 09:10:00 press-2: belt replaced
-line 3: Expected ['0'..'9'] at 3:10. (2026-10-1 11:30 press-4 noise from the bearing)
+line 3: Expected Stamp at 3:10. (2026-10-1 11:30 press-4 noise from the bearing)
 14:05:00 lathe-1: calibrated
 ```
 
@@ -738,8 +745,7 @@ dotnet run -c Release --project examples/DotGram.FeedLoad -- --format csv --reco
 | `--db FILE` | the database, kept afterwards | a temporary file, deleted |
 | `--keep` | keep the temporary feed and database | |
 
-A million records is a run of a few seconds; the default ten million takes about a minute and
-a half and 1.5 GB of temporary disk, the feed and the database together, both deleted at the
+A million records is a run of a few seconds; the default ten million takes about a minute and 1.5 GB of temporary disk, the feed and the database together, both deleted at the
 end.
 
 What it does, in order:
@@ -847,14 +853,17 @@ count matched what was read.
 | | end-of-day trades, 10M | corporate actions, 1M | confirmations, 1M |
 | --- | ---: | ---: | ---: |
 | file | 649.8 MB | 73.1 MB | 62.9 MB |
-| parse only | 12.6 s — 793 K lines/s, 51.5 MB/s | 1.6 s — 643 K lines/s, 47.0 MB/s | 1.0 s — 1.0 M lines/s, 63.0 MB/s |
-| parse and load | 58.0 s — 172 K lines/s, 11.2 MB/s | 5.1 s — 197 K lines/s, 14.4 MB/s | 4.9 s — 203 K lines/s, 12.8 MB/s |
+| parse only | 9.7 s — 1.03 M lines/s, 67.2 MB/s | 1.9 s — 537 K lines/s, 39.2 MB/s | 1.2 s — 868 K lines/s, 54.6 MB/s |
+| parse and load | 35.5 s — 282 K lines/s, 18.3 MB/s | 4.9 s — 206 K lines/s, 15.0 MB/s | 4.0 s — 248 K lines/s, 15.6 MB/s |
 | database | 910.1 MB | 104.4 MB | 88.3 MB |
-| peak working set | 116.6 MB | 116.4 MB | 113.3 MB |
+| peak working set | 120.3 MB | 118.4 MB | 116.4 MB |
 
-The parser reads the trades at about 50 MB a second, and SQLite takes about a fifth of that:
+The parser reads the trades at about 65 MB a second, and SQLite takes about a quarter of that:
 loading is the database's time, not the parser's. Memory is flat — the peak working set was
-about 117 MB for ten million trades, and most of it is the runtime and linq2db themselves.
+about 120 MB for ten million trades, and most of it is the runtime and linq2db themselves.
+The figures were taken with other work running on the machine, so they are good to about 10%;
+the same program with the feeds written on `eol` read the trades in 9.1 s, the actions in 1.7 s
+and the confirmations in 1.1 s in the same session.
 
 `BulkCopyType.MultipleRows`, an `INSERT` of many rows at a time, is what the program uses;
 `ProviderSpecific` measured the same, SQLite having no bulk interface of its own.

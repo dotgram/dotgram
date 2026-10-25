@@ -7,7 +7,7 @@ using DotGram;
 
 namespace DotGram.Examples.Feeds;
 
-// The same feed once more, read from a `TextReader` instead of a string — the file may
+// The same feed once more, read from a `TextReader` as the file arrives — it may
 // be larger than memory, and nothing here holds more than the record being read.
 //
 // Two things in the grammar make that possible, and neither is a directive: there is no
@@ -21,7 +21,7 @@ namespace DotGram.Examples.Feeds;
 //                             Header, records and trailer are all `FeedPart` and enter
 //                             the sequence in the order they are read.
 //
-//   Row* recover eol          survives a bad record — and the repetition would stream
+//   Row* recover eos          survives a bad record — and the repetition would stream
 //                             without the mark, because a record begins with a letter
 //                             and the trailer with `T`, so where the run ends is
 //                             decided by the grammar rather than found by backtracking.
@@ -53,20 +53,20 @@ public sealed record FeedClosing(int Count) : FeedPart;
 [Gram("""
 	@using DotGram.Examples.Feeds;
 
-	Feed    : @FeedPart[] = Header & Row* recover eol & Trailer & eof
+	Feed    : @FeedPart[] = Header & Row* recover eos & Trailer & eof
 
-	Header  : @FeedPart = "H" & '|' & date: Date & '|' & source: Text & eol
+	Header  : @FeedPart = "H" & '|' & date: Date & '|' & source: Text & eos
 	                   => @(new FeedOpening(ToDate(date), source))
 
-	Row     : @FeedPart = "R" & '|' & symbol: Text & '|' & qty: Digit+ & '|' & date: Date & eol
+	Row     : @FeedPart = "R" & '|' & symbol: Text & '|' & qty: Digit+ & '|' & date: Date & eos
 	                   => @(new FeedTrade(symbol, Number(qty), ToDate(date)))
 
-	Trailer : @FeedPart = "T" & '|' & count: Digit+ & eol
+	Trailer : @FeedPart = "T" & '|' & count: Digit+ & eos
 	                   => @(new FeedClosing(Number(count)))
 
 	Date    = year: Digit{4} & '-' & month: Digit{2} & '-' & day: Digit{2}
 
-	Text    = [^ '|' | '\r' | '\n']+
+	Text    = [^ '|']+
 	Digit   = ['0'..'9']
 
 	parse Feed
@@ -79,7 +79,7 @@ public static partial class StreamingFeedReader
 	/// <remarks>
 	/// Walked once, and while it is being walked the reader is being read: what is held is
 	/// the part in hand and a buffer that is reused, not the file. A caller that wants the
-	/// whole thing in memory calls <c>ParseFeed(string)</c> instead and gets an array —
+	/// whole thing in memory calls <c>ParseFeed</c> over a list of lines instead and gets an array —
 	/// same grammar, same parts, same order.
 	/// </remarks>
 	/// <exception cref="FormatException">
@@ -95,10 +95,10 @@ public static partial class StreamingFeedReader
 	/// Reads a feed from lines, which is the same thing said another way.
 	/// </summary>
 	/// <remarks>
-	/// §6.3 lists a sequence of lines beside a reader, and the difference between them is
-	/// one character: a reader carries its terminators and a sequence of lines has had
-	/// them taken off, so the parser puts them back. <c>File.ReadLines</c> is the ordinary
-	/// caller, and it is lazy too, so the file is still read as the parts are asked for.
+	/// §6.3 lists a sequence of lines beside a reader, and a reader of this grammar is a
+	/// sequence of lines: each line ending ends a segment. <c>File.ReadLines</c> is the
+	/// ordinary caller, and it is lazy too, so the file is still read as the parts are asked
+	/// for.
 	/// </remarks>
 	public static IEnumerable<FeedPart> Read(IEnumerable<string> lines)
 	{

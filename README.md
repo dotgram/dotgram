@@ -145,15 +145,15 @@ public sealed record Price(string Item, decimal Amount) : PriceLine;
 public sealed record Typo(int Line, string Text, string Message) : PriceLine;
 
 [Gram("""
-	PriceList : @PriceLine[] = Entry* recover eol => @(new Typo(parserLine, parserText, parserMessage))
+	PriceList : @PriceLine[] = Entry* recover eos => @(new Typo(parserLine, parserText, parserMessage))
 
-	Entry : @PriceLine = item: Item & amount: Amount & ' '* & eol
+	Entry : @PriceLine = item: Item & amount: Amount & ' '* & eos
 	                  => @(new Price(item.Trim(), ToDecimal(amount)))
 
-	Item   = [^ '0'..'9' | '\r' | '\n']+
+	Item   = [^ '0'..'9']+
 	Amount = ['0'..'9']{1,12} & '.' & ['0'..'9']{2}
 
-	parse PriceList as Read stream yield
+	parse PriceList as Read
 	""")]
 public static partial class PriceList
 {
@@ -185,12 +185,12 @@ foreach (var line in PriceList.Read(prices))
 ```text
 Espresso: 2.40
 Cappuccino: 3.10
-line 3: Expected '.' at 3:17. (Flat white     3,20)
-line 4: Expected ['0'..'9'] at 4:19. (Croissant      2.1O)
+line 3: Expected Amount at 3:17. (Flat white     3,20)
+line 4: Expected Amount at 4:19. (Croissant      2.1O)
 Muffin: 2.80
 ```
 
-`stream` asks for the `TextReader` overload and `yield` for a lazy result: `Read` returns an
+A `TextReader` overload reads the file a line at a time: `Read` returns an
 `IEnumerable<PriceLine>` that reads a line when the loop asks for the next one, and the bad
 lines arrive in their place among the good ones. The `=>` after `recover` says what a bad line
 becomes, and the names it uses are filled in by the parser: `parserLine` is the line a person
@@ -237,18 +237,18 @@ public enum Side
 
 [Gram("""
 	EodFile : @EodLine[] = Header
-	                     & Trade* recover eol
+	                     & Trade* recover eos
 	                         => @(new EodReject(parserLine, parserFailureColumn, FieldAt(parserText, parserFailureColumn), parserText, parserMessage))
 	                     & Trailer & eof
 
-	Header  : @EodLine = "H|" & feed: Text & '|' & day: Date & '|' & sender: Text & eol
+	Header  : @EodLine = "H|" & feed: Text & '|' & day: Date & '|' & sender: Text & eos
 	                  => @(new EodHeader(feed, day, sender))
 
 	Trade   : @EodLine = "D|" & id: Text & '|' & traded: Date & '|' & settles: Date & '|' & isin: Isin
-	                   & '|' & side: BuySell & '|' & quantity: Quantity & '|' & price: Price & '|' & currency: Currency & eol
+	                   & '|' & side: BuySell & '|' & quantity: Quantity & '|' & price: Price & '|' & currency: Currency & eos
 	                  => @(new EodTrade(id, traded, settles, isin, side, quantity, price, currency))
 
-	Trailer : @EodLine = "T|" & count: Quantity & '|' & total: Quantity & eol
+	Trailer : @EodLine = "T|" & count: Quantity & '|' & total: Quantity & eos
 	                  => @(new EodTrailer(count, total))
 
 	BuySell  : @Side     = "BUY" => @(Side.Buy) | "SELL" => @(Side.Sell)
@@ -258,7 +258,7 @@ public enum Side
 	Date     = Digit{4} & '-' & Digit{2} & '-' & Digit{2}
 	Isin     = ['A'..'Z']{2} & ['A'..'Z' | '0'..'9']{9} & Digit
 	Currency = ['A'..'Z']{3}
-	Text     = [^ '|' | '\r' | '\n']+
+	Text     = [^ '|']+
 	Digit    = ['0'..'9']
 
 	parse EodFile as Read

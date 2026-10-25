@@ -21,9 +21,9 @@ namespace DotGram.Examples.Feeds;
 //
 // The header lines are in the same sequence as the items, in the order they were read,
 // because every rule here builds a `SheetLine` and `Sheet` collects them all. The plain
-// `parse Sheet` of a sequence rule gets an overload over a `TextReader` that hands the
-// lines over as they are read (docs/syntax.md §6.3) — no `stream` and no `yield` needed
-// for that, unlike PriceListExample, whose publication has nothing around its repetition.
+// `parse Sheet` of a sequence rule publishes an overload over a `TextReader`, whose lines
+// are the segments of the grammar's `eos`, and hands them over as they are read (docs/syntax.md
+// §6.3).
 //
 // Recovery is for the lines that repeat. A sheet without its header is refused with a
 // `FormatException`, thrown where the sequence is walked: nothing is read before then.
@@ -52,18 +52,18 @@ public sealed record Unclear(int Line, string Text, string Message) : SheetLine;
 
 [Gram("""
 	Sheet : @SheetLine[] = Customer & Delivery
-	                     & Line* recover eol => @(new Unclear(parserLine, parserText, parserMessage))
+	                     & Line* recover eos => @(new Unclear(parserLine, parserText, parserMessage))
 	                     & eof
 
-	Customer : @SheetLine = "Order for:" & ' '* & name: Rest & eol => @(new Customer(name))
-	Delivery : @SheetLine = "Deliver:"   & ' '* & time: Rest & eol => @(new Delivery(time))
+	Customer : @SheetLine = "Order for:" & ' '* & name: Rest & eos => @(new Customer(name))
+	Delivery : @SheetLine = "Deliver:"   & ' '* & time: Rest & eos => @(new Delivery(time))
 
 	Line   : @SheetLine = (v: Item | v: Remark) => @(v)
-	Item   : @SheetLine = quantity: Digit{1,9} & ' '* & 'x' & ' '+ & product: Rest & eol
+	Item   : @SheetLine = quantity: Digit{1,9} & ' '* & 'x' & ' '+ & product: Rest & eos
 	                   => @(new Ordered(Number(quantity), product))
-	Remark : @SheetLine = '#' & ' '* & text: Rest & eol => @(new Remark(text))
+	Remark : @SheetLine = '#' & ' '* & text: Rest & eos => @(new Remark(text))
 
-	Rest  = [^ '\r' | '\n']+
+	Rest  = any+
 	Digit = ['0'..'9']
 
 	parse Sheet
