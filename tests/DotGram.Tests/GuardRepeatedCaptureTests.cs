@@ -368,7 +368,7 @@ public sealed class GuardRepeatedCaptureTests
 
 		var parser = EmittedCode.Compile(Assert.Single(result.Sources).Text, "Counted", symbols: ["DOTGRAM_COUNTS"])
 			.GetType("Counted")!;
-		var listed = parser.GetNestedType("Ways", BindingFlags.NonPublic)!
+		var listed = parser.GetNestedType("Ways_DotGram", BindingFlags.NonPublic)!
 			.GetField("CountListed", BindingFlags.NonPublic | BindingFlags.Static)!;
 
 		double PerStep(int steps)

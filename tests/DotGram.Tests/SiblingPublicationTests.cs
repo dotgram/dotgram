@@ -198,7 +198,7 @@ public sealed class SiblingPublicationTests
 		var source = Assert.Single(result.Sources).Text;
 		Assert.Equal(readers, Readers(source).Count);
 		Assert.Empty(Materializers(source));
-		Assert.Contains("ImmediateValues", source, StringComparison.Ordinal);
+		Assert.Contains("ImmediateValues_DotGram", source, StringComparison.Ordinal);
 		var assembly = EmittedCode.Compile(source);
 		Assert.Equal(count * 3, EmittedCode.Match(assembly, "Grammar", "TryParseNumber", "((v))").Value);
 		Assert.Equal((count * 3).ToString(), EmittedCode.Match(assembly, "Grammar", "TryParseText", "((v))").Value);
@@ -229,7 +229,7 @@ public sealed class SiblingPublicationTests
 		var source = Assert.Single(result.Sources).Text;
 		Assert.Equal(2, Readers(source).Count);
 		Assert.Single(Materializers(source));
-		Assert.Contains("ImmediateValues", source, StringComparison.Ordinal);
+		Assert.Contains("ImmediateValues_DotGram", source, StringComparison.Ordinal);
 		var assembly = EmittedCode.Compile(source);
 		Assert.Equal(390, EmittedCode.Match(assembly, "Grammar", "TryParseNumber", "((v))").Value);
 		Assert.Equal(201, EmittedCode.Match(assembly, "Grammar", "TryParseMixed", "vv;v").Value);
@@ -253,7 +253,7 @@ public sealed class SiblingPublicationTests
 		});
 		EmittedCode.Quiet(result.Diagnostics);
 		var source = Assert.Single(result.Sources).Text;
-		Assert.Contains("ImmediateValues", source, StringComparison.Ordinal);
+		Assert.Contains("ImmediateValues_DotGram", source, StringComparison.Ordinal);
 		Assert.Empty(Materializers(source));
 		Assert.Single(Readers(source));
 		var assembly = EmittedCode.Compile(source);
@@ -284,7 +284,7 @@ public sealed class SiblingPublicationTests
 		var source = Assert.Single(result.Sources).Text;
 		Assert.Single(Readers(source));
 		Assert.Empty(Materializers(source));
-		Assert.Contains("ImmediateValues", source, StringComparison.Ordinal);
+		Assert.Contains("ImmediateValues_DotGram", source, StringComparison.Ordinal);
 		var assembly = EmittedCode.Compile(source);
 		Assert.Equal(390, EmittedCode.Match(assembly, "Grammar", "TryParseNumber", "((v))").Value);
 		Assert.Equal(391, EmittedCode.Match(assembly, "Grammar", "TryParseTaped", "qx((v))").Value);

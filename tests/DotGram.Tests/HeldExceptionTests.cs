@@ -334,7 +334,7 @@ public sealed class HeldExceptionTests
 
 		var flat = Source(Rules + "Start : @int = b: Bad & 'x' => @(b)\nparse Start\n", CarrierKind.Immediate);
 
-		Assert.DoesNotContain("ImmediateValues", flat, StringComparison.Ordinal);
+		Assert.DoesNotContain("ImmediateValues_DotGram", flat, StringComparison.Ordinal);
 		Assert.DoesNotContain("Faulted_DotGram", flat, StringComparison.Ordinal);
 	}
 
@@ -350,7 +350,7 @@ public sealed class HeldExceptionTests
 
 		var source = Source(Built, CarrierKind.Immediate, constructionsMayThrow: false);
 
-		Assert.Contains("ImmediateValues",       source, StringComparison.Ordinal);
+		Assert.Contains("ImmediateValues_DotGram",       source, StringComparison.Ordinal);
 		Assert.DoesNotContain("Faulted_DotGram", source, StringComparison.Ordinal);
 		Assert.DoesNotContain("Thrown_DotGram",  source, StringComparison.Ordinal);
 		Assert.DoesNotContain(Handler,           source, StringComparison.Ordinal);
@@ -377,7 +377,7 @@ public sealed class HeldExceptionTests
 
 			if (carrier == CarrierKind.Immediate)
 			{
-				Assert.Contains("ImmediateValues", source, StringComparison.Ordinal);
+				Assert.Contains("ImmediateValues_DotGram", source, StringComparison.Ordinal);
 
 				if (mustContain is not null)
 					Assert.Contains(mustContain, source, StringComparison.Ordinal);

@@ -488,7 +488,7 @@ public sealed partial class BufferedInputTests
 	public void Default_has_no_buffered_infrastructure()
 	{
 		var compilation = GramCompiler.Compile("Start = \"abc\"\nparse Start");
-		Assert.DoesNotContain("BufferedText", compilation.Sources.Single().Text);
+		Assert.DoesNotContain("BufferedText_DotGram", compilation.Sources.Single().Text);
 	}
 
 	[Theory]

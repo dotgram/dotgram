@@ -95,11 +95,11 @@ public sealed class MarkPositionsTests
 		var source = Assert.Single(result.Sources).Text;
 
 		if (reading == "engine")
-			Assert.DoesNotContain("DirectValues", source, StringComparison.Ordinal);
+			Assert.DoesNotContain("DirectValues_DotGram", source, StringComparison.Ordinal);
 		else if (reading == "immediate")
-			Assert.Contains("ImmediateValues", source, StringComparison.Ordinal);
+			Assert.Contains("ImmediateValues_DotGram", source, StringComparison.Ordinal);
 		else
-			Assert.Contains("DirectValues", source, StringComparison.Ordinal);
+			Assert.Contains("DirectValues_DotGram", source, StringComparison.Ordinal);
 
 		return EmittedCode.Compile(source, "Probe", "Marked");
 	}

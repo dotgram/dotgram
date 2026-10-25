@@ -960,7 +960,7 @@ public sealed class GeneratorDriverTests
 			.Select(static s => s.SourceText.ToString())
 			.Single();
 
-		Assert.DoesNotContain("ParserArena", generated, StringComparison.Ordinal);
+		Assert.DoesNotContain("ParserArena_DotGram", generated, StringComparison.Ordinal);
 
 		var parse = Build(source).GetType("Blobs")!.GetMethod("ParseStart", [typeof(string)])!;
 

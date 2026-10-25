@@ -160,12 +160,12 @@ public sealed class ExampleCarrierTests
 	{
 		const BindingFlags Nested = BindingFlags.Public | BindingFlags.NonPublic;
 
-		Assert.NotNull(typeof(Calculator).GetNestedType("ImmediateValues", Nested));
-		Assert.NotNull(typeof(Filter).GetNestedType("ImmediateValues", Nested));
-		Assert.NotNull(typeof(TapeCalculator.Tape).GetNestedType("DirectValues", Nested));
-		Assert.NotNull(typeof(TapeFilter.Tape).GetNestedType("DirectValues", Nested));
-		Assert.Null(typeof(TapeCalculator.Tape).GetNestedType("ImmediateValues", Nested));
-		Assert.Null(typeof(TapeFilter.Tape).GetNestedType("ImmediateValues", Nested));
+		Assert.NotNull(typeof(Calculator).GetNestedType("ImmediateValues_DotGram", Nested));
+		Assert.NotNull(typeof(Filter).GetNestedType("ImmediateValues_DotGram", Nested));
+		Assert.NotNull(typeof(TapeCalculator.Tape).GetNestedType("DirectValues_DotGram", Nested));
+		Assert.NotNull(typeof(TapeFilter.Tape).GetNestedType("DirectValues_DotGram", Nested));
+		Assert.Null(typeof(TapeCalculator.Tape).GetNestedType("ImmediateValues_DotGram", Nested));
+		Assert.Null(typeof(TapeFilter.Tape).GetNestedType("ImmediateValues_DotGram", Nested));
 	}
 
 	/// <summary>The texts the two readings must agree on; how many threw on the tape.</summary>

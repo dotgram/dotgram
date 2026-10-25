@@ -277,7 +277,7 @@ public sealed class RecoveringReaderTests
 		// Two recovering repetitions of one rule gather onto one stack, which the immediate
 		// carrier refuses (SharedStackTests): that shape is read on the tape, and said so.
 		if (carrier == CarrierKind.Immediate && !result.Diagnostics.Any(static one => one.Message.Contains("onto one stack")))
-			Assert.DoesNotContain("DirectValues.Rent()", source, StringComparison.Ordinal);
+			Assert.DoesNotContain("DirectValues_DotGram.Rent()", source, StringComparison.Ordinal);
 
 		return EmittedCode.Compile(source, declarationMembers: helpers);
 	}

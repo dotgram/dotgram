@@ -135,7 +135,7 @@ public sealed class AutoImmediateIdentityTests
 
 		var source = Same(grammar, Options);
 
-		Assert.Contains("ImmediateValues", source, StringComparison.Ordinal);
+		Assert.Contains("ImmediateValues_DotGram", source, StringComparison.Ordinal);
 		Assert.Equal(2, SiblingPublicationTests.Readers(source).Count);
 		Assert.NotEmpty(SiblingPublicationTests.Materializers(source));
 	}

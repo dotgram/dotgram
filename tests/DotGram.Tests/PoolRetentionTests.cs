@@ -41,9 +41,9 @@ public sealed class PoolRetentionTests
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData(CarrierKind.Tape, "DirectValues")]
-	[InlineData(CarrierKind.Tape, "Ways")]
-	[InlineData(CarrierKind.Immediate, "ImmediateValues")]
+	[InlineData(CarrierKind.Tape, "DirectValues_DotGram")]
+	[InlineData(CarrierKind.Tape, "Ways_DotGram")]
+	[InlineData(CarrierKind.Immediate, "ImmediateValues_DotGram")]
 	[InlineData(CarrierKind.Tape, "Tokens_DotGram")]
 	public void An_oversized_store_is_kept_in_a_slot_of_its_own_and_comes_back_as_new(CarrierKind carrier, string name)
 	{
@@ -156,11 +156,11 @@ public sealed class PoolRetentionTests
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData(CarrierKind.Tape, "DirectValues")]
-	[InlineData(CarrierKind.Tape, "Ways")]
-	[InlineData(CarrierKind.Immediate, "ImmediateValues")]
+	[InlineData(CarrierKind.Tape, "DirectValues_DotGram")]
+	[InlineData(CarrierKind.Tape, "Ways_DotGram")]
+	[InlineData(CarrierKind.Immediate, "ImmediateValues_DotGram")]
 	[InlineData(CarrierKind.Tape, "Tokens_DotGram")]
-	[InlineData(CarrierKind.Tape, "Parser")]
+	[InlineData(CarrierKind.Tape, "Parser_DotGram")]
 	public void A_kept_store_is_let_go_after_eight_parses_that_did_not_use_the_room(CarrierKind carrier, string name)
 	{
 		const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
@@ -172,7 +172,7 @@ public sealed class PoolRetentionTests
 		// engine is emitted for, and `find` is the cheapest thing that asks for it — but `find`
 		// hunts through characters, so it is refused over tokens (GRAM5004) and the two cannot
 		// be the same grammar. What is held to one policy is the pools, not the grammar.
-		var engine  = name == "Parser";
+		var engine  = name == "Parser_DotGram";
 		var compiled = GramCompiler.Compile($$"""
 			trivia = { ' '* }
 			Start : @int = items: Item+ => @(items.Length)
@@ -195,7 +195,7 @@ public sealed class PoolRetentionTests
 
 		// The arena keeps its own rental on the host and names it differently again; the point
 		// of this test is that none of those spellings is allowed to mean a different policy.
-		if (name == "Parser")
+		if (name == "Parser_DotGram")
 		{
 			rent = owner.GetMethod("Recycled", Flags);
 			release = owner.GetMethod("Recycle", Flags);
@@ -229,7 +229,7 @@ public sealed class PoolRetentionTests
 			// is Live and not whichever array happens to be declared first: since 2026-09-21 both
 			// slots ask whether the room is far larger than the use, so a test that puts the room
 			// somewhere the rule does not look asks nothing at all.
-			var sized = arrays.FirstOrDefault(field => field.Name == (name == "DirectValues" ? "Live" : "Kinds")) ?? arrays[0];
+			var sized = arrays.FirstOrDefault(field => field.Name == (name == "DirectValues_DotGram" ? "Live" : "Kinds")) ?? arrays[0];
 
 			foreach (var field in arrays)
 				field.SetValue(store, Array.CreateInstance(field.FieldType.GetElementType()!, 0));
@@ -323,16 +323,16 @@ public sealed class PoolRetentionTests
 	/// </para>
 	/// </remarks>
 	[Theory]
-	[InlineData(CarrierKind.Tape, "DirectValues")]
-	[InlineData(CarrierKind.Immediate, "ImmediateValues")]
-	[InlineData(CarrierKind.Tape, "Ways")]
+	[InlineData(CarrierKind.Tape, "DirectValues_DotGram")]
+	[InlineData(CarrierKind.Immediate, "ImmediateValues_DotGram")]
+	[InlineData(CarrierKind.Tape, "Ways_DotGram")]
 	[InlineData(CarrierKind.Tape, "Tokens_DotGram")]
-	[InlineData(CarrierKind.Tape, "Parser")]
+	[InlineData(CarrierKind.Tape, "Parser_DotGram")]
 	public void The_ordinary_spare_is_let_go_after_eight_parses_that_left_its_room_unused(CarrierKind carrier, string name)
 	{
 		const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
 
-		var engine   = name == "Parser";
+		var engine   = name == "Parser_DotGram";
 		var compiled = GramCompiler.Compile($$"""
 			trivia = { ' '* }
 			Start : @int = items: Item+ => @(items.Length)
@@ -391,10 +391,10 @@ public sealed class PoolRetentionTests
 			// so that "room" in this test is the number that test sums and nothing else.
 			var counted = name switch
 			{
-				"DirectValues"     => new[] { "Live" },
-				"ImmediateValues"  => arrays.Where(field => field.Name.StartsWith("Stack", StringComparison.Ordinal))
+				"DirectValues_DotGram"     => new[] { "Live" },
+				"ImmediateValues_DotGram"  => arrays.Where(field => field.Name.StartsWith("Stack", StringComparison.Ordinal))
 					.Take(1).Select(field => field.Name).ToArray(),
-				"Ways"             => ["Items", "Log", "Refs"],
+				"Ways_DotGram"             => ["Items", "Log", "Refs"],
 				_                  => ["Kinds", "Starts", "Lengths"],
 			};
 

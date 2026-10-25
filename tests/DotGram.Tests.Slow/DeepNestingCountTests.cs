@@ -110,7 +110,7 @@ public sealed class DeepNestingCountTests(ITestOutputHelper output)
 	/// <summary>The records the walks of one reading listed and reached, from a fresh zero.</summary>
 	static long Count(Type parser, string publication, string text)
 	{
-		var counter = parser.GetNestedType("Ways", BindingFlags.NonPublic)!.GetField("CountListed", BindingFlags.NonPublic | BindingFlags.Static)
+		var counter = parser.GetNestedType("Ways_DotGram", BindingFlags.NonPublic)!.GetField("CountListed", BindingFlags.NonPublic | BindingFlags.Static)
 			?? throw new InvalidOperationException("the generated Ways has no CountListed; is it still emitted under DOTGRAM_COUNTS?");
 
 		counter.SetValue(null, 0L);

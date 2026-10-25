@@ -128,7 +128,7 @@ public sealed class CSharpEmitterTests
 		var parser = EmittedCode.Compile(source);
 		var input = new string('(', depth) + "x" + new string(')', depth);
 
-		Assert.Contains("ParserArena Entries", source);
+		Assert.Contains("ParserArena_DotGram Entries", source);
 		Assert.DoesNotContain("List<ParserEntry>", source);
 		Assert.DoesNotContain("Span<int> calls", source);
 		Assert.True(EmittedCode.Match(parser, "Grammar", "TryParseStart", input).IsSuccess);
@@ -163,7 +163,7 @@ public sealed class CSharpEmitterTests
 		var parser = EmittedCode.Compile(source);
 		var input = string.Concat(Enumerable.Repeat("ab", depth)) + "x";
 
-		Assert.Contains("ParserArena Entries", source);
+		Assert.Contains("ParserArena_DotGram Entries", source);
 		Assert.DoesNotContain("List<ParserEntry>", source);
 		// One automaton, asked of the automaton itself. A per-rule `Recognize_A` says
 		// nothing about that any more: a published rule has one of those for every entry
@@ -528,7 +528,7 @@ public sealed class CSharpEmitterTests
 		var source = Emit(grammar);
 		var result = Invoke(grammar, "ParseStart", "aaa");
 
-		Assert.Contains("ParserArena Entries", source);
+		Assert.Contains("ParserArena_DotGram Entries", source);
 		Assert.DoesNotContain("List<ParserEntry>", source);
 
 		// One repetition and nothing else: the array the materializer built is the

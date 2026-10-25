@@ -291,7 +291,7 @@ public sealed class MarkJournalTests
 		var parser = EmittedCode.Compile(source, "Journal", "Marked").GetType("Marked.Journal")
 			?? throw new InvalidOperationException("the probe compiled to no such type.");
 
-		var ways = parser.GetNestedType("Ways", BindingFlags.NonPublic)
+		var ways = parser.GetNestedType("Ways_DotGram", BindingFlags.NonPublic)
 			?? throw new InvalidOperationException("the generated parser has no Ways any more.");
 
 		return Activator.CreateInstance(ways, nonPublic: true)!;

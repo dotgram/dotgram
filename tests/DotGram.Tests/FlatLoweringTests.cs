@@ -45,7 +45,7 @@ public sealed class FlatLoweringTests
 		// diagnostics) — the class's sets, by number, no arena, no dispatch, no pooling.
 		// What actually distinguishes lowering is the absence of the arena machinery
 		// itself, which is what these two check.
-		Assert.DoesNotContain("ParserArena", source);
+		Assert.DoesNotContain("ParserArena_DotGram", source);
 		Assert.DoesNotContain("RentParser", source);
 	}
 
@@ -56,8 +56,8 @@ public sealed class FlatLoweringTests
 	static void AssertNotLowered(string source)
 	{
 		Assert.True(
-			source.Contains("ParserArena", StringComparison.Ordinal) ||
-			source.Contains("sealed class Ways", StringComparison.Ordinal),
+			source.Contains("ParserArena_DotGram", StringComparison.Ordinal) ||
+			source.Contains("sealed class Ways_DotGram", StringComparison.Ordinal),
 			"Neither the arena nor the tape of ways back is in the source: the grammar lowered.");
 	}
 

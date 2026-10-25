@@ -81,7 +81,7 @@ public sealed class RefusalTests
 
 		var source = Assert.Single(result.Sources).Text;
 
-		Assert.Contains("ImmediateValues", source, StringComparison.Ordinal);
+		Assert.Contains("ImmediateValues_DotGram", source, StringComparison.Ordinal);
 
 		var probe = EmittedCode.Compile(
 			source, "Probe", "Refused",

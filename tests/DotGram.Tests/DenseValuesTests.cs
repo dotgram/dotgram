@@ -81,7 +81,7 @@ public sealed class DenseValuesTests
 		var owner = assembly.GetType("Grammar")!;
 		var input = string.Concat(Enumerable.Repeat("abcdefgh", 257));
 		const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-		var store = owner.GetNestedType("DirectValues", Flags)!;
+		var store = owner.GetNestedType("DirectValues_DotGram", Flags)!;
 		var tables = store.GetFields(Flags).Where(field => field.Name.StartsWith("V", StringComparison.Ordinal) && field.FieldType.IsArray).ToArray();
 		Assert.True(tables.Length >= 8);
 
@@ -128,7 +128,7 @@ public sealed class DenseValuesTests
 		var (assembly, source) = Compile(false, grammar, extraMembers: spares);
 		var owner = assembly.GetType("Grammar")!;
 		const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-		var store = owner.GetNestedType("DirectValues", Flags)!;
+		var store = owner.GetNestedType("DirectValues_DotGram", Flags)!;
 		var tables = store.GetFields(Flags).Where(field => field.Name.StartsWith("V", StringComparison.Ordinal) && field.FieldType.IsArray).ToArray();
 		Assert.True(tables.Length >= 32);
 

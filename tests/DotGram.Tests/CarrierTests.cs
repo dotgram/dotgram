@@ -47,9 +47,9 @@ public sealed class CarrierTests
 		var tape  = Compiled(grammar, CarrierKind.Tape);
 		var immediate = Compiled(grammar, CarrierKind.Immediate);
 
-		Assert.Contains("ImmediateValues", immediate.Source, StringComparison.Ordinal);
+		Assert.Contains("ImmediateValues_DotGram", immediate.Source, StringComparison.Ordinal);
 		Assert.DoesNotContain("Materialize_DotGram", immediate.Source, StringComparison.Ordinal);
-		Assert.DoesNotContain("DirectValues", immediate.Source, StringComparison.Ordinal);
+		Assert.DoesNotContain("DirectValues_DotGram", immediate.Source, StringComparison.Ordinal);
 
 		foreach (var input in inputs)
 		{
@@ -84,9 +84,9 @@ public sealed class CarrierTests
 
 		var (source, _) = Compiled(Extents, CarrierKind.Immediate);
 
-		Assert.Contains("DirectValues",         source, StringComparison.Ordinal);
+		Assert.Contains("DirectValues_DotGram",         source, StringComparison.Ordinal);
 		Assert.Contains("Materialize_DotGram",  source, StringComparison.Ordinal);
-		Assert.DoesNotContain("ImmediateValues", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("ImmediateValues_DotGram", source, StringComparison.Ordinal);
 	}
 
 	// ── What is said about a carrier, and what is offered ────────────────────────
@@ -192,7 +192,7 @@ public sealed class CarrierTests
 
 		var (source, _) = Compiled(Plain, CarrierKind.Auto);
 
-		Assert.Contains("ImmediateValues",           source, StringComparison.Ordinal);
+		Assert.Contains("ImmediateValues_DotGram",           source, StringComparison.Ordinal);
 		Assert.DoesNotContain("Materialize_DotGram", source, StringComparison.Ordinal);
 
 		Assert.Empty(Diagnostics(Plain, CarrierKind.Auto));
@@ -242,7 +242,7 @@ public sealed class CarrierTests
 			ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Carrier = CarrierKind.Auto,
 		}).Sources).Text;
 
-		Assert.Contains("ImmediateValues",           source, StringComparison.Ordinal);
+		Assert.Contains("ImmediateValues_DotGram",           source, StringComparison.Ordinal);
 		Assert.DoesNotContain("Materialize_DotGram", source, StringComparison.Ordinal);
 
 		foreach (var input in new[] { "abc", "", "1" })
@@ -657,9 +657,9 @@ public sealed class CarrierTests
 		var grammar = "Start : @string = t: Letter+ => @(t)\n" + leaf + "\nparse Start";
 		var (source, assembly) = Compiled(grammar, CarrierKind.Auto);
 
-		Assert.DoesNotContain("Ways.Rent()", source, StringComparison.Ordinal);
-		Assert.DoesNotContain("ImmediateValues", source, StringComparison.Ordinal);
-		Assert.DoesNotContain("DirectValues", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Ways_DotGram.Rent()", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("ImmediateValues_DotGram", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("DirectValues_DotGram", source, StringComparison.Ordinal);
 
 		foreach (var input in new[] { "a", new string('x', 40), new string('z', 256) })
 		{
@@ -781,12 +781,12 @@ public sealed class CarrierTests
 
 		var (source, assembly) = Compiled(Grammar, carrier);
 
-		Assert.DoesNotContain("Ways.Rent()", source, StringComparison.Ordinal);
-		Assert.DoesNotContain("readonly Ways ways", source, StringComparison.Ordinal);
-		Assert.DoesNotContain("ImmediateValues.Rent()", source, StringComparison.Ordinal);
-		Assert.DoesNotContain("ImmediateValues.Return(", source, StringComparison.Ordinal);
-		Assert.DoesNotContain("ImmediateValues values", source, StringComparison.Ordinal);
-		Assert.DoesNotContain("static ImmediateValues? _spare", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Ways_DotGram.Rent()", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("readonly Ways_DotGram ways", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("ImmediateValues_DotGram.Rent()", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("ImmediateValues_DotGram.Return(", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("ImmediateValues_DotGram values", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("static ImmediateValues_DotGram? _spare", source, StringComparison.Ordinal);
 
 		foreach (var depth in new[] { 0, 40, 1, 100, 0 })
 		{
@@ -813,7 +813,7 @@ public sealed class CarrierTests
 		var (source, assembly) = Compiled(Grammar, CarrierKind.Immediate);
 
 		// Only Words and its positional entry rent the shared store.
-		Assert.Equal(2, source.Split("var values = ImmediateValues.Rent();", StringSplitOptions.None).Length - 1);
+		Assert.Equal(2, source.Split("var values = ImmediateValues_DotGram.Rent();", StringSplitOptions.None).Length - 1);
 		Assert.Contains("internal string[] Stack", source, StringComparison.Ordinal);
 
 		for (var pass = 0; pass < 3; pass++)
@@ -859,7 +859,7 @@ public sealed class CarrierTests
 
 		var (source, assembly) = Compiled(Grammar, CarrierKind.Immediate);
 
-		Assert.Equal(2, source.Split("var ways = Ways.Rent();", StringSplitOptions.None).Length - 1);
+		Assert.Equal(2, source.Split("var ways = Ways_DotGram.Rent();", StringSplitOptions.None).Length - 1);
 
 		for (var pass = 0; pass < 3; pass++)
 		{
@@ -882,7 +882,7 @@ public sealed class CarrierTests
 		var (source, immediate) = Compiled(grammar, CarrierKind.Immediate);
 		var (_, tape) = Compiled(grammar, CarrierKind.Tape);
 
-		Assert.Equal(needsWays, source.Contains("Ways.Rent()", StringComparison.Ordinal));
+		Assert.Equal(needsWays, source.Contains("Ways_DotGram.Rent()", StringComparison.Ordinal));
 
 		foreach (var input in new[] { "", "a", "aaa", "  a  ", "( a )", " (( a )) ", "(a)", "((a))", "(a", "a!", " b " })
 		{

@@ -91,7 +91,7 @@ public sealed class ReaderCountTests
 	/// <summary>The counter after reading a text of that many blocks, from a fresh zero.</summary>
 	static long Count(Type parser, int blocks, string counter)
 	{
-		var ways  = parser.GetNestedType("Ways", BindingFlags.NonPublic)!;
+		var ways  = parser.GetNestedType("Ways_DotGram", BindingFlags.NonPublic)!;
 		var field = ways.GetField(counter, BindingFlags.NonPublic | BindingFlags.Static)
 			?? throw new InvalidOperationException(
 				$"the generated Ways has no {counter}; is it still emitted under DOTGRAM_COUNTS?");

@@ -222,8 +222,8 @@ public sealed class ConcurrentStoreReturnTests
 	{
 		// The store is the carrier's: DirectValues on the tape, ImmediateValues where the parser is
 		// carried immediately (SQL:2023, T-SQL). Both pool their stores the same way, in the same slots.
-		var store = parser.GetNestedType("DirectValues", Any)
-			?? parser.GetNestedType("ImmediateValues", Any)
+		var store = parser.GetNestedType("DirectValues_DotGram", Any)
+			?? parser.GetNestedType("ImmediateValues_DotGram", Any)
 			?? throw new InvalidOperationException($"{parser.Name} has neither DirectValues nor ImmediateValues");
 		var held  = new List<(string Slot, object Store)>();
 
@@ -263,7 +263,7 @@ public sealed class ConcurrentStoreReturnTests
 		Slot("_largeLetGo");
 
 		// A thread that has parsed holds its store somewhere: nothing is dropped.
-		if (held.Count == 0 && (rented || store.Name == "DirectValues"))
+		if (held.Count == 0 && (rented || store.Name == "DirectValues_DotGram"))
 			yield return "no store is held in any slot of the pool";
 
 		foreach (var (slot, one) in held)

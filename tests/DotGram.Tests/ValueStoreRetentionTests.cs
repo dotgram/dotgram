@@ -144,7 +144,7 @@ public sealed class ValueStoreRetentionTests
 
 		var source = Assert.Single(compiled.Sources).Text;
 
-		Assert.True(source.Contains("static DirectValues?[]? _deeper;"),
+		Assert.True(source.Contains("static DirectValues_DotGram?[]? _deeper;"),
 			"The grammar is not read through the direct value store this test is about.");
 
 		var assembly = EmittedCode.Compile(source, declarationMembers: NestingMembers);
@@ -157,7 +157,7 @@ public sealed class ValueStoreRetentionTests
 		// Two parts and an inner value per row, and the row: 2+1+1 and 3+1+1.
 		Assert.Equal(9, rows.Count);
 
-		var store = Array.Find(assembly.GetTypes(), type => type.Name == "DirectValues")!;
+		var store = Array.Find(assembly.GetTypes(), type => type.Name == "DirectValues_DotGram")!;
 
 		Assert.NotNull(store.GetField("_deeper", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null));
 

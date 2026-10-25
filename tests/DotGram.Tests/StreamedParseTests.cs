@@ -423,9 +423,9 @@ public sealed class StreamedParseTests
 
 		if (streams)
 		{
-			Assert.Contains("new Window(input, 4096)", source, StringComparison.Ordinal);
+			Assert.Contains("new Window_DotGram(input, 4096)", source, StringComparison.Ordinal);
 
-			source = source.Replace("new Window(input, 4096)", "new Window(input, 4)", StringComparison.Ordinal);
+			source = source.Replace("new Window_DotGram(input, 4096)", "new Window_DotGram(input, 4)", StringComparison.Ordinal);
 		}
 
 		return Hosts.GetOrAdd(

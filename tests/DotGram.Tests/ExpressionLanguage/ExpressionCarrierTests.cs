@@ -179,11 +179,11 @@ public sealed class ExpressionCarrierTests
 	{
 		const BindingFlags Nested = BindingFlags.Public | BindingFlags.NonPublic;
 
-		Assert.NotNull(typeof(ExpressionParser).GetNestedType("ImmediateValues", Nested));
-		Assert.Null(typeof(ExpressionParser).GetNestedType("DirectValues", Nested));
+		Assert.NotNull(typeof(ExpressionParser).GetNestedType("ImmediateValues_DotGram", Nested));
+		Assert.Null(typeof(ExpressionParser).GetNestedType("DirectValues_DotGram", Nested));
 
-		Assert.NotNull(typeof(TapeExpressions.Tape).GetNestedType("DirectValues", Nested));
-		Assert.Null(typeof(TapeExpressions.Tape).GetNestedType("ImmediateValues", Nested));
+		Assert.NotNull(typeof(TapeExpressions.Tape).GetNestedType("DirectValues_DotGram", Nested));
+		Assert.Null(typeof(TapeExpressions.Tape).GetNestedType("ImmediateValues_DotGram", Nested));
 	}
 
 	/// <summary>
@@ -199,7 +199,7 @@ public sealed class ExpressionCarrierTests
 		Assert.Equal("DotGram.ExpressionLanguage", shipped.GetName().Name);
 		Assert.Null(typeof(ExpressionParser).GetNestedType("Tape", BindingFlags.Public | BindingFlags.NonPublic));
 		Assert.DoesNotContain(shipped.GetTypes(), type => type.Name == "Tape");
-		Assert.DoesNotContain(shipped.GetTypes(), type => type.Name == "DirectValues");
+		Assert.DoesNotContain(shipped.GetTypes(), type => type.Name == "DirectValues_DotGram");
 
 		Assert.NotSame(shipped, typeof(TapeExpressions.Tape).Assembly);
 	}

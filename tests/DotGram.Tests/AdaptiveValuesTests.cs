@@ -103,7 +103,7 @@ public sealed class AdaptiveValuesTests
 	static void AssertCleared(Type owner)
 	{
 		const BindingFlags Flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance;
-		var store = owner.GetNestedType("DirectValues", Flags)!;
+		var store = owner.GetNestedType("DirectValues_DotGram", Flags)!;
 		var spare = store.GetField("_spare", Flags)!.GetValue(null)!;
 		var tables = store.GetFields(Flags).Where(field => field.Name.StartsWith("V", StringComparison.Ordinal)).ToArray();
 		Assert.True(tables.Length >= 32);

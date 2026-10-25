@@ -1098,7 +1098,7 @@ public sealed class ProjectInputTests
 				[Gram("Pairs.gram")]
 				public static partial class Pairs
 				{
-					sealed class Ways { }
+					sealed class Failure { }
 				}
 			}
 			""");
