@@ -1502,7 +1502,7 @@ public static partial class CSharpEmitter
 
 			// The scanners the flat states call are methods of their own, the same as
 			// when the engine calls them.
-			var flatScanners = machine.RenderScanners();
+			var flatScanners = CalledScanners(file, machine.RenderScanners(), graph.Segmented);
 
 			if (flatScanners.Length > 0)
 				file.Write(flatScanners);
@@ -1655,7 +1655,7 @@ public static partial class CSharpEmitter
 
 			file.Line();
 
-			var scanners = machine.RenderScanners();
+			var scanners = CalledScanners(file, machine.RenderScanners(), graph.Segmented);
 
 			if (scanners.Length > 0)
 				file.Write(scanners);

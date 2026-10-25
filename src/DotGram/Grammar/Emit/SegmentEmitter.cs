@@ -265,7 +265,7 @@ public static partial class CSharpEmitter
 							}
 						}
 
-			#if NET8_0_OR_GREATER
+						#if NET8_0_OR_GREATER
 						// Nothing but `\n` to change: one pass for that, and the counts the refusal will need.
 						var chunk = new global::System.Span<char>(buffer, index, read);
 
@@ -286,7 +286,7 @@ public static partial class CSharpEmitter
 
 							return read;
 						}
-			#endif
+						#endif
 
 						var end   = index + read;
 						var from  = index;
@@ -359,6 +359,126 @@ public static partial class CSharpEmitter
 				}
 			}
 			""";
+	}
+
+	/// <summary>
+	/// The scanners a machine rendered, less those nothing calls: in a grammar that names <c>eos</c> a
+	/// rule that reads one character of a segment, like <c>any</c>, is asked for a scanner while the
+	/// states are compiled and then read as a class where it stands, so its scanner is never called.
+	/// </summary>
+	/// <param name="file">What is written so far: the states of the machine that call scanners.</param>
+	/// <param name="scanners">What <see cref="Machine.RenderScanners"/> wrote, a method after another.</param>
+	/// <param name="segmented">Whether the grammar names <c>eos</c>; any other keeps all it was given.</param>
+	static string CalledScanners(Writer file, string scanners, bool segmented)
+	{
+		if (!segmented || scanners.Length == 0)
+			return scanners;
+
+		// A method is a documentation comment and the lines up to a closing brace in the first column.
+		var methods = new List<(int Start, int End, string? Name)>();
+		var start   = -1;
+
+		for (var at = 0; at < scanners.Length;)
+		{
+			var end  = scanners.IndexOf('\n', at);
+			var next = end < 0 ? scanners.Length : end + 1;
+			var line = scanners.Substring(at, (end < 0 ? scanners.Length : end) - at).TrimEnd('\r');
+
+			if (start < 0 && line.Length > 0)
+				start = at;
+
+			if (start >= 0 && line == "}")
+			{
+				methods.Add((start, next, ScannerName(scanners.Substring(start, next - start))));
+				start = -1;
+			}
+
+			at = next;
+		}
+
+		if (start >= 0)
+			return scanners;
+
+		var dropped = new bool[methods.Count];
+
+		// One that only a dropped scanner calls goes with it.
+		for (var changed = true; changed;)
+		{
+			changed = false;
+
+			for (var i = 0; i < methods.Count; i++)
+			{
+				if (dropped[i] || methods[i].Name is not { } name || file.Names(name))
+					continue;
+
+				var called = false;
+
+				for (var other = 0; other < methods.Count && !called; other++)
+					if (other != i && !dropped[other] &&
+						Calls(scanners.Substring(methods[other].Start, methods[other].End - methods[other].Start), name))
+						called = true;
+
+				if (!called)
+				{
+					dropped[i] = true;
+					changed    = true;
+				}
+			}
+		}
+
+		if (Array.IndexOf(dropped, true) < 0)
+			return scanners;
+
+		var kept = new System.Text.StringBuilder();
+		var from = 0;
+
+		for (var i = 0; i < methods.Count; i++)
+		{
+			if (!dropped[i])
+				continue;
+
+			// The blank line that followed it goes too.
+			var through = methods[i].End;
+
+			while (through < scanners.Length && (scanners[through] == '\r' || scanners[through] == '\n'))
+			{
+				through++;
+
+				if (scanners[through - 1] == '\n')
+					break;
+			}
+
+			kept.Append(scanners, from, methods[i].Start - from);
+			from = through;
+		}
+
+		return kept.Append(scanners, from, scanners.Length - from).ToString();
+	}
+
+	/// <summary>The name of the scanner a method is, or null where it is something else.</summary>
+	static string? ScannerName(string method)
+	{
+		const string head = "static int Scan_";
+
+		var at = method.IndexOf(head, StringComparison.Ordinal);
+
+		if (at < 0)
+			return null;
+
+		var from = at + "static int ".Length;
+		var to   = method.IndexOf('(', from);
+
+		return to < 0 ? null : method.Substring(from, to - from);
+	}
+
+	/// <summary>Whether a method names the scanner <paramref name="name"/> as a call.</summary>
+	static bool Calls(string method, string name)
+	{
+		for (var at = method.IndexOf(name + "(", StringComparison.Ordinal); at >= 0; at = method.IndexOf(name + "(", at + 1, StringComparison.Ordinal))
+			if (at == 0 || !(char.IsLetterOrDigit(method[at - 1]) || method[at - 1] == '_'))
+				return true;
+
+		return false;
 	}
 
 	/// <summary>What a recognizer of the host is handed in place of the text: the segment it is called in.</summary>
