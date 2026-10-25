@@ -2918,7 +2918,7 @@ sealed partial class Machine
 				}
 
 				var test = CSharpEmitter.Differs(loaded ? "c" : machine.ReadAt("p"), text[0], folded);
-				var room = loaded ? "" : $"{machine.Past("p")} || ";
+				var room = loaded ? "" : $"{machine.RawPast("p")} || ";
 
 				if (loaded)
 					_character = true;
@@ -3093,7 +3093,7 @@ sealed partial class Machine
 
 			if (!loaded)
 			{
-				using (code.Block($"if ({machine.Past("p")})"))
+				using (code.Block($"if ({machine.RawPast("p")})"))
 					Refused(code, name);
 
 				code.Line($"c = {machine.ReadAt("p")};");
@@ -3256,7 +3256,7 @@ sealed partial class Machine
 
 				_character = true;
 
-				using (code.Block($"if ({machine.Past("p")})"))
+				using (code.Block($"if ({machine.RawPast("p")})"))
 				{
 					if (asked is { } past)
 						RefusedUnless(code, name, past.Guard, past.Without);
@@ -3403,7 +3403,7 @@ sealed partial class Machine
 
 			_character = true;
 
-			using (code.Block($"if ({machine.Past("p")})"))
+			using (code.Block($"if ({machine.RawPast("p")})"))
 				RefusedAsking(code, name, asked);
 
 			code.Line($"c = {machine.ReadAt("p")};");
@@ -3523,7 +3523,7 @@ sealed partial class Machine
 
 			_character = true;
 
-			using (code.Block($"if ({machine.Past("p")})"))
+			using (code.Block($"if ({machine.RawPast("p")})"))
 				Refused(code, name);
 
 			code.Line($"c = {machine.ReadAt("p")};");
@@ -3558,7 +3558,7 @@ sealed partial class Machine
 
 			_character = true;
 
-			using (code.Block($"if ({machine.Past("p")})"))
+			using (code.Block($"if ({machine.RawPast("p")})"))
 				Refused(code, name);
 
 			code.Line($"c = {machine.ReadAt("p")};");
@@ -3728,7 +3728,7 @@ sealed partial class Machine
 
 				if (!loaded)
 				{
-					using (code.Block($"if ({machine.Past("p")})"))
+					using (code.Block($"if ({machine.RawPast("p")})"))
 						Refused(code, whole);
 
 					code.Line($"c = {machine.ReadAt("p")};");
@@ -3784,7 +3784,7 @@ sealed partial class Machine
 
 				if (!loaded)
 				{
-					code.Line($"if ({machine.Past("p")})");
+					code.Line($"if ({machine.RawPast("p")})");
 					code.Then(Noted(wanted));
 					code.Line("else");
 
@@ -4568,7 +4568,7 @@ sealed partial class Machine
 					// turn's refusal is half of the message.
 					var open = $"open{_doors++}";
 
-					code.Line($"var {open} = {machine.Within("p")};");
+					code.Line($"var {open} = {machine.RawWithin("p")};");
 					code.Line();
 
 					using (code.Block($"if ({open})"))
@@ -4597,12 +4597,12 @@ sealed partial class Machine
 
 					if (said is null)
 					{
-						code.Line($"if ({machine.Past("p")})");
+						code.Line($"if ({machine.RawPast("p")})");
 						code.Then("break;");
 					}
 					else
 					{
-						using (code.Block($"if ({machine.Past("p")})"))
+						using (code.Block($"if ({machine.RawPast("p")})"))
 						{
 							code.Line(said);
 							code.Line("break;");
@@ -4802,7 +4802,7 @@ sealed partial class Machine
 
 				_character = true;
 
-				code.Line($"var {open} = {machine.Within("p")};");
+				code.Line($"var {open} = {machine.RawWithin("p")};");
 				code.Line();
 
 				using (code.Block($"if ({open})"))
@@ -4818,7 +4818,7 @@ sealed partial class Machine
 			{
 				_character = true;
 
-				scopes.Push(code.Block($"if ({machine.Within("p")})"));
+				scopes.Push(code.Block($"if ({machine.RawWithin("p")})"));
 				code.Line($"c = {machine.ReadAt("p")};");
 				code.Line();
 				scopes.Push(code.Block($"if ({closed})"));
@@ -4924,7 +4924,7 @@ sealed partial class Machine
 					code.Line();
 				}
 
-				code.Line($"if ({machine.Past("p")})");
+				code.Line($"if ({machine.RawPast("p")})");
 				code.Then("break;");
 				code.Line();
 				code.Line($"c = {machine.ReadAt("p")};");
@@ -5072,7 +5072,7 @@ sealed partial class Machine
 				{
 					if (read.Continuation.Count == 0)
 					{
-						code.Line($"if ({machine.Past("p")})");
+						code.Line($"if ({machine.RawPast("p")})");
 						code.Then("break;");
 					}
 					else
@@ -5115,7 +5115,7 @@ sealed partial class Machine
 				// two attempts have said. What the loop opened on the tape goes with it: the
 				// engine never comes back into a recovering repetition, so a reading of the rule
 				// asked again may change only what came before it.
-				code.Line($"if ({machine.Past("p")})");
+				code.Line($"if ({machine.RawPast("p")})");
 
 				using (code.Block(""))
 				{
@@ -5173,7 +5173,7 @@ sealed partial class Machine
 
 			using (code.Block(""))
 			{
-				code.Line($"if ({machine.Past("p")})");
+				code.Line($"if ({machine.RawPast("p")})");
 				code.Then(Fails());
 				code.Line();
 				code.Line($"p = {Broken(read, slot, out var handed)}(p, failure.RecoveryOrdinal{handed});");
@@ -5212,7 +5212,7 @@ sealed partial class Machine
 
 			using (code.Block("while (true)"))
 			{
-				code.Line($"if ({machine.Past("p")})");
+				code.Line($"if ({machine.RawPast("p")})");
 
 				using (code.Block(""))
 				{
@@ -5234,7 +5234,7 @@ sealed partial class Machine
 					machine.EmitDelimiterScan(code, delimiter.Padding, delimiter.Stop);
 					code.Line();
 
-					code.Line($"if ({machine.Past("p")})");
+					code.Line($"if ({machine.RawPast("p")})");
 
 					using (code.Block(""))
 					{
@@ -5504,7 +5504,7 @@ sealed partial class Machine
 				{
 					var open = $"o{_ways++}";
 
-					code.Line($"var {open} = {machine.Within("p")};");
+					code.Line($"var {open} = {machine.RawWithin("p")};");
 					code.Line();
 
 					using (code.Block($"if ({open})"))

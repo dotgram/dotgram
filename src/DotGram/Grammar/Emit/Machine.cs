@@ -99,16 +99,59 @@ sealed partial class Machine
 	// buffer that reads on as it is asked (docs/design/fix-reader-buffered-2026-09-18.md). Over a
 	// span each is exactly what the reader wrote before it asked through these.
 
-	/// <summary>Whether <paramref name="position"/> is past the end of the input.</summary>
+	/// <summary>Whether <paramref name="position"/> is past the end of the input; where a window feeds the
+	/// machine, saying on that side that it ran out (<see cref="Ran"/>).</summary>
 	string Past(string position)
+	{
+		return Ran(RawPast(position));
+	}
+
+	/// <summary>Whether <paramref name="position"/> holds a character of the input; where a window feeds
+	/// the machine, saying on the other side that it ran out (<see cref="Ran"/>).</summary>
+	string Within(string position)
+	{
+		return GoesOn(RawWithin(position));
+	}
+
+	/// <summary>
+	/// <see cref="Past"/> as asked by a walk that measures how far a literal agrees, which says nothing
+	/// itself: what refuses on its answer says whether it ran out. And by the reader by methods, which
+	/// never reads a window.
+	/// </summary>
+	internal string RawPast(string position)
 	{
 		return BufferedInput ? $"!text.Ensure({position}, 1)" : $"(uint){position} >= (uint)text.Length";
 	}
 
-	/// <summary>Whether <paramref name="position"/> holds a character of the input.</summary>
-	string Within(string position)
+	/// <summary><see cref="Within"/> as asked by a walk or by the reader by methods (<see cref="RawPast"/>).</summary>
+	internal string RawWithin(string position)
 	{
 		return BufferedInput ? $"text.Ensure({position}, 1)" : $"(uint){position} < (uint)text.Length";
+	}
+
+	/// <summary>Whether a window may feed this machine, so that what it reads ends where the window does.</summary>
+	bool Windowed => _starves;
+
+	/// <summary>
+	/// A test that is true where the text ends — past it, short of room — made to say so where a window
+	/// feeds the machine: the assignment is an expression whose value is true, read only on the side where
+	/// the end was met, so the test reads as it did where it is false.
+	/// </summary>
+	/// <remarks>
+	/// Every test of the end the machine writes goes through this or <see cref="GoesOn"/>, and nothing is
+	/// left to the site to remember: the end of a window is never an answer (WindowEdgeTests holds the
+	/// emitted code to it). What the end then means, the driver decides — it reads the element again
+	/// with more of the input unless the window has ended.
+	/// </remarks>
+	string Ran(string ended)
+	{
+		return Windowed ? $"({ended} && (failure.Starved = true))" : ended;
+	}
+
+	/// <summary><see cref="Ran"/> for a test that is true where the text goes on.</summary>
+	string GoesOn(string goesOn)
+	{
+		return Windowed ? $"({goesOn} || !(failure.Starved = true))" : goesOn;
 	}
 
 	/// <summary>Whether fewer than <paramref name="count"/> characters remain from <c>p</c>, for a literal.</summary>
@@ -2977,9 +3020,6 @@ sealed partial class Machine
 						}
 						else
 						{
-							if (_starves)
-								writer.Line("failure.Starved = true;");
-
 							writer.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
 						}
 
@@ -3039,12 +3079,7 @@ sealed partial class Machine
 				{
 					writer.Line($"if ({Short(1)})");
 					using (writer.Block(""))
-					{
-						if (_starves)
-							writer.Line("failure.Starved = true;");
-
 						EmitTerminalFailure(writer, _fail, arrayName);
-					}
 				}
 
 				if (test != "true")
@@ -3984,12 +4019,7 @@ sealed partial class Machine
 						{
 							atAsk.Line($"if ({Short(1)})");
 							using (atAsk.Block(""))
-							{
-								if (_starves)
-									atAsk.Line("failure.Starved = true;");
-
 								EmitTerminalFailure(atAsk, _fail, askedName);
-							}
 							atAsk.Line($"c = {ReadAt("p")};");
 							atAsk.Line($"if (!({asked}))");
 							using (atAsk.Block(""))
@@ -4005,11 +4035,6 @@ sealed partial class Machine
 									EmitTerminalFailure(atAsk, _fail, askedName);
 							}
 
-							if (_starves)
-							{
-								atAsk.Line("else");
-								atAsk.Then("failure.Starved = true;");
-							}
 						}
 
 						atAsk.Line($"goto {Label(atAsk, next)};");
@@ -4617,12 +4642,7 @@ sealed partial class Machine
 
 			if (_starves)
 			{
-				writer.Line($"if ({Short(1)})");
-				using (writer.Block(""))
-				{
-					writer.Line("failure.Starved = true;");
-					writer.Line("break;");
-				}
+				writer.Line($"if ({Short(1)}) break;");
 			}
 			else
 				writer.Line($"if ({Short(1)}) break;");
@@ -4978,10 +4998,7 @@ sealed partial class Machine
 			{
 				writer.Line($"if ({Short(1)})");
 				using (writer.Block(""))
-				{
-					writer.Line("failure.Starved = true;");
 					EmitTerminalFailure(writer, fail, arrayName);
-				}
 			}
 
 			writer.Line($"if ({(room is not null ? room + " || " : "")}{At(0)} != {CSharpEmitter.Char(shared[0])})");
@@ -5445,12 +5462,7 @@ sealed partial class Machine
 
 		writer.Line($"if ({Short(1)})");
 		using (writer.Block(""))
-		{
-			if (_starves)
-				writer.Line("failure.Starved = true;");
-
 			EmitTerminalFailure(writer, _fail, arrayName);
-		}
 
 		writer.Line($"c = {ReadAt("p")};");
 
@@ -5505,12 +5517,7 @@ sealed partial class Machine
 
 		writer.Line($"if ({Short(1)})");
 		using (writer.Block(""))
-		{
-			if (_starves)
-				writer.Line("failure.Starved = true;");
-
 			EmitTerminalFailure(writer, _fail, arrayName);
-		}
 
 		writer.Line($"c = {ReadAt("p")};");
 
@@ -5710,12 +5717,7 @@ sealed partial class Machine
 
 			if (_starves)
 			{
-				writer.Line($"if ({Short(1)})");
-				using (writer.Block(""))
-				{
-					writer.Line("failure.Starved = true;");
-					writer.Line("break;");
-				}
+				writer.Line($"if ({Short(1)}) break;");
 			}
 			else
 				writer.Line($"if ({Short(1)}) break;");
@@ -6944,6 +6946,12 @@ sealed partial class Machine
 	/// </remarks>
 	string Short(int count)
 	{
+		return Ran(RawShort(count));
+	}
+
+	/// <summary><see cref="Short"/> without saying that it ran out, for a walk (<see cref="RawPast"/>).</summary>
+	string RawShort(int count)
+	{
 		return BufferedInput ? $"!text.Ensure(p, {count})" :
 		count == 1 ? "(uint)p >= (uint)text.Length" : $"text.Length - p < {count}";
 	}
@@ -6951,6 +6959,12 @@ sealed partial class Machine
 	/// <summary>Whether there is room for <paramref name="count"/> more.</summary>
 	/// <remarks>The same the other way up — see <see cref="Short"/>.</remarks>
 	string Room(int count)
+	{
+		return GoesOn(RawRoom(count));
+	}
+
+	/// <summary><see cref="Room"/> without saying that it ran out, for a walk (<see cref="RawPast"/>).</summary>
+	string RawRoom(int count)
 	{
 		return BufferedInput ? $"text.Ensure(p, {count})" :
 		count == 1 ? "(uint)p < (uint)text.Length" : $"text.Length - p >= {count}";
@@ -7067,7 +7081,7 @@ sealed partial class Machine
 				// stands on and steps one — which is also why the room test is the same
 				// one at every level.
 				writer.Line(
-					$"{(first ? "if" : "else if")} ({Room(1)} && {At(0)} == {CSharpEmitter.Char(branch.Key)})");
+					$"{(first ? "if" : "else if")} ({RawRoom(1)} && {At(0)} == {CSharpEmitter.Char(branch.Key)})");
 
 				using (writer.Block(""))
 				{
@@ -7186,9 +7200,6 @@ sealed partial class Machine
 
 				using (writer.Block($"if ({Past("literalReach")})"))
 				{
-					if (_starves)
-						writer.Line("failure.Starved = true;");
-
 					writer.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
 				}
 
@@ -7303,9 +7314,6 @@ sealed partial class Machine
 
 			using (helper.Block($"if ({Past("reach")})"))
 			{
-				if (_starves)
-					helper.Line("failure.Starved = true;");
-
 				helper.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
 			}
 
@@ -7329,7 +7337,7 @@ sealed partial class Machine
 	/// </remarks>
 	void ReachLadder(Writer writer, string value, bool ignoreCase, string target = "p")
 	{
-		ReachLadder(writer, value, ignoreCase, target, ReadAt(target), Within(target));
+		ReachLadder(writer, value, ignoreCase, target, ReadAt(target), RawWithin(target));
 	}
 
 	/// <summary><see cref="ReachLadder(Writer, string, bool, string)"/> with the read and the bound given, for the scanner.</summary>
@@ -7380,7 +7388,7 @@ sealed partial class Machine
 			helper.Line("var i = 0;");
 			helper.Line();
 			helper.Line(
-				$"while (i < value.Length - 1 && {Within("(p + i)")} && ({read} == value[i] || fold && " +
+				$"while (i < value.Length - 1 && {RawWithin("(p + i)")} && ({read} == value[i] || fold && " +
 				"(uint)((value[i] | 0x20) - 'a') <= 'z' - 'a' && " +
 				$"({read} | 0x20) == (value[i] | 0x20)))");
 			helper.Then("i++;");

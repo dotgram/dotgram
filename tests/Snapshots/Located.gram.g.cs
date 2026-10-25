@@ -299,9 +299,8 @@ namespace DotGram.Snapshots
 
 				S3:
 				{
-					if ((uint)p >= (uint)text.Length)
+					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						failure.Starved = true;
 						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(0);
 						goto Return;
@@ -317,7 +316,7 @@ namespace DotGram.Snapshots
 
 				S4:
 				{
-					if ((uint)p < (uint)text.Length)
+					if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 					{
 						c = text[p];
 						if (c == ' ' || (c >= 'a' && c <= 'z')) goto S5;
@@ -367,9 +366,8 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if ((uint)p >= (uint)text.Length)
+					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						failure.Starved = true;
 						expected = ExpectedSet_DotGram(6);
 						goto Fail;
 					}
@@ -384,9 +382,8 @@ namespace DotGram.Snapshots
 
 				S12:
 				{
-					if ((uint)p >= (uint)text.Length)
+					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						failure.Starved = true;
 						expected = ExpectedSet_DotGram(6);
 						goto S13;
 					}
@@ -450,9 +447,8 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if ((uint)p >= (uint)text.Length)
+					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						failure.Starved = true;
 						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(5);
 						goto Fail;
@@ -478,11 +474,7 @@ namespace DotGram.Snapshots
 					var runStart = p;
 					while (true)
 					{
-						if ((uint)p >= (uint)text.Length)
-						{
-							failure.Starved = true;
-							break;
-						}
+						if (((uint)p >= (uint)text.Length && (failure.Starved = true))) break;
 						c = text[p];
 						if (!(!(c == '\n' || c == '\r'))) break;
 						p++;
@@ -532,17 +524,17 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if (text.Length - p >= 2 && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\r\n")))
+					if ((text.Length - p >= 2 || !(failure.Starved = true)) && global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\r\n")))
 					{
 						p += 2;
 						goto Return;
 					}
-					if ((uint)p < (uint)text.Length && text[p] == '\n')
+					if (((uint)p < (uint)text.Length || !(failure.Starved = true)) && text[p] == '\n')
 					{
 						p += 1;
 						goto Return;
 					}
-					if ((uint)p < (uint)text.Length && text[p] == '\r')
+					if (((uint)p < (uint)text.Length || !(failure.Starved = true)) && text[p] == '\r')
 					{
 						p += 1;
 						goto Return;
@@ -586,7 +578,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if ((uint)p < (uint)text.Length)
+					if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 					{
 						c = text[p];
 						if (c == ' ' || (c >= 'a' && c <= 'z')) goto S28;
@@ -820,7 +812,7 @@ namespace DotGram.Snapshots
 			var p = pos;
 
 			L0_turn:
-			if ((uint)p >= (uint)text.Length) goto L1_done;
+			if (((uint)p >= (uint)text.Length && (failure.Starved = true))) goto L1_done;
 			if (text[p + 0] != ' ') goto L1_done;
 			p += 1;
 			goto L0_turn;

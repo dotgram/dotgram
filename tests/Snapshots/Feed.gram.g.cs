@@ -1525,11 +1525,7 @@ namespace DotGram.Snapshots
 					var runStart = p;
 					while (true)
 					{
-						if ((uint)p >= (uint)text.Length)
-						{
-							failure.Starved = true;
-							break;
-						}
+						if (((uint)p >= (uint)text.Length && (failure.Starved = true))) break;
 						c = text[p];
 						if (!(!(c == '\n' || c == '\r' || c == '|'))) break;
 						p++;
@@ -1709,9 +1705,8 @@ namespace DotGram.Snapshots
 
 				S3:
 				{
-					if ((uint)p >= (uint)text.Length)
+					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						failure.Starved = true;
 						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(14);
 						goto Fail;
@@ -1725,9 +1720,8 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if ((uint)p >= (uint)text.Length)
+					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						failure.Starved = true;
 						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(7);
 						goto Fail;
@@ -1746,9 +1740,8 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if ((uint)p >= (uint)text.Length)
+					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						failure.Starved = true;
 						expected = ExpectedSet_DotGram(13);
 						goto Fail;
 					}
@@ -1763,9 +1756,8 @@ namespace DotGram.Snapshots
 
 				S7:
 				{
-					if ((uint)p >= (uint)text.Length)
+					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						failure.Starved = true;
 						expected = ExpectedSet_DotGram(13);
 						goto S8;
 					}
@@ -1816,9 +1808,8 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if ((uint)p >= (uint)text.Length)
+					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						failure.Starved = true;
 						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(7);
 						goto Fail;
@@ -1892,7 +1883,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if ((uint)p < (uint)text.Length)
+					if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 					{
 						c = text[p];
 						if (!(c == '\r')) goto S15;
@@ -1901,7 +1892,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if (text.Length - p < 2)
+					if ((text.Length - p < 2 && (failure.Starved = true)))
 					{
 						p = Recognize_DotGram_Row_RanOut(text, p, "\r\n", false, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(4);
@@ -1923,7 +1914,7 @@ namespace DotGram.Snapshots
 
 				S15:
 				{
-					if ((uint)p < (uint)text.Length)
+					if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 					{
 						c = text[p];
 						if (!(c == '\n')) goto S17;
@@ -1934,9 +1925,8 @@ namespace DotGram.Snapshots
 
 				S16:
 				{
-					if ((uint)p >= (uint)text.Length)
+					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						failure.Starved = true;
 						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(5);
 						goto Fail;
@@ -1952,9 +1942,8 @@ namespace DotGram.Snapshots
 
 				S17:
 				{
-					if ((uint)p >= (uint)text.Length)
+					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						failure.Starved = true;
 						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(9);
 						goto Fail;
@@ -2125,7 +2114,7 @@ namespace DotGram.Snapshots
 			turns0 = 0;
 			L2_turn:
 			if (turns0 >= 1) goto L3_done;
-			if ((uint)p >= (uint)text.Length) goto L3_done;
+			if (((uint)p >= (uint)text.Length && (failure.Starved = true))) goto L3_done;
 			if (text[p + 0] != '-') goto L3_done;
 			p += 1;
 			turns0++;
@@ -2134,7 +2123,7 @@ namespace DotGram.Snapshots
 			;
 			turns1 = 0;
 			L4_turn:
-			if ((uint)p >= (uint)text.Length) goto L5_done;
+			if (((uint)p >= (uint)text.Length && (failure.Starved = true))) goto L5_done;
 			c = text[p];
 			if (!(((c >= '0' && c <= '9')))) goto L5_done;
 			p++;
@@ -2146,13 +2135,13 @@ namespace DotGram.Snapshots
 			L6_turn:
 			if (turns2 >= 1) goto L7_done;
 			mark1 = p;
-			if ((uint)p >= (uint)text.Length) goto L7_done;
+			if (((uint)p >= (uint)text.Length && (failure.Starved = true))) goto L7_done;
 			if (text[p + 0] != '.') goto L7_done;
 			p += 1;
 			turns3 = 0;
 			L10_turn:
 			if (turns3 >= 2) goto L11_done;
-			if ((uint)p >= (uint)text.Length) goto L11_done;
+			if (((uint)p >= (uint)text.Length && (failure.Starved = true))) goto L11_done;
 			c = text[p];
 			if (!(((c >= '0' && c <= '9')))) goto L11_done;
 			p++;
@@ -2195,7 +2184,7 @@ namespace DotGram.Snapshots
 			var p = pos;
 			var c = '\0';
 
-			if ((uint)p >= (uint)text.Length) goto Refuse;
+			if (((uint)p >= (uint)text.Length && (failure.Starved = true))) goto Refuse;
 			c = text[p];
 			if (!(((c >= '0' && c <= '9')))) goto Refuse;
 			p++;
@@ -2251,9 +2240,8 @@ namespace DotGram.Snapshots
 		{
 			var reach = Recognize_DotGram_Feed_Agreeing(text, p, value, fold);
 
-			if ((uint)reach >= (uint)text.Length)
+			if (((uint)reach >= (uint)text.Length && (failure.Starved = true)))
 			{
-				failure.Starved = true;
 				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 			}
 
@@ -2274,9 +2262,8 @@ namespace DotGram.Snapshots
 		{
 			var reach = Recognize_DotGram_Row_Agreeing(text, p, value, fold);
 
-			if ((uint)reach >= (uint)text.Length)
+			if (((uint)reach >= (uint)text.Length && (failure.Starved = true)))
 			{
-				failure.Starved = true;
 				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 			}
 

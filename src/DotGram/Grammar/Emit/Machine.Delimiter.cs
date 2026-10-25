@@ -152,7 +152,7 @@ sealed partial class Machine
 		if (padding != null)
 			writer.Line("var paddingStart = p;");
 
-		using (writer.Block($"while ({Room(1)})"))
+		using (writer.Block($"while ({RawRoom(1)})"))
 		{
 			writer.Line($"c = {ReadAt("p")};");
 			using (writer.Block($"if ({stop})"))
@@ -700,7 +700,7 @@ sealed partial class Machine
 	{
 		var stops = until.Stops;
 
-		using (writer.Block($"if ({Within("p")})"))
+		using (writer.Block($"if ({RawWithin("p")})"))
 		{
 			writer.Line($"c = {ReadAt("p")};");
 
@@ -775,13 +775,13 @@ sealed partial class Machine
 	{
 		var test = RangesTest(until.Through!, Tabulate);
 
-		using (writer.Block($"if ({Within("p")})"))
+		using (writer.Block($"if ({RawWithin("p")})"))
 		{
 			writer.Line($"c = {ReadAt("p")};");
 
 			using (writer.Block($"if ({test})"))
 			{
-				var within = Within("p");
+				var within = RawWithin("p");
 				var before = (IDisposable?)null;
 
 				if (until.Longest > 1)

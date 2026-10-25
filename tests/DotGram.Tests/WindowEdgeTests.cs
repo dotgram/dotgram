@@ -188,6 +188,26 @@ public sealed class WindowEdgeTests
 		found.Assert();
 	}
 
+	/// <summary>
+	/// A choice of literals read longest first with a room check, inside a look: where the window ends inside
+	/// the longer, the shorter may not be taken without saying the window ran out. As reported, the reader
+	/// found <c>ab</c> where the string finds <c>abc</c>.
+	/// </summary>
+	[Fact]
+	public void A_choice_of_literals_does_not_take_the_shorter_where_the_window_cuts_the_longer()
+	{
+		var parser = WindowEdge.Compile("""
+			Hit : @string = t: ?=({'a' & ("bc" | 'b')}) & 'a' => @(t)
+			find Hit
+			""");
+
+		var text = new string('x', 4094) + "abc";
+
+		Assert.Equal(
+			WindowEdge.Said(() => parser.Call("FindHit", typeof(string), text)),
+			WindowEdge.Said(() => parser.Call("FindHit", typeof(TextReader), new StringReader(text))));
+	}
+
 	/// <summary>The snapshots with a streamed form.</summary>
 	static readonly string[] Streamed = ["Feed", "Located", "Minimal", "Notation", "Split", "Url"];
 
@@ -251,6 +271,22 @@ public sealed class WindowEdgeTests
 
 		Assert.True(scanners > 0, "no scanner was told of the window");
 		Assert.Empty(untold);
+	}
+
+	/// <summary>
+	/// The construction behind every fix above: in the code a window feeds, no test of the end of the text
+	/// that does not say it ran out, except those <see cref="WindowEdge.Unflagging"/> lists.
+	/// </summary>
+	[Fact]
+	public void Every_test_of_the_end_a_window_feeds_says_when_it_ran_out()
+	{
+		var unflagged = new List<string>();
+
+		// Not Buffered: its reader asks a buffer that reads on as it is asked, whose end is the input's.
+		foreach (var name in Streamed)
+			unflagged.AddRange(WindowEdge.Unflagged(File.ReadAllText(Path.Combine(SnapshotDirectory, name + ".gram.g.cs"))).Select(one => name + ": " + one));
+
+		Assert.True(unflagged.Count == 0, string.Join("\n", unflagged));
 	}
 
 	/// <summary>

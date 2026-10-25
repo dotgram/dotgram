@@ -273,6 +273,110 @@ static class WindowEdge
 		return (scanners, untold);
 	}
 
+	/// <summary>
+	/// Every test of the end of the text in the code a window feeds that does not say, on its own line, that
+	/// it ran out: the methods the streamed forms call on the window, and every method they call in turn.
+	/// </summary>
+	/// <remarks>
+	/// The generator writes such a test through one of a few spellings that set <c>Starved</c> on the side
+	/// where the end is met (<c>… &amp;&amp; (failure.Starved = true)</c>, <c>… || !(failure.Starved = true)</c>).
+	/// What is left over is listed in <see cref="Unflagging"/>, each with why it may stand.
+	/// </remarks>
+	public static IReadOnlyList<string> Unflagged(string source)
+	{
+		source = source.Replace("\r\n", "\n", StringComparison.Ordinal);
+
+		var methods = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+
+		foreach (Match method in AnyMethod.Matches(source))
+		{
+			var name = method.Groups["name"].Value;
+
+			if (!methods.TryGetValue(name, out var bodies))
+				methods[name] = bodies = [];
+
+			bodies.Add(method.Groups["body"].Value);
+		}
+
+		var reached = new HashSet<string>(StringComparer.Ordinal);
+		var pending = new Queue<string>();
+
+		foreach (Match call in WindowCall.Matches(source))
+		{
+			if (reached.Add(call.Groups["name"].Value))
+				pending.Enqueue(call.Groups["name"].Value);
+		}
+
+		while (pending.Count > 0)
+		{
+			if (!methods.TryGetValue(pending.Dequeue(), out var bodies))
+				continue;
+
+			foreach (var body in bodies)
+			{
+				foreach (Match call in Called.Matches(body))
+				{
+					var name = call.Groups["name"].Value;
+
+					if (methods.ContainsKey(name) && reached.Add(name))
+						pending.Enqueue(name);
+				}
+			}
+		}
+
+		Assert.True(reached.Count > 0, "no method is called on a window");
+
+		var unflagged = new List<string>();
+
+		foreach (var name in reached.OrderBy(static one => one, StringComparer.Ordinal))
+		{
+			if (!methods.TryGetValue(name, out var bodies) || Unflagging.Any(one => one.Method?.IsMatch(name) == true))
+				continue;
+
+			foreach (var line in bodies.SelectMany(static body => body.Split('\n')).Select(static line => line.Trim()))
+			{
+				if (!line.Contains("text.Length", StringComparison.Ordinal) || line.Contains("failure.Starved = true", StringComparison.Ordinal))
+					continue;
+
+				if (Unflagging.Any(one => one.Line?.IsMatch(line) == true))
+					continue;
+
+				unflagged.Add(name + ": " + line);
+			}
+		}
+
+		return unflagged;
+	}
+
+	/// <summary>
+	/// What may read <c>text.Length</c> in the code a window feeds without saying that it ran out, and why.
+	/// </summary>
+	public static readonly (Regex? Method, Regex? Line, string Why)[] Unflagging =
+	[
+		(new(@"(_Agreeing|_Sharpen\d+|^Reach_DotGram\w*)$"), null,
+			"a walk that measures how far a literal agrees; the caller that refuses on it says whether it reached the end"),
+		(new(@"^Prefix_DotGram\w*_\d+(_Miss)?$"), null,
+			"the dispatch of a choice by the prefixes of its literals; where the text runs out it answers that nothing is decided, and the alternatives it falls back to test the end themselves"),
+		(null, new(@"^if \(whole && p != text\.Length\)"),
+			"the end a whole reading demands; a window's reading is never whole"),
+		(null, new(@"^var (reached|literalReach) = |\(uint\)(reached|literalReach) < \(uint\)text\.Length"),
+			"the walk of a literal the text ends inside, written in place; the test that sent it there said it ran out"),
+		(null, new(@"^if \(text\.Length > furthest\) furthest = text\.Length;|^if \(found\d+ < 0\) \{ if \(text\.Length > furthest\) furthest = text\.Length;"),
+			"a scanner raising how far it got to the end, which both of its exits read and say"),
+		(null, new(@"^p = found\d+ < 0 \? text\.Length : p \+ found\d+;$"),
+			"a run that searched to the end stands there; whatever reads next tests the end, and inside a look the line after says it"),
+	];
+
+	/// <summary>A method's signature at the start of a line, its body, and the brace at its own indent.</summary>
+	static readonly Regex AnyMethod = new(
+		@"^(?<indent>\t+)(?:(?:private|internal|public) )?static [^\n=;]*?\b(?<name>\w+)\([^\n]*\n\k<indent>\{\n(?<body>.*?)\n\k<indent>\}$",
+		RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.CultureInvariant);
+
+	/// <summary>A method a streamed form calls on what the window holds.</summary>
+	static readonly Regex WindowCall = new(@"\b(?<name>\w+)\(window\.Span\(\)", RegexOptions.CultureInvariant);
+
+	static readonly Regex Called = new(@"\b(?<name>\w+)\(", RegexOptions.CultureInvariant);
+
 	/// <summary>A scanner that takes the failure, from its signature to the closing brace at its own indent.</summary>
 	static readonly Regex ScannerMethod = new(
 		@"^(?<indent>\t+)static int (?<name>Scan_\w+)\(global::System\.ReadOnlySpan<char> text, int pos, ref Failure failure[^\n]*\n(?<body>.*?)\n\k<indent>\}",

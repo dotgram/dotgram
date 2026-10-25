@@ -81,6 +81,69 @@ public sealed class WindowEdgeSweepTests
 		found.Assert();
 	}
 
+	public static TheoryData<string> Choices()
+	{
+		return [.. Choice.All().Select(static one => one.Name)];
+	}
+
+	/// <summary>
+	/// The breaker's grammars of literal choices and looks (<c>WindowEdgeChoiceShapes.txt</c>), over the inputs
+	/// written beside each: the window's end at every offset, held to the whole input's form.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Choices))]
+	public void Every_window_end_reads_a_choice_as_the_whole_input(string name)
+	{
+		var shape  = Choice.All().Single(one => one.Name == name);
+		var parser = WindowEdge.Compiled(shape.Grammar);
+		var found  = new WindowEdge.Mismatches();
+
+		if (parser is null || !parser.Streams)
+			return;
+
+		foreach (var input in shape.Inputs)
+		{
+			if (shape.Segments)
+			{
+				var segments  = input.Split('~');
+				var nul       = Array.FindIndex(segments, static one => one.Contains('\0'));
+				var beforeNul = nul >= 0 ? WindowEdge.Said(() => parser.Call(shape.Method, typeof(IReadOnlyList<string>), segments[..nul])) : null;
+				var whole     = WindowEdge.Said(() => parser.Call(shape.Method, typeof(IReadOnlyList<string>), segments));
+				var length    = segments.Sum(static one => one.Length + 1);
+
+				WindowEdge.Edges(parser, found, "sequence", WindowEdge.Show(segments), length, whole,
+					() => parser.Call(shape.Method, typeof(IEnumerable<string>), segments.Select(static one => one)), beforeNul: beforeNul);
+			}
+			else
+			{
+				WindowEdge.Edges(parser, found, "reader", WindowEdge.Show([input]), input.Length, WindowEdge.Said(() => parser.Call(shape.Method, typeof(string), input)),
+					() => parser.Call(shape.Method, typeof(TextReader), new StringReader(input)));
+			}
+		}
+
+		found.Assert();
+	}
+
+	/// <summary>
+	/// The construction behind every fix: in the code a window feeds, no test of the end of the text that does
+	/// not say it ran out, except those <see cref="WindowEdge.Unflagging"/> lists — over every shape here.
+	/// </summary>
+	[Fact]
+	public void Every_test_of_the_end_a_window_feeds_says_when_it_ran_out()
+	{
+		var unflagged = new List<string>();
+		var grammars  = Shape.All().SelectMany(static shape => new[] { (shape.Name, shape.Grammar, shape.Members), (shape.Name + " over lines", shape.AsLines(), shape.Members) })
+			.Concat(Choice.All().Select(static one => (one.Name, one.Grammar, (string?)null)));
+
+		foreach (var (name, grammar, members) in grammars)
+		{
+			if (WindowEdge.Compiled(grammar, members) is { Streams: true } parser)
+				unflagged.AddRange(WindowEdge.Unflagged(parser.Source).Select(one => name + ": " + one));
+		}
+
+		Assert.True(unflagged.Count == 0, string.Join("\n", unflagged.Distinct()));
+	}
+
 	/// <summary>
 	/// What every shape writes: wherever a scanner is told of the window, its refusal says whether it reached
 	/// the end, the same as its match does.
@@ -205,6 +268,63 @@ public sealed class WindowEdgeSweepTests
 		static string Unescape(string text)
 		{
 			return text.Replace("\\n", "\n").Replace("\\r", "\r").Replace("\\0", "\0").Replace("\\u0001", "\u0001").Replace("\\e", "");
+		}
+	}
+
+	/// <summary>
+	/// A grammar, the method to read it with, and the inputs written beside it, in the breaker's notation:
+	/// <c>=== name text</c> or <c>=== name seg</c>, and each input a line beginning <c>@</c>, its segments
+	/// parted by <c>~</c>.
+	/// </summary>
+	sealed record Choice(string Name, bool Segments, string Grammar, string Method, string[] Inputs)
+	{
+		public static IReadOnlyList<Choice> All()
+		{
+			return _all ??= Read();
+		}
+
+		static IReadOnlyList<Choice>? _all;
+
+		static IReadOnlyList<Choice> Read()
+		{
+			var text    = File.ReadAllText(Path.Combine(Path.GetDirectoryName(ThisFile)!, "WindowEdgeChoiceShapes.txt")).Replace("\r\n", "\n");
+			var choices = new List<Choice>();
+
+			foreach (var block in text.Split("\n=== ", StringSplitOptions.RemoveEmptyEntries))
+			{
+				var named = block.StartsWith("=== ", StringComparison.Ordinal) ? block[4..] : block;
+				var head  = named[..named.IndexOf('\n')].Trim().Split(' ');
+				var parts = named[(named.IndexOf('\n') + 1)..].Split("\n---\n");
+
+				choices.Add(new Choice(
+					head[0],
+					head.Length > 1 && head[1] == "seg",
+					parts[0].Trim() + "\n",
+					parts[1].Trim(),
+					Read(parts[2].Split('\n', StringSplitOptions.RemoveEmptyEntries), head.Length > 1 && head[1] == "seg")));
+			}
+
+			return choices;
+		}
+
+		static string Unescape(string text)
+		{
+			return text.Replace("\\n", "\n").Replace("\\r", "\r").Replace("\\0", "\0");
+		}
+		/// <summary>
+		/// The inputs written with <c>@</c>; where there are none, each record alone and all of them in a row
+		/// (a mark of first, last or refused, <c>^ $ !</c>, taken off).
+		/// </summary>
+		static string[] Read(string[] lines, bool segments)
+		{
+			var fixedOnes = lines.Where(static one => one.StartsWith('@')).Select(static one => Unescape(one[1..])).ToArray();
+
+			if (fixedOnes.Length > 0)
+				return fixedOnes;
+
+			var records = lines.Select(static one => Unescape(one.Length > 0 && "^$!".Contains(one[0]) ? one[1..] : one)).ToArray();
+
+			return [.. records, string.Join(segments ? "~" : "", records)];
 		}
 	}
 

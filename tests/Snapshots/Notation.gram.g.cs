@@ -1901,9 +1901,8 @@ namespace DotGram.Snapshots
 			}
 
 			{
-				if ((uint)p >= (uint)text.Length)
+				if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 				{
-					failure.Starved = true;
 					expected = ExpectedSet_DotGram(0);
 					goto Fail;
 				}
@@ -1918,9 +1917,8 @@ namespace DotGram.Snapshots
 
 			S7:
 			{
-				if ((uint)p >= (uint)text.Length)
+				if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 				{
-					failure.Starved = true;
 					expected = ExpectedSet_DotGram(0);
 					goto S8;
 				}
@@ -3367,9 +3365,8 @@ namespace DotGram.Snapshots
 			string[]? expected = null;
 
 			{
-				if ((uint)p >= (uint)text.Length)
+				if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 				{
-					failure.Starved = true;
 					expected = ExpectedSet_DotGram(7);
 					goto Fail;
 				}
@@ -3884,11 +3881,7 @@ namespace DotGram.Snapshots
 					var runStart = p;
 					while (true)
 					{
-						if ((uint)p >= (uint)text.Length)
-						{
-							failure.Starved = true;
-							break;
-						}
+						if (((uint)p >= (uint)text.Length && (failure.Starved = true))) break;
 						c = text[p];
 						if (!(((c >= 'a' && c <= 'z')))) break;
 						p++;
@@ -4132,9 +4125,8 @@ namespace DotGram.Snapshots
 		{
 			var reach = Recognize_DotGram_Primary_Agreeing(text, p, value, fold);
 
-			if ((uint)reach >= (uint)text.Length)
+			if (((uint)reach >= (uint)text.Length && (failure.Starved = true)))
 			{
-				failure.Starved = true;
 				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 			}
 

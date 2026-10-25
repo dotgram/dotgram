@@ -1,0 +1,441 @@
+=== k00-codex text
+Hit : @string = t: ?=({'a' & ("bc" | 'b')}) & 'a' => @(t)
+find Hit
+---
+FindHit
+---
+@xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxabc
+@xxabc
+@xxab
+=== k01-machine text
+Hit : @string = t: ?=({ 'a' & ("bc" | 'b') } & 'c') & 'a' => @(t)
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k01-scanner text
+Hit = ?=H & 'a'
+H   = { ?=({ 'a' & ("bc" | 'b') } & 'c') & 'a' }
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k02-machine text
+Hit : @string = t: ?!({ 'a' & ("bc" | 'b') } & 'c') & 'a' => @(t)
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k02-scanner text
+Hit = ?=H & 'a'
+H   = { ?!({ 'a' & ("bc" | 'b') } & 'c') & 'a' }
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k03-machine text
+Hit : @string = t: ?=('a' & ("bcd" | "bc" | 'b') & eof) & 'a' => @(t)
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k03-scanner text
+Hit = ?=H & 'a'
+H   = { ?=('a' & ("bcd" | "bc" | 'b') & eof) & 'a' }
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k04-machine text
+Hit : @string = t: ?!('a' & ("bcd" | "bc" | 'b') & 'd') & 'a' => @(t)
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k04-scanner text
+Hit = ?=H & 'a'
+H   = { ?!('a' & ("bcd" | "bc" | 'b') & 'd') & 'a' }
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k05-machine text
+Hit : @string = t: ?=('a' & ("bc"i | 'b') & 'c') & 'a' => @(t)
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k05-scanner text
+Hit = ?=H & 'a'
+H   = { ?=('a' & ("bc"i | 'b') & 'c') & 'a' }
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k06-machine text
+Hit : @string = t: ?!('a' & ("BCD"i | "bc"i) & eof) & 'a' => @(t)
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k06-scanner text
+Hit = ?=H & 'a'
+H   = { ?!('a' & ("BCD"i | "bc"i) & eof) & 'a' }
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k07-machine text
+Hit : @string = t: ?=({ 'a' & ("bcd" | 'b') } & "cd") & 'a' => @(t)
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k07-scanner text
+Hit = ?=H & 'a'
+H   = { ?=({ 'a' & ("bcd" | 'b') } & "cd") & 'a' }
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k08-machine text
+Hit : @string = t: ?=('a' & ('b' | "bc") & 'c') & 'a' => @(t)
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k08-scanner text
+Hit = ?=H & 'a'
+H   = { ?=('a' & ('b' | "bc") & 'c') & 'a' }
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k09-machine text
+Hit : @string = t: ?!('a' & ("bcde" | "bc") & 'd') & 'a' => @(t)
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k09-scanner text
+Hit = ?=H & 'a'
+H   = { ?!('a' & ("bcde" | "bc") & 'd') & 'a' }
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k10-machine text
+Hit : @string = t: ?=('a' & ("bc" | "b" | "") & 'c') & 'a' => @(t)
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k10-scanner text
+Hit = ?=H & 'a'
+H   = { ?=('a' & ("bc" | "b" | "") & 'c') & 'a' }
+find Hit
+---
+FindHit
+---
+@xxabc
+@xxabcd
+@xxabcde
+@xxab
+@xxabd
+@xxabcc
+@xxaBCd
+@xxa
+=== k11-seg seg
+Hit : @string = t: ?=('a' & ("bc" | 'b') & eos & 'c') & 'a' => @(t)
+find Hit
+---
+FindHit
+---
+@xxabc~c
+@xxab~c
+@xxab~d
+=== k12-seg-scanner seg
+Hit = ?=H & 'a'
+H = { ?!('a' & ("bc" | 'b') & eos & eof) & 'a' }
+find Hit
+---
+FindHit
+---
+@xxabc~c
+@xxab~c
+@xxab
+@xxabc
+=== k13-rows text
+Rows  : @string[] = Row* recover ';' => @("bad " + parserFailureColumn) & eof
+Row   : @string   = t: Word & ';' & ?!(("STOPS" | "STOP" | "ST") & ';' & eof) => @(t)
+                  | ("STOPS" | "STOP" | "ST") & ';' => @("S")
+Word  = ['a'..'z']+
+parse Rows
+---
+ParseRows
+---
+ab;
+cd;
+STOP;
+STOPS;
+ST;
+1;
+=== k14-rows-nolook text
+Rows  : @string[] = Row* recover ';' => @("bad " + parserFailureColumn) & eof
+Row   : @string   = t: Word & ';' => @(t)
+                  | ("STOPS" | "STOP" | "ST") & ';' => @("S")
+Word  = ['a'..'z']+
+parse Rows
+---
+ParseRows
+---
+@STOPS;1;STOPS;STOPS;STOPS;cd;1;
+@STOPS;STOPS;STOPS;
+@STOP;ST;STOPS;
+=== k15-rows-onlychoice text
+Rows  : @string[] = Row* recover ';' => @("bad " + parserFailureColumn) & eof
+Row   : @string   = ("STOPS" | "STOP" | "ST") & ';' => @("S")
+parse Rows
+---
+ParseRows
+---
+@STOPS;STOPS;STOPS;
+@STOP;ST;STOPS;
+@STOPS;1;STOPS;
+=== k16-rows-look-only text
+Rows  : @string[] = Row* recover ';' => @("bad " + parserFailureColumn) & eof
+Row   : @string   = t: Word & ';' & ?!(("STOPS" | "STOP" | "ST") & ';' & eof) => @(t)
+                  | "STOPS;" => @("S")
+Word  = ['a'..'z']+
+parse Rows
+---
+ParseRows
+---
+@STOPS;STOPS;STOPS;
+@ab;STOPS;
+@ab;STOPS;cd;
+=== k17-two-lits text
+Rows  : @string[] = Row* recover ';' => @("bad " + parserFailureColumn) & eof
+Row   : @string   = ("STOPS" | "ST") & ';' => @("S")
+parse Rows
+---
+ParseRows
+---
+@STOPS;STOPS;STOPS;
+@ST;STOPS;ST;
+=== k18-operator text
+Rows : @string[] = Row* recover ';' => @("bad " + parserFailureColumn) & eof
+Row  : @string   = a: Num & o: ("<=" | "<") & b: Num & ';' => @(a + o + b)
+Num  = ['0'..'9']+
+parse Rows
+---
+ParseRows
+---
+1<=2;
+1<2;
+12<=34;
+!1=2;
+=== k19-operator-scanned text
+Rows : @string[] = Row* recover ';' => @("bad " + parserFailureColumn) & eof
+Row  : @string   = a: Num & o: Op & b: Num & ';' => @(a + o + b)
+Op   = { "<=" | "<" }
+Num  = ['0'..'9']+
+parse Rows
+---
+ParseRows
+---
+1<=2;
+1<2;
+12<=34;
+=== k20-operator-seg seg
+Rows : @string[] = Row* recover eos => @("bad " + parserLine) & eof
+Row  : @string   = a: Num & o: ("<=" | "<") & b: Num & eos => @(a + o + b)
+Num  = ['0'..'9']+
+parse Rows
+---
+ParseRows
+---
+1<=2
+1<2
+12<=34
+=== k21-keywords text
+Rows : @string[] = Row* recover ';' => @("bad " + parserFailureColumn) & eof
+Row  : @string   = k: ("select" | "sel" | "se") & ' ' & t: ['a'..'z']+ & ';' => @(k + ":" + t)
+parse Rows
+---
+ParseRows
+---
+select a;
+sel bb;
+se c;
+=== k22-find text
+Item : @string = t: ("abcd" | "ab") & ';' => @(t)
+find Item
+---
+FindItem
+---
+abcd;
+ab;
+x
+=== k23-ci text
+Rows : @string[] = Row* recover ';' => @("bad " + parserFailureColumn) & eof
+Row  : @string   = k: ("STOPS"i | "ST"i) & ';' => @(k)
+parse Rows
+---
+ParseRows
+---
+stops;
+St;
+STOPS;

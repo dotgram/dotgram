@@ -26322,6 +26322,18 @@ search for the delimiter that found none jumped to the refusal without saying ho
   nothing, `?!Dup` with `Dup = "--" & eol & "--" & eol` then read a record the string refused. The same look without
   the last `eol` is kept in locals instead, whose failure is recorded where it stands — the end — and the driver read
   it again: one missing flag, seen only where the look records nothing.
+- **By construction, after three rounds of sites.** A choice of literals that share a beginning is read longest
+  first behind a room check, `text.Length - p >= 5 && "STOPS" matches`; where the window ended inside the longer,
+  the shorter was taken and nothing said so — `("STOPS" | "ST") & ';'` refused the record after the window's end,
+  with no look anywhere. Rather than a fourth site, every test of the end the machine and the scanner write now
+  goes through one spelling (`Machine.Ran`/`GoesOn`, the scanner's `Short`): where a window may feed the machine,
+  `(test && (failure.Starved = true))` or `(test || !(failure.Starved = true))`. The assignment is an expression
+  whose value is true, evaluated only on the side where the end was met, so the side where the text goes on reads
+  as before; a site cannot forget the flag because it never writes the test itself. Walks that only measure how
+  far a literal agrees, and the prefix table's dispatch, keep the plain test: their callers refuse on the answer,
+  and refusing is a test of the end. `WindowEdgeTests` holds the emitted code to it: in every method a streamed
+  form calls on the window, and every method those call, each line that reads `text.Length` sets the flag or is
+  one of the few listed beside the test with why it may stand.
 - **Checked where the brief was unsure.** A failure remembered while the window was short: the memo is kept only
   over tokens, and a stream is never read over tokens (`StreamingEmitter.Streams`). The lexer's seam scanner is
   written by the same epilogue.

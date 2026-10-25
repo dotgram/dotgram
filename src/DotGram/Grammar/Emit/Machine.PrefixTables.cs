@@ -102,7 +102,7 @@ sealed partial class Machine
 		using (helper.Block($"private static int {name}({InputType} text, int p)"))
 		{
 			helper.Line("var state = 0;");
-			using (helper.Block($"while ({Room(1)})"))
+			using (helper.Block($"while ({RawRoom(1)})"))
 			{
 				helper.Line($"var column = (int){ReadAt("p")} - {(int)low};");
 				helper.Line($"if ((uint)column >= {width}u) return state == 0 ? -1 : -1 - state;");

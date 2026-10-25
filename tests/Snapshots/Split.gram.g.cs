@@ -282,7 +282,7 @@ namespace DotGram.Snapshots
 			var p = pos;
 
 			L0_turn:
-			if ((uint)p >= (uint)text.Length) goto L1_done;
+			if (((uint)p >= (uint)text.Length && (failure.Starved = true))) goto L1_done;
 			if (text[p + 0] != ' ') goto L1_done;
 			p += 1;
 			goto L0_turn;
@@ -506,9 +506,8 @@ namespace DotGram.Snapshots
 		{
 			var reach = Recognize_DotGram_Agreeing(text, p, value, fold);
 
-			if ((uint)reach >= (uint)text.Length)
+			if (((uint)reach >= (uint)text.Length && (failure.Starved = true)))
 			{
-				failure.Starved = true;
 				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 			}
 
