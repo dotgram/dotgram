@@ -1649,7 +1649,7 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("\t\tpublic readonly struct Match<T>\r\n\t\t{\r\n\t\t\tprivate readonly ", source);
 		Assert.Contains("\t\tstruct Failure\r\n\t\t{\r\n\t\t\tpublic int Position;",               source);
-		Assert.Contains("\t\tsealed class Ways\r\n\t\t{\r\n",                                      source);
+		Assert.Contains("\t\tsealed class Ways_DotGram\r\n\t\t{\r\n",                                      source);
 	}
 
 	[Fact]

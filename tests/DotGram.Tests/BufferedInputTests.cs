@@ -620,7 +620,7 @@ public sealed partial class BufferedInputTests
 		var assembly = EmittedCode.Compile(compilation.Sources.Single().Text, declarationMembers: """
 			public static string Chars()
 			{
-				using var text = new BufferedText(new System.IO.StringReader("abcdef|ghi;jk"), 2, 100);
+				using var text = new BufferedText_DotGram(new System.IO.StringReader("abcdef|ghi;jk"), 2, 100);
 				return string.Join(",", text.IndexOf(0, '|'), text.IndexOf(0, ';', '|'), text.IndexOf(7, ';'),
 					text.IndexOf(0, 'x', 'y', 'f'), text.IndexOf(0, System.MemoryExtensions.AsSpan("xyz;")),
 					text.IndexOf(7, 'x'), text.End);
@@ -628,7 +628,7 @@ public sealed partial class BufferedInputTests
 
 			public static string Bytes()
 			{
-				using var text = new BufferedBytes(new System.IO.MemoryStream(System.Text.Encoding.ASCII.GetBytes("abcdef|ghi;jk")), 2, 100);
+				using var text = new BufferedBytes_DotGram(new System.IO.MemoryStream(System.Text.Encoding.ASCII.GetBytes("abcdef|ghi;jk")), 2, 100);
 				return string.Join(",", text.IndexOf(0, (byte)'|'), text.IndexOf(0, (byte)';', (byte)'|'), text.IndexOf(7, (byte)';'),
 					text.IndexOf(0, (byte)'x', (byte)'y', (byte)'f'), text.IndexOf(0, new byte[] { (byte)'x', (byte)'y', (byte)'z', (byte)';' }),
 					text.IndexOf(7, (byte)'x'), text.End);
@@ -636,7 +636,7 @@ public sealed partial class BufferedInputTests
 
 			public static int Beyond()
 			{
-				using var text = new BufferedText(new System.IO.StringReader("aaaaaaaa|"), 2, 4);
+				using var text = new BufferedText_DotGram(new System.IO.StringReader("aaaaaaaa|"), 2, 4);
 				return text.IndexOf(0, '|');
 			}
 			""");
