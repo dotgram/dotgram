@@ -39,11 +39,42 @@ public static partial class CSharpEmitter
 	/// <summary>The joiner as C# writes it.</summary>
 	static string JoinerLiteral => Char(GrammarNormalizer.Joiner);
 
+	/// <summary>What a form over a reader that throws calls: the reader as the text the parser reads.</summary>
+	const string ReadWholeSupport = """
+			/// <summary>A reader as the text the parser reads, a line a segment; a line that holds U+0000 throws.</summary>
+			private static string Read_DotGram(global::System.IO.TextReader input)
+			{
+				return new SegmentReader_DotGram(input, true).ReadToEnd();
+			}
+
+
+			""";
+
+	/// <summary>What a form over a reader that answers calls: the reader as the text, or where a line held U+0000.</summary>
+	const string ReadTriedSupport = """
+			/// <summary>
+			/// A reader as the text the parser reads, a line a segment, or, where a line holds U+0000, an
+			/// empty text, where that character would have stood and what the line is told.
+			/// </summary>
+			private static string Read_DotGram(global::System.IO.TextReader input, out long refused, out string why)
+			{
+				var reader = new SegmentReader_DotGram(input, false);
+				var text   = reader.ReadToEnd();
+
+				refused = reader.Refused;
+				why     = refused < 0 ? "" : SegmentReader_DotGram.Holds(reader.RefusedLine, reader.RefusedColumn);
+
+				return refused < 0 ? text : "";
+			}
+
+
+			""";
+
 	/// <summary>
 	/// What a grammar that names <c>eos</c> carries once per class: the segments joined into the
 	/// text its forms over text read, and what a segment that holds the joiner is told.
 	/// </summary>
-	static string SegmentSupport(bool recognizers)
+	static string SegmentSupport(bool recognizers, bool readsWhole, bool readsTried)
 	{
 		return (recognizers ? SegmentCut : "") + $$"""
 			/// <summary>What a segment that holds U+0000 is told: in this grammar that is where a segment ends.</summary>
@@ -143,27 +174,8 @@ public static partial class CSharpEmitter
 				return input as global::System.Collections.Generic.IReadOnlyList<string> ?? new global::System.Collections.Generic.List<string>(input);
 			}
 
-			/// <summary>A reader as the text the parser reads, a line a segment; a line that holds U+0000 throws.</summary>
-			private static string Read_DotGram(global::System.IO.TextReader input)
-			{
-				return new SegmentReader_DotGram(input, true).ReadToEnd();
-			}
 
-			/// <summary>
-			/// A reader as the text the parser reads, a line a segment, or, where a line holds U+0000, an
-			/// empty text, where that character would have stood and what the line is told.
-			/// </summary>
-			private static string Read_DotGram(global::System.IO.TextReader input, out long refused, out string why)
-			{
-				var reader = new SegmentReader_DotGram(input, false);
-				var text   = reader.ReadToEnd();
-
-				refused = reader.Refused;
-				why     = refused < 0 ? "" : SegmentReader_DotGram.Holds(reader.RefusedLine, reader.RefusedColumn);
-
-				return refused < 0 ? text : "";
-			}
-
+			""" + (readsWhole ? ReadWholeSupport : "") + (readsTried ? ReadTriedSupport : "") + $$"""
 			/// <summary>
 			/// A reader read as a sequence of lines, each a segment: every line ending — <c>\r\n</c>,
 			/// <c>\n</c> or <c>\r</c> — becomes the end of a segment, and a last line without one ends

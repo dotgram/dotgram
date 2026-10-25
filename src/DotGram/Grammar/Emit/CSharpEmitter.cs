@@ -792,6 +792,15 @@ public static partial class CSharpEmitter
 			}
 		}
 
+		// Whether the publication's streamed reading takes a reader and a sequence in place of the
+		// whole one (EmitStreamingFind, EmitStreamingParse).
+		bool StreamsOverSegments(Publication publication)
+		{
+			return !bufferedInput && !publication.BufferedInput && Streams(graph, publication, overKinds) &&
+				(publication.Kind == PublishKind.Find ||
+				 publication.Kind == PublishKind.Parse && StagesOf(graph, publication.Rule) is not null);
+		}
+
 		// What a grammar that names `eos` publishes: its forms over segments, read through the forms
 		// over text written above (SegmentEmitter).
 		PublishOverSegments();
@@ -808,15 +817,11 @@ public static partial class CSharpEmitter
 				var value    = publication.ResultType is { } contract
 					? contract.Name + (contract.IsSequence ? "[]" : "")
 					: results.QualifiedOf(publication.Rule) ?? "string";
-				var streams  = !bufferedInput && !publication.BufferedInput && Streams(graph, publication, overKinds);
-
 				// What the streamed reading hands back, where there is one (EmitStreamingFind, EmitStreamingParse).
-				var streamed = !streams ? null
+				var streamed = !StreamsOverSegments(publication) ? null
 					: publication.Kind == PublishKind.Find
 						? $"global::System.Collections.Generic.IEnumerable<{MatchType}<{value}>>"
-					: publication.Kind == PublishKind.Parse && StagesOf(graph, publication.Rule) is not null
-						? $"global::System.Collections.Generic.IEnumerable<{graph.Types[publication.Rule].Substring(0, graph.Types[publication.Rule].Length - "[]".Length)}>"
-					: null;
+					: $"global::System.Collections.Generic.IEnumerable<{graph.Types[publication.Rule].Substring(0, graph.Types[publication.Rule].Length - "[]".Length)}>";
 
 				EmitOverSegments(file, publication, value, context, streamed);
 			}
@@ -999,7 +1004,10 @@ public static partial class CSharpEmitter
 
 		if (graph.Segmented)
 		{
-			file.Write(SegmentSupport(NodeWalk.CallsTheHost(graph)));
+			file.Write(SegmentSupport(
+				NodeWalk.CallsTheHost(graph),
+				readsWhole: graph.Publications.Any(publication => publication.Joined && !StreamsOverSegments(publication)),
+				readsTried: graph.Publications.Any(static publication => publication.Joined && publication.Kind == PublishKind.Parse)));
 			file.Line();
 		}
 
@@ -1685,10 +1693,11 @@ public static partial class CSharpEmitter
 				file.Line();
 
 				// And the same rule entered where the caller says it begins, which is what a
-				// positional overload calls. The state is already a root — `Register` adds the
+				// positional overload calls. A grammar that names `eos` publishes no positional overload
+				// (SegmentEmitter), so none calls it. The state is already a root — `Register` adds the
 				// one that demands no end whatever the publication asked for — so this is a
 				// wrapper over it and nothing more.
-				if (whole && wrappers.Add((publication.Rule, false)))
+				if (whole && !graph.Segmented && wrappers.Add((publication.Rule, false)))
 				{
 					file.Write(machine.RenderWrapper(
 						publication.Rule, MethodOf(publication.Rule), engine, whole: false));
