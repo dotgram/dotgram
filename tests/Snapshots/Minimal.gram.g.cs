@@ -4369,7 +4369,7 @@ namespace DotGram.Snapshots
 
 				S16:
 				{
-					if ((uint)p >= (uint)text.Length) goto S19;
+					if ((uint)p >= (uint)text.Length) { failure.Starved = true; goto S19; }
 					syncFrom = p;
 					entries.Add(new ParserEntry(ParserEntry.Choice, 20, p, call, atomic, repeat, lookahead, 0));
 				}
@@ -4688,6 +4688,7 @@ namespace DotGram.Snapshots
 			return p;
 
 			Refuse:
+			if (p >= text.Length) failure.Starved = true;
 			return -1 - p;
 		}
 
@@ -4901,6 +4902,8 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 				}
+				else
+					failure.Starved = true;
 			}
 
 			{
@@ -4991,6 +4994,8 @@ namespace DotGram.Snapshots
 						goto Fail;
 					}
 				}
+				else
+					failure.Starved = true;
 			}
 
 			{
@@ -5069,6 +5074,7 @@ namespace DotGram.Snapshots
 			return p;
 
 			Refuse:
+			if (p >= text.Length) failure.Starved = true;
 			return -1 - p;
 		}
 

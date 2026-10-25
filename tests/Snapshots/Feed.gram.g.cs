@@ -2184,6 +2184,7 @@ namespace DotGram.Snapshots
 
 			Refuse:
 			if (p > furthest) furthest = p;
+			if (furthest >= text.Length) failure.Starved = true;
 
 			reachedAt = furthest;
 			return -1 - furthest;
@@ -2204,6 +2205,7 @@ namespace DotGram.Snapshots
 			return p;
 
 			Refuse:
+			if (p >= text.Length) failure.Starved = true;
 			return -1 - p;
 		}
 

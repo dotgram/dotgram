@@ -123,7 +123,7 @@ sealed partial class Machine
 
 			using (file.Block($"static int {plan.Name}({InputType} text, int p{ScannerParameters})"))
 			{
-				file.Line($"if ({Short(1)}) return -1;");
+				file.Line(_starves ? $"if ({Short(1)}) {{ failure.Starved = true; return -1; }}" : $"if ({Short(1)}) return -1;");
 				file.Line($"var c = {ReadAt("p")};");
 				file.Line($"if (!({CSharpEmitter.Test(plan.Head, Tabulate)})) return -1;");
 				file.Line("p++;");
@@ -862,6 +862,31 @@ sealed partial class Machine
 		int _labels;
 		int _marks;
 
+		/// <summary>
+		/// Where a read that ran into the end of the text goes: to <paramref name="fail"/>, saying first that it
+		/// ran out where a look stands around it and the scanner is to say so.
+		/// </summary>
+		/// <remarks>
+		/// A look puts the position back and raises nothing on how far the scan got, so neither of the exits
+		/// can tell afterwards that it read to the end; this read can. Outside a look the refusal or the match
+		/// that follows says it from how far the scan got.
+		/// </remarks>
+		string RanOut(string fail)
+		{
+			return starves && _lookingAhead > 0 ? $"{{ failure.Starved = true; goto {fail}; }}" : $"goto {fail};";
+		}
+
+		/// <summary>
+		/// <see cref="RanOut"/> for a read of one character where it stands. Inside a look it stands where
+		/// the look does or past something the look read first: the way back a look's refusal takes raises how
+		/// far the scan got to there, the end, and the exits say so — except in the seam, whose way back past a
+		/// look is quiet.
+		/// </summary>
+		string RanOutHere(string fail)
+		{
+			return Seam ? RanOut(fail) : $"goto {fail};";
+		}
+
 		/// <summary>How many lookaheads the code being written stands in: a pair left open there is not recorded.</summary>
 		int _lookingAhead;
 		int _deepestMark;
@@ -1031,9 +1056,17 @@ sealed partial class Machine
 				head.Line();
 				head.Line("Refuse:");
 
+				// And a refusal says it as the match does. A caller that is a look throws away how far the
+				// scan reached — its failure is quiet and stands where the look began — so without this a
+				// refusal at the end of a window read as the end of the input: the element was answered
+				// rather than read again with more of the input in hand.
 				if (written.Contains("furthest", StringComparison.Ordinal))
 				{
 					head.Line("if (p > furthest) furthest = p;");
+
+					if (starves)
+						head.Line("if (furthest >= text.Length) failure.Starved = true;");
+
 					head.Line();
 
 					if (reports)
@@ -1045,6 +1078,9 @@ sealed partial class Machine
 				}
 				else
 				{
+					if (starves)
+						head.Line("if (p >= text.Length) failure.Starved = true;");
+
 					head.Line("return -1 - p;");
 				}
 			}
@@ -1085,8 +1121,14 @@ sealed partial class Machine
 						// `"abqy"` and `"abcdefx"` both begin `ab`, and a message should name
 						// the one that got furthest — and working that out on the path that
 						// is about to refuse anyway costs the path that matches nothing.
+						//
+						// Inside a look the input ending inside the literal is asked first and on its own: the
+						// look records nothing, and this is the one place that knows the scan ran out.
+						if (starves && _lookingAhead > 0)
+							code.Line($"if ({Short(text.Length)}) {RanOut(fail)}");
+
 						code.Line(
-							$"if ({Short(text.Length)} || " +
+							(starves && _lookingAhead > 0 ? "if (" : $"if ({Short(text.Length)} || ") +
 							"!global::System.MemoryExtensions.SequenceEqual(" +
 							$"text.Slice(p, {text.Length}), {Spanned(text)}))");
 
@@ -1156,7 +1198,7 @@ sealed partial class Machine
 						}
 						else
 						{
-							code.Line($"if ({Short(text.Length)}) goto {fail};");
+							code.Line($"if ({Short(text.Length)}) {RanOut(fail)}");
 						}
 
 						for (var i = 0; i < text.Length; i++)
@@ -1185,7 +1227,7 @@ sealed partial class Machine
 					var test = CSharpEmitter.Test(element, tabulate);
 
 					if (!loaded)
-						code.Line($"if ((uint)p >= (uint)text.Length) goto {fail};");
+						code.Line($"if ((uint)p >= (uint)text.Length) {RanOutHere(fail)}");
 
 					// `any` tests nothing; reading the character just to discard it would
 					// be an unreachable branch in somebody's build.
@@ -1302,7 +1344,7 @@ sealed partial class Machine
 
 						if (!loaded)
 						{
-							code.Line($"if ((uint)p >= (uint)text.Length) goto {fail};");
+							code.Line($"if ((uint)p >= (uint)text.Length) {RanOutHere(fail)}");
 							code.Line("c = text[p];");
 						}
 						code.Line($"if (!({front})) goto {fail};");
@@ -1614,7 +1656,7 @@ sealed partial class Machine
 			{
 				code.Line(_lookingAhead == 0
 					? $"if ({found} < 0) {{ if (text.Length > furthest) furthest = text.Length; goto {fail}; }}"
-					: $"if ({found} < 0) goto {fail};");
+					: $"if ({found} < 0) {RanOut(fail)}");
 				code.Line($"p += {found} + {delimiter.Length};");
 
 				return;
@@ -1652,7 +1694,7 @@ sealed partial class Machine
 			else
 			{
 				code.Line($"if ({stop} >= 0) goto {fail};");
-				code.Line($"if ({found} < 0) goto {fail};");
+				code.Line($"if ({found} < 0) {RanOut(fail)}");
 			}
 
 			code.Line($"p += {found} + {delimiter.Length};");

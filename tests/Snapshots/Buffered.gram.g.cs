@@ -1195,6 +1195,7 @@ namespace DotGram.Snapshots
 			return p;
 
 			Refuse:
+			if (p >= text.Length) failure.Starved = true;
 			return -1 - p;
 		}
 
@@ -1213,6 +1214,7 @@ namespace DotGram.Snapshots
 			return p;
 
 			Refuse:
+			if (p >= text.Length) failure.Starved = true;
 			return -1 - p;
 		}
 

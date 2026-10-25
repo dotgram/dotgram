@@ -53,6 +53,7 @@
 		<Compile Include="..\DotGram.Tests\ReferenceInterpreter.cs" Link="Shared\ReferenceInterpreter.cs" />
 		<Compile Include="..\DotGram.Tests\NestedLookahead.cs" Link="Shared\NestedLookahead.cs" />
 		<Compile Include="..\DotGram.Tests\BackReferenceEmission.cs" Link="Shared\BackReferenceEmission.cs" />
+		<Compile Include="..\DotGram.Tests\WindowEdge.cs" Link="Shared\WindowEdge.cs" />
 	</ItemGroup>
 
 	<!-- Written once, in the benchmarks (which prints every series as an audit), and read here as a guard held to a baseline (D57). -->

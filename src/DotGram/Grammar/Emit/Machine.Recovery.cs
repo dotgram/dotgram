@@ -138,7 +138,11 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.PendingRecovery, {Resuming(atAsked, asked)}, p, call, reach{id}, repeat, lookahead, 0));");
 		atAsked.Line($"goto {Label(atAsked, scan)};");
 
-		atScan.Line($"if ({Short(1)}) goto {Label(atScan, recovered)};");
+		// A skip that reaches the end of the text took its end for the synchronization, which a window's
+		// end is not.
+		atScan.Line(_starves
+			? $"if ({Short(1)}) {{ failure.Starved = true; goto {Label(atScan, recovered)}; }}"
+			: $"if ({Short(1)}) goto {Label(atScan, recovered)};");
 		EmitRecoverySearch(atScan, recovery.Recovery.Sync);
 		atScan.Line($"{SyncFrom(id)} = p;");
 		atScan.Line($"entries.Add(new ParserEntry(ParserEntry.Choice, {Resuming(atScan, advance)}, p, call, atomic, repeat, lookahead, 0));");

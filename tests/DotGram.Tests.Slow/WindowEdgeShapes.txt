@@ -1,0 +1,512 @@
+=== s01-feed3
+Feed    : @string[] = Header & Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn) & Trailer & eof
+Header  : @string   = "H|" & t: Text & eos => @("head " + t)
+Row     : @string   = n: Number & '|' & t: Text & eos => @(n + "=" + t)
+Trailer : @string   = "T|" & n: Number & eos => @("tail " + n)
+Number  = ['0'..'9']+
+Text    = [^ '|']+
+parse Feed
+---
+ParseFeed
+---
+^H|day
+$T|3
+1|abc
+22|x y z
+3|a\nb
+!x|bad
+!3|
+=== s02-feed-alts
+Feed    : @string[] = Header & Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn) & Trailer & eof
+Header  : @string   = "H|" & t: Text & eos => @("head " + t)
+Row     : @string   = a: Trade => @(a) | b: Quote => @(b) | c: Note => @(c)
+Trade   : @string   = "TR|" & n: Number & '|' & p: Price & o: Opt & eos => @("trade " + n + " " + p + " [" + o + "]")
+Quote   : @string   = "QU|" & s: Sym & '|' & q: Quoted & eos => @("quote " + s + " " + q)
+Note    : @string   = "NO|" & t: Rest & eos => @("note " + t)
+Opt     = ('|' & Text)?
+Price   = ['0'..'9']+ & ('.' & ['0'..'9']{1,4})?
+Sym     = ['A'..'Z']{1,5}
+Quoted  = '"' & ([^ '"'] | "\"\"")* & '"'
+Rest    = any*
+Trailer : @string   = "T|" & n: Number & eos => @("tail " + n)
+Number  = ['0'..'9']+
+Text    = [^ '|']+
+parse Feed
+---
+ParseFeed
+---
+^H|2026-10-25
+$T|5
+TR|1|10.5
+TR|2|7|note here
+QU|ABC|"a ""quoted"" one"
+QU|X|"multi\nline"
+NO|anything | at all "
+NO|
+!TR|x|1
+!QU|abc|"x"
+!QU|AB|"open
+!ZZ|
+=== s03-bare-rows
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn)
+Row    : @string   = n: Number & '|' & t: Text & eos => @(n + "=" + t)
+Number = ['0'..'9']+
+Text   = [^ '|']+
+parse Rows
+---
+ParseRows
+---
+1|a
+2|bb b
+3|c\nd
+!|
+!x
+!4|a|b
+!1|a\02|b
+!\0
+=== s04-csv-quoted
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn)
+Row    : @string   = f: Fields & eos => @("<" + f + ">")
+Fields = Field & (',' & Field)*
+Field  = Quoted | Plain
+Quoted = '"' & ([^ '"'] | "\"\"")* & '"'
+Plain  = [^ ',' | '"']*
+parse Rows
+---
+ParseRows
+---
+a,b,c
+"x,y",z
+"he said ""hi""",
+,,
+"line\nbreak",1
+!"open,
+!a"b
+=== s05-no-recover
+Rows   : @string[] = Header & Row* & Trailer & eof
+Header : @string   = "H|" & t: Text & eos => @("head " + t)
+Row    : @string   = n: Number & '|' & t: Text & eos => @(n + "=" + t)
+Trailer : @string  = "T|" & n: Number & eos => @("tail " + n)
+Number = ['0'..'9']+
+Text   = [^ '|']+
+parse Rows
+---
+ParseRows
+---
+^H|x
+$T|1
+1|a
+2|b\nc
+!1|
+!T|x
+=== s06-recover-semicolon
+Items : @string[] = Item* recover ';' => @("bad " + parserLine + ":" + parserFailureColumn) & eof
+Item  : @string   = t: ['a'..'z']+ & eos => @(t)
+parse Items
+---
+ParseItems
+---
+ab
+zz
+;
+x1
+1;
+;cd
+=== s07-mid-segment-end
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn) & eof
+Row    : @string   = t: ['a'..'z']+ & (',' | eos) => @(t)
+parse Rows
+---
+ParseRows
+---
+a,b
+abc
+a,b,c,
+x,
+!1
+!a,,b
+=== s08-overlap-trailer
+Feed    : @string[] = Header & Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn) & Trailer & eof
+Header  : @string   = "H|" & t: Text & eos => @("head " + t)
+Row     : @string   = k: ['A'..'Z'] & '|' & t: Text & eos => @(k + "=" + t)
+Trailer : @string   = "T|" & n: Number & eos => @("tail " + n)
+Number  = ['0'..'9']+
+Text    = [^ '|']+
+parse Feed
+---
+ParseFeed
+---
+^H|x
+$T|3
+A|a
+T|7
+T|zz
+B|b\nc
+!a|x
+=== s09-any
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn)
+Row    : @string   = "C|" & t: (any*) & eos => @("[" + t + "]")
+parse Rows
+---
+ParseRows
+---
+C|anything
+C|
+C|a\nb|c
+!X|q
+=== s10-category
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn)
+Row    : @string   = "C|" & t: ([\p{Cc} | 'a'..'z']+) & eos => @("[" + t + "]")
+parse Rows
+---
+ParseRows
+---
+C|abc
+C|a\nb
+C|\u0001x
+!C|ABC
+=== s11-range-null
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn)
+Row    : @string   = "C|" & t: (['\0'..'z']+) & eos => @("[" + t + "]")
+parse Rows
+---
+ParseRows
+---
+C|abc
+C|a\nb
+C|
+!C|{
+=== s12-lookahead-next
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn) & eof
+Row    : @string   = t: ['a'..'z']+ & eos & ?!'#' => @(t)
+              | '#' & t: ['a'..'z']* & eos => @("#" + t)
+parse Rows
+---
+ParseRows
+---
+ab
+cd
+#x
+#
+!1
+=== s13-lookahead-pos
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn) & eof
+Row    : @string   = t: ['a'..'z']+ & eos & ?=(['a'..'z'] | eof) => @(t)
+parse Rows
+---
+ParseRows
+---
+ab
+cd
+e
+!1
+=== s14-backref
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn)
+Row    : @string   = $q: ['a'..'z']+ & '|' & t: Text & '|' & $q & eos => @("ok " + t)
+Text   = [^ '|']+
+parse Rows
+---
+ParseRows
+---
+ab|x|ab
+z|y y|z
+!ab|x|ac
+=== s15-counted-any
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn)
+Row    : @string   = "F|" & t: (any{3}) & eos => @("[" + t + "]")
+parse Rows
+---
+ParseRows
+---
+F|abc
+F|a\nb
+!F|ab
+!F|abcd
+=== s16-opt-eos
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn) & eof
+Row    : @string   = n: Number & eos? & t: Text & eos => @(n + "=" + t)
+Number = ['0'..'9']+
+Text   = ['a'..'z']+
+parse Rows
+---
+ParseRows
+---
+1abc
+2
+abc
+!x
+=== s17-nested-seg
+Rows   : @string[] = (Pair & eos)*  & eof
+Pair   : @string   = k: Key & '=' & v: Value => @(k + "->" + v)
+Key    = ['a'..'z']+
+Value  = [^ ';']*
+parse Rows
+---
+ParseRows
+---
+a=1
+b=x\ny
+c=
+!=1
+!a;b
+=== s18-predicate
+Rows : @string[] = Row* recover eos => @("bad " + parserLine)
+Row  : @string   = t: ([@Letter]+) & eos => @(t)
+parse Rows
+---
+ParseRows
+---
+ab
+a\nb
+!1
+---
+static bool Letter(char c) { return c != '1'; }
+=== s19-empty-seg
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn)
+Row    : @string   = t: (['a'..'z']*) & eos => @("[" + t + "]")
+parse Rows
+---
+ParseRows
+---
+ab
+\e
+c
+!1
+=== s20-plus-sep
+Rows   : @string[] = Row+ recover eos => @("bad " + parserLine + ":" + parserFailureColumn) & End & eof
+Row    : @string   = n: Number & ':' & t: Text & eos => @(n + "=" + t)
+End    = "END" & eos
+Number = ['0'..'9']+
+Text   = [^ ':']*
+parse Rows
+---
+ParseRows
+---
+1:a
+2:
+3:x\ny
+$END
+!END1
+!:a
+=== s21-multiseg-continuation
+Feed    : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn) & Tail & eof
+Row     : @string   = k: ['A'..'Z'] & '|' & t: Text & eos => @(k + "=" + t)
+Tail    = ("S|" & Number & eos)+
+Number  = ['0'..'9']+
+Text    = [^ '|']+
+parse Feed
+---
+ParseFeed
+---
+A|a
+S|1
+S|2
+B|x
+$S|9
+!a|x
+=== s22-overlap-norecover
+Feed    : @string[] = Row* & Trailer & eof
+Row     : @string   = k: ['A'..'Z'] & '|' & t: Text & eos => @(k + "=" + t)
+Trailer : @string   = "T|" & n: Number & eos => @("tail " + n)
+Number  = ['0'..'9']+
+Text    = [^ '|']+
+parse Feed
+---
+ParseFeed
+---
+A|a
+T|1
+B|b
+$T|2
+=== s23-far-lookahead
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine) & ("STOP" & eos)? & eof
+Row    : @string   = t: Word & eos & ?=Ahead => @(t)
+Ahead  = (Word & eos)* & "STOP" & eos
+Word   = ['a'..'z']+
+parse Rows
+---
+ParseRows
+---
+ab
+cd
+STOP
+!1
+=== s24-trivia-eos
+Rows   : @string[] = Row* recover eos & eof
+Row    : @string   = n: Number & '|' & t: Text & ';' => @(n + "=" + t)
+Number = ['0'..'9']+
+Text   = ['a'..'z']+
+trivia = (' ' | eos)*
+parse Rows
+---
+ParseRows
+---
+1|a;
+2
+|b;
+3|c;4|d;
+!x;
+=== s25-host-recognizer
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine)
+Row    : @string   = t: @Word & eos => @(t)
+parse Rows
+---
+ParseRows
+---
+ab
+cd
+!1
+---
+static bool Word(System.ReadOnlySpan<char> input, ref int pos) { var s = pos; while (pos < input.Length && input[pos] >= 'a' && input[pos] <= 'z') pos++; return pos > s; }
+=== s26-when-guard
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn)
+Row    : @string   = t: Text & when @(t.Length < 4) & eos => @(t)
+Text   = [^ '|']+
+parse Rows
+---
+ParseRows
+---
+abc
+a\nb
+!abcdef
+=== s27-atomic-cross
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine) & eof
+Row    : @string   = t: Word & { eos & ?!'x' } => @(t)
+              | 'x' & eos => @("x")
+Word   = ['a'..'z']+
+parse Rows
+---
+ParseRows
+---
+ab
+x
+cd
+!1
+=== s28-recover-multiseg-sync
+Rows   : @string[] = Row* recover ("END" & eos) => @("bad " + parserLine + ":" + parserFailureColumn) & eof
+Row    : @string   = t: ['a'..'z']+ & eos => @(t)
+parse Rows
+---
+ParseRows
+---
+ab
+cd
+END
+!1
+!x2
+=== s29-lit-null
+Rows   : @string[] = Row* recover eos
+Row    : @string   = t: Word & "a\0b" & eos => @(t)
+Word   = ['a'..'z']+
+parse Rows
+---
+ParseRows
+---
+ab
+=== s30-eos-inside-choice-end
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine) & eof
+Row    : @string   = t: Word & eos => @(t)
+              | t: Word & '+' & eos & u: Word & eos => @(t + "+" + u)
+Word   = ['a'..'z']+
+parse Rows
+---
+ParseRows
+---
+ab
+cd+
+ef
+!1
+=== s31-eos-lead
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine) & eof
+Row    : @string   = eos* & t: Word & eos => @(t)
+Word   = ['a'..'z']+
+parse Rows
+---
+ParseRows
+---
+ab
+\e
+cd
+!1
+=== s32-yield-row
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine)
+Row    : @string   = n: Number & ('|' & t: Text)? & eos => @(n + "=" + t)
+Number = ['0'..'9']+
+Text   = [^ '|']*
+parse Rows
+---
+ParseRows
+---
+1|a
+2
+3|
+!x
+=== x01-negative-far-lookahead
+Rows : @string[] = Row* recover eos => @("bad " + parserLine) & eos? & eof
+Row  : @string   = t: Word & eos & ?!Bad => @(t)
+Bad  = (Word & eos)* & eos
+Word = ['a'..'z']+
+parse Rows
+---
+ParseRows
+---
+ab
+cd
+ef
+$\e
+=== x02-look-inside-scanner
+Rows : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn) & eof
+Row  : @string   = t: Head & '1' & eos => @(t)
+Head = ?!"abc" & ['a'..'z']
+parse Rows
+---
+ParseRows
+---
+a1
+b1
+!abc1
+!ab1
+!abd1
+=== x03-one-character-look
+Rows   : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn) & eof
+Row    : @string   = "ab" & ?=['0'..'9'] & n: Digits & eos => @("ab" + n) | 'a' & 'c' & eos => @("ac")
+Digits = ['0'..'9']+
+parse Rows
+---
+ParseRows
+---
+ab1
+ac
+ab12
+!ab
+!abx
+=== x04-run-look
+Rows  : @string[] = Row* recover eos => @("bad " + parserLine + ":" + parserFailureColumn) & eof
+Row   : @string   = "ab" & ?=Ident & t: Rest & eos => @("ab " + t) | 'a' & 'c' & eos => @("ac")
+Ident = ['a'..'z'] & ['a'..'z' | '0'..'9']*
+Rest  = ['a'..'z' | '0'..'9']+
+parse Rows
+---
+ParseRows
+---
+abx
+abx9
+ac
+!ab9
+!ab
+=== x05-comment-trivia
+Rows   : @string[] = Row* recover eos & eof
+Row    : @string   = n: Number & '|' & t: Text & eos => @(n + "=" + t)
+Number = ['0'..'9']+
+Text   = ['a'..'z']+
+trivia = { (' ' | "/*" & (?!"*/" & [^ '\0'])* & "*/")* }
+parse Rows
+---
+ParseRows
+---
+1|a
+1 /* c */|b
+2|/* x */c
+3 /**/ | d
+!1|/* open
+!2|/* a * / b

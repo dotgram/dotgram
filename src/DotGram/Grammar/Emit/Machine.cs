@@ -3978,11 +3978,18 @@ sealed partial class Machine
 						var predicate = Reserve(out var atAsk);
 						var askedName = DeclareExpected(Displays(node));
 
+						// At the end of the text the look is asked of nothing, and records nothing either way:
+						// where a stream reads it, that is said here or nowhere.
 						if (isPositive)
 						{
 							atAsk.Line($"if ({Short(1)})");
 							using (atAsk.Block(""))
+							{
+								if (_starves)
+									atAsk.Line("failure.Starved = true;");
+
 								EmitTerminalFailure(atAsk, _fail, askedName);
+							}
 							atAsk.Line($"c = {ReadAt("p")};");
 							atAsk.Line($"if (!({asked}))");
 							using (atAsk.Block(""))
@@ -3996,6 +4003,12 @@ sealed partial class Machine
 								atAsk.Line($"if ({asked})");
 								using (atAsk.Block(""))
 									EmitTerminalFailure(atAsk, _fail, askedName);
+							}
+
+							if (_starves)
+							{
+								atAsk.Line("else");
+								atAsk.Then("failure.Starved = true;");
 							}
 						}
 
