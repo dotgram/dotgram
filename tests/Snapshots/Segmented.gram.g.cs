@@ -1155,7 +1155,7 @@ namespace DotGram.Snapshots
 		/// <summary>Parses the segments as <c>Args</c>, answering only whether they are one.</summary>
 		public static bool TryParseArgs(global::System.IO.TextReader input, out global::DotGram.Snapshots.Segmented.Args value)
 		{
-			var text = Read_DotGram(input, out var refused, out var why);
+			var text = Read_DotGram(input, out var refused, out _);
 
 			if (refused >= 0)
 			{

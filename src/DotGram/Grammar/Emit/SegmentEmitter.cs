@@ -638,7 +638,8 @@ public static partial class CSharpEmitter
 
 					using (file.Block($"{access} static bool Try{method}({input} input{takes}, out {value} value)"))
 					{
-						file.Line($"var text = {refusing};");
+						// This form says only whether, so what a reader would tell of a refusal is dropped.
+						file.Line($"var text = {refusing.Replace("out var why", "out _")};");
 						file.Line();
 
 						using (file.Block("if (refused >= 0)"))
