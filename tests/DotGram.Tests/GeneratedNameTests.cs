@@ -27,6 +27,8 @@ public sealed class GeneratedNameTests
 	[InlineData("SourceSpan")]
 	[InlineData("ParserInput")]
 	[InlineData("OnRecovered")]
+	[InlineData("Failure")]
+	[InlineData("ParserEntry")]
 	[InlineData("Probe")]
 	public void A_publication_named_like_a_member_of_the_class_is_refused(string name)
 	{
@@ -62,27 +64,31 @@ public sealed class GeneratedNameTests
 		Assert.NotNull(host.GetNestedType("ProbeValue")!.GetProperty("Y"));
 	}
 
-	/// <summary>The types the class nests for its own use are not names a rule's type may take.</summary>
+	/// <summary>
+	/// Every type the class nests for its own use has a name no name of the author's can be (it holds
+	/// <c>_DotGram</c>), but two, which are reserved instead, and the public ones: a rule called after
+	/// one of those gets a type of another name, and a rule called after any other keeps its own.
+	/// </summary>
 	[Theory]
-	[InlineData("Failure")]
-	[InlineData("Match")]
-	[InlineData("Window")]
-	[InlineData("Lines")]
-	[InlineData("Held")]
-	[InlineData("Parser")]
-	[InlineData("ParserArena")]
-	[InlineData("ParserEntry")]
-	[InlineData("Ways")]
-	[InlineData("DirectValues")]
-	[InlineData("ImmediateValues")]
-	[InlineData("BufferedText")]
-	[InlineData("BufferedBytes")]
-	[InlineData("IParserInputSource")]
-	[InlineData("Outcome")]
-	[InlineData("SourceSpan")]
-	[InlineData("ParserInput")]
-	[InlineData("OnRecovered")]
-	public void A_rule_named_like_a_type_of_the_class_gets_a_type_of_another_name(string name)
+	[InlineData("Failure", true)]
+	[InlineData("ParserEntry", true)]
+	[InlineData("Match", true)]
+	[InlineData("Outcome", true)]
+	[InlineData("SourceSpan", true)]
+	[InlineData("ParserInput", true)]
+	[InlineData("OnRecovered", true)]
+	[InlineData("Window", false)]
+	[InlineData("Lines", false)]
+	[InlineData("Held", false)]
+	[InlineData("Parser", false)]
+	[InlineData("ParserArena", false)]
+	[InlineData("Ways", false)]
+	[InlineData("DirectValues", false)]
+	[InlineData("ImmediateValues", false)]
+	[InlineData("BufferedText", false)]
+	[InlineData("BufferedBytes", false)]
+	[InlineData("IParserInputSource", false)]
+	public void A_rule_named_like_a_type_of_the_class_gets_a_type_that_compiles(string name, bool renamed)
 	{
 		var grammar = $"{name} = x: 'a'\nS = {name} & eof\nparse S";
 
@@ -91,7 +97,35 @@ public sealed class GeneratedNameTests
 			{
 				var assembly = Built(grammar, direct, buffered);
 
-				Assert.NotNull(assembly.GetType("Probe+" + name + "Value"));
+				Assert.NotNull(assembly.GetType("Probe+" + name + (renamed ? "Value" : "")));
+			}
+	}
+
+	/// <summary>
+	/// A publication called after a type the class nests for its own use is no collision once that type
+	/// is named in the reserved space: <c>find Word as Lines</c> was CS0102.
+	/// </summary>
+	[Theory]
+	[InlineData("Lines")]
+	[InlineData("Window")]
+	[InlineData("Parser")]
+	[InlineData("ParserArena")]
+	[InlineData("Ways")]
+	[InlineData("Held")]
+	[InlineData("DirectValues")]
+	[InlineData("ImmediateValues")]
+	[InlineData("BufferedText")]
+	[InlineData("BufferedBytes")]
+	[InlineData("IParserInputSource")]
+	public void A_publication_named_like_a_type_in_the_reserved_space_compiles(string name)
+	{
+		foreach (var direct in new[] { true, false })
+			foreach (var buffered in new[] { false, true })
+			{
+				_ = Built($"W = 'w'\nfind W as {name}", direct, buffered);
+				_ = Built($"W = 'w'\nparse W as {name}", direct, buffered);
+				_ = Built($"W = w: 'w'\nparse W as {name} stream", direct, buffered);
+				_ = Built($"W = w: 'w'\nfind W as {name} stream", direct, buffered);
 			}
 	}
 
@@ -127,9 +161,9 @@ public sealed class GeneratedNameTests
 	}
 
 	/// <summary>
-	/// Every type the generator nests in the class is one of the names it keeps apart from the
-	/// author's — a publication is refused the public ones, a rule's type does not take any — or is in
-	/// the reserved space, so that adding one cannot leave a collision unsaid. What the author's rules
+	/// Every type the generator nests in the class is one of the names it reserves — a publication is
+	/// refused them, a rule's type does not take them — or has <c>_DotGram</c> in its name, which no
+	/// name of the author's can, so that adding one cannot leave a collision unsaid. What the author's rules
 	/// make is told by the grammar's own text.
 	/// </summary>
 	[Fact]

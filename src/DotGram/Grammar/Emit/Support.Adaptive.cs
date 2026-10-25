@@ -8,8 +8,8 @@ public static partial class CSharpEmitter
 		/// <summary>A flat prefix and lazily allocated pages, indexed by stable record numbers.</summary>
 		struct ValueTable<T>
 		{
-			Held<T>[] _first;
-			Held<T>[][]? _pages;
+			Held_DotGram<T>[] _first;
+			Held_DotGram<T>[][]? _pages;
 			int _capacity;
 
 			// Raised where a value is stored (Machine.DirectMark), not where room is made: room
@@ -20,14 +20,14 @@ public static partial class CSharpEmitter
 
 			internal ValueTable(int size)
 			{
-				_first = new Held<T>[size];
+				_first = new Held_DotGram<T>[size];
 				_pages = null;
 				_capacity = size;
 				High = 0;
 			}
 
 			internal int Length => _capacity;
-			internal Held<T>[] First => _first;
+			internal Held_DotGram<T>[] First => _first;
 
 			internal void Room(int count)
 			{
@@ -38,7 +38,7 @@ public static partial class CSharpEmitter
 				global::System.Array.Resize(ref _first, size);
 			}
 
-			internal ref Held<T> this[int record]
+			internal ref Held_DotGram<T> this[int record]
 			{
 				[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 				get
@@ -48,12 +48,12 @@ public static partial class CSharpEmitter
 				}
 			}
 
-			ref Held<T> Page(int record)
+			ref Held_DotGram<T> Page(int record)
 			{
 				var index = record >> 6;
 				if (_pages == null)
 				{
-					_pages = new Held<T>[global::System.Math.Max(8, index + 1)][];
+					_pages = new Held_DotGram<T>[global::System.Math.Max(8, index + 1)][];
 					_capacity += _pages.Length;
 				}
 				else if (index >= _pages.Length)
@@ -65,7 +65,7 @@ public static partial class CSharpEmitter
 				var page = _pages[index];
 				if (page == null)
 				{
-					page = _pages[index] = new Held<T>[64];
+					page = _pages[index] = new Held_DotGram<T>[64];
 					_capacity += page.Length;
 				}
 				return ref page[record & 63];

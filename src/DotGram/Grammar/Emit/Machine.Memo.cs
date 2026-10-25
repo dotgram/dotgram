@@ -335,7 +335,7 @@ sealed partial class Machine
 	/// <summary>The reader's two fields the remembered rules read, and where they come from.</summary>
 	static void MemoFields(Writer header)
 	{
-		header.Line("/// <summary>Where each remembered rule has failed in this reading: a bit a rule, from <c>Ways.Memo</c>.</summary>");
+		header.Line("/// <summary>Where each remembered rule has failed in this reading: a bit a rule, from <c>Ways_DotGram.Memo</c>.</summary>");
 		header.Line("readonly ulong[] memo;");
 		header.Line("/// <summary>The token the memo's first word stands for: where the reading began.</summary>");
 		header.Line("readonly int memoAt;");

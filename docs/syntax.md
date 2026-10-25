@@ -2071,8 +2071,11 @@ is allowed to sit between the matches.**
 
 A publication is a method of the generated class, so its name is one of the class's members: it may
 not be `Match`, `Outcome`, `SourceSpan`, `ParserInput` or `OnRecovered`, which the class declares for
-its callers, nor the name of the class itself, nor that of the type made for a rule of the grammar
-(§7.3). That is refused where the directive is written (`GRAM5018`); give it another name with `as`.
+its callers, nor `Failure` or `ParserEntry`, which it declares for its own use, nor the name of the
+class itself, nor that of the type made for a rule of the grammar (§7.3). That is refused where the
+directive is written (`GRAM5018`); give it another name with `as`. Every other type the class nests
+for its own use has `_DotGram` in its name (§7.1), which no publication can have (`GRAM1012`), so
+`find Word as Lines` and `parse Row as Parser` mean what they say.
 
 The form that describes a refusal may pay for the description, and whether it does is a property
 of the grammar rather than of the form. Where the parse can read without recording — no
@@ -3412,8 +3415,8 @@ it was.
 
 A rule that captures gets a type of its own, nested in the generated class and named after the rule,
 with its namespaces joined to the name by `_`. Where that name is already taken in the class — by the
-class itself, by a type the generator writes there, or by another rule's type — `Value` is appended
-until it is free, and a rule that keeps the name it has is never the one renamed. Two rules whose
+class itself, by a type it declares under a plain name (`Match`, `Outcome`, `SourceSpan`, `ParserInput`,
+`Failure`, `ParserEntry`), or by another rule's type — `Value` is appended until it is free, and a rule that keeps the name it has is never the one renamed. Two rules whose
 names come out alike once their namespaces are joined (`A.B` and a rule called `A_B`), and two
 captures of one rule that become one property (`a` and `A`), cannot be told apart in the code that
 is written, and are refused where they are declared (`GRAM5018`).

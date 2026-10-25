@@ -50,9 +50,9 @@ public static partial class CSharpEmitter
 	static string BufferedByteClass()
 	{
 		return BufferedTextClass
-		.Replace("BufferedText", "BufferedBytes")
+		.Replace("BufferedText_DotGram", "BufferedBytes_DotGram")
 		.Replace("global::System.IO.TextReader", "global::System.IO.Stream")
-		.Replace("IParserInputSource<char>", "IParserInputSource<byte>")
+		.Replace("IParserInputSource_DotGram<char>", "IParserInputSource_DotGram<byte>")
 		.Replace("char[]", "byte[]")
 		.Replace("ArrayPool<char>", "ArrayPool<byte>")
 		.Replace("Array.Empty<char>", "Array.Empty<byte>")
@@ -63,7 +63,7 @@ public static partial class CSharpEmitter
 		.Replace(" retained characters;", " retained bytes;")
 		.Replace("private bool _ended;", "private bool _ended;\n\t// The caller's own array, read in place (D7): never given to the pool.\n\tprivate bool _borrowed;")
 		.Replace("if (_buffer.Length <= KeptLength)", "if (!_borrowed && _buffer.Length <= KeptLength)")
-		.Replace("public void Dispose()", "public BufferedBytes(global::System.ReadOnlyMemory<byte> input)\n\t{\n\t\t_input = null!;\n\t\t_limit = int.MaxValue;\n\t\tif (global::System.Runtime.InteropServices.MemoryMarshal.TryGetArray(input, out global::System.ArraySegment<byte> held) && held.Array != null)\n\t\t{\n\t\t\t// Positions count from the segment's start; the array is indexed from its own.\n\t\t\t_buffer = held.Array;\n\t\t\t_start = -held.Offset;\n\t\t}\n\t\telse\n\t\t{\n\t\t\t// Memory that is not an array is copied once, and that copy is still the caller's to keep.\n\t\t\t_buffer = input.ToArray();\n\t\t}\n\t\t_count = input.Length;\n\t\t_capacity = input.Length;\n\t\t_ended = true;\n\t\t_borrowed = true;\n\t}\n\n\tpublic void Dispose()")
+		.Replace("public void Dispose()", "public BufferedBytes_DotGram(global::System.ReadOnlyMemory<byte> input)\n\t{\n\t\t_input = null!;\n\t\t_limit = int.MaxValue;\n\t\tif (global::System.Runtime.InteropServices.MemoryMarshal.TryGetArray(input, out global::System.ArraySegment<byte> held) && held.Array != null)\n\t\t{\n\t\t\t// Positions count from the segment's start; the array is indexed from its own.\n\t\t\t_buffer = held.Array;\n\t\t\t_start = -held.Offset;\n\t\t}\n\t\telse\n\t\t{\n\t\t\t// Memory that is not an array is copied once, and that copy is still the caller's to keep.\n\t\t\t_buffer = input.ToArray();\n\t\t}\n\t\t_count = input.Length;\n\t\t_capacity = input.Length;\n\t\t_ended = true;\n\t\t_borrowed = true;\n\t}\n\n\tpublic void Dispose()")
 		.Replace("ReadOnlySpan<char>", "ReadOnlySpan<byte>")
 		.Replace("public bool Peek(int position, out byte value)", """
 			// Compares where it stands and hands back nothing into the buffer (Machine.Cut).
@@ -402,7 +402,7 @@ public static partial class CSharpEmitter
 			file.Line("/// <summary>Lazily parses consecutive buffered elements; leaves input open.</summary>");
 			using (file.Block(Lazily($"global::System.Collections.Generic.IEnumerable<{publication.ResultType!.Name}>")))
 			{
-				file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}{lazyConstruct};");
+				file.Line($"using var text = new {(bytes ? "BufferedBytes_DotGram" : "BufferedText_DotGram")}{lazyConstruct};");
 				file.Line("var start = 0;");
 				if (publication.YieldRecovery) file.Line("var ordinal = 0;");
 				if (publication.YieldMinimum > 0)
@@ -434,7 +434,7 @@ public static partial class CSharpEmitter
 			file.Line("/// <summary>Lazily finds occurrences through a reusable buffer; leaves input open.</summary>");
 			using (file.Block(Lazily($"global::System.Collections.Generic.IEnumerable<{match}>")))
 			{
-				file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}{lazyConstruct};");
+				file.Line($"using var text = new {(bytes ? "BufferedBytes_DotGram" : "BufferedText_DotGram")}{lazyConstruct};");
 				file.Line("var start = 0;");
 				using (file.Block("while (true)"))
 				{
@@ -454,7 +454,7 @@ public static partial class CSharpEmitter
 		using (file.Block($"{AccessOf(publication)} static {match} Try{method}(" +
 			$"{inputType} input{context}{parameters})"))
 		{
-			file.Line($"using var text = new {(bytes ? "BufferedBytes" : "BufferedText")}{construct};");
+			file.Line($"using var text = new {(bytes ? "BufferedBytes_DotGram" : "BufferedText_DotGram")}{construct};");
 			file.Line($"var failure = new {FailureType}();");
 			Reads($"{BufferedMethod(publication, bytes, machine.InPlace)}(text, 0{hands})", false, "0", null);
 			using (file.Block("if (end < 0)"))
@@ -510,7 +510,7 @@ public static partial class CSharpEmitter
 		var indent  = buffered.Substring(begins, at - begins);
 		var ending  = buffered.Contains("\r\n") ? "\r\n" : "\n";
 		var members = new System.Text.StringBuilder();
-		var element = buffered.Contains("class BufferedBytes") ? "byte" : "char";
+		var element = buffered.Contains("class BufferedBytes_DotGram") ? "byte" : "char";
 		// The line break as an element: a byte has to be cast to, and a character already is one.
 		var lines   = LocatedMembers
 			.Replace("(ELEMENT)'\\n'", element == "byte" ? "(byte)'\\n'" : "'\\n'")
@@ -676,7 +676,7 @@ public static partial class CSharpEmitter
 		""";
 
 	const string BufferedTextClass = """
-		private sealed class BufferedText : global::System.IDisposable, IParserInputSource<char>
+		private sealed class BufferedText_DotGram : global::System.IDisposable, IParserInputSource_DotGram<char>
 		{
 			private readonly global::System.IO.TextReader _input;
 			private readonly int _limit;
@@ -700,7 +700,7 @@ public static partial class CSharpEmitter
 			// keeps pooled speed; above it a parse pays the table, and the process keeps none of it.
 			private const int KeptLength = 1048576;
 
-			public BufferedText(global::System.IO.TextReader input, int capacity, int limit)
+			public BufferedText_DotGram(global::System.IO.TextReader input, int capacity, int limit)
 			{
 				if (input == null) throw new global::System.ArgumentNullException(nameof(input));
 				if (capacity <= 0) throw new global::System.ArgumentOutOfRangeException(nameof(capacity));
@@ -873,7 +873,7 @@ public static partial class CSharpEmitter
 		}
 
 		[global::System.Diagnostics.Conditional("DOTGRAM_STEPS")]
-		static void Step_DotGram(string action, int state, int position, int arena, BufferedText text, string rule)
+		static void Step_DotGram(string action, int state, int position, int arena, BufferedText_DotGram text, string rule)
 		{
 			Step_DotGram(action, state, position, arena);
 		}

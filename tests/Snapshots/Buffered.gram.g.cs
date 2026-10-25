@@ -231,7 +231,7 @@ namespace DotGram.Snapshots
 		/// <remarks>The caller owns input. Pending backtracking and captures may retain the whole input.</remarks>
 		public static Match<string> TryParseFeed(global::System.IO.TextReader input, int? bufferSize = null, int? maxRetained = null)
 		{
-			using var text = new BufferedText(input, bufferSize ?? DefaultBufferSize, maxRetained ?? DefaultMaxRetained);
+			using var text = new BufferedText_DotGram(input, bufferSize ?? DefaultBufferSize, maxRetained ?? DefaultMaxRetained);
 			var failure = new Failure();
 			var end = ReadBuffered_ParseFeed(text, 0, ref failure);
 			if (end < 0)
@@ -261,7 +261,7 @@ namespace DotGram.Snapshots
 		/// <remarks>The caller owns input. Pending backtracking and captures may retain the whole input.</remarks>
 		public static Match<byte[]> TryParseFeed(global::System.IO.Stream input, int? bufferSize = null, int? maxRetained = null)
 		{
-			using var text = new BufferedBytes(input, bufferSize ?? DefaultBufferSize, maxRetained ?? DefaultMaxRetained);
+			using var text = new BufferedBytes_DotGram(input, bufferSize ?? DefaultBufferSize, maxRetained ?? DefaultMaxRetained);
 			var failure = new Failure();
 			var end = ReadBuffered_ParseFeed_Bytes(text, 0, ref failure);
 			if (end < 0)
@@ -295,7 +295,7 @@ namespace DotGram.Snapshots
 		/// <remarks>The caller owns input. Pending backtracking and captures may retain the whole input.</remarks>
 		public static Match<byte[]> TryParseFeed(global::System.ReadOnlyMemory<byte> input)
 		{
-			using var text = new BufferedBytes(input);
+			using var text = new BufferedBytes_DotGram(input);
 			var failure = new Failure();
 			var end = ReadBuffered_ParseFeed_Bytes(text, 0, ref failure);
 			if (end < 0)
@@ -340,7 +340,7 @@ namespace DotGram.Snapshots
 		}
 		private static global::System.Collections.Generic.IEnumerable<Match<string>> Iterate_DotGram_FindRecord(global::System.IO.TextReader input, int bufferSize, int maxRetained)
 		{
-			using var text = new BufferedText(input, bufferSize, maxRetained);
+			using var text = new BufferedText_DotGram(input, bufferSize, maxRetained);
 			var start = 0;
 			while (true)
 			{
@@ -374,7 +374,7 @@ namespace DotGram.Snapshots
 		}
 		private static global::System.Collections.Generic.IEnumerable<Match<byte[]>> Iterate_DotGram_FindRecord(global::System.IO.Stream input, int bufferSize, int maxRetained)
 		{
-			using var text = new BufferedBytes(input, bufferSize, maxRetained);
+			using var text = new BufferedBytes_DotGram(input, bufferSize, maxRetained);
 			var start = 0;
 			while (true)
 			{
@@ -394,7 +394,7 @@ namespace DotGram.Snapshots
 		/// <summary>Lazily finds occurrences through a reusable buffer; leaves input open.</summary>
 		public static global::System.Collections.Generic.IEnumerable<Match<byte[]>> FindRecord(global::System.ReadOnlyMemory<byte> input)
 		{
-			using var text = new BufferedBytes(input);
+			using var text = new BufferedBytes_DotGram(input);
 			var start = 0;
 			while (true)
 			{
@@ -413,10 +413,10 @@ namespace DotGram.Snapshots
 		{
 			readonly global::System.ReadOnlySpan<char> text;
 			internal Failure failure;
-			readonly Ways ways;
+			readonly Ways_DotGram ways;
 			internal int unbuilt;
 
-			internal Reader_DotGram_Feed(global::System.ReadOnlySpan<char> text, Ways ways)
+			internal Reader_DotGram_Feed(global::System.ReadOnlySpan<char> text, Ways_DotGram ways)
 			{
 				this.text    = text;
 				this.failure = default;
@@ -838,7 +838,7 @@ namespace DotGram.Snapshots
 
 		static int Recognize_Feed_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
-			var ways = Ways.Rent();
+			var ways = Ways_DotGram.Rent();
 
 			try
 			{
@@ -854,13 +854,13 @@ namespace DotGram.Snapshots
 			}
 			finally
 			{
-				Ways.Return(ways);
+				Ways_DotGram.Return(ways);
 			}
 		}
 
 		static int Recognize_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
-			var ways = Ways.Rent();
+			var ways = Ways_DotGram.Rent();
 
 			try
 			{
@@ -876,7 +876,7 @@ namespace DotGram.Snapshots
 			}
 			finally
 			{
-				Ways.Return(ways);
+				Ways_DotGram.Return(ways);
 			}
 		}
 
@@ -884,7 +884,7 @@ namespace DotGram.Snapshots
 		{
 			recognized = null;
 
-			Parser parser = null!;
+			Parser_DotGram parser = null!;
 			RentParser(ref parser);
 			var lent = parser != null;
 			parser ??= Recycled();
@@ -1225,12 +1225,12 @@ namespace DotGram.Snapshots
 
 		private ref struct Reader_DotGram_Buffered_ParseFeed
 		{
-			readonly BufferedText text;
+			readonly BufferedText_DotGram text;
 			internal Failure failure;
-			readonly Ways ways;
+			readonly Ways_DotGram ways;
 			internal int unbuilt;
 
-			internal Reader_DotGram_Buffered_ParseFeed(BufferedText text, Ways ways)
+			internal Reader_DotGram_Buffered_ParseFeed(BufferedText_DotGram text, Ways_DotGram ways)
 			{
 				this.text    = text;
 				this.failure = default;
@@ -1649,9 +1649,9 @@ namespace DotGram.Snapshots
 
 		}
 
-		static int Recognize_Feed_Whole(BufferedText text, int pos, ref Failure failure)
+		static int Recognize_Feed_Whole(BufferedText_DotGram text, int pos, ref Failure failure)
 		{
-			var ways = Ways.Rent();
+			var ways = Ways_DotGram.Rent();
 
 			try
 			{
@@ -1667,13 +1667,13 @@ namespace DotGram.Snapshots
 			}
 			finally
 			{
-				Ways.Return(ways);
+				Ways_DotGram.Return(ways);
 			}
 		}
 
-		static int Recognize_Feed(BufferedText text, int pos, ref Failure failure)
+		static int Recognize_Feed(BufferedText_DotGram text, int pos, ref Failure failure)
 		{
-			var ways = Ways.Rent();
+			var ways = Ways_DotGram.Rent();
 
 			try
 			{
@@ -1689,21 +1689,21 @@ namespace DotGram.Snapshots
 			}
 			finally
 			{
-				Ways.Return(ways);
+				Ways_DotGram.Return(ways);
 			}
 		}
 
 
-		static int ReadBuffered_ParseFeed(BufferedText text, int pos, ref Failure failure) =>
+		static int ReadBuffered_ParseFeed(BufferedText_DotGram text, int pos, ref Failure failure) =>
 			Recognize_Feed_Whole(text, pos, ref failure);
 		private ref struct Reader_DotGram_Buffered_ParseFeed_Bytes
 		{
-			readonly BufferedBytes text;
+			readonly BufferedBytes_DotGram text;
 			internal Failure failure;
-			readonly Ways ways;
+			readonly Ways_DotGram ways;
 			internal int unbuilt;
 
-			internal Reader_DotGram_Buffered_ParseFeed_Bytes(BufferedBytes text, Ways ways)
+			internal Reader_DotGram_Buffered_ParseFeed_Bytes(BufferedBytes_DotGram text, Ways_DotGram ways)
 			{
 				this.text    = text;
 				this.failure = default;
@@ -2122,9 +2122,9 @@ namespace DotGram.Snapshots
 
 		}
 
-		static int Recognize_Feed_Whole(BufferedBytes text, int pos, ref Failure failure)
+		static int Recognize_Feed_Whole(BufferedBytes_DotGram text, int pos, ref Failure failure)
 		{
-			var ways = Ways.Rent();
+			var ways = Ways_DotGram.Rent();
 
 			try
 			{
@@ -2140,13 +2140,13 @@ namespace DotGram.Snapshots
 			}
 			finally
 			{
-				Ways.Return(ways);
+				Ways_DotGram.Return(ways);
 			}
 		}
 
-		static int Recognize_Feed(BufferedBytes text, int pos, ref Failure failure)
+		static int Recognize_Feed(BufferedBytes_DotGram text, int pos, ref Failure failure)
 		{
-			var ways = Ways.Rent();
+			var ways = Ways_DotGram.Rent();
 
 			try
 			{
@@ -2162,18 +2162,18 @@ namespace DotGram.Snapshots
 			}
 			finally
 			{
-				Ways.Return(ways);
+				Ways_DotGram.Return(ways);
 			}
 		}
 
 
-		static int ReadBuffered_ParseFeed_Bytes(BufferedBytes text, int pos, ref Failure failure) =>
+		static int ReadBuffered_ParseFeed_Bytes(BufferedBytes_DotGram text, int pos, ref Failure failure) =>
 			Recognize_Feed_Whole(text, pos, ref failure);
-		static int Recognize_DotGram_Buffered_FindRecord(BufferedText text, int pos, int state, int rootRule, bool whole, bool materialize, ref Failure failure, out object? recognized)
+		static int Recognize_DotGram_Buffered_FindRecord(BufferedText_DotGram text, int pos, int state, int rootRule, bool whole, bool materialize, ref Failure failure, out object? recognized)
 		{
 			recognized = null;
 
-			Parser parser = null!;
+			Parser_DotGram parser = null!;
 			RentParser(ref parser);
 			var lent = parser != null;
 			parser ??= Recycled();
@@ -2463,17 +2463,17 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int ReadBuffered_FindRecord(BufferedText text, int pos, ref Failure failure)
+		static int ReadBuffered_FindRecord(BufferedText_DotGram text, int pos, ref Failure failure)
 		{
 			object? recognized;
 			var end = Recognize_DotGram_Buffered_FindRecord(text, pos, 3, -1, false, true, ref failure, out recognized);
 			return end;
 		}
-		static int Recognize_DotGram_Buffered_FindRecord_Bytes(BufferedBytes text, int pos, int state, int rootRule, bool whole, bool materialize, ref Failure failure, out object? recognized)
+		static int Recognize_DotGram_Buffered_FindRecord_Bytes(BufferedBytes_DotGram text, int pos, int state, int rootRule, bool whole, bool materialize, ref Failure failure, out object? recognized)
 		{
 			recognized = null;
 
-			Parser parser = null!;
+			Parser_DotGram parser = null!;
 			RentParser(ref parser);
 			var lent = parser != null;
 			parser ??= Recycled();
@@ -2763,7 +2763,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int ReadBuffered_FindRecord_Bytes(BufferedBytes text, int pos, ref Failure failure)
+		static int ReadBuffered_FindRecord_Bytes(BufferedBytes_DotGram text, int pos, ref Failure failure)
 		{
 			object? recognized;
 			var end = Recognize_DotGram_Buffered_FindRecord_Bytes(text, pos, 3, -1, false, true, ref failure, out recognized);
@@ -2835,7 +2835,7 @@ namespace DotGram.Snapshots
 			return moves ? reach : p;
 		}
 
-		static int Recognize_DotGram_Buffered_ParseFeed_Sharpen0(BufferedText text, int p, ref string[]? expected)
+		static int Recognize_DotGram_Buffered_ParseFeed_Sharpen0(BufferedText_DotGram text, int p, ref string[]? expected)
 		{
 			if (text.Ensure(p, 1) && text.Get(p) == '\r')
 			{
@@ -2855,7 +2855,7 @@ namespace DotGram.Snapshots
 			return p;
 		}
 
-		static int Recognize_DotGram_Buffered_ParseFeed_Agreeing(BufferedText text, int p, string value, bool fold)
+		static int Recognize_DotGram_Buffered_ParseFeed_Agreeing(BufferedText_DotGram text, int p, string value, bool fold)
 		{
 			var i = 0;
 
@@ -2865,7 +2865,7 @@ namespace DotGram.Snapshots
 			return p + i;
 		}
 
-		static int Recognize_DotGram_Buffered_ParseFeed_RanOut(BufferedText text, int p, string value, bool fold, bool moves, ref Failure failure)
+		static int Recognize_DotGram_Buffered_ParseFeed_RanOut(BufferedText_DotGram text, int p, string value, bool fold, bool moves, ref Failure failure)
 		{
 			var reach = Recognize_DotGram_Buffered_ParseFeed_Agreeing(text, p, value, fold);
 
@@ -2877,7 +2877,7 @@ namespace DotGram.Snapshots
 			return moves ? reach : p;
 		}
 
-		static int Recognize_DotGram_Buffered_ParseFeed_Bytes_Sharpen0(BufferedBytes text, int p, ref string[]? expected)
+		static int Recognize_DotGram_Buffered_ParseFeed_Bytes_Sharpen0(BufferedBytes_DotGram text, int p, ref string[]? expected)
 		{
 			if (text.Ensure(p, 1) && text.Get(p) == '\r')
 			{
@@ -2897,7 +2897,7 @@ namespace DotGram.Snapshots
 			return p;
 		}
 
-		static int Recognize_DotGram_Buffered_ParseFeed_Bytes_Agreeing(BufferedBytes text, int p, string value, bool fold)
+		static int Recognize_DotGram_Buffered_ParseFeed_Bytes_Agreeing(BufferedBytes_DotGram text, int p, string value, bool fold)
 		{
 			var i = 0;
 
@@ -2907,7 +2907,7 @@ namespace DotGram.Snapshots
 			return p + i;
 		}
 
-		static int Recognize_DotGram_Buffered_ParseFeed_Bytes_RanOut(BufferedBytes text, int p, string value, bool fold, bool moves, ref Failure failure)
+		static int Recognize_DotGram_Buffered_ParseFeed_Bytes_RanOut(BufferedBytes_DotGram text, int p, string value, bool fold, bool moves, ref Failure failure)
 		{
 			var reach = Recognize_DotGram_Buffered_ParseFeed_Bytes_Agreeing(text, p, value, fold);
 
@@ -2919,7 +2919,7 @@ namespace DotGram.Snapshots
 			return moves ? reach : p;
 		}
 
-		static int Recognize_DotGram_Buffered_FindRecord_Agreeing(BufferedText text, int p, string value, bool fold)
+		static int Recognize_DotGram_Buffered_FindRecord_Agreeing(BufferedText_DotGram text, int p, string value, bool fold)
 		{
 			var i = 0;
 
@@ -2929,7 +2929,7 @@ namespace DotGram.Snapshots
 			return p + i;
 		}
 
-		static int Recognize_DotGram_Buffered_FindRecord_RanOut(BufferedText text, int p, string value, bool fold, bool moves, ref Failure failure)
+		static int Recognize_DotGram_Buffered_FindRecord_RanOut(BufferedText_DotGram text, int p, string value, bool fold, bool moves, ref Failure failure)
 		{
 			var reach = Recognize_DotGram_Buffered_FindRecord_Agreeing(text, p, value, fold);
 
@@ -2941,7 +2941,7 @@ namespace DotGram.Snapshots
 			return moves ? reach : p;
 		}
 
-		static int Recognize_DotGram_Buffered_FindRecord_Bytes_Agreeing(BufferedBytes text, int p, string value, bool fold)
+		static int Recognize_DotGram_Buffered_FindRecord_Bytes_Agreeing(BufferedBytes_DotGram text, int p, string value, bool fold)
 		{
 			var i = 0;
 
@@ -2951,7 +2951,7 @@ namespace DotGram.Snapshots
 			return p + i;
 		}
 
-		static int Recognize_DotGram_Buffered_FindRecord_Bytes_RanOut(BufferedBytes text, int p, string value, bool fold, bool moves, ref Failure failure)
+		static int Recognize_DotGram_Buffered_FindRecord_Bytes_RanOut(BufferedBytes_DotGram text, int p, string value, bool fold, bool moves, ref Failure failure)
 		{
 			var reach = Recognize_DotGram_Buffered_FindRecord_Bytes_Agreeing(text, p, value, fold);
 
@@ -3188,7 +3188,7 @@ namespace DotGram.Snapshots
 			return tied;
 		}
 
-		internal interface IParserInputSource<T>
+		internal interface IParserInputSource_DotGram<T>
 		{
 			bool Ensure(int position, int length);
 			global::System.ReadOnlySpan<T> Slice(int position, int length);
@@ -3198,7 +3198,7 @@ namespace DotGram.Snapshots
 		public readonly ref struct ParserInput<T>
 		{
 			private readonly global::System.ReadOnlySpan<T> _span;
-			private readonly IParserInputSource<T>? _source;
+			private readonly IParserInputSource_DotGram<T>? _source;
 
 			internal ParserInput(global::System.ReadOnlySpan<T> span)
 			{
@@ -3206,7 +3206,7 @@ namespace DotGram.Snapshots
 				_source = null;
 			}
 
-			internal ParserInput(IParserInputSource<T> source)
+			internal ParserInput(IParserInputSource_DotGram<T> source)
 			{
 				_span   = default;
 				_source = source;
@@ -3256,7 +3256,7 @@ namespace DotGram.Snapshots
 		internal const int DefaultMaxRetained = 4096;
 		internal const int DefaultBufferSize = 4096;
 
-		private sealed class BufferedText : global::System.IDisposable, IParserInputSource<char>
+		private sealed class BufferedText_DotGram : global::System.IDisposable, IParserInputSource_DotGram<char>
 		{
 			private readonly global::System.IO.TextReader _input;
 			private readonly int _limit;
@@ -3280,7 +3280,7 @@ namespace DotGram.Snapshots
 			// keeps pooled speed; above it a parse pays the table, and the process keeps none of it.
 			private const int KeptLength = 1048576;
 
-			public BufferedText(global::System.IO.TextReader input, int capacity, int limit)
+			public BufferedText_DotGram(global::System.IO.TextReader input, int capacity, int limit)
 			{
 				if (input == null) throw new global::System.ArgumentNullException(nameof(input));
 				if (capacity <= 0) throw new global::System.ArgumentOutOfRangeException(nameof(capacity));
@@ -3445,7 +3445,7 @@ namespace DotGram.Snapshots
 		}
 
 		// The end of the trace hook, which a file with no engine goes without (CSharpEmitter).
-		private sealed class BufferedBytes : global::System.IDisposable, IParserInputSource<byte>
+		private sealed class BufferedBytes_DotGram : global::System.IDisposable, IParserInputSource_DotGram<byte>
 		{
 			private readonly global::System.IO.Stream _input;
 			private readonly int _limit;
@@ -3471,7 +3471,7 @@ namespace DotGram.Snapshots
 			// keeps pooled speed; above it a parse pays the table, and the process keeps none of it.
 			private const int KeptLength = 1048576;
 
-			public BufferedBytes(global::System.IO.Stream input, int capacity, int limit)
+			public BufferedBytes_DotGram(global::System.IO.Stream input, int capacity, int limit)
 			{
 				if (input == null) throw new global::System.ArgumentNullException(nameof(input));
 				if (capacity <= 0) throw new global::System.ArgumentOutOfRangeException(nameof(capacity));
@@ -3482,7 +3482,7 @@ namespace DotGram.Snapshots
 				_buffer = global::System.Buffers.ArrayPool<byte>.Shared.Rent(_capacity);
 			}
 
-			public BufferedBytes(global::System.ReadOnlyMemory<byte> input)
+			public BufferedBytes_DotGram(global::System.ReadOnlyMemory<byte> input)
 			{
 				_input = null!;
 				_limit = int.MaxValue;
@@ -3666,7 +3666,7 @@ namespace DotGram.Snapshots
 		}
 
 		// The end of the trace hook, which a file with no engine goes without (CSharpEmitter).
-		sealed class Window
+		sealed class Window_DotGram
 		{
 			private readonly global::System.IO.TextReader _input;
 
@@ -3688,7 +3688,7 @@ namespace DotGram.Snapshots
 				return c == '\r' || c == '\n' && !(at > 0 ? _buffer[at - 1] == '\r' : _droppedCr);
 			}
 
-			public Window(global::System.IO.TextReader input, int capacity)
+			public Window_DotGram(global::System.IO.TextReader input, int capacity)
 			{
 				_input  = input;
 				_buffer = new char[capacity];
@@ -3802,7 +3802,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		sealed class Lines : global::System.IO.TextReader
+		sealed class Lines_DotGram : global::System.IO.TextReader
 		{
 			private readonly global::System.Collections.Generic.IEnumerator<string> _lines;
 
@@ -3812,7 +3812,7 @@ namespace DotGram.Snapshots
 			private bool   _ended;
 			private bool   _disposed;
 
-			public Lines(global::System.Collections.Generic.IEnumerable<string> lines)
+			public Lines_DotGram(global::System.Collections.Generic.IEnumerable<string> lines)
 			{
 				_lines = lines.GetEnumerator();
 			}
@@ -3877,7 +3877,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		sealed class Ways
+		sealed class Ways_DotGram
 		{
 			internal int[] Items = new int[32];
 
@@ -3922,34 +3922,34 @@ namespace DotGram.Snapshots
 			int _number;
 
 			[global::System.ThreadStatic]
-			static Ways? _spare;
+			static Ways_DotGram? _spare;
 
 			[global::System.ThreadStatic]
-			static Ways?[]? _deeper;
+			static Ways_DotGram?[]? _deeper;
 
 			[global::System.ThreadStatic]
 			static int _deeperCount;
 
 			[global::System.ThreadStatic]
-			static Ways? _large;
+			static Ways_DotGram? _large;
 
 			[global::System.ThreadStatic]
 			static int _largeIdle;
 
 			[global::System.ThreadStatic]
-			static global::System.WeakReference<Ways>? _largeLetGo;
+			static global::System.WeakReference<Ways_DotGram>? _largeLetGo;
 
 			[global::System.ThreadStatic]
 			static int _spareIdle;
 
 			[global::System.ThreadStatic]
-			static global::System.WeakReference<Ways>? _spareLetGo;
+			static global::System.WeakReference<Ways_DotGram>? _spareLetGo;
 
 			const int LargeIdle = 8;
 
 			const int SpareIdle = 8;
 
-			internal static Ways Rent()
+			internal static Ways_DotGram Rent()
 			{
 				var spare = _spare;
 
@@ -3976,7 +3976,7 @@ namespace DotGram.Snapshots
 					_spareLetGo.SetTarget(null!);
 				}
 				else
-					return new Ways();
+					return new Ways_DotGram();
 				spare.Count = 0;
 				spare.Cursor = 0;
 				spare.LogCount  = 0;
@@ -3990,7 +3990,7 @@ namespace DotGram.Snapshots
 				return spare;
 			}
 
-			internal static void Return(Ways ways)
+			internal static void Return(Ways_DotGram ways)
 			{
 				// Bound retained capacity, including an earlier parse's high-water size. Past it
 				// the tape is not thrown away — that was a cliff rather than a bound: one entry
@@ -4005,7 +4005,7 @@ namespace DotGram.Snapshots
 				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length > 1048576)
 				{
 					if (_large != null && !ReferenceEquals(_large, ways))
-						(_largeLetGo ??= new global::System.WeakReference<Ways>(_large)).SetTarget(_large);
+						(_largeLetGo ??= new global::System.WeakReference<Ways_DotGram>(_large)).SetTarget(_large);
 
 					// The same question the ordinary slot asks below: is the room far larger than the
 					// use. The bound decides which slot holds the tape, not whether to keep it.
@@ -4014,7 +4014,7 @@ namespace DotGram.Snapshots
 						_largeIdle = 0;
 					else if (++_largeIdle >= LargeIdle)
 					{
-						(_largeLetGo ??= new global::System.WeakReference<Ways>(ways)).SetTarget(ways);
+						(_largeLetGo ??= new global::System.WeakReference<Ways_DotGram>(ways)).SetTarget(ways);
 						_large = null;
 						_largeIdle = 0;
 
@@ -4037,7 +4037,7 @@ namespace DotGram.Snapshots
 					_spareIdle = 0;
 				else if (++_spareIdle >= SpareIdle)
 				{
-					(_spareLetGo ??= new global::System.WeakReference<Ways>(ways)).SetTarget(ways);
+					(_spareLetGo ??= new global::System.WeakReference<Ways_DotGram>(ways)).SetTarget(ways);
 					_spareIdle = 0;
 
 					return;
@@ -4046,7 +4046,7 @@ namespace DotGram.Snapshots
 				if (_spare == null)
 					_spare = ways;
 				else if (_deeperCount < 3)
-					(_deeper ??= new Ways?[3])[_deeperCount++] = ways;
+					(_deeper ??= new Ways_DotGram?[3])[_deeperCount++] = ways;
 			}
 
 			internal int Open(int last) => Open(0, last);
@@ -4297,14 +4297,14 @@ namespace DotGram.Snapshots
 			return false;
 		}
 
-		sealed class ImmediateValues
+		sealed class ImmediateValues_DotGram
 		{
 			internal static bool IsDefault<T>(T value) => global::System.Collections.Generic.EqualityComparer<T>.Default.Equals(value, default!);
 		}
 
-		private sealed class Parser
+		private sealed class Parser_DotGram
 		{
-			internal readonly ParserArena Entries = new ParserArena();
+			internal readonly ParserArena_DotGram Entries = new ParserArena_DotGram();
 			object?[] _values = global::System.Array.Empty<object?>();
 			int[] _linkHeads = global::System.Array.Empty<int>();
 			int[] _linkNexts = global::System.Array.Empty<int>();
@@ -4382,7 +4382,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		private sealed class ParserArena
+		private sealed class ParserArena_DotGram
 		{
 			ParserEntry[] _items = global::System.Array.Empty<ParserEntry>();
 
@@ -4485,14 +4485,14 @@ namespace DotGram.Snapshots
 			internal int RuleIndex   { get; }
 		}
 
-		static partial void RentParser(ref Parser parser);
-		static partial void ReturnParser(Parser parser);
+		static partial void RentParser(ref Parser_DotGram parser);
+		static partial void ReturnParser(Parser_DotGram parser);
 
 		[global::System.ThreadStatic]
-		static Parser? _spareParser;
+		static Parser_DotGram? _spareParser;
 
 		[global::System.ThreadStatic]
-		static Parser?[]? _deeperParsers;
+		static Parser_DotGram?[]? _deeperParsers;
 
 		[global::System.ThreadStatic]
 		static int _deeperParserCount;
@@ -4500,25 +4500,25 @@ namespace DotGram.Snapshots
 		const int KeptEntries = 65536;
 
 		[global::System.ThreadStatic]
-		static Parser? _largeParser;
+		static Parser_DotGram? _largeParser;
 
 		[global::System.ThreadStatic]
 		static int _largeParserIdle;
 
 		[global::System.ThreadStatic]
-		static global::System.WeakReference<Parser>? _largeParserLetGo;
+		static global::System.WeakReference<Parser_DotGram>? _largeParserLetGo;
 
 		[global::System.ThreadStatic]
 		static int _spareParserIdle;
 
 		[global::System.ThreadStatic]
-		static global::System.WeakReference<Parser>? _spareParserLetGo;
+		static global::System.WeakReference<Parser_DotGram>? _spareParserLetGo;
 
 		const int LargeParserIdle = 8;
 
 		const int SpareParserIdle = 8;
 
-		static Parser Recycled()
+		static Parser_DotGram Recycled()
 		{
 			var spare = _spareParser;
 
@@ -4545,16 +4545,16 @@ namespace DotGram.Snapshots
 				_spareParserLetGo.SetTarget(null!);
 			}
 			else
-				return new Parser();
+				return new Parser_DotGram();
 			return spare;
 		}
 
-		static void Recycle(Parser parser)
+		static void Recycle(Parser_DotGram parser)
 		{
 			if (parser.Entries.Capacity > KeptEntries)
 			{
 				if (_largeParser != null && !ReferenceEquals(_largeParser, parser))
-					(_largeParserLetGo ??= new global::System.WeakReference<Parser>(_largeParser)).SetTarget(_largeParser);
+					(_largeParserLetGo ??= new global::System.WeakReference<Parser_DotGram>(_largeParser)).SetTarget(_largeParser);
 
 				// The same question the ordinary slot asks below: is the room far larger than the
 				// use. The bound decides which slot holds the arena, not whether to keep it.
@@ -4562,7 +4562,7 @@ namespace DotGram.Snapshots
 					_largeParserIdle = 0;
 				else if (++_largeParserIdle >= LargeParserIdle)
 				{
-					(_largeParserLetGo ??= new global::System.WeakReference<Parser>(parser)).SetTarget(parser);
+					(_largeParserLetGo ??= new global::System.WeakReference<Parser_DotGram>(parser)).SetTarget(parser);
 					_largeParser = null;
 					_largeParserIdle = 0;
 
@@ -4581,7 +4581,7 @@ namespace DotGram.Snapshots
 				_spareParserIdle = 0;
 			else if (++_spareParserIdle >= SpareParserIdle)
 			{
-				(_spareParserLetGo ??= new global::System.WeakReference<Parser>(parser)).SetTarget(parser);
+				(_spareParserLetGo ??= new global::System.WeakReference<Parser_DotGram>(parser)).SetTarget(parser);
 				_spareParserIdle = 0;
 
 				return;
@@ -4590,7 +4590,7 @@ namespace DotGram.Snapshots
 			if (_spareParser == null)
 				_spareParser = parser;
 			else if (_deeperParserCount < 3)
-				(_deeperParsers ??= new Parser?[3])[_deeperParserCount++] = parser;
+				(_deeperParsers ??= new Parser_DotGram?[3])[_deeperParserCount++] = parser;
 		}
 
 		// The sets a refusal names, by number: built the first time a refusal asks for one, never in the

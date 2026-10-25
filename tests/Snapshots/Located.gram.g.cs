@@ -256,7 +256,7 @@ namespace DotGram.Snapshots
 		{
 			recognized = null;
 
-			Parser parser = null!;
+			Parser_DotGram parser = null!;
 			RentParser(ref parser);
 			var lent = parser != null;
 			parser ??= Recycled();
@@ -894,7 +894,7 @@ namespace DotGram.Snapshots
 		/// </remarks>
 		public static global::System.Collections.Generic.IEnumerable<Entry> ParseConfig(global::System.IO.TextReader input)
 		{
-			var window = new Window(input, 4096);
+			var window = new Window_DotGram(input, 4096);
 			var start  = 0;
 			var furthest = 0L;
 
@@ -1022,7 +1022,7 @@ namespace DotGram.Snapshots
 
 			static global::System.Collections.Generic.IEnumerable<Entry> OverLines_DotGram(global::System.Collections.Generic.IEnumerable<string> input)
 			{
-				using var lines_DotGram = new Lines(input);
+				using var lines_DotGram = new Lines_DotGram(input);
 
 				foreach (var item_DotGram in global::DotGram.Snapshots.Located.ParseConfig(lines_DotGram))
 					yield return item_DotGram;
@@ -1049,7 +1049,7 @@ namespace DotGram.Snapshots
 			return p;
 		}
 
-		static void Materialize_DotGram(global::System.ReadOnlySpan<char> text, Parser parser, ParserArena entries)
+		static void Materialize_DotGram(global::System.ReadOnlySpan<char> text, Parser_DotGram parser, ParserArena_DotGram entries)
 		{
 			var values = parser.Materialization(entries.Count);
 			var values0 = parser.Materialization0();
@@ -1524,7 +1524,7 @@ namespace DotGram.Snapshots
 			return tied;
 		}
 
-		sealed class Window
+		sealed class Window_DotGram
 		{
 			private readonly global::System.IO.TextReader _input;
 
@@ -1546,7 +1546,7 @@ namespace DotGram.Snapshots
 				return c == '\r' || c == '\n' && !(at > 0 ? _buffer[at - 1] == '\r' : _droppedCr);
 			}
 
-			public Window(global::System.IO.TextReader input, int capacity)
+			public Window_DotGram(global::System.IO.TextReader input, int capacity)
 			{
 				_input  = input;
 				_buffer = new char[capacity];
@@ -1660,7 +1660,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		sealed class Lines : global::System.IO.TextReader
+		sealed class Lines_DotGram : global::System.IO.TextReader
 		{
 			private readonly global::System.Collections.Generic.IEnumerator<string> _lines;
 
@@ -1670,7 +1670,7 @@ namespace DotGram.Snapshots
 			private bool   _ended;
 			private bool   _disposed;
 
-			public Lines(global::System.Collections.Generic.IEnumerable<string> lines)
+			public Lines_DotGram(global::System.Collections.Generic.IEnumerable<string> lines)
 			{
 				_lines = lines.GetEnumerator();
 			}
@@ -1735,9 +1735,9 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		private sealed class Parser
+		private sealed class Parser_DotGram
 		{
-			internal readonly ParserArena Entries = new ParserArena();
+			internal readonly ParserArena_DotGram Entries = new ParserArena_DotGram();
 			object?[] _values = global::System.Array.Empty<object?>();
 			Entry[][] _values0 = global::System.Array.Empty<Entry[]>();
 			Entry[] _values1 = global::System.Array.Empty<Entry>();
@@ -1836,7 +1836,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		private sealed class ParserArena
+		private sealed class ParserArena_DotGram
 		{
 			ParserEntry[] _items = global::System.Array.Empty<ParserEntry>();
 
@@ -1939,14 +1939,14 @@ namespace DotGram.Snapshots
 			internal int RuleIndex   { get; }
 		}
 
-		static partial void RentParser(ref Parser parser);
-		static partial void ReturnParser(Parser parser);
+		static partial void RentParser(ref Parser_DotGram parser);
+		static partial void ReturnParser(Parser_DotGram parser);
 
 		[global::System.ThreadStatic]
-		static Parser? _spareParser;
+		static Parser_DotGram? _spareParser;
 
 		[global::System.ThreadStatic]
-		static Parser?[]? _deeperParsers;
+		static Parser_DotGram?[]? _deeperParsers;
 
 		[global::System.ThreadStatic]
 		static int _deeperParserCount;
@@ -1954,25 +1954,25 @@ namespace DotGram.Snapshots
 		const int KeptEntries = 65536;
 
 		[global::System.ThreadStatic]
-		static Parser? _largeParser;
+		static Parser_DotGram? _largeParser;
 
 		[global::System.ThreadStatic]
 		static int _largeParserIdle;
 
 		[global::System.ThreadStatic]
-		static global::System.WeakReference<Parser>? _largeParserLetGo;
+		static global::System.WeakReference<Parser_DotGram>? _largeParserLetGo;
 
 		[global::System.ThreadStatic]
 		static int _spareParserIdle;
 
 		[global::System.ThreadStatic]
-		static global::System.WeakReference<Parser>? _spareParserLetGo;
+		static global::System.WeakReference<Parser_DotGram>? _spareParserLetGo;
 
 		const int LargeParserIdle = 8;
 
 		const int SpareParserIdle = 8;
 
-		static Parser Recycled()
+		static Parser_DotGram Recycled()
 		{
 			var spare = _spareParser;
 
@@ -1999,16 +1999,16 @@ namespace DotGram.Snapshots
 				_spareParserLetGo.SetTarget(null!);
 			}
 			else
-				return new Parser();
+				return new Parser_DotGram();
 			return spare;
 		}
 
-		static void Recycle(Parser parser)
+		static void Recycle(Parser_DotGram parser)
 		{
 			if (parser.Entries.Capacity > KeptEntries)
 			{
 				if (_largeParser != null && !ReferenceEquals(_largeParser, parser))
-					(_largeParserLetGo ??= new global::System.WeakReference<Parser>(_largeParser)).SetTarget(_largeParser);
+					(_largeParserLetGo ??= new global::System.WeakReference<Parser_DotGram>(_largeParser)).SetTarget(_largeParser);
 
 				// The same question the ordinary slot asks below: is the room far larger than the
 				// use. The bound decides which slot holds the arena, not whether to keep it.
@@ -2016,7 +2016,7 @@ namespace DotGram.Snapshots
 					_largeParserIdle = 0;
 				else if (++_largeParserIdle >= LargeParserIdle)
 				{
-					(_largeParserLetGo ??= new global::System.WeakReference<Parser>(parser)).SetTarget(parser);
+					(_largeParserLetGo ??= new global::System.WeakReference<Parser_DotGram>(parser)).SetTarget(parser);
 					_largeParser = null;
 					_largeParserIdle = 0;
 
@@ -2035,7 +2035,7 @@ namespace DotGram.Snapshots
 				_spareParserIdle = 0;
 			else if (++_spareParserIdle >= SpareParserIdle)
 			{
-				(_spareParserLetGo ??= new global::System.WeakReference<Parser>(parser)).SetTarget(parser);
+				(_spareParserLetGo ??= new global::System.WeakReference<Parser_DotGram>(parser)).SetTarget(parser);
 				_spareParserIdle = 0;
 
 				return;
@@ -2044,7 +2044,7 @@ namespace DotGram.Snapshots
 			if (_spareParser == null)
 				_spareParser = parser;
 			else if (_deeperParserCount < 3)
-				(_deeperParsers ??= new Parser?[3])[_deeperParserCount++] = parser;
+				(_deeperParsers ??= new Parser_DotGram?[3])[_deeperParserCount++] = parser;
 		}
 
 		// The sets a refusal names, by number: built the first time a refusal asks for one, never in the

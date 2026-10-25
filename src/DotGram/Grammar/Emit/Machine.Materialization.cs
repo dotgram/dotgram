@@ -41,8 +41,8 @@ sealed partial class Machine
 		var helper = new Writer(0);
 
 		using (helper.Block(
-			$"static void Materialize_DotGram{_tag}({InputType} text, Parser parser, " +
-			$"ParserArena entries{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}" +
+			$"static void Materialize_DotGram{_tag}({InputType} text, Parser_DotGram parser, " +
+			$"ParserArena_DotGram entries{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}" +
 			(Caches ? ", int materializeFrom = 0)" : ")")))
 			Materialize(helper, cached: Caches);
 
@@ -1600,8 +1600,8 @@ sealed partial class Machine
 		var helper = new Writer(0);
 
 		using (helper.Block(
-			$"static {type} {method}({InputType} text, Parser parser, " +
-			$"ParserArena entries{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}, int call)"))
+			$"static {type} {method}({InputType} text, Parser_DotGram parser, " +
+			$"ParserArena_DotGram entries{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}, int call)"))
 		{
 			helper.Line("var values = parser.Materialization(entries.Count);");
 			DeclareTables(helper);

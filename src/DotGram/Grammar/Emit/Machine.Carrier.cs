@@ -1196,7 +1196,7 @@ sealed partial class Machine
 			get
 			{
 				if (machine._directBuilds)
-					yield return ("DirectValues", "values");
+					yield return ("DirectValues_DotGram", "values");
 
 				if ((machine._directGuards || machine._directGlue) && machine.OverKinds)
 					foreach (var token in Machine.TokenState)
@@ -1478,12 +1478,12 @@ sealed partial class Machine
 
 		public override IEnumerable<string> Rent()
 		{
-			yield return "var values = DirectValues.Rent();";
+			yield return "var values = DirectValues_DotGram.Rent();";
 		}
 
 		public override IEnumerable<string> Return()
 		{
-			yield return "DirectValues.Return(values);";
+			yield return "DirectValues_DotGram.Return(values);";
 		}
 
 		/// <remarks>

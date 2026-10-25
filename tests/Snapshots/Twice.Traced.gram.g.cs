@@ -366,11 +366,11 @@ namespace DotGram.Snapshots
 				readonly global::System.ReadOnlySpan<char> text;
 				internal Failure failure;
 				internal int probes;
-				readonly Ways ways;
+				readonly Ways_DotGram ways;
 				readonly global::System.ReadOnlyMemory<char> whole;
-				readonly DirectValues values;
+				readonly DirectValues_DotGram values;
 
-				internal Reader_DotGram(global::System.ReadOnlySpan<char> text, Ways ways, DirectValues values, global::System.ReadOnlyMemory<char> parserWhole)
+				internal Reader_DotGram(global::System.ReadOnlySpan<char> text, Ways_DotGram ways, DirectValues_DotGram values, global::System.ReadOnlyMemory<char> parserWhole)
 				{
 					this.text    = text;
 					this.failure = default;
@@ -575,7 +575,7 @@ namespace DotGram.Snapshots
 					return Exited_DotGram(1, pos, p);
 				}
 
-				public int Read_Sum_Part0(int pos, int start, Ways.Snapshot lmark, int refs)
+				public int Read_Sum_Part0(int pos, int start, Ways_DotGram.Snapshot lmark, int refs)
 				{
 					var p = pos;
 					var q0 = Read_trivia(p);
@@ -721,7 +721,7 @@ namespace DotGram.Snapshots
 					return Exited_DotGram(3, pos, p);
 				}
 
-				public int Read_Term_Part0(int pos, int start, Ways.Snapshot lmark, int r1)
+				public int Read_Term_Part0(int pos, int start, Ways_DotGram.Snapshot lmark, int r1)
 				{
 					var p = pos;
 					var rb = ways.RefsCount;
@@ -760,7 +760,7 @@ namespace DotGram.Snapshots
 					return p;
 				}
 
-				public int Read_Term_Part1(int pos, int start, Ways.Snapshot lmark, int r1)
+				public int Read_Term_Part1(int pos, int start, Ways_DotGram.Snapshot lmark, int r1)
 				{
 					var p = pos;
 					var rb = ways.RefsCount;
@@ -977,8 +977,8 @@ namespace DotGram.Snapshots
 			private sealed class Deep_DotGram
 			{
 				internal global::System.ReadOnlyMemory<char> whole;
-				internal Ways ways = default!;
-				internal DirectValues values = default!;
+				internal Ways_DotGram ways = default!;
+				internal DirectValues_DotGram values = default!;
 				internal Failure failure = default!;
 				internal int probes;
 				internal int pos;
@@ -1230,8 +1230,8 @@ namespace DotGram.Snapshots
 
 			static int Recognize_Sum_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value, global::System.ReadOnlyMemory<char> parserWhole)
 			{
-				var ways = Ways.Rent();
-				var values = DirectValues.Rent();
+				var ways = Ways_DotGram.Rent();
+				var values = DirectValues_DotGram.Rent();
 
 				try
 				{
@@ -1257,15 +1257,15 @@ namespace DotGram.Snapshots
 				}
 				finally
 				{
-					Ways.Return(ways);
-					DirectValues.Return(values);
+					Ways_DotGram.Return(ways);
+					DirectValues_DotGram.Return(values);
 				}
 			}
 
 			static int Recognize_Sum(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value, global::System.ReadOnlyMemory<char> parserWhole)
 			{
-				var ways = Ways.Rent();
-				var values = DirectValues.Rent();
+				var ways = Ways_DotGram.Rent();
+				var values = DirectValues_DotGram.Rent();
 
 				try
 				{
@@ -1291,12 +1291,12 @@ namespace DotGram.Snapshots
 				}
 				finally
 				{
-					Ways.Return(ways);
-					DirectValues.Return(values);
+					Ways_DotGram.Return(ways);
+					DirectValues_DotGram.Return(values);
 				}
 			}
 
-			static void Materialize_DotGram_Direct(Ways ways, global::System.ReadOnlySpan<char> text, DirectValues values, int root, Ways.Snapshot since, int roots = -1, long rootSlots = 0)
+			static void Materialize_DotGram_Direct(Ways_DotGram ways, global::System.ReadOnlySpan<char> text, DirectValues_DotGram values, int root, Ways_DotGram.Snapshot since, int roots = -1, long rootSlots = 0)
 			{
 				var from  = since.LogCount;
 				var first = since.Records;
@@ -1321,8 +1321,8 @@ namespace DotGram.Snapshots
 				for (var at = from; at < ways.LogCount; at += log[at])
 					starts[listed++] = at;
 				#if DOTGRAM_COUNTS
-				Ways.CountListed += listed;
-				Ways.CountWalks++;
+				Ways_DotGram.CountListed += listed;
+				Ways_DotGram.CountWalks++;
 				#endif
 
 				if (roots < 0)
@@ -3653,7 +3653,7 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			sealed class Ways
+			sealed class Ways_DotGram
 			{
 				internal int[] Items = new int[32];
 
@@ -3735,34 +3735,34 @@ namespace DotGram.Snapshots
 				int _number;
 
 				[global::System.ThreadStatic]
-				static Ways? _spare;
+				static Ways_DotGram? _spare;
 
 				[global::System.ThreadStatic]
-				static Ways?[]? _deeper;
+				static Ways_DotGram?[]? _deeper;
 
 				[global::System.ThreadStatic]
 				static int _deeperCount;
 
 				[global::System.ThreadStatic]
-				static Ways? _large;
+				static Ways_DotGram? _large;
 
 				[global::System.ThreadStatic]
 				static int _largeIdle;
 
 				[global::System.ThreadStatic]
-				static global::System.WeakReference<Ways>? _largeLetGo;
+				static global::System.WeakReference<Ways_DotGram>? _largeLetGo;
 
 				[global::System.ThreadStatic]
 				static int _spareIdle;
 
 				[global::System.ThreadStatic]
-				static global::System.WeakReference<Ways>? _spareLetGo;
+				static global::System.WeakReference<Ways_DotGram>? _spareLetGo;
 
 				const int LargeIdle = 8;
 
 				const int SpareIdle = 8;
 
-				internal static Ways Rent()
+				internal static Ways_DotGram Rent()
 				{
 					var spare = _spare;
 
@@ -3789,7 +3789,7 @@ namespace DotGram.Snapshots
 						_spareLetGo.SetTarget(null!);
 					}
 					else
-						return new Ways();
+						return new Ways_DotGram();
 					spare.Count = 0;
 					spare.Cursor = 0;
 					spare.LogCount  = 0;
@@ -3803,7 +3803,7 @@ namespace DotGram.Snapshots
 					return spare;
 				}
 
-				internal static void Return(Ways ways)
+				internal static void Return(Ways_DotGram ways)
 				{
 					// Bound retained capacity, including an earlier parse's high-water size. Past it
 					// the tape is not thrown away — that was a cliff rather than a bound: one entry
@@ -3818,7 +3818,7 @@ namespace DotGram.Snapshots
 					if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length > 1048576)
 					{
 						if (_large != null && !ReferenceEquals(_large, ways))
-							(_largeLetGo ??= new global::System.WeakReference<Ways>(_large)).SetTarget(_large);
+							(_largeLetGo ??= new global::System.WeakReference<Ways_DotGram>(_large)).SetTarget(_large);
 
 						// The same question the ordinary slot asks below: is the room far larger than the
 						// use. The bound decides which slot holds the tape, not whether to keep it.
@@ -3827,7 +3827,7 @@ namespace DotGram.Snapshots
 							_largeIdle = 0;
 						else if (++_largeIdle >= LargeIdle)
 						{
-							(_largeLetGo ??= new global::System.WeakReference<Ways>(ways)).SetTarget(ways);
+							(_largeLetGo ??= new global::System.WeakReference<Ways_DotGram>(ways)).SetTarget(ways);
 							_large = null;
 							_largeIdle = 0;
 
@@ -3850,7 +3850,7 @@ namespace DotGram.Snapshots
 						_spareIdle = 0;
 					else if (++_spareIdle >= SpareIdle)
 					{
-						(_spareLetGo ??= new global::System.WeakReference<Ways>(ways)).SetTarget(ways);
+						(_spareLetGo ??= new global::System.WeakReference<Ways_DotGram>(ways)).SetTarget(ways);
 						_spareIdle = 0;
 
 						return;
@@ -3859,7 +3859,7 @@ namespace DotGram.Snapshots
 					if (_spare == null)
 						_spare = ways;
 					else if (_deeperCount < 3)
-						(_deeper ??= new Ways?[3])[_deeperCount++] = ways;
+						(_deeper ??= new Ways_DotGram?[3])[_deeperCount++] = ways;
 				}
 
 				internal int Open(int last) => Open(0, last);
@@ -4105,43 +4105,43 @@ namespace DotGram.Snapshots
 				return false;
 			}
 
-			sealed class DirectValues
+			sealed class DirectValues_DotGram
 			{
-				internal Held<int>[] V0 = new Held<int>[16];
+				internal Held_DotGram<int>[] V0 = new Held_DotGram<int>[16];
 				internal bool[] Live   = new bool[16];
 				internal int[]  Starts = new int[16];
 				internal bool[] Built  = new bool[16];
 				int _used;
 
 				[global::System.ThreadStatic]
-				static DirectValues? _spare;
+				static DirectValues_DotGram? _spare;
 
 				[global::System.ThreadStatic]
-				static DirectValues?[]? _deeper;
+				static DirectValues_DotGram?[]? _deeper;
 
 				[global::System.ThreadStatic]
 				static int _deeperCount;
 
 				[global::System.ThreadStatic]
-				static DirectValues? _large;
+				static DirectValues_DotGram? _large;
 
 				[global::System.ThreadStatic]
 				static int _largeIdle;
 
 				[global::System.ThreadStatic]
-				static global::System.WeakReference<DirectValues>? _largeLetGo;
+				static global::System.WeakReference<DirectValues_DotGram>? _largeLetGo;
 
 				[global::System.ThreadStatic]
 				static int _spareIdle;
 
 				[global::System.ThreadStatic]
-				static global::System.WeakReference<DirectValues>? _spareLetGo;
+				static global::System.WeakReference<DirectValues_DotGram>? _spareLetGo;
 
 				const int LargeIdle = 8;
 
 				const int SpareIdle = 8;
 
-				internal static DirectValues Rent()
+				internal static DirectValues_DotGram Rent()
 				{
 					var spare = _spare;
 
@@ -4168,12 +4168,12 @@ namespace DotGram.Snapshots
 						_spareLetGo.SetTarget(null!);
 					}
 					else
-						return new DirectValues();
+						return new DirectValues_DotGram();
 
 					return spare;
 				}
 
-				internal static void Return(DirectValues values)
+				internal static void Return(DirectValues_DotGram values)
 				{
 					var rows = values._used;
 
@@ -4198,7 +4198,7 @@ namespace DotGram.Snapshots
 							_largeIdle = 0;
 						else if (++_largeIdle >= LargeIdle)
 						{
-							(_largeLetGo ??= new global::System.WeakReference<DirectValues>(values)).SetTarget(values);
+							(_largeLetGo ??= new global::System.WeakReference<DirectValues_DotGram>(values)).SetTarget(values);
 							_large = null;
 							_largeIdle = 0;
 
@@ -4206,7 +4206,7 @@ namespace DotGram.Snapshots
 						}
 
 						if (_large != null && !ReferenceEquals(_large, values))
-							(_largeLetGo ??= new global::System.WeakReference<DirectValues>(_large)).SetTarget(_large);
+							(_largeLetGo ??= new global::System.WeakReference<DirectValues_DotGram>(_large)).SetTarget(_large);
 
 						_large = values;
 
@@ -4222,7 +4222,7 @@ namespace DotGram.Snapshots
 						_spareIdle = 0;
 					else if (++_spareIdle >= SpareIdle)
 					{
-						(_spareLetGo ??= new global::System.WeakReference<DirectValues>(values)).SetTarget(values);
+						(_spareLetGo ??= new global::System.WeakReference<DirectValues_DotGram>(values)).SetTarget(values);
 						_spareIdle = 0;
 
 						return;
@@ -4231,7 +4231,7 @@ namespace DotGram.Snapshots
 					if (_spare == null)
 						_spare = values;
 					else if (_deeperCount < 3)
-						(_deeper ??= new DirectValues?[3])[_deeperCount++] = values;
+						(_deeper ??= new DirectValues_DotGram?[3])[_deeperCount++] = values;
 				}
 
 				internal void Room(int count, bool live = true, int from = 0)
@@ -4253,7 +4253,7 @@ namespace DotGram.Snapshots
 			}
 
 			#pragma warning disable CS0649 // a table nothing writes still declares the field
-			struct Held<T>
+			struct Held_DotGram<T>
 			{
 				internal T Value;
 			}

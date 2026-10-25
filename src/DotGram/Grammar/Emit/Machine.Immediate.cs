@@ -46,7 +46,7 @@ sealed partial class Machine
 		var text = new StringBuilder();
 
 		text.Append("/// <summary>The stacks used by immediate readers in this class (Machine.Immediate.cs).</summary>\n");
-		text.Append("sealed class ImmediateValues\n{\n");
+		text.Append("sealed class ImmediateValues_DotGram\n{\n");
 		Stack(text, "string", "Text");
 
 		// Where each piece of a gathered run of text began and ended, as one number: the
@@ -70,11 +70,11 @@ sealed partial class Machine
 		if (stacks.Count != 0 || stateType is not null)
 		{
 			text.Append('\n');
-			CSharpEmitter.Spares(text, "ImmediateValues", releases: stacks.Count != 0);
+			CSharpEmitter.Spares(text, "ImmediateValues_DotGram", releases: stacks.Count != 0);
 			// A required stack can still be unused by this particular parse. Its high-water
 			// mark includes values discarded by backtracking, so every retained reference
 			// is cleared before the store is made available to another parse.
-			text.Append("\tinternal static void Return(ImmediateValues values)\n\t{\n");
+			text.Append("\tinternal static void Return(ImmediateValues_DotGram values)\n\t{\n");
 			// Taken before the emptying below, which zeroes the high-water marks.
 			var high = stacks.OrderBy(stack => stack, StringComparer.Ordinal)
 				.Select(stack => "values.High" + stack).ToList();
@@ -103,7 +103,7 @@ sealed partial class Machine
 			text.Append("\t\t// to the collector once it stops (CSharpEmitter.Outsized). It is emptied\n");
 			text.Append("\t\t// first, above: what is kept is the room, never what was built in it.\n");
 			text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576)\n");
-			CSharpEmitter.Outsized(text, "ImmediateValues", "values", roomy);
+			CSharpEmitter.Outsized(text, "ImmediateValues_DotGram", "values", roomy);
 
 			// Room against use, and here the two are the same quantity: every capacity summed
 			// above is a stack length, and every term of `used` is that stack's high-water mark.
@@ -111,7 +111,7 @@ sealed partial class Machine
 			// slot is written without a release at all, rather than with one that cannot fire.
 			// Four and not two for the reason written beside the direct store: one doubling of
 			// room is what a steady workload leaves behind, and two is a workload that changed.
-			CSharpEmitter.Spared(text, "ImmediateValues", "values", roomy);
+			CSharpEmitter.Spared(text, "ImmediateValues_DotGram", "values", roomy);
 			text.Append("\t}\n\n");
 		}
 
@@ -253,7 +253,7 @@ sealed partial class Machine
 			get
 			{
 				if (NeedsStorage)
-					yield return ("ImmediateValues", "values");
+					yield return ("ImmediateValues_DotGram", "values");
 
 				if (machine.OverKinds)
 					foreach (var token in Machine.TokenState)
@@ -770,7 +770,7 @@ sealed partial class Machine
 
 		public override string Absent(RuleSymbol rule, string local)
 		{
-			return $"ImmediateValues.IsDefault({local})";
+			return $"ImmediateValues_DotGram.IsDefault({local})";
 		}
 
 		public override string FirstRecord(IReadOnlyList<int> slots, RuleSymbol rule)
@@ -781,7 +781,7 @@ sealed partial class Machine
 			var chain = $"default({machine._results.ValueOf(rule)})!";
 
 			for (var i = slots.Count - 1; i >= 0; i--)
-				chain = $"!ImmediateValues.IsDefault(r{slots[i]}) ? r{slots[i]} : {chain}";
+				chain = $"!ImmediateValues_DotGram.IsDefault(r{slots[i]}) ? r{slots[i]} : {chain}";
 
 			return $"({chain})";
 		}
@@ -1159,13 +1159,13 @@ sealed partial class Machine
 		public override IEnumerable<string> Rent()
 		{
 			if (NeedsStorage)
-				yield return "var values = ImmediateValues.Rent();";
+				yield return "var values = ImmediateValues_DotGram.Rent();";
 		}
 
 		public override IEnumerable<string> Return()
 		{
 			if (NeedsStorage)
-				yield return "ImmediateValues.Return(values);";
+				yield return "ImmediateValues_DotGram.Return(values);";
 		}
 
 		/// <remarks>

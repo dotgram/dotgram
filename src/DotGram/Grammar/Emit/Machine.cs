@@ -89,7 +89,7 @@ sealed partial class Machine
 		}
 	}
 
-	internal string InputType => BufferedBytes ? "BufferedBytes" : BufferedInput ? "BufferedText" : "global::System.ReadOnlySpan<char>";
+	internal string InputType => BufferedBytes ? "BufferedBytes_DotGram" : BufferedInput ? "BufferedText_DotGram" : "global::System.ReadOnlySpan<char>";
 	string ReadAt(string position)
 	{
 		return BufferedInput ? $"text.Get({position})" : $"text[{position}]";
@@ -1970,7 +1970,7 @@ sealed partial class Machine
 			// exist — is what says which of the locals below anything still reads.
 			PlanLayout();
 
-			file.Line("Parser parser = null!;");
+			file.Line("Parser_DotGram parser = null!;");
 			file.Line("RentParser(ref parser);");
 			// Whoever handed it over takes it back: a caller that pools its own gets it
 			// returned through the hook, and one that said nothing gets the default pool.

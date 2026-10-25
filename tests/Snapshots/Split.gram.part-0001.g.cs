@@ -9,7 +9,7 @@ namespace DotGram.Snapshots
 		{
 			recognized = null;
 
-			Parser parser = null!;
+			Parser_DotGram parser = null!;
 			RentParser(ref parser);
 			var lent = parser != null;
 			parser ??= Recycled();

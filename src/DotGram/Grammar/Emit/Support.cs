@@ -28,7 +28,7 @@ public static partial class CSharpEmitter
 	internal const string MatchType = "Match";
 
 	/// <summary>What a streamed parse reads through. The name a rule may not take.</summary>
-	internal const string WindowType = "Window";
+	internal const string WindowType = "Window_DotGram";
 
 	/// <summary>
 	/// What tells "the input ran out" from "this does not match", for a windowed parse.
@@ -140,7 +140,7 @@ public static partial class CSharpEmitter
 	/// </para>
 	/// </remarks>
 	/// <summary>What a sequence of lines is read through. The name a rule may not take.</summary>
-	internal const string LinesType = "Lines";
+	internal const string LinesType = "Lines_DotGram";
 
 	/// <summary>
 	/// A sequence of lines, read as though it were a file.
@@ -161,7 +161,7 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	internal const string LinesClass = """
 		/// <summary>A sequence of lines, read as though it were a file.</summary>
-		sealed class Lines : global::System.IO.TextReader
+		sealed class Lines_DotGram : global::System.IO.TextReader
 		{
 			private readonly global::System.Collections.Generic.IEnumerator<string> _lines;
 
@@ -171,7 +171,7 @@ public static partial class CSharpEmitter
 			private bool   _ended;
 			private bool   _disposed;
 
-			public Lines(global::System.Collections.Generic.IEnumerable<string> lines)
+			public Lines_DotGram(global::System.Collections.Generic.IEnumerable<string> lines)
 			{
 				_lines = lines.GetEnumerator();
 			}
@@ -243,7 +243,7 @@ public static partial class CSharpEmitter
 
 	internal const string WindowClass = """
 		/// <summary>A reader, read through a buffer that is reused.</summary>
-		sealed class Window
+		sealed class Window_DotGram
 		{
 			private readonly global::System.IO.TextReader _input;
 
@@ -273,7 +273,7 @@ public static partial class CSharpEmitter
 				return c == '\r' || c == '\n' && !(at > 0 ? _buffer[at - 1] == '\r' : _droppedCr);
 			}
 
-			public Window(global::System.IO.TextReader input, int capacity)
+			public Window_DotGram(global::System.IO.TextReader input, int capacity)
 			{
 				_input  = input;
 				_buffer = new char[capacity];
@@ -1203,9 +1203,9 @@ public static partial class CSharpEmitter
 
 	/// <summary>The reusable state owned by the automaton.</summary>
 	const string ParserRuntimeTemplate = """
-		private sealed class Parser
+		private sealed class Parser_DotGram
 		{
-			internal readonly ParserArena Entries = new ParserArena();
+			internal readonly ParserArena_DotGram Entries = new ParserArena_DotGram();
 			object?[] _values = global::System.Array.Empty<object?>();
 			/*TYPED_FIELDS*/
 			/*CACHE_FIELD*/
@@ -1308,7 +1308,7 @@ public static partial class CSharpEmitter
 			}
 		}
 
-		private sealed class ParserArena
+		private sealed class ParserArena_DotGram
 		{
 			ParserEntry[] _items = global::System.Array.Empty<ParserEntry>();
 
@@ -1462,8 +1462,8 @@ public static partial class CSharpEmitter
 			/*POWER_PROPERTY*/
 		}
 
-		static partial void RentParser(ref Parser parser);
-		static partial void ReturnParser(Parser parser);
+		static partial void RentParser(ref Parser_DotGram parser);
+		static partial void ReturnParser(Parser_DotGram parser);
 
 		/// <summary>The last parser this thread used, kept for the next parse on it.</summary>
 		/// <remarks>
@@ -1500,11 +1500,11 @@ public static partial class CSharpEmitter
 		/// </para>
 		/// </remarks>
 		[global::System.ThreadStatic]
-		static Parser? _spareParser;
+		static Parser_DotGram? _spareParser;
 
 		/// <summary>Spares below the one slot, for parses reached from inside others; made the first time one is.</summary>
 		[global::System.ThreadStatic]
-		static Parser?[]? _deeperParsers;
+		static Parser_DotGram?[]? _deeperParsers;
 
 		[global::System.ThreadStatic]
 		static int _deeperParserCount;
@@ -1513,7 +1513,7 @@ public static partial class CSharpEmitter
 
 		/// <summary>A parser past <see cref="KeptEntries"/>, kept while the work still wants it.</summary>
 		[global::System.ThreadStatic]
-		static Parser? _largeParser;
+		static Parser_DotGram? _largeParser;
 
 		/// <summary>Parses in a row that did not use the room; at <see cref="LargeParserIdle"/> it is let go of.</summary>
 		[global::System.ThreadStatic]
@@ -1521,7 +1521,7 @@ public static partial class CSharpEmitter
 
 		/// <summary>And where it goes then: reachable until the memory is wanted elsewhere.</summary>
 		[global::System.ThreadStatic]
-		static global::System.WeakReference<Parser>? _largeParserLetGo;
+		static global::System.WeakReference<Parser_DotGram>? _largeParserLetGo;
 
 		/// <summary>Parses in a row that left most of the ordinary spare's room unused.</summary>
 		[global::System.ThreadStatic]
@@ -1529,7 +1529,7 @@ public static partial class CSharpEmitter
 
 		/// <summary>And where the ordinary spare goes when it has been too big for too long.</summary>
 		[global::System.ThreadStatic]
-		static global::System.WeakReference<Parser>? _spareParserLetGo;
+		static global::System.WeakReference<Parser_DotGram>? _spareParserLetGo;
 
 		/// <summary>
 		/// Eight is a claim rather than a taste: if eight parses in a row have not wanted the
@@ -1542,7 +1542,7 @@ public static partial class CSharpEmitter
 		/// <summary>The same count for the ordinary slot, read the same way.</summary>
 		const int SpareParserIdle = 8;
 
-		static Parser Recycled()
+		static Parser_DotGram Recycled()
 		{
 			var spare = _spareParser;
 
@@ -1569,16 +1569,16 @@ public static partial class CSharpEmitter
 				_spareParserLetGo.SetTarget(null!);
 			}
 			else
-				return new Parser();
+				return new Parser_DotGram();
 			return spare;
 		}
 
-		static void Recycle(Parser parser)
+		static void Recycle(Parser_DotGram parser)
 		{
 			if (parser.Entries.Capacity > KeptEntries)
 			{
 				if (_largeParser != null && !ReferenceEquals(_largeParser, parser))
-					(_largeParserLetGo ??= new global::System.WeakReference<Parser>(_largeParser)).SetTarget(_largeParser);
+					(_largeParserLetGo ??= new global::System.WeakReference<Parser_DotGram>(_largeParser)).SetTarget(_largeParser);
 
 				// The same question the ordinary slot asks below: is the room far larger than the
 				// use. The bound decides which slot holds the arena, not whether to keep it.
@@ -1586,7 +1586,7 @@ public static partial class CSharpEmitter
 					_largeParserIdle = 0;
 				else if (++_largeParserIdle >= LargeParserIdle)
 				{
-					(_largeParserLetGo ??= new global::System.WeakReference<Parser>(parser)).SetTarget(parser);
+					(_largeParserLetGo ??= new global::System.WeakReference<Parser_DotGram>(parser)).SetTarget(parser);
 					_largeParser = null;
 					_largeParserIdle = 0;
 
@@ -1605,7 +1605,7 @@ public static partial class CSharpEmitter
 				_spareParserIdle = 0;
 			else if (++_spareParserIdle >= SpareParserIdle)
 			{
-				(_spareParserLetGo ??= new global::System.WeakReference<Parser>(parser)).SetTarget(parser);
+				(_spareParserLetGo ??= new global::System.WeakReference<Parser_DotGram>(parser)).SetTarget(parser);
 				_spareParserIdle = 0;
 
 				return;
@@ -1614,7 +1614,7 @@ public static partial class CSharpEmitter
 			if (_spareParser == null)
 				_spareParser = parser;
 			else if (_deeperParserCount < /*DEEPER*/)
-				(_deeperParsers ??= new Parser?[/*DEEPER*/])[_deeperParserCount++] = parser;
+				(_deeperParsers ??= new Parser_DotGram?[/*DEEPER*/])[_deeperParserCount++] = parser;
 		}
 
 		/// <summary>
@@ -1728,8 +1728,8 @@ public static partial class CSharpEmitter
 		runtime = CacheRuntime(runtime, "CACHE_ACCESS",
 			"internal bool[] Materialized() => _built;\n", caches);
 		runtime = CacheRuntime(runtime, "CACHE_TRUNCATE",
-			"internal void Truncate(int count, ParserArena entries)\n{\n\tif (count < _valuesUsed)\n\t{\n\t\t// Descending, and checked against the arena rather than assumed: a link\n\t\t// prepended by the derivation being discarded may still be the head for\n\t\t// its call, and popping it here — the same order it was pushed in — is\n\t\t// what stops that call's chain from pointing at a slot the next\n\t\t// derivation through it is about to reuse for something else entirely.\n\t\tfor (var i = _valuesUsed - 1; i >= count; i--)\n\t\t{\n\t\t\tvar callIndex = entries[i].CallIndex;\n\n\t\t\tif (callIndex >= 0 && _linkHeads[callIndex] == i)\n\t\t\t\t_linkHeads[callIndex] = _linkNexts[i];\n\n\t\t\t_linkHeads[i] = -1;\n\t\t\t_linkNexts[i] = -1;\n\t\t}\n\n\t\tglobal::System.Array.Clear(_values, count, _valuesUsed - count);\n\t\tglobal::System.Array.Clear(_built, count, _valuesUsed - count);\n\n\t\t_valuesUsed = count;\n\t}\n\n\tif (count < LinkedUpTo)\n\t\tLinkedUpTo = count;\n}\n" +
-			"internal void Reopen(int call, ParserArena entries)\n{\n\t// A choice resumed inside a call that had returned opens that call again, and every\n\t// call it returned into: a value a guard built for one of them was built for the\n\t// reading being given up. An open call's callers are open too, so the walk stops there.\n\twhile (call >= 0 && entries[call].Kind == ParserEntry.Completed)\n\t{\n\t\tif (call < _built.Length)\n\t\t\t_built[call] = false;\n\n\t\tcall = entries[call].CallIndex;\n\t}\n}\n", caches);
+			"internal void Truncate(int count, ParserArena_DotGram entries)\n{\n\tif (count < _valuesUsed)\n\t{\n\t\t// Descending, and checked against the arena rather than assumed: a link\n\t\t// prepended by the derivation being discarded may still be the head for\n\t\t// its call, and popping it here — the same order it was pushed in — is\n\t\t// what stops that call's chain from pointing at a slot the next\n\t\t// derivation through it is about to reuse for something else entirely.\n\t\tfor (var i = _valuesUsed - 1; i >= count; i--)\n\t\t{\n\t\t\tvar callIndex = entries[i].CallIndex;\n\n\t\t\tif (callIndex >= 0 && _linkHeads[callIndex] == i)\n\t\t\t\t_linkHeads[callIndex] = _linkNexts[i];\n\n\t\t\t_linkHeads[i] = -1;\n\t\t\t_linkNexts[i] = -1;\n\t\t}\n\n\t\tglobal::System.Array.Clear(_values, count, _valuesUsed - count);\n\t\tglobal::System.Array.Clear(_built, count, _valuesUsed - count);\n\n\t\t_valuesUsed = count;\n\t}\n\n\tif (count < LinkedUpTo)\n\t\tLinkedUpTo = count;\n}\n" +
+			"internal void Reopen(int call, ParserArena_DotGram entries)\n{\n\t// A choice resumed inside a call that had returned opens that call again, and every\n\t// call it returned into: a value a guard built for one of them was built for the\n\t// reading being given up. An open call's callers are open too, so the walk stops there.\n\twhile (call >= 0 && entries[call].Kind == ParserEntry.Completed)\n\t{\n\t\tif (call < _built.Length)\n\t\t\t_built[call] = false;\n\n\t\tcall = entries[call].CallIndex;\n\t}\n}\n", caches);
 		runtime = CacheRuntime(runtime, "CACHE_RESET",
 			"global::System.Array.Clear(_built, 0, _valuesUsed);", caches);
 
@@ -1969,15 +1969,15 @@ public static partial class CSharpEmitter
 	{
 		var text = new StringBuilder();
 
-		text.Append("sealed class DirectValues\n{\n");
+		text.Append("sealed class DirectValues_DotGram\n{\n");
 
 		for (var i = 0; i < valueTypes.Count; i++)
 			if (adaptive)
 				text.Append("\tinternal ValueTable<").Append(valueTypes[i]).Append("> V").Append(i)
 					.Append(" = new ValueTable<").Append(valueTypes[i]).Append(">(16);\n");
 			else
-				text.Append("\tinternal Held<").Append(valueTypes[i]).Append(">[] V").Append(i)
-					.Append(" = new Held<").Append(valueTypes[i]).Append(">[16];\n");
+				text.Append("\tinternal Held_DotGram<").Append(valueTypes[i]).Append(">[] V").Append(i)
+					.Append(" = new Held_DotGram<").Append(valueTypes[i]).Append(">[16];\n");
 
 		text.Append("\tinternal bool[] Live   = new bool[16];\n");
 		text.Append("\tinternal int[]  Starts = new int[16];\n");
@@ -2033,7 +2033,7 @@ public static partial class CSharpEmitter
 		}
 
 		text.Append("\tint _used;\n\n");
-		Spares(text, "DirectValues", releases: true);
+		Spares(text, "DirectValues_DotGram", releases: true);
 				var capacities = dense
 			? new List<string> { "values.Live.Length", "values.Starts.Length", "values.Built.Length", "values.Tables" }
 			: Enumerable.Range(0, valueTypes.Count).Select(i => "values.V" + i + ".Length")
@@ -2046,7 +2046,7 @@ public static partial class CSharpEmitter
 			capacities.Add("values.MarkAt.Length");
 const string Roomy = "values.Live.Length > 4L * rows";
 
-text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
+text.Append("\tinternal static void Return(DirectValues_DotGram values)\n\t{\n");
 		// Taken before the emptying below, which zeroes it. Every table the bound counts
 		// is indexed by the record, so the room a parse used is its count of records once
 		// per table - the same sum the bound is read from, with use in place of length.
@@ -2113,7 +2113,7 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 		text.Append("\t\t// to the collector once it stops (CSharpEmitter.Outsized). It is emptied\n");
 		text.Append("\t\t// first, above: what is kept is the room, never what was built in it.\n");
 		text.Append("\t\tif (0L + ").Append(string.Join(" + ", capacities)).Append(" > 1048576)\n");
-		Outsized(text, "DirectValues", "values", Roomy);
+		Outsized(text, "DirectValues_DotGram", "values", Roomy);
 
 		// Read off the RECORD tables and not off the whole store. Every table here is indexed
 		// by the record, and Live grows by doubling to hold them, so Live.Length against this
@@ -2129,7 +2129,7 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 		// releasing it would demote the spare of every steady parse in the world. TWO doublings
 		// cannot be reached by slack - only by a workload that has actually shrunk - which is
 		// the change this release exists to notice.
-		Spared(text, "DirectValues", "values", Roomy);
+		Spared(text, "DirectValues_DotGram", "values", Roomy);
 		text.Append("\t}\n\n");
 		text.Append("\t/// <summary>Room for a value at every index below the count; what was built stays built.</summary>\n");
 		text.Append("\tinternal void Room(int count, bool live = true").Append(dense ? ", bool dense = false" : "").Append(", int from = 0)\n\t{\n\t\tif (").Append(dense ? "!dense && " : "").Append("count > _used) _used = count;\n");
@@ -2187,7 +2187,7 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 				text.Append("\t\tStarts[record] = index;\n\t\treturn index;\n\t}\n");
 
 				// The table a record-indexed write reaches past, grown to reach it.
-				text.Append("\tinternal Held<").Append(valueTypes[i]).Append(">[] Grow").Append(i).Append("(int record)\n\t{\n");
+				text.Append("\tinternal Held_DotGram<").Append(valueTypes[i]).Append(">[] Grow").Append(i).Append("(int record)\n\t{\n");
 				text.Append("\t\tvar was = V").Append(i).Append(".Length;\n");
 				text.Append("\t\tglobal::System.Array.Resize(ref V").Append(i).Append(", global::System.Math.Max(record + 1, V").Append(i).Append(".Length * 2));\n");
 				text.Append("\t\tTables += V").Append(i).Append(".Length - was;\n");
@@ -2197,7 +2197,7 @@ text.Append("\tinternal static void Return(DirectValues values)\n\t{\n");
 
 		text.Append("/// <summary>One value in a table, in a struct so that storing it asks nothing.</summary>\n");
 		text.Append("#pragma warning disable CS0649 // a table nothing writes still declares the field\n");
-		text.Append("struct Held<T>\n{\n\tinternal T Value;\n}\n");
+		text.Append("struct Held_DotGram<T>\n{\n\tinternal T Value;\n}\n");
 		text.Append("#pragma warning restore CS0649\n");
 		if (adaptive) text.Append(AdaptiveValuesSupport);
 
@@ -2564,7 +2564,7 @@ public static partial class CSharpEmitter
 		/// way whose two are equal is spent — it stays on the tape so that a replay reads
 		/// the same decisions in the same places, and is never taken again.
 		/// </remarks>
-		sealed class Ways
+		sealed class Ways_DotGram
 		{
 			internal int[] Items = new int[32];
 
@@ -2866,18 +2866,18 @@ public static partial class CSharpEmitter
 			int _number;
 
 			[global::System.ThreadStatic]
-			static Ways? _spare;
+			static Ways_DotGram? _spare;
 
 			/// <summary>Spares below the one slot, for parses reached from inside others; made the first time one is.</summary>
 			[global::System.ThreadStatic]
-			static Ways?[]? _deeper;
+			static Ways_DotGram?[]? _deeper;
 
 			[global::System.ThreadStatic]
 			static int _deeperCount;
 
 			/// <summary>A tape too large for the ordinary slot, kept while the work still wants it.</summary>
 			[global::System.ThreadStatic]
-			static Ways? _large;
+			static Ways_DotGram? _large;
 
 			/// <summary>Parses in a row that did not use the room; at <c>LargeIdle</c> it is let go of.</summary>
 			[global::System.ThreadStatic]
@@ -2885,7 +2885,7 @@ public static partial class CSharpEmitter
 
 			/// <summary>And where it goes then: reachable while nothing else wants the memory.</summary>
 			[global::System.ThreadStatic]
-			static global::System.WeakReference<Ways>? _largeLetGo;
+			static global::System.WeakReference<Ways_DotGram>? _largeLetGo;
 
 			/// <summary>Parses in a row that left most of the ordinary spare's room unused.</summary>
 			[global::System.ThreadStatic]
@@ -2893,7 +2893,7 @@ public static partial class CSharpEmitter
 
 			/// <summary>And where the ordinary spare goes when it has been too big for too long.</summary>
 			[global::System.ThreadStatic]
-			static global::System.WeakReference<Ways>? _spareLetGo;
+			static global::System.WeakReference<Ways_DotGram>? _spareLetGo;
 
 			/// <summary>
 			/// Eight is a claim, not a taste: if eight parses in a row have not wanted the large
@@ -2906,7 +2906,7 @@ public static partial class CSharpEmitter
 			/// <summary>The same count for the ordinary slot, read the same way.</summary>
 			const int SpareIdle = 8;
 
-			internal static Ways Rent()
+			internal static Ways_DotGram Rent()
 			{
 				var spare = _spare;
 
@@ -2933,7 +2933,7 @@ public static partial class CSharpEmitter
 					_spareLetGo.SetTarget(null!);
 				}
 				else
-					return new Ways();
+					return new Ways_DotGram();
 				spare.Count = 0;
 				spare.Cursor = 0;
 				spare.LogCount  = 0;
@@ -2954,7 +2954,7 @@ public static partial class CSharpEmitter
 				return spare;
 			}
 
-			internal static void Return(Ways ways)
+			internal static void Return(Ways_DotGram ways)
 			{
 				// <expectations>
 				// What a parse that rejected many elements kept for them is let go rather than
@@ -2977,7 +2977,7 @@ public static partial class CSharpEmitter
 				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length/*MEMOROOM*/ > 1048576)
 				{
 					if (_large != null && !ReferenceEquals(_large, ways))
-						(_largeLetGo ??= new global::System.WeakReference<Ways>(_large)).SetTarget(_large);
+						(_largeLetGo ??= new global::System.WeakReference<Ways_DotGram>(_large)).SetTarget(_large);
 
 					// The same question the ordinary slot asks below: is the room far larger than the
 					// use. The bound decides which slot holds the tape, not whether to keep it.
@@ -2986,7 +2986,7 @@ public static partial class CSharpEmitter
 						_largeIdle = 0;
 					else if (++_largeIdle >= LargeIdle)
 					{
-						(_largeLetGo ??= new global::System.WeakReference<Ways>(ways)).SetTarget(ways);
+						(_largeLetGo ??= new global::System.WeakReference<Ways_DotGram>(ways)).SetTarget(ways);
 						_large = null;
 						_largeIdle = 0;
 
@@ -3009,7 +3009,7 @@ public static partial class CSharpEmitter
 					_spareIdle = 0;
 				else if (++_spareIdle >= SpareIdle)
 				{
-					(_spareLetGo ??= new global::System.WeakReference<Ways>(ways)).SetTarget(ways);
+					(_spareLetGo ??= new global::System.WeakReference<Ways_DotGram>(ways)).SetTarget(ways);
 					_spareIdle = 0;
 
 					return;
@@ -3018,7 +3018,7 @@ public static partial class CSharpEmitter
 				if (_spare == null)
 					_spare = ways;
 				else if (_deeperCount < /*DEEPER*/)
-					(_deeper ??= new Ways?[/*DEEPER*/])[_deeperCount++] = ways;
+					(_deeper ??= new Ways_DotGram?[/*DEEPER*/])[_deeperCount++] = ways;
 			}
 
 			/// <summary>Opens a way at the end of the tape, in force at its first alternative.</summary>

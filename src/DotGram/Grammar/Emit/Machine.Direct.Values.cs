@@ -850,7 +850,7 @@ sealed partial class Machine
 		// captures were recorded since its rule began, and nothing before that reaches them.
 		using (file.Block(
 			$"static void {DirectMaterializer}(" +
-			$"{WaysType} ways, {InputType} text, DirectValues values, int root, {WaysType}.Snapshot since" +
+			$"{WaysType} ways, {InputType} text, DirectValues_DotGram values, int root, {WaysType}.Snapshot since" +
 			$"{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}, int roots = -1, long rootSlots = 0)"))
 		{
 			// A guard builds while the text is read, so the walk at the end must know what
@@ -1003,7 +1003,7 @@ sealed partial class Machine
 			// A walk that follows references reads no flags of liveness, and clears none.
 			file.Line($"values.Room(ways.Records{(strays && !selected ? "" : ", live: false")}{(DenseDirectValues ? ", dense: true" : "")}, from: first);");
 			file.Line("#if DOTGRAM_CHECKS");
-			file.Line("Ways.CheckRecords = ways.Records;");
+			file.Line("Ways_DotGram.CheckRecords = ways.Records;");
 			file.Line("#endif");
 			file.Line();
 			file.Line("var log   = ways.Log;");
@@ -1141,11 +1141,11 @@ sealed partial class Machine
 				file.Line("for (var at = from; at < ways.LogCount; at += log[at])");
 				file.Then("starts[listed++] = at;");
 				// Two counters a materializer, never one a rule: what a count gate reads, and nothing a
-				// consumer compiles (D144). Here rather than on `Ways` because the reader's own numbers
+				// consumer compiles (D144). Here rather than on `Ways_DotGram` because the reader's own numbers
 				// were flat while this walk was quadratic.
 				file.Line("#if DOTGRAM_COUNTS");
-				file.Line("Ways.CountListed += listed;");
-				file.Line("Ways.CountWalks++;");
+				file.Line("Ways_DotGram.CountListed += listed;");
+				file.Line("Ways_DotGram.CountWalks++;");
 				file.Line("#endif");
 				file.Line();
 				// One root, or every record gathered for the slots asked since `roots`: a guard handed a
@@ -1252,7 +1252,7 @@ sealed partial class Machine
 						{
 							file.Line("var at = standing[open];");
 							file.Line("#if DOTGRAM_COUNTS");
-							file.Line("Ways.CountMarkSteps++;");
+							file.Line("Ways_DotGram.CountMarkSteps++;");
 							file.Line("#endif");
 							file.Line();
 							DirectMarkOpen(file);
@@ -1473,7 +1473,7 @@ sealed partial class Machine
 		file.Line("if (listed != ways.Records) throw new global::System.InvalidOperationException(\"the index of the log lists \" + listed + \" records where it holds \" + ways.Records);");
 		file.Line("#endif");
 		file.Line("#if DOTGRAM_COUNTS");
-		file.Line("Ways.CountListed += listed - values.Indexed;");
+		file.Line("Ways_DotGram.CountListed += listed - values.Indexed;");
 		file.Line("#endif");
 		file.Line("values.Indexed   = listed;");
 		file.Line("values.IndexedAt = ways.LogCount;");
@@ -1513,8 +1513,8 @@ sealed partial class Machine
 		// consumer compiles (D144). Listed here is what was indexed since the last walk and what
 		// this one reached, which between them are everything the walk read.
 		file.Line("#if DOTGRAM_COUNTS");
-		file.Line("Ways.CountListed += count;");
-		file.Line("Ways.CountWalks++;");
+		file.Line("Ways_DotGram.CountListed += count;");
+		file.Line("Ways_DotGram.CountWalks++;");
 		file.Line("#endif");
 		file.Line();
 
@@ -1675,7 +1675,7 @@ sealed partial class Machine
 		}
 
 		shared.Add((WaysType, "ways"));
-		shared.Add(("DirectValues", "values"));
+		shared.Add(("DirectValues_DotGram", "values"));
 		shared.Add(("int[]", "log"));
 
 		if (strays)
@@ -2010,7 +2010,7 @@ sealed partial class Machine
 				if (IsStep(rule, factory))
 				{
 					file.Line("#if DOTGRAM_CHECKS");
-					file.Line($"if (log[read] >= Ways.CheckRecords || log[read] < 0) throw new global::System.InvalidOperationException(\"a step of {rule.Name} follows a reference to record \" + log[read] + \" of \" + Ways.CheckRecords + \", at \" + read);");
+					file.Line($"if (log[read] >= Ways_DotGram.CheckRecords || log[read] < 0) throw new global::System.InvalidOperationException(\"a step of {rule.Name} follows a reference to record \" + log[read] + \" of \" + Ways_DotGram.CheckRecords + \", at \" + read);");
 					file.Line("#endif");
 					file.Line(Reached(reach, "log[read]"));
 					file.Line("read++;");
@@ -2045,7 +2045,7 @@ sealed partial class Machine
 				if (!extent)
 				{
 					file.Line("#if DOTGRAM_CHECKS");
-					file.Line($"if (log[read] >= Ways.CheckRecords) throw new global::System.InvalidOperationException(\"{member.Member.Name} names record \" + log[read] + \" of \" + Ways.CheckRecords + \", at \" + read);");
+					file.Line($"if (log[read] >= Ways_DotGram.CheckRecords) throw new global::System.InvalidOperationException(\"{member.Member.Name} names record \" + log[read] + \" of \" + Ways_DotGram.CheckRecords + \", at \" + read);");
 					file.Line("#endif");
 					file.Line("if (log[read] >= 0) " + Reached(reach, "log[read]"));
 				}
@@ -2067,7 +2067,7 @@ sealed partial class Machine
 					using (file.Block(""))
 					{
 						file.Line("#if DOTGRAM_CHECKS");
-						file.Line($"if (log[read + 1 + item] >= Ways.CheckRecords || log[read + 1 + item] < 0) throw new global::System.InvalidOperationException(\"{member.Member.Name}[\" + item + \"] names record \" + log[read + 1 + item] + \" of \" + Ways.CheckRecords + \", at \" + read);");
+						file.Line($"if (log[read + 1 + item] >= Ways_DotGram.CheckRecords || log[read + 1 + item] < 0) throw new global::System.InvalidOperationException(\"{member.Member.Name}[\" + item + \"] names record \" + log[read + 1 + item] + \" of \" + Ways_DotGram.CheckRecords + \", at \" + read);");
 						file.Line("#endif");
 						file.Line(Reached(reach, "log[read + 1 + item]"));
 					}

@@ -26,18 +26,20 @@ public static partial class CSharpEmitter
 	];
 
 	/// <summary>
-	/// The types the generated class nests for its own use, which are not the author's to name and
-	/// which a rule's type may not take either.
+	/// The types the generated class nests for its own use that keep their plain names. Every other one
+	/// is named with <c>_DotGram</c> in it, which no name of the author's can (GRAM1012); these two
+	/// are written so many times that the longer name would be a share of the file (about 0.9% of the
+	/// source of the snapshots), so they are reserved instead: not a name a publication or a rule's
+	/// type may take.
 	/// </summary>
 	public static readonly string[] SupportNames =
 	[
-		FailureType, WindowType, LinesType, Machine.WaysType, "Held", "Parser", "ParserArena", "ParserEntry",
-		"DirectValues", "ImmediateValues", "BufferedText", "BufferedBytes", "IParserInputSource",
+		FailureType, "ParserEntry",
 	];
 
 	/// <summary>
 	/// The names a rule's own type may not take, as a set: the host class, which a member may not be
-	/// called, and every type the generator nests beside it.
+	/// called, and every type the generator nests beside it under its plain name.
 	/// </summary>
 	internal static HashSet<string> TypeNamesTaken(string host, bool traced)
 	{
@@ -76,7 +78,7 @@ public static partial class CSharpEmitter
 		if (angle >= 0)
 			host = host.Substring(0, angle);
 
-		var members = new HashSet<string>(PublicNames, StringComparer.Ordinal) { host };
+		var members = new HashSet<string>(PublicNames.Concat(SupportNames), StringComparer.Ordinal) { host };
 
 		if (traced)
 			members.UnionWith(TraceNames);

@@ -5,7 +5,7 @@ namespace DotGram.Grammar.Emit;
 public static partial class CSharpEmitter
 {
 	const string ParserInputTypes = """
-		internal interface IParserInputSource<T>
+		internal interface IParserInputSource_DotGram<T>
 		{
 			bool Ensure(int position, int length);
 			global::System.ReadOnlySpan<T> Slice(int position, int length);
@@ -15,7 +15,7 @@ public static partial class CSharpEmitter
 		public readonly ref struct ParserInput<T>
 		{
 			private readonly global::System.ReadOnlySpan<T> _span;
-			private readonly IParserInputSource<T>? _source;
+			private readonly IParserInputSource_DotGram<T>? _source;
 
 			internal ParserInput(global::System.ReadOnlySpan<T> span)
 			{
@@ -23,7 +23,7 @@ public static partial class CSharpEmitter
 				_source = null;
 			}
 
-			internal ParserInput(IParserInputSource<T> source)
+			internal ParserInput(IParserInputSource_DotGram<T> source)
 			{
 				_span   = default;
 				_source = source;
