@@ -256,7 +256,7 @@ public sealed class StandingTurnTests
 	}
 
 	/// <summary>Says every recognizer reads the input view, as the host's overloads over <c>ParserInput</c> do.</summary>
-	sealed class ViewResolver : ISymbolResolver
+	internal sealed class ViewResolver : ISymbolResolver
 	{
 		public static readonly ViewResolver Instance = new();
 

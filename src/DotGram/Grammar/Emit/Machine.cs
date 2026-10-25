@@ -3427,7 +3427,7 @@ sealed partial class Machine
 				// where there is one, is recovered later by re-invoking the method against
 				// the recorded start position (Machine.Materialization.cs), not trusted from
 				// a call that may run on an abandoned path.
-				writer.Line($"if (!{ExternalCall(external, "p", external.HasValue ? "_" : null)}) {{ expected = null; goto Fail; }}");
+				writer.Line($"if (!{ExternalCall(external, "p", external.HasValue ? "_" : null)}) {{ expected = null; goto {Label(writer, _fail)}; }}");
 				writer.Line($"goto {Label(writer, next)};");
 
 				return state;
