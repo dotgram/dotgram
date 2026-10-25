@@ -462,8 +462,9 @@ sealed partial class Machine
 
 				// And the entry that begins where it is told and demands no end, which is what a
 				// positional overload calls. Only for a whole parse: `find` already reads from a
-				// position, and asking for both would write one method twice.
-				if (publication.Kind == PublishKind.Parse)
+				// position, and asking for both would write one method twice. A grammar that names
+				// `eos` publishes no positional overload (SegmentEmitter), so none calls it.
+				if (publication.Kind == PublishKind.Parse && !_graph.Segmented)
 				{
 					entryPoints.Add((publication.Rule, false));
 					RenderReaderEntryBody(file, publication.Rule, ends: false);
