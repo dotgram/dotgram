@@ -26291,3 +26291,37 @@ search for the delimiter that found none jumped to the refusal without saying ho
   ScriptDom corpus read by T-SQL and SQL:2023 (33,212 readings) did not move. A paired stand against the parent,
   unpinned and directional: `sql/select20` -4.8%, `sql/literal` -1.5%, `tsql/select-long` +0.3%, inside the A/A
   of the same runs. Generator time on DotGram.Sql the same, 12.8-13.5 s against 13.1-13.8 s.
+
+## A scanned rule's refusal at the end of a window says it ran out
+
+- **What was wrong.** A stream reads an element again over a longer window wherever its reading met the window's
+  end, and what says it did is the failure's `Starved`, set by every read of the machine that runs into the end,
+  inside a look too. A scanner set it only where it matched: its refusal handed back how far it reached, and a
+  caller that is a look throws that away, failing quietly where the look began. So `Row = t: Word & ';' & ?=Ahead`,
+  `Ahead = (Word & ';')* & "STOP" & ';'`, refused 4095 of 5000 records over a reader where the string read them all,
+  and the same with `?!` read what the string refused. v0.2.0 had it.
+- **The rule, and why one place.** A machine fed by a window never takes the window's end for an answer on any exit.
+  The scanner's refusal epilogue now sets the flag as its match does, which covers every scanned rule, the seam's
+  and a literal's partial reach at once. The scanner records nothing inside its own looks, so there the reads that
+  can run out past where the look stands say it themselves: a literal the end cuts, a search for a delimiter that
+  finds none, and in the seam, whose way back past a look is quiet, a character's test. Elsewhere in a scanner a
+  character read at the end raises how far the scan got, which the exits read. In the machine, the one-character
+  look and a recovery's skip at the end said nothing; they do now. The scanned run's first test refused at the end
+  without saying so.
+- **Not by a flag of the driver's own.** The forms over a string read `OutOfInput` and the position, not the flag, so
+  setting it moves nothing there (`RefusalPlaceTests` and `FormAgreementTests` unchanged). The flag is sticky for the
+  element: a refusal at the end in an alternative that did not matter reads the element again. That is right and
+  costs a read only where the window's end falls inside an element.
+- **Checked where the brief was unsure.** A failure remembered while the window was short: the memo is kept only
+  over tokens, and a stream is never read over tokens (`StreamingEmitter.Streams`). The lexer's seam scanner is
+  written by the same epilogue.
+- **The oracle.** The generated window's capacity is made a field in the test's copy of the source, and every
+  streamed form is read at every capacity up to its input's length: the window's end then stands at every offset
+  of the first elements. Held to the same form over a window that holds everything, exactly, and that to the
+  string or list form in values, outcome and where a refusal stands (`WindowEdgeTests`; over 37 grammars of
+  records under `eos` and `eol`, `WindowEdgeSweepTests` in the slow suite). It also found the Url snapshot's find
+  cutting `/%41` to `/` at several window sizes, the same defect.
+- **What it cost.** The generated sources of the repository grow by 2,824 bytes (0.003%), in the grammars that
+  stream; SQL, the expression language and FIX are byte for byte what they were. A paired stand of `select20` and
+  the streamed feed rows, shared window and directional: every row inside its A/A. Generator time the same
+  (DotGram.Sql 11.74 s against 11.79 s, medians of four, no compiler server).
