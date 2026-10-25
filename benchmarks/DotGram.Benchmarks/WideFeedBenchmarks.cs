@@ -105,10 +105,10 @@ public enum Side
 
 	Feed    : @object[] = Header & Row* & Trailer & eof
 
-	Header  : @object = "H" & Sep & source: Text & Sep & date: Date & eol
+	Header  : @object = "H" & Sep & source: Text & Sep & date: Date & eos
 	                 => @(new FeedStart(source))
 
-	Trailer : @object = "T" & Sep & count: Digits & eol
+	Trailer : @object = "T" & Sep & count: Digits & eos
 	                 => @(new FeedEnd(Number(count)))
 
 	Row     : @object =
@@ -155,7 +155,7 @@ public enum Side
 	        & Sep & note: Text
 	        & Sep & sequence: Digits
 	        & Sep & Skip & Sep & Skip & Sep & Skip
-	        & eol
+	        & eos
 	       => @(new Settlement(
 	              Big(id), symbol, venue, Number(quantity), Amount(price), Amount(fee),
 	              Amount(tax), Day(tradedOn), Day(settlesOn), At(bookedAt), currency,
@@ -163,8 +163,8 @@ public enum Side
 	              Amount(gross), Amount(net), status, reference, Number(version),
 	              Amount(rate), note, Big(sequence)))
 
-	Skip    = [^ '|' | '\r' | '\n']*
-	Text    = [^ '|' | '\r' | '\n']+
+	Skip    = [^ '|']*
+	Text    = [^ '|']+
 	Digits  = ['0'..'9']+
 	Money   = '-'? & ['0'..'9']+ & ('.' & ['0'..'9']+)?
 	Date    = ['0'..'9']{4} & '-' & ['0'..'9']{2} & '-' & ['0'..'9']{2}
@@ -230,9 +230,9 @@ public static partial class Settlements
 /// <remarks>
 /// <para>
 /// The size worth caring about. A million records is around 190 MB of text, which the
-/// string overload has to hold entire before it can answer anything, on top of a million
+/// list overload has to hold entire before it can answer anything, on top of a million
 /// settlements; the streamed one holds a 4 KB window and whatever the caller keeps. That
-/// is the difference this exists to show, and at ten million the string case does not
+/// is the difference this exists to show, and at ten million the list case does not
 /// run at all — which is itself the answer.
 /// </para>
 /// <para>
@@ -274,7 +274,7 @@ public class WideFeedBenchmarks
 		{
 			using var reader = File.OpenText(_path);
 
-			if (Total(Settlements.ParseFeed(File.ReadAllText(_path))) != Total(Settlements.ParseFeed(reader)))
+			if (Total(Settlements.ParseFeed(File.ReadAllLines(_path))) != Total(Settlements.ParseFeed(reader)))
 				throw new InvalidOperationException("The two overloads disagree about the same feed.");
 		}
 	}
@@ -355,10 +355,10 @@ public class WideFeedBenchmarks
 		return (count, quantity, net);
 	}
 
-	[Benchmark(Baseline = true, Description = "string")]
+	[Benchmark(Baseline = true, Description = "File.ReadAllLines")]
 	public int Whole()
 	{
-		return Total(Settlements.ParseFeed(File.ReadAllText(_path))).Count;
+		return Total(Settlements.ParseFeed(File.ReadAllLines(_path))).Count;
 	}
 
 	[Benchmark(Description = "TextReader")]

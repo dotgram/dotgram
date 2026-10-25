@@ -56,21 +56,21 @@ public enum ActionKind
 
 [Gram("""
 	ActionFile : @ActionLine[] = Header
-	                           & Action* recover eol
+	                           & Action* recover eos
 	                               => @(new ActionReject(parserLine, parserFailureColumn, FieldAt(parserText, parserFailureColumn), parserText, parserMessage))
 	                           & Trailer & eof
 
-	Header  : @ActionLine = "H," & feed: Text & ',' & day: Date & ',' & vendor: Text & eol
+	Header  : @ActionLine = "H," & feed: Text & ',' & day: Date & ',' & vendor: Text & eos
 	                     => @(new ActionHeader(feed, day, vendor))
 
 	Action  : @ActionLine = "D," & id: Text & ',' & isin: Isin & ',' & issuer: Text & ',' & kind: Kind
-	                      & ',' & exDate: Date & ',' & payDate: Date & ',' & rate: Rate & ',' & currency: Currency & eol
+	                      & ',' & exDate: Date & ',' & payDate: Date & ',' & rate: Rate & ',' & currency: Currency & eos
 	                     => @(new CorporateAction(id, isin, issuer, kind, exDate, payDate, rate, currency))
 
-	Trailer : @ActionLine = "T," & count: Count & eol => @(new ActionTrailer(count))
+	Trailer : @ActionLine = "T," & count: Count & eos => @(new ActionTrailer(count))
 
 	Text     : @string     = quoted: Quoted                        => @(Unquote(quoted))
-	                       | plain: [^ ',' | '"' | '\r' | '\n']* => @(plain)
+	                       | plain: [^ ',' | '"']* => @(plain)
 	Kind     : @ActionKind = "DIV" => @(ActionKind.Dividend) | "SPLIT" => @(ActionKind.Split) | "RIGHTS" => @(ActionKind.Rights)
 	Rate     : @decimal    = Digit{1,12} & ('.' & Digit{1,8})? => @(Amount(parserText))
 	Count    : @long       = Digit{1,15} => @(Number(parserText))
@@ -79,7 +79,7 @@ public enum ActionKind
 	Isin      = ['A'..'Z']{2} & ['A'..'Z' | '0'..'9']{9} & Digit
 	Currency  = ['A'..'Z']{3} | none
 	Quoted    = '"' & Character* & '"'
-	Character = [^ '"' | '\r' | '\n'] | "\"\""
+	Character = [^ '"'] | "\"\""
 	Digit     = ['0'..'9']
 
 	parse ActionFile as Read

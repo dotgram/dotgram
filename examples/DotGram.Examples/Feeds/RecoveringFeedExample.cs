@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 
 using DotGram;
 
@@ -15,7 +16,7 @@ namespace DotGram.Examples.Feeds;
 //     R|NVDA|75|2026-08-11
 //     T|3
 //
-// `recover eol` marks the repetition. Inside it, a record that starts and then fails is
+// `recover eos` marks the repetition. Inside it, a record that starts and then fails is
 // an error rather than the end of the sequence: the parser skips to the next end of
 // line and reads on. The `=>` beside it turns what it skipped into an element of the
 // same sequence, so a rejection arrives in its place, in order, carrying its own
@@ -44,20 +45,20 @@ public sealed record RejectedLine(int Ordinal, int Line, string Text, string Mes
 	@using DotGram.Examples.Feeds;
 
 	Feed    = header: Header
-	        & lines:  Row* recover eol => @(new RejectedLine(parserOrdinal, parserLine, parserText, parserMessage))
+	        & lines:  Row* recover eos => @(new RejectedLine(parserOrdinal, parserLine, parserText, parserMessage))
 	        & trailer: Trailer & eof
 
-	Header  = "H" & '|' & date: Date & '|' & source: Text & eol
-	Trailer = "T" & '|' & count: Digit+ & eol
+	Header  = "H" & '|' & date: Date & '|' & source: Text & eos
+	Trailer = "T" & '|' & count: Digit+ & eos
 
 	Row : @FeedLine =
-	          "R" & '|' & symbol: Text & '|' & qty: Digit+ & '|' & date: Date & eol
+	          "R" & '|' & symbol: Text & '|' & qty: Digit+ & '|' & date: Date & eos
 	       => @(new TradeLine(symbol, Number(qty), ToDate(date)))
 
 	Date    = year: Digit{4} & '-' & month: Digit{2} & '-' & day: Digit{2}
 
 	// Anything up to the next separator or the end of the line.
-	Text    = [^ '|' | '\r' | '\n']+
+	Text    = [^ '|']+
 	Digit   = ['0'..'9']
 
 	parse Feed
@@ -79,7 +80,7 @@ public static partial class RecoveringFeedReader
 	/// </exception>
 	public static IReadOnlyList<FeedLine> Read(string text)
 	{
-		return ParseFeed(text).Lines;
+		return ParseFeed(new StringReader(text)).Lines;
 	}
 
 	/// <summary>Every line the feed did not yield a record for.</summary>

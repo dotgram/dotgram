@@ -64,24 +64,24 @@ public enum SettlementStatus
 
 [Gram("""
 	ConfirmFile : @ConfirmLine[] = Header
-	                             & Confirmation* recover eol
+	                             & Confirmation* recover eos
 	                                 => @(new ConfirmReject(parserLine, parserFailureColumn, FieldAt(parserText, parserFailureColumn), parserText, parserMessage))
 	                             & Trailer & eof
 
-	Header       : @ConfirmLine = 'H' & file: Column(10) & day: Digit{8} & custodian: Column(30) & eol
+	Header       : @ConfirmLine = 'H' & file: Column(10) & day: Digit{8} & custodian: Column(30) & eos
 	                           => @(new ConfirmHeader(file.Trim(), day, custodian.Trim()))
 
 	Confirmation : @ConfirmLine = 'D' & reference: Column(12) & isin: Column(12) & settles: Digit{8} & direction: Way
-	                            & quantity: Digit{12} & amount: Digit{15} & currency: ['A'..'Z']{3} & status: Status & eol
+	                            & quantity: Digit{12} & amount: Digit{15} & currency: ['A'..'Z']{3} & status: Status & eos
 	                           => @(new Confirmation(reference.Trim(), isin, settles, direction, Number(quantity), Cents(amount), currency, status))
 
-	Trailer      : @ConfirmLine = 'T' & count: Digit{9} & amount: Digit{18} & eol
+	Trailer      : @ConfirmLine = 'T' & count: Digit{9} & amount: Digit{18} & eos
 	                           => @(new ConfirmTrailer(Number(count), Cents(amount)))
 
 	Way    : @Direction        = 'R' => @(Direction.Receive) | 'D' => @(Direction.Deliver)
 	Status : @SettlementStatus = 'S' => @(SettlementStatus.Settled) | 'P' => @(SettlementStatus.Pending) | 'F' => @(SettlementStatus.Failed)
 
-	Column(width: int) = [^ '\r' | '\n']{width}
+	Column(width: int) = any{width}
 	Digit              = ['0'..'9']
 
 	parse ConfirmFile as Read

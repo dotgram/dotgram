@@ -27,12 +27,12 @@ public sealed record Closing(string Count) : Part;
 
 	Feed    : @Part[] = Header & Row* & Trailer & eof
 
-	Header  : @Part = "H" & '|' & source: Text & eol => @(new Opening(source))
-	Row     : @Part = "R" & '|' & symbol: Text & '|' & qty: Digit+ & eol
+	Header  : @Part = "H" & '|' & source: Text & eos => @(new Opening(source))
+	Row     : @Part = "R" & '|' & symbol: Text & '|' & qty: Digit+ & eos
 	               => @(new Record(symbol, qty))
-	Trailer : @Part = "T" & '|' & count: Digit+ & eol => @(new Closing(count))
+	Trailer : @Part = "T" & '|' & count: Digit+ & eos => @(new Closing(count))
 
-	Text    = [^ '|' | '\r' | '\n']+
+	Text    = [^ '|']+
 	Digit   = ['0'..'9']
 
 	parse Feed
@@ -40,17 +40,18 @@ public sealed record Closing(string Count) : Part;
 public static partial class Feed;
 
 /// <summary>
-/// The same feed read three ways: all in memory, from a reader, and from lines.
+/// The same feed read three ways: from a list of lines held in memory, from a reader, and from a
+/// sequence of lines.
 /// </summary>
 /// <remarks>
 /// <para>
 /// What this is for is the cost of the window, and the window is the only thing that
-/// differs — same grammar, same records, same values built. The string overload has the
-/// whole input in hand and indexes into it; the other two read through a buffer of 4096
-/// characters that is reused, so what they hold is one record and not the file.
+/// differs — same grammar, same records, same values built. The list overload has the
+/// whole input in hand; the other two read through a buffer that is reused, so what they hold
+/// is one record and not the file.
 /// </para>
 /// <para>
-/// The allocation column is the one to read. The string case has to hold the input and
+/// The allocation column is the one to read. The list case has to hold the input and
 /// every part at once, so it grows with the feed; the streamed cases hold one part at a
 /// time, and the parts are counted rather than kept — which is what a caller who is
 /// writing to a database or adding up a column actually does. A number that only says
@@ -86,9 +87,9 @@ public class StreamingBenchmarks
 
 		// The three doors must give the same answer, or the numbers are about three
 		// different things. Checked once, outside the measurement.
-		var whole = Count(Feed.ParseFeed(_text));
+		var whole = Count(Feed.ParseFeed(_lines));
 
-		if (whole != Count(Feed.ParseFeed(new StringReader(_text))) || whole != Count(Feed.ParseFeed(_lines)))
+		if (whole != Count(Feed.ParseFeed(new StringReader(_text))) || whole != Count(Feed.ParseFeed(_lines.AsEnumerable())))
 			throw new InvalidOperationException("The three overloads disagree about the same feed.");
 	}
 
@@ -110,10 +111,10 @@ public class StreamingBenchmarks
 		return records;
 	}
 
-	[Benchmark(Baseline = true, Description = "string")]
+	[Benchmark(Baseline = true, Description = "IReadOnlyList<string>")]
 	public int Whole()
 	{
-		return Count(Feed.ParseFeed(_text));
+		return Count(Feed.ParseFeed(_lines));
 	}
 
 	[Benchmark(Description = "TextReader")]
@@ -125,6 +126,6 @@ public class StreamingBenchmarks
 	[Benchmark(Description = "IEnumerable<string>")]
 	public int Lines()
 	{
-		return Count(Feed.ParseFeed(_lines));
+		return Count(Feed.ParseFeed(_lines.AsEnumerable()));
 	}
 }
