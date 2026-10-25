@@ -68,7 +68,7 @@ public static class Retention
 
 			foreach (var rule in graph.Rules)
 			{
-				var extent = Extent(graph.Bodies[rule], extents, consuming, graph.Segmented);
+				var extent = Extent(graph.Bodies[rule], extents, consuming, graph);
 
 				if (extent > extents[rule])
 				{
@@ -136,8 +136,8 @@ public static class Retention
 			// A committed run is measured by one element, not by the run: the window moves
 			// between elements, so the run's own length is what streaming is *for*.
 			var measured = committed && part is Node.Repeat(var element, _, _)
-				? Extent(element, extents, consuming, graph.Segmented)
-				: Extent(part, extents, consuming, graph.Segmented);
+				? Stepped(part, Extent(element, extents, consuming, graph), graph)
+				: Extent(part, extents, consuming, graph);
 
 			stages.Add(new Stage(part, measured, committed));
 		}
@@ -204,7 +204,7 @@ public static class Retention
 		// hand one out: a construction can ask for `parserSpan` and put it inside a type of
 		// its own, and what comes out is still an offset into a window that will have moved.
 		foreach (var owner in Reachable(graph, root))
-			foreach (var node in Everything(graph.Bodies[owner]))
+			foreach (var node in NodeWalk.Reading(graph.Bodies[owner], graph))
 				if (node is Node.Construct { How: Construction.Expression { Text: var built } } &&
 					built.Contains("parserSpan"))
 				{
@@ -218,7 +218,7 @@ public static class Retention
 			return wanted;
 
 		foreach (var owner in Reachable(graph, root))
-			foreach (var node in Everything(graph.Bodies[owner]))
+			foreach (var node in NodeWalk.Reading(graph.Bodies[owner], graph))
 				if (node is Node.External(var method))
 					return $"'{owner.Name}' reads through '@{method}', a C# recognizer over a span " +
 						"(docs/syntax.md §7.1). It is handed whatever is held and cannot be told that " +
@@ -253,32 +253,9 @@ public static class Retention
 
 			yield return rule;
 
-			foreach (var node in Everything(body))
+			foreach (var node in NodeWalk.Reading(body, graph))
 				if (node is Node.Call(var called, _))
 					pending.Push(called);
-		}
-	}
-
-	static IEnumerable<Node> Everything(Node node)
-	{
-		// Iterative, in the order the recursive form gave: a node, then each child's subtree in
-		// turn. Nested iterators handed every node up through one level per depth, which on the
-		// SQL grammars was a visible share of the generator's time.
-		var pending = new Stack<Node>();
-
-		pending.Push(node);
-
-		while (pending.Count > 0)
-		{
-			var current = pending.Pop();
-
-			yield return current;
-
-			var below    = Children(current);
-			var children = below as IReadOnlyList<Node> ?? [.. below];
-
-			for (var i = children.Count - 1; i >= 0; i--)
-				pending.Push(children[i]);
 		}
 	}
 
@@ -311,7 +288,7 @@ public static class Retention
 	static string? WholeInput(RecognitionGraph graph, RuleSymbol root)
 	{
 		foreach (var owner in Reachable(graph, root))
-			foreach (var node in Everything(graph.Bodies[owner]))
+			foreach (var node in NodeWalk.Reading(graph.Bodies[owner], graph))
 				if (node is Node.Construct { How: Construction.Expression { Text: var built } } &&
 					built.Contains("parserInput"))
 				{
@@ -497,14 +474,7 @@ public static class Retention
 
 		return node switch
 		{
-			Node.Choice(var options) { Selection: null } when
-				options.Count == 3 && options.Select(static option => option switch
-				{
-					Node.Literal { IgnoreCase: false } literal => literal.Text,
-					Node.Element(false, [var range], { Count: 0 }, { Count: 0 }) when range.From == range.To => range.From.ToString(),
-					_ => null,
-				})
-					.OrderBy(static one => one, StringComparer.Ordinal).SequenceEqual(["\n", "\r", "\r\n"]) => true,
+			Node.Choice { Selection: null } choice when IsEol(choice) => true,
 			Node.Choice(var options) { Selection: null } => options.All(option => EndsWithEol(option, graph, depth + 1)),
 			Node.Sequence(var nodes) => nodes.Count > 0 && EndsWithEol(nodes[nodes.Count - 1], graph, depth + 1),
 			Node.Capture(_, var body) => EndsWithEol(body, graph, depth + 1),
@@ -848,8 +818,13 @@ public static class Retention
 		foreach (var part in parts)
 		{
 			var measured = part is Node.Repeat(var element, _, _)
-				? Extent(PastSeam(element, seam), extents, consuming, graph.Segmented)
-				: Extent(part, extents, consuming, graph.Segmented);
+				? Extent(PastSeam(element, seam), extents, consuming, graph)
+				: Extent(part, extents, consuming, graph);
+
+			if (measured != LineExtent.Beyond && Stepped(part, measured, graph) == LineExtent.Beyond)
+				return $"in '{rule.Name}', '{part}' steps over a bad element to '{graph.Recoveries[part].Sync}', " +
+					"and that skip may take more than one segment, so what would have to be held grows with the " +
+					"input. Only 'recover eos' steps to the end of the segment the element began in.";
 
 			if (measured == LineExtent.Beyond)
 				return $"in '{rule.Name}', '{part}' may take more than one {Unit(graph)}, so what would have " +
@@ -974,7 +949,7 @@ public static class Retention
 				else
 				{
 					why =
-						$"{Culprit(graph.Bodies[publication.Rule], extents, consuming, graph.Segmented)} may take more " +
+						$"{Culprit(graph.Bodies[publication.Rule], extents, consuming, graph)} may take more " +
 						$"than one {Unit(graph)}, so reading '{publication.Rule.Name}' from one would have to " +
 						"hold the input rather than one occurrence.";
 				}
@@ -1019,11 +994,11 @@ public static class Retention
 		Node                                        node,
 		IReadOnlyDictionary<RuleSymbol, LineExtent> rules,
 		ICollection<RuleSymbol>                     consuming,
-		bool                                        segmented)
+		RecognitionGraph                            graph)
 	{
 		foreach (var child in Children(node))
-			if (Extent(child, rules, consuming, segmented) == LineExtent.Beyond)
-				return Culprit(child, rules, consuming, segmented);
+			if (Extent(child, rules, consuming, graph) == LineExtent.Beyond)
+				return Culprit(child, rules, consuming, graph);
 
 		return "'" + node + "'";
 	}
@@ -1078,9 +1053,11 @@ public static class Retention
 	}
 
 	/// <summary>What one node can take, given what is known of the rules so far.</summary>
-	/// <param name="segmented">
-	/// Whether the grammar names <c>eos</c>, and so is measured in segments rather than in lines:
-	/// the one terminator is then the joiner, and a line ending is a character like any other.
+	/// <param name="graph">
+	/// The grammar the node is in, or null for a node measured on its own in lines. It says whether
+	/// the grammar names <c>eos</c>, and so is measured in segments rather than in lines — the one
+	/// terminator is then the joiner, and a line ending is a character like any other — and which
+	/// repetitions recover, whose skip to their synchronization is read as well as their element.
 	/// </param>
 	/// <remarks>
 	/// <para>
@@ -1098,8 +1075,10 @@ public static class Retention
 		Node                                        node,
 		IReadOnlyDictionary<RuleSymbol, LineExtent> rules,
 		ICollection<RuleSymbol>                     consuming,
-		bool                                        segmented = false)
+		RecognitionGraph?                           graph = null)
 	{
+		var segmented = graph is { Segmented: true };
+
 		switch (node)
 		{
 			case Node.Literal(var text):
@@ -1117,11 +1096,11 @@ public static class Retention
 			case Node.Guard                     :
 			case Node.Empty                     : return LineExtent.None;
 			case Node.Call     (var called, _)  : return rules.TryGetValue(called, out var known) ? known : LineExtent.None;
-			case Node.Capture  (_, var captured): return Extent(captured, rules, consuming, segmented);
-			case Node.Construct(var built, _)   : return Extent(built, rules, consuming, segmented);
-			case Node.Atomic   (var body)       : return Extent(body, rules, consuming, segmented);
-			case Node.Marked   (var body, _)    : return Extent(body, rules, consuming, segmented);
-			case Node.Bind     (_, var bound, _): return Extent(bound, rules, consuming, segmented);
+			case Node.Capture  (_, var captured): return Extent(captured, rules, consuming, graph);
+			case Node.Construct(var built, _)   : return Extent(built, rules, consuming, graph);
+			case Node.Atomic   (var body)       : return Extent(body, rules, consuming, graph);
+			case Node.Marked   (var body, _)    : return Extent(body, rules, consuming, graph);
+			case Node.Bind     (_, var bound, _): return Extent(bound, rules, consuming, graph);
 
 			// Reads again what a binding read, which this walk does not see: as many lines as
 			// anything could take.
@@ -1130,7 +1109,7 @@ public static class Retention
 			// A repetition whose bounds are known only while reading.
 			case Node.Counted(var body, _, _):
 			{
-				var once = Extent(body, rules, consuming, segmented);
+				var once = Extent(body, rules, consuming, graph);
 
 				return once == LineExtent.AtEnd ? LineExtent.Beyond : once;
 			}
@@ -1141,7 +1120,7 @@ public static class Retention
 
 				foreach (var alternative in alternatives)
 				{
-					var extent = Extent(alternative, rules, consuming, segmented);
+					var extent = Extent(alternative, rules, consuming, graph);
 
 					if (extent > worst)
 						worst = extent;
@@ -1156,9 +1135,20 @@ public static class Retention
 				if (max == 0)
 					return LineExtent.None;
 
-				var once = Extent(body, rules, consuming, segmented);
+				var once = Extent(body, rules, consuming, graph);
 
-				return once == LineExtent.AtEnd && max != 1 ? LineExtent.Beyond : once;
+				// A repetition that recovers also skips to its synchronization, which reads
+				// anything until the synchronization matches. A skip that ends with the terminator
+				// is a line, and the turns after it are on the next one; any other skip may read a
+				// terminator and go on.
+				var turns = once == LineExtent.AtEnd && max != 1 ? LineExtent.Beyond : once;
+
+				if (graph is null || !graph.Recoveries.TryGetValue(node, out var recovery))
+					return turns;
+
+				var skipped = max == 1 && Skip(recovery, graph) == LineExtent.AtEnd ? LineExtent.AtEnd : LineExtent.Beyond;
+
+				return skipped > turns ? skipped : turns;
 			}
 
 			case Node.Sequence(var parts):
@@ -1172,7 +1162,7 @@ public static class Retention
 					if (soFar == LineExtent.AtEnd && Consumes(part, consuming))
 						return LineExtent.Beyond;
 
-					var extent = Extent(part, rules, consuming, segmented);
+					var extent = Extent(part, rules, consuming, graph);
 
 					if (extent > soFar)
 						soFar = extent;
@@ -1224,6 +1214,68 @@ public static class Retention
 				return true;
 
 		return false;
+	}
+
+	/// <summary>
+	/// A committed run's element with the skip of its recovery: in a grammar that names <c>eos</c> the
+	/// window holds what the skip reads too, so a skip that may cross segments is more than one.
+	/// </summary>
+	/// <remarks>
+	/// Over lines the run's skip is not measured, as before: <c>Row* recover ';'</c> keeps its reader
+	/// there, and the window holds what lies between a bad element and the next delimiter.
+	/// </remarks>
+	static LineExtent Stepped(Node part, LineExtent element, RecognitionGraph graph)
+	{
+		if (!graph.Segmented || !graph.Recoveries.TryGetValue(part, out var recovery))
+			return element;
+
+		var skip = Skip(recovery, graph);
+
+		return skip > element ? skip : element;
+	}
+
+	/// <summary>
+	/// What a recovery's skip to its synchronization can take: a line, terminator included, where the
+	/// synchronization is exactly this grammar's terminator — <c>eos</c> where the grammar names it,
+	/// <c>eol</c> otherwise — and more than a line wherever it is anything else.
+	/// </summary>
+	/// <remarks>
+	/// The skip reads every character until the synchronization matches, the terminator among them,
+	/// so only a synchronization that is the terminator stops it at the end of the line it began in.
+	/// A composite one (<c>"END" &amp; eos</c>, <c>eos | ';'</c>) is taken for more, which may refuse a
+	/// grammar that would have fitted; a terminator of the other kind (<c>eol</c> where the grammar
+	/// names <c>eos</c>) is a character of a segment there, and its skip crosses segments.
+	/// </remarks>
+	static LineExtent Skip(Recovery recovery, RecognitionGraph graph)
+	{
+		return IsTerminator(recovery.Sync, graph, 0) ? LineExtent.AtEnd : LineExtent.Beyond;
+	}
+
+	/// <summary>Whether a node reads exactly the grammar's terminator, through rules that only name another.</summary>
+	static bool IsTerminator(Node node, RecognitionGraph graph, int depth)
+	{
+		if (depth > 16)
+			return false;
+
+		return node switch
+		{
+			Node.Call(var rule, { Count: 0 }) => graph.Bodies.TryGetValue(rule, out var called) && IsTerminator(called, graph, depth + 1),
+			Node.Literal { IgnoreCase: false, Text: var text } when graph.Segmented => text.Length == 1 && text[0] == GrammarNormalizer.Joiner,
+			Node.Choice { Selection: null } choice when !graph.Segmented => IsEol(choice),
+			_ => false,
+		};
+	}
+
+	/// <summary>Whether a choice is <c>eol</c>'s: <c>"\r\n" | "\n" | "\r"</c>, in any order and spelling.</summary>
+	static bool IsEol(Node.Choice choice)
+	{
+		return choice.Nodes.Count == 3 && choice.Nodes.Select(static option => option switch
+		{
+			Node.Literal { IgnoreCase: false } literal => literal.Text,
+			Node.Element(false, [var range], { Count: 0 }, { Count: 0 }) when range.From == range.To => range.From.ToString(),
+			_ => null,
+		})
+			.OrderBy(static one => one, StringComparer.Ordinal).SequenceEqual(["\n", "\r", "\r\n"]);
 	}
 
 	/// <summary>Whether a literal holds a terminator anywhere.</summary>

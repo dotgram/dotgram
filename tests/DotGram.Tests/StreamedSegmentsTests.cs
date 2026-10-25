@@ -134,18 +134,31 @@ public sealed class StreamedSegmentsTests
 	}
 
 	/// <summary>
-	/// A repetition that recovers at a delimiter other than <c>eos</c> may step over a bad element
-	/// into the segments after it: the streamed reading steps as far as the list does, and hands
-	/// back what it does.
+	/// A repetition that recovers at anything but <c>eos</c> may step over a bad element into the
+	/// segments after it, so the window would hold what lies between the element and wherever the
+	/// skip ends: it is not streamed, and is told so. Its forms over a sequence and over a reader
+	/// read whole, and answer as the list does — the skip from the bad element on the second
+	/// segment below runs to the delimiter on the fourth.
 	/// </summary>
-	[Fact]
-	public void A_recovery_whose_skip_crosses_segments_reads_as_the_list_does()
+	[Theory]
+	[InlineData("';'", "ab|bad 2|bad 4")]
+	[InlineData("eol", "ab|bad 2")]
+	[InlineData("(\"zz\" & eos)", "ab|bad 2|bad 4")]
+	[InlineData("(eos | ';')", "ab|bad 2|zz|bad 4|bad 4|cd")]
+	public void A_recovery_whose_skip_may_cross_segments_is_not_streamed(string sync, string expected)
 	{
-		var parser = Build("""
-			Items : @string[] = Item* recover ';' => @("bad " + parserLine) & eof
+		var result = Compile($$"""
+			Items : @string[] = Item* recover {{sync}} => @("bad " + parserLine) & eof
 			Item  : @string   = t: ['a'..'z']+ & eos => @(t)
 			parse Items
 			""");
+
+		var said = Assert.Single(result.Diagnostics, static one => one.Id == Retention.NotStreamable);
+
+		Assert.Contains("steps over a bad element to ", said.Message, StringComparison.Ordinal);
+		Assert.Contains("that skip may take more than one segment", said.Message, StringComparison.Ordinal);
+
+		var parser = EmittedCode.Compile(Assert.Single(result.Sources).Text);
 
 		foreach (var segments in new[]
 		{
@@ -154,14 +167,63 @@ public sealed class StreamedSegmentsTests
 			["x1", "zz"],
 			["1;", "ab"],
 			["ab", "1", ";", ";", "cd"],
-			["ab", "1", "2;cd", "ef"],
 		})
-			AssertSameAsList(parser, "ParseItems", segments);
+			Assert.Equal(
+				Outcome(() => (IEnumerable<string>)Invoke(parser, "ParseItems", typeof(IReadOnlyList<string>), segments)!),
+				Outcome(() => (IEnumerable<string>)Invoke(parser, "ParseItems", typeof(IEnumerable<string>), new CountingSequence(segments))!));
 
-		// The skip from the bad element on the second segment runs to the delimiter on the fourth;
-		// what follows the delimiter is the end of that segment, no element, and its skip finds no
-		// delimiter before the end of the input.
-		Assert.Equal(["ab", "bad 2", "bad 4"], Streamed(parser, "ParseItems", ["ab", "x1", "zz", ";", "cd"]));
+		Assert.Equal(expected, string.Join("|", Streamed(parser, "ParseItems", ["ab", "x1", "zz", ";", "cd"])));
+	}
+
+	/// <summary>
+	/// A recovery inside a record steps over a bad field to its synchronization, and the turns after
+	/// the skip read on: whatever the synchronization, the record may take more than one segment.
+	/// </summary>
+	[Theory]
+	[InlineData("';'")]
+	[InlineData("eos")]
+	public void A_record_whose_inner_recovery_crosses_segments_is_not_streamed(string sync)
+	{
+		var result = Compile($$"""
+			Rows  : @int[] = Row* recover eos
+			Row   : @int   = Field* recover {{sync}} => @(0) & eos => @(1)
+			Field : @int   = 'a' & [^ '|']+ & '|' => @(1)
+			parse Rows
+			""");
+
+		var said = Assert.Single(result.Diagnostics, static one => one.Id == Retention.NotStreamable);
+
+		Assert.Contains("may take more than one segment", said.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A recognizer of the host as the synchronization of a recovery, over segments: it is handed its
+	/// segment as every other recognizer of the host is, so the class has what that call needs, and
+	/// no reading of a window is offered, as for any rule that calls the host.
+	/// </summary>
+	[Fact]
+	public void A_host_recognizer_synchronizing_a_recovery_over_segments_compiles()
+	{
+		var result = Compile("""
+			Rows : @int[] = Row* recover @M => @(0)
+			Row  : @int   = 'a' & [^ '|']+ & '|' & eos => @(1)
+			parse Rows
+			""");
+
+		var said = Assert.Single(result.Diagnostics, static one => one.Id == Retention.NotStreamable);
+
+		Assert.Contains("reads through '@M'", said.Message, StringComparison.Ordinal);
+
+		var parser = EmittedCode.Compile(
+			Assert.Single(result.Sources).Text,
+			declarationMembers: "static bool M(System.ReadOnlySpan<char> input, ref int pos) { if (pos < input.Length && input[pos] == '!') { pos++; return true; } return false; }");
+
+		var type    = parser.GetType("Grammar")!;
+		var listed  = (int[])type.GetMethod("ParseRows", [typeof(IReadOnlyList<string>)])!.Invoke(null, [new[] { "ab|", "x!", "ac|" }])!;
+
+		// The element after the synchronization begins at the end of its segment, which is bad again,
+		// and its skip finds no '!' before the end of the input.
+		Assert.Equal([1, 0, 0], listed);
 	}
 
 	/// <summary>

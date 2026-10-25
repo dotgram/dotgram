@@ -90,6 +90,55 @@ static class NodeWalk
 		}
 	}
 
+	/// <summary>
+	/// The node and everything under it, as <see cref="Descendants(Node)"/>, and then the
+	/// synchronization of every repetition among them that recovers, with everything under that.
+	/// </summary>
+	/// <remarks>
+	/// A recovery's synchronization is read by the parser as surely as the rule's body is, but it
+	/// is kept beside the tree (<see cref="RecognitionGraph.Recoveries"/>) and is none of the
+	/// repetition's <see cref="Node.Children"/>. A question about what a rule reads — whether it calls
+	/// the host, or which rules it reaches — asks this walk, or it misses <c>recover @M</c>.
+	/// </remarks>
+	public static IEnumerable<Node> Reading(Node node, RecognitionGraph graph)
+	{
+		if (node is null)
+			throw new ArgumentNullException(nameof(node));
+
+		if (graph is null)
+			throw new ArgumentNullException(nameof(graph));
+
+		var pending = new Queue<Node>();
+
+		pending.Enqueue(node);
+
+		while (pending.Count > 0)
+			foreach (var each in Descendants(pending.Dequeue()))
+			{
+				yield return each;
+
+				if (graph.Recoveries.TryGetValue(each, out var recovery))
+					pending.Enqueue(recovery.Sync);
+			}
+	}
+
+	/// <summary>
+	/// Whether any rule of the grammar reads through a recognizer of the host, in its body or a
+	/// synchronization — any one, or one <paramref name="which"/> picks.
+	/// </summary>
+	public static bool CallsTheHost(RecognitionGraph graph, Func<Node.External, bool>? which = null)
+	{
+		if (graph is null)
+			throw new ArgumentNullException(nameof(graph));
+
+		foreach (var body in graph.Bodies.Values)
+			foreach (var node in Reading(body, graph))
+				if (node is Node.External external && (which is null || which(external)))
+					return true;
+
+		return false;
+	}
+
 	/// <summary>Every node in every one of these trees.</summary>
 	public static IEnumerable<Node> Descendants(IEnumerable<Node> nodes)
 	{

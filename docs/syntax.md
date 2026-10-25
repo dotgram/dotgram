@@ -2300,6 +2300,10 @@ streamed ones — the segments read as they are asked for — and the list is re
 Whether it streams is measured in segments rather than in lines: only `eos` ends a segment,
 so a record fits the window when no `eos` stands in it but its last, and a class such as
 `[^ '|']+` that admits `\n` reads it as a character of the segment and keeps the stream.
+A repetition marked `recover` keeps it only where its synchronization is `eos` itself: the skip
+over a bad element reads anything up to the synchronization, so any other one — `';'`, `eol`,
+`"END" & eos` — may cross segments, and the rule is read whole (`GRAM5001`). A `recover` inside a
+record, whatever it synchronizes on, reads on past the segment after its skip, and does the same.
 A `yield` publication has no streamed reading over segments: its forms over a sequence and
 over a reader read the input whole, then hand the elements over one at a time, and it is
 told so (`GRAM5001`, information); a plain `parse` of the sequence rule is the reading that
@@ -2324,7 +2328,9 @@ and parses them one by one.
 none of what a window has already let go of.** A rule whose repeated part can begin
 with the same input as what follows it has not settled where it ends until
 backtracking says so, and the overload does not appear; naming a rule's value a
-`SourceSpan` into input a window will have moved past does the same. Where the
+`SourceSpan` into input a window will have moved past does the same. So does a recognizer of the
+host anywhere the rule reads — a recovery's synchronization (`recover @M`) included — and a
+repetition marked `recover` inside a part, whose skip may read past the end of the line. Where the
 overload is refused, the reason is reported at the publication:
 
 ```text

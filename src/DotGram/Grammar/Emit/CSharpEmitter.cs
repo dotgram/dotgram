@@ -961,7 +961,7 @@ public static partial class CSharpEmitter
 		}
 
 		if (shared is null && (machines.Exists(static compiled => compiled.Machine.BufferedInput) ||
-			graph.Bodies.Values.Any(body => NodeWalk.Descendants(body).Any(node => node is Node.External { UsesInputView: true }))))
+			NodeWalk.CallsTheHost(graph, static external => external.UsesInputView)))
 			file.Write(ParserInputTypes);
 
 		if (machines.Exists(static compiled => compiled.Machine.BufferedInput))
@@ -999,7 +999,7 @@ public static partial class CSharpEmitter
 
 		if (graph.Segmented)
 		{
-			file.Write(SegmentSupport(graph.Bodies.Values.Any(body => NodeWalk.Descendants(body).Any(node => node is Node.External))));
+			file.Write(SegmentSupport(NodeWalk.CallsTheHost(graph)));
 			file.Line();
 		}
 

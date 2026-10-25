@@ -396,6 +396,50 @@ public sealed class StreamedParseTests
 		return at < 0 ? refused : refused.Substring(at);
 	}
 
+	/// <summary>
+	/// A recognizer of the host that synchronizes a recovery is read by the parse as one in a body is,
+	/// and cannot tell the end of a window from the end of the input either: the rule gets no reader,
+	/// and is told why, rather than a reader that answers otherwise than the string.
+	/// </summary>
+	[Fact]
+	public void A_host_recognizer_synchronizing_a_recovery_keeps_the_rule_off_a_reader()
+	{
+		var result = Compiled("""
+			Start : @string[] = Row* recover @M
+			Row   : @string   = w: ['a'..'z']+ & eol => @(w)
+			""", CarrierKind.Auto, true);
+
+		var said = Assert.Single(result.Diagnostics, static one => one.Id == DotGram.Grammar.Model.Retention.NotStreamable);
+
+		Assert.Contains("reads through '@M'", said.Message, StringComparison.Ordinal);
+
+		var parser = EmittedCode.Compile(
+			Assert.Single(result.Sources).Text,
+			declarationMembers: "static bool M(System.ReadOnlySpan<char> input, ref int pos) { if (pos == input.Length - 1 && input[pos] == '!') { pos++; return true; } return false; }");
+		var type   = parser.GetType("Grammar")!;
+
+		Assert.Null(type.GetMethod("ParseStart", [typeof(TextReader)]));
+		Assert.Equal("a", Show(type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["a\n1!"])));
+	}
+
+	/// <summary>
+	/// A recognizer of the host over the input view, met only in a recovery's synchronization: the
+	/// class holds the view's types it is called with, as it does for one in a rule's body.
+	/// </summary>
+	[Fact]
+	public void A_recognizer_over_the_input_view_in_a_synchronization_compiles()
+	{
+		var type = GeneratorDriverTests.Build("""
+			[DotGram.Gram("Feed : @string[] = Row* recover @V\nRow : @string = w: ['a'..'z']+ & eol => @(w)\nparse Feed")]
+			public partial class Probe
+			{
+				static bool V(ParserInput<char> input, ref int p) { while (input.Peek(p, out var c) && c != '!') p++; return input.TryAdvance(ref p, 1); }
+			}
+			""").GetType("Probe")!;
+
+		Assert.Equal("a,b", Show(type.GetMethod("ParseFeed", [typeof(string)])!.Invoke(null, ["a\n1x!b\n"])));
+	}
+
 	static GramCompilation Compiled(string grammar, CarrierKind carrier, bool direct)
 	{
 		return GramCompiler.Compile(grammar + "\nparse Start", new GramCompilerOptions
