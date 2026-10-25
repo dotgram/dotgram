@@ -2071,15 +2071,17 @@ is allowed to sit between the matches.**
 
 A publication is a method of the generated class, and a `parse` is two, `Name` and `TryName`, so what
 it is called is the name of members of the class: it may not be `Match`, `Outcome`, `SourceSpan`,
-`ParserInput`, `OnRecovered`, `OnHandingOff`, `OnTakingOver`, `Scan`, `DefaultBufferSize` or
-`DefaultMaxRetained`, which the class declares for its callers, nor `Failure` or `ParserEntry`, which it
+`ParserInput`, `OnRecovered`, `OnHandingOff`, `OnTakingOver`, `DefaultBufferSize` or
+`DefaultMaxRetained`, or in a grammar read over tokens `Scan`, which the class declares for its callers, nor `Failure` or `ParserEntry`, which it
 declares for its own use, nor the name of the class itself, nor begin with `Recognize_`, `Scan_`,
 `Construct_` or `ReadBuffered_`, which the methods made from the names of rules and publications begin
 with, and neither of its two names may be the other publication's. That is refused where the directive is
 written (`GRAM5018`); give it another name with `as`. A rule whose type would be called one of them is
-given another name for the type (§7.3). Every other type the class nests
-for its own use has `_DotGram` in its name (§7.1), which no publication can have (`GRAM1012`), so
-`find Word as Lines` and `parse Row as Parser` mean what they say.
+given another name for the type (§7.3). Most of the other types and members the class writes for its
+own use have `_DotGram` in their names (§7.1), which no publication can have (`GRAM1012`), so `find Word as
+Lines` and `parse Row as Parser` compile. That is the list `GRAM5018` checks, and not every name the class
+contains: a name made from another (the methods a rule's name is part of, the readers of a publication) can
+still meet one the check does not compare, and then the C# compiler says so (CS0102, CS0111).
 
 The form that describes a refusal may pay for the description, and whether it does is a property
 of the grammar rather than of the form. Where the parse can read without recording — no
@@ -3426,7 +3428,8 @@ or by another rule's type — `Value` is appended until it is free, and a rule t
 names, or the methods made from them, come out alike once their namespaces are joined (`A.B` and a rule
 called `A_B`; a published `A` and a rule called `A_Whole`), and two
 captures of one rule that become one property (`a` and `A`), cannot be told apart in the code that
-is written, and are refused where they are declared (`GRAM5018`).
+is written, and are refused where they are declared (`GRAM5018`), as far as the checks listed in §6
+and here go.
 
 A capture's own type follows from what it captures:
 
