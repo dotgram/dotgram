@@ -105,7 +105,7 @@ sealed class Writer(int depth)
 	}
 
 	/// <summary>
-	/// Whether the text written names <paramref name="name"/> as a word of its own: not as a
+	/// Whether the text written, and the methods set apart for files of their own, names <paramref name="name"/> as a word of its own: not as a
 	/// part of a longer identifier. Without materializing a copy of the buffer.
 	/// </summary>
 	public bool Names(string name)
@@ -118,6 +118,11 @@ sealed class Writer(int depth)
 			if (before && after)
 				return true;
 		}
+
+		foreach (var methods in _apart)
+			for (var at = methods.IndexOf(name, StringComparison.Ordinal); at >= 0; at = methods.IndexOf(name, at + 1, StringComparison.Ordinal))
+				if ((at == 0 || !Continues(methods[at - 1])) && (at + name.Length == methods.Length || !Continues(methods[at + name.Length])))
+					return true;
 
 		return false;
 
@@ -319,9 +324,14 @@ sealed class Writer(int depth)
 
 	public void Methods(string text)
 	{
-		if (SeparateMethods?.Invoke(text) != true)
+		if (SeparateMethods?.Invoke(text) == true)
+			_apart.Add(text);
+		else
 			Write(text);
 	}
+
+	/// <summary>What <see cref="SeparateMethods"/> took, which is text written all the same: <see cref="Names"/> reads it.</summary>
+	readonly List<string> _apart = [];
 
 	/// <summary>
 	/// Makes internal the static methods written since <paramref name="from"/> at
