@@ -387,7 +387,13 @@ public static partial class CSharpEmitter
 				{
 					var type = $"global::System.Collections.Generic.IEnumerable<{publication.ResultType!.Name}>";
 
-					file.Line($"/// <summary>Lazily parses consecutive elements of the segments; malformed input throws during enumeration.</summary>");
+					// Not streamed: every form reads the input whole first (docs/syntax.md §6.3), and the
+					// doc says so rather than promise what the reader overload does not do.
+					file.Line("/// <summary>");
+					file.Line("/// Reads the whole input, then hands its elements over one at a time; malformed input throws");
+					file.Line("/// during enumeration. Nothing is streamed: a plain <c>parse</c> of the sequence rule is the");
+					file.Line("/// reading that takes the segments as they are asked for (docs/syntax.md §6.3).");
+					file.Line("/// </summary>");
 					file.Line("/// <exception cref=\"global::System.FormatException\">A segment holds U+0000.</exception>");
 
 					using (file.Block($"{access} static {type} {method}({input} input{takes})"))

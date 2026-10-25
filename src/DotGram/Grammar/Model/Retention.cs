@@ -35,6 +35,10 @@ public enum LineExtent
 /// field, <c>AtEnd</c> is a whole record, and both fit a buffer of one line. Only
 /// <c>Beyond</c> does not.
 /// </para>
+/// <para>
+/// A grammar that names <c>eos</c> has the same three answers in segments: the joiner is its
+/// one terminator, and a line ending is a character of a segment (<see cref="Extent"/>).
+/// </para>
 /// </remarks>
 public static class Retention
 {
@@ -943,8 +947,8 @@ public static class Retention
 					NotStreamable,
 					$"'{publication.MethodName}' reads its segments whole, then hands the elements over one at a " +
 					"time, its forms over a sequence and over a reader alike: a 'yield' over segments has no " +
-					$"streamed reading. 'parse {publication.Rule.Name}' without 'yield' is the reading that takes " +
-					"the segments as they are asked for, where the rule can stream. docs/syntax.md §6.3 says " +
+					"streamed reading. A plain 'parse' of the sequence rule, without 'yield', is the reading that " +
+					"takes the segments as they are asked for, where the rule can stream. docs/syntax.md §6.3 says " +
 					"which rules stream, and why.",
 					publication.At.Position,
 					publication.At.Length,
@@ -1081,11 +1085,13 @@ public static class Retention
 	/// <remarks>
 	/// <para>
 	/// Over segments nothing but <c>eos</c> reads the joiner. Lowering narrows <c>any</c>, every
-	/// negated class and every range to leave it out; a literal or a class item that is U+0000
-	/// alone is refused (GRAM4047); a class that asks the host is read only where the joiner is
-	/// not, and reads as anything to <see cref="FirstSets"/> all the same, which counts it as a
-	/// terminator here — the safe answer. So "may consume a joiner" is "may pass an <c>eos</c>",
-	/// and "fits one segment" is exactly what a window of one segment needs.
+	/// negated class and every range to leave it out; a literal that holds U+0000, or a class item
+	/// that is U+0000 alone, is refused (GRAM4047); a class that asks the host, or names a category
+	/// that holds U+0000, is read only where the joiner is not — and a host predicate reads as
+	/// anything to <see cref="FirstSets"/> all the same, which counts it as a terminator here, the
+	/// safe answer. A recognizer of the host is refused a window (<see cref="Reads"/>), and a
+	/// back-reference is <c>Beyond</c> whatever it holds. So "may consume a joiner" is "may pass an
+	/// <c>eos</c>", and "fits one segment" is exactly what a window of one segment needs.
 	/// </para>
 	/// </remarks>
 	public static LineExtent Extent(

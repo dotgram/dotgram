@@ -2297,6 +2297,13 @@ line ending — `\r\n`, `\n` or `\r` — ends a segment, a last line without one
 segment all the same, and a last line ending makes no empty segment after it. Where
 the publication streams, the forms over `IEnumerable<string>` and over a reader are the
 streamed ones — the segments read as they are asked for — and the list is read whole.
+Whether it streams is measured in segments rather than in lines: only `eos` ends a segment,
+so a record fits the window when no `eos` stands in it but its last, and a class such as
+`[^ '|']+` that admits `\n` reads it as a character of the segment and keeps the stream.
+A `yield` publication has no streamed reading over segments: its forms over a sequence and
+over a reader read the input whole, then hand the elements over one at a time, and it is
+told so (`GRAM5001`, information); a plain `parse` of the sequence rule is the reading that
+streams.
 A segment that holds U+0000 is refused: `Parse…` throws a `FormatException`,
 `TryParse…` answers a refusal at it, and a streamed reading throws when it reaches it;
 what is said says where as a line, the segment, and a column, the offset of U+0000 in it,

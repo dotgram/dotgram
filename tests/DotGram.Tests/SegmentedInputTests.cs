@@ -1206,7 +1206,8 @@ public sealed class SegmentedInputTests
 
 	/// <summary>
 	/// The same records streamed from a sequence that is read as it is asked for: the same values,
-	/// and a segment that holds U+0000 throws when it is reached.
+	/// nothing pulled from the sequence before the result is walked and only a block of it for the
+	/// first record, and a segment that holds U+0000 throws when it is reached.
 	/// </summary>
 	[Fact]
 	public void Records_stream_from_a_sequence()
@@ -1219,7 +1220,7 @@ public sealed class SegmentedInputTests
 			parse Feed
 			""");
 
-		var streamed = ((IEnumerable<string>)Invoke(parser, "ParseFeed", typeof(IEnumerable<string>), Lazily(["1|a", "x|b", "2|c"]))!).ToArray();
+		var streamed = ((IEnumerable<string>)Invoke(parser, "ParseFeed", typeof(IEnumerable<string>), Lazily(["1|a", "x|b", "2|c"], out _))!).ToArray();
 
 		Assert.Equal(["1=a", "bad 2", "2=c"], streamed);
 
@@ -1227,14 +1228,41 @@ public sealed class SegmentedInputTests
 
 		Assert.Equal(streamed, (string[])whole!);
 
-		var thrown = Assert.ThrowsAny<Exception>(() => ((IEnumerable<string>)Invoke(parser, "ParseFeed", typeof(IEnumerable<string>), Lazily(["1|a", "2|\0"]))!).ToArray());
+		// A sequence read whole would be an array, and the source pulled to its end at the call.
+		var lines = Enumerable.Range(0, 10_000).Select(static i => i + "|record").ToArray();
+		var lazy  = (IEnumerable<string>)Invoke(parser, "ParseFeed", typeof(IEnumerable<string>), Lazily(lines, out var pulled))!;
+
+		Assert.IsNotType<string[]>(lazy);
+		Assert.Equal(0, pulled());
+
+		using (var walked = lazy.GetEnumerator())
+		{
+			Assert.True(walked.MoveNext());
+			Assert.Equal("0=record", walked.Current);
+			Assert.InRange(pulled(), 1, lines.Length / 10);
+		}
+
+		var thrown = Assert.ThrowsAny<Exception>(() => ((IEnumerable<string>)Invoke(parser, "ParseFeed", typeof(IEnumerable<string>), Lazily(["1|a", "2|\0"], out _))!).ToArray());
 
 		Assert.Contains("U+0000", (thrown.InnerException ?? thrown).Message, StringComparison.Ordinal);
 
-		static IEnumerable<string> Lazily(string[] lines)
+		static IEnumerable<string> Lazily(string[] lines, out Func<int> pulled)
 		{
-			foreach (var line in lines)
-				yield return line;
+			var count = 0;
+
+			pulled = () => count;
+
+			return Walk();
+
+			IEnumerable<string> Walk()
+			{
+				foreach (var line in lines)
+				{
+					count++;
+
+					yield return line;
+				}
+			}
 		}
 	}
 
