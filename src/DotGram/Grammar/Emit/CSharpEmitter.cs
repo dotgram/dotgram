@@ -5323,43 +5323,86 @@ file.Line("return spare;");
 			text.IndexOf("_Agreeing(", StringComparison.Ordinal) < 0)
 			return text;
 
-		while (true)
+		// One pass over everything: how often each walk is named in the text (its own signature is one
+		// mention; a call anywhere is another) and in the parts, and where each method runs.
+		var mentions = new Dictionary<string, int>(StringComparer.Ordinal);
+		var apart    = new HashSet<string>(StringComparer.Ordinal);
+		var methods  = new Dictionary<string, (int Begins, int Ends)>(StringComparer.Ordinal);
+
+		foreach (System.Text.RegularExpressions.Match found in UnwalkedMention.Matches(text))
 		{
-			var dropped = false;
+			var name = found.Groups["name"].Value;
 
-			foreach (System.Text.RegularExpressions.Match found in UnwalkedSignature.Matches(text))
+			mentions[name] = mentions.TryGetValue(name, out var seen) ? seen + 1 : 1;
+		}
+
+		foreach (var part in parts)
+			foreach (System.Text.RegularExpressions.Match found in UnwalkedMention.Matches(part))
+				apart.Add(found.Groups["name"].Value);
+
+		foreach (System.Text.RegularExpressions.Match found in UnwalkedSignature.Matches(text))
+		{
+			// The method runs from its line to the brace at its own indentation, and the blank line
+			// after it goes with it.
+			var begins = text.LastIndexOf('\n', found.Index) + 1;
+			var indent = text.Substring(begins, found.Index - begins);
+			var close  = text.IndexOf("\n" + indent + "}", found.Index, StringComparison.Ordinal);
+			var ends   = text.IndexOf('\n', close + 1) + 1;
+
+			if (ends < text.Length && text[ends] == '\r')
+				ends++;
+
+			if (ends < text.Length && text[ends] == '\n')
+				ends++;
+
+			methods[found.Groups["name"].Value] = (begins, ends);
+		}
+
+		// The walks nothing calls, and, as each goes, the walks only it called.
+		var pending = new Queue<string>(methods.Keys.Where(name => mentions[name] == 1 && !apart.Contains(name)));
+		var dropped = new List<(int Begins, int Ends)>();
+
+		if (pending.Count == 0)
+			return text;
+
+		while (pending.Count > 0)
+		{
+			var gone = pending.Dequeue();
+			var span = methods[gone];
+
+			dropped.Add(span);
+
+			foreach (System.Text.RegularExpressions.Match found in UnwalkedMention.Matches(text.Substring(span.Begins, span.Ends - span.Begins)))
 			{
-				var name  = found.Groups["name"].Value + "(";
-				var first = text.IndexOf(name, StringComparison.Ordinal);
+				var name = found.Groups["name"].Value;
 
-				// Its own signature is one mention; a call anywhere is another.
-				if (text.IndexOf(name, first + name.Length, StringComparison.Ordinal) >= 0 ||
-					parts.Any(part => part.IndexOf(name, StringComparison.Ordinal) >= 0))
+				if (name == gone)
 					continue;
 
-				// The method runs from its line to the brace at its own indentation, and the blank
-				// line after it goes with it.
-				var begins = text.LastIndexOf('\n', found.Index) + 1;
-				var indent = text.Substring(begins, found.Index - begins);
-				var close  = text.IndexOf("\n" + indent + "}", found.Index, StringComparison.Ordinal);
-				var ends   = text.IndexOf('\n', close + 1) + 1;
+				mentions[name]--;
 
-				if (ends < text.Length && text[ends] == '\r')
-					ends++;
-
-				if (ends < text.Length && text[ends] == '\n')
-					ends++;
-
-				text    = text.Remove(begins, ends - begins);
-				dropped = true;
-
-				break;
+				if (mentions[name] == 1 && methods.ContainsKey(name) && !apart.Contains(name))
+					pending.Enqueue(name);
 			}
-
-			if (!dropped)
-				return text;
 		}
+
+		dropped.Sort(static (left, right) => left.Begins.CompareTo(right.Begins));
+
+		var kept = new System.Text.StringBuilder(text.Length);
+		var from = 0;
+
+		foreach (var (begins, ends) in dropped)
+		{
+			kept.Append(text, from, begins - from);
+			from = ends;
+		}
+
+		return kept.Append(text, from, text.Length - from).ToString();
 	}
+
+	static readonly System.Text.RegularExpressions.Regex UnwalkedMention = new(
+		@"(?<!\w)(?<name>Recognize_DotGram\w*_(?:RanOut|Agreeing|Further))\(",
+		System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
 	static readonly System.Text.RegularExpressions.Regex UnwalkedSignature = new(
 		@"static \w+ (?<name>Recognize_DotGram\w*_(?:RanOut|Agreeing|Further))\(",
