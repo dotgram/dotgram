@@ -64,7 +64,7 @@ public static class Retention
 
 			foreach (var rule in graph.Rules)
 			{
-				var extent = Extent(graph.Bodies[rule], extents, consuming);
+				var extent = Extent(graph.Bodies[rule], extents, consuming, graph.Segmented);
 
 				if (extent > extents[rule])
 				{
@@ -132,8 +132,8 @@ public static class Retention
 			// A committed run is measured by one element, not by the run: the window moves
 			// between elements, so the run's own length is what streaming is *for*.
 			var measured = committed && part is Node.Repeat(var element, _, _)
-				? Extent(element, extents, consuming)
-				: Extent(part, extents, consuming);
+				? Extent(element, extents, consuming, graph.Segmented)
+				: Extent(part, extents, consuming, graph.Segmented);
 
 			stages.Add(new Stage(part, measured, committed));
 		}
@@ -143,7 +143,7 @@ public static class Retention
 				return new Plan(
 					stages,
 					$"'{rule.Name}' has no streaming overload — {Describe(stage)} may take more " +
-					"than one line, so retention would grow with the input.");
+					$"than one {Unit(graph)}, so retention would grow with the input.");
 
 		// Every stage fits, and still nothing may be let go unless one of them says so.
 		foreach (var stage in stages)
@@ -809,13 +809,15 @@ public static class Retention
 			// does, however it read up to there; only the terminator itself can end two ways,
 			// a carriage return taken alone where a line feed may follow. A repetition of lines
 			// is a line at a time, each followed by the next or by what follows the run, and
-			// where the run stops the first sets above have settled.
+			// where the run stops the first sets above have settled. Over segments a part is
+			// ended by the joiner, which is one character and ends in one place: the general
+			// question below is the one asked there.
 			var line  = parts[i] is Node.Repeat(var turn, _, _) ? turn : parts[i];
 			var after = ReferenceEquals(line, parts[i])
 				? following
 				: following.Or(new FollowSets.Continuation(FirstSets.Of(line, graph), FirstSets.Of(line, graph)));
 
-			if (Extent(line, lines, reads) == LineExtent.AtEnd && EndsWithEol(line, graph, 0)
+			if (!graph.Segmented && Extent(line, lines, reads) == LineExtent.AtEnd && EndsWithEol(line, graph, 0)
 				? FirstSets.First.Chars([new CharRange('\n', '\n')]).Overlaps(after.Plain)
 				: EndsTwice(parts[i], following, graph, woven, new HashSet<RuleSymbol>()))
 				return $"in '{rule.Name}', '{parts[i]}' can end in more than one place: a choice in it has a " +
@@ -842,11 +844,11 @@ public static class Retention
 		foreach (var part in parts)
 		{
 			var measured = part is Node.Repeat(var element, _, _)
-				? Extent(PastSeam(element, seam), extents, consuming)
-				: Extent(part, extents, consuming);
+				? Extent(PastSeam(element, seam), extents, consuming, graph.Segmented)
+				: Extent(part, extents, consuming, graph.Segmented);
 
 			if (measured == LineExtent.Beyond)
-				return $"in '{rule.Name}', '{part}' may take more than one line, so what would have " +
+				return $"in '{rule.Name}', '{part}' may take more than one {Unit(graph)}, so what would have " +
 					"to be held grows with the input.";
 		}
 
@@ -931,6 +933,26 @@ public static class Retention
 
 		foreach (var publication in graph.Publications)
 		{
+			// Over segments a `yield` has forms over a sequence and over a reader that look like a
+			// stream and are not one: there is no streamed reading behind them yet, so each reads
+			// the input whole and only hands the elements over lazily. Said, because nothing else
+			// would tell the author until a large input was held in memory.
+			if (publication.Kind == PublishKind.Yield && graph.Segmented)
+			{
+				reported.Add(new GramDiagnostic(
+					NotStreamable,
+					$"'{publication.MethodName}' reads its segments whole, then hands the elements over one at a " +
+					"time, its forms over a sequence and over a reader alike: a 'yield' over segments has no " +
+					$"streamed reading. 'parse {publication.Rule.Name}' without 'yield' is the reading that takes " +
+					"the segments as they are asked for, where the rule can stream. docs/syntax.md §6.3 says " +
+					"which rules stream, and why.",
+					publication.At.Position,
+					publication.At.Length,
+					GramSeverity.Info));
+
+				continue;
+			}
+
 			if (publication.Kind == PublishKind.Yield) continue;
 			string? why;
 
@@ -948,8 +970,8 @@ public static class Retention
 				else
 				{
 					why =
-						$"{Culprit(graph.Bodies[publication.Rule], extents, consuming)} may take more " +
-						$"than one line, so reading '{publication.Rule.Name}' from one would have to " +
+						$"{Culprit(graph.Bodies[publication.Rule], extents, consuming, graph.Segmented)} may take more " +
+						$"than one {Unit(graph)}, so reading '{publication.Rule.Name}' from one would have to " +
 						"hold the input rather than one occurrence.";
 				}
 			}
@@ -992,11 +1014,12 @@ public static class Retention
 	static string Culprit(
 		Node                                        node,
 		IReadOnlyDictionary<RuleSymbol, LineExtent> rules,
-		ICollection<RuleSymbol>                     consuming)
+		ICollection<RuleSymbol>                     consuming,
+		bool                                        segmented)
 	{
 		foreach (var child in Children(node))
-			if (Extent(child, rules, consuming) == LineExtent.Beyond)
-				return Culprit(child, rules, consuming);
+			if (Extent(child, rules, consuming, segmented) == LineExtent.Beyond)
+				return Culprit(child, rules, consuming, segmented);
 
 		return "'" + node + "'";
 	}
@@ -1051,20 +1074,35 @@ public static class Retention
 	}
 
 	/// <summary>What one node can take, given what is known of the rules so far.</summary>
+	/// <param name="segmented">
+	/// Whether the grammar names <c>eos</c>, and so is measured in segments rather than in lines:
+	/// the one terminator is then the joiner, and a line ending is a character like any other.
+	/// </param>
+	/// <remarks>
+	/// <para>
+	/// Over segments nothing but <c>eos</c> reads the joiner. Lowering narrows <c>any</c>, every
+	/// negated class and every range to leave it out; a literal or a class item that is U+0000
+	/// alone is refused (GRAM4047); a class that asks the host is read only where the joiner is
+	/// not, and reads as anything to <see cref="FirstSets"/> all the same, which counts it as a
+	/// terminator here — the safe answer. So "may consume a joiner" is "may pass an <c>eos</c>",
+	/// and "fits one segment" is exactly what a window of one segment needs.
+	/// </para>
+	/// </remarks>
 	public static LineExtent Extent(
 		Node                                        node,
 		IReadOnlyDictionary<RuleSymbol, LineExtent> rules,
-		ICollection<RuleSymbol>                     consuming)
+		ICollection<RuleSymbol>                     consuming,
+		bool                                        segmented = false)
 	{
 		switch (node)
 		{
 			case Node.Literal(var text):
-				return text.IndexOf('\n') < 0 && text.IndexOf('\r') < 0
+				return !HoldsTerminator(text, segmented)
 					? LineExtent.None
-					: EndsWithTerminator(text) ? LineExtent.AtEnd : LineExtent.Beyond;
+					: EndsWithTerminator(text, segmented) ? LineExtent.AtEnd : LineExtent.Beyond;
 
 			case Node.Element element:
-				return Admits(element) ? LineExtent.AtEnd : LineExtent.None;
+				return Admits(element, segmented) ? LineExtent.AtEnd : LineExtent.None;
 
 			// Consumes nothing, so it takes no part of a line. What a lookahead needs to
 			// *see* is a window question rather than a retention one, and §6.3 does not
@@ -1073,11 +1111,11 @@ public static class Retention
 			case Node.Guard                     :
 			case Node.Empty                     : return LineExtent.None;
 			case Node.Call     (var called, _)  : return rules.TryGetValue(called, out var known) ? known : LineExtent.None;
-			case Node.Capture  (_, var captured): return Extent(captured, rules, consuming);
-			case Node.Construct(var built, _)   : return Extent(built, rules, consuming);
-			case Node.Atomic   (var body)       : return Extent(body, rules, consuming);
-			case Node.Marked   (var body, _)    : return Extent(body, rules, consuming);
-			case Node.Bind     (_, var bound, _): return Extent(bound, rules, consuming);
+			case Node.Capture  (_, var captured): return Extent(captured, rules, consuming, segmented);
+			case Node.Construct(var built, _)   : return Extent(built, rules, consuming, segmented);
+			case Node.Atomic   (var body)       : return Extent(body, rules, consuming, segmented);
+			case Node.Marked   (var body, _)    : return Extent(body, rules, consuming, segmented);
+			case Node.Bind     (_, var bound, _): return Extent(bound, rules, consuming, segmented);
 
 			// Reads again what a binding read, which this walk does not see: as many lines as
 			// anything could take.
@@ -1086,7 +1124,7 @@ public static class Retention
 			// A repetition whose bounds are known only while reading.
 			case Node.Counted(var body, _, _):
 			{
-				var once = Extent(body, rules, consuming);
+				var once = Extent(body, rules, consuming, segmented);
 
 				return once == LineExtent.AtEnd ? LineExtent.Beyond : once;
 			}
@@ -1097,7 +1135,7 @@ public static class Retention
 
 				foreach (var alternative in alternatives)
 				{
-					var extent = Extent(alternative, rules, consuming);
+					var extent = Extent(alternative, rules, consuming, segmented);
 
 					if (extent > worst)
 						worst = extent;
@@ -1112,7 +1150,7 @@ public static class Retention
 				if (max == 0)
 					return LineExtent.None;
 
-				var once = Extent(body, rules, consuming);
+				var once = Extent(body, rules, consuming, segmented);
 
 				return once == LineExtent.AtEnd && max != 1 ? LineExtent.Beyond : once;
 			}
@@ -1128,7 +1166,7 @@ public static class Retention
 					if (soFar == LineExtent.AtEnd && Consumes(part, consuming))
 						return LineExtent.Beyond;
 
-					var extent = Extent(part, rules, consuming);
+					var extent = Extent(part, rules, consuming, segmented);
 
 					if (extent > soFar)
 						soFar = extent;
@@ -1182,14 +1220,22 @@ public static class Retention
 		return false;
 	}
 
-	/// <summary>Whether the last item of a literal is a terminator.</summary>
-	static bool EndsWithTerminator(string text)
+	/// <summary>Whether a literal holds a terminator anywhere.</summary>
+	static bool HoldsTerminator(string text, bool segmented)
 	{
-		return text.Length > 0 && text[^1] is '\n' or '\r';
+		return segmented
+			? text.IndexOf(GrammarNormalizer.Joiner) >= 0
+			: text.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0;
+	}
+
+	/// <summary>Whether the last item of a literal is a terminator.</summary>
+	static bool EndsWithTerminator(string text, bool segmented)
+	{
+		return text.Length > 0 && (segmented ? text[^1] == GrammarNormalizer.Joiner : text[^1] is '\n' or '\r');
 	}
 
 	/// <summary>
-	/// Whether an element set admits a line terminator.
+	/// Whether an element set admits a terminator: a line ending, or the joiner over segments.
 	/// </summary>
 	/// <remarks>
 	/// <para>
@@ -1206,11 +1252,23 @@ public static class Retention
 	/// so a host predicate still counts as admitting one — which is the answer it has to be.
 	/// </para>
 	/// </remarks>
-	static bool Admits(Node.Element element)
+	static bool Admits(Node.Element element, bool segmented)
 	{
-		return FirstSets.OfElement(element).Overlaps(Terminators);
+		return FirstSets.OfElement(element).Overlaps(segmented ? Joiners : Terminators);
+	}
+
+	/// <summary>
+	/// A grammar's unit of retention as its messages name it: a segment where it names
+	/// <c>eos</c>, a line otherwise.
+	/// </summary>
+	static string Unit(RecognitionGraph graph)
+	{
+		return graph.Segmented ? "segment" : "line";
 	}
 
 	static readonly FirstSets.First Terminators =
 		FirstSets.First.Chars([new CharRange('\n', '\n'), new CharRange('\r', '\r')]);
+
+	static readonly FirstSets.First Joiners =
+		FirstSets.First.Chars([new CharRange(GrammarNormalizer.Joiner, GrammarNormalizer.Joiner)]);
 }
