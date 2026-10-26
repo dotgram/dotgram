@@ -3029,7 +3029,7 @@ sealed partial class Machine
 			// where every character there agrees (§7.5).
 			using (code.Block($"if ({machine.LacksRoom(text.Length)})"))
 			{
-				machine.Reached(code, text, folded, machine.Quiets ? "!failure.Quiet" : "");
+				machine.Reached(code, text, folded, machine.Quiets ? "!failure.Quiet" : "", "failure.Negating == 0");
 
 				Refused(code, name);
 			}
@@ -3102,7 +3102,7 @@ sealed partial class Machine
 			// Where it is not recorded, as a single literal's: ran out at the beginning.
 			if (shared.Length > 1)
 				using (code.Block($"if ({machine.LacksRoom(shared.Length)})"))
-					machine.Reached(code, shared, false, null);
+					machine.Reached(code, shared, false, null, "failure.Negating == 0");
 
 			var narrowed = $"narrowed{_calls++}";
 
@@ -6433,6 +6433,8 @@ sealed partial class Machine
 			// given back either way. The engine records nothing inside its own lookahead; the
 			// reader says so on the failure it carries, which every reading has, ways or not.
 			code.Line("failure.Looking++;");
+			if (!positive)
+				code.Line("failure.Negating++;");
 			machine._looks = true;
 
 			if (sealing)
@@ -6471,6 +6473,8 @@ sealed partial class Machine
 			}
 
 			code.Line("failure.Looking--;");
+			if (!positive)
+				code.Line("failure.Negating--;");
 			code.Line();
 			LogBack(code, $"lm{mark}");
 			foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{mark}"))
