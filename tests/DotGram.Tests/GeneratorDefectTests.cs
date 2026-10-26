@@ -223,6 +223,43 @@ public sealed class GeneratorDefectTests
 		Assert.Equal(measured, source.Contains("Measure_DotGram_Lexical_T(", StringComparison.Ordinal));
 	}
 
+	/// <summary>
+	/// A recognizer of the host over a span that synchronizes a recovery wants the whole input, as
+	/// one in a rule's body does: the reader form is refused and said why, and what is emitted
+	/// compiles. The question was asked of the rules' bodies only, which do not hold a
+	/// synchronization, and the buffer was handed to the span recognizer.
+	/// </summary>
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void A_span_recognizer_synchronizing_a_recovery_refuses_the_buffered_form(bool direct)
+	{
+		const string grammar =
+			"""
+			Row  = 'z' & ';'
+			Root = Row* recover @Odd
+			parse Root
+			""";
+
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			BufferedInput = true,
+			Direct        = direct,
+			CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+
+		var assembly = EmittedCode.Compile(
+			result.Sources[0].Text,
+			declarationMembers: "static bool Odd(System.ReadOnlySpan<char> input, ref int p) { if (p < input.Length && input[p] == 'o') { p++; return true; } return false; }",
+			sourceParts: result.Sources.Skip(1).Select(static one => one.Text));
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseRoot", "z;oz;").IsSuccess);
+
+		var said = Assert.Single(result.Diagnostics, static one => one.Id == GramCompiler.BufferedUnsupported);
+
+		Assert.Contains("external recognizers require contiguous input", said.Message, StringComparison.Ordinal);
+	}
+
 	static string Rooted(string rules)
 	{
 		return "trivia = { ' '* }\nnamespace Lexical\n{\n\ttrivia = none\n\t" + rules + "\n}\nRoot = Lexical.T\nparse Root\n";

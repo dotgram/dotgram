@@ -106,8 +106,10 @@ public static partial class CSharpEmitter
 				continue;
 
 			var rules = Reaches(graph, publication.Rule);
+			// A recovery's synchronization is read as the body is, and a recognizer of the host there
+			// wants the whole input as much: the walk that reads both (`recover @M`).
 			var why = overKinds ? "token-kind input is not supported by this form yet" :
-				rules.Any(rule => NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.External { UsesInputView: false }))
+				rules.Any(rule => NodeWalk.Reading(graph.Bodies[rule], graph).Any(node => node is Node.External { UsesInputView: false }))
 					? "external recognizers require contiguous input" : null;
 			if (why is null && bytes) why = ByteRefusal(graph, rules);
 			// Named after the publication, which no other has the name of, and told from a group's machine
