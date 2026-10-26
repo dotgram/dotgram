@@ -1167,7 +1167,9 @@ public sealed class RecognitionGraph(
 		if (!Bodies.TryGetValue(rule, out var body))
 			yield break;
 
-		foreach (var node in NodeWalk.Descendants(body))
+		// A synchronization is read by the rule as its body is (NodeWalk.Reading), so a rule called
+		// only from one is called.
+		foreach (var node in NodeWalk.Reading(body, this))
 			if (node is Node.Call(var target, _))
 				yield return target;
 	}

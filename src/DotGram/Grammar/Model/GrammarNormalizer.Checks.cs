@@ -549,7 +549,9 @@ public sealed partial class GrammarNormalizer
 
 		var element = repeated is Node.Capture(_, var captured) ? captured : repeated;
 
-		if (element is Node.Call(var called, _) && BuildsValue(called))
+		// Captured whole, `rows: (Row* recover ';' => …)`, the repetition is its text (§7.3), and
+		// the values its elements build go nowhere: no more a sequence than a run of text is.
+		if (element is Node.Call(var called, _) && BuildsValue(called) && !CapturedWhole(rule, repetition))
 			return;
 
 		Report(
@@ -559,6 +561,13 @@ public sealed partial class GrammarNormalizer
 			"than values, so there is no sequence to put it in. Give the repeated rule a " +
 			"capture of its own, or drop the '=>' and report out of band (docs/syntax.md §8.3).",
 			rule.Declaration!.At);
+	}
+
+	/// <summary>Whether the rule captures this repetition itself, rather than each of its elements.</summary>
+	bool CapturedWhole(RuleSymbol rule, Node repetition)
+	{
+		return _bodies.TryGetValue(rule, out var body) &&
+			NodeWalk.Descendants(body).Any(node => node is Node.Capture(_, var held) && ReferenceEquals(held, repetition));
 	}
 
 	/// <summary>What the rule offers: its alternatives, or the body when it offers one.</summary>

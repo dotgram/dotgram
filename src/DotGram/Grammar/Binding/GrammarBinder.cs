@@ -439,6 +439,21 @@ public sealed class GrammarBinder
 						break;
 					}
 
+					// §4.2: a parameterized rule is a rule only once a call gives it its arguments, and a
+					// directive names a rule without any. Left alone it was published as the template,
+					// which has no body, and the generator failed with an exception.
+					if (published.Declaration is { Params.Count: > 0 and var count })
+					{
+						Report(
+							Model.GrammarNormalizer.UnbuiltCall,
+							$"'{published.Name}' takes {count} {(count == 1 ? "parameter" : "parameters")} and a " +
+							$"publication passes none. Publish a rule that calls it with them, " +
+							$"'R = {published.Name}(...)' and 'parse R' (docs/syntax.md §4.2).",
+							publish.At);
+
+						break;
+					}
+
 					if (publish.ResultType is { } resultType) ResolveType(resultType, ns, []);
 
 					var method = publish.Alias ?? Publication.DefaultMethodName(publish.Kind, published.Name);

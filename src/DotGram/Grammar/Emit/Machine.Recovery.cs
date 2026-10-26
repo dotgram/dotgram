@@ -376,7 +376,7 @@ sealed partial class Machine
 						if (recovery.Recovery.Factory is null)
 							file.Line(
 								$"{CSharpEmitter.RecoveredMethod}(\"{Escape(recovery.Element?.Name ?? "an element")}\", " +
-								$"{RecoverySupplied("parserText", recovery)}, {RecoverySupplied("parserPosition", recovery)}, " +
+								$"{HookText(recovery)}, {RecoverySupplied("parserPosition", recovery)}, " +
 								$"{RecoverySupplied("parserLine", recovery)}, {RecoverySupplied("parserColumn", recovery)}, " +
 								$"{RecoverySupplied("parserOrdinal", recovery)}, {RecoverySupplied("parserMessage", recovery)});");
 
@@ -393,7 +393,7 @@ sealed partial class Machine
 			{
 				file.Line(
 					$"{CSharpEmitter.RecoveredMethod}(\"{Escape(plan.Element?.Name ?? "an element")}\", " +
-					$"{RecoverySupplied("parserText", plan)}, {RecoverySupplied("parserPosition", plan)}, " +
+					$"{HookText(plan)}, {RecoverySupplied("parserPosition", plan)}, " +
 					$"{RecoverySupplied("parserLine", plan)}, {RecoverySupplied("parserColumn", plan)}, " +
 					$"{RecoverySupplied("parserOrdinal", plan)}, {RecoverySupplied("parserMessage", plan)});");
 			}
@@ -436,6 +436,17 @@ sealed partial class Machine
 	/// kept by the record of the element where it is built after the parse (<see cref="Keep"/>),
 	/// and taken before the synchronization is looked for where it is built as it is stepped over.
 	/// </param>
+	/// <summary>
+	/// The text the hook is handed, which it declares a <c>string</c>: a capture of the input is a span
+	/// where captures are (<c>SpanCaptures</c>), and the hook's text is made a string for it.
+	/// </summary>
+	string HookText(RecoveryPlan plan)
+	{
+		var text = RecoverySupplied("parserText", plan);
+
+		return BorrowedCaptures && !OverKinds ? text + ".ToString()" : text;
+	}
+
 	string RecoverySupplied(
 		string name, RecoveryPlan plan, string located = "parser.Located",
 		string expected = "Recalled_DotGram(parser.Expectations, recoveryAt)")

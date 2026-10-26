@@ -264,11 +264,15 @@ public sealed partial class GrammarNormalizer
 		// the second row (text) or the third (a value of its own) is asked of the host,
 		// since bare `@Name` does not say — the two are told apart only by which overload
 		// the method has.
+		//
+		// The host is asked about the method by its name; the call names it as the grammar wrote it,
+		// type arguments and all: `@F<int>` is called as `F<int>(…)`, which C# cannot infer from
+		// the arguments, and is another recognizer than `@F<long>`.
 		if (symbol is CSharpSymbol reader)
 			switch (_resolver.TryResolveExternalValue(reader.Name, against: null, out var valueType))
 			{
 				case ExternalValueResolution.Found:
-					return CallTo(ExternalRuleFor(reader.Name, valueType!), []);
+					return CallTo(ExternalRuleFor(reader.Name, ExternalName(expression), valueType!), []);
 
 				case ExternalValueResolution.Ambiguous:
 					Report(
@@ -311,17 +315,34 @@ public sealed partial class GrammarNormalizer
 							break;
 					}
 
-					return ExternalNode(reader.Name);
+					return ExternalNode(reader.Name, ExternalName(expression));
 			}
 
 		return new Node.Element(false, [], [], [symbol]);
 	}
 
-	Node.External ExternalNode(string method)
+	/// <summary>
+	/// The name of a recognizer of the host as a call writes it: the method, and the type arguments
+	/// written after it.
+	/// </summary>
+	internal static string ExternalName(Expr expression)
+	{
+		return expression is Expr.Reference(_, var name, var types) ? name + TypeArguments(types) : expression.ToString();
+	}
+
+	/// <summary>The method a call written <c>F&lt;int&gt;</c> names, which is what the host is asked about.</summary>
+	static string MethodOf(string written)
+	{
+		var open = written.IndexOf('<');
+
+		return open < 0 ? written : written.Substring(0, open);
+	}
+
+	Node.External ExternalNode(string method, string written)
 	{
 		var resolution = _resolver.ResolveExternalMethod(method, ExternalMethodRole.Recognizer);
 
-		return new Node.External(method)
+		return new Node.External(written)
 		{
 			UsesInputView = resolution is ExternalMethodResolution.FoundInput or ExternalMethodResolution.FoundInputWithContext,
 			UsesContext   = resolution is ExternalMethodResolution.FoundInputWithContext,
@@ -344,16 +365,16 @@ public sealed partial class GrammarNormalizer
 	/// is null (confirmed at <c>ComputeTypes</c>'s first line, the same guarantee every
 	/// built-in already relies on).
 	/// </remarks>
-	RuleSymbol ExternalRuleFor(string method, string valueType)
+	RuleSymbol ExternalRuleFor(string method, string written, string valueType)
 	{
-		if (_externals.TryGetValue(method, out var existing))
+		if (_externals.TryGetValue(written, out var existing))
 			return existing;
 
-		var rule = new RuleSymbol("@" + method, new GrammarNamespace("<external>", null), Declaration: null);
+		var rule = new RuleSymbol("@" + written, new GrammarNamespace("<external>", null), Declaration: null);
 
-		_externals[method] = rule;
+		_externals[written] = rule;
 		_rules.Add(rule);
-		_bodies[rule] = ExternalNode(method) with { HasValue = true };
+		_bodies[rule] = ExternalNode(method, written) with { HasValue = true };
 		_types[rule]  = valueType;
 
 		return rule;
@@ -391,8 +412,8 @@ public sealed partial class GrammarNormalizer
 		foreach (var rule in _rules)
 			if (rule.Declaration?.Type is { } type &&
 				_bodies[rule] is Node.Call(var called, _) &&
-				_bodies[called] is Node.External(var method) { HasValue: true } &&
-				_resolver.TryResolveExternalValue(method, TypeName(type), out _) == ExternalValueResolution.Found)
+				_bodies[called] is Node.External(var written) { HasValue: true } &&
+				_resolver.TryResolveExternalValue(MethodOf(written), TypeName(type), out _) == ExternalValueResolution.Found)
 			{
 				_bodies[rule] = new Node.Construct(
 					new Node.Capture("item0", _bodies[rule]), Construction.Operand.Instance);

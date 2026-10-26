@@ -674,7 +674,7 @@ sealed partial class Machine
 
 		foreach (var rule in _rules)
 			if (graph.Bodies.TryGetValue(rule, out var checking))
-				foreach (var node in NodeWalk.Descendants(checking))
+				foreach (var node in NodeWalk.Reading(checking, graph))
 				{
 					if (node is Node.Construct { How: Construction.Expression { Text: var built } } &&
 						CSharpEmitter.Uses(graph, built, "parserInput"))
@@ -5262,8 +5262,12 @@ sealed partial class Machine
 	{
 		var last   = alternatives.Count - 1;
 		var run    = LiteralGroup(alternatives, last, following.Taught.Plain);
+		// The last run fails where the choice fails, which is not the arena's `Fail` inside a look or
+		// a group held in locals: there it is the door that puts the position back, and a run that
+		// went to `Fail` skipped it — a negative look over a choice of literals then refused
+		// whatever the body did, and the code after it was never reached.
 		var target = run > 0
-			? CompileLiterals(alternatives, last - run + 1, last, next, Fail)
+			? CompileLiterals(alternatives, last - run + 1, last, next, _fail)
 			: CompileAlternative(alternatives[last], next, following, bodies);
 		if (prefixHeads is not null) prefixHeads[alternatives[last]] = target;
 		var rest   = run > 0 ? Begins(alternatives, last - run + 1, last) : Decidable(alternatives[last]);
@@ -6287,7 +6291,7 @@ sealed partial class Machine
 		atCommit.Line($"goto {Label(atCommit, next)};");
 
 		return state;
-	
+
 	}
 
 	int CompileRepeat(Node.Repeat repeatNode, int next, FollowSets.Continuation following)

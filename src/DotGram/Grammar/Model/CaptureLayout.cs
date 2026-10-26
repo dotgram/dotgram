@@ -314,7 +314,17 @@ public sealed class CaptureLayout
 				break;
 
 			// A lookahead consumes nothing and is compiled as a separate machine, with its
-			// captures stripped: there is no slot of this rule's for it to write.
+			// captures stripped: there is no slot of this rule's for it to write. A guard in it
+			// still reads what was captured before the lookahead, `c: X & ?=(when @(c.Length > 0))`,
+			// as a reference in one reads an outer binding: it is placed where the lookahead stands.
+			case Node.Lookahead(_, var seen):
+
+				foreach (var inner in NodeWalk.Descendants(seen))
+					if (inner is Node.Guard)
+						_before[inner] = _slots.Count;
+
+				break;
+
 			default:
 				break;
 		}

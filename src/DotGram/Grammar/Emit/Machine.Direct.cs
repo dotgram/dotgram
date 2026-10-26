@@ -484,7 +484,7 @@ sealed partial class Machine
 		_directBuilds = _directGuardContext = _directGuards = _directGlue = false;
 
 		foreach (var rule in rules)
-			foreach (var node in NodeWalk.Descendants(_graph.Bodies[rule]))
+			foreach (var node in NodeWalk.Reading(_graph.Bodies[rule], _graph))
 			{
 				if (node is Node.Glue)
 					_directGlue = true;
@@ -691,7 +691,7 @@ sealed partial class Machine
 				return;
 
 			if (!done.Contains(rule))
-				foreach (var node in NodeWalk.Descendants(_graph.Bodies[rule]))
+				foreach (var node in NodeWalk.Reading(_graph.Bodies[rule], _graph))
 					if (node is Node.Call(var called, _))
 					{
 						if (above.Contains(called))
