@@ -2514,8 +2514,9 @@ public sealed class TerminalInventory
 				// "Everything up to a delimiter", `(?!L & X)* & L`, which the automaton reads as the
 				// strings L does not occur in: exact where L follows, since L is what stops both
 				// readings; standing anywhere else the automaton admits more — the lookahead sees
-				// past what the repetition consumed, the automaton cannot — and `ab` is a token of
-				// `(?!"ab" & ['a' | 'b'])* & 'b'` to it where the rule refuses the first character.
+				// past what the repetition consumed, and the automaton follows an occurrence begun
+				// in the run only as far as the pattern goes: `ab` is a token of
+				// `(?!"abc" & ['a'..'c'])* & 'b'` to it, followed by `c`, where the rule refuses `a`.
 				case Node.Repeat(Node.Sequence([Node.Lookahead(false, Node.Literal { IgnoreCase: false }), _]), 0, null):
 					return false;
 
