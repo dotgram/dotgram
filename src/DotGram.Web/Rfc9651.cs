@@ -342,11 +342,14 @@ public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>, IEqu
 	ItemField : @Item = ' '* & item: SfItem & ' '* => @(item)
 
 	// The members after the first are atomic: nothing that may follow the list begins with a comma, so a member given
-	// back could never lead anywhere, and the loop writes no way back at each member of a long list.
+	// back could never lead anywhere, and the loop writes no way back at each member of a long list. A Dictionary's
+	// are atomic for the same reason; unsealed, a refused one gave its members back one at a time, each try reading
+	// the field again from its start: quadratic in the members, 0.15 s refusing four thousand `x,`, and twice that
+	// where a refusal is explained, which reads the field a second time.
 	ListField : @IReadOnlyList<Member> = ' '* & (first: ListMember & { rest: ListRest* } & Ows)?
 		=> @(Rfc9651.Members(first, rest))
 
-	DictionaryField : @OrderedMap<Member> = ' '* & (first: DictMember & rest: DictRest* & Ows)?
+	DictionaryField : @OrderedMap<Member> = ' '* & (first: DictMember & { rest: DictRest* } & Ows)?
 		=> @(Rfc9651.Map(first, rest))
 
 	// ── Lists (§3.1, §4.2.1) ─────────────────────────────────────────────────────
