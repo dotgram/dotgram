@@ -126,6 +126,28 @@ static class EmittedCode
 		];
 	}
 
+	/// <summary>
+	/// The errors and warnings the compiler finds in what the generator wrote, and in nothing else: for a
+	/// harness whose own declaration is not under test.
+	/// </summary>
+	public static Diagnostic[] Complaints(
+		string source,
+		string className,
+		string? declarationMembers,
+		IEnumerable<string>? sourceParts,
+		System.Threading.CancellationToken cancellation)
+	{
+		var compilation = Create(source, className, null, declarationMembers, sourceParts, null, false);
+		var declaration = compilation.SyntaxTrees.First();
+
+		return
+		[
+			.. compilation.GetDiagnostics(cancellation)
+				.Where(diagnostic => diagnostic.Severity is DiagnosticSeverity.Error or DiagnosticSeverity.Warning)
+				.Where(diagnostic => diagnostic.Location.SourceTree != declaration || diagnostic.Severity == DiagnosticSeverity.Error),
+		];
+	}
+
 	static CSharpCompilation Create(
 		string source,
 		string className,

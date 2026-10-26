@@ -1,0 +1,532 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
+using DotGram.Generation;
+using DotGram.Grammar;
+
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+
+using Xunit;
+
+namespace DotGram.Tests;
+
+/// <summary>
+/// Every grammar is answered with a parser that compiles or with a diagnostic, over grammars nobody
+/// wrote on purpose.
+/// </summary>
+/// <remarks>
+/// <para>
+/// <c>FuzzTests</c> holds the generator to answering a mutated text at all; this holds what it
+/// answers to the C# compiler. A grammar the generator takes and writes C# for that does not build
+/// fails the consumer's build in code they did not write and cannot fix, which is worse than a
+/// refusal that names the construct. The defects of that kind came from features meeting — a
+/// recognizer of the host in a recovery's synchronization read over a buffer, a guard inside a
+/// lookahead reading a capture made before it, a repetition that recovers captured whole — so the
+/// grammars are built from the features, at random, a few rules at a time, and compiled under every
+/// option that changes what is written: methods or the engine, characters or tokens, a trace build,
+/// a source split in parts, the buffered and byte forms, spans for captures, and the tape.
+/// </para>
+/// <para>
+/// The C# a grammar carries is written to compile in every form it may be read in: a raw capture
+/// is a <c>string</c>, a <c>ReadOnlySpan&lt;char&gt;</c> or a <c>ReadOnlySpan&lt;byte&gt;</c>, and it
+/// is only ever asked its <c>Length</c> or handed to an overload the host declares for each. So a
+/// CS error in the generated files is the generator's; one in the host's own declaration is the
+/// harness's, and fails as that.
+/// </para>
+/// <para>
+/// Seeded: a failure names its seed and its round, and reads the same again. Compiled, not loaded:
+/// nothing here runs a parser, so no assembly is kept.
+/// </para>
+/// </remarks>
+public sealed class CompileOracleTests
+{
+	/// <summary>Grammars a seed makes. The environment variable sets another count, for a longer run by hand.</summary>
+	static int Rounds
+	{
+		get
+		{
+			return int.TryParse(Environment.GetEnvironmentVariable("DOTGRAM_ORACLE_ROUNDS"), out var rounds) ? rounds : 60;
+		}
+	}
+
+	[Theory]
+	[InlineData(1)]
+	[InlineData(2)]
+	[InlineData(3)]
+	[InlineData(4)]
+	[InlineData(5)]
+	[InlineData(6)]
+	public void A_random_grammar_compiles_or_is_refused(int seed)
+	{
+		var outcome = Run(seed, Rounds, TestContext.Current.CancellationToken);
+
+		TestContext.Current.SendDiagnosticMessage(outcome.Summary());
+
+		// Every failure in full, for a longer run by hand that wants more than the first five.
+		if (Environment.GetEnvironmentVariable("DOTGRAM_ORACLE_LOG") is { Length: > 0 } log)
+			System.IO.File.AppendAllText(log, $"### seed {seed}: {outcome.Summary()}\n\n" + string.Join("\n\n", outcome.Failures) + "\n\n");
+
+		Assert.True(outcome.Failures.Count == 0, outcome.Summary() + "\n\n" + string.Join("\n\n", outcome.Failures.Take(5)));
+	}
+
+	/// <summary>What one seed's grammars came to.</summary>
+	internal sealed class Outcome
+	{
+		public int Compiled;
+
+		public int Refused;
+
+		public readonly Dictionary<string, int> Refusals = new(StringComparer.Ordinal);
+
+		public readonly Dictionary<string, int> Errors = new(StringComparer.Ordinal);
+
+		public readonly List<string> Failures = [];
+
+		public string Summary()
+		{
+			return $"{Compiled} compiled, {Refused} refused ({string.Join(", ", Refusals.OrderByDescending(static one => one.Value).Take(8).Select(static one => one.Key + " " + one.Value))}), " +
+				$"{Failures.Count} failed ({string.Join(", ", Errors.OrderByDescending(static one => one.Value).Select(static one => one.Key + " " + one.Value))})";
+		}
+	}
+
+	internal static Outcome Run(int seed, int rounds, CancellationToken cancellation)
+	{
+		var outcome = new Outcome();
+		var cases   = new List<Case>();
+		var random  = new Random(seed);
+
+		for (var round = 0; round < rounds; round++)
+			cases.Add(new Builder(random, seed, round).Build());
+
+		var results = new string?[cases.Count];
+		var lockObj = new object();
+
+		Parallel.For(0, cases.Count, new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = cancellation }, index =>
+		{
+			var one = cases[index];
+
+			try
+			{
+				var (refusal, complaints) = Compile(one, cancellation);
+
+				lock (lockObj)
+				{
+					if (refusal is not null)
+					{
+						outcome.Refused++;
+						outcome.Refusals[refusal] = outcome.Refusals.TryGetValue(refusal, out var count) ? count + 1 : 1;
+					}
+					else if (complaints.Length == 0)
+					{
+						outcome.Compiled++;
+					}
+					else
+					{
+						foreach (var id in complaints.Select(static one => one.Id).Distinct())
+							outcome.Errors[id] = outcome.Errors.TryGetValue(id, out var count) ? count + 1 : 1;
+
+						results[index] = one.Describe() + "\n" + string.Join("\n", complaints.Take(4).Select(static one => one.ToString()));
+					}
+				}
+			}
+			catch (Exception failure)
+			{
+				lock (lockObj)
+				{
+					outcome.Errors["crash"] = outcome.Errors.TryGetValue("crash", out var count) ? count + 1 : 1;
+					results[index] = one.Describe() + "\n" + failure;
+				}
+			}
+		});
+
+		outcome.Failures.AddRange(results.OfType<string>());
+
+		return outcome;
+	}
+
+	/// <summary>
+	/// The grammar compiled: the first error the generator said, or every CS error and warning in what it
+	/// wrote. A warning counts, since generated code lands in builds that treat warnings as errors.
+	/// </summary>
+	static (string? Refusal, Diagnostic[] Complaints) Compile(Case one, CancellationToken cancellation)
+	{
+		var members = Host.Members(one.Text);
+		var host    = CSharpCompilation.Create(
+			"Host",
+			[CSharpSyntaxTree.ParseText($"public partial class Grammar {{ {members} }}", cancellationToken: cancellation)],
+			EmittedCode.References);
+
+		var result = GramCompiler.Compile(one.Text, new GramCompilerOptions
+		{
+			ClassName      = "Grammar",
+			CSharpScanner  = RoslynCSharpScanner.Instance,
+			SymbolResolver = new RoslynSymbolResolver(host, "Grammar"),
+			Direct         = one.Direct,
+			Lexical        = one.Lexical,
+			Trace          = one.Trace,
+			SourceFileSize = one.Split ? 4000 : 0,
+			Carrier        = one.Tape ? CarrierKind.Tape : CarrierKind.Auto,
+			BufferedInput  = one.Buffered,
+			BufferedBytes  = one.Bytes,
+			SpanCaptures   = one.Spans,
+		});
+
+		var error = result.Diagnostics.FirstOrDefault(static diagnostic => diagnostic.Severity == GramSeverity.Error);
+
+		if (error is not null)
+		{
+			if (Environment.GetEnvironmentVariable("DOTGRAM_ORACLE_REFUSALS") is { Length: > 0 } log)
+				lock (Refusing)
+					System.IO.File.AppendAllText(log, one.Describe() + "\n" + error.Id + ": " + error.Message + "\n\n");
+
+			return (error.Id, []);
+		}
+
+		var complaints = EmittedCode.Complaints(result.Sources[0].Text, "Grammar", members, result.Sources.Skip(1).Select(static source => source.Text), cancellation);
+
+		return (null, complaints);
+	}
+
+	static readonly object Refusing = new();
+
+	/// <summary>One grammar and the options it is compiled under.</summary>
+	internal sealed record Case(int Seed, int Round, string Text, bool Direct, bool Lexical, bool Trace, bool Split, bool Tape, bool Buffered, bool Bytes, bool Spans)
+	{
+		public string Describe()
+		{
+			return $"seed {Seed}, round {Round}: Direct={Direct} Lexical={Lexical} Trace={Trace} Split={Split} Tape={Tape} " +
+				$"BufferedInput={Buffered} BufferedBytes={Bytes} SpanCaptures={Spans}\n--- grammar ---\n{Text}\n---";
+		}
+	}
+
+	/// <summary>
+	/// What the grammars may call in the host: recognizers over spans, over the input view, with a value
+	/// and with the context, each for characters and for bytes, and the text helper the constructions
+	/// hand a raw capture to.
+	/// </summary>
+	static class Host
+	{
+		const string Always = """
+			public sealed class Ctx { public int N; }
+			static bool Odd(System.ReadOnlySpan<char> input, ref int p) { if (p < input.Length && input[p] == 'o') { p++; return true; } return false; }
+			static bool Odd(System.ReadOnlySpan<byte> input, ref int p) { if (p < input.Length && input[p] == (byte)'o') { p++; return true; } return false; }
+			static bool Num(System.ReadOnlySpan<char> input, ref int p, out int value) { value = 0; while (p < input.Length && input[p] >= '0' && input[p] <= '9') { value++; p++; } return value > 0; }
+			static bool Num(System.ReadOnlySpan<byte> input, ref int p, out int value) { value = 0; while (p < input.Length && input[p] >= (byte)'0' && input[p] <= (byte)'9') { value++; p++; } return value > 0; }
+			public static bool Gen<T>(System.ReadOnlySpan<char> input, ref int p, out int value) { value = typeof(T).Name.Length; return true; }
+			static string S(string text) { return text; }
+			static string S(System.ReadOnlySpan<char> text) { return text.ToString(); }
+			static string S(System.ReadOnlySpan<byte> text) { return System.Text.Encoding.ASCII.GetString(text.ToArray()); }
+			""";
+
+		const string Views = """
+			static bool Peek(ParserInput<char> input, ref int p) { if (input.Peek(p, out var c) && c == 'p') { p++; return true; } return false; }
+			static bool Peek(ParserInput<byte> input, ref int p) { if (input.Peek(p, out var c) && c == (byte)'p') { p++; return true; } return false; }
+			static bool Sized(ParserInput<char> input, ref int p, Ctx context) { return input.TryAdvance(ref p, context.N); }
+			static bool Sized(ParserInput<byte> input, ref int p, Ctx context) { return input.TryAdvance(ref p, context.N); }
+			""";
+
+		public static string Members(string grammar)
+		{
+			// The input view is a type the generator writes only for a grammar that calls through it.
+			return grammar.Contains("@Peek", StringComparison.Ordinal) || grammar.Contains("@Sized", StringComparison.Ordinal)
+				? Always + Views
+				: Always;
+		}
+	}
+
+	/// <summary>What a capture holds, which decides what C# may be asked of it.</summary>
+	enum Held { Text, Int, Many }
+
+	/// <summary>One random grammar.</summary>
+	sealed class Builder(Random random, int seed, int round)
+	{
+		readonly List<string> _rules = [];
+
+		/// <summary>The result of each rule <c>R1</c>…, null for one that is its text.</summary>
+		readonly List<string?> _types = [];
+
+		bool _segments;
+
+		bool _context;
+
+		bool _lexical;
+
+		int _captures;
+
+		bool Chance(int percent)
+		{
+			return random.Next(100) < percent;
+		}
+
+		T Pick<T>(params T[] items)
+		{
+			return items[random.Next(items.Length)];
+		}
+
+		public Case Build()
+		{
+			_segments = Chance(12);
+			_lexical  = !_segments && Chance(20);
+			_context  = Chance(15);
+
+			var count = 1 + random.Next(4);
+
+			// Decided before the bodies, so that a rule may call one written after it: the calls go only to
+			// higher numbers, which keeps the grammars clear of left recursion through rules (that is
+			// GRAM4002's, and says nothing about the C#).
+			// A sequence of values needs a rule after it that builds one.
+			for (var i = 0; i < count; i++)
+				_types.Add(Pick<string?>(null, null, "@int", "@string", "@int[]"));
+
+			for (var i = 0; i < count; i++)
+				if (_types[i] == "@int[]" && !_types.Skip(i + 1).Contains("@int"))
+					_types[i] = "@int";
+
+			var text = new StringBuilder();
+
+			if (_context)
+				text.Append("context : @Ctx\n");
+
+			if (_lexical)
+				text.Append("trivia = { ' '* }\nnamespace Lexical\n{\n\ttrivia = none\n\tWord = { ['a'..'z']+ }\n\tDigits : @int = { ['0'..'9']+ } => @(parserText.Length)\n}\n");
+			else if (Chance(15))
+				text.Append(Pick("trivia = ' '*\n", "trivia = { ' '* }\n"));
+
+			for (var i = count - 1; i >= 0; i--)
+				_rules.Insert(0, Rule(i));
+
+			if (_rules.Any(static rule => rule.Contains("Wrap(", StringComparison.Ordinal)))
+				_rules.Add("Wrap(item) = '(' & item & ')'");
+
+			foreach (var rule in _rules)
+				text.Append(rule).Append('\n');
+
+			// Every rule is reached one way or another, so that none is GRAM4018's: a rule no rule before it
+			// calls is published under a name of its own.
+			text.Append(Publication("R0", null));
+
+			for (var i = 1; i < count; i++)
+				if (Chance(35) || !_rules.Take(i).Any(rule => Calls(rule, i)))
+					text.Append(Publication($"R{i}", $"P{i}"));
+
+			return new Case(
+				seed, round, text.ToString(),
+				Direct: Chance(65), Lexical: _lexical, Trace: Chance(25), Split: Chance(20), Tape: Chance(20),
+				Buffered: !_segments && Chance(20), Bytes: !_segments && Chance(15), Spans: Chance(20));
+		}
+
+		static bool Calls(string rule, int callee)
+		{
+			var name = $"R{callee}";
+			var at   = rule.IndexOf('=', StringComparison.Ordinal);
+
+			for (var found = rule.IndexOf(name, at, StringComparison.Ordinal); found >= 0; found = rule.IndexOf(name, found + 1, StringComparison.Ordinal))
+				if (found + name.Length == rule.Length || !char.IsDigit(rule[found + name.Length]))
+					return true;
+
+			return false;
+		}
+
+		string Publication(string rule, string? name)
+		{
+			var verb = Chance(15) && !_segments ? "find" : "parse";
+			var line = new StringBuilder(verb).Append(' ').Append(rule);
+
+			if (name is not null)
+				line.Append(" as ").Append(name);
+
+			if (Chance(30) && !_segments)
+				line.Append(Pick(" stream", " stream bytes"));
+
+			return line.Append('\n').ToString();
+		}
+
+		string Rule(int index)
+		{
+			var type = _types[index];
+
+			_captures = 0;
+
+			var head = type is null ? $"R{index}" : $"R{index} : {type}";
+
+			if (type == "@int[]")
+				return $"{head} = {ListBody(index)}";
+
+			var alternatives = new List<string>();
+
+			for (var i = 0; i < 1 + (Chance(30) ? 1 : 0); i++)
+				alternatives.Add(Alternative(index, type, top: true));
+
+			var body = string.Join(" | ", alternatives);
+
+			if (index == 0 && Chance(50) && alternatives.Count == 1)
+				body = type is null ? $"{body} & {(_segments ? "eos" : "eof")}" : body;
+
+			return $"{head} = {body}";
+		}
+
+		/// <summary>A sequence of elements, recovering or not.</summary>
+		string ListBody(int index)
+		{
+			var element = Element(index);
+			var end     = _segments ? Pick("eos", "';' & eos") : Pick("';'", "eol", "@Odd", "(';' | eol)");
+			var each    = element ?? Pick("('x' & ';')", "(['a'..'c']+ & ';')");
+			var recover = Chance(60) ? $" recover {end}" + (element is not null && Chance(50) ? $" => @({Pick("0", "parserText.Length", "(int)parserPosition", "parserOrdinal")})" : "") : "";
+
+			if (element is null)
+				return Chance(50) ? $"x: {each}*{recover} => @(new int[x.Length])" : $"{each}*{recover} => @(new int[0])";
+
+			if (Chance(25))
+				return $"items: ({element}*{recover}) & {(_segments ? "eos" : "eof")} => @(items)";
+
+			return $"{element}{Pick("*", "+")}{recover}";
+		}
+
+		/// <summary>A rule after this one that builds an <c>@int</c>, or a new one written for the list.</summary>
+		string? Element(int index)
+		{
+			for (var i = index + 1; i < _types.Count; i++)
+				if (_types[i] == "@int")
+					return $"R{i}";
+
+			return null;
+		}
+
+		string Alternative(int index, string? type, bool top)
+		{
+			var captures = new List<(string Name, Held Held)>();
+			var operands = new List<string>();
+			var length   = 1 + random.Next(3);
+
+			for (var i = 0; i < length; i++)
+			{
+				var (operand, held) = Operand(index, 2);
+
+				if (type is not null && top && held is not null && Chance(55))
+				{
+					var name = "c" + _captures++;
+
+					captures.Add((name, held.Value));
+					operands.Add($"{name}: {operand}");
+
+					if (Chance(20))
+						operands.Add($"when @({Int(name, held.Value)} >= 0)");
+					else if (Chance(10))
+						operands.Add($"?=(when @({Int(name, held.Value)} == 0))");
+				}
+				else
+				{
+					operands.Add(operand);
+				}
+			}
+
+			if (_context && Chance(25))
+				operands.Add("when @(context.N == 0)");
+
+			if (_segments && index == 0 && Chance(60))
+				operands.Add("eos");
+
+			var sequence = string.Join(" & ", operands);
+
+			return type switch
+			{
+				"@int"    => $"{sequence} => @({IntOf(captures)})",
+				"@string" => $"{sequence} => @({StringOf(captures)})",
+				_         => sequence,
+			};
+		}
+
+		static string Int(string name, Held held)
+		{
+			return held == Held.Int ? name : name + ".Length";
+		}
+
+		string IntOf(List<(string Name, Held Held)> captures)
+		{
+			if (captures.Count == 0)
+				return Pick("0", "parserText.Length");
+
+			return string.Join(" + ", captures.Select(static one => Int(one.Name, one.Held)));
+		}
+
+		string StringOf(List<(string Name, Held Held)> captures)
+		{
+			if (captures.Count == 0)
+				return Pick("\"\"", "S(parserText)");
+
+			return string.Join(" + ", captures.Select(static one => one.Held switch
+			{
+				Held.Text => $"S({one.Name})",
+				Held.Int  => $"{one.Name}.ToString()",
+				_         => $"{one.Name}.Length.ToString()",
+			}));
+		}
+
+		/// <summary>An operand and what a capture of it would hold, null where none may be taken.</summary>
+		(string Operand, Held? Held) Operand(int index, int depth)
+		{
+			var roll = random.Next(depth > 0 ? 26 : 14);
+
+			switch (roll)
+			{
+				case 0: return ("'a'", Held.Text);
+				case 1: return ("'b'", Held.Text);
+				case 2: return ("\"ab\"", Held.Text);
+				case 3: return ("['a'..'c']", Held.Text);
+				case 4: return ("['a'..'c']+", Held.Text);
+				case 5: return ("[^ ';' | '\\n']+", Held.Text);
+				case 6: return ("any", Held.Text);
+				case 7: return (_segments ? "'e'" : "eol", Held.Text);
+				case 8: return ("@Odd", Held.Text);
+				case 9: return Chance(50) ? ("@Num", Held.Int) : ("@Peek", Held.Text);
+				case 10: return Call(index);
+				case 11: return Call(index);
+				case 12: return (_lexical ? Pick("Lexical.Word", "Lexical.Digits") : Pick("'x'i", "\"yz\""), _lexical ? null : Held.Text);
+				case 13: return (_context ? "@Sized" : Chance(50) ? "@Gen<int>" : "@Gen<long>", null);
+			}
+
+			var (inner, held) = Operand(index, depth - 1);
+
+			switch (roll)
+			{
+				case 14: return ($"({inner})?", null);
+				case 15: return ($"({inner})*", held == Held.Int ? Held.Many : Held.Text);
+				case 16: return ($"({inner})+", held == Held.Int ? Held.Many : Held.Text);
+				case 17: return ($"({inner}){{1,2}}", held == Held.Int ? Held.Many : Held.Text);
+				case 18: return ($"{{ {inner} }}", held == Held.Text ? Held.Text : null);
+				case 19: return ($"?=({inner})", held);
+				case 20: return ($"?!({inner})", null);
+				case 21: return ($"(?!';' & any)* & ';'", null);
+				case 22: return ($"$q: ({inner}) & $q", null);
+				case 23: return ($"({inner} & {Operand(index, depth - 1).Operand})", null);
+				case 24: return ($"({inner} | {Operand(index, depth - 1).Operand})", null);
+				default: return ($"({inner})* recover {(_segments ? "eos" : Pick("';'", "eol", "@Odd", "@Peek"))}", null);
+			}
+		}
+
+		(string, Held?) Call(int index)
+		{
+			if (index + 1 >= _types.Count)
+				return ("'z'", Held.Text);
+
+			var callee = index + 1 + random.Next(_types.Count - index - 1);
+			var held   = _types[callee] switch
+			{
+				null      => Held.Text,
+				"@int"    => Held.Int,
+				"@string" => (Held?)null,
+				_         => Held.Many,
+			};
+
+			if (Chance(15) && _types[callee] is null)
+				return ($"Wrap(R{callee})", null);
+
+			return ($"R{callee}", held);
+		}
+	}
+}
