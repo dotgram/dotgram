@@ -29,8 +29,8 @@ namespace DotGram.Examples.Feeds;
 //                             it, §8.2 making a marked repetition possessive; here it is
 //                             for what it says on the tin.
 //
-// Leave the sequence result off and the reader overload is not generated, and the
-// compiler says why.
+// Leave the sequence result off and the reader overload is still there, but it no longer
+// streams: it reads the whole input and hands back an array, as FeedExample's does.
 //
 // What the envelope is for shows up here in a way it does not over a string. A caller
 // that chopped the file into lines and parsed each on its own would have to check the

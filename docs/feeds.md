@@ -853,17 +853,18 @@ count matched what was read.
 | | end-of-day trades, 10M | corporate actions, 1M | confirmations, 1M |
 | --- | ---: | ---: | ---: |
 | file | 649.8 MB | 73.1 MB | 62.9 MB |
-| parse only | 9.7 s — 1.03 M lines/s, 67.2 MB/s | 1.9 s — 537 K lines/s, 39.2 MB/s | 1.2 s — 868 K lines/s, 54.6 MB/s |
-| parse and load | 35.5 s — 282 K lines/s, 18.3 MB/s | 4.9 s — 206 K lines/s, 15.0 MB/s | 4.0 s — 248 K lines/s, 15.6 MB/s |
+| parse only | 7.9 s — 1.27 M lines/s, 82.3 MB/s | 1.7 s — 577 K lines/s, 42.2 MB/s | 1.1 s — 894 K lines/s, 56.3 MB/s |
+| parse and load | 31.6 s — 316 K lines/s, 20.5 MB/s | 4.1 s — 246 K lines/s, 18.0 MB/s | 3.6 s — 279 K lines/s, 17.6 MB/s |
 | database | 910.1 MB | 104.4 MB | 88.3 MB |
-| peak working set | 120.3 MB | 118.4 MB | 116.4 MB |
+| peak working set | 120.5 MB | 114.2 MB | 116.1 MB |
 
-The parser reads the trades at about 65 MB a second, and SQLite takes about a quarter of that:
+The parser reads the trades at about 80 MB a second, and SQLite takes about a quarter of that:
 loading is the database's time, not the parser's. Memory is flat — the peak working set was
 about 120 MB for ten million trades, and most of it is the runtime and linq2db themselves.
 The figures were taken with other work running on the machine, so they are good to about 10%;
-the same program with the feeds written on `eol` read the trades in 9.1 s, the actions in 1.7 s
-and the confirmations in 1.1 s in the same session.
+the same program with the feeds written on `eol` read the trades in 7.8 s, the actions in 1.6 s
+and the confirmations in 1.1 s in the same session; the actions read about 5% slower on
+`eos` than on `eol` (four readings each), the other two the same.
 
 `BulkCopyType.MultipleRows`, an `INSERT` of many rows at a time, is what the program uses;
 `ProviderSpecific` measured the same, SQLite having no bulk interface of its own.
