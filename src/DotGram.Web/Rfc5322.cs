@@ -315,13 +315,22 @@ public abstract record EmailAddress
 	QuotedPair = '\\' & ['!'..'~' | ' ' | '\t'] | ObsQp
 
 	Ctext    = ['!'..'\'' | '*'..'[' | ']'..'~'] | ObsNoWsCtl
-	Ccontent = Ctext | QuotedPair | Comment
-	// A comment's content is read to its end and never handed back: only `)` may follow it, and no piece of a
-	// comment begins with one, so a shorter reading can never lead anywhere. Without the braces an unclosed
-	// comment gave its content back a piece at a time, each try reading the address again from its start:
-	// quadratic in the comment, 1.3 s refusing a list that was `(` and eight thousand characters. A quoted
+	// comment = "(" *([FWS] ccontent) [FWS] ")", written with the folding after each piece rather than before
+	// it, which is the same language: folding at the start, after each piece, and never twice in a row.
+	//
+	// Written so, the pieces are never handed back without any seal around them: each begins with a character
+	// of its own (text, `\` or `(`), none of them with the `)` that follows the run, and each reads one way,
+	// as a run of text and a quoted pair are sealed. Without that an unclosed comment gave its content back a
+	// piece at a time, each try reading the address again from its start: quadratic in the comment, 1.3 s
+	// refusing a list that was `(` and eight thousand characters, 2.2 s for sixteen thousand `\a`. A quoted
 	// string's content and a domain literal's are sealed for the same reason, before `"` and `]`.
-	Comment  = '(' & { (Fws? & Ccontent)* & Fws? } & ')'
+	//
+	// No seal holds a nested comment. A seal spends every way back decided inside it, so one around the
+	// nesting spends the ways of every level below again at each level above: quadratic in the depth, 0.4 s
+	// for an address of sixteen thousand nested comments, where it is linear without.
+	Ccontent    = CommentText | { QuotedPair } | Comment
+	CommentText = { Ctext+ }
+	Comment     = '(' & Fws? & (Ccontent & Fws?)* & ')'
 	// The run of comments is sealed for the same reason the run of whitespace is, and it is the
 	// second way into the same ambiguity: `ObsRoute` repeats over `Cfws`, `Cfws` repeats over
 	// comments, and what follows the inner run is only a nullable `Fws?`, so n comments can be cut
