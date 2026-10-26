@@ -137,15 +137,6 @@ public sealed class LexicalAutomaton
 		/// <summary>Whether the pattern being built must be read exactly.</summary>
 		bool _exact;
 
-		/// <summary>The patterns that must be read exactly, by number.</summary>
-		readonly HashSet<int> _exacting = [];
-
-		/// <summary>
-		/// The delimiter of an until an exact pattern accepted a token still owing, or null: that
-		/// token's reading is decided past it, so the pattern is not exact after all.
-		/// </summary>
-		string? _unsettled;
-
 		// ── The machine under construction ───────────────────────────────────────────
 		//
 		// States are numbers. An edge is either an atom edge or an empty one, and both are
@@ -187,9 +178,6 @@ public sealed class LexicalAutomaton
 			{
 				_exact = exact?.Invoke(i) ?? false;
 
-				if (_exact)
-					_exacting.Add(i);
-
 				if (Build(patterns[i], []) is not var (from, to))
 					return null;
 
@@ -197,16 +185,7 @@ public sealed class LexicalAutomaton
 				_accepts[to] = i;
 			}
 
-			var machine = Subsets(start);
-
-			if (_unsettled is { } delimiter)
-			{
-				Refuse($"an until whose delimiter can begin inside its run and end past the token: {delimiter}");
-
-				return null;
-			}
-
-			return machine;
+			return Subsets(start);
 		}
 
 		// ── The alphabet ─────────────────────────────────────────────────────────────
@@ -549,11 +528,10 @@ public sealed class LexicalAutomaton
 		/// One state a length of matched delimiter prefix — Knuth, Morris and Pratt's automaton.
 		/// The lookahead is asked at every item boundary and sees past what the run consumed, so
 		/// the run stops where the delimiter first <em>begins</em>, which an automaton reading the
-		/// run alone cannot know: what follows decides it. Three cases are exact by their shape, and
-		/// the rest are read with what the run hands on (the last paragraph); a pattern that must be
-		/// exact and still owes where a token ends is refused, so the grammar keeps the character
-		/// machine rather than a token that accepts more than the rule. A beginning, which its own
-		/// rule reads again from the token's start, keeps the wider reading: there it only lets the
+		/// run alone cannot know: what follows decides it. Three cases are exact, and anything else
+		/// is refused in a pattern that must be exact, so the grammar keeps the character machine
+		/// rather than a token that accepts more than the rule. A beginning, which its own rule
+		/// reads again from the token's start, keeps the wider reading: there it only lets the
 		/// rule be asked.
 		/// </para>
 		/// <para>
@@ -579,10 +557,10 @@ public sealed class LexicalAutomaton
 		/// a state a length of matched prefix leaves the run owing that prefix and its borders, and
 		/// the subset construction reads what follows with the debt: a character that finishes an
 		/// owed occurrence is the delimiter begun inside the run, and no way on. What is still owed
-		/// where the token ends is decided past the token: a beginning lets it go, the wider reading,
-		/// and a pattern that must be exact is refused (Subsets). A delimiter of sixty-four characters
-		/// or more, whose prefixes a debt cannot hold, is refused in a pattern that must be exact as
-		/// before.
+		/// where the token ends is let go, since what decides it lies past the token — the wider
+		/// reading, which only a beginning has. A beginning it stays, whatever the machine now
+		/// says of it: <c>TerminalInventory.ReadsAsWritten</c> does not take a body that hands
+		/// anything on for one it reads as written.
 		/// </para>
 		/// </remarks>
 		((int From, int To) Built, bool Absorbed)? Delimited(string delimiter, Node item, HashSet<RuleSymbol> inside, bool closed)
@@ -617,9 +595,7 @@ public sealed class LexicalAutomaton
 			// alphabet as a set of its own and the partition cuts at every boundary.
 			var absorbs = closed && delimiter.All(c => atoms.Any(atom => _atoms[atom].From == c && _atoms[atom].To == c));
 
-			// Only where what the run hands on cannot be carried (below); otherwise the subset
-			// construction says whether an exact pattern ever ends a token still owing it.
-			if (_exact && !absorbs && length >= 64 && (!closed || Overlaps(delimiter)))
+			if (_exact && !absorbs && length > 1 && (!closed || Overlaps(delimiter)))
 			{
 				Refuse(
 					closed
@@ -989,17 +965,6 @@ public sealed class LexicalAutomaton
 					.Select(one => _accepts[one])
 					.Distinct()
 					.ToList();
-
-				// A token an exact pattern ends owing nothing on another way is decided here; one it
-				// ends only owing is decided by what comes after it, which no automaton reads.
-				if (_unsettled is null && _owing.Count > 0)
-					foreach (var one in here)
-						if (Owing(one) is (var state, var owed and not 0) &&
-							_accepts.TryGetValue(state, out var pattern) &&
-							_exacting.Contains(pattern) &&
-							!here.Any(other => other < _on.Count && _accepts.TryGetValue(other, out var plain) && plain == pattern))
-							_unsettled = _debts[owed][0].Delimiter;
-
 				if (accepting.Count > 0)
 				{
 					accepting.Sort();
