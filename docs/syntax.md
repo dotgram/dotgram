@@ -646,7 +646,10 @@ The word follows C#'s own guards: `case P when condition` and
 `catch (Exception e) when condition` make a branch applicable only under an additional
 condition. Here it says the same thing about the current recognition path. The guard is
 evaluated while that path is being tried, so it may run more than once and on a path
-later abandoned by backtracking.
+later abandoned by backtracking. A guard inside a lookahead may not yet read a capture made
+before the lookahead (`GRAM4006`): the lookahead is a reading of its own and is not handed it.
+A guard reads nothing, so it needs no lookahead around it — `?=(when @(g))` is `when @(g)`,
+and `?!(when @(g))` is `when @(!(g))`.
 
 If the guard names a capture whose value is built by `=>`, that value has to exist before
 the guard can be called. The parser builds it at that point and caches it on the current

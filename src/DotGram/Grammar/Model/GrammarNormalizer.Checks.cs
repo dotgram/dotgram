@@ -277,6 +277,7 @@ public sealed partial class GrammarNormalizer
 			CheckRecovery     (rule);
 			CheckFoldGuards   (rule);
 			CheckBindingNames (rule);
+			CheckLookedCaptures(rule);
 		}
 
 		CheckTrivia();

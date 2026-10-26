@@ -767,14 +767,22 @@ public static partial class CSharpEmitter
 
 				var compiled = machines.Find(one => one.Publications.Contains(publication));
 
+				// The engine that registered the stages (EmitRecognizers), where one did: its wrapper
+				// of a stage's rule is the one written, under the name worked out the same way there —
+				// the plain one where a publication of the rule other than a whole parse already wrote
+				// it, the machine's own otherwise. The first machine of the publication may be another
+				// (one read by methods), whose names a stage called methods nobody wrote (CS0103).
+				var staging = machines.Find(one => !one.Flat && !one.Direct && one.Publications.Contains(publication));
+
 				string Recognizer(RuleSymbol rule)
 				{
-					// Joined publications already share the plain wrapper in this machine: a find's. A
-					// parse is rendered only under the name that also insists the input ended, and a
-					// stage read under the plain name of a rule published by `parse` called a method
-					// nobody wrote (CS0103).
-					if (compiled is not null &&
-						compiled.Publications.Any(one => one.Rule == rule && one.Kind == PublishKind.Find))
+					if (staging is not null)
+						return staging.Publications.Any(one => one.Rule == rule && one.Kind != PublishKind.Parse)
+							? MethodOf(rule)
+							: MethodOf(graph, rule, staging.Machine.Anchor, staging.Tag);
+
+					// Joined publications already share the plain wrapper in this machine.
+					if (compiled is not null && compiled.Publications.Any(one => one.Rule == rule))
 						return MethodOf(rule);
 
 					return MethodOf(graph, rule, compiled?.Machine.Anchor, compiled?.Tag ?? MachineTag.None);

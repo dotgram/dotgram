@@ -288,6 +288,58 @@ public sealed partial class GrammarNormalizer
 	// ── The checks ──────────────────────────────────────────────────────────────
 
 	/// <summary>
+	/// A capture read by a <c>when</c> inside a lookahead: <c>c: 'b'* &amp; ?=(when @(c.Length == 0))</c>.
+	/// </summary>
+	/// <remarks>
+	/// A lookahead is a reading of its own (§3.4), compiled apart and handed none of the captures made
+	/// before it: its guard was handed nothing called <c>c</c> (CS0103), and given the rule's slots it read
+	/// another reading's. Refused (GRAM4006, beside a capture inside one) until a lookahead carries what
+	/// the rule captured. A guard reads nothing, so it needs no lookahead around it: written beside the
+	/// lookahead it says the same, and <c>?!(when @(g))</c> is <c>when @(!(g))</c>.
+	/// </remarks>
+	void CheckLookedCaptures(RuleSymbol rule)
+	{
+		if (rule.Declaration is null)
+			return;
+
+		var body = _bodies[rule];
+
+		foreach (var alternative in body is Node.Choice choice ? choice.Nodes : [body])
+		{
+			var captured = new HashSet<string>(StringComparer.Ordinal);
+
+			foreach (var node in NodeWalk.Descendants(alternative))
+				if (node is Node.Capture(var name, _))
+					captured.Add(name);
+
+			if (captured.Count == 0)
+				continue;
+
+			foreach (var look in NodeWalk.Descendants(alternative))
+			{
+				if (look is not Node.Lookahead(_, var seen))
+					continue;
+
+				foreach (var node in NodeWalk.Descendants(seen))
+					if (node is Node.Guard(var text) && _scanner?.FreeNames(text) is { } free &&
+						captured.FirstOrDefault(free.Contains) is { } name &&
+						!rule.Declaration.Params.Any(one => one.Name == name))
+					{
+						Report(
+							UnbuiltCapture,
+							$"The capture '{name}' is read by a 'when' inside a lookahead in '{rule.Name}', which is not " +
+							"supported yet: a lookahead is a reading of its own and is not handed what the rule captured " +
+							"before it. A guard reads nothing, so it needs no lookahead around it — write it beside the " +
+							"lookahead, and '?!(when @(g))' as 'when @(!(g))' (docs/syntax.md §3.4, §3.6).",
+							rule.Declaration.At);
+
+						return;
+					}
+			}
+		}
+	}
+
+	/// <summary>
 	/// A binding's name read as C#, in a <c>=&gt;</c> or a <c>when</c> of the alternative that binds it.
 	/// </summary>
 	/// <remarks>
