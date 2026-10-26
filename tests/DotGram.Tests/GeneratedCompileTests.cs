@@ -109,44 +109,27 @@ public sealed class GeneratedCompileTests
 	}
 
 	/// <summary>
-	/// A guard inside a lookahead reads what was captured before the lookahead, as a reference in
-	/// one reads an outer binding (§3.4, §3.6): the guard was handed nothing, and the generated code
-	/// named a capture it did not have (CS0103).
+	/// A guard inside a lookahead that reads a capture made before it is refused (GRAM4006), as a
+	/// capture inside one is: a lookahead is a reading of its own and is not handed what the rule
+	/// captured, so its guard was handed nothing of that name (CS0103). Written beside the lookahead,
+	/// the guard says the same and compiles.
 	/// </summary>
 	[Theory]
-	[InlineData(true)]
-	[InlineData(false)]
-	public void A_guard_in_a_lookahead_reads_a_capture_made_before_it(bool direct)
+	[InlineData("T = 'a' & c: 'b'* & ?=(when @(c.Length == 0)) | 'a' & 'b'", true)]
+	[InlineData("T : @string = 'a' & c: 'b'* & ?!('x' & when @(c.Length > 1)) & any => @(c)", true)]
+	[InlineData("T = 'a' & c: 'b'* & when @(c.Length == 0) | 'a' & 'b'", false)]
+	[InlineData("T = 'a' & c: 'b'* & ?=('b' & when @(true)) & any", false)]
+	public void A_guard_in_a_lookahead_that_reads_a_capture_is_refused(string rule, bool refused)
 	{
-		var parser = Built(
-			"""
-			T : @string = 'a' & c: 'b'* & ?=(when @(c.Length < 2)) & any => @(c)
-			            | "abbb" => @("long")
-			U : @string = 'a' & c: 'b'* & ?!(when @(c.Length == 0)) & eof => @(c) | 'a' & 'b'* => @("none")
-			parse T
-			parse U
-			""",
-			Host, direct);
+		var result = Compiled(rule + "\nparse T", Host, direct: true);
 
-		Assert.Equal((true, (object?)""), Read(parser, "TryParseT", "ax"));
-		Assert.Equal((true, (object?)"b"), Read(parser, "TryParseT", "abx"));
-		Assert.Equal((true, (object?)"long"), Read(parser, "TryParseT", "abbb"));
-		Assert.False(Read(parser, "TryParseT", "abbx").IsSuccess);
-		Assert.Equal((true, (object?)"none"), Read(parser, "TryParseU", "a"));
-		Assert.Equal((true, (object?)"bb"), Read(parser, "TryParseU", "abb"));
-	}
+		Assert.Equal(refused, result.Diagnostics.Any(static one => one.Id == GrammarNormalizer.UnbuiltCapture));
 
-	/// <summary>The shape the guard first failed on: the lookahead the whole of one alternative's tail.</summary>
-	[Theory]
-	[InlineData(true)]
-	[InlineData(false)]
-	public void A_lookahead_that_is_only_a_guard_on_a_capture_compiles(bool direct)
-	{
-		var parser = Built("T = 'a' & c: 'b'* & ?=(when @(c.Length == 0)) | 'a' & 'b'\nparse T", Host, direct);
+		if (refused)
+			return;
 
-		Assert.True(Read(parser, "TryParseT", "a").IsSuccess);
-		Assert.True(Read(parser, "TryParseT", "ab").IsSuccess);
-		Assert.False(Read(parser, "TryParseT", "abb").IsSuccess);
+		foreach (var direct in new[] { true, false })
+			Build(Compiled(rule + "\nparse T", Host, direct), Host);
 	}
 
 	/// <summary>
@@ -365,6 +348,31 @@ public sealed class GeneratedCompileTests
 
 		Assert.Equal("2,3", string.Join(",", listed));
 		Assert.Equal("2,3", string.Join(",", read.Cast<object>()));
+	}
+
+	/// <summary>The same, where the publication's first machine is read by methods and its stages by the engine.</summary>
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void A_streamed_stage_of_a_rule_read_by_methods_reads_it_by_a_name_that_exists(bool direct)
+	{
+		var parser = Built(
+			"""
+			Rows : @int[] = Row+
+			Some : @int[] = Row*
+			Row  : @int   = c: { ['a'..'c']+ } & when @(c.Length > 0) & ';' & eos => @(c.Length)
+			parse Rows
+			parse Some as Each yield
+			parse Row as One
+			""",
+			Host, direct);
+
+		var type   = parser.GetType("Grammar")!;
+		var listed = (int[])type.GetMethod("ParseRows", [typeof(System.Collections.Generic.IReadOnlyList<string>)])!.Invoke(null, [new[] { "ab;", "c;" }])!;
+		var read   = (System.Collections.IEnumerable)type.GetMethod("ParseRows", [typeof(TextReader)])!.Invoke(null, [new StringReader("ab;\nc;\n")])!;
+
+		Assert.Equal("2,1", string.Join(",", listed));
+		Assert.Equal("2,1", string.Join(",", read.Cast<object>()));
 	}
 
 	static GramCompilation Compiled(string grammar, string members, bool direct, bool lexical = false, bool spans = false, CarrierKind carrier = CarrierKind.Auto)
