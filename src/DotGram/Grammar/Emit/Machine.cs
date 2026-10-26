@@ -155,10 +155,40 @@ sealed partial class Machine
 	}
 
 	/// <summary>Whether fewer than <paramref name="count"/> characters remain from <c>p</c>, for a literal.</summary>
-	string LacksRoom(int count)
+	/// <param name="literal">
+	/// The literal the room is for, where it is one: over a buffer, a character already held that
+	/// cannot be the literal's answers without asking the source for the rest (<see cref="BufferedRoom"/>).
+	/// </param>
+	string LacksRoom(int count, string? literal = null, bool fold = false)
 	{
-		return BufferedInput ? $"!text.Ensure(p, {count})" : $"(uint)(p + {count}) > (uint)text.Length";
+		return BufferedInput ? "!" + BufferedRoom(count, literal, fold) : $"(uint)(p + {count}) > (uint)text.Length";
 	}
+
+	/// <summary>
+	/// Over a buffer, whether <paramref name="count"/> more can be read from <c>p</c>; for a literal
+	/// of more than one character, read on only while what is held agrees with it.
+	/// </summary>
+	/// <remarks>
+	/// A live source hands over what it has and blocks until there is more. Room asked for a whole
+	/// literal before any of it was compared waited, over a source that had handed over <c>X</c>,
+	/// for the two more characters of <c>"abc"</c> that the answer did not need. Held characters are
+	/// compared first, and where one cannot be the literal's nothing more is read: held whole, the
+	/// literal has its room and is refused by the comparison after it, as before; held in part, it
+	/// has none, as where the input ends inside it, and the walk of that refusal stops at the same
+	/// character. Where every character held agrees, the room is read for as before.
+	/// </remarks>
+	string BufferedRoom(int count, string? literal, bool fold)
+	{
+		if (literal is not { Length: > 1 } || literal.Length != count)
+			return $"text.Ensure(p, {count})";
+
+		RoomsLiterals = true;
+
+		return $"text.Ensure(p, {Quoted(literal)}, {(fold ? "true" : "false")})";
+	}
+
+	/// <summary>Whether a room was asked for a literal (<see cref="BufferedRoom"/>), which the buffer then carries.</summary>
+	public bool RoomsLiterals { get; private set; }
 
 	/// <summary>Whether input remains at <paramref name="position"/>, which a whole reading refuses.</summary>
 	string NotAtEnd(string position)
@@ -2961,7 +2991,7 @@ sealed partial class Machine
 				// already failed.
 				if (value.Length > 1 && (!ignoreCase || Ascii(value)))
 				{
-					writer.Line($"if ({Short(value.Length)})");
+					writer.Line($"if ({Short(value.Length, value, ignoreCase)})");
 					using (writer.Block(""))
 					{
 						ShortOf(writer, value, ignoreCase);
@@ -3039,11 +3069,11 @@ sealed partial class Machine
 				// thing that writes between them is starvation, which marks the failure
 				// before reporting it and belongs to the length alone. Folded rather than
 				// left as two `if`s with the same body, which is what a reader sees.
-				var room = _starves || value.Length == 0 ? null : Short(value.Length);
+				var room = _starves || value.Length == 0 ? null : Short(value.Length, value, ignoreCase);
 
 				if (room is null)
 				{
-					writer.Line($"if ({Short(value.Length)})");
+					writer.Line($"if ({Short(value.Length, value, ignoreCase)})");
 					using (writer.Block(""))
 					{
 						if (value.Length > 1)
@@ -4908,7 +4938,7 @@ sealed partial class Machine
 		{
 			var carry = carries[at];
 			var rest  = carry.Substring(matched);
-			var tests = new List<string> { Room(rest.Length) };
+			var tests = new List<string> { Room(rest.Length, rest) };
 			var state = Reserve(out var writer);
 			var again = false;
 
@@ -4987,7 +5017,7 @@ sealed partial class Machine
 			// test above having proved every one of them in range.
 			// Input that ends inside what they all begin with: refused where the first of
 			// those characters that does not fit stands, or at the end where they all do.
-			writer.Line($"if ({Short(shared.Length)})");
+			writer.Line($"if ({Short(shared.Length, shared)})");
 			using (writer.Block(""))
 			{
 				// Where the run gives way to the alternatives after it, which read from where it
@@ -5072,7 +5102,7 @@ sealed partial class Machine
 			var tests = new List<string>();
 
 			if (text.Length > shared.Length)
-				tests.Add(Room(text.Length));
+				tests.Add(Room(text.Length, text));
 
 			// What is left of this alternative once the shared prefix is behind it, as one
 			// comparison rather than one per character — the same trade `Node.Literal`
@@ -6978,29 +7008,30 @@ sealed partial class Machine
 	/// which is the one direction a room check may not fail in.
 	/// </para>
 	/// </remarks>
-	string Short(int count)
+	/// <param name="literal">The literal the room is for, where it is one (<see cref="BufferedRoom"/>).</param>
+	string Short(int count, string? literal = null, bool fold = false)
 	{
-		return Ran(RawShort(count));
+		return Ran(RawShort(count, literal, fold));
 	}
 
 	/// <summary><see cref="Short"/> without saying that it ran out, for a walk (<see cref="RawPast"/>).</summary>
-	string RawShort(int count)
+	string RawShort(int count, string? literal = null, bool fold = false)
 	{
-		return BufferedInput ? $"!text.Ensure(p, {count})" :
+		return BufferedInput ? "!" + BufferedRoom(count, literal, fold) :
 		count == 1 ? "(uint)p >= (uint)text.Length" : $"text.Length - p < {count}";
 	}
 
 	/// <summary>Whether there is room for <paramref name="count"/> more.</summary>
 	/// <remarks>The same the other way up — see <see cref="Short"/>.</remarks>
-	string Room(int count)
+	string Room(int count, string? literal = null, bool fold = false)
 	{
-		return GoesOn(RawRoom(count));
+		return GoesOn(RawRoom(count, literal, fold));
 	}
 
 	/// <summary><see cref="Room"/> without saying that it ran out, for a walk (<see cref="RawPast"/>).</summary>
-	string RawRoom(int count)
+	string RawRoom(int count, string? literal = null, bool fold = false)
 	{
-		return BufferedInput ? $"text.Ensure(p, {count})" :
+		return BufferedInput ? BufferedRoom(count, literal, fold) :
 		count == 1 ? "(uint)p < (uint)text.Length" : $"text.Length - p >= {count}";
 	}
 

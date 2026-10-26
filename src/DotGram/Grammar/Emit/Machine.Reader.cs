@@ -2893,7 +2893,7 @@ sealed partial class Machine
 					? $"!text.Matches(p, {Quoted(text)})"
 					: $"!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, {text.Length}), {Spanned(text)})";
 
-				using (code.Block($"if ({machine.LacksRoom(text.Length)} || {mismatch})"))
+				using (code.Block($"if ({machine.LacksRoom(text.Length, text, folded)} || {mismatch})"))
 				{
 					if (closing is not null)
 						RefusedRun(code, closing);
@@ -2952,7 +2952,7 @@ sealed partial class Machine
 			// read on the failing branch alone (Machine.Sharpen); and so is one where the input
 			// ends inside the literal, which is refused at the end, as input that ran out, only
 			// where every character there agrees (§7.5).
-			using (code.Block($"if ({machine.LacksRoom(text.Length)})"))
+			using (code.Block($"if ({machine.LacksRoom(text.Length, text, folded)})"))
 			{
 				machine.Reached(code, text, folded, machine.Quiets ? "!failure.Quiet" : "");
 
@@ -3026,7 +3026,7 @@ sealed partial class Machine
 			// reads only what the input holds, and stops at the end where they all agree there.
 			// Where it is not recorded, as a single literal's: ran out at the beginning.
 			if (shared.Length > 1)
-				using (code.Block($"if ({machine.LacksRoom(shared.Length)})"))
+				using (code.Block($"if ({machine.LacksRoom(shared.Length, shared)})"))
 					machine.Reached(code, shared, false, null);
 
 			var narrowed = $"narrowed{_calls++}";
