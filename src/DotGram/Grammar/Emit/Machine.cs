@@ -1134,7 +1134,9 @@ sealed partial class Machine
 	{
 		var end = FollowSets.Continuation.End;
 
-		if (!TrimsWhole(rule) && !SpansWhole(rule))
+		// A method lowered with its values in locals builds nothing from the root's extent, which
+		// such a method never reads: a rule asking for it is read by the engine.
+		if (!TrimsWhole(rule) && !(SpansWhole(rule) && !_valuesInLocals))
 			return Compile(BodyOf(rule, whole: true), next, end);
 
 		var trivia = _graph.Trivia[rule];
