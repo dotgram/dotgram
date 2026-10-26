@@ -2501,7 +2501,7 @@ sealed partial class Machine
 					break;
 
 				case Node.Lookahead(var positive, var inside):
-					EmitLookahead(code, positive, inside, loaded);
+					EmitLookahead(code, node, positive, inside, loaded);
 					break;
 
 				case Node.Capture(_, var held):
@@ -6390,7 +6390,7 @@ sealed partial class Machine
 			return machine.Carrier.ValueOf(rule, record);
 		}
 
-		void EmitLookahead(Writer code, bool positive, Node inside, bool loaded = false)
+		void EmitLookahead(Writer code, Node node, bool positive, Node inside, bool loaded = false)
 		{
 			// A negative look whose subject cannot begin with any token the case label
 			// admits has been answered by the label: `?!Reserved & RegularIdentifier` is
@@ -6486,9 +6486,11 @@ sealed partial class Machine
 
 			// A rule that is nothing but a look, the engine reads as a scan and names where it
 			// refuses: `eof`. Said so here too, or a parse refused at the end by it after a loop
-			// said only that the input did not match. Any other look says nothing it expected: a
-			// positive one says only where it refused (below), and what is said there is left to
-			// what else is read that far.
+			// said only that the input did not match. Any other look refuses where it stands, as
+			// the engine records one: the furthest position the parse reached is the look's own
+			// (§7.5), and a parse refused by a look at the end of the input is starved there, not
+			// refused where the rule began. Nothing is said to be expected there, as the engine's
+			// look on the arena says nothing: what is said is left to what else is read that far.
 			var named = _graph.Bodies.TryGetValue(owner, out var body) &&
 				body is Node.Lookahead(_, var looked) && ReferenceEquals(looked, inside) &&
 				machine.ScannerOf(owner) is not null;
@@ -6513,10 +6515,6 @@ sealed partial class Machine
 				return;
 			}
 
-			// A positive look that saw nothing refuses the reading where it began, which is how far
-			// the parse got, as the engine's does when its look unwinds: what the look tried past it
-			// is recorded nowhere, and without this the refusal stayed wherever the reading had been
-			// before the look (§7.5). Nothing is said to be expected there.
 			if (!named && positive)
 			{
 				using (code.Block($"if ({seen} < 0)"))
@@ -6528,16 +6526,15 @@ sealed partial class Machine
 				return;
 			}
 
-			if (!named)
-			{
-				code.Line($"if ({seen} >= 0)");
-				code.Then(Fails());
-
-				return;
-			}
+			// A negative look refused says nothing it expected either, as the engine's on the arena
+			// says nothing: what is said there is left to what else is read that far.
+			var said = named ? machine.DeclareExpected([owner.Name]) : "null";
 
 			using (code.Block($"if ({seen} {(positive ? "<" : ">=")} 0)"))
-				Refused(code, machine.DeclareExpected([owner.Name]));
+			{
+				code.Line(Refusal(said));
+				code.Line(Fails());
+			}
 		}
 
 		/// <summary>
