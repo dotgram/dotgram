@@ -1085,9 +1085,15 @@ public static partial class CSharpEmitter
 			// turns behind shut doors from there (Machine.KeepsDoors); a trace build keeps every reading as it was.
 			var furthest = quiets && tracing is null;
 
-			file.Write(Region(Region(Region(Region(Region(Region(regioned, "marks", graph.State is not null), "memo", memoises), "expectations", expectations), "turn", turns), "noturn", !turns), "furthest", furthest)
+			// Where a way's reading stood, where some reader replays a run or a repetition's turns in
+			// one move (Machine.KeepsPlaces), and counted in the tape's bound with the rest.
+			var places = machines.Exists(static compiled => compiled.Direct && compiled.Machine.KeepsPlaces);
+
+			file.Write(Region(Region(Region(Region(Region(Region(Region(regioned, "marks", graph.State is not null), "memo", memoises), "expectations", expectations), "turn", turns), "noturn", !turns), "furthest", furthest), "places", places)
 				.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture))
 				.Replace("/*MEMOROOM*/", memoises ? " + ways.Memo.Length * 2L" : "")
+				.Replace("/*PLACESROOM*/", places ? " + ways.Places.Length" : "")
+				.Replace("/*PLACESUSED*/", places ? " + ways.Count * 2L" : "")
 				// A refusal a recording reading records is told to the sink, where the build traces.
 				.Replace("\t/*REFUSED*/\r\n", tracing is null ? "" : "\tfailure.Trace?.Refused(at, expected);\r\n\r\n")
 				.Replace("\t/*REFUSED*/\n", tracing is null ? "" : "\tfailure.Trace?.Refused(at, expected);\n\n")

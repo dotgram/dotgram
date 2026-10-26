@@ -26418,3 +26418,38 @@ search for the delimiter that found none jumped to the refusal without saying ho
   most of the SQL output: SQL 14.55 MB is 1.67% smaller, Web 1.51%, FIX 2.38%, the expression language 0.42%, the
   examples 0.09%; the renames alone move each set by -0.05% to +0.08% (the factories, `Construct_` to
   `New_DotGram_`, are most of the growth, and the shorter tagged helpers most of what comes back). A paired stand on six rows, directional on a shared machine, read every change within its own A/A.
+
+
+## A replay steps over a run, and over turns that only recognize, instead of reading them again
+
+- **The fault.** A refusal after adjacent repetitions that can take the same characters (`R0 = 'o'* & 'o'?`
+  written k times, or `Ows & X? & Ows` in a header of the web formats) tries every way of sharing the input
+  between them: about n^k ways, on both machines. The engine resumes a way where it was opened. The direct reader
+  replays: a failed rule moves its tape on and runs its body again from the top, reading the decisions in front of
+  the moved one back off the tape. Reading one back was not O(1): a run of one character was scanned to its end
+  before the tape said how much of it to give back, and a repetition of anything else called its body again for
+  every turn already taken, with any host recognizer in it. A way cost O(n), and the reader grew n^3.7 where the
+  engine grew n^2.9 (k = 3, 25 to 200 characters). Not a regression: the tape has always replayed this way.
+- **The change.** The tape keeps, beside each way, where its reading stood (`Ways_DotGram.Places`, two integers a
+  way, written by a third overload of `Open`), in a region of the support written only where a reader uses it.
+  A run with no most that gives back records where it ended; replayed, it reads the end off the tape once it has
+  passed its floor, since whether it opened a way at all is the question its scan asked the first time at the same
+  place. A repetition with no most whose turn opens no way, undoes nothing and only recognizes (no value, capture,
+  binding, guard, look or mark, here or in a rule it calls; `Machine.OnlyRecognizes`) records where each turn began
+  and, on its first way, the last way it took; replayed, it goes from its first way to that one, or to the one a
+  retry moved since, whichever comes first, and carries on from there as a replay would. Not in a trace build,
+  which reports every call. Bounded runs and turns are left as they were: their scan is as short as their most.
+- **The gates.** `ReaderGiveBackGrowthTests` (Slow) holds the ratio of the two machines, not their cost: the host
+  calls of `R0 = (@Odd)* & (@Nothing | @Odd)` (a count) and the time of the plain family (interleaved, best of five)
+  may not grow more than twice from 25 characters to 200. On the parent, k = 2, the count's ratio went from 11.5 to
+  89 and the time's from 8.4 to 31.6; now 1.6 to 1.7 and 2.5 to 2.7 (k = 3: the count 2.2 to 2.3, the time 4.0 to
+  3.8, against 12.7 to 50 at 100 and 7.5 to 42). In exponents over 25 to 200, k = 3: the reader n^3.66 against the
+  engine's n^2.84 before, n^2.93 against n^2.97 now; k = 2: n^2.51 against n^1.89, n^1.99 against n^1.93. What is
+  left is a constant: a replayed choice calls its alternative again. A differential of the parent and this over 1,121
+  grammars (1,089 random ones, a third with values, and the family's shapes), every input to five characters (seven
+  for the family), both machines, 4,371,050 parses a side: the same outcome, position, length, value and message
+  everywhere.
+- **What it cost.** SQL, the expression language and FIX are byte for byte what they were. Web is 3.7 KB larger
+  (+0.18%, twelve runs: the whitespace of Rfc7239, Rfc8288 and Rfc9110, three of Rfc6265's and six of Rfc9651's;
+  every bounded repetition of Web was left alone), the examples 11.1 KB (+0.28%, 34 runs and two repetitions).
+  On an accepted input a giving-back run reads one flag before its scan and tests it once a character.

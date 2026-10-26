@@ -174,6 +174,56 @@ sealed partial class Machine
 	}
 
 	/// <summary>
+	/// Whether a node does nothing but say how far it reads: no value, capture, binding, guard,
+	/// look, mark or state, here or in a rule it calls.
+	/// </summary>
+	/// <remarks>
+	/// What a replay may step over without calling it again (<c>EmitTurns</c>): called again, it
+	/// would read the same characters to the same end and leave nothing behind but that end. A
+	/// recognizer of the host is let in, as long as it hands back no value and reads no context:
+	/// the engine resumes a way where it was opened and does not call it again either. A rule
+	/// that calls itself is answered no while it is being asked, which is only ever too careful.
+	/// </remarks>
+	internal bool OnlyRecognizes(Node node)
+	{
+		switch (node)
+		{
+			case Node.Empty or Node.Element or Node.Literal or Node.Glue:
+				return true;
+
+			case Node.External external:
+				return !external.HasValue && !external.UsesContext;
+
+			case Node.Choice choice when choice.Selection is not null:
+				return false;
+
+			case Node.Sequence or Node.Choice or Node.Atomic or Node.Repeat:
+				return node.Children.All(OnlyRecognizes);
+
+			case Node.Call call:
+			{
+				if (!call.Arguments.All(OnlyRecognizes))
+					return false;
+
+				if (_recognizesOnly.TryGetValue(call.Rule, out var known))
+					return known;
+
+				if (Valued(call.Rule) || _graph.Externals.ContainsKey(call.Rule) || !_graph.Bodies.TryGetValue(call.Rule, out var body))
+					return _recognizesOnly[call.Rule] = false;
+
+				_recognizesOnly[call.Rule] = false;
+
+				return _recognizesOnly[call.Rule] = OnlyRecognizes(body);
+			}
+
+			default:
+				return false;
+		}
+	}
+
+	readonly Dictionary<RuleSymbol, bool> _recognizesOnly = [];
+
+	/// <summary>
 	/// What may follow a rule where it is called, which is what says whether a run inside
 	/// it can ever be asked for a shorter reading.
 	/// </summary>
@@ -208,6 +258,16 @@ sealed partial class Machine
 	/// without the symbol is written exactly as it was.
 	/// </remarks>
 	internal bool CountsRules;
+
+	/// <summary>
+	/// Whether a reader of this machine writes where a way's reading stood beside the way
+	/// (<c>Ways_DotGram.Places</c>), so that the support keeps the room for it.
+	/// </summary>
+	/// <remarks>
+	/// Set as the readers are written, which is before the support is: a grammar that has no
+	/// run or repetition a replay can step over writes none of it.
+	/// </remarks>
+	internal bool KeepsPlaces;
 
 	/// <summary>
 	/// Whether the grammar says a construction of its may throw on a reading the parse gives up
@@ -4912,13 +4972,35 @@ sealed partial class Machine
 			// would rightly warn about.
 			var counted = max is not null || min is not null || !settled;
 
+			// A replay of a run that gives back reads where it ended off the tape rather than
+			// scanning to its end again (Ways_DotGram.Places): once it has passed its floor, the way
+			// at the cursor is this run's, since whether there is a way at all is the same question
+			// the scan asked the first time, at the same place. Not where there is a most: the scan
+			// is then as short as the most, and the flag would cost more than it saves.
+			var floor   = min is null ? mark : $"({mark} + {min})";
+			var replays = !settled && max is null ? $"e{_ways++}" : null;
+
 			_character = true;
 
 			if (counted)
 				code.Line($"var {mark} = p;");
 
+			if (replays is not null)
+				code.Line($"var {replays} = ways.Cursor < ways.Count;");
+
 			using (code.Block("while (true)"))
 			{
+				if (replays is not null)
+				{
+					using (code.Block($"if ({replays} && p > {floor})"))
+					{
+						code.Line("p = ways.Places[ways.Cursor * 2];");
+						code.Line("break;");
+					}
+
+					code.Line();
+				}
+
 				if (max is { } limit)
 				{
 					code.Line($"if (p - {mark} >= {limit})");
@@ -4956,8 +5038,7 @@ sealed partial class Machine
 			if (settled)
 				return;
 
-			var floor = min is null ? mark : $"({mark} + {min})";
-			var gave  = $"d{_ways++}";
+			var gave = $"d{_ways++}";
 
 			using (code.Block($"if (p > {floor})"))
 			{
@@ -4973,7 +5054,15 @@ sealed partial class Machine
 				code.Line("else");
 
 				using (code.Block(""))
-					code.Line($"ways.Open(p - {floor});");
+				{
+					if (replays is not null)
+					{
+						machine.KeepsPlaces = true;
+						code.Line($"ways.Open(0, p - {floor}, p);");
+					}
+					else
+						code.Line($"ways.Open(p - {floor});");
+				}
 
 				code.Line();
 				code.Line($"p -= {gave};");
@@ -5469,8 +5558,36 @@ sealed partial class Machine
 			var stands   = !nullable && repeat?.Max != 1 && FirstSets.StandsStill(body, _graph);
 			var (call, undo, opens) = Called(body, inside);
 
+			// `(?!X & any)*` goes straight to where X may begin (Machine.UntilStops). Where a
+			// turn may be asked back, the turns passed over are one way, as a run's are
+			// (EmitRun); not where the fewest turns would have to be counted against it. The turns
+			// of a choice (UntilScan.Through) only where none is asked back.
+			var until = repeat is not null && (settled || min is null) && machine.UntilStops(repeat) is { } stopping &&
+				(settled || stopping.Through is null)
+					? stopping
+					: null;
+
+			// A replay of turns that do nothing but recognize steps over them to the last it took
+			// rather than calling each again (Ways_DotGram.Places). Each such turn is one way and
+			// opens none, so the turns are ways side by side from the first, and what a replay reads
+			// there is the same decisions in the same places: the turn where it stands is the one the
+			// last reading stopped at, or the one a retry moved since, whichever comes first. A turn
+			// that writes a record, runs a guard or keeps a mark is called again, as is any in a trace
+			// build, which reports every call. Not where there is a most, as for a run: the turns a
+			// replay could step over are then as few as the most.
+			var steps = max is null && !settled && !opens && undo.Length == 0 && until is null && !analyzing && machine.Tracing is null &&
+				!(_ceils && repeat is not null && _graph.Folds.TryGetValue(owner, out var folding) && ReferenceEquals(folding.Loop, repeat)) &&
+				machine.OnlyRecognizes(body);
+			var head  = steps ? $"h{_ways++}" : null;
+
 			if (turn is not null)
 				code.Line($"var {turn} = 0;");
+
+			if (head is not null)
+			{
+				machine.KeepsPlaces = true;
+				code.Line($"var {head} = -1;");
+			}
 
 			using (code.Block("while (true)"))
 			{
@@ -5483,12 +5600,7 @@ sealed partial class Machine
 					code.Line();
 				}
 
-				// `(?!X & any)*` goes straight to where X may begin (Machine.UntilStops). Where a
-				// turn may be asked back, the turns passed over are one way, as a run's are
-				// (EmitRun); not where the fewest turns would have to be counted against it. The turns
-				// of a choice (UntilScan.Through) only where none is asked back.
-				if (repeat is not null && (settled || min is null) && machine.UntilStops(repeat) is { } until &&
-					(settled || until.Through is null))
+				if (until is not null)
 				{
 					_character = true;
 					machine.EmitUntilSkip(code, until, turns: turn, gave: settled ? null : $"d{_ways++}");
@@ -5582,14 +5694,45 @@ sealed partial class Machine
 					using (code.Block("if (ways.Cursor < ways.Count)"))
 					{
 						code.Line($"w{way} = ways.Cursor;");
-						code.Line($"d{way} = ways.Items[w{way} * 2];");
-						code.Line("ways.Cursor++;");
+
+						if (head is not null)
+						{
+							code.Line();
+
+							using (code.Block($"if ({head} < 0)"))
+							{
+								code.Line($"{head} = w{way};");
+								code.Line($"w{way} = global::System.Math.Min(ways.Places[w{way} * 2 + 1], ways.Count - 1);");
+								code.Line($"p = ways.Places[w{way} * 2];");
+
+								if (turn is not null)
+									code.Line($"{turn} += w{way} - {head};");
+							}
+
+							code.Line();
+							code.Line($"d{way} = ways.Items[w{way} * 2];");
+							code.Line($"ways.Cursor = w{way} + 1;");
+						}
+						else
+						{
+							code.Line($"d{way} = ways.Items[w{way} * 2];");
+							code.Line("ways.Cursor++;");
+						}
 					}
 
 					code.Line("else");
 
-					using (code.Block(""))
-						code.Line($"w{way} = ways.Open(1);");
+					if (head is not null)
+						using (code.Block(""))
+						{
+							code.Line($"w{way} = ways.Open(0, 1, p);");
+							code.Line();
+							code.Line($"if ({head} < 0)");
+							code.Then($"{head} = w{way};");
+						}
+					else
+						using (code.Block(""))
+							code.Line($"w{way} = ways.Open(1);");
 
 					code.Line();
 					code.Line($"if (d{way} == 1)");
@@ -5730,6 +5873,14 @@ sealed partial class Machine
 
 				if (turn is not null)
 					code.Line($"{turn}++;");
+			}
+
+			// Where the turns stopped, for the replay that steps over them: the last way they took.
+			if (head is not null)
+			{
+				code.Line();
+				code.Line($"if ({head} >= 0)");
+				code.Then($"ways.Places[{head} * 2 + 1] = ways.Cursor - 1;");
 			}
 
 			// A count whose most is below its fewest stops at the most and is short of the

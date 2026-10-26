@@ -2974,15 +2974,15 @@ public static partial class CSharpEmitter
 				// pool's largest kept array is 2^20 elements, the very number this bound is
 				// written in, so it would decline exactly these arrays and "pool it" would mean
 				// "drop it" in more words.
-				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length/*MEMOROOM*/ > 1048576)
+				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length/*MEMOROOM*//*PLACESROOM*/ > 1048576)
 				{
 					if (_large != null && !ReferenceEquals(_large, ways))
 						(_largeLetGo ??= new global::System.WeakReference<Ways_DotGram>(_large)).SetTarget(_large);
 
 					// The same question the ordinary slot asks below: is the room far larger than the
 					// use. The bound decides which slot holds the tape, not whether to keep it.
-					if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length/*MEMOROOM*/
-						> 4L * (ways.Count * 2L + ways.LogCount + ways.RefsCount/*MEMOUSED*/)))
+					if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length/*MEMOROOM*//*PLACESROOM*/
+						> 4L * (ways.Count * 2L + ways.LogCount + ways.RefsCount/*MEMOUSED*//*PLACESUSED*/)))
 						_largeIdle = 0;
 					else if (++_largeIdle >= LargeIdle)
 					{
@@ -3004,8 +3004,8 @@ public static partial class CSharpEmitter
 				// release's counts are the same quantity twice. Four times and not twice because a
 				// table grows to at least double: one doubling is the slack a steady workload leaves,
 				// and two is a workload that has shrunk.
-				if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length/*MEMOROOM*/
-					> 4L * (ways.Count * 2L + ways.LogCount + ways.RefsCount/*MEMOUSED*/)))
+				if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length/*MEMOROOM*//*PLACESROOM*/
+					> 4L * (ways.Count * 2L + ways.LogCount + ways.RefsCount/*MEMOUSED*//*PLACESUSED*/)))
 					_spareIdle = 0;
 				else if (++_spareIdle >= SpareIdle)
 				{
@@ -3095,6 +3095,46 @@ public static partial class CSharpEmitter
 				for (var way = segment; way < Cursor; way++)
 					Items[way * 2 + 1] = Items[way * 2];
 			}
+			// <places>
+
+			/// <summary>
+			/// Where each way's reading stood, two integers a way beside <see cref="Items"/>: for a run,
+			/// where it ended; for a turn, where it began, and for the first turn of a repetition the
+			/// last way the repetition took.
+			/// </summary>
+			/// <remarks>
+			/// <para>
+			/// A replay reads the same decisions in the same places, and without these it reached each
+			/// one again by reading again what led to it: a run scanned to its end and then cut back,
+			/// every turn of a repetition called again. That made a way cost as much as the text in front
+			/// of it, and a refusal after k repetitions that can take the same characters grew a power of
+			/// n above what the engine, which resumes a way where it was opened, takes for the same ways.
+			/// With these a replay steps over a run or a repetition's turns in one move.
+			/// </para>
+			/// <para>
+			/// Beside the tape and not in it, because the second integer of a way is how far it reaches,
+			/// and <see cref="Seal"/> writes over it. Only a way opened with its place has the place
+			/// written, and only such a way's place is read.
+			/// </para>
+			/// </remarks>
+			internal int[] Places = new int[32];
+
+			/// <summary>
+			/// Opens a way at the end of the tape, in force at <paramref name="at"/>, and writes where its
+			/// reading stood: where a run ended, or where a turn begins.
+			/// </summary>
+			internal int Open(int at, int last, int place)
+			{
+				var way = Open(at, last);
+
+				if (Places.Length < Items.Length)
+					global::System.Array.Resize(ref Places, Items.Length);
+
+				Places[way * 2] = place;
+
+				return way;
+			}
+			// </places>
 
 			/// <summary>
 			/// Opens a record: its length is written when it ends.
