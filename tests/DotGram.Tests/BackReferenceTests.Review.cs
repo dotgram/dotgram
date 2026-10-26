@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Linq;
 
 using DotGram.Generation;
@@ -11,7 +10,7 @@ namespace DotGram.Tests;
 
 /// <summary>
 /// What a binding leaves of a capture over the same span, once a greedy binding has given items
-/// back; and how a search over a long text with bindings scales.
+/// back; and what a search over a long text with bindings finds.
 /// </summary>
 public sealed partial class BackReferenceTests
 {
@@ -120,15 +119,16 @@ public sealed partial class BackReferenceTests
 	}
 
 	/// <summary>
-	/// A search over a long text full of raw strings and elements grows with the text: four times
-	/// the text in well under sixteen times the time.
+	/// A search over a long text full of raw strings and elements finds as many occurrences as the
+	/// text holds, four times as many in four times the text. How the time grows with the text is
+	/// held in Tests.Slow (<c>BackReferenceSearchScalingTests</c>).
 	/// </summary>
 	[Theory]
 	[InlineData("RawString = { $q: '\"'{3,} } & { (?!$q & any)* } & $q & ?!'\"'", "RawString", "x = \"\"\"ab\"c\"\"\"; y = \"\"\"\"d\"\"\"e\"\"\"\"; ", true)]
 	[InlineData("RawString = { $q: '\"'{3,} } & { (?!$q & any)* } & $q & ?!'\"'", "RawString", "x = \"\"\"ab\"c\"\"\"; y = \"\"\"\"d\"\"\"e\"\"\"\"; ", false)]
 	[InlineData("Element = '<' & $n: Name & '>' & (Element | Text)* & \"</\" & $n & '>'\nName = ['a'..'z']+\nText = { [^ '<']+ }", "Element", "t <ab>x<c>y</c></ab> <d></e> ", true)]
 	[InlineData("Element = '<' & $n: Name & '>' & (Element | Text)* & \"</\" & $n & '>'\nName = ['a'..'z']+\nText = { [^ '<']+ }", "Element", "t <ab>x<c>y</c></ab> <d></e> ", false)]
-	public void A_search_over_a_long_text_grows_with_the_text(string grammar, string rule, string block, bool direct)
+	public void A_search_over_a_long_text_finds_what_the_text_holds(string grammar, string rule, string block, bool direct)
 	{
 		if (direct)
 			BackReferenceEmission.RequireReader();
@@ -144,25 +144,5 @@ public sealed partial class BackReferenceTests
 
 		Assert.True(few > 0);
 		Assert.Equal(longer.Length / block.Length * few / (shorter.Length / block.Length), many);
-
-		// The best time of each size over many runs, so a pause from a busy machine or the
-		// collector in one run does not decide: linear growth gives four, quadratic sixteen.
-		var fewest  = double.MaxValue;
-		var longest = double.MaxValue;
-
-		for (var attempt = 0; attempt < 15; attempt++)
-		{
-			var a = Stopwatch.StartNew();
-			EmittedCode.FoundAt(assembly, "Grammar", "Find" + rule, shorter);
-			fewest = Math.Min(fewest, a.Elapsed.TotalMilliseconds);
-
-			var b = Stopwatch.StartNew();
-			EmittedCode.FoundAt(assembly, "Grammar", "Find" + rule, longer);
-			longest = Math.Min(longest, b.Elapsed.TotalMilliseconds);
-		}
-
-		var best = longest / Math.Max(fewest, 0.001);
-
-		Assert.True(best < 10, $"four times the text took {best:F1} times as long");
 	}
 }

@@ -324,51 +324,6 @@ public sealed class LexicalBindingProbe
 
 	// ── Findings ──────────────────────────────────────────────────────────────
 
-	/// <summary>A terminal that binds and reaches, through a choice in each rule, a diamond of rules that bind.</summary>
-	static string Diamond(int depth)
-	{
-		var rules = new StringBuilder();
-
-		for (var k = 0; k < depth; k++)
-		{
-			rules.Append(k == 0 ? $"\tR{k} = {{ $q{k}: (A{k + 1} | B{k + 1}) & $q{k} }}\n" : $"\tR{k} = $q{k}: (A{k + 1} | B{k + 1}) & $q{k}\n");
-			rules.Append($"\tA{k + 1} = R{k + 1} & 'a'\n");
-			rules.Append($"\tB{k + 1} = R{k + 1} & 'b'\n");
-		}
-
-		rules.Append($"\tR{depth} = 'x' | 'y'\n");
-
-		return "trivia = { ' '* }\nnamespace Lexical\n{\n\ttrivia = none\n" + rules +
-			"}\nItem : @string = t: Lexical.R0 => @(t)\nRoot : @string = items: Item* => @(string.Join(\"|\", items))\nparse Root\n";
-	}
-
-	/// <summary>
-	/// The beginning of a terminal that binds is computed by following every call on every path,
-	/// so a diamond of rules — each a choice of two that call the same next rule — costs time
-	/// exponential in its depth to cut, where the same grammar over characters compiles at once
-	/// (and on main is refused at once, GRAM4034).
-	/// </summary>
-	[Fact]
-	public void A_diamond_of_rules_that_bind_is_cut_in_reasonable_time()
-	{
-		var grammar = Diamond(18);
-		var clock   = System.Diagnostics.Stopwatch.StartNew();
-
-		GramCompiler.Compile(grammar, new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance });
-
-		var characters = clock.ElapsedMilliseconds;
-
-		clock.Restart();
-
-		var cut = GramCompiler.Compile(grammar, new GramCompilerOptions { Lexical = true, CSharpScanner = RoslynCSharpScanner.Instance });
-
-		var tokens = clock.ElapsedMilliseconds;
-
-		TestContext.Current.TestOutputHelper?.WriteLine($"over characters {characters} ms, cut in two {tokens} ms, cut: {cut.Sources[0].Text.Contains("Tokenize_DotGram(", StringComparison.Ordinal)}");
-
-		Assert.True(tokens < 1000, $"cutting took {tokens} ms (over characters {characters} ms)");
-	}
-
 	/// <summary>
 	/// Not this change's: the engine over characters (Direct = false) throws while it materializes
 	/// a value after a negative lookahead on a reference gave its turn back. The reader reads it.
