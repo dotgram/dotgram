@@ -145,6 +145,30 @@ public sealed class BindingPowerCeilingTests
 	}
 
 	/// <summary>
+	/// A lookahead after the operand, as a guard there: it reads nothing, so the strength still
+	/// reaches the operand and nothing is told about an operand it cannot reach.
+	/// </summary>
+	[Theory]
+	[InlineData("1-1-1", "((1-1)-1)")]
+	[InlineData("1-1+1", "((1-1)+1)")]
+	[InlineData("1+1-1", "((1+1)-1)")]
+	public void A_lookahead_after_the_operand_does_not_hide_it_from_its_strength(string input, string? expected)
+	{
+		// The `<< 1` bound nothing while the alternative ended with the lookahead, so `r` was
+		// read at 0, `1-1-1` grouped right, and GRAM4042 said the operand sat inside an
+		// optional, a choice or a repetition, which it does not.
+		AllRead(
+			"""
+			Start : @string = e: E => @(e)
+			E : @string = l: E & '-' & r: E & ?!'x' << 1 => @("(" + l + "-" + r + ")")
+			            | l: E & '+' & r: E << 1         => @("(" + l + "+" + r + ")")
+			            | d: ['0'..'9']                  => @(d)
+			""",
+			input,
+			expected);
+	}
+
+	/// <summary>
 	/// A ternary whose else is optional: its last operand, the middle or the else, is read at
 	/// 0 either way, and nothing it gave back is for the loop.
 	/// </summary>

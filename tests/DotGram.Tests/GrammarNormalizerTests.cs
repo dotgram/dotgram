@@ -175,6 +175,23 @@ public sealed class GrammarNormalizerTests
 			"""));
 	}
 
+	/// <summary>
+	/// An alternative recursive on both sides is refused whatever reads nothing after its
+	/// trailing call: a guard or a lookahead there leaves that call to take everything to the
+	/// right, as it would without them.
+	/// </summary>
+	[Theory]
+	[InlineData("E = E & '+' & E | 'x'")]
+	[InlineData("E = E & '+' & E & when @(true) | 'x'")]
+	[InlineData("E = E & '+' & E & ?!'y' | 'x'")]
+	[InlineData("E = E & '+' & E & when @(true) & ?='+' | 'x'")]
+	public void What_reads_nothing_after_the_trailing_call_does_not_hide_recursion_on_both_sides(string source)
+	{
+		Assert.Contains(
+			Normalize(source).Diagnostics,
+			one => one.Id == GrammarNormalizer.LeftRecursion && one.Message.Contains("recursive on both sides", StringComparison.Ordinal));
+	}
+
 	[Fact]
 	public void The_reordered_form_is_accepted()
 	{

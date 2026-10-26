@@ -1158,6 +1158,152 @@ public sealed class GeneratorDriverTests
 		Assert.Equal("abc", parse.Invoke(null, ["abc"]));
 	}
 
+	/// <summary>
+	/// A value recognizer of an unrelated class is not one the host's call can reach, and does
+	/// not make the host's own ambiguous.
+	/// </summary>
+	[Fact]
+	public void A_value_recognizer_elsewhere_does_not_make_the_hosts_own_ambiguous()
+	{
+		var parse = Build("""
+			public static class Elsewhere
+			{
+				public static bool Parse(System.ReadOnlySpan<char> input, ref int pos, out string value)
+				{
+					value = "";
+
+					return false;
+				}
+			}
+
+			[DotGram.Gram("Start : @int = @Parse\nparse Start")]
+			public partial class OneOverload
+			{
+				static bool Parse(System.ReadOnlySpan<char> input, ref int pos, out int value)
+				{
+					value = 7;
+					pos   = input.Length;
+
+					return true;
+				}
+			}
+			""")
+			.GetType("OneOverload")!
+			.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal(7, parse.Invoke(null, ["x"]));
+	}
+
+	/// <summary>
+	/// Nor does one elsewhere turn the host's text recognizer into a value recognizer, whose
+	/// call would pass an <c>out</c> the host's method does not take.
+	/// </summary>
+	[Fact]
+	public void A_value_recognizer_elsewhere_leaves_the_hosts_text_recognizer_as_it_is()
+	{
+		var parse = Build("""
+			public static class Elsewhere
+			{
+				public static bool ReadRest(System.ReadOnlySpan<char> input, ref int pos, out int value)
+				{
+					value = 0;
+
+					return false;
+				}
+			}
+
+			[DotGram.Gram("Start = 'a' & @ReadRest\nparse Start")]
+			public partial class TextRecognizer
+			{
+				static bool ReadRest(System.ReadOnlySpan<char> input, ref int pos)
+				{
+					pos = input.Length;
+
+					return true;
+				}
+			}
+			""")
+			.GetType("TextRecognizer")!
+			.GetMethod("ParseStart", [typeof(string)])!;
+
+		Assert.Equal("abc", parse.Invoke(null, ["abc"]));
+	}
+
+	/// <summary>
+	/// A value recognizer the call does reach, though not declared in the host, is still found:
+	/// one the host inherits, and one of an included grammar.
+	/// </summary>
+	[Fact]
+	public void A_value_recognizer_the_call_reaches_outside_the_host_is_found()
+	{
+		var assembly = Build("""
+			public class Readers
+			{
+				protected static bool Number(System.ReadOnlySpan<char> input, ref int pos, out int value)
+				{
+					value = input.Length - pos;
+					pos   = input.Length;
+
+					return true;
+				}
+			}
+
+			[DotGram.Gram("Start : @int = @Number\nparse Start")]
+			public partial class InheritedValue : Readers
+			{
+			}
+
+			[DotGram.Gram("Rest : @int = @Count")]
+			public partial class CountGrammar
+			{
+				internal static bool Count(System.ReadOnlySpan<char> input, ref int pos, out int value)
+				{
+					value = input.Length - pos;
+					pos   = input.Length;
+
+					return true;
+				}
+			}
+
+			[DotGram.GramInclude(typeof(CountGrammar))]
+			[DotGram.Gram("using CountGrammar;\nStart : @int = 'a' & n: Rest => @(n)\nparse Start")]
+			public partial class IncludedValue
+			{
+			}
+			""");
+
+		Assert.Equal(3, assembly.GetType("InheritedValue")!.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["abc"]));
+		Assert.Equal(2, assembly.GetType("IncludedValue")!.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["abc"]));
+	}
+
+	/// <summary>
+	/// A guard that reads a capture beside a lambda whose parameter is spelled the same: the
+	/// lambda's name is its own, and the capture is still read, so its value is built before
+	/// the guard asks for it.
+	/// </summary>
+	[Theory]
+	[InlineData("5", 5)]
+	[InlineData("3", null)]
+	public void A_capture_a_guard_reads_beside_a_lambda_of_the_same_name_is_read(string input, int? expected)
+	{
+		var assembly = Build("""
+			[DotGram.Gram(@"
+				Start : @int = x: Digit & when @(!System.Array.Exists(new[] { 0 }, x => x > 9) && x > 4) => @(x)
+				Digit : @int = d: ['0'..'9'] => @(d[0] - '0')
+				parse Start")]
+			public partial class ShadowedCapture
+			{
+			}
+			""");
+
+		var (isSuccess, value, _, _) = EmittedCode.Match(assembly, "ShadowedCapture", "TryParseStart", input);
+
+		Assert.Equal(expected is not null, isSuccess);
+
+		if (expected is not null)
+			Assert.Equal(expected, value);
+	}
+
 	/// <summary>A predicate in an element set that is not there, or not one, is said about the brackets.</summary>
 	[Theory]
 	[InlineData("",                                                        "'@IsVowel' names no method")]
