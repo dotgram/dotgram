@@ -38,12 +38,14 @@ public sealed class LexicalAutomaton
 		IReadOnlyList<CharRange> atoms,
 		IReadOnlyList<int[]> next,
 		IReadOnlyList<int> accepts,
-		IReadOnlyList<IReadOnlyList<int>> sets)
+		IReadOnlyList<IReadOnlyList<int>> sets,
+		int nondeterministic)
 	{
-		Atoms   = atoms;
-		Next    = next;
-		Accepts = accepts;
-		Sets    = sets;
+		Atoms            = atoms;
+		Next             = next;
+		Accepts          = accepts;
+		Sets             = sets;
+		Nondeterministic = nondeterministic;
 	}
 
 	/// <summary>The alphabet: disjoint character ranges, in order.</summary>
@@ -57,6 +59,13 @@ public sealed class LexicalAutomaton
 
 	/// <summary>The distinct sets of patterns some string makes accept — the kinds.</summary>
 	public IReadOnlyList<IReadOnlyList<int>> Sets { get; }
+
+	/// <summary>
+	/// How many states the nondeterministic machine the construction began with had, and how many
+	/// more it met owing a delimiter (see <c>Delimited</c>): what building it cost, which the
+	/// deterministic machine it became does not show.
+	/// </summary>
+	public int Nondeterministic { get; }
 
 	/// <summary>
 	/// What leaves a state: one entry a target, holding the characters that lead there.
@@ -128,6 +137,15 @@ public sealed class LexicalAutomaton
 		/// <summary>Whether the pattern being built must be read exactly.</summary>
 		bool _exact;
 
+		/// <summary>The patterns that must be read exactly, by number.</summary>
+		readonly HashSet<int> _exacting = [];
+
+		/// <summary>
+		/// The delimiter of an until an exact pattern accepted a token still owing, or null: that
+		/// token's reading is decided past it, so the pattern is not exact after all.
+		/// </summary>
+		string? _unsettled;
+
 		// ── The machine under construction ───────────────────────────────────────────
 		//
 		// States are numbers. An edge is either an atom edge or an empty one, and both are
@@ -136,6 +154,10 @@ public sealed class LexicalAutomaton
 		readonly List<List<(int Atom, int To)>> _on    = [];
 		readonly List<List<int>>                _empty = [];
 		readonly Dictionary<int, int>           _accepts = [];
+
+		// The ways out of a run that hand on the prefixes of its delimiter still matched there
+		// (Delimited): an empty edge that leaves owing them, read by the subset construction.
+		readonly Dictionary<int, List<(int To, string Delimiter, ulong Matched)>> _handed = [];
 
 		readonly List<FirstSets.First> _sets = [];
 		IReadOnlyList<CharRange>       _atoms = [];
@@ -165,6 +187,9 @@ public sealed class LexicalAutomaton
 			{
 				_exact = exact?.Invoke(i) ?? false;
 
+				if (_exact)
+					_exacting.Add(i);
+
 				if (Build(patterns[i], []) is not var (from, to))
 					return null;
 
@@ -172,7 +197,16 @@ public sealed class LexicalAutomaton
 				_accepts[to] = i;
 			}
 
-			return Subsets(start);
+			var machine = Subsets(start);
+
+			if (_unsettled is { } delimiter)
+			{
+				Refuse($"an until whose delimiter can begin inside its run and end past the token: {delimiter}");
+
+				return null;
+			}
+
+			return machine;
 		}
 
 		// ── The alphabet ─────────────────────────────────────────────────────────────
@@ -410,15 +444,11 @@ public sealed class LexicalAutomaton
 							parts[i + 1] is Node.Literal(var next) { IgnoreCase: false } &&
 							next == delimiter;
 
-						// Anything else after an until is not read with it, but its lookahead still sees
-						// into it: an occurrence of the delimiter begun inside the run and finished past
-						// it is one the rule stops the run before. Those are read on through the rest of
-						// the sequence (Through).
-						var read = Until(part) is var (stop, item) && i + 1 < parts.Count
-							? Delimited(stop, item, inside, closed, followed: true)
-							: Build(part, inside) is { } alone ? (alone, false, []) : null;
+						var read = closed && Until(part) is var (stop, item)
+							? Delimited(stop, item, inside, closed: true)
+							: Build(part, inside) is { } alone ? (alone, false) : null;
 
-						if (read is not ((var one, var end), var absorbed, var pending))
+						if (read is not ((var one, var end), var absorbed))
 							return null;
 
 						_empty[at].Add(one);
@@ -426,18 +456,6 @@ public sealed class LexicalAutomaton
 
 						if (absorbed)
 							i++;
-						else if (pending.Count > 0)
-						{
-							var rest = i + 2 == parts.Count ? parts[i + 1] : new Node.Sequence([.. parts.Skip(i + 1)]);
-
-							if (Build(rest, inside) is not var (after, last))
-								return null;
-
-							_empty[at].Add(after);
-							Through(Until(part)!.Value.Delimiter, pending, after, last);
-
-							return (from, last);
-						}
 					}
 
 					return (from, at);
@@ -461,7 +479,7 @@ public sealed class LexicalAutomaton
 				}
 
 				case Node.Repeat when Until(node) is var (delimiter, item):
-					return Delimited(delimiter, item, inside, closed: false, followed: false) is (var delimited, _, _) ? delimited : null;
+					return Delimited(delimiter, item, inside, closed: false) is (var delimited, _) ? delimited : null;
 
 				case Node.Repeat(var body, var min, var max):
 					return Repeated(body, min, max, inside);
@@ -523,19 +541,19 @@ public sealed class LexicalAutomaton
 		}
 
 		/// <summary>
-		/// The machine for "an item at a time, and the delimiter never begins here", whether it
-		/// read the delimiter that closes the run too, and the run's states that end it inside an
-		/// occurrence of the delimiter the caller is to read on through what follows.
+		/// The machine for "an item at a time, and the delimiter never begins here", and whether
+		/// it read the delimiter that closes the run too.
 		/// </summary>
 		/// <remarks>
 		/// <para>
 		/// One state a length of matched delimiter prefix — Knuth, Morris and Pratt's automaton.
 		/// The lookahead is asked at every item boundary and sees past what the run consumed, so
 		/// the run stops where the delimiter first <em>begins</em>, which an automaton reading the
-		/// run alone cannot know: what follows decides it. Three cases are exact, and anything else
-		/// is refused in a pattern that must be exact, so the grammar keeps the character machine
-		/// rather than a token that accepts more than the rule. A beginning, which its own rule
-		/// reads again from the token's start, keeps the wider reading: there it only lets the
+		/// run alone cannot know: what follows decides it. Three cases are exact by their shape, and
+		/// the rest are read with what the run hands on (the last paragraph); a pattern that must be
+		/// exact and still owes where a token ends is refused, so the grammar keeps the character
+		/// machine rather than a token that accepts more than the rule. A beginning, which its own
+		/// rule reads again from the token's start, keeps the wider reading: there it only lets the
 		/// rule be asked.
 		/// </para>
 		/// <para>
@@ -557,17 +575,17 @@ public sealed class LexicalAutomaton
 		/// <para>
 		/// Anywhere else an occurrence may begin inside the run and end past it, which the strings
 		/// the delimiter does not occur in miss: <c>(?!"ab" &amp; ['a'|'b'])* &amp; 'b'</c> refuses
-		/// <c>ab</c>, whose run stops before the <c>a</c>, and the run alone reads the <c>a</c>.
-		/// Where something follows the run in the same sequence (<paramref name="followed"/>),
-		/// the run ends unfinished occurrences only where they are handed back: a state a length of
-		/// matched delimiter prefix is left out of the run's end, and named in the third value,
-		/// with every prefix that is still matched there, for <c>Through</c> to read on. What is
-		/// still unfinished at the end of the sequence is accepted, since what decides it is past
-		/// the pattern — the wider reading, which only a beginning has.
+		/// <c>ab</c>, whose run stops before the <c>a</c>, and the run alone reads the <c>a</c>. So
+		/// a state a length of matched prefix leaves the run owing that prefix and its borders, and
+		/// the subset construction reads what follows with the debt: a character that finishes an
+		/// owed occurrence is the delimiter begun inside the run, and no way on. What is still owed
+		/// where the token ends is decided past the token: a beginning lets it go, the wider reading,
+		/// and a pattern that must be exact is refused (Subsets). A delimiter of sixty-four characters
+		/// or more, whose prefixes a debt cannot hold, is refused in a pattern that must be exact as
+		/// before.
 		/// </para>
 		/// </remarks>
-		((int From, int To) Built, bool Absorbed, IReadOnlyList<(int State, ulong Matched)> Pending)? Delimited(
-			string delimiter, Node item, HashSet<RuleSymbol> inside, bool closed, bool followed)
+		((int From, int To) Built, bool Absorbed)? Delimited(string delimiter, Node item, HashSet<RuleSymbol> inside, bool closed)
 		{
 			if (Escaping(item) is var (escape, escaped, plain))
 			{
@@ -578,7 +596,7 @@ public sealed class LexicalAutomaton
 					return null;
 				}
 
-				return Delimited(delimiter[0], escape, escaped, plain, inside) is { } pair ? (pair, false, []) : null;
+				return Delimited(delimiter[0], escape, escaped, plain, inside) is { } pair ? (pair, false) : null;
 			}
 
 			var over = Consumed(item, inside);
@@ -599,7 +617,9 @@ public sealed class LexicalAutomaton
 			// alphabet as a set of its own and the partition cuts at every boundary.
 			var absorbs = closed && delimiter.All(c => atoms.Any(atom => _atoms[atom].From == c && _atoms[atom].To == c));
 
-			if (_exact && !absorbs && length > 1 && (!closed || Overlaps(delimiter)))
+			// Only where what the run hands on cannot be carried (below); otherwise the subset
+			// construction says whether an exact pattern ever ends a token still owing it.
+			if (_exact && !absorbs && length >= 64 && (!closed || Overlaps(delimiter)))
 			{
 				Refuse(
 					closed
@@ -616,14 +636,14 @@ public sealed class LexicalAutomaton
 
 			var to = State();
 
-			// Whether an occurrence begun inside the run can still end it in what follows: never
-			// where the one machine reads the delimiter with the run, or where the delimiter of
-			// one character, or one that cannot overlap itself, follows it.
-			var narrowed = followed && !absorbs && length is > 1 and < 64 && (!closed || Overlaps(delimiter));
+			// Whether an occurrence begun inside the run can end it in what follows: never where the
+			// one machine reads the delimiter with the run, or where the delimiter is one character,
+			// or one that cannot overlap itself follows the run.
+			var owing = !absorbs && length is > 1 and < 64 && (!closed || Overlaps(delimiter));
 
 			if (!absorbs)
 				for (var state = 0; state < length; state++)
-					if (state == 0 || !narrowed)
+					if (state == 0 || !owing)
 						_empty[states[state]].Add(to);
 
 			// The prefix function, and then the failure links read off it. Written the
@@ -643,11 +663,9 @@ public sealed class LexicalAutomaton
 				prefix[i] = matched;
 			}
 
-			// Every prefix of the delimiter the run's end still matches in each state: the state's
-			// own length, and the borders of it — one bit a length.
-			var pending = new List<(int State, ulong Matched)>();
-
-			if (narrowed)
+			// The prefixes still matched where the run ends in each state: the state's own length,
+			// and the borders of it — one bit a length.
+			if (owing)
 				for (var state = 1; state < length; state++)
 				{
 					var matches = 0UL;
@@ -655,7 +673,7 @@ public sealed class LexicalAutomaton
 					for (var held = state; held > 0; held = prefix[held - 1])
 						matches |= 1UL << held;
 
-					pending.Add((states[state], matches));
+					_handed[states[state]] = [(to, delimiter, matches)];
 				}
 
 			// How much of the delimiter is still matched once the next character is not the
@@ -698,56 +716,7 @@ public sealed class LexicalAutomaton
 						_on[states[state]].Add((atom, to));
 				}
 
-			return ((states[0], to), absorbs, pending);
-		}
-
-		/// <summary>
-		/// What follows an until, read on from each of the run's <paramref name="pending"/> states
-		/// with the prefixes of the delimiter it still matches, as far as one of them can finish.
-		/// </summary>
-		/// <remarks>
-		/// A copy of the machine of what follows (<paramref name="from"/> to <paramref name="to"/>)
-		/// for each set of prefixes still matched: a character that finishes one is the delimiter
-		/// begun inside the run, which the run's lookahead refuses, so no way is written; one that
-		/// continues none of them leaves the copy for the machine as it was. Every prefix is shorter
-		/// than the delimiter and grows by one a character or is dropped, so the copies run out
-		/// within the delimiter's length of where what follows begins.
-		/// </remarks>
-		void Through(string delimiter, IReadOnlyList<(int State, ulong Matched)> pending, int from, int to)
-		{
-			var copies = new Dictionary<(int Original, ulong Matched), int>();
-			var work   = new Queue<(int Original, ulong Matched)>();
-
-			int Copy(int original, ulong matched)
-			{
-				if (!copies.TryGetValue((original, matched), out var copy))
-				{
-					copies[(original, matched)] = copy = State();
-					work.Enqueue((original, matched));
-				}
-
-				return copy;
-			}
-
-			foreach (var (state, matched) in pending)
-				_empty[state].Add(Copy(from, matched));
-
-			while (work.Count > 0)
-			{
-				var (original, matched) = work.Dequeue();
-				var copy                = copies[(original, matched)];
-
-				// Unfinished at the end of the pattern: what decides it is past the token.
-				if (original == to)
-					_empty[copy].Add(to);
-
-				foreach (var next in _empty[original])
-					_empty[copy].Add(Copy(next, matched));
-
-				foreach (var (atom, next) in _on[original])
-					if (Continued(delimiter, matched, _atoms[atom]) is { } still)
-						_on[copy].Add((atom, still == 0 ? next : Copy(next, still)));
-			}
+			return ((states[0], to), absorbs);
 		}
 
 		/// <summary>
@@ -1014,7 +983,22 @@ public sealed class LexicalAutomaton
 			{
 				var (here, number) = pending.Dequeue();
 
-				var accepting = here.Where(_accepts.ContainsKey).Select(one => _accepts[one]).ToList();
+				var accepting = here
+					.Select(one => Owing(one).State)
+					.Where(_accepts.ContainsKey)
+					.Select(one => _accepts[one])
+					.Distinct()
+					.ToList();
+
+				// A token an exact pattern ends owing nothing on another way is decided here; one it
+				// ends only owing is decided by what comes after it, which no automaton reads.
+				if (_unsettled is null && _owing.Count > 0)
+					foreach (var one in here)
+						if (Owing(one) is (var state, var owed and not 0) &&
+							_accepts.TryGetValue(state, out var pattern) &&
+							_exacting.Contains(pattern) &&
+							!here.Any(other => other < _on.Count && _accepts.TryGetValue(other, out var plain) && plain == pattern))
+							_unsettled = _debts[owed][0].Delimiter;
 
 				if (accepting.Count > 0)
 				{
@@ -1045,13 +1029,29 @@ public sealed class LexicalAutomaton
 				moves.Clear();
 
 				foreach (var one in here)
-					foreach (var (on, to) in _on[one])
+				{
+					var (state, owed) = Owing(one);
+
+					foreach (var (on, to) in _on[state])
 					{
+						var reading = to;
+
+						if (owed != 0)
+						{
+							var still = After(owed, on);
+
+							if (still < 0)
+								continue;
+
+							reading = Element(to, still);
+						}
+
 						if (!moves.TryGetValue(on, out var reached))
 							moves[on] = reached = free.Count > 0 ? free.Pop() : [];
 
-						reached.Add(to);
+						reached.Add(reading);
 					}
+				}
 
 				// In atom order still, because a row is indexed by atom and the states are
 				// numbered in the order they are first reached — which is what `Ordered`
@@ -1079,7 +1079,7 @@ public sealed class LexicalAutomaton
 				}
 			}
 
-			return Ordered(_atoms, rows, accepts, sets);
+			return Ordered(_atoms, rows, accepts, sets, _on.Count + _owing.Count);
 		}
 
 		/// <summary>
@@ -1101,7 +1101,8 @@ public sealed class LexicalAutomaton
 			IReadOnlyList<CharRange> atoms,
 			IReadOnlyList<int[]> rows,
 			List<int> accepts,
-			List<IReadOnlyList<int>> sets)
+			List<IReadOnlyList<int>> sets,
+			int nondeterministic)
 		{
 			var order = Enumerable.Range(0, sets.Count)
 				.OrderBy(one => sets[one][0])
@@ -1118,7 +1119,7 @@ public sealed class LexicalAutomaton
 				if (accepts[state] >= 0)
 					accepts[state] = moved[accepts[state]];
 
-			return new LexicalAutomaton(atoms, rows, accepts, [.. order.Select(one => sets[one])]);
+			return new LexicalAutomaton(atoms, rows, accepts, [.. order.Select(one => sets[one])], nondeterministic);
 		}
 
 		void Room(List<int[]> rows, List<int> accepts, int number)
@@ -1156,11 +1157,124 @@ public sealed class LexicalAutomaton
 				if (!reached.Add(one))
 					continue;
 
-				foreach (var to in _empty[one])
-					pending.Push(to);
+				var (state, owed) = Owing(one);
+
+				foreach (var to in _empty[state])
+					pending.Push(Element(to, owed));
+
+				if (_handed.TryGetValue(state, out var handed))
+					foreach (var (to, delimiter, matched) in handed)
+						pending.Push(Element(to, Owe(owed, delimiter, matched)));
 			}
 
+			// A state reached owing nothing reads everything it reads owing something, and more:
+			// a debt only takes ways away. Kept, the debts multiplied every subset by what each run
+			// hands on, since an empty run lets every later run's start be reached both ways.
+			if (_owing.Count > 0)
+				reached.RemoveWhere(one => one >= _on.Count && reached.Contains(_owing[one - _on.Count].State));
+
 			return reached;
+		}
+
+		// ── What a run hands on ─────────────────────────────────────────────────────
+		//
+		// The subset construction reads elements: a state of the machine, and what it owes — for
+		// each delimiter a run handed on, the prefixes of it matched since. An element that owes
+		// nothing is numbered as its state, so a machine no run hands anything to is built as it
+		// always was; one that owes is numbered after every state, the first time it is met.
+		// Building the machine of what follows once for every debt instead copied the copies of
+		// every later until in it: ten untils of a twelve-character delimiter in a row came to a
+		// million and a half states for a machine of thirteen.
+
+		readonly List<(int State, int Owed)>             _owing     = [];
+		readonly Dictionary<(int State, int Owed), int>  _elements  = [];
+		readonly List<(string Delimiter, ulong Matched)[]> _debts   = [[]];
+		readonly Dictionary<string, int>                 _debtNames = [];
+		readonly Dictionary<(int Owed, int Atom), int>   _after     = [];
+		readonly Dictionary<(int Owed, string Delimiter, ulong Matched), int> _owed = [];
+
+		/// <summary>The state an element is of, and the debt it carries (0 for none).</summary>
+		(int State, int Owed) Owing(int element)
+		{
+			return element < _on.Count ? (element, 0) : _owing[element - _on.Count];
+		}
+
+		/// <summary>The element of a state carrying a debt.</summary>
+		int Element(int state, int owed)
+		{
+			if (owed == 0)
+				return state;
+
+			if (!_elements.TryGetValue((state, owed), out var element))
+			{
+				_elements[(state, owed)] = element = _on.Count + _owing.Count;
+				_owing.Add((state, owed));
+			}
+
+			return element;
+		}
+
+		/// <summary>
+		/// A debt with <paramref name="matched"/> prefixes of <paramref name="delimiter"/> added to
+		/// it. Two runs of one delimiter owe one set of prefixes: each prefix grows or is dropped on
+		/// its own, and finishing any of them ends the reading.
+		/// </summary>
+		int Owe(int owed, string delimiter, ulong matched)
+		{
+			if (_owed.TryGetValue((owed, delimiter, matched), out var known))
+				return known;
+
+			var debt = new List<(string Delimiter, ulong Matched)>(_debts[owed]);
+			var at   = debt.FindIndex(one => string.CompareOrdinal(one.Delimiter, delimiter) >= 0);
+
+			if (at < 0)
+				debt.Add((delimiter, matched));
+			else if (debt[at].Delimiter == delimiter)
+				debt[at] = (delimiter, debt[at].Matched | matched);
+			else
+				debt.Insert(at, (delimiter, matched));
+
+			return _owed[(owed, delimiter, matched)] = Debt(debt);
+		}
+
+		/// <summary>What a debt is once <paramref name="atom"/> is read, or -1 where it finishes an occurrence.</summary>
+		int After(int owed, int atom)
+		{
+			if (_after.TryGetValue((owed, atom), out var after))
+				return after;
+
+			var debt = new List<(string Delimiter, ulong Matched)>();
+
+			foreach (var (delimiter, matched) in _debts[owed])
+			{
+				if (Continued(delimiter, matched, _atoms[atom]) is not { } still)
+					return _after[(owed, atom)] = -1;
+
+				if (still != 0)
+					debt.Add((delimiter, still));
+			}
+
+			return _after[(owed, atom)] = Debt(debt);
+		}
+
+		/// <summary>The number of a debt, numbered the first time it is met; 0 is owing nothing.</summary>
+		int Debt(List<(string Delimiter, ulong Matched)> debt)
+		{
+			if (debt.Count == 0)
+				return 0;
+
+			// The length first, so that no delimiter, whatever it holds, reads as two.
+			var name = string.Join(
+				"\n",
+				debt.Select(static one => FormattableString.Invariant($"{one.Matched} {one.Delimiter.Length} {one.Delimiter}")));
+
+			if (!_debtNames.TryGetValue(name, out var number))
+			{
+				_debtNames[name] = number = _debts.Count;
+				_debts.Add([.. debt]);
+			}
+
+			return number;
 		}
 
 		/// <summary>A subset as its members in ascending order, which is what identifies it.</summary>
