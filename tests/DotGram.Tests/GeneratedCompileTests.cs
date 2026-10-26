@@ -339,6 +339,34 @@ public sealed class GeneratedCompileTests
 		EmittedCode.Compile(result.Sources[0].Text, declarationMembers: Viewing, sourceParts: result.Sources.Skip(1).Select(static one => one.Text));
 	}
 
+	/// <summary>
+	/// A stage of a streamed reading over segments reads its rule under the plain name of the machine's
+	/// own wrapper only where that rule is published by <c>find</c>: one published by <c>parse</c> is
+	/// rendered under the name that also insists the input ended, and the stage called a method nobody
+	/// wrote (CS0103).
+	/// </summary>
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void A_streamed_stage_of_a_rule_published_by_parse_reads_it_by_a_name_that_exists(bool direct)
+	{
+		var parser = Built(
+			"""
+			Rows : @int[] = Row+ recover eos
+			Row  : @int   = '(' & t: ['a'..'z']+ & ')' & Std.Quoted('"') & eos => @(t.Length)
+			parse Rows
+			parse Row as One
+			""",
+			Host, direct);
+
+		var type   = parser.GetType("Grammar")!;
+		var listed = (int[])type.GetMethod("ParseRows", [typeof(System.Collections.Generic.IReadOnlyList<string>)])!.Invoke(null, [new[] { "(ab)\"x\"", "(abc)\"\"" }])!;
+		var read   = (System.Collections.IEnumerable)type.GetMethod("ParseRows", [typeof(TextReader)])!.Invoke(null, [new StringReader("(ab)\"x\"\n(abc)\"\"\n")])!;
+
+		Assert.Equal("2,3", string.Join(",", listed));
+		Assert.Equal("2,3", string.Join(",", read.Cast<object>()));
+	}
+
 	static GramCompilation Compiled(string grammar, string members, bool direct, bool lexical = false, bool spans = false, CarrierKind carrier = CarrierKind.Auto)
 	{
 		var host = CSharpCompilation.Create(
