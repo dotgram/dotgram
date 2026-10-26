@@ -288,3 +288,17 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 		return false;
 	}
 }
+
+/// <summary>
+/// What a resolver that can see the host says about a simple name read in C#: whether anything where the
+/// generated call stands answers to it — a member of the host, of a class around it or one it derives
+/// from, of a class it imports statically, or a type or namespace.
+/// </summary>
+/// <remarks>
+/// Asked only to decide whether a name the grammar knows for something else (a binding's) would fail to
+/// compile in C#: a resolver that cannot say does not implement this, and nothing is refused for it.
+/// </remarks>
+interface ICSharpNames
+{
+	bool Answers(string name);
+}

@@ -109,6 +109,40 @@ public sealed class GeneratedCompileTests
 	}
 
 	/// <summary>
+	/// A binding's name the host's C# answers to is that, and compiles as it always did: refused only
+	/// where nothing in the C# around the call does.
+	/// </summary>
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void A_binding_named_as_a_member_of_the_host_reads_the_member(bool direct)
+	{
+		const string members = Host + "const string q = \"host\";";
+
+		var result = Compiled("T : @string = $q: 'a' & $q => @(q)\nparse T", members, direct);
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Id == GrammarNormalizer.MisplacedBinding);
+		Assert.Equal((true, (object?)"host"), Read(Build(result, members), "TryParseT", "aa"));
+	}
+
+	/// <summary>The same through the generator itself, whose questions to the host are asked before the grammar is read.</summary>
+	[Fact]
+	public void A_binding_named_as_a_member_of_the_host_reads_the_member_in_a_build()
+	{
+		var type = GeneratorDriverTests.Build("""
+			[DotGram.Gram("T : @string = $q: 'a' & $q => @(q)\nparse T")]
+			public partial class Probe
+			{
+				const string q = "host";
+			}
+			""").GetType("Probe")!;
+
+		var match = type.GetMethod("TryParseT", [typeof(string)])!.Invoke(null, ["aa"])!;
+
+		Assert.Equal("host", match.GetType().GetProperty("Value")!.GetValue(match));
+	}
+
+	/// <summary>
 	/// A guard inside a lookahead that reads a capture made before it is refused (GRAM4006), as a
 	/// capture inside one is: a lookahead is a reading of its own and is not handed what the rule
 	/// captured, so its guard was handed nothing of that name (CS0103). Written beside the lookahead,
@@ -119,9 +153,15 @@ public sealed class GeneratedCompileTests
 	[InlineData("T : @string = 'a' & c: 'b'* & ?!('x' & when @(c.Length > 1)) & any => @(c)", true)]
 	[InlineData("T = 'a' & c: 'b'* & when @(c.Length == 0) | 'a' & 'b'", false)]
 	[InlineData("T = 'a' & c: 'b'* & ?=('b' & when @(true)) & any", false)]
+	[InlineData("T : @string = ?=(when @(c)) & c: 'a' => @(c)", false)]
+	[InlineData("T : @string = c: ('a' & ?=(when @(c))) => @(c)", false)]
 	public void A_guard_in_a_lookahead_that_reads_a_capture_is_refused(string rule, bool refused)
 	{
-		var result = Compiled(rule + "\nparse T", Host, direct: true);
+		// A member of the host of the capture's name: a guard that reads it before the capture is
+		// bound reads the member, as it always did.
+		const string members = Host + "public static bool c = true;";
+
+		var result = Compiled(rule + "\nparse T", members, direct: true);
 
 		Assert.Equal(refused, result.Diagnostics.Any(static one => one.Id == GrammarNormalizer.UnbuiltCapture));
 
@@ -129,7 +169,12 @@ public sealed class GeneratedCompileTests
 			return;
 
 		foreach (var direct in new[] { true, false })
-			Build(Compiled(rule + "\nparse T", Host, direct), Host);
+		{
+			var parser = Build(Compiled(rule + "\nparse T", members, direct), members);
+
+			if (rule.Contains("=> @(c)", StringComparison.Ordinal))
+				Assert.Equal((true, (object?)"a"), Read(parser, "TryParseT", "a"));
+		}
 	}
 
 	/// <summary>

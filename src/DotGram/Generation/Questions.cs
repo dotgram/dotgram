@@ -73,6 +73,16 @@ readonly record struct Question(string Name, int Kind, string? Against = null)
 	/// </summary>
 	public const int NullableType = -10;
 
+	/// <summary>
+	/// And whether anything in the host's C# answers to a simple name a binding also has (<see cref="ICSharpNames"/>).
+	/// </summary>
+	public const int CSharpName = -11;
+
+	public static Question Named(string name)
+	{
+		return new(name, CSharpName);
+	}
+
 	public static Question Fits(string from, string to)
 	{
 		return new(from, Assignability, to);
@@ -199,6 +209,7 @@ static class Questions
 		var producers = new List<(string Method, string Against)>();
 		var contexts  = new List<string>();
 		var contracts = new List<string>();
+		var bindings  = new HashSet<string>(StringComparer.Ordinal);
 
 		Collect(file.Usings, file.Decls);
 
@@ -321,6 +332,11 @@ static class Questions
 		//
 		// And whether it can be called at all, which is asked of every one: the answer is what
 		// says a method is missing about the grammar rather than about a generated file.
+		// And whether the C# around a generated call answers to the name of each binding: a name read
+		// in C# that is a binding and nothing else would not compile (GRAM4033).
+		foreach (var bound in bindings)
+			questions.Add(Question.Named(bound));
+
 		foreach (var method in externals)
 		{
 			questions.Add(Question.ValueOf(method));
@@ -448,6 +464,10 @@ static class Questions
 				// C# values and methods are deliberately not questions for the generator.
 				// Walk only the recognizing half of a construction; the compiler owns its
 				// value and every guard.
+				case Expr.Bind(var bound, _):
+					bindings.Add(bound);
+					break;
+
 				case Expr.Construct(var pattern, _):
 					Walk(pattern);
 					return;
@@ -535,6 +555,8 @@ static class Questions
 
 				Question.Fitting => new Answer(question, true, Fits: Fitted(question.Name, among, resolver)),
 
+				Question.CSharpName => new Answer(question, resolver is not ICSharpNames names || names.Answers(question.Name)),
+
 				_ => throw new InvalidOperationException($"Unknown question kind {question.Kind}."),
 			});
 
@@ -575,7 +597,7 @@ static class Questions
 /// cached. Asked something that was not collected it answers no — which would be a
 /// wrong answer, so <see cref="Missed"/> records it and a test insists the list is empty.
 /// </remarks>
-sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolResolver
+sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolResolver, ICSharpNames
 {
 	readonly Dictionary<Question, Answer> _answers = Index(answers);
 
@@ -627,6 +649,12 @@ sealed class AnsweredSymbolResolver(ImmutableArray<Answer> answers) : ISymbolRes
 	public bool Rewinds(string qualifiedName)
 	{
 		return Look(Question.Restores(qualifiedName)).Yes;
+	}
+
+	/// <remarks>Yes for a name nobody foresaw: the answer only ever withholds a refusal.</remarks>
+	bool ICSharpNames.Answers(string name)
+	{
+		return !_answers.TryGetValue(Question.Named(name), out var answer) || answer.Yes;
 	}
 
 	/// <remarks>
