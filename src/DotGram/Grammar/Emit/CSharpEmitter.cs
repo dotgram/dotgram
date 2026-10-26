@@ -2664,6 +2664,17 @@ public static partial class CSharpEmitter
 				file.Line("if (end < 0)");
 				using (file.Block(""))
 				{
+					// A reading that begins where it is told is refused no earlier than there (§6.3):
+					// one that recorded nothing — a lookahead refused it, or a choice was dispatched
+					// past every alternative — stands at the start of the text, before the place it
+					// began, and is told where it began instead.
+					if (positional && begins != "0")
+					{
+						file.Line($"if (failure.Position < {begins})");
+						file.Then($"failure.Position = {begins};");
+						file.Line();
+					}
+
 					// Refused at a token the text ends inside of, or past it: what the reading wanted
 					// there is what that token would have been once finished, so it is starved, as the
 					// reading over characters is where the text ends inside a string it is reading
