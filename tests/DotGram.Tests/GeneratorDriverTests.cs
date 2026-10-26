@@ -1508,6 +1508,158 @@ public sealed class GeneratorDriverTests
 	}
 
 	/// <summary>
+	/// The included grammars' static imports are read where the generated file writes them,
+	/// inside the host's namespace: there <c>App.G</c> is read from <c>App</c> outward and names
+	/// <c>App.App.G</c>, whose recognizer hands back a string, and the capture is a string.
+	/// </summary>
+	[Fact]
+	public void An_included_grammars_import_is_read_from_inside_the_hosts_namespace()
+	{
+		var assembly = BuildFiles(
+			"""
+			namespace App
+			{
+				[DotGram.Gram("Rest : @string = n: @M => @(n.ToString())")]
+				public partial class G
+				{
+					internal static bool M(System.ReadOnlySpan<char> input, ref int pos, out int value)
+					{
+						value = 1;
+						pos   = input.Length;
+
+						return true;
+					}
+				}
+
+				[DotGram.GramInclude(typeof(G))]
+				[DotGram.Gram("using G;\nStart : @string = r: Rest => @(r)\nparse Start")]
+				public partial class Host
+				{
+				}
+			}
+
+			namespace App.App
+			{
+				public static class G
+				{
+					public static bool M(System.ReadOnlySpan<char> input, ref int pos, out string value)
+					{
+						value = "two";
+						pos   = input.Length;
+
+						return true;
+					}
+				}
+			}
+			""");
+
+		Assert.Equal("two", assembly.GetType("App.Host")!.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["x"]));
+	}
+
+	/// <summary>
+	/// The frame the resolver looks a call up in is the generated file's own, line for line:
+	/// the namespace, the static imports inside it, and a part for each class around the host.
+	/// </summary>
+	[Fact]
+	public void The_frame_a_call_is_looked_up_in_is_the_generated_files_frame()
+	{
+		var run = RunGenerator("""
+			namespace App.Inner
+			{
+				[DotGram.Gram("Rest = 'r'")]
+				public partial class G
+				{
+				}
+
+				public partial class Outer<T>
+				{
+					[DotGram.GramInclude(typeof(G))]
+					[DotGram.Gram("using G;\nStart = Rest\nparse Start")]
+					public partial class Host
+					{
+					}
+				}
+			}
+			""");
+
+		var generated = run.Results
+			.SelectMany(static result => result.GeneratedSources)
+			.Single(static source => source.SourceText.ToString().Contains("partial class Host", StringComparison.Ordinal))
+			.SourceText.ToString();
+
+		var probe = (string)typeof(RoslynSymbolResolver)
+			.GetMethod("CallSiteText", BindingFlags.NonPublic | BindingFlags.Static)!
+			.Invoke(null, ["App.Inner", "Outer<T>.Host", new[] { "App.Inner.G" }, 0])!;
+
+		static string[] Frame(string text)
+		{
+			return [.. text.Split('\n')
+				.Select(static line => line.Trim())
+				.Where(static line =>
+					line.StartsWith("namespace ", StringComparison.Ordinal) ||
+					line.StartsWith("using ", StringComparison.Ordinal) ||
+					line.StartsWith("partial class ", StringComparison.Ordinal))];
+		}
+
+		var expected = Frame(probe);
+
+		Assert.Equal(expected, Frame(generated).Take(expected.Length));
+	}
+
+	/// <summary>
+	/// The method the lookup stands in hides no recognizer: one named as that method once was is
+	/// found and called with its <c>out</c>.
+	/// </summary>
+	[Fact]
+	public void A_recognizer_is_not_hidden_by_the_place_its_call_is_looked_up_in()
+	{
+		var assembly = BuildFiles(
+			"""
+			global using static Readers;
+
+			public static class Readers
+			{
+				public static bool DotGram_CallSite(System.ReadOnlySpan<char> input, ref int pos, out int value)
+				{
+					value = 5;
+					pos   = input.Length;
+
+					return true;
+				}
+			}
+			""",
+			"""
+			[DotGram.Gram("Start : @int = @DotGram_CallSite\nparse Start")]
+			public partial class NotHidden
+			{
+			}
+			""");
+
+		Assert.Equal(5, assembly.GetType("NotHidden")!.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["x"]));
+	}
+
+	/// <summary>
+	/// And no external can be named as that method is: a name with <c>_DotGram</c> in it is
+	/// refused after an <c>@</c> as anywhere else.
+	/// </summary>
+	[Fact]
+	public void An_external_named_with_DotGram_in_it_is_refused()
+	{
+		var diagnostics = RunGenerator("""
+			[DotGram.Gram("Start = 'a' & @CallSite_DotGram\nparse Start")]
+			public partial class Reserved
+			{
+				static bool CallSite_DotGram(System.ReadOnlySpan<char> input, ref int pos)
+				{
+					return true;
+				}
+			}
+			""").Diagnostics;
+
+		Assert.Contains(diagnostics, static diagnostic => diagnostic.Id == DotGram.Grammar.Parsing.GramLexer.ReservedName);
+	}
+
+	/// <summary>
 	/// A capture may be called <c>var</c>: outside a declaration it is an identifier like any
 	/// other, and a guard that names it is handed it.
 	/// </summary>
