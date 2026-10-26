@@ -253,7 +253,9 @@ sealed partial class Machine
 
 	bool ComputeSitedValued(RuleSymbol rule)
 	{
+		// A rule that says its own refusal is entered as a call, which says it (CanInline).
 		if (!_graph.Types.ContainsKey(rule) ||
+			SaysOf(rule) is not null ||
 			_results.QualifiedOf(rule) is null ||
 			_graph.Folds.ContainsKey(rule) ||
 			_graph.Climbing.ContainsKey(rule) ||

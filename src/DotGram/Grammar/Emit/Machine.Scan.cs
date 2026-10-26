@@ -39,8 +39,11 @@ sealed partial class Machine
 		if (_scanners.TryGetValue(rule, out var known))
 			return known;
 
+		// Not a rule that reaches another that says its own refusal (§4's `on fail`): read in one
+		// scan, that rule's refusal is the scanned rule's, named by it, where §7.5 says the sentence
+		// of the rule that was entered and read nothing.
 		var name =
-			_graph.Bodies.TryGetValue(rule, out var body) && Scans(rule, body)
+			_graph.Bodies.TryGetValue(rule, out var body) && !ReachesSaying(rule) && Scans(rule, body)
 				// Tagged like every other name this machine emits: a grammar with two
 				// publications has two machines in one class, and both may reach the same
 				// scanner — `trivia` does, in every spaced grammar with more than one
@@ -54,6 +57,16 @@ sealed partial class Machine
 	}
 
 	readonly Dictionary<RuleSymbol, string?> _scanners = [];
+
+	/// <summary>Whether a rule calls, at any depth and in a synchronization too, another rule that says its own refusal.</summary>
+	bool ReachesSaying(RuleSymbol rule)
+	{
+		foreach (var reached in _graph.Reaches(rule))
+			if (!reached.Equals(rule) && SaysOf(reached) is not null)
+				return true;
+
+		return false;
+	}
 
 	sealed record ScalarScan(string Name, Node.Element Head, Node.Element Tail);
 

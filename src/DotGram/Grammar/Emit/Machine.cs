@@ -2020,6 +2020,30 @@ sealed partial class Machine
 				$"var end = {engine}(text, {(lead is null ? "pos" : "began")}, {entry}, {ValueRule(root)}{enginePower}, " +
 				$"{(whole ? "true" : "false")}, {(materialize ? "true" : "false")}{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, ref failure, out {recognized});");
 
+			// The root's own `on fail`, which no call of the engine's says: the reading enters it at
+			// its first state and not through a call (SaidOnFail). Said here, where it refused and the
+			// furthest refusal stands where it began, as the call it is not would have said it.
+			if (SaysOf(root) is { } rootSays)
+			{
+				var said  = DeclareExpected([Spoken(rootSays)]);
+				var began = lead is null ? "pos" : "began";
+
+				_expectedUsed.Add(said);
+
+				using (file.Block($"if (end < 0 && failure.Position <= {began}{(Quiets ? " && !failure.Quiet" : "")})"))
+				{
+					using (file.Block($"if ({began} > failure.Position)"))
+					{
+						file.Line($"failure.Position = {began};");
+						file.Line($"failure.Expected = {said};");
+						file.Line("failure.ExpectedMore?.Clear();");
+					}
+
+					file.Line("else");
+					file.Then($"(failure.ExpectedMore ??= Ties_DotGram()).Add({said});");
+				}
+			}
+
 			// An extent root needs nothing that came back: the wrapper handed the position in
 			// and was told the position reached, which is the whole of the answer.
 			if (IsExtent(root))
@@ -3547,11 +3571,11 @@ sealed partial class Machine
 				}
 
 				// A rule that says its own refusal (§4's `on fail`) is entered on the engine rather than
-				// inlined, so that its call is an entry `Fail:` pops when the rule refused, and says the
-				// sentence there (SaidOnFail).
+				// inlined (CanInline), so that its call is an entry `Fail:` pops when the rule refused,
+				// and says the sentence there (SaidOnFail).
 				var saying = _lowering || SaysOf(rule) is not { } spoken ? -1 : SaidOnFail(spoken);
 
-				if (CanInline(rule) && saying < 0)
+				if (CanInline(rule))
 				{
 					// The inlined body composes continuations against its own seam. Where
 					// that seam is another namespace's, what this site knows past its own
@@ -4334,9 +4358,15 @@ sealed partial class Machine
 	/// a rule only in the source text.
 	/// </para>
 	/// </remarks>
+	/// <remarks>
+	/// Not a rule that says its own refusal (§4's <c>on fail</c>), on the engine: there it is entered,
+	/// so that its call is an entry <c>Fail:</c> pops and says the sentence at (SaidOnFail). Asked here,
+	/// where the analyses ask it too (Silent and the rest), so that what they prove of a call and how
+	/// the call is written cannot disagree. A flat method inlines it and says it at a door.
+	/// </remarks>
 	bool CanInline(RuleSymbol rule)
 	{
-		return _plan.CompiledInPlace.Contains(rule);
+		return _plan.CompiledInPlace.Contains(rule) && (_lowering || SaysOf(rule) is null);
 	}
 
 	readonly ExecutionPlan _plan;
