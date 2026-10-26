@@ -127,11 +127,12 @@ public sealed class PaddedRunProofTests
 	/// The give-backs a settled run no longer makes could only fail, and they failed before the end
 	/// of the run, so what they recorded is behind wherever the reading went on to. Behind, unless
 	/// nothing past the run recorded anything: here the continuation reads its <c>'|'</c> and then
-	/// meets a look, which the reader refuses without a word. It used to say "Expected '|'." at 4,
-	/// from a give-back into "ab  x" that met the <c>x</c>; with no give-back it has only the rule
-	/// to name, from where the rule began. The engine records the look itself, further on, and says
-	/// the same as it did. The parse is refused either way; the reason it gives is what moved, and
-	/// only for a grammar whose tail refuses silently. Accepted as the existing lead proof accepts it.
+	/// meets a look that sees nothing. It used to say "Expected '|'." at 4, from a give-back into
+	/// "ab  x" that met the <c>x</c>; with no give-back the reader says where the look refused,
+	/// expecting nothing there, and so has only the rule to name. The engine records the look
+	/// itself, at the same place, and says the same as it did. The parse is refused either way; the
+	/// reason it gives is what moved, and only for a grammar whose tail refuses silently. Accepted
+	/// as the existing lead proof accepts it.
 	/// </para>
 	/// <para>
 	/// The end of the input written in place, <c>?!any</c>, is no longer such a tail: the reader
@@ -140,7 +141,7 @@ public sealed class PaddedRunProofTests
 	/// </remarks>
 	[Theory]
 	[InlineData(true,  "?!any",       "Expected end of input.",       6)]
-	[InlineData(true,  "?='q' & 'q'", "Input does not match 'Item'.", 0)]
+	[InlineData(true,  "?='q' & 'q'", "Input does not match 'Item'.", 6)]
 	[InlineData(false, "?!any",       "Expected end of input.",       6)]
 	[InlineData(false, "?='q' & 'q'", "Expected ?='q'.",              6)]
 	public void A_tail_that_refuses_silently_leaves_the_rule_to_be_named(bool direct, string tail, string error, long position)

@@ -1648,6 +1648,16 @@ namespace DotGram.Snapshots
 							}
 							goto Dispatch;
 						}
+
+						if (lookahead < 0 && p > failure.Position)
+						{
+							failure.Position = p;
+							if (!failure.Quiet)
+							{
+								failure.Expected = null;
+								failure.ExpectedMore?.Clear();
+							}
+						}
 					}
 				}
 
@@ -2085,6 +2095,16 @@ namespace DotGram.Snapshots
 								entries.Add(new ParserEntry(ParserEntry.Capture, entry.RuleIndex, p, call, atomic, repeat, lookahead, p));
 							}
 							goto Dispatch;
+						}
+
+						if (lookahead < 0 && p > failure.Position)
+						{
+							failure.Position = p;
+							if (!failure.Quiet)
+							{
+								failure.Expected = null;
+								failure.ExpectedMore?.Clear();
+							}
 						}
 					}
 				}
