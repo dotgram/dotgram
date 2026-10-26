@@ -153,6 +153,8 @@ internal static class RefusalLadders
 		yield return R("StructuredField.TryParseList", "an inner list, unclosed", "items", 4096, n => "(" + Copies("1 ", n), static t => StructuredField.TryParseList(t, out _));
 		yield return R("StructuredField.TryParseDictionary", "members, then an unclosed string", "members", 4096, n => Copies("a=1, ", n) + "b=" + quote + "x", static t => StructuredField.TryParseDictionary(t, out _));
 		yield return R("StructuredField.TryParseItem", "parameters, then a parameter with no value", "parameters", 4096, n => "1" + Copies(";a=1", n) + ";b=", static t => StructuredField.TryParseItem(t, out _));
+		yield return R("StructuredField.TryParseItem", "a long token, then a control character", "characters", 4096, n => new string('a', n) + cut, static t => StructuredField.TryParseItem(t, out _));
+		yield return R("StructuredField.TryParseDictionary", "a long key, then a control character", "characters", 4096, n => new string('a', n) + cut, static t => StructuredField.TryParseDictionary(t, out _));
 
 		yield return R("ForwardedElement.TryParseField", "elements, then for= with no value", "elements", 4096, n => Copies("for=192.0.2.1;proto=https, ", n) + "for=", static t => ForwardedElement.TryParseField(t, out _));
 		yield return R("ForwardedElement.TryParseField", "an unclosed quoted string", "characters", 4096, n => "for=" + quote + new string('a', n), static t => ForwardedElement.TryParseField(t, out _));

@@ -23,6 +23,12 @@ namespace DotGram.Tests;
 /// The whitespace is interior in two of the three, so trimming the field does not help.
 /// </para>
 /// <para>
+/// A Structured Field's key and token were the milder form of the same thing: a run that could
+/// hand characters back where nothing after it could take one, so a refusal after a long key or
+/// token gave it back a character at a time and read the field again each time. Quadratic, 25 ms
+/// at 6,400 characters.
+/// </para>
+/// <para>
 /// The refusal ladders hold the same shapes to a class, but only report a class that got worse.
 /// This holds them to a budget at a header's length, which fails, and in a second and a half, the
 /// day a run of OWS gives characters back again. The abandoned read goes on until the process ends,
@@ -42,6 +48,8 @@ public sealed class WebRunRefusalTests
 	[InlineData("an Accept field with spaces after a parameter")]
 	[InlineData("a Forwarded field that begins with spaces")]
 	[InlineData("a Link field with spaces after a parameter name")]
+	[InlineData("a Structured Field item that is a long token")]
+	[InlineData("a Structured Field dictionary with a long key")]
 	public async Task A_refusal_after_a_long_run_is_linear_in_it(string shape)
 	{
 		var refuse = Reader(shape);
@@ -56,18 +64,21 @@ public sealed class WebRunRefusalTests
 
 		Assert.True(
 			await Task.WhenAny(read, spent) == read,
-			$"{shape}: a refusal after {Header:N0} spaces had not finished in {Budget.TotalSeconds:F1} s. " +
-			$"A run of OWS hands spaces back to the OWS on the other side of a reading that takes nothing; " +
-			$"make it atomic: `{{ [' ' | '\\t']* }}`.");
+			$"{shape}: a refusal after a run of {Header:N0} characters had not finished in {Budget.TotalSeconds:F1} s. " +
+			$"A run that hands characters back where nothing after it can take one costs a read of the field " +
+			$"for every character; make it atomic, as `{{ [' ' | '\\t']* }}`.");
 
-		// Four times the spaces is four times the work when the reading is linear, and sixteen when
-		// it is quadratic.
-		var shorter = Best(refuse, Header / 4);
+		// Eight times the run is eight times the work when the reading is linear, and sixty-four
+		// times when it is quadratic. The shorter is read again after the longer: its first reads
+		// can be in code the tiered compiler has not finished with, which would flatten the ratio.
+		var shorter = Best(refuse, Header / 8);
 		var longer  = Best(refuse, Header);
 
+		shorter = Math.Min(shorter, Best(refuse, Header / 8));
+
 		Assert.True(
-			longer / Math.Max(shorter, 1) < 10,
-			$"{shape}: four times the spaces took {longer / Math.Max(shorter, 1):F1} times as long " +
+			longer / Math.Max(shorter, 1) < 24,
+			$"{shape}: eight times the run took {longer / Math.Max(shorter, 1):F1} times as long " +
 			$"({shorter:F0} µs against {longer:F0} µs).");
 	}
 
@@ -75,12 +86,15 @@ public sealed class WebRunRefusalTests
 	{
 		var cut = ((char)1).ToString();
 
-		return shape[..4] switch
+		return shape switch
 		{
-			"a me" => length => MediaType.TryParse("text/html; a=1;" + new string(' ', length) + ";b=\"x\"" + cut, out _),
-			"an A" => length => MediaRange.TryParseAccept("text/html;" + new string(' ', length) + ",q=0.5, text/x" + cut, out _),
-			"a Fo" => length => ForwardedElement.TryParseField(new string(' ', length) + cut + "for=192.0.2.1;proto=https, for=x", out _),
-			_      => length => WebLink.TryParseField("<https://x/1>; rel" + new string(' ', length) + "=\"next\"; a=b, <https://y>" + cut, out _),
+			"a media type with spaces between two parameters" => length => MediaType.TryParse("text/html; a=1;" + new string(' ', length) + ";b=\"x\"" + cut, out _),
+			"an Accept field with spaces after a parameter"   => length => MediaRange.TryParseAccept("text/html;" + new string(' ', length) + ",q=0.5, text/x" + cut, out _),
+			"a Forwarded field that begins with spaces"       => length => ForwardedElement.TryParseField(new string(' ', length) + cut + "for=192.0.2.1;proto=https, for=x", out _),
+			"a Link field with spaces after a parameter name" => length => WebLink.TryParseField("<https://x/1>; rel" + new string(' ', length) + "=\"next\"; a=b, <https://y>" + cut, out _),
+			"a Structured Field item that is a long token"    => length => StructuredField.TryParseItem(new string('a', length) + cut, out _),
+			"a Structured Field dictionary with a long key"   => length => StructuredField.TryParseDictionary(new string('a', length) + cut, out _),
+			_ => throw new ArgumentOutOfRangeException(nameof(shape), shape, null),
 		};
 	}
 
@@ -91,7 +105,7 @@ public sealed class WebRunRefusalTests
 
 		var best = double.MaxValue;
 
-		for (var run = 0; run < 11; run++)
+		for (var run = 0; run < 31; run++)
 		{
 			var watch = Stopwatch.StartNew();
 
