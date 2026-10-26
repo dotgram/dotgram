@@ -192,6 +192,26 @@ public sealed class GrammarNormalizerTests
 			one => one.Id == GrammarNormalizer.LeftRecursion && one.Message.Contains("recursive on both sides", StringComparison.Ordinal));
 	}
 
+	/// <summary>
+	/// A trailing condition on the version is a reading of its own once publications differ,
+	/// and reads nothing like a guard: the rule stays refused as recursive on both sides.
+	/// </summary>
+	[Fact]
+	public void A_trailing_version_condition_does_not_hide_recursion_on_both_sides()
+	{
+		Assert.Contains(
+			Normalize("""
+				Version = "2000" | "2022"
+				Start : @int = e: E => @(e)
+				E : @int = l: E & '-' & r: E & when Version is "2000" => @(0)
+				         | d: ['0'..'9'] => @(1)
+				parse Start with (Version = "2000") as ParseOld
+				parse Start with (Version = "2022") as ParseNew
+				parse Start
+				""").Diagnostics,
+			one => one.Id == GrammarNormalizer.LeftRecursion && one.Message.Contains("recursive on both sides", StringComparison.Ordinal));
+	}
+
 	[Fact]
 	public void The_reordered_form_is_accepted()
 	{

@@ -1284,7 +1284,7 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	static bool ReadsNothing(Node node)
 	{
-		return node is Node.Guard or Node.Condition or Node.Lookahead or Node.Behind or Node.Empty or Node.Glue;
+		return node is Node.Guard or Node.Condition or Node.Lookahead or Node.Behind or Node.Empty or Node.Glue or Node.Reading;
 	}
 
 	/// <summary>Every <c>@using</c> in the grammar, outermost namespace first.</summary>
