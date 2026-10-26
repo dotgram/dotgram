@@ -493,11 +493,12 @@ sealed partial class Machine
 		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool bufferedFind = false, bool prefixTables = false,
 		Dictionary<string, int>? expectedTables = null, bool deferCompilation = false,
 		bool quiets = false, TraceTables? tracing = null, ExpectedSets? expectedSets = null, bool? keepsDoors = null,
-		bool places = false)
+		bool places = false, IReadOnlyList<Recovery>? placedRecoveries = null)
 	{
 		// Before anything is compiled: the engine's states write the trace's events as they are compiled.
 		Tracing = tracing;
 		Places  = places;
+		_placedRecoveries = placedRecoveries ?? [];
 		_expectedTables = expectedTables;
 		_expectedSets = expectedSets ?? new ExpectedSets();
 		_ownsExpectedSets = expectedSets is null;
@@ -1703,6 +1704,25 @@ sealed partial class Machine
 	/// </remarks>
 	public bool Places { get; }
 
+	/// <summary>The engine's recoveries that tell places through a window (<see cref="PlacesRecovery"/>).</summary>
+	readonly IReadOnlyList<Recovery> _placedRecoveries;
+
+	/// <summary>
+	/// Whether one of them tells a line or a column, for which the reading writes, beside where the
+	/// window begins, the lines and the characters of a line the window let go of.
+	/// </summary>
+	public bool PlacesLines
+	{
+		get
+		{
+			foreach (var recovery in _placedRecoveries)
+				if (CSharpEmitter.TellsLines(recovery))
+					return true;
+
+			return false;
+		}
+	}
+
 	/// <summary>A position of the text handed to the machine, as a place in the whole input (<see cref="Places"/>).</summary>
 	string Placed(string position)
 	{
@@ -2048,6 +2068,14 @@ sealed partial class Machine
 			// Where the text it was handed begins in the input, for the values it locates.
 			if (Places)
 				file.Line("parser.Origin = failure.Origin;");
+
+			// And the lines before it, for the recoveries it reads that tell one.
+			if (PlacesLines)
+			{
+				file.Line("parser.OriginLine = failure.OriginLine;");
+				file.Line("parser.OriginColumn = failure.OriginColumn;");
+				file.Line("parser.OriginSkip = failure.OriginSkip;");
+			}
 			file.Line();
 
 			using (file.Block("try"))

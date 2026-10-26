@@ -436,29 +436,53 @@ sealed partial class Machine
 	/// kept by the record of the element where it is built after the parse (<see cref="Keep"/>),
 	/// and taken before the synchronization is looked for where it is built as it is stepped over.
 	/// </param>
+	/// <param name="engine">
+	/// Whether the engine builds it, from its parser, which a streamed reading tells where the text it
+	/// was handed begins (<see cref="PlacesRecovery"/>); a reader's walk is never handed a window.
+	/// </param>
 	string RecoverySupplied(
 		string name, RecoveryPlan plan, string located = "parser.Located",
-		string expected = "Recalled_DotGram(parser.Expectations, recoveryAt)")
+		string expected = "Recalled_DotGram(parser.Expectations, recoveryAt)", bool engine = true)
 	{
 		var element = Escape(plan.Element?.Name ?? "an element");
 		var wanted  = WordsOnce(plan.Recovery) is null ? $"Wanted_DotGram({expected})" : "wanted";
+		var placed  = engine && PlacesRecovery(plan.Recovery);
+
+		string Where(string position)
+		{
+			return placed ? $"parser.Origin + {At(position)}" : At(position);
+		}
 
 		return name switch
 		{
 			"parserText" => Cut("recovered.Position", "recovered.Value - recovered.Position"),
-			"parserPosition" => At("recovered.Position"),
+			"parserPosition" => Where("recovered.Position"),
 			"parserOrdinal" => "recovered.RuleIndex",
-			"parserLine" => Line("recovered.Position", located),
-			"parserColumn" => Column("recovered.Position", located),
-			"parserSpan" => Span("recovered.Position", "recovered.Value - recovered.Position"),
-			"parserFailurePosition" => At("recovered.AtomicIndex"),
-			"parserFailureLine" => Line("recovered.AtomicIndex", located),
-			"parserFailureColumn" => Column("recovered.AtomicIndex", located),
+			"parserLine" => Line("recovered.Position", located, placed),
+			"parserColumn" => Column("recovered.Position", located, placed),
+			"parserSpan" => Span(placed ? "parser.Origin + recovered.Position" : "recovered.Position", "recovered.Value - recovered.Position"),
+			"parserFailurePosition" => Where("recovered.AtomicIndex"),
+			"parserFailureLine" => Line("recovered.AtomicIndex", located, placed),
+			"parserFailureColumn" => Column("recovered.AtomicIndex", located, placed),
 			"parserExpected" => $"Expected_DotGram({wanted}, \"{element}\")",
-			"parserMessage" => $"Rejected_DotGram({wanted}, \"{element}\", {Place("recovered.AtomicIndex", located)})",
+			"parserMessage" => $"Rejected_DotGram({wanted}, \"{element}\", {Place("recovered.AtomicIndex", located, placed)})",
 			"parserInput" => "parserInput",
 			_ => "default",
 		};
+	}
+
+	/// <summary>
+	/// Whether a recovery the engine builds tells its host places in the whole input rather than in the
+	/// text it was handed: one a streamed reading reaches inside a synchronization or a probe, which the
+	/// engine reads out of a window (CSharpEmitter.PlacedRecoveries).
+	/// </summary>
+	bool PlacesRecovery(Recovery recovery)
+	{
+		foreach (var one in _placedRecoveries)
+			if (ReferenceEquals(one, recovery))
+				return true;
+
+		return false;
 	}
 
 	/// <summary>
@@ -474,27 +498,44 @@ sealed partial class Machine
 	}
 
 	/// <summary>A place the machine names, as a message says it: <c>line:column</c>.</summary>
-	string Place(string position, string located)
+	string Place(string position, string located, bool placed = false)
 	{
 		const string Invariant = "global::System.Globalization.CultureInfo.InvariantCulture";
 
-		return $"{Line(position, located)}.ToString({Invariant}) + \":\" + {Column(position, located)}.ToString({Invariant})";
+		return $"{Line(position, located, placed)}.ToString({Invariant}) + \":\" + {Column(position, located, placed)}.ToString({Invariant})";
 	}
 
 	/// <summary>Which line a place the machine names is on, for a person.</summary>
-	string Line(string position, string located)
+	/// <param name="placed">
+	/// Whether the text is what a window holds: the lines before it are added, and a <c>\n</c> the
+	/// text begins with that closes a <c>\r</c> the window let go of is not counted again
+	/// (<c>Failure.OriginLine</c>, <c>OriginSkip</c>).
+	/// </param>
+	string Line(string position, string located, bool placed = false)
 	{
-		return BufferedInput && !OverKinds
-			? $"text.LineAt({At(position)})"
-			: $"{located}.LineAt({Source}, {At(position)})";
+		if (BufferedInput && !OverKinds)
+			return $"text.LineAt({At(position)})";
+
+		var line = $"{located}.LineAt({Source}, {At(position)})";
+
+		return placed ? $"(parser.OriginLine + {line} - ({At(position)} > 0 ? parser.OriginSkip : 0))" : line;
 	}
 
 	/// <summary>How far into its line a place the machine names is, for a person.</summary>
-	string Column(string position, string located)
+	/// <param name="placed">
+	/// Whether the text is what a window holds: on its first line, the line began before the window
+	/// did, and the characters of it the window let go of are added (<c>Failure.OriginColumn</c>).
+	/// </param>
+	string Column(string position, string located, bool placed = false)
 	{
-		return BufferedInput && !OverKinds
-			? $"text.ColumnAt({At(position)})"
-			: $"{located}.ColumnAt({Source}, {At(position)})";
+		if (BufferedInput && !OverKinds)
+			return $"text.ColumnAt({At(position)})";
+
+		var column = $"{located}.ColumnAt({Source}, {At(position)})";
+
+		return placed
+			? $"({column} + ({located}.LineAt({Source}, {At(position)}) == 1 ? parser.OriginColumn : 0))"
+			: column;
 	}
 
 	/// <summary>

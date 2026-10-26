@@ -942,7 +942,7 @@ public static partial class CSharpEmitter
 	internal static string FailureStructWith(
 		bool reach, bool stood = false, bool starved = false, bool expected = false, bool expectedMore = false, bool recoveryOrdinal = false,
 		bool looking = false, bool quiet = false, bool began = false, bool trace = false, bool unasked = false, bool doors = false,
-		bool origin = false)
+		bool origin = false, bool originLines = false)
 	{
 		return Lines.Normalize(FailureStruct)
 			.Replace(
@@ -951,6 +951,9 @@ public static partial class CSharpEmitter
 			.Replace(
 				"	{{origin}}" + Lines.Ending,
 				origin ? Lines.Normalize(OriginField) + Lines.Ending : "")
+			.Replace(
+				"	{{originLines}}" + Lines.Ending,
+				originLines ? Lines.Normalize(OriginLinesField) + Lines.Ending : "")
 			.Replace("\t{{recoveryOrdinal}}" + Lines.Ending, recoveryOrdinal ? "\tpublic int RecoveryOrdinal { get; set; }" + Lines.Ending : "")
 			.Replace(
 				"\t{{reach}}" + Lines.Ending,
@@ -1029,6 +1032,22 @@ public static partial class CSharpEmitter
 		public int Origin;
 		""";
 
+	/// <summary>
+	/// The lines before the text a reading is handed, for a recovery the engine reads out of a window
+	/// that tells a line or a column (CSharpEmitter.PlacesLines). Zero everywhere else, which a count
+	/// over the text then answers alone.
+	/// </summary>
+	const string OriginLinesField = """
+		/// <summary>The lines before the text being read.</summary>
+		public int OriginLine;
+
+		/// <summary>The characters of its first line before it.</summary>
+		public int OriginColumn;
+
+		/// <summary>One where it begins with a <c>\n</c> closing a <c>\r</c> before it, which is no line of its own.</summary>
+		public int OriginSkip;
+		""";
+
 	const string FailureStruct = """
 		/// <summary>Where a match got before it gave up, and why.</summary>
 		struct Failure
@@ -1072,6 +1091,7 @@ public static partial class CSharpEmitter
 			{{restore:OutOfInput}}
 			{{began}}
 			{{origin}}
+			{{originLines}}
 			{{reach}}
 			{{stood}}
 			{{starved}}
@@ -1228,6 +1248,7 @@ public static partial class CSharpEmitter
 			/*CACHE_FIELD*/
 			/*LOCATED_FIELD*/
 			/*ORIGIN_FIELD*/
+			/*ORIGIN_LINES_FIELD*/
 			/*EXPECTED_FIELD*/
 			int[] _linkHeads = global::System.Array.Empty<int>();
 			int[] _linkNexts = global::System.Array.Empty<int>();
@@ -1309,6 +1330,7 @@ public static partial class CSharpEmitter
 				/*CACHE_RESET*/
 				/*LOCATED_RESET*/
 				/*ORIGIN_RESET*/
+				/*ORIGIN_LINES_RESET*/
 				/*EXPECTED_RESET*/
 
 				// A rule call that captures nothing this parse never writes its own head, so
@@ -1697,7 +1719,7 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	internal static string ParserRuntime(
 		bool powers, bool caches, bool marks, IReadOnlyList<string> valueTypes, bool locating = false,
-		bool explaining = false, bool turns = false, bool origin = false)
+		bool explaining = false, bool turns = false, bool origin = false, bool originLines = false)
 	{
 		var fields = new StringBuilder();
 		var resize = new StringBuilder();
@@ -1760,6 +1782,8 @@ public static partial class CSharpEmitter
 		// (Failure.Origin). Put back to nought with the parser, which a reading of a string reads.
 		runtime = CacheRuntime(runtime, "ORIGIN_FIELD", "internal int Origin;", origin);
 		runtime = CacheRuntime(runtime, "ORIGIN_RESET", "Origin = 0;", origin);
+		runtime = CacheRuntime(runtime, "ORIGIN_LINES_FIELD", "internal int OriginLine;\ninternal int OriginColumn;\ninternal int OriginSkip;", originLines);
+		runtime = CacheRuntime(runtime, "ORIGIN_LINES_RESET", "OriginLine = 0;\nOriginColumn = 0;\nOriginSkip = 0;", originLines);
 
 		// A turn of a recovering repetition that can be read again inside its own element, as a
 		// record of its own: what stood where it began and how far the enclosing reading of the

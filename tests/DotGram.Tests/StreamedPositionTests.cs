@@ -240,6 +240,12 @@ public sealed class StreamedPositionTests
 		""";
 
 	/// <summary>
+	/// Rows past the first window, then a bad row the synchronization of which holds a bad part of its
+	/// own: the guard accepts it only where its places are the input's, and the row after it is read.
+	/// </summary>
+	static readonly string Nested = string.Concat(Enumerable.Repeat("a\n", 3_000)) + "z#y;\na\n";
+
+	/// <summary>
 	/// Grammars whose host code is handed a place by something other than the walk that builds the
 	/// values: a guard's own span beside a located capture it compares with, a guard run by the probe
 	/// of what follows a recovering repetition, a recovery factory's span, and a guard's span in a
@@ -271,7 +277,24 @@ public sealed class StreamedPositionTests
 			Hit  : @N = n: Name & when @(n.At == parserSpan.Start) & 'b' => @(n)
 			find Hit
 			""", "xab\nab\n", string.Concat(Enumerable.Repeat("xab\n", 1_500))),
+		// A recovery inside the synchronization of another, which the engine reads: its span and its
+		// position, and a guard that holds them to the places in the input, which the string reads.
+		("nested", "ParseRows", """
+			Part : @string = 'x' & ';' => @("x")
+			Sync : @string[] = '#' & items: Part* recover ';' => @("bad " + parserSpan.Start) & eol & when @(items.Length == 1 && items[0] == "bad 6002") => @(items)
+			Row  : @string = 'a' & eol => @("a")
+			Rows : @string[] = Row* recover Sync => @(parserSpan.Start + "+" + parserSpan.Length)
+			parse Rows
+			""", Nested, Nested),
+		("nestedplaces", "ParseRows", """
+			Part : @string = 'x' & ';' => @("x")
+			Sync : @string[] = '#' & items: Part* recover ';' => @("bad " + parserPosition + "/" + parserFailurePosition + "/" + parserLine + ":" + parserColumn + "/" + parserFailureLine + ":" + parserFailureColumn) & eol & when @(items.Length == 1 && items[0] == "bad 6002/6002/3001:3/3001:3") => @(items)
+			Row  : @string = 'a' & eol => @("a")
+			Rows : @string[] = Row* recover Sync => @(parserSpan.Start + "+" + parserSpan.Length)
+			parse Rows
+			""", Nested, Nested),
 	];
+
 
 	public static TheoryData<string, bool, CarrierKind> HandedCases()
 	{
@@ -301,6 +324,10 @@ public sealed class StreamedPositionTests
 		Assert.True(parser.Streams, name + " is not read through a window");
 
 		var whole = WindowEdge.Said(() => parser.Call(method, typeof(string), brief));
+
+		// The nested rows hold their guard to places of the input: over the string it holds.
+		if (name.StartsWith("nested", StringComparison.Ordinal))
+			Assert.EndsWith("\"6000+1\" | \"a\" | ", whole, StringComparison.Ordinal);
 
 		WindowEdge.Edges(parser, found, "reader", brief, brief.Length, whole,
 			() => parser.Call(method, typeof(TextReader), new StringReader(brief)));
@@ -400,7 +427,8 @@ public sealed class StreamedPositionTests
 				"Grammar"),
 		});
 
-		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+		// A buffered form the grammar cannot have is told and left out, as the other forms are not.
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error && one.Id != GramCompiler.BufferedUnsupported);
 
 		return new WindowEdge.Parser(result.Sources[0].Text, "Grammar", null, Host, [.. result.Sources.Skip(1).Select(static one => one.Text)]);
 	}
