@@ -2100,8 +2100,13 @@ from where it began reading to where it stopped: in a namespace with `trivia = {
 `Word = ['a'..'z']+` read whole from `"  ab  "` is `"ab"`. The same in every reading of the
 publication — a string, a reader, a stream or bytes, read by methods or by the shared automaton, on
 every carrier, and over tokens (§4), where the lexer has skipped the trivia before the rule ever
-sees it — and the same as a reading that begins where it is told (§6.3). A value the rule builds is
-built from what it read, and so never held any trivia from outside it.
+sees it — and the same as a reading that begins where it is told (§6.3). The same holds for every
+value built from that extent: the bounds of a `@SourceSpan` rule (`2` and `2` for `"  ab  "` read
+whole by `Pair : @SourceSpan = 'a' & 'b'`), and what `parserText` and `parserSpan` say in the rule's
+own `=>` and `when`. A value the rule builds from what it captured never held any trivia from
+outside it. Over characters a seam woven inside the rule before operands at its end that read
+nothing is the rule's own reading, and stays in its extent (status.md says where this differs from
+a reading over tokens).
 
 The form that describes a refusal may pay for the description, and whether it does is a property
 of the grammar rather than of the form. Where the parse can read without recording — no

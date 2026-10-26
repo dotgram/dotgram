@@ -914,7 +914,11 @@ public and safe from collision.
 
 A whole parse leaves the trivia it reads around the rule out of a text value (§6), in every
 reading: the entry writes down where the rule began and ended, between the trivia on either
-side, and the value is cut from between the two. One difference between the readings is left.
+side, and the value is cut from between the two. Where the rule builds a value from its extent
+— `@SourceSpan`, or `parserText` and `parserSpan` in its own `=>` or `when` — the engine, which
+reads the rule in place of a call, puts its frame to the two marks: its beginning at the first, as
+the rule is read, and its end at the second before anything is built. One difference between the
+readings is left.
 Over characters the trivia woven inside the rule before operands at its end that read nothing
 is read by the rule, and stays in the value: `Word & Word?` in a spaced namespace, read whole
 from `ab  `, is `ab  ` over characters and `ab` over tokens, where the value ends with the last

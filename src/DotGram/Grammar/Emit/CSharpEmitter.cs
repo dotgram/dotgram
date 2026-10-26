@@ -943,7 +943,7 @@ public static partial class CSharpEmitter
 				began: RecordsBegan(graph, overKinds),
 				// Where a whole reading's value ended, for one whose value is its rule's extent: the
 				// entry writes it before the trivia after the rule (Machine.TrimsWhole).
-				ended: RecordsEnded(graph, overKinds),
+				ended: RecordsEnded(machines),
 				trace: tracing is not null));
 			file.Line();
 
@@ -6105,12 +6105,17 @@ file.Line("return spare;");
 
 	/// <summary>
 	/// Whether the failure carries where a whole reading's value ended, before the trivia after
-	/// it: some <c>parse</c> publication reads a rule with trivia whose value is its extent, and
-	/// its entry writes down where the rule began and ended (<c>Machine.TrimsWhole</c>).
+	/// it: some machine's whole entry writes down where the rule began and ended — for a rule whose
+	/// value is its extent in every machine (<c>Machine.TrimsWhole</c>), and for one that builds its
+	/// value from its extent in a machine that reads the rule in place of its call, the engine and
+	/// the methods lowered from it (<c>Machine.SpansWhole</c>).
 	/// </summary>
-	internal static bool RecordsEnded(RecognitionGraph graph, bool overKinds)
+	static bool RecordsEnded(List<Compiled> machines)
 	{
-		return !overKinds && graph.Publications.Any(one => TrimsWhole(graph, one, overKinds));
+		return machines.Exists(static compiled => compiled.Publications.Any(publication =>
+			publication.Kind == PublishKind.Parse &&
+			(compiled.Machine.TrimsWhole(publication.Rule) ||
+				(!compiled.Direct || compiled.Machine.BufferedInput) && compiled.Machine.SpansWhole(publication.Rule))));
 	}
 
 	/// <summary>

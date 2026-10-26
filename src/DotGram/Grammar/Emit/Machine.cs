@@ -1090,6 +1090,36 @@ sealed partial class Machine
 	}
 
 	/// <summary>
+	/// Where a whole reading's root builds a value from its own extent, the root's frame ended where
+	/// the rule did, before the trivia after it (<see cref="SpansWhole"/>; <see cref="CompileWhole"/>
+	/// moved its beginning past the trivia before it): the frame ended where the trivia after the
+	/// rule did, and what is cut from it — <c>parserText</c>, <c>parserSpan</c> — is the rule's and
+	/// not the parse's (§6).
+	/// </summary>
+	void SpanRootFrame(Writer file)
+	{
+		var spanned = _wholeEntries.Keys
+			.Where(rule => SpansWhole(rule) && !IsExtent(rule))
+			.Select(rule => _ruleIds[rule])
+			.Distinct()
+			.OrderBy(static id => id)
+			.ToList();
+
+		if (spanned.Count == 0)
+			return;
+
+		file.Line($"if (whole && ({string.Join(" || ", spanned.Select(static id => $"rootRule == {id}"))}))");
+
+		using (file.Block(""))
+		{
+			file.Line("var root = entries[0];");
+			file.Line(
+				"entries[0] = new ParserEntry(root.Kind, root.State, root.Position, root.CallIndex, root.AtomicIndex, " +
+				"root.RepeatIndex, root.LookaheadIndex, failure.Ended, root.RuleIndex);");
+		}
+	}
+
+	/// <summary>
 	/// <see cref="BodyOf"/> for a whole parse, compiled; where the value is the rule's extent,
 	/// with where it begins and where it ends written down between the trivia and the rule.
 	/// </summary>
@@ -1104,7 +1134,7 @@ sealed partial class Machine
 	{
 		var end = FollowSets.Continuation.End;
 
-		if (!TrimsWhole(rule))
+		if (!TrimsWhole(rule) && !SpansWhole(rule))
 			return Compile(BodyOf(rule, whole: true), next, end);
 
 		var trivia = _graph.Trivia[rule];
@@ -1121,6 +1151,19 @@ sealed partial class Machine
 		var began = Reserve(out var atBegan);
 
 		atBegan.Line("failure.Began = p;");
+
+		// The root's frame begins where the rule does, so that a guard of the rule reading
+		// `parserText` or `parserSpan` as the parse stands sees the rule and not the trivia before it
+		// (SpanRootFrame puts its end there at Accept). Only the engine has the frame: a lowered
+		// method holds its values in locals.
+		if (SpansWhole(rule) && !IsExtent(rule) && !_valuesInLocals && !_lowering)
+		{
+			atBegan.Line("var rootFrame = entries[call];");
+			atBegan.Line(
+				"entries[call] = new ParserEntry(rootFrame.Kind, rootFrame.State, p, rootFrame.CallIndex, rootFrame.AtomicIndex, " +
+				"rootFrame.RepeatIndex, rootFrame.LookaheadIndex, rootFrame.Value, rootFrame.RuleIndex);");
+		}
+
 		atBegan.Line($"goto {Label(atBegan, read)};");
 
 		return Compile(trivia, began, FollowSets.Precedes(body, after, _graph, _seam));
@@ -1132,12 +1175,25 @@ sealed partial class Machine
 	/// </summary>
 	/// <remarks>
 	/// Over kinds the lexer has already skipped the trivia, and the value is cut from the tokens
-	/// read. <see cref="CSharpEmitter.RecordsEnded"/> asks the same of the publications, so that the
+	/// read. <c>CSharpEmitter.RecordsEnded</c> asks it of each machine's publications, so that the
 	/// field and every write to it are emitted together.
 	/// </remarks>
 	internal bool TrimsWhole(RuleSymbol rule)
 	{
 		return !OverKinds && _graph.Trivia.ContainsKey(rule) && ValueRule(rule) < 0;
+	}
+
+	/// <summary>
+	/// Whether a whole parse of <paramref name="rule"/> writes down where the rule began and ended
+	/// for a value built from its extent: the bounds of a <c>@SourceSpan</c> rule, and what
+	/// <c>parserText</c> and <c>parserSpan</c> say in the rule's own <c>=&gt;</c>. The engine reads
+	/// the rule in place of its call, so the frame those are cut from spans the trivia around the
+	/// rule too, and is put to the marks before anything is built from it (§6). A reader by methods
+	/// calls the rule, whose frame is its own already.
+	/// </summary>
+	internal bool SpansWhole(RuleSymbol rule)
+	{
+		return !OverKinds && _graph.Trivia.ContainsKey(rule) && ValueRule(rule) >= 0;
 	}
 
 	/// <summary>
@@ -1992,7 +2048,10 @@ sealed partial class Machine
 
 			// An extent root needs nothing that came back: the wrapper handed the position in
 			// and was told the position reached, which is the whole of the answer.
-			if (IsExtent(root))
+			// A whole parse with trivia around the rule says where the rule began and ended (CompileWhole).
+			if (IsExtent(root) && whole && SpansWhole(root))
+				file.Line($"value = end < 0 ? default : {Span("failure.Began", "failure.Ended - failure.Began")};");
+			else if (IsExtent(root))
 				file.Line($"value = end < 0 ? default : {Span(lead is null ? "pos" : "began", lead is null ? "end - pos" : "end - began")};");
 			else if (type is not null)
 				file.Line(materialize ? $"value = end < 0 ? default! : ({type})recognized!;" : "value = default!;");
@@ -2301,6 +2360,7 @@ sealed partial class Machine
 									file.Line("if (!built[0]) values[0] = parser;");
 								}
 
+								SpanRootFrame(file);
 								file.Line($"{Tag.Named("Materialize")}(text, parser, entries{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument});");
 								RootValue(file);
 							}
