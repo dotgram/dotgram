@@ -71,14 +71,14 @@ public static partial class CSharpEmitter
 		if (tracing is not null)
 		{
 			using (file.Block($"{AccessOf(publication)} static {returns} {method}(global::System.IO.TextReader input{takes})"))
-				file.Line($"return {method}_DotGram(input{(takes.Length > 0 ? ", context" : "")}, Tracing_DotGram.Value);");
+				file.Line($"return {TracedOf(method)}(input{(takes.Length > 0 ? ", context" : "")}, Tracing_DotGram.Value);");
 
 			file.Line();
 		}
 
 		using (file.Block(tracing is null
 			? $"{AccessOf(publication)} static {returns} {method}(global::System.IO.TextReader input{takes})"
-			: $"static {returns} {method}_DotGram(global::System.IO.TextReader input{takes}, GramTrace? trace)"))
+			: $"static {returns} {TracedOf(method)}(global::System.IO.TextReader input{takes}, GramTrace? trace)"))
 		{
 			file.Line($"var window = new {WindowType}(input, {WindowSize});");
 			file.Line("var start  = 0;");
@@ -274,14 +274,14 @@ public static partial class CSharpEmitter
 		if (tracing is not null)
 		{
 			using (file.Block($"{AccessOf(publication)} static {returns} {publication.EmittedName}(global::System.IO.TextReader input{takes})"))
-				file.Line($"return {publication.EmittedName}_DotGram(input{context}, Tracing_DotGram.Value);");
+				file.Line($"return {TracedOf(publication.EmittedName)}(input{context}, Tracing_DotGram.Value);");
 
 			file.Line();
 		}
 
 		using (file.Block(tracing is null
 			? $"{AccessOf(publication)} static {returns} {publication.EmittedName}(global::System.IO.TextReader input{takes})"
-			: $"static {returns} {publication.EmittedName}_DotGram(global::System.IO.TextReader input{takes}, GramTrace? trace)"))
+			: $"static {returns} {TracedOf(publication.EmittedName)}(global::System.IO.TextReader input{takes}, GramTrace? trace)"))
 		{
 			file.Line($"var window = new {WindowType}(input, {WindowSize});");
 			file.Line("var start  = 0;");

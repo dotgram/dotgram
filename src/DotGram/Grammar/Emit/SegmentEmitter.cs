@@ -469,8 +469,10 @@ public static partial class CSharpEmitter
 		var to   = method.IndexOf('(', from);
 		var name = to < 0 ? null : method.Substring(from, to - from);
 
-		// A scanner's kind is Scan with its machine's variant (CSharpEmitter.HostKinds).
-		return name is not null && name.IndexOf('_') is var cut and > 0 && CSharpEmitter.IsKind(name.Substring(0, cut), ScannerKind)
+		// A scanner's kind is Scan with its machine's variant (CSharpEmitter.HostKinds), and its name holds
+		// the mark, which a publication called Scan_… does not.
+		return name is not null && name.Contains(CSharpEmitter.NameMark) && name.IndexOf('_') is var cut and > 0 &&
+			CSharpEmitter.IsKind(name.Substring(0, cut), ScannerKind)
 			? name
 			: null;
 	}

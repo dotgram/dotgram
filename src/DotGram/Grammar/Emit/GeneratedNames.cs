@@ -61,6 +61,9 @@ public static partial class CSharpEmitter
 		// lines by and the Try beside it; a call into the host's code.
 		"Buf", "BufBytes", "BufMemory", "BufBytesMemory", "Iterate", "Own", "TryOwn", "Host#",
 
+		// The iterator a trace build hands the sink to, of a publication or of one of the forms above.
+		"Traced", "TracedOwn",
+
 		// A machine's, named after the rule it was compiled for, or with no name where it is the only one.
 		"Recognize{v}", "RecognizeDispatch{v}", "RecognizePart{v}#", "RecognizeGuard{v}#", "RecognizeGuardKey{v}#", "RecognizeSharpen{v}#", "RecognizeFurther{v}", "RecognizeRanOut{v}",
 		"RecognizeAgreeing{v}", "RecognizeClass{v}#", "RecognizeBits{v}#", "RecognizeBit{v}", "RecognizeGroups{v}#",
@@ -104,6 +107,15 @@ public static partial class CSharpEmitter
 		return written.Length == 0
 			? kind + NameMark
 			: kind + NameMark + "_" + string.Join(NameMark + "_", written);
+	}
+
+	/// <summary>
+	/// The method a trace build writes a publication's lazy form as, handed the sink: <c>Traced_DotGram_&lt;Name&gt;</c>,
+	/// or, for a form whose name the generator made already, that name with <c>Traced</c> in front of its kind.
+	/// </summary>
+	internal static string TracedOf(string method)
+	{
+		return method.Contains(NameMark) ? "Traced" + method : Named("Traced", method);
 	}
 
 	/// <summary>A name made from an author's name inside a class the generator declares for its own use.</summary>

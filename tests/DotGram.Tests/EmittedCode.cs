@@ -115,11 +115,12 @@ static class EmittedCode
 		string className,
 		string? @namespace,
 		string? declarationMembers,
-		IEnumerable<string>? sourceParts)
+		IEnumerable<string>? sourceParts,
+		IEnumerable<string>? symbols = null)
 	{
 		return
 		[
-			.. Create(source, className, @namespace, declarationMembers, sourceParts, null, false)
+			.. Create(source, className, @namespace, declarationMembers, sourceParts, symbols, false)
 				.GetDiagnostics(TestContext.Current.CancellationToken)
 				.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error),
 		];

@@ -318,10 +318,10 @@ namespace DotGram.Snapshots
 			/// <summary>Every occurrence of <c>Url</c>, in order, found as it is asked for.</summary>
 			public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> AllUrls(string input)
 			{
-				return AllUrls_DotGram(input, Tracing_DotGram.Value);
+				return Traced_DotGram_AllUrls(input, Tracing_DotGram.Value);
 			}
 
-			static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> AllUrls_DotGram(string input, GramTrace? trace)
+			static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> Traced_DotGram_AllUrls(string input, GramTrace? trace)
 			{
 				for (var start = 0; start <= input.Length; )
 				{
@@ -372,10 +372,10 @@ namespace DotGram.Snapshots
 			/// </remarks>
 			public static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> AllUrls(global::System.IO.TextReader input)
 			{
-				return AllUrls_DotGram(input, Tracing_DotGram.Value);
+				return Traced_DotGram_AllUrls(input, Tracing_DotGram.Value);
 			}
 
-			static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> AllUrls_DotGram(global::System.IO.TextReader input, GramTrace? trace)
+			static global::System.Collections.Generic.IEnumerable<Match<global::DotGram.Snapshots.Url.Traced.Url>> Traced_DotGram_AllUrls(global::System.IO.TextReader input, GramTrace? trace)
 			{
 				var window = new Window_DotGram(input, 4096);
 				var start  = 0;

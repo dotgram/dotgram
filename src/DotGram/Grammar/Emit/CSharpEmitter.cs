@@ -3652,7 +3652,7 @@ file.Line("return spare;");
 			using (file.Block(
 				$"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{match}> {method}(string input{takes})"))
 			{
-				file.Line($"return {method}_DotGram(input{gives}, Tracing_DotGram.Value);");
+				file.Line($"return {TracedOf(method)}(input{gives}, Tracing_DotGram.Value);");
 			}
 
 			file.Line();
@@ -3661,7 +3661,7 @@ file.Line("return spare;");
 
 		using (file.Block(tracing is null
 			? $"{AccessOf(publication)} static global::System.Collections.Generic.IEnumerable<{match}> {method}(string input{takes})"
-			: $"static global::System.Collections.Generic.IEnumerable<{match}> {method}_DotGram(string input{takes}, GramTrace? trace)"))
+			: $"static global::System.Collections.Generic.IEnumerable<{match}> {TracedOf(method)}(string input{takes}, GramTrace? trace)"))
 		{
 			using (file.Block("for (var start = 0; start <= input.Length; )"))
 			{
@@ -5413,11 +5413,11 @@ file.Line("return spare;");
 	}
 
 	static readonly System.Text.RegularExpressions.Regex UnwalkedMention = new(
-		@"(?<!\w)(?<name>Recognize(?:RanOut|Agreeing|Further)\w*)\(",
+		@"(?<!\w)(?<name>Recognize(?:RanOut|Agreeing|Further)\w*_DotGram\w*)\(",
 		System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
 	static readonly System.Text.RegularExpressions.Regex UnwalkedSignature = new(
-		@"static \w+ (?<name>Recognize(?:RanOut|Agreeing|Further)\w*)\(",
+		@"static \w+ (?<name>Recognize(?:RanOut|Agreeing|Further)\w*_DotGram\w*)\(",
 		System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
 	/// <summary>
@@ -6142,6 +6142,19 @@ file.Line("return spare;");
 	/// </remarks>
 	internal static string IdentifierOf(RuleSymbol rule)
 	{
+		// The rule that stands for a value-returning external recognizer is named after it (`@Count`),
+		// which is no identifier. It is written with a digit first instead, which no rule of the
+		// author's can begin with, so that it cannot be the identifier of one: `Rec_DotGram_0Count`.
+		if (rule.Name.StartsWith("@", StringComparison.Ordinal))
+		{
+			var external = new System.Text.StringBuilder("0");
+
+			foreach (var one in rule.Name.Substring(1))
+				external.Append(char.IsLetterOrDigit(one) ? one : '_');
+
+			return external.ToString();
+		}
+
 		var name = rule.Name;
 
 		for (var ns = rule.Namespace; ns is { Name.Length: > 0 }; ns = ns.Parent)

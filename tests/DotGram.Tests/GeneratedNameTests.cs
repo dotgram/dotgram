@@ -383,6 +383,10 @@ public sealed class GeneratedNameTests
 	[InlineData("e", "T = ['a'..'z']+\nT_A = ['0'..'9']+\nA_B = T & eof\nB = T_A & eof\nparse A_B\nparse B", "tape")]
 	[InlineData("f", "Digits : @int = text: ['0'..'9']+ => @(int.Parse(text))\nA : @int = d: Digits & '^' & e: Digits & when @(d >= e) => @(d - e) | d: Digits => @(d)\nA_Body : @int = d: Digits & '^' & e: Digits & when @(d >= e) => @(d - e) | d: Digits => @(d)\nS : @int = a: A & ',' & b: A_Body & eof => @(a + b)\nparse S", "Tape")]
 	[InlineData("g", "R : @string = t: { ['a'..'z']+ } => @(t)\nRead_R = x: '#'\nS : @string = a: R & when @(a.Length > 0) & ' ' & b: R & k: Read_R & ';' => @(a + b)\nfind S", "")]
+	[InlineData("trace", "R = ['a' | 'c' | 'e']\nfind R as RecognizeClass0", "trace")]
+	[InlineData("trace", "R = x: 'a'\nparse R as Read stream\nfind R as Find stream", "trace")]
+	[InlineData("unwalked", "R = 'a'\nparse R as RecognizeFurther", "")]
+	[InlineData("unwalked", "R = 'a' | \"ab\"\nparse R as RecognizeRanOut\nfind R as RecognizeAgreeing", "")]
 	[InlineData("DotGram", "DotGram = x: 'a'\nS = DotGram & eof\nparse S\nparse DotGram", "")]
 	[InlineData("DotGram", "DotGram = x: 'a'\nS = DotGram & eof\nparse S\nparse DotGram", "tape,buffered")]
 	[InlineData("DotGram", "DotGram = x: 'a'\nS = DotGram & eof\nparse S\nparse DotGram", "Tape")]
@@ -397,6 +401,7 @@ public sealed class GeneratedNameTests
 			BufferedInput = said.Contains("buffered"),
 			BufferedBytes = said.Contains("bytes"),
 			Lexical       = said.Contains("lexical"),
+			Trace         = said.Contains("trace"),
 			Carrier       = said.Contains("Tape") ? CarrierKind.Tape : CarrierKind.Auto,
 			CSharpScanner = RoslynCSharpScanner.Instance,
 		});
@@ -404,6 +409,36 @@ public sealed class GeneratedNameTests
 		Assert.False(result.Diagnostics.Any(static one => one.Severity == GramSeverity.Error), family + ": " + string.Join("; ", result.Diagnostics.Select(static one => one.Id + " " + one.Message)));
 
 		_ = EmittedCode.Compile(result.Sources[0].Text, className: "Probe", sourceParts: result.Sources.Skip(1).Select(static one => one.Text));
+	}
+
+	/// <summary>
+	/// A value-returning external recognizer is a rule of its own, named after the external (`@Count`), which
+	/// is no identifier: the names made from it are written with a digit first, which no rule of the author's
+	/// can be, and the class compiles, beside a rule of the author's called after the external.
+	/// </summary>
+	[Theory]
+	[InlineData("Rest : @int = @Count")]
+	[InlineData("Rest : @int = v: @Count => @(v)\nS = Rest & eof")]
+	[InlineData("Rest : @int = @Count\nCount = 'c'\nS : @int = r: Rest & Count & eof => @(r)\nparse S")]
+	public void A_value_returning_external_names_its_rule_with_an_identifier(string grammar)
+	{
+		const string declarations = "public static bool Count(global::System.ReadOnlySpan<char> input, ref int pos, out int value) { value = 0; return false; }";
+
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			ClassName      = "Probe",
+			CSharpScanner  = RoslynCSharpScanner.Instance,
+			SymbolResolver = new RoslynSymbolResolver(
+				CSharpCompilation.Create(
+					"Probe", [CSharpSyntaxTree.ParseText($"public partial class Probe {{ {declarations} }}", cancellationToken: TestContext.Current.CancellationToken)],
+					EmittedCode.References, new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)),
+				"Probe"),
+		});
+
+		Assert.False(result.Diagnostics.Any(static one => one.Severity == GramSeverity.Error), string.Join("; ", result.Diagnostics.Select(static one => one.Id + " " + one.Message)));
+		Assert.DoesNotContain("_@", result.Sources[0].Text, StringComparison.Ordinal);
+
+		_ = EmittedCode.Compile(result.Sources[0].Text, className: "Probe", declarationMembers: declarations, sourceParts: result.Sources.Skip(1).Select(static one => one.Text));
 	}
 
 	/// <summary>A namespace joined to a rule whose name begins with the mark would put the mark inside an identifier.</summary>

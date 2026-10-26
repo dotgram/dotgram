@@ -55,6 +55,11 @@ static class GeneratedNameRule
 			if (head is not null && CSharpEmitter.IsKind(head, CSharpEmitter.HostKinds))
 				return Derived(name.Substring(head.Length), head, identifiers);
 
+			// The mark appended to a name of the author's is no kind: a publication called after the
+			// kind's word would be written the same.
+			if (author.FirstOrDefault(one => name.StartsWith(one + CSharpEmitter.NameMark, StringComparison.Ordinal)) is { } glued)
+				return $"is the author's '{glued}' with the mark appended";
+
 			return NestedKind(head) ? "begins with a kind it is not" : null;
 		}
 

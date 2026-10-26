@@ -71,6 +71,19 @@ public sealed class GeneratedNameMirrorTests
 		foreach (var batch in new[] { published.Where(static one => !one.StartsWith("Try", StringComparison.Ordinal)), published.Where(static one => one.StartsWith("Try", StringComparison.Ordinal)) })
 			faults.AddRange(Added(text, options, declarations, kept, batch.ToArray(), one => $"parse {start} as {one}", null, "publication"));
 
+		// And as a lazy form in a trace build and in a build that counts its rules, which write names of
+		// their own beside a publication's (an iterator handed the sink, a counter per rule).
+		var (traced, _) = SnapshotTests.Renderings(name, text).First();
+		var counted     = SnapshotTests.Renderings(name, text).First().Options;
+
+		traced.Trace       = true;
+		counted.CountRules = true;
+
+		faults.AddRange(Added(text, traced, declarations, kept, [.. published.Where(static one => !one.StartsWith("Try", StringComparison.Ordinal))],
+			one => $"find {start} as {one}", null, "traced publication"));
+		faults.AddRange(Added(text, counted, declarations, kept, [.. published.Where(static one => !one.StartsWith("Try", StringComparison.Ordinal))],
+			one => $"find {start} as {one}", null, "counted publication", symbols: ["DOTGRAM_COUNTS"]));
+
 		// As a rule, and every part of every name as one: each is a type of its own, and each is reached.
 		var parts = all
 			.SelectMany(static one => Parts(one))
@@ -113,7 +126,8 @@ public sealed class GeneratedNameMirrorTests
 	/// <param name="called">What a name is in the reaching choice, where that is not the name itself.</param>
 	static IEnumerable<string> Added(
 		string text, GramCompilerOptions options, string? declarations, HashSet<string> kept, IReadOnlyList<string> names,
-		Func<string, string>? declare, string? reach, string way, Func<string, string>? member = null, Func<string, string>? called = null)
+		Func<string, string>? declare, string? reach, string way, Func<string, string>? member = null, Func<string, string>? called = null,
+		IEnumerable<string>? symbols = null)
 	{
 		var live    = names.ToList();
 		var dropped = 0;
@@ -181,7 +195,7 @@ public sealed class GeneratedNameMirrorTests
 			Assert.True(dropped <= names.Count / 2, $"{way}s: {dropped} of {names.Count} refused for something other than their names");
 
 			var written = string.Join("\n", (declarations is null ? [] : new[] { declarations }).Concat(member is null ? [] : live.Select(member)));
-			var errors  = EmittedCode.Errors(result.Sources[0].Text, options.ClassName, options.Namespace, written, result.Sources.Skip(1).Select(static one => one.Text));
+			var errors  = EmittedCode.Errors(result.Sources[0].Text, options.ClassName, options.Namespace, written, result.Sources.Skip(1).Select(static one => one.Text), symbols);
 
 			return errors.Select(error => $"{way}s: {error}").Take(30);
 		}

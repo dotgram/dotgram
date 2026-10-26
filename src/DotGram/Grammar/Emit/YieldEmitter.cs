@@ -29,7 +29,7 @@ public static partial class CSharpEmitter
 		if (tracing is not null)
 		{
 			using (file.Block($"{AccessOf(publication)} static {type} {publication.EmittedName}(string input{takes})"))
-				file.Line($"return {publication.EmittedName}_DotGram(input{gives}, Tracing_DotGram.Value);");
+				file.Line($"return {TracedOf(publication.EmittedName)}(input{gives}, Tracing_DotGram.Value);");
 
 			file.Line();
 			file.Line($"/// <summary>What <c>{publication.EmittedName}</c> enumerates, reporting to the sink that was set where it was called.</summary>");
@@ -37,7 +37,7 @@ public static partial class CSharpEmitter
 
 		using (file.Block(tracing is null
 			? $"{AccessOf(publication)} static {type} {publication.EmittedName}(string input{takes})"
-			: $"static {type} {publication.EmittedName}_DotGram(string input{takes}, GramTrace? trace)"))
+			: $"static {type} {TracedOf(publication.EmittedName)}(string input{takes}, GramTrace? trace)"))
 		{
 			if (publication.YieldRecovery) file.Line("var ordinal = 0;");
 			file.Line("if (input == null) throw new global::System.ArgumentNullException(nameof(input));");
