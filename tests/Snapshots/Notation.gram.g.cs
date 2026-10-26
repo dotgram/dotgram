@@ -1708,6 +1708,12 @@ namespace DotGram.Snapshots
 						break;
 
 					p++;
+
+					if (p == m0 + 2 && ways.Cursor < ways.Count)
+					{
+						p = ways.Places[ways.Cursor * 2];
+						break;
+					}
 				}
 
 				if (p < m0 + 1)
@@ -1727,7 +1733,7 @@ namespace DotGram.Snapshots
 					}
 					else
 					{
-						ways.Open(p - (m0 + 1));
+						ways.Open(0, p - (m0 + 1), p);
 					}
 
 					p -= d0;
@@ -2208,6 +2214,12 @@ namespace DotGram.Snapshots
 						break;
 
 					p++;
+
+					if (p == m0 + 2 && ways.Cursor < ways.Count)
+					{
+						p = ways.Places[ways.Cursor * 2];
+						break;
+					}
 				}
 
 				if (p < m0 + 1)
@@ -2227,7 +2239,7 @@ namespace DotGram.Snapshots
 					}
 					else
 					{
-						ways.Open(p - (m0 + 1));
+						ways.Open(0, p - (m0 + 1), p);
 					}
 
 					p -= d0;
@@ -2643,6 +2655,12 @@ namespace DotGram.Snapshots
 						break;
 
 					p++;
+
+					if (p == m0 + 2 && ways.Cursor < ways.Count)
+					{
+						p = ways.Places[ways.Cursor * 2];
+						break;
+					}
 				}
 
 				if (p < m0 + 1)
@@ -2662,7 +2680,7 @@ namespace DotGram.Snapshots
 					}
 					else
 					{
-						ways.Open(p - (m0 + 1));
+						ways.Open(0, p - (m0 + 1), p);
 					}
 
 					p -= d0;
@@ -3168,6 +3186,12 @@ namespace DotGram.Snapshots
 						break;
 
 					p++;
+
+					if (p == m0 + 2 && ways.Cursor < ways.Count)
+					{
+						p = ways.Places[ways.Cursor * 2];
+						break;
+					}
 				}
 
 				if (p < m0 + 1)
@@ -3187,7 +3211,7 @@ namespace DotGram.Snapshots
 					}
 					else
 					{
-						ways.Open(p - (m0 + 1));
+						ways.Open(0, p - (m0 + 1), p);
 					}
 
 					p -= d0;
@@ -4782,15 +4806,15 @@ namespace DotGram.Snapshots
 				// pool's largest kept array is 2^20 elements, the very number this bound is
 				// written in, so it would decline exactly these arrays and "pool it" would mean
 				// "drop it" in more words.
-				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length > 1048576)
+				if ((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length + ways.Places.Length > 1048576)
 				{
 					if (_large != null && !ReferenceEquals(_large, ways))
 						(_largeLetGo ??= new global::System.WeakReference<Ways_DotGram>(_large)).SetTarget(_large);
 
 					// The same question the ordinary slot asks below: is the room far larger than the
 					// use. The bound decides which slot holds the tape, not whether to keep it.
-					if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length
-						> 4L * (ways.Count * 2L + ways.LogCount + ways.RefsCount)))
+					if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length + ways.Places.Length
+						> 4L * (ways.Count * 4L + ways.LogCount + ways.RefsCount)))
 						_largeIdle = 0;
 					else if (++_largeIdle >= LargeIdle)
 					{
@@ -4812,8 +4836,8 @@ namespace DotGram.Snapshots
 				// release's counts are the same quantity twice. Four times and not twice because a
 				// table grows to at least double: one doubling is the slack a steady workload leaves,
 				// and two is a workload that has shrunk.
-				if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length
-					> 4L * (ways.Count * 2L + ways.LogCount + ways.RefsCount)))
+				if (!((long)ways.Items.Length + ways.Log.Length + ways.Refs.Length + ways.Places.Length
+					> 4L * (ways.Count * 4L + ways.LogCount + ways.RefsCount)))
 					_spareIdle = 0;
 				else if (++_spareIdle >= SpareIdle)
 				{
@@ -4880,6 +4904,20 @@ namespace DotGram.Snapshots
 			{
 				for (var way = segment; way < Cursor; way++)
 					Items[way * 2 + 1] = Items[way * 2];
+			}
+
+			internal int[] Places = new int[32];
+
+			internal int Open(int at, int last, int place)
+			{
+				var way = Open(at, last);
+
+				if (Places.Length < Items.Length)
+					global::System.Array.Resize(ref Places, Items.Length);
+
+				Places[way * 2] = place;
+
+				return way;
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
