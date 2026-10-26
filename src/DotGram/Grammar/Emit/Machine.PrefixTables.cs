@@ -88,9 +88,10 @@ sealed partial class Machine
 				}
 			}
 		}
-		var name = "Prefix_DotGram" + _tag + "_" + _prefixCount++;
+		var table = _prefixCount++;
+		var name  = Prefix(table);
 		var helper = new Writer(0);
-		helper.Line($"private static readonly int[] {name}_Next = new int[]");
+		helper.Line($"private static readonly int[] {Prefix(table, "Next")} = new int[]");
 		using (helper.Block(""))
 			foreach (var row in rows) helper.Line(string.Join(", ", row) + ",");
 		helper.Line(";");
@@ -106,7 +107,7 @@ sealed partial class Machine
 			{
 				helper.Line($"var column = (int){ReadAt("p")} - {(int)low};");
 				helper.Line($"if ((uint)column >= {width}u) return state == 0 ? -1 : -1 - state;");
-				helper.Line($"var next = {name}_Next[state * {width} + column];");
+				helper.Line($"var next = {Prefix(table, "Next")}[state * {width} + column];");
 				helper.Line("if (next < 0) return next == -1 ? (state == 0 ? -1 : -1 - state) : -next - 2;");
 				helper.Line("state = next;");
 				helper.Line("p++;");
@@ -114,8 +115,8 @@ sealed partial class Machine
 			helper.Line("return -1;");
 		}
 
-		EmitPrefixMiss(helper, name, alternatives, prefixes, paths);
-		EmitPrefixFailure(helper, name);
+		EmitPrefixMiss(helper, table, alternatives, prefixes, paths);
+		EmitPrefixFailure(helper, table);
 
 		_extra.Add(helper.ToString());
 		var entry = Reserve(out var writer);
@@ -125,9 +126,15 @@ sealed partial class Machine
 				writer.Line($"case {i}: goto {Label(writer, heads[alternatives[i]])};");
 		// Out of line: the recognizer this sits in is as large as the JIT will optimize, and a
 		// miss's bookkeeping kept in it cost the stream form's hits four per cent.
-		writer.Line($"if (prefixed < -1 && {name}_Miss(text, ref p, -1 - prefixed, lookahead, ref failure, out expected)) goto {Label(writer, _fail)};");
+		writer.Line($"if (prefixed < -1 && {Prefix(table, "Miss")}(text, ref p, -1 - prefixed, lookahead, ref failure, out expected)) goto {Label(writer, _fail)};");
 		writer.Line($"goto {Label(writer, fallback)};");
 		return entry;
+	}
+
+	/// <summary>The name of a prefix table of this machine, or of one of its parts.</summary>
+	string Prefix(int table, string part = "")
+	{
+		return Tag.Named("Prefix" + part, table);
 	}
 
 	/// <summary>
@@ -154,7 +161,7 @@ sealed partial class Machine
 	/// said is lost.
 	/// </para>
 	/// </remarks>
-	void EmitPrefixMiss(Writer helper, string name, IReadOnlyList<Node> alternatives, string[] prefixes, List<string> paths)
+	void EmitPrefixMiss(Writer helper, int table, IReadOnlyList<Node> alternatives, string[] prefixes, List<string> paths)
 	{
 		var depth   = new int[paths.Count];
 		var longest = new int[paths.Count];
@@ -177,9 +184,9 @@ sealed partial class Machine
 			Debug.Assert(members[r].Count > 0, "A row is on the way to at least one literal.");
 		}
 
-		helper.Line($"private static readonly int[] {name}_Depth = new int[] {{ {string.Join(", ", depth)} }};");
-		helper.Line($"private static readonly int[] {name}_Longest = new int[] {{ {string.Join(", ", longest)} }};");
-		helper.Line($"private static readonly int[][] {name}_Members = new int[][]");
+		helper.Line($"private static readonly int[] {Prefix(table, "Depth")} = new int[] {{ {string.Join(", ", depth)} }};");
+		helper.Line($"private static readonly int[] {Prefix(table, "Longest")} = new int[] {{ {string.Join(", ", longest)} }};");
+		helper.Line($"private static readonly int[][] {Prefix(table, "Members")} = new int[][]");
 		using (helper.Block(""))
 			foreach (var row in members)
 				helper.Line($"new int[] {{ {string.Join(", ", row)} }},");
@@ -188,7 +195,7 @@ sealed partial class Machine
 		// The number of the set each alternative refuses with, which the miss below hands to the
 		// class's sets: a number is all a refusal site passes. Past the last alternative, -1,
 		// which no row names.
-		using (helper.Block($"private static int {name}_Expected(int alternative)"))
+		using (helper.Block($"private static int {Prefix(table, "Expected")}(int alternative)"))
 		{
 			using (helper.Block("switch (alternative)"))
 				for (var i = 0; i < alternatives.Count; i++)
@@ -206,25 +213,25 @@ sealed partial class Machine
 		}
 	}
 
-	void EmitPrefixFailure(Writer helper, string name)
+	void EmitPrefixFailure(Writer helper, int table)
 	{
-		var longest = $"{name}_Longest[row]";
+		var longest = $"{Prefix(table, "Longest")}[row]";
 
 		// True with the expected array to fail with and the position moved to where it is
 		// reported; false where too little input is buffered to decide, and nothing is moved.
-		using (helper.Block($"private static bool {name}_Miss({InputType} text, ref int p, int row, int lookahead, ref Failure failure, out string[] expected)"))
+		using (helper.Block($"private static bool {Prefix(table, "Miss")}({InputType} text, ref int p, int row, int lookahead, ref Failure failure, out string[] expected)"))
 		{
 			helper.Line("expected = null!;");
 			helper.Line(BufferedInput ? $"if (!text.Ensure(p, {longest})) return false;" : $"if (text.Length - p < {longest}) return false;");
-			helper.Line($"var missed = {name}_Members[row];");
+			helper.Line($"var missed = {Prefix(table, "Members")}[row];");
 
 			using (helper.Block("if (lookahead < 0)"))
 			{
-				helper.Line($"p += {name}_Depth[row];");
+				helper.Line($"p += {Prefix(table, "Depth")}[row];");
 
 				using (helper.Block("for (var tie = 0; tie < missed.Length - 1; tie++)"))
 				{
-					helper.Line($"var said = {ExpectedSets.Accessor}({name}_Expected(missed[tie]));");
+					helper.Line($"var said = {ExpectedSets.Accessor}({Prefix(table, "Expected")}(missed[tie]));");
 					helper.Line("if (p > failure.Position)");
 
 					using (helper.Block(""))
@@ -242,7 +249,7 @@ sealed partial class Machine
 				}
 			}
 
-			helper.Line($"expected = {ExpectedSets.Accessor}({name}_Expected(missed[missed.Length - 1]));");
+			helper.Line($"expected = {ExpectedSets.Accessor}({Prefix(table, "Expected")}(missed[missed.Length - 1]));");
 			helper.Line("return true;");
 		}
 	}

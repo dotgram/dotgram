@@ -84,7 +84,7 @@ namespace DotGram.Snapshots
 					if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 					{
 						c = text[p];
-						if (c <= 255 && Recognize_DotGram_Class0[c] != 0) goto S5;
+						if (c <= 255 && RecognizeClass0_DotGram[c] != 0) goto S5;
 					}
 					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S5;
 					goto Return;
@@ -109,7 +109,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -120,7 +120,7 @@ namespace DotGram.Snapshots
 
 				S9:
 				{
-					var prefixed = Prefix_DotGram_0(text, p);
+					var prefixed = Prefix0_DotGram(text, p);
 					switch (prefixed)
 					{
 						case 0: goto S77;
@@ -134,7 +134,7 @@ namespace DotGram.Snapshots
 						case 8: goto S51;
 						case 9: goto S89;
 					}
-					if (prefixed < -1 && Prefix_DotGram_0_Miss(text, ref p, -1 - prefixed, lookahead, ref failure, out expected)) goto Fail;
+					if (prefixed < -1 && PrefixMiss0_DotGram(text, ref p, -1 - prefixed, lookahead, ref failure, out expected)) goto Fail;
 				}
 
 				{
@@ -168,7 +168,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 5 && (failure.Starved = true)))
 					{
-						p = Recognize_DotGram_RanOut(text, p, "while", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "while", false, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(17);
 						goto Fail;
 					}
@@ -195,7 +195,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -288,7 +288,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -307,7 +307,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -326,7 +326,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -353,7 +353,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 4 && (failure.Starved = true)))
 					{
-						p = Recognize_DotGram_RanOut(text, p, "wait", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "wait", false, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(16);
 						goto Fail;
 					}
@@ -378,7 +378,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -470,7 +470,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -497,7 +497,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 6 && (failure.Starved = true)))
 					{
-						p = Recognize_DotGram_RanOut(text, p, "unless", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "unless", false, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(15);
 						goto Fail;
 					}
@@ -526,7 +526,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -545,7 +545,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -564,7 +564,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -583,7 +583,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -610,7 +610,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 4 && (failure.Starved = true)))
 					{
-						p = Recognize_DotGram_RanOut(text, p, "skip", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "skip", false, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(12);
 						goto Fail;
 					}
@@ -635,7 +635,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -667,7 +667,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 6 && (failure.Starved = true)))
 					{
-						p = Recognize_DotGram_RanOut(text, p, "return", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "return", false, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(11);
 						goto Fail;
 					}
@@ -696,7 +696,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -715,7 +715,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -742,7 +742,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 5 && (failure.Starved = true)))
 					{
-						p = Recognize_DotGram_RanOut(text, p, "raise", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "raise", false, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(10);
 						goto Fail;
 					}
@@ -769,7 +769,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -788,7 +788,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -815,7 +815,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 5 && (failure.Starved = true)))
 					{
-						p = Recognize_DotGram_RanOut(text, p, "print", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "print", false, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(9);
 						goto Fail;
 					}
@@ -842,7 +842,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -861,7 +861,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -888,7 +888,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 3 && (failure.Starved = true)))
 					{
-						p = Recognize_DotGram_RanOut(text, p, "let", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "let", false, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(8);
 						goto Fail;
 					}
@@ -911,7 +911,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -930,7 +930,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -949,7 +949,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -968,7 +968,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -995,7 +995,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 4 && (failure.Starved = true)))
 					{
-						p = Recognize_DotGram_RanOut(text, p, "halt", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "halt", false, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(6);
 						goto Fail;
 					}
@@ -1020,7 +1020,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -1047,7 +1047,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 4 && (failure.Starved = true)))
 					{
-						p = Recognize_DotGram_RanOut(text, p, "call", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "call", false, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(5);
 						goto Fail;
 					}
@@ -1072,7 +1072,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -1091,7 +1091,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -1110,7 +1110,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -1187,7 +1187,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -1206,7 +1206,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -1252,20 +1252,20 @@ namespace DotGram.Snapshots
 
 				S111:
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 					goto Return;
 				}
 
 				S112:
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
 					if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 					{
 						c = text[p];
-						if (c <= 255 && Recognize_DotGram_Class0[c] != 0) goto S114;
+						if (c <= 255 && RecognizeClass0_DotGram[c] != 0) goto S114;
 					}
 					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S114;
 					goto S111;
@@ -1290,7 +1290,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{

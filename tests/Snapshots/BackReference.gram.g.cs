@@ -29,12 +29,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_RawString_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_RawString(text, 0, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_RawString_Whole(text, 0, ref failure);
+				end     = RecWhole_DotGram_RawString(text, 0, ref failure);
 			}
 
 			if (end < 0)
@@ -60,7 +60,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_RawString_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_RawString(text, 0, ref failure);
 
 			if (end < 0)
 			{
@@ -89,12 +89,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_RawString(text, at, ref failure);
+			var end = Rec_DotGram_RawString(text, at, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_RawString(text, at, ref failure);
+				end     = Rec_DotGram_RawString(text, at, ref failure);
 			}
 
 			if (end < 0)
@@ -125,7 +125,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_RawString(text, at, ref failure);
+			var end = Rec_DotGram_RawString(text, at, ref failure);
 
 			if (end < 0)
 			{
@@ -155,12 +155,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_RawString(text, at, ref failure);
+			var end = Rec_DotGram_RawString(text, at, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_RawString(text, at, ref failure);
+				end     = Rec_DotGram_RawString(text, at, ref failure);
 			}
 
 			if (end < 0)
@@ -191,7 +191,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_RawString(text, at, ref failure);
+			var end = Rec_DotGram_RawString(text, at, ref failure);
 
 			if (end < 0)
 			{
@@ -212,7 +212,7 @@ namespace DotGram.Snapshots
 			{
 				var failure = new Failure { Quiet = true };
 
-				var end = Recognize_RawString(global::System.MemoryExtensions.AsSpan(input), start, ref failure);
+				var end = Rec_DotGram_RawString(global::System.MemoryExtensions.AsSpan(input), start, ref failure);
 
 				if (end < 0)
 				{
@@ -251,12 +251,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_LongString_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_LongString(text, 0, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_LongString_Whole(text, 0, ref failure);
+				end     = RecWhole_DotGram_LongString(text, 0, ref failure);
 			}
 
 			if (end < 0)
@@ -282,7 +282,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_LongString_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_LongString(text, 0, ref failure);
 
 			if (end < 0)
 			{
@@ -311,12 +311,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_LongString(text, at, ref failure);
+			var end = Rec_DotGram_LongString(text, at, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_LongString(text, at, ref failure);
+				end     = Rec_DotGram_LongString(text, at, ref failure);
 			}
 
 			if (end < 0)
@@ -347,7 +347,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_LongString(text, at, ref failure);
+			var end = Rec_DotGram_LongString(text, at, ref failure);
 
 			if (end < 0)
 			{
@@ -377,12 +377,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_LongString(text, at, ref failure);
+			var end = Rec_DotGram_LongString(text, at, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_LongString(text, at, ref failure);
+				end     = Rec_DotGram_LongString(text, at, ref failure);
 			}
 
 			if (end < 0)
@@ -413,7 +413,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_LongString(text, at, ref failure);
+			var end = Rec_DotGram_LongString(text, at, ref failure);
 
 			if (end < 0)
 			{
@@ -451,12 +451,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_DollarQuoted_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_DollarQuoted(text, 0, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_DollarQuoted_Whole(text, 0, ref failure);
+				end     = RecWhole_DotGram_DollarQuoted(text, 0, ref failure);
 			}
 
 			if (end < 0)
@@ -482,7 +482,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_DollarQuoted_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_DollarQuoted(text, 0, ref failure);
 
 			if (end < 0)
 			{
@@ -511,12 +511,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_DollarQuoted(text, at, ref failure);
+			var end = Rec_DotGram_DollarQuoted(text, at, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_DollarQuoted(text, at, ref failure);
+				end     = Rec_DotGram_DollarQuoted(text, at, ref failure);
 			}
 
 			if (end < 0)
@@ -547,7 +547,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_DollarQuoted(text, at, ref failure);
+			var end = Rec_DotGram_DollarQuoted(text, at, ref failure);
 
 			if (end < 0)
 			{
@@ -577,12 +577,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_DollarQuoted(text, at, ref failure);
+			var end = Rec_DotGram_DollarQuoted(text, at, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_DollarQuoted(text, at, ref failure);
+				end     = Rec_DotGram_DollarQuoted(text, at, ref failure);
 			}
 
 			if (end < 0)
@@ -613,7 +613,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_DollarQuoted(text, at, ref failure);
+			var end = Rec_DotGram_DollarQuoted(text, at, ref failure);
 
 			if (end < 0)
 			{
@@ -651,12 +651,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Quoted_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_Quoted(text, 0, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Quoted_Whole(text, 0, ref failure);
+				end     = RecWhole_DotGram_Quoted(text, 0, ref failure);
 			}
 
 			if (end < 0)
@@ -682,7 +682,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Quoted_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_Quoted(text, 0, ref failure);
 
 			if (end < 0)
 			{
@@ -711,12 +711,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Quoted(text, at, ref failure);
+			var end = Rec_DotGram_Quoted(text, at, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Quoted(text, at, ref failure);
+				end     = Rec_DotGram_Quoted(text, at, ref failure);
 			}
 
 			if (end < 0)
@@ -747,7 +747,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Quoted(text, at, ref failure);
+			var end = Rec_DotGram_Quoted(text, at, ref failure);
 
 			if (end < 0)
 			{
@@ -777,12 +777,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Quoted(text, at, ref failure);
+			var end = Rec_DotGram_Quoted(text, at, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Quoted(text, at, ref failure);
+				end     = Rec_DotGram_Quoted(text, at, ref failure);
 			}
 
 			if (end < 0)
@@ -813,7 +813,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Quoted(text, at, ref failure);
+			var end = Rec_DotGram_Quoted(text, at, ref failure);
 
 			if (end < 0)
 			{
@@ -851,12 +851,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Heading_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_Heading(text, 0, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Heading_Whole(text, 0, ref failure);
+				end     = RecWhole_DotGram_Heading(text, 0, ref failure);
 			}
 
 			if (end < 0)
@@ -882,7 +882,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Heading_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_Heading(text, 0, ref failure);
 
 			if (end < 0)
 			{
@@ -911,12 +911,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Heading(text, at, ref failure);
+			var end = Rec_DotGram_Heading(text, at, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Heading(text, at, ref failure);
+				end     = Rec_DotGram_Heading(text, at, ref failure);
 			}
 
 			if (end < 0)
@@ -947,7 +947,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Heading(text, at, ref failure);
+			var end = Rec_DotGram_Heading(text, at, ref failure);
 
 			if (end < 0)
 			{
@@ -977,12 +977,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Heading(text, at, ref failure);
+			var end = Rec_DotGram_Heading(text, at, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Heading(text, at, ref failure);
+				end     = Rec_DotGram_Heading(text, at, ref failure);
 			}
 
 			if (end < 0)
@@ -1013,7 +1013,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Heading(text, at, ref failure);
+			var end = Rec_DotGram_Heading(text, at, ref failure);
 
 			if (end < 0)
 			{
@@ -1051,12 +1051,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Between_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_Between(text, 0, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Between_Whole(text, 0, ref failure);
+				end     = RecWhole_DotGram_Between(text, 0, ref failure);
 			}
 
 			if (end < 0)
@@ -1082,7 +1082,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Between_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_Between(text, 0, ref failure);
 
 			if (end < 0)
 			{
@@ -1111,12 +1111,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Between(text, at, ref failure);
+			var end = Rec_DotGram_Between(text, at, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Between(text, at, ref failure);
+				end     = Rec_DotGram_Between(text, at, ref failure);
 			}
 
 			if (end < 0)
@@ -1147,7 +1147,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Between(text, at, ref failure);
+			var end = Rec_DotGram_Between(text, at, ref failure);
 
 			if (end < 0)
 			{
@@ -1177,12 +1177,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Between(text, at, ref failure);
+			var end = Rec_DotGram_Between(text, at, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Between(text, at, ref failure);
+				end     = Rec_DotGram_Between(text, at, ref failure);
 			}
 
 			if (end < 0)
@@ -1213,7 +1213,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Between(text, at, ref failure);
+			var end = Rec_DotGram_Between(text, at, ref failure);
 
 			if (end < 0)
 			{
@@ -1252,12 +1252,12 @@ namespace DotGram.Snapshots
 			var parserWhole = global::System.MemoryExtensions.AsMemory(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Element_Whole(text, 0, ref failure, parserWhole);
+			var end = RecWhole_DotGram_Element(text, 0, ref failure, parserWhole);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Element_Whole(text, 0, ref failure, parserWhole);
+				end     = RecWhole_DotGram_Element(text, 0, ref failure, parserWhole);
 			}
 
 			if (end < 0)
@@ -1284,7 +1284,7 @@ namespace DotGram.Snapshots
 			var parserWhole = global::System.MemoryExtensions.AsMemory(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Element_Whole(text, 0, ref failure, parserWhole);
+			var end = RecWhole_DotGram_Element(text, 0, ref failure, parserWhole);
 
 			if (end < 0)
 			{
@@ -1314,12 +1314,12 @@ namespace DotGram.Snapshots
 			var parserWhole = global::System.MemoryExtensions.AsMemory(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Element(text, at, ref failure, parserWhole);
+			var end = Rec_DotGram_Element(text, at, ref failure, parserWhole);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Element(text, at, ref failure, parserWhole);
+				end     = Rec_DotGram_Element(text, at, ref failure, parserWhole);
 			}
 
 			if (end < 0)
@@ -1351,7 +1351,7 @@ namespace DotGram.Snapshots
 			var parserWhole = global::System.MemoryExtensions.AsMemory(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Element(text, at, ref failure, parserWhole);
+			var end = Rec_DotGram_Element(text, at, ref failure, parserWhole);
 
 			if (end < 0)
 			{
@@ -1382,12 +1382,12 @@ namespace DotGram.Snapshots
 			var parserWhole = global::System.MemoryExtensions.AsMemory(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Element(text, at, ref failure, parserWhole);
+			var end = Rec_DotGram_Element(text, at, ref failure, parserWhole);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Element(text, at, ref failure, parserWhole);
+				end     = Rec_DotGram_Element(text, at, ref failure, parserWhole);
 			}
 
 			if (end < 0)
@@ -1419,7 +1419,7 @@ namespace DotGram.Snapshots
 			var parserWhole = global::System.MemoryExtensions.AsMemory(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Element(text, at, ref failure, parserWhole);
+			var end = Rec_DotGram_Element(text, at, ref failure, parserWhole);
 
 			if (end < 0)
 			{
@@ -1457,12 +1457,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Pair_Whole(text, 0, ref failure, out var recognized);
+			var end = RecWhole_DotGram_Pair(text, 0, ref failure, out var recognized);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Pair_Whole(text, 0, ref failure, out recognized);
+				end     = RecWhole_DotGram_Pair(text, 0, ref failure, out recognized);
 			}
 
 			if (end < 0)
@@ -1488,7 +1488,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Pair_Whole(text, 0, ref failure, out var recognized);
+			var end = RecWhole_DotGram_Pair(text, 0, ref failure, out var recognized);
 
 			if (end < 0)
 			{
@@ -1517,12 +1517,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Pair(text, at, ref failure, out var recognized);
+			var end = Rec_DotGram_Pair(text, at, ref failure, out var recognized);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Pair(text, at, ref failure, out recognized);
+				end     = Rec_DotGram_Pair(text, at, ref failure, out recognized);
 			}
 
 			if (end < 0)
@@ -1553,7 +1553,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Pair(text, at, ref failure, out var recognized);
+			var end = Rec_DotGram_Pair(text, at, ref failure, out var recognized);
 
 			if (end < 0)
 			{
@@ -1583,12 +1583,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Pair(text, at, ref failure, out var recognized);
+			var end = Rec_DotGram_Pair(text, at, ref failure, out var recognized);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Pair(text, at, ref failure, out recognized);
+				end     = Rec_DotGram_Pair(text, at, ref failure, out recognized);
 			}
 
 			if (end < 0)
@@ -1619,7 +1619,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Pair(text, at, ref failure, out var recognized);
+			var end = Rec_DotGram_Pair(text, at, ref failure, out var recognized);
 
 			if (end < 0)
 			{
@@ -1637,7 +1637,7 @@ namespace DotGram.Snapshots
 
 		static partial void OnTakingOver(ref object? state);
 
-		static string Construct_Pair(string c, string r) =>
+		static string New_DotGram_Pair(string c, string r) =>
 #line 48 "BackReference.gram"
                                                  (c + "|" + r);
 #line default
@@ -1920,7 +1920,7 @@ namespace DotGram.Snapshots
 
 				S21:
 				{
-					var scanned = Scan_any_RawString(text, p);
+					var scanned = Scan_DotGram_any_DotGram_RawString(text, p);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2065,7 +2065,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Scan_any_RawString(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_DotGram_any_DotGram_RawString(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p = pos;
 
@@ -2078,14 +2078,14 @@ namespace DotGram.Snapshots
 			return -1 - p;
 		}
 
-		static int Recognize_RawString_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int RecWhole_DotGram_RawString(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			object? recognized;
 			var end = Recognize_DotGram_RawString(text, pos, 3, -1, true, true, ref failure, out recognized);
 			return end;
 		}
 
-		static int Recognize_RawString(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Rec_DotGram_RawString(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			object? recognized;
 			var end = Recognize_DotGram_RawString(text, pos, 3, -1, false, true, ref failure, out recognized);
@@ -2105,7 +2105,7 @@ namespace DotGram.Snapshots
 				this.unbuilt = default!;
 			}
 
-			public int Read_LongString_LongString(int pos)
+			public int Read_LongString(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -2138,7 +2138,7 @@ namespace DotGram.Snapshots
 					return -1;
 				}
 				p += 1;
-				var q0 = Read_LongString_LongString_Part0(p, a0, b0);
+				var q0 = ReadPart0_LongString(p, a0, b0);
 				if (q0 < 0)
 					return -1;
 				p = q0;
@@ -2163,7 +2163,7 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_LongString_LongString_Part0(int pos, int a0, int b0)
+			public int ReadPart0_LongString(int pos, int a0, int b0)
 			{
 				var p = pos;
 				var c = '\0';
@@ -2195,7 +2195,7 @@ namespace DotGram.Snapshots
 
 					var q0 = -1;
 
-					q0 = Read_LongString_LongString_Part1(p, a0, b0);
+					q0 = ReadPart1_LongString(p, a0, b0);
 
 					if (q0 < 0)
 					{
@@ -2212,23 +2212,23 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_LongString_LongString_Part1(int pos, int a0, int b0)
+			public int ReadPart1_LongString(int pos, int a0, int b0)
 			{
 				var p = pos;
 				failure.Looking++;
-				var q0 = Read_LongString_LongString_Part2(p, a0, b0);
+				var q0 = ReadPart2_LongString(p, a0, b0);
 				failure.Looking--;
 
 
 				if (q0 >= 0)
 					return -1;
-				var q1 = Read_any_LongString(p);
+				var q1 = Read_any(p);
 				if (q1 < 0) return -1;
 				p = q1;
 				return p;
 			}
 
-			public int Read_LongString_LongString_Part2(int pos, int a0, int b0)
+			public int ReadPart2_LongString(int pos, int a0, int b0)
 			{
 				var p = pos;
 				if ((uint)p >= (uint)text.Length || text[p] != ']')
@@ -2253,7 +2253,7 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_any_LongString(int pos)
+			public int Read_any(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -2267,10 +2267,10 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_LongString_Whole_Read(int pos)
+			public int RecWholeRead_LongString(int pos)
 			{
 				var p = pos;
-				var q0 = Read_LongString_LongString(p);
+				var q0 = Read_LongString(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				if (p != text.Length)
@@ -2281,10 +2281,10 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_LongString_Read(int pos)
+			public int RecRead_LongString(int pos)
 			{
 				var p = pos;
-				var q0 = Read_LongString_LongString(p);
+				var q0 = Read_LongString(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				return p;
@@ -2292,28 +2292,28 @@ namespace DotGram.Snapshots
 
 		}
 
-		static int Recognize_LongString_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int RecWhole_DotGram_LongString(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 
 			var reader = new Reader_DotGram_LongString(text);
 
 			reader.failure = failure;
 
-			var end = reader.Recognize_LongString_Whole_Read(pos);
+			var end = reader.RecWholeRead_LongString(pos);
 
 			failure = reader.failure;
 
 			return end;
 		}
 
-		static int Recognize_LongString(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Rec_DotGram_LongString(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 
 			var reader = new Reader_DotGram_LongString(text);
 
 			reader.failure = failure;
 
-			var end = reader.Recognize_LongString_Read(pos);
+			var end = reader.RecRead_LongString(pos);
 
 			failure = reader.failure;
 
@@ -2333,7 +2333,7 @@ namespace DotGram.Snapshots
 				this.unbuilt = default!;
 			}
 
-			public int Read_DollarQuoted_DollarQuoted(int pos)
+			public int Read_DollarQuoted(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -2357,7 +2357,7 @@ namespace DotGram.Snapshots
 					if (o1)
 					{
 						c = text[p];
-						o1 = Recognize_DotGram_DollarQuoted_In(Recognize_DotGram_DollarQuoted_Set0, c);
+						o1 = RecognizeIn_DotGram_DollarQuoted(RecognizeSet0_DotGram_DollarQuoted, c);
 					}
 
 					if (!o1 && (failure.Quiet || p < failure.Doors))
@@ -2367,7 +2367,7 @@ namespace DotGram.Snapshots
 
 					var q0 = -1;
 
-					q0 = Read_Tag_DollarQuoted(p);
+					q0 = Read_Tag(p);
 
 					if (q0 < 0)
 					{
@@ -2389,7 +2389,7 @@ namespace DotGram.Snapshots
 					return -1;
 				}
 				p += 1;
-				var q1 = Read_DollarQuoted_DollarQuoted_Part0(p, a0, b0);
+				var q1 = ReadPart0_DollarQuoted(p, a0, b0);
 				if (q1 < 0)
 					return -1;
 				p = q1;
@@ -2414,7 +2414,7 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_DollarQuoted_DollarQuoted_Part0(int pos, int a0, int b0)
+			public int ReadPart0_DollarQuoted(int pos, int a0, int b0)
 			{
 				var p = pos;
 				var c = '\0';
@@ -2446,7 +2446,7 @@ namespace DotGram.Snapshots
 
 					var q0 = -1;
 
-					q0 = Read_DollarQuoted_DollarQuoted_Part1(p, a0, b0);
+					q0 = ReadPart1_DollarQuoted(p, a0, b0);
 
 					if (q0 < 0)
 					{
@@ -2463,23 +2463,23 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_DollarQuoted_DollarQuoted_Part1(int pos, int a0, int b0)
+			public int ReadPart1_DollarQuoted(int pos, int a0, int b0)
 			{
 				var p = pos;
 				failure.Looking++;
-				var q0 = Read_DollarQuoted_DollarQuoted_Part2(p, a0, b0);
+				var q0 = ReadPart2_DollarQuoted(p, a0, b0);
 				failure.Looking--;
 
 
 				if (q0 >= 0)
 					return -1;
-				var q1 = Read_any_DollarQuoted(p);
+				var q1 = Read_any(p);
 				if (q1 < 0) return -1;
 				p = q1;
 				return p;
 			}
 
-			public int Read_DollarQuoted_DollarQuoted_Part2(int pos, int a0, int b0)
+			public int ReadPart2_DollarQuoted(int pos, int a0, int b0)
 			{
 				var p = pos;
 				if ((uint)p >= (uint)text.Length || text[p] != '$')
@@ -2503,7 +2503,7 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_Tag_DollarQuoted(int pos)
+			public int Read_Tag(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -2513,7 +2513,7 @@ namespace DotGram.Snapshots
 					return -1;
 				}
 				c = text[p];
-				if (!((c < 128 ? c <= 255 && Recognize_DotGram_DollarQuoted_Class1[c] != 0 : (c == '_' || Categories_DotGram_1F(c)))))
+				if (!((c < 128 ? c <= 255 && RecognizeClass1_DotGram_DollarQuoted[c] != 0 : (c == '_' || Categories_DotGram_1F(c)))))
 				{
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(14));
 					return -1;
@@ -2526,7 +2526,7 @@ namespace DotGram.Snapshots
 
 					c = text[p];
 
-					if (!((c < 128 ? c <= 255 && Recognize_DotGram_DollarQuoted_Class0[c] != 0 : (c == '_' || Categories_DotGram_11F(c)))))
+					if (!((c < 128 ? c <= 255 && RecognizeClass0_DotGram_DollarQuoted[c] != 0 : (c == '_' || Categories_DotGram_11F(c)))))
 						break;
 
 					p++;
@@ -2536,7 +2536,7 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_any_DollarQuoted(int pos)
+			public int Read_any(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -2550,10 +2550,10 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_DollarQuoted_Whole_Read(int pos)
+			public int RecWholeRead_DollarQuoted(int pos)
 			{
 				var p = pos;
-				var q0 = Read_DollarQuoted_DollarQuoted(p);
+				var q0 = Read_DollarQuoted(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				if (p != text.Length)
@@ -2564,10 +2564,10 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_DollarQuoted_Read(int pos)
+			public int RecRead_DollarQuoted(int pos)
 			{
 				var p = pos;
-				var q0 = Read_DollarQuoted_DollarQuoted(p);
+				var q0 = Read_DollarQuoted(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				return p;
@@ -2575,28 +2575,28 @@ namespace DotGram.Snapshots
 
 		}
 
-		static int Recognize_DollarQuoted_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int RecWhole_DotGram_DollarQuoted(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 
 			var reader = new Reader_DotGram_DollarQuoted(text);
 
 			reader.failure = failure;
 
-			var end = reader.Recognize_DollarQuoted_Whole_Read(pos);
+			var end = reader.RecWholeRead_DollarQuoted(pos);
 
 			failure = reader.failure;
 
 			return end;
 		}
 
-		static int Recognize_DollarQuoted(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Rec_DotGram_DollarQuoted(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 
 			var reader = new Reader_DotGram_DollarQuoted(text);
 
 			reader.failure = failure;
 
-			var end = reader.Recognize_DollarQuoted_Read(pos);
+			var end = reader.RecRead_DollarQuoted(pos);
 
 			failure = reader.failure;
 
@@ -2616,7 +2616,7 @@ namespace DotGram.Snapshots
 				this.unbuilt = default!;
 			}
 
-			public int Read_Quoted_Quoted(int pos)
+			public int Read_Quoted(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -2634,7 +2634,7 @@ namespace DotGram.Snapshots
 						{
 							p += 1;
 							a0 = p;
-							var q0 = Read_Word_Quoted(p);
+							var q0 = Read_Word(p);
 							if (q0 < 0) return -1;
 							p = q0;
 							b0 = p;
@@ -2649,7 +2649,7 @@ namespace DotGram.Snapshots
 					case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h': case 'i': case 'j': case 'k': case 'l': case 'm': case 'n': case 'o': case 'p': case 'q': case 'r': case 's': case 't': case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':
 						{
 							a0 = p;
-							var q1 = Read_Word_Quoted(p);
+							var q1 = Read_Word(p);
 							if (q1 < 0) return -1;
 							p = q1;
 							b0 = p;
@@ -2674,7 +2674,7 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_Word_Quoted(int pos)
+			public int Read_Word(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -2701,10 +2701,10 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_Quoted_Whole_Read(int pos)
+			public int RecWholeRead_Quoted(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Quoted_Quoted(p);
+				var q0 = Read_Quoted(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				if (p != text.Length)
@@ -2715,10 +2715,10 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_Quoted_Read(int pos)
+			public int RecRead_Quoted(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Quoted_Quoted(p);
+				var q0 = Read_Quoted(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				return p;
@@ -2726,28 +2726,28 @@ namespace DotGram.Snapshots
 
 		}
 
-		static int Recognize_Quoted_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int RecWhole_DotGram_Quoted(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 
 			var reader = new Reader_DotGram_Quoted(text);
 
 			reader.failure = failure;
 
-			var end = reader.Recognize_Quoted_Whole_Read(pos);
+			var end = reader.RecWholeRead_Quoted(pos);
 
 			failure = reader.failure;
 
 			return end;
 		}
 
-		static int Recognize_Quoted(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Rec_DotGram_Quoted(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 
 			var reader = new Reader_DotGram_Quoted(text);
 
 			reader.failure = failure;
 
-			var end = reader.Recognize_Quoted_Read(pos);
+			var end = reader.RecRead_Quoted(pos);
 
 			failure = reader.failure;
 
@@ -2769,13 +2769,13 @@ namespace DotGram.Snapshots
 				this.unbuilt = default!;
 			}
 
-			public int Read_Heading_Heading(int pos)
+			public int Read_Heading(int pos)
 			{
 				var s  = ways.Cursor;
 
 				while (true)
 				{
-					var q = Read_Heading_Heading_Body(pos);
+					var q = ReadBody_Heading(pos);
 
 					if (q >= 0)
 						return q;
@@ -2789,18 +2789,18 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Heading_Heading_Body(int pos)
+			public int ReadBody_Heading(int pos)
 			{
 				var p = pos;
 				var c = '\0';
 				var a0 = -1;
 				var b0 = -1;
 				a0 = p;
-				var q0 = Read_Title_Heading(p);
+				var q0 = Read_Title(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				b0 = p;
-				var q1 = Read_eol_Heading(p);
+				var q1 = Read_eol(p);
 				if (q1 < 0) return -1;
 				p = q1;
 				var n0 = b0 - a0;
@@ -2840,13 +2840,13 @@ namespace DotGram.Snapshots
 
 					p -= d0;
 				}
-				var q2 = Read_eol_Heading(p);
+				var q2 = Read_eol(p);
 				if (q2 < 0) return -1;
 				p = q2;
 				return p;
 			}
 
-			public int Read_Title_Heading(int pos)
+			public int Read_Title(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -2874,7 +2874,7 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_eol_Heading(int pos)
+			public int Read_eol(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -2893,14 +2893,14 @@ namespace DotGram.Snapshots
 						}
 					case '\r':
 						{
-							var q0 = Read_eol_Heading_Part0(p);
+							var q0 = ReadPart0_eol(p);
 							if (q0 < 0)
 							{
 								if ((uint)(p + 1) > (uint)text.Length || text[p] != '\r')
 								{
 									string[]? narrowed1 = ExpectedSet_DotGram(22);
 									if (!failure.Quiet)
-										p = Recognize_DotGram_Heading_Sharpen1(text, p, ref narrowed1);
+										p = RecognizeSharpen1_DotGram_Heading(text, p, ref narrowed1);
 									Refused_DotGram(ref failure, p, narrowed1);
 									return -1;
 								}
@@ -2917,7 +2917,7 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_eol_Heading_Part0(int pos)
+			public int ReadPart0_eol(int pos)
 			{
 				var p = pos;
 				if ((uint)(p + 2) > (uint)text.Length || !global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\r\n")))
@@ -2928,13 +2928,13 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_Heading_Whole_Read(int pos)
+			public int RecWholeRead_Heading(int pos)
 			{
 				var s  = ways.Cursor;
 
 				while (true)
 				{
-					var q = Recognize_Heading_Whole_Read_Body(pos);
+					var q = RecWholeReadBody_Heading(pos);
 
 					if (q >= 0)
 						return q;
@@ -2947,10 +2947,10 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			public int Recognize_Heading_Whole_Read_Body(int pos)
+			public int RecWholeReadBody_Heading(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Heading_Heading(p);
+				var q0 = Read_Heading(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				if (p != text.Length)
@@ -2961,13 +2961,13 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_Heading_Read(int pos)
+			public int RecRead_Heading(int pos)
 			{
 				var s  = ways.Cursor;
 
 				while (true)
 				{
-					var q = Recognize_Heading_Read_Body(pos);
+					var q = RecReadBody_Heading(pos);
 
 					if (q >= 0)
 						return q;
@@ -2980,10 +2980,10 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			public int Recognize_Heading_Read_Body(int pos)
+			public int RecReadBody_Heading(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Heading_Heading(p);
+				var q0 = Read_Heading(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				return p;
@@ -2991,7 +2991,7 @@ namespace DotGram.Snapshots
 
 		}
 
-		static int Recognize_Heading_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int RecWhole_DotGram_Heading(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var ways = Ways_DotGram.Rent();
 
@@ -3001,7 +3001,7 @@ namespace DotGram.Snapshots
 
 				reader.failure = failure;
 
-				var end = reader.Recognize_Heading_Whole_Read(pos);
+				var end = reader.RecWholeRead_Heading(pos);
 
 				failure = reader.failure;
 
@@ -3013,7 +3013,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Recognize_Heading(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Rec_DotGram_Heading(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var ways = Ways_DotGram.Rent();
 
@@ -3023,7 +3023,7 @@ namespace DotGram.Snapshots
 
 				reader.failure = failure;
 
-				var end = reader.Recognize_Heading_Read(pos);
+				var end = reader.RecRead_Heading(pos);
 
 				failure = reader.failure;
 
@@ -3050,13 +3050,13 @@ namespace DotGram.Snapshots
 				this.unbuilt = default!;
 			}
 
-			public int Read_Between_Between(int pos)
+			public int Read_Between(int pos)
 			{
 				var s  = ways.Cursor;
 
 				while (true)
 				{
-					var q = Read_Between_Between_Body(pos);
+					var q = ReadBody_Between(pos);
 
 					if (q >= 0)
 						return q;
@@ -3070,7 +3070,7 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Between_Between_Body(int pos)
+			public int ReadBody_Between(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -3158,13 +3158,13 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_Between_Whole_Read(int pos)
+			public int RecWholeRead_Between(int pos)
 			{
 				var s  = ways.Cursor;
 
 				while (true)
 				{
-					var q = Recognize_Between_Whole_Read_Body(pos);
+					var q = RecWholeReadBody_Between(pos);
 
 					if (q >= 0)
 						return q;
@@ -3177,10 +3177,10 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			public int Recognize_Between_Whole_Read_Body(int pos)
+			public int RecWholeReadBody_Between(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Between_Between(p);
+				var q0 = Read_Between(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				if (p != text.Length)
@@ -3191,13 +3191,13 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_Between_Read(int pos)
+			public int RecRead_Between(int pos)
 			{
 				var s  = ways.Cursor;
 
 				while (true)
 				{
-					var q = Recognize_Between_Read_Body(pos);
+					var q = RecReadBody_Between(pos);
 
 					if (q >= 0)
 						return q;
@@ -3210,10 +3210,10 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			public int Recognize_Between_Read_Body(int pos)
+			public int RecReadBody_Between(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Between_Between(p);
+				var q0 = Read_Between(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				return p;
@@ -3221,7 +3221,7 @@ namespace DotGram.Snapshots
 
 		}
 
-		static int Recognize_Between_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int RecWhole_DotGram_Between(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var ways = Ways_DotGram.Rent();
 
@@ -3231,7 +3231,7 @@ namespace DotGram.Snapshots
 
 				reader.failure = failure;
 
-				var end = reader.Recognize_Between_Whole_Read(pos);
+				var end = reader.RecWholeRead_Between(pos);
 
 				failure = reader.failure;
 
@@ -3243,7 +3243,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Recognize_Between(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Rec_DotGram_Between(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var ways = Ways_DotGram.Rent();
 
@@ -3253,7 +3253,7 @@ namespace DotGram.Snapshots
 
 				reader.failure = failure;
 
-				var end = reader.Recognize_Between_Read(pos);
+				var end = reader.RecRead_Between(pos);
 
 				failure = reader.failure;
 
@@ -3284,7 +3284,7 @@ namespace DotGram.Snapshots
 				this.whole   = parserWhole;
 			}
 
-			static bool EnoughStack_DotGram_Element()
+			static bool EnoughStack_DotGram()
 			{
 				#if NETCOREAPP2_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
 				return global::System.Runtime.CompilerServices.RuntimeHelpers.TryEnsureSufficientExecutionStack();
@@ -3302,7 +3302,7 @@ namespace DotGram.Snapshots
 				#endif
 			}
 
-			internal int Deepen_DotGram_Element(int pos, int which, int power)
+			internal int Deepen_DotGram(int pos, int which, int power)
 			{
 				// Nothing to carry it onto: a reading over a window has no whole input.
 				if (this.whole.IsEmpty)
@@ -3344,16 +3344,16 @@ namespace DotGram.Snapshots
 				return end;
 			}
 
-			public int Read_Element_Element(int pos)
+			public int Read_Element(int pos)
 			{
-				if ((probes++ & 3) == 0 && !EnoughStack_DotGram_Element())
-					return Deepen_DotGram_Element(pos, 0, 0);
+				if ((probes++ & 3) == 0 && !EnoughStack_DotGram())
+					return Deepen_DotGram(pos, 0, 0);
 
 				var s  = ways.Cursor;
 
 				while (true)
 				{
-					var q = Read_Element_Element_Body(pos);
+					var q = ReadBody_Element(pos);
 
 					if (q >= 0)
 						return q;
@@ -3367,7 +3367,7 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Element_Element_Body(int pos)
+			public int ReadBody_Element(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -3380,7 +3380,7 @@ namespace DotGram.Snapshots
 				}
 				p += 1;
 				a0 = p;
-				var q0 = Read_Word_Element(p);
+				var q0 = Read_Word(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				b0 = p;
@@ -3427,7 +3427,7 @@ namespace DotGram.Snapshots
 
 					while (true)
 					{
-						q1 = Read_Element_Element_Part0(p);
+						q1 = ReadPart0_Element(p);
 
 						if (q1 >= 0)
 							break;
@@ -3450,14 +3450,14 @@ namespace DotGram.Snapshots
 				}
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
-					p = Recognize_DotGram_Element_RanOut(text, p, "</", false, !failure.Quiet, ref failure);
+					p = RecognizeRanOut_DotGram_Element(text, p, "</", false, !failure.Quiet, ref failure);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(33));
 					return -1;
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("</")))
 				{
 					if (!failure.Quiet)
-						p = Recognize_DotGram_Element_Agreeing(text, p, "</", false);
+						p = RecognizeAgreeing_DotGram_Element(text, p, "</", false);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(33));
 					return -1;
 				}
@@ -3477,7 +3477,7 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_Element_Element_Part0(int pos)
+			public int ReadPart0_Element(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -3489,13 +3489,13 @@ namespace DotGram.Snapshots
 				c = text[p];
 				if (c == '<')
 				{
-					var q0 = Read_Element_Element(p);
+					var q0 = Read_Element(p);
 					if (q0 < 0) return -1;
 					p = q0;
 				}
 				else
 				{
-					var q1 = Read_Text_Element(p);
+					var q1 = Read_Text(p);
 					if (q1 < 0)
 					{
 						Refused_DotGram(ref failure, p, ExpectedSet_DotGram(35));
@@ -3506,7 +3506,7 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_Word_Element(int pos)
+			public int Read_Word(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -3533,17 +3533,17 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_Text_Element(int pos)
+			public int Read_Text(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Text_Element_Part0(p);
+				var q0 = ReadPart0_Text(p);
 				if (q0 < 0)
 					return -1;
 				p = q0;
 				return p;
 			}
 
-			public int Read_Text_Element_Part0(int pos)
+			public int ReadPart0_Text(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -3570,13 +3570,13 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_Element_Whole_Read(int pos)
+			public int RecWholeRead_Element(int pos)
 			{
 				var s  = ways.Cursor;
 
 				while (true)
 				{
-					var q = Recognize_Element_Whole_Read_Body(pos);
+					var q = RecWholeReadBody_Element(pos);
 
 					if (q >= 0)
 						return q;
@@ -3589,10 +3589,10 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			public int Recognize_Element_Whole_Read_Body(int pos)
+			public int RecWholeReadBody_Element(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Element_Element(p);
+				var q0 = Read_Element(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				if (p != text.Length)
@@ -3603,13 +3603,13 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_Element_Read(int pos)
+			public int RecRead_Element(int pos)
 			{
 				var s  = ways.Cursor;
 
 				while (true)
 				{
-					var q = Recognize_Element_Read_Body(pos);
+					var q = RecReadBody_Element(pos);
 
 					if (q >= 0)
 						return q;
@@ -3622,10 +3622,10 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			public int Recognize_Element_Read_Body(int pos)
+			public int RecReadBody_Element(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Element_Element(p);
+				var q0 = Read_Element(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				return p;
@@ -3850,7 +3850,7 @@ namespace DotGram.Snapshots
 
 						switch (this.which)
 						{
-							case 0: this.end = reader.Read_Element_Element(this.pos); break;
+							case 0: this.end = reader.Read_Element(this.pos); break;
 						}
 
 						this.failure = reader.failure;
@@ -3889,7 +3889,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Recognize_Element_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, global::System.ReadOnlyMemory<char> parserWhole)
+		static int RecWhole_DotGram_Element(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, global::System.ReadOnlyMemory<char> parserWhole)
 		{
 			var ways = Ways_DotGram.Rent();
 
@@ -3899,7 +3899,7 @@ namespace DotGram.Snapshots
 
 				reader.failure = failure;
 
-				var end = reader.Recognize_Element_Whole_Read(pos);
+				var end = reader.RecWholeRead_Element(pos);
 
 				failure = reader.failure;
 
@@ -3911,7 +3911,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Recognize_Element(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, global::System.ReadOnlyMemory<char> parserWhole)
+		static int Rec_DotGram_Element(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, global::System.ReadOnlyMemory<char> parserWhole)
 		{
 			var ways = Ways_DotGram.Rent();
 
@@ -3921,7 +3921,7 @@ namespace DotGram.Snapshots
 
 				reader.failure = failure;
 
-				var end = reader.Recognize_Element_Read(pos);
+				var end = reader.RecRead_Element(pos);
 
 				failure = reader.failure;
 
@@ -3948,7 +3948,7 @@ namespace DotGram.Snapshots
 				this.unbuilt = default!;
 			}
 
-			public int Read_Pair_Pair(int pos)
+			public int Read_Pair(int pos)
 			{
 				var p = pos;
 				var a0 = -1;
@@ -3959,7 +3959,7 @@ namespace DotGram.Snapshots
 				var b2 = -1;
 				a2 = p;
 				a0 = p;
-				var q0 = Read_Word_Pair(p);
+				var q0 = Read_Word(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				b0 = p;
@@ -3978,11 +3978,11 @@ namespace DotGram.Snapshots
 				}
 				p += b2 - a2;
 				b1 = p;
-				if (unbuilt == 0) last0 = Construct_Pair((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!, (a1 < 0 ? string.Empty : text.Slice(a1, b1 - a1).ToString())!);
+				if (unbuilt == 0) last0 = New_DotGram_Pair((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!, (a1 < 0 ? string.Empty : text.Slice(a1, b1 - a1).ToString())!);
 				return p;
 			}
 
-			public int Read_Word_Pair(int pos)
+			public int Read_Word(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -4009,10 +4009,10 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_Pair_Whole_Read(int pos)
+			public int RecWholeRead_Pair(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Pair_Pair(p);
+				var q0 = Read_Pair(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				if (p != text.Length)
@@ -4023,10 +4023,10 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_Pair_Read(int pos)
+			public int RecRead_Pair(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Pair_Pair(p);
+				var q0 = Read_Pair(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				return p;
@@ -4034,7 +4034,7 @@ namespace DotGram.Snapshots
 
 		}
 
-		static int Recognize_Pair_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
+		static int RecWhole_DotGram_Pair(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
 		{
 
 			var reader = new Reader_DotGram_Pair(text);
@@ -4042,7 +4042,7 @@ namespace DotGram.Snapshots
 			reader.failure = failure;
 			if (failure.Unasked) reader.unbuilt = 1;
 
-			var end = reader.Recognize_Pair_Whole_Read(pos);
+			var end = reader.RecWholeRead_Pair(pos);
 
 			failure = reader.failure;
 
@@ -4058,7 +4058,7 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static int Recognize_Pair(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
+		static int Rec_DotGram_Pair(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
 		{
 
 			var reader = new Reader_DotGram_Pair(text);
@@ -4066,7 +4066,7 @@ namespace DotGram.Snapshots
 			reader.failure = failure;
 			if (failure.Unasked) reader.unbuilt = 1;
 
-			var end = reader.Recognize_Pair_Read(pos);
+			var end = reader.RecRead_Pair(pos);
 
 			failure = reader.failure;
 
@@ -4108,9 +4108,9 @@ namespace DotGram.Snapshots
 				global::System.MemoryExtensions.SequenceEqual(text.Slice(at, length), text.Slice(from, length));
 		}
 
-		static readonly char[] Recognize_DotGram_DollarQuoted_Set0 = { 'A', 'Z', '_', '_', 'a', 'z', '\u00AA', '\u00AA', '\u00B5', '\u00B5', '\u00BA', '\u00BA', '\u00C0', '\u00D6', '\u00D8', '\u00F6', '\u00F8', '\u02C1', '\u02C6', '\u02D1', '\u02E0', '\u02E4', '\u02EC', '\u02EC', '\u02EE', '\u02EE', '\u0370', '\u0374', '\u0376', '\u0377', '\u037A', '\u037D', '\u037F', '\u037F', '\u0386', '\u0386', '\u0388', '\u038A', '\u038C', '\u038C', '\u038E', '\u03A1', '\u03A3', '\u03F5', '\u03F7', '\u0481', '\u048A', '\u052F', '\u0531', '\u0556', '\u0559', '\u0559', '\u0560', '\u0588', '\u05D0', '\u05EA', '\u05EF', '\u05F2', '\u0620', '\u064A', '\u066E', '\u066F', '\u0671', '\u06D3', '\u06D5', '\u06D5', '\u06E5', '\u06E6', '\u06EE', '\u06EF', '\u06FA', '\u06FC', '\u06FF', '\u06FF', '\u0710', '\u0710', '\u0712', '\u072F', '\u074D', '\u07A5', '\u07B1', '\u07B1', '\u07CA', '\u07EA', '\u07F4', '\u07F5', '\u07FA', '\u07FA', '\u0800', '\u0815', '\u081A', '\u081A', '\u0824', '\u0824', '\u0828', '\u0828', '\u0840', '\u0858', '\u0860', '\u086A', '\u0870', '\u0887', '\u0889', '\u088E', '\u08A0', '\u08C9', '\u0904', '\u0939', '\u093D', '\u093D', '\u0950', '\u0950', '\u0958', '\u0961', '\u0971', '\u0980', '\u0985', '\u098C', '\u098F', '\u0990', '\u0993', '\u09A8', '\u09AA', '\u09B0', '\u09B2', '\u09B2', '\u09B6', '\u09B9', '\u09BD', '\u09BD', '\u09CE', '\u09CE', '\u09DC', '\u09DD', '\u09DF', '\u09E1', '\u09F0', '\u09F1', '\u09FC', '\u09FC', '\u0A05', '\u0A0A', '\u0A0F', '\u0A10', '\u0A13', '\u0A28', '\u0A2A', '\u0A30', '\u0A32', '\u0A33', '\u0A35', '\u0A36', '\u0A38', '\u0A39', '\u0A59', '\u0A5C', '\u0A5E', '\u0A5E', '\u0A72', '\u0A74', '\u0A85', '\u0A8D', '\u0A8F', '\u0A91', '\u0A93', '\u0AA8', '\u0AAA', '\u0AB0', '\u0AB2', '\u0AB3', '\u0AB5', '\u0AB9', '\u0ABD', '\u0ABD', '\u0AD0', '\u0AD0', '\u0AE0', '\u0AE1', '\u0AF9', '\u0AF9', '\u0B05', '\u0B0C', '\u0B0F', '\u0B10', '\u0B13', '\u0B28', '\u0B2A', '\u0B30', '\u0B32', '\u0B33', '\u0B35', '\u0B39', '\u0B3D', '\u0B3D', '\u0B5C', '\u0B5D', '\u0B5F', '\u0B61', '\u0B71', '\u0B71', '\u0B83', '\u0B83', '\u0B85', '\u0B8A', '\u0B8E', '\u0B90', '\u0B92', '\u0B95', '\u0B99', '\u0B9A', '\u0B9C', '\u0B9C', '\u0B9E', '\u0B9F', '\u0BA3', '\u0BA4', '\u0BA8', '\u0BAA', '\u0BAE', '\u0BB9', '\u0BD0', '\u0BD0', '\u0C05', '\u0C0C', '\u0C0E', '\u0C10', '\u0C12', '\u0C28', '\u0C2A', '\u0C39', '\u0C3D', '\u0C3D', '\u0C58', '\u0C5A', '\u0C5D', '\u0C5D', '\u0C60', '\u0C61', '\u0C80', '\u0C80', '\u0C85', '\u0C8C', '\u0C8E', '\u0C90', '\u0C92', '\u0CA8', '\u0CAA', '\u0CB3', '\u0CB5', '\u0CB9', '\u0CBD', '\u0CBD', '\u0CDD', '\u0CDE', '\u0CE0', '\u0CE1', '\u0CF1', '\u0CF2', '\u0D04', '\u0D0C', '\u0D0E', '\u0D10', '\u0D12', '\u0D3A', '\u0D3D', '\u0D3D', '\u0D4E', '\u0D4E', '\u0D54', '\u0D56', '\u0D5F', '\u0D61', '\u0D7A', '\u0D7F', '\u0D85', '\u0D96', '\u0D9A', '\u0DB1', '\u0DB3', '\u0DBB', '\u0DBD', '\u0DBD', '\u0DC0', '\u0DC6', '\u0E01', '\u0E30', '\u0E32', '\u0E33', '\u0E40', '\u0E46', '\u0E81', '\u0E82', '\u0E84', '\u0E84', '\u0E86', '\u0E8A', '\u0E8C', '\u0EA3', '\u0EA5', '\u0EA5', '\u0EA7', '\u0EB0', '\u0EB2', '\u0EB3', '\u0EBD', '\u0EBD', '\u0EC0', '\u0EC4', '\u0EC6', '\u0EC6', '\u0EDC', '\u0EDF', '\u0F00', '\u0F00', '\u0F40', '\u0F47', '\u0F49', '\u0F6C', '\u0F88', '\u0F8C', '\u1000', '\u102A', '\u103F', '\u103F', '\u1050', '\u1055', '\u105A', '\u105D', '\u1061', '\u1061', '\u1065', '\u1066', '\u106E', '\u1070', '\u1075', '\u1081', '\u108E', '\u108E', '\u10A0', '\u10C5', '\u10C7', '\u10C7', '\u10CD', '\u10CD', '\u10D0', '\u10FA', '\u10FC', '\u1248', '\u124A', '\u124D', '\u1250', '\u1256', '\u1258', '\u1258', '\u125A', '\u125D', '\u1260', '\u1288', '\u128A', '\u128D', '\u1290', '\u12B0', '\u12B2', '\u12B5', '\u12B8', '\u12BE', '\u12C0', '\u12C0', '\u12C2', '\u12C5', '\u12C8', '\u12D6', '\u12D8', '\u1310', '\u1312', '\u1315', '\u1318', '\u135A', '\u1380', '\u138F', '\u13A0', '\u13F5', '\u13F8', '\u13FD', '\u1401', '\u166C', '\u166F', '\u167F', '\u1681', '\u169A', '\u16A0', '\u16EA', '\u16F1', '\u16F8', '\u1700', '\u1711', '\u171F', '\u1731', '\u1740', '\u1751', '\u1760', '\u176C', '\u176E', '\u1770', '\u1780', '\u17B3', '\u17D7', '\u17D7', '\u17DC', '\u17DC', '\u1820', '\u1878', '\u1880', '\u1884', '\u1887', '\u18A8', '\u18AA', '\u18AA', '\u18B0', '\u18F5', '\u1900', '\u191E', '\u1950', '\u196D', '\u1970', '\u1974', '\u1980', '\u19AB', '\u19B0', '\u19C9', '\u1A00', '\u1A16', '\u1A20', '\u1A54', '\u1AA7', '\u1AA7', '\u1B05', '\u1B33', '\u1B45', '\u1B4C', '\u1B83', '\u1BA0', '\u1BAE', '\u1BAF', '\u1BBA', '\u1BE5', '\u1C00', '\u1C23', '\u1C4D', '\u1C4F', '\u1C5A', '\u1C7D', '\u1C80', '\u1C8A', '\u1C90', '\u1CBA', '\u1CBD', '\u1CBF', '\u1CE9', '\u1CEC', '\u1CEE', '\u1CF3', '\u1CF5', '\u1CF6', '\u1CFA', '\u1CFA', '\u1D00', '\u1DBF', '\u1E00', '\u1F15', '\u1F18', '\u1F1D', '\u1F20', '\u1F45', '\u1F48', '\u1F4D', '\u1F50', '\u1F57', '\u1F59', '\u1F59', '\u1F5B', '\u1F5B', '\u1F5D', '\u1F5D', '\u1F5F', '\u1F7D', '\u1F80', '\u1FB4', '\u1FB6', '\u1FBC', '\u1FBE', '\u1FBE', '\u1FC2', '\u1FC4', '\u1FC6', '\u1FCC', '\u1FD0', '\u1FD3', '\u1FD6', '\u1FDB', '\u1FE0', '\u1FEC', '\u1FF2', '\u1FF4', '\u1FF6', '\u1FFC', '\u2071', '\u2071', '\u207F', '\u207F', '\u2090', '\u209C', '\u2102', '\u2102', '\u2107', '\u2107', '\u210A', '\u2113', '\u2115', '\u2115', '\u2119', '\u211D', '\u2124', '\u2124', '\u2126', '\u2126', '\u2128', '\u2128', '\u212A', '\u212D', '\u212F', '\u2139', '\u213C', '\u213F', '\u2145', '\u2149', '\u214E', '\u214E', '\u2183', '\u2184', '\u2C00', '\u2CE4', '\u2CEB', '\u2CEE', '\u2CF2', '\u2CF3', '\u2D00', '\u2D25', '\u2D27', '\u2D27', '\u2D2D', '\u2D2D', '\u2D30', '\u2D67', '\u2D6F', '\u2D6F', '\u2D80', '\u2D96', '\u2DA0', '\u2DA6', '\u2DA8', '\u2DAE', '\u2DB0', '\u2DB6', '\u2DB8', '\u2DBE', '\u2DC0', '\u2DC6', '\u2DC8', '\u2DCE', '\u2DD0', '\u2DD6', '\u2DD8', '\u2DDE', '\u2E2F', '\u2E2F', '\u3005', '\u3006', '\u3031', '\u3035', '\u303B', '\u303C', '\u3041', '\u3096', '\u309D', '\u309F', '\u30A1', '\u30FA', '\u30FC', '\u30FF', '\u3105', '\u312F', '\u3131', '\u318E', '\u31A0', '\u31BF', '\u31F0', '\u31FF', '\u3400', '\u4DBF', '\u4E00', '\uA48C', '\uA4D0', '\uA4FD', '\uA500', '\uA60C', '\uA610', '\uA61F', '\uA62A', '\uA62B', '\uA640', '\uA66E', '\uA67F', '\uA69D', '\uA6A0', '\uA6E5', '\uA717', '\uA71F', '\uA722', '\uA788', '\uA78B', '\uA7CD', '\uA7D0', '\uA7D1', '\uA7D3', '\uA7D3', '\uA7D5', '\uA7DC', '\uA7F2', '\uA801', '\uA803', '\uA805', '\uA807', '\uA80A', '\uA80C', '\uA822', '\uA840', '\uA873', '\uA882', '\uA8B3', '\uA8F2', '\uA8F7', '\uA8FB', '\uA8FB', '\uA8FD', '\uA8FE', '\uA90A', '\uA925', '\uA930', '\uA946', '\uA960', '\uA97C', '\uA984', '\uA9B2', '\uA9CF', '\uA9CF', '\uA9E0', '\uA9E4', '\uA9E6', '\uA9EF', '\uA9FA', '\uA9FE', '\uAA00', '\uAA28', '\uAA40', '\uAA42', '\uAA44', '\uAA4B', '\uAA60', '\uAA76', '\uAA7A', '\uAA7A', '\uAA7E', '\uAAAF', '\uAAB1', '\uAAB1', '\uAAB5', '\uAAB6', '\uAAB9', '\uAABD', '\uAAC0', '\uAAC0', '\uAAC2', '\uAAC2', '\uAADB', '\uAADD', '\uAAE0', '\uAAEA', '\uAAF2', '\uAAF4', '\uAB01', '\uAB06', '\uAB09', '\uAB0E', '\uAB11', '\uAB16', '\uAB20', '\uAB26', '\uAB28', '\uAB2E', '\uAB30', '\uAB5A', '\uAB5C', '\uAB69', '\uAB70', '\uABE2', '\uAC00', '\uD7A3', '\uD7B0', '\uD7C6', '\uD7CB', '\uD7FB', '\uF900', '\uFA6D', '\uFA70', '\uFAD9', '\uFB00', '\uFB06', '\uFB13', '\uFB17', '\uFB1D', '\uFB1D', '\uFB1F', '\uFB28', '\uFB2A', '\uFB36', '\uFB38', '\uFB3C', '\uFB3E', '\uFB3E', '\uFB40', '\uFB41', '\uFB43', '\uFB44', '\uFB46', '\uFBB1', '\uFBD3', '\uFD3D', '\uFD50', '\uFD8F', '\uFD92', '\uFDC7', '\uFDF0', '\uFDFB', '\uFE70', '\uFE74', '\uFE76', '\uFEFC', '\uFF21', '\uFF3A', '\uFF41', '\uFF5A', '\uFF66', '\uFFBE', '\uFFC2', '\uFFC7', '\uFFCA', '\uFFCF', '\uFFD2', '\uFFD7', '\uFFDA', '\uFFDC' };
+		static readonly char[] RecognizeSet0_DotGram_DollarQuoted = { 'A', 'Z', '_', '_', 'a', 'z', '\u00AA', '\u00AA', '\u00B5', '\u00B5', '\u00BA', '\u00BA', '\u00C0', '\u00D6', '\u00D8', '\u00F6', '\u00F8', '\u02C1', '\u02C6', '\u02D1', '\u02E0', '\u02E4', '\u02EC', '\u02EC', '\u02EE', '\u02EE', '\u0370', '\u0374', '\u0376', '\u0377', '\u037A', '\u037D', '\u037F', '\u037F', '\u0386', '\u0386', '\u0388', '\u038A', '\u038C', '\u038C', '\u038E', '\u03A1', '\u03A3', '\u03F5', '\u03F7', '\u0481', '\u048A', '\u052F', '\u0531', '\u0556', '\u0559', '\u0559', '\u0560', '\u0588', '\u05D0', '\u05EA', '\u05EF', '\u05F2', '\u0620', '\u064A', '\u066E', '\u066F', '\u0671', '\u06D3', '\u06D5', '\u06D5', '\u06E5', '\u06E6', '\u06EE', '\u06EF', '\u06FA', '\u06FC', '\u06FF', '\u06FF', '\u0710', '\u0710', '\u0712', '\u072F', '\u074D', '\u07A5', '\u07B1', '\u07B1', '\u07CA', '\u07EA', '\u07F4', '\u07F5', '\u07FA', '\u07FA', '\u0800', '\u0815', '\u081A', '\u081A', '\u0824', '\u0824', '\u0828', '\u0828', '\u0840', '\u0858', '\u0860', '\u086A', '\u0870', '\u0887', '\u0889', '\u088E', '\u08A0', '\u08C9', '\u0904', '\u0939', '\u093D', '\u093D', '\u0950', '\u0950', '\u0958', '\u0961', '\u0971', '\u0980', '\u0985', '\u098C', '\u098F', '\u0990', '\u0993', '\u09A8', '\u09AA', '\u09B0', '\u09B2', '\u09B2', '\u09B6', '\u09B9', '\u09BD', '\u09BD', '\u09CE', '\u09CE', '\u09DC', '\u09DD', '\u09DF', '\u09E1', '\u09F0', '\u09F1', '\u09FC', '\u09FC', '\u0A05', '\u0A0A', '\u0A0F', '\u0A10', '\u0A13', '\u0A28', '\u0A2A', '\u0A30', '\u0A32', '\u0A33', '\u0A35', '\u0A36', '\u0A38', '\u0A39', '\u0A59', '\u0A5C', '\u0A5E', '\u0A5E', '\u0A72', '\u0A74', '\u0A85', '\u0A8D', '\u0A8F', '\u0A91', '\u0A93', '\u0AA8', '\u0AAA', '\u0AB0', '\u0AB2', '\u0AB3', '\u0AB5', '\u0AB9', '\u0ABD', '\u0ABD', '\u0AD0', '\u0AD0', '\u0AE0', '\u0AE1', '\u0AF9', '\u0AF9', '\u0B05', '\u0B0C', '\u0B0F', '\u0B10', '\u0B13', '\u0B28', '\u0B2A', '\u0B30', '\u0B32', '\u0B33', '\u0B35', '\u0B39', '\u0B3D', '\u0B3D', '\u0B5C', '\u0B5D', '\u0B5F', '\u0B61', '\u0B71', '\u0B71', '\u0B83', '\u0B83', '\u0B85', '\u0B8A', '\u0B8E', '\u0B90', '\u0B92', '\u0B95', '\u0B99', '\u0B9A', '\u0B9C', '\u0B9C', '\u0B9E', '\u0B9F', '\u0BA3', '\u0BA4', '\u0BA8', '\u0BAA', '\u0BAE', '\u0BB9', '\u0BD0', '\u0BD0', '\u0C05', '\u0C0C', '\u0C0E', '\u0C10', '\u0C12', '\u0C28', '\u0C2A', '\u0C39', '\u0C3D', '\u0C3D', '\u0C58', '\u0C5A', '\u0C5D', '\u0C5D', '\u0C60', '\u0C61', '\u0C80', '\u0C80', '\u0C85', '\u0C8C', '\u0C8E', '\u0C90', '\u0C92', '\u0CA8', '\u0CAA', '\u0CB3', '\u0CB5', '\u0CB9', '\u0CBD', '\u0CBD', '\u0CDD', '\u0CDE', '\u0CE0', '\u0CE1', '\u0CF1', '\u0CF2', '\u0D04', '\u0D0C', '\u0D0E', '\u0D10', '\u0D12', '\u0D3A', '\u0D3D', '\u0D3D', '\u0D4E', '\u0D4E', '\u0D54', '\u0D56', '\u0D5F', '\u0D61', '\u0D7A', '\u0D7F', '\u0D85', '\u0D96', '\u0D9A', '\u0DB1', '\u0DB3', '\u0DBB', '\u0DBD', '\u0DBD', '\u0DC0', '\u0DC6', '\u0E01', '\u0E30', '\u0E32', '\u0E33', '\u0E40', '\u0E46', '\u0E81', '\u0E82', '\u0E84', '\u0E84', '\u0E86', '\u0E8A', '\u0E8C', '\u0EA3', '\u0EA5', '\u0EA5', '\u0EA7', '\u0EB0', '\u0EB2', '\u0EB3', '\u0EBD', '\u0EBD', '\u0EC0', '\u0EC4', '\u0EC6', '\u0EC6', '\u0EDC', '\u0EDF', '\u0F00', '\u0F00', '\u0F40', '\u0F47', '\u0F49', '\u0F6C', '\u0F88', '\u0F8C', '\u1000', '\u102A', '\u103F', '\u103F', '\u1050', '\u1055', '\u105A', '\u105D', '\u1061', '\u1061', '\u1065', '\u1066', '\u106E', '\u1070', '\u1075', '\u1081', '\u108E', '\u108E', '\u10A0', '\u10C5', '\u10C7', '\u10C7', '\u10CD', '\u10CD', '\u10D0', '\u10FA', '\u10FC', '\u1248', '\u124A', '\u124D', '\u1250', '\u1256', '\u1258', '\u1258', '\u125A', '\u125D', '\u1260', '\u1288', '\u128A', '\u128D', '\u1290', '\u12B0', '\u12B2', '\u12B5', '\u12B8', '\u12BE', '\u12C0', '\u12C0', '\u12C2', '\u12C5', '\u12C8', '\u12D6', '\u12D8', '\u1310', '\u1312', '\u1315', '\u1318', '\u135A', '\u1380', '\u138F', '\u13A0', '\u13F5', '\u13F8', '\u13FD', '\u1401', '\u166C', '\u166F', '\u167F', '\u1681', '\u169A', '\u16A0', '\u16EA', '\u16F1', '\u16F8', '\u1700', '\u1711', '\u171F', '\u1731', '\u1740', '\u1751', '\u1760', '\u176C', '\u176E', '\u1770', '\u1780', '\u17B3', '\u17D7', '\u17D7', '\u17DC', '\u17DC', '\u1820', '\u1878', '\u1880', '\u1884', '\u1887', '\u18A8', '\u18AA', '\u18AA', '\u18B0', '\u18F5', '\u1900', '\u191E', '\u1950', '\u196D', '\u1970', '\u1974', '\u1980', '\u19AB', '\u19B0', '\u19C9', '\u1A00', '\u1A16', '\u1A20', '\u1A54', '\u1AA7', '\u1AA7', '\u1B05', '\u1B33', '\u1B45', '\u1B4C', '\u1B83', '\u1BA0', '\u1BAE', '\u1BAF', '\u1BBA', '\u1BE5', '\u1C00', '\u1C23', '\u1C4D', '\u1C4F', '\u1C5A', '\u1C7D', '\u1C80', '\u1C8A', '\u1C90', '\u1CBA', '\u1CBD', '\u1CBF', '\u1CE9', '\u1CEC', '\u1CEE', '\u1CF3', '\u1CF5', '\u1CF6', '\u1CFA', '\u1CFA', '\u1D00', '\u1DBF', '\u1E00', '\u1F15', '\u1F18', '\u1F1D', '\u1F20', '\u1F45', '\u1F48', '\u1F4D', '\u1F50', '\u1F57', '\u1F59', '\u1F59', '\u1F5B', '\u1F5B', '\u1F5D', '\u1F5D', '\u1F5F', '\u1F7D', '\u1F80', '\u1FB4', '\u1FB6', '\u1FBC', '\u1FBE', '\u1FBE', '\u1FC2', '\u1FC4', '\u1FC6', '\u1FCC', '\u1FD0', '\u1FD3', '\u1FD6', '\u1FDB', '\u1FE0', '\u1FEC', '\u1FF2', '\u1FF4', '\u1FF6', '\u1FFC', '\u2071', '\u2071', '\u207F', '\u207F', '\u2090', '\u209C', '\u2102', '\u2102', '\u2107', '\u2107', '\u210A', '\u2113', '\u2115', '\u2115', '\u2119', '\u211D', '\u2124', '\u2124', '\u2126', '\u2126', '\u2128', '\u2128', '\u212A', '\u212D', '\u212F', '\u2139', '\u213C', '\u213F', '\u2145', '\u2149', '\u214E', '\u214E', '\u2183', '\u2184', '\u2C00', '\u2CE4', '\u2CEB', '\u2CEE', '\u2CF2', '\u2CF3', '\u2D00', '\u2D25', '\u2D27', '\u2D27', '\u2D2D', '\u2D2D', '\u2D30', '\u2D67', '\u2D6F', '\u2D6F', '\u2D80', '\u2D96', '\u2DA0', '\u2DA6', '\u2DA8', '\u2DAE', '\u2DB0', '\u2DB6', '\u2DB8', '\u2DBE', '\u2DC0', '\u2DC6', '\u2DC8', '\u2DCE', '\u2DD0', '\u2DD6', '\u2DD8', '\u2DDE', '\u2E2F', '\u2E2F', '\u3005', '\u3006', '\u3031', '\u3035', '\u303B', '\u303C', '\u3041', '\u3096', '\u309D', '\u309F', '\u30A1', '\u30FA', '\u30FC', '\u30FF', '\u3105', '\u312F', '\u3131', '\u318E', '\u31A0', '\u31BF', '\u31F0', '\u31FF', '\u3400', '\u4DBF', '\u4E00', '\uA48C', '\uA4D0', '\uA4FD', '\uA500', '\uA60C', '\uA610', '\uA61F', '\uA62A', '\uA62B', '\uA640', '\uA66E', '\uA67F', '\uA69D', '\uA6A0', '\uA6E5', '\uA717', '\uA71F', '\uA722', '\uA788', '\uA78B', '\uA7CD', '\uA7D0', '\uA7D1', '\uA7D3', '\uA7D3', '\uA7D5', '\uA7DC', '\uA7F2', '\uA801', '\uA803', '\uA805', '\uA807', '\uA80A', '\uA80C', '\uA822', '\uA840', '\uA873', '\uA882', '\uA8B3', '\uA8F2', '\uA8F7', '\uA8FB', '\uA8FB', '\uA8FD', '\uA8FE', '\uA90A', '\uA925', '\uA930', '\uA946', '\uA960', '\uA97C', '\uA984', '\uA9B2', '\uA9CF', '\uA9CF', '\uA9E0', '\uA9E4', '\uA9E6', '\uA9EF', '\uA9FA', '\uA9FE', '\uAA00', '\uAA28', '\uAA40', '\uAA42', '\uAA44', '\uAA4B', '\uAA60', '\uAA76', '\uAA7A', '\uAA7A', '\uAA7E', '\uAAAF', '\uAAB1', '\uAAB1', '\uAAB5', '\uAAB6', '\uAAB9', '\uAABD', '\uAAC0', '\uAAC0', '\uAAC2', '\uAAC2', '\uAADB', '\uAADD', '\uAAE0', '\uAAEA', '\uAAF2', '\uAAF4', '\uAB01', '\uAB06', '\uAB09', '\uAB0E', '\uAB11', '\uAB16', '\uAB20', '\uAB26', '\uAB28', '\uAB2E', '\uAB30', '\uAB5A', '\uAB5C', '\uAB69', '\uAB70', '\uABE2', '\uAC00', '\uD7A3', '\uD7B0', '\uD7C6', '\uD7CB', '\uD7FB', '\uF900', '\uFA6D', '\uFA70', '\uFAD9', '\uFB00', '\uFB06', '\uFB13', '\uFB17', '\uFB1D', '\uFB1D', '\uFB1F', '\uFB28', '\uFB2A', '\uFB36', '\uFB38', '\uFB3C', '\uFB3E', '\uFB3E', '\uFB40', '\uFB41', '\uFB43', '\uFB44', '\uFB46', '\uFBB1', '\uFBD3', '\uFD3D', '\uFD50', '\uFD8F', '\uFD92', '\uFDC7', '\uFDF0', '\uFDFB', '\uFE70', '\uFE74', '\uFE76', '\uFEFC', '\uFF21', '\uFF3A', '\uFF41', '\uFF5A', '\uFF66', '\uFFBE', '\uFFC2', '\uFFC7', '\uFFCA', '\uFFCF', '\uFFD2', '\uFFD7', '\uFFDA', '\uFFDC' };
 
-		static bool Recognize_DotGram_DollarQuoted_In(char[] set, char c)
+		static bool RecognizeIn_DotGram_DollarQuoted(char[] set, char c)
 		{
 			var low  = 0;
 			var high = set.Length / 2 - 1;
@@ -4130,9 +4130,9 @@ namespace DotGram.Snapshots
 			return false;
 		}
 
-		static readonly byte[] Recognize_DotGram_DollarQuoted_Class0 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+		static readonly byte[] RecognizeClass0_DotGram_DollarQuoted = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-		static readonly byte[] Recognize_DotGram_DollarQuoted_Class1 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+		static readonly byte[] RecognizeClass1_DotGram_DollarQuoted = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
 		static bool Same_DotGram_Quoted(global::System.ReadOnlySpan<char> text, int at, int from, int to)
 		{
@@ -4142,7 +4142,7 @@ namespace DotGram.Snapshots
 				global::System.MemoryExtensions.SequenceEqual(text.Slice(at, length), text.Slice(from, length));
 		}
 
-		static int Recognize_DotGram_Heading_Sharpen0(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
+		static int RecognizeSharpen0_DotGram_Heading(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
 		{
 			if ((uint)p < (uint)text.Length && text[p] == '\r')
 			{
@@ -4162,7 +4162,7 @@ namespace DotGram.Snapshots
 			return p;
 		}
 
-		static int Recognize_DotGram_Heading_Sharpen1(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
+		static int RecognizeSharpen1_DotGram_Heading(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
 		{
 			if ((uint)p < (uint)text.Length && text[p] == '\r')
 			{
@@ -4184,7 +4184,7 @@ namespace DotGram.Snapshots
 				global::System.MemoryExtensions.SequenceEqual(text.Slice(at, length), text.Slice(from, length));
 		}
 
-		static int Recognize_DotGram_Element_Agreeing(global::System.ReadOnlySpan<char> text, int p, string value, bool fold)
+		static int RecognizeAgreeing_DotGram_Element(global::System.ReadOnlySpan<char> text, int p, string value, bool fold)
 		{
 			var i = 0;
 
@@ -4194,9 +4194,9 @@ namespace DotGram.Snapshots
 			return p + i;
 		}
 
-		static int Recognize_DotGram_Element_RanOut(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
+		static int RecognizeRanOut_DotGram_Element(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
 		{
-			var reach = Recognize_DotGram_Element_Agreeing(text, p, value, fold);
+			var reach = RecognizeAgreeing_DotGram_Element(text, p, value, fold);
 
 			if ((uint)reach >= (uint)text.Length)
 			{

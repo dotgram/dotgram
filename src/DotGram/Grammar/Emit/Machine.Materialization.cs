@@ -41,7 +41,7 @@ sealed partial class Machine
 		var helper = new Writer(0);
 
 		using (helper.Block(
-			$"static void Materialize_DotGram{_tag}({InputType} text, Parser_DotGram parser, " +
+			$"static void {Tag.Named("Materialize")}({InputType} text, Parser_DotGram parser, " +
 			$"ParserArena_DotGram entries{InputParameter}{TokensParameter}{ContextParameter}{ReadingParameter}" +
 			(Caches ? ", int materializeFrom = 0)" : ")")))
 			Materialize(helper, cached: Caches);
@@ -236,7 +236,7 @@ sealed partial class Machine
 
 						using (file.Indent())
 						{
-							file.Line($"Materialize_DotGram{_tag}_Part{part}(text, completedAt);");
+							file.Line($"{Tag.Named("MaterializePart", part)}(text, completedAt);");
 							file.Line("break;");
 						}
 					}
@@ -259,7 +259,7 @@ sealed partial class Machine
 				file.Line();
 
 				using (file.Block(
-					$"void Materialize_DotGram{_tag}_Part{part}(" +
+					$"void {Tag.Named("MaterializePart", part)}(" +
 					$"{InputType} text, int completedAt)"))
 				{
 					file.Line("var completed = entries[completedAt];");
@@ -607,7 +607,7 @@ sealed partial class Machine
 			{
 				file.Line(
 					$"{ValueInto(type, "completedAt")} = " +
-					$"Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram(" +
+					$"{CSharpEmitter.Named("Value", CSharpEmitter.IdentifierOf(rule))}(" +
 					TokenOf("completed.Position") + ");");
 				file.Line("break;");
 			}
@@ -1024,7 +1024,7 @@ sealed partial class Machine
 
 	string ConstructionPart(RuleSymbol rule, int part)
 	{
-		return $"Materialize_DotGram{_tag}_Construct{_ruleIds[rule]}_Part{part}";
+		return Tag.Named("MaterializeConstruct", $"{_ruleIds[rule]}Part{part}");
 	}
 
 	static void ChooseConstruction(Writer file)
@@ -1474,7 +1474,7 @@ sealed partial class Machine
 			}
 
 			file.Line(
-				$"if (buildFrom < entries.Count) Materialize_DotGram{_tag}(text, parser, " +
+				$"if (buildFrom < entries.Count) {Tag.Named("Materialize")}(text, parser, " +
 				$"entries{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, buildFrom);");
 		}
 
@@ -1571,7 +1571,7 @@ sealed partial class Machine
 		Debug.Assert(!_foldsSoFarWritten, "A fold's helper is named before the helpers are written.");
 
 		if (!_foldsSoFar.TryGetValue(rule, out var method))
-			_foldsSoFar[rule] = method = $"Recognize_DotGram{_tag}_FoldSoFar{_ruleIds[rule]}";
+			_foldsSoFar[rule] = method = Tag.Named("RecognizeFoldSoFar", _ruleIds[rule]);
 
 		return method;
 	}

@@ -31,12 +31,12 @@ namespace DotGram.Snapshots
 				var text    = global::System.MemoryExtensions.AsSpan(input);
 				var failure = new Failure { Quiet = true };
 
-				var end = Recognize_Tower_Whole(text, 0, ref failure, out var recognized);
+				var end = RecWhole_DotGram_Tower(text, 0, ref failure, out var recognized);
 
 				if (end < 0)
 				{
 					failure = new Failure { Unasked = true, Doors = failure.Position };
-					end     = Recognize_Tower_Whole(text, 0, ref failure, out recognized);
+					end     = RecWhole_DotGram_Tower(text, 0, ref failure, out recognized);
 				}
 
 				if (end < 0)
@@ -62,7 +62,7 @@ namespace DotGram.Snapshots
 				var text    = global::System.MemoryExtensions.AsSpan(input);
 				var failure = new Failure { Quiet = true };
 
-				var end = Recognize_Tower_Whole(text, 0, ref failure, out var recognized);
+				var end = RecWhole_DotGram_Tower(text, 0, ref failure, out var recognized);
 
 				if (end < 0)
 				{
@@ -91,12 +91,12 @@ namespace DotGram.Snapshots
 				var text    = global::System.MemoryExtensions.AsSpan(input);
 				var failure = new Failure { Quiet = true };
 
-				var end = Recognize_Tower(text, at, ref failure, out var recognized);
+				var end = Rec_DotGram_Tower(text, at, ref failure, out var recognized);
 
 				if (end < 0)
 				{
 					failure = new Failure { Unasked = true, Doors = failure.Position };
-					end     = Recognize_Tower(text, at, ref failure, out recognized);
+					end     = Rec_DotGram_Tower(text, at, ref failure, out recognized);
 				}
 
 				var began = failure.Began;
@@ -129,7 +129,7 @@ namespace DotGram.Snapshots
 				var text    = global::System.MemoryExtensions.AsSpan(input);
 				var failure = new Failure { Quiet = true };
 
-				var end = Recognize_Tower(text, at, ref failure, out var recognized);
+				var end = Rec_DotGram_Tower(text, at, ref failure, out var recognized);
 
 				if (end < 0)
 				{
@@ -161,12 +161,12 @@ namespace DotGram.Snapshots
 				var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 				var failure = new Failure { Quiet = true };
 
-				var end = Recognize_Tower(text, at, ref failure, out var recognized);
+				var end = Rec_DotGram_Tower(text, at, ref failure, out var recognized);
 
 				if (end < 0)
 				{
 					failure = new Failure { Unasked = true, Doors = failure.Position };
-					end     = Recognize_Tower(text, at, ref failure, out recognized);
+					end     = Rec_DotGram_Tower(text, at, ref failure, out recognized);
 				}
 
 				var began = failure.Began;
@@ -199,7 +199,7 @@ namespace DotGram.Snapshots
 				var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 				var failure = new Failure { Quiet = true };
 
-				var end = Recognize_Tower(text, at, ref failure, out var recognized);
+				var end = Rec_DotGram_Tower(text, at, ref failure, out var recognized);
 
 				if (end < 0)
 				{
@@ -215,192 +215,192 @@ namespace DotGram.Snapshots
 				return true;
 			}
 
-			static int Construct_Tower(int level) =>
+			static int New_DotGram_Tower(int level) =>
 #line 32 "Tower.gram"
                               (level);
 #line default
 
-			static int Construct_L01(int inner, int tail) =>
+			static int New_DotGram_L01(int inner, int tail) =>
 #line 35 "Tower.gram"
                                                                         (inner + tail);
 #line default
 
-			static int Construct_L01_1(int leaf) =>
+			static int New1_DotGram_L01(int leaf) =>
 #line 36 "Tower.gram"
                                                                         (leaf);
 #line default
 
-			static int Construct_L02(int inner, int tail) =>
+			static int New_DotGram_L02(int inner, int tail) =>
 #line 39 "Tower.gram"
                                                                         (inner + tail);
 #line default
 
-			static int Construct_L02_1(int leaf) =>
+			static int New1_DotGram_L02(int leaf) =>
 #line 40 "Tower.gram"
                                                                         (leaf);
 #line default
 
-			static int Construct_L03(int inner, int tail) =>
+			static int New_DotGram_L03(int inner, int tail) =>
 #line 43 "Tower.gram"
                                                                         (inner + tail);
 #line default
 
-			static int Construct_L03_1(int leaf) =>
+			static int New1_DotGram_L03(int leaf) =>
 #line 44 "Tower.gram"
                                                                         (leaf);
 #line default
 
-			static int Construct_L04(int inner, int tail) =>
+			static int New_DotGram_L04(int inner, int tail) =>
 #line 47 "Tower.gram"
                                                                         (inner + tail);
 #line default
 
-			static int Construct_L04_1(int leaf) =>
+			static int New1_DotGram_L04(int leaf) =>
 #line 48 "Tower.gram"
                                                                         (leaf);
 #line default
 
-			static int Construct_L05(int inner, int tail) =>
+			static int New_DotGram_L05(int inner, int tail) =>
 #line 51 "Tower.gram"
                                                                         (inner + tail);
 #line default
 
-			static int Construct_L05_1(int leaf) =>
+			static int New1_DotGram_L05(int leaf) =>
 #line 52 "Tower.gram"
                                                                         (leaf);
 #line default
 
-			static int Construct_L06(int inner, int tail) =>
+			static int New_DotGram_L06(int inner, int tail) =>
 #line 55 "Tower.gram"
                                                                         (inner + tail);
 #line default
 
-			static int Construct_L06_1(int leaf) =>
+			static int New1_DotGram_L06(int leaf) =>
 #line 56 "Tower.gram"
                                                                         (leaf);
 #line default
 
-			static int Construct_L07(int inner, int tail) =>
+			static int New_DotGram_L07(int inner, int tail) =>
 #line 59 "Tower.gram"
                                                                         (inner + tail);
 #line default
 
-			static int Construct_L07_1(int leaf) =>
+			static int New1_DotGram_L07(int leaf) =>
 #line 60 "Tower.gram"
                                                                         (leaf);
 #line default
 
-			static int Construct_L08(int inner, int tail) =>
+			static int New_DotGram_L08(int inner, int tail) =>
 #line 63 "Tower.gram"
                                                                         (inner + tail);
 #line default
 
-			static int Construct_L08_1(int leaf) =>
+			static int New1_DotGram_L08(int leaf) =>
 #line 64 "Tower.gram"
                                                                         (leaf);
 #line default
 
-			static int Construct_L09(int inner, int tail) =>
+			static int New_DotGram_L09(int inner, int tail) =>
 #line 67 "Tower.gram"
                                                                         (inner + tail);
 #line default
 
-			static int Construct_L09_1(int leaf) =>
+			static int New1_DotGram_L09(int leaf) =>
 #line 68 "Tower.gram"
                                                                         (leaf);
 #line default
 
-			static int Construct_L10(int inner, int tail) =>
+			static int New_DotGram_L10(int inner, int tail) =>
 #line 71 "Tower.gram"
                                                                         (inner + tail);
 #line default
 
-			static int Construct_L10_1(int leaf) =>
+			static int New1_DotGram_L10(int leaf) =>
 #line 72 "Tower.gram"
                                                                         (leaf);
 #line default
 
-			static int Construct_L11(int inner, int tail) =>
+			static int New_DotGram_L11(int inner, int tail) =>
 #line 75 "Tower.gram"
                                                                         (inner + tail);
 #line default
 
-			static int Construct_L11_1(int leaf) =>
+			static int New1_DotGram_L11(int leaf) =>
 #line 76 "Tower.gram"
                                                                         (leaf);
 #line default
 
-			static int Construct_L12(int inner, int tail) =>
+			static int New_DotGram_L12(int inner, int tail) =>
 #line 79 "Tower.gram"
                                                                         (inner + tail);
 #line default
 
-			static int Construct_L12_1(int leaf) =>
+			static int New1_DotGram_L12(int leaf) =>
 #line 80 "Tower.gram"
                                                                         (leaf);
 #line default
 
-			static int Construct_L13(int inner, int tail) =>
+			static int New_DotGram_L13(int inner, int tail) =>
 #line 83 "Tower.gram"
                                                                         (inner + tail);
 #line default
 
-			static int Construct_L13_1(int leaf) =>
+			static int New1_DotGram_L13(int leaf) =>
 #line 84 "Tower.gram"
                                                                         (leaf);
 #line default
 
-			static int Construct_L14(int inner, int tail) =>
+			static int New_DotGram_L14(int inner, int tail) =>
 #line 87 "Tower.gram"
                                                                         (inner + tail);
 #line default
 
-			static int Construct_L14_1(int leaf) =>
+			static int New1_DotGram_L14(int leaf) =>
 #line 88 "Tower.gram"
                                                                         (leaf);
 #line default
 
-			static int Construct_L15(int inner, int tail) =>
+			static int New_DotGram_L15(int inner, int tail) =>
 #line 91 "Tower.gram"
                                                                         (inner + tail);
 #line default
 
-			static int Construct_L15_1(int leaf) =>
+			static int New1_DotGram_L15(int leaf) =>
 #line 92 "Tower.gram"
                                                                         (leaf);
 #line default
 
-			static int Construct_L16(int inner, int tail) =>
+			static int New_DotGram_L16(int inner, int tail) =>
 #line 95 "Tower.gram"
                                                                         (inner + tail);
 #line default
 
-			static int Construct_L16_1(int leaf) =>
+			static int New1_DotGram_L16(int leaf) =>
 #line 96 "Tower.gram"
                                                                         (leaf);
 #line default
 
-			static int Construct_L17(int inner, int tail) =>
+			static int New_DotGram_L17(int inner, int tail) =>
 #line 99 "Tower.gram"
                                                                         (inner + tail);
 #line default
 
-			static int Construct_L17_1(int leaf) =>
+			static int New1_DotGram_L17(int leaf) =>
 #line 100 "Tower.gram"
                                                                         (leaf);
 #line default
 
-			static int Construct_L18(int inner, int tail) =>
+			static int New_DotGram_L18(int inner, int tail) =>
 #line 103 "Tower.gram"
                                                                            (inner + tail);
 #line default
 
-			static int Construct_L18_1(int leaf) =>
+			static int New1_DotGram_L18(int leaf) =>
 #line 104 "Tower.gram"
                                                                            (leaf);
 #line default
 
-			static int Construct_Digits(string text) =>
+			static int New_DotGram_Digits(string text) =>
 #line 106 "Tower.gram"
                                       (int.Parse(text));
 #line default
@@ -456,9 +456,9 @@ namespace DotGram.Snapshots
 								p = q1;
 								r0 = ways.Last;
 								var g0At = r0;
-								if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
+								if (!(g0At < 0)) MaterializeDirect_DotGram(ways, text, values, g0At, lm);
 								int g0 = (int)values.V0[g0At].Value!;
-								if (!Recognize_DotGram_Guard36(g0))
+								if (!RecognizeGuard36_DotGram(g0))
 								{
 									Refused_DotGram(ref failure, p, null);
 									return -1;
@@ -513,14 +513,14 @@ namespace DotGram.Snapshots
 				public int Read_trivia(int pos)
 				{
 					var p = pos;
-					var q0 = Read_trivia_Part0(p);
+					var q0 = ReadPart0_trivia(p);
 					if (q0 < 0)
 						return -1;
 					p = q0;
 					return p;
 				}
 
-				public int Read_trivia_Part0(int pos)
+				public int ReadPart0_trivia(int pos)
 				{
 					var p = pos;
 					var c = '\0';
@@ -567,9 +567,9 @@ namespace DotGram.Snapshots
 								p = q1;
 								r0 = ways.Last;
 								var g0At = r0;
-								if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
+								if (!(g0At < 0)) MaterializeDirect_DotGram(ways, text, values, g0At, lm);
 								int g0 = (int)values.V0[g0At].Value!;
-								if (!Recognize_DotGram_Guard37(g0))
+								if (!RecognizeGuard37_DotGram(g0))
 								{
 									Refused_DotGram(ref failure, p, null);
 									return -1;
@@ -648,9 +648,9 @@ namespace DotGram.Snapshots
 								p = q1;
 								r0 = ways.Last;
 								var g0At = r0;
-								if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
+								if (!(g0At < 0)) MaterializeDirect_DotGram(ways, text, values, g0At, lm);
 								int g0 = (int)values.V0[g0At].Value!;
-								if (!Recognize_DotGram_Guard38(g0))
+								if (!RecognizeGuard38_DotGram(g0))
 								{
 									Refused_DotGram(ref failure, p, null);
 									return -1;
@@ -729,9 +729,9 @@ namespace DotGram.Snapshots
 								p = q1;
 								r0 = ways.Last;
 								var g0At = r0;
-								if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
+								if (!(g0At < 0)) MaterializeDirect_DotGram(ways, text, values, g0At, lm);
 								int g0 = (int)values.V0[g0At].Value!;
-								if (!Recognize_DotGram_Guard39(g0))
+								if (!RecognizeGuard39_DotGram(g0))
 								{
 									Refused_DotGram(ref failure, p, null);
 									return -1;
@@ -810,9 +810,9 @@ namespace DotGram.Snapshots
 								p = q1;
 								r0 = ways.Last;
 								var g0At = r0;
-								if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
+								if (!(g0At < 0)) MaterializeDirect_DotGram(ways, text, values, g0At, lm);
 								int g0 = (int)values.V0[g0At].Value!;
-								if (!Recognize_DotGram_Guard40(g0))
+								if (!RecognizeGuard40_DotGram(g0))
 								{
 									Refused_DotGram(ref failure, p, null);
 									return -1;
@@ -891,9 +891,9 @@ namespace DotGram.Snapshots
 								p = q1;
 								r0 = ways.Last;
 								var g0At = r0;
-								if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
+								if (!(g0At < 0)) MaterializeDirect_DotGram(ways, text, values, g0At, lm);
 								int g0 = (int)values.V0[g0At].Value!;
-								if (!Recognize_DotGram_Guard41(g0))
+								if (!RecognizeGuard41_DotGram(g0))
 								{
 									Refused_DotGram(ref failure, p, null);
 									return -1;
@@ -972,9 +972,9 @@ namespace DotGram.Snapshots
 								p = q1;
 								r0 = ways.Last;
 								var g0At = r0;
-								if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
+								if (!(g0At < 0)) MaterializeDirect_DotGram(ways, text, values, g0At, lm);
 								int g0 = (int)values.V0[g0At].Value!;
-								if (!Recognize_DotGram_Guard42(g0))
+								if (!RecognizeGuard42_DotGram(g0))
 								{
 									Refused_DotGram(ref failure, p, null);
 									return -1;
@@ -1053,9 +1053,9 @@ namespace DotGram.Snapshots
 								p = q1;
 								r0 = ways.Last;
 								var g0At = r0;
-								if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
+								if (!(g0At < 0)) MaterializeDirect_DotGram(ways, text, values, g0At, lm);
 								int g0 = (int)values.V0[g0At].Value!;
-								if (!Recognize_DotGram_Guard43(g0))
+								if (!RecognizeGuard43_DotGram(g0))
 								{
 									Refused_DotGram(ref failure, p, null);
 									return -1;
@@ -1134,9 +1134,9 @@ namespace DotGram.Snapshots
 								p = q1;
 								r0 = ways.Last;
 								var g0At = r0;
-								if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
+								if (!(g0At < 0)) MaterializeDirect_DotGram(ways, text, values, g0At, lm);
 								int g0 = (int)values.V0[g0At].Value!;
-								if (!Recognize_DotGram_Guard44(g0))
+								if (!RecognizeGuard44_DotGram(g0))
 								{
 									Refused_DotGram(ref failure, p, null);
 									return -1;
@@ -1215,9 +1215,9 @@ namespace DotGram.Snapshots
 								p = q1;
 								r0 = ways.Last;
 								var g0At = r0;
-								if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
+								if (!(g0At < 0)) MaterializeDirect_DotGram(ways, text, values, g0At, lm);
 								int g0 = (int)values.V0[g0At].Value!;
-								if (!Recognize_DotGram_Guard45(g0))
+								if (!RecognizeGuard45_DotGram(g0))
 								{
 									Refused_DotGram(ref failure, p, null);
 									return -1;
@@ -1296,9 +1296,9 @@ namespace DotGram.Snapshots
 								p = q1;
 								r0 = ways.Last;
 								var g0At = r0;
-								if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
+								if (!(g0At < 0)) MaterializeDirect_DotGram(ways, text, values, g0At, lm);
 								int g0 = (int)values.V0[g0At].Value!;
-								if (!Recognize_DotGram_Guard46(g0))
+								if (!RecognizeGuard46_DotGram(g0))
 								{
 									Refused_DotGram(ref failure, p, null);
 									return -1;
@@ -1377,9 +1377,9 @@ namespace DotGram.Snapshots
 								p = q1;
 								r0 = ways.Last;
 								var g0At = r0;
-								if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
+								if (!(g0At < 0)) MaterializeDirect_DotGram(ways, text, values, g0At, lm);
 								int g0 = (int)values.V0[g0At].Value!;
-								if (!Recognize_DotGram_Guard47(g0))
+								if (!RecognizeGuard47_DotGram(g0))
 								{
 									Refused_DotGram(ref failure, p, null);
 									return -1;
@@ -1458,9 +1458,9 @@ namespace DotGram.Snapshots
 								p = q1;
 								r0 = ways.Last;
 								var g0At = r0;
-								if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
+								if (!(g0At < 0)) MaterializeDirect_DotGram(ways, text, values, g0At, lm);
 								int g0 = (int)values.V0[g0At].Value!;
-								if (!Recognize_DotGram_Guard48(g0))
+								if (!RecognizeGuard48_DotGram(g0))
 								{
 									Refused_DotGram(ref failure, p, null);
 									return -1;
@@ -1539,9 +1539,9 @@ namespace DotGram.Snapshots
 								p = q1;
 								r0 = ways.Last;
 								var g0At = r0;
-								if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
+								if (!(g0At < 0)) MaterializeDirect_DotGram(ways, text, values, g0At, lm);
 								int g0 = (int)values.V0[g0At].Value!;
-								if (!Recognize_DotGram_Guard49(g0))
+								if (!RecognizeGuard49_DotGram(g0))
 								{
 									Refused_DotGram(ref failure, p, null);
 									return -1;
@@ -1620,9 +1620,9 @@ namespace DotGram.Snapshots
 								p = q1;
 								r0 = ways.Last;
 								var g0At = r0;
-								if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
+								if (!(g0At < 0)) MaterializeDirect_DotGram(ways, text, values, g0At, lm);
 								int g0 = (int)values.V0[g0At].Value!;
-								if (!Recognize_DotGram_Guard50(g0))
+								if (!RecognizeGuard50_DotGram(g0))
 								{
 									Refused_DotGram(ref failure, p, null);
 									return -1;
@@ -1701,9 +1701,9 @@ namespace DotGram.Snapshots
 								p = q1;
 								r0 = ways.Last;
 								var g0At = r0;
-								if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
+								if (!(g0At < 0)) MaterializeDirect_DotGram(ways, text, values, g0At, lm);
 								int g0 = (int)values.V0[g0At].Value!;
-								if (!Recognize_DotGram_Guard51(g0))
+								if (!RecognizeGuard51_DotGram(g0))
 								{
 									Refused_DotGram(ref failure, p, null);
 									return -1;
@@ -1782,9 +1782,9 @@ namespace DotGram.Snapshots
 								p = q1;
 								r0 = ways.Last;
 								var g0At = r0;
-								if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
+								if (!(g0At < 0)) MaterializeDirect_DotGram(ways, text, values, g0At, lm);
 								int g0 = (int)values.V0[g0At].Value!;
-								if (!Recognize_DotGram_Guard52(g0))
+								if (!RecognizeGuard52_DotGram(g0))
 								{
 									Refused_DotGram(ref failure, p, null);
 									return -1;
@@ -1863,9 +1863,9 @@ namespace DotGram.Snapshots
 								p = q1;
 								r0 = ways.Last;
 								var g0At = r0;
-								if (!(g0At < 0)) Materialize_DotGram_Direct(ways, text, values, g0At, lm);
+								if (!(g0At < 0)) MaterializeDirect_DotGram(ways, text, values, g0At, lm);
 								int g0 = (int)values.V0[g0At].Value!;
-								if (!Recognize_DotGram_Guard53(g0))
+								if (!RecognizeGuard53_DotGram(g0))
 								{
 									Refused_DotGram(ref failure, p, null);
 									return -1;
@@ -1952,7 +1952,7 @@ namespace DotGram.Snapshots
 					return p;
 				}
 
-				public int Recognize_Tower_Whole_Read(int pos)
+				public int RecWholeRead_Tower(int pos)
 				{
 					var p = pos;
 					var q0 = Read_trivia(p);
@@ -1972,7 +1972,7 @@ namespace DotGram.Snapshots
 					return p;
 				}
 
-				public int Recognize_Tower_Read(int pos)
+				public int RecRead_Tower(int pos)
 				{
 					var p = pos;
 					var q0 = Read_trivia(p);
@@ -1987,7 +1987,7 @@ namespace DotGram.Snapshots
 
 			}
 
-			static int Recognize_Tower_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value)
+			static int RecWhole_DotGram_Tower(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value)
 			{
 				var ways = Ways_DotGram.Rent();
 				var values = DirectValues_DotGram.Rent();
@@ -1998,7 +1998,7 @@ namespace DotGram.Snapshots
 
 					reader.failure = failure;
 
-					var end = reader.Recognize_Tower_Whole_Read(pos);
+					var end = reader.RecWholeRead_Tower(pos);
 
 					failure = reader.failure;
 
@@ -2009,7 +2009,7 @@ namespace DotGram.Snapshots
 						return end;
 					}
 
-					Materialize_DotGram_Direct(ways, text, values, ways.Last, default);
+					MaterializeDirect_DotGram(ways, text, values, ways.Last, default);
 					value = values.V0[ways.Last].Value;
 
 					return end;
@@ -2021,7 +2021,7 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			static int Recognize_Tower(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value)
+			static int Rec_DotGram_Tower(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value)
 			{
 				var ways = Ways_DotGram.Rent();
 				var values = DirectValues_DotGram.Rent();
@@ -2032,7 +2032,7 @@ namespace DotGram.Snapshots
 
 					reader.failure = failure;
 
-					var end = reader.Recognize_Tower_Read(pos);
+					var end = reader.RecRead_Tower(pos);
 
 					failure = reader.failure;
 
@@ -2043,7 +2043,7 @@ namespace DotGram.Snapshots
 						return end;
 					}
 
-					Materialize_DotGram_Direct(ways, text, values, ways.Last, default);
+					MaterializeDirect_DotGram(ways, text, values, ways.Last, default);
 					value = values.V0[ways.Last].Value;
 
 					return end;
@@ -2055,7 +2055,7 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			static void Materialize_DotGram_Direct(Ways_DotGram ways, global::System.ReadOnlySpan<char> text, DirectValues_DotGram values, int root, Ways_DotGram.Snapshot since, int roots = -1, long rootSlots = 0)
+			static void MaterializeDirect_DotGram(Ways_DotGram ways, global::System.ReadOnlySpan<char> text, DirectValues_DotGram values, int root, Ways_DotGram.Snapshot since, int roots = -1, long rootSlots = 0)
 			{
 				var from  = since.LogCount;
 				var first = since.Records;
@@ -2101,43 +2101,43 @@ namespace DotGram.Snapshots
 					switch (log[at + 1])
 					{
 						case 0:
-							Materialize_DotGram_Direct_Arm0(read, slot, values, log); break;
+							MaterializeDirectArm0_DotGram(read, slot, values, log); break;
 						case 1:
-							Materialize_DotGram_Direct_Arm1(read, slot, values, log); break;
+							MaterializeDirectArm1_DotGram(read, slot, values, log); break;
 						case 2:
-							Materialize_DotGram_Direct_Arm2(read, slot, values, log); break;
+							MaterializeDirectArm2_DotGram(read, slot, values, log); break;
 						case 3:
-							Materialize_DotGram_Direct_Arm3(read, slot, values, log); break;
+							MaterializeDirectArm3_DotGram(read, slot, values, log); break;
 						case 4:
-							Materialize_DotGram_Direct_Arm4(read, slot, values, log); break;
+							MaterializeDirectArm4_DotGram(read, slot, values, log); break;
 						case 5:
-							Materialize_DotGram_Direct_Arm5(read, slot, values, log); break;
+							MaterializeDirectArm5_DotGram(read, slot, values, log); break;
 						case 6:
-							Materialize_DotGram_Direct_Arm6(read, slot, values, log); break;
+							MaterializeDirectArm6_DotGram(read, slot, values, log); break;
 						case 7:
-							Materialize_DotGram_Direct_Arm7(read, slot, values, log); break;
+							MaterializeDirectArm7_DotGram(read, slot, values, log); break;
 						case 8:
-							Materialize_DotGram_Direct_Arm8(read, slot, values, log); break;
+							MaterializeDirectArm8_DotGram(read, slot, values, log); break;
 						case 9:
-							Materialize_DotGram_Direct_Arm9(read, slot, values, log); break;
+							MaterializeDirectArm9_DotGram(read, slot, values, log); break;
 						case 10:
-							Materialize_DotGram_Direct_Arm10(read, slot, values, log); break;
+							MaterializeDirectArm10_DotGram(read, slot, values, log); break;
 						case 11:
-							Materialize_DotGram_Direct_Arm11(read, slot, values, log); break;
+							MaterializeDirectArm11_DotGram(read, slot, values, log); break;
 						case 12:
-							Materialize_DotGram_Direct_Arm12(read, slot, values, log); break;
+							MaterializeDirectArm12_DotGram(read, slot, values, log); break;
 						case 13:
-							Materialize_DotGram_Direct_Arm13(read, slot, values, log); break;
+							MaterializeDirectArm13_DotGram(read, slot, values, log); break;
 						case 14:
-							Materialize_DotGram_Direct_Arm14(read, slot, values, log); break;
+							MaterializeDirectArm14_DotGram(read, slot, values, log); break;
 						case 15:
-							Materialize_DotGram_Direct_Arm15(read, slot, values, log); break;
+							MaterializeDirectArm15_DotGram(read, slot, values, log); break;
 						case 16:
-							Materialize_DotGram_Direct_Arm16(read, slot, values, log); break;
+							MaterializeDirectArm16_DotGram(read, slot, values, log); break;
 						case 17:
-							Materialize_DotGram_Direct_Arm17(read, slot, values, log); break;
+							MaterializeDirectArm17_DotGram(read, slot, values, log); break;
 						case 18:
-							Materialize_DotGram_Direct_Arm18(text, read, slot, values, log); break;
+							MaterializeDirectArm18_DotGram(text, read, slot, values, log); break;
 					}
 
 					ways.Built = ways.Records;
@@ -2444,50 +2444,50 @@ namespace DotGram.Snapshots
 					switch (log[at + 1])
 					{
 						case 0:
-							Materialize_DotGram_Direct_Arm0(read, slot, values, log); break;
+							MaterializeDirectArm0_DotGram(read, slot, values, log); break;
 						case 1:
-							Materialize_DotGram_Direct_Arm1(read, slot, values, log); break;
+							MaterializeDirectArm1_DotGram(read, slot, values, log); break;
 						case 2:
-							Materialize_DotGram_Direct_Arm2(read, slot, values, log); break;
+							MaterializeDirectArm2_DotGram(read, slot, values, log); break;
 						case 3:
-							Materialize_DotGram_Direct_Arm3(read, slot, values, log); break;
+							MaterializeDirectArm3_DotGram(read, slot, values, log); break;
 						case 4:
-							Materialize_DotGram_Direct_Arm4(read, slot, values, log); break;
+							MaterializeDirectArm4_DotGram(read, slot, values, log); break;
 						case 5:
-							Materialize_DotGram_Direct_Arm5(read, slot, values, log); break;
+							MaterializeDirectArm5_DotGram(read, slot, values, log); break;
 						case 6:
-							Materialize_DotGram_Direct_Arm6(read, slot, values, log); break;
+							MaterializeDirectArm6_DotGram(read, slot, values, log); break;
 						case 7:
-							Materialize_DotGram_Direct_Arm7(read, slot, values, log); break;
+							MaterializeDirectArm7_DotGram(read, slot, values, log); break;
 						case 8:
-							Materialize_DotGram_Direct_Arm8(read, slot, values, log); break;
+							MaterializeDirectArm8_DotGram(read, slot, values, log); break;
 						case 9:
-							Materialize_DotGram_Direct_Arm9(read, slot, values, log); break;
+							MaterializeDirectArm9_DotGram(read, slot, values, log); break;
 						case 10:
-							Materialize_DotGram_Direct_Arm10(read, slot, values, log); break;
+							MaterializeDirectArm10_DotGram(read, slot, values, log); break;
 						case 11:
-							Materialize_DotGram_Direct_Arm11(read, slot, values, log); break;
+							MaterializeDirectArm11_DotGram(read, slot, values, log); break;
 						case 12:
-							Materialize_DotGram_Direct_Arm12(read, slot, values, log); break;
+							MaterializeDirectArm12_DotGram(read, slot, values, log); break;
 						case 13:
-							Materialize_DotGram_Direct_Arm13(read, slot, values, log); break;
+							MaterializeDirectArm13_DotGram(read, slot, values, log); break;
 						case 14:
-							Materialize_DotGram_Direct_Arm14(read, slot, values, log); break;
+							MaterializeDirectArm14_DotGram(read, slot, values, log); break;
 						case 15:
-							Materialize_DotGram_Direct_Arm15(read, slot, values, log); break;
+							MaterializeDirectArm15_DotGram(read, slot, values, log); break;
 						case 16:
-							Materialize_DotGram_Direct_Arm16(read, slot, values, log); break;
+							MaterializeDirectArm16_DotGram(read, slot, values, log); break;
 						case 17:
-							Materialize_DotGram_Direct_Arm17(read, slot, values, log); break;
+							MaterializeDirectArm17_DotGram(read, slot, values, log); break;
 						case 18:
-							Materialize_DotGram_Direct_Arm18(text, read, slot, values, log); break;
+							MaterializeDirectArm18_DotGram(text, read, slot, values, log); break;
 					}
 				}
 
 				ways.Built = ways.Records;
 			}
 
-			static void Materialize_DotGram_Direct_Arm0(int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm0_DotGram(int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var record0 = log[read++];
@@ -2496,10 +2496,10 @@ namespace DotGram.Snapshots
 				var record1 = log[read++];
 				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L01((int)captured0!, (int)captured1!);
+				values0[slot].Value = New_DotGram_L01((int)captured0!, (int)captured1!);
 			}
 
-			static void Materialize_DotGram_Direct_Arm1(int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm1_DotGram(int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var record0 = log[read++];
@@ -2508,10 +2508,10 @@ namespace DotGram.Snapshots
 				var record1 = log[read++];
 				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L02((int)captured0!, (int)captured1!);
+				values0[slot].Value = New_DotGram_L02((int)captured0!, (int)captured1!);
 			}
 
-			static void Materialize_DotGram_Direct_Arm2(int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm2_DotGram(int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var record0 = log[read++];
@@ -2520,10 +2520,10 @@ namespace DotGram.Snapshots
 				var record1 = log[read++];
 				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L03((int)captured0!, (int)captured1!);
+				values0[slot].Value = New_DotGram_L03((int)captured0!, (int)captured1!);
 			}
 
-			static void Materialize_DotGram_Direct_Arm3(int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm3_DotGram(int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var record0 = log[read++];
@@ -2532,10 +2532,10 @@ namespace DotGram.Snapshots
 				var record1 = log[read++];
 				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L04((int)captured0!, (int)captured1!);
+				values0[slot].Value = New_DotGram_L04((int)captured0!, (int)captured1!);
 			}
 
-			static void Materialize_DotGram_Direct_Arm4(int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm4_DotGram(int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var record0 = log[read++];
@@ -2544,10 +2544,10 @@ namespace DotGram.Snapshots
 				var record1 = log[read++];
 				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L05((int)captured0!, (int)captured1!);
+				values0[slot].Value = New_DotGram_L05((int)captured0!, (int)captured1!);
 			}
 
-			static void Materialize_DotGram_Direct_Arm5(int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm5_DotGram(int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var record0 = log[read++];
@@ -2556,10 +2556,10 @@ namespace DotGram.Snapshots
 				var record1 = log[read++];
 				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L06((int)captured0!, (int)captured1!);
+				values0[slot].Value = New_DotGram_L06((int)captured0!, (int)captured1!);
 			}
 
-			static void Materialize_DotGram_Direct_Arm6(int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm6_DotGram(int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var record0 = log[read++];
@@ -2568,10 +2568,10 @@ namespace DotGram.Snapshots
 				var record1 = log[read++];
 				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L07((int)captured0!, (int)captured1!);
+				values0[slot].Value = New_DotGram_L07((int)captured0!, (int)captured1!);
 			}
 
-			static void Materialize_DotGram_Direct_Arm7(int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm7_DotGram(int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var record0 = log[read++];
@@ -2580,10 +2580,10 @@ namespace DotGram.Snapshots
 				var record1 = log[read++];
 				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L08((int)captured0!, (int)captured1!);
+				values0[slot].Value = New_DotGram_L08((int)captured0!, (int)captured1!);
 			}
 
-			static void Materialize_DotGram_Direct_Arm8(int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm8_DotGram(int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var record0 = log[read++];
@@ -2592,10 +2592,10 @@ namespace DotGram.Snapshots
 				var record1 = log[read++];
 				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L09((int)captured0!, (int)captured1!);
+				values0[slot].Value = New_DotGram_L09((int)captured0!, (int)captured1!);
 			}
 
-			static void Materialize_DotGram_Direct_Arm9(int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm9_DotGram(int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var record0 = log[read++];
@@ -2604,10 +2604,10 @@ namespace DotGram.Snapshots
 				var record1 = log[read++];
 				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L10((int)captured0!, (int)captured1!);
+				values0[slot].Value = New_DotGram_L10((int)captured0!, (int)captured1!);
 			}
 
-			static void Materialize_DotGram_Direct_Arm10(int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm10_DotGram(int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var record0 = log[read++];
@@ -2616,10 +2616,10 @@ namespace DotGram.Snapshots
 				var record1 = log[read++];
 				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L11((int)captured0!, (int)captured1!);
+				values0[slot].Value = New_DotGram_L11((int)captured0!, (int)captured1!);
 			}
 
-			static void Materialize_DotGram_Direct_Arm11(int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm11_DotGram(int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var record0 = log[read++];
@@ -2628,10 +2628,10 @@ namespace DotGram.Snapshots
 				var record1 = log[read++];
 				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L12((int)captured0!, (int)captured1!);
+				values0[slot].Value = New_DotGram_L12((int)captured0!, (int)captured1!);
 			}
 
-			static void Materialize_DotGram_Direct_Arm12(int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm12_DotGram(int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var record0 = log[read++];
@@ -2640,10 +2640,10 @@ namespace DotGram.Snapshots
 				var record1 = log[read++];
 				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L13((int)captured0!, (int)captured1!);
+				values0[slot].Value = New_DotGram_L13((int)captured0!, (int)captured1!);
 			}
 
-			static void Materialize_DotGram_Direct_Arm13(int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm13_DotGram(int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var record0 = log[read++];
@@ -2652,10 +2652,10 @@ namespace DotGram.Snapshots
 				var record1 = log[read++];
 				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L14((int)captured0!, (int)captured1!);
+				values0[slot].Value = New_DotGram_L14((int)captured0!, (int)captured1!);
 			}
 
-			static void Materialize_DotGram_Direct_Arm14(int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm14_DotGram(int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var record0 = log[read++];
@@ -2664,10 +2664,10 @@ namespace DotGram.Snapshots
 				var record1 = log[read++];
 				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L15((int)captured0!, (int)captured1!);
+				values0[slot].Value = New_DotGram_L15((int)captured0!, (int)captured1!);
 			}
 
-			static void Materialize_DotGram_Direct_Arm15(int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm15_DotGram(int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var record0 = log[read++];
@@ -2676,10 +2676,10 @@ namespace DotGram.Snapshots
 				var record1 = log[read++];
 				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L16((int)captured0!, (int)captured1!);
+				values0[slot].Value = New_DotGram_L16((int)captured0!, (int)captured1!);
 			}
 
-			static void Materialize_DotGram_Direct_Arm16(int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm16_DotGram(int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var record0 = log[read++];
@@ -2688,10 +2688,10 @@ namespace DotGram.Snapshots
 				var record1 = log[read++];
 				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L17((int)captured0!, (int)captured1!);
+				values0[slot].Value = New_DotGram_L17((int)captured0!, (int)captured1!);
 			}
 
-			static void Materialize_DotGram_Direct_Arm17(int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm17_DotGram(int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var record0 = log[read++];
@@ -2700,285 +2700,285 @@ namespace DotGram.Snapshots
 				var record1 = log[read++];
 				int? captured1 = record1 < 0 ? default(int?) : values0[record1].Value;
 
-				values0[slot].Value = Construct_L18((int)captured0!, (int)captured1!);
+				values0[slot].Value = New_DotGram_L18((int)captured0!, (int)captured1!);
 			}
 
-			static void Materialize_DotGram_Direct_Arm18(global::System.ReadOnlySpan<char> text, int read, int slot, DirectValues_DotGram values, int[] log)
+			static void MaterializeDirectArm18_DotGram(global::System.ReadOnlySpan<char> text, int read, int slot, DirectValues_DotGram values, int[] log)
 			{
 				var values0 = values.V0;
 				var from0 = log[read++];
 				var to0   = log[read++];
 				var captured0 = from0 < 0 ? string.Empty : text.Slice(from0, to0 - from0).ToString();
 
-				values0[slot].Value = Construct_Digits(captured0!);
+				values0[slot].Value = New_DotGram_Digits(captured0!);
 			}
 
-			static bool Recognize_DotGram_Guard0(int inner) =>
+			static bool RecognizeGuard0_DotGram(int inner) =>
 #line 35 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard1(int inner) =>
+			static bool RecognizeGuard1_DotGram(int inner) =>
 #line 39 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard2(int inner) =>
+			static bool RecognizeGuard2_DotGram(int inner) =>
 #line 43 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard3(int inner) =>
+			static bool RecognizeGuard3_DotGram(int inner) =>
 #line 47 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard4(int inner) =>
+			static bool RecognizeGuard4_DotGram(int inner) =>
 #line 51 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard5(int inner) =>
+			static bool RecognizeGuard5_DotGram(int inner) =>
 #line 55 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard6(int inner) =>
+			static bool RecognizeGuard6_DotGram(int inner) =>
 #line 59 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard7(int inner) =>
+			static bool RecognizeGuard7_DotGram(int inner) =>
 #line 63 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard8(int inner) =>
+			static bool RecognizeGuard8_DotGram(int inner) =>
 #line 67 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard9(int inner) =>
+			static bool RecognizeGuard9_DotGram(int inner) =>
 #line 71 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard10(int inner) =>
+			static bool RecognizeGuard10_DotGram(int inner) =>
 #line 75 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard11(int inner) =>
+			static bool RecognizeGuard11_DotGram(int inner) =>
 #line 79 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard12(int inner) =>
+			static bool RecognizeGuard12_DotGram(int inner) =>
 #line 83 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard13(int inner) =>
+			static bool RecognizeGuard13_DotGram(int inner) =>
 #line 87 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard14(int inner) =>
+			static bool RecognizeGuard14_DotGram(int inner) =>
 #line 91 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard15(int inner) =>
+			static bool RecognizeGuard15_DotGram(int inner) =>
 #line 95 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard16(int inner) =>
+			static bool RecognizeGuard16_DotGram(int inner) =>
 #line 99 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard17(int inner) =>
+			static bool RecognizeGuard17_DotGram(int inner) =>
 #line 103 "Tower.gram"
                                (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard18(int inner) =>
+			static bool RecognizeGuard18_DotGram(int inner) =>
 #line 35 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard19(int inner) =>
+			static bool RecognizeGuard19_DotGram(int inner) =>
 #line 39 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard20(int inner) =>
+			static bool RecognizeGuard20_DotGram(int inner) =>
 #line 43 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard21(int inner) =>
+			static bool RecognizeGuard21_DotGram(int inner) =>
 #line 47 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard22(int inner) =>
+			static bool RecognizeGuard22_DotGram(int inner) =>
 #line 51 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard23(int inner) =>
+			static bool RecognizeGuard23_DotGram(int inner) =>
 #line 55 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard24(int inner) =>
+			static bool RecognizeGuard24_DotGram(int inner) =>
 #line 59 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard25(int inner) =>
+			static bool RecognizeGuard25_DotGram(int inner) =>
 #line 63 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard26(int inner) =>
+			static bool RecognizeGuard26_DotGram(int inner) =>
 #line 67 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard27(int inner) =>
+			static bool RecognizeGuard27_DotGram(int inner) =>
 #line 71 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard28(int inner) =>
+			static bool RecognizeGuard28_DotGram(int inner) =>
 #line 75 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard29(int inner) =>
+			static bool RecognizeGuard29_DotGram(int inner) =>
 #line 79 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard30(int inner) =>
+			static bool RecognizeGuard30_DotGram(int inner) =>
 #line 83 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard31(int inner) =>
+			static bool RecognizeGuard31_DotGram(int inner) =>
 #line 87 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard32(int inner) =>
+			static bool RecognizeGuard32_DotGram(int inner) =>
 #line 91 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard33(int inner) =>
+			static bool RecognizeGuard33_DotGram(int inner) =>
 #line 95 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard34(int inner) =>
+			static bool RecognizeGuard34_DotGram(int inner) =>
 #line 99 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard35(int inner) =>
+			static bool RecognizeGuard35_DotGram(int inner) =>
 #line 103 "Tower.gram"
                                (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard36(int inner) =>
+			static bool RecognizeGuard36_DotGram(int inner) =>
 #line 35 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard37(int inner) =>
+			static bool RecognizeGuard37_DotGram(int inner) =>
 #line 39 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard38(int inner) =>
+			static bool RecognizeGuard38_DotGram(int inner) =>
 #line 43 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard39(int inner) =>
+			static bool RecognizeGuard39_DotGram(int inner) =>
 #line 47 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard40(int inner) =>
+			static bool RecognizeGuard40_DotGram(int inner) =>
 #line 51 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard41(int inner) =>
+			static bool RecognizeGuard41_DotGram(int inner) =>
 #line 55 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard42(int inner) =>
+			static bool RecognizeGuard42_DotGram(int inner) =>
 #line 59 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard43(int inner) =>
+			static bool RecognizeGuard43_DotGram(int inner) =>
 #line 63 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard44(int inner) =>
+			static bool RecognizeGuard44_DotGram(int inner) =>
 #line 67 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard45(int inner) =>
+			static bool RecognizeGuard45_DotGram(int inner) =>
 #line 71 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard46(int inner) =>
+			static bool RecognizeGuard46_DotGram(int inner) =>
 #line 75 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard47(int inner) =>
+			static bool RecognizeGuard47_DotGram(int inner) =>
 #line 79 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard48(int inner) =>
+			static bool RecognizeGuard48_DotGram(int inner) =>
 #line 83 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard49(int inner) =>
+			static bool RecognizeGuard49_DotGram(int inner) =>
 #line 87 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard50(int inner) =>
+			static bool RecognizeGuard50_DotGram(int inner) =>
 #line 91 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard51(int inner) =>
+			static bool RecognizeGuard51_DotGram(int inner) =>
 #line 95 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard52(int inner) =>
+			static bool RecognizeGuard52_DotGram(int inner) =>
 #line 99 "Tower.gram"
                             (inner >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard53(int inner) =>
+			static bool RecognizeGuard53_DotGram(int inner) =>
 #line 103 "Tower.gram"
                                (inner >= 0);
 #line default

@@ -661,10 +661,13 @@ sealed partial class Machine
 		return order;
 	}
 
-	/// <summary>The method a rule is read by, tagged like everything else this machine writes.</summary>
+	/// <summary>
+	/// The method a rule is read by. Not tagged: it is declared in this machine's own reader, whose name
+	/// is, and nothing outside that class calls it.
+	/// </summary>
 	string ReaderOf(RuleSymbol rule)
 	{
-		return "Read_" + CSharpEmitter.IdentifierOf(rule) + _tag;
+		return CSharpEmitter.Inner("Read", CSharpEmitter.IdentifierOf(rule));
 	}
 
 	/// <summary>

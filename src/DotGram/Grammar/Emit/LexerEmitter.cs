@@ -130,13 +130,13 @@ public static class LexerEmitter
 			return;
 
 		foreach (var (bits, at) in Low.Select((one, at) => (one, at)))
-			text.Line($"static readonly ulong[] Scan{tag}_Low{at} = {{ {bits} }};");
+			text.Line($"static readonly ulong[] Lex_DotGram{tag}_Low{at} = {{ {bits} }};");
 
 		foreach (var (bounds, at) in Edges.Select((one, at) => (one, at)))
 			text.Line(
 				bounds.Length == 0
-					? $"static readonly char[] Scan{tag}_Bounds{at} = new char[0];"
-					: $"static readonly char[] Scan{tag}_Bounds{at} = {{ {bounds} }};");
+					? $"static readonly char[] Lex_DotGram{tag}_Bounds{at} = new char[0];"
+					: $"static readonly char[] Lex_DotGram{tag}_Bounds{at} = {{ {bounds} }};");
 
 		text.Line();
 
@@ -149,7 +149,7 @@ public static class LexerEmitter
 			text.Line("/// which a search answers in a handful of steps. This is what a set too small to");
 			text.Line("/// be worth eight kilobytes of bitmap costs instead.");
 			text.Line("/// </remarks>");
-			text.Line($"static bool Scan{tag}_Between(char c, char[] bounds)");
+			text.Line($"static bool Lex_DotGram{tag}_Between(char c, char[] bounds)");
 
 			using (text.Braces())
 			{
@@ -181,7 +181,7 @@ public static class LexerEmitter
 
 		foreach (var (bits, at) in Bounds.Select((one, at) => (one, at)))
 		{
-			text.Line($"static readonly byte[] Scan{tag}_High{at} =");
+			text.Line($"static readonly byte[] Lex_DotGram{tag}_High{at} =");
 
 			using (text.Braces("", ";"))
 			{
@@ -387,7 +387,7 @@ public static class LexerEmitter
 			text.Line("/// character as far as it is concerned. Naming them once is what turns a row of");
 			text.Line("/// 128 cells into a row of as many as the machine can tell apart.");
 			text.Line("/// </remarks>");
-			text.Line($"static readonly byte[] Scan{tag}_Class =");
+			text.Line($"static readonly byte[] Lex_DotGram{tag}_Class =");
 
 			using (text.Braces("", ";"))
 				Numbers(text, classes);
@@ -401,14 +401,14 @@ public static class LexerEmitter
 
 		if (!Utf8)
 		{
-			text.Line($"static readonly {type}[] Scan{tag}_Cells =");
+			text.Line($"static readonly {type}[] Lex_DotGram{tag}_Cells =");
 
 			using (text.Braces("", ";"))
 				Numbers(text, cells);
 		}
 		else
 		{
-			text.Line($"static readonly {type}[] Scan{tag}_Cells = Scan{tag}_Decode(");
+			text.Line($"static readonly {type}[] Lex_DotGram{tag}_Cells = Lex_DotGram{tag}_Decode(");
 
 			using (text.Indent())
 				Spell(text, cells);
@@ -416,7 +416,7 @@ public static class LexerEmitter
 			text.Line();
 			text.Line("/// <summary>The cells out of the bytes they are written in, once, when the class is first used.</summary>");
 
-			using (text.Braces($"static {type}[] Scan{tag}_Decode(global::System.ReadOnlySpan<byte> cells, int count)"))
+			using (text.Braces($"static {type}[] Lex_DotGram{tag}_Decode(global::System.ReadOnlySpan<byte> cells, int count)"))
 			{
 				text.Line($"var decoded = new {type}[count];");
 				text.Line("var at      = 0;");
@@ -443,7 +443,7 @@ public static class LexerEmitter
 		text.Line();
 		text.Line("/// <summary>Each state's row: where it begins in the cells, how wide, and from");
 		text.Line("/// which character.</summary>");
-		text.Line($"static readonly long[] Scan{tag}_States =");
+		text.Line($"static readonly long[] Lex_DotGram{tag}_States =");
 
 		using (text.Braces("", ";"))
 			Numbers(text, states);
@@ -864,10 +864,10 @@ public static class LexerEmitter
 		}
 
 		text.Line("/// <summary>Which row of Scan_Running each state runs over.</summary>");
-		Bytes(text, $"Scan{tag}_Runs", at);
+		Bytes(text, $"Lex_DotGram{tag}_Runs", at);
 		text.Line();
 		text.Line("/// <summary>What each run carries on with, a row of 256 bytes each.</summary>");
-		Bytes(text, $"Scan{tag}_Running", [.. rows.SelectMany(one => one)]);
+		Bytes(text, $"Lex_DotGram{tag}_Running", [.. rows.SelectMany(one => one)]);
 		text.Line();
 	}
 
@@ -899,7 +899,7 @@ public static class LexerEmitter
 	static void Accepting(Writer text, LexicalAutomaton machine, string tag)
 	{
 		text.Line("/// <summary>The kind each state accepts, one-based; 0 where it accepts none.</summary>");
-		text.Line($"static readonly int[] Scan{tag}_Accepts =");
+		text.Line($"static readonly int[] Lex_DotGram{tag}_Accepts =");
 
 		using (text.Braces("", ";"))
 		{
@@ -982,7 +982,7 @@ public static class LexerEmitter
 		text.Line("/// <returns>Where the token ends, or <paramref name=\"pos\"/> where none begins here.</returns>");
 
 		text.Line(
-			$"public static int Scan{tag}(global::System.ReadOnlySpan<char> text, int pos, out int kind)");
+			$"public static int {(tag.Length == 0 ? "Scan" : "Lex_DotGram" + tag)}(global::System.ReadOnlySpan<char> text, int pos, out int kind)");
 
 		using (text.Braces())
 		{
@@ -1027,14 +1027,14 @@ public static class LexerEmitter
 
 				using (text.Braces())
 				{
-					text.Line($"var over = Scan{tag}_Runs[state] << 8;");
+					text.Line($"var over = Lex_DotGram{tag}_Runs[state] << 8;");
 					text.Line();
 
 					using (text.Braces("while (p < text.Length)", ""))
 					{
 						text.Line("var ahead = text[p];");
 						text.Line();
-						text.Line($"if (ahead > {Reach * 2 - 1} || Scan{tag}_Running[over + ahead] == 0)");
+						text.Line($"if (ahead > {Reach * 2 - 1} || Lex_DotGram{tag}_Running[over + ahead] == 0)");
 
 						using (text.Indent())
 							text.Line("break;");
@@ -1044,7 +1044,7 @@ public static class LexerEmitter
 					}
 				}
 				text.Line();
-				text.Line($"var accepts = Scan{tag}_Accepts[state];");
+				text.Line($"var accepts = Lex_DotGram{tag}_Accepts[state];");
 				text.Line();
 				text.Line("if (accepts != 0)");
 
@@ -1073,7 +1073,7 @@ public static class LexerEmitter
 		text.Line("/// machine reaches leads on to an accepting one, so being in one at the end is enough.");
 		text.Line("/// </remarks>");
 
-		using (text.Braces($"static bool Scan{tag}_RunsOut(global::System.ReadOnlySpan<char> text, int pos)"))
+		using (text.Braces($"static bool Lex_DotGram{tag}_RunsOut(global::System.ReadOnlySpan<char> text, int pos)"))
 		{
 			text.Line("var state = 0;");
 			text.Line();
@@ -1100,7 +1100,7 @@ public static class LexerEmitter
 		void Step()
 		{
 			text.Line("var c    = text[p];");
-			text.Line($"var row  = Scan{tag}_States[state];");
+			text.Line($"var row  = Lex_DotGram{tag}_States[state];");
 			text.Line("var at   = c - (int)(row >> 32);");
 			text.Line("int next;");
 			text.Line();
@@ -1115,8 +1115,8 @@ public static class LexerEmitter
 			using (text.Indent())
 				text.Line(
 					Class is null
-						? $"next = Scan{tag}_Cells[(int)row + at];"
-						: $"next = Scan{tag}_Cells[(int)row + Scan{tag}_Class[at]];");
+						? $"next = Lex_DotGram{tag}_Cells[(int)row + at];"
+						: $"next = Lex_DotGram{tag}_Cells[(int)row + Lex_DotGram{tag}_Class[at]];");
 
 			text.Line("else");
 
@@ -1128,8 +1128,8 @@ public static class LexerEmitter
 					for (var part = 0; part < parts; part++)
 						text.Line(
 							part == parts - 1
-								? $"Scan{tag}_Part{part}(state, c);"
-								: $"state <= {chain[part].Last} ? Scan{tag}_Part{part}(state, c) :");
+								? $"Lex_DotGram{tag}_Part{part}(state, c);"
+								: $"state <= {chain[part].Last} ? Lex_DotGram{tag}_Part{part}(state, c) :");
 			}
 		}
 
@@ -1140,7 +1140,7 @@ public static class LexerEmitter
 			text.Line();
 			text.Line($"/// <summary>Where states {first} to {last} go, or -1 for nowhere.</summary>");
 
-			using (text.Braces($"static int Scan{tag}_Part{part}(int state, char c)"))
+			using (text.Braces($"static int Lex_DotGram{tag}_Part{part}(int state, char c)"))
 			using (text.Braces("switch (state)", ""))
 			{
 				var shared = new Dictionary<string, List<int>>();
@@ -1386,15 +1386,15 @@ public static class LexerEmitter
 		// bounds against eight kilobytes, and a grammar naming many small classes would
 		// otherwise put a bitmap in the assembly for each of them.
 		var above = high.Count > Bitmapped
-			? $"(Scan{Tag}_High{Field(high)}[c >> 3] & (1 << (c & 7))) != 0"
-			: $"Scan{Tag}_Between(c, Scan{Tag}_Bounds{Edge(high)})";
+			? $"(Lex_DotGram{Tag}_High{Field(high)}[c >> 3] & (1 << (c & 7))) != 0"
+			: $"Lex_DotGram{Tag}_Between(c, Lex_DotGram{Tag}_Bounds{Edge(high)})";
 
 		// Written out rather than called: behind a method taking a span, every character
 		// pays for materializing the half it will not read, which measured as a fifth of the
 		// time on an input that is all keywords. And where ASCII cannot arrive there is
 		// nothing to choose between, so the test is what is left of it.
 		return Reached
-			? $"(c < {Ascii} ? (Scan{Tag}_Low{Below(low)}[c >> 6] & (1UL << (c & 63))) != 0 : {above})"
+			? $"(c < {Ascii} ? (Lex_DotGram{Tag}_Low{Below(low)}[c >> 6] & (1UL << (c & 63))) != 0 : {above})"
 			: above;
 	}
 

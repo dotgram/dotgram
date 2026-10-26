@@ -5,20 +5,20 @@ namespace DotGram.Snapshots
 {
 	partial class Csv
 	{
-		static string[] Construct_Csv(string[] item0) =>
+		static string[] New_DotGram_Csv(string[] item0) =>
 			item0 ?? global::System.Array.Empty<string>();
 
-		static string Construct_Row(string name, int amount) =>
+		static string New_DotGram_Row(string name, int amount) =>
 #line 23 "Csv.gram"
                                                             (name + "=" + amount);
 #line default
 
-		static string Construct_Name(string text) =>
+		static string New_DotGram_Name(string text) =>
 #line 25 "Csv.gram"
                                                                               (text);
 #line default
 
-		static int Construct_Amount(string digits) =>
+		static int New_DotGram_Amount(string digits) =>
 #line 27 "Csv.gram"
                                         int.Parse(digits);
 #line default
@@ -89,7 +89,7 @@ namespace DotGram.Snapshots
 
 				S3:
 				{
-					var scanned = Scan_eof(text, p);
+					var scanned = Scan_DotGram_eof(text, p);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -227,7 +227,7 @@ namespace DotGram.Snapshots
 						}
 					}
 					var guardCaptured0 = guardCaptured0At < 0 ? string.Empty : text.Slice(entries[guardCaptured0At].Position, entries[guardCaptured0At].Value - entries[guardCaptured0At].Position).ToString();
-					if (!Recognize_DotGram_Guard0(guardCaptured0)) { expected = null; goto Fail; }
+					if (!RecognizeGuard0_DotGram(guardCaptured0)) { expected = null; goto Fail; }
 					goto Return;
 				}
 
@@ -342,7 +342,7 @@ namespace DotGram.Snapshots
 						goto Return;
 					}
 					expected = ExpectedSet_DotGram(1);
-					p = Recognize_DotGram_Sharpen0(text, p, ref expected);
+					p = RecognizeSharpen0_DotGram(text, p, ref expected);
 					goto Fail;
 				}
 
@@ -630,7 +630,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Scan_eof(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_DotGram_eof(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p = pos;
 			var mark0 = 0;
@@ -648,7 +648,7 @@ namespace DotGram.Snapshots
 			return -1 - p;
 		}
 
-		static int Recognize_Csv(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string[] value)
+		static int Rec_DotGram_Csv(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string[] value)
 		{
 			object? recognized;
 			var end = Recognize_DotGram(text, pos, 22, 0, false, true, ref failure, out recognized);
@@ -656,7 +656,7 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static int Recognize_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
+		static int Rec_DotGram_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
 		{
 			object? recognized;
 			var end = Recognize_DotGram(text, pos, 7, 1, false, true, ref failure, out recognized);
@@ -664,7 +664,7 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static int Recognize_Name(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
+		static int Rec_DotGram_Name(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
 		{
 			object? recognized;
 			var end = Recognize_DotGram(text, pos, 8, 2, false, true, ref failure, out recognized);
@@ -672,7 +672,7 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static int Recognize_Amount(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value)
+		static int Rec_DotGram_Amount(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value)
 		{
 			object? recognized;
 			var end = Recognize_DotGram(text, pos, 26, 3, false, true, ref failure, out recognized);
@@ -680,21 +680,21 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static int Recognize_eof(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Rec_DotGram_eof(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			object? recognized;
 			var end = Recognize_DotGram(text, pos, 30, -1, false, true, ref failure, out recognized);
 			return end;
 		}
 
-		static int Recognize_eol(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Rec_DotGram_eol(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			object? recognized;
 			var end = Recognize_DotGram(text, pos, 19, -1, false, true, ref failure, out recognized);
 			return end;
 		}
 
-		static int Recognize_DotGram_Sharpen0(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
+		static int RecognizeSharpen0_DotGram(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
 		{
 			if ((uint)p < (uint)text.Length && text[p] == '\r')
 			{
@@ -714,7 +714,7 @@ namespace DotGram.Snapshots
 			return p;
 		}
 
-		static bool Recognize_DotGram_Guard0(string text) =>
+		static bool RecognizeGuard0_DotGram(string text) =>
 #line 25 "Csv.gram"
                                                       (text.Length <= 16);
 #line default
@@ -788,7 +788,7 @@ namespace DotGram.Snapshots
 							}
 						}
 
-						values0[completedAt] = Construct_Csv(captured0!);
+						values0[completedAt] = New_DotGram_Csv(captured0!);
 						break;
 					}
 					case 1:
@@ -821,9 +821,9 @@ namespace DotGram.Snapshots
 						var captured0 = values1[captured0At];
 
 						global::System.Diagnostics.Debug.Assert(captured1_0From >= 0);
-						var captured1 = Construct_Amount(captured1_0From < 0 ? string.Empty : text.Slice(captured1_0From, captured1_0To - captured1_0From).ToString());
+						var captured1 = New_DotGram_Amount(captured1_0From < 0 ? string.Empty : text.Slice(captured1_0From, captured1_0To - captured1_0From).ToString());
 
-						values1[completedAt] = Construct_Row(captured0!, captured1!);
+						values1[completedAt] = New_DotGram_Row(captured0!, captured1!);
 						break;
 					}
 					case 2:
@@ -853,7 +853,7 @@ namespace DotGram.Snapshots
 						#endif
 						var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
 
-						values1[completedAt] = Construct_Name(captured0!);
+						values1[completedAt] = New_DotGram_Name(captured0!);
 						break;
 					}
 					case 3:
@@ -883,7 +883,7 @@ namespace DotGram.Snapshots
 						#endif
 						var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
 
-						values2[completedAt] = Construct_Amount(captured0!);
+						values2[completedAt] = New_DotGram_Amount(captured0!);
 						break;
 					}
 				}

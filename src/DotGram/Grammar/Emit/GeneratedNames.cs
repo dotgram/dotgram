@@ -49,7 +49,7 @@ public static partial class CSharpEmitter
 		// A rule's: its walk, under the machine that writes it; the walk that also insists the input
 		// ended, and the stages and probes a streamed parse reads it by; the factory of each `=>`, and of
 		// each over bytes; the factory of a `recover`'s `=>`; its scanners.
-		"Rec{v}", "RecWhole", "WholePart#", "WholeContinue#", "WholeTrivia", "WholeSync",
+		"Rec{v}", "RecWhole{v}", "WholePart#", "WholeContinue#", "WholeTrivia", "WholeSync",
 		"New", "New#", "NewBytes", "NewBytes#", "Recover", "Recover#", "RecoverSpan{v}", "RecoverSpan{v}#",
 		"Scan{v}", "Read{v}",
 
@@ -62,12 +62,14 @@ public static partial class CSharpEmitter
 		"Buf", "BufBytes", "BufMemory", "BufBytesMemory", "Iterate", "Own", "TryOwn", "Host#",
 
 		// A machine's, named after the rule it was compiled for, or with no name where it is the only one.
-		"Recognize{v}", "RecognizeGuard{v}#", "RecognizeSharpen{v}#", "RecognizeFurther{v}", "RecognizeRanOut{v}",
+		"Recognize{v}", "RecognizeDispatch{v}", "RecognizePart{v}#", "RecognizeGuard{v}#", "RecognizeGuardKey{v}#", "RecognizeSharpen{v}#", "RecognizeFurther{v}", "RecognizeRanOut{v}",
 		"RecognizeAgreeing{v}", "RecognizeClass{v}#", "RecognizeBits{v}#", "RecognizeBit{v}", "RecognizeGroups{v}#",
 		"RecognizeSet{v}#", "RecognizeIn{v}", "RecognizeFoldSoFar{v}#",
 		"Materialize{v}", "MaterializePart{v}#", "MaterializeConstruct{v}#Part#", "MaterializeDirect{v}",
-		"MaterializeDirectPart{v}#",
-		"Reader{v}", "Deep{v}", "Same{v}", "Prefix{v}#", "Reach{v}", "Letters{v}", "TokenAt{v}", "Text{v}", "Span{v}",
+		"MaterializeDirectPart{v}#", "MaterializeDirectReach{v}", "MaterializeDirectReaches{v}#",
+		"MaterializeDirectAsksMarks{v}", "MaterializeDirectArm{v}#",
+		"Reader{v}", "Deep{v}", "Same{v}", "Prefix{v}#", "PrefixNext{v}#", "PrefixDepth{v}#", "PrefixLongest{v}#",
+		"PrefixMembers{v}#", "PrefixExpected{v}#", "PrefixMiss{v}#", "Reach{v}", "Letters{v}", "TokenAt{v}", "Text{v}", "Span{v}",
 		"Offer{v}", "Locate{v}", "Searched{v}",
 	];
 
@@ -80,7 +82,7 @@ public static partial class CSharpEmitter
 	public static readonly string[] NestedKinds =
 	[
 		"Read", "ReadBody", "ReadPart#", "ReadBroken", "ReadBroken#", "RecRead", "RecReadBody", "RecWholeRead",
-		"RecWholeReadBody", "Entered",
+		"RecWholeReadBody", "CountEntered",
 	];
 
 	/// <summary>
@@ -365,6 +367,41 @@ public static partial class CSharpEmitter
 			[.. identifiers],
 			[.. graph.Publications.SelectMany(MembersOf).Distinct()],
 			[.. results.Built.Select(rule => results.NameOf(rule)!)]);
+	}
+}
+
+/// <summary>
+/// What tells one machine's names from another's in one class: the variant its kinds carry
+/// (<see cref="CSharpEmitter.Variants"/>), and the author's name it was compiled for — the rule of its
+/// group, the publication it reads buffered — or none where it is the only one of its variant.
+/// </summary>
+readonly record struct MachineTag(string Variant, string? Id)
+{
+	/// <summary>The machine of a grammar with one, and of every machine over nothing published.</summary>
+	public static MachineTag None { get; } = new("", null);
+
+	/// <summary>The machine that reads a terminal's value again (CSharpEmitter.Value).</summary>
+	public static MachineTag Value { get; } = new("Value", null);
+
+	/// <summary>The machine a lexer skips the trivia with (CSharpEmitter.Seam).</summary>
+	public static MachineTag Seam { get; } = new("Seam", null);
+
+	/// <summary>A name of this machine's own: <paramref name="word"/>, the variant, then <paramref name="rest"/> (its numbers).</summary>
+	public string Named(string word, string rest = "")
+	{
+		return CSharpEmitter.Named(word + Variant + rest, Id);
+	}
+
+	/// <summary>A name this machine writes for one of the grammar's names, the machine's own after it.</summary>
+	public string Of(string word, string identifier, string rest = "")
+	{
+		return CSharpEmitter.Named(word + Variant + rest, identifier, Id);
+	}
+
+	/// <summary>A name this machine writes for one of the grammar's names, in a number's place.</summary>
+	public string Named(string word, int number)
+	{
+		return Named(word, number.ToString(System.Globalization.CultureInfo.InvariantCulture));
 	}
 }
 

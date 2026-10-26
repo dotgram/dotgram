@@ -289,7 +289,7 @@ public sealed class GeneratedNameTests
 					faults.Add($"{scope}.{member} {fault}");
 			}
 
-			foreach (var twice in Twice(Declarations(trees), author))
+			foreach (var twice in Twice(Declarations(trees)))
 				faults.Add(twice);
 		}
 
@@ -320,7 +320,7 @@ public sealed class GeneratedNameTests
 				{
 					var declared = member switch
 					{
-						MethodDeclarationSyntax method       => [(method.Identifier.Text, (string?)string.Join(",", method.ParameterList.Parameters.Select(static one => one.Type?.ToString())))],
+						MethodDeclarationSyntax method       => [(method.Identifier.Text, (string?)string.Join(",", method.ParameterList.Parameters.Select(static one => string.Join(" ", one.Modifiers.Select(static modifier => modifier.Text).Append(one.Type?.ToString())))))],
 						FieldDeclarationSyntax field         => field.Declaration.Variables.Select(static one => (one.Identifier.Text, (string?)null)),
 						EventFieldDeclarationSyntax field    => field.Declaration.Variables.Select(static one => (one.Identifier.Text, (string?)null)),
 						PropertyDeclarationSyntax property   => [(property.Identifier.Text, null)],
@@ -348,25 +348,18 @@ public sealed class GeneratedNameTests
 	}
 
 	/// <summary>
-	/// What one scope declares twice: a name that is not a method's, or one method of one signature, or a
-	/// name made from the grammar's that is anything but one method. The author's publications and the
-	/// generator's plain helpers have overloads; a derived name is one thing.
+	/// What one scope declares twice: a name that is not a method's, or one method of one signature.
+	/// Overloads are let be: two names the generator makes are one only where kind and identifiers are,
+	/// so two methods of one name are one family over different inputs, never two families met by chance.
 	/// </summary>
-	internal static IEnumerable<string> Twice(IEnumerable<(string Scope, bool Host, string Name, string? Signature)> declarations, ISet<string> author)
+	internal static IEnumerable<string> Twice(IEnumerable<(string Scope, bool Host, string Name, string? Signature)> declarations)
 	{
 		foreach (var group in declarations.GroupBy(static one => (one.Scope, one.Name)))
 		{
 			var all = group.ToArray();
 
-			if (all.Length < 2)
-				continue;
-
-			var derived = group.Key.Name.IndexOf('_') is var cut and > 0 && !author.Contains(group.Key.Name) &&
-				(CSharpEmitter.IsKind(group.Key.Name.Substring(0, cut), CSharpEmitter.HostKinds) && group.Key.Name.Contains(CSharpEmitter.NameMark, StringComparison.Ordinal) && all[0].Host ||
-				 CSharpEmitter.IsKind(group.Key.Name.Substring(0, cut), CSharpEmitter.NestedKinds) && !all[0].Host);
-
-			if (all.Any(static one => one.Signature is null) || derived ||
-				all.Select(static one => one.Signature).Distinct(StringComparer.Ordinal).Count() < all.Length)
+			if (all.Length > 1 && (all.Any(static one => one.Signature is null) ||
+				all.Select(static one => one.Signature).Distinct(StringComparer.Ordinal).Count() < all.Length))
 				yield return $"{group.Key.Scope}.{group.Key.Name} is declared {all.Length} times";
 		}
 	}

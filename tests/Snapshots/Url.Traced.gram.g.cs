@@ -37,7 +37,7 @@ namespace DotGram.Snapshots
 
 				try
 				{
-					end = Recognize_Url_Whole(text, 0, ref failure, out recognized);
+					end = RecWhole_DotGram_Url(text, 0, ref failure, out recognized);
 				}
 				catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))
 				{
@@ -52,7 +52,7 @@ namespace DotGram.Snapshots
 					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, 0, "engine", input, null, 0, 0, 0);
 					try
 					{
-						end = Recognize_Url_Whole(text, 0, ref failure, out recognized);
+						end = RecWhole_DotGram_Url(text, 0, ref failure, out recognized);
 					}
 					catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))
 					{
@@ -91,7 +91,7 @@ namespace DotGram.Snapshots
 
 				try
 				{
-					end = Recognize_Url_Whole(text, 0, ref failure, out recognized);
+					end = RecWhole_DotGram_Url(text, 0, ref failure, out recognized);
 				}
 				catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))
 				{
@@ -133,7 +133,7 @@ namespace DotGram.Snapshots
 
 				try
 				{
-					end = Recognize_Url(text, at, ref failure, out recognized);
+					end = Rec_DotGram_Url(text, at, ref failure, out recognized);
 				}
 				catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))
 				{
@@ -148,7 +148,7 @@ namespace DotGram.Snapshots
 					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, at, "engine", input, null, 0, 0, 0);
 					try
 					{
-						end = Recognize_Url(text, at, ref failure, out recognized);
+						end = Rec_DotGram_Url(text, at, ref failure, out recognized);
 					}
 					catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))
 					{
@@ -192,7 +192,7 @@ namespace DotGram.Snapshots
 
 				try
 				{
-					end = Recognize_Url(text, at, ref failure, out recognized);
+					end = Rec_DotGram_Url(text, at, ref failure, out recognized);
 				}
 				catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))
 				{
@@ -235,7 +235,7 @@ namespace DotGram.Snapshots
 
 				try
 				{
-					end = Recognize_Url(text, at, ref failure, out recognized);
+					end = Rec_DotGram_Url(text, at, ref failure, out recognized);
 				}
 				catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))
 				{
@@ -250,7 +250,7 @@ namespace DotGram.Snapshots
 					read = Began_DotGram(ref failure, Tracing_DotGram.Value, "Url", false, at, "engine", input, null, 0, 0, 0);
 					try
 					{
-						end = Recognize_Url(text, at, ref failure, out recognized);
+						end = Rec_DotGram_Url(text, at, ref failure, out recognized);
 					}
 					catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))
 					{
@@ -294,7 +294,7 @@ namespace DotGram.Snapshots
 
 				try
 				{
-					end = Recognize_Url(text, at, ref failure, out recognized);
+					end = Rec_DotGram_Url(text, at, ref failure, out recognized);
 				}
 				catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))
 				{
@@ -338,7 +338,7 @@ namespace DotGram.Snapshots
 
 					try
 					{
-						end = Recognize_Url(global::System.MemoryExtensions.AsSpan(input), start, ref failure, out recognized);
+						end = Rec_DotGram_Url(global::System.MemoryExtensions.AsSpan(input), start, ref failure, out recognized);
 					}
 					catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))
 					{
@@ -395,7 +395,7 @@ namespace DotGram.Snapshots
 
 					try
 					{
-						end = Recognize_Url(window.Span(), start, ref failure, out recognized);
+						end = Rec_DotGram_Url(window.Span(), start, ref failure, out recognized);
 					}
 					catch (global::System.Exception) when (Thrown_DotGram(ref failure, read))
 					{
@@ -607,7 +607,7 @@ namespace DotGram.Snapshots
 							goto S5;
 						}
 						expected = ExpectedSet_DotGram(10);
-						p = Recognize_DotGram_Sharpen0(text, p, ref expected);
+						p = RecognizeSharpen0_DotGram(text, p, ref expected);
 						if (p >= text.Length) failure.Starved = true;
 						goto Fail;
 					}
@@ -651,7 +651,7 @@ namespace DotGram.Snapshots
 					{
 						if ((text.Length - p < 3 && (failure.Starved = true)))
 						{
-							p = Recognize_DotGram_RanOut(text, p, "://", false, lookahead < 0, ref failure);
+							p = RecognizeRanOut_DotGram(text, p, "://", false, lookahead < 0, ref failure);
 							expected = ExpectedSet_DotGram(9);
 							goto Fail;
 						}
@@ -684,7 +684,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (c <= 255 && Recognize_DotGram_Class6[c] != 0) goto S187;
+							if (c <= 255 && RecognizeClass6_DotGram[c] != 0) goto S187;
 						}
 						if (lookahead < 0 && !failure.Quiet) goto S187;
 					}
@@ -732,7 +732,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto S55;
+							if (!(c <= 255 && RecognizeClass7_DotGram[c] != 0)) goto S55;
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 55, p, call, atomic, repeat, lookahead, 0));
 					}
@@ -754,7 +754,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_H16(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_DotGram_H16(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -803,7 +803,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto S24;
+							if (!(c <= 255 && RecognizeClass7_DotGram[c] != 0)) goto S24;
 							if (!((c >= '0' && c <= '9'))) goto S21;
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 24, p, call, atomic, repeat, lookahead, 0));
@@ -811,7 +811,7 @@ namespace DotGram.Snapshots
 
 					S21:
 					{
-						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_H16(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_DotGram_H16(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -838,7 +838,7 @@ namespace DotGram.Snapshots
 
 					S23:
 					{
-						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_H16(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_DotGram_H16(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -851,7 +851,7 @@ namespace DotGram.Snapshots
 
 					S24:
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -866,7 +866,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -882,7 +882,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -909,7 +909,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -924,7 +924,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -940,7 +940,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -967,7 +967,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -982,7 +982,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -998,7 +998,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -1025,7 +1025,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -1040,7 +1040,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -1056,7 +1056,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -1184,7 +1184,7 @@ namespace DotGram.Snapshots
 					{
 						if ((text.Length - p < 2 && (failure.Starved = true)))
 						{
-							p = Recognize_DotGram_RanOut(text, p, "::", false, lookahead < 0, ref failure);
+							p = RecognizeRanOut_DotGram(text, p, "::", false, lookahead < 0, ref failure);
 							expected = ExpectedSet_DotGram(23);
 							goto Fail;
 						}
@@ -1218,7 +1218,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_H16(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_DotGram_H16(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -1256,7 +1256,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (!(c <= 255 && Recognize_DotGram_Class8[c] != 0)) goto S133;
+							if (!(c <= 255 && RecognizeClass8_DotGram[c] != 0)) goto S133;
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 71, p, call, atomic, repeat, lookahead, 0));
 					}
@@ -1265,7 +1265,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S70;
+							if (c <= 255 && RecognizeClass7_DotGram[c] != 0) goto S70;
 						}
 						if (lookahead < 0 && !failure.Quiet)
 						{
@@ -1285,7 +1285,7 @@ namespace DotGram.Snapshots
 					{
 						if ((text.Length - p < 2 && (failure.Starved = true)))
 						{
-							p = Recognize_DotGram_RanOut(text, p, "::", false, lookahead < 0, ref failure);
+							p = RecognizeRanOut_DotGram(text, p, "::", false, lookahead < 0, ref failure);
 							expected = ExpectedSet_DotGram(23);
 							goto Fail;
 						}
@@ -1319,7 +1319,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_H16(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_DotGram_H16(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -1354,7 +1354,7 @@ namespace DotGram.Snapshots
 
 					S70:
 					{
-						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_H16(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_DotGram_H16(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -1370,7 +1370,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (!(c <= 255 && Recognize_DotGram_Class8[c] != 0)) goto S133;
+							if (!(c <= 255 && RecognizeClass8_DotGram[c] != 0)) goto S133;
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 86, p, call, atomic, repeat, lookahead, 0));
 					}
@@ -1379,7 +1379,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S79;
+							if (c <= 255 && RecognizeClass7_DotGram[c] != 0) goto S79;
 						}
 						if (lookahead < 0 && !failure.Quiet)
 						{
@@ -1399,7 +1399,7 @@ namespace DotGram.Snapshots
 					{
 						if ((text.Length - p < 2 && (failure.Starved = true)))
 						{
-							p = Recognize_DotGram_RanOut(text, p, "::", false, lookahead < 0, ref failure);
+							p = RecognizeRanOut_DotGram(text, p, "::", false, lookahead < 0, ref failure);
 							expected = ExpectedSet_DotGram(23);
 							goto Fail;
 						}
@@ -1433,7 +1433,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_H16(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_DotGram_H16(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -1471,14 +1471,14 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S81;
+							if (c <= 255 && RecognizeClass7_DotGram[c] != 0) goto S81;
 						}
 						if (lookahead < 0 && !failure.Quiet) goto S81;
 					}
 
 					S80:
 					{
-						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_H16(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_DotGram_H16(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -1506,7 +1506,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 10, p, Scan_Group(text, p, ref failure, out var scanReached));
+						var scanned = Scanned_DotGram(ref failure, 10, p, Scan_DotGram_Group(text, p, ref failure, out var scanReached));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -1548,7 +1548,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (!(c <= 255 && Recognize_DotGram_Class8[c] != 0)) goto S133;
+							if (!(c <= 255 && RecognizeClass8_DotGram[c] != 0)) goto S133;
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 101, p, call, atomic, repeat, lookahead, 0));
 					}
@@ -1557,7 +1557,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S94;
+							if (c <= 255 && RecognizeClass7_DotGram[c] != 0) goto S94;
 						}
 						if (lookahead < 0 && !failure.Quiet)
 						{
@@ -1577,7 +1577,7 @@ namespace DotGram.Snapshots
 					{
 						if ((text.Length - p < 2 && (failure.Starved = true)))
 						{
-							p = Recognize_DotGram_RanOut(text, p, "::", false, lookahead < 0, ref failure);
+							p = RecognizeRanOut_DotGram(text, p, "::", false, lookahead < 0, ref failure);
 							expected = ExpectedSet_DotGram(23);
 							goto Fail;
 						}
@@ -1611,7 +1611,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_H16(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_DotGram_H16(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -1649,14 +1649,14 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S96;
+							if (c <= 255 && RecognizeClass7_DotGram[c] != 0) goto S96;
 						}
 						if (lookahead < 0 && !failure.Quiet) goto S96;
 					}
 
 					S95:
 					{
-						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_H16(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_DotGram_H16(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -1684,7 +1684,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 10, p, Scan_Group(text, p, ref failure, out var scanReached));
+						var scanned = Scanned_DotGram(ref failure, 10, p, Scan_DotGram_Group(text, p, ref failure, out var scanReached));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -1726,7 +1726,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (!(c <= 255 && Recognize_DotGram_Class8[c] != 0)) goto S133;
+							if (!(c <= 255 && RecognizeClass8_DotGram[c] != 0)) goto S133;
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 113, p, call, atomic, repeat, lookahead, 0));
 					}
@@ -1735,7 +1735,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S106;
+							if (c <= 255 && RecognizeClass7_DotGram[c] != 0) goto S106;
 						}
 						if (lookahead < 0 && !failure.Quiet)
 						{
@@ -1755,7 +1755,7 @@ namespace DotGram.Snapshots
 					{
 						if ((text.Length - p < 2 && (failure.Starved = true)))
 						{
-							p = Recognize_DotGram_RanOut(text, p, "::", false, lookahead < 0, ref failure);
+							p = RecognizeRanOut_DotGram(text, p, "::", false, lookahead < 0, ref failure);
 							expected = ExpectedSet_DotGram(23);
 							goto Fail;
 						}
@@ -1773,7 +1773,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_H16(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_DotGram_H16(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -1804,14 +1804,14 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S108;
+							if (c <= 255 && RecognizeClass7_DotGram[c] != 0) goto S108;
 						}
 						if (lookahead < 0 && !failure.Quiet) goto S108;
 					}
 
 					S107:
 					{
-						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_H16(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_DotGram_H16(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -1839,7 +1839,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 10, p, Scan_Group(text, p, ref failure, out var scanReached));
+						var scanned = Scanned_DotGram(ref failure, 10, p, Scan_DotGram_Group(text, p, ref failure, out var scanReached));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -1881,7 +1881,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (!(c <= 255 && Recognize_DotGram_Class8[c] != 0)) goto S133;
+							if (!(c <= 255 && RecognizeClass8_DotGram[c] != 0)) goto S133;
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 123, p, call, atomic, repeat, lookahead, 0));
 					}
@@ -1890,7 +1890,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S116;
+							if (c <= 255 && RecognizeClass7_DotGram[c] != 0) goto S116;
 						}
 						if (lookahead < 0 && !failure.Quiet)
 						{
@@ -1910,7 +1910,7 @@ namespace DotGram.Snapshots
 					{
 						if ((text.Length - p < 2 && (failure.Starved = true)))
 						{
-							p = Recognize_DotGram_RanOut(text, p, "::", false, lookahead < 0, ref failure);
+							p = RecognizeRanOut_DotGram(text, p, "::", false, lookahead < 0, ref failure);
 							expected = ExpectedSet_DotGram(23);
 							goto Fail;
 						}
@@ -1933,14 +1933,14 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S118;
+							if (c <= 255 && RecognizeClass7_DotGram[c] != 0) goto S118;
 						}
 						if (lookahead < 0 && !failure.Quiet) goto S118;
 					}
 
 					S117:
 					{
-						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_H16(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_DotGram_H16(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -1968,7 +1968,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 10, p, Scan_Group(text, p, ref failure, out var scanReached));
+						var scanned = Scanned_DotGram(ref failure, 10, p, Scan_DotGram_Group(text, p, ref failure, out var scanReached));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2010,7 +2010,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (!(c <= 255 && Recognize_DotGram_Class8[c] != 0)) goto S133;
+							if (!(c <= 255 && RecognizeClass8_DotGram[c] != 0)) goto S133;
 						}
 						entries.Add(new ParserEntry(ParserEntry.Choice, 133, p, call, atomic, repeat, lookahead, 0));
 					}
@@ -2019,7 +2019,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S126;
+							if (c <= 255 && RecognizeClass7_DotGram[c] != 0) goto S126;
 						}
 						if (lookahead < 0 && !failure.Quiet)
 						{
@@ -2039,7 +2039,7 @@ namespace DotGram.Snapshots
 					{
 						if ((text.Length - p < 2 && (failure.Starved = true)))
 						{
-							p = Recognize_DotGram_RanOut(text, p, "::", false, lookahead < 0, ref failure);
+							p = RecognizeRanOut_DotGram(text, p, "::", false, lookahead < 0, ref failure);
 							expected = ExpectedSet_DotGram(23);
 							goto Fail;
 						}
@@ -2062,14 +2062,14 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S128;
+							if (c <= 255 && RecognizeClass7_DotGram[c] != 0) goto S128;
 						}
 						if (lookahead < 0 && !failure.Quiet) goto S128;
 					}
 
 					S127:
 					{
-						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_H16(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_DotGram_H16(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2097,7 +2097,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 10, p, Scan_Group(text, p, ref failure, out var scanReached));
+						var scanned = Scanned_DotGram(ref failure, 10, p, Scan_DotGram_Group(text, p, ref failure, out var scanReached));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2139,7 +2139,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S135;
+							if (c <= 255 && RecognizeClass7_DotGram[c] != 0) goto S135;
 						}
 						if (lookahead < 0 && !failure.Quiet)
 						{
@@ -2159,7 +2159,7 @@ namespace DotGram.Snapshots
 					{
 						if ((text.Length - p < 2 && (failure.Starved = true)))
 						{
-							p = Recognize_DotGram_RanOut(text, p, "::", false, lookahead < 0, ref failure);
+							p = RecognizeRanOut_DotGram(text, p, "::", false, lookahead < 0, ref failure);
 							expected = ExpectedSet_DotGram(23);
 							goto Fail;
 						}
@@ -2182,14 +2182,14 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (c <= 255 && Recognize_DotGram_Class7[c] != 0) goto S137;
+							if (c <= 255 && RecognizeClass7_DotGram[c] != 0) goto S137;
 						}
 						if (lookahead < 0 && !failure.Quiet) goto S137;
 					}
 
 					S136:
 					{
-						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_H16(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 12, p, Scan_DotGram_H16(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2217,7 +2217,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 10, p, Scan_Group(text, p, ref failure, out var scanReached));
+						var scanned = Scanned_DotGram(ref failure, 10, p, Scan_DotGram_Group(text, p, ref failure, out var scanReached));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2437,7 +2437,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2452,7 +2452,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2468,7 +2468,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2495,7 +2495,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2510,7 +2510,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2526,7 +2526,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2553,7 +2553,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2568,7 +2568,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2584,7 +2584,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_Digit(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 17, p, Scan_DotGram_Digit(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2731,8 +2731,8 @@ namespace DotGram.Snapshots
 							goto Fail;
 						}
 						c = text[p];
-						if (c <= 255 && Recognize_DotGram_Class0[c] != 0) goto S185;
-						if (c <= 255 && Recognize_DotGram_Class1[c] != 0) goto S184;
+						if (c <= 255 && RecognizeClass0_DotGram[c] != 0) goto S185;
+						if (c <= 255 && RecognizeClass1_DotGram[c] != 0) goto S184;
 						if (c == '%') goto S182;
 						expected = ExpectedSet_DotGram(16);
 						goto Fail;
@@ -2740,7 +2740,7 @@ namespace DotGram.Snapshots
 
 					S182:
 					{
-						var scanned = Scanned_DotGram(ref failure, 16, p, Scan_PctEncoded(text, p, ref failure, out var scanReached));
+						var scanned = Scanned_DotGram(ref failure, 16, p, Scan_DotGram_PctEncoded(text, p, ref failure, out var scanReached));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2768,7 +2768,7 @@ namespace DotGram.Snapshots
 
 					S184:
 					{
-						var scanned = Scanned_DotGram(ref failure, 20, p, Scan_SubDelim(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 20, p, Scan_DotGram_SubDelim(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2781,7 +2781,7 @@ namespace DotGram.Snapshots
 
 					S185:
 					{
-						var scanned = Scanned_DotGram(ref failure, 19, p, Scan_Unreserved(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 19, p, Scan_DotGram_Unreserved(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2826,7 +2826,7 @@ namespace DotGram.Snapshots
 					}
 
 					{
-						var scanned = Scanned_DotGram(ref failure, 3, p, Scan_UserInfo(text, p, ref failure, out var scanReached));
+						var scanned = Scanned_DotGram(ref failure, 3, p, Scan_DotGram_UserInfo(text, p, ref failure, out var scanReached));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -3031,7 +3031,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (c <= 255 && Recognize_DotGram_Class3[c] != 0) goto S208;
+							if (c <= 255 && RecognizeClass3_DotGram[c] != 0) goto S208;
 						}
 						if (lookahead < 0 && !failure.Quiet) goto S208;
 					}
@@ -3099,10 +3099,10 @@ namespace DotGram.Snapshots
 							goto Fail;
 						}
 						c = text[p];
-						if (c <= 255 && Recognize_DotGram_Class0[c] != 0) goto S214;
-						if (c <= 255 && Recognize_DotGram_Class1[c] != 0) goto S213;
+						if (c <= 255 && RecognizeClass0_DotGram[c] != 0) goto S214;
+						if (c <= 255 && RecognizeClass1_DotGram[c] != 0) goto S213;
 						if (c == '%') goto S212;
-						if (c <= 255 && Recognize_DotGram_Class2[c] != 0) goto S211;
+						if (c <= 255 && RecognizeClass2_DotGram[c] != 0) goto S211;
 						expected = ExpectedSet_DotGram(4);
 						goto Fail;
 					}
@@ -3115,7 +3115,7 @@ namespace DotGram.Snapshots
 							goto Fail;
 						}
 						c = text[p];
-						if (!(c <= 255 && Recognize_DotGram_Class2[c] != 0))
+						if (!(c <= 255 && RecognizeClass2_DotGram[c] != 0))
 						{
 							expected = ExpectedSet_DotGram(3);
 							goto Fail;
@@ -3126,7 +3126,7 @@ namespace DotGram.Snapshots
 
 					S212:
 					{
-						var scanned = Scanned_DotGram(ref failure, 16, p, Scan_PctEncoded(text, p, ref failure, out var scanReached));
+						var scanned = Scanned_DotGram(ref failure, 16, p, Scan_DotGram_PctEncoded(text, p, ref failure, out var scanReached));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -3146,7 +3146,7 @@ namespace DotGram.Snapshots
 
 					S213:
 					{
-						var scanned = Scanned_DotGram(ref failure, 20, p, Scan_SubDelim(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 20, p, Scan_DotGram_SubDelim(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -3159,7 +3159,7 @@ namespace DotGram.Snapshots
 
 					S214:
 					{
-						var scanned = Scanned_DotGram(ref failure, 19, p, Scan_Unreserved(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 19, p, Scan_DotGram_Unreserved(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -3234,7 +3234,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (c <= 255 && Recognize_DotGram_Class3[c] != 0) goto S224;
+							if (c <= 255 && RecognizeClass3_DotGram[c] != 0) goto S224;
 						}
 						if (lookahead < 0 && !failure.Quiet) goto S224;
 					}
@@ -3302,10 +3302,10 @@ namespace DotGram.Snapshots
 							goto Fail;
 						}
 						c = text[p];
-						if (c <= 255 && Recognize_DotGram_Class0[c] != 0) goto S230;
-						if (c <= 255 && Recognize_DotGram_Class1[c] != 0) goto S229;
+						if (c <= 255 && RecognizeClass0_DotGram[c] != 0) goto S230;
+						if (c <= 255 && RecognizeClass1_DotGram[c] != 0) goto S229;
 						if (c == '%') goto S228;
-						if (c <= 255 && Recognize_DotGram_Class2[c] != 0) goto S227;
+						if (c <= 255 && RecognizeClass2_DotGram[c] != 0) goto S227;
 						expected = ExpectedSet_DotGram(4);
 						goto Fail;
 					}
@@ -3318,7 +3318,7 @@ namespace DotGram.Snapshots
 							goto Fail;
 						}
 						c = text[p];
-						if (!(c <= 255 && Recognize_DotGram_Class2[c] != 0))
+						if (!(c <= 255 && RecognizeClass2_DotGram[c] != 0))
 						{
 							expected = ExpectedSet_DotGram(3);
 							goto Fail;
@@ -3329,7 +3329,7 @@ namespace DotGram.Snapshots
 
 					S228:
 					{
-						var scanned = Scanned_DotGram(ref failure, 16, p, Scan_PctEncoded(text, p, ref failure, out var scanReached));
+						var scanned = Scanned_DotGram(ref failure, 16, p, Scan_DotGram_PctEncoded(text, p, ref failure, out var scanReached));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -3349,7 +3349,7 @@ namespace DotGram.Snapshots
 
 					S229:
 					{
-						var scanned = Scanned_DotGram(ref failure, 20, p, Scan_SubDelim(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 20, p, Scan_DotGram_SubDelim(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -3362,7 +3362,7 @@ namespace DotGram.Snapshots
 
 					S230:
 					{
-						var scanned = Scanned_DotGram(ref failure, 19, p, Scan_Unreserved(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 19, p, Scan_DotGram_Unreserved(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -3428,7 +3428,7 @@ namespace DotGram.Snapshots
 						if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 						{
 							c = text[p];
-							if (c <= 255 && Recognize_DotGram_Class4[c] != 0) goto S237;
+							if (c <= 255 && RecognizeClass4_DotGram[c] != 0) goto S237;
 						}
 						if (lookahead < 0 && !failure.Quiet) goto S237;
 						goto S234;
@@ -3453,8 +3453,8 @@ namespace DotGram.Snapshots
 							goto Fail;
 						}
 						c = text[p];
-						if (c <= 255 && Recognize_DotGram_Class0[c] != 0) goto S242;
-						if (c <= 255 && Recognize_DotGram_Class1[c] != 0) goto S241;
+						if (c <= 255 && RecognizeClass0_DotGram[c] != 0) goto S242;
+						if (c <= 255 && RecognizeClass1_DotGram[c] != 0) goto S241;
 						if (c == '%') goto S240;
 						if (c == ':' || c == '@') { p++; goto S238; }
 						expected = ExpectedSet_DotGram(7);
@@ -3463,7 +3463,7 @@ namespace DotGram.Snapshots
 
 					S240:
 					{
-						var scanned = Scanned_DotGram(ref failure, 16, p, Scan_PctEncoded(text, p, ref failure, out var scanReached));
+						var scanned = Scanned_DotGram(ref failure, 16, p, Scan_DotGram_PctEncoded(text, p, ref failure, out var scanReached));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -3483,7 +3483,7 @@ namespace DotGram.Snapshots
 
 					S241:
 					{
-						var scanned = Scanned_DotGram(ref failure, 20, p, Scan_SubDelim(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 20, p, Scan_DotGram_SubDelim(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -3496,7 +3496,7 @@ namespace DotGram.Snapshots
 
 					S242:
 					{
-						var scanned = Scanned_DotGram(ref failure, 19, p, Scan_Unreserved(text, p, ref failure));
+						var scanned = Scanned_DotGram(ref failure, 19, p, Scan_DotGram_Unreserved(text, p, ref failure));
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -3689,14 +3689,14 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			static int Scan_Unreserved(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+			static int Scan_DotGram_Unreserved(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 			{
 				var p = pos;
 				var c = '\0';
 
 				if (((uint)p >= (uint)text.Length && (failure.Starved = true))) goto Refuse;
 				c = text[p];
-				if (!(c <= 255 && Recognize_DotGram_Class0[c] != 0)) goto Refuse;
+				if (!(c <= 255 && RecognizeClass0_DotGram[c] != 0)) goto Refuse;
 				p++;
 
 				if (p >= text.Length) failure.Starved = true;
@@ -3708,14 +3708,14 @@ namespace DotGram.Snapshots
 				return -1 - p;
 			}
 
-			static int Scan_SubDelim(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+			static int Scan_DotGram_SubDelim(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 			{
 				var p = pos;
 				var c = '\0';
 
 				if (((uint)p >= (uint)text.Length && (failure.Starved = true))) goto Refuse;
 				c = text[p];
-				if (!(c <= 255 && Recognize_DotGram_Class1[c] != 0)) goto Refuse;
+				if (!(c <= 255 && RecognizeClass1_DotGram[c] != 0)) goto Refuse;
 				p++;
 
 				if (p >= text.Length) failure.Starved = true;
@@ -3727,7 +3727,7 @@ namespace DotGram.Snapshots
 				return -1 - p;
 			}
 
-			static int Scan_PctEncoded(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int reachedAt)
+			static int Scan_DotGram_PctEncoded(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int reachedAt)
 			{
 				var p = pos;
 				var c = '\0';
@@ -3740,11 +3740,11 @@ namespace DotGram.Snapshots
 				p += 1;
 				if (((uint)p >= (uint)text.Length && (failure.Starved = true))) goto L0_undo;
 				c = text[p];
-				if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto L0_undo;
+				if (!(c <= 255 && RecognizeClass7_DotGram[c] != 0)) goto L0_undo;
 				p++;
 				if (((uint)p >= (uint)text.Length && (failure.Starved = true))) goto L0_undo;
 				c = text[p];
-				if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto L0_undo;
+				if (!(c <= 255 && RecognizeClass7_DotGram[c] != 0)) goto L0_undo;
 				p++;
 				goto L1_on;
 				L0_undo:
@@ -3766,7 +3766,7 @@ namespace DotGram.Snapshots
 				return -1 - furthest;
 			}
 
-			static int Scan_Digit(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+			static int Scan_DotGram_Digit(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 			{
 				var p = pos;
 				var c = '\0';
@@ -3785,7 +3785,7 @@ namespace DotGram.Snapshots
 				return -1 - p;
 			}
 
-			static int Scan_UserInfo(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int reachedAt)
+			static int Scan_DotGram_UserInfo(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int reachedAt)
 			{
 				var p = pos;
 				var c = '\0';
@@ -3797,12 +3797,12 @@ namespace DotGram.Snapshots
 				L0_turn:
 				if (((uint)p >= (uint)text.Length && (failure.Starved = true))) goto L1_done;
 				c = text[p];
-				if (!(c <= 255 && Recognize_DotGram_Class6[c] != 0)) goto L1_done;
-				if (!(c <= 255 && Recognize_DotGram_Class0[c] != 0)) goto L3_or;
+				if (!(c <= 255 && RecognizeClass6_DotGram[c] != 0)) goto L1_done;
+				if (!(c <= 255 && RecognizeClass0_DotGram[c] != 0)) goto L3_or;
 				p++;
 				goto L2_took;
 				L3_or: ;
-				if (!(c <= 255 && Recognize_DotGram_Class1[c] != 0)) goto L4_or;
+				if (!(c <= 255 && RecognizeClass1_DotGram[c] != 0)) goto L4_or;
 				p++;
 				goto L2_took;
 				L4_or: ;
@@ -3811,11 +3811,11 @@ namespace DotGram.Snapshots
 				p += 1;
 				if (((uint)p >= (uint)text.Length && (failure.Starved = true))) goto L6_undo;
 				c = text[p];
-				if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto L6_undo;
+				if (!(c <= 255 && RecognizeClass7_DotGram[c] != 0)) goto L6_undo;
 				p++;
 				if (((uint)p >= (uint)text.Length && (failure.Starved = true))) goto L6_undo;
 				c = text[p];
-				if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto L6_undo;
+				if (!(c <= 255 && RecognizeClass7_DotGram[c] != 0)) goto L6_undo;
 				p++;
 				goto L2_took;
 				L6_undo:
@@ -3843,7 +3843,7 @@ namespace DotGram.Snapshots
 				return -1 - furthest;
 			}
 
-			static int Scan_H16(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+			static int Scan_DotGram_H16(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 			{
 				var p = pos;
 				var c = '\0';
@@ -3854,7 +3854,7 @@ namespace DotGram.Snapshots
 				if (turns0 >= 4) goto L1_done;
 				if (((uint)p >= (uint)text.Length && (failure.Starved = true))) goto L1_done;
 				c = text[p];
-				if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto L1_done;
+				if (!(c <= 255 && RecognizeClass7_DotGram[c] != 0)) goto L1_done;
 				p++;
 				turns0++;
 				goto L0_turn;
@@ -3870,7 +3870,7 @@ namespace DotGram.Snapshots
 				return -1 - p;
 			}
 
-			static int Scan_Group(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int reachedAt)
+			static int Scan_DotGram_Group(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int reachedAt)
 			{
 				var p = pos;
 				var c = '\0';
@@ -3884,7 +3884,7 @@ namespace DotGram.Snapshots
 				if (turns0 >= 4) goto L3_done;
 				if (((uint)p >= (uint)text.Length && (failure.Starved = true))) goto L3_done;
 				c = text[p];
-				if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto L3_done;
+				if (!(c <= 255 && RecognizeClass7_DotGram[c] != 0)) goto L3_done;
 				p++;
 				turns0++;
 				goto L2_turn;
@@ -3913,14 +3913,14 @@ namespace DotGram.Snapshots
 				return -1 - furthest;
 			}
 
-			static int Scan_Hex(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+			static int Scan_DotGram_Hex(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 			{
 				var p = pos;
 				var c = '\0';
 
 				if (((uint)p >= (uint)text.Length && (failure.Starved = true))) goto Refuse;
 				c = text[p];
-				if (!(c <= 255 && Recognize_DotGram_Class7[c] != 0)) goto Refuse;
+				if (!(c <= 255 && RecognizeClass7_DotGram[c] != 0)) goto Refuse;
 				p++;
 
 				if (p >= text.Length) failure.Starved = true;
@@ -3932,7 +3932,7 @@ namespace DotGram.Snapshots
 				return -1 - p;
 			}
 
-			static int Recognize_Url_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.Traced.Url value)
+			static int RecWhole_DotGram_Url(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.Traced.Url value)
 			{
 				object? recognized;
 				var end = Recognize_DotGram(text, pos, 3, 0, true, true, ref failure, out recognized);
@@ -3940,7 +3940,7 @@ namespace DotGram.Snapshots
 				return end;
 			}
 
-			static int Recognize_Url(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.Traced.Url value)
+			static int Rec_DotGram_Url(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Url.Traced.Url value)
 			{
 				object? recognized;
 				var end = Recognize_DotGram(text, pos, 3, 0, false, true, ref failure, out recognized);
@@ -3948,7 +3948,7 @@ namespace DotGram.Snapshots
 				return end;
 			}
 
-			static int Recognize_DotGram_Agreeing(global::System.ReadOnlySpan<char> text, int p, string value, bool fold)
+			static int RecognizeAgreeing_DotGram(global::System.ReadOnlySpan<char> text, int p, string value, bool fold)
 			{
 				var i = 0;
 
@@ -3958,9 +3958,9 @@ namespace DotGram.Snapshots
 				return p + i;
 			}
 
-			static int Recognize_DotGram_RanOut(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
+			static int RecognizeRanOut_DotGram(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
 			{
-				var reach = Recognize_DotGram_Agreeing(text, p, value, fold);
+				var reach = RecognizeAgreeing_DotGram(text, p, value, fold);
 
 				if (((uint)reach >= (uint)text.Length && (failure.Starved = true)))
 				{
@@ -3970,7 +3970,7 @@ namespace DotGram.Snapshots
 				return moves ? reach : p;
 			}
 
-			static int Recognize_DotGram_Sharpen0(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
+			static int RecognizeSharpen0_DotGram(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
 			{
 				if ((uint)p < (uint)text.Length && text[p] == 'h')
 				{
@@ -4219,23 +4219,23 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			static readonly byte[] Recognize_DotGram_Class0 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+			static readonly byte[] RecognizeClass0_DotGram = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-			static readonly byte[] Recognize_DotGram_Class1 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+			static readonly byte[] RecognizeClass1_DotGram = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,0,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-			static readonly byte[] Recognize_DotGram_Class2 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+			static readonly byte[] RecognizeClass2_DotGram = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-			static readonly byte[] Recognize_DotGram_Class3 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+			static readonly byte[] RecognizeClass3_DotGram = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-			static readonly byte[] Recognize_DotGram_Class4 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+			static readonly byte[] RecognizeClass4_DotGram = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-			static readonly byte[] Recognize_DotGram_Class5 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+			static readonly byte[] RecognizeClass5_DotGram = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-			static readonly byte[] Recognize_DotGram_Class6 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+			static readonly byte[] RecognizeClass6_DotGram = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-			static readonly byte[] Recognize_DotGram_Class7 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+			static readonly byte[] RecognizeClass7_DotGram = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-			static readonly byte[] Recognize_DotGram_Class8 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+			static readonly byte[] RecognizeClass8_DotGram = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
 			/// <summary>What kind of answer a publication gave (docs/syntax.md §7.5).</summary>
 			public enum Outcome

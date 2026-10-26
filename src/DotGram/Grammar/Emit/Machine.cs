@@ -393,10 +393,7 @@ sealed partial class Machine
 	internal IReadOnlyCollection<RuleSymbol> Reads => _rules;
 
 	/// <summary>What separates this machine's names from a sibling's — the constructor's <c>tag</c>.</summary>
-	readonly string _tag;
-
-	/// <summary>The tag of the machine a lexer skips the trivia with (<c>CSharpEmitter.Seam</c>).</summary>
-	internal const string SeamTag = "_Seam";
+	internal MachineTag Tag { get; }
 
 	int _fail = Fail;
 	bool _materializer;
@@ -490,7 +487,7 @@ sealed partial class Machine
 	/// </param>
 	public Machine(
 		RecognitionGraph graph, ResultTypes results, ILineMap? lines, bool starves = false,
-		IReadOnlyCollection<RuleSymbol>? only = null, string tag = "", int? partSize = null,
+		IReadOnlyCollection<RuleSymbol>? only = null, MachineTag? tag = null, int? partSize = null,
 		bool overKinds = false, IReadOnlyCollection<RuleSymbol>? reread = null,
 		CarrierKind carrier = CarrierKind.Tape, int stacks = 0, TerminalInventory? inventory = null,
 		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool bufferedFind = false, bool prefixTables = false,
@@ -519,7 +516,7 @@ sealed partial class Machine
 		_results = results;
 		_lines = lines;
 		_starves = starves;
-		_tag = tag;
+		Tag = tag ?? MachineTag.None;
 		OverKinds = overKinds;
 		_reread = reread;
 		_inventory = inventory;
@@ -535,7 +532,7 @@ sealed partial class Machine
 				graph.Bodies[rule], other => graph.Results[other].Count > 0 || graph.Types.ContainsKey(other),
 				lifted: graph.LiftedBody);
 			var factories = CSharpEmitter.FactoriesOf(graph, results, rule);
-			if (BufferedBytes) factories = factories.Select(factory => factory with { Method = factory.Method + "_Bytes" }).ToArray();
+			if (BufferedBytes) factories = factories.Select(factory => factory with { Method = factory.BytesMethod }).ToArray();
 
 			// A rule lifted out of an element keeps its captures in the slots of the rule it was
 			// lifted from, numbered where the call stands (§8.2): none of its own to take.
@@ -649,7 +646,7 @@ sealed partial class Machine
 				var (repetition, recovery, recoverySlot) = recoveries[found];
 				var plan = new RecoveryPlan(
 					graph.ValueOwner(rule), recovery, recoverySlot < 0 ? -1 : _captureOffsets[rule] + recoverySlot,
-					_recoveryPlans.Count, CSharpEmitter.RecoveryMethod(rule, found) + (BorrowedCaptures ? "_Span" + _tag : ""),
+					_recoveryPlans.Count, CSharpEmitter.RecoveryMethod(rule, found, BorrowedCaptures ? Tag : null),
 					recoverySlot < 0 ? null : layout.Slots[recoverySlot].Rule);
 
 				if (BorrowedCaptures && recovery.Factory is not null && recoverySlot >= 0)
@@ -864,7 +861,11 @@ sealed partial class Machine
 		/// <c>parserSpan</c> an expression may ask for by name, and every path that supplies
 		/// one already supplies this.
 		/// </summary>
-		bool Located = false);
+		bool Located = false)
+	{
+		/// <summary>The same factory over bytes, which hands what it captured over as spans of them.</summary>
+		public string BytesMethod { get; init; } = Method;
+	}
 
 	/// <remarks>
 	/// The message carries the rule it failed on, lowered. A construction reaches here that
@@ -1261,7 +1262,7 @@ sealed partial class Machine
 		helper.Line("/// Filled where it is missed. Two threads that miss the same character write");
 		helper.Line("/// the same string, so the race is between two answers that are equal.");
 		helper.Line("/// </remarks>");
-		helper.Line($"static readonly string[] Letters_DotGram{_tag} = new string[128];");
+		helper.Line($"static readonly string[] {Tag.Named("Letters")} = new string[128];");
 		helper.Line();
 		helper.Line("/// <summary>The token beginning at a character offset, or -1 where none does.</summary>");
 		helper.Line("/// <remarks>");
@@ -1272,7 +1273,7 @@ sealed partial class Machine
 		helper.Line("/// each of them.");
 		helper.Line("/// </remarks>");
 
-		using (helper.Block($"static int TokenAt_DotGram{_tag}(int[] starts, int count, int at)"))
+		using (helper.Block($"static int {Tag.Named("TokenAt")}(int[] starts, int count, int at)"))
 		{
 			helper.Line("var low  = 0;");
 			helper.Line("var high = count - 1;");
@@ -1302,7 +1303,7 @@ sealed partial class Machine
 		helper.Line("/// <summary>The text a run of tokens came from.</summary>");
 
 		using (helper.Block(
-			$"static string Text_DotGram{_tag}(" +
+			$"static string {Tag.Named("Text")}(" +
 			"string source, int[] starts, int[] lengths, int from, int length)"))
 		{
 			helper.Line("if (length <= 0)");
@@ -1321,7 +1322,7 @@ sealed partial class Machine
 			{
 				helper.Line("var one = source[began];");
 				helper.Line();
-				helper.Line($"return Letters_DotGram{_tag}[one] ??= source.Substring(began, 1);");
+				helper.Line($"return {Tag.Named("Letters")}[one] ??= source.Substring(began, 1);");
 			}
 
 			helper.Line();
@@ -1335,7 +1336,7 @@ sealed partial class Machine
 		helper.Line("/// <summary>Where in the input a run of tokens stood.</summary>");
 
 		using (helper.Block(
-			$"static SourceSpan Span_DotGram{_tag}(" +
+			$"static SourceSpan {Tag.Named("Span")}(" +
 			"int[] starts, int[] lengths, int from, int length)"))
 		{
 			// A run of none still has a place: where the next token begins, or the end of
@@ -1378,7 +1379,7 @@ sealed partial class Machine
 	string Cut(string from, string length)
 	{
 		return OverKinds
-			? $"Text_DotGram{_tag}(parserSource, parserStarts, parserLengths, {from}, {length})"
+			? $"{Tag.Named("Text")}(parserSource, parserStarts, parserLengths, {from}, {length})"
 			: $"text.Slice({from}, {length}){(BorrowedCaptures ? "" : ".ToString()")}";
 	}
 
@@ -1424,7 +1425,7 @@ sealed partial class Machine
 		// state is written, the way it already does for the expectation tables.
 		_spans = true;
 
-		return $"Span_DotGram{_tag}(parserStarts, parserLengths, {from}, {length})";
+		return $"{Tag.Named("Span")}(parserStarts, parserLengths, {from}, {length})";
 	}
 
 	bool _spans;
@@ -1481,8 +1482,8 @@ sealed partial class Machine
 		(walk ? _offeredInWalk : _offered).Add(type);
 
 		var offer = OverKinds
-			? $"Offer_DotGram{_tag}({call}, parserLocating, parserStarts, parserLengths, {from}, {length})"
-			: $"Offer_DotGram{_tag}({call}, parserLocating, {from}, {length})";
+			? $"{Tag.Named("Offer")}({call}, parserLocating, parserStarts, parserLengths, {from}, {length})"
+			: $"{Tag.Named("Offer")}({call}, parserLocating, {from}, {length})";
 
 		// In the generic walk the offer of that name is the walk's own, which asks the type the
 		// runtime answers while it compiles; a reader, an engine's walk or an immediate reader is
@@ -1527,11 +1528,11 @@ sealed partial class Machine
 			helper.Line("/// <summary>A located value told where it was written, where this reading locates.</summary>");
 
 			using (helper.Block(
-				$"static {type} Offer_DotGram{_tag}({type} made, int locating{tokens}, int from, int length)"))
+				$"static {type} {Tag.Named("Offer")}({type} made, int locating{tokens}, int from, int length)"))
 			{
 				// A type test the runtime answers while it compiles each reading of the walk.
 				helper.Line($"if ({LocatingTest})");
-				helper.Then($"Locate_DotGram{_tag}(ref made, locating{handed}, from, length);");
+				helper.Then($"{Tag.Named("Locate")}(ref made, locating{handed}, from, length);");
 				helper.Line();
 				helper.Line("return made;");
 			}
@@ -1558,11 +1559,11 @@ sealed partial class Machine
 			helper.Line("/// <summary>A located value told where it was written, where the reading asked.</summary>");
 
 			using (helper.Block(
-				$"static {type} Offer_DotGram{_tag}({type} made, int locating{tokens}, int from, int length)"))
+				$"static {type} {Tag.Named("Offer")}({type} made, int locating{tokens}, int from, int length)"))
 			{
 				// Below nought where the reading did not ask.
 				helper.Line("if (locating >= 0)");
-				helper.Then($"Locate_DotGram{_tag}(ref made, locating{handed}, from, length);");
+				helper.Then($"{Tag.Named("Locate")}(ref made, locating{handed}, from, length);");
 				helper.Line();
 				helper.Line("return made;");
 			}
@@ -1578,7 +1579,7 @@ sealed partial class Machine
 		// Generic over the value, handed by reference, so that a struct is told on the value it is
 		// returned as and not on a boxed copy of it.
 		using (helper.Block(
-			$"static void Locate_DotGram{_tag}<T>(ref T made, int floor{tokens}, int from, int length) where T : {located}"))
+			$"static void {Tag.Named("Locate")}<T>(ref T made, int floor{tokens}, int from, int length) where T : {located}"))
 		{
 			// A rule may hand back null for what was not written, and null is no value made.
 			helper.Line("if (made is null)");
@@ -1953,6 +1954,9 @@ sealed partial class Machine
 
 	public string RenderEngine(string name, Action<string>? declaration = null)
 	{
+		// The engine's tables and parts are named by this machine's tag, as the engine itself is.
+		System.Diagnostics.Debug.Assert(name == Tag.Named("Recognize"), $"the engine '{name}' is not named by its machine's tag");
+
 		var file = new Writer(0);
 
 		var strength = _graph.Climbing.Count > 0 ? ", int initialPower" : "";
@@ -1981,7 +1985,7 @@ sealed partial class Machine
 			table[Accept] = Accept;
 			table[Fail] = Fail;
 			foreach (var one in numbered) table[one.State] = one.Part + First;
-			var field = $"static readonly int[] {name}_Dispatch = new int[] {{ {string.Join(", ", table)} }};";
+			var field = $"static readonly int[] {Tag.Named("RecognizeDispatch")} = new int[] {{ {string.Join(", ", table)} }};";
 			if (declaration is null)
 			{
 				file.Line(field);
@@ -2103,7 +2107,7 @@ sealed partial class Machine
 				file.Line("Dispatch:");
 
 				using (file.Block(indexedDispatch
-					? $"switch ((uint)state < (uint){name}_Dispatch.Length ? {name}_Dispatch[state] : -1)"
+					? $"switch ((uint)state < (uint){Tag.Named("RecognizeDispatch")}.Length ? {Tag.Named("RecognizeDispatch")}[state] : -1)"
 					: "switch (state)"))
 				{
 					file.Line($"case {Return}: goto Return;");
@@ -2159,7 +2163,7 @@ sealed partial class Machine
 
 							using (file.Indent())
 							{
-								file.Line($"state = {name}_Part{part}(text, ref failure);");
+								file.Line($"state = {Tag.Named("RecognizePart", part)}(text, ref failure);");
 								file.Line($"if (state == {Fail}) goto Fail;");
 								file.Line("goto Dispatch;");
 							}
@@ -2246,7 +2250,7 @@ sealed partial class Machine
 									file.Line("if (!built[0]) values[0] = parser;");
 								}
 
-								file.Line($"Materialize_DotGram{_tag}(text, parser, entries{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument});");
+								file.Line($"{Tag.Named("Materialize")}(text, parser, entries{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument});");
 								RootValue(file);
 							}
 						}
@@ -2521,7 +2525,7 @@ sealed partial class Machine
 						file.Line();
 
 						using (file.Block(
-							$"int {name}_Part{part}({InputType} text, " +
+							$"int {Tag.Named("RecognizePart", part)}({InputType} text, " +
 							$"ref {CSharpEmitter.FailureType} failure)"))
 						{
 							using (file.Block("switch (state)"))
@@ -3492,7 +3496,9 @@ sealed partial class Machine
 					: CaptureLayout.Of(
 						_graph.Bodies[own], other => _graph.Results[other].Count > 0 || _graph.Types.ContainsKey(other),
 						lifted: _graph.LiftedBody);
-				var method = $"Recognize_DotGram{_tag}_Guard" + _guards++;
+				var guard  = _guards++;
+				var method = Tag.Named("RecognizeGuard", guard);
+				var key    = Tag.Named("RecognizeGuardKey", guard);
 				var helper = new Writer(0);
 				var parameters = new List<string>();
 				var arguments  = new List<string>();
@@ -3593,14 +3599,14 @@ sealed partial class Machine
 
 				if (dispatch)
 				{
-					helper.Line($"static int {method}_Key(int value) => value;");
-					helper.Line($"static uint {method}_Key(uint value) => value;");
-					helper.Line($"static long {method}_Key(long value) => value;");
-					helper.Line($"static ulong {method}_Key(ulong value) => value;");
-					helper.Line($"static string? {method}_Key(string? value) => value;");
+					helper.Line($"static int {key}(int value) => value;");
+					helper.Line($"static uint {key}(uint value) => value;");
+					helper.Line($"static long {key}(long value) => value;");
+					helper.Line($"static ulong {key}(ulong value) => value;");
+					helper.Line($"static string? {key}(string? value) => value;");
 					using (helper.Block($"static int {method}({string.Join(", ", parameters)})"))
 					{
-						helper.Line($"switch ({method}_Key(");
+						helper.Line($"switch ({key}(");
 						CSharpEmitter.Handed(helper, _lines, ((Node.Guard)node).At, condition + "))");
 						using (helper.Block(""))
 						{
@@ -3778,7 +3784,7 @@ sealed partial class Machine
 						MaterializeScalarGuard(writer, visible);
 					else
 						writer.Line(
-							$"if (guardNeedsMaterialization) Materialize_DotGram{_tag}(text, parser, " +
+							$"if (guardNeedsMaterialization) {Tag.Named("Materialize")}(text, parser, " +
 							$"entries{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, guardFrom);");
 
 					for (var memberIndex = 0; memberIndex < visible.Count; memberIndex++)
@@ -4225,7 +4231,7 @@ sealed partial class Machine
 	/// The records a close searched back over for its opening, counted where a test asks for it
 	/// (<see cref="CountsRules"/>, under <c>DOTGRAM_COUNTS</c>).
 	/// </summary>
-	string Searched => $"Searched_DotGram{_tag}";
+	string Searched => Tag.Named("Searched");
 
 	void CloseOpened(Writer atClose, int slot, bool stepped = true)
 	{
@@ -7041,7 +7047,7 @@ sealed partial class Machine
 		// per cent on inputs that never reach it — a method of ten thousand lines has
 		// nowhere to put anything without moving something else. A call on the failing
 		// branch costs nothing that is not already failing.
-		var method = $"Recognize_DotGram{_tag}_Sharpen" + _sharpens++;
+		var method = Tag.Named("RecognizeSharpen", _sharpens++);
 		var helper = new Writer(0);
 
 		helper.Line(
@@ -7261,7 +7267,7 @@ sealed partial class Machine
 		if (_furthered is not null)
 			return _furthered;
 
-		_furthered = $"Recognize_DotGram{_tag}_Further";
+		_furthered = Tag.Named("RecognizeFurther");
 
 		var helper = new Writer(0);
 
@@ -7298,7 +7304,7 @@ sealed partial class Machine
 		if (_ranOut is not null)
 			return _ranOut;
 
-		_ranOut = $"Recognize_DotGram{_tag}_RanOut";
+		_ranOut = Tag.Named("RecognizeRanOut");
 
 		var agreeing = Agreeing();
 		var helper   = new Writer(0);
@@ -7373,7 +7379,7 @@ sealed partial class Machine
 		if (_agreeing is not null)
 			return _agreeing;
 
-		_agreeing = $"Recognize_DotGram{_tag}_Agreeing";
+		_agreeing = Tag.Named("RecognizeAgreeing");
 
 		var helper = new Writer(0);
 		var read   = ReadAt("p + i");
@@ -7510,7 +7516,7 @@ sealed partial class Machine
 			return TableTest(already);
 		}
 
-		var name = $"Recognize_DotGram{_tag}_Class" + _classCount++;
+		var name = Tag.Named("RecognizeClass", _classCount++);
 
 		_classesByRanges[items] = name;
 		_classesUsed.Add(name);
@@ -7549,7 +7555,7 @@ sealed partial class Machine
 
 		if (!_bitTables.TryGetValue(items, out var name))
 		{
-			name = $"Recognize_DotGram{_tag}_Bits" + _bitTables.Count;
+			name = Tag.Named("RecognizeBits", _bitTables.Count);
 
 			_bitTables[items] = name;
 			_classes.Add((name, $"static global::System.ReadOnlySpan<byte> {name} => new byte[] {{ {items} }};"));
@@ -7565,7 +7571,7 @@ sealed partial class Machine
 
 	readonly Dictionary<string, string> _bitTables = new(StringComparer.Ordinal);
 
-	string Bit => $"Recognize_DotGram{_tag}_Bit";
+	string Bit => Tag.Named("RecognizeBit");
 
 	/// <summary>Whether a bit table holds the character <paramref name="at"/> places past its start.</summary>
 	string BitMethod =>
@@ -7628,7 +7634,7 @@ sealed partial class Machine
 			return (already, from);
 		}
 
-		var name = $"Recognize_DotGram{_tag}_Groups" + _kindTables.Count;
+		var name = Tag.Named("RecognizeGroups", _kindTables.Count);
 
 		_kindTables[items] = name;
 		_classesUsed.Add(name);
@@ -7683,7 +7689,7 @@ sealed partial class Machine
 			items.Append(CSharpEmitter.Char(ranges[i].From)).Append(", ").Append(CSharpEmitter.Char(ranges[i].To));
 		}
 
-		var name = $"Recognize_DotGram{_tag}_Set" + _setCount++;
+		var name = Tag.Named("RecognizeSet", _setCount++);
 
 		// A copy for the key: what was asked with may be a list its owner goes on using.
 		CharRange[] key = [.. ranges];
@@ -7698,7 +7704,7 @@ sealed partial class Machine
 		return name;
 	}
 
-	string Search => $"Recognize_DotGram{_tag}_In";
+	string Search => Tag.Named("RecognizeIn");
 
 	/// <summary>Whether a character stands in one of a set's ranges.</summary>
 	string SearchMethod =>

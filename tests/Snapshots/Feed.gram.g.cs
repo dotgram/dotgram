@@ -29,12 +29,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Feed_Whole(text, 0, ref failure, out var recognized);
+			var end = RecWhole_DotGram_Feed(text, 0, ref failure, out var recognized);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Feed_Whole(text, 0, ref failure, out recognized);
+				end     = RecWhole_DotGram_Feed(text, 0, ref failure, out recognized);
 			}
 
 			if (end < 0)
@@ -60,7 +60,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Feed_Whole(text, 0, ref failure, out var recognized);
+			var end = RecWhole_DotGram_Feed(text, 0, ref failure, out var recognized);
 
 			if (end < 0)
 			{
@@ -89,12 +89,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Feed(text, at, ref failure, out var recognized);
+			var end = Rec_DotGram_Feed(text, at, ref failure, out var recognized);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Feed(text, at, ref failure, out recognized);
+				end     = Rec_DotGram_Feed(text, at, ref failure, out recognized);
 			}
 
 			if (end < 0)
@@ -125,7 +125,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Feed(text, at, ref failure, out var recognized);
+			var end = Rec_DotGram_Feed(text, at, ref failure, out var recognized);
 
 			if (end < 0)
 			{
@@ -155,12 +155,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Feed(text, at, ref failure, out var recognized);
+			var end = Rec_DotGram_Feed(text, at, ref failure, out var recognized);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Feed(text, at, ref failure, out recognized);
+				end     = Rec_DotGram_Feed(text, at, ref failure, out recognized);
 			}
 
 			if (end < 0)
@@ -191,7 +191,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Feed(text, at, ref failure, out var recognized);
+			var end = Rec_DotGram_Feed(text, at, ref failure, out var recognized);
 
 			if (end < 0)
 			{
@@ -212,7 +212,7 @@ namespace DotGram.Snapshots
 			{
 				var failure = new Failure { Quiet = true };
 
-				var end = Recognize_Name(global::System.MemoryExtensions.AsSpan(input), start, ref failure);
+				var end = Rec_DotGram_Name(global::System.MemoryExtensions.AsSpan(input), start, ref failure);
 
 				if (end < 0)
 				{
@@ -241,7 +241,7 @@ namespace DotGram.Snapshots
 			{
 				var failure = new Failure();
 
-				var end = Recognize_Name(window.Span(), start, ref failure);
+				var end = Rec_DotGram_Name(window.Span(), start, ref failure);
 
 				if (((end < 0 ? failure.Position : end) >= window.Length || failure.Starved) && !window.Ended)
 				{
@@ -297,7 +297,7 @@ namespace DotGram.Snapshots
 			{
 				var failure = new Failure { Quiet = true };
 
-				var end = Recognize_Row(global::System.MemoryExtensions.AsSpan(input), start, ref failure, out var recognized);
+				var end = Rec_DotGram_Row(global::System.MemoryExtensions.AsSpan(input), start, ref failure, out var recognized);
 
 				if (end < 0)
 				{
@@ -326,7 +326,7 @@ namespace DotGram.Snapshots
 			{
 				var failure = new Failure();
 
-				var end = Recognize_Row(window.Span(), start, ref failure, out var recognized);
+				var end = Rec_DotGram_Row(window.Span(), start, ref failure, out var recognized);
 
 				if (((end < 0 ? failure.Position : end) >= window.Length || failure.Starved) && !window.Ended)
 				{
@@ -515,14 +515,14 @@ namespace DotGram.Snapshots
 					Replayed_DotGram();
 			}
 
-			public int Read_Feed_Feed(int pos)
+			public int Read_Feed(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Read_Feed_Feed_Body(pos);
+					var q = ReadBody_Feed(pos);
 
 					if (q >= 0)
 					{
@@ -551,14 +551,14 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Feed_Feed_Body(int pos)
+			public int ReadBody_Feed(int pos)
 			{
 				var p = pos;
 				var c = '\0';
 				var rb_2 = values.Count2;
 				global::DotGram.Snapshots.Feed.Header r0 = default!;
 				global::DotGram.Snapshots.Feed.Trailer r2 = default!;
-				var q0 = Read_Header_Feed(p);
+				var q0 = Read_Header(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				r0 = last3;
@@ -584,7 +584,7 @@ namespace DotGram.Snapshots
 
 					while (true)
 					{
-						q1 = Read_Feed_Feed_Part0(p, rb_2);
+						q1 = ReadPart0_Feed(p, rb_2);
 
 						if (q1 >= 0)
 						{
@@ -625,35 +625,35 @@ namespace DotGram.Snapshots
 
 					p = q1;
 				}
-				var q2 = Read_Trailer_Feed(p);
+				var q2 = Read_Trailer(p);
 				if (q2 < 0) { values.Count2 = rb_2; return -1; }
 				p = q2;
 				r2 = last1;
-				var q3 = Read_eof_Feed(p);
+				var q3 = Read_eof(p);
 				if (q3 < 0) { values.Count2 = rb_2; return -1; }
 				p = q3;
 				if (unbuilt == 0) last0 = new global::DotGram.Snapshots.Feed.FeedValue(r0!, values.Take2(rb_2)!, r2!); else { values.Count2 = rb_2; }
 				return p;
 			}
 
-			public int Read_Feed_Feed_Part0(int pos, int refs_2)
+			public int ReadPart0_Feed(int pos, int refs_2)
 			{
 				var p = pos;
-				var q0 = Read_Row_Feed(p);
+				var q0 = Read_Row(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				values.Push2(last2);
 				return p;
 			}
 
-			public int Read_Header_Feed(int pos)
+			public int Read_Header(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Read_Header_Feed_Body(pos);
+					var q = ReadBody_Header(pos);
 
 					if (q >= 0)
 					{
@@ -682,7 +682,7 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Header_Feed_Body(int pos)
+			public int ReadBody_Header(int pos)
 			{
 				var p = pos;
 				var a0 = -1;
@@ -693,15 +693,15 @@ namespace DotGram.Snapshots
 					return -1;
 				}
 				p += 1;
-				var q0 = Read_Sep_Feed(p);
+				var q0 = Read_Sep(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				a0 = p;
-				var q1 = Read_Date_Feed(p);
+				var q1 = Read_Date(p);
 				if (q1 < 0) return -1;
 				p = q1;
 				b0 = p;
-				var q2 = Read_eol_Feed(p);
+				var q2 = Read_eol(p);
 				if (q2 < 0) return -1;
 				p = q2;
 				if (unbuilt == 0) last3 = new global::DotGram.Snapshots.Feed.Header((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
@@ -709,7 +709,7 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Sep_Feed(int pos)
+			public int Read_Sep(int pos)
 			{
 				var p = pos;
 				if ((uint)p >= (uint)text.Length || text[p] != '|')
@@ -721,7 +721,7 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_Date_Feed(int pos)
+			public int Read_Date(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -810,7 +810,7 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Digit_Feed(int pos)
+			public int Read_Digit(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -829,13 +829,13 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_eol_Feed(int pos)
+			public int Read_eol(int pos)
 			{
 				var s  = ways.Cursor;
 
 				while (true)
 				{
-					var q = Read_eol_Feed_Body(pos);
+					var q = ReadBody_eol(pos);
 
 					if (q >= 0)
 						return q;
@@ -849,7 +849,7 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_eol_Feed_Body(int pos)
+			public int ReadBody_eol(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -886,7 +886,7 @@ namespace DotGram.Snapshots
 							{
 								var s1  = ways.Cursor;
 
-								q0 = Read_eol_Feed_Part0(p);
+								q0 = ReadPart0_eol(p);
 
 								if (q0 < 0)
 								{
@@ -899,7 +899,7 @@ namespace DotGram.Snapshots
 							{
 								var s2  = ways.Cursor;
 
-								q0 = Read_eol_Feed_Part1(p);
+								q0 = ReadPart1_eol(p);
 
 								if (q0 < 0)
 								{
@@ -919,19 +919,19 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_eol_Feed_Part0(int pos)
+			public int ReadPart0_eol(int pos)
 			{
 				var p = pos;
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
-					p = Recognize_DotGram_Feed_RanOut(text, p, "\r\n", false, !failure.Quiet, ref failure);
+					p = RecognizeRanOut_DotGram_Feed(text, p, "\r\n", false, !failure.Quiet, ref failure);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(4));
 					return -1;
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("\r\n")))
 				{
 					if (!failure.Quiet)
-						p = Recognize_DotGram_Feed_Agreeing(text, p, "\r\n", false);
+						p = RecognizeAgreeing_DotGram_Feed(text, p, "\r\n", false);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(4));
 					return -1;
 				}
@@ -939,7 +939,7 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_eol_Feed_Part1(int pos)
+			public int ReadPart1_eol(int pos)
 			{
 				var p = pos;
 				if ((uint)p >= (uint)text.Length || text[p] != '\r')
@@ -951,14 +951,14 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_Row_Feed(int pos)
+			public int Read_Row(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Read_Row_Feed_Body(pos);
+					var q = ReadBody_Row(pos);
 
 					if (q >= 0)
 					{
@@ -987,7 +987,7 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Row_Feed_Body(int pos)
+			public int ReadBody_Row(int pos)
 			{
 				var p = pos;
 				var a0 = -1;
@@ -1000,36 +1000,36 @@ namespace DotGram.Snapshots
 					return -1;
 				}
 				p += 1;
-				var q0 = Read_Sep_Feed(p);
+				var q0 = Read_Sep(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				a0 = p;
-				var q1 = Read_Name_Feed(p);
+				var q1 = Read_Name(p);
 				if (q1 < 0) return -1;
 				p = q1;
 				b0 = p;
-				var q2 = Read_Sep_Feed(p);
+				var q2 = Read_Sep(p);
 				if (q2 < 0) return -1;
 				p = q2;
 				a1 = p;
-				var q3 = Read_Amount_Feed(p);
+				var q3 = Read_Amount(p);
 				if (q3 < 0) return -1;
 				p = q3;
 				b1 = p;
-				var q4 = Read_eol_Feed(p);
+				var q4 = Read_eol(p);
 				if (q4 < 0) return -1;
 				p = q4;
 				if (unbuilt == 0) last2 = new global::DotGram.Snapshots.Feed.Row((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!, (a1 < 0 ? string.Empty : text.Slice(a1, b1 - a1).ToString())!);
 				return p;
 			}
 
-			public int Read_Name_Feed(int pos)
+			public int Read_Name(int pos)
 			{
 				var s  = ways.Cursor;
 
 				while (true)
 				{
-					var q = Read_Name_Feed_Body(pos);
+					var q = ReadBody_Name(pos);
 
 					if (q >= 0)
 						return q;
@@ -1043,7 +1043,7 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Name_Feed_Body(int pos)
+			public int ReadBody_Name(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -1086,7 +1086,7 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_Amount_Feed(int pos)
+			public int Read_Amount(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -1148,7 +1148,7 @@ namespace DotGram.Snapshots
 
 					var q0 = -1;
 
-					q0 = Read_Amount_Feed_Part0(p);
+					q0 = ReadPart0_Amount(p);
 
 					if (q0 < 0)
 					{
@@ -1166,7 +1166,7 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_Amount_Feed_Part0(int pos)
+			public int ReadPart0_Amount(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -1202,14 +1202,14 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_Trailer_Feed(int pos)
+			public int Read_Trailer(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Read_Trailer_Feed_Body(pos);
+					var q = ReadBody_Trailer(pos);
 
 					if (q >= 0)
 					{
@@ -1238,7 +1238,7 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Trailer_Feed_Body(int pos)
+			public int ReadBody_Trailer(int pos)
 			{
 				var p = pos;
 				var a0 = -1;
@@ -1249,22 +1249,22 @@ namespace DotGram.Snapshots
 					return -1;
 				}
 				p += 1;
-				var q0 = Read_Sep_Feed(p);
+				var q0 = Read_Sep(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				a0 = p;
-				var q1 = Read_Count_Feed(p);
+				var q1 = Read_Count(p);
 				if (q1 < 0) return -1;
 				p = q1;
 				b0 = p;
-				var q2 = Read_eol_Feed(p);
+				var q2 = Read_eol(p);
 				if (q2 < 0) return -1;
 				p = q2;
 				if (unbuilt == 0) last1 = new global::DotGram.Snapshots.Feed.Trailer((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
-			public int Read_Count_Feed(int pos)
+			public int Read_Count(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -1291,11 +1291,11 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_eof_Feed(int pos)
+			public int Read_eof(int pos)
 			{
 				var p = pos;
 				failure.Looking++;
-				var q0 = Read_eof_Feed_Part0(p);
+				var q0 = ReadPart0_eof(p);
 				failure.Looking--;
 
 
@@ -1307,7 +1307,7 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_eof_Feed_Part0(int pos)
+			public int ReadPart0_eof(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -1321,14 +1321,14 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_Feed_Whole_Read(int pos)
+			public int RecWholeRead_Feed(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Recognize_Feed_Whole_Read_Body(pos);
+					var q = RecWholeReadBody_Feed(pos);
 
 					if (q >= 0)
 					{
@@ -1356,11 +1356,11 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			public int Recognize_Feed_Whole_Read_Body(int pos)
+			public int RecWholeReadBody_Feed(int pos)
 			{
 				var p = pos;
 				var rb_2 = values.Count2;
-				var q0 = Read_Feed_Feed(p);
+				var q0 = Read_Feed(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				if (p != text.Length)
@@ -1371,14 +1371,14 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_Feed_Read(int pos)
+			public int RecRead_Feed(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Recognize_Feed_Read_Body(pos);
+					var q = RecReadBody_Feed(pos);
 
 					if (q >= 0)
 					{
@@ -1406,11 +1406,11 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			public int Recognize_Feed_Read_Body(int pos)
+			public int RecReadBody_Feed(int pos)
 			{
 				var p = pos;
 				var rb_2 = values.Count2;
-				var q0 = Read_Feed_Feed(p);
+				var q0 = Read_Feed(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				return p;
@@ -1418,7 +1418,7 @@ namespace DotGram.Snapshots
 
 		}
 
-		static int Recognize_Feed_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.FeedValue value)
+		static int RecWhole_DotGram_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.FeedValue value)
 		{
 			var ways = Ways_DotGram.Rent();
 			var values = ImmediateValues_DotGram.Rent();
@@ -1430,7 +1430,7 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 				if (failure.Unasked) reader.unbuilt = 1;
 
-				var end = reader.Recognize_Feed_Whole_Read(pos);
+				var end = reader.RecWholeRead_Feed(pos);
 
 				failure = reader.failure;
 
@@ -1452,7 +1452,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Recognize_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.FeedValue value)
+		static int Rec_DotGram_Feed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.FeedValue value)
 		{
 			var ways = Ways_DotGram.Rent();
 			var values = ImmediateValues_DotGram.Rent();
@@ -1464,7 +1464,7 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 				if (failure.Unasked) reader.unbuilt = 1;
 
-				var end = reader.Recognize_Feed_Read(pos);
+				var end = reader.RecRead_Feed(pos);
 
 				failure = reader.failure;
 
@@ -1660,7 +1660,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Recognize_Name(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Rec_DotGram_Name(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			object? recognized;
 			var end = Recognize_DotGram_Name(text, pos, 3, -1, false, true, ref failure, out recognized);
@@ -1828,7 +1828,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					var scanned = Scan_Amount_Row(text, p, ref failure, out var scanReached);
+					var scanned = Scan_DotGram_Amount_DotGram_Row(text, p, ref failure, out var scanReached);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -1894,7 +1894,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 2 && (failure.Starved = true)))
 					{
-						p = Recognize_DotGram_Row_RanOut(text, p, "\r\n", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram_Row(text, p, "\r\n", false, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(4);
 						goto Fail;
 					}
@@ -2098,7 +2098,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Scan_Amount_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int reachedAt)
+		static int Scan_DotGram_Amount_DotGram_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int reachedAt)
 		{
 			var p = pos;
 			var c = '\0';
@@ -2179,7 +2179,7 @@ namespace DotGram.Snapshots
 			return -1 - furthest;
 		}
 
-		static int Scan_Digit_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Scan_DotGram_Digit_DotGram_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var c = '\0';
@@ -2198,7 +2198,7 @@ namespace DotGram.Snapshots
 			return -1 - p;
 		}
 
-		static int Recognize_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.Row value)
+		static int Rec_DotGram_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out global::DotGram.Snapshots.Feed.Row value)
 		{
 			object? recognized;
 			var end = Recognize_DotGram_Row(text, pos, 3, 0, false, true, ref failure, out recognized);
@@ -2206,7 +2206,7 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static int Recognize_DotGram_Feed_Sharpen0(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
+		static int RecognizeSharpen0_DotGram_Feed(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
 		{
 			if ((uint)p < (uint)text.Length && text[p] == '\r')
 			{
@@ -2226,7 +2226,7 @@ namespace DotGram.Snapshots
 			return p;
 		}
 
-		static int Recognize_DotGram_Feed_Agreeing(global::System.ReadOnlySpan<char> text, int p, string value, bool fold)
+		static int RecognizeAgreeing_DotGram_Feed(global::System.ReadOnlySpan<char> text, int p, string value, bool fold)
 		{
 			var i = 0;
 
@@ -2236,9 +2236,9 @@ namespace DotGram.Snapshots
 			return p + i;
 		}
 
-		static int Recognize_DotGram_Feed_RanOut(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
+		static int RecognizeRanOut_DotGram_Feed(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
 		{
-			var reach = Recognize_DotGram_Feed_Agreeing(text, p, value, fold);
+			var reach = RecognizeAgreeing_DotGram_Feed(text, p, value, fold);
 
 			if (((uint)reach >= (uint)text.Length && (failure.Starved = true)))
 			{
@@ -2248,7 +2248,7 @@ namespace DotGram.Snapshots
 			return moves ? reach : p;
 		}
 
-		static int Recognize_DotGram_Row_Agreeing(global::System.ReadOnlySpan<char> text, int p, string value, bool fold)
+		static int RecognizeAgreeing_DotGram_Row(global::System.ReadOnlySpan<char> text, int p, string value, bool fold)
 		{
 			var i = 0;
 
@@ -2258,9 +2258,9 @@ namespace DotGram.Snapshots
 			return p + i;
 		}
 
-		static int Recognize_DotGram_Row_RanOut(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
+		static int RecognizeRanOut_DotGram_Row(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
 		{
-			var reach = Recognize_DotGram_Row_Agreeing(text, p, value, fold);
+			var reach = RecognizeAgreeing_DotGram_Row(text, p, value, fold);
 
 			if (((uint)reach >= (uint)text.Length && (failure.Starved = true)))
 			{

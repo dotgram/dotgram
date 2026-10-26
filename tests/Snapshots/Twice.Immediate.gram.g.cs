@@ -32,12 +32,12 @@ namespace DotGram.Snapshots
 				var parserWhole = global::System.MemoryExtensions.AsMemory(input);
 				var failure = new Failure { Quiet = true };
 
-				var end = Recognize_Sum_Whole(text, 0, ref failure, out var recognized, parserWhole);
+				var end = RecWhole_DotGram_Sum(text, 0, ref failure, out var recognized, parserWhole);
 
 				if (end < 0)
 				{
 					failure = new Failure { Unasked = true, Doors = failure.Position };
-					end     = Recognize_Sum_Whole(text, 0, ref failure, out recognized, parserWhole);
+					end     = RecWhole_DotGram_Sum(text, 0, ref failure, out recognized, parserWhole);
 				}
 
 				if (end < 0)
@@ -64,7 +64,7 @@ namespace DotGram.Snapshots
 				var parserWhole = global::System.MemoryExtensions.AsMemory(input);
 				var failure = new Failure { Quiet = true };
 
-				var end = Recognize_Sum_Whole(text, 0, ref failure, out var recognized, parserWhole);
+				var end = RecWhole_DotGram_Sum(text, 0, ref failure, out var recognized, parserWhole);
 
 				if (end < 0)
 				{
@@ -94,12 +94,12 @@ namespace DotGram.Snapshots
 				var parserWhole = global::System.MemoryExtensions.AsMemory(input);
 				var failure = new Failure { Quiet = true };
 
-				var end = Recognize_Sum(text, at, ref failure, out var recognized, parserWhole);
+				var end = Rec_DotGram_Sum(text, at, ref failure, out var recognized, parserWhole);
 
 				if (end < 0)
 				{
 					failure = new Failure { Unasked = true, Doors = failure.Position };
-					end     = Recognize_Sum(text, at, ref failure, out recognized, parserWhole);
+					end     = Rec_DotGram_Sum(text, at, ref failure, out recognized, parserWhole);
 				}
 
 				var began = failure.Began;
@@ -133,7 +133,7 @@ namespace DotGram.Snapshots
 				var parserWhole = global::System.MemoryExtensions.AsMemory(input);
 				var failure = new Failure { Quiet = true };
 
-				var end = Recognize_Sum(text, at, ref failure, out var recognized, parserWhole);
+				var end = Rec_DotGram_Sum(text, at, ref failure, out var recognized, parserWhole);
 
 				if (end < 0)
 				{
@@ -166,12 +166,12 @@ namespace DotGram.Snapshots
 				var parserWhole = global::System.MemoryExtensions.AsMemory(input, 0, at + length);
 				var failure = new Failure { Quiet = true };
 
-				var end = Recognize_Sum(text, at, ref failure, out var recognized, parserWhole);
+				var end = Rec_DotGram_Sum(text, at, ref failure, out var recognized, parserWhole);
 
 				if (end < 0)
 				{
 					failure = new Failure { Unasked = true, Doors = failure.Position };
-					end     = Recognize_Sum(text, at, ref failure, out recognized, parserWhole);
+					end     = Rec_DotGram_Sum(text, at, ref failure, out recognized, parserWhole);
 				}
 
 				var began = failure.Began;
@@ -205,7 +205,7 @@ namespace DotGram.Snapshots
 				var parserWhole = global::System.MemoryExtensions.AsMemory(input, 0, at + length);
 				var failure = new Failure { Quiet = true };
 
-				var end = Recognize_Sum(text, at, ref failure, out var recognized, parserWhole);
+				var end = Rec_DotGram_Sum(text, at, ref failure, out var recognized, parserWhole);
 
 				if (end < 0)
 				{
@@ -225,30 +225,30 @@ namespace DotGram.Snapshots
 
 			static partial void OnTakingOver(ref object? state);
 
-			static int Construct_Sum(int first, int[] rest) =>
+			static int New_DotGram_Sum(int first, int[] rest) =>
 #line 27 "Twice.gram"
                                                                 (first + rest.Length);
 #line default
 
-			static int Construct_More(int value) =>
+			static int New_DotGram_More(int value) =>
 #line 29 "Twice.gram"
                                     (value);
 #line default
 
-			static int Construct_Term(int inner) =>
+			static int New_DotGram_Term(int inner) =>
 #line 32 "Twice.gram"
                                                               (inner);
 #line default
 
-			static int Construct_Term_1(int high, int low) =>
+			static int New1_DotGram_Term(int high, int low) =>
 #line 33 "Twice.gram"
                                                               (high - low);
 #line default
 
-			static int Construct_Term_2(int high) =>
+			static int New2_DotGram_Term(int high) =>
 				(high);
 
-			static int Construct_Digits(string text) =>
+			static int New_DotGram_Digits(string text) =>
 #line 36 "Twice.gram"
                                       (int.Parse(text));
 #line default
@@ -408,7 +408,7 @@ namespace DotGram.Snapshots
 
 					while (true)
 					{
-						var q = Read_Sum_Body(pos);
+						var q = ReadBody_Sum(pos);
 
 						if (q >= 0)
 						{
@@ -437,7 +437,7 @@ namespace DotGram.Snapshots
 				}
 
 				[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-				public int Read_Sum_Body(int pos)
+				public int ReadBody_Sum(int pos)
 				{
 					var p = pos;
 					var c = '\0';
@@ -474,7 +474,7 @@ namespace DotGram.Snapshots
 
 						while (true)
 						{
-							q2 = Read_Sum_Part0(p, pos, rb_0);
+							q2 = ReadPart0_Sum(p, pos, rb_0);
 
 							if (q2 >= 0)
 							{
@@ -517,16 +517,16 @@ namespace DotGram.Snapshots
 					}
 					var g0At = r0;
 					int g0 = (int)g0At!;
-					if (!Recognize_DotGram_Guard4(g0))
+					if (!RecognizeGuard4_DotGram(g0))
 					{
 						Refused_DotGram(ref failure, p, null);
 						{ values.Count0 = rb_0; return -1; }
 					}
-					if (unbuilt == 0) last0 = Construct_Sum(r0!, values.Take0(rb_0)!); else { values.Count0 = rb_0; }
+					if (unbuilt == 0) last0 = New_DotGram_Sum(r0!, values.Take0(rb_0)!); else { values.Count0 = rb_0; }
 					return p;
 				}
 
-				public int Read_Sum_Part0(int pos, int start, int refs_0)
+				public int ReadPart0_Sum(int pos, int start, int refs_0)
 				{
 					var p = pos;
 					var q0 = Read_trivia(p);
@@ -546,7 +546,7 @@ namespace DotGram.Snapshots
 
 					while (true)
 					{
-						var q = Read_Term_Body(pos);
+						var q = ReadBody_Term(pos);
 
 						if (q >= 0)
 						{
@@ -575,7 +575,7 @@ namespace DotGram.Snapshots
 				}
 
 				[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-				public int Read_Term_Body(int pos)
+				public int ReadBody_Term(int pos)
 				{
 					var p = pos;
 					var c = '\0';
@@ -608,7 +608,7 @@ namespace DotGram.Snapshots
 									return -1;
 								}
 								p += 1;
-								if (unbuilt == 0) last0 = Construct_Term((int)r0!);
+								if (unbuilt == 0) last0 = New_DotGram_Term((int)r0!);
 								break;
 							}
 						default:
@@ -642,7 +642,7 @@ namespace DotGram.Snapshots
 								{
 									var s1  = ways.Cursor;
 
-									q4 = Read_Term_Part0(p, pos, r1);
+									q4 = ReadPart0_Term(p, pos, r1);
 
 									if (q4 < 0)
 									{
@@ -655,7 +655,7 @@ namespace DotGram.Snapshots
 								{
 									var s2  = ways.Cursor;
 
-									q4 = Read_Term_Part1(p, pos, r1);
+									q4 = ReadPart1_Term(p, pos, r1);
 
 									if (q4 < 0)
 									{
@@ -672,7 +672,7 @@ namespace DotGram.Snapshots
 					return p;
 				}
 
-				public int Read_Term_Part0(int pos, int start, int? r1)
+				public int ReadPart0_Term(int pos, int start, int? r1)
 				{
 					var p = pos;
 					int? r2 = default;
@@ -698,33 +698,33 @@ namespace DotGram.Snapshots
 					int g0 = (int)g0At!;
 					var g1At = r2;
 					int g1 = (int)g1At!;
-					if (!Recognize_DotGram_Guard5(g0, g1))
+					if (!RecognizeGuard5_DotGram(g0, g1))
 					{
 						Refused_DotGram(ref failure, p, null);
 						return -1;
 					}
-					if (unbuilt == 0) last0 = Construct_Term_1((int)r1!, (int)r2!);
+					if (unbuilt == 0) last0 = New1_DotGram_Term((int)r1!, (int)r2!);
 					return p;
 				}
 
-				public int Read_Term_Part1(int pos, int start, int? r1)
+				public int ReadPart1_Term(int pos, int start, int? r1)
 				{
 					var p = pos;
-					if (unbuilt == 0) last0 = Construct_Term_2((int)r1!);
+					if (unbuilt == 0) last0 = New2_DotGram_Term((int)r1!);
 					return p;
 				}
 
 				public int Read_trivia(int pos)
 				{
 					var p = pos;
-					var q0 = Read_trivia_Part0(p);
+					var q0 = ReadPart0_trivia(p);
 					if (q0 < 0)
 						return -1;
 					p = q0;
 					return p;
 				}
 
-				public int Read_trivia_Part0(int pos)
+				public int ReadPart0_trivia(int pos)
 				{
 					var p = pos;
 					var c = '\0';
@@ -772,7 +772,7 @@ namespace DotGram.Snapshots
 					}
 
 					b0 = p;
-					last0 = Construct_Digits((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
+					last0 = New_DotGram_Digits((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 					return p;
 				}
 
@@ -783,7 +783,7 @@ namespace DotGram.Snapshots
 
 					while (true)
 					{
-						var q = Read_More_Body(pos);
+						var q = ReadBody_More(pos);
 
 						if (q >= 0)
 						{
@@ -812,7 +812,7 @@ namespace DotGram.Snapshots
 				}
 
 				[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-				public int Read_More_Body(int pos)
+				public int ReadBody_More(int pos)
 				{
 					var p = pos;
 					int r0 = default!;
@@ -829,18 +829,18 @@ namespace DotGram.Snapshots
 					if (q1 < 0) return -1;
 					p = q1;
 					r0 = last0;
-					if (unbuilt == 0) last0 = Construct_More(r0!);
+					if (unbuilt == 0) last0 = New_DotGram_More(r0!);
 					return p;
 				}
 
-				public int Recognize_Sum_Whole_Read(int pos)
+				public int RecWholeRead_Sum(int pos)
 				{
 					var s  = ways.Cursor;
 					var u  = 0;
 
 					while (true)
 					{
-						var q = Recognize_Sum_Whole_Read_Body(pos);
+						var q = RecWholeReadBody_Sum(pos);
 
 						if (q >= 0)
 						{
@@ -868,7 +868,7 @@ namespace DotGram.Snapshots
 					}
 				}
 
-				public int Recognize_Sum_Whole_Read_Body(int pos)
+				public int RecWholeReadBody_Sum(int pos)
 				{
 					var p = pos;
 					var rb_0 = values.Count0;
@@ -889,14 +889,14 @@ namespace DotGram.Snapshots
 					return p;
 				}
 
-				public int Recognize_Sum_Read(int pos)
+				public int RecRead_Sum(int pos)
 				{
 					var s  = ways.Cursor;
 					var u  = 0;
 
 					while (true)
 					{
-						var q = Recognize_Sum_Read_Body(pos);
+						var q = RecReadBody_Sum(pos);
 
 						if (q >= 0)
 						{
@@ -924,7 +924,7 @@ namespace DotGram.Snapshots
 					}
 				}
 
-				public int Recognize_Sum_Read_Body(int pos)
+				public int RecReadBody_Sum(int pos)
 				{
 					var p = pos;
 					var rb_0 = values.Count0;
@@ -1210,7 +1210,7 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			static int Recognize_Sum_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value, global::System.ReadOnlyMemory<char> parserWhole)
+			static int RecWhole_DotGram_Sum(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value, global::System.ReadOnlyMemory<char> parserWhole)
 			{
 				var ways = Ways_DotGram.Rent();
 				var values = ImmediateValues_DotGram.Rent();
@@ -1222,7 +1222,7 @@ namespace DotGram.Snapshots
 					reader.failure = failure;
 					if (failure.Unasked) reader.unbuilt = 1;
 
-					var end = reader.Recognize_Sum_Whole_Read(pos);
+					var end = reader.RecWholeRead_Sum(pos);
 
 					failure = reader.failure;
 
@@ -1244,7 +1244,7 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			static int Recognize_Sum(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value, global::System.ReadOnlyMemory<char> parserWhole)
+			static int Rec_DotGram_Sum(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value, global::System.ReadOnlyMemory<char> parserWhole)
 			{
 				var ways = Ways_DotGram.Rent();
 				var values = ImmediateValues_DotGram.Rent();
@@ -1256,7 +1256,7 @@ namespace DotGram.Snapshots
 					reader.failure = failure;
 					if (failure.Unasked) reader.unbuilt = 1;
 
-					var end = reader.Recognize_Sum_Read(pos);
+					var end = reader.RecRead_Sum(pos);
 
 					failure = reader.failure;
 
@@ -1280,32 +1280,32 @@ namespace DotGram.Snapshots
 
 
 
-			static bool Recognize_DotGram_Guard0(int first) =>
+			static bool RecognizeGuard0_DotGram(int first) =>
 #line 27 "Twice.gram"
                                                (first >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard1(int high, int low) =>
+			static bool RecognizeGuard1_DotGram(int high, int low) =>
 #line 33 "Twice.gram"
                                             (high >= low);
 #line default
 
-			static bool Recognize_DotGram_Guard2(int first) =>
+			static bool RecognizeGuard2_DotGram(int first) =>
 #line 27 "Twice.gram"
                                                (first >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard3(int high, int low) =>
+			static bool RecognizeGuard3_DotGram(int high, int low) =>
 #line 33 "Twice.gram"
                                             (high >= low);
 #line default
 
-			static bool Recognize_DotGram_Guard4(int first) =>
+			static bool RecognizeGuard4_DotGram(int first) =>
 #line 27 "Twice.gram"
                                                (first >= 0);
 #line default
 
-			static bool Recognize_DotGram_Guard5(int high, int low) =>
+			static bool RecognizeGuard5_DotGram(int high, int low) =>
 #line 33 "Twice.gram"
                                             (high >= low);
 #line default

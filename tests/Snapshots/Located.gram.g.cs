@@ -29,12 +29,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Config_Whole(text, 0, ref failure, out var recognized);
+			var end = RecWhole_DotGram_Config(text, 0, ref failure, out var recognized);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Config_Whole(text, 0, ref failure, out recognized);
+				end     = RecWhole_DotGram_Config(text, 0, ref failure, out recognized);
 			}
 
 			if (end < 0)
@@ -60,7 +60,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Config_Whole(text, 0, ref failure, out var recognized);
+			var end = RecWhole_DotGram_Config(text, 0, ref failure, out var recognized);
 
 			if (end < 0)
 			{
@@ -89,12 +89,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Config(text, at, ref failure, out var recognized);
+			var end = Rec_DotGram_Config(text, at, ref failure, out var recognized);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Config(text, at, ref failure, out recognized);
+				end     = Rec_DotGram_Config(text, at, ref failure, out recognized);
 			}
 
 			var began = failure.Began;
@@ -127,7 +127,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Config(text, at, ref failure, out var recognized);
+			var end = Rec_DotGram_Config(text, at, ref failure, out var recognized);
 
 			if (end < 0)
 			{
@@ -159,12 +159,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Config(text, at, ref failure, out var recognized);
+			var end = Rec_DotGram_Config(text, at, ref failure, out var recognized);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Config(text, at, ref failure, out recognized);
+				end     = Rec_DotGram_Config(text, at, ref failure, out recognized);
 			}
 
 			var began = failure.Began;
@@ -197,7 +197,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Config(text, at, ref failure, out var recognized);
+			var end = Rec_DotGram_Config(text, at, ref failure, out var recognized);
 
 			if (end < 0)
 			{
@@ -213,10 +213,10 @@ namespace DotGram.Snapshots
 			return true;
 		}
 
-		static Entry[] Construct_Config(Entry[] item0) =>
+		static Entry[] New_DotGram_Config(Entry[] item0) =>
 			item0 ?? global::System.Array.Empty<Entry>();
 
-		static Entry Construct_Entry(SourceSpan parserSpan, Place key, string value)
+		static Entry New_DotGram_Entry(SourceSpan parserSpan, Place key, string value)
 		{
 			Entry made =
 #line 21 "Located.gram"
@@ -229,7 +229,7 @@ namespace DotGram.Snapshots
 			return made!;
 		}
 
-		static Place Construct_Name(SourceSpan parserSpan, string w)
+		static Place New_DotGram_Name(SourceSpan parserSpan, string w)
 		{
 			Place made =
 #line 27 "Located.gram"
@@ -242,12 +242,12 @@ namespace DotGram.Snapshots
 			return made!;
 		}
 
-		static string Construct_Word(string t) =>
+		static string New_DotGram_Word(string t) =>
 #line 29 "Located.gram"
                                     (t);
 #line default
 
-		static string Construct_Rest(string t) =>
+		static string New_DotGram_Rest(string t) =>
 #line 31 "Located.gram"
                                          (t);
 #line default
@@ -344,7 +344,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -443,7 +443,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -462,7 +462,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -520,7 +520,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -540,7 +540,7 @@ namespace DotGram.Snapshots
 						goto Return;
 					}
 					expected = ExpectedSet_DotGram(1);
-					p = Recognize_DotGram_Sharpen0(text, p, ref expected);
+					p = RecognizeSharpen0_DotGram(text, p, ref expected);
 					if (p >= text.Length) failure.Starved = true;
 					goto Fail;
 				}
@@ -568,13 +568,13 @@ namespace DotGram.Snapshots
 
 				S25:
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 					goto Return;
 				}
 
 				S26:
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -606,7 +606,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					p = Scan_trivia(text, p, ref failure);
+					p = Scan_DotGram_trivia(text, p, ref failure);
 				}
 
 				{
@@ -807,7 +807,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Scan_trivia(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Scan_DotGram_trivia(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 
@@ -824,7 +824,7 @@ namespace DotGram.Snapshots
 			return p;
 		}
 
-		static int Recognize_Config_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out Entry[] value)
+		static int RecWhole_DotGram_Config(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out Entry[] value)
 		{
 			object? recognized;
 			var end = Recognize_DotGram(text, pos, 26, 1, true, true, ref failure, out recognized);
@@ -832,7 +832,7 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static int Recognize_Config(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out Entry[] value)
+		static int Rec_DotGram_Config(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out Entry[] value)
 		{
 			object? recognized;
 			var began = Recognize_DotGram(text, pos, 25, -1, false, true, ref failure, out recognized);
@@ -846,7 +846,7 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static int Recognize_trivia(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Rec_DotGram_trivia(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			object? recognized;
 			var began = Recognize_DotGram(text, pos, 25, -1, false, true, ref failure, out recognized);
@@ -859,7 +859,7 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static int Recognize_Entry(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out Entry value)
+		static int Rec_DotGram_Entry(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out Entry value)
 		{
 			object? recognized;
 			var began = Recognize_DotGram(text, pos, 25, -1, false, true, ref failure, out recognized);
@@ -873,7 +873,7 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static int Recognize_Config_Whole_Trivia(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int WholeTrivia_DotGram_Config(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			object? ignored;
 			return Recognize_DotGram(text, pos, 25, -1, false, false, ref failure, out ignored);
@@ -897,7 +897,7 @@ namespace DotGram.Snapshots
 			while (true)
 			{
 				triviaFailureLead = new Failure();
-				triviaEndLead = Recognize_Config_Whole_Trivia(window.Span(), start, ref triviaFailureLead);
+				triviaEndLead = WholeTrivia_DotGram_Config(window.Span(), start, ref triviaFailureLead);
 
 				if (((triviaEndLead < 0 ? triviaFailureLead.Position : triviaEndLead) >= window.Length || triviaFailureLead.Starved) && !window.Ended)
 				{
@@ -923,7 +923,7 @@ namespace DotGram.Snapshots
 				while (true)
 				{
 					seamFailure0 = new Failure();
-					seamEnd0     = Recognize_trivia(window.Span(), start, ref seamFailure0);
+					seamEnd0     = Rec_DotGram_trivia(window.Span(), start, ref seamFailure0);
 
 					if (((seamEnd0 < 0 ? seamFailure0.Position : seamEnd0) >= window.Length || seamFailure0.Starved) && !window.Ended)
 					{
@@ -947,7 +947,7 @@ namespace DotGram.Snapshots
 				while (true)
 				{
 					failure0 = new Failure();
-					end0     = Recognize_Entry(window.Span(), start, ref failure0, out value0);
+					end0     = Rec_DotGram_Entry(window.Span(), start, ref failure0, out value0);
 
 					if (((end0 < 0 ? failure0.Position : end0) >= window.Length || failure0.Starved) && !window.Ended)
 					{
@@ -974,7 +974,7 @@ namespace DotGram.Snapshots
 			while (true)
 			{
 				triviaFailureTrail = new Failure();
-				triviaEndTrail = Recognize_Config_Whole_Trivia(window.Span(), start, ref triviaFailureTrail);
+				triviaEndTrail = WholeTrivia_DotGram_Config(window.Span(), start, ref triviaFailureTrail);
 
 				if (((triviaEndTrail < 0 ? triviaFailureTrail.Position : triviaEndTrail) >= window.Length || triviaFailureTrail.Starved) && !window.Ended)
 				{
@@ -1022,7 +1022,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Recognize_DotGram_Sharpen0(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
+		static int RecognizeSharpen0_DotGram(global::System.ReadOnlySpan<char> text, int p, ref string[]? expected)
 		{
 			if ((uint)p < (uint)text.Length && text[p] == '\r')
 			{
@@ -1112,7 +1112,7 @@ namespace DotGram.Snapshots
 							}
 						}
 
-						values0[completedAt] = Construct_Config(captured0!);
+						values0[completedAt] = New_DotGram_Config(captured0!);
 						break;
 					}
 					case 2:
@@ -1145,9 +1145,9 @@ namespace DotGram.Snapshots
 						var captured0 = values2[captured0At];
 
 						global::System.Diagnostics.Debug.Assert(captured1_0From >= 0);
-						var captured1 = Construct_Rest(captured1_0From < 0 ? string.Empty : text.Slice(captured1_0From, captured1_0To - captured1_0From).ToString());
+						var captured1 = New_DotGram_Rest(captured1_0From < 0 ? string.Empty : text.Slice(captured1_0From, captured1_0To - captured1_0From).ToString());
 
-						values1[completedAt] = Construct_Entry(new SourceSpan(completed.Position, completed.Value - completed.Position), captured0!, captured1!);
+						values1[completedAt] = New_DotGram_Entry(new SourceSpan(completed.Position, completed.Value - completed.Position), captured0!, captured1!);
 						break;
 					}
 					case 3:
@@ -1172,9 +1172,9 @@ namespace DotGram.Snapshots
 						}
 
 						global::System.Diagnostics.Debug.Assert(captured0_0From >= 0);
-						var captured0 = Construct_Word(captured0_0From < 0 ? string.Empty : text.Slice(captured0_0From, captured0_0To - captured0_0From).ToString());
+						var captured0 = New_DotGram_Word(captured0_0From < 0 ? string.Empty : text.Slice(captured0_0From, captured0_0To - captured0_0From).ToString());
 
-						values2[completedAt] = Construct_Name(new SourceSpan(completed.Position, completed.Value - completed.Position), captured0!);
+						values2[completedAt] = New_DotGram_Name(new SourceSpan(completed.Position, completed.Value - completed.Position), captured0!);
 						break;
 					}
 					case 4:
@@ -1204,7 +1204,7 @@ namespace DotGram.Snapshots
 						#endif
 						var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
 
-						values3[completedAt] = Construct_Word(captured0!);
+						values3[completedAt] = New_DotGram_Word(captured0!);
 						break;
 					}
 					case 5:
@@ -1234,7 +1234,7 @@ namespace DotGram.Snapshots
 						#endif
 						var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
 
-						values3[completedAt] = Construct_Rest(captured0!);
+						values3[completedAt] = New_DotGram_Rest(captured0!);
 						break;
 					}
 				}

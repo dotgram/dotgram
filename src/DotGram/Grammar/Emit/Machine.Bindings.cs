@@ -105,7 +105,7 @@ sealed partial class Machine
 	/// </remarks>
 	internal string SameText()
 	{
-		var name = "Same_DotGram" + _tag;
+		var name = Tag.Named("Same");
 
 		if (_sameTextWritten)
 			return name;

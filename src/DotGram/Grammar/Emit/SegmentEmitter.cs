@@ -42,7 +42,7 @@ public static partial class CSharpEmitter
 	/// <summary>What a form over a reader that throws calls: the reader as the text the parser reads.</summary>
 	const string ReadWholeSupport = """
 			/// <summary>A reader as the text the parser reads, a line a segment; a line that holds U+0000 throws.</summary>
-			private static string Read_DotGram(global::System.IO.TextReader input)
+			private static string ReadAll_DotGram(global::System.IO.TextReader input)
 			{
 				return new SegmentReader_DotGram(input, true).ReadToEnd();
 			}
@@ -56,7 +56,7 @@ public static partial class CSharpEmitter
 			/// A reader as the text the parser reads, a line a segment, or, where a line holds U+0000, an
 			/// empty text, where that character would have stood and what the line is told.
 			/// </summary>
-			private static string Read_DotGram(global::System.IO.TextReader input, out long refused, out string why)
+			private static string ReadAll_DotGram(global::System.IO.TextReader input, out long refused, out string why)
 			{
 				var reader = new SegmentReader_DotGram(input, false);
 				var text   = reader.ReadToEnd();
@@ -458,7 +458,7 @@ public static partial class CSharpEmitter
 	/// <summary>The name of the scanner a method is, or null where it is something else.</summary>
 	static string? ScannerName(string method)
 	{
-		const string head = "static int Scan_";
+		const string head = "static int Scan";
 
 		var at = method.IndexOf(head, StringComparison.Ordinal);
 
@@ -467,9 +467,15 @@ public static partial class CSharpEmitter
 
 		var from = at + "static int ".Length;
 		var to   = method.IndexOf('(', from);
+		var name = to < 0 ? null : method.Substring(from, to - from);
 
-		return to < 0 ? null : method.Substring(from, to - from);
+		// A scanner's kind is Scan with its machine's variant (CSharpEmitter.HostKinds).
+		return name is not null && name.IndexOf('_') is var cut and > 0 && CSharpEmitter.IsKind(name.Substring(0, cut), ScannerKind)
+			? name
+			: null;
 	}
+
+	static readonly string[] ScannerKind = ["Scan{v}"];
 
 	/// <summary>Whether a method names the scanner <paramref name="name"/> as a call.</summary>
 	static bool Calls(string method, string name)
@@ -558,7 +564,7 @@ public static partial class CSharpEmitter
 			("global::System.Collections.Generic.IEnumerable<string>",
 				"Joined_DotGram(Listed_DotGram(input))", "Joined_DotGram(Listed_DotGram(input), out var refused)", "Holds_DotGram", true),
 			(reader,
-				"Read_DotGram(input)", "Read_DotGram(input, out var refused, out var why)", "why", true),
+				"ReadAll_DotGram(input)", "ReadAll_DotGram(input, out var refused, out var why)", "why", true),
 		};
 
 		foreach (var (input, text, refusing, why, streams) in forms)

@@ -892,7 +892,7 @@ sealed partial class Machine
 					using (body.Block("switch (kind)"))
 					{
 						foreach (var (rule, factory) in part)
-							MarkDirectArm(body, rule, factory, selected ? $"{DirectMaterializer}_Reach" : null);
+							MarkDirectArm(body, rule, factory, selected ? $"{Tag.Named("MaterializeDirectReach")}" : null);
 
 						body.Line("default: return false;");
 					}
@@ -946,7 +946,7 @@ sealed partial class Machine
 
 							using (file.Indent())
 							{
-								file.Line($"{DirectMaterializer}_Part{part}(log[at + 1]{Handed(handed[part])});");
+								file.Line($"{Tag.Named("MaterializeDirectPart", part)}(log[at + 1]{Handed(handed[part])});");
 								file.Line("break;");
 							}
 						}
@@ -1115,7 +1115,7 @@ sealed partial class Machine
 							for (var part = 0; part < parts.Count; part++)
 								file.Line(
 									(part < parts.Count - 1 ? "if (!" : "	") +
-									$"{DirectMaterializer}_Part{part}(log[at + 1]{Handed(handed[part])}" +
+									$"{Tag.Named("MaterializeDirectPart", part)}(log[at + 1]{Handed(handed[part])}" +
 									(part < parts.Count - 1 ? "))" : ");"));
 						else
 							Dispatch();
@@ -1190,7 +1190,7 @@ sealed partial class Machine
 
 						for (var part = 0; part < parts.Count; part++)
 						{
-							var call = $"{DirectMaterializer}_Reaches{part}(" +
+							var call = $"{Tag.Named("MaterializeDirectReaches", part)}(" +
 								string.Join(", ", reaches[part].Takes.Select(Argument)) + ")";
 
 							file.Line(part < parts.Count - 1 ? $"if (!{call})" : $"	{call};");
@@ -1234,7 +1234,7 @@ sealed partial class Machine
 				{
 					var asked = _recoveryReads.Count > 0
 						? "from > 0"
-						: "from > 0 && " + DirectMaterializer + "_AsksMarks(log, from, ways.LogCount)";
+						: "from > 0 && " + Tag.Named("MaterializeDirectAsksMarks") + "(log, from, ways.LogCount)";
 
 					using (file.Block($"if ({asked})"))
 					{
@@ -1348,7 +1348,7 @@ sealed partial class Machine
 					after.Line();
 
 					using (after.Block(
-						$"static bool {DirectMaterializer}_Part{part}(int kind{Taken(handed[part])})"))
+						$"static bool {Tag.Named("MaterializeDirectPart", part)}(int kind{Taken(handed[part])})"))
 					{
 						// Each arm is a method of its own, called from here. The JIT gives every
 						// local of a method a slot of its own and zeroes each one that holds a
@@ -1385,7 +1385,7 @@ sealed partial class Machine
 				after.Line();
 
 				using (after.Block(
-					$"static bool {DirectMaterializer}_Reaches{part}(" +
+					$"static bool {Tag.Named("MaterializeDirectReaches", part)}(" +
 					string.Join(", ", reaches[part].Takes.Select(static one => $"{one.Type} {one.Name}")) + ")"))
 					after.Append(reaches[part].Body);
 			}
@@ -1398,7 +1398,7 @@ sealed partial class Machine
 			{
 				after.Line();
 
-				using (after.Block($"static void {DirectMaterializer}_Reach(bool[] built, int[] pending, ref int count, int slot)"))
+				using (after.Block($"static void {Tag.Named("MaterializeDirectReach")}(bool[] built, int[] pending, ref int count, int slot)"))
 				{
 					after.Line("if (built[slot])");
 					after.Then("return;");
@@ -1414,7 +1414,7 @@ sealed partial class Machine
 				after.Line();
 				after.Line("// Whether a record the walk may build from here on is handed the marks standing over it.");
 
-				using (after.Block($"static bool {DirectMaterializer}_AsksMarks(int[] log, int from, int end)"))
+				using (after.Block($"static bool {Tag.Named("MaterializeDirectAsksMarks")}(int[] log, int from, int end)"))
 				{
 					using (after.Block("for (var at = from; at < end; at += log[at])"))
 					{
@@ -1483,13 +1483,13 @@ sealed partial class Machine
 		// One root, or every record gathered for the slots asked since `roots`: a guard handed a
 		// list builds all of it in one walk (TapeCarrier.Gathered), not one walk an element.
 		file.Line("if (roots < 0)");
-		file.Then($"{DirectMaterializer}_Reach(built, pending, ref count, root);");
+		file.Then($"{Tag.Named("MaterializeDirectReach")}(built, pending, ref count, root);");
 		file.Line("else");
 
 		using (file.Block(""))
 		{
 			file.Line("for (var at = roots; at < ways.RefsCount; at += 3)");
-			file.Then($"if ((rootSlots & (1L << ways.Refs[at])) != 0) {DirectMaterializer}_Reach(built, pending, ref count, ways.Refs[at + 1]);");
+			file.Then($"if ((rootSlots & (1L << ways.Refs[at])) != 0) {Tag.Named("MaterializeDirectReach")}(built, pending, ref count, ways.Refs[at + 1]);");
 		}
 
 		file.Line();
@@ -1504,7 +1504,7 @@ sealed partial class Machine
 			for (var part = 0; part < parts.Count; part++)
 				file.Line(
 					(part < parts.Count - 1 ? "if (!" : "	") +
-					$"{DirectMaterializer}_Reaches{part}({string.Join(", ", parts[part].Select(Argument))})" +
+					$"{Tag.Named("MaterializeDirectReaches", part)}({string.Join(", ", parts[part].Select(Argument))})" +
 					(part < parts.Count - 1 ? ")" : ";"));
 		}
 
@@ -1595,7 +1595,7 @@ sealed partial class Machine
 
 		file.Line($"case {DirectArm(rule, factory)}:");
 		file.Then(
-			$"{DirectMaterializer}_Arm{DirectArm(rule, factory)}(" +
+			$"{Tag.Named("MaterializeDirectArm", DirectArm(rule, factory))}(" +
 			string.Join(", ", methods[DirectArm(rule, factory)].Takes.Select(static one => one.Name)) + "); break;");
 	}
 
@@ -1612,7 +1612,7 @@ sealed partial class Machine
 		file.Line();
 
 		using (file.Block(
-			$"static void {DirectMaterializer}_Arm{DirectArm(rule, factory)}(" +
+			$"static void {Tag.Named("MaterializeDirectArm", DirectArm(rule, factory))}(" +
 			string.Join(", ", takes.Select(static one => $"{one.Type} {one.Name}")) + ")"))
 			file.Append(body);
 	}
@@ -1818,7 +1818,7 @@ sealed partial class Machine
 		return parts;
 	}
 
-	string DirectMaterializer => $"Materialize_DotGram{_tag}_Direct";
+	string DirectMaterializer => Tag.Named("MaterializeDirect");
 
 	/// <summary>A mark met on the walk: placed, its value goes on the stack a factory is shown; taken away, it comes off.</summary>
 	void DirectMark(Writer file)
@@ -1910,7 +1910,7 @@ sealed partial class Machine
 		{
 			// A terminal that builds: the lexer measured it, and the character machine of its
 			// own builds it from the text.
-			file.Line($"{DirectInto(type, "slot")} = Value_{CSharpEmitter.IdentifierOf(rule)}_DotGram({TokenOf("start")});");
+			file.Line($"{DirectInto(type, "slot")} = {CSharpEmitter.Named("Value", CSharpEmitter.IdentifierOf(rule))}({TokenOf("start")});");
 
 			if (DirectMark(type, "slot") is { Length: > 0 } marked)
 				file.Line(marked);

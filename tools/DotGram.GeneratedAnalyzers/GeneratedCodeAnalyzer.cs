@@ -77,17 +77,32 @@ public sealed class GeneratedCodeAnalyzer : DiagnosticAnalyzer
 		DiagnosticSeverity.Info,
 		isEnabledByDefault: true,
 		description: "Report-only inventory of likely allocations (a closure or delegate, an array, a LINQ " +
-			"call) in emitted Read_/Recognize_/Scan_/Materialize_/Construct_ methods and the buffered Ensure " +
+			"call) in emitted Read/Rec/Recognize/Scan/Lex/Materialize/New methods and the buffered Ensure " +
 			"path. Construction of a rule's own result value is excluded on purpose: that allocation is the " +
 			"parser's job, not overhead. Never enforced.");
 
 	public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } =
 		ImmutableArray.Create(Dga001Rule, Dga001ReasonRule, Dga003Rule, Dga004Rule);
 
-	// A prefix family this project's own emitted parsers use (Machine.Reader.cs, Machine.cs):
-	// the "hot path" DGA004 asks about. Adding a family here is the only change a new emitter
-	// naming convention needs.
-	static readonly string[] HotPathPrefixes = ["Read_", "Recognize_", "Scan_", "Materialize_", "Construct_", "Ensure"];
+	// The kinds of this project's own emitted names (CSharpEmitter.HostKinds, NestedKinds) that are
+	// the "hot path" DGA004 asks about: the readers, the walks and the engines, the scanners and the
+	// lexer, the materializers and the factories; and the buffered Ensure. A kind is the name up to
+	// its first underscore, and a family is a word followed by nothing or by a capital or a digit,
+	// so that `Rec` is not `Recycle`. Adding a family here is the only change a new kind needs.
+	static readonly string[] HotPathFamilies = ["Read", "Rec", "Recover", "Recognize", "Scan", "Lex", "Materialize", "New"];
+
+	static bool IsHotPath(string name)
+	{
+		if (name.StartsWith("Ensure", StringComparison.Ordinal))
+			return true;
+
+		var cut  = name.IndexOf('_');
+		var kind = cut > 0 ? name.Substring(0, cut) : null;
+
+		return kind is not null && HotPathFamilies.Any(family =>
+			kind.StartsWith(family, StringComparison.Ordinal) &&
+			(kind.Length == family.Length || char.IsUpper(kind[family.Length]) || char.IsDigit(kind[family.Length])));
+	}
 
 	public override void Initialize(AnalysisContext context)
 	{
@@ -109,7 +124,7 @@ public sealed class GeneratedCodeAnalyzer : DiagnosticAnalyzer
 		var owner = context.OwningSymbol;
 
 		var methodName = owner.Name;
-		var isHotPath = HotPathPrefixes.Any(prefix => methodName.StartsWith(prefix, StringComparison.Ordinal));
+		var isHotPath = IsHotPath(methodName);
 
 		foreach (var node in block.DescendantNodesAndSelf())
 		{

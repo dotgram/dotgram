@@ -387,12 +387,12 @@ public sealed record Publication(
 
 	/// <summary>What the methods this publication makes over text are called in the generated class.</summary>
 	/// <remarks>
-	/// Over segments, a name that begins with <c>_DotGram_</c>. No name a publication may take holds
-	/// <c>_DotGram</c> (GRAM1012), and none of the generated class's own members begins with it — they
-	/// are <c>Name_DotGram</c>, which the method name of a publication called <c>Name</c> would
-	/// otherwise meet (<c>find Word as Read</c> beside the reader's <c>Read_DotGram</c>).
+	/// Over segments, <c>Own_DotGram_&lt;Name&gt;</c>: a name the generator makes from the publication's
+	/// (CSharpEmitter.Named), which no name a publication may take can be (GRAM1012), and which the
+	/// method name of a publication called <c>Name</c> would otherwise meet (<c>find Word as Read</c>
+	/// beside the reader's own <c>Read</c>).
 	/// </remarks>
-	public string EmittedName => Joined ? "_DotGram_" + MethodName : MethodName;
+	public string EmittedName => Joined ? Emit.CSharpEmitter.Named("Own", MethodName) : MethodName;
 
 	public override string ToString()
 	{

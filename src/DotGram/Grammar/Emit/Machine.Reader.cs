@@ -232,7 +232,7 @@ sealed partial class Machine
 	/// <summary>The counter of entries to a rule's method (<see cref="CountsRules"/>).</summary>
 	static string EnteredOf(RuleSymbol rule)
 	{
-		return "CountEntered_" + CSharpEmitter.IdentifierOf(rule);
+		return CSharpEmitter.Inner("CountEntered", CSharpEmitter.IdentifierOf(rule));
 	}
 
 	/// <summary>The publications the readers were settled for (<see cref="Settle"/>), or null before they were.</summary>
@@ -338,7 +338,7 @@ sealed partial class Machine
 
 				var reader = new ReaderWriter(this, rule);
 				var tape   = opens.Contains(rule);
-				var inner  = tape ? ReaderOf(rule) + "_Body" : ReaderOf(rule);
+				var inner  = tape ? CSharpEmitter.Inner("ReadBody", CSharpEmitter.IdentifierOf(rule)) : ReaderOf(rule);
 
 				if (tape)
 					RenderWayBack(
@@ -529,8 +529,8 @@ sealed partial class Machine
 		Writer file, RuleSymbol rule, string strength, bool seal = false, RuleSymbol? deepens = null)
 	{
 		RenderWayBack(
-			file, rule, ReaderOf(rule), $"/// <summary><c>{rule.Name}</c>, and the way back into it.</summary>",
-			strength, seal, deepens);
+			file, rule, ReaderOf(rule), CSharpEmitter.Inner("ReadBody", CSharpEmitter.IdentifierOf(rule)),
+			$"/// <summary><c>{rule.Name}</c>, and the way back into it.</summary>", strength, seal, deepens);
 	}
 
 	/// <summary>Whether a way back into this rule can reach it again, and so deepen the stack.</summary>
@@ -632,8 +632,8 @@ sealed partial class Machine
 	{
 		var power = _graph.Climbing.ContainsKey(rule) ? ", power" : ", 0";
 
-		file.Line($"if ((probes++ & {Interval - 1}) == 0 && !EnoughStack_DotGram{_tag}())");
-		file.Then($"return Deepen_DotGram{_tag}(pos, {DeepOf(rule)}{power});");
+		file.Line($"if ((probes++ & {Interval - 1}) == 0 && !EnoughStack_DotGram())");
+		file.Then($"return Deepen_DotGram(pos, {DeepOf(rule)}{power});");
 		file.Line();
 	}
 
@@ -658,7 +658,7 @@ sealed partial class Machine
 	/// <param name="owner">The rule whose reading the loop asks again: the rule itself, or the one an entry reads.</param>
 	/// <param name="entry">Whether the loop is an entry's, around its reading of the rule, rather than the rule's own.</param>
 	void RenderWayBack(
-		Writer file, RuleSymbol owner, string name, string summary, string strength, bool seal = false,
+		Writer file, RuleSymbol owner, string name, string body, string summary, string strength, bool seal = false,
 		RuleSymbol? deepens = null, bool entry = false)
 	{
 		var defers = Deferral(owner, entry ? RetrySite.Entry : RetrySite.Rule, noting: true).Defers && Tracing is null;
@@ -686,7 +686,7 @@ sealed partial class Machine
 			using (file.Block("while (true)"))
 			{
 				file.Line(
-					$"var q = {name}_Body(pos{(strength.Length > 0 ? ", power" : "")});");
+					$"var q = {body}(pos{(strength.Length > 0 ? ", power" : "")});");
 				file.Line();
 				if (defers)
 				{
@@ -912,7 +912,7 @@ sealed partial class Machine
 		file.Line("/// handed to a stack of its own at that point and goes on probing there.");
 		file.Line("/// </remarks>");
 
-		using (file.Block($"static bool EnoughStack_DotGram{_tag}()"))
+		using (file.Block("static bool EnoughStack_DotGram()"))
 		{
 			file.Line("#if NETCOREAPP2_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER");
 			file.Line(
@@ -938,7 +938,7 @@ sealed partial class Machine
 		file.Line();
 		file.Line("/// <summary>Carries this reading onto a stack of its own and answers with what it read.</summary>");
 
-		using (file.Block($"internal int Deepen_DotGram{_tag}(int pos, int which, int power)"))
+		using (file.Block("internal int Deepen_DotGram(int pos, int which, int power)"))
 		{
 			file.Line("// Nothing to carry it onto: a reading over a window has no whole input.");
 			file.Line("if (this.whole.IsEmpty)");
@@ -967,7 +967,7 @@ sealed partial class Machine
 				file.Line();
 			}
 
-			file.Line($"var deep = Deep_DotGram{_tag}.Take();");
+			file.Line($"var deep = {Tag.Named("Deep")}.Take();");
 			file.Line();
 			file.Line("deep.whole  = this.whole;");
 			if (_readerWays)
@@ -1078,7 +1078,7 @@ sealed partial class Machine
 	/// </remarks>
 	void RenderLingering(Writer file, IReadOnlyList<(string Type, string Name)> carried)
 	{
-		var deep = $"Deep_DotGram{_tag}";
+		var deep = Tag.Named("Deep");
 
 		file.Line("/// <summary>The thread the hand-offs of this thread go to, while it waits for another.</summary>");
 		file.Line("[global::System.ThreadStatic]");
@@ -1320,7 +1320,7 @@ sealed partial class Machine
 		file.Line();
 		file.Line("/// <summary>A reading, in a shape another thread can pick up (Machine.Reader.cs).</summary>");
 
-		using (file.Block($"private sealed class Deep_DotGram{_tag}"))
+		using (file.Block($"private sealed class {Tag.Named("Deep")}"))
 		{
 			file.Line("internal global::System.ReadOnlyMemory<char> whole;");
 			if (_readerWays)
@@ -1428,7 +1428,7 @@ sealed partial class Machine
 	}
 
 	/// <summary>The name of the reader the rules of this machine are members of.</summary>
-	string ReaderStruct => "Reader_DotGram" + _tag;
+	string ReaderStruct => Tag.Named("Reader");
 
 	/// <summary>The tokens, as a reader over kinds holds them.</summary>
 	internal static readonly (string Type, string Name)[] TokenState =
@@ -1594,7 +1594,7 @@ sealed partial class Machine
 	{
 		_seam = FollowSets.SeamOf(rule, _graph);
 
-		var core   = CSharpEmitter.MethodOf(rule) + (ends ? "_Whole" : "");
+		var core   = CSharpEmitter.EntryOf(rule, ends, Tag);
 		var type   = _results.QualifiedOf(rule);
 		var valued = type is not null;
 		var value  = valued ? $", out {type} value" : "";
@@ -1660,7 +1660,7 @@ sealed partial class Machine
 					file.Line("if (failure.Unasked) reader.unbuilt = 1;");
 
 				file.Line();
-				file.Line($"var end = reader.{core}_Read(pos{asked});");
+				file.Line($"var end = reader.{CSharpEmitter.Inner(ends ? "RecWholeRead" : "RecRead", CSharpEmitter.IdentifierOf(rule))}(pos{asked});");
 				file.Line();
 				file.Line("failure = reader.failure;");
 				file.Line();
@@ -1741,7 +1741,8 @@ sealed partial class Machine
 	{
 		_seam = FollowSets.SeamOf(rule, _graph);
 
-		var core = CSharpEmitter.MethodOf(rule) + (ends ? "_Whole" : "");
+		var core = CSharpEmitter.Inner(ends ? "RecWholeRead" : "RecRead", CSharpEmitter.IdentifierOf(rule));
+		var inner = CSharpEmitter.Inner(ends ? "RecWholeReadBody" : "RecReadBody", CSharpEmitter.IdentifierOf(rule));
 
 		// Over characters the whole input is a reading like any other: the rule may have
 		// answered with less than all of it, and then it is asked for its next answer
@@ -1753,11 +1754,11 @@ sealed partial class Machine
 		var said = ends ? "The whole input as" : "A reading of";
 
 		if (tape)
-			RenderWayBack(members, rule, core + "_Read", $"/// <summary>{said} <c>{rule.Name}</c>, and the way back into it.</summary>", DirectStrength(rule), entry: true);
+			RenderWayBack(members, rule, core, inner, $"/// <summary>{said} <c>{rule.Name}</c>, and the way back into it.</summary>", DirectStrength(rule), entry: true);
 
 		members.Line($"/// <summary>What <c>{rule.Name}</c> is read by, whichever stack it is read on.</summary>");
 
-		using (members.Block($"public int {core}_Read{(tape ? "_Body" : "")}(int pos{DirectStrength(rule)})"))
+		using (members.Block($"public int {(tape ? inner : core)}(int pos{DirectStrength(rule)})"))
 		{
 			// A whole input is the trivia, the rule and the trivia again, because reaching the
 			// end is what it is for. A reading that begins where it is told stops where the
@@ -4130,7 +4131,7 @@ sealed partial class Machine
 			foreach (var slot in taken)
 				_kept.Add(slot);
 
-			var name  = machine.ReaderOf(owner) + "_Part" + machine._readerPart++;
+			var name  = CSharpEmitter.Inner("ReadPart" + (machine._readerPart++).ToString(System.Globalization.CultureInfo.InvariantCulture), CSharpEmitter.IdentifierOf(owner));
 			var apart = new ReaderWriter(machine, owner, given, taken, _folds, analyzing);
 
 			apart._quiet = quiet ? part : null;
@@ -5194,7 +5195,7 @@ sealed partial class Machine
 		{
 			// One a marked repetition: a rule may mark more than one (§8.2).
 			var before = machine._recoveryReads.Values.Count(one => one.Plan.Rule == read.Plan.Rule && one.Plan.Id < read.Plan.Id);
-			var name   = machine.ReaderOf(owner) + "_Broken" + (before > 0 ? before.ToString(System.Globalization.CultureInfo.InvariantCulture) : "");
+			var name   = CSharpEmitter.Inner("ReadBroken" + (before > 0 ? before.ToString(System.Globalization.CultureInfo.InvariantCulture) : ""), CSharpEmitter.IdentifierOf(owner));
 			var code = new Writer(0);
 
 			code.Line("var p     = pos;");
@@ -5903,7 +5904,9 @@ sealed partial class Machine
 		string EmitGuardCall(Writer code, Node.Guard guard, Node.SwitchSelection? selection = null)
 		{
 			var rule       = machine._owners[guard];
-			var method     = $"Recognize_DotGram{machine._tag}_Guard" + machine._guards++;
+			var number     = machine._guards++;
+			var method     = machine.Tag.Named("RecognizeGuard", number);
+			var key        = machine.Tag.Named("RecognizeGuardKey", number);
 			var helper     = new Writer(0);
 			var parameters = new List<string>();
 			var arguments  = new List<string>();
@@ -6035,10 +6038,10 @@ sealed partial class Machine
 			else
 			{
 				foreach (var type in new[] { "int", "uint", "long", "ulong", "string?" })
-					helper.Line($"static {type} {method}_Key({type} value) => value;");
+					helper.Line($"static {type} {key}({type} value) => value;");
 				using (helper.Block($"static int {method}({string.Join(", ", parameters)})"))
 				{
-					helper.Line($"switch ({method}_Key(");
+					helper.Line($"switch ({key}(");
 					CSharpEmitter.Handed(helper, machine._lines, guard.At, text + "))");
 					using (helper.Block(""))
 					{

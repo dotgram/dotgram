@@ -246,10 +246,9 @@ public static partial class CSharpEmitter
 		var expectedSets = new ExpectedSets();
 
 		// A machine's tag names everything it writes, and two machines sharing one write the same
-		// names twice. The two the file keeps for itself — the second read of a terminal's value
-		// and the seam — are named by what they are, and a rule may be called that too: a
-		// grammar publishing a rule named `Value` wrote `Recognize_DotGram_Value_Expected0` twice.
-		var tags = new HashSet<string>(StringComparer.Ordinal) { "_Value", Machine.SeamTag };
+		// names twice. A group's is its rule's identifier, which no other rule has; the two the file
+		// keeps for itself — the second read of a terminal's value and the seam — are told by their
+		// variant, which is part of the kind, so a rule named `Value` is no longer one of them.
 
 		// What the graph says about readings that may not stand, asked once for every machine the
 		// immediate carrier was asked for, and not at all on the tape. The gates need it to say what
@@ -270,10 +269,7 @@ public static partial class CSharpEmitter
 
 		foreach (var group in groups)
 		{
-			var tag = groups.Count > 1 && group.Rule is not null ? "_" + IdentifierOf(group.Rule) : "";
-
-			while (tag.Length > 0 && !tags.Add(tag))
-				tag += "_";
+			var tag = groups.Count > 1 && group.Rule is not null ? new MachineTag("", IdentifierOf(group.Rule)) : MachineTag.None;
 			var only = groups.Count > 1 ? Reaches(graph, group.Rule) : null;
 			// Compiled later where it counts, so that what it writes for the count is written: the
 			// count is told after construction, and a machine compiled in it would never hear.
@@ -315,7 +311,7 @@ public static partial class CSharpEmitter
 				made.CanDirect(group.Publications);
 
 			machines.Add(new Compiled(
-				made, group.Publications, "Recognize_DotGram" + tag, tag, lowered, asMethods));
+				made, group.Publications, tag.Named("Recognize"), tag, lowered, asMethods));
 		}
 
 		// A publication whose rule another machine already reaches is read by that machine,
@@ -424,7 +420,7 @@ public static partial class CSharpEmitter
 				new ResultTypes(lexical.Source, scoped, @namespace, lexical: true),
 				lines,
 				only: Rereads(lexical),
-				tag: "_Value",
+				tag: MachineTag.Value,
 				quiets: true,
 				expectedSets: expectedSets,
 				// The failure of a trace build has no place for how far a quiet reading got.
@@ -679,7 +675,7 @@ public static partial class CSharpEmitter
 			{
 				EmitFactory(file, graph, rule, factory, results, lines, spanCaptures);
 				if (byteRules.Contains(rule))
-					EmitFactory(file, graph, rule, factory with { Method = factory.Method + "_Bytes" }, results, lines, true, true);
+					EmitFactory(file, graph, rule, factory with { Method = factory.BytesMethod }, results, lines, true, true);
 				file.Line();
 			}
 		}
@@ -774,7 +770,7 @@ public static partial class CSharpEmitter
 					if (compiled is not null && compiled.Publications.Any(one => one.Rule == rule))
 						return MethodOf(rule);
 
-					return MethodOf(graph, rule, compiled?.Machine.Anchor, compiled?.Tag ?? "");
+					return MethodOf(graph, rule, compiled?.Machine.Anchor, compiled?.Tag ?? MachineTag.None);
 				}
 
 				EmitStreamingParse(
@@ -1430,7 +1426,7 @@ public static partial class CSharpEmitter
 			foreach (var publication in compiled.Publications)
 			{
 				var whole  = publication.Kind == PublishKind.Parse;
-				var core   = whole ? WholeOf(publication.Rule) : MethodOf(publication.Rule);
+				var core   = EntryOf(publication.Rule, whole, machine.Tag);
 				var type   = results.QualifiedOf(publication.Rule);
 				var climbs = graph.Climbing.ContainsKey(publication.Rule);
 				var reads  = (machine.UsesReading ? ", int parserReading" : "") + (machine.UsesLocating ? ", int parserLocating" : "");
@@ -1559,7 +1555,7 @@ public static partial class CSharpEmitter
 
 					{
 
-						var part = WholeOf(publication.Rule) + "_Part" + stage;
+						var part = WholeOf(publication.Rule, "WholePart", stage);
 
 						var at = machine.Register(stages[stage].Node);
 
@@ -1609,7 +1605,7 @@ public static partial class CSharpEmitter
 
 					};
 
-					var probe = WholeOf(publication.Rule) + "_Continue" + stage;
+					var probe = WholeOf(publication.Rule, "WholeContinue", stage);
 
 
 
@@ -1626,7 +1622,7 @@ public static partial class CSharpEmitter
 				if (graph.Trivia.TryGetValue(publication.Rule, out var around) &&
 					!streamedParts.ContainsKey((publication.Rule, -1)))
 				{
-					var name = WholeOf(publication.Rule) + "_Trivia";
+					var name = WholeOf(publication.Rule, "WholeTrivia");
 					var at   = machine.Register(around);
 
 					streamedParts[(publication.Rule, -1)] = (name, at);
@@ -1639,7 +1635,7 @@ public static partial class CSharpEmitter
 
 				{
 
-					var sync = WholeOf(publication.Rule) + "_Sync";
+					var sync = WholeOf(publication.Rule, "WholeSync");
 
 					var at = machine.Register(recoveryFound.Recovery.Sync);
 
@@ -1814,7 +1810,7 @@ public static partial class CSharpEmitter
 		Writer file, Publication publication, ResultTypes results, bool climbs, bool streams, bool flat,
 		bool ties, bool input, string? context, bool overKinds = false, bool probes = false,
 		int? reading = null, bool direct = false, ICollection<GramDiagnostic>? diagnostics = null,
-		string tag = "", bool quietFirst = false, bool rewinds = false, bool leads = false, bool bare = false,
+		MachineTag? tag = null, bool quietFirst = false, bool rewinds = false, bool leads = false, bool bare = false,
 		bool? locating = null, TraceTables? tracing = null, string machine = "methods", bool inert = false,
 		bool unasked = false)
 	{
@@ -1993,7 +1989,7 @@ public static partial class CSharpEmitter
 		string Recognized(string from, string to)
 		{
 			return built is not null ? "recognized" :
-			overKinds ? $"Text_DotGram{tag}(source, starts, lengths, {from}, {to})" :
+			overKinds ? $"{(tag ?? MachineTag.None).Named("Text")}(source, starts, lengths, {from}, {to})" :
 			$"input.Substring({from}, {to})";
 		}
 
@@ -2215,7 +2211,7 @@ public static partial class CSharpEmitter
 					}
 					else if (positional)
 					{
-						file.Line($"var from = TokenAt_DotGram{tag}(starts, count, at);");
+						file.Line($"var from = {(tag ?? MachineTag.None).Named("TokenAt")}(starts, count, at);");
 						file.Line();
 
 						using (file.Block("if (from < 0)"))
@@ -2466,7 +2462,7 @@ public static partial class CSharpEmitter
 					{
 						// Named with this machine's tag, as everything it writes is: two machines
 						// in one class must not collide (Machine.Provenance).
-						file.Line($"var from = TokenAt_DotGram{tag}(starts, count, at);");
+						file.Line($"var from = {(tag ?? MachineTag.None).Named("TokenAt")}(starts, count, at);");
 						file.Line();
 
 						// Nothing at or after it is a token, so there is nothing there to read: the
@@ -3349,7 +3345,7 @@ file.Line("return spare;");
 							// and stands as the automaton gave it (TerminalInventory.Continuation.Tagged).
 							if (continuation.Tagged is not null)
 							{
-								file.Line($"Scan_Tag{continuation.Kind}(text, p, out var tagged);");
+								file.Line($"Lex_DotGram_Tag{continuation.Kind}(text, p, out var tagged);");
 								file.Line();
 							}
 
@@ -3359,7 +3355,7 @@ file.Line("return spare;");
 								// The whole input where a construction in that machine asks for it: a
 								// terminal's value may be a piece of the text it has to read again later.
 								file.Line(
-									$"var measured = Measure_{IdentifierOf(rule)}_DotGram(text, {from}, ref failure{output}" +
+									$"var measured = {Named("Measure", IdentifierOf(rule))}(text, {from}, ref failure{output}" +
 									$"{(valuing!.UsesInput ? ", input" : "")});");
 								file.Line();
 
@@ -3384,7 +3380,7 @@ file.Line("return spare;");
 
 									using (file.Block("else if (measured != end)"))
 									{
-										file.Line("end = Scan_Unbound(text.Slice(0, limit), p, out kind);");
+										file.Line("end = Lex_DotGram_Unbound(text.Slice(0, limit), p, out kind);");
 										file.Line();
 
 										// Nothing else stands here either. Where the rule refused at the
@@ -3395,7 +3391,7 @@ file.Line("return spare;");
 											file.Line($"var again = new {FailureType}();");
 											file.Line();
 											file.Line(
-												$"Measure_{IdentifierOf(rule)}_DotGram(text, {from}, ref again{output}" +
+												$"{Named("Measure", IdentifierOf(rule))}(text, {from}, ref again{output}" +
 												$"{(valuing!.UsesInput ? ", input" : "")});");
 											file.Line();
 											file.Line("kind = again.OutOfInput == again.Position + 1 || again.Position >= text.Length ? -1 : 0;");
@@ -3413,7 +3409,7 @@ file.Line("return spare;");
 										file.Line($"var again = new {FailureType}();");
 										file.Line();
 										file.Line(
-											$"Measure_{IdentifierOf(rule)}_DotGram(text, {from}, ref again{output}" +
+											$"{Named("Measure", IdentifierOf(rule))}(text, {from}, ref again{output}" +
 											$"{(valuing!.UsesInput ? ", input" : "")});");
 										file.Line();
 										file.Line("kind = again.OutOfInput == again.Position + 1 || again.Position >= text.Length ? -1 : 0;");
@@ -3466,7 +3462,7 @@ file.Line("return spare;");
 
 								file.Line($"var failure  = new {FailureType} {{ Quiet = true }};");
 								file.Line(
-									$"var measured = Measure_{IdentifierOf(rule)}_DotGram(text, {from}, ref failure{output}" +
+									$"var measured = {Named("Measure", IdentifierOf(rule))}(text, {from}, ref failure{output}" +
 									$"{(valuing!.UsesInput ? ", input" : "")});");
 							}
 							else
@@ -3574,7 +3570,7 @@ file.Line("return spare;");
 					// which more input could still complete. That is the last token, of no kind, and the reading that
 					// reaches it is starved rather than refused (§7.5), as it is over characters.
 					// Otherwise no token begins with this character at all.
-					using (file.Block($"if ({(cutShort ? "kind < 0 || " : "")}Scan_RunsOut(text, p))"))
+					using (file.Block($"if ({(cutShort ? "kind < 0 || " : "")}Lex_DotGram_RunsOut(text, p))"))
 					{
 						file.Line("tokens.Cut = true;");
 						file.Line();
@@ -3768,7 +3764,7 @@ file.Line("return spare;");
 	internal static IReadOnlyList<Machine.Factory> BuildFactories(
 		RecognitionGraph graph, ResultTypes results, RuleSymbol rule)
 	{
-		var name   = "Construct_" + IdentifierOf(rule);
+		var name   = IdentifierOf(rule);
 		var fold   = graph.Folds.TryGetValue(rule, out var found0) ? found0 : null;
 		var layout = LayoutOf(graph, results, rule);
 		var found  = new List<Machine.Factory>();
@@ -3819,14 +3815,17 @@ file.Line("return spare;");
 					});
 			}
 
+			// The first construction under the plain kind, every later one numbered.
+			var number = found.Count == 0 ? "" : found.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
 			found.Add(new Machine.Factory(
 				node,
-				found.Count == 0 ? name : name + "_" + found.Count,
+				Named("New" + number, name),
 				visible,
 				fold is not null && fold.Accumulators.TryGetValue(node, out var accumulator)
 					? accumulator
 					: null,
-				graph.Located.Contains(rule)));
+				graph.Located.Contains(rule)) { BytesMethod = Named("NewBytes" + number, name) });
 		}
 
 		return found;
@@ -4658,10 +4657,14 @@ file.Line("return spare;");
 	/// the name it always had, so a rule with one recovery — every rule that had one until
 	/// now — generates exactly the text it did.
 	/// </summary>
-	internal static string RecoveryMethod(RuleSymbol rule, int index)
+	/// <param name="spans">The machine whose spans the factory is handed, where it is handed spans.</param>
+	internal static string RecoveryMethod(RuleSymbol rule, int index, MachineTag? spans = null)
 	{
-		return MethodOf(rule) + "_Recover" +
-		(index == 0 ? "" : (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
+		var number = index == 0 ? "" : (index + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+		return spans is { } machine
+			? machine.Of("RecoverSpan", IdentifierOf(rule), number)
+			: Named("Recover" + number, IdentifierOf(rule));
 	}
 
 	static IEnumerable<Node> Children(Node node)
@@ -4791,7 +4794,7 @@ file.Line("return spare;");
 
 	internal static string MethodOf(RuleSymbol rule)
 	{
-		return "Recognize_" + IdentifierOf(rule);
+		return Named("Rec", IdentifierOf(rule));
 	}
 
 	/// <summary>The name one machine's wrapper for a rule goes under.</summary>
@@ -4804,9 +4807,9 @@ file.Line("return spare;");
 	/// enters this machine where it left off, and `find` enters the one compiled for it.
 	/// </remarks>
 	internal static string MethodOf(
-		RecognitionGraph graph, RuleSymbol rule, RuleSymbol? owner, string tag)
+		RecognitionGraph graph, RuleSymbol rule, RuleSymbol? owner, MachineTag tag)
 	{
-		return MethodOf(rule) + (rule.Equals(owner) || !IsPublished(graph, rule) ? "" : tag);
+		return rule.Equals(owner) || !IsPublished(graph, rule) ? MethodOf(rule) : tag.Of("Rec", IdentifierOf(rule));
 	}
 
 	/// <summary>What a publication's methods are declared as: what its directive said (§6).</summary>
@@ -5328,8 +5331,8 @@ file.Line("return spare;");
 	/// </summary>
 	static string Unwalked(string text, IReadOnlyList<string> parts)
 	{
-		if (text.IndexOf("_RanOut(", StringComparison.Ordinal) < 0 && text.IndexOf("_Further(", StringComparison.Ordinal) < 0 &&
-			text.IndexOf("_Agreeing(", StringComparison.Ordinal) < 0)
+		if (text.IndexOf("RecognizeRanOut", StringComparison.Ordinal) < 0 && text.IndexOf("RecognizeFurther", StringComparison.Ordinal) < 0 &&
+			text.IndexOf("RecognizeAgreeing", StringComparison.Ordinal) < 0)
 			return text;
 
 		// One pass over everything: how often each walk is named in the text (its own signature is one
@@ -5410,11 +5413,11 @@ file.Line("return spare;");
 	}
 
 	static readonly System.Text.RegularExpressions.Regex UnwalkedMention = new(
-		@"(?<!\w)(?<name>Recognize_DotGram\w*_(?:RanOut|Agreeing|Further))\(",
+		@"(?<!\w)(?<name>Recognize(?:RanOut|Agreeing|Further)\w*)\(",
 		System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
 	static readonly System.Text.RegularExpressions.Regex UnwalkedSignature = new(
-		@"static \w+ (?<name>Recognize_DotGram\w*_(?:RanOut|Agreeing|Further))\(",
+		@"static \w+ (?<name>Recognize(?:RanOut|Agreeing|Further)\w*)\(",
 		System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
 	/// <summary>
@@ -5433,7 +5436,7 @@ file.Line("return spare;");
 		Machine Machine,
 		IReadOnlyList<Publication> Publications,
 		string Engine,
-		string Tag,
+		MachineTag Tag,
 		bool Flat,
 		bool Direct = false);
 
@@ -5704,7 +5707,7 @@ file.Line("return spare;");
 	static string Rereading(LexicalSplit lexical, Machine valuing)
 	{
 		var file   = new Writer(1);
-		var engine = "Recognize_DotGram_Value";
+		var engine = MachineTag.Value.Named("Recognize");
 
 		// The engine first, and written last: rendering it is what decides this machine
 		// needs a materializer at all, and `Extra` is where that then is.
@@ -5734,7 +5737,7 @@ file.Line("return spare;");
 		if (lexical.Valued.Any(rule => Verbatim(lexical.Source, valuing.Results, rule) is not null))
 		{
 			file.Line("/// <summary>The strings of one character a token's own text comes to, made once each.</summary>");
-			file.Line("static readonly string[] Letters_DotGram_Value = new string[128];");
+			file.Line($"static readonly string[] {MachineTag.Value.Named("Letters")} = new string[128];");
 			file.Line();
 			file.Line("/// <summary>A token's text, and a character of it kept rather than cut again.</summary>");
 
@@ -5744,7 +5747,7 @@ file.Line("return spare;");
 				{
 					file.Line("var one = source[at];");
 					file.Line();
-					file.Line("return Letters_DotGram_Value[one] ??= source.Substring(at, 1);");
+					file.Line($"return {MachineTag.Value.Named("Letters")}[one] ??= source.Substring(at, 1);");
 				}
 
 				file.Line();
@@ -5757,7 +5760,7 @@ file.Line("return spare;");
 		foreach (var rule in lexical.Valued)
 		{
 			var type = valuing.Results.QualifiedOf(rule)!;
-			var read = "Reread_" + IdentifierOf(rule) + "_DotGram";
+			var read = Named("Reread", IdentifierOf(rule));
 
 			// Where the token is the whole of what the construction can be told, there is
 			// nothing to read again and the construction is called on the text itself.
@@ -5766,7 +5769,7 @@ file.Line("return spare;");
 				file.Line($"/// <summary>What the text of one <c>{rule.Name}</c> token is worth.</summary>");
 				file.Line("/// <remarks>The token itself: the capture spans it, so nothing about how it was read is wanted.</remarks>");
 				file.Line(
-					$"static {type} Value_{IdentifierOf(rule)}_DotGram(string source, int at, int length) => " +
+					$"static {type} {Named("Value", IdentifierOf(rule))}(string source, int at, int length) => " +
 					$"{made}(Cut_DotGram_Value(source, at, length));");
 				file.Line();
 
@@ -5809,7 +5812,7 @@ file.Line("return spare;");
 			// costs nothing and keeps the positions true. The reading stays whole: a rule's
 			// first derivation may be shorter than what the lexer measured, and only reading to
 			// the end of the span says it was the token that was read.
-			using (file.Block($"static {type} Value_{IdentifierOf(rule)}_DotGram(string source, int at, int length)"))
+			using (file.Block($"static {type} {Named("Value", IdentifierOf(rule))}(string source, int at, int length)"))
 			{
 				var input = valuing.UsesInput ? ", source" : "";
 				var text  = "global::System.MemoryExtensions.AsSpan(source, 0, at + length)";
@@ -5820,7 +5823,7 @@ file.Line("return spare;");
 				{
 					file.Line($"var text    = {text};");
 					file.Line();
-					file.Line($"Scan_Tag{one.Kind}(text, at, out var tagged);");
+					file.Line($"Lex_DotGram_Tag{one.Kind}(text, at, out var tagged);");
 					file.Line();
 					file.Line($"if (tagged == 0 && {one.Read}(text, at, ref failure, out {one.Type} through{input}) == at + length)");
 					file.Then($"return {one.Method}({string.Join(", ", one.Arguments)});");
@@ -5840,7 +5843,7 @@ file.Line("return spare;");
 		foreach (var rule in Measuring(lexical))
 		{
 			file.Line($"/// <summary>Where a token ends whose rest <c>{rule.Name}</c> reads.</summary>");
-			file.Write(valuing.RenderWrapper(rule, "Measure_" + IdentifierOf(rule) + "_DotGram", engine, whole: false, materialize: false));
+			file.Write(valuing.RenderWrapper(rule, Named("Measure", IdentifierOf(rule)), engine, whole: false, materialize: false));
 			file.Line();
 		}
 
@@ -5933,7 +5936,7 @@ file.Line("return spare;");
 		if (!found)
 			return null;
 
-		return (inner, $"Reread_{IdentifierOf(inner)}_For_{IdentifierOf(rule)}_DotGram", type, factory.Method, arguments, continuation.Kind);
+		return (inner, Named("RereadFor", IdentifierOf(inner), IdentifierOf(rule)), type, factory.Method, arguments, continuation.Kind);
 	}
 
 	/// <summary>
@@ -5960,7 +5963,7 @@ file.Line("return spare;");
 			// Tagged, because everything a machine emits is named after its tag and this one
 			// stands in a file another machine has already filled: without it the seam's
 			// character tables collide with the syntax's, name for name.
-			tag: Machine.SeamTag,
+			tag: MachineTag.Seam,
 			expectedSets: expectedSets)
 		{
 			RecordsRunOut = true,
@@ -6160,7 +6163,26 @@ file.Line("return spare;");
 	/// <summary>The recognizer that also insists the input ended — what `parse` calls.</summary>
 	static string WholeOf(RuleSymbol rule)
 	{
-		return MethodOf(rule) + "_Whole";
+		return Named("RecWhole", IdentifierOf(rule));
+	}
+
+	/// <summary>
+	/// What a machine's reader is entered by for a rule: the rule's walk, or the walk that also insists the
+	/// input ended. A machine over buffered input is one per publication, and two may read one rule over
+	/// one input type, so its entries carry its tag; every other keeps the plain name its callers use.
+	/// </summary>
+	internal static string EntryOf(RuleSymbol rule, bool whole, MachineTag tag)
+	{
+		if (tag.Variant.StartsWith("Buf", StringComparison.Ordinal))
+			return tag.Of(whole ? "RecWhole" : "Rec", IdentifierOf(rule));
+
+		return whole ? WholeOf(rule) : MethodOf(rule);
+	}
+
+	/// <summary>A name a streamed parse of a rule reads by: a stage, a probe of what follows one, its trivia, its sync.</summary>
+	static string WholeOf(RuleSymbol rule, string kind, int? stage = null)
+	{
+		return Named(kind + stage?.ToString(System.Globalization.CultureInfo.InvariantCulture), IdentifierOf(rule));
 	}
 
 	internal static string Test(Node.Element element, Func<IReadOnlyList<CharRange>, string?>? tabulate = null)
@@ -6317,7 +6339,7 @@ file.Line("return spare;");
 		foreach (var one in method)
 			bare.Append(char.IsLetterOrDigit(one) ? one : '_');
 
-		var name = $"Host_DotGram_{bare}_{keys.Count}";
+		var name = Named("Host" + keys.Count.ToString(System.Globalization.CultureInfo.InvariantCulture), bare.ToString());
 
 		var written = new List<string>();
 		var passed  = new List<string>();

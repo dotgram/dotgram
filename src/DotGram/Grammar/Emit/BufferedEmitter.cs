@@ -81,7 +81,7 @@ public static partial class CSharpEmitter
 
 	static string BufferedMethod(Publication publication, bool bytes = false, bool inPlace = false)
 	{
-		return "ReadBuffered_" + publication.MethodName + (bytes ? "_Bytes" : "") + (inPlace ? "_Memory" : "");
+		return Named("Buf" + (bytes ? "Bytes" : "") + (inPlace ? "Memory" : ""), publication.MethodName);
 	}
 
 	static void AddBufferedMachines(
@@ -110,8 +110,9 @@ public static partial class CSharpEmitter
 				rules.Any(rule => NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.External { UsesInputView: false }))
 					? "external recognizers require contiguous input" : null;
 			if (why is null && bytes) why = ByteRefusal(graph, rules);
-			var tag = "_Buffered_" + publication.MethodName + (bytes ? "_Bytes" : "");
-			while (machines.Concat(added).Any(compiled => compiled.Tag == tag)) tag += "_";
+			// Named after the publication, which no other has the name of, and told from a group's machine
+			// by its variant.
+			var tag = new MachineTag(bytes ? "BufBytes" : "Buf", publication.MethodName);
 			Machine? machine = null;
 			// Compile before emission so unsupported source-dependent factories cannot leave
 			// an apparently usable public entry point in the generated file.
@@ -163,7 +164,7 @@ public static partial class CSharpEmitter
 					"string it is read by methods: a rule it reaches can reach itself, and a reading that deep goes " +
 					"on in another thread with the whole input, which a buffer cannot hand over.",
 					publication.At.Position, publication.At.Length, GramSeverity.Info));
-			added.Add(new Compiled(machine!, [publication], "Recognize_DotGram" + tag, tag, false, direct));
+			added.Add(new Compiled(machine!, [publication], tag.Named("Recognize"), tag, false, direct));
 
 			// Bytes the caller holds whole are read by methods where the string is, even where the
 			// stream is not. What keeps a stream on the engine is what a stream does: an external
@@ -175,7 +176,7 @@ public static partial class CSharpEmitter
 			if (bytes && !direct && publication.Kind == PublishKind.Parse &&
 				machines.Exists(one => one.Direct && one.Publications.Contains(publication)))
 			{
-				var memoryTag = tag + "_Memory";
+				var memoryTag = tag with { Variant = tag.Variant + "Memory" };
 				var memory = new Machine(graph, results, lines, only: rules, tag: memoryTag,
 					partSize: partSize, carrier: carrier, replay: replay, bufferedInput: true, bufferedBytes: true, spanCaptures: spanCaptures,
 					prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true, tracing: tracing, expectedSets: expectedSets)
@@ -189,7 +190,7 @@ public static partial class CSharpEmitter
 				if (memory.CanDirect([publication]) && !memory.Probes)
 				{
 					machine!.MemoryElsewhere = true;
-					added.Add(new Compiled(memory, [publication], "Recognize_DotGram" + memoryTag, memoryTag, false, true));
+					added.Add(new Compiled(memory, [publication], memoryTag.Named("Recognize"), memoryTag, false, true));
 				}
 			}
 		}
@@ -344,7 +345,7 @@ public static partial class CSharpEmitter
 
 		string Lazily(string returns)
 		{
-			var iterator = "Iterate_DotGram_" + method;
+			var iterator = Named("Iterate", method);
 
 			if (!buffered && tracing is null)
 				return $"{AccessOf(publication)} static {returns} {method}({inputType} input{context})";

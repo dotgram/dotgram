@@ -29,12 +29,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Hashed_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_Hashed(text, 0, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Hashed_Whole(text, 0, ref failure);
+				end     = RecWhole_DotGram_Hashed(text, 0, ref failure);
 			}
 
 			if (end < 0)
@@ -60,7 +60,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Hashed_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_Hashed(text, 0, ref failure);
 
 			if (end < 0)
 			{
@@ -89,12 +89,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Hashed(text, at, ref failure);
+			var end = Rec_DotGram_Hashed(text, at, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Hashed(text, at, ref failure);
+				end     = Rec_DotGram_Hashed(text, at, ref failure);
 			}
 
 			if (end < 0)
@@ -125,7 +125,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Hashed(text, at, ref failure);
+			var end = Rec_DotGram_Hashed(text, at, ref failure);
 
 			if (end < 0)
 			{
@@ -155,12 +155,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Hashed(text, at, ref failure);
+			var end = Rec_DotGram_Hashed(text, at, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Hashed(text, at, ref failure);
+				end     = Rec_DotGram_Hashed(text, at, ref failure);
 			}
 
 			if (end < 0)
@@ -191,7 +191,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Hashed(text, at, ref failure);
+			var end = Rec_DotGram_Hashed(text, at, ref failure);
 
 			if (end < 0)
 			{
@@ -229,12 +229,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Marked_Whole(text, 0, ref failure, out var recognized);
+			var end = RecWhole_DotGram_Marked(text, 0, ref failure, out var recognized);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Marked_Whole(text, 0, ref failure, out recognized);
+				end     = RecWhole_DotGram_Marked(text, 0, ref failure, out recognized);
 			}
 
 			if (end < 0)
@@ -260,7 +260,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Marked_Whole(text, 0, ref failure, out var recognized);
+			var end = RecWhole_DotGram_Marked(text, 0, ref failure, out var recognized);
 
 			if (end < 0)
 			{
@@ -297,12 +297,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_List_With1_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_List_With1(text, 0, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_List_With1_Whole(text, 0, ref failure);
+				end     = RecWhole_DotGram_List_With1(text, 0, ref failure);
 			}
 
 			if (end < 0)
@@ -328,7 +328,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_List_With1_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_List_With1(text, 0, ref failure);
 
 			if (end < 0)
 			{
@@ -357,12 +357,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_List_With1(text, at, ref failure);
+			var end = Rec_DotGram_List_With1(text, at, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_List_With1(text, at, ref failure);
+				end     = Rec_DotGram_List_With1(text, at, ref failure);
 			}
 
 			if (end < 0)
@@ -393,7 +393,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_List_With1(text, at, ref failure);
+			var end = Rec_DotGram_List_With1(text, at, ref failure);
 
 			if (end < 0)
 			{
@@ -423,12 +423,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_List_With1(text, at, ref failure);
+			var end = Rec_DotGram_List_With1(text, at, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_List_With1(text, at, ref failure);
+				end     = Rec_DotGram_List_With1(text, at, ref failure);
 			}
 
 			if (end < 0)
@@ -459,7 +459,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_List_With1(text, at, ref failure);
+			var end = Rec_DotGram_List_With1(text, at, ref failure);
 
 			if (end < 0)
 			{
@@ -497,12 +497,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_List_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_List(text, 0, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_List_Whole(text, 0, ref failure);
+				end     = RecWhole_DotGram_List(text, 0, ref failure);
 			}
 
 			if (end < 0)
@@ -528,7 +528,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_List_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_List(text, 0, ref failure);
 
 			if (end < 0)
 			{
@@ -557,12 +557,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_List(text, at, ref failure);
+			var end = Rec_DotGram_List(text, at, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_List(text, at, ref failure);
+				end     = Rec_DotGram_List(text, at, ref failure);
 			}
 
 			if (end < 0)
@@ -593,7 +593,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_List(text, at, ref failure);
+			var end = Rec_DotGram_List(text, at, ref failure);
 
 			if (end < 0)
 			{
@@ -623,12 +623,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_List(text, at, ref failure);
+			var end = Rec_DotGram_List(text, at, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_List(text, at, ref failure);
+				end     = Rec_DotGram_List(text, at, ref failure);
 			}
 
 			if (end < 0)
@@ -659,7 +659,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_List(text, at, ref failure);
+			var end = Rec_DotGram_List(text, at, ref failure);
 
 			if (end < 0)
 			{
@@ -697,12 +697,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Small_Whole(text, 0, ref failure, out var recognized, 1);
+			var end = RecWhole_DotGram_Small(text, 0, ref failure, out var recognized, 1);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Small_Whole(text, 0, ref failure, out recognized, 1);
+				end     = RecWhole_DotGram_Small(text, 0, ref failure, out recognized, 1);
 			}
 
 			if (end < 0)
@@ -728,7 +728,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Small_Whole(text, 0, ref failure, out var recognized, 1);
+			var end = RecWhole_DotGram_Small(text, 0, ref failure, out var recognized, 1);
 
 			if (end < 0)
 			{
@@ -757,12 +757,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Small(text, at, ref failure, out var recognized, 1);
+			var end = Rec_DotGram_Small(text, at, ref failure, out var recognized, 1);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Small(text, at, ref failure, out recognized, 1);
+				end     = Rec_DotGram_Small(text, at, ref failure, out recognized, 1);
 			}
 
 			if (end < 0)
@@ -793,7 +793,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Small(text, at, ref failure, out var recognized, 1);
+			var end = Rec_DotGram_Small(text, at, ref failure, out var recognized, 1);
 
 			if (end < 0)
 			{
@@ -823,12 +823,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Small(text, at, ref failure, out var recognized, 1);
+			var end = Rec_DotGram_Small(text, at, ref failure, out var recognized, 1);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Small(text, at, ref failure, out recognized, 1);
+				end     = Rec_DotGram_Small(text, at, ref failure, out recognized, 1);
 			}
 
 			if (end < 0)
@@ -859,7 +859,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Small(text, at, ref failure, out var recognized, 1);
+			var end = Rec_DotGram_Small(text, at, ref failure, out var recognized, 1);
 
 			if (end < 0)
 			{
@@ -897,12 +897,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Small_Whole(text, 0, ref failure, out var recognized, 0);
+			var end = RecWhole_DotGram_Small(text, 0, ref failure, out var recognized, 0);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Small_Whole(text, 0, ref failure, out recognized, 0);
+				end     = RecWhole_DotGram_Small(text, 0, ref failure, out recognized, 0);
 			}
 
 			if (end < 0)
@@ -928,7 +928,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Small_Whole(text, 0, ref failure, out var recognized, 0);
+			var end = RecWhole_DotGram_Small(text, 0, ref failure, out var recognized, 0);
 
 			if (end < 0)
 			{
@@ -957,12 +957,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Small(text, at, ref failure, out var recognized, 0);
+			var end = Rec_DotGram_Small(text, at, ref failure, out var recognized, 0);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Small(text, at, ref failure, out recognized, 0);
+				end     = Rec_DotGram_Small(text, at, ref failure, out recognized, 0);
 			}
 
 			if (end < 0)
@@ -993,7 +993,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Small(text, at, ref failure, out var recognized, 0);
+			var end = Rec_DotGram_Small(text, at, ref failure, out var recognized, 0);
 
 			if (end < 0)
 			{
@@ -1023,12 +1023,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Small(text, at, ref failure, out var recognized, 0);
+			var end = Rec_DotGram_Small(text, at, ref failure, out var recognized, 0);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Small(text, at, ref failure, out recognized, 0);
+				end     = Rec_DotGram_Small(text, at, ref failure, out recognized, 0);
 			}
 
 			if (end < 0)
@@ -1059,7 +1059,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Small(text, at, ref failure, out var recognized, 0);
+			var end = Rec_DotGram_Small(text, at, ref failure, out var recognized, 0);
 
 			if (end < 0)
 			{
@@ -1097,12 +1097,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Ab_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_Ab(text, 0, ref failure);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Ab_Whole(text, 0, ref failure);
+				end     = RecWhole_DotGram_Ab(text, 0, ref failure);
 			}
 
 			if (end < 0)
@@ -1128,7 +1128,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Ab_Whole(text, 0, ref failure);
+			var end = RecWhole_DotGram_Ab(text, 0, ref failure);
 
 			if (end < 0)
 			{
@@ -1165,12 +1165,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Primary_Whole(text, 0, ref failure, out var recognized);
+			var end = RecWhole_DotGram_Primary(text, 0, ref failure, out var recognized);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Primary_Whole(text, 0, ref failure, out recognized);
+				end     = RecWhole_DotGram_Primary(text, 0, ref failure, out recognized);
 			}
 
 			if (end < 0)
@@ -1196,7 +1196,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Primary_Whole(text, 0, ref failure, out var recognized);
+			var end = RecWhole_DotGram_Primary(text, 0, ref failure, out var recognized);
 
 			if (end < 0)
 			{
@@ -1225,12 +1225,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Primary(text, at, ref failure, out var recognized);
+			var end = Rec_DotGram_Primary(text, at, ref failure, out var recognized);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Primary(text, at, ref failure, out recognized);
+				end     = Rec_DotGram_Primary(text, at, ref failure, out recognized);
 			}
 
 			if (end < 0)
@@ -1261,7 +1261,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Primary(text, at, ref failure, out var recognized);
+			var end = Rec_DotGram_Primary(text, at, ref failure, out var recognized);
 
 			if (end < 0)
 			{
@@ -1291,12 +1291,12 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Primary(text, at, ref failure, out var recognized);
+			var end = Rec_DotGram_Primary(text, at, ref failure, out var recognized);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Primary(text, at, ref failure, out recognized);
+				end     = Rec_DotGram_Primary(text, at, ref failure, out recognized);
 			}
 
 			if (end < 0)
@@ -1327,7 +1327,7 @@ namespace DotGram.Snapshots
 			var text    = global::System.MemoryExtensions.AsSpan(input, 0, at + length);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Primary(text, at, ref failure, out var recognized);
+			var end = Rec_DotGram_Primary(text, at, ref failure, out var recognized);
 
 			if (end < 0)
 			{
@@ -1348,7 +1348,7 @@ namespace DotGram.Snapshots
 			{
 				var failure = new Failure { Quiet = true };
 
-				var end = Recognize_Word(global::System.MemoryExtensions.AsSpan(input), start, ref failure, out var recognized);
+				var end = Rec_DotGram_Word(global::System.MemoryExtensions.AsSpan(input), start, ref failure, out var recognized);
 
 				if (end < 0)
 				{
@@ -1377,7 +1377,7 @@ namespace DotGram.Snapshots
 			{
 				var failure = new Failure();
 
-				var end = Recognize_Word(window.Span(), start, ref failure, out var recognized);
+				var end = Rec_DotGram_Word(window.Span(), start, ref failure, out var recognized);
 
 				if (((end < 0 ? failure.Position : end) >= window.Length || failure.Starved) && !window.Ended)
 				{
@@ -1426,62 +1426,62 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static string Construct_Word(string w) =>
+		static string New_DotGram_Word(string w) =>
 #line 7 "Notation.gram"
                                       (w);
 #line default
 
-		static int Construct_Number(string d) =>
+		static int New_DotGram_Number(string d) =>
 #line 8 "Notation.gram"
                                       (int.Parse(d));
 #line default
 
-		static int Construct_Primary(int p) =>
+		static int New_DotGram_Primary(int p) =>
 #line 17 "Notation.gram"
                              (p);
 #line default
 
-		static int Construct_Primary_1(int n) =>
+		static int New1_DotGram_Primary(int n) =>
 #line 17 "Notation.gram"
                                                  (n);
 #line default
 
-		static int Construct_Call(int target) =>
+		static int New_DotGram_Call(int target) =>
 #line 18 "Notation.gram"
                                             (target * 10);
 #line default
 
-		static int Construct_Call_1(int target) =>
+		static int New1_DotGram_Call(int target) =>
 #line 18 "Notation.gram"
                                             (target * 10);
 #line default
 
-		static int Construct_Small(int n) =>
+		static int New_DotGram_Small(int n) =>
 #line 29 "Notation.gram"
                                   (n);
 #line default
 
-		static int Construct_Small_1(int n) =>
+		static int New1_DotGram_Small(int n) =>
 #line 30 "Notation.gram"
                                          (n);
 #line default
 
-		static int Construct_Small_2(int n) =>
+		static int New2_DotGram_Small(int n) =>
 #line 32 "Notation.gram"
       (n);
 #line default
 
-		static int Construct_Small_3() =>
+		static int New3_DotGram_Small() =>
 #line 33 "Notation.gram"
                   (0);
 #line default
 
-		static string Construct_Marked(string v) =>
+		static string New_DotGram_Marked(string v) =>
 #line 41 "Notation.gram"
                                 (v);
 #line default
 
-		static string Construct_Padded_Word_value1(string t) =>
+		static string New_DotGram_Padded_Word_value1(string t) =>
 #line 12 "Notation.gram"
                                                 (t + '#');
 #line default
@@ -1558,14 +1558,14 @@ namespace DotGram.Snapshots
 					Replayed_DotGram();
 			}
 
-			public int Read_Hashed_Hashed(int pos)
+			public int Read_Hashed(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Read_Hashed_Hashed_Body(pos);
+					var q = ReadBody_Hashed(pos);
 
 					if (q >= 0)
 					{
@@ -1594,25 +1594,25 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Hashed_Hashed_Body(int pos)
+			public int ReadBody_Hashed(int pos)
 			{
 				var p = pos;
 				unbuilt++;
-				var q0 = Read_Padded_Word_value1_Hashed(p);
+				var q0 = Read_Padded_Word_value1(p);
 				unbuilt--;
 				if (q0 < 0) return -1;
 				p = q0;
 				return p;
 			}
 
-			public int Read_Padded_Word_value1_Hashed(int pos)
+			public int Read_Padded_Word_value1(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Read_Padded_Word_value1_Hashed_Body(pos);
+					var q = ReadBody_Padded_Word_value1(pos);
 
 					if (q >= 0)
 					{
@@ -1641,26 +1641,26 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Padded_Word_value1_Hashed_Body(int pos)
+			public int ReadBody_Padded_Word_value1(int pos)
 			{
 				var p = pos;
 				string r0 = default!;
-				var q0 = Read_Word_Hashed(p);
+				var q0 = Read_Word(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				r0 = last0;
-				if (unbuilt == 0) last0 = Construct_Padded_Word_value1(r0!);
+				if (unbuilt == 0) last0 = New_DotGram_Padded_Word_value1(r0!);
 				return p;
 			}
 
-			public int Read_Word_Hashed(int pos)
+			public int Read_Word(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Read_Word_Hashed_Body(pos);
+					var q = ReadBody_Word(pos);
 
 					if (q >= 0)
 					{
@@ -1689,7 +1689,7 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Word_Hashed_Body(int pos)
+			public int ReadBody_Word(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -1733,18 +1733,18 @@ namespace DotGram.Snapshots
 					p -= d0;
 				}
 				b0 = p;
-				if (unbuilt == 0) last0 = Construct_Word((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
+				if (unbuilt == 0) last0 = New_DotGram_Word((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
-			public int Recognize_Hashed_Whole_Read(int pos)
+			public int RecWholeRead_Hashed(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Recognize_Hashed_Whole_Read_Body(pos);
+					var q = RecWholeReadBody_Hashed(pos);
 
 					if (q >= 0)
 					{
@@ -1772,10 +1772,10 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			public int Recognize_Hashed_Whole_Read_Body(int pos)
+			public int RecWholeReadBody_Hashed(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Hashed_Hashed(p);
+				var q0 = Read_Hashed(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				if (p != text.Length)
@@ -1786,14 +1786,14 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_Hashed_Read(int pos)
+			public int RecRead_Hashed(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Recognize_Hashed_Read_Body(pos);
+					var q = RecReadBody_Hashed(pos);
 
 					if (q >= 0)
 					{
@@ -1821,10 +1821,10 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			public int Recognize_Hashed_Read_Body(int pos)
+			public int RecReadBody_Hashed(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Hashed_Hashed(p);
+				var q0 = Read_Hashed(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				return p;
@@ -1832,7 +1832,7 @@ namespace DotGram.Snapshots
 
 		}
 
-		static int Recognize_Hashed_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int RecWhole_DotGram_Hashed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var ways = Ways_DotGram.Rent();
 
@@ -1842,7 +1842,7 @@ namespace DotGram.Snapshots
 
 				reader.failure = failure;
 
-				var end = reader.Recognize_Hashed_Whole_Read(pos);
+				var end = reader.RecWholeRead_Hashed(pos);
 
 				failure = reader.failure;
 
@@ -1854,7 +1854,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Recognize_Hashed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Rec_DotGram_Hashed(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var ways = Ways_DotGram.Rent();
 
@@ -1864,7 +1864,7 @@ namespace DotGram.Snapshots
 
 				reader.failure = failure;
 
-				var end = reader.Recognize_Hashed_Read(pos);
+				var end = reader.RecRead_Hashed(pos);
 
 				failure = reader.failure;
 
@@ -1878,7 +1878,7 @@ namespace DotGram.Snapshots
 
 
 
-		static int Recognize_Marked_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
+		static int RecWhole_DotGram_Marked(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
 		{
 			var p = pos;
 			var c = '\0';
@@ -1944,16 +1944,16 @@ namespace DotGram.Snapshots
 			if (flat1_1Start >= 0)
 			{
 				var captured2_0 = flat2_2Start < 0 ? string.Empty : text.Slice(flat2_2Start, flat2_2End - flat2_2Start).ToString();
-				value2 = Construct_Word(captured2_0);
+				value2 = New_DotGram_Word(captured2_0);
 			}
 			string value1 = default!;
 			if (flat0_0Start >= 0)
 			{
 				var captured1_0 = value2;
-				value1 = Construct_Padded_Word_value1(captured1_0);
+				value1 = New_DotGram_Padded_Word_value1(captured1_0);
 			}
 			var captured0_0 = value1;
-			value = Construct_Marked(captured0_0);
+			value = New_DotGram_Marked(captured0_0);
 			return p;
 
 			Fail:
@@ -2035,14 +2035,14 @@ namespace DotGram.Snapshots
 					Replayed_DotGram();
 			}
 
-			public int Read_List_With1_List_With1(int pos)
+			public int Read_List_With1(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Read_List_With1_List_With1_Body(pos);
+					var q = ReadBody_List_With1(pos);
 
 					if (q >= 0)
 					{
@@ -2071,12 +2071,12 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_List_With1_List_With1_Body(int pos)
+			public int ReadBody_List_With1(int pos)
 			{
 				var p = pos;
 				var c = '\0';
 				unbuilt++;
-				var q0 = Read_Word_List_With1(p);
+				var q0 = Read_Word(p);
 				unbuilt--;
 				if (q0 < 0) return -1;
 				p = q0;
@@ -2101,7 +2101,7 @@ namespace DotGram.Snapshots
 
 					while (true)
 					{
-						q1 = Read_List_With1_List_With1_Part0(p);
+						q1 = ReadPart0_List_With1(p);
 
 						if (q1 >= 0)
 						{
@@ -2139,28 +2139,28 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_List_With1_List_With1_Part0(int pos)
+			public int ReadPart0_List_With1(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Sep_With1_List_With1(p);
+				var q0 = Read_Sep_With1(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				unbuilt++;
-				var q1 = Read_Word_List_With1(p);
+				var q1 = Read_Word(p);
 				unbuilt--;
 				if (q1 < 0) return -1;
 				p = q1;
 				return p;
 			}
 
-			public int Read_Word_List_With1(int pos)
+			public int Read_Word(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Read_Word_List_With1_Body(pos);
+					var q = ReadBody_Word(pos);
 
 					if (q >= 0)
 					{
@@ -2189,7 +2189,7 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Word_List_With1_Body(int pos)
+			public int ReadBody_Word(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -2233,12 +2233,12 @@ namespace DotGram.Snapshots
 					p -= d0;
 				}
 				b0 = p;
-				if (unbuilt == 0) last0 = Construct_Word((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
+				if (unbuilt == 0) last0 = New_DotGram_Word((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Sep_With1_List_With1(int pos)
+			public int Read_Sep_With1(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -2257,14 +2257,14 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_List_With1_Whole_Read(int pos)
+			public int RecWholeRead_List_With1(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Recognize_List_With1_Whole_Read_Body(pos);
+					var q = RecWholeReadBody_List_With1(pos);
 
 					if (q >= 0)
 					{
@@ -2292,10 +2292,10 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			public int Recognize_List_With1_Whole_Read_Body(int pos)
+			public int RecWholeReadBody_List_With1(int pos)
 			{
 				var p = pos;
-				var q0 = Read_List_With1_List_With1(p);
+				var q0 = Read_List_With1(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				if (p != text.Length)
@@ -2306,14 +2306,14 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_List_With1_Read(int pos)
+			public int RecRead_List_With1(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Recognize_List_With1_Read_Body(pos);
+					var q = RecReadBody_List_With1(pos);
 
 					if (q >= 0)
 					{
@@ -2341,10 +2341,10 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			public int Recognize_List_With1_Read_Body(int pos)
+			public int RecReadBody_List_With1(int pos)
 			{
 				var p = pos;
-				var q0 = Read_List_With1_List_With1(p);
+				var q0 = Read_List_With1(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				return p;
@@ -2352,7 +2352,7 @@ namespace DotGram.Snapshots
 
 		}
 
-		static int Recognize_List_With1_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int RecWhole_DotGram_List_With1(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var ways = Ways_DotGram.Rent();
 
@@ -2362,7 +2362,7 @@ namespace DotGram.Snapshots
 
 				reader.failure = failure;
 
-				var end = reader.Recognize_List_With1_Whole_Read(pos);
+				var end = reader.RecWholeRead_List_With1(pos);
 
 				failure = reader.failure;
 
@@ -2374,7 +2374,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Recognize_List_With1(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Rec_DotGram_List_With1(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var ways = Ways_DotGram.Rent();
 
@@ -2384,7 +2384,7 @@ namespace DotGram.Snapshots
 
 				reader.failure = failure;
 
-				var end = reader.Recognize_List_With1_Read(pos);
+				var end = reader.RecRead_List_With1(pos);
 
 				failure = reader.failure;
 
@@ -2470,14 +2470,14 @@ namespace DotGram.Snapshots
 					Replayed_DotGram();
 			}
 
-			public int Read_List_List(int pos)
+			public int Read_List(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Read_List_List_Body(pos);
+					var q = ReadBody_List(pos);
 
 					if (q >= 0)
 					{
@@ -2506,12 +2506,12 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_List_List_Body(int pos)
+			public int ReadBody_List(int pos)
 			{
 				var p = pos;
 				var c = '\0';
 				unbuilt++;
-				var q0 = Read_Word_List(p);
+				var q0 = Read_Word(p);
 				unbuilt--;
 				if (q0 < 0) return -1;
 				p = q0;
@@ -2536,7 +2536,7 @@ namespace DotGram.Snapshots
 
 					while (true)
 					{
-						q1 = Read_List_List_Part0(p);
+						q1 = ReadPart0_List(p);
 
 						if (q1 >= 0)
 						{
@@ -2574,28 +2574,28 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_List_List_Part0(int pos)
+			public int ReadPart0_List(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Sep_List(p);
+				var q0 = Read_Sep(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				unbuilt++;
-				var q1 = Read_Word_List(p);
+				var q1 = Read_Word(p);
 				unbuilt--;
 				if (q1 < 0) return -1;
 				p = q1;
 				return p;
 			}
 
-			public int Read_Word_List(int pos)
+			public int Read_Word(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Read_Word_List_Body(pos);
+					var q = ReadBody_Word(pos);
 
 					if (q >= 0)
 					{
@@ -2624,7 +2624,7 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Word_List_Body(int pos)
+			public int ReadBody_Word(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -2668,12 +2668,12 @@ namespace DotGram.Snapshots
 					p -= d0;
 				}
 				b0 = p;
-				if (unbuilt == 0) last0 = Construct_Word((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
+				if (unbuilt == 0) last0 = New_DotGram_Word((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Sep_List(int pos)
+			public int Read_Sep(int pos)
 			{
 				var p = pos;
 				if ((uint)p >= (uint)text.Length || text[p] != ',')
@@ -2685,14 +2685,14 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_List_Whole_Read(int pos)
+			public int RecWholeRead_List(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Recognize_List_Whole_Read_Body(pos);
+					var q = RecWholeReadBody_List(pos);
 
 					if (q >= 0)
 					{
@@ -2720,10 +2720,10 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			public int Recognize_List_Whole_Read_Body(int pos)
+			public int RecWholeReadBody_List(int pos)
 			{
 				var p = pos;
-				var q0 = Read_List_List(p);
+				var q0 = Read_List(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				if (p != text.Length)
@@ -2734,14 +2734,14 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_List_Read(int pos)
+			public int RecRead_List(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Recognize_List_Read_Body(pos);
+					var q = RecReadBody_List(pos);
 
 					if (q >= 0)
 					{
@@ -2769,10 +2769,10 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			public int Recognize_List_Read_Body(int pos)
+			public int RecReadBody_List(int pos)
 			{
 				var p = pos;
-				var q0 = Read_List_List(p);
+				var q0 = Read_List(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				return p;
@@ -2780,7 +2780,7 @@ namespace DotGram.Snapshots
 
 		}
 
-		static int Recognize_List_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int RecWhole_DotGram_List(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var ways = Ways_DotGram.Rent();
 
@@ -2790,7 +2790,7 @@ namespace DotGram.Snapshots
 
 				reader.failure = failure;
 
-				var end = reader.Recognize_List_Whole_Read(pos);
+				var end = reader.RecWholeRead_List(pos);
 
 				failure = reader.failure;
 
@@ -2802,7 +2802,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Recognize_List(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Rec_DotGram_List(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var ways = Ways_DotGram.Rent();
 
@@ -2812,7 +2812,7 @@ namespace DotGram.Snapshots
 
 				reader.failure = failure;
 
-				var end = reader.Recognize_List_Read(pos);
+				var end = reader.RecRead_List(pos);
 
 				failure = reader.failure;
 
@@ -2902,14 +2902,14 @@ namespace DotGram.Snapshots
 					Replayed_DotGram();
 			}
 
-			public int Read_Small_Small(int pos)
+			public int Read_Small(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Read_Small_Small_Body(pos);
+					var q = ReadBody_Small(pos);
 
 					if (q >= 0)
 					{
@@ -2938,7 +2938,7 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Small_Small_Body(int pos)
+			public int ReadBody_Small(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -2954,7 +2954,7 @@ namespace DotGram.Snapshots
 					case '0': case '1': case '2': case '3': case '4': case '5': case '6': case '7': case '8': case '9':
 						{
 							var q0u = unbuilt; unbuilt = 0;
-							var q0 = Read_Number_Small(p);
+							var q0 = Read_Number(p);
 							unbuilt = q0u;
 							if (q0 < 0) return -1;
 							p = q0;
@@ -2977,7 +2977,7 @@ namespace DotGram.Snapshots
 							{
 								var s1  = ways.Cursor;
 
-								q1 = Read_Small_Small_Part0(p, pos, r0);
+								q1 = ReadPart0_Small(p, pos, r0);
 
 								if (q1 < 0)
 								{
@@ -2990,7 +2990,7 @@ namespace DotGram.Snapshots
 							{
 								var s2  = ways.Cursor;
 
-								q1 = Read_Small_Small_Part1(p, pos, r0);
+								q1 = ReadPart1_Small(p, pos, r0);
 
 								if (q1 < 0)
 								{
@@ -3003,7 +3003,7 @@ namespace DotGram.Snapshots
 							{
 								var s3  = ways.Cursor;
 
-								q1 = Read_Small_Small_Part2(p, pos, r0);
+								q1 = ReadPart2_Small(p, pos, r0);
 
 								if (q1 < 0)
 								{
@@ -3020,7 +3020,7 @@ namespace DotGram.Snapshots
 						{
 							unbuilt++;
 							var fq2 = failure.Position < p ? -1 : failure.ExpectedMore?.Count ?? 0;
-							var q2 = Read_Word_Small(p);
+							var q2 = Read_Word(p);
 							unbuilt--;
 							if (q2 < 0)
 							{
@@ -3034,35 +3034,35 @@ namespace DotGram.Snapshots
 								return -1;
 							}
 							p += 1;
-							if (unbuilt == 0) last1 = Construct_Small_3();
+							if (unbuilt == 0) last1 = New3_DotGram_Small();
 							break;
 						}
 				}
 				return p;
 			}
 
-			public int Read_Small_Small_Part0(int pos, int start, int? r0)
+			public int ReadPart0_Small(int pos, int start, int? r0)
 			{
 				var p = pos;
 				var g0At = r0;
 				int g0 = (int)g0At!;
-				if (!Recognize_DotGram_Small_Guard4(g0))
+				if (!RecognizeGuard4_DotGram_Small(g0))
 				{
 					Refused_DotGram(ref failure, p, null);
 					return -1;
 				}
-				if (unbuilt == 0) last1 = Construct_Small((int)r0!);
+				if (unbuilt == 0) last1 = New_DotGram_Small((int)r0!);
 				return p;
 			}
 
-			public int Read_Small_Small_Part1(int pos, int start, int? r0)
+			public int ReadPart1_Small(int pos, int start, int? r0)
 			{
 				var p = pos;
-				if (unbuilt == 0) last1 = Construct_Small_1((int)r0!);
+				if (unbuilt == 0) last1 = New1_DotGram_Small((int)r0!);
 				return p;
 			}
 
-			public int Read_Small_Small_Part2(int pos, int start, int? r0)
+			public int ReadPart2_Small(int pos, int start, int? r0)
 			{
 				var p = pos;
 				if (((0x1UL >> parserReading) & 1UL) == 0UL)
@@ -3072,16 +3072,16 @@ namespace DotGram.Snapshots
 				}
 				var g0At = r0;
 				int g0 = (int)g0At!;
-				if (!Recognize_DotGram_Small_Guard5(g0))
+				if (!RecognizeGuard5_DotGram_Small(g0))
 				{
 					Refused_DotGram(ref failure, p, null);
 					return -1;
 				}
-				if (unbuilt == 0) last1 = Construct_Small_2((int)r0!);
+				if (unbuilt == 0) last1 = New2_DotGram_Small((int)r0!);
 				return p;
 			}
 
-			public int Read_Number_Small(int pos)
+			public int Read_Number(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -3109,18 +3109,18 @@ namespace DotGram.Snapshots
 				}
 
 				b0 = p;
-				last1 = Construct_Number((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
+				last1 = New_DotGram_Number((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
-			public int Read_Word_Small(int pos)
+			public int Read_Word(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Read_Word_Small_Body(pos);
+					var q = ReadBody_Word(pos);
 
 					if (q >= 0)
 					{
@@ -3149,7 +3149,7 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Word_Small_Body(int pos)
+			public int ReadBody_Word(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -3193,18 +3193,18 @@ namespace DotGram.Snapshots
 					p -= d0;
 				}
 				b0 = p;
-				if (unbuilt == 0) last0 = Construct_Word((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
+				if (unbuilt == 0) last0 = New_DotGram_Word((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
-			public int Recognize_Small_Whole_Read(int pos)
+			public int RecWholeRead_Small(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Recognize_Small_Whole_Read_Body(pos);
+					var q = RecWholeReadBody_Small(pos);
 
 					if (q >= 0)
 					{
@@ -3232,10 +3232,10 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			public int Recognize_Small_Whole_Read_Body(int pos)
+			public int RecWholeReadBody_Small(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Small_Small(p);
+				var q0 = Read_Small(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				if (p != text.Length)
@@ -3246,14 +3246,14 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_Small_Read(int pos)
+			public int RecRead_Small(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Recognize_Small_Read_Body(pos);
+					var q = RecReadBody_Small(pos);
 
 					if (q >= 0)
 					{
@@ -3281,10 +3281,10 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			public int Recognize_Small_Read_Body(int pos)
+			public int RecReadBody_Small(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Small_Small(p);
+				var q0 = Read_Small(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				return p;
@@ -3292,7 +3292,7 @@ namespace DotGram.Snapshots
 
 		}
 
-		static int Recognize_Small_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value, int parserReading)
+		static int RecWhole_DotGram_Small(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value, int parserReading)
 		{
 			var ways = Ways_DotGram.Rent();
 
@@ -3303,7 +3303,7 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 				if (failure.Unasked) reader.unbuilt = 1;
 
-				var end = reader.Recognize_Small_Whole_Read(pos);
+				var end = reader.RecWholeRead_Small(pos);
 
 				failure = reader.failure;
 
@@ -3324,7 +3324,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Recognize_Small(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value, int parserReading)
+		static int Rec_DotGram_Small(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value, int parserReading)
 		{
 			var ways = Ways_DotGram.Rent();
 
@@ -3335,7 +3335,7 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 				if (failure.Unasked) reader.unbuilt = 1;
 
-				var end = reader.Recognize_Small_Read(pos);
+				var end = reader.RecRead_Small(pos);
 
 				failure = reader.failure;
 
@@ -3358,7 +3358,7 @@ namespace DotGram.Snapshots
 
 
 
-		static int Recognize_Ab_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int RecWhole_DotGram_Ab(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var c = '\0';
@@ -3462,14 +3462,14 @@ namespace DotGram.Snapshots
 					Replayed_DotGram();
 			}
 
-			public int Read_Primary_Primary(int pos)
+			public int Read_Primary(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Read_Primary_Primary_Body(pos);
+					var q = ReadBody_Primary(pos);
 
 					if (q >= 0)
 					{
@@ -3498,7 +3498,7 @@ namespace DotGram.Snapshots
 			}
 
 			[global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-			public int Read_Primary_Primary_Body(int pos)
+			public int ReadBody_Primary(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -3533,7 +3533,7 @@ namespace DotGram.Snapshots
 				{
 					var s1  = ways.Cursor;
 
-					q0 = Read_Call_Primary(p);
+					q0 = Read_Call(p);
 
 					if (q0 < 0)
 					{
@@ -3546,7 +3546,7 @@ namespace DotGram.Snapshots
 				{
 					var s2  = ways.Cursor;
 
-					q0 = Read_Number_Primary(p);
+					q0 = Read_Number(p);
 
 					if (q0 < 0)
 					{
@@ -3560,31 +3560,31 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_Call_Primary(int pos)
+			public int Read_Call(int pos)
 			{
 				var p = pos;
 				var c = '\0';
 				int fold = default!;
 				int r0 = default!;
-				var q0 = Read_Number_Primary(p);
+				var q0 = Read_Number(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				r0 = last1;
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
-					p = Recognize_DotGram_Primary_RanOut(text, p, "()", false, !failure.Quiet, ref failure);
+					p = RecognizeRanOut_DotGram_Primary(text, p, "()", false, !failure.Quiet, ref failure);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(8));
 					return -1;
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("()")))
 				{
 					if (!failure.Quiet)
-						p = Recognize_DotGram_Primary_Agreeing(text, p, "()", false);
+						p = RecognizeAgreeing_DotGram_Primary(text, p, "()", false);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(8));
 					return -1;
 				}
 				p += 2;
-				if (unbuilt == 0) last1 = Construct_Call(r0!);
+				if (unbuilt == 0) last1 = New_DotGram_Call(r0!);
 				fold = last1;
 				while (true)
 				{
@@ -3604,7 +3604,7 @@ namespace DotGram.Snapshots
 
 					var q1 = -1;
 
-					q1 = Read_Call_Primary_Part0(p, ref fold);
+					q1 = ReadPart0_Call(p, ref fold);
 
 					if (q1 < 0)
 					{
@@ -3622,29 +3622,29 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_Call_Primary_Part0(int pos, ref int fold)
+			public int ReadPart0_Call(int pos, ref int fold)
 			{
 				var p = pos;
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
-					p = Recognize_DotGram_Primary_RanOut(text, p, "()", false, !failure.Quiet, ref failure);
+					p = RecognizeRanOut_DotGram_Primary(text, p, "()", false, !failure.Quiet, ref failure);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(8));
 					return -1;
 				}
 				if (!global::System.MemoryExtensions.SequenceEqual(text.Slice(p, 2), global::System.MemoryExtensions.AsSpan("()")))
 				{
 					if (!failure.Quiet)
-						p = Recognize_DotGram_Primary_Agreeing(text, p, "()", false);
+						p = RecognizeAgreeing_DotGram_Primary(text, p, "()", false);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(8));
 					return -1;
 				}
 				p += 2;
-				if (unbuilt == 0) last1 = Construct_Call_1(fold);
+				if (unbuilt == 0) last1 = New1_DotGram_Call(fold);
 				fold = last1;
 				return p;
 			}
 
-			public int Read_Number_Primary(int pos)
+			public int Read_Number(int pos)
 			{
 				var p = pos;
 				var c = '\0';
@@ -3672,18 +3672,18 @@ namespace DotGram.Snapshots
 				}
 
 				b0 = p;
-				if (unbuilt == 0) last1 = Construct_Number((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
+				if (unbuilt == 0) last1 = New_DotGram_Number((a0 < 0 ? string.Empty : text.Slice(a0, b0 - a0).ToString())!);
 				return p;
 			}
 
-			public int Recognize_Primary_Whole_Read(int pos)
+			public int RecWholeRead_Primary(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Recognize_Primary_Whole_Read_Body(pos);
+					var q = RecWholeReadBody_Primary(pos);
 
 					if (q >= 0)
 					{
@@ -3711,10 +3711,10 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			public int Recognize_Primary_Whole_Read_Body(int pos)
+			public int RecWholeReadBody_Primary(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Primary_Primary(p);
+				var q0 = Read_Primary(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				if (p != text.Length)
@@ -3725,14 +3725,14 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_Primary_Read(int pos)
+			public int RecRead_Primary(int pos)
 			{
 				var s  = ways.Cursor;
 				var u  = 0;
 
 				while (true)
 				{
-					var q = Recognize_Primary_Read_Body(pos);
+					var q = RecReadBody_Primary(pos);
 
 					if (q >= 0)
 					{
@@ -3760,10 +3760,10 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			public int Recognize_Primary_Read_Body(int pos)
+			public int RecReadBody_Primary(int pos)
 			{
 				var p = pos;
-				var q0 = Read_Primary_Primary(p);
+				var q0 = Read_Primary(p);
 				if (q0 < 0) return -1;
 				p = q0;
 				return p;
@@ -3771,7 +3771,7 @@ namespace DotGram.Snapshots
 
 		}
 
-		static int Recognize_Primary_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value)
+		static int RecWhole_DotGram_Primary(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value)
 		{
 			var ways = Ways_DotGram.Rent();
 
@@ -3782,7 +3782,7 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 				if (failure.Unasked) reader.unbuilt = 1;
 
-				var end = reader.Recognize_Primary_Whole_Read(pos);
+				var end = reader.RecWholeRead_Primary(pos);
 
 				failure = reader.failure;
 
@@ -3803,7 +3803,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Recognize_Primary(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value)
+		static int Rec_DotGram_Primary(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out int value)
 		{
 			var ways = Ways_DotGram.Rent();
 
@@ -3814,7 +3814,7 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 				if (failure.Unasked) reader.unbuilt = 1;
 
-				var end = reader.Recognize_Primary_Read(pos);
+				var end = reader.RecRead_Primary(pos);
 
 				failure = reader.failure;
 
@@ -4073,7 +4073,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Recognize_Word(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
+		static int Rec_DotGram_Word(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
 		{
 			object? recognized;
 			var end = Recognize_DotGram_Word(text, pos, 3, 0, false, true, ref failure, out recognized);
@@ -4081,37 +4081,37 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static bool Recognize_DotGram_Small_Guard0(int n) =>
+		static bool RecognizeGuard0_DotGram_Small(int n) =>
 #line 31 "Notation.gram"
                                                                                 (n > 0);
 #line default
 
-		static bool Recognize_DotGram_Small_Guard1(int n) =>
+		static bool RecognizeGuard1_DotGram_Small(int n) =>
 #line 29 "Notation.gram"
                      (n < 10);
 #line default
 
-		static bool Recognize_DotGram_Small_Guard2(int n) =>
+		static bool RecognizeGuard2_DotGram_Small(int n) =>
 #line 29 "Notation.gram"
                      (n < 10);
 #line default
 
-		static bool Recognize_DotGram_Small_Guard3(int n) =>
+		static bool RecognizeGuard3_DotGram_Small(int n) =>
 #line 31 "Notation.gram"
                                                                                 (n > 0);
 #line default
 
-		static bool Recognize_DotGram_Small_Guard4(int n) =>
+		static bool RecognizeGuard4_DotGram_Small(int n) =>
 #line 29 "Notation.gram"
                      (n < 10);
 #line default
 
-		static bool Recognize_DotGram_Small_Guard5(int n) =>
+		static bool RecognizeGuard5_DotGram_Small(int n) =>
 #line 31 "Notation.gram"
                                                                                 (n > 0);
 #line default
 
-		static int Recognize_DotGram_Primary_Agreeing(global::System.ReadOnlySpan<char> text, int p, string value, bool fold)
+		static int RecognizeAgreeing_DotGram_Primary(global::System.ReadOnlySpan<char> text, int p, string value, bool fold)
 		{
 			var i = 0;
 
@@ -4121,9 +4121,9 @@ namespace DotGram.Snapshots
 			return p + i;
 		}
 
-		static int Recognize_DotGram_Primary_RanOut(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
+		static int RecognizeRanOut_DotGram_Primary(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
 		{
-			var reach = Recognize_DotGram_Primary_Agreeing(text, p, value, fold);
+			var reach = RecognizeAgreeing_DotGram_Primary(text, p, value, fold);
 
 			if (((uint)reach >= (uint)text.Length && (failure.Starved = true)))
 			{
@@ -4208,7 +4208,7 @@ namespace DotGram.Snapshots
 						#endif
 						var captured0 = captured0From < 0 ? string.Empty : text.Slice(captured0From, captured0To - captured0From).ToString();
 
-						values0[completedAt] = Construct_Word(captured0!);
+						values0[completedAt] = New_DotGram_Word(captured0!);
 						break;
 					}
 				}

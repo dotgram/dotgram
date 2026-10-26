@@ -47,12 +47,12 @@ namespace DotGram.Snapshots
 			var text    = new global::System.ReadOnlySpan<char>(tokens.Kinds, 0, count);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Program_Whole(text, 0, ref failure, out var recognized, source, starts, lengths);
+			var end = RecWhole_DotGram_Program(text, 0, ref failure, out var recognized, source, starts, lengths);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Program_Whole(text, 0, ref failure, out recognized, source, starts, lengths);
+				end     = RecWhole_DotGram_Program(text, 0, ref failure, out recognized, source, starts, lengths);
 			}
 
 			if (end < 0)
@@ -116,7 +116,7 @@ namespace DotGram.Snapshots
 			var text    = new global::System.ReadOnlySpan<char>(tokens.Kinds, 0, count);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Program_Whole(text, 0, ref failure, out var recognized, source, starts, lengths);
+			var end = RecWhole_DotGram_Program(text, 0, ref failure, out var recognized, source, starts, lengths);
 
 			if (end < 0)
 			{
@@ -164,12 +164,12 @@ namespace DotGram.Snapshots
 			var text    = new global::System.ReadOnlySpan<char>(tokens.Kinds, 0, count);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Program(text, from, ref failure, out var recognized, source, starts, lengths);
+			var end = Rec_DotGram_Program(text, from, ref failure, out var recognized, source, starts, lengths);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Program(text, from, ref failure, out recognized, source, starts, lengths);
+				end     = Rec_DotGram_Program(text, from, ref failure, out recognized, source, starts, lengths);
 			}
 
 			var began = starts[from];
@@ -237,7 +237,7 @@ namespace DotGram.Snapshots
 			var text    = new global::System.ReadOnlySpan<char>(tokens.Kinds, 0, count);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Program(text, from, ref failure, out var recognized, source, starts, lengths);
+			var end = Rec_DotGram_Program(text, from, ref failure, out var recognized, source, starts, lengths);
 
 			if (end < 0 || (tokens.Cut && end == count))
 			{
@@ -287,12 +287,12 @@ namespace DotGram.Snapshots
 			var text    = new global::System.ReadOnlySpan<char>(tokens.Kinds, 0, count);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Program(text, 0, ref failure, out var recognized, source, starts, lengths);
+			var end = Rec_DotGram_Program(text, 0, ref failure, out var recognized, source, starts, lengths);
 
 			if (end < 0)
 			{
 				failure = new Failure { Unasked = true, Doors = failure.Position };
-				end     = Recognize_Program(text, 0, ref failure, out recognized, source, starts, lengths);
+				end     = Rec_DotGram_Program(text, 0, ref failure, out recognized, source, starts, lengths);
 			}
 
 			var began = count > 0 ? starts[0] : at;
@@ -363,7 +363,7 @@ namespace DotGram.Snapshots
 			var text    = new global::System.ReadOnlySpan<char>(tokens.Kinds, 0, count);
 			var failure = new Failure { Quiet = true };
 
-			var end = Recognize_Program(text, 0, ref failure, out var recognized, source, starts, lengths);
+			var end = Rec_DotGram_Program(text, 0, ref failure, out var recognized, source, starts, lengths);
 
 			if (end < 0 || (tokens.Cut && end == count))
 			{
@@ -383,23 +383,23 @@ namespace DotGram.Snapshots
 			return true;
 		}
 
-		static string[] Construct_Program(string[] item0) =>
+		static string[] New_DotGram_Program(string[] item0) =>
 			item0 ?? global::System.Array.Empty<string>();
 
-		static string Construct_Statement(string name, string value) =>
+		static string New_DotGram_Statement(string name, string value) =>
 #line 29 "Lexical.gram"
                                                                                    (name + "=" + value);
 #line default
 
-		static string Construct_Expression(string left, string right) =>
+		static string New_DotGram_Expression(string left, string right) =>
 #line 32 "Lexical.gram"
                                                       (left + "+" + right);
 #line default
 
-		static string Construct_Expression_1(string left) =>
+		static string New1_DotGram_Expression(string left) =>
 			(left);
 
-		static string Construct_Expression_2(string named) =>
+		static string New2_DotGram_Expression(string named) =>
 #line 34 "Lexical.gram"
                                                       (named);
 #line default
@@ -451,7 +451,7 @@ namespace DotGram.Snapshots
 
 					var rr0_1 = values.Count1;
 
-					var q0 = Read_Program_Part0(p, rb_1);
+					var q0 = ReadPart0_Program(p, rb_1);
 
 					if (q0 < 0 || q0 == p)
 					{
@@ -463,7 +463,7 @@ namespace DotGram.Snapshots
 				}
 				var rr1_1 = values.Count1;
 				failure.Looking++;
-				var q1 = Read_Program_Part1(p, rb_1);
+				var q1 = ReadPart1_Program(p, rb_1);
 				failure.Looking--;
 
 				values.Count1 = rr1_1;
@@ -473,11 +473,11 @@ namespace DotGram.Snapshots
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(0));
 					{ values.Count1 = rb_1; return -1; }
 				}
-				if (unbuilt == 0) last0 = Construct_Program(values.Take1(rb_1)!); else { values.Count1 = rb_1; }
+				if (unbuilt == 0) last0 = New_DotGram_Program(values.Take1(rb_1)!); else { values.Count1 = rb_1; }
 				return p;
 			}
 
-			public int Read_Program_Part0(int pos, int refs_1)
+			public int ReadPart0_Program(int pos, int refs_1)
 			{
 				var p = pos;
 				var q0 = Read_Statement(p);
@@ -487,7 +487,7 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_Program_Part1(int pos, int refs_1)
+			public int ReadPart1_Program(int pos, int refs_1)
 			{
 				var p = pos;
 				var c = '\0';
@@ -544,7 +544,7 @@ namespace DotGram.Snapshots
 					return -1;
 				}
 				p += 1;
-				if (unbuilt == 0) last1 = Construct_Statement((a0 < 0 ? string.Empty : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, r1!);
+				if (unbuilt == 0) last1 = New_DotGram_Statement((a0 < 0 ? string.Empty : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, r1!);
 				return p;
 			}
 
@@ -570,7 +570,7 @@ namespace DotGram.Snapshots
 							a2 = p;
 							p++;
 							b2 = p;
-							if (unbuilt == 0) last1 = Construct_Expression_2((a2 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a2, b2 - a2))!);
+							if (unbuilt == 0) last1 = New2_DotGram_Expression((a2 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a2, b2 - a2))!);
 							break;
 						}
 					case '\u0003':
@@ -578,10 +578,10 @@ namespace DotGram.Snapshots
 							a0 = p;
 							p += 1;
 							b0 = p;
-							var q0 = Read_Expression_Part0(p, a0, b0);
+							var q0 = ReadPart0_Expression(p, a0, b0);
 							if (q0 < 0)
 							{
-								if (unbuilt == 0) last1 = Construct_Expression_1((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!);
+								if (unbuilt == 0) last1 = New1_DotGram_Expression((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!);
 								q0 = p;
 							}
 							p = q0;
@@ -594,7 +594,7 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Read_Expression_Part0(int pos, int a0, int b0)
+			public int ReadPart0_Expression(int pos, int a0, int b0)
 			{
 				var p = pos;
 				var a1 = -1;
@@ -613,11 +613,11 @@ namespace DotGram.Snapshots
 				}
 				p += 1;
 				b1 = p;
-				if (unbuilt == 0) last1 = Construct_Expression((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, (a1 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a1, b1 - a1))!);
+				if (unbuilt == 0) last1 = New_DotGram_Expression((a0 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a0, b0 - a0))!, (a1 < 0 ? null : Text_DotGram(parserSource, parserStarts, parserLengths, a1, b1 - a1))!);
 				return p;
 			}
 
-			public int Recognize_Program_Whole_Read(int pos)
+			public int RecWholeRead_Program(int pos)
 			{
 				var p = pos;
 				var rb_1 = values.Count1;
@@ -632,7 +632,7 @@ namespace DotGram.Snapshots
 				return p;
 			}
 
-			public int Recognize_Program_Read(int pos)
+			public int RecRead_Program(int pos)
 			{
 				var p = pos;
 				var rb_1 = values.Count1;
@@ -644,7 +644,7 @@ namespace DotGram.Snapshots
 
 		}
 
-		static int Recognize_Program_Whole(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string[] value, string parserSource, int[] parserStarts, int[] parserLengths)
+		static int RecWhole_DotGram_Program(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string[] value, string parserSource, int[] parserStarts, int[] parserLengths)
 		{
 			var values = ImmediateValues_DotGram.Rent();
 
@@ -655,7 +655,7 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 				if (failure.Unasked) reader.unbuilt = 1;
 
-				var end = reader.Recognize_Program_Whole_Read(pos);
+				var end = reader.RecWholeRead_Program(pos);
 
 				failure = reader.failure;
 
@@ -676,7 +676,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Recognize_Program(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string[] value, string parserSource, int[] parserStarts, int[] parserLengths)
+		static int Rec_DotGram_Program(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string[] value, string parserSource, int[] parserStarts, int[] parserLengths)
 		{
 			var values = ImmediateValues_DotGram.Rent();
 
@@ -687,7 +687,7 @@ namespace DotGram.Snapshots
 				reader.failure = failure;
 				if (failure.Unasked) reader.unbuilt = 1;
 
-				var end = reader.Recognize_Program_Read(pos);
+				var end = reader.RecRead_Program(pos);
 
 				failure = reader.failure;
 
@@ -983,12 +983,12 @@ namespace DotGram.Snapshots
 			return tied;
 		}
 
-		static readonly byte[] Scan_Runs =
+		static readonly byte[] Lex_DotGram_Runs =
 		{
 				0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
 		};
 
-		static readonly byte[] Scan_Running =
+		static readonly byte[] Lex_DotGram_Running =
 		{
 				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
@@ -1009,12 +1009,12 @@ namespace DotGram.Snapshots
 				0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 		};
 
-		static readonly int[] Scan_Accepts =
+		static readonly int[] Lex_DotGram_Accepts =
 		{
 				0, 6, 3, 5, 4, 2, 2, 3, 2, 2, 1,
 		};
 
-		static readonly short[] Scan_Cells =
+		static readonly short[] Lex_DotGram_Cells =
 		{
 				-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
 				-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1,
@@ -1050,7 +1050,7 @@ namespace DotGram.Snapshots
 				8, 8, 8, 10, 8, 8, 8, 8, 8, 8, -1, -1, -1, -1, -1,
 		};
 
-		static readonly long[] Scan_States =
+		static readonly long[] Lex_DotGram_States =
 		{
 				0, 128, 256, 128, 128, 384, 512, 256, 384, 640, 384,
 		};
@@ -1075,16 +1075,16 @@ namespace DotGram.Snapshots
 			while (p < text.Length)
 			{
 				var c    = text[p];
-				var row  = Scan_States[state];
+				var row  = Lex_DotGram_States[state];
 				var at   = c - (int)(row >> 32);
 				int next;
 
 				if ((uint)at < 128u)
-					next = Scan_Cells[(int)row + at];
+					next = Lex_DotGram_Cells[(int)row + at];
 				else
 				{
 					next =
-						Scan_Part0(state, c);
+						Lex_DotGram_Part0(state, c);
 				}
 
 				if (next < 0)
@@ -1098,20 +1098,20 @@ namespace DotGram.Snapshots
 				// A run of one class, which the row above already decided.
 				if (again)
 				{
-					var over = Scan_Runs[state] << 8;
+					var over = Lex_DotGram_Runs[state] << 8;
 
 					while (p < text.Length)
 					{
 						var ahead = text[p];
 
-						if (ahead > 255 || Scan_Running[over + ahead] == 0)
+						if (ahead > 255 || Lex_DotGram_Running[over + ahead] == 0)
 							break;
 
 						p++;
 					}
 				}
 
-				var accepts = Scan_Accepts[state];
+				var accepts = Lex_DotGram_Accepts[state];
 
 				if (accepts != 0)
 					(end, found) = (p, accepts);
@@ -1123,23 +1123,23 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static bool Scan_RunsOut(global::System.ReadOnlySpan<char> text, int pos)
+		static bool Lex_DotGram_RunsOut(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var state = 0;
 
 			for (var p = pos; p < text.Length; p++)
 			{
 				var c    = text[p];
-				var row  = Scan_States[state];
+				var row  = Lex_DotGram_States[state];
 				var at   = c - (int)(row >> 32);
 				int next;
 
 				if ((uint)at < 128u)
-					next = Scan_Cells[(int)row + at];
+					next = Lex_DotGram_Cells[(int)row + at];
 				else
 				{
 					next =
-						Scan_Part0(state, c);
+						Lex_DotGram_Part0(state, c);
 				}
 
 				if (next < 0)
@@ -1151,7 +1151,7 @@ namespace DotGram.Snapshots
 			return true;
 		}
 
-		static int Scan_Part0(int state, char c)
+		static int Lex_DotGram_Part0(int state, char c)
 		{
 			switch (state)
 			{
@@ -1159,11 +1159,11 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static readonly byte[] Recognize_DotGram_Seam_Class0 = { 0,0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+		static readonly byte[] RecognizeClassSeam0_DotGram = { 0,0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-		static readonly byte[] Recognize_DotGram_Seam_Class1 = { 0,0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+		static readonly byte[] RecognizeClassSeam1_DotGram = { 0,0,0,0,0,0,0,0,0,1,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 
-		static int Scan_trivia_Seam(global::System.ReadOnlySpan<char> text, int pos)
+		static int ScanSeam_DotGram_trivia(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p = pos;
 			var c = '\0';
@@ -1171,8 +1171,8 @@ namespace DotGram.Snapshots
 			L0_turn:
 			if ((uint)p >= (uint)text.Length) goto L1_done;
 			c = text[p];
-			if (!(c <= 255 && Recognize_DotGram_Seam_Class1[c] != 0)) goto L1_done;
-			if (!(c <= 255 && Recognize_DotGram_Seam_Class0[c] != 0)) goto L3_or;
+			if (!(c <= 255 && RecognizeClassSeam1_DotGram[c] != 0)) goto L1_done;
+			if (!(c <= 255 && RecognizeClassSeam0_DotGram[c] != 0)) goto L3_or;
 			p++;
 			goto L0_turn;
 			L3_or: ;
@@ -1408,7 +1408,7 @@ namespace DotGram.Snapshots
 
 			while (true)
 			{
-				var skipped = Scan_trivia_Seam(text, p);
+				var skipped = ScanSeam_DotGram_trivia(text, p);
 
 				if (skipped > p)
 					p = skipped;
@@ -1420,7 +1420,7 @@ namespace DotGram.Snapshots
 
 				if (kind == 0 || end <= p)
 				{
-					if (Scan_RunsOut(text, p))
+					if (Lex_DotGram_RunsOut(text, p))
 					{
 						tokens.Cut = true;
 

@@ -45,7 +45,7 @@ sealed partial class Machine
 				// publications has two machines in one class, and both may reach the same
 				// scanner — `trivia` does, in every spaced grammar with more than one
 				// thing published — which without this is one method defined twice.
-				? "Scan_" + CSharpEmitter.IdentifierOf(rule) + _tag
+				? Tag.Of("Scan", CSharpEmitter.IdentifierOf(rule))
 				: null;
 
 		_scanners[rule] = name;
@@ -109,7 +109,7 @@ sealed partial class Machine
 		if (!atomic && !Scannable(body, following.Plain.Or(following.AfterSeam)))
 			return null;
 
-		var plan = new ScalarScan("Read_" + CSharpEmitter.IdentifierOf(rule) + _tag, head, tail);
+		var plan = new ScalarScan(Tag.Of("Read", CSharpEmitter.IdentifierOf(rule)), head, tail);
 		_scalarScans[rule] = plan;
 		return plan;
 	}
@@ -316,7 +316,7 @@ sealed partial class Machine
 		if (_scannerRunsOut.TryGetValue(rule, out var known))
 			return known;
 
-		var runsOut = new ScanWriter(_graph, static _ => null, static _ => "true", _tag, _starves, StopCharacters, recordsRunOut: true)
+		var runsOut = new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _starves, StopCharacters, recordsRunOut: true)
 			.Render(ScanBody(rule))
 			.Contains("ranOut", StringComparison.Ordinal);
 
@@ -350,10 +350,10 @@ sealed partial class Machine
 		// refusal; asked by its tag, since this is asked while the machine is being built.
 		var body    = ScanBody(rule);
 		var reports = SeamReached.Contains(rule)
-			? _tag != SeamTag && new ScanWriter(_graph, static _ => null, static _ => "true", _tag, _starves, StopCharacters) { Seam = true }
+			? Tag != MachineTag.Seam && new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _starves, StopCharacters) { Seam = true }
 				.Render(body, reports: true)
 				.Contains("> furthest", StringComparison.Ordinal)
-			: new ScanWriter(_graph, static _ => null, static _ => "true", _tag, _starves, StopCharacters)
+			: new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _starves, StopCharacters)
 				.Render(body)
 				.Contains("furthest", StringComparison.Ordinal);
 
@@ -400,9 +400,9 @@ sealed partial class Machine
 			var rule = pair.Key;
 			var body = ScanBody(rule);
 
-			var scan  = new ScanWriter(_graph, Tabulate, one => RangesTest(one, Tabulate), _tag, _starves, StopCharacters, RecordsRunOut)
+			var scan  = new ScanWriter(_graph, Tabulate, one => RangesTest(one, Tabulate), Tag, _starves, StopCharacters, RecordsRunOut)
 			{
-				Seam = SeamReached.Contains(rule) && _tag != SeamTag,
+				Seam = SeamReached.Contains(rule) && Tag != MachineTag.Seam,
 			};
 			var inner = scan.Render(body, ScannerReports(rule));
 
@@ -431,7 +431,7 @@ sealed partial class Machine
 			file.Line("/// </remarks>");
 
 			using (file.Block(
-				$"static int Reach_DotGram{_tag}(" +
+				$"static int {Tag.Named("Reach")}(" +
 				"global::System.ReadOnlySpan<char> text, int pos, global::System.ReadOnlySpan<char> want)"))
 			{
 				file.Line("var room = text.Length - pos;");
@@ -844,7 +844,7 @@ sealed partial class Machine
 		RecognitionGraph graph,
 		Func<IReadOnlyList<CharRange>, string?> tabulate,
 		Func<IReadOnlyList<CharRange>, string> ranges,
-		string tag = "",
+		MachineTag? tag = null,
 		bool starves = false,
 		Func<Node, char[]?>? stops = null,
 		bool recordsRunOut = false)
@@ -971,7 +971,7 @@ sealed partial class Machine
 			written = Regex.Replace(written, @"/\*exit\*/(.*?)/\*else\*/(.*?)/\*end\*/", into, RegexOptions.Singleline | RegexOptions.CultureInvariant);
 
 			// A walk nothing calls any more is not asked for.
-			_reaches = written.Contains("Reach_DotGram", StringComparison.Ordinal);
+			_reaches = written.Contains((tag ?? MachineTag.None).Named("Reach") + "(", StringComparison.Ordinal);
 
 			return written;
 		}
@@ -1140,7 +1140,7 @@ sealed partial class Machine
 								if (exit)
 									code.Line($"if ({Short(1)} || text[p] != {CSharpEmitter.Char(text[0])}) goto {fail};");
 
-								code.Line($"var reached = Reach_DotGram{tag}(text, p, {Spanned(text)});");
+								code.Line($"var reached = {(tag ?? MachineTag.None).Named("Reach")}(text, p, {Spanned(text)});");
 								code.Line("if (reached > furthest) furthest = reached;");
 								code.Line($"goto {fail};");
 							}
