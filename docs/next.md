@@ -26521,7 +26521,9 @@ search for the delimiter that found none jumped to the refusal without saying ho
   the first as the rule is read (so a guard sees the rule) and its end at the second at Accept, before anything
   is built; a `@SourceSpan` root's wrapper cuts the bounds from the marks. Only for a rule whose value reads its
   extent — a `@SourceSpan`, a located rule, a construction or guard of its own naming `parserText` or
-  `parserSpan` — and not in a method lowered with its values in locals, which reads none of it.
+  `parserSpan` — and not in a method lowered with its values in locals, which reads none of it. A guard of the
+  rule that reads either is asked for on its own, whatever the value is: a `@SourceSpan` rule, whose bounds its
+  wrapper cuts, and a text-valued one still had their guards see the trivia with Direct off (found in review).
 - **A look that saw nothing.** A positive look records nothing it tries, and where it saw nothing the reading was
   refused with the position it had before the look: the start of the input where nothing else was read. A look
   over a rule a scanner read said where the scanner refused, so the recovery change made it visible: `'b' &
