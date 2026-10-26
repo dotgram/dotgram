@@ -897,7 +897,7 @@ namespace DotGram.Snapshots
 
 			while (true)
 			{
-				triviaFailureLead = new Failure();
+				triviaFailureLead = new Failure { Origin = unchecked((int)window.Offset) };
 				triviaEndLead = WholeTrivia_DotGram_Config(window.Span(), start, ref triviaFailureLead);
 
 				if (((triviaEndLead < 0 ? triviaFailureLead.Position : triviaEndLead) >= window.Length || triviaFailureLead.Starved) && !window.Ended)
@@ -923,7 +923,7 @@ namespace DotGram.Snapshots
 
 				while (true)
 				{
-					seamFailure0 = new Failure();
+					seamFailure0 = new Failure { Origin = unchecked((int)window.Offset) };
 					seamEnd0     = Rec_DotGram_trivia(window.Span(), start, ref seamFailure0);
 
 					if (((seamEnd0 < 0 ? seamFailure0.Position : seamEnd0) >= window.Length || seamFailure0.Starved) && !window.Ended)
@@ -974,7 +974,7 @@ namespace DotGram.Snapshots
 
 			while (true)
 			{
-				triviaFailureTrail = new Failure();
+				triviaFailureTrail = new Failure { Origin = unchecked((int)window.Offset) };
 				triviaEndTrail = WholeTrivia_DotGram_Config(window.Span(), start, ref triviaFailureTrail);
 
 				if (((triviaEndTrail < 0 ? triviaFailureTrail.Position : triviaEndTrail) >= window.Length || triviaFailureTrail.Starved) && !window.Ended)

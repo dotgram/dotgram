@@ -492,10 +492,12 @@ sealed partial class Machine
 		CarrierKind carrier = CarrierKind.Tape, int stacks = 0, TerminalInventory? inventory = null,
 		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool bufferedFind = false, bool prefixTables = false,
 		Dictionary<string, int>? expectedTables = null, bool deferCompilation = false,
-		bool quiets = false, TraceTables? tracing = null, ExpectedSets? expectedSets = null, bool? keepsDoors = null)
+		bool quiets = false, TraceTables? tracing = null, ExpectedSets? expectedSets = null, bool? keepsDoors = null,
+		bool places = false)
 	{
 		// Before anything is compiled: the engine's states write the trace's events as they are compiled.
 		Tracing = tracing;
+		Places  = places;
 		_expectedTables = expectedTables;
 		_expectedSets = expectedSets ?? new ExpectedSets();
 		_ownsExpectedSets = expectedSets is null;
@@ -1689,19 +1691,17 @@ sealed partial class Machine
 	public bool UsesLocating => _graph.PerCall is not null && _graph.Located.Count > 0;
 
 	/// <summary>
-	/// Whether the places this machine tells its constructions — where a located value was read,
-	/// where the marks over one were placed — are counted from where the text it is handed begins
-	/// in the whole input, rather than from the text: a streamed reading hands it what its window
-	/// holds, and the window lets go of what was read before (<c>Failure.Origin</c>, which the
-	/// reading writes and the engine keeps on its parser).
+	/// Whether the places this machine tells the host's code — where a located value was read,
+	/// where the marks over one were placed, where a guard's rule began — are counted from where
+	/// the text it is handed begins in the whole input, rather than from the text: a streamed
+	/// reading hands it what its window holds, and the window lets go of what was read before
+	/// (<c>Failure.Origin</c>, which the reading writes and the engine keeps on its parser).
 	/// </summary>
 	/// <remarks>
-	/// Asked of the grammar (<see cref="CSharpEmitter.Places"/>): only a grammar that tells such
-	/// places and is read a window at a time pays the field and the add.
+	/// Asked of the grammar where the machine is made (<see cref="CSharpEmitter.Places"/>): only a
+	/// grammar that tells such places and is read a window at a time pays the field and the add.
 	/// </remarks>
-	public bool Places => _places ??= !BufferedInput && CSharpEmitter.Places(_graph, OverKinds);
-
-	bool? _places;
+	public bool Places { get; }
 
 	/// <summary>A position of the text handed to the machine, as a place in the whole input (<see cref="Places"/>).</summary>
 	string Placed(string position)
@@ -3547,7 +3547,7 @@ sealed partial class Machine
 				if (node is Node.Guard { Text: var spanning } && CSharpEmitter.Uses(_graph, spanning, "parserSpan"))
 				{
 					parameters.Add("SourceSpan parserSpan");
-					arguments.Add(Span("ruleStart", "p - ruleStart"));
+					arguments.Add(Span(Placed("ruleStart"), "p - ruleStart"));
 				}
 
 				// The grammar's own state (§7.7), where the condition names it. A guard is

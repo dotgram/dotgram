@@ -276,7 +276,7 @@ public static partial class CSharpEmitter
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
 				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: groups.Count > 1 || countRules, quiets: quiets,
-				tracing: tracing, expectedSets: expectedSets)
+				tracing: tracing, expectedSets: expectedSets, places: Places(graph, overKinds, bufferedInput))
 			{
 				Reporting   = carriers is not null,
 				CountsRules = countRules,
@@ -350,7 +350,7 @@ public static partial class CSharpEmitter
 				graph, results, lines, Streaming(graph, overKinds), graph.Rules.Where(union.Contains).ToArray(),
 				owner.Tag, partSize, overKinds, lexical?.Valued, carrier, stacks, lexical?.Inventory,
 				replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true, quiets: quiets,
-				expectedSets: expectedSets);
+				expectedSets: expectedSets, places: Places(graph, overKinds, bufferedInput));
 			made.Anchor = owner.Machine.Anchor;
 			// Reported as the machines it replaces were: a merged machine said nothing in the report.
 			made.Reporting = carriers is not null;
@@ -942,7 +942,7 @@ public static partial class CSharpEmitter
 				// (§6.3): the entry writes it past the trivia it started on.
 				began: RecordsBegan(graph, overKinds),
 				// Where what a window holds begins in the input, for the values a streamed reading locates.
-				origin: Places(graph, overKinds),
+				origin: Places(graph, overKinds, bufferedInput),
 				trace: tracing is not null));
 			file.Line();
 
