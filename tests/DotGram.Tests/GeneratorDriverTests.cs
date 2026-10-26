@@ -1277,6 +1277,166 @@ public sealed class GeneratorDriverTests
 	}
 
 	/// <summary>
+	/// A value recognizer a <c>global using static</c> in another file imports is one the
+	/// generated call reaches, and it is called with its <c>out</c>: the global using reaches the
+	/// generated file as it reaches every other.
+	/// </summary>
+	[Fact]
+	public void A_value_recognizer_a_global_using_static_imports_is_found()
+	{
+		var assembly = BuildFiles(
+			"""
+			global using static Helpers;
+
+			public static class Helpers
+			{
+				public static bool Number(System.ReadOnlySpan<char> input, ref int pos, out int value)
+				{
+					value = input.Length - pos;
+					pos   = input.Length;
+
+					return true;
+				}
+			}
+			""",
+			"""
+			[DotGram.Gram("Start : @int = @Number\nparse Start")]
+			public partial class GlobalImport
+			{
+			}
+			""");
+
+		Assert.Equal(3, assembly.GetType("GlobalImport")!.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["abc"]));
+	}
+
+	/// <summary>
+	/// The same where both files have a file-scoped namespace and the class imported is a
+	/// nested one: the global using names it from the top, whatever namespace the file declares.
+	/// </summary>
+	[Fact]
+	public void A_value_recognizer_a_global_using_static_imports_is_found_across_file_scoped_namespaces()
+	{
+		var assembly = BuildFiles(
+			"""
+			global using static Lib.Readers.Numbers;
+
+			namespace Lib;
+
+			public static class Readers
+			{
+				public static class Numbers
+				{
+					public static bool Number(System.ReadOnlySpan<char> input, ref int pos, out int value)
+					{
+						value = input.Length - pos;
+						pos   = input.Length;
+
+						return true;
+					}
+				}
+			}
+			""",
+			"""
+			namespace App;
+
+			[DotGram.Gram("Start : @int = @Number\nparse Start")]
+			public partial class FileScoped
+			{
+			}
+			""");
+
+		Assert.Equal(2, assembly.GetType("App.FileScoped")!.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["ab"]));
+	}
+
+	/// <summary>
+	/// And a text recognizer a global using imports stays one, beside a value recognizer of
+	/// the same name in a class nothing imports.
+	/// </summary>
+	[Fact]
+	public void A_text_recognizer_a_global_using_static_imports_stays_a_text_recognizer()
+	{
+		var assembly = BuildFiles(
+			"""
+			global using static Helpers;
+
+			public static class Helpers
+			{
+				public static bool ReadRest(System.ReadOnlySpan<char> input, ref int pos)
+				{
+					pos = input.Length;
+
+					return true;
+				}
+			}
+
+			public static class Elsewhere
+			{
+				public static bool ReadRest(System.ReadOnlySpan<char> input, ref int pos, out int value)
+				{
+					value = 0;
+
+					return false;
+				}
+			}
+			""",
+			"""
+			[DotGram.Gram("Start = 'a' & @ReadRest\nparse Start")]
+			public partial class GlobalText
+			{
+			}
+			""");
+
+		Assert.Equal("abc", assembly.GetType("GlobalText")!.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["abc"]));
+	}
+
+	/// <summary>
+	/// A capture may be called <c>var</c>: outside a declaration it is an identifier like any
+	/// other, and a guard that names it is handed it.
+	/// </summary>
+	[Fact]
+	public void A_capture_called_var_is_read_by_the_guard_that_names_it()
+	{
+		var assembly = Build("""
+			[DotGram.Gram("Start : @int = var: 'a' & when @(var.Length == 1) => @(1)\nparse Start")]
+			public partial class CaptureCalledVar
+			{
+			}
+			""");
+
+		var (isSuccess, value, _, _) = EmittedCode.Match(assembly, "CaptureCalledVar", "TryParseStart", "a");
+
+		Assert.True(isSuccess);
+		Assert.Equal(1, value);
+	}
+
+	/// <summary><see cref="Build"/> over several files, for what one file cannot say.</summary>
+	static Assembly BuildFiles(params string[] sources)
+	{
+		var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
+		var compilation  = CSharpCompilation.Create(
+			"DotGram.Tests.GeneratorDriver.Files",
+			sources.Select((text, at) => CSharpSyntaxTree.ParseText(text, parseOptions, $"GeneratorDriverTest{at}.cs")),
+			GetMetadataReferences(),
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+		var run = CSharpGeneratorDriver
+			.Create([new GramGenerator().AsSourceGenerator()], parseOptions: parseOptions)
+			.RunGeneratorsAndUpdateCompilation(compilation, out var output, out _)
+			.GetRunResult();
+
+		Assert.Empty(run.Diagnostics.Where(static diagnostic => diagnostic.Severity != DiagnosticSeverity.Info));
+
+		using var stream = new MemoryStream();
+
+		var emitted = output.Emit(stream, cancellationToken: TestContext.Current.CancellationToken);
+
+		Assert.True(
+			emitted.Success,
+			string.Join("\n", emitted.Diagnostics.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)));
+
+		return Assembly.Load(stream.ToArray());
+	}
+
+	/// <summary>
 	/// A guard that reads a capture beside a lambda whose parameter is spelled the same: the
 	/// lambda's name is its own, and the capture is still read, so its value is built before
 	/// the guard asks for it.
