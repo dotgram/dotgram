@@ -1820,6 +1820,24 @@ atomic group only where the language really permits commitment. The historical t
 and generated-size table were measured for the removed per-rule generator and must be
 remeasured against the current automaton before making performance claims.
 
+Adjacent repetitions that can take the same characters — `ws* & x? & ws*`, or
+`R = 'o'* & 'o'?` written k times — are tried in every way the input can be shared between
+them before a refusal after them is final: about n^k ways, on both machines, and that is the
+search the grammar asks for. **What the direct reader adds to it is fixed.** It replays a
+failed rule from its start rather than resuming a way, and the replay used to read again
+everything in front of the way it moved: a run of one character scanned to its end and cut
+back, every turn of a repetition called again, a host recognizer inside it with it. A way
+cost O(n), and the reader grew n^3.7 where the engine grew n^2.9 (k = 3). Now a replay
+reads where a giving-back run ended, and steps over the turns of a repetition whose body
+only recognizes (no value, capture, guard, look or mark), off the tape, so the reader grows
+as the engine does, a constant three to four times above it (`ReaderGiveBackGrowthTests`).
+What still costs more than the engine: a replayed choice calls its alternative again, and a
+construct in front of the moved way that is neither of the two (a literal, a rule called
+before it, a turn that builds a value) is read again, so a long head before the
+repetitions multiplies the search by its length. The n^k itself is the language's: where
+nothing after the first repetition can want its characters back, `{ ws* }` says so, writes
+nothing on the tape and reads the same input in linear time.
+
 A hundred lines of C# per line of grammar, and the ratio holds because the machines are
 what dominate: one state per position a rule can be in, each with its comment saying
 which notation it came from. The support library at the end is a fixed cost and a small
