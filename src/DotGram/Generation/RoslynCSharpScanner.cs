@@ -143,8 +143,15 @@ public sealed class RoslynCSharpScanner : ICSharpScanner
 			if (name.Parent is NameColonSyntax or NameEqualsSyntax)
 				continue;
 
-			// `var` in `out var n` or `var y = …` is the keyword, not a name.
-			if (name.IsVar)
+			// `var` where a declaration's type stands — `out var n`, `var y = …`, `foreach (var x …)`
+			// — is the keyword, not a name. Anywhere else it is an identifier like any other: a
+			// capture may be called `var`, and `var.Length` asks for it.
+			if (name.IsVar && DeclaresWith(name))
+				continue;
+
+			// `global::System` or `alias::Type`: an extern alias and what is rooted at it, never
+			// something in scope.
+			if (name.Parent is AliasQualifiedNameSyntax)
 				continue;
 
 			if (!scopes.TryGetValue(name.Identifier.ValueText, out var over) || !over.Any(scope => Holds(scope, name)))
@@ -154,6 +161,23 @@ public sealed class RoslynCSharpScanner : ICSharpScanner
 		static bool Holds((SyntaxNode Over, SyntaxNode? Except) scope, SyntaxNode name)
 		{
 			return scope.Over.Span.Contains(name.Span) && scope.Except?.Span.Contains(name.Span) != true;
+		}
+
+		// Whether the name is the type a declaration is written with, through `ref` or `scoped`.
+		static bool DeclaresWith(TypeSyntax name)
+		{
+			var type = name;
+
+			while (type.Parent is RefTypeSyntax or ScopedTypeSyntax)
+				type = (TypeSyntax)type.Parent;
+
+			return type.Parent switch
+			{
+				DeclarationExpressionSyntax declaration => declaration.Type == type,
+				VariableDeclarationSyntax   declaration => declaration.Type == type,
+				ForEachStatementSyntax      loop        => loop.Type == type,
+				_                                       => false,
+			};
 		}
 	}
 
