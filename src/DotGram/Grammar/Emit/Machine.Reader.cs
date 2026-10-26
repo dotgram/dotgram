@@ -4679,11 +4679,17 @@ sealed partial class Machine
 					code.Line($"{turns}++;");
 			}
 
+			// Short of the fewest, the loop ending is the rule failing, and it says what the turn
+			// would have begun with: a turn the door did not let in — over kinds, where the token
+			// in hand cannot begin it, or at the end of the tokens — said nothing of its own, and
+			// the parse was refused where the rule began. A turn that was tried and refused said
+			// the same set at the same place, which is said once (Refuse_DotGram).
 			if (min > 0)
 			{
 				code.Line();
-				code.Line($"if ({turns} < {min})");
-				code.Then(Fails());
+
+				using (code.Block($"if ({turns} < {min})"))
+					Refused(code, machine.DeclareExpected(machine.Displays(body)));
 			}
 		}
 
