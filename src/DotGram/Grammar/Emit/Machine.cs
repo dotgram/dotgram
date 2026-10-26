@@ -1195,7 +1195,34 @@ sealed partial class Machine
 	/// </summary>
 	internal bool SpansWhole(RuleSymbol rule)
 	{
-		return !OverKinds && _graph.Trivia.ContainsKey(rule) && ValueRule(rule) >= 0;
+		return !OverKinds && _graph.Trivia.ContainsKey(rule) && ValueRule(rule) >= 0 && ReadsOwnExtent(rule);
+	}
+
+	/// <summary>
+	/// Whether a rule's value reads the rule's own extent: it is a <c>@SourceSpan</c>, it is told
+	/// where it was written, or a construction or a guard of its own asks for <c>parserText</c> or
+	/// <c>parserSpan</c>. A value that reads none of it is the same whatever the frame says.
+	/// </summary>
+	bool ReadsOwnExtent(RuleSymbol rule)
+	{
+		if (IsExtent(rule) || _graph.Located.Contains(rule))
+			return true;
+
+		foreach (var node in NodeWalk.Descendants(_graph.Bodies[rule]))
+		{
+			var text = node switch
+			{
+				Node.Construct { How: Construction.Expression { Text: var built } } => built,
+				Node.Guard { Text: var condition }                                  => condition,
+				_                                                                   => null,
+			};
+
+			if (text is not null &&
+				(CSharpEmitter.Uses(_graph, text, "parserText") || CSharpEmitter.Uses(_graph, text, "parserSpan")))
+				return true;
+		}
+
+		return false;
 	}
 
 	/// <summary>
