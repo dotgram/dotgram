@@ -1430,6 +1430,13 @@ sealed partial class Machine
 	/// <summary>The name of the reader the rules of this machine are members of.</summary>
 	string ReaderStruct => Tag.Named("Reader");
 
+	/// <summary>
+	/// Whether some repetition marked <c>recover</c> the reader reads has the end of the reading
+	/// for its continuation, which a reading that begins where it is told has none of: the
+	/// reader is told which (<see cref="ReaderStruct"/>'s <c>open</c>).
+	/// </summary>
+	bool OpenEnds => _recoveryReads.Values.Any(static read => read.Continuation.Count == 0);
+
 	/// <summary>The tokens, as a reader over kinds holds them.</summary>
 	internal static readonly (string Type, string Name)[] TokenState =
 		[("string", "parserSource"), ("int[]", "parserStarts"), ("int[]", "parserLengths")];
@@ -1461,6 +1468,14 @@ sealed partial class Machine
 		{
 			header.Line($"readonly {InputType} text;");
 			header.Line($"internal {CSharpEmitter.FailureType} failure;");
+
+			// Read by a recovering repetition whose continuation is the end of the reading
+			// (EmitRecovering): nothing, from a position.
+			if (OpenEnds)
+			{
+				header.Line("/// <summary>Whether the reading ends where the rule does rather than where the input does: one that begins where it is told (§6.3).</summary>");
+				header.Line("internal bool open;");
+			}
 
 			// Where the segment a recognizer of the host is called in ends, as far as the last one
 			// found it (CSharpEmitter.SegmentOf).
@@ -1527,6 +1542,9 @@ sealed partial class Machine
 			{
 				header.Line("this.text    = text;");
 				header.Line("this.failure = default;");
+
+				if (OpenEnds)
+					header.Line("this.open    = false;");
 
 				if (cuts)
 				{
@@ -1651,6 +1669,9 @@ sealed partial class Machine
 				file.Line($"var reader = new {ReaderStruct}(text{(_readerWays ? ", ways" : "")}{Carrier.ReaderArgument}{WholeArgument});");
 				file.Line();
 				file.Line("reader.failure = failure;");
+
+				if (!ends && OpenEnds)
+					file.Line("reader.open = true;");
 
 				// A reading nothing asks the value of — the second reading of a refused input, made
 				// for its message — begins with the count raised, and the carrier that builds as it
@@ -5099,12 +5120,14 @@ sealed partial class Machine
 				if (read.Plan.Recovery.Explains)
 					code.Line(Machine.Stand);
 
-				// The complete continuation first, once the minimum is met.
+				// The complete continuation first, once the minimum is met. Where the continuation
+				// is the end the reading reads to, a reading that begins where it is told has
+				// nothing to read after the rule (§6.3): the continuation is nothing, and succeeds.
 				using (min > 0 ? code.Block($"if ({turn} >= {min})") : null)
 				{
 					if (read.Continuation.Count == 0)
 					{
-						code.Line($"if ({machine.RawPast("p")})");
+						code.Line($"if ({(machine.OpenEnds ? "open || " : "")}{machine.RawPast("p")})");
 						code.Then("break;");
 					}
 					else
