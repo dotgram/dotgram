@@ -137,17 +137,73 @@ public sealed class FormOutcomeTests
 		}
 	}
 
+	/// <summary>
+	/// The outcome, the position and the value are the same in every form of one reader too (§7.5):
+	/// the string, a reader, a stream and bytes. A rule read as a scan kept no mark of input that
+	/// ran out, and the engine's string form said NoMatch where every other form said Starved.
+	/// </summary>
+	[Theory]
+	[InlineData("R0 : @int = ?=R1 & when @(true) & 'z' => @(0)\nR1 = { \"ab\" }\nparse R0\n", "a")]
+	[InlineData("R0 : @int = ?=R1 & when @(true) & 'z' => @(0)\nR1 = { \"ab\" }\nparse R0\n", "ab")]
+	[InlineData("R0 = ((R1 & 'r')*)? & eof\nR1 = (\"ab\")?\nparse R0\n", "a")]
+	[InlineData("R0 = ?!(\"abc\") & any*\nparse R0\n", "a")]
+	[InlineData("R0 = (\"xy\"i)? & 'z'\nparse R0\n", "xc")]
+	public void Every_form_of_a_reader_answers_alike(string grammar, string input)
+	{
+		foreach (var direct in new[] { true, false })
+		{
+			var parser  = Build(grammar, direct, lexical: false, positionalFollow: false, buffered: true);
+			var answers = new[] { "string", "reader", "stream", "bytes" }
+				.Select(form => (form, answer: Answer(parser, "R0", form, input, 0)))
+				.Where(static one => one.answer is not null)
+				.ToList();
+
+			Assert.True(answers.All(one => one.answer == answers[0].answer),
+				$"{(direct ? "direct" : "engine")}: " + string.Join(", ", answers.Select(static one => $"{one.form} {one.answer}")) + "\n" + grammar);
+		}
+	}
+
+	/// <summary>
+	/// The direct reader puts the mark of input that ran out back after a negative look only where
+	/// a literal of more than one character inside could have written it: a look over a class or a
+	/// single character has no mark to put back, and keeping it was two writes on every turn of
+	/// <c>(?!'x' &amp; any)+</c> for nothing.
+	/// </summary>
+	[Theory]
+	[InlineData("R0 : @int = (?!'x' & any)+ & when @(true) => @(0)\nparse R0\n", false)]
+	[InlineData("R0 : @int = (?!['x' | 'y'] & any)+ & when @(true) => @(0)\nparse R0\n", false)]
+	[InlineData("R0 : @int = (?!(\"xy\") & any)+ & when @(true) => @(0)\nparse R0\n", true)]
+	[InlineData("R0 : @int = (?!R1 & any)+ & when @(true) => @(0)\nR1 = 'q' & \"xy\"\nparse R0\n", true)]
+	public void A_negative_look_keeps_the_mark_only_where_a_literal_could_run_out(string grammar, bool counted)
+	{
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			ClassName      = "Grammar",
+			Direct         = true,
+			BufferedInput  = true,
+			SymbolResolver = PermissiveSymbolResolver.Instance,
+			CSharpScanner  = RoslynCSharpScanner.Instance,
+		});
+
+		EmittedCode.Quiet(result.Diagnostics.Where(static one => one.Id != GramCompiler.BufferedUnsupported));
+
+		var source = string.Concat(result.Sources.Select(static one => one.Text));
+
+		Assert.Equal(counted, source.Contains("= failure.OutOfInput;", StringComparison.Ordinal));
+	}
+
 	// --- Differential ---------------------------------------------------------------------
 
 	/// <summary>
 	/// Random grammars over the whole syntax, every input up to five characters over a small
-	/// alphabet, read whole as a string, from a reader and from a stream: the direct reader and the
-	/// engine give one outcome, one position and one value.
+	/// alphabet, read whole as a string, from a reader, from a stream and from bytes: the direct
+	/// reader and the engine give one outcome, one position and one value, and so does each reader
+	/// in every one of those forms.
 	/// </summary>
 	[Fact]
 	public void Random_grammars_read_alike_whole_in_both_readers()
 	{
-		var failures = Differential(seed: 20261026, count: 40, forms: ["string", "reader", "stream"], positionalFollow: false);
+		var failures = Differential(seed: 20261026, count: 40, forms: ["string", "reader", "stream", "bytes"], positionalFollow: false);
 
 		Assert.True(failures.Count == 0, string.Join("\n", failures));
 	}
