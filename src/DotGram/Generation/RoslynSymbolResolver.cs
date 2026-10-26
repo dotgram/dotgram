@@ -26,7 +26,7 @@ namespace DotGram.Generation;
 /// </param>
 /// <remarks>The host matters for nested result types declared beside the grammar.</remarks>
 public sealed class RoslynSymbolResolver(
-	Compilation compilation, string? host = null, IReadOnlyList<string>? statics = null) : ISymbolResolver
+	Compilation compilation, string? host = null, IReadOnlyList<string>? statics = null) : ISymbolResolver, ICSharpNames
 {
 	readonly Compilation           _compilation = compilation ?? throw new ArgumentNullException(nameof(compilation));
 	readonly string?               _host        = host;
@@ -369,6 +369,19 @@ public sealed class RoslynSymbolResolver(
 		}
 
 		return named ? ExternalMethodResolution.NoOverload : ExternalMethodResolution.NoMethod;
+	}
+
+	/// <remarks>
+	/// What a simple name binds to where the generated call stands (<see cref="CallSite"/>): a member of
+	/// the host or of what it derives from, of a class around it or one imported statically, a type or a
+	/// namespace. Yes wherever there is no host in source to look from.
+	/// </remarks>
+	bool ICSharpNames.Answers(string name)
+	{
+		if (CallSite() is not var (_, model, position, _))
+			return true;
+
+		return model.LookupSymbols(position, name: name).Length > 0;
 	}
 
 	/// <summary>

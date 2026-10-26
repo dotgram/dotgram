@@ -1181,6 +1181,11 @@ sealed partial class Machine
 		atDoor.Line($"if (p <= {start}) expected = {said};");
 		atDoor.Line($"goto {Label(atDoor, outward)};");
 
+		// The door only says the sentence on the way to where the failure went: what is read inside
+		// treats it as that place (Final), and a literal that stops agreeing past where the rule began
+		// moves `p` there as it does on the way to `Fail:`, so the sentence is not said over it.
+		_saying[door] = outward;
+
 		var speaking = _speaking;
 
 		_fail     = door;
@@ -1201,6 +1206,18 @@ sealed partial class Machine
 		_depth = mine;
 
 		return entered;
+	}
+
+	/// <summary>The doors <see cref="CompileSaying"/> made, and where each goes on to.</summary>
+	readonly Dictionary<int, int> _saying = [];
+
+	/// <summary>
+	/// Whether a failure that goes here is the reading's own refusal, recorded where it stands: <c>Fail:</c>,
+	/// or a door that says a rule's <c>on fail</c> on the way there.
+	/// </summary>
+	bool Final(int fail)
+	{
+		return fail == Fail || _saying.TryGetValue(fail, out var outward) && Final(outward);
 	}
 
 	/// <summary>The call a flat method is reading now through the door its <c>on fail</c> is said at.</summary>
@@ -3028,7 +3045,7 @@ sealed partial class Machine
 						// A rule cannot know this about its callers — `Reserved` is compiled
 						// once and every caller of it discards the answer — so the question
 						// is asked at run time rather than worked out over the graph.
-						if (_fail == Fail)
+						if (Final(_fail))
 						{
 							if (_lowering)
 							{
@@ -5017,7 +5034,7 @@ sealed partial class Machine
 			{
 				// Where the run gives way to the alternatives after it, which read from where it
 				// began, the place is recorded and the position left where it is.
-				if (fail == Fail)
+				if (Final(fail))
 					ShortOf(writer, shared, false, fail);
 				else
 					Further(writer, $"{RanOut()}(text, p, {Quoted(shared)}, false, true, ref failure)", arrayName);
@@ -5038,7 +5055,7 @@ sealed partial class Machine
 				// Only where the failure goes to `Fail:`, which puts the position back from
 				// the arena. A prefix conflict chains several of these runs through `fail`,
 				// and the run this jumps to reads from where this one started.
-				if (fail == Fail)
+				if (Final(fail))
 					Sharpen(writer, shared);
 				else
 					Further(writer, $"{Agreeing()}(text, p, {Quoted(shared)}, false)", arrayName);
@@ -5175,7 +5192,7 @@ sealed partial class Machine
 			// reported, and what it says. The shared-prefix guard above sharpens its own
 			// branch; this covers the characters past it, where the alternatives differ
 			// and each was compared whole.
-			if (fail == Fail)
+			if (Final(fail))
 			{
 				_expectedUsed.Add(arrayName);
 				writer.Line($"expected = {arrayName};");
@@ -7234,7 +7251,7 @@ sealed partial class Machine
 		// the turn or the alternative it gives back got (GiveBack) — but not one inside a look kept
 		// in locals, which records nothing.
 		var door  = fail is null && _fail != Fail && _doorLooking == 0;
-		var reads = (fail ?? _fail) == Fail || door;
+		var reads = Final(fail ?? _fail) || door;
 		var guard = !reads ? null : _lowering || fail is not null ? "" : "lookahead < 0";
 
 		Reached(writer, value, ignoreCase, guard);

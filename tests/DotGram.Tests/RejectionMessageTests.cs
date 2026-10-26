@@ -939,4 +939,29 @@ public sealed class RejectionMessageTests
 			Assert.True(EmittedCode.Match(host, "Grammar", "TryParseStart", "1x").Error != "Expected an inner.", rendering);
 		}
 	}
+
+	/// <summary>
+	/// The sentence is said only where the rule read nothing and the parse stopped where it began
+	/// (§7.5): where a literal of it agreed for two characters, the refusal stands past them and names
+	/// what was expected there, as it does without <c>on fail</c>. The door that says the sentence in a
+	/// method compiled flat kept the literals from moving the position to where they stopped agreeing.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Renderings))]
+	public void A_rule_that_read_part_of_itself_does_not_say_its_sentence_over_where_it_stopped(string rendering, bool direct, CarrierKind carrier)
+	{
+		foreach (var word in new[] { "\"abc\" | \"abd\"", "\"abc\"", "'a' & 'b' & ('c' | 'd')" })
+		{
+			var plain  = Compiled($"Word = {word}\nStart = Word & eof\nparse Start as ParseStart\n", direct, carrier);
+			var saying = Compiled($"Word on fail \"Expected a word.\" = {word}\nStart = Word & eof\nparse Start as ParseStart\n", direct, carrier);
+			var told   = EmittedCode.Match(saying, "Grammar", "TryParseStart", "abx");
+			var asked  = EmittedCode.Match(plain, "Grammar", "TryParseStart", "abx");
+
+			Assert.True((told.Position, told.Error) == (asked.Position, asked.Error), $"{rendering}, {word}: {told.Position} {told.Error} where without it {asked.Position} {asked.Error}");
+			Assert.True(told.Position == 2, $"{rendering}, {word}: {told.Position}");
+
+			if (direct)
+				Assert.True(EmittedCode.Match(saying, "Grammar", "TryParseStart", "x").Error == "Expected a word.", $"{rendering}, {word}");
+		}
+	}
 }

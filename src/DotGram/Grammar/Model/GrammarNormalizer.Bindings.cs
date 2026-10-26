@@ -306,18 +306,26 @@ public sealed partial class GrammarNormalizer
 
 		foreach (var alternative in body is Node.Choice choice ? choice.Nodes : [body])
 		{
-			var captured = new HashSet<string>(StringComparer.Ordinal);
-
-			foreach (var node in NodeWalk.Descendants(alternative))
-				if (node is Node.Capture(var name, _))
-					captured.Add(name);
-
-			if (captured.Count == 0)
-				continue;
+			// The captures read before each lookahead, in the order the grammar is written: a capture
+			// after the lookahead, or one around it, is not bound when its guard runs, and the name is
+			// then whatever the C# around it says (a member of the host, say), as it always was.
+			var before = new List<(string Name, HashSet<Node> Inside)>();
 
 			foreach (var look in NodeWalk.Descendants(alternative))
 			{
+				if (look is Node.Capture(var bound, var held))
+				{
+					before.Add((bound, NodeWalk.ByIdentity(NodeWalk.Descendants(held))));
+
+					continue;
+				}
+
 				if (look is not Node.Lookahead(_, var seen))
+					continue;
+
+				var captured = before.Where(one => !one.Inside.Contains(look)).Select(static one => one.Name).ToList();
+
+				if (captured.Count == 0)
 					continue;
 
 				foreach (var node in NodeWalk.Descendants(seen))
@@ -345,7 +353,7 @@ public sealed partial class GrammarNormalizer
 	/// <remarks>
 	/// <c>$q: 'a' &amp; $q =&gt; @(q)</c>: a binding is no capture and no value of C# (§3.5.1), so the C#
 	/// is handed nothing called <c>q</c>, and the consumer's compiler said CS0103 in a file the author
-	/// did not write. Said here, where the name was written, unless the alternative also captures or the
+	/// did not write. Said here, where the name was written, unless the host answers to the name, or the alternative also captures or the
 	/// rule takes something of that name. Read by the C# scanner, as the other checks of names in C#
 	/// are; where it cannot read the text, nothing is said.
 	/// </remarks>
@@ -384,7 +392,11 @@ public sealed partial class GrammarNormalizer
 
 				foreach (var name in bound)
 				{
-					if (!free.Contains(name) || captured.Contains(name) || rule.Declaration.Params.Any(one => one.Name == name))
+					// A name the C# around the generated call answers to — a member of the host, a type —
+					// is that, and compiles as it did; only where nothing does is it refused. Asked only of a
+					// resolver that can say (ICSharpNames); without one, nothing is refused.
+					if (!free.Contains(name) || captured.Contains(name) || rule.Declaration.Params.Any(one => one.Name == name) ||
+						_resolver is not ICSharpNames names || names.Answers(name))
 						continue;
 
 					Report(
