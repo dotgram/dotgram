@@ -100,6 +100,8 @@ sealed partial class Machine
 				if (depths.Contains(i))
 					file.Line($"var turn{i} = 0;");
 
+			DeclareRanOuts(file);
+
 			// The same peephole RenderStates already applies between one state and the
 			// next, applied to the jump in: falling into the first state written is what
 			// this says, so where that state is the entry the line says nothing. The JIT
@@ -474,6 +476,8 @@ sealed partial class Machine
 			for (var i = 0; i <= _depth + _turns.Count; i++)
 				if (depths.Contains(i))
 					file.Line($"var turn{i} = 0;");
+
+			DeclareRanOuts(file);
 
 			var first = _order.Count > 0 ? _order[0] + First : -1;
 			var falls = first == Resolved(entry);
