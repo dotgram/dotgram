@@ -1136,7 +1136,7 @@ sealed partial class Machine
 
 		// A method lowered with its values in locals builds nothing from the root's extent, which
 		// such a method never reads: a rule asking for it is read by the engine.
-		if (!TrimsWhole(rule) && !(SpansWhole(rule) && !_valuesInLocals))
+		if (!TrimsWhole(rule) && !(SpansWhole(rule) && !_valuesInLocals) && !(GuardsWhole(rule) && !_valuesInLocals && !_lowering))
 			return Compile(BodyOf(rule, whole: true), next, end);
 
 		var trivia = _graph.Trivia[rule];
@@ -1156,9 +1156,10 @@ sealed partial class Machine
 
 		// The root's frame begins where the rule does, so that a guard of the rule reading
 		// `parserText` or `parserSpan` as the parse stands sees the rule and not the trivia before it
-		// (SpanRootFrame puts its end there at Accept). Only the engine has the frame: a lowered
-		// method holds its values in locals.
-		if (SpansWhole(rule) && !IsExtent(rule) && !_valuesInLocals && !_lowering)
+		// (SpanRootFrame puts its end there at Accept), and so that what is built from the frame
+		// begins there too. Only the engine has the frame: a lowered method holds its values in
+		// locals. A `@SourceSpan` rule's bounds are cut by its wrapper, but its guard reads the frame.
+		if ((SpansWhole(rule) && !IsExtent(rule) || GuardsWhole(rule)) && !_valuesInLocals && !_lowering)
 		{
 			atBegan.Line("var rootFrame = entries[call];");
 			atBegan.Line(
@@ -1196,6 +1197,25 @@ sealed partial class Machine
 	internal bool SpansWhole(RuleSymbol rule)
 	{
 		return !OverKinds && _graph.Trivia.ContainsKey(rule) && ValueRule(rule) >= 0 && ReadsOwnExtent(rule);
+	}
+
+	/// <summary>
+	/// Whether a whole parse of <paramref name="rule"/> in the engine moves the root frame's start
+	/// past the trivia before the rule for a guard of its own that reads <c>parserText</c> or
+	/// <c>parserSpan</c> as the parse stands, whatever the rule's value is (§6): a text value, a
+	/// <c>@SourceSpan</c>, or one built from captures.
+	/// </summary>
+	internal bool GuardsWhole(RuleSymbol rule)
+	{
+		if (OverKinds || !_graph.Trivia.ContainsKey(rule))
+			return false;
+
+		foreach (var node in NodeWalk.Descendants(_graph.Bodies[rule]))
+			if (node is Node.Guard { Text: var condition } &&
+				(CSharpEmitter.Uses(_graph, condition, "parserText") || CSharpEmitter.Uses(_graph, condition, "parserSpan")))
+				return true;
+
+		return false;
 	}
 
 	/// <summary>

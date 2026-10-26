@@ -6107,15 +6107,16 @@ file.Line("return spare;");
 	/// Whether the failure carries where a whole reading's value ended, before the trivia after
 	/// it: some machine's whole entry writes down where the rule began and ended — for a rule whose
 	/// value is its extent in every machine (<c>Machine.TrimsWhole</c>), and for one that builds its
-	/// value from its extent in the engine, which reads the rule in place of its call
-	/// (<c>Machine.SpansWhole</c>).
+	/// value from its extent, or whose guard reads it, in the engine, which reads the rule in place of
+	/// its call (<c>Machine.SpansWhole</c>, <c>Machine.GuardsWhole</c>).
 	/// </summary>
 	static bool RecordsEnded(List<Compiled> machines)
 	{
 		return machines.Exists(static compiled => compiled.Publications.Any(publication =>
 			publication.Kind == PublishKind.Parse &&
 			(compiled.Machine.TrimsWhole(publication.Rule) ||
-				(!compiled.Direct && !compiled.Flat || compiled.Machine.BufferedInput) && compiled.Machine.SpansWhole(publication.Rule))));
+				(!compiled.Direct && !compiled.Flat || compiled.Machine.BufferedInput) &&
+				(compiled.Machine.SpansWhole(publication.Rule) || compiled.Machine.GuardsWhole(publication.Rule)))));
 	}
 
 	/// <summary>

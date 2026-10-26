@@ -96,9 +96,9 @@ public sealed class WholeValueTriviaTests
 	}
 
 	/// <summary>
-	/// Grammars whose published rule builds its value from its own extent — the bounds of a
-	/// <c>@SourceSpan</c> rule, <c>parserText</c> and <c>parserSpan</c> in its <c>=&gt;</c> and in a
-	/// guard — with inputs and the value each must give: the rule's extent, without the trivia the
+	/// Grammars whose published rule reads its own extent — the bounds of a <c>@SourceSpan</c> rule,
+	/// <c>parserText</c> and <c>parserSpan</c> in its <c>=&gt;</c>, and in a guard whatever the rule's
+	/// value is — with inputs and the value each must give: the rule's extent, without the trivia the
 	/// whole parse reads around it. A span is written <c>start,length</c>. Whether the grammar has
 	/// a stream form over bytes: one that cuts text from its input has none.
 	/// </summary>
@@ -118,6 +118,16 @@ public sealed class WholeValueTriviaTests
 			Spaces + "Root : @string = 'a' & 'b' => @(\"[\" + parserText + \"]\" + parserSpan.Start + \",\" + parserSpan.Length)\nparse Root\n",
 			false,
 			[("  ab  ", "[ab]2,2"), (" ab", "[ab]1,2"), ("ab  ", "[ab]0,2"), ("a b", "[a b]0,3")]),
+
+		["the span a guard of a span reads"] = (
+			Spaces + "Root : @SourceSpan = 'a' & when @(parserSpan.Start == 2)\nparse Root\n",
+			true,
+			[("  a  ", "2,1"), ("  a", "2,1")]),
+
+		["the text a guard of a text reads"] = (
+			Spaces + "Root = 'a' & when @(parserText.StartsWith(\"a\"))\nparse Root\n",
+			false,
+			[("  a  ", "a"), (" a", "a"), ("a ", "a")]),
 
 		["the text a guard reads"] = (
 			Spaces + "Root : @string = 'a' & 'b' & when @(parserText.StartsWith(\"a\")) => @(parserText)\nparse Root\n",
