@@ -26478,13 +26478,15 @@ search for the delimiter that found none jumped to the refusal without saying ho
   whatever Direct says, `0,7` where the string said `2,3`.
 - **The change.** For such a rule the engine's whole entry writes the marks too, puts the root frame's start at
   the first as the rule is read (so a guard sees the rule) and its end at the second at Accept, before anything
-  is built; a `@SourceSpan` root's wrapper cuts the bounds from the marks. A method lowered with its values in
-  locals reads nothing from the root's extent, so it writes no marks.
+  is built; a `@SourceSpan` root's wrapper cuts the bounds from the marks. Only for a rule whose value reads its
+  extent — a `@SourceSpan`, a located rule, a construction or guard of its own naming `parserText` or
+  `parserSpan` — and not in a method lowered with its values in locals, which reads none of it.
 - **A look that saw nothing.** A positive look records nothing it tries, and where it saw nothing the reading was
   refused with the position it had before the look: the start of the input where nothing else was read. A look
   over a rule a scanner read said where the scanner refused, so the recovery change made it visible: `'b' &
   ?=Rows & any*` on `b` said `NoMatch@0` where it had said `Starved@1`. The engine's unwinding past a positive
   look and the reader's return from one now record the look's start, expecting nothing there.
-- **What moved.** The extent: one generated file in the repository (`Selectors`, a lowered method, before the
-  dead marks were taken out again). The look: 32 files gain the record on the path a refused look leaves by,
-  3 to 204 lines each (T-SQL), grammars without trivia among them; nothing on a path that reads.
+- **What moved.** The extent: nothing generated in the repository (1,009 files). The look: 32 shipped, example,
+  benchmark and test-host files and 12 snapshots gain the record on the path a refused look leaves by, 3 to 204
+  lines each (T-SQL), grammars without trivia among them, and nothing on a path that reads; the padded-run pin
+  now refuses at the look over the reader, as the engine does.
