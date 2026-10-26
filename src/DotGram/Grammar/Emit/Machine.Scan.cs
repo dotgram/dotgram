@@ -58,9 +58,16 @@ sealed partial class Machine
 
 	readonly Dictionary<RuleSymbol, string?> _scanners = [];
 
+	bool? _anySays;
+
 	/// <summary>Whether a rule calls, at any depth and in a synchronization too, another rule that says its own refusal.</summary>
 	bool ReachesSaying(RuleSymbol rule)
 	{
+		// Asked of every rule a scanner might read: nothing to find, and no reachability worked out,
+		// in a grammar where no rule says its own refusal — which is nearly every one.
+		if (!(_anySays ??= _graph.Rules.Any(one => SaysOf(one) is not null)))
+			return false;
+
 		foreach (var reached in _graph.Reaches(rule))
 			if (!reached.Equals(rule) && SaysOf(reached) is not null)
 				return true;
