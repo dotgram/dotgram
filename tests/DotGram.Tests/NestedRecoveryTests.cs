@@ -261,7 +261,8 @@ public sealed class NestedRecoveryTests
 				"Start = \"doc\" & eol & Blocks",
 			["Inner"],
 			[
-				("doc\n", "!Expected '[' at 4."),
+				// Blocks was entered at 4 and read nothing: its own sentence, in every reading (§7.5).
+				("doc\n", "!Expected a block at 4."),
 				("doc\n[a;9;]\n", "a"),
 			],
 			TwinValues: false),
