@@ -478,7 +478,7 @@ runs as the one required CI job rather than under the same property gate as our 
   body, rather than one pass per rule:
   - **DGA001**, error: a LOCAL written and, on the very next line, copied into another local
     that is never read again anywhere ordinary control flow can still reach from there
-    (`last0 = Construct_X(...); fold = last0;` where nothing reads `last0` afterward). The
+    (`last0 = New_DotGram_X(...); fold = last0;` where nothing reads `last0` afterward). The
     source is confirmed through the semantic model to be a true local, never a field — a
     reader's own register field is written this same shape on purpose, to end the turn current
     for a caller that reads it later, which a check scoped to one method body cannot see.
@@ -488,8 +488,8 @@ runs as the one required CI job rather than under the same property gate as our 
     arms, each returning or assigning a constant. A judgement about data-encoding, not a
     defect; never enforced.
   - **DGA004**, info, report-only: a likely allocation (a closure or delegate, an array
-    allocation, or a LINQ call) in a `Read_`/`Recognize_`/`Scan_`/`Materialize_`/`Construct_`-
-    prefixed method or the buffered `Ensure` path. Construction of a rule's own result value is
+    allocation, or a LINQ call) in a method of one of the kinds `Read`, `Rec`, `Recover`, `Recognize`,
+    `Scan`, `Lex`, `Materialize` or `New` (the name up to its first `_`; syntax.md §6) or the buffered `Ensure` path. Construction of a rule's own result value is
     excluded on purpose — that allocation is the parser's job, not overhead.
 
   DGA001, DGA003 and DGA004 are all silent for a finding whose location is mapped by a `#line`
@@ -557,7 +557,7 @@ into the type's shared "last" register and then, on the next line, copied that s
 into `fold` — two statements for one value. The register still has to end the turn current
 (something else may read it), so the fix is not to skip the write, only the second statement:
 `Machine.Reader.cs`'s `EmitRecord` now asks whether the two texts have exactly that shape and,
-where they do, chains them into one assignment, `fold = last0 = Construct_X(...);` — the same
+where they do, chains them into one assignment, `fold = last0 = New_DotGram_X(...);` — the same
 two writes, one statement, nothing left for the stock rules to find (DGA001 never flagged this
 particular shape: `last0` here is a reader's own register field, not a local, which DGA001's
 semantic-model check now confirms explicitly). A carrier whose `Accumulated` says something

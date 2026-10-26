@@ -2073,15 +2073,21 @@ A publication is a method of the generated class, and a `parse` is two, `Name` a
 it is called is the name of members of the class: it may not be `Match`, `Outcome`, `SourceSpan`,
 `ParserInput`, `OnRecovered`, `OnHandingOff`, `OnTakingOver`, `DefaultBufferSize` or
 `DefaultMaxRetained`, or in a grammar read over tokens `Scan`, which the class declares for its callers, nor `Failure` or `ParserEntry`, which it
-declares for its own use, nor the name of the class itself, nor begin with `Recognize_`, `Scan_`,
-`Construct_` or `ReadBuffered_`, which the methods made from the names of rules and publications begin
-with, and neither of its two names may be the other publication's. That is refused where the directive is
-written (`GRAM5018`); give it another name with `as`. A rule whose type would be called one of them is
-given another name for the type (§7.3). Most of the other types and members the class writes for its
-own use have `_DotGram` in their names (§7.1), which no publication can have (`GRAM1012`), so `find Word as
-Lines` and `parse Row as Parser` compile. That is the list `GRAM5018` checks, and not every name the class
-contains: a name made from another (the methods a rule's name is part of, the readers of a publication) can
-still meet one the check does not compare, and then the C# compiler says so (CS0102, CS0111).
+declares for its own use, nor the name of the class itself, and neither of its two names may be the other
+publication's. That is refused where the directive is written (`GRAM5018`); give it another name with `as`.
+A rule whose type would be called one of them is given another name for the type (§7.3). Every other type
+and member the class writes for its own use has `_DotGram` in its name (§7.1), which no publication can
+have (`GRAM1012`), so `find Word as Lines`, `parse Row as Parser` and `parse Row as Construct_Row`
+compile. A name the class makes from a name of the grammar's — the walk, the factory and the scanners of
+a rule, the readers of a publication, everything a machine writes for the rule it was compiled for — is
+its kind, then `_DotGram_`, then the grammar's name: `New_DotGram_Row` is the factory of `Row`,
+`Rec_DotGram_Row` its walk, `Buf_DotGram_ParseFeed` the buffered reader of `parse Feed`; a variant is a
+kind of its own (`New1_DotGram_Row` for the second construction, `RecWhole_DotGram_Row` for the walk that
+insists the input ended). Nothing is written after the grammar's name, so two such names are one only
+where they are made from one name for one purpose, and no name an author can write — a publication, a
+rule's type, a member written by hand in the class, an external `@M` — is one of them. Inside the classes
+the generator declares for its own use, which no name of the author's reaches, the mark is left out:
+`Read_Row` is the reader of `Row` there, `ReadBody_Row` and `ReadPart0_Row` its parts.
 
 The form that describes a refusal may pay for the description, and whether it does is a property
 of the grammar rather than of the form. Where the parse can read without recording — no
@@ -3436,13 +3442,13 @@ A rule that captures gets a type of its own, nested in the generated class and n
 with its namespaces joined to the name by `_`. Where that name is already taken in the class — by the
 class itself, by a type or a member it declares under a plain name (`Match`, `Outcome`, `SourceSpan`,
 `ParserInput`, `Failure`, `ParserEntry`, and the rest of §6's list), by a method it makes from a name of
-the grammar's (the walk, the factory and the scanner of a rule, `Name` and `TryName` of a publication),
-or by another rule's type — `Value` is appended until it is free, and a rule that keeps the name it has is never the one renamed. Two rules whose
-names, or the methods made from them, come out alike once their namespaces are joined (`A.B` and a rule
-called `A_B`; a published `A` and a rule called `A_Whole`), and two
-captures of one rule that become one property (`a` and `A`), cannot be told apart in the code that
-is written, and are refused where they are declared (`GRAM5018`), as far as the checks listed in §6
-and here go.
+the grammar's (`Name` and `TryName` of a publication), or by another rule's type — `Value` is appended
+until it is free, and a rule that keeps the name it has is never the one renamed. A name the class makes
+from a rule's (§6) carries `_DotGram`, so a rule may be called anything else: `A_Whole` beside a published
+`A`, `Construct_R` beside `R`, `DotGram`. Two rules whose names come out alike once their namespaces are
+joined (`A.B` and a rule called `A_B`), a rule whose joined name would hold `_DotGram` (`DotGram_B` in
+namespace `A`), and two captures of one rule that become one property (`a` and `A`), cannot be told apart
+in the code that is written, and are refused where they are declared (`GRAM5018`).
 
 A capture's own type follows from what it captures:
 

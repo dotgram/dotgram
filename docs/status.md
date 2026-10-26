@@ -592,7 +592,7 @@ is why none of this needed symbol resolution.
 The `=>` becomes a method, and the captures are its parameters:
 
 ```csharp
-static int Construct_Number(string parserText, string digits) =>
+static int New_DotGram_Number(string parserText, string digits) =>
     int.Parse(digits, CultureInfo.InvariantCulture);
 ```
 
@@ -747,11 +747,11 @@ Not inside the machine. Every `=>`, every `when` and every recovery factory beco
 method's **parameters**:
 
 ```csharp
-static FeedLine Recognize_Feed_Recover(
+static FeedLine Recover_DotGram_Feed(
     string parserText, int parserOrdinal, int parserLine, string parserMessage) =>
     new RejectedLine(parserOrdinal, parserLine, parserText, parserMessage);
 
-static decimal Construct_Expr(string parserText, decimal operand) =>
+static decimal New_DotGram_Expr(string parserText, decimal operand) =>
     (-operand);
 ```
 
@@ -1124,7 +1124,7 @@ seam working at all, and it is: a seam whose errors land on the wrong side of it
 a seam.
 
 ```csharp
-static int Construct_Sum(string parserText, int value) =>
+static int New_DotGram_Sum(string parserText, int value) =>
 #line 28 "…\CalculatorExample.cs"
                                                                        (value);
 #line default

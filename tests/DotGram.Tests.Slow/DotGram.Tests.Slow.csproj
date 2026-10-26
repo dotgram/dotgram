@@ -46,6 +46,7 @@
 	     shapes and the record of their refusals, which DotGram.Tests holds a sample of. -->
 	<ItemGroup>
 		<Compile Include="..\DotGram.Tests\EmittedCode.cs"   Link="Shared\EmittedCode.cs" />
+		<Compile Include="..\DotGram.Tests\GeneratedNameRule.cs" Link="Shared\GeneratedNameRule.cs" />
 		<Compile Include="..\DotGram.Tests\CarrierShapes.cs" Link="Shared\CarrierShapes.cs" />
 		<Compile Include="..\DotGram.Tests\RefusalCorpus.cs" Link="Shared\RefusalCorpus.cs" />
 		<Compile Include="..\DotGram.Tests\BufferedInputTests.Input.cs" Link="Shared\BufferedInputTests.Input.cs" />
