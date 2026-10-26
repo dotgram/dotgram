@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Text;
 using System.Threading.Tasks;
 
 using DotGram.Web;
@@ -29,6 +30,14 @@ namespace DotGram.Tests;
 /// at 6,400 characters.
 /// </para>
 /// <para>
+/// A run of anything a reading gives back one at a time is the same thing again, where each piece
+/// it gives back makes the field be read from its start once more: the parameters of a media type
+/// (<c>a/b;;;</c>), the members of a Structured Field dictionary, the inside of an unclosed
+/// comment, quoted string or domain literal in an address, and the commas of an address list's
+/// null members. Quadratic: 0.9 s explaining the refusal of a media type of eight thousand
+/// <c>;</c>, and 1.3 s refusing an address list that was <c>(</c> and eight thousand characters.
+/// </para>
+/// <para>
 /// The refusal ladders hold the same shapes to a class, but only report a class that got worse.
 /// This holds them to a budget at a header's length, which fails, and in a second and a half, the
 /// day a run of OWS gives characters back again. The abandoned read goes on until the process ends,
@@ -50,6 +59,16 @@ public sealed class WebRunRefusalTests
 	[InlineData("a Link field with spaces after a parameter name")]
 	[InlineData("a Structured Field item that is a long token")]
 	[InlineData("a Structured Field dictionary with a long key")]
+	[InlineData("a media type with many empty parameters")]
+	[InlineData("a media type with many empty parameters, explained")]
+	[InlineData("a Structured Field dictionary with many members")]
+	[InlineData("a Structured Field dictionary with many members, explained")]
+	[InlineData("an address list with an unclosed comment")]
+	[InlineData("a mailbox with an unclosed quoted string")]
+	[InlineData("an addr-spec with an unclosed comment")]
+	[InlineData("an addr-spec with an unclosed domain literal")]
+	[InlineData("a mailbox list of null members")]
+	[InlineData("a group of null members")]
 	public async Task A_refusal_after_a_long_run_is_linear_in_it(string shape)
 	{
 		var refuse = Reader(shape);
@@ -66,7 +85,7 @@ public sealed class WebRunRefusalTests
 			await Task.WhenAny(read, spent) == read,
 			$"{shape}: a refusal after a run of {Header:N0} characters had not finished in {Budget.TotalSeconds:F1} s. " +
 			$"A run that hands characters back where nothing after it can take one costs a read of the field " +
-			$"for every character; make it atomic, as `{{ [' ' | '\\t']* }}`.");
+			$"for every character; make it atomic, as `{{ [' ' | '\\t']* }}` or `{{ slots: ParameterSlot* }}`.");
 
 		// Eight times the run is eight times the work when the reading is linear, and sixty-four
 		// times when it is quadratic. The shorter is read again after the longer: its first reads
@@ -94,8 +113,45 @@ public sealed class WebRunRefusalTests
 			"a Link field with spaces after a parameter name" => length => WebLink.TryParseField("<https://x/1>; rel" + new string(' ', length) + "=\"next\"; a=b, <https://y>" + cut, out _),
 			"a Structured Field item that is a long token"    => length => StructuredField.TryParseItem(new string('a', length) + cut, out _),
 			"a Structured Field dictionary with a long key"   => length => StructuredField.TryParseDictionary(new string('a', length) + cut, out _),
+
+			"a media type with many empty parameters"                    => length => MediaType.TryParse("a/b;" + new string(';', length) + cut, out _),
+			"a media type with many empty parameters, explained"         => length => Explained(() => MediaType.Parse("a/b;" + new string(';', length) + cut)),
+			"a Structured Field dictionary with many members"            => length => StructuredField.TryParseDictionary(Copies("x,", length) + cut, out _),
+			"a Structured Field dictionary with many members, explained" => length => Explained(() => StructuredField.ParseDictionary(Copies("x,", length) + cut)),
+			"an address list with an unclosed comment"                   => length => EmailAddress.TryParseList("(" + new string('a', length) + cut, out _),
+			"a mailbox with an unclosed quoted string"                   => length => EmailAddress.Mailbox.TryParseStrict("\"" + Copies("x,", length) + cut, out _),
+			"an addr-spec with an unclosed comment"                      => length => AddrSpec.TryParse("(" + new string('a', length) + cut, out _),
+			"an addr-spec with an unclosed domain literal"               => length => AddrSpec.TryParse("a@[" + new string('a', length) + cut, out _),
+			"a mailbox list of null members"                             => length => EmailAddress.TryParseMailboxList(new string(',', length) + cut, out _),
+			"a group of null members"                                    => length => EmailAddress.TryParseList("a:" + new string(',', length) + cut, out _),
 			_ => throw new ArgumentOutOfRangeException(nameof(shape), shape, null),
 		};
+	}
+
+	/// <summary>A text of the given length, the piece repeated.</summary>
+	static string Copies(string piece, int length)
+	{
+		var text = new StringBuilder(length + piece.Length);
+
+		while (text.Length < length)
+			text.Append(piece);
+
+		return text.ToString();
+	}
+
+	/// <summary>Whether a Parse accepted, where its refusal is a message that says where and why.</summary>
+	static bool Explained(Action parse)
+	{
+		try
+		{
+			parse();
+
+			return true;
+		}
+		catch (FormatException)
+		{
+			return false;
+		}
 	}
 
 	/// <summary>The fastest of several reads, in microseconds, after one to compile it.</summary>
