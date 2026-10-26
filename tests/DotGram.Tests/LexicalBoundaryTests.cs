@@ -1,7 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Diagnostics;
 using System.Reflection;
+
+using DotGram.Grammar.Binding;
+using DotGram.Grammar.Model;
+using DotGram.Grammar.Parsing;
 
 using Xunit;
 
@@ -75,6 +80,12 @@ public sealed class LexicalBoundaryTests
 		"\"ab\" & (?!\"ab\" & ['a'..'c'])* & \"ab\"",
 		"(?!'b' & ['a'..'c'])* & 'b'",
 		"'c' & (?!\"ab\" & ['a'..'c'])*",
+		"(?!\"aa\" & ['a'..'c'])* & \"aa\" & \"a\"",
+		"(?!\"aaa\" & ['a'..'c'])* & \"aaa\" & \"a\"",
+		"(?!\"aa\" & ['a'])* & \"a\"",
+		"(?!\"aa\" & ['a'..'c'])* & \"a\"{2}",
+		"(?!\"aba\" & ['a'..'c'])* & \"ba\"",
+		"(?!\"ab\" & ['a'..'c'])* & (?!\"ba\" & ['a'..'c'])* & 'a'",
 	];
 
 	/// <summary>
@@ -157,5 +168,94 @@ public sealed class LexicalBoundaryTests
 		Assert.True(reader.Cut, reader.Note);
 		Assert.Equal("NoMatch", Said(chars, input, null));
 		Assert.Equal("NoMatch", Said(reader.Assembly!, input, null));
+	}
+
+	/// <summary>
+	/// The machine of <paramref name="untils"/> untils of one delimiter of <paramref name="length"/>
+	/// characters in a row and a <c>'b'</c> after them: how many states its construction met, and how
+	/// many the deterministic machine has.
+	/// </summary>
+	static (int Built, int States) Chained(int untils, int length)
+	{
+		return Chained(untils, [new string('a', length)], "['a'|'b']");
+	}
+
+	/// <summary>The same with the delimiters taken in turn from <paramref name="delimiters"/>.</summary>
+	static (int Built, int States) Chained(int untils, string[] delimiters, string item)
+	{
+		var runs    = Enumerable.Range(0, untils).Select(i => $"(?!\"{delimiters[i % delimiters.Length]}\" & {item})*");
+		var grammar =
+			$$"""
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				T = { {{string.Join(" & ", runs)}} & 'b' }
+			}
+			Root = Lexical.T
+			parse Root
+			""";
+
+		var clock     = Stopwatch.StartNew();
+		var inventory = TerminalInventory.Of(
+			GrammarNormalizer.Normalize(
+				GrammarBinder.Bind(
+					GramParser.Parse(
+						GramLexer.Tokenize(grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!)));
+		var machine   = inventory.Machine!;
+
+		TestContext.Current.TestOutputHelper?.WriteLine(
+			$"{untils} untils of {string.Join(",", delimiters)}: {machine.Nondeterministic} states built, {machine.Next.Count} deterministic, {clock.ElapsedMilliseconds} ms");
+
+		return (machine.Nondeterministic, machine.Next.Count);
+	}
+
+	/// <summary>
+	/// What a run hands on is carried by the subset construction, once a state and debt, and not by
+	/// a copy of the machine of what follows for every debt: copied, each until copied the copies of
+	/// the ones after it, and ten untils of a twelve-character delimiter came to a million and a half
+	/// states for a machine of thirteen. Doubling the untils at most doubles what is built, and
+	/// doubling the delimiter at most squares it — a debt is a set of the delimiter's prefixes, met
+	/// at each state of the later runs.
+	/// </summary>
+	[Fact]
+	public void Untils_in_a_row_cost_the_states_of_each_and_no_product_of_them()
+	{
+		var byUntils = new[] { 1, 2, 4, 8 }.Select(untils => Chained(untils, 4)).ToList();
+		var byLength = new[] { 4, 8, 16 }.Select(length => Chained(8, length)).ToList();
+
+		for (var i = 1; i < byUntils.Count; i++)
+			Assert.True(byUntils[i].Built <= byUntils[i - 1].Built * 2 + 16, $"{byUntils[i - 1].Built} then {byUntils[i].Built} states built for twice the untils");
+
+		for (var i = 1; i < byLength.Count; i++)
+			Assert.True(byLength[i].Built <= byLength[i - 1].Built * 4 + 16, $"{byLength[i - 1].Built} then {byLength[i].Built} states built for twice the delimiter");
+
+		// One state a length of matched delimiter, and the end: the deterministic machine is the same
+		// however many runs it took.
+		Assert.All(byUntils, one => Assert.Equal(5, one.States));
+		Assert.Equal([5, 9, 17], byLength.Select(static one => one.States));
+
+		Assert.True(Chained(10, 12).Built < 2_000);
+	}
+
+	/// <summary>
+	/// Untils of eight delimiters of two to eight characters taken in turn: a debt is a set of
+	/// prefixes for each delimiter still owed, so what is built grows faster than the untils while
+	/// delimiters are still being added to the mix (three times from sixteen to thirty-two) and
+	/// then nearly as they do (2.4 times from thirty-two to sixty-four); the deterministic machine
+	/// grows as they do throughout. A product of the untils would be thousands of times.
+	/// </summary>
+	[Fact]
+	public void Untils_of_mixed_delimiters_in_a_row_cost_no_product_of_them()
+	{
+		string[] mixed = ["ab", "abab", "aab", "abcab", "aaab", "ababab", "abcabca", "aabaabaa"];
+
+		var built = new[] { 16, 32, 64 }.Select(untils => Chained(untils, mixed, "['a'..'c']")).ToList();
+
+		for (var i = 1; i < built.Count; i++)
+		{
+			Assert.True(built[i].Built <= built[i - 1].Built * 7 / 2, $"{built[i - 1].Built} then {built[i].Built} states built for twice the untils");
+			Assert.True(built[i].States <= built[i - 1].States * 9 / 4, $"{built[i - 1].States} then {built[i].States} deterministic states for twice the untils");
+		}
 	}
 }
