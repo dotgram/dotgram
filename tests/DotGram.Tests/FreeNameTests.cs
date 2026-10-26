@@ -125,6 +125,50 @@ public sealed class FreeNameTests
 			RoslynCSharpScanner.Instance.Renamed(expression, new System.Collections.Generic.Dictionary<string, string> { ["x"] = "y" }));
 	}
 
+	/// <summary>
+	/// <c>var</c> is the keyword only where a declaration's type stands; anywhere else it is a
+	/// name, and a capture may be called that.
+	/// </summary>
+	[Theory]
+	[InlineData("var.Length == 1",                                         new[] { "var" })]
+	[InlineData("var + 1",                                                 new[] { "var" })]
+	[InlineData("Try(s, out var n) ? n : var",                             new[] { "Try", "s", "var" })]
+	[InlineData("items.Select(x => { var y = var; return y; })",           new[] { "items", "var" })]
+	[InlineData("items.Select(x => { foreach (var v in x) return v; return 0; })", new[] { "items" })]
+	[InlineData("items.Select(x => { ref var y = ref x; return y; })",     new[] { "items" })]
+	public void And_var_is_a_name_wherever_no_declaration_is_written_with_it(string expression, string[] expected)
+	{
+		Assert.Equal(expected, Free(expression));
+	}
+
+	/// <summary>
+	/// The other contextual keywords are names wherever the parser reads them as names, and C#
+	/// binds them to whatever is in scope: a member called <c>nameof</c> is what <c>nameof(x)</c>
+	/// calls, and a variable called <c>_</c> is what <c>out _</c> writes. Where the parser reads
+	/// them as keywords — <c>async</c> before a lambda, <c>when</c> in a switch arm — they are
+	/// tokens and never names.
+	/// </summary>
+	[Theory]
+	[InlineData("nameof(x)",                                   new[] { "nameof", "x" })]
+	[InlineData("value + 1",                                   new[] { "value" })]
+	[InlineData("Try(s, out _)",                               new[] { "Try", "_", "s" })]
+	[InlineData("items.Select(_ => 1).Sum() + _",              new[] { "_", "items" })]
+	[InlineData("(dynamic)x",                                  new[] { "dynamic", "x" })]
+	[InlineData("when + async",                                new[] { "async", "when" })]
+	[InlineData("items.Select(async x => x)",                  new[] { "items" })]
+	[InlineData("o switch { int n when n > m => n, _ => 0 }",  new[] { "m", "o" })]
+	public void And_other_contextual_keywords_are_names_where_they_are_read_as_names(string expression, string[] expected)
+	{
+		Assert.Equal(expected, Free(expression));
+	}
+
+	/// <summary><c>global::</c> and an extern alias name nothing in scope, nor does what is rooted at them.</summary>
+	[Fact]
+	public void And_an_alias_qualified_name_asks_for_nothing()
+	{
+		Assert.Equal(["n"], Free("global::System.Math.Abs(n)"));
+	}
+
 	[Fact]
 	public void And_a_member_written_in_an_initializer_is_a_member()
 	{
