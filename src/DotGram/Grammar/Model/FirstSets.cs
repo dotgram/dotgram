@@ -560,8 +560,10 @@ public static class FirstSets
 
 		var words = new List<string>();
 
+		// Counted in an int: a range that runs to the last kind there is ends at char.MaxValue, and a
+		// char counted up to it wraps to nought and never gets past it.
 		foreach (var range in taken.Ranges)
-			for (var kind = range.From; kind <= range.To && words.Count < 5; kind++)
+			for (int kind = range.From; kind <= range.To && words.Count < 5; kind++)
 				if (kind - 1 < inventory.Kinds.Count && kind >= 1)
 					foreach (var pattern in inventory.Kinds[kind - 1].Matched)
 					{
