@@ -26452,12 +26452,16 @@ search for the delimiter that found none jumped to the refusal without saying ho
   and read through a TextReader, whose reader recovered. §8.2 says a rule called from a lookahead recovers as
   written, a rule planning its own; a test pinned the scanner's answer. The same held for the rule as a
   synchronization (`Item* recover Rows`) and, where nothing after it stopped a scanner, for a direct call.
-- **The change.** A marked repetition is not scannable (`Machine.Scannable`), so neither the rule nor any rule
-  reaching it is read by a scanner, wherever it is called from; it is read in states, as a lifted repetition
-  already was.
+- **The change.** A rule that holds a marked repetition, or reaches one through a call, is not read by a scanner,
+  wherever it is called from; it is read in states, as a lifted repetition already was. The question is asked
+  once, where a rule becomes a scanner (`Machine.Scans`, through `HoldsRecovery`), and where a captured run becomes
+  a scalar scanner. Asked first in one case of `Scannable`, it was passed by the guarded repetition read as one
+  search for its stop: `R = (?!';' & 'a')* recover ';' & ';'` was still scanned, and `?=R` on `b;;` refused as a
+  string and read through a reader (found in review).
 - **The gate.** A recovery differential: a positive and a negative lookahead of `Rows`, a direct call of it and
   a synchronization on it, each held to what reading `Rows` itself from that place decides (its positional
   form), over every input up to six characters (five for the synchronization, against a model of §8.2's search),
-  with and without the direct reader, as a string and through a reader. Red on main in all four, green here.
+  with and without the direct reader, as a string and through a reader; and the guarded repetition as the rule,
+  behind a forwarding rule, a parameter and a namespace. Red on main, green here.
 - **What moved.** Nothing generated in the repository: no shipped, example, benchmark or test-host grammar has a
   scannable rule that recovers (the same byte-for-byte rebuild as above).
