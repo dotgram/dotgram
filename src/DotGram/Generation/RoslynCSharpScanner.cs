@@ -93,25 +93,33 @@ public sealed class RoslynCSharpScanner : ICSharpScanner
 		return text;
 	}
 
-	/// <summary>Every use of a name the expression does not itself introduce.</summary>
+	/// <summary>Every use of a name the expression does not itself introduce where the use is.</summary>
+	/// <remarks>
+	/// <para>
+	/// A name is introduced over a scope, not over the whole expression: in
+	/// <c>items.Select(x =&gt; x + 1).Sum() + x</c> the lambda's <c>x</c> is its own, and the
+	/// last <c>x</c> is the outer one, which C# 8 lets a lambda parameter shadow. So each name
+	/// introduced is kept with the node it is in scope over, and a use is free unless one of
+	/// those nodes holds it.
+	/// </para>
+	/// <para>
+	/// The scopes are C#'s: a lambda's parameters over the lambda, a local over its block, a
+	/// pattern variable over the statement, arm or clause that ends it — the block around an
+	/// <c>if</c>, which it leaks into, but a loop's own condition and an embedded statement
+	/// each their own — and a range variable over its query but not over its own source.
+	/// </para>
+	/// </remarks>
 	static IEnumerable<IdentifierNameSyntax> Free(ExpressionSyntax parsed)
 	{
-		var bound = new HashSet<string>(StringComparer.Ordinal);
+		var scopes = new Dictionary<string, List<(SyntaxNode Over, SyntaxNode? Except)>>(StringComparer.Ordinal);
 
 		foreach (var declared in parsed.DescendantNodes())
-			switch (declared)
+			if (Introduced(declared, parsed) is var (identifier, over, except) && identifier.ValueText.Length > 0)
 			{
-				case ParameterSyntax parameter:
-					bound.Add(parameter.Identifier.ValueText);
-					break;
+				if (!scopes.TryGetValue(identifier.ValueText, out var list))
+					scopes[identifier.ValueText] = list = [];
 
-				case VariableDeclaratorSyntax variable:
-					bound.Add(variable.Identifier.ValueText);
-					break;
-
-				case SingleVariableDesignationSyntax designation:
-					bound.Add(designation.Identifier.ValueText);
-					break;
+				list.Add((over, except));
 			}
 
 		foreach (var name in parsed.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>())
@@ -135,8 +143,91 @@ public sealed class RoslynCSharpScanner : ICSharpScanner
 			if (name.Parent is NameColonSyntax or NameEqualsSyntax)
 				continue;
 
-			if (!bound.Contains(name.Identifier.ValueText))
+			// `var` in `out var n` or `var y = …` is the keyword, not a name.
+			if (name.IsVar)
+				continue;
+
+			if (!scopes.TryGetValue(name.Identifier.ValueText, out var over) || !over.Any(scope => Holds(scope, name)))
 				yield return name;
+		}
+
+		static bool Holds((SyntaxNode Over, SyntaxNode? Except) scope, SyntaxNode name)
+		{
+			return scope.Over.Span.Contains(name.Span) && scope.Except?.Span.Contains(name.Span) != true;
+		}
+	}
+
+	/// <summary>
+	/// The name a node introduces, the node it is in scope over, and the part of that node it
+	/// is not in scope over — or null when the node introduces nothing.
+	/// </summary>
+	static (SyntaxToken Identifier, SyntaxNode Over, SyntaxNode? Except)? Introduced(SyntaxNode node, ExpressionSyntax root)
+	{
+		switch (node)
+		{
+			// A lambda's, an anonymous method's or a local function's parameter: over that function.
+			case ParameterSyntax parameter:
+				return (parameter.Identifier, (parameter.Parent is ParameterListSyntax list ? list.Parent : parameter.Parent) ?? root, null);
+
+			// A local declared in a statement, over the block that holds it; one declared by
+			// a `for`, `using` or `fixed`, over that statement.
+			case VariableDeclaratorSyntax variable:
+				return (variable.Identifier, variable.Parent?.Parent switch
+				{
+					LocalDeclarationStatementSyntax statement => statement.Parent ?? root,
+					{ } other                                 => other,
+					null                                      => root,
+				}, null);
+
+			// A pattern variable or an `out var`: over the nearest thing that ends its scope,
+			// or the whole expression outside any.
+			case SingleVariableDesignationSyntax designation:
+				return (designation.Identifier, Enclosing(designation) ?? root, null);
+
+			case ForEachStatementSyntax loop:
+				return (loop.Identifier, loop, loop.Expression);
+
+			case CatchDeclarationSyntax caught:
+				return (caught.Identifier, caught.Parent ?? root, null);
+
+			case LocalFunctionStatementSyntax function:
+				return (function.Identifier, function.Parent ?? root, null);
+
+			// A range variable, over its query, but not over the source it ranges over.
+			case FromClauseSyntax from:
+				return (from.Identifier, Query(from) ?? root, from.Expression);
+
+			case JoinClauseSyntax join:
+				return (join.Identifier, Query(join) ?? root, join.InExpression);
+
+			case LetClauseSyntax let:
+				return (let.Identifier, Query(let) ?? root, null);
+
+			case JoinIntoClauseSyntax into:
+				return (into.Identifier, Query(into) ?? root, null);
+
+			case QueryContinuationSyntax continuation:
+				return (continuation.Identifier, continuation, null);
+
+			default:
+				return null;
+		}
+
+		static SyntaxNode? Enclosing(SyntaxNode node)
+		{
+			return node.Ancestors().FirstOrDefault(static one => one is
+				AnonymousFunctionExpressionSyntax or BlockSyntax or SwitchSectionSyntax or SwitchExpressionArmSyntax or
+				CatchClauseSyntax or WhileStatementSyntax or DoStatementSyntax or ForStatementSyntax or
+				CommonForEachStatementSyntax or UsingStatementSyntax or LockStatementSyntax or FixedStatementSyntax or
+				QueryClauseSyntax or SelectOrGroupClauseSyntax ||
+				// An embedded statement — the body of an `if` or a loop written without braces — is
+				// a scope of its own.
+				one is StatementSyntax && one.Parent is not (BlockSyntax or SwitchSectionSyntax or LabeledStatementSyntax));
+		}
+
+		static SyntaxNode? Query(SyntaxNode node)
+		{
+			return node.Ancestors().FirstOrDefault(static one => one is QueryExpressionSyntax);
 		}
 	}
 
