@@ -1297,8 +1297,9 @@ Three things are rejected when the grammar is built:
 - **an alternative recursive on both sides**, `E = E & '+' & E`. Ordered choice
   cannot settle it: the leading `E` would be the accumulator and the trailing one
   would take everything to the right, so what is written left-associative would parse
-  right-associative. Write the operands at the next level down, or say what you mean
-  with §4.3.1.
+  right-associative. A guard or a lookahead after the trailing `E` reads nothing and
+  changes none of that: `E = E & '+' & E & when @(…)` is refused the same. Write the
+  operands at the next level down, or say what you mean with §4.3.1.
 
 #### 4.3.1 Binding powers, when levels are not enough
 
@@ -1355,8 +1356,8 @@ way. The operand read last is what counts, at whatever strength it was read: one
 a prefix written without a strength, `'!' & E`, or a middle operand an optional else did not
 follow — leaves no step to take. After a postfix step, or anything else read last, a step may
 be anything the strength being read allows; so may it after an alternative that ends with its
-operand on one reading and with something else on another (`'~' & E & '!'?`). A strength binds the operand an alternative ends with, a `when` after it
-included; an operand the alternative may or may not end with — inside an optional, a choice or
+operand on one reading and with something else on another (`'~' & E & '!'?`). A strength binds the operand an alternative ends with, a `when` or a lookahead
+after it included, since neither reads anything; an operand the alternative may or may not end with — inside an optional, a choice or
 a repetition — is read at 0, and the compiler says so (`GRAM4042`).
 
 A rule uses one convention or the other. Levels as rules and binding powers in one rule
@@ -3199,8 +3200,10 @@ overloads, accessibility, parameter types and result types are C#'s responsibili
 
 Two exceptions, narrow and specific, both about bare `@M`. The first: it alone does not
 say whether `M` is the second row or the third, since the notation is the same either way.
-The host is asked whether `M` has an `out T` recognizer overload with either input form.
-Finding one hands the rule-shaped identity a value-producing call needs; finding none
+The host is asked whether `M` has an `out T` recognizer overload with either input form,
+looked for where the generated call is bound — in the class the grammar is attached to,
+around it, in what it derives from, or in the class of a grammar it includes — and not in
+a class the call cannot reach. Finding one hands the rule-shaped identity a value-producing call needs; finding none
 leaves bare `@M` the second row. More than one such overload with a different `T` is a
 tie, reported rather than guessed at, the same as an ambiguous constructor (§7.3).
 
