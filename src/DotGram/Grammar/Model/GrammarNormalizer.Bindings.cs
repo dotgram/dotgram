@@ -287,6 +287,68 @@ public sealed partial class GrammarNormalizer
 
 	// ── The checks ──────────────────────────────────────────────────────────────
 
+	/// <summary>
+	/// A binding's name read as C#, in a <c>=&gt;</c> or a <c>when</c> of the alternative that binds it.
+	/// </summary>
+	/// <remarks>
+	/// <c>$q: 'a' &amp; $q =&gt; @(q)</c>: a binding is no capture and no value of C# (§3.5.1), so the C#
+	/// is handed nothing called <c>q</c>, and the consumer's compiler said CS0103 in a file the author
+	/// did not write. Said here, where the name was written, unless the alternative also captures or the
+	/// rule takes something of that name. Read by the C# scanner, as the other checks of names in C#
+	/// are; where it cannot read the text, nothing is said.
+	/// </remarks>
+	void CheckBindingNames(RuleSymbol rule)
+	{
+		if (rule.Declaration is null)
+			return;
+
+		var body = _bodies[rule];
+
+		foreach (var alternative in body is Node.Choice choice ? choice.Nodes : [body])
+		{
+			List<string>? bound = null;
+			var captured = new HashSet<string>(StringComparer.Ordinal);
+
+			foreach (var node in NodeWalk.Descendants(alternative))
+				if (node is Node.Bind(var binding, _, _))
+					(bound ??= []).Add(binding.Name);
+				else if (node is Node.Capture(var name, _))
+					captured.Add(name);
+
+			if (bound is null)
+				continue;
+
+			foreach (var node in NodeWalk.Descendants(alternative))
+			{
+				var text = node switch
+				{
+					Node.Construct { How: Construction.Expression { Text: var built } } => built,
+					Node.Guard(var asked) => asked,
+					_ => null,
+				};
+
+				if (text is null || _scanner?.FreeNames(text) is not { } free)
+					continue;
+
+				foreach (var name in bound)
+				{
+					if (!free.Contains(name) || captured.Contains(name) || rule.Declaration.Params.Any(one => one.Name == name))
+						continue;
+
+					Report(
+						MisplacedBinding,
+						$"'{name}' is read as C# in '{rule.Name}', and is the name of a binding, '${name}': a binding is " +
+						$"read again only as a recognizer, '${name}', and is no value the C# of a '=>' or a 'when' is " +
+						$"handed. Capture the text as well, '{name}: (${name}: …)', or give the binding another name " +
+						"(docs/syntax.md §3.5.1).",
+						rule.Declaration.At);
+
+					return;
+				}
+			}
+		}
+	}
+
 	/// <summary>Whether a node is, or holds, a binding, a reference or a count by a length.</summary>
 	internal static bool HoldsBoundText(Node node)
 	{

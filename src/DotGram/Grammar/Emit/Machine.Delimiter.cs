@@ -259,11 +259,16 @@ sealed partial class Machine
 			foreach (var range in first.Ranges)
 				for (int c = range.From; c <= range.To; c++)
 				{
+					// A character already among the stops is searched for already, so it is asked
+					// about before the count is: looks that begin alike are one stop, as the
+					// characters of `except` below are.
+					if (made.Contains((char)c))
+						continue;
+
 					if (made.Count == 5 || char.IsSurrogate((char)c) || BufferedBytes && c > 0x7F)
 						return null;
 
-					if (!made.Contains((char)c))
-						made.Add((char)c);
+					made.Add((char)c);
 				}
 		}
 

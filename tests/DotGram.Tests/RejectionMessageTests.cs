@@ -915,4 +915,28 @@ public sealed class RejectionMessageTests
 
 		Assert.True(match.Error == "Expected an inner.", $"{rendering}: {match.Error}");
 	}
+
+	/// <summary>
+	/// A rule's own <c>on fail</c> is said where a method compiled flat reads the rule in place — scanned,
+	/// or inlined with its value — and not only through the call the reader says it at: a rule with one
+	/// publication small enough to be one method said what could have stood there instead.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readers))]
+	public void A_rule_read_in_place_says_its_own_refusal(string rendering, bool direct, CarrierKind carrier)
+	{
+		foreach (var grammar in new[]
+		{
+			"Inner : @int on fail \"Expected an inner.\" = i: Number => @(i)\nNumber : @int = d: ['0'..'9']+ => @(int.Parse(d))\n" +
+				"Start : @int = n: Inner & eof => @(n)\nparse Start as ParseStart\n",
+			"Inner on fail \"Expected an inner.\" = ['0'..'9']+\nStart = Inner & eof\nparse Start as ParseStart\n",
+		})
+		{
+			var host = Compiled(grammar, direct, carrier);
+
+			Assert.True(EmittedCode.Match(host, "Grammar", "TryParseStart", "x").Error == "Expected an inner.", rendering);
+			Assert.True(EmittedCode.Match(host, "Grammar", "TryParseStart", "12").IsSuccess, rendering);
+			Assert.True(EmittedCode.Match(host, "Grammar", "TryParseStart", "1x").Error != "Expected an inner.", rendering);
+		}
+	}
 }

@@ -1161,6 +1161,51 @@ sealed partial class Machine
 	/// </remarks>
 	bool _lowering;
 
+	/// <summary>
+	/// A call of a rule that says what its refusal says (§4's <c>on fail</c>), or a capture of one, in a
+	/// flat method: the rule is read where it is called, scanned or inlined, and not through the call
+	/// the reader says it at (Machine.Reader EmitCall), so it is said here, through a door the failures
+	/// of the read leave by — where the rule was entered and the refusal stands there, as the reader
+	/// says it — and they go on where they went.
+	/// </summary>
+	int CompileSaying(Node node, string says, int next, FollowSets.Continuation following)
+	{
+		var mine    = _depth++;
+		var start   = "turn" + mine;
+		var outward = _fail;
+		var said    = DeclareExpected([Spoken(says)]);
+		var door    = Reserve(out var atDoor);
+
+		_expectedUsed.Add(said);
+
+		atDoor.Line($"if (p <= {start}) expected = {said};");
+		atDoor.Line($"goto {Label(atDoor, outward)};");
+
+		var speaking = _speaking;
+
+		_fail     = door;
+		_speaking = node;
+
+		var read = Compile(node, next, following);
+
+		_speaking = speaking;
+		_fail     = outward;
+
+		var entered = Reserve(out var atEnter);
+
+		atEnter.Line($"{start} = p;");
+		atEnter.Line($"goto {Label(atEnter, read)};");
+
+		_turns.Add((mine, entered));
+
+		_depth = mine;
+
+		return entered;
+	}
+
+	/// <summary>The call a flat method is reading now through the door its <c>on fail</c> is said at.</summary>
+	Node? _speaking;
+
 	/// <summary>Whether any repetition compiled with a standing exit.</summary>
 	bool _usesLoopExits;
 
@@ -1339,9 +1384,10 @@ sealed partial class Machine
 			$"static SourceSpan {Tag.Named("Span")}(" +
 			"int[] starts, int[] lengths, int from, int length)"))
 		{
-			// A run of none still has a place: where the next token begins, or the end of
-			// the last one when there is no next. A span with no length and no place would
-			// say the input began there, which is a different and wrong thing.
+			// A run of none still has a place: where the next token begins, or, past the last
+			// one, where the cutting stopped, which Tokenize writes in the slot after it. A
+			// span with no length and no place would say the input began there, which is a
+			// different and wrong thing.
 			helper.Line("if (length <= 0)");
 			using (helper.Block(""))
 			{
@@ -2669,6 +2715,13 @@ sealed partial class Machine
 	/// </param>
 	int Compile(Node node, int next, FollowSets.Continuation following)
 	{
+		if (_lowering && !ReferenceEquals(node, _speaking) &&
+			(node is Node.Capture(_, Node.Call spoken) ? spoken : node as Node.Call) is { } called &&
+			SaysOf(called.Rule) is { } says)
+		{
+			return CompileSaying(node, says, next, following);
+		}
+
 		if (_owners.TryGetValue(node, out var owner) &&
 			_graph.Climbing.TryGetValue(owner, out var levels))
 		{
