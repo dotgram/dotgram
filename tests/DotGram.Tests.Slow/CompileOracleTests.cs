@@ -55,7 +55,8 @@ public sealed class CompileOracleTests
 	}
 
 	/// <summary>How long one grammar may take to be compiled and its C# read, on a loaded machine.</summary>
-	static readonly TimeSpan Budget = TimeSpan.FromSeconds(120);
+	static readonly TimeSpan Budget = TimeSpan.FromSeconds(
+		Environment.GetEnvironmentVariable("DOTGRAM_ORACLE_MODES") == "all" ? 600 : 120);
 
 	[Theory]
 	[InlineData(1)]
@@ -130,7 +131,7 @@ public sealed class CompileOracleTests
 					return;
 				}
 
-				var (refusal, complaints) = work.Result;
+				var (refusal, complaints, failing) = work.Result;
 
 				lock (lockObj)
 				{
@@ -148,7 +149,7 @@ public sealed class CompileOracleTests
 						foreach (var id in complaints.Select(static one => one.Id).Distinct())
 							outcome.Errors[id] = outcome.Errors.TryGetValue(id, out var count) ? count + 1 : 1;
 
-						results[index] = one.Describe() + "\n" + string.Join("\n", complaints.Take(4).Select(static one => one.ToString()));
+						results[index] = failing.Describe() + "\n" + string.Join("\n", complaints.Take(4).Select(static one => one.ToString()));
 					}
 				}
 			}
@@ -170,10 +171,55 @@ public sealed class CompileOracleTests
 	}
 
 	/// <summary>
-	/// The grammar compiled: the first error the generator said, or every CS error and warning in what it
-	/// wrote. A warning counts, since generated code lands in builds that treat warnings as errors.
+	/// The grammar compiled under each of its modes: by methods and on the engine always, and under every
+	/// combination of a trace build, the tape and a split source where the environment says <c>all</c>.
+	/// Refused where every mode refused it; failed where any mode wrote C# that does not compile, which
+	/// is then the case the failure names.
 	/// </summary>
-	static (string? Refusal, Diagnostic[] Complaints) Compile(Case one, CancellationToken cancellation)
+	/// <remarks>
+	/// The engine on its own: a defect of the engine's that the methods never reach was missed by a run
+	/// that drew one of the two.
+	/// </remarks>
+	static (string? Refusal, Diagnostic[] Complaints, Case Failing) Compile(Case one, CancellationToken cancellation)
+	{
+		var all   = Environment.GetEnvironmentVariable("DOTGRAM_ORACLE_MODES") == "all";
+		var modes = new List<Case>();
+
+		foreach (var direct in new[] { true, false })
+			if (all)
+			{
+				for (var mode = 0; mode < 8; mode++)
+					modes.Add(one with { Direct = direct, Trace = (mode & 1) != 0, Tape = (mode & 2) != 0, Split = (mode & 4) != 0 });
+			}
+			else
+			{
+				modes.Add(one with { Direct = direct });
+			}
+
+		string? refusal = null;
+		var compiled    = false;
+
+		foreach (var mode in modes)
+		{
+			var (refused, complaints) = CompileOne(mode, cancellation);
+
+			if (complaints.Length > 0)
+				return (null, complaints, mode);
+
+			if (refused is null)
+				compiled = true;
+			else
+				refusal ??= refused;
+		}
+
+		return (compiled ? null : refusal, [], one);
+	}
+
+	/// <summary>
+	/// The grammar compiled once: the first error the generator said, or every CS error and warning in what
+	/// it wrote. A warning counts, since generated code lands in builds that treat warnings as errors.
+	/// </summary>
+	static (string? Refusal, Diagnostic[] Complaints) CompileOne(Case one, CancellationToken cancellation)
 	{
 		var members = Host.Members(one.Text);
 		var host    = CSharpCompilation.Create(
