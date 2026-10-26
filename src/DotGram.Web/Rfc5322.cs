@@ -316,7 +316,12 @@ public abstract record EmailAddress
 
 	Ctext    = ['!'..'\'' | '*'..'[' | ']'..'~'] | ObsNoWsCtl
 	Ccontent = Ctext | QuotedPair | Comment
-	Comment  = '(' & (Fws? & Ccontent)* & Fws? & ')'
+	// A comment's content is read to its end and never handed back: only `)` may follow it, and no piece of a
+	// comment begins with one, so a shorter reading can never lead anywhere. Without the braces an unclosed
+	// comment gave its content back a piece at a time, each try reading the address again from its start:
+	// quadratic in the comment, 1.3 s refusing a list that was `(` and eight thousand characters. A quoted
+	// string's content and a domain literal's are sealed for the same reason, before `"` and `]`.
+	Comment  = '(' & { (Fws? & Ccontent)* & Fws? } & ')'
 	// The run of comments is sealed for the same reason the run of whitespace is, and it is the
 	// second way into the same ambiguity: `ObsRoute` repeats over `Cfws`, `Cfws` repeats over
 	// comments, and what follows the inner run is only a nullable `Fws?`, so n comments can be cut
@@ -347,7 +352,7 @@ public abstract record EmailAddress
 
 	Qtext      = ['!' | '#'..'[' | ']'..'~'] | ObsNoWsCtl
 	Qcontent   = Qtext | QuotedPair
-	QuotedBody = '"' & (Fws? & Qcontent)* & Fws? & '"'
+	QuotedBody = '"' & { (Fws? & Qcontent)* & Fws? } & '"'
 
 	Word : @string
 		= Cfws? & text: AtomText & Cfws?   => @(text)
@@ -408,7 +413,7 @@ public abstract record EmailAddress
 
 	DomainLiteral : @string = Cfws? & body: DomainLiteralBody & Cfws? => @(Rfc5322.Literal(body))
 
-	DomainLiteralBody = '[' & (Fws? & Dtext)* & Fws? & ']'
+	DomainLiteralBody = '[' & { (Fws? & Dtext)* & Fws? } & ']'
 
 	Dtext = ['!'..'Z' | '^'..'~'] | ObsDtext
 
@@ -433,13 +438,18 @@ public abstract record EmailAddress
 		| Cfws?             => @(Array.Empty<EmailAddress.Mailbox>())
 
 	// mailbox-list = (mailbox *("," mailbox)) / obs-mbox-list, whose null members the Strict readings refuse.
-	MailboxList : @EmailAddress.Mailbox[] = NullMembers & first: Mailbox & rest: NextMailbox* => @(Rfc5322.Joined(first, rest))
+	//
+	// The members after the first are read to their end and never handed back: what follows a list is the end
+	// or a group's `;`, and a member given back begins with a `,`. Nor are the null members before the first:
+	// what follows them is a mailbox, which never begins with a `,`. Unsealed, a refused list gave them back one
+	// at a time, each try reading the list again from its start: quadratic in the commas.
+	MailboxList : @EmailAddress.Mailbox[] = NullMembers & first: Mailbox & { rest: NextMailbox* } => @(Rfc5322.Joined(first, rest))
 
 	NextMailbox : @EmailAddress.Mailbox[]
 		= ',' & mailbox: Mailbox => @(new[] { mailbox })
 		| ',' & NullMember       => @(Array.Empty<EmailAddress.Mailbox>())
 
-	AddressList : @EmailAddress[] = NullMembers & first: Address & rest: NextAddress* => @(Rfc5322.Joined(first, rest))
+	AddressList : @EmailAddress[] = NullMembers & first: Address & { rest: NextAddress* } => @(Rfc5322.Joined(first, rest))
 
 	NextAddress : @EmailAddress[]
 		= ',' & address: Address => @(new[] { address })
@@ -454,11 +464,15 @@ public abstract record EmailAddress
 	ObsDtext = ObsNoWsCtl | QuotedPair
 
 	// obs-route = obs-domain-list ":", and obs-domain-list = *(CFWS / ",") "@" domain *("," [CFWS] ["@" domain]).
-	ObsRoute = (Cfws | ',')* & '@' & Domain & (',' & Cfws? & ('@' & Domain)?)* & ':'
+	// Both runs are sealed: what follows the first is `@` and what follows the second is `:`, and nothing either
+	// gives back begins with one. Unsealed, `<` and a run of commas then a refusal gave the commas back one at a
+	// time, each try reading the address again from its start.
+	ObsRoute = { (Cfws | ',')* } & '@' & Domain & { (',' & Cfws? & ('@' & Domain)?)* } & ':'
 
-	ObsGroupList = (Cfws? & ',')+ & Cfws?
+	// Sealed, as the null members are: what follows is `;`, and nothing the run gives back begins with one.
+	ObsGroupList = { (Cfws? & ',')+ & Cfws? }
 
-	NullMembers = (Cfws? & ',')*
+	NullMembers = { (Cfws? & ',')* }
 	NullMember  = Cfws?
 
 	// What a Strict reading puts where §4 was: it matches nothing, and consumes a character where it would.
