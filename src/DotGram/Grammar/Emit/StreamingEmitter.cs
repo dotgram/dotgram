@@ -346,7 +346,7 @@ public static partial class CSharpEmitter
 
 					using (file.Block("while (true)"))
 					{
-						file.Line($"seamFailure{i} = new {FailureType}();");
+						file.Line($"seamFailure{i} = {WindowFailure(Places(graph, false, false))};");
 						file.Line(
 							$"seamEnd{i}     = {recognize(seamRule)}" +
 							$"(window.Span(), start, ref seamFailure{i}{context});");
@@ -383,7 +383,7 @@ public static partial class CSharpEmitter
 
 						using (file.Block("while (true)"))
 						{
-							file.Line($"continuationFailure{i} = new {FailureType}();");
+							file.Line($"continuationFailure{i} = {WindowFailure(Places(graph, false, false))};");
 							file.Line($"continuationEnd{i} = {probe}(window.Span(), start, ref continuationFailure{i}{context});");
 							file.Line();
 
@@ -469,7 +469,7 @@ public static partial class CSharpEmitter
 
 				using (file.Block("while (true)"))
 				{
-					file.Line($"triviaFailure{tag} = new {FailureType}();");
+					file.Line($"triviaFailure{tag} = {WindowFailure(Places(graph, false, false))};");
 					file.Line($"triviaEnd{tag} = {recognizer}(window.Span(), start, {hands});");
 					file.Line();
 
@@ -510,7 +510,7 @@ public static partial class CSharpEmitter
 
 				using (file.Block("while (true)"))
 				{
-					file.Line($"failure{i} = {WindowFailure(Places(graph))};");
+					file.Line($"failure{i} = {WindowFailure(Places(graph, false, false))};");
 
 					if (tracing is null)
 						file.Line($"end{i}     = {method}(window.Span(), start, {hands});");
@@ -582,7 +582,7 @@ public static partial class CSharpEmitter
 						{
 							using (file.Block("while (to <= window.Length)"))
 							{
-								file.Line($"var syncFailure = new {FailureType}();");
+								file.Line($"var syncFailure = {WindowFailure(Places(graph, false, false))};");
 								file.Line($"at = {sync}(window.Span(), to, ref syncFailure{context});");
 								file.Line();
 
@@ -734,12 +734,10 @@ public static partial class CSharpEmitter
 				"parserOrdinal" => $"ordinal{stage}",
 				"parserLine" => "window.LineAt(from)",
 				"parserColumn" => "window.ColumnAt(from)",
-				// Where in what was read, on the same terms as everywhere else — an extent, not
-				// an absolute offset, which is what `parserPosition` beside it is for. It used to
-				// add the window's offset and narrow the sum to an `int`, which meant one name
-				// with two meanings and, past two gigabytes, a silently wrong one. Nothing
-				// reaches this now: a grammar that asks for a span is refused a stream.
-				"parserSpan" => "new SourceSpan(from, to - from)",
+				// Where in the input, as every other place a streamed reading hands out: the window's
+				// offset added, in the `int` a span holds. A recovery factory may ask for it, which no
+				// stream refuses (Retention refuses a span a construction asks for).
+				"parserSpan" => "new SourceSpan(unchecked((int)(window.Offset + from)), to - from)",
 				"parserFailurePosition" => "window.Offset + from + reached",
 				"parserFailureLine" => "window.LineAt(from + reached)",
 				"parserFailureColumn" => "window.ColumnAt(from + reached)",
@@ -860,9 +858,11 @@ public static partial class CSharpEmitter
 
 	/// <summary>
 	/// Whether a reading through a window tells the machine where what the window holds begins in
-	/// the input: where a value is told the range it was read over (<c>LocationType</c>), or where
-	/// the marks over it were placed (<c>parserMarks</c>), those are places in the input, and the
-	/// window has let go of what came before it.
+	/// the input: where a value is told the range it was read over (<c>LocationType</c>), where the
+	/// marks over it were placed (<c>parserMarks</c>), or where a guard's rule began (<c>parserSpan</c>
+	/// in a <c>when</c>), those are places in the input, and the window has let go of what came before
+	/// it. Every reading of the window is told, the probes of what follows a repetition, the trivia
+	/// and the synchronization included: a guard they run may build a located value.
 	/// </summary>
 	/// <remarks>
 	/// Carried on the failure, which every recognizer is handed already (<c>Failure.Origin</c>):
@@ -870,9 +870,31 @@ public static partial class CSharpEmitter
 	/// parser, and the walk that builds the values adds it to every place it tells. A grammar that
 	/// locates nothing, or is read through no window, carries none of it.
 	/// </remarks>
-	internal static bool Places(RecognitionGraph graph, bool overKinds = false)
+	/// <param name="bufferedInput">
+	/// Whether the reader forms read a buffer instead (<c>BufferedInput</c>), whose places are the
+	/// input's already: then no publication reads through a window.
+	/// </param>
+	internal static bool Places(RecognitionGraph graph, bool overKinds, bool bufferedInput)
 	{
-		return !overKinds && (graph.Located.Count > 0 || Machine.NamesMarks(graph)) && Streaming(graph, overKinds);
+		if (overKinds || bufferedInput || !(graph.Located.Count > 0 || Machine.NamesMarks(graph) || GuardsAskSpan(graph)))
+			return false;
+
+		foreach (var publication in graph.Publications)
+			if (!publication.BufferedInput && Streams(graph, publication, overKinds))
+				return true;
+
+		return false;
+	}
+
+	/// <summary>Whether a guard of the grammar asks where its rule has got (<c>parserSpan</c>).</summary>
+	static bool GuardsAskSpan(RecognitionGraph graph)
+	{
+		foreach (var body in graph.Bodies.Values)
+			foreach (var node in NodeWalk.Descendants(body))
+				if (node is Node.Guard { Text: var condition } && Uses(graph, condition, "parserSpan"))
+					return true;
+
+		return false;
 	}
 
 	/// <summary>

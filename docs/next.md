@@ -26544,16 +26544,26 @@ search for the delimiter that found none jumped to the refusal without saying ho
   `parserFailureLine:Column:Position` from how far the engine said it got, which the engine counted from nought:
   an element refused at its start inside a look (`?=(['a'..'d']+ & eol) & …` over `1x`) stopped at the beginning
   of the text, `bad 1:1:0` over a window holding the whole input and a negative column once the window had
-  dropped a prefix, where the string says `bad 8:1:26`.
+  dropped a prefix, where the string says `bad 8:1:26`. A guard's own `parserSpan` was the window's too, a
+  recovery factory's `parserSpan` likewise, and the probes the reading runs besides the element — the trivia,
+  the continuation after a recovering repetition, the synchronization — handed the engine no origin at all,
+  though a guard they run may build a located value.
 - **The fix.** The reading writes where the window begins on the failure it hands the engine
   (`Failure.Origin`), the engine keeps it on its parser, and the walk that builds the values adds it to the span a
-  located value is handed and to each mark's position. Only a grammar that tells such places and is read through
-  a window carries the field and the add (`CSharpEmitter.Places`). The engine's count of how far an element got
-  begins where the element begins.
+  located value is handed, to each mark's position and to a guard's span; every reading of the window writes it,
+  the probes included, and a recovery factory's span adds the window's offset where the reading builds it. Only a
+  grammar that tells such places and has a publication read through a window carries the field and the add
+  (`CSharpEmitter.Places`; a grammar whose reader forms read a buffer does not, which a first version got wrong: the
+  field was declared and never written, CS0649). The engine's count of how far an element got begins where the
+  element begins.
 - **The gates.** The edge oracle holds every streamed form of the snapshots to its string form with the places
   in, at every window end; `StreamedPositionTests` reads a located grammar past the first window on every carrier,
   over a reader, a sequence of lines and `find`, the marks of a construction at every window end, and the
-  rejected element above at every window end over a reader and a sequence. Each failed on the parent.
+  rejected element above at every window end over a reader and a sequence, and four grammars that hand a place
+  to the host's code otherwise (a guard's span beside a located capture, a guard in the continuation probe, a
+  recovery factory's span, a guard in a `find`) on every carrier, by methods and by the engine, through windows
+  of every end and of 1, 4 and the default, over a sequence, and through buffers of 1, 4 and the default over a
+  reader and a stream. Each failed on the parent.
 - **What moved.** The `Located` snapshot (the field, the write, the add) and one local's first value in
   `Minimal`'s engine; nothing else the snapshots hold. A per-call located door over a reader does not compile on
   the parent or here (the reading does not hand the door its argument); it is not in this change.
