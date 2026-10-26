@@ -988,10 +988,15 @@ public static partial class CSharpEmitter
 		// Bytes are asked only for the message (ByteRefusal), which counts a byte a column.
 		var locating = Locating(graph) || Wording(graph);
 
+		// The room of a literal read on only while what is held agrees with it, where a reader asks
+		// for one (Machine.BufferedRoom).
+		var textRooms  = machines.Exists(static compiled => compiled.Machine.BufferedInput && !compiled.Machine.BufferedBytes && compiled.Machine.RoomsLiterals);
+		var bytesRooms = machines.Exists(static compiled => compiled.Machine.BufferedBytes && compiled.Machine.RoomsLiterals);
+
 		if (machines.Exists(static compiled => compiled.Machine.BufferedInput && !compiled.Machine.BufferedBytes))
-			file.Write(Located(engined ? BufferedTextClass : WithoutEngineTrace(BufferedTextClass), locating));
+			file.Write(Located(Region(engined ? BufferedTextClass : WithoutEngineTrace(BufferedTextClass), "literalroom", textRooms), locating));
 		if (machines.Exists(static compiled => compiled.Machine.BufferedBytes))
-			file.Write(Located(engined ? BufferedByteClass() : WithoutEngineTrace(BufferedByteClass()), locating));
+			file.Write(Located(Region(engined ? BufferedByteClass() : WithoutEngineTrace(BufferedByteClass()), "literalroom", bytesRooms), locating));
 
 		if (Streaming(graph, overKinds))
 		{

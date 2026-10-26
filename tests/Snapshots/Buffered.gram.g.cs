@@ -1525,7 +1525,7 @@ namespace DotGram.Snapshots
 			public int ReadPart0_eol(int pos)
 			{
 				var p = pos;
-				if (!text.Ensure(p, 2))
+				if (!text.Ensure(p, "\r\n", false))
 				{
 					p = RecognizeRanOutBuf_DotGram_ParseFeed(text, p, "\r\n", false, true, ref failure);
 					Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(3));
@@ -1998,7 +1998,7 @@ namespace DotGram.Snapshots
 			public int ReadPart0_eol(int pos)
 			{
 				var p = pos;
-				if (!text.Ensure(p, 2))
+				if (!text.Ensure(p, "\r\n", false))
 				{
 					p = RecognizeRanOutBufBytes_DotGram_ParseFeed(text, p, "\r\n", false, true, ref failure);
 					Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(3));
@@ -2304,7 +2304,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if (!text.Ensure(p, 2))
+					if (!text.Ensure(p, "\r\n", false))
 					{
 						p = RecognizeRanOutBuf_DotGram_FindRecord(text, p, "\r\n", false, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(3);
@@ -2604,7 +2604,7 @@ namespace DotGram.Snapshots
 				}
 
 				{
-					if (!text.Ensure(p, 2))
+					if (!text.Ensure(p, "\r\n", false))
 					{
 						p = RecognizeRanOutBufBytes_DotGram_FindRecord(text, p, "\r\n", false, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(3);
@@ -3324,6 +3324,23 @@ namespace DotGram.Snapshots
 				return Fill(position, length);
 			}
 
+			public bool Ensure(int position, string literal, bool fold)
+			{
+				#if DOTGRAM_COUNTS
+				CountEnsured++;
+				#endif
+				if (position >= _start && position <= _count && literal.Length <= _count - position) return true;
+				for (var i = 0; i < literal.Length; i++)
+				{
+					if (!Ensure(position + i, 1)) return false;
+					var held = _buffer[position + i - _start];
+					var want = literal[i];
+					if (held != want && (!fold || held < 128 && want < 128 && ((held | 0x20) != (want | 0x20) || (uint)((want | 0x20) - 'a') > 'z' - 'a')))
+						return literal.Length <= _count - position;
+				}
+				return true;
+			}
+
 			private bool Fill(int position, int length)
 			{
 				while (!_ended && (position > _count || length > _count - position))
@@ -3543,6 +3560,23 @@ namespace DotGram.Snapshots
 				if (position < _start || length < 0) throw new global::System.ArgumentOutOfRangeException();
 				if (position <= _count && length <= _count - position) return true;
 				return Fill(position, length);
+			}
+
+			public bool Ensure(int position, string literal, bool fold)
+			{
+				#if DOTGRAM_COUNTS
+				CountEnsured++;
+				#endif
+				if (position >= _start && position <= _count && literal.Length <= _count - position) return true;
+				for (var i = 0; i < literal.Length; i++)
+				{
+					if (!Ensure(position + i, 1)) return false;
+					var held = _buffer[position + i - _start];
+					var want = literal[i];
+					if (held != want && (!fold || held < 128 && want < 128 && ((held | 0x20) != (want | 0x20) || (uint)((want | 0x20) - 'a') > 'z' - 'a')))
+						return literal.Length <= _count - position;
+				}
+				return true;
 			}
 
 			private bool Fill(int position, int length)
