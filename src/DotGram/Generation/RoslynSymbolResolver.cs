@@ -246,16 +246,27 @@ public sealed class RoslynSymbolResolver(
 	/// generated call sits inside that class, so an otherwise-private one is exactly as
 	/// callable as a public one — the same reasoning <see cref="TypeNamed"/> already gives
 	/// a nested result type.
+	/// <para>
+	/// Looked for only where the generated call is bound (<see cref="Reached"/>), as
+	/// <see cref="ResolveExternalMethod"/> looks: a method of the same name in a class the
+	/// call cannot reach is not one it calls, so it neither makes the host's own ambiguous
+	/// nor makes a host's text recognizer look like a value one, whose call would then pass an
+	/// <c>out</c> the host's method does not take. Without a host to look from, the source of
+	/// the whole compilation is looked through.
+	/// </para>
 	/// </remarks>
 	public ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType)
 	{
 		valueType = null;
 
-		var types = new List<ITypeSymbol>();
-		var host  = (ISymbol?)(_host is not null ? _compilation.GetTypeByMetadataName(_host) : null) ??
-			_compilation.Assembly;
+		var types      = new List<ITypeSymbol>();
+		var reached    = _host is not null ? _compilation.GetTypeByMetadataName(_host) : null;
+		var host       = (ISymbol?)reached ?? _compilation.Assembly;
+		var candidates = reached is not null
+			? Reached(reached).SelectMany(type => type.GetMembers(methodName))
+			: _compilation.GetSymbolsWithName(methodName, SymbolFilter.Member);
 
-		foreach (var symbol in _compilation.GetSymbolsWithName(methodName, SymbolFilter.Member))
+		foreach (var symbol in candidates)
 		{
 			if (symbol is not IMethodSymbol method || !Recognizes(method) ||
 				method.Parameters.Length < 3 || method.Parameters[2].RefKind != RefKind.Out ||
