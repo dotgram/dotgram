@@ -2426,7 +2426,7 @@ sealed partial class Machine
 					break;
 
 				case Node.Lookahead(var positive, var inside):
-					EmitLookahead(code, positive, inside, loaded);
+					EmitLookahead(code, node, positive, inside, loaded);
 					break;
 
 				case Node.Capture(_, var held):
@@ -6210,7 +6210,7 @@ sealed partial class Machine
 			return machine.Carrier.ValueOf(rule, record);
 		}
 
-		void EmitLookahead(Writer code, bool positive, Node inside, bool loaded = false)
+		void EmitLookahead(Writer code, Node node, bool positive, Node inside, bool loaded = false)
 		{
 			// A negative look whose subject cannot begin with any token the case label
 			// admits has been answered by the label: `?!Reserved & RegularIdentifier` is
@@ -6306,8 +6306,7 @@ sealed partial class Machine
 
 			// A rule that is nothing but a look, the engine reads as a scan and names where it
 			// refuses: `eof`. Said so here too, or a parse refused at the end by it after a loop
-			// said only that the input did not match. A look inside a rule refuses silently, as it
-			// did: what it says is left to what the rule reads next.
+			// said only that the input did not match.
 			var named = _graph.Bodies.TryGetValue(owner, out var body) &&
 				body is Node.Lookahead(_, var looked) && ReferenceEquals(looked, inside) &&
 				machine.ScannerOf(owner) is not null;
@@ -6332,16 +6331,16 @@ sealed partial class Machine
 				return;
 			}
 
-			if (!named)
-			{
-				code.Line($"if ({seen} {(positive ? "<" : ">=")} 0)");
-				code.Then(Fails());
-
-				return;
-			}
+			// A look inside a rule refuses where it stands, as the engine records one: the furthest
+			// position the parse reached is the look's own (§7.5), and a parse refused by a look at
+			// the end of the input is starved there, not refused where the rule began. A positive
+			// look says what its body wanted, as the engine's does; a negative one is said as written.
+			var said = named
+				? machine.DeclareExpected([owner.Name])
+				: machine.DeclareExpected(positive && machine.Displays(inside) is { Count: > 0 } wanted ? wanted : machine.Displays(node));
 
 			using (code.Block($"if ({seen} {(positive ? "<" : ">=")} 0)"))
-				Refused(code, machine.DeclareExpected([owner.Name]));
+				Refused(code, said);
 		}
 
 		/// <summary>
