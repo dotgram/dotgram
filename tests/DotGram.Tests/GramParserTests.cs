@@ -657,4 +657,18 @@ public sealed class GramParserTests
 		EmittedCode.Quiet(result.Diagnostics);
 		Assert.Equal(7, result.File.Decls.Count);
 	}
+
+	[Fact]
+	public void A_when_with_nothing_after_it_is_reported_once()
+	{
+		var parsed = GramParser.Parse(GramLexer.Tokenize("A = 'a' & when"));
+
+		Assert.Single(parsed.Diagnostics, static diagnostic => diagnostic.Id == GramParser.ExpectedExpression);
+	}
+
+	[Fact]
+	public void A_rule_called_context_may_have_a_generic_type()
+	{
+		Assert.Empty(Diagnostics("context : @System.Collections.Generic.List<string> = 'x'"));
+	}
 }

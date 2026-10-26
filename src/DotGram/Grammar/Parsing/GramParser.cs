@@ -334,6 +334,34 @@ public sealed class GramParser
 		while (KindAt(at) == TokenKind.Dot && KindAt(at + 1) == TokenKind.Identifier)
 			at += 2;
 
+		// A C# type may be generic (`@List<string>`), its arguments in turn types: names, dots,
+		// commas, brackets and nested angle brackets, up to the bracket that closes the list.
+		if (KindAt(at) == TokenKind.Less)
+		{
+			var depth = 0;
+
+			do
+			{
+				switch (KindAt(at))
+				{
+					case TokenKind.Less:
+						depth++;
+						break;
+					case TokenKind.Greater:
+						depth--;
+						break;
+					case TokenKind.Identifier or TokenKind.Dot or TokenKind.Comma or TokenKind.At or
+						TokenKind.OpenBracket or TokenKind.CloseBracket:
+						break;
+					default:
+						return false;
+				}
+
+				at++;
+			}
+			while (depth > 0);
+		}
+
 		if (KindAt(at) == TokenKind.OpenBracket && KindAt(at + 1) == TokenKind.CloseBracket)
 			at += 2;
 
@@ -858,12 +886,15 @@ public sealed class GramParser
 	/// <remarks>
 	/// One token of lookahead past the operand, which is what tells `when Version is "Old"`
 	/// from `when @(qty > 0)`: only a condition has `is` after its first operand, and a C#
-	/// guard is written with an `@` that a condition never has.
+	/// guard is written with an `@` that a condition never has. The operand is read to be looked
+	/// at and then read again for real, so whatever the first reading reports is dropped: it
+	/// would be said twice.
 	/// </remarks>
 	bool StartsCondition()
 	{
-		var at    = _index;
-		var found = false;
+		var at       = _index;
+		var reported = _diagnostics.Count;
+		var found    = false;
 
 		try
 		{
@@ -875,6 +906,8 @@ public sealed class GramParser
 		{
 			found = false;
 		}
+
+		_diagnostics.RemoveRange(reported, _diagnostics.Count - reported);
 
 		_index = at;
 		_panic = false;
