@@ -2954,7 +2954,7 @@ sealed partial class Machine
 			// where every character there agrees (§7.5).
 			using (code.Block($"if ({machine.LacksRoom(text.Length)})"))
 			{
-				machine.Reached(code, text, folded, machine.Quiets ? "!failure.Quiet" : "");
+				machine.Reached(code, text, folded, machine.Quiets ? "!failure.Quiet" : "", "failure.Looking == 0");
 
 				Refused(code, name);
 			}
@@ -3027,7 +3027,7 @@ sealed partial class Machine
 			// Where it is not recorded, as a single literal's: ran out at the beginning.
 			if (shared.Length > 1)
 				using (code.Block($"if ({machine.LacksRoom(shared.Length)})"))
-					machine.Reached(code, shared, false, null);
+					machine.Reached(code, shared, false, null, "failure.Looking == 0");
 
 			var narrowed = $"narrowed{_calls++}";
 

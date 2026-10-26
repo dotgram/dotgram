@@ -3185,9 +3185,13 @@ sealed partial class Machine
 						{
 							ShortOf(writer, value, ignoreCase);
 						}
-						else
+						else if (Marks == "true")
 						{
 							writer.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
+						}
+						else if (Marks != "false")
+						{
+							writer.Line($"if ({Marks} && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
 						}
 
 						EmitTerminalFailure(writer, _fail, arrayName);
@@ -5100,7 +5104,7 @@ sealed partial class Machine
 
 			// Where this one stopped agreeing, or the end where the input ends inside it, recorded as a
 			// refusal of its own: the next one is tried from the same place, and the last fails here.
-			Further(writer, $"{RanOut()}(text, p, {Quoted(rest)}, false, true, ref failure)", arrayName);
+			Further(writer, $"{RanOut()}(text, p, {Quoted(rest)}, false, true, {Marks}, ref failure)", arrayName);
 
 			if (after >= 0)
 				writer.Line($"goto {Label(writer, after)};");
@@ -5157,7 +5161,7 @@ sealed partial class Machine
 				if (Final(fail))
 					ShortOf(writer, shared, false, fail);
 				else
-					Further(writer, $"{RanOut()}(text, p, {Quoted(shared)}, false, true, ref failure)", arrayName);
+					Further(writer, $"{RanOut()}(text, p, {Quoted(shared)}, false, true, {Marks}, ref failure)", arrayName);
 
 				EmitTerminalFailure(writer, fail, arrayName);
 			}
@@ -7374,13 +7378,23 @@ sealed partial class Machine
 		var reads = Final(fail ?? _fail) || door;
 		var guard = !reads ? null : _lowering || fail is not null ? "" : "lookahead < 0";
 
-		Reached(writer, value, ignoreCase, guard);
+		Reached(writer, value, ignoreCase, guard, Marks);
 	}
+
+	/// <summary>
+	/// Whether a literal the input ends inside marks the refusal as one of input that ran out
+	/// (<see cref="Reached"/>): not inside a look. A look is a test and not a reading: what ran out
+	/// inside it is not the parse running out, and the parse is refused where the look stands by
+	/// input that was there (§7.5). The string form never said otherwise, reading a rule that is
+	/// nothing but a look as a scan, which marks nothing.
+	/// </summary>
+	string Marks => _doorLooking > 0 ? "false" : _lowering ? "true" : "lookahead < 0";
 
 	/// <summary>
 	/// Moves <c>p</c> where a literal the input ends inside stops agreeing, where <paramref name="moves"/>
 	/// says to — always where it is empty, and otherwise where it holds — and marks the refusal at the
-	/// literal's beginning as one of input that ran out where every character there agrees.
+	/// literal's beginning as one of input that ran out where every character there agrees, where
+	/// <paramref name="marks"/> holds (<see cref="Marks"/>).
 	/// </summary>
 	/// <remarks>
 	/// The mark is for where the refusal is not recorded where the literal stops agreeing — inside a
@@ -7398,9 +7412,12 @@ sealed partial class Machine
 				writer.Line("var literalReach = p;");
 				ReachLadder(writer, value, true, "literalReach");
 
-				using (writer.Block($"if ({Past("literalReach")})"))
+				if (marks != "false")
 				{
-					writer.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
+					using (writer.Block($"if ({(marks == "true" ? "" : marks + " && ")}{Past("literalReach")})"))
+					{
+						writer.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
+					}
 				}
 
 				if (moves is not null)
@@ -7506,7 +7523,7 @@ sealed partial class Machine
 		var helper   = new Writer(0);
 
 		helper.Line(
-			$"static int {_ranOut}({InputType} text, int p, string value, bool fold, bool moves, " +
+			$"static int {_ranOut}({InputType} text, int p, string value, bool fold, bool moves, bool marks, " +
 			$"ref {CSharpEmitter.FailureType} failure)");
 
 		using (helper.Block(""))
@@ -7514,7 +7531,7 @@ sealed partial class Machine
 			helper.Line($"var reach = {agreeing}(text, p, value, fold);");
 			helper.Line();
 
-			using (helper.Block($"if ({Past("reach")})"))
+			using (helper.Block($"if (marks && {Past("reach")})"))
 			{
 				helper.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
 			}
