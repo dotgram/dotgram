@@ -293,6 +293,16 @@ public sealed class StreamedPositionTests
 			Rows : @string[] = Row* recover Sync => @(parserSpan.Start + "+" + parserSpan.Length)
 			parse Rows
 			""", Nested, Nested),
+		// The same synchronization published as well, whose own reading steps over its bad part: the
+		// engine still reads it inside the other's, out of the window.
+		("nestedtwice", "ParseRows", """
+			Part : @string = 'x' & ';' => @("x")
+			Sync : @string[] = '#' & items: Part* recover ';' => @(parserPosition.ToString()) & eol & when @(items.Length == 1 && items[0] == "6002") => @(items)
+			Row  : @string = 'a' & eol => @("a")
+			Rows : @string[] = Row* recover Sync => @("bad")
+			parse Rows
+			parse Sync
+			""", Nested, Nested),
 	];
 
 
@@ -327,7 +337,7 @@ public sealed class StreamedPositionTests
 
 		// The nested rows hold their guard to places of the input: over the string it holds.
 		if (name.StartsWith("nested", StringComparison.Ordinal))
-			Assert.EndsWith("\"6000+1\" | \"a\" | ", whole, StringComparison.Ordinal);
+			Assert.EndsWith(name == "nestedtwice" ? "\"bad\" | \"a\" | " : "\"6000+1\" | \"a\" | ", whole, StringComparison.Ordinal);
 
 		WindowEdge.Edges(parser, found, "reader", brief, brief.Length, whole,
 			() => parser.Call(method, typeof(TextReader), new StringReader(brief)));
@@ -431,6 +441,32 @@ public sealed class StreamedPositionTests
 		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error && one.Id != GramCompiler.BufferedUnsupported);
 
 		return new WindowEdge.Parser(result.Sources[0].Text, "Grammar", null, Host, [.. result.Sources.Skip(1).Select(static one => one.Text)]);
+	}
+
+	/// <summary>
+	/// A recovery no window reaches is told nothing of one: a grammar whose streamed publication reaches
+	/// no recovery, beside a publication that recovers and is read over a string, a buffer or a stream
+	/// of its own, carries no origin and writes none, as before it could.
+	/// </summary>
+	[Theory]
+	[InlineData(false, CarrierKind.Auto)]
+	[InlineData(true, CarrierKind.Auto)]
+	[InlineData(false, CarrierKind.Tape)]
+	[InlineData(true, CarrierKind.Immediate)]
+	public void A_recovery_no_window_reaches_is_told_no_origin(bool direct, CarrierKind carrier)
+	{
+		var parser = Located("""
+			Part : @string = 'x' & ';' => @("x")
+			Inner : @string[] = '[' & items: Part* recover ';' => @(parserLine.ToString()) & ']' => @(items)
+			Bad  : @string[] = '(' & i: Inner & ')' => @(i)
+			Row  : @string = 'a' & eol => @("a")
+			Rows : @string[] = Row*
+			parse Rows
+			parse Bad
+			""", direct, carrier, buffered: false);
+
+		Assert.True(parser.Streams);
+		Assert.DoesNotContain("Origin", parser.Source, StringComparison.Ordinal);
 	}
 
 	/// <summary>Each value handed over, and for a match where it was found and what it holds.</summary>
