@@ -774,4 +774,15 @@ public sealed class FirstSetsTests
 
 		Assert.Equal(reported, Split(grammar).Any(one => one.Id == FirstSets.Swallows));
 	}
+
+	[Fact]
+	public void Intersection_containment_and_overlap_hold_for_unsorted_public_ranges()
+	{
+		var unsorted = new FirstSets.First(false, false, [new CharRange('b', 'b'), new CharRange('a', 'a')]);
+		var a        = FirstSets.First.Chars([new CharRange('a', 'a')]);
+
+		Assert.Equal([new CharRange('a', 'a')], unsorted.And(a).Ranges);
+		Assert.True(unsorted.Covers(a));
+		Assert.True(unsorted.Overlaps(a));
+	}
 }
