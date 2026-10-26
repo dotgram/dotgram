@@ -26418,3 +26418,46 @@ search for the delimiter that found none jumped to the refusal without saying ho
   most of the SQL output: SQL 14.55 MB is 1.67% smaller, Web 1.51%, FIX 2.38%, the expression language 0.42%, the
   examples 0.09%; the renames alone move each set by -0.05% to +0.08% (the factories, `Construct_` to
   `New_DotGram_`, are most of the growth, and the shorter tagged helpers most of what comes back). A paired stand on six rows, directional on a shared machine, read every change within its own A/A.
+
+
+## A whole parse leaves the trivia around its text value out of it
+
+- **The fault.** A whole parse of a rule whose value is the text it matched handed back the trivia the parse read
+  before and after the rule over characters, and not over tokens: in a spaced namespace `Word = ['a'..'z']+` read
+  whole from `"  ab"` was `"  ab"` as a string, a reader, a stream or bytes, and `"ab"` read by the lexer, which
+  had skipped the trivia before the syntax saw it. A test pinned the difference. A reading that begins where it is
+  told already left it out (§6.3).
+- **The change.** The entry of such a whole reading writes down where the rule began and where it ended, between
+  the trivia and the rule: `Failure.Began`, which the positional forms already had, and `Failure.Ended`, emitted
+  only where some `parse` publication reads a text-valued rule with trivia. The engine and the lowered method get
+  two states that write a position (`Machine.CompileWhole`, the sequence `BodyOf` compiles with a mark at each
+  seam), the direct reader two lines between the three parts of its whole entry; the string forms and the
+  buffered forms cut the value from between the two. Every accepted reading passes each mark again after any way
+  back into the rule, so the last write is this reading's. `Position` and `Length` are what they were.
+- **Not taken.** Reading the rule again from where its trivia ended, to find where it stops: a second reading of
+  every such input, and not the same answer where the whole parse had come back into the rule for the end of the
+  input. Rewriting such a publication as `t: R => @(t)`: a construction, and a capture, in a reading that has none.
+- **What is left.** A seam inside the rule before operands at its end that read nothing is read by the rule:
+  `Word & Word?` read whole from `ab  ` is `ab  ` over characters and `ab` over tokens. Telling those seams apart
+  would cost every seam of the rule a write as it is read; status.md says so.
+- **What moved.** Nothing generated in the repository: no publication of a shipped grammar, an example, a
+  benchmark or a test host is a text-valued rule with trivia, and a rebuild of the solution with the generated
+  files written out is byte for byte main's (1,009 files, 98,900,503 bytes either way). The tests are new ones.
+
+## A rule that recovers is read in states wherever it is reached
+
+- **The fault.** A rule holding a repetition marked `recover` and recording nothing was read by a scanner wherever
+  the follow sets of its callers allowed one, and a scanner, committing to what it reads, reads the marked
+  repetition as a plain one: `?=Rows` over `a;b;a;.` with `Rows = Row* recover ';' & '.'` was refused as a string
+  and read through a TextReader, whose reader recovered. §8.2 says a rule called from a lookahead recovers as
+  written, a rule planning its own; a test pinned the scanner's answer. The same held for the rule as a
+  synchronization (`Item* recover Rows`) and, where nothing after it stopped a scanner, for a direct call.
+- **The change.** A marked repetition is not scannable (`Machine.Scannable`), so neither the rule nor any rule
+  reaching it is read by a scanner, wherever it is called from; it is read in states, as a lifted repetition
+  already was.
+- **The gate.** A recovery differential: a positive and a negative lookahead of `Rows`, a direct call of it and
+  a synchronization on it, each held to what reading `Rows` itself from that place decides (its positional
+  form), over every input up to six characters (five for the synchronization, against a model of §8.2's search),
+  with and without the direct reader, as a string and through a reader. Red on main in all four, green here.
+- **What moved.** Nothing generated in the repository: no shipped, example, benchmark or test-host grammar has a
+  scannable rule that recovers (the same byte-for-byte rebuild as above).
