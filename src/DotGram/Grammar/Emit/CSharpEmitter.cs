@@ -769,8 +769,12 @@ public static partial class CSharpEmitter
 
 				string Recognizer(RuleSymbol rule)
 				{
-					// Joined publications already share the plain wrapper in this machine.
-					if (compiled is not null && compiled.Publications.Any(one => one.Rule == rule))
+					// Joined publications already share the plain wrapper in this machine: a find's. A
+					// parse is rendered only under the name that also insists the input ended, and a
+					// stage read under the plain name of a rule published by `parse` called a method
+					// nobody wrote (CS0103).
+					if (compiled is not null &&
+						compiled.Publications.Any(one => one.Rule == rule && one.Kind == PublishKind.Find))
 						return MethodOf(rule);
 
 					return MethodOf(graph, rule, compiled?.Machine.Anchor, compiled?.Tag ?? MachineTag.None);
