@@ -26418,3 +26418,27 @@ search for the delimiter that found none jumped to the refusal without saying ho
   most of the SQL output: SQL 14.55 MB is 1.67% smaller, Web 1.51%, FIX 2.38%, the expression language 0.42%, the
   examples 0.09%; the renames alone move each set by -0.05% to +0.08% (the factories, `Construct_` to
   `New_DotGram_`, are most of the growth, and the shorter tagged helpers most of what comes back). A paired stand on six rows, directional on a shared machine, read every change within its own A/A.
+
+## A streamed reading tells its places in the whole input
+
+- **The fault.** A streamed reading hands the engine what its window holds, and the window drops what was read
+  before it. The engine counted every place it told a construction in what it was handed, so a value of a grammar
+  with a `LocationType` was told where it stood in the window: the third entry of the `Located` snapshot said
+  `At=0` where the string says 15, and the edge oracle masked `At` for that snapshot to stay green. `parserMarks`
+  said the same kind of place. And a rejected element that the reading stepped over said where it stopped as
+  `parserFailureLine:Column:Position` from how far the engine said it got, which the engine counted from nought:
+  an element refused at its start inside a look (`?=(['a'..'d']+ & eol) & …` over `1x`) stopped at the beginning
+  of the text, `bad 1:1:0` over a window holding the whole input and a negative column once the window had
+  dropped a prefix, where the string says `bad 8:1:26`.
+- **The fix.** The reading writes where the window begins on the failure it hands the engine
+  (`Failure.Origin`), the engine keeps it on its parser, and the walk that builds the values adds it to the span a
+  located value is handed and to each mark's position. Only a grammar that tells such places and is read through
+  a window carries the field and the add (`CSharpEmitter.Places`). The engine's count of how far an element got
+  begins where the element begins.
+- **The gates.** The edge oracle holds every streamed form of the snapshots to its string form with the places
+  in, at every window end; `StreamedPositionTests` reads a located grammar past the first window on every carrier,
+  over a reader, a sequence of lines and `find`, the marks of a construction at every window end, and the
+  rejected element above at every window end over a reader and a sequence. Each failed on the parent.
+- **What moved.** The `Located` snapshot (the field, the write, the add) and one local's first value in
+  `Minimal`'s engine; nothing else the snapshots hold. A per-call located door over a reader does not compile on
+  the parent or here (the reading does not hand the door its argument); it is not in this change.
