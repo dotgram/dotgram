@@ -9,6 +9,7 @@ using DotGram.Generation;
 using DotGram.Grammar;
 using DotGram.Grammar.Emit;
 
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -61,34 +62,27 @@ public sealed class GeneratedNameTests
 	[Theory]
 	[InlineData("T = 'a'\nQ = 'b'\nparse T\nparse Q as TryParseT")]
 	[InlineData("T = 'a'\nQ = 'b'\nparse T as Read\nfind Q as TryRead")]
-	[InlineData("T = 'a'\nparse T as Recognize_T")]
-	[InlineData("T = 'a'\nparse T as ReadBuffered_X")]
 	[InlineData("T = 'a'\nparse T as OnHandingOff")]
 	public void Two_publications_cannot_write_one_method_nor_one_a_reserved_name(string grammar)
 	{
 		Assert.Contains(Compile(grammar).Diagnostics, static one => one.Id == CSharpEmitter.GeneratedNameClash);
 	}
 
-	/// <summary>The factory of a rule is a method of the class, and a type is not called what a factory is.</summary>
-	[Fact]
-	public void A_rule_does_not_take_the_name_of_the_factory_of_another()
-	{
-		const string grammar = "R : @int = 'r' => @(1)\nConstruct_R = c: 'c'\nS = r: R & c: Construct_R\nparse S";
-
-		foreach (var direct in new[] { true, false })
-			Assert.NotNull(Built(grammar, direct).GetType("Probe+Construct_RValue"));
-	}
-
 	/// <summary>
-	/// Two rules are two sets of methods, named after them: a rule called <c>A_Whole</c> beside a published
-	/// <c>A</c> is the method that reads all of <c>A</c>.
+	/// A rule called after what the generator once named a factory, a walk or a variant of one keeps its
+	/// name, and so does its type: everything the generator makes from a name carries the mark, which no
+	/// name of the author's can.
 	/// </summary>
-	[Fact]
-	public void Rules_whose_methods_are_named_alike_are_refused()
+	[Theory]
+	[InlineData("R : @int = 'r' => @(1)\nConstruct_R = c: 'c'\nS = r: R & c: Construct_R\nparse S", "Construct_R")]
+	[InlineData("A = x: 'a'\nA_Whole = y: 'b'\nS = A & A_Whole\nparse A\nparse S", "A_Whole")]
+	[InlineData("A = x: 'a'\nA_Body = y: 'b'\nS = A & A_Body\nparse A\nparse S", "A_Body")]
+	[InlineData("A = x: 'a'\nRecognize_A = y: 'b'\nS = A & Recognize_A\nparse S\nparse A as Recognize_A_Whole", "Recognize_A")]
+	public void A_rule_named_like_a_name_the_generator_makes_keeps_its_own(string grammar, string type)
 	{
-		Assert.Contains(
-			Compile("A = x: 'a'\nA_Whole = y: 'b'\nS = A & A_Whole\nparse A\nparse S").Diagnostics,
-			static one => one.Id == CSharpEmitter.GeneratedNameClash);
+		foreach (var direct in new[] { true, false })
+			foreach (var buffered in new[] { false, true })
+				Assert.NotNull(Built(grammar, direct, buffered).GetType("Probe+" + type));
 	}
 
 	/// <summary>
@@ -242,77 +236,190 @@ public sealed class GeneratedNameTests
 	}
 
 	/// <summary>
-	/// Every member the generator writes into the class — method, field, property, constant or type —
-	/// is named with <c>_DotGram</c> in it, which no name of the author's can be; or is one of the names
-	/// it reserves, which no publication or rule's type may take; or is made from a name of the author's
-	/// along a path that is checked: a method named after a rule or a publication under a prefix it
-	/// reserves (<c>Recognize_</c>, <c>Try</c>…), or the type of a rule. So that adding a member to the
-	/// generator cannot leave a collision unsaid. Read as the compiler reads it, over every snapshot.
+	/// The kinds are one closed table, and no two of its entries write one kind: a number written into a
+	/// kind is read as <c>#</c>, and every entry with every variant is a different word. No kind holds an
+	/// underscore or the mark, and no name the generator keeps plain begins with one.
 	/// </summary>
 	[Fact]
-	public void Every_member_the_snapshots_write_is_a_name_the_generator_keeps_apart()
+	public void The_kinds_are_a_closed_table_of_words_apart()
 	{
-		var directory = Path.Combine(SourceRoot.Directory, "tests", "Snapshots");
-		var reserved  = new HashSet<string>(CSharpEmitter.PublicNames.Concat(CSharpEmitter.SupportNames).Concat(CSharpEmitter.TraceNames).Concat(CSharpEmitter.LexerNames), StringComparer.Ordinal);
-		var unkept    = new SortedSet<string>(StringComparer.Ordinal);
-		var seen      = 0;
-
-		foreach (var file in Directory.GetFiles(directory, "*.g.cs"))
+		foreach (var table in new[] { CSharpEmitter.HostKinds, CSharpEmitter.NestedKinds })
 		{
-			var grammar = Path.Combine(directory, Path.GetFileName(file).Split('.')[0] + ".gram");
-			var written = File.Exists(grammar) ? File.ReadAllText(grammar) : "";
-			var methods = new HashSet<string>(StringComparer.Ordinal);
+			var expanded = CSharpEmitter.Expanded(table).ToArray();
 
-			// What the directives publish: `parse R`, `find R as Name`.
-			foreach (Match directive in Regex.Matches(written, @"^\s*(parse|find|yield)\b([^\r\n]*)\r?$", RegexOptions.Multiline))
-			{
-				var rest  = directive.Groups[2].Value;
-				var alias = Regex.Match(rest, @"\bas\s+(\w+)");
-				var rule  = Regex.Match(rest, @"^\s*(?:\w+\.)*(\w+)");
-				var name  = alias.Success
-					? alias.Groups[1].Value
-					: (directive.Groups[1].Value == "find" ? "Find" : "Parse") + rule.Groups[1].Value;
-
-				methods.Add(name);
-				methods.Add("Try" + name);
-			}
-
-			var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(file), cancellationToken: TestContext.Current.CancellationToken);
-			var root = tree.GetRoot(TestContext.Current.CancellationToken);
-
-			foreach (var host in root.DescendantNodes().OfType<ClassDeclarationSyntax>().Where(static one => one.Modifiers.Any(static modifier => modifier.Text == "partial")))
-				foreach (var member in host.Members)
-				{
-					var names = member switch
-					{
-						MethodDeclarationSyntax method     => [method.Identifier.Text],
-						FieldDeclarationSyntax field       => [.. field.Declaration.Variables.Select(static one => one.Identifier.Text)],
-						PropertyDeclarationSyntax property => [property.Identifier.Text],
-						BaseTypeDeclarationSyntax type     => [type.Identifier.Text],
-						_                                  => Array.Empty<string>(),
-					};
-
-					foreach (var name in names)
-					{
-						seen++;
-
-						var rulesType = member is BaseTypeDeclarationSyntax && (Regex.IsMatch(written, @"\b" + Regex.Escape(name) + @"\b") ||
-							name.EndsWith("Value", StringComparison.Ordinal) && Regex.IsMatch(written, @"\b" + Regex.Escape(name.Substring(0, name.Length - 5)) + @"\b"));
-
-						// A suffix class is the author's to name (Suffix = "…"), and a nested one is a member of the host.
-						var suffix = member is ClassDeclarationSyntax nested && nested.Modifiers.Any(static modifier => modifier.Text == "partial");
-
-						if (name.Contains("_DotGram", StringComparison.Ordinal) || reserved.Contains(name) || methods.Contains(name) || rulesType || suffix ||
-							Array.Exists(CSharpEmitter.FamilyPrefixes, prefix => name.StartsWith(prefix, StringComparison.Ordinal)))
-							continue;
-
-						unkept.Add(name + " (" + Path.GetFileName(file) + ")");
-					}
-				}
+			Assert.All(expanded, static one => Assert.DoesNotContain("_", one.Kind, StringComparison.Ordinal));
+			Assert.All(expanded, static one => Assert.DoesNotContain("DotGram", one.Kind, StringComparison.Ordinal));
+			Assert.All(expanded, static one => Assert.Equal(one.Kind, CSharpEmitter.Shape(one.Kind)));
+			Assert.Equal(expanded.Length, expanded.Select(static one => one.Kind).Distinct(StringComparer.Ordinal).Count());
 		}
 
-		Assert.True(seen > 0, "no member was found in any snapshot");
-		Assert.True(unkept.Count == 0, "written under a name nothing keeps apart from the author's: " + string.Join(", ", unkept));
+		var plain = CSharpEmitter.PublicNames.Concat(CSharpEmitter.SupportNames).Concat(CSharpEmitter.TraceNames).Concat(CSharpEmitter.LexerNames);
+
+		foreach (var name in plain)
+			Assert.Null(GeneratedNameRule.Fault(name, host: false, null, new HashSet<string>()));
+	}
+
+	/// <summary>
+	/// Every name the generator declares in a snapshot is the author's, one it keeps whatever the grammar
+	/// says, or made from the grammar's own names by the one rule (<see cref="GeneratedNameRule"/>) — so that
+	/// a family written outside it fails here rather than in a review — and no scope declares one name
+	/// twice but for a method's overloads. Read as the compiler reads it, over every rendering.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Snapshots))]
+	public void Every_name_a_snapshot_declares_is_kept_apart(string name)
+	{
+		var text   = File.ReadAllText(Path.Combine(SnapshotDirectory, name + ".gram"));
+		var faults = new SortedSet<string>(StringComparer.Ordinal);
+		var seen   = 0;
+
+		foreach (var (options, _) in SnapshotTests.Renderings(name, text))
+		{
+			var result = GramCompiler.Compile(text, options);
+			var names  = result.Names!;
+			var known  = new HashSet<string>(names.Identifiers, StringComparer.Ordinal);
+			var author = GeneratedNameRule.Author(names);
+			var trees  = result.Sources.Select(static one => CSharpSyntaxTree.ParseText(one.Text, cancellationToken: TestContext.Current.CancellationToken)).ToArray();
+
+			foreach (var (scope, host, member, signature) in Declarations(trees))
+			{
+				seen++;
+
+				if (GeneratedNameRule.Fault(member, host, known, author, options.Trace, options.Lexical) is { } fault)
+					faults.Add($"{scope}.{member} {fault}");
+			}
+
+			foreach (var twice in Twice(Declarations(trees), author))
+				faults.Add(twice);
+		}
+
+		Assert.True(seen > 0, "no member was found");
+		Assert.True(faults.Count == 0, $"{faults.Count} names not kept apart:\n" + string.Join("\n", faults.Take(200)));
+	}
+
+	/// <summary>
+	/// Every member of a generated file: the scope it is declared in, whether that is the class the
+	/// generator writes into, its name, and what tells two of one name apart — a method's parameters, or
+	/// nothing for anything else.
+	/// </summary>
+	internal static IEnumerable<(string Scope, bool Host, string Name, string? Signature)> Declarations(IEnumerable<SyntaxTree> trees)
+	{
+		foreach (var tree in trees)
+			foreach (var type in tree.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<TypeDeclarationSyntax>())
+			{
+				// The class the generator writes into is partial, and so is a suffix of it; a rule's type is the
+				// author's, and what it declares is its captures (GRAM5018's last check).
+				var host = type.Modifiers.Any(static modifier => modifier.Text == "partial");
+
+				if (!host && type.Parent is TypeDeclarationSyntax && !IsGenerators(type))
+					continue;
+
+				var scope = string.Join(".", type.AncestorsAndSelf().OfType<BaseTypeDeclarationSyntax>().Reverse().Select(static one => one.Identifier.Text));
+
+				foreach (var member in type.Members)
+				{
+					var declared = member switch
+					{
+						MethodDeclarationSyntax method       => [(method.Identifier.Text, (string?)string.Join(",", method.ParameterList.Parameters.Select(static one => one.Type?.ToString())))],
+						FieldDeclarationSyntax field         => field.Declaration.Variables.Select(static one => (one.Identifier.Text, (string?)null)),
+						EventFieldDeclarationSyntax field    => field.Declaration.Variables.Select(static one => (one.Identifier.Text, (string?)null)),
+						PropertyDeclarationSyntax property   => [(property.Identifier.Text, null)],
+						EventDeclarationSyntax @event        => [(@event.Identifier.Text, null)],
+						DelegateDeclarationSyntax @delegate  => [(@delegate.Identifier.Text, null)],
+						ClassDeclarationSyntax nested when nested.Modifiers.Any(static modifier => modifier.Text == "partial") => [],
+						BaseTypeDeclarationSyntax nested     => [(nested.Identifier.Text, null)],
+						_                                    => Array.Empty<(string, string?)>(),
+					};
+
+					foreach (var (name, signature) in declared)
+						yield return (scope, host, name, signature);
+				}
+			}
+	}
+
+	/// <summary>Whether a nested type is one the generator declares for its own use rather than a rule's type.</summary>
+	static bool IsGenerators(TypeDeclarationSyntax type)
+	{
+		var name = type.Identifier.Text;
+
+		return name.Contains(CSharpEmitter.NameMark, StringComparison.Ordinal) || CSharpEmitter.PublicNames.Contains(name) ||
+			CSharpEmitter.SupportNames.Contains(name) || CSharpEmitter.TraceNames.Contains(name) ||
+			type.Ancestors().OfType<TypeDeclarationSyntax>().Any(static one => !one.Modifiers.Any(static modifier => modifier.Text == "partial"));
+	}
+
+	/// <summary>
+	/// What one scope declares twice: a name that is not a method's, or one method of one signature, or a
+	/// name made from the grammar's that is anything but one method. The author's publications and the
+	/// generator's plain helpers have overloads; a derived name is one thing.
+	/// </summary>
+	internal static IEnumerable<string> Twice(IEnumerable<(string Scope, bool Host, string Name, string? Signature)> declarations, ISet<string> author)
+	{
+		foreach (var group in declarations.GroupBy(static one => (one.Scope, one.Name)))
+		{
+			var all = group.ToArray();
+
+			if (all.Length < 2)
+				continue;
+
+			var derived = group.Key.Name.IndexOf('_') is var cut and > 0 && !author.Contains(group.Key.Name) &&
+				(CSharpEmitter.IsKind(group.Key.Name.Substring(0, cut), CSharpEmitter.HostKinds) && group.Key.Name.Contains(CSharpEmitter.NameMark, StringComparison.Ordinal) && all[0].Host ||
+				 CSharpEmitter.IsKind(group.Key.Name.Substring(0, cut), CSharpEmitter.NestedKinds) && !all[0].Host);
+
+			if (all.Any(static one => one.Signature is null) || derived ||
+				all.Select(static one => one.Signature).Distinct(StringComparer.Ordinal).Count() < all.Length)
+				yield return $"{group.Key.Scope}.{group.Key.Name} is declared {all.Length} times";
+		}
+	}
+
+	static string SnapshotDirectory => Path.Combine(SourceRoot.Directory, "tests", "Snapshots");
+
+	public static TheoryData<string> Snapshots => SnapshotTests.Snapshots;
+
+	/// <summary>
+	/// The families of names the generator once wrote into one place twice, each found by a review after
+	/// the reserved list before it had missed it: a publication or a rule named like a reader, a factory
+	/// over bytes, a lexer's table, a scanner of another machine, a reader's body or a scalar scanner.
+	/// Each compiles now, and so does a rule named <c>DotGram</c>, which the names the generator keeps for
+	/// itself begin with.
+	/// </summary>
+	[Theory]
+	[InlineData("a", "R = r: 'r'\nparse R as Read stream\nparse R as ReadBuffered_Read", "buffered")]
+	[InlineData("b", "R : @int = 'r' => @(1)\nR_Bytes : @int = 'b' => @(2)\nS : @int = a: R & b: R_Bytes => @(a + b)\nparse S as Both stream bytes", "bytes")]
+	[InlineData("c", "trivia = { ' '* }\nnamespace Token\n{\n\ttrivia = none\n\tName = ['a'..'z']+\n\tNumber = ['0'..'9']+\n}\nS = Token.Name & '=' & Token.Number & eof\nparse S\nparse S as Scan_Accepts", "lexical")]
+	[InlineData("d", "trivia = { ' '* }\nL : @int = d: ['0'..'9']+ => @(1)\nL_R : @int = d: ['a'..'z']+ => @(2)\nS : @int = a: L & b: L_R & eof => @(a + b)\nparse S\nparse S as Construct_L_R", "lexical")]
+	[InlineData("e", "T = ['a'..'z']+\nT_A = ['0'..'9']+\nA_B = T & eof\nB = T_A & eof\nparse A_B\nparse B", "tape")]
+	[InlineData("f", "Digits : @int = text: ['0'..'9']+ => @(int.Parse(text))\nA : @int = d: Digits & '^' & e: Digits & when @(d >= e) => @(d - e) | d: Digits => @(d)\nA_Body : @int = d: Digits & '^' & e: Digits & when @(d >= e) => @(d - e) | d: Digits => @(d)\nS : @int = a: A & ',' & b: A_Body & eof => @(a + b)\nparse S", "Tape")]
+	[InlineData("g", "R : @string = t: { ['a'..'z']+ } => @(t)\nRead_R = x: '#'\nS : @string = a: R & when @(a.Length > 0) & ' ' & b: R & k: Read_R & ';' => @(a + b)\nfind S", "")]
+	[InlineData("DotGram", "DotGram = x: 'a'\nS = DotGram & eof\nparse S\nparse DotGram", "")]
+	[InlineData("DotGram", "DotGram = x: 'a'\nS = DotGram & eof\nparse S\nparse DotGram", "tape,buffered")]
+	[InlineData("DotGram", "DotGram = x: 'a'\nS = DotGram & eof\nparse S\nparse DotGram", "Tape")]
+	[InlineData("DotGram", "trivia = { ' '* }\nnamespace Token\n{\n\ttrivia = none\n\tName = ['a'..'z']+\n}\nDotGram = n: Token.Name\nS = DotGram & '=' & DotGram & eof\nparse S", "lexical")]
+	public void A_family_that_once_met_another_compiles(string family, string grammar, string flags)
+	{
+		var said   = flags.Split(',');
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			ClassName     = "Probe",
+			Direct        = !said.Contains("tape"),
+			BufferedInput = said.Contains("buffered"),
+			BufferedBytes = said.Contains("bytes"),
+			Lexical       = said.Contains("lexical"),
+			Carrier       = said.Contains("Tape") ? CarrierKind.Tape : CarrierKind.Auto,
+			CSharpScanner = RoslynCSharpScanner.Instance,
+		});
+
+		Assert.False(result.Diagnostics.Any(static one => one.Severity == GramSeverity.Error), family + ": " + string.Join("; ", result.Diagnostics.Select(static one => one.Id + " " + one.Message)));
+
+		_ = EmittedCode.Compile(result.Sources[0].Text, className: "Probe", sourceParts: result.Sources.Skip(1).Select(static one => one.Text));
+	}
+
+	/// <summary>A namespace joined to a rule whose name begins with the mark would put the mark inside an identifier.</summary>
+	[Fact]
+	public void A_rule_that_joins_into_the_mark_is_refused()
+	{
+		Assert.Contains(
+			Compile("namespace A { DotGram_B = x: 'b' }\nS = A.DotGram_B & eof\nparse S").Diagnostics,
+			static one => one.Id == CSharpEmitter.GeneratedNameClash);
 	}
 
 	/// <summary>The lexer of a grammar read over tokens has a public <c>Scan</c>, and no other has.</summary>

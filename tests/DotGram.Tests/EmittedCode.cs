@@ -84,33 +84,7 @@ static class EmittedCode
 		IEnumerable<string>? symbols = null,
 		bool utf8Literals = false)
 	{
-		// Preprocessor symbols, for the one thing generated code writes behind a `#if`: the
-		// counters of D144, which no project defines and a counting gate compiles for itself.
-		// And C# 11 where the code was emitted for it (GramCompilerOptions.Utf8Literals): the
-		// one form above the floor, compiled at the version that asked for it.
-		var floor = utf8Literals ? Floor.WithLanguageVersion(LanguageVersion.CSharp11) : Floor;
-		var parse = symbols is null ? floor : floor.WithPreprocessorSymbols(symbols);
-
-		var declaration = @namespace is null
-			? $"public partial class {className} {{ {declarationMembers} }}"
-			: $"namespace {@namespace} {{ public partial class {className} {{ {declarationMembers} }} }}";
-
-		// `[Gram]` and `SourceSpan` come with every generated parser in a real build, so
-		// they come with one here too. A grammar that names `span` in a `recover` reaches
-		// for `DotGram.SourceSpan`, and a harness without it would fail on code that
-		// compiles perfectly well where it is actually emitted.
-		var compilation = CSharpCompilation.Create(
-			"DotGram.Tests.Emitted",
-			[
-				CSharpSyntaxTree.ParseText(declaration, parse),
-				CSharpSyntaxTree.ParseText(GramCompiler.EmitMarkerAttributes().Text, parse),
-				// What the generator asks Roslyn for beside them, and a harness has to bring.
-				CSharpSyntaxTree.ParseText(SupportEmitter.EmbeddedAttribute, parse),
-				CSharpSyntaxTree.ParseText(source, parse),
-				.. (sourceParts ?? []).Select(part => CSharpSyntaxTree.ParseText(part, parse)),
-			],
-			References,
-			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+		var compilation = Create(source, className, @namespace, declarationMembers, sourceParts, symbols, utf8Literals);
 
 		using var stream = new MemoryStream();
 
@@ -130,6 +104,63 @@ static class EmittedCode
 			"\n\n" + source);
 
 		return Assembly.Load(stream.ToArray());
+	}
+
+	/// <summary>
+	/// The errors the compiler finds in generated source, without holding it to anything: for a test
+	/// that adds to a grammar and reads which of its additions broke the build.
+	/// </summary>
+	public static Diagnostic[] Errors(
+		string source,
+		string className,
+		string? @namespace,
+		string? declarationMembers,
+		IEnumerable<string>? sourceParts)
+	{
+		return
+		[
+			.. Create(source, className, @namespace, declarationMembers, sourceParts, null, false)
+				.GetDiagnostics(TestContext.Current.CancellationToken)
+				.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error),
+		];
+	}
+
+	static CSharpCompilation Create(
+		string source,
+		string className,
+		string? @namespace,
+		string? declarationMembers,
+		IEnumerable<string>? sourceParts,
+		IEnumerable<string>? symbols,
+		bool utf8Literals)
+	{
+		// Preprocessor symbols, for the one thing generated code writes behind a `#if`: the
+		// counters of D144, which no project defines and a counting gate compiles for itself.
+		// And C# 11 where the code was emitted for it (GramCompilerOptions.Utf8Literals): the
+		// one form above the floor, compiled at the version that asked for it.
+		var floor = utf8Literals ? Floor.WithLanguageVersion(LanguageVersion.CSharp11) : Floor;
+		var parse = symbols is null ? floor : floor.WithPreprocessorSymbols(symbols);
+
+		var declaration = @namespace is null
+			? $"public partial class {className} {{ {declarationMembers} }}"
+			: $"namespace {@namespace} {{ public partial class {className} {{ {declarationMembers} }} }}";
+
+		// `[Gram]` and `SourceSpan` come with every generated parser in a real build, so
+		// they come with one here too. A grammar that names `span` in a `recover` reaches
+		// for `DotGram.SourceSpan`, and a harness without it would fail on code that
+		// compiles perfectly well where it is actually emitted.
+		return CSharpCompilation.Create(
+			"DotGram.Tests.Emitted",
+			[
+				CSharpSyntaxTree.ParseText(declaration, parse),
+				CSharpSyntaxTree.ParseText(GramCompiler.EmitMarkerAttributes().Text, parse),
+				// What the generator asks Roslyn for beside them, and a harness has to bring.
+				CSharpSyntaxTree.ParseText(SupportEmitter.EmbeddedAttribute, parse),
+				CSharpSyntaxTree.ParseText(source, parse),
+				.. (sourceParts ?? []).Select(part => CSharpSyntaxTree.ParseText(part, parse)),
+			],
+			References,
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 	}
 
 	/// <summary>

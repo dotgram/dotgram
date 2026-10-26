@@ -204,6 +204,10 @@ public static class GramCompiler
 			NormalizedRuleCount = graph.Rules.Count,
 			UsesLexical = lexical is not null,
 			Carriers = carriers,
+			Names = sources.Count == 0 ? null : CSharpEmitter.NamesOf(
+				lexical?.Syntax ?? graph, lexical is null ? [] : [graph, lexical.Source],
+				options.Suffix is { Length: > 0 } suffixed ? options.ClassName + "." + suffixed : options.ClassName,
+				options.Namespace, options.Trace, options.Lexical),
 		};
 	}
 

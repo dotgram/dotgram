@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using DotGram.Grammar.Emit;
+
 namespace DotGram.Grammar;
 
 /// <summary>What a compilation produced: sources to add, and what went wrong.</summary>
@@ -20,6 +22,13 @@ public sealed class GramCompilation(IReadOnlyList<GeneratedSource> sources, IRea
 	/// asked for it; null otherwise.
 	/// </summary>
 	public IReadOnlyList<string>? Carriers { get; init; }
+
+	/// <summary>
+	/// The author's names the generated class is written under, where a source was written: what a name
+	/// the generator makes is made from, and what it is not. Read by the tests that hold the generated
+	/// names apart; null where nothing was emitted.
+	/// </summary>
+	public GramNames? Names { get; init; }
 
 	public bool HasErrors
 	{

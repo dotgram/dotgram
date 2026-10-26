@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
@@ -15,6 +16,133 @@ public static partial class CSharpEmitter
 	/// takes from a member of the class that holds it.
 	/// </summary>
 	public const string GeneratedNameClash = "GRAM5018";
+
+	/// <summary>
+	/// What every name the generator makes from an author's name carries between its kind and the
+	/// author's identifiers, and what no name of the author's can hold (GRAM1012).
+	/// </summary>
+	public const string NameMark = "_DotGram";
+
+	/// <summary>
+	/// The kinds of the names the generator makes from an author's names in the class it writes into:
+	/// <c>&lt;Kind&gt;_DotGram_&lt;Id&gt;</c>, or <c>&lt;Kind&gt;_DotGram_&lt;Id1&gt;_DotGram_&lt;Id2&gt;</c> for a name made from two,
+	/// or <c>&lt;Kind&gt;_DotGram</c> for one of a machine that has no name of its own. A kind is a word of
+	/// this table, with <c>{v}</c> standing for one of <see cref="Variants"/> and <c>#</c> for a number.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// No name of the author's can be one of these, since every one holds <c>_DotGram</c> and no name of the
+	/// author's can (GRAM1012) — a publication, a rule's type and a member written by hand in the class
+	/// alike — so nothing has to be reserved for them. And two of them are one name only where kind and
+	/// identifiers are: the kind ends at the first <c>_</c> and holds none, and every later <c>_DotGram_</c>
+	/// separates two identifiers, since no identifier holds <c>_DotGram</c> either (GRAM5018 refuses the one
+	/// a namespace can make). Nothing is ever written after an identifier: every variant of a name is a
+	/// kind of its own.
+	/// </para>
+	/// <para>
+	/// The kinds are short, since a factory or a walk is named at every call to it and the factories alone
+	/// are most of what the large grammars write: <c>New</c> is a factory, <c>Rec</c> a rule's walk.
+	/// </para>
+	/// </remarks>
+	public static readonly string[] HostKinds =
+	[
+		// A rule's: its walk, under the machine that writes it; the walk that also insists the input
+		// ended, and the stages and probes a streamed parse reads it by; the factory of each `=>`, and of
+		// each over bytes; the factory of a `recover`'s `=>`; its scanners.
+		"Rec{v}", "RecWhole", "WholePart#", "WholeContinue#", "WholeTrivia", "WholeSync",
+		"New", "New#", "NewBytes", "NewBytes#", "Recover", "Recover#", "RecoverSpan{v}", "RecoverSpan{v}#",
+		"Scan{v}", "Read{v}",
+
+		// A rule's value read again from the text of a token (CSharpEmitter.Value), and the rule a
+		// continuation of another is read for.
+		"Value", "Measure", "Reread", "RereadFor",
+
+		// A publication's: its buffered reader, its iterator, the form a segmented grammar reads its
+		// lines by and the Try beside it; a call into the host's code.
+		"Buf", "BufBytes", "BufMemory", "BufBytesMemory", "Iterate", "Own", "TryOwn", "Host#",
+
+		// A machine's, named after the rule it was compiled for, or with no name where it is the only one.
+		"Recognize{v}", "RecognizeGuard{v}#", "RecognizeSharpen{v}#", "RecognizeFurther{v}", "RecognizeRanOut{v}",
+		"RecognizeAgreeing{v}", "RecognizeClass{v}#", "RecognizeBits{v}#", "RecognizeBit{v}", "RecognizeGroups{v}#",
+		"RecognizeSet{v}#", "RecognizeIn{v}", "RecognizeFoldSoFar{v}#",
+		"Materialize{v}", "MaterializePart{v}#", "MaterializeConstruct{v}#Part#", "MaterializeDirect{v}",
+		"MaterializeDirectPart{v}#",
+		"Reader{v}", "Deep{v}", "Same{v}", "Prefix{v}#", "Reach{v}", "Letters{v}", "TokenAt{v}", "Text{v}", "Span{v}",
+		"Offer{v}", "Locate{v}", "Searched{v}",
+	];
+
+	/// <summary>
+	/// The kinds of the names made from an author's inside a class the generator declares for its own use
+	/// (the reader, the engine's tables): <c>&lt;Kind&gt;_&lt;Id&gt;</c>, without the mark, since no name of the
+	/// author's reaches those classes. The first <c>_</c> ends the kind, so two are one name only where
+	/// kind and identifier are.
+	/// </summary>
+	public static readonly string[] NestedKinds =
+	[
+		"Read", "ReadBody", "ReadPart#", "ReadBroken", "ReadBroken#", "RecRead", "RecReadBody", "RecWholeRead",
+		"RecWholeReadBody", "Entered",
+	];
+
+	/// <summary>
+	/// What a machine's kinds say about the machine (<c>{v}</c> in <see cref="HostKinds"/>): nothing for the
+	/// machine of a published rule, or which of the file's own it is — the one that reads a terminal's value
+	/// again, the seam's — or that it reads buffered input, over bytes or over memory the caller holds.
+	/// </summary>
+	public static readonly string[] Variants = ["", "Value", "Seam", "Buf", "BufBytes", "BufMemory", "BufBytesMemory"];
+
+	/// <summary>A name made from an author's names, in the class the generator writes into.</summary>
+	/// <param name="kind">A kind of <see cref="HostKinds"/>, its variant and numbers written in.</param>
+	/// <param name="identifiers">The author's names it is made from, first the one it is most about.</param>
+	internal static string Named(string kind, params string?[] identifiers)
+	{
+		System.Diagnostics.Debug.Assert(IsKind(kind, HostKinds), $"'{kind}' is not a kind of the table");
+
+		var written = identifiers.Where(static one => one is { Length: > 0 }).ToArray();
+
+		return written.Length == 0
+			? kind + NameMark
+			: kind + NameMark + "_" + string.Join(NameMark + "_", written);
+	}
+
+	/// <summary>A name made from an author's name inside a class the generator declares for its own use.</summary>
+	internal static string Inner(string kind, string identifier)
+	{
+		System.Diagnostics.Debug.Assert(IsKind(kind, NestedKinds), $"'{kind}' is not a kind of the table");
+
+		return kind + "_" + identifier;
+	}
+
+	/// <summary>
+	/// Every kind a table allows, numbers written as <c>#</c>: the closed set a name's kind is looked up in.
+	/// </summary>
+	public static IEnumerable<(string Kind, string Pattern)> Expanded(IEnumerable<string> table)
+	{
+		foreach (var pattern in table)
+			foreach (var variant in pattern.Contains("{v}") ? Variants : [""])
+				yield return (pattern.Replace("{v}", variant), pattern);
+	}
+
+	/// <summary>Whether a written kind is one of a table, its numbers read as <c>#</c>.</summary>
+	public static bool IsKind(string kind, IEnumerable<string> table)
+	{
+		var shape = Shape(kind);
+
+		return Expanded(table).Any(one => one.Kind == shape);
+	}
+
+	/// <summary>A written kind with every run of digits made one <c>#</c>.</summary>
+	public static string Shape(string kind)
+	{
+		var shape = new StringBuilder(kind.Length);
+
+		for (var at = 0; at < kind.Length; at++)
+			if (!char.IsDigit(kind[at]))
+				shape.Append(kind[at]);
+			else if (at == 0 || !char.IsDigit(kind[at - 1]))
+				shape.Append('#');
+
+		return shape.ToString();
+	}
 
 	/// <summary>
 	/// The public types and members the generated class declares beside what the author published, by
@@ -38,7 +166,8 @@ public static partial class CSharpEmitter
 	/// be 0.88% of the source of the snapshots; the fields of the pools of parsers and of tokens begin
 	/// with an underscore and a lower-case letter, which a rule's type or a publication is not called
 	/// in earnest, and renaming them would add 0.35%. They are reserved instead: not a name a
-	/// publication or a rule's type may take.
+	/// publication or a rule's type may take. A closed list: no name is reserved for being made from
+	/// an author's, since every such name carries the mark (<see cref="HostKinds"/>).
 	/// </summary>
 	public static readonly string[] SupportNames =
 	[
@@ -48,13 +177,6 @@ public static partial class CSharpEmitter
 		"_largeTokensIdle", "_largeTokensLetGo", "_spareParser", "_spareParserIdle", "_spareParserLetGo",
 		"_spareTies", "_spareTokens", "_spareTokensIdle", "_spareTokensLetGo",
 	];
-
-	/// <summary>
-	/// What the generated class writes under a name made from the author's: the walk, the scanner, the
-	/// factory of a rule and the reader of a publication. A name the author gives a publication or a
-	/// rule's type may not begin with one, so that it cannot be one of them.
-	/// </summary>
-	public static readonly string[] FamilyPrefixes = ["Recognize_", "Scan_", "Construct_", "ReadBuffered_"];
 
 	/// <summary>
 	/// The methods a publication is written as: its name, and for a <c>parse</c> the <c>Try</c> beside it.
@@ -67,64 +189,50 @@ public static partial class CSharpEmitter
 			yield return "Try" + publication.MethodName;
 	}
 
-	/// <summary>The methods the generated class writes for one rule, under names made from the rule's.</summary>
-	static IEnumerable<string> FamilyOf(RecognitionGraph graph, RuleSymbol rule)
+	/// <summary>
+	/// The names the generated class keeps whatever the grammar says, which an author's publication or
+	/// rule's type may not take: the host class, which a member may not be called, and the closed lists of
+	/// the plain names it writes.
+	/// </summary>
+	static HashSet<string> Reserved(string host, bool traced, bool lexical)
 	{
-		var name = IdentifierOf(rule);
+		var reserved = new HashSet<string>(PublicNames.Concat(SupportNames), StringComparer.Ordinal) { host };
 
-		yield return "Recognize_" + name;
+		if (traced)
+			reserved.UnionWith(TraceNames);
 
-		if (graph.Publications.Any(publication => ReferenceEquals(publication.Rule, rule)))
-			yield return "Recognize_" + name + "_Whole";
+		if (lexical)
+			reserved.UnionWith(LexerNames);
 
-		yield return "Scan_" + name;
-
-		// One factory for each construction of the rule, the first under the plain name.
-		var constructions = graph.Bodies.TryGetValue(rule, out var body)
-			? NodeWalk.Descendants(body).Count(static node => node is Node.Construct)
-			: 0;
-
-		for (var one = 0; one < constructions; one++)
-			yield return "Construct_" + name + (one == 0 ? "" : "_" + one.ToString(System.Globalization.CultureInfo.InvariantCulture));
+		return reserved;
 	}
 
 	/// <summary>
-	/// The names a rule's own type may not take, as a set: the host class, which a member may not be
-	/// called; every type and member the generator writes under a plain name; and every method it makes
-	/// from the grammar's own names, the factory, walk and scanner of each rule and each publication.
+	/// The names a rule's own type may not take, as a set: what <see cref="Reserved"/> keeps, and every
+	/// method a publication is written as. A name the generator makes from the grammar's own names is none
+	/// of them, since it carries the mark.
 	/// </summary>
 	internal static HashSet<string> TypeNamesTaken(string host, bool traced, RecognitionGraph graph, bool lexical = false)
 	{
-		var taken = new HashSet<string>(StringComparer.Ordinal) { host };
-
-		taken.UnionWith(PublicNames);
-		taken.UnionWith(SupportNames);
-
-		if (traced)
-			taken.UnionWith(TraceNames);
-
-		if (lexical)
-			taken.UnionWith(LexerNames);
+		var taken = Reserved(host, traced, lexical);
 
 		foreach (var publication in graph.Publications)
 			taken.UnionWith(MembersOf(publication));
-
-		foreach (var rule in graph.Rules)
-			taken.UnionWith(FamilyOf(graph, rule));
 
 		return taken;
 	}
 
 	/// <summary>
 	/// What would be written twice into the class the graph is emitted as, said where the author wrote
-	/// it: a publication named like something the class declares, two rules that become one C# name,
-	/// and two captures that become one property.
+	/// it: a publication named like something the class keeps, two publications writing one name, two
+	/// rules that become one C# name, and two captures that become one property.
 	/// </summary>
 	/// <remarks>
 	/// <para>
 	/// The names of the rules' own types are made unique by the generator (<see cref="ResultTypes"/>).
-	/// These three are not, because renaming would change what a caller reads: a publication is called
-	/// what its author said, a rule by its namespaces joined, a property by its capture.
+	/// These are not, because renaming would change what a caller reads: a publication is called
+	/// what its author said, a rule by its namespaces joined, a property by its capture. Every other
+	/// name is made from these by <see cref="Named"/>, and is one name only where they are.
 	/// </para>
 	/// </remarks>
 	/// <param name="className">The host class, as a chain.</param>
@@ -139,20 +247,13 @@ public static partial class CSharpEmitter
 		if (angle >= 0)
 			host = host.Substring(0, angle);
 
-		var members = new HashSet<string>(PublicNames.Concat(SupportNames), StringComparer.Ordinal) { host };
-
-		if (traced)
-			members.UnionWith(TraceNames);
-
-		if (lexical)
-			members.UnionWith(LexerNames);
-
-		var names = new Dictionary<string, Publication>(StringComparer.Ordinal);
+		var members = Reserved(host, traced, lexical);
+		var names   = new Dictionary<string, Publication>(StringComparer.Ordinal);
 
 		foreach (var publication in graph.Publications)
 			foreach (var name in MembersOf(publication))
 			{
-				if (members.Contains(name) || Array.Exists(FamilyPrefixes, prefix => name.StartsWith(prefix, StringComparison.Ordinal)))
+				if (members.Contains(name))
 				{
 					said.Add(Clash(
 						$"'{publication.MethodName}' " + (name == publication.MethodName ? "" : $"writes '{name}', which ") +
@@ -181,33 +282,33 @@ public static partial class CSharpEmitter
 
 		foreach (var rule in graph.Rules)
 		{
-			RuleSymbol? first = null;
-			string? twice = null;
+			var identifier = IdentifierOf(rule);
 
-			// The rule's own name, marked so that it is told from the methods made from it.
-			foreach (var name in FamilyOf(graph, rule).Prepend("= " + IdentifierOf(rule)))
-				if (written.TryGetValue(name, out var other) && !ReferenceEquals(other, rule))
-				{
-					first = other;
-					twice = name;
-
-					break;
-				}
-
-			if (first is null)
+			// A namespace joined to a rule whose name begins with the mark puts the mark inside the
+			// identifier, where it would read as the separator of two.
+			if (identifier.Contains(NameMark))
 			{
-				foreach (var name in FamilyOf(graph, rule).Prepend("= " + IdentifierOf(rule)))
-					written[name] = rule;
+				said.Add(Clash(
+					$"'{rule.Name}' in namespace '{rule.Namespace?.Name}' is written '{identifier}' in the generated code, " +
+					"where a namespace is joined to a rule's name with '_', and '_DotGram' is kept for the generator's own " +
+					"names. Rename it (docs/syntax.md §7.3).",
+					rule.Declaration?.At.Position ?? 0, rule.Declaration?.At.Length ?? 0));
 
 				continue;
 			}
 
-			said.Add(Clash(
-				$"'{rule.Name}' in namespace '{rule.Namespace?.Name}' and '{first.Name}' in namespace " +
-				$"'{first.Namespace?.Name}' both write '{twice!.TrimStart('=', ' ')}' in the generated code, where a namespace is joined " +
-				"to a rule's name with '_' and the methods of a rule are named after it. Rename one of them " +
-				"(docs/syntax.md §7.3).",
-				rule.Declaration?.At.Position ?? 0, rule.Declaration?.At.Length ?? 0));
+			if (written.TryGetValue(identifier, out var first) && !ReferenceEquals(first, rule))
+			{
+				said.Add(Clash(
+					$"'{rule.Name}' in namespace '{rule.Namespace?.Name}' and '{first.Name}' in namespace " +
+					$"'{first.Namespace?.Name}' are both written '{identifier}' in the generated code, where a namespace is " +
+					"joined to a rule's name with '_'. Rename one of them (docs/syntax.md §7.3).",
+					rule.Declaration?.At.Position ?? 0, rule.Declaration?.At.Length ?? 0));
+
+				continue;
+			}
+
+			written[identifier] = rule;
 		}
 
 		foreach (var rule in results.Built)
@@ -240,4 +341,36 @@ public static partial class CSharpEmitter
 			return new GramDiagnostic(GeneratedNameClash, message, position, length, GramSeverity.Error);
 		}
 	}
+
+	/// <summary>
+	/// The author's names the generated class is written under, for a test that holds the generated names
+	/// apart: every rule's identifier and publication's name, which a derived name is made from; the
+	/// methods the publications are written as; and the rules' types.
+	/// </summary>
+	internal static GramNames NamesOf(RecognitionGraph graph, IEnumerable<RecognitionGraph> more, string className, string? @namespace, bool traced, bool lexical)
+	{
+		var results     = new ResultTypes(graph, className, @namespace, traced, lexical);
+		var identifiers = new SortedSet<string>(StringComparer.Ordinal);
+
+		foreach (var one in more.Prepend(graph))
+		{
+			foreach (var rule in one.Rules)
+				identifiers.Add(IdentifierOf(rule));
+
+			foreach (var publication in one.Publications)
+				identifiers.Add(publication.MethodName);
+		}
+
+		return new GramNames(
+			[.. identifiers],
+			[.. graph.Publications.SelectMany(MembersOf).Distinct()],
+			[.. results.Built.Select(rule => results.NameOf(rule)!)]);
+	}
 }
+
+/// <summary>
+/// The author's names a generated class is written under (<see cref="GramCompilation.Names"/>): the
+/// identifiers of the rules and the names of the publications, which the generator's own names are
+/// made from; the methods the publications are written as; and the types of the rules.
+/// </summary>
+public sealed record GramNames(IReadOnlyList<string> Identifiers, IReadOnlyList<string> Publications, IReadOnlyList<string> Types);
