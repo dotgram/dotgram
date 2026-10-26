@@ -754,6 +754,39 @@ public static partial class CSharpEmitter
 				if (position <= _count && length <= _count - position) return true;
 				return Fill(position, length);
 			}
+			// <literalroom>
+
+			/// <summary>
+			/// Room for <paramref name="literal"/> from <paramref name="position"/>, read on only while
+			/// what is held may still be it: where a character held cannot be the literal's, the answer
+			/// is whether the literal is held whole, without asking the source for more.
+			/// </summary>
+			/// <remarks>
+			/// A live source blocks until it has more, and the rest of a literal one of whose characters
+			/// is already wrong is not worth waiting for. Held whole, the literal has its room and the
+			/// comparison after it refuses it where it differs; not, the caller's walk of a literal the
+			/// input ends inside does, stopping at the same character. Either way the answer depends on
+			/// nothing but what is held, so asking twice answers alike. Under <paramref name="fold"/>
+			/// only two characters below 128 that are not one letter in two cases are told apart here;
+			/// anything else may fold into the literal's character and is read on.
+			/// </remarks>
+			public bool Ensure(int position, string literal, bool fold)
+			{
+				#if DOTGRAM_COUNTS
+				CountEnsured++;
+				#endif
+				if (position >= _start && position <= _count && literal.Length <= _count - position) return true;
+				for (var i = 0; i < literal.Length; i++)
+				{
+					if (!Ensure(position + i, 1)) return false;
+					var held = _buffer[position + i - _start];
+					var want = literal[i];
+					if (held != want && (!fold || held < 128 && want < 128 && ((held | 0x20) != (want | 0x20) || (uint)((want | 0x20) - 'a') > 'z' - 'a')))
+						return literal.Length <= _count - position;
+				}
+				return true;
+			}
+			// </literalroom>
 
 			private bool Fill(int position, int length)
 			{
