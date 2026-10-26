@@ -71,13 +71,11 @@ static class WindowEdge
 	/// </summary>
 	public static void Edges(
 		Parser parser, Mismatches found, string form, string shown, int length, string whole, Func<object?> read,
-		Func<string, string>? kept = null, string? beforeNul = null)
+		string? beforeNul = null)
 	{
-		kept ??= static one => one;
-
 		parser.Capacity = length + 16;
 
-		var held = kept(Said(read));
+		var held = Said(read);
 
 		found.Runs++;
 
@@ -88,7 +86,7 @@ static class WindowEdge
 		{
 			parser.Capacity = capacity;
 
-			var said = kept(Said(read));
+			var said = Said(read);
 
 			found.Runs++;
 

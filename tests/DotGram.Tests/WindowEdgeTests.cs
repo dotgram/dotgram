@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 
 using DotGram.Grammar;
 
@@ -291,10 +290,10 @@ public sealed class WindowEdgeTests
 		{
 			foreach (var input in SnapshotInputs(name))
 			{
-				var whole = Unplaced(name, WindowEdge.Said(() => parser.Call(method, typeof(string), input)));
+				var whole = WindowEdge.Said(() => parser.Call(method, typeof(string), input));
 
 				WindowEdge.Edges(parser, found, method, WindowEdge.Show([input]), input.Length, whole,
-					() => parser.Call(method, typeof(TextReader), new StringReader(input)), one => Unplaced(name, one));
+					() => parser.Call(method, typeof(TextReader), new StringReader(input)));
 			}
 		}
 
@@ -394,16 +393,6 @@ public sealed class WindowEdgeTests
 		Assert.True(parser.Files > 1, "the code was not split");
 		Assert.True(examined > 0);
 		Assert.Empty(unflagged);
-	}
-
-	/// <summary>
-	/// What a reading of <c>Located</c> said, without the places its values were told: a streamed form
-	/// tells them where they stand in the window, not in the input, which is a defect of its own and not
-	/// the window's end this class holds.
-	/// </summary>
-	static string Unplaced(string name, string said)
-	{
-		return name == "Located" ? Regex.Replace(said, @"\bAt=\d+", "At=?") : said;
 	}
 
 	/// <summary>Inputs that read and inputs that are refused, of each snapshot's streamed forms.</summary>

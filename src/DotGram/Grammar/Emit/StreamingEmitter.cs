@@ -52,9 +52,10 @@ public static partial class CSharpEmitter
 	/// </param>
 	/// <param name="machine">What reads the rule: <c>methods</c> or <c>engine</c>.</param>
 	/// <param name="built">The type of the value the rule builds, where it builds one.</param>
+	/// <param name="places">Whether the machine is told where the window begins (<see cref="Places"/>).</param>
 	static void EmitStreamingFind(
 		Writer file, ResultTypes results, Publication publication, string method, string name,
-		string match, string hands, bool builds, string takes,
+		string match, string hands, bool builds, string takes, bool places,
 		TraceTables? tracing = null, string machine = "engine", string? built = null)
 	{
 		var recognized = builds ? "recognized" : "window.Text(start, end - start)";
@@ -86,7 +87,7 @@ public static partial class CSharpEmitter
 
 			using (file.Block("while (true)"))
 			{
-				file.Line($"var failure = new {FailureType}();");
+				file.Line($"var failure = {WindowFailure(places)};");
 				file.Line();
 
 				if (tracing is null)
@@ -509,7 +510,7 @@ public static partial class CSharpEmitter
 
 				using (file.Block("while (true)"))
 				{
-					file.Line($"failure{i} = new {FailureType}();");
+					file.Line($"failure{i} = {WindowFailure(Places(graph))};");
 
 					if (tracing is null)
 						file.Line($"end{i}     = {method}(window.Span(), start, {hands});");
@@ -848,13 +849,41 @@ public static partial class CSharpEmitter
 	}
 
 	/// <summary>Whether anything in this grammar reads through a window.</summary>
-	static bool Streaming(RecognitionGraph graph, bool overKinds = false)
+	internal static bool Streaming(RecognitionGraph graph, bool overKinds = false)
 	{
 		foreach (var publication in graph.Publications)
 			if (Streams(graph, publication, overKinds))
 				return true;
 
 		return false;
+	}
+
+	/// <summary>
+	/// Whether a reading through a window tells the machine where what the window holds begins in
+	/// the input: where a value is told the range it was read over (<c>LocationType</c>), or where
+	/// the marks over it were placed (<c>parserMarks</c>), those are places in the input, and the
+	/// window has let go of what came before it.
+	/// </summary>
+	/// <remarks>
+	/// Carried on the failure, which every recognizer is handed already (<c>Failure.Origin</c>):
+	/// the reading writes it where it hands the machine the window, the engine keeps it on its
+	/// parser, and the walk that builds the values adds it to every place it tells. A grammar that
+	/// locates nothing, or is read through no window, carries none of it.
+	/// </remarks>
+	internal static bool Places(RecognitionGraph graph, bool overKinds = false)
+	{
+		return !overKinds && (graph.Located.Count > 0 || Machine.NamesMarks(graph)) && Streaming(graph, overKinds);
+	}
+
+	/// <summary>
+	/// A failure for a reading of what the window holds, told where the window begins where the
+	/// grammar locates its values (<see cref="Places"/>).
+	/// </summary>
+	static string WindowFailure(bool places)
+	{
+		return places
+			? $"new {FailureType} {{ Origin = unchecked((int)window.Offset) }}"
+			: $"new {FailureType}()";
 	}
 
 	/// <summary>

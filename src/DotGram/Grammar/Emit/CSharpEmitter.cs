@@ -615,7 +615,8 @@ public static partial class CSharpEmitter
 						// A refused input read again for its message is read with nothing asked of its
 						// value, which a reader that builds as it reads acts on (Machine.ReplaysUnasked).
 						compiled.Machine.ReplaysUnasked,
-						TrimsWhole(graph, publication, overKinds));
+						TrimsWhole(graph, publication, overKinds),
+						compiled.Machine.Places);
 
 					file.Line();
 				}
@@ -960,6 +961,8 @@ public static partial class CSharpEmitter
 				// Where a whole reading's value ended, for one whose value is its rule's extent: the
 				// entry writes it before the trivia after the rule (Machine.TrimsWhole).
 				ended: RecordsEnded(machines),
+				// Where what a window holds begins in the input, for the values a streamed reading locates.
+				origin: Places(graph, overKinds),
 				trace: tracing is not null));
 			file.Line();
 
@@ -1170,7 +1173,8 @@ public static partial class CSharpEmitter
 				tables,
 				Locating(graph) || Wording(graph),
 				machines.Exists(static compiled => !compiled.Flat && !compiled.Direct && compiled.Machine.KeepsExpectations),
-				machines.Exists(static compiled => !compiled.Flat && !compiled.Direct && compiled.Machine.KeepsTurns)));
+				machines.Exists(static compiled => !compiled.Flat && !compiled.Direct && compiled.Machine.KeepsTurns),
+				machines.Exists(static compiled => !compiled.Flat && !compiled.Direct && compiled.Machine.Places)));
 
 		// What is said about the carrier, said here: which carrier a machine took is settled by what
 		// it turned out to hold, and nothing before the readers are written knows.
@@ -1839,7 +1843,7 @@ public static partial class CSharpEmitter
 		int? reading = null, bool direct = false, ICollection<GramDiagnostic>? diagnostics = null,
 		MachineTag? tag = null, bool quietFirst = false, bool rewinds = false, bool leads = false, bool bare = false,
 		bool? locating = null, TraceTables? tracing = null, string machine = "methods", bool inert = false,
-		bool unasked = false, bool trims = false)
+		bool unasked = false, bool trims = false, bool places = false)
 	{
 		// The grammar's own state (§7.7), where anything in this machine names it. The
 		// caller makes one and hands it over; a grammar that declares none, or declares one
@@ -2049,7 +2053,7 @@ public static partial class CSharpEmitter
 				file.Line();
 
 				EmitStreamingFind(
-					file, results, publication, method, name, match, streamedHands, built is not null, takes, tracing, machine, built);
+					file, results, publication, method, name, match, streamedHands, built is not null, takes, places, tracing, machine, built);
 			}
 
 			return;
