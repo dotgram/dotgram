@@ -128,7 +128,6 @@ then quietly mean nothing.
 | a base or an include in a referenced assembly, read from its `[GramSource]` §6.7 | — | — | — | ✓ | ✓ |
 | `[GramOptions(Suffix = "…")]`, a second reading of one grammar §6.6 | — | — | — | ✓ | ✓ |
 | a rule's own refusal message, `on fail "…"`, in every reading §4/§7.5 | ✓ | ✓ | ✓ | ✓ | ✓ |
-| the same in the backtracking engine (`Direct = false`): not yet, the refusal names what was expected instead; values are the same | ✓ | ✓ | ✓ | — | — |
 | `internal parse`, `private find` §6 | ✓ | — | — | ✓ | ✓ |
 | `TryParseR(input, at)` and `TryParseR(input, at, length)` §6.3 | — | — | — | ✓ | ✓ |
 | `bool TryParseR(input, out R value)`, the quiet form §6/§6.1 | — | — | — | ✓ | ✓ |

@@ -443,44 +443,76 @@ public sealed class GeneratedCompileTests
 	}
 
 	/// <summary>
-	/// What a refusal says is the same over a string, a reader and a stream: a rule's own <c>on fail</c>
-	/// where it refused at its first character (§7.5), on the engine as in a method, and nothing a
-	/// negative lookahead's body wanted.
+	/// What a parse answers is the same over a string, a reader and a stream of bytes, by methods and on
+	/// the engine: the outcome, the position, the value and what the refusal says — a rule's own
+	/// <c>on fail</c> where it was entered and read nothing (§7.5), and nothing a negative lookahead's body
+	/// wanted. A rule that says its own refusal is entered on the engine rather than inlined, and every
+	/// analysis that asks whether a call is inlined is told so: a lookahead, a repetition or an atomic
+	/// group around it goes on where it did, where its failure was sent through the engine's own.
+	/// Two shapes are held to the outcome and the position only: a rule with <c>on fail</c> refused at
+	/// its first character where another alternative, or what follows a repetition of it, refuses at
+	/// the same place. The engine says the rule's sentence there, as §7.5 has it; the methods and the
+	/// reader say what was expected.
 	/// </summary>
 	[Theory]
-	[InlineData("Inner on fail \"Expected an inner.\" = 'a' | 'b' & 'c'\nStart = Inner & Inner & eof\nparse Start stream", "", "a", "x", "ab", "bx")]
-	[InlineData("Inner on fail \"Expected an inner.\" = \"ab\" | \"a\"\nStart = Inner & Inner & eof\nparse Start stream", "", "a", "x", "ab", "abx")]
-	[InlineData("Inner on fail \"Expected an inner.\" = ['0'..'9']+\nStart = Inner & ',' & Inner & eof\nparse Start stream", "", "1,", "x")]
-	[InlineData("R = 'a' & ?!({ eol }) & ('a')? & eof\nparse R stream", "ab", "a\n", "a", "")]
-	public void A_refusal_says_the_same_in_every_form(string grammar, params string[] inputs)
+	[InlineData("Inner on fail \"Expected an inner.\" = 'a' | 'b' & 'c'\nStart = Inner & Inner & eof", true, "", "a", "x", "ab", "bx", "aa")]
+	[InlineData("Inner on fail \"Expected an inner.\" = \"ab\" | \"a\"\nStart = Inner & Inner & eof", true, "", "a", "x", "ab", "abx", "aab")]
+	[InlineData("Inner on fail \"Expected an inner.\" = ['0'..'9']+\nStart = Inner & ',' & Inner & eof", true, "", "1,", "x", "1,2")]
+	[InlineData("Start = 'a' & ?!({ eol }) & ('a')? & eof", true, "ab", "a\n", "a", "")]
+	[InlineData("Inner on fail \"Expected inner.\" = \"ab\"\nStart = ?!Inner & any* & eof", true, "x", "ab", "abx", "", "a")]
+	[InlineData("Inner on fail \"Expected inner.\" = \"ab\"\nStart = ?=Inner & any* & eof", true, "ac", "ab", "abx", "", "x")]
+	[InlineData("Inner on fail \"Expected inner.\" = \"ab\"\nStart = { Inner | \"ac\" } & eof", false, "ac", "ab", "ax", "", "abc")]
+	[InlineData("Inner on fail \"Expected inner.\" = 'a'\nStart = Inner* & 'b' & eof", false, "ab", "b", "aab", "x", "")]
+	[InlineData("Start on fail \"Expected start.\" = 'a' & when @(true)", true, "x", "a", "", "ab")]
+	[InlineData("Inner : @int on fail \"Expected inner.\" = t: ['a'..'z']+ => @(t.Length)\nStart : @int = i: Inner & '!' => @(i)", true, "!", "ab!", "ab", "")]
+	[InlineData("Inner on fail \"Expected inner.\" = ['0'..'9']+\nOuter = Inner & '!'\nStart = Outer & eof", true, "x", "1!", "1x", "")]
+	public void A_parse_answers_the_same_in_every_form(string grammar, bool messages, params string[] inputs)
 	{
-		var method = grammar.Contains("parse Start", StringComparison.Ordinal) ? "TryParseStart" : "TryParseR";
+		var said = new System.Collections.Generic.Dictionary<string, (string Form, string Answer)>();
 
 		foreach (var direct in new[] { true, false })
 		{
-			var parser = Built(grammar, Host, direct);
-			var type   = parser.GetType("Grammar")!;
+			var type = Build(Compiled(grammar + "\nparse Start stream", Host, direct, bytes: true), Host).GetType("Grammar")!;
 
 			foreach (var input in inputs)
 			{
-				var over   = Said(type.GetMethod(method, [typeof(string)])!.Invoke(null, [input])!);
-				var reader = Said(type.GetMethods().Single(one => one.Name == method && one.GetParameters()[0].ParameterType == typeof(TextReader))
-					.Invoke(null, [new StringReader(input), null, null])!);
+				foreach (var (form, argument) in new (string, object)[]
+				{
+					("string", input),
+					("reader", new StringReader(input)),
+					("stream", new MemoryStream(Encoding.ASCII.GetBytes(input))),
+				})
+				{
+					var method = argument is string
+						? type.GetMethod("TryParseStart", [typeof(string)])!
+						: type.GetMethods().Single(one => one.Name == "TryParseStart" && one.GetParameters()[0].ParameterType == (argument is TextReader ? typeof(TextReader) : typeof(Stream)));
+					var answer = Answer(method.Invoke(null, argument is string ? [argument] : [argument, null, null])!);
+					var here   = $"{form}, direct {direct}";
 
-				Assert.True(over == reader, $"direct {direct}, \"{input}\": string {over}, reader {reader}");
+					if (!messages)
+						answer = answer.Split(' ')[0] + " " + answer.Split(' ')[1];
 
-				if (input == "" && grammar.Contains("on fail", StringComparison.Ordinal))
-					Assert.Contains("Expected an inner.", over, StringComparison.Ordinal);
+					if (said.TryGetValue(input, out var first))
+						Assert.True(first.Answer == answer, $"\"{input}\": {first.Form} {first.Answer}, {here} {answer}");
+					else
+						said[input] = (here, answer);
+				}
 			}
 		}
 
-		static string Said(object match)
+		if (messages && grammar.Contains("on fail", StringComparison.Ordinal) && !grammar.Contains("?", StringComparison.Ordinal))
+			Assert.Contains(said.Values, static one => one.Answer.Contains("Expected inner", StringComparison.Ordinal) || one.Answer.Contains("Expected an inner", StringComparison.Ordinal) || one.Answer.Contains("Expected start", StringComparison.Ordinal));
+
+		static string Answer(object match)
 		{
-			return $"{match.GetType().GetProperty("IsSuccess")!.GetValue(match)} {match.GetType().GetProperty("Position")!.GetValue(match)} {match.GetType().GetProperty("Error")!.GetValue(match)}";
+			var success = (bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!;
+			var value   = success ? match.GetType().GetProperty("Value")!.GetValue(match) : null;
+
+			return $"{success} {match.GetType().GetProperty("Position")!.GetValue(match)} {match.GetType().GetProperty("Error")!.GetValue(match)} {(value is byte[] bytes ? Encoding.ASCII.GetString(bytes) : value)}";
 		}
 	}
 
-	static GramCompilation Compiled(string grammar, string members, bool direct, bool lexical = false, bool spans = false, CarrierKind carrier = CarrierKind.Auto)
+	static GramCompilation Compiled(string grammar, string members, bool direct, bool lexical = false, bool spans = false, CarrierKind carrier = CarrierKind.Auto, bool bytes = false)
 	{
 		var host = CSharpCompilation.Create(
 			"Host",
@@ -496,6 +528,7 @@ public sealed class GeneratedCompileTests
 			Lexical        = lexical,
 			SpanCaptures   = spans,
 			Carrier        = carrier,
+			BufferedBytes  = bytes,
 		});
 	}
 
