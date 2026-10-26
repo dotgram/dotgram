@@ -3209,7 +3209,9 @@ say whether `M` is the second row or the third, since the notation is the same e
 The host is asked whether `M` has an `out T` recognizer overload with either input form,
 looked for where the generated call is bound — in the class the grammar is attached to,
 around it, in what it derives from, in the class of a grammar it includes, or in a class a
-`global using static` imports — and not in a class the call cannot reach. Finding one hands the rule-shaped identity a value-producing call needs; finding none
+`global using static` imports — as C# itself binds the call where the generated code
+stands: the host's own method of the name hides an imported one, and an import brings in
+neither what a class inherits nor its extension methods. Finding one hands the rule-shaped identity a value-producing call needs; finding none
 leaves bare `@M` the second row. More than one such overload with a different `T` is a
 tie, reported rather than guessed at, the same as an ambiguous constructor (§7.3).
 

@@ -36,7 +36,9 @@ public sealed class RoslynSymbolResolver(
 
 	readonly Dictionary<string, ITypeSymbol?> _values = new(StringComparer.Ordinal);
 
-	List<INamedTypeSymbol>? _globalStatics;
+	(RoslynSymbolResolver Site, SemanticModel Model, int Position, INamedTypeSymbol Host)? _callSite;
+
+	bool _callSiteMade;
 
 	public bool TypeExists(string qualifiedName)
 	{
@@ -251,30 +253,38 @@ public sealed class RoslynSymbolResolver(
 	/// callable as a public one — the same reasoning <see cref="TypeNamed"/> already gives
 	/// a nested result type.
 	/// <para>
-	/// Looked for only where the generated call is bound (<see cref="Reached"/>), as
-	/// <see cref="ResolveExternalMethod"/> looks: a method of the same name in a class the
-	/// call cannot reach is not one it calls, so it neither makes the host's own ambiguous
-	/// nor makes a host's text recognizer look like a value one, whose call would then pass an
-	/// <c>out</c> the host's method does not take. Without a host to look from, the source of
-	/// the whole compilation is looked through.
+	/// Looked for only among the methods a call written where the generated one stands binds
+	/// to (<see cref="CallSite"/>), as <see cref="ResolveExternalMethod"/> looks: a method of the
+	/// same name the call does not bind to is not one it calls, so it neither makes the host's
+	/// own ambiguous nor makes a host's text recognizer look like a value one, whose call would
+	/// then pass an <c>out</c> the host's method does not take. Without a host to look from, the
+	/// source of the whole compilation is looked through.
 	/// </para>
 	/// </remarks>
 	public ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType)
 	{
+		if (CallSite() is var (site, model, position, host))
+			return site.ValueAmong(model.LookupSymbols(position, name: methodName), host, against, out valueType);
+
+		return ValueAmong(
+			_compilation.GetSymbolsWithName(methodName, SymbolFilter.Member),
+			(ISymbol?)(_host is not null ? _compilation.GetTypeByMetadataName(_host) : null) ?? _compilation.Assembly,
+			against,
+			out valueType);
+	}
+
+	/// <summary>What the value recognizers among <paramref name="candidates"/> hand back, read in this resolver's compilation.</summary>
+	ExternalValueResolution ValueAmong(IEnumerable<ISymbol> candidates, ISymbol within, string? against, out string? valueType)
+	{
 		valueType = null;
 
-		var types      = new List<ITypeSymbol>();
-		var reached    = _host is not null ? _compilation.GetTypeByMetadataName(_host) : null;
-		var host       = (ISymbol?)reached ?? _compilation.Assembly;
-		var candidates = reached is not null
-			? Reached(reached).SelectMany(type => type.GetMembers(methodName))
-			: _compilation.GetSymbolsWithName(methodName, SymbolFilter.Member);
+		var types = new List<ITypeSymbol>();
 
 		foreach (var symbol in candidates)
 		{
 			if (symbol is not IMethodSymbol method || !Recognizes(method) ||
 				method.Parameters.Length < 3 || method.Parameters[2].RefKind != RefKind.Out ||
-				!_compilation.IsSymbolAccessibleWithin(method, host))
+				!_compilation.IsSymbolAccessibleWithin(method, within))
 			{
 				continue;
 			}
@@ -336,15 +346,12 @@ public sealed class RoslynSymbolResolver(
 
 		var named = false;
 
-		foreach (var type in Reached(host))
-			foreach (var member in type.GetMembers(methodName))
+		if (CallSite() is var (site, model, position, called))
+			foreach (var method in model.LookupSymbols(position, name: methodName).OfType<IMethodSymbol>())
 			{
-				if (member is not IMethodSymbol method)
-					continue;
-
 				named = true;
 
-				if (Callable(method, host, role))
+				if (site.Callable(method, called, role))
 					return RecognitionForm(method, role);
 			}
 
@@ -362,76 +369,105 @@ public sealed class RoslynSymbolResolver(
 		return named ? ExternalMethodResolution.NoOverload : ExternalMethodResolution.NoMethod;
 	}
 
-	/// <summary>The classes a simple name in a call written inside the host is bound in.</summary>
+	/// <summary>
+	/// Where the generated call stands, for the compiler to say what a simple name there binds
+	/// to: a compilation with one more file in it, written as the generated file is, and a place
+	/// in the host's body in that file. Null where there is no host in source to write it in.
+	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// What C# name lookup sees at the call, which is in the generated file: the host and the
-	/// classes around it, the classes the generated file imports statically, and every
-	/// <c>global using static</c> of the compilation, which reaches every file of it — written
-	/// by hand or by the project's <c>&lt;Using Static="true"/&gt;</c>, in a file with a file-scoped
-	/// namespace or without one.
+	/// The compiler is asked rather than its lookup written again here, because the rules are
+	/// many and each one written by hand was a way to call a method C# would not. The host and
+	/// the classes around it first, with what they inherit, and a class that has a method of the
+	/// name stops the search there; then what the file imports statically — the hosts of the
+	/// included grammars, as the generated file says, and every <c>global using static</c> of
+	/// the compilation — of which only what each class declares itself is imported, and no
+	/// extension method. A <c>using static</c> without <c>global</c> in the host's own file is not
+	/// in the generated one, and is not seen.
 	/// </para>
 	/// <para>
-	/// Nothing else reaches it. A <c>using static</c> without <c>global</c> imports into its own
-	/// file, not the generated one, and an alias names a type for a qualified name, not a
-	/// method for a simple one; a method reached only that way is not callable from the
-	/// generated file whichever way it is asked about.
+	/// Made once per resolver. The file is never emitted: the compilation it is added to is a copy,
+	/// read and dropped, and what it answers is a method's shape and a type's name, which mean the
+	/// same in the compilation the parser is generated into.
 	/// </para>
 	/// </remarks>
-	IEnumerable<INamedTypeSymbol> Reached(INamedTypeSymbol host)
+	(RoslynSymbolResolver Site, SemanticModel Model, int Position, INamedTypeSymbol Host)? CallSite()
 	{
-		var roots = new List<INamedTypeSymbol>();
+		if (_callSiteMade)
+			return _callSite;
 
-		for (var around = host; around is not null; around = around.ContainingType)
-			roots.Add(around);
+		_callSiteMade = true;
 
-		foreach (var name in _statics)
-			if (TypeNamed(name) is { } imported)
-				roots.Add(imported);
-
-		roots.AddRange(GlobalStatics());
-
-		foreach (var root in roots)
-			for (var type = root; type is not null; type = type.BaseType)
-				yield return type;
-	}
-
-	/// <summary>The classes every <c>global using static</c> of the compilation names.</summary>
-	/// <remarks>
-	/// Read once per resolver: a global using stands at the top of a file, so only the using
-	/// directives of each file are looked at, and a semantic model is made only for a file that
-	/// has one.
-	/// </remarks>
-	List<INamedTypeSymbol> GlobalStatics()
-	{
-		if (_globalStatics is { } known)
-			return known;
-
-		var found = new List<INamedTypeSymbol>();
-
-		foreach (var tree in _compilation.SyntaxTrees)
+		if (_host is null || _compilation.GetTypeByMetadataName(_host) is not { } host ||
+			host.DeclaringSyntaxReferences.Length == 0)
 		{
-			if (tree.GetRoot() is not CompilationUnitSyntax unit)
-				continue;
-
-			SemanticModel? model = null;
-
-			foreach (var directive in unit.Usings)
-			{
-				if (directive.GlobalKeyword.IsKind(SyntaxKind.None) || directive.StaticKeyword.IsKind(SyntaxKind.None))
-					continue;
-
-				model ??= _compilation.GetSemanticModel(tree);
-
-				if (model.GetSymbolInfo(directive.NamespaceOrType).Symbol is INamedTypeSymbol imported &&
-					!found.Contains(imported, SymbolEqualityComparer.Default))
-				{
-					found.Add(imported);
-				}
-			}
+			return null;
 		}
 
-		return _globalStatics = found;
+		const string probe = "DotGram_CallSite";
+
+		var text = new System.Text.StringBuilder();
+
+		foreach (var import in _statics)
+			text.Append("using static ").Append(import).Append(";\n");
+
+		var closing = 0;
+
+		if (!host.ContainingNamespace.IsGlobalNamespace)
+		{
+			text.Append("namespace ").Append(Qualified(host.ContainingNamespace)).Append(" {\n");
+			closing++;
+		}
+
+		var chain = new List<INamedTypeSymbol>();
+
+		for (var around = host; around is not null; around = around.ContainingType)
+			chain.Insert(0, around);
+
+		foreach (var type in chain)
+		{
+			var kind = type.TypeKind switch
+			{
+				TypeKind.Struct    => type.IsRecord ? "record struct" : "struct",
+				TypeKind.Interface => "interface",
+				_                  => type.IsRecord ? "record" : "class",
+			};
+
+			text.Append("partial ").Append(kind).Append(' ').Append(Identifier(type.Name));
+
+			if (type.TypeParameters.Length > 0)
+				text.Append('<').Append(string.Join(", ", type.TypeParameters.Select(parameter => Identifier(parameter.Name)))).Append('>');
+
+			text.Append(" {\n");
+			closing++;
+		}
+
+		text.Append("static void ").Append(probe).Append("() { ");
+
+		var position = text.Length;
+
+		text.Append("return; }\n").Append('}', closing);
+
+		var options = _compilation.SyntaxTrees.FirstOrDefault()?.Options as CSharpParseOptions;
+		var tree    = CSharpSyntaxTree.ParseText(text.ToString(), options);
+		var copy    = _compilation.AddSyntaxTrees(tree);
+
+		if (copy.GetTypeByMetadataName(_host) is not { } copied)
+			return null;
+
+		return _callSite = (new RoslynSymbolResolver(copy, _host, _statics), copy.GetSemanticModel(tree), position, copied);
+
+		static string Identifier(string name)
+		{
+			return SyntaxFacts.GetKeywordKind(name) == SyntaxKind.None ? name : "@" + name;
+		}
+
+		static string Qualified(INamespaceSymbol space)
+		{
+			return space.ContainingNamespace is { IsGlobalNamespace: false } outer
+				? Qualified(outer) + "." + Identifier(space.Name)
+				: Identifier(space.Name);
+		}
 	}
 
 	/// <summary>Whether a method can be called in a role from where the host is.</summary>
