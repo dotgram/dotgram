@@ -162,6 +162,9 @@ public static partial class CSharpEmitter
 	static readonly string[] Openings =
 	[
 		"static int ", "static bool ", "static void ", "static string ",
+		// The lexer's and the expectation tables' own: a header not listed is a body counted
+		// into the method before it, and the warning named that method.
+		"static Tokens_DotGram ", "static string[] ",
 		"internal static int ", "internal static bool ", "internal static void ",
 		"public static ", "private static ",
 		// The reader's members, and the reader's own constructor.
@@ -3208,6 +3211,7 @@ file.Line("return spare;");
 					{
 						using (file.Block("if (!through)"))
 						{
+							file.Line(Past);
 							file.Line("tokens.Count   = count;");
 							file.Line("tokens.Stopped = p;");
 							file.Line();
@@ -3580,6 +3584,7 @@ file.Line("return spare;");
 
 					using (file.Block("else if (!through)"))
 					{
+						file.Line(Past);
 						file.Line("tokens.Count   = count;");
 						file.Line("tokens.Stopped = p;");
 						file.Line();
@@ -3617,6 +3622,7 @@ file.Line("return spare;");
 			}
 
 			file.Line();
+			file.Line(Past);
 			file.Line("tokens.Count   = count;");
 			file.Line("tokens.Stopped = stopped;");
 			file.Line();
@@ -6337,6 +6343,14 @@ file.Line("return spare;");
 	/// it is not a parameter of the wrapper, and is passed as <c>out _</c>.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// Where the place past the last token is written: the position the cutting stopped at, in the
+	/// slot after the last token's. The arrays are pooled and sized from a guess, so that slot held
+	/// nothing in a fresh buffer and a start of an earlier, longer parse in a reused one, and a run of
+	/// no tokens after the last one (a <c>SourceSpan</c> of none, a recovery's position) read it.
+	/// </summary>
+	const string Past = "tokens.Grow(count); tokens.Starts[count] = p;";
+
 	internal static string HostCall(string method, params (string Type, string Mode)[] parameters)
 	{
 		if (_hostCalls is not { } calls || _hostCallKeys is not { } keys)

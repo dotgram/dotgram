@@ -2266,19 +2266,19 @@ alternatives that fail at one place | immediate over tokens | "a ( 1 )" | accept
 alternatives that fail at one place | immediate over tokens | "a ( 12)" | accepted
 alternatives that fail at one place | immediate over tokens | "a ( 12 )!" | NoMatch at 8: Expected end of input.
 alternatives that fail at one place | immediate over tokens | "a ( 12 ))" | NoMatch at 8: Expected end of input.
-a rule that says what it is | engine | "" | Starved at 0: Expected ['a'..'z'].
+a rule that says what it is | engine | "" | Starved at 0: Expected a name.
 a rule that says what it is | engine | "a" | Starved at 1: Expected ','.
 a rule that says what it is | engine | "a " | Starved at 2: Expected ','.
-a rule that says what it is | engine | "a ," | Starved at 3: Expected ['a'..'z'].
-a rule that says what it is | engine | "a , " | Starved at 4: Expected ['a'..'z'].
-a rule that says what it is | engine | " , b" | NoMatch at 1: Expected ['a'..'z'].
+a rule that says what it is | engine | "a ," | Starved at 3: Expected a name.
+a rule that says what it is | engine | "a , " | Starved at 4: Expected a name.
+a rule that says what it is | engine | " , b" | NoMatch at 1: Expected a name.
 a rule that says what it is | engine | "a, b" | accepted
 a rule that says what it is | engine | "a  b" | NoMatch at 3: Expected ','.
 a rule that says what it is | engine | "a ,b" | accepted
 a rule that says what it is | engine | "a , b!" | NoMatch at 5: Expected end of input.
 a rule that says what it is | engine | "a , bb" | accepted
 a rule that says what it is | engine | "ab" | Starved at 2: Expected ','.
-a rule that says what it is | engine | "ab," | Starved at 3: Expected ['a'..'z'].
+a rule that says what it is | engine | "ab," | Starved at 3: Expected a name.
 a rule that says what it is | engine | "ab,c" | accepted
 a rule that says what it is | engine | "b,cd" | accepted
 a rule that says what it is | engine | "a,cd" | accepted
@@ -2286,19 +2286,19 @@ a rule that says what it is | engine | "abcd" | Starved at 4: Expected ','.
 a rule that says what it is | engine | "ab,d" | accepted
 a rule that says what it is | engine | "ab,cd!" | NoMatch at 5: Expected end of input.
 a rule that says what it is | engine | "ab,cdd" | accepted
-a rule that says what it is | tape | "" | Starved at 0: Expected ['a'..'z'].
+a rule that says what it is | tape | "" | Starved at 0: Expected a name.
 a rule that says what it is | tape | "a" | Starved at 1: Expected ','.
 a rule that says what it is | tape | "a " | Starved at 2: Expected ','.
-a rule that says what it is | tape | "a ," | Starved at 3: Expected ['a'..'z'].
-a rule that says what it is | tape | "a , " | Starved at 4: Expected ['a'..'z'].
-a rule that says what it is | tape | " , b" | NoMatch at 1: Expected ['a'..'z'].
+a rule that says what it is | tape | "a ," | Starved at 3: Expected a name.
+a rule that says what it is | tape | "a , " | Starved at 4: Expected a name.
+a rule that says what it is | tape | " , b" | NoMatch at 1: Expected a name.
 a rule that says what it is | tape | "a, b" | accepted
 a rule that says what it is | tape | "a  b" | NoMatch at 3: Expected ','.
 a rule that says what it is | tape | "a ,b" | accepted
 a rule that says what it is | tape | "a , b!" | NoMatch at 5: Expected end of input.
 a rule that says what it is | tape | "a , bb" | accepted
 a rule that says what it is | tape | "ab" | Starved at 2: Expected ','.
-a rule that says what it is | tape | "ab," | Starved at 3: Expected ['a'..'z'].
+a rule that says what it is | tape | "ab," | Starved at 3: Expected a name.
 a rule that says what it is | tape | "ab,c" | accepted
 a rule that says what it is | tape | "b,cd" | accepted
 a rule that says what it is | tape | "a,cd" | accepted
@@ -2306,19 +2306,19 @@ a rule that says what it is | tape | "abcd" | Starved at 4: Expected ','.
 a rule that says what it is | tape | "ab,d" | accepted
 a rule that says what it is | tape | "ab,cd!" | NoMatch at 5: Expected end of input.
 a rule that says what it is | tape | "ab,cdd" | accepted
-a rule that says what it is | immediate | "" | Starved at 0: Expected ['a'..'z'].
+a rule that says what it is | immediate | "" | Starved at 0: Expected a name.
 a rule that says what it is | immediate | "a" | Starved at 1: Expected ','.
 a rule that says what it is | immediate | "a " | Starved at 2: Expected ','.
-a rule that says what it is | immediate | "a ," | Starved at 3: Expected ['a'..'z'].
-a rule that says what it is | immediate | "a , " | Starved at 4: Expected ['a'..'z'].
-a rule that says what it is | immediate | " , b" | NoMatch at 1: Expected ['a'..'z'].
+a rule that says what it is | immediate | "a ," | Starved at 3: Expected a name.
+a rule that says what it is | immediate | "a , " | Starved at 4: Expected a name.
+a rule that says what it is | immediate | " , b" | NoMatch at 1: Expected a name.
 a rule that says what it is | immediate | "a, b" | accepted
 a rule that says what it is | immediate | "a  b" | NoMatch at 3: Expected ','.
 a rule that says what it is | immediate | "a ,b" | accepted
 a rule that says what it is | immediate | "a , b!" | NoMatch at 5: Expected end of input.
 a rule that says what it is | immediate | "a , bb" | accepted
 a rule that says what it is | immediate | "ab" | Starved at 2: Expected ','.
-a rule that says what it is | immediate | "ab," | Starved at 3: Expected ['a'..'z'].
+a rule that says what it is | immediate | "ab," | Starved at 3: Expected a name.
 a rule that says what it is | immediate | "ab,c" | accepted
 a rule that says what it is | immediate | "b,cd" | accepted
 a rule that says what it is | immediate | "a,cd" | accepted
@@ -2326,19 +2326,19 @@ a rule that says what it is | immediate | "abcd" | Starved at 4: Expected ','.
 a rule that says what it is | immediate | "ab,d" | accepted
 a rule that says what it is | immediate | "ab,cd!" | NoMatch at 5: Expected end of input.
 a rule that says what it is | immediate | "ab,cdd" | accepted
-a rule that says what it is | engine over tokens | "" | Starved at 0: Expected ['a'..'z'].
+a rule that says what it is | engine over tokens | "" | Starved at 0: Expected a name.
 a rule that says what it is | engine over tokens | "a" | Starved at 1: Expected ','.
 a rule that says what it is | engine over tokens | "a " | Starved at 2: Expected ','.
-a rule that says what it is | engine over tokens | "a ," | Starved at 3: Expected ['a'..'z'].
-a rule that says what it is | engine over tokens | "a , " | Starved at 4: Expected ['a'..'z'].
-a rule that says what it is | engine over tokens | " , b" | NoMatch at 1: Expected ['a'..'z'].
+a rule that says what it is | engine over tokens | "a ," | Starved at 3: Expected a name.
+a rule that says what it is | engine over tokens | "a , " | Starved at 4: Expected a name.
+a rule that says what it is | engine over tokens | " , b" | NoMatch at 1: Expected a name.
 a rule that says what it is | engine over tokens | "a, b" | accepted
 a rule that says what it is | engine over tokens | "a  b" | NoMatch at 3: Expected ','.
 a rule that says what it is | engine over tokens | "a ,b" | accepted
 a rule that says what it is | engine over tokens | "a , b!" | NoMatch at 5: Expected end of input.
 a rule that says what it is | engine over tokens | "a , bb" | accepted
 a rule that says what it is | engine over tokens | "ab" | Starved at 2: Expected ','.
-a rule that says what it is | engine over tokens | "ab," | Starved at 3: Expected ['a'..'z'].
+a rule that says what it is | engine over tokens | "ab," | Starved at 3: Expected a name.
 a rule that says what it is | engine over tokens | "ab,c" | accepted
 a rule that says what it is | engine over tokens | "b,cd" | accepted
 a rule that says what it is | engine over tokens | "a,cd" | accepted
@@ -2346,19 +2346,19 @@ a rule that says what it is | engine over tokens | "abcd" | Starved at 4: Expect
 a rule that says what it is | engine over tokens | "ab,d" | accepted
 a rule that says what it is | engine over tokens | "ab,cd!" | NoMatch at 5: Expected end of input.
 a rule that says what it is | engine over tokens | "ab,cdd" | accepted
-a rule that says what it is | tape over tokens | "" | Starved at 0: Expected ['a'..'z'].
+a rule that says what it is | tape over tokens | "" | Starved at 0: Expected a name.
 a rule that says what it is | tape over tokens | "a" | Starved at 1: Expected ','.
 a rule that says what it is | tape over tokens | "a " | Starved at 2: Expected ','.
-a rule that says what it is | tape over tokens | "a ," | Starved at 3: Expected ['a'..'z'].
-a rule that says what it is | tape over tokens | "a , " | Starved at 4: Expected ['a'..'z'].
-a rule that says what it is | tape over tokens | " , b" | NoMatch at 1: Expected ['a'..'z'].
+a rule that says what it is | tape over tokens | "a ," | Starved at 3: Expected a name.
+a rule that says what it is | tape over tokens | "a , " | Starved at 4: Expected a name.
+a rule that says what it is | tape over tokens | " , b" | NoMatch at 1: Expected a name.
 a rule that says what it is | tape over tokens | "a, b" | accepted
 a rule that says what it is | tape over tokens | "a  b" | NoMatch at 3: Expected ','.
 a rule that says what it is | tape over tokens | "a ,b" | accepted
 a rule that says what it is | tape over tokens | "a , b!" | NoMatch at 5: Expected end of input.
 a rule that says what it is | tape over tokens | "a , bb" | accepted
 a rule that says what it is | tape over tokens | "ab" | Starved at 2: Expected ','.
-a rule that says what it is | tape over tokens | "ab," | Starved at 3: Expected ['a'..'z'].
+a rule that says what it is | tape over tokens | "ab," | Starved at 3: Expected a name.
 a rule that says what it is | tape over tokens | "ab,c" | accepted
 a rule that says what it is | tape over tokens | "b,cd" | accepted
 a rule that says what it is | tape over tokens | "a,cd" | accepted
@@ -2366,19 +2366,19 @@ a rule that says what it is | tape over tokens | "abcd" | Starved at 4: Expected
 a rule that says what it is | tape over tokens | "ab,d" | accepted
 a rule that says what it is | tape over tokens | "ab,cd!" | NoMatch at 5: Expected end of input.
 a rule that says what it is | tape over tokens | "ab,cdd" | accepted
-a rule that says what it is | immediate over tokens | "" | Starved at 0: Expected ['a'..'z'].
+a rule that says what it is | immediate over tokens | "" | Starved at 0: Expected a name.
 a rule that says what it is | immediate over tokens | "a" | Starved at 1: Expected ','.
 a rule that says what it is | immediate over tokens | "a " | Starved at 2: Expected ','.
-a rule that says what it is | immediate over tokens | "a ," | Starved at 3: Expected ['a'..'z'].
-a rule that says what it is | immediate over tokens | "a , " | Starved at 4: Expected ['a'..'z'].
-a rule that says what it is | immediate over tokens | " , b" | NoMatch at 1: Expected ['a'..'z'].
+a rule that says what it is | immediate over tokens | "a ," | Starved at 3: Expected a name.
+a rule that says what it is | immediate over tokens | "a , " | Starved at 4: Expected a name.
+a rule that says what it is | immediate over tokens | " , b" | NoMatch at 1: Expected a name.
 a rule that says what it is | immediate over tokens | "a, b" | accepted
 a rule that says what it is | immediate over tokens | "a  b" | NoMatch at 3: Expected ','.
 a rule that says what it is | immediate over tokens | "a ,b" | accepted
 a rule that says what it is | immediate over tokens | "a , b!" | NoMatch at 5: Expected end of input.
 a rule that says what it is | immediate over tokens | "a , bb" | accepted
 a rule that says what it is | immediate over tokens | "ab" | Starved at 2: Expected ','.
-a rule that says what it is | immediate over tokens | "ab," | Starved at 3: Expected ['a'..'z'].
+a rule that says what it is | immediate over tokens | "ab," | Starved at 3: Expected a name.
 a rule that says what it is | immediate over tokens | "ab,c" | accepted
 a rule that says what it is | immediate over tokens | "b,cd" | accepted
 a rule that says what it is | immediate over tokens | "a,cd" | accepted

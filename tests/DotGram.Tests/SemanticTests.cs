@@ -6225,4 +6225,55 @@ public sealed class SemanticTests
 
 		Assert.Equal([grammar.IndexOf("W*", StringComparison.Ordinal), grammar.LastIndexOf("W*", StringComparison.Ordinal)], told);
 	}
+
+	/// <summary>
+	/// A run of no tokens after the last one stands where the cutting stopped. The token arrays are
+	/// pooled and sized from a guess, so the slot after the last token held nothing in a fresh buffer
+	/// and a start of an earlier, longer parse in a reused one, and the span read it: 0, or wherever
+	/// the earlier parse had a token. Where it stops is past the trivia, as over characters.
+	/// </summary>
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void An_empty_run_after_the_last_token_stands_at_the_end(bool warmed)
+	{
+		const string grammar =
+			"""
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				Word = ['a'..'z']+
+			}
+			Tail  : @SourceSpan = Lexical.Word*
+			Start : @int = Lexical.Word & tail: Tail => @(tail.Start * 100 + tail.Length)
+			parse Start
+			""";
+
+		foreach (var lexical in new[] { true, false })
+		{
+			var compiled = GramCompiler.Compile(grammar, new GramCompilerOptions
+			{
+				ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance, Lexical = lexical,
+			});
+
+			Assert.DoesNotContain(compiled.Diagnostics, one => one.Severity == GramSeverity.Error);
+
+			var assembly = EmittedCode.Compile(compiled.Sources[0].Text);
+
+			if (warmed)
+				EmittedCode.Match(assembly, "Grammar", "TryParseStart", "ab cd ef");
+
+			Assert.Equal((true, (object?)200), Read("ab"));
+			Assert.Equal((true, (object?)400), Read("ab  "));
+			Assert.Equal((true, (object?)302), Read("ab cd"));
+
+			(bool, object?) Read(string input)
+			{
+				var (ok, value, _, _) = EmittedCode.Match(assembly, "Grammar", "TryParseStart", input);
+
+				return (ok, value);
+			}
+		}
+	}
 }

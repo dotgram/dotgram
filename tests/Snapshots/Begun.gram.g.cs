@@ -3956,6 +3956,7 @@ namespace DotGram.Snapshots
 					}
 					else if (!through)
 					{
+						tokens.Grow(count); tokens.Starts[count] = p;
 						tokens.Count   = count;
 						tokens.Stopped = p;
 
@@ -3988,6 +3989,7 @@ namespace DotGram.Snapshots
 				p = end;
 			}
 
+			tokens.Grow(count); tokens.Starts[count] = p;
 			tokens.Count   = count;
 			tokens.Stopped = stopped;
 

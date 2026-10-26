@@ -42,7 +42,46 @@ public static partial class CSharpEmitter
 				}
 		}
 
+		// The same, written out: a rule declared a string whose `=>` is a raw capture or the text it
+		// matched and nothing else, `=> @(t)`, hands the span itself back as the string, and nothing
+		// decodes it (§6.3). What the C# makes of a span otherwise is the C#'s to say; this one is
+		// certain, and was CS0029 in the byte form of a grammar every other form compiles.
+		foreach (var rule in rules)
+			if (graph.Types.TryGetValue(rule, out var type) && type is "string" or "System.String" or "global::System.String")
+				foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
+					if (node is Node.Construct(var built, Construction.Expression { Text: var text }) &&
+						Bare(text) is { } name &&
+						(name == "parserText" || RawCapture(built, name, graph)))
+					{
+						return $"'{rule.Name}' builds its string with '=> @({name})', and over bytes '{name}' is a " +
+							"ReadOnlySpan<byte> that nothing decodes; build the string with a method the host declares " +
+							"for each input (one over ReadOnlySpan<byte>, one over the characters)";
+					}
+
 		return null;
+
+		// The one identifier an expression is, its brackets aside.
+		static string? Bare(string text)
+		{
+			var name = text.Trim();
+
+			while (name.Length > 1 && name[0] == '(' && name[name.Length - 1] == ')')
+				name = name.Substring(1, name.Length - 2).Trim();
+
+			return name.Length > 0 && (char.IsLetter(name[0]) || name[0] == '_') && name.All(static one => char.IsLetterOrDigit(one) || one == '_')
+				? name
+				: null;
+		}
+
+		// Whether the name is a capture of text in what was built: of no rule that builds a value.
+		static bool RawCapture(Node built, string name, RecognitionGraph graph)
+		{
+			foreach (var node in NodeWalk.Descendants(built))
+				if (node is Node.Capture(var captured, var body) && captured == name)
+					return CaptureLayout.ValuedCall(body, rule => graph.Results[rule].Count > 0 || graph.Types.ContainsKey(rule)) is null;
+
+			return false;
+		}
 	}
 
 	// One storage algorithm, specialized while generating the source. The resulting

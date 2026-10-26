@@ -3103,4 +3103,19 @@ public sealed class CSharpEmitterTests
 			return false;
 		}
 	}
+
+	/// <summary>
+	/// The methods the emitter writes are each measured as their own for the warning about a method
+	/// the JIT will not optimize: a header it did not know was a body counted into the method before
+	/// it, which the warning then named.
+	/// </summary>
+	[Theory]
+	[InlineData("\tstatic Tokens_DotGram Tokenize_DotGram(string input, int from, int to, bool through)", "Tokenize_DotGram")]
+	[InlineData("\tstatic string[] ExpectedDecoded_DotGram(int id)", "ExpectedDecoded_DotGram")]
+	public void Every_method_the_emitter_writes_is_measured_as_its_own(string line, string name)
+	{
+		var header = typeof(DotGram.Grammar.Emit.CSharpEmitter).GetMethod("MethodHeader", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+		Assert.Equal(name, header.Invoke(null, [line, 0, line.Length]));
+	}
 }

@@ -409,4 +409,21 @@ public sealed class UntilSearchTests
 	{
 		return string.Concat(input.Select(c => c is < ' ' or > '~' ? $"\\u{(int)c:X4}" : c.ToString()));
 	}
+
+	/// <summary>
+	/// Looks that begin with a character already among the stops add no stop: the sixth here begins
+	/// as the first does, and counting it before asking whether it was new gave the search up for a
+	/// loop over one character at a time.
+	/// </summary>
+	[Fact]
+	public void Looks_that_begin_alike_are_searched_for_once()
+	{
+		Build(
+			"""
+			Body  = (?!"ax" & ?!"bx" & ?!"cx" & ?!"dx" & ?!"ex" & ?!"ay" & any)*
+			Start : @int = b: Body & "ay" => @(b.Length)
+			parse Start
+			""",
+			CarrierKind.Auto, direct: true, searches: true);
+	}
 }
