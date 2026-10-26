@@ -1028,7 +1028,9 @@ is about. Over characters a rule earns its own commit only by being written insi
    a build error.
 3. There are captures — they are matched to the result type by name (§7.3).
 4. None of the above — the result is the matched extent: `string` gives the text,
-   `@SourceSpan` gives the bounds. Any other type requires an explicit `=>`.
+   `@SourceSpan` gives the bounds. Any other type requires an explicit `=>`. The extent is
+   the rule's own: the trivia a `parse` reads before and after a published rule is not in
+   it (§6).
 
 ```dotgram
 Feed : FeedItem[] = Header & Row* & Trailer & eof
@@ -2089,6 +2091,18 @@ rule's type, a member written by hand in the class, an external `@M` — is one 
 the generator declares for its own use, which no name of the author's reaches, the mark is left out:
 `Read_Row` is the reader of `Row` there, `ReadBody_Row` and `ReadPart0_Row` its parts.
 
+**A whole parse reads the rule's trivia on either side of it, and the value leaves it out.**
+`parse R` is the whole input an `R`, and where `R` is read with trivia (§4.5) the input may begin
+and end with it: the trivia before the rule's first operand and after its last is the parse's,
+since no operand of the rule stands there to have it woven in. It is not the rule's, so it is not
+in what the rule gives back. A rule whose value is the text it matched (§4.1 case 4) gives the text
+from where it began reading to where it stopped: in a namespace with `trivia = { ' '* }`,
+`Word = ['a'..'z']+` read whole from `"  ab  "` is `"ab"`. The same in every reading of the
+publication — a string, a reader, a stream or bytes, read by methods or by the shared automaton, on
+every carrier, and over tokens (§4), where the lexer has skipped the trivia before the rule ever
+sees it — and the same as a reading that begins where it is told (§6.3). A value the rule builds is
+built from what it read, and so never held any trivia from outside it.
+
 The form that describes a refusal may pay for the description, and whether it does is a property
 of the grammar rather than of the form. Where the parse can read without recording — no
 `context`, or one the parser can put back, and no `recover` — it reads quietly first and reads a
@@ -2518,7 +2532,7 @@ reading that begins where it is told stops where the value ends, which is the ex
 host holding the text is asking for, and the trivia after it is the leading trivia of the
 next reading. `Position` says where the value began, past the trivia the reading started
 on, and `Length` is its own extent: what comes back is the value and neither the trivia
-before it nor the trivia after. What comes back says where the reading began and how far it got, and every
+before it nor the trivia after, as from a whole parse (§6). What comes back says where the reading began and how far it got, and every
 position in it — and in whatever the reading builds — is an offset into `input`, so a host
 reading a piece of a text it holds keeps what those positions mean. `eof` written in a
 rule is still the end of the whole input, and inside a window the end of the window.

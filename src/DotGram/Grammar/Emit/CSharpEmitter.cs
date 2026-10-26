@@ -611,7 +611,8 @@ public static partial class CSharpEmitter
 						tracing is not null && RunsNothingOfTheAuthors(graph),
 						// A refused input read again for its message is read with nothing asked of its
 						// value, which a reader that builds as it reads acts on (Machine.ReplaysUnasked).
-						compiled.Machine.ReplaysUnasked);
+						compiled.Machine.ReplaysUnasked,
+						TrimsWhole(graph, publication, overKinds));
 
 					file.Line();
 				}
@@ -940,6 +941,9 @@ public static partial class CSharpEmitter
 				// Where the value began, for a reading that begins where it is told over characters
 				// (§6.3): the entry writes it past the trivia it started on.
 				began: RecordsBegan(graph, overKinds),
+				// Where a whole reading's value ended, for one whose value is its rule's extent: the
+				// entry writes it before the trivia after the rule (Machine.TrimsWhole).
+				ended: RecordsEnded(graph, overKinds),
 				trace: tracing is not null));
 			file.Line();
 
@@ -1812,7 +1816,7 @@ public static partial class CSharpEmitter
 		int? reading = null, bool direct = false, ICollection<GramDiagnostic>? diagnostics = null,
 		MachineTag? tag = null, bool quietFirst = false, bool rewinds = false, bool leads = false, bool bare = false,
 		bool? locating = null, TraceTables? tracing = null, string machine = "methods", bool inert = false,
-		bool unasked = false)
+		bool unasked = false, bool trims = false)
 	{
 		// The grammar's own state (§7.7), where anything in this machine names it. The
 		// caller makes one and hands it over; a grammar that declares none, or declares one
@@ -1992,6 +1996,11 @@ public static partial class CSharpEmitter
 			overKinds ? $"{(tag ?? MachineTag.None).Named("Text")}(source, starts, lengths, {from}, {to})" :
 			$"input.Substring({from}, {to})";
 		}
+
+		// The value of a whole reading, cut from where the rule began to where it ended: the trivia
+		// before and after it is the parse's, not the value's (§6). Where the value is the rule's
+		// extent and there is trivia around it; the entry wrote both down (Machine.TrimsWhole).
+		var trimmed = Recognized("failure.Began", "failure.Ended - failure.Began");
 
 		// Where the reading begins, which recognizer reads it, and what the match then says
 		// about where it was. Named rather than written inline because the same body writes
@@ -2289,7 +2298,7 @@ public static partial class CSharpEmitter
 				// kinds, characters over characters, and both counted from where the reading began.
 				var cuts = !positional ? "0" : overKinds ? begins : begun;
 
-				file.Line($"value = {Recognized(cuts, positional ? $"end - {cuts}" : "end")};");
+				file.Line($"value = {(!positional && trims ? trimmed : Recognized(cuts, positional ? $"end - {cuts}" : "end"))};");
 
 				// Where the reading stopped, said as the caller says positions: an offset into
 				// the input, which over kinds is the end of the last token it read.
@@ -2673,7 +2682,9 @@ public static partial class CSharpEmitter
 				{
 					// Cut from where the value began and not from the position the caller named: the
 					// trivia before it is the reading's to skip and nobody's to carry (§6.3).
-					file.Line($"return {match}.Success({Recognized(positional ? begun : begins, extent)}, {position}, {extent}{ReadingEnd(positional, windowed)});");
+					var cut = !positional && trims ? trimmed : Recognized(positional ? begun : begins, extent);
+
+					file.Line($"return {match}.Success({cut}, {position}, {extent}{ReadingEnd(positional, windowed)});");
 				}
 			}
 		}
@@ -6090,6 +6101,29 @@ file.Line("return spare;");
 	{
 		return graph.Trivia.Count > 0 && !overKinds &&
 			graph.Publications.Any(one => one.Kind == PublishKind.Parse);
+	}
+
+	/// <summary>
+	/// Whether the failure carries where a whole reading's value ended, before the trivia after
+	/// it: some <c>parse</c> publication reads a rule with trivia whose value is its extent, and
+	/// its entry writes down where the rule began and ended (<c>Machine.TrimsWhole</c>).
+	/// </summary>
+	internal static bool RecordsEnded(RecognitionGraph graph, bool overKinds)
+	{
+		return !overKinds && graph.Publications.Any(one => TrimsWhole(graph, one, overKinds));
+	}
+
+	/// <summary>
+	/// Whether a whole reading of <paramref name="publication"/> cuts its value from between the
+	/// trivia on either side rather than from the whole input: the value is the rule's extent,
+	/// and the trivia is not part of it (§6). The question <c>Machine.TrimsWhole</c> asks of
+	/// the rule, asked of the publication.
+	/// </summary>
+	static bool TrimsWhole(RecognitionGraph graph, Publication publication, bool overKinds)
+	{
+		return !overKinds && publication.Kind == PublishKind.Parse &&
+			graph.Trivia.ContainsKey(publication.Rule) &&
+			!graph.Types.ContainsKey(publication.Rule) && graph.Results[publication.Rule].Count == 0;
 	}
 
 	/// <summary>Whether a recovery sits inside anything <paramref name="only"/> reaches.</summary>

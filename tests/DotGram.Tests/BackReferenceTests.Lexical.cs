@@ -850,12 +850,15 @@ public sealed partial class BackReferenceTests
 	}
 
 	/// <summary>
-	/// Why the rows above compare values only where the input begins with no trivia: a whole parse
-	/// over characters keeps the leading trivia in a text value, and one over tokens does not. The
-	/// same with no binding anywhere, so it is not the bindings' to answer.
+	/// Why the rows above compare values wherever there is trivia around the input too: a whole
+	/// parse leaves the trivia before and after a text value out of it over characters as over
+	/// tokens (§6.3). The same with no binding anywhere, so it is not the bindings' to answer.
 	/// </summary>
-	[Fact]
-	public void LeadingTriviaInAValue()
+	[Theory]
+	[InlineData("  ab")]
+	[InlineData("ab  ")]
+	[InlineData("  ab  ")]
+	public void TriviaAroundAValue(string input)
 	{
 		const string grammar =
 			"""
@@ -869,11 +872,11 @@ public sealed partial class BackReferenceTests
 			parse Root
 			""";
 
-		var over = EmittedCode.Match(Compiled(grammar, CarrierKind.Auto, direct: true), "Grammar", "TryParseRoot", "  ab");
-		var read = EmittedCode.Match(Lexical(grammar, direct: true).Assembly, "Grammar", "TryParseRoot", "  ab");
+		var over = EmittedCode.Match(Compiled(grammar, CarrierKind.Auto, direct: true), "Grammar", "TryParseRoot", input);
+		var read = EmittedCode.Match(Lexical(grammar, direct: true).Assembly, "Grammar", "TryParseRoot", input);
 
 		Assert.True(over.IsSuccess && read.IsSuccess);
-		Assert.Equal("  ab", over.Value);
+		Assert.Equal("ab", over.Value);
 		Assert.Equal("ab", read.Value);
 	}
 
@@ -925,7 +928,7 @@ public sealed partial class BackReferenceTests
 	/// Two readings of one input said the same: the answer and the value, and where it was read,
 	/// the position. The words of a refusal name kinds over tokens and characters over characters,
 	/// so where both refused, a difference in them or in the place is written out, not asserted;
-	/// the value is compared only where the input begins with no trivia (<see cref="LeadingTriviaInAValue"/>).
+	/// the value is compared with trivia around the input as without (<see cref="TriviaAroundAValue"/>).
 	/// </summary>
 	static void Same(
 		string name,
@@ -934,10 +937,8 @@ public sealed partial class BackReferenceTests
 		(bool IsSuccess, object? Value, string? Error, long Position) answer,
 		string how)
 	{
-		var valued = !input.StartsWith(' ');
-
 		Assert.True(
-			(over.IsSuccess, valued ? Spelled(over.Value) : null) == (answer.IsSuccess, valued ? Spelled(answer.Value) : null),
+			(over.IsSuccess, Spelled(over.Value)) == (answer.IsSuccess, Spelled(answer.Value)),
 			$"{name}: \"{Escaped(input)}\"\n  over characters: {over}\n  {how}: {answer}");
 
 		if (over.IsSuccess)

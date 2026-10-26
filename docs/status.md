@@ -912,6 +912,14 @@ emitting it would not collide — and internal is what a public method may not r
 It is emitted into the host class now, where its name is the host's, so it can be both
 public and safe from collision.
 
+A whole parse leaves the trivia it reads around the rule out of a text value (§6), in every
+reading: the entry writes down where the rule began and ended, between the trivia on either
+side, and the value is cut from between the two. One difference between the readings is left.
+Over characters the trivia woven inside the rule before operands at its end that read nothing
+is read by the rule, and stays in the value: `Word & Word?` in a spaced namespace, read whole
+from `ab  `, is `ab  ` over characters and `ab` over tokens, where the value ends with the last
+token. Telling those seams apart would cost every seam of the rule a write while it is read.
+
 ## A lookahead produces what it saw
 
 §3.4 says `?=X` "produces X's value (which can be captured) without moving the input",

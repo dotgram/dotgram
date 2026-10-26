@@ -475,7 +475,11 @@ public static partial class CSharpEmitter
 
 				file.Line(tracing is null ? $"return {failed};" : $"return Rejected_DotGram({failed});");
 			}
-			file.Line($"return {match}.Success({(type is null ? bytes ? "text.Slice(0, end).ToArray()" : "text.Slice(0, end).ToString()" : "value")}, 0, end);");
+			// The value of a rule whose value is its extent is cut from where the rule began to where
+			// it ended, which its entry wrote down: the trivia on either side is not the value's (§6).
+			var cut = TrimsWhole(graph, publication, overKinds: false) ? "failure.Began, failure.Ended - failure.Began" : "0, end";
+
+			file.Line($"return {match}.Success({(type is null ? bytes ? $"text.Slice({cut}).ToArray()" : $"text.Slice({cut}).ToString()" : "value")}, 0, end);");
 		}
 		file.Line($"/// <summary>Parses the whole input as <c>{name}</c>.</summary>");
 		file.Line("/// <exception cref=\"global::System.FormatException\">");

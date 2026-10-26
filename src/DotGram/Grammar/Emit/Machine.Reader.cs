@@ -1773,6 +1773,14 @@ sealed partial class Machine
 			if (!ends && _graph.Trivia.ContainsKey(rule) && CSharpEmitter.RecordsBegan(_graph, OverKinds))
 				reader.MarkLead("failure.Began = p;");
 
+			// A whole input whose value is the rule's extent says where the rule began and where it
+			// ended, between the trivia on either side, which is not the value's (§6).
+			if (ends && TrimsWhole(rule))
+			{
+				reader.MarkLead("failure.Began = p;");
+				reader.MarkTrail("failure.Ended = p;");
+			}
+
 			var body   = _graph.Trivia.TryGetValue(rule, out var seam)
 				? ends
 					? new Node.Sequence([seam, new Node.Call(rule, []), seam])
@@ -2400,6 +2408,13 @@ sealed partial class Machine
 						{
 							code.Line(mark);
 							_leadMark = null;
+						}
+
+						// And where it ends, for a whole input: between the rule and the trivia after it.
+						else if (i == 1 && _trailMark is { } trail)
+						{
+							code.Line(trail);
+							_trailMark = null;
 						}
 
 						_stopAfter = null;
@@ -3680,6 +3695,14 @@ sealed partial class Machine
 		public void MarkLead(string line)
 		{
 			_leadMark = line;
+		}
+
+		/// <summary>The line a whole entry writes between its rule and the trivia after it.</summary>
+		string? _trailMark;
+
+		public void MarkTrail(string line)
+		{
+			_trailMark = line;
 		}
 
 		string? _refuseWith;
