@@ -87,10 +87,11 @@ public sealed class GeneratedShapeTests
 	// ── A recovery the engine never runs ──────────────────────────────────────
 
 	/// <summary>
-	/// A rule that recovers and is reached only through a negative lookahead compiles. The
-	/// lookahead scans the rule rather than running it in states, so no recovering repetition is
-	/// written, and the local its search for a synchronization reads was declared and never read
-	/// (CS0219, a failed build under warnings as errors).
+	/// A rule that recovers and is reached only through a negative lookahead compiles, and
+	/// recovers there as written: a rule plans its own recovery (§8.2). The lookahead once scanned
+	/// the rule rather than running it in states, so no recovering repetition was written, the local
+	/// its search for a synchronization reads was declared and never read (CS0219, a failed build
+	/// under warnings as errors), and the rule was read as a plain repetition.
 	/// </summary>
 	[Theory]
 	[MemberData(nameof(Ways))]
@@ -105,8 +106,11 @@ public sealed class GeneratedShapeTests
 
 		var assembly = Compiled(stop, carrier, direct);
 
-		Assert.Equal(3, EmittedCode.Match(assembly, "Grammar", "TryParseStart", "xyz").Value);
+		// `Stop` steps over `xyz` as a bad element recovered through the end of the input, so it
+		// is there and the negative lookahead refuses; read as a plain `'a'+` it was not.
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "xyz").IsSuccess);
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "aaa").IsSuccess);
+		Assert.Equal(0, EmittedCode.Match(assembly, "Grammar", "TryParseStart", "").Value);
 
 		const string list =
 			"""
