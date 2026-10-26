@@ -769,15 +769,16 @@ public static partial class CSharpEmitter
 
 				// The engine that registered the stages (EmitRecognizers), where one did: its wrapper
 				// of a stage's rule is the one written, under the name worked out the same way there —
-				// the plain one where a publication of the rule other than a whole parse already wrote
-				// it, the machine's own otherwise. The first machine of the publication may be another
-				// (one read by methods), whose names a stage called methods nobody wrote (CS0103).
+				// the plain one where a publication of the rule already wrote it (every one but a whole
+				// parse over segments, which has no positional overload to write it for), the machine's
+				// own otherwise. The first machine of the publication may be another (one read by
+				// methods), whose names a stage called methods nobody wrote (CS0103).
 				var staging = machines.Find(one => !one.Flat && !one.Direct && one.Publications.Contains(publication));
 
 				string Recognizer(RuleSymbol rule)
 				{
 					if (staging is not null)
-						return staging.Publications.Any(one => one.Rule == rule && one.Kind != PublishKind.Parse)
+						return staging.Publications.Any(one => one.Rule == rule && (one.Kind != PublishKind.Parse || !graph.Segmented))
 							? MethodOf(rule)
 							: MethodOf(graph, rule, staging.Machine.Anchor, staging.Tag);
 

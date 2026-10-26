@@ -1208,6 +1208,24 @@ sealed partial class Machine
 		return entered;
 	}
 
+	/// <summary>The sets the engine's calls of rules that say their own refusal say, by the number a call's entry holds.</summary>
+	readonly List<string> _saidOnFail = [];
+
+	/// <summary>The number of the set that says this sentence, which a call's entry holds as <c>-1 - n</c>.</summary>
+	int SaidOnFail(string says)
+	{
+		var said = DeclareExpected([Spoken(says)]);
+		var at   = _saidOnFail.IndexOf(said);
+
+		if (at < 0)
+		{
+			at = _saidOnFail.Count;
+			_saidOnFail.Add(said);
+		}
+
+		return at;
+	}
+
 	/// <summary>The doors <see cref="CompileSaying"/> made, and where each goes on to.</summary>
 	readonly Dictionary<int, int> _saying = [];
 
@@ -2370,6 +2388,12 @@ sealed partial class Machine
 				file.Line("Step_DotGram(\"fail\", state, p, entries.Count, text, \"\");");
 				file.Line();
 
+				// The calls open where the failure was, innermost first: one popped while it is open
+				// refused, and one of a rule that says its own refusal says it where it was entered
+				// and the furthest refusal stands no further (§7.5), as the reader says it at a call.
+				if (_saidOnFail.Count > 0)
+					file.Line("var open = call;");
+
 				using (file.Block("while (entries.Count > 0)"))
 				{
 					file.Line("var last = entries.Count - 1;");
@@ -2378,6 +2402,43 @@ sealed partial class Machine
 						file.Line("parser.Truncate(last, entries);");
 					file.Line("entries.RemoveAt(last);");
 					file.Line();
+
+					if (_saidOnFail.Count > 0)
+					{
+						using (file.Block("if (last == open && entry.Kind == ParserEntry.Call)"))
+						{
+							// Recorded as Fail: records: the furthest refusal, or one tied with it.
+							using (file.Block($"if (entry.Value < 0 && entry.LookaheadIndex < 0{(Quiets ? " && !failure.Quiet" : "")} && failure.Position <= entry.Position)"))
+							{
+								file.Line("string[] said;");
+
+								using (file.Block("switch (-1 - entry.Value)"))
+								{
+									for (var at = 0; at < _saidOnFail.Count; at++)
+									{
+										_expectedUsed.Add(_saidOnFail[at]);
+										file.Line($"case {at}: said = {_saidOnFail[at]}; break;");
+									}
+
+									file.Line($"default: said = {_saidOnFail[0]}; break;");
+								}
+
+								using (file.Block("if (entry.Position > failure.Position)"))
+								{
+									file.Line("failure.Position = entry.Position;");
+									file.Line("failure.Expected = said;");
+									file.Line("failure.ExpectedMore?.Clear();");
+								}
+
+								file.Line("else");
+								file.Then("(failure.ExpectedMore ??= Ties_DotGram()).Add(said);");
+							}
+
+							file.Line("open = entry.CallIndex;");
+						}
+
+						file.Line();
+					}
 
 					using (file.Block("if (entry.Kind == ParserEntry.Choice)"))
 					{
@@ -3454,8 +3515,24 @@ sealed partial class Machine
 							// A refusal comes back negated and carrying how far the scan
 							// reached, so the failure is recorded there rather than where the
 							// rule began — which is all the caller would otherwise know.
-							atScan.Line("p = -1 - scanned;");
-							EmitTerminalFailure(atScan, _fail, arrayName);
+							// On the engine the rule's own `on fail` is said here where the scan refused at
+							// its first character (§7.5); a flat method says it at its door (CompileSaying).
+							if (!_lowering && SaysOf(rule) is { } says)
+							{
+								var said = DeclareExpected([Spoken(says)]);
+
+								atScan.Line("var own = scanned == -1 - p;");
+								atScan.Line("p = -1 - scanned;");
+								_expectedUsed.Add(arrayName);
+								_expectedUsed.Add(said);
+								atScan.Line($"expected = own ? {said} : {arrayName};");
+								atScan.Line($"goto {Label(atScan, _fail)};");
+							}
+							else
+							{
+								atScan.Line("p = -1 - scanned;");
+								EmitTerminalFailure(atScan, _fail, arrayName);
+							}
 						}
 
 						atScan.Line("p = scanned;");
@@ -3469,7 +3546,12 @@ sealed partial class Machine
 					return scanned;
 				}
 
-				if (CanInline(rule))
+				// A rule that says its own refusal (§4's `on fail`) is entered on the engine rather than
+				// inlined, so that its call is an entry `Fail:` pops when the rule refused, and says the
+				// sentence there (SaidOnFail).
+				var saying = _lowering || SaysOf(rule) is not { } spoken ? -1 : SaidOnFail(spoken);
+
+				if (CanInline(rule) && saying < 0)
 				{
 					// The inlined body composes continuations against its own seam. Where
 					// that seam is another namespace's, what this site knows past its own
@@ -3514,7 +3596,7 @@ sealed partial class Machine
 				writer.Line("var callIndex = entries.Count;");
 				writer.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Call, {Resuming(writer, next)}, p, call, atomic, repeat, " +
-					$"lookahead, 0, {ValueRule(rule)}" +
+					$"lookahead, {(saying < 0 ? "0" : (-1 - saying).ToString(System.Globalization.CultureInfo.InvariantCulture))}, {ValueRule(rule)}" +
 					(_graph.Climbing.Count > 0 ? ", power" : "") + "));");
 				if (Tracing is not null)
 					writer.Line($"failure.Trace?.Called(callIndex, call, {Tracing.RuleOf(rule)}, p);");
@@ -7312,7 +7394,9 @@ sealed partial class Machine
 	/// </remarks>
 	void Further(Writer writer, string at, string said)
 	{
-		if (_lowering)
+		// Nor inside a look kept in locals, which records nothing (as ShortOf): what a negative look's
+		// body wanted is not what the input was refused for, and the string form said it nowhere.
+		if (_lowering || _doorLooking > 0)
 			return;
 
 		// The local the walk narrows is not an array of the file's.

@@ -420,6 +420,66 @@ public sealed class GeneratedCompileTests
 		Assert.Equal("2,1", string.Join(",", read.Cast<object>()));
 	}
 
+	/// <summary>
+	/// A rule published and also read in a repetition, on the engine: the streamed reading's stage calls
+	/// the wrapper the engine wrote, the plain one its publication's positional overload has, where
+	/// the stage name had become the machine's own, which nobody wrote (CS0103).
+	/// </summary>
+	[Theory]
+	[InlineData("R0 : @int[] = R1*\nR1 : @int = 'a' & when @(true) => @(1)\nparse R0\nparse R1 as P1", "aa", "1,1")]
+	[InlineData("R0 : @int[] = R1*\nR1 : @int = c0: ['a'..'c'] & ?!(['a'..'c']+) => @(c0.Length)\nparse R0\nparse R1 as P1", "a", "1")]
+	[InlineData("R0 : @int[] = R1+ recover eol\nR1 : @int = 'd' & when @(true) => @(0)\nparse R0\nparse R1 as P1", "dd", "0,0")]
+	public void A_published_rule_read_in_a_streamed_repetition_compiles_on_the_engine(string grammar, string input, string values)
+	{
+		foreach (var direct in new[] { true, false })
+		{
+			var parser = Built(grammar, Host, direct);
+			var type   = parser.GetType("Grammar")!;
+			var read   = (System.Collections.IEnumerable)type.GetMethod("ParseR0", [typeof(TextReader)])!.Invoke(null, [new StringReader(input)])!;
+
+			Assert.Equal(values, string.Join(",", (int[])Read(parser, "TryParseR0", input).Value!));
+			Assert.Equal(values, string.Join(",", read.Cast<object>()));
+		}
+	}
+
+	/// <summary>
+	/// What a refusal says is the same over a string, a reader and a stream: a rule's own <c>on fail</c>
+	/// where it refused at its first character (§7.5), on the engine as in a method, and nothing a
+	/// negative lookahead's body wanted.
+	/// </summary>
+	[Theory]
+	[InlineData("Inner on fail \"Expected an inner.\" = 'a' | 'b' & 'c'\nStart = Inner & Inner & eof\nparse Start stream", "", "a", "x", "ab", "bx")]
+	[InlineData("Inner on fail \"Expected an inner.\" = \"ab\" | \"a\"\nStart = Inner & Inner & eof\nparse Start stream", "", "a", "x", "ab", "abx")]
+	[InlineData("Inner on fail \"Expected an inner.\" = ['0'..'9']+\nStart = Inner & ',' & Inner & eof\nparse Start stream", "", "1,", "x")]
+	[InlineData("R = 'a' & ?!({ eol }) & ('a')? & eof\nparse R stream", "ab", "a\n", "a", "")]
+	public void A_refusal_says_the_same_in_every_form(string grammar, params string[] inputs)
+	{
+		var method = grammar.Contains("parse Start", StringComparison.Ordinal) ? "TryParseStart" : "TryParseR";
+
+		foreach (var direct in new[] { true, false })
+		{
+			var parser = Built(grammar, Host, direct);
+			var type   = parser.GetType("Grammar")!;
+
+			foreach (var input in inputs)
+			{
+				var over   = Said(type.GetMethod(method, [typeof(string)])!.Invoke(null, [input])!);
+				var reader = Said(type.GetMethods().Single(one => one.Name == method && one.GetParameters()[0].ParameterType == typeof(TextReader))
+					.Invoke(null, [new StringReader(input), null, null])!);
+
+				Assert.True(over == reader, $"direct {direct}, \"{input}\": string {over}, reader {reader}");
+
+				if (input == "" && grammar.Contains("on fail", StringComparison.Ordinal))
+					Assert.Contains("Expected an inner.", over, StringComparison.Ordinal);
+			}
+		}
+
+		static string Said(object match)
+		{
+			return $"{match.GetType().GetProperty("IsSuccess")!.GetValue(match)} {match.GetType().GetProperty("Position")!.GetValue(match)} {match.GetType().GetProperty("Error")!.GetValue(match)}";
+		}
+	}
+
 	static GramCompilation Compiled(string grammar, string members, bool direct, bool lexical = false, bool spans = false, CarrierKind carrier = CarrierKind.Auto)
 	{
 		var host = CSharpCompilation.Create(
