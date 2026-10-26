@@ -217,7 +217,12 @@ public sealed record ForwardedNode(ForwardedNode.Kinds Kind, string Name, string
 
 	// ── RFC 9110 §5.6 ────────────────────────────────────────────────────────────
 
-	Ows   = [' ' | '\t']*
+	// OWS reads to its end and never hands a space back. What follows it never begins with a space or a tab,
+	// except another OWS after a reading that took nothing: an empty element; and two runs side by side read
+	// the same text however they share it. Without the braces a refused field tried every way of sharing a run
+	// of spaces between the two, each try reading the field again from its start: cubic in the run, 2.9 s
+	// refusing 1,600 spaces.
+	Ows   = { [' ' | '\t']* }
 	Tchar = ['!' | '#' | '$' | '%' | '&' | '\'' | '*' | '+' | '-' | '.' | '^' | '_' | '`' | '|' | '~' | '0'..'9' | 'a'..'z' | 'A'..'Z']
 	// A token reads to its end and never hands a character back: nothing that may follow one begins with a
 	// tchar (whitespace, `;`, `,`, `=` or the end follow a token), so a shorter reading can never lead anywhere. Without the braces a refused field tried every
