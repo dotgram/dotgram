@@ -180,7 +180,7 @@ public sealed class OversizeTests
 				CSharpScanner = RoslynCSharpScanner.Instance,
 			})
 				.Sources[0].Text
-				.Split(["_Part"], StringSplitOptions.None)
+				.Split(["Part"], StringSplitOptions.None)
 				.Length;
 		}
 	}

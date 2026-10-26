@@ -26386,3 +26386,35 @@ search for the delimiter that found none jumped to the refusal without saying ho
   Feed 100 and 10,000, WideFeed 100,000 and 1,000,000 from a file, LF and CRLF: the medians of `eos` over main are
   0.95-1.00, none above 1.001, each as far from 1 as its own A/A reads (0.94-1.00); allocation per parse is main's plus the 64 bytes of the adapter object, where it
   was 8 KB more. The 10M-line trades feed parses in 7.9-8.9 s on main and 7.9-8.3 s on `eos`, three readings each.
+
+
+## One rule names every member the generator makes from an author's name
+
+- **The fault.** The generator wrote a variant of a name *after* the author's identifier (`Read_A_Body`,
+  `Construct_R_Bytes`, `Recognize_R_Whole`, a machine's tag glued to every name it wrote), and since an
+  identifier may itself end in `_Body` or `_Bytes` (namespaces are joined with `_`), the variant of one rule was
+  the plain name of another; and the names it made lived in the author's own space (`Scan_X`, `Construct_X`,
+  `ReadBuffered_P` beside the author's publications, rule types and hand-written members). Three rounds of review
+  each found a family the reserved prefixes had missed; a rule named `A_Body` beside `A`, a rule `T_A` in a
+  grammar whose groups were `A_B` and `B`, a lexical publication named `Scan_Accepts`, a rule type `Read_R`
+  beside a scalar scanner of `R`, and two buffered publications of one rule each failed to compile.
+- **The rule.** Every name made from an author's is built by `CSharpEmitter.Named` (the class written into)
+  or `Inner` (the generator's own nested classes) from a kind of one closed table and the identifiers, kind
+  first, nothing after an identifier: `New_DotGram_Row`, `RecWhole_DotGram_Row`, `Scan_DotGram_trivia_DotGram_Lambda`;
+  inside a reader, `Read_Row`, `ReadBody_Row`, `ReadPart0_Row`. No name of the author's can hold `_DotGram`
+  (GRAM1012; a namespace joined to a rule called `DotGram_…` is now GRAM5018), so none is one of these, and two
+  of them are one name only where kind and identifiers are. A machine's tag is a variant and an identifier
+  (`MachineTag`), written into the kind and the last identifier, so a group named `Value` is no longer the value
+  machine. `FamilyPrefixes` is gone, and GRAM5018 is a closed list again: the plain names the class keeps, two
+  publications writing one name, two rules written as one identifier, two captures writing one property.
+- **The gates.** `GeneratedNameTests` reads every member of every snapshot rendering back as the author's, a
+  kept name or a kind and identifiers of that grammar; `GeneratedNameMirrorTests` hands every declared name, and
+  every part of one, back to the author as a publication, a rule, a hand-written member and an external, and each
+  compiles; the shipped assemblies are read the same way in the Slow suite. Both snapshot gates failed on the
+  parent for every snapshot and for the seven families, and pass.
+- **What moved.** Names only: every snapshot and the shipped output differ by renamed identifiers and nothing
+  else (a token-level check of 22 snapshot files and 123 shipped ones), and the generated-analysis counts did not
+  move. Inside a machine's own reader the readers no longer repeat the tag the class already carries, which is
+  most of the SQL output: SQL 14.55 MB is 1.67% smaller, Web 1.51%, FIX 2.38%, the expression language 0.42%, the
+  examples 0.09%; the renames alone move each set by -0.05% to +0.08% (the factories, `Construct_` to
+  `New_DotGram_`, are most of the growth, and the shorter tagged helpers most of what comes back). A paired stand on six rows, directional on a shared machine, read every change within its own A/A.

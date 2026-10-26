@@ -31,7 +31,7 @@ public sealed partial class BufferedInputTests
 		EmittedCode.Quiet(compilation.Diagnostics);
 		Assert.True(compilation.Sources.Count > 1);
 		var source = compilation.Sources[0].Text;
-		Assert.Contains("_Dispatch = new int[]", source);
+		Assert.Contains("RecognizeDispatch", source);
 		Assert.All(compilation.Sources, part => Assert.DoesNotContain("switch (chosen)", part.Text));
 		var assembly = EmittedCode.Compile(source, sourceParts: compilation.Sources.Skip(1).Select(part => part.Text));
 		var expected = Enumerable.Range(0, count).Reverse().ToArray();
