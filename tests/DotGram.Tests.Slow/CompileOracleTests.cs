@@ -382,7 +382,7 @@ public sealed class CompileOracleTests
 				return Chance(50) ? $"x: {each}*{recover} => @(new int[x.Length])" : $"{each}*{recover} => @(new int[0])";
 
 			if (Chance(25))
-				return $"items: ({element}*{recover}) & {(_segments ? "eos" : "eof")} => @(items)";
+				return $"items: ({element}*{recover}) & {(_segments ? "eos" : "eof")} => @(new int[items.Length])";
 
 			return $"{element}{Pick("*", "+")}{recover}";
 		}
@@ -495,9 +495,9 @@ public sealed class CompileOracleTests
 			switch (roll)
 			{
 				case 14: return ($"({inner})?", null);
-				case 15: return ($"({inner})*", held == Held.Int ? Held.Many : Held.Text);
-				case 16: return ($"({inner})+", held == Held.Int ? Held.Many : Held.Text);
-				case 17: return ($"({inner}){{1,2}}", held == Held.Int ? Held.Many : Held.Text);
+				case 15: return ($"({inner})*", Repeated(held));
+				case 16: return ($"({inner})+", Repeated(held));
+				case 17: return ($"({inner}){{1,2}}", Repeated(held));
 				case 18: return ($"{{ {inner} }}", held == Held.Text ? Held.Text : null);
 				case 19: return ($"?=({inner})", held);
 				case 20: return ($"?!({inner})", null);
@@ -507,6 +507,17 @@ public sealed class CompileOracleTests
 				case 24: return ($"({inner} | {Operand(index, depth - 1).Operand})", null);
 				default: return ($"({inner})* recover {(_segments ? "eos" : Pick("';'", "eol", "@Odd", "@Peek"))}", null);
 			}
+		}
+
+		/// <summary>A repetition of text is text, and one of values their array; one of what is not known is not captured.</summary>
+		static Held? Repeated(Held? held)
+		{
+			return held switch
+			{
+				Held.Text => Held.Text,
+				null      => null,
+				_         => Held.Many,
+			};
 		}
 
 		(string, Held?) Call(int index)

@@ -167,7 +167,7 @@ public static class Commit
 	public static Node[]? Recovering(RecognitionGraph graph, RuleSymbol rule, Node node)
 	{
 		foreach (var body in graph.Bodies.Values)
-			foreach (var one in NodeWalk.Descendants(body))
+			foreach (var one in NodeWalk.Reading(body, graph))
 				if (one is Node.Call(var called, _) && called == rule)
 					return null;
 
@@ -221,13 +221,13 @@ public static class Commit
 		}
 	}
 
-	/// <summary>The rules some body calls.</summary>
+	/// <summary>The rules some body calls, or a synchronization one reads: a rule called only from there is called.</summary>
 	static HashSet<RuleSymbol> Called(RecognitionGraph graph)
 	{
 		var called = new HashSet<RuleSymbol>();
 
 		foreach (var body in graph.Bodies.Values)
-			foreach (var node in NodeWalk.Descendants(body))
+			foreach (var node in NodeWalk.Reading(body, graph))
 				if (node is Node.Call(var rule, _))
 					called.Add(rule);
 

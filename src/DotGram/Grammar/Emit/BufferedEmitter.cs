@@ -14,7 +14,7 @@ public static partial class CSharpEmitter
 	{
 		if (Locating(graph)) return "line and column tracking requires character input";
 		foreach (var rule in rules)
-		foreach (var node in NodeWalk.Descendants(graph.Bodies[rule]))
+		foreach (var node in NodeWalk.Reading(graph.Bodies[rule], graph))
 		{
 			if (node is Node.Literal literal && (literal.IgnoreCase || literal.Text.Any(c => c > 255)))
 				return "byte literals must be case-sensitive values in 0..255";
@@ -107,7 +107,7 @@ public static partial class CSharpEmitter
 
 			var rules = Reaches(graph, publication.Rule);
 			var why = overKinds ? "token-kind input is not supported by this form yet" :
-				rules.Any(rule => NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.External { UsesInputView: false }))
+				rules.Any(rule => NodeWalk.Reading(graph.Bodies[rule], graph).Any(node => node is Node.External { UsesInputView: false }))
 					? "external recognizers require contiguous input" : null;
 			if (why is null && bytes) why = ByteRefusal(graph, rules);
 			// Named after the publication, which no other has the name of, and told from a group's machine
@@ -420,7 +420,7 @@ public static partial class CSharpEmitter
 					// Only a look behind reads back past where an element began. A binding does not:
 					// it is read in the rule that bound it, which the element has finished.
 					if (!Reaches(graph, publication.Rule).Any(rule =>
-						NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.Behind)))
+						NodeWalk.Reading(graph.Bodies[rule], graph).Any(node => node is Node.Behind)))
 						file.Line("text.ReleaseBefore(start);");
 				}
 			}
@@ -431,7 +431,7 @@ public static partial class CSharpEmitter
 			// Each try is a reading of its own, and a binding is read where it was bound, inside
 			// one: only a look behind reads back past where a try began.
 			var retain = Reaches(graph, publication.Rule).Any(rule =>
-				NodeWalk.Descendants(graph.Bodies[rule]).Any(node => node is Node.Behind));
+				NodeWalk.Reading(graph.Bodies[rule], graph).Any(node => node is Node.Behind));
 			file.Line("/// <summary>Lazily finds occurrences through a reusable buffer; leaves input open.</summary>");
 			using (file.Block(Lazily($"global::System.Collections.Generic.IEnumerable<{match}>")))
 			{

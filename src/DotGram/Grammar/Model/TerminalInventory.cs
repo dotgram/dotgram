@@ -482,7 +482,8 @@ public sealed class TerminalInventory
 		if (!walker.Applies)
 			return new TerminalInventory(false, [], [], [], []);
 
-		if (graph.Bodies.Values.Any(body => NodeWalk.Descendants(body).Any(node => node is Node.External { UsesInputView: true })))
+		// A synchronization (`recover @M`) included: it is read as the body is.
+		if (NodeWalk.CallsTheHost(graph, static external => external.UsesInputView))
 			return new TerminalInventory(true, [], [], [], ["input-view recognizers require character parsing"]);
 
 		// A machine too large to build ends every question asked of the patterns at once: the
