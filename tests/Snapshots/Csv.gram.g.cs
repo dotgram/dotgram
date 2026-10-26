@@ -609,6 +609,20 @@ namespace DotGram.Snapshots
 						repeat    = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
 
+						if (entry.Value != 0)
+						{
+							if (lookahead < 0 && p > failure.Position)
+							{
+								failure.Position = p;
+								failure.Expected = expected;
+								failure.ExpectedMore?.Clear();
+							}
+							else if (lookahead < 0 && p == failure.Position && expected != null)
+							{
+								(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
+							}
+						}
+
 						if (entry.Value == 0)
 						{
 							state = entry.State;

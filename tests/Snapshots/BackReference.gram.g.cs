@@ -99,6 +99,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -165,6 +168,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -321,6 +327,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -387,6 +396,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -521,6 +533,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -587,6 +602,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -721,6 +739,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -787,6 +808,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -921,6 +945,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -987,6 +1014,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -1121,6 +1151,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -1187,6 +1220,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -1324,6 +1360,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -1392,6 +1431,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -1527,6 +1569,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -1593,6 +1638,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -2044,6 +2092,23 @@ namespace DotGram.Snapshots
 						repeat    = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
 
+						if (entry.Value != 0)
+						{
+							if (lookahead < 0 && p > failure.Position)
+							{
+								failure.Position = p;
+								if (!failure.Quiet)
+								{
+									failure.Expected = expected;
+									failure.ExpectedMore?.Clear();
+								}
+							}
+							else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
+							{
+								(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
+							}
+						}
+
 						if (entry.Value == 0)
 						{
 							state = entry.State;
@@ -2221,7 +2286,10 @@ namespace DotGram.Snapshots
 
 
 				if (q0 >= 0)
+				{
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(39));
 					return -1;
+				}
 				var q1 = Read_any(p);
 				if (q1 < 0) return -1;
 				p = q1;
@@ -2472,7 +2540,10 @@ namespace DotGram.Snapshots
 
 
 				if (q0 >= 0)
+				{
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(40));
 					return -1;
+				}
 				var q1 = Read_any(p);
 				if (q1 < 0) return -1;
 				p = q1;
@@ -2880,7 +2951,7 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				if ((uint)p >= (uint)text.Length)
 				{
-					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(39));
+					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(41));
 					return -1;
 				}
 				c = text[p];
@@ -2911,7 +2982,7 @@ namespace DotGram.Snapshots
 							break;
 						}
 					default:
-						Refused_DotGram(ref failure, p, ExpectedSet_DotGram(39));
+						Refused_DotGram(ref failure, p, ExpectedSet_DotGram(41));
 						return -1;
 				}
 				return p;
@@ -3450,7 +3521,7 @@ namespace DotGram.Snapshots
 				}
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
-					p = RecognizeRanOut_DotGram_Element(text, p, "</", false, !failure.Quiet, ref failure);
+					p = RecognizeRanOut_DotGram_Element(text, p, "</", false, !failure.Quiet, failure.Looking == 0, ref failure);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(33));
 					return -1;
 				}
@@ -4194,13 +4265,13 @@ namespace DotGram.Snapshots
 			return p + i;
 		}
 
-		static int RecognizeRanOut_DotGram_Element(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
+		static int RecognizeRanOut_DotGram_Element(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, bool marks, ref Failure failure)
 		{
 			var reach = RecognizeAgreeing_DotGram_Element(text, p, value, fold);
 
 			if ((uint)reach >= (uint)text.Length)
 			{
-				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+				if (marks && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 			}
 
 			return moves ? reach : p;
@@ -5344,8 +5415,8 @@ namespace DotGram.Snapshots
 
 		static string[] ExpectedDecoded_DotGram(int id)
 		{
-			var data = "ACEGIKMOQSUWY\u005B\u005D\u005FaAaCaEaGaIaKaOaRaTaVaXaZa\u005Ca\u005Eb@bBbDbGbJbMbPbSbVbYBABBBCBDBEBFBGBHBIBJBKBLBMBNBOBPBQBRBSBTBUDVWXCVXBVBWBYBZB\u005BB\u005CB\u005DB\u005EB\u005FBa@BaABaBBaCBaDBaEBaFBaG";
-			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[40], null) ?? ExpectedBuilt_DotGram!;
+			var data = "ACEGIKMOQSUWY\u005B\u005D\u005FaAaCaEaGaIaKaOaRaTaVaXaZa\u005Ca\u005Eb@bBbDbGbJbMbPbSbVbYb\u005Cb\u005FBABBBCBDBEBFBGBHBIBJBKBLBMBNBOBPBQBRBSBTBUDVWXCVXBVBWBYBZB\u005BB\u005CB\u005DB\u005EB\u005FBa@BaABaBBaCBaDBaEBaFBaGBaHBaI";
+			var built = ExpectedBuilt_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedBuilt_DotGram, new string[]?[42], null) ?? ExpectedBuilt_DotGram!;
 			var items = ExpectedItems_DotGram ?? global::System.Threading.Interlocked.CompareExchange(ref ExpectedItems_DotGram, new string[]
 				{
 					"?!'\"'",
@@ -5386,6 +5457,8 @@ namespace DotGram.Snapshots
 					"'<'",
 					"[^ '<']",
 					"end of input",
+					"?!']' & $eq & ']'",
+					"?!'$' & $tag & '$'",
 					"['\\r' | '\\n']",
 				}, null) ?? ExpectedItems_DotGram!;
 			var starts = ExpectedStarts_DotGram;
@@ -5394,7 +5467,7 @@ namespace DotGram.Snapshots
 
 			if (starts == null)
 			{
-				starts = new int[40];
+				starts = new int[42];
 
 				for (var i = 0; i < starts.Length; i++)
 				{

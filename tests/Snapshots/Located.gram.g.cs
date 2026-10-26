@@ -101,6 +101,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -171,6 +174,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -272,6 +278,8 @@ namespace DotGram.Snapshots
 				var c       = '\0';
 				string[]? expected = null;
 				var completedCall = -1;
+				var rootBegan = pos;
+				var rootEnd   = -1;
 				var opened6 = -1;
 				var opened7 = -1;
 
@@ -292,8 +300,8 @@ namespace DotGram.Snapshots
 					case 24: goto S24;
 					case 25: goto S25;
 					case 26: goto S26;
-					case 32: goto S32;
-					case 33: goto S33;
+					case 34: goto S34;
+					case 35: goto S35;
 					default: expected = null; goto Fail;
 				}
 
@@ -301,7 +309,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (lookahead < 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(0);
 						goto Return;
 					}
@@ -449,7 +457,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (lookahead < 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(5);
 						goto Fail;
 					}
@@ -578,29 +586,38 @@ namespace DotGram.Snapshots
 				}
 
 				{
+					rootBegan = p;
+				}
+
+				{
 					if (((uint)p < (uint)text.Length || !(failure.Starved = true)))
 					{
 						c = text[p];
-						if (c == ' ' || (c >= 'a' && c <= 'z')) goto S28;
+						if (c == ' ' || (c >= 'a' && c <= 'z')) goto S30;
 					}
-					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S28;
+					if (lookahead < 0 && !failure.Quiet && p >= failure.Doors) goto S30;
+				}
+
+				S29:
+				{
+					rootEnd = p;
 					goto S25;
 				}
 
-				S28:
+				S30:
 				{
 					var repeatIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Repeat, 0, p, call, atomic, repeat, lookahead, 0));
 					repeat = repeatIndex;
 				}
 
-				S29:
+				S31:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var repeating = entries[repeat];
 					global::System.Diagnostics.Debug.Assert(repeating.Kind == ParserEntry.Repeat);
 					{
-						entries.Add(new ParserEntry(ParserEntry.LoopExit, 33, p, call, atomic, repeat, lookahead, 0));
+						entries.Add(new ParserEntry(ParserEntry.LoopExit, 35, p, call, atomic, repeat, lookahead, 0));
 						entries[repeat] = new ParserEntry(ParserEntry.Repeat, 0, repeating.Position, repeating.CallIndex, repeating.AtomicIndex, repeating.RepeatIndex, repeating.LookaheadIndex, repeating.Value, p);
 					}
 				}
@@ -611,21 +628,21 @@ namespace DotGram.Snapshots
 
 				{
 					var callIndex = entries.Count;
-					entries.Add(new ParserEntry(ParserEntry.Call, 32, p, call, atomic, repeat, lookahead, 0, 2));
+					entries.Add(new ParserEntry(ParserEntry.Call, 34, p, call, atomic, repeat, lookahead, 0, 2));
 					call = callIndex;
 					goto S9;
 				}
 
-				S32:
+				S34:
 				{
 					var capturedCall = completedCall;
 					global::System.Diagnostics.Debug.Assert(capturedCall >= 0);
 					global::System.Diagnostics.Debug.Assert(entries[capturedCall].Kind == ParserEntry.Completed && entries[capturedCall].CallIndex == call && entries[capturedCall].RuleIndex == 2 && entries[capturedCall].Value == p);
 					entries.Add(new ParserEntry(ParserEntry.RuleCapture, 0, capturedCall, call, atomic, repeat, lookahead, p));
-					goto S29;
+					goto S31;
 				}
 
-				S33:
+				S35:
 				{
 					global::System.Diagnostics.Debug.Assert(repeat >= 0 && repeat < entries.Count);
 					var finished = entries[repeat];
@@ -634,7 +651,7 @@ namespace DotGram.Snapshots
 					if (entries.Count == repeat + 1) entries.RemoveAt(repeat);
 					repeat = previousRepeat;
 					lookahead = finished.LookaheadIndex;
-					goto S25;
+					goto S29;
 				}
 
 				Return:
@@ -663,6 +680,13 @@ namespace DotGram.Snapshots
 				{
 					if (rootRule >= 0)
 					{
+						if (rootEnd >= 0)
+						{
+							var root = entries[0];
+
+							entries[0] = new ParserEntry(ParserEntry.Completed, root.State, rootBegan, root.CallIndex, root.AtomicIndex, root.RepeatIndex, root.LookaheadIndex, rootEnd, root.RuleIndex);
+						}
+
 						var values = parser.Materialization(entries.Count);
 						var values0 = parser.Materialization0();
 						var values1 = parser.Materialization1();
@@ -785,6 +809,23 @@ namespace DotGram.Snapshots
 						atomic    = entry.AtomicIndex;
 						repeat    = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
+
+						if (entry.Value != 0)
+						{
+							if (lookahead < 0 && p > failure.Position)
+							{
+								failure.Position = p;
+								if (!failure.Quiet)
+								{
+									failure.Expected = expected;
+									failure.ExpectedMore?.Clear();
+								}
+							}
+							else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
+							{
+								(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
+							}
+						}
 
 						if (entry.Value == 0)
 						{

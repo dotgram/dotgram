@@ -99,6 +99,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -165,6 +168,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -716,7 +722,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
-					p = RecognizeRanOut_DotGram_Feed(text, p, "\r\n", false, !failure.Quiet, ref failure);
+					p = RecognizeRanOut_DotGram_Feed(text, p, "\r\n", false, !failure.Quiet, failure.Looking == 0, ref failure);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(3));
 					return -1;
 				}
@@ -918,7 +924,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (lookahead < 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(7);
 						goto Fail;
 					}
@@ -933,7 +939,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (lookahead < 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(5);
 						goto Fail;
 					}
@@ -959,7 +965,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (lookahead < 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(5);
 						goto Fail;
 					}
@@ -987,7 +993,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 2 && (failure.Starved = true)))
 					{
-						p = RecognizeRanOut_DotGram_Record(text, p, "\r\n", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram_Record(text, p, "\r\n", false, lookahead < 0, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(3);
 						goto Fail;
 					}
@@ -1020,7 +1026,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (lookahead < 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(4);
 						goto Fail;
 					}
@@ -1037,7 +1043,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (lookahead < 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(9);
 						goto Fail;
 					}
@@ -1134,6 +1140,23 @@ namespace DotGram.Snapshots
 						atomic    = entry.AtomicIndex;
 						repeat    = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
+
+						if (entry.Value != 0)
+						{
+							if (lookahead < 0 && p > failure.Position)
+							{
+								failure.Position = p;
+								if (!failure.Quiet)
+								{
+									failure.Expected = expected;
+									failure.ExpectedMore?.Clear();
+								}
+							}
+							else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
+							{
+								(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
+							}
+						}
 
 						if (entry.Value == 0)
 						{
@@ -1527,7 +1550,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				if (!text.Ensure(p, 2))
 				{
-					p = RecognizeRanOutBuf_DotGram_ParseFeed(text, p, "\r\n", false, true, ref failure);
+					p = RecognizeRanOutBuf_DotGram_ParseFeed(text, p, "\r\n", false, true, failure.Looking == 0, ref failure);
 					Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(3));
 					return -1;
 				}
@@ -2000,7 +2023,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				if (!text.Ensure(p, 2))
 				{
-					p = RecognizeRanOutBufBytes_DotGram_ParseFeed(text, p, "\r\n", false, true, ref failure);
+					p = RecognizeRanOutBufBytes_DotGram_ParseFeed(text, p, "\r\n", false, true, failure.Looking == 0, ref failure);
 					Refuse_DotGram(ref failure, p, ExpectedSet_DotGram(3));
 					return -1;
 				}
@@ -2306,7 +2329,7 @@ namespace DotGram.Snapshots
 				{
 					if (!text.Ensure(p, 2))
 					{
-						p = RecognizeRanOutBuf_DotGram_FindRecord(text, p, "\r\n", false, lookahead < 0, ref failure);
+						p = RecognizeRanOutBuf_DotGram_FindRecord(text, p, "\r\n", false, lookahead < 0, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(3);
 						goto Fail;
 					}
@@ -2438,6 +2461,20 @@ namespace DotGram.Snapshots
 						atomic    = entry.AtomicIndex;
 						repeat    = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
+
+						if (entry.Value != 0)
+						{
+							if (lookahead < 0 && p > failure.Position)
+							{
+								failure.Position = p;
+								failure.Expected = expected;
+								failure.ExpectedMore?.Clear();
+							}
+							else if (lookahead < 0 && p == failure.Position && expected != null)
+							{
+								(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
+							}
+						}
 
 						if (entry.Value == 0)
 						{
@@ -2606,7 +2643,7 @@ namespace DotGram.Snapshots
 				{
 					if (!text.Ensure(p, 2))
 					{
-						p = RecognizeRanOutBufBytes_DotGram_FindRecord(text, p, "\r\n", false, lookahead < 0, ref failure);
+						p = RecognizeRanOutBufBytes_DotGram_FindRecord(text, p, "\r\n", false, lookahead < 0, lookahead < 0, ref failure);
 						expected = ExpectedSet_DotGram(3);
 						goto Fail;
 					}
@@ -2739,6 +2776,20 @@ namespace DotGram.Snapshots
 						repeat    = entry.RepeatIndex;
 						lookahead = entry.LookaheadIndex;
 
+						if (entry.Value != 0)
+						{
+							if (lookahead < 0 && p > failure.Position)
+							{
+								failure.Position = p;
+								failure.Expected = expected;
+								failure.ExpectedMore?.Clear();
+							}
+							else if (lookahead < 0 && p == failure.Position && expected != null)
+							{
+								(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
+							}
+						}
+
 						if (entry.Value == 0)
 						{
 							state = entry.State;
@@ -2796,13 +2847,13 @@ namespace DotGram.Snapshots
 			return p + i;
 		}
 
-		static int RecognizeRanOut_DotGram_Feed(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
+		static int RecognizeRanOut_DotGram_Feed(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, bool marks, ref Failure failure)
 		{
 			var reach = RecognizeAgreeing_DotGram_Feed(text, p, value, fold);
 
 			if (((uint)reach >= (uint)text.Length && (failure.Starved = true)))
 			{
-				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+				if (marks && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 			}
 
 			return moves ? reach : p;
@@ -2818,13 +2869,13 @@ namespace DotGram.Snapshots
 			return p + i;
 		}
 
-		static int RecognizeRanOut_DotGram_Record(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
+		static int RecognizeRanOut_DotGram_Record(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, bool marks, ref Failure failure)
 		{
 			var reach = RecognizeAgreeing_DotGram_Record(text, p, value, fold);
 
 			if (((uint)reach >= (uint)text.Length && (failure.Starved = true)))
 			{
-				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+				if (marks && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 			}
 
 			return moves ? reach : p;
@@ -2860,13 +2911,13 @@ namespace DotGram.Snapshots
 			return p + i;
 		}
 
-		static int RecognizeRanOutBuf_DotGram_ParseFeed(BufferedText_DotGram text, int p, string value, bool fold, bool moves, ref Failure failure)
+		static int RecognizeRanOutBuf_DotGram_ParseFeed(BufferedText_DotGram text, int p, string value, bool fold, bool moves, bool marks, ref Failure failure)
 		{
 			var reach = RecognizeAgreeingBuf_DotGram_ParseFeed(text, p, value, fold);
 
 			if (!text.Ensure(reach, 1))
 			{
-				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+				if (marks && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 			}
 
 			return moves ? reach : p;
@@ -2902,13 +2953,13 @@ namespace DotGram.Snapshots
 			return p + i;
 		}
 
-		static int RecognizeRanOutBufBytes_DotGram_ParseFeed(BufferedBytes_DotGram text, int p, string value, bool fold, bool moves, ref Failure failure)
+		static int RecognizeRanOutBufBytes_DotGram_ParseFeed(BufferedBytes_DotGram text, int p, string value, bool fold, bool moves, bool marks, ref Failure failure)
 		{
 			var reach = RecognizeAgreeingBufBytes_DotGram_ParseFeed(text, p, value, fold);
 
 			if (!text.Ensure(reach, 1))
 			{
-				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+				if (marks && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 			}
 
 			return moves ? reach : p;
@@ -2924,13 +2975,13 @@ namespace DotGram.Snapshots
 			return p + i;
 		}
 
-		static int RecognizeRanOutBuf_DotGram_FindRecord(BufferedText_DotGram text, int p, string value, bool fold, bool moves, ref Failure failure)
+		static int RecognizeRanOutBuf_DotGram_FindRecord(BufferedText_DotGram text, int p, string value, bool fold, bool moves, bool marks, ref Failure failure)
 		{
 			var reach = RecognizeAgreeingBuf_DotGram_FindRecord(text, p, value, fold);
 
 			if (!text.Ensure(reach, 1))
 			{
-				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+				if (marks && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 			}
 
 			return moves ? reach : p;
@@ -2946,13 +2997,13 @@ namespace DotGram.Snapshots
 			return p + i;
 		}
 
-		static int RecognizeRanOutBufBytes_DotGram_FindRecord(BufferedBytes_DotGram text, int p, string value, bool fold, bool moves, ref Failure failure)
+		static int RecognizeRanOutBufBytes_DotGram_FindRecord(BufferedBytes_DotGram text, int p, string value, bool fold, bool moves, bool marks, ref Failure failure)
 		{
 			var reach = RecognizeAgreeingBufBytes_DotGram_FindRecord(text, p, value, fold);
 
 			if (!text.Ensure(reach, 1))
 			{
-				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+				if (marks && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 			}
 
 			return moves ? reach : p;

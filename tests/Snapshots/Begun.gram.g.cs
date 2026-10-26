@@ -176,6 +176,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < from)
+					failure.Position = from;
+
 				if (tokens.Cut && failure.Position >= count - 1)
 				{
 
@@ -1617,13 +1620,13 @@ namespace DotGram.Snapshots
 				return p + i;
 			}
 
-			static int RecognizeRanOutValue_DotGram(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
+			static int RecognizeRanOutValue_DotGram(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, bool marks, ref Failure failure)
 			{
 				var reach = RecognizeAgreeingValue_DotGram(text, p, value, fold);
 
 				if ((uint)reach >= (uint)text.Length)
 				{
-					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+					if (marks && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 				}
 
 				return moves ? reach : p;
@@ -1813,7 +1816,7 @@ namespace DotGram.Snapshots
 					{
 						if (text.Length - p < 2)
 						{
-							p = RecognizeRanOutValue_DotGram(text, p, "<<", false, lookahead < 0, ref failure);
+							p = RecognizeRanOutValue_DotGram(text, p, "<<", false, lookahead < 0, lookahead < 0, ref failure);
 							expected = ExpectedSet_DotGram(19);
 							goto Fail;
 						}
@@ -1916,7 +1919,7 @@ namespace DotGram.Snapshots
 					{
 						if (text.Length - p < 2)
 						{
-							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, ref failure);
+							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, lookahead < 0, ref failure);
 							expected = ExpectedSet_DotGram(12);
 							goto Fail;
 						}
@@ -2038,7 +2041,7 @@ namespace DotGram.Snapshots
 					{
 						if (text.Length - p < 2)
 						{
-							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, ref failure);
+							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, lookahead < 0, ref failure);
 							expected = ExpectedSet_DotGram(12);
 							goto Fail;
 						}
@@ -2196,7 +2199,7 @@ namespace DotGram.Snapshots
 					{
 						if (text.Length - p < 2)
 						{
-							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, ref failure);
+							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, lookahead < 0, ref failure);
 							expected = ExpectedSet_DotGram(12);
 							goto Fail;
 						}
@@ -2300,7 +2303,7 @@ namespace DotGram.Snapshots
 					{
 						if (text.Length - p < 2)
 						{
-							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, ref failure);
+							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, lookahead < 0, ref failure);
 							expected = ExpectedSet_DotGram(12);
 							goto Fail;
 						}
@@ -2439,7 +2442,7 @@ namespace DotGram.Snapshots
 					{
 						if (text.Length - p < 3)
 						{
-							p = RecognizeRanOutValue_DotGram(text, p, "<<-", false, lookahead < 0, ref failure);
+							p = RecognizeRanOutValue_DotGram(text, p, "<<-", false, lookahead < 0, lookahead < 0, ref failure);
 							expected = ExpectedSet_DotGram(18);
 							goto Fail;
 						}
@@ -2547,7 +2550,7 @@ namespace DotGram.Snapshots
 					{
 						if (text.Length - p < 2)
 						{
-							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, ref failure);
+							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, lookahead < 0, ref failure);
 							expected = ExpectedSet_DotGram(12);
 							goto Fail;
 						}
@@ -2703,7 +2706,7 @@ namespace DotGram.Snapshots
 					{
 						if (text.Length - p < 2)
 						{
-							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, ref failure);
+							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, lookahead < 0, ref failure);
 							expected = ExpectedSet_DotGram(12);
 							goto Fail;
 						}
@@ -2807,7 +2810,7 @@ namespace DotGram.Snapshots
 					{
 						if (text.Length - p < 2)
 						{
-							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, ref failure);
+							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, lookahead < 0, ref failure);
 							expected = ExpectedSet_DotGram(12);
 							goto Fail;
 						}
@@ -3546,6 +3549,23 @@ namespace DotGram.Snapshots
 							atomic    = entry.AtomicIndex;
 							repeat    = entry.RepeatIndex;
 							lookahead = entry.LookaheadIndex;
+
+							if (entry.Value != 0)
+							{
+								if (lookahead < 0 && p > failure.Position)
+								{
+									failure.Position = p;
+									if (!failure.Quiet)
+									{
+										failure.Expected = expected;
+										failure.ExpectedMore?.Clear();
+									}
+								}
+								else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
+								{
+									(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
+								}
+							}
 
 							if (entry.Value == 0)
 							{
