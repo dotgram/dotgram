@@ -258,4 +258,53 @@ public sealed class LexicalBoundaryTests
 			Assert.True(built[i].States <= built[i - 1].States * 9 / 4, $"{built[i - 1].States} then {built[i].States} deterministic states for twice the untils");
 		}
 	}
+
+	/// <summary>
+	/// <paramref name="runs"/> turns of an until of <paramref name="length"/> <c>a</c>s and an
+	/// <c>'a'</c> after it, then a <c>'b'</c>: each turn's run hands on the prefixes it still
+	/// matched, and the next turns' runs match more of the same delimiter.
+	/// </summary>
+	static LexicalAutomaton Repeated(int runs, int length)
+	{
+		var grammar =
+			$$"""
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				T = { ((?!"{{new string('a', length)}}" & ['a'|'b'])* & 'a'){{{runs}}} & 'b' }
+			}
+			Root = Lexical.T
+			parse Root
+			""";
+
+		var machine = TerminalInventory.Of(
+			GrammarNormalizer.Normalize(
+				GrammarBinder.Bind(
+					GramParser.Parse(
+						GramLexer.Tokenize(grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!))).Machine!;
+
+		TestContext.Current.TestOutputHelper?.WriteLine(
+			$"{runs} turns of {length}: {machine.Nondeterministic} states built, {machine.Next.Count} deterministic, {machine.Walked} walked");
+
+		return machine;
+	}
+
+	/// <summary>
+	/// A debt keeps a prefix only where no longer one it holds answers for it, so the debts a
+	/// repetition of runs hands on are a prefix each and not every set of borders: eight turns of
+	/// sixteen built a quarter of a million states for a machine of 270. Doubling the turns and the
+	/// delimiter together now builds about seven times as much, which is what the turns times the
+	/// delimiter's length squared allow.
+	/// </summary>
+	[Fact]
+	public void Turns_of_an_until_hand_on_one_prefix_and_not_every_set_of_them()
+	{
+		var built = new[] { (4, 8), (8, 16), (16, 32) }.Select(one => Repeated(one.Item1, one.Item2)).ToList();
+
+		for (var i = 1; i < built.Count; i++)
+			Assert.True(built[i].Nondeterministic <= built[i - 1].Nondeterministic * 8, $"{built[i - 1].Nondeterministic} then {built[i].Nondeterministic} states built");
+
+		Assert.Equal([64, 270, 1114], built.Select(static one => one.Next.Count));
+	}
 }

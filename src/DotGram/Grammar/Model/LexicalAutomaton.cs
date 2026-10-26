@@ -39,13 +39,15 @@ public sealed class LexicalAutomaton
 		IReadOnlyList<int[]> next,
 		IReadOnlyList<int> accepts,
 		IReadOnlyList<IReadOnlyList<int>> sets,
-		int nondeterministic)
+		int nondeterministic,
+		long walked)
 	{
 		Atoms            = atoms;
 		Next             = next;
 		Accepts          = accepts;
 		Sets             = sets;
 		Nondeterministic = nondeterministic;
+		Walked           = walked;
 	}
 
 	/// <summary>The alphabet: disjoint character ranges, in order.</summary>
@@ -66,6 +68,12 @@ public sealed class LexicalAutomaton
 	/// deterministic machine it became does not show.
 	/// </summary>
 	public int Nondeterministic { get; }
+
+	/// <summary>
+	/// How many states the subset construction walked through, counted once in every subset it
+	/// closed: the work of determinizing, which grows with the subsets and not with their number.
+	/// </summary>
+	public long Walked { get; }
 
 	/// <summary>
 	/// What leaves a state: one entry a target, holding the characters that lead there.
@@ -923,6 +931,33 @@ public sealed class LexicalAutomaton
 
 		const int Copies = 64;
 
+		/// <summary>
+		/// The most states a machine may meet, owing or not, and the most it may have once it is
+		/// deterministic, before the patterns are read over characters instead.
+		/// </summary>
+		/// <remarks>
+		/// <para>
+		/// Bounds on the generator and not on what a grammar means: the grammar read over
+		/// characters gives every answer the lexer would, only slower to read. What they stop is a
+		/// machine that grows with the product of what its patterns do, which an until's debts can,
+		/// and a subset construction can over any pattern.
+		/// </para>
+		/// <para>
+		/// T-SQL, the largest lexer the repository ships, meets 15,916 states, keeps 8,958 and walks
+		/// 13,222,850 in its subsets: the state budget is sixteen times the first, the walk budget
+		/// twenty times the last. Nothing it ships owes anything; a state owing is walked at several
+		/// times the cost of one that does not, and all of them together may number about two thirds of
+		/// what T-SQL's whole construction walks.
+		/// </para>
+		/// </remarks>
+		const int Budget = 262_144;
+
+		/// <summary>The most states every subset together may hold (<see cref="Budget"/>).</summary>
+		const long WalkBudget = 268_435_456;
+
+		/// <summary>The most states owing a debt every subset together may hold (<see cref="Budget"/>).</summary>
+		const long OwingBudget = 8_388_608;
+
 		// ── The subset construction ──────────────────────────────────────────────────
 
 		/// <summary>
@@ -933,7 +968,7 @@ public sealed class LexicalAutomaton
 		/// carry, and the states are what a lexer runs. Working either out on its own would be
 		/// working the other out twice.
 		/// </remarks>
-		LexicalAutomaton Subsets(int start)
+		LexicalAutomaton? Subsets(int start)
 		{
 			var numbered = new Dictionary<int[], int>(Members.Same);
 			var pending  = new Queue<(HashSet<int> States, int Number)>();
@@ -957,6 +992,13 @@ public sealed class LexicalAutomaton
 
 			while (pending.Count > 0)
 			{
+				if (_on.Count + _owing.Count > Budget || numbered.Count > Budget || _walked > WalkBudget || _walkedOwing > OwingBudget)
+				{
+					Refuse("the patterns make a machine larger than a lexer is built for");
+
+					return null;
+				}
+
 				var (here, number) = pending.Dequeue();
 
 				var accepting = here
@@ -995,26 +1037,14 @@ public sealed class LexicalAutomaton
 
 				foreach (var one in here)
 				{
-					var (state, owed) = Owing(one);
+					IReadOnlyList<(int Atom, int To)> steps = one < _on.Count ? _on[one] : StepsOf(one);
 
-					foreach (var (on, to) in _on[state])
+					foreach (var (on, to) in steps)
 					{
-						var reading = to;
-
-						if (owed != 0)
-						{
-							var still = After(owed, on);
-
-							if (still < 0)
-								continue;
-
-							reading = Element(to, still);
-						}
-
 						if (!moves.TryGetValue(on, out var reached))
 							moves[on] = reached = free.Count > 0 ? free.Pop() : [];
 
-						reached.Add(reading);
+						reached.Add(to);
 					}
 				}
 
@@ -1044,7 +1074,7 @@ public sealed class LexicalAutomaton
 				}
 			}
 
-			return Ordered(_atoms, rows, accepts, sets, _on.Count + _owing.Count);
+			return Ordered(_atoms, rows, accepts, sets, _on.Count + _owing.Count, _walked);
 		}
 
 		/// <summary>
@@ -1067,7 +1097,8 @@ public sealed class LexicalAutomaton
 			IReadOnlyList<int[]> rows,
 			List<int> accepts,
 			List<IReadOnlyList<int>> sets,
-			int nondeterministic)
+			int nondeterministic,
+			long walked)
 		{
 			var order = Enumerable.Range(0, sets.Count)
 				.OrderBy(one => sets[one][0])
@@ -1084,7 +1115,7 @@ public sealed class LexicalAutomaton
 				if (accepts[state] >= 0)
 					accepts[state] = moved[accepts[state]];
 
-			return new LexicalAutomaton(atoms, rows, accepts, [.. order.Select(one => sets[one])], nondeterministic);
+			return new LexicalAutomaton(atoms, rows, accepts, [.. order.Select(one => sets[one])], nondeterministic, walked);
 		}
 
 		void Room(List<int[]> rows, List<int> accepts, int number)
@@ -1100,6 +1131,12 @@ public sealed class LexicalAutomaton
 				accepts.Add(-1);
 			}
 		}
+
+		/// <summary>How many states every closure so far has held, in all (<see cref="LexicalAutomaton.Walked"/>).</summary>
+		long _walked;
+
+		/// <summary>How many of them owed something.</summary>
+		long _walkedOwing;
 
 		/// <summary>What <see cref="Closed"/> walks with, one stack for every closure.</summary>
 		readonly Stack<int> _closing = new();
@@ -1122,21 +1159,41 @@ public sealed class LexicalAutomaton
 				if (!reached.Add(one))
 					continue;
 
-				var (state, owed) = Owing(one);
+				if (one >= _on.Count)
+				{
+					foreach (var to in EmptyOf(one))
+						pending.Push(to);
 
-				foreach (var to in _empty[state])
-					pending.Push(Element(to, owed));
+					continue;
+				}
 
-				if (_handed.TryGetValue(state, out var handed))
+				foreach (var to in _empty[one])
+					pending.Push(to);
+
+				if (_handed.TryGetValue(one, out var handed))
 					foreach (var (to, delimiter, matched) in handed)
-						pending.Push(Element(to, Owe(owed, delimiter, matched)));
+						pending.Push(Element(to, Owe(0, delimiter, matched)));
 			}
 
 			// A state reached owing nothing reads everything it reads owing something, and more:
 			// a debt only takes ways away. Kept, the debts multiplied every subset by what each run
 			// hands on, since an empty run lets every later run's start be reached both ways.
+			_walked += reached.Count;
+
+			// A state reached owing nothing reads everything it reads owing something, and more:
+			// a debt only takes ways away. Kept, the debts multiplied every subset by what each run
+			// hands on, since an empty run lets every later run's start be reached both ways. A
+			// state reached owing two debts, one of which finishes no later than the other on any
+			// text, is still held twice: asking that of every pair in every subset cost more than
+			// holding them did.
 			if (_owing.Count > 0)
+			{
+				foreach (var one in reached)
+					if (one >= _on.Count)
+						_walkedOwing++;
+
 				reached.RemoveWhere(one => one >= _on.Count && reached.Contains(_owing[one - _on.Count].State));
+			}
 
 			return reached;
 		}
@@ -1158,6 +1215,57 @@ public sealed class LexicalAutomaton
 		readonly Dictionary<(int Owed, int Atom), int>   _after     = [];
 		readonly Dictionary<(int Owed, string Delimiter, ulong Matched), int> _owed = [];
 
+		// What leaves an element that owes, without reading and on each atom, worked out the first
+		// time it is asked: the debt is carried along each edge and read on, which is a lookup or
+		// two an edge, and a subset construction asks it of every subset the element is in.
+		readonly List<int[]?>              _emptyOf = [];
+		readonly List<(int Atom, int To)[]?> _stepsOf = [];
+
+		/// <summary>The elements an element that owes reaches without reading.</summary>
+		int[] EmptyOf(int one)
+		{
+			var at = one - _on.Count;
+
+			while (_emptyOf.Count <= at)
+				_emptyOf.Add(null);
+
+			if (_emptyOf[at] is { } known)
+				return known;
+
+			var (state, owed) = _owing[at];
+			var reached       = new List<int>();
+
+			foreach (var to in _empty[state])
+				reached.Add(Element(to, owed));
+
+			if (_handed.TryGetValue(state, out var handed))
+				foreach (var (to, delimiter, matched) in handed)
+					reached.Add(Element(to, Owe(owed, delimiter, matched)));
+
+			return _emptyOf[at] = [.. reached];
+		}
+
+		/// <summary>The elements an element that owes reaches on each atom; none where the atom finishes what it owes.</summary>
+		(int Atom, int To)[] StepsOf(int one)
+		{
+			var at = one - _on.Count;
+
+			while (_stepsOf.Count <= at)
+				_stepsOf.Add(null);
+
+			if (_stepsOf[at] is { } known)
+				return known;
+
+			var (state, owed) = _owing[at];
+			var steps         = new List<(int Atom, int To)>();
+
+			foreach (var (on, to) in _on[state])
+				if (After(owed, on) is >= 0 and var still)
+					steps.Add((on, Element(to, still)));
+
+			return _stepsOf[at] = [.. steps];
+		}
+
 		/// <summary>The state an element is of, and the debt it carries (0 for none).</summary>
 		(int State, int Owed) Owing(int element)
 		{
@@ -1168,6 +1276,11 @@ public sealed class LexicalAutomaton
 		int Element(int state, int owed)
 		{
 			if (owed == 0)
+				return state;
+
+			// Past the budget the machine is not kept (Subsets): what is still met is met owing
+			// nothing, so that it stops growing until the construction gets back to say so.
+			if (_on.Count + _owing.Count > Budget)
 				return state;
 
 			if (!_elements.TryGetValue((state, owed), out var element))
@@ -1222,11 +1335,50 @@ public sealed class LexicalAutomaton
 			return _after[(owed, atom)] = Debt(debt);
 		}
 
+		/// <summary>
+		/// <paramref name="matched"/> without the prefixes a longer one in it already answers for.
+		/// </summary>
+		/// <remarks>
+		/// A prefix of length <c>j</c> finishes on what is left of the delimiter after it, and a
+		/// longer one <c>i</c> on what is left after that. Where the delimiter's rest after <c>i</c>
+		/// begins its rest after <c>j</c>, every way that finishes <c>j</c> finishes <c>i</c> first,
+		/// and every character that drops <c>i</c> drops <c>j</c> with it: owing <c>j</c> beside
+		/// <c>i</c> says nothing. For <c>aaaa</c> that leaves the longest prefix alone, as a matching
+		/// automaton's state does; kept, the sets of borders a repetition of runs hands on were as
+		/// many as the subsets of them.
+		/// </remarks>
+		ulong Canonical(string delimiter, ulong matched)
+		{
+			if (!_answered.TryGetValue(delimiter, out var answered))
+			{
+				// Bit i of answered[j]: the rest after i begins the rest after j.
+				answered = new ulong[delimiter.Length];
+
+				for (var j = 1; j < delimiter.Length; j++)
+					for (var i = j + 1; i < delimiter.Length; i++)
+						if (string.CompareOrdinal(delimiter, i, delimiter, j, delimiter.Length - i) == 0)
+							answered[j] |= 1UL << i;
+
+				_answered[delimiter] = answered;
+			}
+
+			for (var j = 1; j < delimiter.Length; j++)
+				if ((matched & (1UL << j)) != 0 && (matched & answered[j]) != 0)
+					matched &= ~(1UL << j);
+
+			return matched;
+		}
+
+		readonly Dictionary<string, ulong[]> _answered = [];
+
 		/// <summary>The number of a debt, numbered the first time it is met; 0 is owing nothing.</summary>
 		int Debt(List<(string Delimiter, ulong Matched)> debt)
 		{
 			if (debt.Count == 0)
 				return 0;
+
+			for (var i = 0; i < debt.Count; i++)
+				debt[i] = (debt[i].Delimiter, Canonical(debt[i].Delimiter, debt[i].Matched));
 
 			// The length first, so that no delimiter, whatever it holds, reads as two.
 			var name = string.Join(
