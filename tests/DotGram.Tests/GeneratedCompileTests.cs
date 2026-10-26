@@ -464,6 +464,8 @@ public sealed class GeneratedCompileTests
 	[InlineData("Inner on fail \"Expected inner.\" = \"ab\"\nStart = { Inner | \"ac\" } & eof", false, "ac", "ab", "ax", "", "abc")]
 	[InlineData("Inner on fail \"Expected inner.\" = 'a'\nStart = Inner* & 'b' & eof", false, "ab", "b", "aab", "x", "")]
 	[InlineData("Start on fail \"Expected start.\" = 'a' & when @(true)", true, "x", "a", "", "ab")]
+	[InlineData("Start on fail \"Expected start.\" = 'a'? & when @(true)", true, "x", "a", "", "ab")]
+	[InlineData("Inner on fail \"Expected inner.\" = \"ab\"\nStart = Inner", true, "a", "x", "ab", "")]
 	[InlineData("Inner : @int on fail \"Expected inner.\" = t: ['a'..'z']+ => @(t.Length)\nStart : @int = i: Inner & '!' => @(i)", true, "!", "ab!", "ab", "")]
 	[InlineData("Inner on fail \"Expected inner.\" = ['0'..'9']+\nOuter = Inner & '!'\nStart = Outer & eof", true, "x", "1!", "1x", "")]
 	public void A_parse_answers_the_same_in_every_form(string grammar, bool messages, params string[] inputs)
@@ -490,7 +492,7 @@ public sealed class GeneratedCompileTests
 					var here   = $"{form}, direct {direct}";
 
 					if (!messages)
-						answer = answer.Split(' ')[0] + " " + answer.Split(' ')[1];
+						answer = string.Join(" ", answer.Split(' ').Take(3));
 
 					if (said.TryGetValue(input, out var first))
 						Assert.True(first.Answer == answer, $"\"{input}\": {first.Form} {first.Answer}, {here} {answer}");
@@ -508,8 +510,25 @@ public sealed class GeneratedCompileTests
 			var success = (bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!;
 			var value   = success ? match.GetType().GetProperty("Value")!.GetValue(match) : null;
 
-			return $"{success} {match.GetType().GetProperty("Position")!.GetValue(match)} {match.GetType().GetProperty("Error")!.GetValue(match)} {(value is byte[] bytes ? Encoding.ASCII.GetString(bytes) : value)}";
+			return $"{success} {match.GetType().GetProperty("Position")!.GetValue(match)} {match.GetType().GetProperty("Outcome")!.GetValue(match)} " +
+				$"{match.GetType().GetProperty("Error")!.GetValue(match)} {(value is byte[] bytes ? Encoding.ASCII.GetString(bytes) : value)}";
 		}
+	}
+
+	/// <summary>
+	/// What a refusal says where the forms do not yet agree, kept red for the change that makes them:
+	/// a root after leading trivia, read on the engine, names what it expected where the methods say
+	/// its sentence; a flat method compiling a root says what it expected where the reader and the
+	/// stream say the sentence; and the reader's call of a rule read whole inside braces says what it
+	/// expected where the engine says the sentence. Outcome and position agree in every one.
+	/// </summary>
+	[Theory(Skip = "Message parity still open: the root after leading trivia on the engine, the flat root, and the reader's call inside braces")]
+	[InlineData("trivia = ' '*\nStart on fail \"Expected start.\" = 'a' & when @(true)", "  x")]
+	[InlineData("Start on fail \"Expected start.\" = 'a'", "x")]
+	[InlineData("Inner on fail \"Expected inner.\" = 'a'\nStart = { Inner } & when @(true)", "x")]
+	public void A_refusal_says_the_same_sentence_in_every_form(string grammar, string input)
+	{
+		A_parse_answers_the_same_in_every_form(grammar, messages: true, input);
 	}
 
 	static GramCompilation Compiled(string grammar, string members, bool direct, bool lexical = false, bool spans = false, CarrierKind carrier = CarrierKind.Auto, bool bytes = false)

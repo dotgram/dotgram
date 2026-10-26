@@ -2020,30 +2020,6 @@ sealed partial class Machine
 				$"var end = {engine}(text, {(lead is null ? "pos" : "began")}, {entry}, {ValueRule(root)}{enginePower}, " +
 				$"{(whole ? "true" : "false")}, {(materialize ? "true" : "false")}{InputArgument}{TokensArgument}{ContextArgument}{ReadingArgument}, ref failure, out {recognized});");
 
-			// The root's own `on fail`, which no call of the engine's says: the reading enters it at
-			// its first state and not through a call (SaidOnFail). Said here, where it refused and the
-			// furthest refusal stands where it began, as the call it is not would have said it.
-			if (SaysOf(root) is { } rootSays)
-			{
-				var said  = DeclareExpected([Spoken(rootSays)]);
-				var began = lead is null ? "pos" : "began";
-
-				_expectedUsed.Add(said);
-
-				using (file.Block($"if (end < 0 && failure.Position <= {began}{(Quiets ? " && !failure.Quiet" : "")})"))
-				{
-					using (file.Block($"if ({began} > failure.Position)"))
-					{
-						file.Line($"failure.Position = {began};");
-						file.Line($"failure.Expected = {said};");
-						file.Line("failure.ExpectedMore?.Clear();");
-					}
-
-					file.Line("else");
-					file.Then($"(failure.ExpectedMore ??= Ties_DotGram()).Add({said});");
-				}
-			}
-
 			// An extent root needs nothing that came back: the wrapper handed the position in
 			// and was told the position reached, which is the whole of the answer.
 			if (IsExtent(root))
@@ -2196,9 +2172,26 @@ sealed partial class Machine
 						file.Line($"var bound{slot} = -1;");
 
 				file.Line();
+				// The reading's own first entry is the root's call, and says the root's `on fail` where
+				// it is popped open (SaidOnFail): which root, by the state the reading begins at. Popped
+				// only where the root itself refused — past its end the call has returned, and a whole
+				// parse refused for what follows it is not the root's refusal.
+				var saying = _tracedRoots
+					.Where(pair => SaysOf(pair.Value) is not null)
+					.Select(pair => (State: Numbered(pair.Key), Said: SaidOnFail(SaysOf(pair.Value)!)))
+					.Distinct()
+					.OrderBy(static one => one.State)
+					.ToList();
+
+				if (saying.Count > 0)
+					file.Line(
+						"var rootSays = state switch { " +
+						string.Concat(saying.Select(static one => $"{one.State} => {-1 - one.Said}, ")) +
+						"_ => 0 };");
+
 				file.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Call, {Accept}, pos, -1, -1, -1, -1, " +
-					"0, rootRule));");
+					$"{(saying.Count > 0 ? "rootSays" : "0")}, rootRule));");
 				file.Line("call = 0;");
 				TraceRoot(file);
 				file.Line("Step_DotGram(\"enter\", state, p, entries.Count, text, \"\");");
