@@ -3029,7 +3029,7 @@ sealed partial class Machine
 			// where every character there agrees (§7.5).
 			using (code.Block($"if ({machine.LacksRoom(text.Length, text, folded)})"))
 			{
-				machine.Reached(code, text, folded, machine.Quiets ? "!failure.Quiet" : "");
+				machine.Reached(code, text, folded, machine.Quiets ? "!failure.Quiet" : "", "true");
 
 				Refused(code, name);
 			}
@@ -3102,7 +3102,7 @@ sealed partial class Machine
 			// Where it is not recorded, as a single literal's: ran out at the beginning.
 			if (shared.Length > 1)
 				using (code.Block($"if ({machine.LacksRoom(shared.Length, shared)})"))
-					machine.Reached(code, shared, false, null);
+					machine.Reached(code, shared, false, null, "true");
 
 			var narrowed = $"narrowed{_calls++}";
 
@@ -6432,6 +6432,15 @@ sealed partial class Machine
 			// Whatever the look refuses on the way is not the parse's refusal: it is read and
 			// given back either way. The engine records nothing inside its own lookahead; the
 			// reader says so on the failure it carries, which every reading has, ways or not.
+			// A negative look holds where its body refuses and wants nothing more of the input: the
+			// mark of input that ran out inside it — a literal of more than one character, read here,
+			// through a rule it calls or by a scanner — is put back whatever the look answered
+			// (Machine.MayRunOut). The boundary woven after every keyword, `?!WordChar`, is a class
+			// and keeps nothing.
+			var negates = !positive && machine.MayRunOut(inside);
+
+			if (negates)
+				code.Line($"var ro{mark} = failure.OutOfInput;");
 			code.Line("failure.Looking++;");
 			machine._looks = true;
 
@@ -6471,6 +6480,8 @@ sealed partial class Machine
 			}
 
 			code.Line("failure.Looking--;");
+			if (negates)
+				code.Line($"failure.OutOfInput = ro{mark};");
 			code.Line();
 			LogBack(code, $"lm{mark}");
 			foreach (var line in machine.Carrier.UnwindGathered(owner, $"rr{mark}"))
