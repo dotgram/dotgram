@@ -537,24 +537,25 @@ public static class FirstSets
 
 		var words = new List<string>();
 
+		// Walked as an int and only over the kinds there are: `any` runs to U+FFFF, where a
+		// char would wrap to zero and never pass the end.
 		foreach (var range in taken.Ranges)
-			for (var kind = range.From; kind <= range.To && words.Count < 5; kind++)
-				if (kind - 1 < inventory.Kinds.Count && kind >= 1)
-					foreach (var pattern in inventory.Kinds[kind - 1].Matched)
+			for (var kind = Math.Max((int)range.From, 1); kind <= Math.Min((int)range.To, inventory.Kinds.Count) && words.Count < 5; kind++)
+				foreach (var pattern in inventory.Kinds[kind - 1].Matched)
+				{
+					var said = pattern switch
 					{
-						var said = pattern switch
-						{
-							TerminalInventory.Pattern.Word(_, var text, _) => "`" + text + "`",
-							TerminalInventory.Pattern.Mark(_, var text, _) => "`" + text + "`",
-							TerminalInventory.Pattern.Class(_, var named)  => named.Name,
-							_                                              => null,
-						};
+						TerminalInventory.Pattern.Word(_, var text, _) => "`" + text + "`",
+						TerminalInventory.Pattern.Mark(_, var text, _) => "`" + text + "`",
+						TerminalInventory.Pattern.Class(_, var named)  => named.Name,
+						_                                              => null,
+					};
 
-						if (said is not null && !words.Contains(said))
-							words.Add(said);
+					if (said is not null && !words.Contains(said))
+						words.Add(said);
 
-						break;
-					}
+					break;
+				}
 
 		return words.Count switch
 		{
