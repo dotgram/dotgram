@@ -3208,8 +3208,8 @@ Two exceptions, narrow and specific, both about bare `@M`. The first: it alone d
 say whether `M` is the second row or the third, since the notation is the same either way.
 The host is asked whether `M` has an `out T` recognizer overload with either input form,
 looked for where the generated call is bound — in the class the grammar is attached to,
-around it, in what it derives from, or in the class of a grammar it includes — and not in
-a class the call cannot reach. Finding one hands the rule-shaped identity a value-producing call needs; finding none
+around it, in what it derives from, in the class of a grammar it includes, or in a class a
+`global using static` imports — and not in a class the call cannot reach. Finding one hands the rule-shaped identity a value-producing call needs; finding none
 leaves bare `@M` the second row. More than one such overload with a different `T` is a
 tie, reported rather than guessed at, the same as an ambiguous constructor (§7.3).
 

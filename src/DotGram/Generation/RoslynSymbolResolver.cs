@@ -5,6 +5,8 @@ using System.Linq;
 using DotGram.Grammar;
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace DotGram.Generation;
 
@@ -33,6 +35,8 @@ public sealed class RoslynSymbolResolver(
 	readonly Dictionary<string, INamedTypeSymbol?> _types = new(StringComparer.Ordinal);
 
 	readonly Dictionary<string, ITypeSymbol?> _values = new(StringComparer.Ordinal);
+
+	List<INamedTypeSymbol>? _globalStatics;
 
 	public bool TypeExists(string qualifiedName)
 	{
@@ -359,6 +363,21 @@ public sealed class RoslynSymbolResolver(
 	}
 
 	/// <summary>The classes a simple name in a call written inside the host is bound in.</summary>
+	/// <remarks>
+	/// <para>
+	/// What C# name lookup sees at the call, which is in the generated file: the host and the
+	/// classes around it, the classes the generated file imports statically, and every
+	/// <c>global using static</c> of the compilation, which reaches every file of it — written
+	/// by hand or by the project's <c>&lt;Using Static="true"/&gt;</c>, in a file with a file-scoped
+	/// namespace or without one.
+	/// </para>
+	/// <para>
+	/// Nothing else reaches it. A <c>using static</c> without <c>global</c> imports into its own
+	/// file, not the generated one, and an alias names a type for a qualified name, not a
+	/// method for a simple one; a method reached only that way is not callable from the
+	/// generated file whichever way it is asked about.
+	/// </para>
+	/// </remarks>
 	IEnumerable<INamedTypeSymbol> Reached(INamedTypeSymbol host)
 	{
 		var roots = new List<INamedTypeSymbol>();
@@ -370,9 +389,49 @@ public sealed class RoslynSymbolResolver(
 			if (TypeNamed(name) is { } imported)
 				roots.Add(imported);
 
+		roots.AddRange(GlobalStatics());
+
 		foreach (var root in roots)
 			for (var type = root; type is not null; type = type.BaseType)
 				yield return type;
+	}
+
+	/// <summary>The classes every <c>global using static</c> of the compilation names.</summary>
+	/// <remarks>
+	/// Read once per resolver: a global using stands at the top of a file, so only the using
+	/// directives of each file are looked at, and a semantic model is made only for a file that
+	/// has one.
+	/// </remarks>
+	List<INamedTypeSymbol> GlobalStatics()
+	{
+		if (_globalStatics is { } known)
+			return known;
+
+		var found = new List<INamedTypeSymbol>();
+
+		foreach (var tree in _compilation.SyntaxTrees)
+		{
+			if (tree.GetRoot() is not CompilationUnitSyntax unit)
+				continue;
+
+			SemanticModel? model = null;
+
+			foreach (var directive in unit.Usings)
+			{
+				if (directive.GlobalKeyword.IsKind(SyntaxKind.None) || directive.StaticKeyword.IsKind(SyntaxKind.None))
+					continue;
+
+				model ??= _compilation.GetSemanticModel(tree);
+
+				if (model.GetSymbolInfo(directive.NamespaceOrType).Symbol is INamedTypeSymbol imported &&
+					!found.Contains(imported, SymbolEqualityComparer.Default))
+				{
+					found.Add(imported);
+				}
+			}
+		}
+
+		return _globalStatics = found;
 	}
 
 	/// <summary>Whether a method can be called in a role from where the host is.</summary>
