@@ -6183,4 +6183,46 @@ public sealed class SemanticTests
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryTightPair", "a b").IsSuccess);
 		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryTightPair", "ab").IsSuccess);
 	}
+
+	[Fact]
+	public void A_specialization_tells_apart_arguments_of_the_same_name_in_two_namespaces()
+	{
+		var result = Compile("""
+			Wrap(x) = '[' & x & ']'
+			namespace A
+			{
+				Word = ['a'..'z']+
+				Item = Wrap(Word)
+			}
+			namespace B
+			{
+				Word = ['0'..'9']+
+				Item = Wrap(Word)
+			}
+			Start = A.Item | B.Item
+			parse Start
+			""");
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		var assembly = EmittedCode.Compile(result.Sources[0].Text);
+
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "[ab]").IsSuccess, "[ab]");
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseStart", "[42]").IsSuccess, "[42]");
+	}
+
+	[Fact]
+	public void A_collected_repetition_that_matches_nothing_is_told_where_it_is()
+	{
+		const string grammar = "W : @string = t: ['a'..'z']* => @(t)\nStart : @string[] = W* & ';' & W* & eof";
+
+		var told = Compile(grammar + "\nparse Start").Diagnostics
+			.Where(static one => one.Id == GrammarNormalizer.NullableRepetition)
+			.Select(static one => one.Position)
+			.Distinct()
+			.OrderBy(static one => one)
+			.ToArray();
+
+		Assert.Equal([grammar.IndexOf("W*", StringComparison.Ordinal), grammar.LastIndexOf("W*", StringComparison.Ordinal)], told);
+	}
 }

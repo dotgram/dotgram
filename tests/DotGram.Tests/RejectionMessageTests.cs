@@ -895,4 +895,24 @@ public sealed class RejectionMessageTests
 			? joined.Split('\u0001')
 			: [.. ((IEnumerable)match.Value!).Cast<object>().Select(static one => one?.ToString() ?? "<null>")];
 	}
+
+	/// <summary>
+	/// Of two rules that forward to one, each saying its own refusal, the nearer says it: whichever
+	/// is declared first.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Readers))]
+	public void The_nearer_forwarding_rule_says_the_refusal(string rendering, bool direct, CarrierKind carrier)
+	{
+		var host = Compiled(
+			Choice +
+			"Outer : @int on fail \"Expected an outer.\" = o: Inner => @(o)\n" +
+			"Inner : @int on fail \"Expected an inner.\" = i: Expr => @(i)\n" +
+			"Start : @int = n: Inner & eof => @(n)\n" +
+			"parse Start as ParseStart\nparse Outer as ParseOuter\n",
+			direct, carrier);
+		var match = EmittedCode.Match(host, "Grammar", "TryParseStart", "x");
+
+		Assert.True(match.Error == "Expected an inner.", $"{rendering}: {match.Error}");
+	}
 }

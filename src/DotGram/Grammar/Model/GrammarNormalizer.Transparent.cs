@@ -41,15 +41,36 @@ public sealed partial class GrammarNormalizer
 	/// the shape — writes nothing but bodies (D14). `Expression = e: Assignment` is gone once
 	/// collapsed, and "Expected an expression." is about the position, not about which of the
 	/// two rules was standing there. A source that says something of its own keeps it — the
-	/// nearer rule is the one that knows what it is.
+	/// nearer rule is the one that knows what it is — and so does the forwarder nearer to a
+	/// source, among several that say different things of it: in `Outer = o: Inner` and
+	/// `Inner = i: Number`, `Number` says what `Inner` does, whichever is declared first.
 	/// </remarks>
 	void SaysThroughForwarders()
 	{
-		foreach (var pair in Transparent())
-			if (pair.Key.OnFail is { } said)
-				foreach (var source in pair.Value)
-					if (source.OnFail is null && !_says.ContainsKey(source))
-						_says[source] = said;
+		var vias    = new Dictionary<RuleSymbol, IReadOnlyList<RuleSymbol[]>>();
+		var nearest = new Dictionary<RuleSymbol, int>();
+
+		foreach (var pair in Transparent(vias))
+		{
+			if (pair.Key.OnFail is not { } said)
+				continue;
+
+			for (var at = 0; at < pair.Value.Count; at++)
+			{
+				var source = pair.Value[at];
+				var hops   = vias[pair.Key][at].Length + 1;
+
+				if (source.OnFail is not null)
+					continue;
+
+				// Said already by a nearer forwarder, or by something other than this pass.
+				if (nearest.TryGetValue(source, out var held) ? hops >= held : _says.ContainsKey(source))
+					continue;
+
+				_says[source]   = said;
+				nearest[source] = hops;
+			}
+		}
 	}
 
 	/// <summary>The rules whose calls can be replaced, each with the sources it forwards to, chains resolved.</summary>
@@ -258,7 +279,7 @@ public sealed partial class GrammarNormalizer
 				case Node.Repeat(var body, var min, var max):
 					return Inline(body) is var repeated && ReferenceEquals(repeated, body)
 						? node
-						: new Node.Repeat(repeated, min, max);
+						: Placed(node, new Node.Repeat(repeated, min, max));
 
 				case Node.Atomic(var kept):
 					return Inline(kept) is var atomic && ReferenceEquals(atomic, kept)
@@ -294,7 +315,7 @@ public sealed partial class GrammarNormalizer
 				case Node.Counted(var body, var min, var max):
 					return Inline(body) is var counted && ReferenceEquals(counted, body)
 						? node
-						: new Node.Counted(counted, min, max);
+						: Placed(node, new Node.Counted(counted, min, max));
 
 				default:
 					return node;
