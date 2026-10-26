@@ -1066,7 +1066,7 @@ sealed partial class Machine
 		_traceRule = root.Name;
 
 		_wholeEntries[root] = _graph.Trivia.ContainsKey(root)
-			? Compile(BodyOf(root, whole: true), Return, FollowSets.Continuation.End)
+			? CompileWhole(root, Return)
 			: _entries[root];
 
 		_roots.Add(_wholeEntries[root]);
@@ -1087,6 +1087,57 @@ sealed partial class Machine
 		return whole && _graph.Trivia.TryGetValue(rule, out var trivia)
 			? new Node.Sequence([trivia, _graph.Bodies[rule], trivia])
 			: _graph.Bodies[rule];
+	}
+
+	/// <summary>
+	/// <see cref="BodyOf"/> for a whole parse, compiled; where the value is the rule's extent,
+	/// with where it begins and where it ends written down between the trivia and the rule.
+	/// </summary>
+	/// <remarks>
+	/// The trivia on either side is the parse's and not the value's (§6), so the value is cut
+	/// from between the two marks. The states are the ones <see cref="BodyOf"/>'s sequence
+	/// compiles into, with a state that writes a position put in at each seam: every reading that
+	/// is accepted passes each mark once more after any way back into the rule, so what the
+	/// failure holds at the end is where this reading's rule began and ended.
+	/// </remarks>
+	int CompileWhole(RuleSymbol rule, int next)
+	{
+		var end = FollowSets.Continuation.End;
+
+		if (!TrimsWhole(rule))
+			return Compile(BodyOf(rule, whole: true), next, end);
+
+		var trivia = _graph.Trivia[rule];
+		var body   = _graph.Bodies[rule];
+		var after  = FollowSets.Precedes(trivia, end, _graph, _seam);
+
+		var trailing = Compile(trivia, next, end);
+		var ended    = Reserve(out var atEnded);
+
+		atEnded.Line("failure.Ended = p;");
+		atEnded.Line($"goto {Label(atEnded, trailing)};");
+
+		var read  = Compile(body, ended, after);
+		var began = Reserve(out var atBegan);
+
+		atBegan.Line("failure.Began = p;");
+		atBegan.Line($"goto {Label(atBegan, read)};");
+
+		return Compile(trivia, began, FollowSets.Precedes(body, after, _graph, _seam));
+	}
+
+	/// <summary>
+	/// Whether a whole parse of <paramref name="rule"/> writes down where its value begins and
+	/// ends: its value is the text it matched, and there is trivia around it to leave out.
+	/// </summary>
+	/// <remarks>
+	/// Over kinds the lexer has already skipped the trivia, and the value is cut from the tokens
+	/// read. <see cref="CSharpEmitter.RecordsEnded"/> asks the same of the publications, so that the
+	/// field and every write to it are emitted together.
+	/// </remarks>
+	internal bool TrimsWhole(RuleSymbol rule)
+	{
+		return !OverKinds && _graph.Trivia.ContainsKey(rule) && ValueRule(rule) < 0;
 	}
 
 	/// <summary>

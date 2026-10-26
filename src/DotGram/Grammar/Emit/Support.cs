@@ -790,6 +790,7 @@ public static partial class CSharpEmitter
 			("Unasked",    "Unasked = true",        "no reading of this grammar is made for its message alone"),
 			("Doors",      "Doors = ",              "no reading of this grammar records after a quiet one"),
 			("Began",      "failure.Began = ",      "no reading that begins where it is told is emitted"),
+			("Ended",      "failure.Ended = ",      "no whole reading of a rule's text is emitted"),
 			("OutOfInput", "failure.OutOfInput = ", "every test in this grammar wants one character"),
 			("Trace",      "Trace = ",              "no reading of this file is begun where a sink could be set"),
 		};
@@ -941,12 +942,16 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	internal static string FailureStructWith(
 		bool reach, bool stood = false, bool starved = false, bool expected = false, bool expectedMore = false, bool recoveryOrdinal = false,
-		bool looking = false, bool quiet = false, bool began = false, bool trace = false, bool unasked = false, bool doors = false)
+		bool looking = false, bool quiet = false, bool began = false, bool trace = false, bool unasked = false, bool doors = false,
+		bool ended = false)
 	{
 		return Lines.Normalize(FailureStruct)
 			.Replace(
 				"	{{began}}" + Lines.Ending,
 				began ? Lines.Normalize(BeganField) + Lines.Ending : "")
+			.Replace(
+				"	{{ended}}" + Lines.Ending,
+				ended ? Lines.Normalize(EndedField) + Lines.Ending : "")
 			.Replace("\t{{recoveryOrdinal}}" + Lines.Ending, recoveryOrdinal ? "\tpublic int RecoveryOrdinal { get; set; }" + Lines.Ending : "")
 			.Replace(
 				"\t{{reach}}" + Lines.Ending,
@@ -992,6 +997,8 @@ public static partial class CSharpEmitter
 			.Replace("{{restore:Doors}}", Mark("Doors", false))
 			.Replace("{{suppress:Began}}", Mark("Began", true))
 			.Replace("{{restore:Began}}", Mark("Began", false))
+			.Replace("{{suppress:Ended}}", Mark("Ended", true))
+			.Replace("{{restore:Ended}}", Mark("Ended", false))
 			.Replace("{{suppress:OutOfInput}}", Mark("OutOfInput", true))
 			.Replace("{{restore:OutOfInput}}", Mark("OutOfInput", false))
 			.Replace("{{suppress:Trace}}", Mark("Trace", true))
@@ -1011,6 +1018,19 @@ public static partial class CSharpEmitter
 		{{suppress:Began}}
 		public int Began;
 		{{restore:Began}}
+		""";
+
+	/// <summary>Where a whole reading's value ended, before the trivia after it.</summary>
+	/// <remarks>
+	/// The other half of <see cref="BeganField"/> for a whole reading of a rule whose value is its
+	/// extent: the entry writes both between the trivia and the rule, and the value is cut from
+	/// between the two, leaving out the trivia on either side (§6).
+	/// </remarks>
+	const string EndedField = """
+		/// <summary>Where the value of a whole reading ends: before the trivia after it.</summary>
+		{{suppress:Ended}}
+		public int Ended;
+		{{restore:Ended}}
 		""";
 
 	const string FailureStruct = """
@@ -1055,6 +1075,7 @@ public static partial class CSharpEmitter
 			public int OutOfInput;
 			{{restore:OutOfInput}}
 			{{began}}
+			{{ended}}
 			{{reach}}
 			{{stood}}
 			{{starved}}

@@ -42,7 +42,7 @@ sealed partial class Machine
 			_checkpointsAllowed = true;
 			_lowering           = true;
 
-			entry = Compile(BodyOf(rule, whole), Accept, seed);
+			entry = whole ? CompileWhole(rule, Accept) : Compile(BodyOf(rule, whole), Accept, seed);
 		}
 
 		_roots.Add(entry);
@@ -418,7 +418,7 @@ sealed partial class Machine
 		_lowering       = true;
 		_recordsBeforeFail = false;
 
-		var entry = Compile(BodyOf(rule, whole), Accept, seed);
+		var entry = whole ? CompileWhole(rule, Accept) : Compile(BodyOf(rule, whole), Accept, seed);
 
 		_valuesInLocals = false;
 		_lowering       = false;
