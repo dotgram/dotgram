@@ -756,6 +756,20 @@ public static class Retention
 					"and a streamed parse hands over the values of the rules it calls, one at a time. " +
 					"Give the part its own rule (docs/syntax.md §6.3).";
 
+		// A guard among the parts that reads the rule as it stands is told, over a string, the rule
+		// from where it began, past the trivia before it. A stream reads such a part on its own, from
+		// where the part begins, and the guard would be told another extent: `Row* & when
+		// @(parserSpan.Start == 0)` holds over a string and is refused through a window.
+		foreach (var part in parts)
+			if (!Handed(part, seam) && NodeWalk.Descendants(part).Any(static node =>
+				node is Node.Guard { Text: var condition } &&
+				(condition.Contains("parserSpan") || condition.Contains("parserText"))))
+			{
+				return $"in '{rule.Name}', '{part}' is a guard that reads the rule's extent, which over a string " +
+					"runs from where the rule began, and a streamed parse reads the part on its own. Give the " +
+					"guard to a rule it calls, or read it over a string (docs/syntax.md §6.3).";
+			}
+
 		// Each part is read once and what follows it begins where it ended. Over a string a
 		// part that can end in two places is given back a turn when what follows fails, which
 		// a stream that went on past it cannot do: `("a" | "ab") & "b"` over `abb` reads the

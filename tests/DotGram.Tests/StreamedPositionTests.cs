@@ -293,6 +293,16 @@ public sealed class StreamedPositionTests
 			Rows : @string[] = Row* recover Sync => @(parserSpan.Start + "+" + parserSpan.Length)
 			parse Rows
 			""", Nested, Nested),
+		// A root with trivia, whose whole reading over a string leaves the trivia out of what it is
+		// told (Failure.Began, Ended), read through a window instead: its rows, their guards and their
+		// located values are read as parts, past the trivia and past the dropped prefix.
+		("wholeroot", "ParseRows", """
+			trivia = { ' '* }
+			Name : @N = 'a' => @(new N("a"))
+			Row  : @N = n: Name & when @(n.At == parserSpan.Start) & eol => @(n)
+			Rows : @N[] = Row*
+			parse Rows
+			""", " a\n  a\na\n", string.Concat(Enumerable.Repeat("  a\n", 1_500))),
 		// The same synchronization published as well, whose own reading steps over its bad part: the
 		// engine still reads it inside the other's, out of the window.
 		("nestedtwice", "ParseRows", """
@@ -467,6 +477,25 @@ public sealed class StreamedPositionTests
 
 		Assert.True(parser.Streams);
 		Assert.DoesNotContain("Origin", parser.Source, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A guard of the root that reads the root's extent is told, over a string, the root from where it
+	/// began past the trivia; a streamed parse would read the guard on its own, from where it stands,
+	/// and so the root is not streamed (GRAM5001), as the root builds no value either.
+	/// </summary>
+	[Fact]
+	public void A_guard_of_the_root_reading_its_extent_is_not_streamed()
+	{
+		var result = GramCompiler.Compile("""
+			trivia = { ' '* }
+			Row  : @string = 'a' & eol => @("a")
+			Rows : @string[] = Row* & when @(parserSpan.Start <= 2)
+			parse Rows
+			""", new GramCompilerOptions { ClassName = "Grammar", CSharpScanner = RoslynCSharpScanner.Instance });
+
+		Assert.DoesNotContain("TextReader input", result.Sources[0].Text, StringComparison.Ordinal);
+		Assert.Contains(result.Diagnostics, static one => one.Id == "GRAM5001" && one.Message.Contains("reads the rule's extent", StringComparison.Ordinal));
 	}
 
 	/// <summary>Each value handed over, and for a match where it was found and what it holds.</summary>

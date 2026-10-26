@@ -26547,7 +26547,9 @@ search for the delimiter that found none jumped to the refusal without saying ho
   dropped a prefix, where the string says `bad 8:1:26`. A guard's own `parserSpan` was the window's too, a
   recovery factory's `parserSpan` likewise, and the probes the reading runs besides the element — the trivia,
   the continuation after a recovering repetition, the synchronization — handed the engine no origin at all,
-  though a guard they run may build a located value. A recovery the engine reads inside one of those probes — a
+  though a guard they run may build a located value. A guard of the root itself that reads the root's extent was
+  read as a part of its own, from where it stands rather than where the root began past its trivia; such a root is
+  no longer streamed (GRAM5001). A recovery the engine reads inside one of those probes — a
   synchronization that recovers from a bad part of its own — told its span, its positions, its lines and its
   columns from the window's start too, and a guard over them refused what the string reads.
 - **The fix.** The reading writes where the window begins on the failure it hands the engine
