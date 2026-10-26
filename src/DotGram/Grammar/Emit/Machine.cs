@@ -7778,12 +7778,14 @@ sealed partial class Machine
 				writer.Line("var literalReach = p;");
 				ReachLadder(writer, value, true, "literalReach");
 
-				if (marks != "false")
+				// The end is tested whether or not it is marked: where a window feeds the machine, the
+				// test says on that side that the reading ran out (Ran), look or no look.
+				using (writer.Block($"if ({Past("literalReach")})"))
 				{
-					using (writer.Block($"if ({(marks == "true" ? "" : marks + " && ")}{Past("literalReach")})"))
-					{
+					if (marks == "true")
 						writer.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
-					}
+					else if (marks != "false")
+						writer.Line($"if ({marks} && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
 				}
 
 				if (moves is not null)
@@ -7907,9 +7909,11 @@ sealed partial class Machine
 			helper.Line($"var reach = {agreeing}(text, p, value, fold);");
 			helper.Line();
 
-			using (helper.Block($"if (marks && {Past("reach")})"))
+			// The end is tested whether or not it is marked: where a window feeds the machine, the test
+			// says on that side that the reading ran out (Ran), look or no look.
+			using (helper.Block($"if ({Past("reach")})"))
 			{
-				helper.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
+				helper.Line("if (marks && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
 			}
 
 			helper.Line();
