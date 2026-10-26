@@ -1519,7 +1519,7 @@ public sealed class GeneratorDriverTests
 			"""
 			namespace App
 			{
-				[DotGram.Gram("Rest : @string = n: @M => @(n.ToString())")]
+				[DotGram.Gram("Rest : @string = n: @M => @(n.ToString())\nparse Rest")]
 				public partial class G
 				{
 					internal static bool M(System.ReadOnlySpan<char> input, ref int pos, out int value)
