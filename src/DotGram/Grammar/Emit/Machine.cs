@@ -1065,12 +1065,54 @@ sealed partial class Machine
 		_seam      = FollowSets.SeamOf(root, _graph);
 		_traceRule = root.Name;
 
-		_wholeEntries[root] = _graph.Trivia.ContainsKey(root)
-			? Compile(BodyOf(root, whole: true), Return, FollowSets.Continuation.End)
+		_wholeEntries[root] = _graph.Trivia.TryGetValue(root, out var trivia)
+			? CompileWhole(root, trivia)
 			: _entries[root];
 
 		_roots.Add(_wholeEntries[root]);
 		_tracedRoots[_wholeEntries[root]] = root;
+	}
+
+	/// <summary>
+	/// Whether a whole entry writes down the root rule's own extent (<see cref="CompileWhole"/>),
+	/// for the locals that hold it and the record rewritten from them at <c>Accept</c>.
+	/// </summary>
+	bool _marksRoot;
+
+	/// <summary>
+	/// The whole entry of a root with trivia: the trivia, the rule and the trivia again, compiled as
+	/// the sequence <see cref="BodyOf"/> builds is, with where the rule itself began and ended
+	/// written down between. The reading's own record spans the whole input, trivia and all, and
+	/// is what the root's construction would be handed; what a construction reads of its rule —
+	/// <c>parserText</c>, <c>parserSpan</c> — is the rule's own extent, from where the rule began
+	/// to where the parse stands (§4), so the record is cut down to the two marks before the
+	/// values are built.
+	/// </summary>
+	int CompileWhole(RuleSymbol root, Node trivia)
+	{
+		var body  = _graph.Bodies[root];
+		var after = FollowSets.Continuation.End;
+		var trail = Compile(trivia, Return, after);
+
+		after = FollowSets.Precedes(trivia, after, _graph, _seam);
+
+		var ended = Reserve(out var atEnd);
+
+		atEnd.Line("rootEnd = p;");
+		atEnd.Line($"goto {Label(atEnd, trail)};");
+
+		var inner = Compile(body, ended, after);
+
+		after = FollowSets.Precedes(body, after, _graph, _seam);
+
+		var begun = Reserve(out var atBegin);
+
+		atBegin.Line("rootBegan = p;");
+		atBegin.Line($"goto {Label(atBegin, inner)};");
+
+		_marksRoot = true;
+
+		return Compile(trivia, begun, after);
 	}
 
 	/// <summary>
@@ -2157,6 +2199,11 @@ sealed partial class Machine
 						file.Line($"var turn{i} = 0;");
 				if (_usesCompleted)
 					file.Line("var completedCall = -1;");
+				if (_marksRoot)
+				{
+					file.Line("var rootBegan = pos;");
+					file.Line("var rootEnd   = -1;");
+				}
 
 				// Declared only where a written state reads or writes it: a rule every
 				// call of which was compiled as a site leaves its own states unreachable,
@@ -2339,6 +2386,24 @@ sealed partial class Machine
 							// materialization costs and one that cannot.
 							using (file.Block("if (rootRule >= 0)"))
 							{
+								// The rule's own extent, where the whole entry wrote it down (CompileWhole):
+								// the reading's record spans the trivia around the rule, and the rule's
+								// construction is handed the rule.
+								if (_marksRoot)
+								{
+									using (file.Block("if (rootEnd >= 0)"))
+									{
+										file.Line("var root = entries[0];");
+										file.Line();
+										file.Line(
+											"entries[0] = new ParserEntry(ParserEntry.Completed, root.State, rootBegan, root.CallIndex, " +
+											"root.AtomicIndex, root.RepeatIndex, root.LookaheadIndex, rootEnd, root.RuleIndex" +
+											(_graph.Climbing.Count > 0 ? ", root.Power" : "") + ");");
+									}
+
+									file.Line();
+								}
+
 								file.Line("var values = parser.Materialization(entries.Count);");
 								DeclareTables(file);
 
@@ -7403,7 +7468,7 @@ sealed partial class Machine
 	/// one state machine is a variable more in every flow the C# compiler works out over it, and the
 	/// trace build of the SQL parsers took it from minutes to more than half an hour.
 	/// </remarks>
-	internal void Reached(Writer writer, string value, bool ignoreCase, string? moves)
+	internal void Reached(Writer writer, string value, bool ignoreCase, string? moves, string marks)
 	{
 		if (ignoreCase && !Ascii(value))
 		{
@@ -7428,7 +7493,7 @@ sealed partial class Machine
 		}
 
 		var call = $"{RanOut()}(text, p, {Quoted(value)}, {(ignoreCase ? "true" : "false")}, " +
-			$"{(moves is null ? "false" : moves.Length == 0 ? "true" : moves)}, ref failure);";
+			$"{(moves is null ? "false" : moves.Length == 0 ? "true" : moves)}, {marks}, ref failure);";
 
 		writer.Line(moves is null ? call : "p = " + call);
 	}
