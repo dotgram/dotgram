@@ -64,6 +64,7 @@ public sealed class WebRunRefusalTests
 	[InlineData("a Structured Field dictionary with many members")]
 	[InlineData("a Structured Field dictionary with many members, explained")]
 	[InlineData("an address list with an unclosed comment")]
+	[InlineData("an address list with an unclosed comment of quoted pairs")]
 	[InlineData("a mailbox with an unclosed quoted string")]
 	[InlineData("an addr-spec with an unclosed comment")]
 	[InlineData("an addr-spec with an unclosed domain literal")]
@@ -101,6 +102,70 @@ public sealed class WebRunRefusalTests
 			$"({shorter:F0} µs against {longer:F0} µs).");
 	}
 
+	/// <summary>Comments nested as deep as a large header allows, read at all and refused.</summary>
+	/// <remarks>
+	/// A comment holds comments, and a seal around the group that holds the nested one spends the ways back
+	/// of every level below again at each level above: quadratic in the depth, where reading it is linear.
+	/// The depths are four and thirty-two thousand, as at the shorter one the cost of a read is still mostly
+	/// what does not grow with it.
+	/// </remarks>
+	[Theory]
+	[InlineData("an address list of nested comments")]
+	[InlineData("an address list of nested comments, one left open")]
+	[InlineData("a mailbox in angle brackets after nested comments")]
+	public async Task A_read_of_nested_comments_is_linear_in_the_depth(string shape)
+	{
+		Func<int, bool> read = shape switch
+		{
+			"an address list of nested comments"                => depth => EmailAddress.TryParseList(new string('(', depth) + "a" + new string(')', depth) + "@b", out _),
+			"an address list of nested comments, one left open" => depth => EmailAddress.TryParseList("x@y" + new string('(', depth) + "a" + new string(')', depth - 1), out _),
+			"a mailbox in angle brackets after nested comments" => depth => EmailAddress.Mailbox.TryParse("<" + new string('(', depth) + "a" + new string(')', depth) + "@b>", out _),
+			_ => throw new ArgumentOutOfRangeException(nameof(shape), shape, null),
+		};
+
+		const int Deep = 32_000;
+
+		read(4);
+
+		var done  = Task.Run(() => read(Deep), TestContext.Current.CancellationToken);
+		var spent = Task.Delay(Budget, TestContext.Current.CancellationToken);
+
+		Assert.True(
+			await Task.WhenAny(done, spent) == done,
+			$"{shape}: a read {Deep:N0} comments deep had not finished in {Budget.TotalSeconds:F1} s. " +
+			$"A seal around a group that holds the nested comment spends every level below again; seal the text " +
+			$"between the comments instead.");
+
+		var shallower = Fastest(read, Deep / 8);
+		var deeper    = Fastest(read, Deep);
+
+		shallower = Math.Min(shallower, Fastest(read, Deep / 8));
+
+		Assert.True(
+			deeper / Math.Max(shallower, 1) < 24,
+			$"{shape}: eight times as deep took {deeper / Math.Max(shallower, 1):F1} times as long " +
+			$"({shallower:F0} µs against {deeper:F0} µs).");
+	}
+
+	/// <summary>The fastest of several reads, in microseconds, after one to compile it; accepted or not.</summary>
+	static double Fastest(Func<int, bool> read, int depth)
+	{
+		read(depth);
+
+		var best = double.MaxValue;
+
+		for (var run = 0; run < 11; run++)
+		{
+			var watch = Stopwatch.StartNew();
+
+			read(depth);
+
+			best = Math.Min(best, watch.Elapsed.TotalMilliseconds * 1000);
+		}
+
+		return best;
+	}
+
 	static Func<int, bool> Reader(string shape)
 	{
 		var cut = ((char)1).ToString();
@@ -119,6 +184,7 @@ public sealed class WebRunRefusalTests
 			"a Structured Field dictionary with many members"            => length => StructuredField.TryParseDictionary(Copies("x,", length) + cut, out _),
 			"a Structured Field dictionary with many members, explained" => length => Explained(() => StructuredField.ParseDictionary(Copies("x,", length) + cut)),
 			"an address list with an unclosed comment"                   => length => EmailAddress.TryParseList("(" + new string('a', length) + cut, out _),
+			"an address list with an unclosed comment of quoted pairs"   => length => EmailAddress.TryParseList("(" + Copies("\\a", length) + cut, out _),
 			"a mailbox with an unclosed quoted string"                   => length => EmailAddress.Mailbox.TryParseStrict("\"" + Copies("x,", length) + cut, out _),
 			"an addr-spec with an unclosed comment"                      => length => AddrSpec.TryParse("(" + new string('a', length) + cut, out _),
 			"an addr-spec with an unclosed domain literal"               => length => AddrSpec.TryParse("a@[" + new string('a', length) + cut, out _),
