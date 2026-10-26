@@ -72,8 +72,11 @@ sealed partial class Machine
 
 		_scalarScans[rule] = null;
 
+		// Nor a run a repetition marked `recover` reads, which the run would read as a plain one
+		// (the same question Scans asks).
 		if (!SitedValued(rule) ||
-			_graph.Bodies[rule] is not Node.Construct { Body: Node.Capture capture })
+			_graph.Bodies[rule] is not Node.Construct { Body: Node.Capture capture } ||
+			HoldsRecovery(capture))
 			return null;
 
 		var body = capture.Body;
@@ -172,6 +175,15 @@ sealed partial class Machine
 		// `recover`, which a scanner, committing to what it reads and recording nothing, would read
 		// as a plain one.
 		if (_graph.Lifted.ContainsKey(rule))
+			return false;
+
+		// Nor a rule that holds a repetition marked `recover` or reaches one through a call, for the
+		// same reason, wherever it is called from: a rule plans its own recovery (§8.2), so one
+		// reached from a lookahead or a synchronization recovers as written, as it does where it is
+		// called directly. Asked here, where a rule becomes a scanner, and not of each shape
+		// `Scannable` admits: a shortcut there — the guarded repetition read as one search for its
+		// stop — never asked the repetition itself.
+		if (HoldsRecovery(body))
 			return false;
 
 		if (body is Node.Atomic(var kept))
@@ -548,14 +560,6 @@ sealed partial class Machine
 
 				return true;
 			}
-
-			// A repetition marked `recover` steps over a bad element and tries what follows it first
-			// (§8.2), which a scanner, committing to what it reads and recording nothing, would read
-			// as a plain repetition. A rule plans its own recovery wherever it is reached from — a
-			// call, a lookahead, a synchronization — so a rule that holds one, or calls one that
-			// does, is not read by a scanner.
-			case Node.Repeat when _graph.Recoveries.ContainsKey(node):
-				return false;
 
 			// A turn is at the tail only where no turn after it is owed: at the tail a repetition
 			// that may stop after its first turn takes what it greedily takes, but one that must

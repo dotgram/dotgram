@@ -102,6 +102,53 @@ public sealed class RecoveryFromALookTests
 		}
 	}
 
+	/// <summary>
+	/// A repetition guarded by a negative lookahead and stopped by the literal it guards against,
+	/// `(?!';' & 'a')*` before `';'`, which a scanner reads as one search for the literal: marked
+	/// <c>recover</c>, it recovers as written there too, reached as the rule itself, through a rule
+	/// that forwards to it, through a rule with a parameter and from another namespace. Over every
+	/// input of up to five characters of <c>ab;</c>.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(GuardedWays))]
+	public void A_guarded_repetition_that_recovers_is_read_as_written_from_a_look(string grammar, bool direct)
+	{
+		var type = Compiled(grammar, direct);
+
+		foreach (var input in Inputs("ab;", 5))
+		{
+			var itself = Reads(type, "TryParseR", input, 0) >= 0;
+
+			foreach (var reader in new[] { false, true })
+				Assert.True(
+					Whole(type, "TryParseAhead", input, reader) == itself,
+					$"?=R on \"{input}\" {(reader ? "through a reader" : "as a string")}: reading R says {itself}");
+		}
+	}
+
+	/// <summary>The guarded repetition as the rule, behind a forwarding rule, a parameter and a namespace.</summary>
+	public static TheoryData<string, bool> GuardedWays
+	{
+		get
+		{
+			const string ahead = "Ahead = ?=R & any*\nparse R\nparse Ahead\n";
+
+			var data = new TheoryData<string, bool>();
+
+			foreach (var grammar in new[]
+			{
+				"R = (?!';' & 'a')* recover ';' & ';'\n" + ahead,
+				"Inner = (?!';' & 'a')* recover ';' & ';'\nR = Inner\n" + ahead,
+				"Guarded(stop) = (?!stop & 'a')* recover stop & stop\nR = Guarded(';')\n" + ahead,
+				"namespace N\n{\n\tR = (?!';' & 'a')* recover ';' & ';'\n}\nR = N.R\n" + ahead,
+			})
+				foreach (var direct in new[] { true, false })
+					data.Add(grammar, direct);
+
+			return data;
+		}
+	}
+
 	// ── Helpers ─────────────────────────────────────────────────────────────────
 
 	/// <summary>
