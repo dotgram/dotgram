@@ -40,6 +40,8 @@ public sealed class RoslynSymbolResolver(
 
 	bool _callSiteMade;
 
+	string? _callSiteText;
+
 	public bool TypeExists(string qualifiedName)
 	{
 		return TypeNamed(qualifiedName) is not null;
@@ -264,7 +266,7 @@ public sealed class RoslynSymbolResolver(
 	public ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType)
 	{
 		if (CallSite() is var (site, model, position, host))
-			return site.ValueAmong(model.LookupSymbols(position, name: methodName), host, against, out valueType);
+			return site.ValueAmong(Invoked(model, position, methodName), host, against, out valueType);
 
 		return ValueAmong(
 			_compilation.GetSymbolsWithName(methodName, SymbolFilter.Member),
@@ -347,7 +349,7 @@ public sealed class RoslynSymbolResolver(
 		var named = false;
 
 		if (CallSite() is var (site, model, position, called))
-			foreach (var method in model.LookupSymbols(position, name: methodName).OfType<IMethodSymbol>())
+			foreach (var method in Invoked(model, position, methodName))
 			{
 				named = true;
 
@@ -419,6 +421,8 @@ public sealed class RoslynSymbolResolver(
 			_statics,
 			out var position);
 
+		_callSiteText = text;
+
 		var options = _compilation.SyntaxTrees.FirstOrDefault()?.Options as CSharpParseOptions;
 		var tree    = CSharpSyntaxTree.ParseText(text, options);
 		var copy    = _compilation.AddSyntaxTrees(tree);
@@ -427,6 +431,32 @@ public sealed class RoslynSymbolResolver(
 			return null;
 
 		return _callSite = (new RoslynSymbolResolver(copy, _host, _statics), copy.GetSemanticModel(tree), position, copied);
+	}
+
+	/// <summary>The methods a call of the simple name binds among, standing at the call site.</summary>
+	/// <remarks>
+	/// The method group of a call, bound speculatively where the generated one stands, and not
+	/// a lookup of the name: a call passes over what cannot be called, so a nested type of the
+	/// host spelled like an imported method does not hide the method from it, where a lookup of
+	/// the name stops at the type.
+	/// </remarks>
+	static IEnumerable<IMethodSymbol> Invoked(SemanticModel model, int position, string methodName)
+	{
+		if (SyntaxFactory.ParseStatement(methodName + "();") is not ExpressionStatementSyntax { Expression: InvocationExpressionSyntax call } statement ||
+			!model.TryGetSpeculativeSemanticModel(position, statement, out var speculative))
+		{
+			return [];
+		}
+
+		return speculative.GetMemberGroup(call.Expression).OfType<IMethodSymbol>();
+	}
+
+	/// <summary>The file <see cref="CallSite"/> added, or null where it made none: what a test holds to the generated file.</summary>
+	internal string? CallSiteFrame()
+	{
+		CallSite();
+
+		return _callSiteText;
 	}
 
 	/// <summary>
