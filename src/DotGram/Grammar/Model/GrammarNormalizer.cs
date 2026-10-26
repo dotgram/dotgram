@@ -1038,7 +1038,14 @@ public sealed partial class GrammarNormalizer
 	/// <para>
 	/// A guard after the operand reads nothing (§4.5), so the operand before it is still the
 	/// one the alternative ends with: <c>left: E &amp; '*' &amp; right: E &amp; when @(…) &lt;&lt; 2</c>
-	/// reads <c>right</c> at 3, as it would without the guard.
+	/// reads <c>right</c> at 3, as it would without the guard. So does a lookahead, and
+	/// everything else <see cref="ReadsNothing"/> names: <c>right: E &amp; ?!'x' &lt;&lt; 2</c>
+	/// reads <c>right</c> at 3 too.
+	/// </para>
+	/// <para>
+	/// The same walk answers <see cref="EndsWith"/>, so a rule refused for recursing on both
+	/// sides and an operand given its strength are told by one reading of where an
+	/// alternative ends.
 	/// </para>
 	/// </remarks>
 	static Node.Call? SelfCallAt(Node node, RuleSymbol rule)
@@ -1058,7 +1065,7 @@ public sealed partial class GrammarNormalizer
 		{
 			var last = operands.Count - 1;
 
-			while (last > 0 && operands[last] is Node.Guard or Node.Condition)
+			while (last > 0 && ReadsNothing(operands[last]))
 				last--;
 
 			return last;
@@ -1146,7 +1153,7 @@ public sealed partial class GrammarNormalizer
 
 					return true;
 
-				case Node.Guard or Node.Condition or Node.Lookahead or Node.Behind or Node.Empty or Node.Glue:
+				case { } nothing when ReadsNothing(nothing):
 					return true;
 
 				case Node.Call(var called, _) call when ReferenceEquals(called, rule):
@@ -1261,18 +1268,23 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>Whether the last thing an alternative matches is a call to this rule.</summary>
+	/// <remarks>
+	/// What reads nothing after that call — a guard, a lookahead — leaves it the last thing
+	/// matched: <c>E = E &amp; '+' &amp; E &amp; when @(…)</c> is recursive on both sides
+	/// as surely as it is without the guard.
+	/// </remarks>
 	static bool EndsWith(Node node, RuleSymbol rule)
 	{
-		while (true)
-			switch (node)
-			{
-				case Node.Construct(var built, _)   : node = built; break;
-				case Node.Capture  (_, var captured): node = captured; break;
-				case Node.Bind     (_, var bound, _): node = bound; break;
-				case Node.Sequence (var operands)   : node = operands[^1]; break;
-				case Node.Call     (var called, _)  : return ReferenceEquals(called, rule);
-				default:                              return false;
-			}
+		return SelfCallAt(node, rule) is not null;
+	}
+
+	/// <summary>
+	/// Whether a node reads no input: a guard, a condition, a lookahead either way, a
+	/// lookbehind, glue, or nothing at all.
+	/// </summary>
+	static bool ReadsNothing(Node node)
+	{
+		return node is Node.Guard or Node.Condition or Node.Lookahead or Node.Behind or Node.Empty or Node.Glue;
 	}
 
 	/// <summary>Every <c>@using</c> in the grammar, outermost namespace first.</summary>
