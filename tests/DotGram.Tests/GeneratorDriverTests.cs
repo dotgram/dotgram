@@ -1253,7 +1253,7 @@ public sealed class GeneratorDriverTests
 			{
 			}
 
-			[DotGram.Gram("Rest : @int = @Count")]
+			[DotGram.Gram("Rest : @int = @Count\nparse Rest")]
 			public partial class CountGrammar
 			{
 				internal static bool Count(System.ReadOnlySpan<char> input, ref int pos, out int value)
