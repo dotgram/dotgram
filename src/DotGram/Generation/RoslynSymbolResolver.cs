@@ -404,70 +404,80 @@ public sealed class RoslynSymbolResolver(
 			return null;
 		}
 
-		const string probe = "DotGram_CallSite";
-
-		var text = new System.Text.StringBuilder();
-
-		foreach (var import in _statics)
-			text.Append("using static ").Append(import).Append(";\n");
-
-		var closing = 0;
-
-		if (!host.ContainingNamespace.IsGlobalNamespace)
-		{
-			text.Append("namespace ").Append(Qualified(host.ContainingNamespace)).Append(" {\n");
-			closing++;
-		}
-
-		var chain = new List<INamedTypeSymbol>();
+		// The host's names as the generator hands them to the emitter: its namespace's display
+		// string, and each class around it by its name with its type parameters' names.
+		var names = new List<string>();
 
 		for (var around = host; around is not null; around = around.ContainingType)
-			chain.Insert(0, around);
+			names.Insert(0, around.TypeParameters.Length > 0
+				? around.Name + "<" + string.Join(", ", around.TypeParameters.Select(static parameter => parameter.Name)) + ">"
+				: around.Name);
 
-		foreach (var type in chain)
-		{
-			var kind = type.TypeKind switch
-			{
-				TypeKind.Struct    => type.IsRecord ? "record struct" : "struct",
-				TypeKind.Interface => "interface",
-				_                  => type.IsRecord ? "record" : "class",
-			};
-
-			text.Append("partial ").Append(kind).Append(' ').Append(Identifier(type.Name));
-
-			if (type.TypeParameters.Length > 0)
-				text.Append('<').Append(string.Join(", ", type.TypeParameters.Select(parameter => Identifier(parameter.Name)))).Append('>');
-
-			text.Append(" {\n");
-			closing++;
-		}
-
-		text.Append("static void ").Append(probe).Append("() { ");
-
-		var position = text.Length;
-
-		text.Append("return; }\n").Append('}', closing);
+		var text = CallSiteText(
+			host.ContainingNamespace.IsGlobalNamespace ? null : host.ContainingNamespace.ToDisplayString(),
+			string.Join(".", names),
+			_statics,
+			out var position);
 
 		var options = _compilation.SyntaxTrees.FirstOrDefault()?.Options as CSharpParseOptions;
-		var tree    = CSharpSyntaxTree.ParseText(text.ToString(), options);
+		var tree    = CSharpSyntaxTree.ParseText(text, options);
 		var copy    = _compilation.AddSyntaxTrees(tree);
 
 		if (copy.GetTypeByMetadataName(_host) is not { } copied)
 			return null;
 
 		return _callSite = (new RoslynSymbolResolver(copy, _host, _statics), copy.GetSemanticModel(tree), position, copied);
+	}
 
-		static string Identifier(string name)
+	/// <summary>
+	/// The file <see cref="CallSite"/> adds: the frame of the generated file — its namespace, the
+	/// static imports inside it, and a <c>partial class</c> for each part of the class name —
+	/// around one method, and the place inside that method where a call is looked up.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Written as <c>CSharpEmitter</c> writes the head of the generated file, from the same
+	/// strings, so that a name means here what it means there: the imports stand inside the
+	/// namespace, where a qualified name in one is read from the namespace outward, not at the top
+	/// of the file. <c>GeneratorDriverTests</c> holds this frame to the emitted one line for line.
+	/// The grammar's own <c>@using</c> namespaces are left out: a namespace import brings in no
+	/// method, and does not change what a sibling <c>using static</c> names.
+	/// </para>
+	/// <para>
+	/// The method is called with a <c>_DotGram</c> in its name, which no external <c>@M</c> may
+	/// have (GRAM1012), so it hides no recognizer a simple name could mean.
+	/// </para>
+	/// </remarks>
+	internal static string CallSiteText(string? @namespace, string className, IReadOnlyList<string> statics, out int position)
+	{
+		var text    = new System.Text.StringBuilder();
+		var closing = 0;
+
+		if (@namespace is not null)
 		{
-			return SyntaxFacts.GetKeywordKind(name) == SyntaxKind.None ? name : "@" + name;
+			text.Append("namespace ").Append(@namespace).Append('\n').Append("{\n");
+			closing++;
 		}
 
-		static string Qualified(INamespaceSymbol space)
+		foreach (var import in statics)
+			text.Append("using static ").Append(import).Append(";\n");
+
+		foreach (var part in className.Split('.'))
 		{
-			return space.ContainingNamespace is { IsGlobalNamespace: false } outer
-				? Qualified(outer) + "." + Identifier(space.Name)
-				: Identifier(space.Name);
+			text.Append("partial class ").Append(part).Append('\n').Append("{\n");
+			closing++;
 		}
+
+		text.Append("static void CallSite_DotGram() { ");
+
+		position = text.Length;
+
+		text.Append("return; }\n");
+
+		for (var i = 0; i < closing; i++)
+			text.Append("}\n");
+
+		return text.ToString();
 	}
 
 	/// <summary>Whether a method can be called in a role from where the host is.</summary>
