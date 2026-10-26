@@ -370,7 +370,11 @@ public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>, IEqu
 	Parameter : @KeyValuePair<string, BareItem> = ';' & ' '* & key: Key & ('=' & value: SfBareItem)?
 		=> @(new KeyValuePair<string, BareItem>(key, value ?? BareItem.Boolean.True))
 
-	Key = [Lcalpha | '*'] & [Lcalpha | Digit | '_' | '-' | '.' | '*']*
+	// A key reads to its end and never hands a character back: what may follow one (`=`, `;`, a space or a
+	// tab, `,`, `)` or the end) is no character a key holds, so a shorter reading can never lead anywhere.
+	// Without the braces a refused field gave a long key back a character at a time, each try reading the
+	// field again from its start: quadratic in the key.
+	Key = { [Lcalpha | '*'] & [Lcalpha | Digit | '_' | '-' | '.' | '*']* }
 
 	// ── Dictionaries (§3.2, §4.2.2) ──────────────────────────────────────────────
 
@@ -403,7 +407,9 @@ public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>, IEqu
 	// §4.2.5. Only a quote and a backslash may be escaped.
 	SfString  = '"' & ([' '..'!' | '#'..'[' | ']'..'~'] | '\\' & ['"' | '\\'])* & '"'
 
-	SfToken   = [Alpha | '*'] & [Tchar | ':' | '/']*
+	// Read to its end for the same reason as a key: what may follow a token (`;`, a space or a tab, `,`, `)`
+	// or the end) is no character a token holds.
+	SfToken   = { [Alpha | '*'] & [Tchar | ':' | '/']* }
 
 	// §4.2.7. Padding only at the end, and a body that decodes.
 	SfBinary : @byte[]

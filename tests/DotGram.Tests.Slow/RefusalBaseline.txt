@@ -9,6 +9,7 @@
 # Two lines tightened 2026-10-04 by the same procedure (worst of three runs, DOTGRAM_RECORD_BASELINE, not pinned to cores) once Rfc9110 read a token to its end: `MediaType | a long subtype, then a slash` (was Quadratic) and `MediaRange.TryParseAccept | a long token, then a weight with no value` (was Superlinear) both measured Linear.
 # Five series added 2026-10-04, one long token before a control character in each of the Forwarded, Link (name and value), Cookie and Content-Disposition readers, once those read a token to its end. The two Link series measured Quadratic before it (time, not bytes: 192 bytes a character at every size) and Linear after; the other three Linear both before and after.
 # Four series added 2026-10-26, a run of spaces inside a MediaType, an Accept, a Forwarded and a Link field before a control character, once OWS read to its end in Rfc9110, Rfc7239 and Rfc8288. Before it three were cubic (2.6 s, 2.9 s and 0.7 s refusing 1,600 spaces) and the Accept one about n^1.8.
+# Two series added 2026-10-26, a long token and a long key before a control character in the Structured Field readers, once Rfc9651 read both to their end. Quadratic before it (25 ms at 6,400 characters).
 
 UriTemplate | a literal run, then an unclosed { = Linear
 UriTemplate | literals and expressions, then an unclosed { = Linear
@@ -32,6 +33,8 @@ StructuredField.TryParseList | an unclosed string = Linear
 StructuredField.TryParseList | an inner list, unclosed = Linear
 StructuredField.TryParseDictionary | members, then an unclosed string = Quadratic
 StructuredField.TryParseItem | parameters, then a parameter with no value = Linear
+StructuredField.TryParseItem | a long token, then a control character = Linear
+StructuredField.TryParseDictionary | a long key, then a control character = Linear
 ForwardedElement.TryParseField | elements, then for= with no value = Quadratic
 ForwardedElement.TryParseField | an unclosed quoted string = Linear
 ForwardedElement.TryParseField | a long token, then a control character = Linear
