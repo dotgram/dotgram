@@ -690,7 +690,7 @@ public sealed partial class GrammarNormalizer
 
 				var inner = Gather(body, element, ref taken, joined, group);
 
-				return ReferenceEquals(inner, body) ? node : new Node.Counted(inner, min, max);
+				return ReferenceEquals(inner, body) ? node : Placed(node, new Node.Counted(inner, min, max));
 			}
 
 			default:
@@ -714,7 +714,7 @@ public sealed partial class GrammarNormalizer
 		group?.Add(name);
 
 		if (part is Node.Counted(var counted, var least, var most))
-			return new Node.Counted(new Node.Capture(name, counted), least, most);
+			return Placed(part, new Node.Counted(new Node.Capture(name, counted), least, most));
 
 		if (part is not Node.Repeat(var body, var min, var max))
 			return new Node.Capture(name, part);
@@ -729,7 +729,8 @@ public sealed partial class GrammarNormalizer
 	/// The node is new and <c>recover</c> was recorded against the old one. Everything
 	/// downstream looks recovery up by node identity, so a repetition rewritten here would
 	/// quietly stop recovering — which happened once, and is what
-	/// <see cref="RecognitionGraph.Orphans"/> now catches.
+	/// <see cref="RecognitionGraph.Orphans"/> now catches. Where it was written goes the same
+	/// way, for a diagnostic about the repetition.
 	/// </remarks>
 	Node.Repeat Repeated(Node old, Node.Repeat rewritten)
 	{
@@ -738,6 +739,8 @@ public sealed partial class GrammarNormalizer
 			_recoveries.Remove(old);
 			_recoveries[rewritten] = recovery;
 		}
+
+		Placed(old, rewritten);
 
 		return rewritten;
 	}

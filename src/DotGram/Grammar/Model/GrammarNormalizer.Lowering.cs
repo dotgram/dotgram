@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 
 using DotGram.Generation;
 using DotGram.Grammar.Binding;
@@ -902,6 +903,35 @@ public sealed partial class GrammarNormalizer
 		};
 	}
 
+	/// <summary>The namespaces of every call in <paramref name="node"/>, in the order its text names them.</summary>
+	static string CallSites(Node node)
+	{
+		var sites = new StringBuilder();
+
+		void Visit(Node one)
+		{
+			if (one is Node.Call(var called, _))
+				sites.Append('|').Append(NamespacePath(called.Namespace));
+
+			foreach (var child in one.Children)
+				Visit(child);
+		}
+
+		Visit(node);
+
+		return sites.ToString();
+	}
+
+	static string NamespacePath(GrammarNamespace ns)
+	{
+		var path = ns.Name;
+
+		for (var parent = ns.Parent; parent is not null; parent = parent.Parent)
+			path = parent.Name + "." + path;
+
+		return path;
+	}
+
 	/// <summary>
 	/// The specialization itself, from arguments already lowered — split from
 	/// <see cref="Specialize"/> so a parameterized rebinding can build the replacement's
@@ -917,8 +947,13 @@ public sealed partial class GrammarNormalizer
 		// Keyed by what the arguments are, so two calls that pass the same things share
 		// one specialization — and a value is part of that: `Padded(Word, ' ')` and
 		// `Padded(Word, '\t')` are two rules, not one.
-		var key = rule.Name + "(" + string.Join(", ", passed.Select((node, i) =>
-			node?.ToString() ?? values[i] ?? "?")) + ")";
+		//
+		// A rule is told by where it is as well as by its name: `Word` in two namespaces is two
+		// rules, and so are two templates of one name. A node prints only the names of the rules
+		// it calls, so the namespaces of those calls are appended in the order they print.
+		var key = NamespacePath(rule.Namespace) + "." + rule.Name + "(" + string.Join(", ", passed.Select((node, i) =>
+			node?.ToString() ?? values[i] ?? "?")) + ")" +
+			string.Concat(passed.Select(static node => node is null ? "" : CallSites(node)));
 
 		if (_specialized.TryGetValue(key, out var made))
 			return new Node.Call(made, []);
