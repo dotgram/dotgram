@@ -1833,6 +1833,71 @@ public sealed class TerminalInventory
 			return ReadsAsWritten(body, body, []);
 		}
 
+		/// <summary>
+		/// Whether a node holds an until whose run the automaton can end owing part of its
+		/// delimiter: one of more than one character that its delimiter does not follow, or that
+		/// follows it overlapping itself where some of its characters are not items
+		/// (LexicalAutomaton's <c>Delimited</c>) — and whose run can begin the delimiter at all,
+		/// its first character being an item.
+		/// </summary>
+		bool HandsOn(Node node, HashSet<RuleSymbol> inside)
+		{
+			bool Begins(string delimiter, Node item)
+			{
+				return FirstSets.Of(item, graph).Covers(FirstSets.First.Chars([new CharRange(delimiter[0], delimiter[0])]));
+			}
+
+			switch (node)
+			{
+				case Node.Repeat(Node.Sequence([Node.Lookahead(false, Node.Literal(var delimiter) { IgnoreCase: false }), var alone]), 0, null):
+					return delimiter.Length > 1 && Begins(delimiter, alone);
+
+				case Node.Sequence(var parts):
+					for (var i = 0; i < parts.Count; i++)
+					{
+						if (parts[i] is Node.Repeat(Node.Sequence([Node.Lookahead(false, Node.Literal(var delimiter) { IgnoreCase: false }), var item]), 0, null))
+						{
+							if (delimiter.Length <= 1 || !Begins(delimiter, item))
+								continue;
+
+							var closed  = i + 1 < parts.Count && parts[i + 1] is Node.Literal(var next) { IgnoreCase: false } && next == delimiter;
+							var over    = FirstSets.Of(item, graph);
+							var absorbs = closed && delimiter.All(c => over.Covers(FirstSets.First.Chars([new CharRange(c, c)])));
+							var overlap = Enumerable.Range(1, delimiter.Length - 1).Any(k => string.CompareOrdinal(delimiter, 0, delimiter, delimiter.Length - k, k) == 0);
+
+							if (!absorbs && (!closed || overlap))
+								return true;
+
+							continue;
+						}
+
+						if (HandsOn(parts[i], inside))
+							return true;
+					}
+
+					return false;
+
+				case Node.Call(var called, _):
+				{
+					if (!inside.Add(called) || !graph.Bodies.TryGetValue(called, out var body))
+						return false;
+
+					var hands = HandsOn(body, inside);
+
+					inside.Remove(called);
+
+					return hands;
+				}
+
+				default:
+					foreach (var child in node.Children)
+						if (HandsOn(child, inside))
+							return true;
+
+					return false;
+			}
+		}
+
 		bool ReadsAsWritten(Node node, Node scope, HashSet<RuleSymbol> inside)
 		{
 			switch (node)
@@ -1844,9 +1909,11 @@ public sealed class TerminalInventory
 				// literals, runs nothing after can continue and choices of literals none of which
 				// begins another (Proven); or one every reading of which ends at one place, read with
 				// nothing inside that commits otherwise (EndsOnce, Commits). Anything else in braces
-				// is read again by the rule.
+				// is read again by the rule. An until whose run hands an unfinished delimiter on is
+				// read by the automaton as the rule reads it only as far as the token goes, and what
+				// is still owed there is decided past it, which no ending of the machine's shows.
 				case Node.Atomic(var kept):
-					if (!Proven(kept, scope, []) && !(EndsOnce(kept) && Commits(kept, scope, [])))
+					if (!Proven(kept, scope, []) && !(EndsOnce(kept) && Commits(kept, scope, []) && !HandsOn(kept, [])))
 						return false;
 
 					return ReadsAsWritten(kept, scope, inside);
