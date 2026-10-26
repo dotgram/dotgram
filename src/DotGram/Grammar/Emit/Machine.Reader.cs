@@ -4762,11 +4762,25 @@ sealed partial class Machine
 					code.Line($"{turns}++;");
 			}
 
+			// Short of the fewest, the loop ending is the rule failing. Over kinds the turn is not
+			// tried where the token in hand cannot begin it, or at the end of the tokens, and said
+			// nothing of its own: the parse was refused where the rule began. It says what the turn
+			// would have begun with, where it stands, as the engine does when it tries the turn. Over
+			// characters the reading that records tries the turn, which says it.
 			if (min > 0)
 			{
 				code.Line();
-				code.Line($"if ({turns} < {min})");
-				code.Then(Fails());
+
+				if (machine.OverKinds)
+				{
+					using (code.Block($"if ({turns} < {min})"))
+						Refused(code, machine.DeclareExpected(machine.PredictedDisplays([body])));
+				}
+				else
+				{
+					code.Line($"if ({turns} < {min})");
+					code.Then(Fails());
+				}
 			}
 		}
 
