@@ -446,7 +446,9 @@ public sealed class CompileOracleTests
 
 			_captures = 0;
 
-			var head = type is null ? $"R{index}" : $"R{index} : {type}";
+			// A rule that says its own refusal is read otherwise on the engine (entered, not inlined),
+			// which every analysis of a call there has to know.
+			var head = (type is null ? $"R{index}" : $"R{index} : {type}") + (Chance(20) ? $" on fail \"Expected R{index}.\"" : "");
 
 			if (type == "@int[]")
 				return $"{head} = {ListBody(index)}";
