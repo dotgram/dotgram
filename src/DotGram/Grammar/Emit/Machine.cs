@@ -2616,6 +2616,24 @@ sealed partial class Machine
 							file.Line("Step_DotGram(\"negative lookahead succeeds\", state, p, entries.Count, text, \"\");");
 							file.Line("goto Dispatch;");
 						}
+
+						// A look that refused refuses the reading where it began, which is how far
+						// the parse got: what the look tried past it was recorded nowhere, the look
+						// recording nothing, and without this a look that read its rule in states
+						// left the refusal wherever the reading had been before it (§7.5).
+						file.Line();
+						file.Line($"if ({(KeepsDoors ? "lookahead < 0" : Quiets ? "lookahead < 0 && !failure.Quiet" : "lookahead < 0")} && p > failure.Position)");
+
+						using (file.Block(""))
+						{
+							file.Line("failure.Position = p;");
+
+							using (KeepsDoors ? file.Block("if (!failure.Quiet)") : null)
+							{
+								file.Line("failure.Expected = null;");
+								file.Line("failure.ExpectedMore?.Clear();");
+							}
+						}
 					}
 				}
 

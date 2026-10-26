@@ -6329,8 +6329,9 @@ sealed partial class Machine
 
 			// A rule that is nothing but a look, the engine reads as a scan and names where it
 			// refuses: `eof`. Said so here too, or a parse refused at the end by it after a loop
-			// said only that the input did not match. A look inside a rule refuses silently, as it
-			// did: what it says is left to what the rule reads next.
+			// said only that the input did not match. Any other look says nothing it expected: a
+			// positive one says only where it refused (below), and what is said there is left to
+			// what else is read that far.
 			var named = _graph.Bodies.TryGetValue(owner, out var body) &&
 				body is Node.Lookahead(_, var looked) && ReferenceEquals(looked, inside) &&
 				machine.ScannerOf(owner) is not null;
@@ -6355,9 +6356,24 @@ sealed partial class Machine
 				return;
 			}
 
+			// A positive look that saw nothing refuses the reading where it began, which is how far
+			// the parse got, as the engine's does when its look unwinds: what the look tried past it
+			// is recorded nowhere, and without this the refusal stayed wherever the reading had been
+			// before the look (§7.5). Nothing is said to be expected there.
+			if (!named && positive)
+			{
+				using (code.Block($"if ({seen} < 0)"))
+				{
+					code.Line(Refusal("null"));
+					code.Line(Fails());
+				}
+
+				return;
+			}
+
 			if (!named)
 			{
-				code.Line($"if ({seen} {(positive ? "<" : ">=")} 0)");
+				code.Line($"if ({seen} >= 0)");
 				code.Then(Fails());
 
 				return;

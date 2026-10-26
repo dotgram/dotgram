@@ -149,6 +149,57 @@ public sealed class RecoveryFromALookTests
 		}
 	}
 
+	/// <summary>
+	/// A positive look that saw nothing refuses the reading where the look began, which is how far
+	/// the parse got, whichever way the looked-for rule is read: a rule that recovers, one that
+	/// calls itself and one with a guard are read in states rather than scanned, and the refusal
+	/// was said at the start of the reading. Whole and from a position, as a string and through a
+	/// reader, with the direct reader and without it.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(RefusedLooks))]
+	public void A_look_that_sees_nothing_refuses_where_it_began(string grammar, string input, int at, string outcome, long position, bool direct)
+	{
+		var type = Compiled(grammar, direct);
+
+		var matches = at < 0
+			? new[]
+			{
+				type.GetMethod("TryParseAhead", [typeof(string)])!.Invoke(null, [input])!,
+				type.GetMethod("TryParseAhead", [typeof(TextReader), typeof(int?), typeof(int?)])!.Invoke(null, [new StringReader(input), 1, null])!,
+			}
+			: [type.GetMethod("TryParseAhead", [typeof(string), typeof(int)])!.Invoke(null, [input, at])!];
+
+		foreach (var match in matches)
+			Assert.Equal(
+				(outcome, position),
+				(match.GetType().GetProperty("Outcome")!.GetValue(match)!.ToString(), Convert.ToInt64(match.GetType().GetProperty("Position")!.GetValue(match))));
+	}
+
+	/// <summary>Each refused look: the grammar, the input, where the reading begins (-1 for the whole), and what it answers.</summary>
+	public static TheoryData<string, string, int, string, long, bool> RefusedLooks
+	{
+		get
+		{
+			const string rows    = "Row = 'a' & ';'\nRows = Row+ recover ';' & '.'\nAhead = 'b' & ?=Rows & any*\nparse Ahead\n";
+			const string nested  = "R = '(' & R & ')' | 'x'\nAhead = ?=R & any*\nparse Ahead\n";
+			const string guarded = "R = 'x'+ & when @(true)\nAhead = 'y' & ?=R & any*\nparse Ahead\n";
+
+			var data = new TheoryData<string, string, int, string, long, bool>();
+
+			foreach (var direct in new[] { true, false })
+			{
+				data.Add(rows, "b", -1, "Starved", 1, direct);
+				data.Add(rows, "bq", -1, "NoMatch", 1, direct);
+				data.Add(rows, "xb;", 1, "NoMatch", 2, direct);
+				data.Add(nested, "x(", 1, "NoMatch", 1, direct);
+				data.Add(guarded, "yq", -1, "NoMatch", 1, direct);
+			}
+
+			return data;
+		}
+	}
+
 	// ── Helpers ─────────────────────────────────────────────────────────────────
 
 	/// <summary>

@@ -439,7 +439,9 @@ best thing tried. On a match it is instead where the match began.
 Every recognizer takes a `ref Failure` and raises `Position` at the one place a machine
 gives up on where it is. Nothing is paid on the path that matches, a rule call carries
 its callee's failure out with it, and a lookahead is the one machine that does not take
-the state — how far it looked before answering "no" is not how far the parse got.
+the state — how far it looked before answering "no" is not how far the parse got. A positive look
+that saw nothing refuses the reading where the look began, which is how far the parse got, saying
+nothing about what it expected there.
 A turn of a possessive repetition, or an alternative of a group that commits, kept in
 locals gives the position back at the door it leaves by; what refused inside it is recorded
 there, where it is further than anything before, so `Digit+ & ('.' & ['0'..'9']+)?` on `1.x`
