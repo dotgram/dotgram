@@ -549,6 +549,14 @@ sealed partial class Machine
 				return true;
 			}
 
+			// A repetition marked `recover` steps over a bad element and tries what follows it first
+			// (§8.2), which a scanner, committing to what it reads and recording nothing, would read
+			// as a plain repetition. A rule plans its own recovery wherever it is reached from — a
+			// call, a lookahead, a synchronization — so a rule that holds one, or calls one that
+			// does, is not read by a scanner.
+			case Node.Repeat when _graph.Recoveries.ContainsKey(node):
+				return false;
+
 			// A turn is at the tail only where no turn after it is owed: at the tail a repetition
 			// that may stop after its first turn takes what it greedily takes, but one that must
 			// turn again has its next turn still to match. `{ ('b'+){2} }` reads `bb` by giving
