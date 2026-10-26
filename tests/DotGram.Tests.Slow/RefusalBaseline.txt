@@ -8,6 +8,7 @@
 # Unstable lines: at most four (Few_series_are_held_as_unstable). Two today, both with two cliffs in the tail (the exponent is the wrong summary of a step; D67).
 # Two lines tightened 2026-10-04 by the same procedure (worst of three runs, DOTGRAM_RECORD_BASELINE, not pinned to cores) once Rfc9110 read a token to its end: `MediaType | a long subtype, then a slash` (was Quadratic) and `MediaRange.TryParseAccept | a long token, then a weight with no value` (was Superlinear) both measured Linear.
 # Five series added 2026-10-04, one long token before a control character in each of the Forwarded, Link (name and value), Cookie and Content-Disposition readers, once those read a token to its end. The two Link series measured Quadratic before it (time, not bytes: 192 bytes a character at every size) and Linear after; the other three Linear both before and after.
+# Four series added 2026-10-26, a run of spaces inside a MediaType, an Accept, a Forwarded and a Link field before a control character, once OWS read to its end in Rfc9110, Rfc7239 and Rfc8288. Before it three were cubic (2.6 s, 2.9 s and 0.7 s refusing 1,600 spaces) and the Accept one about n^1.8.
 
 UriTemplate | a literal run, then an unclosed { = Linear
 UriTemplate | literals and expressions, then an unclosed { = Linear
@@ -22,8 +23,10 @@ AddrSpec.TryParseStrict | a long local part, then @@ = Linear
 MediaType | parameters, then an unclosed quoted string = Quadratic
 MediaType | an unclosed quoted string = Linear
 MediaType | a long subtype, then a slash = Linear
+MediaType | a run of spaces between two parameters, then a control character = Linear
 MediaRange.TryParseAccept | ranges, then a range with no weight = Linear
 MediaRange.TryParseAccept | a long token, then a weight with no value = Linear
+MediaRange.TryParseAccept | a run of spaces after a parameter, then a control character = Linear
 StructuredField.TryParseList | items, then an unclosed ( = Quadratic
 StructuredField.TryParseList | an unclosed string = Linear
 StructuredField.TryParseList | an inner list, unclosed = Linear
@@ -32,11 +35,13 @@ StructuredField.TryParseItem | parameters, then a parameter with no value = Line
 ForwardedElement.TryParseField | elements, then for= with no value = Quadratic
 ForwardedElement.TryParseField | an unclosed quoted string = Linear
 ForwardedElement.TryParseField | a long token, then a control character = Linear
+ForwardedElement.TryParseField | a run of spaces, then a control character = Linear
 WebLink.TryParseField | links, then an unclosed < = Quadratic
 WebLink.TryParseField | an unclosed URI reference = Linear
 WebLink.TryParseField | parameters, then an unclosed quoted string = Quadratic
 WebLink.TryParseField | a long parameter name, then a control character = Linear
 WebLink.TryParseField | a long parameter value, then a control character = Linear
+WebLink.TryParseField | a run of spaces after a parameter name, then a control character = Linear
 CookiePair.TryParseField | pairs, then a control character = Linear
 CookiePair.TryParseField | a long name, then a control character = Linear
 LanguageTag | variants, then a bare hyphen = Quadratic
