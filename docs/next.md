@@ -26506,3 +26506,26 @@ search for the delimiter that found none jumped to the refusal without saying ho
   behind a forwarding rule, a parameter and a namespace. Red on main, green here.
 - **What moved.** Nothing generated in the repository: no shipped, example, benchmark or test-host grammar has a
   scannable rule that recovers (the same byte-for-byte rebuild as above).
+
+
+## A value built from a whole parse's extent, and where a look that saw nothing refuses
+
+- **The fault (found by the Tester).** The text value of a whole parse left the trivia around the rule out in every
+  reading, but a value built from the rule's extent did not where the engine read the rule: the bounds of a
+  `@SourceSpan` rule and `parserText`/`parserSpan` in the rule's own `=>` and `when`. The engine reads the
+  published rule in place of a call, so the root's frame, which those are cut from, began where the reading did
+  and ended where the trivia after the rule did: `Root : @SourceSpan = 'a' & 'b'` on `"  ab  "` was `0,6` with
+  Direct off and `2,2` with it on, and the reader, stream and bytes forms of a recursive rule, read by the engine
+  whatever Direct says, `0,7` where the string said `2,3`.
+- **The change.** For such a rule the engine's whole entry writes the marks too, puts the root frame's start at
+  the first as the rule is read (so a guard sees the rule) and its end at the second at Accept, before anything
+  is built; a `@SourceSpan` root's wrapper cuts the bounds from the marks. A method lowered with its values in
+  locals reads nothing from the root's extent, so it writes no marks.
+- **A look that saw nothing.** A positive look records nothing it tries, and where it saw nothing the reading was
+  refused with the position it had before the look: the start of the input where nothing else was read. A look
+  over a rule a scanner read said where the scanner refused, so the recovery change made it visible: `'b' &
+  ?=Rows & any*` on `b` said `NoMatch@0` where it had said `Starved@1`. The engine's unwinding past a positive
+  look and the reader's return from one now record the look's start, expecting nothing there.
+- **What moved.** The extent: one generated file in the repository (`Selectors`, a lowered method, before the
+  dead marks were taken out again). The look: 32 files gain the record on the path a refused look leaves by,
+  3 to 204 lines each (T-SQL), grammars without trivia among them; nothing on a path that reads.
