@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 using DotGram.Generation;
 using DotGram.Grammar;
@@ -488,6 +489,30 @@ public sealed class FirstSetsTests
 
 		Assert.Contains("In 'Start', 'Text*' can take Text,", swallows.Message, StringComparison.Ordinal);
 		Assert.DoesNotContain(swallows.Message, char.IsControl);
+	}
+
+	/// <summary>
+	/// A repetition of <c>any</c> over kinds takes every kind up to the last character, and
+	/// naming what it takes ends.
+	/// </summary>
+	/// <remarks>
+	/// The kinds were walked with a <c>char</c> up to the range's end, and past
+	/// U+FFFF a <c>char</c> wraps to zero: with no kind there to name, the walk
+	/// never stopped and the compile hung.
+	/// </remarks>
+	[Fact(Timeout = 30_000)]
+	public async Task A_repetition_of_any_over_kinds_is_said_and_the_compile_ends()
+	{
+		var reported = await Task.Run(
+			static () => Split(
+				"""
+				trivia = { ' '* }
+				R0 = any+ & any*
+				parse R0
+				"""),
+			TestContext.Current.CancellationToken);
+
+		Assert.Contains(reported, one => one.Id == FirstSets.Swallows);
 	}
 
 	/// <summary>And not said where the optional cannot finish on that token.</summary>
