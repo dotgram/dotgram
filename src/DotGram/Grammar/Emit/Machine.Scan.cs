@@ -373,21 +373,24 @@ sealed partial class Machine
 		if (_scannerReports.TryGetValue(rule, out var known))
 			return known;
 
-		// The seam reports too where a turn that ends it began to agree with a literal and stopped —
-		// a comment's `--` or `/*` the input ends inside, or does not go on with — which the readers
-		// record as they try the turn (§7.5). Only that: its records are kept only where they are
-		// read (ScanWriter.Exits), so it is asked written as it would be read, and a seam whose
-		// turns hold no such literal reports nothing and is written as it was. Not the seam a lexer
-		// skips with, which says where the text ran out on its own (RecordsRunOut) and records no
-		// refusal; asked by its tag, since this is asked while the machine is being built.
+		// A scanner reports where a turn that ends a repetition, or an optional it skipped, began to
+		// agree with a literal and stopped — `("ab")?` on `a`, a comment's `--` or `/*` the input
+		// ends inside, or does not go on with — which the readers record as they try the turn (§7.5),
+		// and a scan that matched short of it would otherwise lose: a literal the input ends inside
+		// is refused at the end, as input that ran out, and that reach is the parse's. Its records
+		// are kept only where they are read (ScanWriter.Exits), so it is asked written as it would be
+		// read, and a scanner whose turns hold no such literal reports nothing and is written as it
+		// was. Not the seam a lexer skips with, which says where the text ran out on its own
+		// (RecordsRunOut) and records no refusal; asked by its tag, since this is asked while the
+		// machine is being built.
 		var body    = ScanBody(rule);
 		var reports = SeamReached.Contains(rule)
 			? Tag != MachineTag.Seam && new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _starves, StopCharacters) { Seam = true }
 				.Render(body, reports: true)
 				.Contains("> furthest", StringComparison.Ordinal)
 			: new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _starves, StopCharacters)
-				.Render(body)
-				.Contains("furthest", StringComparison.Ordinal);
+				.Render(body, reports: true)
+				.Contains("> furthest", StringComparison.Ordinal);
 
 		_scannerReports[rule] = reports;
 
