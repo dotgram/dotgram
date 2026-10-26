@@ -306,6 +306,14 @@ public sealed partial class GrammarNormalizer
 
 		foreach (var alternative in body is Node.Choice choice ? choice.Nodes : [body])
 		{
+			// Only an alternative with a guard inside a lookahead has anything to ask, and that is few of
+			// them: the rest are not walked again.
+			if (!NodeWalk.Descendants(alternative).Any(static node => node is Node.Lookahead(_, var seen) &&
+				NodeWalk.Descendants(seen).Any(static inner => inner is Node.Guard)))
+			{
+				continue;
+			}
+
 			// The captures read before each lookahead, in the order the grammar is written: a capture
 			// after the lookahead, or one around it, is not bound when its guard runs, and the name is
 			// then whatever the C# around it says (a member of the host, say), as it always was.
