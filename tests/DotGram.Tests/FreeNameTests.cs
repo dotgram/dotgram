@@ -69,6 +69,62 @@ public sealed class FreeNameTests
 		Assert.Equal(["items"], Free("items.Select(x => x + 1)"));
 	}
 
+	/// <summary>
+	/// But only inside that lambda: the same spelling outside it is still asked for. A lambda
+	/// parameter may shadow an outer name (C# 8), so the expression is valid C#.
+	/// </summary>
+	[Theory]
+	[InlineData("items.Select(x => x + 1).Sum() + x",          new[] { "items", "x" })]
+	[InlineData("x + items.Select(x => x + 1).Sum()",          new[] { "items", "x" })]
+	[InlineData("items.Where(x => x > 0).Count(y => y < x)",   new[] { "items", "x" })]
+	[InlineData("items.Select((x, i) => x + i).Sum() + i",     new[] { "i", "items" })]
+	[InlineData("items.Select(delegate (int x) { return x; }).Sum() + x", new[] { "items", "x" })]
+	[InlineData("items.Select(x => { var y = x; return y; }).Sum() + y", new[] { "items", "y" })]
+	[InlineData("items.Select(x => x is int n ? n : 0).Sum() + n", new[] { "items", "n" })]
+	public void And_a_name_a_lambda_introduced_is_still_free_outside_it(string expression, string[] expected)
+	{
+		Assert.Equal(expected, Free(expression));
+	}
+
+	/// <summary>
+	/// A name a pattern or an <c>out var</c> introduced outside any lambda is the expression's
+	/// own, wherever in it the name is used.
+	/// </summary>
+	[Theory]
+	[InlineData("o is int n && n > 0",              new[] { "o" })]
+	[InlineData("Try(s, out var n) ? n : 0",        new[] { "Try", "s" })]
+	[InlineData("o is int n && items.Any(x => x == n)", new[] { "items", "o" })]
+	public void And_a_name_a_pattern_introduced_belongs_to_the_whole_expression(string expression, string[] expected)
+	{
+		Assert.Equal(expected, Free(expression));
+	}
+
+	/// <summary>A range variable of a query belongs to the query, and only to it.</summary>
+	[Theory]
+	[InlineData("(from x in items select x).Sum()",                      new[] { "items" })]
+	[InlineData("(from x in items let y = x * 2 select y).Sum() + y",    new[] { "items", "y" })]
+	[InlineData("(from x in items select x).Sum() + x",                  new[] { "items", "x" })]
+	[InlineData("(from x in x select x).Sum()",                          new[] { "x" })]
+	public void And_a_range_variable_belongs_to_its_query(string expression, string[] expected)
+	{
+		Assert.Equal(expected, Free(expression));
+	}
+
+	/// <summary>
+	/// A rename reaches the outer name and leaves the lambda's alone, which is what a rename
+	/// that took the flat set of every introduced name could not do.
+	/// </summary>
+	[Theory]
+	[InlineData("items.Select(x => x + 1).Sum() + x",   "items.Select(x => x + 1).Sum() + y")]
+	[InlineData("x + items.Select(x => x).Sum()",       "y + items.Select(x => x).Sum()")]
+	[InlineData("(from x in items select x).Sum() + x", "(from x in items select x).Sum() + y")]
+	public void And_a_rename_reaches_the_outer_name_only(string expression, string expected)
+	{
+		Assert.Equal(
+			expected,
+			RoslynCSharpScanner.Instance.Renamed(expression, new System.Collections.Generic.Dictionary<string, string> { ["x"] = "y" }));
+	}
+
 	[Fact]
 	public void And_a_member_written_in_an_initializer_is_a_member()
 	{
