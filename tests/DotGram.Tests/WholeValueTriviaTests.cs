@@ -96,6 +96,77 @@ public sealed class WholeValueTriviaTests
 	}
 
 	/// <summary>
+	/// Grammars whose published rule builds its value from its own extent — the bounds of a
+	/// <c>@SourceSpan</c> rule, <c>parserText</c> and <c>parserSpan</c> in its <c>=&gt;</c> and in a
+	/// guard — with inputs and the value each must give: the rule's extent, without the trivia the
+	/// whole parse reads around it. A span is written <c>start,length</c>. Whether the grammar has
+	/// a stream form over bytes: one that cuts text from its input has none.
+	/// </summary>
+	static readonly Dictionary<string, (string Grammar, bool Bytes, (string Input, string Value)[] Rows)> Built = new()
+	{
+		["a span"] = (
+			Spaces + "Root : @SourceSpan = 'a' & 'b'\nparse Root\n",
+			true,
+			[("  ab  ", "2,2"), (" ab", "1,2"), ("ab  ", "0,2"), ("ab", "0,2")]),
+
+		["a span of a recursion"] = (
+			Spaces + "S = '(' & S & ')' | 'x'\nRoot : @SourceSpan = S & 'x'\nparse Root\n",
+			true,
+			[("  x x  ", "2,3"), (" (x) x ", "1,5"), ("x x", "0,3")]),
+
+		["the text and span of the rule"] = (
+			Spaces + "Root : @string = 'a' & 'b' => @(\"[\" + parserText + \"]\" + parserSpan.Start + \",\" + parserSpan.Length)\nparse Root\n",
+			false,
+			[("  ab  ", "[ab]2,2"), (" ab", "[ab]1,2"), ("ab  ", "[ab]0,2"), ("a b", "[a b]0,3")]),
+
+		["the text a guard reads"] = (
+			Spaces + "Root : @string = 'a' & 'b' & when @(parserText.StartsWith(\"a\")) => @(parserText)\nparse Root\n",
+			false,
+			[("  ab  ", "ab"), (" ab", "ab"), ("ab ", "ab")]),
+	};
+
+	public static TheoryData<string, CarrierKind, bool> BuiltReadings
+	{
+		get
+		{
+			var data = new TheoryData<string, CarrierKind, bool>();
+
+			foreach (var name in Built.Keys)
+				foreach (var carrier in new[] { CarrierKind.Auto, CarrierKind.Tape, CarrierKind.Immediate })
+					foreach (var direct in new[] { true, false })
+						data.Add(name, carrier, direct);
+
+			return data;
+		}
+	}
+
+	/// <summary>
+	/// A value built from the published rule's own extent is built from the rule's extent and not
+	/// the whole parse's, in every reading, with the direct reader and without it (§6): the engine
+	/// reads the rule in place of a call, and the frame the extent is cut from began where the
+	/// reading did and ended where the trivia after the rule did.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(BuiltReadings))]
+	public void A_value_built_from_the_rule_s_extent_leaves_out_the_trivia_around_it(string name, CarrierKind carrier, bool direct)
+	{
+		var (grammar, bytes, rows) = Built[name];
+		var type = Compiled(grammar, carrier, direct, bytes).GetType("Grammar")!;
+
+		foreach (var (input, value) in rows)
+		{
+			Assert.Equal((true, value), Read(type.GetMethod("TryParseRoot", [typeof(string)])!.Invoke(null, [input])!));
+			Assert.Equal((true, value), Read(Over(type, "TryParseRoot", typeof(TextReader), new StringReader(input))));
+
+			if (!bytes)
+				continue;
+
+			Assert.Equal((true, value), Read(Over(type, "TryParseRoot", typeof(Stream), new MemoryStream(Encoding.ASCII.GetBytes(input)))));
+			Assert.Equal((true, value), Read(type.GetMethod("TryParseRoot", [typeof(byte[])])!.Invoke(null, [Encoding.ASCII.GetBytes(input)])!));
+		}
+	}
+
+	/// <summary>
 	/// The same grammar over characters and over tokens gives one value: the lexer skips the trivia
 	/// between tokens, and the parse over characters leaves it out of the value as well.
 	/// </summary>
@@ -128,14 +199,14 @@ public sealed class WholeValueTriviaTests
 
 	// ── Helpers ─────────────────────────────────────────────────────────────────
 
-	static Assembly Compiled(string grammar, CarrierKind carrier, bool direct)
+	static Assembly Compiled(string grammar, CarrierKind carrier, bool direct, bool bytes = true)
 	{
 		return Compile(grammar, new GramCompilerOptions
 		{
 			Carrier       = carrier,
 			Direct        = direct,
 			BufferedInput = true,
-			BufferedBytes = true,
+			BufferedBytes = bytes,
 		});
 	}
 
@@ -158,16 +229,24 @@ public sealed class WholeValueTriviaTests
 			return type.GetMethod(method, [over, typeof(int?), typeof(int?)])!.Invoke(null, [source, 1, null])!;
 	}
 
-	/// <summary>Whether the match read, and its value as text.</summary>
+	/// <summary>Whether the match read, and its value as text: a span as <c>start,length</c>.</summary>
 	static (bool IsSuccess, string? Value) Read(object match)
 	{
-		object? Property(string name)
+		object? Property(object of, string name)
 		{
-			return match.GetType().GetProperty(name)!.GetValue(match);
+			return of.GetType().GetProperty(name)!.GetValue(of);
 		}
 
-		var value = Property("Value");
+		var value = Property(match, "Value");
+		var text  = value switch
+		{
+			null                                        => null,
+			byte[] bytes                                => Encoding.ASCII.GetString(bytes),
+			string read                                 => read,
+			_ when value.GetType().Name == "SourceSpan" => $"{Property(value, "Start")},{Property(value, "Length")}",
+			_                                           => value.ToString(),
+		};
 
-		return ((bool)Property("IsSuccess")!, value is byte[] bytes ? Encoding.ASCII.GetString(bytes) : (string?)value);
+		return ((bool)Property(match, "IsSuccess")!, text);
 	}
 }
