@@ -2374,23 +2374,30 @@ sealed partial class Machine
 				// down how far it got where that is kept (KeepsDoors).
 				var recording = Quiets ? "lookahead < 0 && !failure.Quiet" : "lookahead < 0";
 
-				file.Line($"if ({(KeepsDoors ? "lookahead < 0" : recording)} && p > failure.Position)");
-				using (file.Block(""))
+				// The refusal standing at `p`, recorded against the furthest one seen: here, and
+				// where a positive lookahead the arena kept is popped refused (below).
+				void Recorded(Writer at)
 				{
-					file.Line("failure.Position = p;");
-
-					using (KeepsDoors ? file.Block("if (!failure.Quiet)") : null)
+					at.Line($"if ({(KeepsDoors ? "lookahead < 0" : recording)} && p > failure.Position)");
+					using (at.Block(""))
 					{
-						file.Line("failure.Expected = expected;");
-						file.Line("failure.ExpectedMore?.Clear();");
+						at.Line("failure.Position = p;");
+
+						using (KeepsDoors ? at.Block("if (!failure.Quiet)") : null)
+						{
+							at.Line("failure.Expected = expected;");
+							at.Line("failure.ExpectedMore?.Clear();");
+						}
+					}
+					at.Line($"else if ({recording} && p == failure.Position && expected != null)");
+					using (at.Block(""))
+					{
+						at.Line(
+							"(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);");
 					}
 				}
-				file.Line($"else if ({recording} && p == failure.Position && expected != null)");
-				using (file.Block(""))
-				{
-					file.Line(
-						"(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);");
-				}
+
+				Recorded(file);
 				if (_recoveries.Count > 0)
 				{
 					file.Line("if (lookahead < 0 && p > reach)");
@@ -2627,6 +2634,14 @@ sealed partial class Machine
 						file.Line("atomic    = entry.AtomicIndex;");
 						file.Line("repeat    = entry.RepeatIndex;");
 						file.Line("lookahead = entry.LookaheadIndex;");
+						file.Line();
+
+						// A positive look whose body refused is the parse refused where the look
+						// began, as a look kept in locals records it at its door (GiveBack): nothing
+						// inside recorded, and what the body last wanted is what is said.
+						file.Line("if (entry.Value != 0)");
+						using (file.Block(""))
+							Recorded(file);
 						file.Line();
 						file.Line("if (entry.Value == 0)");
 
