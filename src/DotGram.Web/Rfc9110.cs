@@ -249,6 +249,16 @@ public sealed record MediaRange(MediaType Media, decimal Weight)
 	// taken apart beside the rule.
 	Parameters : @MediaType.Parameter[] = slots: ParameterSlot* => @(Rfc9110.Present(slots))
 
+	// A media type's slots are read to their end and never handed back: what follows them is OWS and the end,
+	// and a slot given back begins with OWS and a `;`, so a shorter run can never lead anywhere. Without the
+	// braces a refused field gave the slots back one at a time, each try reading the field again from its
+	// start: quadratic in the slots, 0.9 s explaining the refusal of `a/b;` and eight thousand `;`.
+	//
+	// A range's are not sealed, though the same holds after them: sealed, the Accept reader changes no outcome
+	// and no position, but its refusal right after an empty slot (`a/b;@`) no longer names a token among what
+	// could stand there. So an Accept field refused after many empty slots is still quadratic in them.
+	MediaParameters : @MediaType.Parameter[] = { slots: ParameterSlot* } => @(Rfc9110.Present(slots))
+
 	ParameterSlot : @string = Ows & ';' & Ows & text: ParameterText => @(text)
 
 	ParameterText = (Token & '=' & (Token | QuotedString))?
@@ -257,7 +267,7 @@ public sealed record MediaRange(MediaType Media, decimal Weight)
 
 	ContentTypeField : @MediaType = Ows & media: Media & Ows => @(media)
 
-	Media : @MediaType = type: Token & '/' & subtype: Token & parameters: Parameters => @(new MediaType(type, subtype, parameters))
+	Media : @MediaType = type: Token & '/' & subtype: Token & parameters: MediaParameters => @(new MediaType(type, subtype, parameters))
 
 	// ── Accept ───────────────────────────────────────────────────────────────────
 
