@@ -485,11 +485,20 @@ public sealed class TerminalInventory
 		if (graph.Bodies.Values.Any(body => NodeWalk.Descendants(body).Any(node => node is Node.External { UsesInputView: true })))
 			return new TerminalInventory(true, [], [], [], ["input-view recognizers require character parsing"]);
 
-		foreach (var rule in graph.Rules)
-			if (walker.IsSyntactic(rule) && graph.Bodies.TryGetValue(rule, out var body))
-				walker.Walk(body, rule);
+		// A machine too large to build ends every question asked of the patterns at once: the
+		// grammar is read over characters, and the reason says why (LexicalAutomaton.Exceeded).
+		try
+		{
+			foreach (var rule in graph.Rules)
+				if (walker.IsSyntactic(rule) && graph.Bodies.TryGetValue(rule, out var body))
+					walker.Walk(body, rule);
 
-		return walker.Gathered();
+			return walker.Gathered();
+		}
+		catch (LexicalAutomaton.Exceeded)
+		{
+			return new TerminalInventory(true, [], [], [], [LexicalAutomaton.Exceeded.Reason]);
+		}
 	}
 
 	/// <summary>
@@ -523,6 +532,22 @@ public sealed class TerminalInventory
 		if (!walker.Applies)
 			return refusals;
 
+		// A machine too large to build leaves the grammar over characters (Of), where a binding is
+		// read as written, so there is nothing to refuse.
+		try
+		{
+			GatherRefusals(graph, walker, refusals);
+		}
+		catch (LexicalAutomaton.Exceeded)
+		{
+			refusals.Clear();
+		}
+
+		return refusals;
+	}
+
+	static void GatherRefusals(RecognitionGraph graph, Walker walker, List<GramDiagnostic> refusals)
+	{
 		// Which rules are terminals is what the walk over the syntax finds, as the inventory
 		// finds them: a binding is judged by the terminal it stands in.
 		foreach (var rule in graph.Rules)
@@ -576,8 +601,6 @@ public sealed class TerminalInventory
 							$"'${binding.Name}' {reason}",
 							Math.Max(at, 0), at < 0 ? 0 : binding.Name.Length + 1, GramSeverity.Error));
 		}
-
-		return refusals;
 	}
 
 	/// <summary>The runs a set of numbers comes to.</summary>

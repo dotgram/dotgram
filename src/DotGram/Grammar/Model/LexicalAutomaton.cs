@@ -119,6 +119,11 @@ public sealed class LexicalAutomaton
 	/// <summary>
 	/// The machine, or null where one of the patterns is not a regular language.
 	/// </summary>
+	/// <exception cref="Exceeded">
+	/// The machine is larger than a lexer is built for (<c>Budget</c>). That says nothing about
+	/// the patterns — they may well be regular — and a caller does not read it as an answer about
+	/// them: the grammar is not cut in two at all (<c>TerminalInventory.Of</c>).
+	/// </exception>
 	/// <param name="graph">For the bodies calls reach.</param>
 	/// <param name="patterns">One node a pattern, in the order the caller numbers them.</param>
 	/// <param name="blocked">What refused, appended to.</param>
@@ -138,6 +143,23 @@ public sealed class LexicalAutomaton
 			throw new ArgumentNullException(nameof(patterns));
 
 		return new Builder(graph, blocked, exact).Run(patterns);
+	}
+
+	/// <summary>
+	/// What building a machine larger than a lexer is built for ends in, wherever it is asked.
+	/// </summary>
+	/// <remarks>
+	/// Not a null: null is a pattern that is not regular, and every question asked of a pattern
+	/// (is it regular, does it end once, is a tail read by the automaton) would read a machine too
+	/// large to build as an answer about the pattern, and cut the grammar on it — a terminal begun
+	/// by the lexer whose tail was too large to build read its beginning greedily and lost the
+	/// characters the tail needed. Thrown out of every such question at once, it leaves the grammar
+	/// to be read over characters.
+	/// </remarks>
+	public sealed class Exceeded() : Exception(Reason)
+	{
+		/// <summary>The reason the grammar is not cut in two, as its diagnostic says it.</summary>
+		public const string Reason = "the patterns make a machine larger than a lexer is built for";
 	}
 
 	sealed class Builder(RecognitionGraph graph, List<string> blocked, Func<int, bool>? exact)
@@ -163,6 +185,9 @@ public sealed class LexicalAutomaton
 
 		int State()
 		{
+			if (_on.Count >= Budget)
+				throw new Exceeded();
+
 			_on.Add([]);
 			_empty.Add([]);
 
@@ -968,7 +993,7 @@ public sealed class LexicalAutomaton
 		/// carry, and the states are what a lexer runs. Working either out on its own would be
 		/// working the other out twice.
 		/// </remarks>
-		LexicalAutomaton? Subsets(int start)
+		LexicalAutomaton Subsets(int start)
 		{
 			var numbered = new Dictionary<int[], int>(Members.Same);
 			var pending  = new Queue<(HashSet<int> States, int Number)>();
@@ -993,11 +1018,7 @@ public sealed class LexicalAutomaton
 			while (pending.Count > 0)
 			{
 				if (_on.Count + _owing.Count > Budget || numbered.Count > Budget || _walked > WalkBudget || _walkedOwing > OwingBudget)
-				{
-					Refuse("the patterns make a machine larger than a lexer is built for");
-
-					return null;
-				}
+					throw new Exceeded();
 
 				var (here, number) = pending.Dequeue();
 
