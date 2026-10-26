@@ -1847,6 +1847,13 @@ sealed partial class Machine
 					: new Node.Sequence([seam, new Node.Call(rule, [])])
 				: (Node)new Node.Call(rule, []);
 
+			// The trivia a reading that begins where it is told starts on is skipped, not read:
+			// `Position` says where the value began, past it (§6.3), and the engine reads it as a
+			// recognition of its own, which cannot be asked back. What the seam gave back here the
+			// rule read — `' '*` before `any` on a space — so what the seam decided is sealed.
+			if (!ends && seam is not null && _readerWays && Opens(seam))
+				reader.SealLead();
+
 			members.Write(reader.Render(
 				body,
 				ends ? FollowSets.Continuation.End : FollowSets.Continuation.All,
@@ -2459,11 +2466,20 @@ sealed partial class Machine
 							parts[i + 1] is Node.Literal { IgnoreCase: false, Text: { Length: 1 } stop })
 							_stopAfter = (stopped, stop[0], follows[i + 1]);
 
+						if (i == 0 && _sealsLead)
+							code.Line("var sl = ways.Cursor;");
+
 						Emit(code, parts[i], follows[i], still);
 
 						// Where the value begins, for a reading that begins where it is told: the entry
 						// reads the trivia at the position it was handed and the rule after it, and this
-						// is between the two (§6.3).
+						// is between the two (§6.3) — and what the trivia decided is sealed there (SealLead).
+						if (i == 0 && _sealsLead)
+						{
+							code.Line("ways.Seal(sl);");
+							_sealsLead = false;
+						}
+
 						if (i == 0 && _leadMark is { } mark)
 						{
 							code.Line(mark);
@@ -3763,6 +3779,14 @@ sealed partial class Machine
 		public void MarkTrail(string line)
 		{
 			_trailMark = line;
+		}
+
+		bool _sealsLead;
+
+		/// <summary>Seals what the first part of the entry's sequence, the trivia, decided (§6.3).</summary>
+		public void SealLead()
+		{
+			_sealsLead = true;
 		}
 
 		string? _refuseWith;
