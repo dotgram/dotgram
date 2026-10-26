@@ -283,22 +283,24 @@ public static class FirstSets
 				return Stops && other.Stops ? both.Stopped() : both;
 			}
 
+			var mine   = Maximal(Ranges);
+			var others = Maximal(other.Ranges);
 			var shared = new List<CharRange>();
-			var mine   = 0;
-			var theirs = 0;
+			var left   = 0;
+			var right  = 0;
 
-			while (mine < Ranges.Count && theirs < other.Ranges.Count)
+			while (left < mine.Count && right < others.Count)
 			{
-				var from = (char)Math.Max(Ranges[mine].From, other.Ranges[theirs].From);
-				var to   = (char)Math.Min(Ranges[mine].To,   other.Ranges[theirs].To);
+				var from = (char)Math.Max(mine[left].From, others[right].From);
+				var to   = (char)Math.Min(mine[left].To,   others[right].To);
 
 				if (from <= to)
 					shared.Add(new CharRange(from, to));
 
-				if (Ranges[mine].To < other.Ranges[theirs].To)
-					mine++;
+				if (mine[left].To < others[right].To)
+					left++;
 				else
-					theirs++;
+					right++;
 			}
 
 			return Chars(shared, Ends && other.Ends);
@@ -317,13 +319,14 @@ public static class FirstSets
 			// Both lists sorted and maximal, so containment is one walk: each of theirs must
 			// sit inside a single one of mine, and the candidates only move forward.
 			var mine = 0;
+			var held = Maximal(Ranges);
 
-			foreach (var theirs in other.Ranges)
+			foreach (var theirs in Maximal(other.Ranges))
 			{
-				while (mine < Ranges.Count && Ranges[mine].To < theirs.From)
+				while (mine < held.Count && held[mine].To < theirs.From)
 					mine++;
 
-				if (mine >= Ranges.Count || Ranges[mine].From > theirs.From || theirs.To > Ranges[mine].To)
+				if (mine >= held.Count || held[mine].From > theirs.From || theirs.To > held[mine].To)
 					return false;
 			}
 
@@ -335,20 +338,40 @@ public static class FirstSets
 			if (Nothing  || other.Nothing)  return false;
 			if (Anything || other.Anything) return true;
 
-			var mine = 0;
+			var held   = Maximal(Ranges);
+			var others = Maximal(other.Ranges);
+			var mine   = 0;
 			var theirs = 0;
 
-			while (mine < Ranges.Count && theirs < other.Ranges.Count)
+			while (mine < held.Count && theirs < others.Count)
 			{
-				if (Ranges[mine].To < other.Ranges[theirs].From)
+				if (held[mine].To < others[theirs].From)
 					mine++;
-				else if (other.Ranges[theirs].To < Ranges[mine].From)
+				else if (others[theirs].To < held[mine].From)
 					theirs++;
 				else
 					return true;
 			}
 
 			return false;
+		}
+
+		/// <summary>
+		/// The ranges in the form <see cref="Chars"/> gives them — sorted and merged — which the
+		/// walks above need. Lists built here already are, and are returned as they are; a
+		/// <see cref="First"/> built by hand from a public constructor may not be.
+		/// </summary>
+		static IReadOnlyList<CharRange> Maximal(IReadOnlyList<CharRange> ranges)
+		{
+			for (var at = 0; at < ranges.Count; at++)
+			{
+				var range = ranges[at];
+
+				if (range.To < range.From || at > 0 && range.From <= ranges[at - 1].To + 1)
+					return Normalized(ranges);
+			}
+
+			return ranges;
 		}
 	}
 
