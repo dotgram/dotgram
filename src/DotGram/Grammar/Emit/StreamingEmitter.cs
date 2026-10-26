@@ -896,11 +896,13 @@ public static partial class CSharpEmitter
 	}
 
 	/// <summary>
-	/// The recoveries of a grammar read through a window that the engine reads and that tell their host
-	/// a place: every one but the marked repetition a streamed parse steps over itself, whose places the
-	/// reading tells from the window (<see cref="EmitStreamedRejection"/>). The others are reached inside
-	/// a synchronization, a probe or an element, out of the text the window holds. One without a
-	/// <c>=&gt;</c> tells the hook where it was, and so does one that asks for a place by name.
+	/// The recoveries of a grammar read through a window that the engine reads there and that tell their
+	/// host a place: those in a rule the engine reads out of a window — an element, a seam, the trivia, a
+	/// probe of what follows, a synchronization, a <c>find</c>'s rule — and in every rule those reach, but
+	/// not the marked repetition a streamed parse steps over itself, whose places the reading tells from
+	/// the window (<see cref="EmitStreamedRejection"/>), unless the engine reaches it too. One without a
+	/// <c>=&gt;</c> tells the hook where it was, and so does one that asks for a place by name. A recovery
+	/// no window reaches is read over a string or a buffer only, and is told nothing.
 	/// </summary>
 	internal static IReadOnlyList<Recovery> PlacedRecoveries(RecognitionGraph graph, bool overKinds, bool bufferedInput)
 	{
@@ -909,20 +911,57 @@ public static partial class CSharpEmitter
 		if (!ReadsWindow(graph, overKinds, bufferedInput) || graph.Recoveries.Count == 0)
 			return placed;
 
-		var stepped = new List<Recovery>();
+		var seen    = new HashSet<RuleSymbol>();
+		var pending = new Stack<RuleSymbol>();
+
+		// What the engine reads under a node: the repetitions there that recover, and the rules it calls.
+		void Read(Node node, Node? stepped)
+		{
+			foreach (var each in NodeWalk.Reading(node, graph))
+			{
+				if (!ReferenceEquals(each, stepped) && graph.Recoveries.TryGetValue(each, out var recovery) &&
+					!placed.Exists(one => ReferenceEquals(one, recovery)) &&
+					(recovery.Factory is null || recovery.Asks.Any(static name => Array.IndexOf(Placing, name) >= 0)))
+				{
+					placed.Add(recovery);
+				}
+
+				if (each is Node.Call(var called, _))
+					pending.Push(called);
+			}
+		}
 
 		foreach (var publication in graph.Publications)
-			if (!publication.BufferedInput && Streams(graph, publication, overKinds) && StagesOf(graph, publication.Rule) is { } stages)
-				foreach (var stage in stages)
-					if (stage.Repeated && graph.Recoveries.TryGetValue(stage.Node, out var marked))
-						stepped.Add(marked);
+		{
+			if (publication.BufferedInput || !Streams(graph, publication, overKinds))
+				continue;
 
-		foreach (var recovery in graph.Recoveries.Values)
-			if (!stepped.Exists(one => ReferenceEquals(one, recovery)) &&
-				(recovery.Factory is null || recovery.Asks.Any(static name => Array.IndexOf(Placing, name) >= 0)))
-			{
-				placed.Add(recovery);
-			}
+			// A parse read a stage at a time: the reading reads the rule, the engine its parts, and the
+			// repetition it steps over is the reading's own; its element and its synchronization are
+			// the engine's. Anything else the engine reads whole.
+			if (publication.Kind == PublishKind.Parse && StagesOf(graph, publication.Rule) is { } stages)
+				foreach (var stage in stages)
+					Read(stage.Node, stage.Repeated ? stage.Node : null);
+			else
+				pending.Push(publication.Rule);
+
+			if (graph.Trivia.TryGetValue(publication.Rule, out var trivia))
+				Read(trivia, null);
+		}
+
+		while (pending.Count > 0)
+		{
+			var rule = pending.Pop();
+
+			if (!seen.Add(rule))
+				continue;
+
+			if (graph.Bodies.TryGetValue(rule, out var body))
+				Read(body, null);
+
+			if (graph.Trivia.TryGetValue(rule, out var trivia))
+				Read(trivia, null);
+		}
 
 		return placed;
 	}
