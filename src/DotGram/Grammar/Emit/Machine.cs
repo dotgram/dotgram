@@ -2062,7 +2062,10 @@ sealed partial class Machine
 					file.Line("var power   = initialPower;");
 				if (_recoveries.Count > 0)
 				{
-					file.Line("var reach   = 0;");
+					// How far the element got, which is at least where it began: an element refused at
+					// its start, where every refusal was inside a look, raises it nowhere, and a reach
+					// of nought put its stop at the beginning of the text.
+					file.Line("var reach   = pos;");
 
 					// Read only by a recovering repetition's search for its synchronization, which a
 					// grammar whose recoveries are all out of the engine's reach does not write: a
