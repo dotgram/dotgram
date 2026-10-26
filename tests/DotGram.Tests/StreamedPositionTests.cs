@@ -184,6 +184,35 @@ public sealed class StreamedPositionTests
 		found.Assert();
 	}
 
+	/// <summary>
+	/// Where a rejected element stopped, where it stopped at its very start inside a look: the reading
+	/// over a reader said column -6 of line 8, and at a window holding the whole input line 1, where the
+	/// string says the start of line 8. The element's reach began at nought rather than where it began.
+	/// </summary>
+	[Fact]
+	public void A_rejected_element_refused_inside_a_look_stops_where_it_began()
+	{
+		var parser = WindowEdge.Compile("""
+			Rows : @string[] = Row* recover eol => @("bad " + parserFailureLine + ":" + parserFailureColumn + ":" + parserFailurePosition) & eof
+			Row  : @string   = t: Word & eol => @(t)
+			Word : @string   = ?=(['a'..'d']+ & eol) & t: ['a'..'d']+ => @(t)
+			parse Rows
+			""");
+
+		var text  = "bcd\nbcd\nbcd\nbcd\nab\nabc\nab\n1x\nab\n";
+		var whole = WindowEdge.Said(() => parser.Call("ParseRows", typeof(string), text));
+		var found = new WindowEdge.Mismatches();
+
+		Assert.Contains("\"bad 8:1:26\"", whole, StringComparison.Ordinal);
+
+		WindowEdge.Edges(parser, found, "reader", text, text.Length, whole,
+			() => parser.Call("ParseRows", typeof(TextReader), new StringReader(text)));
+		WindowEdge.Edges(parser, found, "sequence", text, text.Length, whole,
+			() => parser.Call("ParseRows", typeof(IEnumerable<string>), text.Split('\n')[..^1].Select(static one => one)));
+
+		found.Assert();
+	}
+
 	/// <summary>Each value handed over, and for a match where it was found and what it holds.</summary>
 	static string[] Said(Type host, string method, Type over, object input)
 	{

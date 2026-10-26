@@ -4140,7 +4140,7 @@ namespace DotGram.Snapshots
 				var repeat  = -1;
 				var lookahead = -1;
 				var power   = initialPower;
-				var reach   = 0;
+				var reach   = pos;
 				var syncFrom = 0;
 				var reach0 = 0;
 				var stood0 = -1;
