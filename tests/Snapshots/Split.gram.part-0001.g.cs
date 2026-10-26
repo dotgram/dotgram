@@ -1460,6 +1460,16 @@ namespace DotGram.Snapshots
 							}
 							goto Dispatch;
 						}
+
+						if (lookahead < 0 && p > failure.Position)
+						{
+							failure.Position = p;
+							if (!failure.Quiet)
+							{
+								failure.Expected = null;
+								failure.ExpectedMore?.Clear();
+							}
+						}
 					}
 				}
 

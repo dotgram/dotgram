@@ -3637,6 +3637,16 @@ namespace DotGram.Snapshots
 								Step_DotGram("negative lookahead succeeds", state, p, entries.Count, text, "");
 								goto Dispatch;
 							}
+
+							if (lookahead < 0 && p > failure.Position)
+							{
+								failure.Position = p;
+								if (!failure.Quiet)
+								{
+									failure.Expected = null;
+									failure.ExpectedMore?.Clear();
+								}
+							}
 						}
 					}
 

@@ -3677,6 +3677,13 @@ namespace DotGram.Snapshots
 								failure.Trace?.Resumed(call);
 								goto Dispatch;
 							}
+
+							if (lookahead < 0 && !failure.Quiet && p > failure.Position)
+							{
+								failure.Position = p;
+								failure.Expected = null;
+								failure.ExpectedMore?.Clear();
+							}
 						}
 					}
 
