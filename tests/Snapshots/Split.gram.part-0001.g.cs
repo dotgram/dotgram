@@ -22,6 +22,7 @@ namespace DotGram.Snapshots
 				var atomic  = -1;
 				var repeat  = -1;
 				var lookahead = -1;
+				var negating = 0;
 				var c       = '\0';
 				string[]? expected = null;
 				var completedCall = -1;
@@ -66,7 +67,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (negating == 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(0);
 						goto Return;
 					}
@@ -168,7 +169,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 5 && (failure.Starved = true)))
 					{
-						p = RecognizeRanOut_DotGram(text, p, "while", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "while", false, lookahead < 0, negating == 0, ref failure);
 						expected = ExpectedSet_DotGram(17);
 						goto Fail;
 					}
@@ -294,7 +295,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (negating == 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(14);
 						goto Fail;
 					}
@@ -332,7 +333,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (negating == 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(13);
 						goto Fail;
 					}
@@ -353,7 +354,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 4 && (failure.Starved = true)))
 					{
-						p = RecognizeRanOut_DotGram(text, p, "wait", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "wait", false, lookahead < 0, negating == 0, ref failure);
 						expected = ExpectedSet_DotGram(16);
 						goto Fail;
 					}
@@ -476,7 +477,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (negating == 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(1);
 						goto Fail;
 					}
@@ -497,7 +498,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 6 && (failure.Starved = true)))
 					{
-						p = RecognizeRanOut_DotGram(text, p, "unless", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "unless", false, lookahead < 0, negating == 0, ref failure);
 						expected = ExpectedSet_DotGram(15);
 						goto Fail;
 					}
@@ -551,7 +552,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (negating == 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(14);
 						goto Fail;
 					}
@@ -589,7 +590,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (negating == 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(13);
 						goto Fail;
 					}
@@ -610,7 +611,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 4 && (failure.Starved = true)))
 					{
-						p = RecognizeRanOut_DotGram(text, p, "skip", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "skip", false, lookahead < 0, negating == 0, ref failure);
 						expected = ExpectedSet_DotGram(12);
 						goto Fail;
 					}
@@ -641,7 +642,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (negating == 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(1);
 						goto Fail;
 					}
@@ -667,7 +668,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 6 && (failure.Starved = true)))
 					{
-						p = RecognizeRanOut_DotGram(text, p, "return", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "return", false, lookahead < 0, negating == 0, ref failure);
 						expected = ExpectedSet_DotGram(11);
 						goto Fail;
 					}
@@ -721,7 +722,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (negating == 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(1);
 						goto Fail;
 					}
@@ -742,7 +743,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 5 && (failure.Starved = true)))
 					{
-						p = RecognizeRanOut_DotGram(text, p, "raise", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "raise", false, lookahead < 0, negating == 0, ref failure);
 						expected = ExpectedSet_DotGram(10);
 						goto Fail;
 					}
@@ -794,7 +795,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (negating == 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(1);
 						goto Fail;
 					}
@@ -815,7 +816,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 5 && (failure.Starved = true)))
 					{
-						p = RecognizeRanOut_DotGram(text, p, "print", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "print", false, lookahead < 0, negating == 0, ref failure);
 						expected = ExpectedSet_DotGram(9);
 						goto Fail;
 					}
@@ -867,7 +868,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (negating == 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(1);
 						goto Fail;
 					}
@@ -888,7 +889,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 3 && (failure.Starved = true)))
 					{
-						p = RecognizeRanOut_DotGram(text, p, "let", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "let", false, lookahead < 0, negating == 0, ref failure);
 						expected = ExpectedSet_DotGram(8);
 						goto Fail;
 					}
@@ -936,7 +937,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (negating == 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(7);
 						goto Fail;
 					}
@@ -974,7 +975,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (negating == 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(1);
 						goto Fail;
 					}
@@ -995,7 +996,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 4 && (failure.Starved = true)))
 					{
-						p = RecognizeRanOut_DotGram(text, p, "halt", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "halt", false, lookahead < 0, negating == 0, ref failure);
 						expected = ExpectedSet_DotGram(6);
 						goto Fail;
 					}
@@ -1026,7 +1027,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (negating == 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(1);
 						goto Fail;
 					}
@@ -1047,7 +1048,7 @@ namespace DotGram.Snapshots
 				{
 					if ((text.Length - p < 4 && (failure.Starved = true)))
 					{
-						p = RecognizeRanOut_DotGram(text, p, "call", false, lookahead < 0, ref failure);
+						p = RecognizeRanOut_DotGram(text, p, "call", false, lookahead < 0, negating == 0, ref failure);
 						expected = ExpectedSet_DotGram(5);
 						goto Fail;
 					}
@@ -1097,7 +1098,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (negating == 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(4);
 						goto Fail;
 					}
@@ -1193,7 +1194,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (negating == 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(2);
 						goto Fail;
 					}
@@ -1212,7 +1213,7 @@ namespace DotGram.Snapshots
 				{
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
-						if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+						if (negating == 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 						expected = ExpectedSet_DotGram(1);
 						goto Fail;
 					}
@@ -1454,6 +1455,7 @@ namespace DotGram.Snapshots
 						if (entry.Value == 0)
 						{
 							state = entry.State;
+							negating--;
 							if (entry.RuleIndex >= 0)
 							{
 								entries.Add(new ParserEntry(ParserEntry.Capture, entry.RuleIndex, p, call, atomic, repeat, lookahead, p));

@@ -176,6 +176,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < from)
+					failure.Position = from;
+
 				if (tokens.Cut && failure.Position >= count - 1)
 				{
 
@@ -463,8 +466,10 @@ namespace DotGram.Snapshots
 				}
 				var rr1_1 = values.Count1;
 				failure.Looking++;
+				failure.Negating++;
 				var q1 = ReadPart1_Program(p, rb_1);
 				failure.Looking--;
+				failure.Negating--;
 
 				values.Count1 = rr1_1;
 
@@ -947,6 +952,8 @@ namespace DotGram.Snapshots
 			public global::System.Collections.Generic.List<string[]>? ExpectedMore;
 
 			public int Looking;
+
+			public int Negating;
 
 			public bool Quiet;
 

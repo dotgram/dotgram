@@ -176,6 +176,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < from)
+					failure.Position = from;
+
 				if (tokens.Cut && failure.Position >= count - 1)
 				{
 
@@ -1124,6 +1127,14 @@ namespace DotGram.Snapshots
 			public int Looking;
 			#pragma warning restore 0649
 
+			// Nothing assigns this here: no reading of this grammar holds a negative lookahead.
+			// A field nothing assigns is CS0649 in somebody else's build, which for one
+			// that treats warnings as errors is a broken compilation of a file they did
+			// not write.
+			#pragma warning disable 0649
+			public int Negating;
+			#pragma warning restore 0649
+
 			public bool Quiet;
 
 			public bool Unasked;
@@ -1617,13 +1628,13 @@ namespace DotGram.Snapshots
 				return p + i;
 			}
 
-			static int RecognizeRanOutValue_DotGram(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
+			static int RecognizeRanOutValue_DotGram(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, bool marks, ref Failure failure)
 			{
 				var reach = RecognizeAgreeingValue_DotGram(text, p, value, fold);
 
 				if ((uint)reach >= (uint)text.Length)
 				{
-					if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+					if (marks && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 				}
 
 				return moves ? reach : p;
@@ -1737,6 +1748,7 @@ namespace DotGram.Snapshots
 					var atomic  = -1;
 					var repeat  = -1;
 					var lookahead = -1;
+					var negating = 0;
 					var c       = '\0';
 					string[]? expected = null;
 					var opened0 = -1;
@@ -1813,7 +1825,7 @@ namespace DotGram.Snapshots
 					{
 						if (text.Length - p < 2)
 						{
-							p = RecognizeRanOutValue_DotGram(text, p, "<<", false, lookahead < 0, ref failure);
+							p = RecognizeRanOutValue_DotGram(text, p, "<<", false, lookahead < 0, negating == 0, ref failure);
 							expected = ExpectedSet_DotGram(19);
 							goto Fail;
 						}
@@ -1916,7 +1928,7 @@ namespace DotGram.Snapshots
 					{
 						if (text.Length - p < 2)
 						{
-							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, ref failure);
+							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, negating == 0, ref failure);
 							expected = ExpectedSet_DotGram(12);
 							goto Fail;
 						}
@@ -2038,7 +2050,7 @@ namespace DotGram.Snapshots
 					{
 						if (text.Length - p < 2)
 						{
-							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, ref failure);
+							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, negating == 0, ref failure);
 							expected = ExpectedSet_DotGram(12);
 							goto Fail;
 						}
@@ -2147,6 +2159,7 @@ namespace DotGram.Snapshots
 						var lookaheadIndex = entries.Count;
 						entries.Add(new ParserEntry(ParserEntry.Lookahead, 38, p, call, atomic, repeat, lookahead, 0));
 						lookahead = lookaheadIndex;
+						negating++;
 					}
 
 					{
@@ -2196,7 +2209,7 @@ namespace DotGram.Snapshots
 					{
 						if (text.Length - p < 2)
 						{
-							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, ref failure);
+							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, negating == 0, ref failure);
 							expected = ExpectedSet_DotGram(12);
 							goto Fail;
 						}
@@ -2224,6 +2237,7 @@ namespace DotGram.Snapshots
 						atomic    = looked.AtomicIndex;
 						repeat    = looked.RepeatIndex;
 						lookahead = looked.LookaheadIndex;
+						negating--;
 						goto Fail;
 					}
 
@@ -2300,7 +2314,7 @@ namespace DotGram.Snapshots
 					{
 						if (text.Length - p < 2)
 						{
-							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, ref failure);
+							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, negating == 0, ref failure);
 							expected = ExpectedSet_DotGram(12);
 							goto Fail;
 						}
@@ -2439,7 +2453,7 @@ namespace DotGram.Snapshots
 					{
 						if (text.Length - p < 3)
 						{
-							p = RecognizeRanOutValue_DotGram(text, p, "<<-", false, lookahead < 0, ref failure);
+							p = RecognizeRanOutValue_DotGram(text, p, "<<-", false, lookahead < 0, negating == 0, ref failure);
 							expected = ExpectedSet_DotGram(18);
 							goto Fail;
 						}
@@ -2547,7 +2561,7 @@ namespace DotGram.Snapshots
 					{
 						if (text.Length - p < 2)
 						{
-							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, ref failure);
+							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, negating == 0, ref failure);
 							expected = ExpectedSet_DotGram(12);
 							goto Fail;
 						}
@@ -2642,6 +2656,7 @@ namespace DotGram.Snapshots
 						var lookaheadIndex = entries.Count;
 						entries.Add(new ParserEntry(ParserEntry.Lookahead, 75, p, call, atomic, repeat, lookahead, 0));
 						lookahead = lookaheadIndex;
+						negating++;
 					}
 
 					S65:
@@ -2703,7 +2718,7 @@ namespace DotGram.Snapshots
 					{
 						if (text.Length - p < 2)
 						{
-							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, ref failure);
+							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, negating == 0, ref failure);
 							expected = ExpectedSet_DotGram(12);
 							goto Fail;
 						}
@@ -2731,6 +2746,7 @@ namespace DotGram.Snapshots
 						atomic    = looked.AtomicIndex;
 						repeat    = looked.RepeatIndex;
 						lookahead = looked.LookaheadIndex;
+						negating--;
 						goto Fail;
 					}
 
@@ -2807,7 +2823,7 @@ namespace DotGram.Snapshots
 					{
 						if (text.Length - p < 2)
 						{
-							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, ref failure);
+							p = RecognizeRanOutValue_DotGram(text, p, "\r\n", false, lookahead < 0, negating == 0, ref failure);
 							expected = ExpectedSet_DotGram(12);
 							goto Fail;
 						}
@@ -3118,6 +3134,7 @@ namespace DotGram.Snapshots
 						var lookaheadIndex = entries.Count;
 						entries.Add(new ParserEntry(ParserEntry.Lookahead, 106, p, call, atomic, repeat, lookahead, 0));
 						lookahead = lookaheadIndex;
+						negating++;
 					}
 
 					{
@@ -3174,6 +3191,7 @@ namespace DotGram.Snapshots
 						atomic    = looked.AtomicIndex;
 						repeat    = looked.RepeatIndex;
 						lookahead = looked.LookaheadIndex;
+						negating--;
 						goto Fail;
 					}
 
@@ -3361,6 +3379,7 @@ namespace DotGram.Snapshots
 						var lookaheadIndex = entries.Count;
 						entries.Add(new ParserEntry(ParserEntry.Lookahead, 121, p, call, atomic, repeat, lookahead, 0));
 						lookahead = lookaheadIndex;
+						negating++;
 					}
 
 					{
@@ -3399,6 +3418,7 @@ namespace DotGram.Snapshots
 						atomic    = looked.AtomicIndex;
 						repeat    = looked.RepeatIndex;
 						lookahead = looked.LookaheadIndex;
+						negating--;
 						goto Fail;
 					}
 
@@ -3550,6 +3570,7 @@ namespace DotGram.Snapshots
 							if (entry.Value == 0)
 							{
 								state = entry.State;
+								negating--;
 								if (entry.RuleIndex >= 0)
 								{
 									entries.Add(new ParserEntry(ParserEntry.Capture, entry.RuleIndex, p, call, atomic, repeat, lookahead, p));
