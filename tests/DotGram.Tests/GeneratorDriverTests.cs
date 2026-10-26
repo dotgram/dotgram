@@ -1390,6 +1390,124 @@ public sealed class GeneratorDriverTests
 	}
 
 	/// <summary>
+	/// The host's own method of the name is the one the call binds to, and a global using is
+	/// never looked through for it: an imported overload with another <c>out</c> type makes
+	/// nothing ambiguous.
+	/// </summary>
+	[Fact]
+	public void The_hosts_own_value_recognizer_hides_an_imported_one_of_the_same_name()
+	{
+		var assembly = BuildFiles(
+			"""
+			global using static Imports;
+
+			public static class Imports
+			{
+				public static bool M(System.ReadOnlySpan<char> input, ref int pos, out string value)
+				{
+					value = "";
+
+					return false;
+				}
+			}
+			""",
+			"""
+			[DotGram.Gram("Start : @int = @M\nparse Start")]
+			public partial class HostFirst
+			{
+				static bool M(System.ReadOnlySpan<char> input, ref int pos, out int value)
+				{
+					value = 7;
+					pos   = input.Length;
+
+					return true;
+				}
+			}
+			""");
+
+		Assert.Equal(7, assembly.GetType("HostFirst")!.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["x"]));
+	}
+
+	/// <summary>
+	/// A static import brings in what the class declares itself and not what it inherits: a
+	/// base's value recognizer of the name does not turn the imported text recognizer into one.
+	/// </summary>
+	[Fact]
+	public void A_static_import_does_not_bring_in_what_the_class_inherits()
+	{
+		var assembly = BuildFiles(
+			"""
+			global using static Derived;
+
+			public class Base
+			{
+				public static bool M(System.ReadOnlySpan<char> input, ref int pos, out int value)
+				{
+					value = 0;
+
+					return false;
+				}
+			}
+
+			public class Derived : Base
+			{
+				public static bool M(System.ReadOnlySpan<char> input, ref int pos)
+				{
+					pos = input.Length;
+
+					return true;
+				}
+			}
+			""",
+			"""
+			[DotGram.Gram("Start = 'a' & @M\nparse Start")]
+			public partial class NotInherited
+			{
+			}
+			""");
+
+		Assert.Equal("abc", assembly.GetType("NotInherited")!.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["abc"]));
+	}
+
+	/// <summary>
+	/// Nor does it bring in an extension method for a call by its simple name: the imported
+	/// class's extension of the name, with an <c>out</c>, is not what the call binds to.
+	/// </summary>
+	[Fact]
+	public void A_static_import_does_not_bring_in_an_extension_method_for_a_simple_name()
+	{
+		var assembly = BuildFiles(
+			"""
+			global using static Readers;
+
+			public static class Readers
+			{
+				public static bool M(System.ReadOnlySpan<char> input, ref int pos)
+				{
+					pos = input.Length;
+
+					return true;
+				}
+
+				public static bool M(this System.ReadOnlySpan<char> input, ref int pos, out int value)
+				{
+					value = 0;
+
+					return false;
+				}
+			}
+			""",
+			"""
+			[DotGram.Gram("Start = 'a' & @M\nparse Start")]
+			public partial class NoExtension
+			{
+			}
+			""");
+
+		Assert.Equal("abc", assembly.GetType("NoExtension")!.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["abc"]));
+	}
+
+	/// <summary>
 	/// A capture may be called <c>var</c>: outside a declaration it is an identifier like any
 	/// other, and a guard that names it is handed it.
 	/// </summary>
