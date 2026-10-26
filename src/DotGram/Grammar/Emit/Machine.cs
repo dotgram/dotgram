@@ -1688,6 +1688,27 @@ sealed partial class Machine
 	/// </summary>
 	public bool UsesLocating => _graph.PerCall is not null && _graph.Located.Count > 0;
 
+	/// <summary>
+	/// Whether the places this machine tells its constructions — where a located value was read,
+	/// where the marks over one were placed — are counted from where the text it is handed begins
+	/// in the whole input, rather than from the text: a streamed reading hands it what its window
+	/// holds, and the window lets go of what was read before (<c>Failure.Origin</c>, which the
+	/// reading writes and the engine keeps on its parser).
+	/// </summary>
+	/// <remarks>
+	/// Asked of the grammar (<see cref="CSharpEmitter.Places"/>): only a grammar that tells such
+	/// places and is read a window at a time pays the field and the add.
+	/// </remarks>
+	public bool Places => _places ??= !BufferedInput && CSharpEmitter.Places(_graph, OverKinds);
+
+	bool? _places;
+
+	/// <summary>A position of the text handed to the machine, as a place in the whole input (<see cref="Places"/>).</summary>
+	string Placed(string position)
+	{
+		return Places ? $"parser.Origin + {position}" : position;
+	}
+
 	string ReadingParameter =>
 		(UsesReading ? ", int parserReading" : "") + (UsesLocating ? ", int parserLocating" : "");
 
@@ -2023,6 +2044,10 @@ sealed partial class Machine
 			// returned through the hook, and one that said nothing gets the default pool.
 			file.Line("var lent = parser != null;");
 			file.Line("parser ??= Recycled_DotGram();");
+
+			// Where the text it was handed begins in the input, for the values it locates.
+			if (Places)
+				file.Line("parser.Origin = failure.Origin;");
 			file.Line();
 
 			using (file.Block("try"))

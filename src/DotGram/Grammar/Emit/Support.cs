@@ -941,12 +941,16 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	internal static string FailureStructWith(
 		bool reach, bool stood = false, bool starved = false, bool expected = false, bool expectedMore = false, bool recoveryOrdinal = false,
-		bool looking = false, bool quiet = false, bool began = false, bool trace = false, bool unasked = false, bool doors = false)
+		bool looking = false, bool quiet = false, bool began = false, bool trace = false, bool unasked = false, bool doors = false,
+		bool origin = false)
 	{
 		return Lines.Normalize(FailureStruct)
 			.Replace(
 				"	{{began}}" + Lines.Ending,
 				began ? Lines.Normalize(BeganField) + Lines.Ending : "")
+			.Replace(
+				"	{{origin}}" + Lines.Ending,
+				origin ? Lines.Normalize(OriginField) + Lines.Ending : "")
 			.Replace("\t{{recoveryOrdinal}}" + Lines.Ending, recoveryOrdinal ? "\tpublic int RecoveryOrdinal { get; set; }" + Lines.Ending : "")
 			.Replace(
 				"\t{{reach}}" + Lines.Ending,
@@ -1013,6 +1017,18 @@ public static partial class CSharpEmitter
 		{{restore:Began}}
 		""";
 
+	/// <summary>Where the text a reading is handed begins in the whole input.</summary>
+	/// <remarks>
+	/// Not about a failure either, and here for the reason <c>Began</c> is: a reading through a
+	/// window hands the machine what the window holds, and a value it locates is told a place in
+	/// the input, which is that much further on. Written by the reading where it hands over the
+	/// window, zero everywhere else (CSharpEmitter.Places).
+	/// </remarks>
+	const string OriginField = """
+		/// <summary>Where the text being read begins in the input: zero, except through a window.</summary>
+		public int Origin;
+		""";
+
 	const string FailureStruct = """
 		/// <summary>Where a match got before it gave up, and why.</summary>
 		struct Failure
@@ -1055,6 +1071,7 @@ public static partial class CSharpEmitter
 			public int OutOfInput;
 			{{restore:OutOfInput}}
 			{{began}}
+			{{origin}}
 			{{reach}}
 			{{stood}}
 			{{starved}}
@@ -1210,6 +1227,7 @@ public static partial class CSharpEmitter
 			/*TYPED_FIELDS*/
 			/*CACHE_FIELD*/
 			/*LOCATED_FIELD*/
+			/*ORIGIN_FIELD*/
 			/*EXPECTED_FIELD*/
 			int[] _linkHeads = global::System.Array.Empty<int>();
 			int[] _linkNexts = global::System.Array.Empty<int>();
@@ -1290,6 +1308,7 @@ public static partial class CSharpEmitter
 				/*TYPED_RESET*/
 				/*CACHE_RESET*/
 				/*LOCATED_RESET*/
+				/*ORIGIN_RESET*/
 				/*EXPECTED_RESET*/
 
 				// A rule call that captures nothing this parse never writes its own head, so
@@ -1678,7 +1697,7 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	internal static string ParserRuntime(
 		bool powers, bool caches, bool marks, IReadOnlyList<string> valueTypes, bool locating = false,
-		bool explaining = false, bool turns = false)
+		bool explaining = false, bool turns = false, bool origin = false)
 	{
 		var fields = new StringBuilder();
 		var resize = new StringBuilder();
@@ -1736,6 +1755,11 @@ public static partial class CSharpEmitter
 		// Where the recovered elements of this parse are: counted on from one to the next.
 		runtime = CacheRuntime(runtime, "LOCATED_FIELD", "internal Located_DotGram Located;", locating);
 		runtime = CacheRuntime(runtime, "LOCATED_RESET", "Located = default;", locating);
+
+		// Where the text the engine was handed begins in the input, for the values it locates
+		// (Failure.Origin). Put back to nought with the parser, which a reading of a string reads.
+		runtime = CacheRuntime(runtime, "ORIGIN_FIELD", "internal int Origin;", origin);
+		runtime = CacheRuntime(runtime, "ORIGIN_RESET", "Origin = 0;", origin);
 
 		// A turn of a recovering repetition that can be read again inside its own element, as a
 		// record of its own: what stood where it began and how far the enclosing reading of the

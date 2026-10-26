@@ -260,6 +260,7 @@ namespace DotGram.Snapshots
 			RentParser_DotGram(ref parser);
 			var lent = parser != null;
 			parser ??= Recycled_DotGram();
+			parser.Origin = failure.Origin;
 
 			try
 			{
@@ -946,7 +947,7 @@ namespace DotGram.Snapshots
 
 				while (true)
 				{
-					failure0 = new Failure();
+					failure0 = new Failure { Origin = unchecked((int)window.Offset) };
 					end0     = Rec_DotGram_Entry(window.Span(), start, ref failure0, out value0);
 
 					if (((end0 < 0 ? failure0.Position : end0) >= window.Length || failure0.Starved) && !window.Ended)
@@ -1147,7 +1148,7 @@ namespace DotGram.Snapshots
 						global::System.Diagnostics.Debug.Assert(captured1_0From >= 0);
 						var captured1 = New_DotGram_Rest(captured1_0From < 0 ? string.Empty : text.Slice(captured1_0From, captured1_0To - captured1_0From).ToString());
 
-						values1[completedAt] = New_DotGram_Entry(new SourceSpan(completed.Position, completed.Value - completed.Position), captured0!, captured1!);
+						values1[completedAt] = New_DotGram_Entry(new SourceSpan(parser.Origin + completed.Position, completed.Value - completed.Position), captured0!, captured1!);
 						break;
 					}
 					case 3:
@@ -1174,7 +1175,7 @@ namespace DotGram.Snapshots
 						global::System.Diagnostics.Debug.Assert(captured0_0From >= 0);
 						var captured0 = New_DotGram_Word(captured0_0From < 0 ? string.Empty : text.Slice(captured0_0From, captured0_0To - captured0_0From).ToString());
 
-						values2[completedAt] = New_DotGram_Name(new SourceSpan(completed.Position, completed.Value - completed.Position), captured0!);
+						values2[completedAt] = New_DotGram_Name(new SourceSpan(parser.Origin + completed.Position, completed.Value - completed.Position), captured0!);
 						break;
 					}
 					case 4:
@@ -1475,6 +1476,7 @@ namespace DotGram.Snapshots
 
 			public int OutOfInput;
 		public int Began;
+		public int Origin;
 
 			public bool Starved;
 
@@ -1736,6 +1738,7 @@ namespace DotGram.Snapshots
 			Entry[] _values1 = global::System.Array.Empty<Entry>();
 			Place[] _values2 = global::System.Array.Empty<Place>();
 			string[] _values3 = global::System.Array.Empty<string>();
+			internal int Origin;
 			int[] _linkHeads = global::System.Array.Empty<int>();
 			int[] _linkNexts = global::System.Array.Empty<int>();
 
@@ -1812,6 +1815,7 @@ namespace DotGram.Snapshots
 				global::System.Array.Clear(_values1, 0, global::System.Math.Min(_valuesUsed, _values1.Length));
 				global::System.Array.Clear(_values2, 0, global::System.Math.Min(_valuesUsed, _values2.Length));
 				global::System.Array.Clear(_values3, 0, global::System.Math.Min(_valuesUsed, _values3.Length));
+				Origin = 0;
 
 				// A rule call that captures nothing this parse never writes its own head, so
 				// whatever a previous parse through the same pooled slot left there has to be
