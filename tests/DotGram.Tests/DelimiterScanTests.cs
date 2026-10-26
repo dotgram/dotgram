@@ -201,7 +201,7 @@ public sealed class DelimiterScanTests
 		var source = Assert.Single(result.Sources).Text;
 
 		if (searches)
-			Assert.Contains("Scan_trivia", source);
+			Assert.Contains("Scan_DotGram_trivia", source);
 
 		Assert.Equal(searches, source.Contains("IndexOfAny(text.Slice(p), '\\n', '\\r')", StringComparison.Ordinal));
 

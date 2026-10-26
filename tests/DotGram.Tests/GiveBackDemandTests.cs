@@ -635,7 +635,7 @@ public sealed class GiveBackDemandTests
 		// Which carrier a grammar left to choose was given: the tape's walk at the end is written
 		// where the immediate carrier refused it, and nowhere else.
 		var chosen = carrier != CarrierKind.Auto ? carrier.ToString()
-			: source.Contains("Materialize_DotGram", StringComparison.Ordinal) ? "Tape" : "Immediate";
+			: System.Text.RegularExpressions.Regex.IsMatch(source, @"\bMaterialize\w*_DotGram") ? "Tape" : "Immediate";
 
 		var host = EmittedCode.Compile(source, declarationMembers: Members).GetType("Grammar")!;
 

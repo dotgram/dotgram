@@ -96,7 +96,7 @@ public sealed class SwitchTests
 		EmittedCode.Quiet(result.Diagnostics);
 		var source = Assert.Single(result.Sources).Text;
 		if (!direct)
-			Assert.Contains("static int Read_Number", source);
+			Assert.Contains("static int Read_DotGram_Number", source);
 		var assembly = EmittedCode.Compile(source, declarationMembers: """
 			public static int Calls;
 			static int Make(string text) { Calls++; return 12; }

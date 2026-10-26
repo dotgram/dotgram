@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -119,7 +119,7 @@ public sealed class FixShapedCarrierTests
 		// with itself and holds nothing.
 		Assert.Equal(
 			carrier == CarrierKind.Tape,
-			source.Contains("Materialize_DotGram", StringComparison.Ordinal));
+			System.Text.RegularExpressions.Regex.IsMatch(source, @"\bMaterialize\w*_DotGram"));
 
 		var host  = EmittedCode.Compile(source, declarationMembers: Members).GetType("Grammar")!;
 		var built = (IList)host.GetField("Built", BindingFlags.Public | BindingFlags.Static)!.GetValue(null)!;

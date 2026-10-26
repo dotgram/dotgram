@@ -48,7 +48,7 @@ public sealed class WindowEdgeTests
 
 		var text = string.Concat(Enumerable.Range(0, 5_000).Select(static i => "w" + (char)('a' + i % 26) + ";")) + "STOP;";
 
-		Assert.Contains("Scan_Ahead", parser.Source, StringComparison.Ordinal);
+		Assert.Contains("Scan_DotGram_Ahead", parser.Source, StringComparison.Ordinal);
 
 		var whole    = Strings(parser.Call("ParseRows", typeof(string), text));
 		var streamed = Strings(parser.Call("ParseRows", typeof(TextReader), new StringReader(text)));
@@ -71,7 +71,7 @@ public sealed class WindowEdgeTests
 
 		var text = string.Concat(Enumerable.Range(0, 5_000).Select(static i => "w" + (char)('a' + i % 26) + ";")) + ";";
 
-		Assert.Contains("Scan_Bad", parser.Source, StringComparison.Ordinal);
+		Assert.Contains("Scan_DotGram_Bad", parser.Source, StringComparison.Ordinal);
 
 		var whole    = Strings(parser.Call("ParseRows", typeof(string), text));
 		var streamed = Strings(parser.Call("ParseRows", typeof(TextReader), new StringReader(text)));
@@ -119,7 +119,7 @@ public sealed class WindowEdgeTests
 		var text  = "a1\nabc1\nb1\nab1\n";
 		var found = new WindowEdge.Mismatches();
 
-		Assert.Contains("Scan_Head", parser.Source, StringComparison.Ordinal);
+		Assert.Contains("Scan_DotGram_Head", parser.Source, StringComparison.Ordinal);
 
 		WindowEdge.Edges(parser, found, "reader", text, text.Length, WindowEdge.Said(() => parser.Call("ParseRows", typeof(string), text)),
 			() => parser.Call("ParseRows", typeof(TextReader), new StringReader(text)));
@@ -365,14 +365,14 @@ public sealed class WindowEdgeTests
 			parse Rows
 			""");
 
-		Assert.Contains("static int Scan_Ahead_Agreeing(", parser.Source, StringComparison.Ordinal);
+		Assert.Contains("static int Scan_DotGram_Ahead_Agreeing(", parser.Source, StringComparison.Ordinal);
 		Assert.Empty(WindowEdge.Unflagged(parser.Source).Unflagged);
 
 		var unflagged = WindowEdge.Unflagged(parser.Source
 			.Replace(" && (failure.Starved = true))", ")", StringComparison.Ordinal)
 			.Replace(" || !(failure.Starved = true))", ")", StringComparison.Ordinal)).Unflagged;
 
-		Assert.Contains(unflagged, static one => one.StartsWith("Scan_Ahead_Agreeing: ", StringComparison.Ordinal));
+		Assert.Contains(unflagged, static one => one.StartsWith("Scan_DotGram_Ahead_Agreeing: ", StringComparison.Ordinal));
 	}
 
 	/// <summary>

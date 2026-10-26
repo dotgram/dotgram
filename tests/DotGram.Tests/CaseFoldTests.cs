@@ -214,8 +214,8 @@ public sealed class CaseFoldTests
 		var direct  = Compiled(grammar.ToString(), direct: true,  lexical: false);
 		var lexical = Compiled(tokens.ToString(),  direct: false, lexical: true);
 
-		Assert.Contains("Scan_W0_", engine.Source, StringComparison.Ordinal);
-		Assert.Contains("Read_R0_", direct.Source, StringComparison.Ordinal);
+		Assert.Contains("Scan_DotGram_W0", engine.Source, StringComparison.Ordinal);
+		Assert.Contains("Read_R0", direct.Source, StringComparison.Ordinal);
 		Assert.DoesNotContain("Read_R0_", engine.Source, StringComparison.Ordinal);
 		Assert.Contains("Tokenize_DotGram(", lexical.Source, StringComparison.Ordinal);
 

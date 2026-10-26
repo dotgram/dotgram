@@ -61,8 +61,8 @@ public sealed class PrefixTableTests
 			.Replace("\"900=\" & 'X'+", "{ \"900=\" & 'X'+ }") : Grammar;
 		var oldSource = Emit(grammar, false, partSize);
 		var newSource = Emit(grammar, true, partSize);
-		Assert.DoesNotContain("Prefix_DotGram", oldSource);
-		Assert.Contains("Prefix_DotGram", newSource);
+		Assert.DoesNotContain("PrefixNext", oldSource);
+		Assert.Contains("PrefixNext", newSource);
 		var oldParser = EmittedCode.Compile(oldSource);
 		var newParser = EmittedCode.Compile(newSource);
 		foreach (var input in new[] { "1=X!", "100=X!", "198=X!", "900=X!", "198=Y!", "777=Y!", "", "1", "19", "198", "198=", "198=Z!", "198=X?", "900=X!extra", "~" })
@@ -228,7 +228,7 @@ public sealed class PrefixTableTests
 		var chained = EmittedCode.Compile(EmitWith(grammar, false, false));
 		var tabled  = EmitWith(grammar, true, false);
 
-		Assert.Contains("_Members", tabled);
+		Assert.Contains("PrefixMembers", tabled);
 
 		var parser = EmittedCode.Compile(tabled);
 

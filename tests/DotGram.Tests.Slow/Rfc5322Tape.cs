@@ -138,7 +138,7 @@ static class Rfc5322Tape
 
 		// Or the copy is the immediate reading again, and every comparison with it compares the
 		// shipped reading with itself.
-		Assert.Contains(output.SyntaxTrees, static tree => tree.ToString().Contains("Materialize_DotGram", StringComparison.Ordinal));
+		Assert.Contains(output.SyntaxTrees, static tree => System.Text.RegularExpressions.Regex.IsMatch(tree.ToString(), @"\bMaterialize\w*_DotGram"));
 
 		return parser;
 	}

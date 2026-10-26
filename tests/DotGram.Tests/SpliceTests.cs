@@ -257,12 +257,12 @@ public sealed class SpliceTests
 	[InlineData(
 		"context : @C\nSum : @int = l: Sum & '+' & r: D => @(context.Add(l, r)) | d: D => @(d)\n" +
 			"D : @int = t: ['0'..'9'] => @(t.Length)\nparse Sum",
-		"Construct_Sum_1(context, ")]
+		"New1_DotGram_Sum(context, ")]
 	// A captured call to a flat-valued rule, compiled where the call was.
 	[InlineData(
 		"context : @C\nOuter : @int = v: Value & '!' => @(v)\n" +
 			"Value : @int = d: ['0'..'9']+ => @(context.Count + d.Length)\nparse Outer",
-		"Construct_Value(context,")]
+		"New_DotGram_Value(context,")]
 	// A publication that also streams, which is a second recognizer over a window.
 	[InlineData(
 		"context : @C\nStart = ['0'..'9']+ & when @(context.Ok())\nfind Start",

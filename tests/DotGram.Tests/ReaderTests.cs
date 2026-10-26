@@ -113,7 +113,7 @@ public sealed class ReaderTests
 	{
 		var whole = WideChoice + "parse Start";
 
-		Assert.Contains("_Groups", Written(whole, reader: true, lexical: false), StringComparison.Ordinal);
+		Assert.Contains("RecognizeGroups", Written(whole, reader: true, lexical: false), StringComparison.Ordinal);
 		Assert.Equal(Reads(whole, input, reader: false, lexical: false), Reads(whole, input, reader: true, lexical: false));
 	}
 
@@ -202,7 +202,7 @@ public sealed class ReaderTests
 	public void The_reader_hands_a_shared_head_to_the_alternative()
 	{
 		var written = Written(Lexical + SharedAlike + Line + "parse Start", reader: true, carrier: CarrierKind.Tape);
-		var part    = Reading(written, "Read_Value_Part0");
+		var part    = Reading(written, "ReadPart0_Value");
 		var head    = part.Substring(0, part.IndexOf(')'));
 
 		// What the head is read into, which the tail did not read and only uses.
@@ -641,11 +641,11 @@ public sealed class ReaderTests
 		// The base is the rule's own method and the steps are the loop's parts, so the
 		// value so far is written into a step and handed to it.
 		Assert.Contains(
-			"ref int fold", Reading(written, "Read_Sum_Part0"), StringComparison.Ordinal);
+			"ref int fold", Reading(written, "ReadPart0_Sum"), StringComparison.Ordinal);
 		Assert.Contains(
-			"ways.Put(fold);", Reading(written, "Read_Sum_Part0"), StringComparison.Ordinal);
+			"ways.Put(fold);", Reading(written, "ReadPart0_Sum"), StringComparison.Ordinal);
 		Assert.DoesNotContain("goto", Reading(written, "Read_Sum"), StringComparison.Ordinal);
-		Assert.DoesNotContain("goto", Reading(written, "Read_Sum_Part0"), StringComparison.Ordinal);
+		Assert.DoesNotContain("goto", Reading(written, "ReadPart0_Sum"), StringComparison.Ordinal);
 	}
 
 	/// <summary>A value the alternative that failed had already begun to build.</summary>
@@ -844,7 +844,7 @@ public sealed class ReaderTests
 		var written = Written(grammar, reader: true, lexical: false);
 
 		Assert.DoesNotContain("goto", Reading(written, "Read_Start"), StringComparison.Ordinal);
-		Assert.DoesNotContain("goto", Reading(written, "Read_Start_Body"), StringComparison.Ordinal);
+		Assert.DoesNotContain("goto", Reading(written, "ReadBody_Start"), StringComparison.Ordinal);
 		Assert.Contains("ways.Retry", Reading(written, "Read_Start"), StringComparison.Ordinal);
 	}
 

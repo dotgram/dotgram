@@ -375,10 +375,10 @@ static class WindowEdge
 	[
 		// By the name and the parameters the generator gives these helpers, which no rule's method can
 		// take: a name with _DotGram in it is refused in a grammar (GRAM1012), and a rule named
-		// Ahead_Agreeing is the scanner Scan_Ahead_Agreeing, read like any other.
-		(new(@"^(Recognize_DotGram\w*_Agreeing\(\S+ text, int p, string value, bool fold\)|Recognize_DotGram\w*_Sharpen\d+\(\S+ text, int p, ref string\[\]\? expected\)|Reach_DotGram\w*\(\S+ text, int pos, global::System\.ReadOnlySpan<char> want\))$"), null,
+		// Ahead_Agreeing is the scanner Scan_DotGram_Ahead_Agreeing, read like any other.
+		(new(@"^(RecognizeAgreeing\w*_DotGram\w*\(\S+ text, int p, string value, bool fold\)|RecognizeSharpen\w*_DotGram\w*\(\S+ text, int p, ref string\[\]\? expected\)|Reach\w*_DotGram\w*\(\S+ text, int pos, global::System\.ReadOnlySpan<char> want\))$"), null,
 			"a walk that measures how far a literal agrees; the caller that refuses on it says whether it reached the end"),
-		(new(@"^Prefix_DotGram\w*_\d+(\(\S+ text, int p\)|_Miss\(\S+ text, ref int p, int row, int lookahead, ref Failure failure, out string\[\] expected\))$"), null,
+		(new(@"^(Prefix\w*\d+_DotGram\w*\(\S+ text, int p\)|PrefixMiss\w*\d+_DotGram\w*\(\S+ text, ref int p, int row, int lookahead, ref Failure failure, out string\[\] expected\))$"), null,
 			"the dispatch of a choice by the prefixes of its literals; where the text runs out it answers that nothing is decided, and the alternatives it falls back to test the end themselves"),
 		(null, new(@"^if \(whole && p != text\.Length\)"),
 			"the end a whole reading demands; a window's reading is never whole"),
@@ -402,12 +402,12 @@ static class WindowEdge
 
 	/// <summary>A scanner that takes the failure, from its signature to the closing brace at its own indent.</summary>
 	static readonly Regex ScannerMethod = new(
-		@"^(?<indent>\t+)static int (?<name>Scan_\w+)\(global::System\.ReadOnlySpan<char> text, int pos, ref Failure failure[^\n]*\n(?<body>.*?)\n\k<indent>\}",
+		@"^(?<indent>\t+)static int (?<name>Scan\w*_DotGram\w*)\(global::System\.ReadOnlySpan<char> text, int pos, ref Failure failure[^\n]*\n(?<body>.*?)\n\k<indent>\}",
 		RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.CultureInvariant);
 
 	/// <summary>A scanner of a run of characters that takes the failure.</summary>
 	static readonly Regex ScalarMethod = new(
-		@"^(?<indent>\t+)static int (?<name>Read_\w+)\([^\n]*ref Failure failure\)[^\n]*\n(?<body>.*?)\n\k<indent>\}",
+		@"^(?<indent>\t+)static int (?<name>Read\w*_DotGram\w*)\([^\n]*ref Failure failure\)[^\n]*\n(?<body>.*?)\n\k<indent>\}",
 		RegexOptions.Multiline | RegexOptions.Singleline | RegexOptions.CultureInvariant);
 
 	/// <summary>A generated parser whose window's capacity is a field the oracle sets.</summary>

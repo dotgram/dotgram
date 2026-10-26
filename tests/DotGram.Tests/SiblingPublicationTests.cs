@@ -35,7 +35,7 @@ public sealed class SiblingPublicationTests
 		var source = Assert.Single(result.Sources).Text;
 		var methods = CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)
 			.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<MethodDeclarationSyntax>();
-		Assert.Equal(materializers, methods.Count(m => m.Identifier.Text.StartsWith("Materialize_DotGram_") && m.Identifier.Text.EndsWith("_Direct")));
+		Assert.Equal(materializers, methods.Count(m => m.Identifier.Text.StartsWith("MaterializeDirect_DotGram_")));
 		var assembly = EmittedCode.Compile(source);
 		Assert.Equal(count * 3, EmittedCode.Match(assembly, "Grammar", "TryParseNumber", "((v))").Value);
 		Assert.Equal((count * 3).ToString(), EmittedCode.Match(assembly, "Grammar", "TryParseText", "((v))").Value);
@@ -64,7 +64,7 @@ public sealed class SiblingPublicationTests
 		var source = Assert.Single(result.Sources).Text;
 		var methods = CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)
 			.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<MethodDeclarationSyntax>();
-		Assert.Single(methods, m => m.Identifier.Text.StartsWith("Materialize_DotGram_") && m.Identifier.Text.EndsWith("_Direct"));
+		Assert.Single(methods, m => m.Identifier.Text.StartsWith("MaterializeDirect_DotGram_"));
 		var assembly = EmittedCode.Compile(source);
 
 		for (var i = 0; i < 2; i++)
@@ -132,7 +132,7 @@ public sealed class SiblingPublicationTests
 		var source  = Assert.Single(result.Sources).Text;
 		var methods = CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)
 			.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<MethodDeclarationSyntax>();
-		Assert.Single(methods, m => m.Identifier.Text == "Recognize_Rows_Whole_Part1");
+		Assert.Single(methods, m => m.Identifier.Text == "WholePart1_DotGram_Rows");
 		var host = EmittedCode.Compile(source).GetType("Grammar")!;
 
 		foreach (var publication in publications.Split('|'))
@@ -316,7 +316,7 @@ public sealed class SiblingPublicationTests
 		return CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)
 			.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<StructDeclarationSyntax>()
 			.Select(static one => one.Identifier.Text)
-			.Where(static name => name.StartsWith("Reader_DotGram", StringComparison.Ordinal))
+			.Where(static name => name.StartsWith("Reader", StringComparison.Ordinal) && name.Contains("_DotGram", StringComparison.Ordinal))
 			.ToList();
 	}
 
@@ -326,7 +326,7 @@ public sealed class SiblingPublicationTests
 		return CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)
 			.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<MethodDeclarationSyntax>()
 			.Select(static one => one.Identifier.Text)
-			.Where(static name => name.StartsWith("Materialize_DotGram_", StringComparison.Ordinal) && name.EndsWith("_Direct", StringComparison.Ordinal))
+			.Where(static name => name.StartsWith("MaterializeDirect_DotGram_", StringComparison.Ordinal))
 			.ToList();
 	}
 }

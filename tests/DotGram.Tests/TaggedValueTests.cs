@@ -49,8 +49,8 @@ public sealed class TaggedValueTests
 		var (assembly, source) = Lexical(Strings, direct);
 		var twin = Compiled(Strings, direct: true);
 
-		Assert.Contains("Reread_Lexical_PlainText_For_Lexical_Str_DotGram(", source, StringComparison.Ordinal);
-		Assert.Contains("Construct_Lexical_Str(default, through)", source, StringComparison.Ordinal);
+		Assert.Contains("RereadFor_DotGram_Lexical_PlainText_DotGram_Lexical_Str(", source, StringComparison.Ordinal);
+		Assert.Contains("New_DotGram_Lexical_Str(default, through)", source, StringComparison.Ordinal);
 
 		foreach (var input in new[]
 		{
@@ -81,7 +81,7 @@ public sealed class TaggedValueTests
 		var (assembly, source) = Lexical(grammar, direct: true);
 		var twin = Compiled(grammar, direct: true);
 
-		Assert.DoesNotContain("_For_Lexical_Str_DotGram(", source, StringComparison.Ordinal);
+		Assert.DoesNotMatch(@"RereadFor_DotGram_\w+_DotGram_Lexical_Str\(", source);
 		Assert.Equal(EmittedCode.Match(twin, "Grammar", "TryParseItems", input).Value, EmittedCode.Match(assembly, "Grammar", "TryParseItems", input).Value);
 	}
 
@@ -113,7 +113,7 @@ public sealed class TaggedValueTests
 		var (alone, _)       = Lexical(plain, direct: true);
 		var twin = Compiled(bound, direct: true);
 
-		Assert.DoesNotContain("_For_Lexical_T_DotGram(", source, StringComparison.Ordinal);
+		Assert.DoesNotMatch(@"RereadFor_DotGram_\w+_DotGram_Lexical_T\(", source);
 		Assert.Equal("[aa]", EmittedCode.Match(twin, "Grammar", "TryParseRoot", "aab").Value);
 
 		foreach (var input in new[] { "aab", "aa", "a", "ab", "aaab", "aab b" })

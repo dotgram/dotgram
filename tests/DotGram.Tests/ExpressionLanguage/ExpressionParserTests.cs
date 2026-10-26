@@ -2638,7 +2638,7 @@ public sealed class ExpressionParserTests
 			.GetTypes()
 			.Where(type => type.Namespace == typeof(ExpressionParser).Namespace)
 			.SelectMany(type => type.GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public))
-			.Where(method => method.Name == "Measure_Lexical_Str_DotGram");
+			.Where(method => method.Name == "Measure_DotGram_Lexical_Str");
 
 		Assert.NotEmpty(measures);
 	}

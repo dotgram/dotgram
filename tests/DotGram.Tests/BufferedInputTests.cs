@@ -29,7 +29,7 @@ public sealed partial class BufferedInputTests
 		var source = Assert.Single(result.Sources).Text;
 		var methods = Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken)
 			.GetRoot(TestContext.Current.CancellationToken).DescendantNodes().OfType<Microsoft.CodeAnalysis.CSharp.Syntax.MethodDeclarationSyntax>();
-		Assert.Equal(2, methods.Count(method => method.Identifier.ValueText.StartsWith("Materialize_DotGram_Buffered_")));
+		Assert.Equal(2, methods.Count(method => method.Identifier.ValueText.StartsWith("MaterializeBuf")));
 		var assembly = EmittedCode.Compile(source, declarationMembers: """
 			public static int[] Read(bool bytes, bool yield)
 			{
@@ -306,7 +306,7 @@ public sealed partial class BufferedInputTests
 		EmittedCode.Quiet(compilation.Diagnostics);
 		var source = Assert.Single(compilation.Sources).Text;
 
-		Assert.Contains("private ref struct Reader_DotGram_Buffered_", source, StringComparison.Ordinal);
+		Assert.Contains("private ref struct ReaderBuf_DotGram_", source, StringComparison.Ordinal);
 
 		var assembly = EmittedCode.Compile(source);
 		foreach (var input in inputs)
@@ -406,7 +406,7 @@ public sealed partial class BufferedInputTests
 		EmittedCode.Quiet(compilation.Diagnostics);
 		var source = Assert.Single(compilation.Sources).Text;
 
-		Assert.Contains("private ref struct Reader_DotGram_Buffered_ParseStart_Bytes", source, StringComparison.Ordinal);
+		Assert.Contains("private ref struct ReaderBufBytes_DotGram_ParseStart", source, StringComparison.Ordinal);
 
 		var assembly = EmittedCode.Compile(source);
 		var parse = assembly.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(Stream), typeof(int?), typeof(int?)])!;
@@ -446,7 +446,7 @@ public sealed partial class BufferedInputTests
 
 		var source = Assert.Single(compilation.Sources).Text;
 
-		Assert.DoesNotContain("Reader_DotGram_Buffered_", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("ReaderBuf", source, StringComparison.Ordinal);
 		Assert.Contains("private ref struct Reader_DotGram", source, StringComparison.Ordinal);
 	}
 

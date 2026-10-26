@@ -53,13 +53,13 @@ public sealed class NullableScannerTests
 		var source = Assert.Single(result.Sources).Text;
 
 		Assert.True(
-			source.Contains("Scan_Ahead", StringComparison.Ordinal),
+			source.Contains("Scan_DotGram_Ahead", StringComparison.Ordinal),
 			"the braced rule did not become a scanner, so this grammar tests nothing");
 
 		// Which branch the caller took: the one that asks whether the scanner refused, or
 		// the one that reads its answer straight into `p`.
 		Assert.True(
-			source.Contains("var scanned = Scan_Ahead(", StringComparison.Ordinal),
+			source.Contains("var scanned = Scan_DotGram_Ahead(", StringComparison.Ordinal),
 			"the caller read the scanner's answer without asking whether it refused");
 
 		var assembly = EmittedCode.Compile(source);

@@ -114,7 +114,7 @@ public sealed class CSharpEmitterTests
 	{
 		const string grammar = "Start = ['a'..'c' | '\\u0100'..'\\u0110' | '\\u0200'..'\\u0210']+";
 
-		Assert.Contains("_Bits", Emit(grammar + "\nparse Start"), StringComparison.Ordinal);
+		Assert.Contains("RecognizeBits", Emit(grammar + "\nparse Start"), StringComparison.Ordinal);
 		Assert.Equal(expected, Run(grammar, input).Matched);
 	}
 
@@ -267,7 +267,7 @@ public sealed class CSharpEmitterTests
 
 		Assert.DoesNotContain("call Name", source);
 		Assert.DoesNotContain("RentParser", source);
-		Assert.Equal(3, source.Split(["= Construct_Name("], StringSplitOptions.None).Length - 1);
+		Assert.Equal(3, source.Split(["= New_DotGram_Name("], StringSplitOptions.None).Length - 1);
 		Assert.Equal("aba", Invoke(grammar, "ParseStart", "a:b:a").Value);
 	}
 
@@ -300,7 +300,7 @@ public sealed class CSharpEmitterTests
 			Emit("Start : @string = t: ['a'..'z']+ => @(t)\nparse Start"));
 
 		Assert.Contains(
-			"Construct_Start(string parserText",
+			"New_DotGram_Start(string parserText",
 			Emit("Start : @string = ['a'..'z']+ => @(parserText)\nparse Start"));
 	}
 
@@ -393,7 +393,7 @@ public sealed class CSharpEmitterTests
 			parse Start
 			""");
 
-		Assert.Contains("Recognize_DotGram_Guard0(string b)", source);
+		Assert.Contains("RecognizeGuard0_DotGram(string b)", source);
 		Assert.DoesNotContain("string? a", source);
 	}
 
@@ -447,7 +447,7 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("int Recognize_DotGram(", source);
 		Assert.True(
 			source.IndexOf("Accept:", StringComparison.Ordinal) <
-			 source.LastIndexOf("[completedAt] = Construct_Start(", StringComparison.Ordinal));
+			 source.LastIndexOf("[completedAt] = New_DotGram_Start(", StringComparison.Ordinal));
 	}
 
 	/// <summary>
@@ -478,7 +478,7 @@ public sealed class CSharpEmitterTests
 		Assert.DoesNotContain("RentParser", source);
 		Assert.True(
 			source.IndexOf("if (p != text.Length)", StringComparison.Ordinal) <
-			 source.IndexOf("value = Construct_Start(", StringComparison.Ordinal));
+			 source.IndexOf("value = New_DotGram_Start(", StringComparison.Ordinal));
 	}
 
 	[Fact]
@@ -584,7 +584,7 @@ public sealed class CSharpEmitterTests
 		// reads it once in front of them and the capture is written on every path that
 		// reaches the guard. It used to be optional because the guard's own alternative was
 		// one of two places it could have been written.
-		Assert.Contains("Recognize_DotGram_Guard0(string value)", source);
+		Assert.Contains("RecognizeGuard0_DotGram(string value)", source);
 		Assert.Contains("candidate.Kind == ParserEntry.Capture", source);
 		Assert.DoesNotContain("bool[] _built", source);
 		Assert.Contains("int Recognize_DotGram(", source);
@@ -1613,7 +1613,7 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("using System.Globalization;", source);
 		Assert.Contains(
-			"static int Construct_Start(string digits) =>",
+			"static int New_DotGram_Start(string digits) =>",
 			source);
 		Assert.Contains("int.Parse(digits, CultureInfo.InvariantCulture);", source);
 
@@ -1664,8 +1664,8 @@ public sealed class CSharpEmitterTests
 
 		// The published climbing entry takes the strength. The other rule is a shared label
 		// in the same automaton, so it needs neither a method nor a strength parameter.
-		Assert.Contains("static int Recognize_E_Whole(global::System.ReadOnlySpan<char> text, int pos, int power, ref Failure failure, out int value)", source);
-		Assert.DoesNotContain("static int Recognize_D(", source);
+		Assert.Contains("static int RecWhole_DotGram_E(global::System.ReadOnlySpan<char> text, int pos, int power, ref Failure failure, out int value)", source);
+		Assert.DoesNotContain("static int Rec_DotGram_D(", source);
 		Assert.Contains("int rootRule, int initialPower, bool whole", source);
 		// Over characters a tail is also held under the ceiling the turn before left (§4.3.1),
 		// kept in the high half of the strength: one more than it, 0 for none.
@@ -1677,7 +1677,7 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("power = (power & 0xFFFF) | 3 << 16;", source);
 
 		// And publication asks at 0, which admits everything.
-		Assert.Contains("Recognize_E_Whole(text, 0, 0, ref failure, out var recognized);", source);
+		Assert.Contains("RecWhole_DotGram_E(text, 0, 0, ref failure, out var recognized);", source);
 	}
 
 	// ── Streaming (§6.3) ─────────────────────────────────────────────────────────
@@ -1997,7 +1997,7 @@ public sealed class CSharpEmitterTests
 	{
 		var source = Emit("Start = 'x' & when @(false)\nparse Start");
 
-		Assert.Contains("if (!Recognize_DotGram_Guard0()) { expected = null; goto Fail; }", source);
+		Assert.Contains("if (!RecognizeGuard0_DotGram()) { expected = null; goto Fail; }", source);
 	}
 
 	[Fact]
@@ -2123,9 +2123,9 @@ public sealed class CSharpEmitterTests
 			"trivia = { (' ' | \"//\" & [^ '\\n']*)* }" + '\n' +
 			"Start = 'a' & 'b'" + '\n' + "parse Start");
 
-		Assert.Contains("static int Scan_trivia(", source, StringComparison.Ordinal);
+		Assert.Contains("static int Scan_DotGram_trivia(", source, StringComparison.Ordinal);
 		// Handed back how far it got, too: a comment the input ends inside is refused there (§7.5).
-		Assert.Contains("p = Scan_trivia(text, p, out var scanReached);", source, StringComparison.Ordinal);
+		Assert.Contains("p = Scan_DotGram_trivia(text, p, out var scanReached);", source, StringComparison.Ordinal);
 
 		// The seam pays a call, not an arena cycle: no atomic entry anywhere.
 		Assert.DoesNotContain("ParserEntry.Atomic, 0", source, StringComparison.Ordinal);
@@ -2281,7 +2281,7 @@ public sealed class CSharpEmitterTests
 			parse E
 			""");
 
-		Assert.Contains("static string Construct_P_1(string t, string m)", source, StringComparison.Ordinal);
+		Assert.Contains("static string New1_DotGram_P(string t, string m)", source, StringComparison.Ordinal);
 		Assert.DoesNotContain("string[] m", source, StringComparison.Ordinal);
 	}
 
@@ -2348,8 +2348,8 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("public static string ParseStart(string input, Names context)", source);
 		Assert.Contains("Names context, ref Failure failure", source);
-		Assert.Contains("Recognize_DotGram_Guard0(Names context, string n)", source);
-		Assert.Contains("Construct_Start(Names context, string n)", source);
+		Assert.Contains("RecognizeGuard0_DotGram(Names context, string n)", source);
+		Assert.Contains("New_DotGram_Start(Names context, string n)", source);
 	}
 
 	[Fact]
@@ -2393,7 +2393,7 @@ public sealed class CSharpEmitterTests
 			""");
 
 		Assert.Contains(
-			"Construct_Value(global::System.ReadOnlySpan<Overflow> parserState, string t)", source);
+			"New_DotGram_Value(global::System.ReadOnlySpan<Overflow> parserState, string t)", source);
 		Assert.Contains("ParserEntry.StateSet, 0, p,", source);
 		Assert.Contains("ParserEntry.StateEnd, 0, p,", source);
 	}
@@ -2498,7 +2498,7 @@ public sealed class CSharpEmitterTests
 		Assert.Contains("Names context, string t", source, StringComparison.Ordinal);
 
 		// The including rule, and the publication, against the effective type.
-		Assert.Contains("Construct_Start(Outer context, string w)", source, StringComparison.Ordinal);
+		Assert.Contains("New_DotGram_Start(Outer context, string w)", source, StringComparison.Ordinal);
 		Assert.Contains("ParseStart(string input, Outer context)", source, StringComparison.Ordinal);
 
 		// And the two really are different types, so the upcast is doing work.
@@ -2514,7 +2514,7 @@ public sealed class CSharpEmitterTests
 		// Where nothing is included the contract and the effective type are the same, which
 		// is every grammar written before this existed.
 		Assert.Contains(
-			"Construct_Start(Names context, string t)",
+			"New_DotGram_Start(Names context, string t)",
 			Emit(
 				"""
 				context : @Names
@@ -2659,7 +2659,7 @@ public sealed class CSharpEmitterTests
 		// One machine is one untagged recognizer; two would be tagged with their rules.
 		Assert.Contains("int Recognize_DotGram(", source, StringComparison.Ordinal);
 		Assert.DoesNotContain("Recognize_DotGram_Condition(", source, StringComparison.Ordinal);
-		Assert.DoesNotContain("Recognize_DotGram_Value(", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("RecognizeValue_DotGram(", source, StringComparison.Ordinal);
 
 		// And both are still entry points of their own.
 		Assert.Contains("ParseCondition", source, StringComparison.Ordinal);

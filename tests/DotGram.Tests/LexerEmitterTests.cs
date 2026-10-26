@@ -293,11 +293,11 @@ public sealed class LexerEmitterTests
 
 		// This grammar is small enough for one part; what is asserted is that the division
 		// exists and follows the states, not that this scanner needed it.
-		Assert.Contains("Scan_Part0(", source, StringComparison.Ordinal);
+		Assert.Contains("Lex_DotGram_Part0(", source, StringComparison.Ordinal);
 
 		var parts = Enumerable
 			.Range(0, machine.Next.Count)
-			.Count(state => source.Contains($"static int Scan_Part{state}(", StringComparison.Ordinal));
+			.Count(state => source.Contains($"static int Lex_DotGram_Part{state}(", StringComparison.Ordinal));
 
 		Assert.Equal((machine.Next.Count + 95) / 96, parts);
 	}
@@ -334,7 +334,7 @@ public sealed class LexerEmitterTests
 			parse Start
 			""");
 
-		Assert.Contains("Scan_Cells[(int)row + at]", source, StringComparison.Ordinal);
+		Assert.Contains("Lex_DotGram_Cells[(int)row + at]", source, StringComparison.Ordinal);
 
 		// The alphabet is U+0430 to U+044F, so the rows over it hold that and sit nowhere near
 		// ASCII. Anchored at zero this grammar would have no usable row at all and every
@@ -384,7 +384,7 @@ public sealed class LexerEmitterTests
 	/// <summary>The character each state's row begins at.</summary>
 	static IReadOnlyList<int> Rows(string source)
 	{
-		var at   = source.IndexOf("Scan_States =", StringComparison.Ordinal);
+		var at   = source.IndexOf("Lex_DotGram_States =", StringComparison.Ordinal);
 		var from = source.IndexOf('{', at) + 1;
 		var to   = source.IndexOf("};", from, StringComparison.Ordinal);
 
@@ -462,8 +462,8 @@ public sealed class LexerEmitterTests
 
 		var text = Assert.Single(result.Sources).Text;
 
-		Assert.Contains("Scan_Part0(", text, StringComparison.Ordinal);
-		Assert.Contains("Scan_Part1(", text, StringComparison.Ordinal);
+		Assert.Contains("Lex_DotGram_Part0(", text, StringComparison.Ordinal);
+		Assert.Contains("Lex_DotGram_Part1(", text, StringComparison.Ordinal);
 	}
 
 }

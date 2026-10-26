@@ -598,9 +598,9 @@ public sealed class PositionalFollowTests
 
 		foreach (var grammar in ScannedShapes)
 		{
-			var off    = Source(grammar, follow: false, split: false).Contains("Scan_Sp", StringComparison.Ordinal);
-			var option = Source(grammar, follow: true,  split: false).Contains("Scan_Sp", StringComparison.Ordinal);
-			var split  = Source(grammar, follow: true,  split: true).Contains("Scan_Sp", StringComparison.Ordinal);
+			var off    = Source(grammar, follow: false, split: false).Contains("Scan_DotGram_Sp", StringComparison.Ordinal);
+			var option = Source(grammar, follow: true,  split: false).Contains("Scan_DotGram_Sp", StringComparison.Ordinal);
+			var split  = Source(grammar, follow: true,  split: true).Contains("Scan_DotGram_Sp", StringComparison.Ordinal);
 
 			// The view only ever narrows what the option says follows, so it can only add a scanner.
 			Assert.False(option && !split, grammar);

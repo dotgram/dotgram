@@ -141,8 +141,7 @@ public sealed class GuardNullabilityTests
 			var signatures = source
 				.Split('\n')
 				.Select(static line => line.Trim())
-				.Where(static line => line.StartsWith("static bool Recognize_", StringComparison.Ordinal) &&
-					line.Contains("_Guard", StringComparison.Ordinal))
+				.Where(static line => line.StartsWith("static bool RecognizeGuard", StringComparison.Ordinal))
 				.ToList();
 
 			Assert.NotEmpty(signatures);

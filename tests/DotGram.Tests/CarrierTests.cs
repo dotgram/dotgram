@@ -48,7 +48,7 @@ public sealed class CarrierTests
 		var immediate = Compiled(grammar, CarrierKind.Immediate);
 
 		Assert.Contains("ImmediateValues_DotGram", immediate.Source, StringComparison.Ordinal);
-		Assert.DoesNotContain("Materialize_DotGram", immediate.Source, StringComparison.Ordinal);
+		Assert.DoesNotMatch(@"\bMaterialize\w*_DotGram", immediate.Source);
 		Assert.DoesNotContain("DirectValues_DotGram", immediate.Source, StringComparison.Ordinal);
 
 		foreach (var input in inputs)
@@ -85,7 +85,7 @@ public sealed class CarrierTests
 		var (source, _) = Compiled(Extents, CarrierKind.Immediate);
 
 		Assert.Contains("DirectValues_DotGram",         source, StringComparison.Ordinal);
-		Assert.Contains("Materialize_DotGram",  source, StringComparison.Ordinal);
+		Assert.Matches(@"\bMaterialize\w*_DotGram", source);
 		Assert.DoesNotContain("ImmediateValues_DotGram", source, StringComparison.Ordinal);
 	}
 
@@ -193,7 +193,7 @@ public sealed class CarrierTests
 		var (source, _) = Compiled(Plain, CarrierKind.Auto);
 
 		Assert.Contains("ImmediateValues_DotGram",           source, StringComparison.Ordinal);
-		Assert.DoesNotContain("Materialize_DotGram", source, StringComparison.Ordinal);
+		Assert.DoesNotMatch(@"\bMaterialize\w*_DotGram", source);
 
 		Assert.Empty(Diagnostics(Plain, CarrierKind.Auto));
 		Assert.Empty(Diagnostics(Plain, CarrierKind.Tape));
@@ -243,7 +243,7 @@ public sealed class CarrierTests
 		}).Sources).Text;
 
 		Assert.Contains("ImmediateValues_DotGram",           source, StringComparison.Ordinal);
-		Assert.DoesNotContain("Materialize_DotGram", source, StringComparison.Ordinal);
+		Assert.DoesNotMatch(@"\bMaterialize\w*_DotGram", source);
 
 		foreach (var input in new[] { "abc", "", "1" })
 			Assert.Equal(Built(CarrierKind.Tape, input), Built(CarrierKind.Auto, input));
@@ -295,7 +295,7 @@ public sealed class CarrierTests
 		var (source, assembly) = Compiled(GivesBack, CarrierKind.Auto);
 		var tape = Compiled(GivesBack, CarrierKind.Tape);
 
-		Assert.DoesNotContain("Materialize_DotGram", source, StringComparison.Ordinal);
+		Assert.DoesNotMatch(@"\bMaterialize\w*_DotGram", source);
 
 		foreach (var input in new[] { "bca", "a", "ba", "b", "" })
 		{
@@ -580,7 +580,7 @@ public sealed class CarrierTests
 
 		// And the claim is true rather than merely printed: carried immediately, there is no walk
 		// at the end to hold anything back.
-		Assert.DoesNotContain("Materialize_DotGram", Compiled(TakenBack, CarrierKind.Auto).Source, StringComparison.Ordinal);
+		Assert.DoesNotMatch(@"\bMaterialize\w*_DotGram", Compiled(TakenBack, CarrierKind.Auto).Source);
 	}
 
 	/// <summary>

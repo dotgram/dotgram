@@ -55,8 +55,8 @@ public sealed partial class BackReferenceTests
 
 		// The tags' machine stands beside the first, and no machine to read a position again:
 		// nothing but a string begins with a quote.
-		Assert.Contains("Scan_Tag", source, StringComparison.Ordinal);
-		Assert.DoesNotContain("Scan_Unbound", source, StringComparison.Ordinal);
+		Assert.Contains("Lex_DotGram_Tag", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Lex_DotGram_Unbound", source, StringComparison.Ordinal);
 
 		var inputs = new System.Collections.Generic.List<string>();
 
@@ -125,7 +125,7 @@ public sealed partial class BackReferenceTests
 
 		var (assembly, source) = Lexical(grammar, direct: true);
 
-		Assert.Contains("Scan_Unbound(", source, StringComparison.Ordinal);
+		Assert.Contains("Lex_DotGram_Unbound(", source, StringComparison.Ordinal);
 		Assert.Equal("id:ab|:|id:ac", EmittedCode.Match(assembly, "Grammar", "TryParseRoot", "ab:ac").Value);
 	}
 
@@ -158,7 +158,7 @@ public sealed partial class BackReferenceTests
 		var (assembly, source) = Lexical(grammar, direct);
 		var twin = Compiled(grammar, CarrierKind.Auto, direct: true);
 
-		Assert.DoesNotContain("Scan_Tag", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Lex_DotGram_Tag", source, StringComparison.Ordinal);
 
 		foreach (var input in new[] { "\"ab\"", "\"ab", "\"ab\" x", "\"\"\"a\"\"\"", "\"" })
 			Same("ordered", input, EmittedCode.Match(twin, "Grammar", "TryParseRoot", input), EmittedCode.Match(assembly, "Grammar", "TryParseRoot", input), direct ? "reader" : "engine");
@@ -197,7 +197,7 @@ public sealed partial class BackReferenceTests
 		var (assembly, source) = Lexical(grammar, direct);
 		var twin = Compiled(grammar, CarrierKind.Auto, direct: true);
 
-		Assert.DoesNotContain("Scan_Tag", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Lex_DotGram_Tag", source, StringComparison.Ordinal);
 
 		foreach (var input in new[] { "\"ab\"", "\"xab\"", "\"\"\"x\"\"\"", "\"\" x", "\"x" })
 			Same("lookahead", input, EmittedCode.Match(twin, "Grammar", "TryParseRoot", input), EmittedCode.Match(assembly, "Grammar", "TryParseRoot", input), direct ? "reader" : "engine");

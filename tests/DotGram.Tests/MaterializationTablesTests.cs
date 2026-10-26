@@ -27,11 +27,11 @@ public sealed class MaterializationTablesTests
 		EmittedCode.Quiet(result.Diagnostics);
 		var source = Assert.Single(result.Sources).Text;
 		var methods = CSharpSyntaxTree.ParseText(source, cancellationToken: TestContext.Current.CancellationToken).GetRoot(TestContext.Current.CancellationToken).DescendantNodes()
-			.OfType<MethodDeclarationSyntax>().Where(m => m.Identifier.Text.StartsWith("Materialize_DotGram")).ToArray();
+			.OfType<MethodDeclarationSyntax>().Where(m => m.Identifier.Text.StartsWith("Materialize")).ToArray();
 		Assert.Equal(2, methods.Count(m => m.Identifier.Text is "Materialize_DotGram_Number" or "Materialize_DotGram_Text"
-			or "Materialize_DotGram_Number_Direct" or "Materialize_DotGram_Text_Direct"));
+			or "MaterializeDirect_DotGram_Number" or "MaterializeDirect_DotGram_Text"));
 		foreach (var method in methods.Where(m => m.Identifier.Text is "Materialize_DotGram_Number" or "Materialize_DotGram_Text"
-			or "Materialize_DotGram_Number_Direct" or "Materialize_DotGram_Text_Direct"))
+			or "MaterializeDirect_DotGram_Number" or "MaterializeDirect_DotGram_Text"))
 		{
 			var tables = method.DescendantNodes().OfType<VariableDeclaratorSyntax>()
 				.Count(v => v.Identifier.Text is "values0" or "values1");

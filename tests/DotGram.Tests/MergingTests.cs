@@ -120,7 +120,7 @@ public sealed class MergingTests
 		return at < lines.Length && lines[at].Trim() == "{" ? at : null;
 	}
 
-	static readonly Regex Method = new(@"^\s*static \w+ (Recognize_\w+)\(", RegexOptions.Compiled);
+	static readonly Regex Method = new(@"^\s*static \w+ ((?:Rec|Recognize)\w*_DotGram\w*)\(", RegexOptions.Compiled);
 	static readonly Regex Label  = new(@"^\s*(S\d+):\s*$", RegexOptions.Compiled);
 	static readonly Regex Goto   = new(@"^goto (\w+);$", RegexOptions.Compiled);
 

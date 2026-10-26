@@ -67,7 +67,7 @@ public sealed class ExternalInputTests
 		var generated = GeneratorDriverTests.GetGeneratedSource(GeneratorDriverTests.RunGenerator(code), "Probe.g.cs");
 
 		// Held to what it is about: the stream is read by the reader, recovering.
-		Assert.Contains("ref struct Reader_DotGram_Buffered_ParseItems_Bytes", generated, StringComparison.Ordinal);
+		Assert.Contains("ref struct ReaderBufBytes_DotGram_ParseItems", generated, StringComparison.Ordinal);
 		Assert.Contains("failure.Reach = p;", generated, StringComparison.Ordinal);
 
 		var type = GeneratorDriverTests.Build(code).GetType("Probe")!;

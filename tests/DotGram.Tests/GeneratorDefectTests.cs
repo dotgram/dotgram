@@ -220,7 +220,7 @@ public sealed class GeneratorDefectTests
 	{
 		var (_, source) = Lexical(Rooted(rules), direct: true);
 
-		Assert.Equal(measured, source.Contains("Measure_Lexical_T_", StringComparison.Ordinal));
+		Assert.Equal(measured, source.Contains("Measure_DotGram_Lexical_T(", StringComparison.Ordinal));
 	}
 
 	static string Rooted(string rules)

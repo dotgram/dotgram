@@ -5087,7 +5087,7 @@ public sealed class SemanticTests
 		// The elements that did match still collect — it is only the broken one that is
 		// dropped — so what must be absent is a factory, not the collecting.
 		Assert.Contains("captured0Count", source);
-		Assert.DoesNotContain("_Recover(", source);
+		Assert.DoesNotMatch(@"\bRecover\w*_DotGram_\w+\(", source);
 	}
 
 	/// <summary>The C# a grammar compiles to, when what is under test is the code itself.</summary>
@@ -5194,8 +5194,8 @@ public sealed class SemanticTests
 
 		var source = result.Sources[0].Text;
 
-		Assert.Contains("Recognize_Sheet_Recover(",  source);
-		Assert.Contains("Recognize_Sheet_Recover2(", source);
+		Assert.Contains("Recover_DotGram_Sheet(",  source);
+		Assert.Contains("Recover2_DotGram_Sheet(", source);
 
 		var assembly = EmittedCode.Compile(source);
 

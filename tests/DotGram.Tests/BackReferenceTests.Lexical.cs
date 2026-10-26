@@ -157,7 +157,7 @@ public sealed partial class BackReferenceTests
 		var (assembly, source) = Lexical(grammar, direct);
 		var twin = Compiled(grammar, CarrierKind.Auto, direct: true);
 
-		Assert.Contains("Scan_Unbound(", source, StringComparison.Ordinal);
+		Assert.Contains("Lex_DotGram_Unbound(", source, StringComparison.Ordinal);
 
 		string Read(string input)
 		{
@@ -216,7 +216,7 @@ public sealed partial class BackReferenceTests
 
 		var (assembly, source) = Lexical(grammar, direct);
 
-		Assert.Contains("Measure_Lexical_Quoted_DotGram(text, p, ref failure", source, StringComparison.Ordinal);
+		Assert.Contains("Measure_DotGram_Lexical_Quoted(text, p, ref failure", source, StringComparison.Ordinal);
 
 		string[] Read(string input)
 		{
@@ -569,7 +569,7 @@ public sealed partial class BackReferenceTests
 		var (assembly, source) = Lexical(grammar, direct);
 		var twin = Compiled(grammar, CarrierKind.Auto, direct: true);
 
-		Assert.Contains("Scan_Unbound(", source, StringComparison.Ordinal);
+		Assert.Contains("Lex_DotGram_Unbound(", source, StringComparison.Ordinal);
 
 		foreach (var input in new[]
 		{
@@ -711,8 +711,8 @@ public sealed partial class BackReferenceTests
 
 		var (assembly, source) = Lexical(grammar, direct);
 
-		Assert.Contains("Measure_Lexical_Str_DotGram(text, p, ref failure", source, StringComparison.Ordinal);
-		Assert.Contains("Measure_Lexical_Pair_DotGram(text, p, ref failure", source, StringComparison.Ordinal);
+		Assert.Contains("Measure_DotGram_Lexical_Str(text, p, ref failure", source, StringComparison.Ordinal);
+		Assert.Contains("Measure_DotGram_Lexical_Pair(text, p, ref failure", source, StringComparison.Ordinal);
 
 		Assert.Equal(["\"ab-ab\"", "<x>x", "{yz}yz"], (string[])EmittedCode.Match(assembly, "Grammar", "TryParseItems", "\"ab-ab\" <x>x {yz}yz").Value!);
 		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseItems", "\"ab-ac\"").IsSuccess);

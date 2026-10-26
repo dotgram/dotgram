@@ -330,7 +330,7 @@ public sealed class GuardRepeatedCaptureTests
 			var source = Assert.Single(result.Sources).Text;
 
 			// The guard's own method would take it: `string l` or `string Length` among its parameters.
-			if (Regex.IsMatch(source, @"static bool Recognize_DotGram_Guard\d+\([^)]*\bstring (l|Length)\b"))
+			if (Regex.IsMatch(source, @"static bool RecognizeGuard\d+_DotGram\w*\([^)]*\bstring (l|Length)\b"))
 				wrong.Add(rule + ": the guard is handed the value so far");
 
 			var match  = EmittedCode.Match(EmittedCode.Compile(source, declarationMembers: Members), "Grammar", "TryParseT", input);

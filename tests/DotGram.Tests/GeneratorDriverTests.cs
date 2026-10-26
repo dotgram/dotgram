@@ -1385,7 +1385,7 @@ public sealed class GeneratorDriverTests
 				"""),
 			"Numbers.g.cs");
 
-		Assert.Contains("static int Construct_Start(", source, StringComparison.Ordinal);
+		Assert.Contains("static int New_DotGram_Start(", source, StringComparison.Ordinal);
 		Assert.Contains("Always(digits);", source, StringComparison.Ordinal);
 	}
 
@@ -2556,7 +2556,7 @@ public sealed class GeneratorDriverTests
 		{
 			var type = built.GetType(name)!;
 			Assert.Contains(type.GetFields(BindingFlags.NonPublic | BindingFlags.Static),
-				field => field.Name.StartsWith("Prefix_DotGram", StringComparison.Ordinal));
+				field => field.Name.StartsWith("PrefixNext", StringComparison.Ordinal));
 			Assert.Equal(198, type.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["198=XX"]));
 		}
 

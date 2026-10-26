@@ -341,10 +341,10 @@ public sealed class YieldFollowTests
 	/// </summary>
 	static void Backend(string source, int index, bool direct, bool bytes = true)
 	{
-		Assert.Equal(direct, source.Contains($"int Read_I{index}_Buffered_C{index}(", StringComparison.Ordinal));
+		Assert.Equal(direct, source.Contains($"ref struct ReaderBuf_DotGram_C{index}", StringComparison.Ordinal));
 
 		if (bytes)
-			Assert.Equal(direct, source.Contains($"int Read_I{index}_Buffered_B{index}_Bytes(", StringComparison.Ordinal));
+			Assert.Equal(direct, source.Contains($"ref struct ReaderBufBytes_DotGram_B{index}", StringComparison.Ordinal));
 	}
 
 	/// <summary>

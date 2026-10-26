@@ -29,7 +29,7 @@ public sealed partial class BackReferenceTests
 		var (assembly, source) = Lexical(grammar, direct: true);
 		var twin = Compiled(grammar, CarrierKind.Auto, direct: true);
 
-		Assert.DoesNotContain("Scan_Tag", source, StringComparison.Ordinal);
+		Assert.DoesNotContain("Lex_DotGram_Tag", source, StringComparison.Ordinal);
 		Assert.False(EmittedCode.Match(twin, "Grammar", "TryParseRoot", input).IsSuccess);
 		Assert.Equal(EmittedCode.Match(twin, "Grammar", "TryParseRoot", input).IsSuccess, EmittedCode.Match(assembly, "Grammar", "TryParseRoot", input).IsSuccess);
 	}
@@ -68,7 +68,7 @@ public sealed partial class BackReferenceTests
 		var (assembly, source) = Lexical(grammar, direct: true);
 		var twin = Compiled(grammar, CarrierKind.Auto, direct: true);
 
-		Assert.Equal(skips, source.Contains("Scan_Tag", StringComparison.Ordinal));
+		Assert.Equal(skips, source.Contains("Lex_DotGram_Tag", StringComparison.Ordinal));
 		Assert.Equal(accepted, EmittedCode.Match(twin, "Grammar", "TryParseRoot", input).IsSuccess);
 		Assert.Equal(accepted, EmittedCode.Match(assembly, "Grammar", "TryParseRoot", input).IsSuccess);
 	}

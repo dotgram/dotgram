@@ -28,7 +28,7 @@ public sealed class MaterializationPartitionTests
 		});
 		EmittedCode.Quiet(result.Diagnostics);
 		var source = Assert.Single(result.Sources).Text;
-		Assert.Contains("_Construct", source);
+		Assert.Contains("MaterializeConstruct", source);
 		return EmittedCode.Compile(source);
 	}
 

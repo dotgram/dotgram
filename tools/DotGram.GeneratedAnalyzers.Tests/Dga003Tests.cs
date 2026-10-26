@@ -14,7 +14,7 @@ public class Dga003Tests
 		return $$"""
 			class C
 			{
-				static string Recognize_Dialect_Table(int tag)
+				static string Rec_DotGram_Dialect_Table(int tag)
 				{
 					switch (tag)
 					{
@@ -33,7 +33,7 @@ public class Dga003Tests
 
 		var found = Assert.Single(diagnostics, d => d.Id == GeneratedCodeAnalyzer.Dga003);
 		Assert.Equal(Microsoft.CodeAnalysis.DiagnosticSeverity.Info, found.Severity);
-		Assert.Contains("Recognize_Dialect_Table", found.GetMessage());
+		Assert.Contains("Rec_DotGram_Dialect_Table", found.GetMessage());
 	}
 
 	[Fact]

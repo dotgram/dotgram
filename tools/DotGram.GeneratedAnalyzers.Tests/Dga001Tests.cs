@@ -15,11 +15,11 @@ public class Dga001Tests
 		var source = """
 			class C
 			{
-				static string Construct_X(int a) => a.ToString();
+				static string New_DotGram_X(int a) => a.ToString();
 
 				static void M()
 				{
-					string last0 = Construct_X(1);
+					string last0 = New_DotGram_X(1);
 					string fold = last0;
 					System.Console.WriteLine(fold);
 				}
@@ -62,11 +62,11 @@ public class Dga001Tests
 		var source = """
 			class C
 			{
-				static string Construct_X(int a) => a.ToString();
+				static string New_DotGram_X(int a) => a.ToString();
 
 				static void M()
 				{
-					string last0 = Construct_X(1);
+					string last0 = New_DotGram_X(1);
 					string fold = last0;
 					System.Console.WriteLine(last0);
 				}
@@ -108,12 +108,12 @@ public class Dga001Tests
 		var source = """
 			class C
 			{
-				static string Construct_X(int a) => a.ToString();
+				static string New_DotGram_X(int a) => a.ToString();
 
 				static void M()
 				{
 			#line 1 "Grammar.gram"
-					string last0 = Construct_X(1);
+					string last0 = New_DotGram_X(1);
 					string fold = last0;
 			#line default
 					System.Console.WriteLine(fold);
@@ -132,12 +132,12 @@ public class Dga001Tests
 		var source = """
 			class C
 			{
-				static string Construct_X(int a) => a.ToString();
+				static string New_DotGram_X(int a) => a.ToString();
 
 				static void M()
 				{
 			#pragma warning disable DGA001 // ReaderRegisters needs 'last' current across the turn
-					string last0 = Construct_X(1);
+					string last0 = New_DotGram_X(1);
 					string fold = last0;
 			#pragma warning restore DGA001
 					System.Console.WriteLine(fold);
@@ -159,14 +159,14 @@ public class Dga001Tests
 	public async Task Negative_the_source_is_a_field_not_a_local()
 	{
 		// A reader's own register (Machine.Reader.cs's EmitRecord writes exactly this shape,
-		// "last0 = Construct_X(a); fold = last0;", for a field, not a local): the field may
+		// "last0 = New_DotGram_X(a); fold = last0;", for a field, not a local): the field may
 		// still be read by a caller after this method returns, which a walk scoped to one
 		// method body cannot see, so the source must be confirmed as a genuine LOCAL through
 		// the semantic model before DGA001 may fire on it.
 		var source = """
 			class C
 			{
-				static string Construct_X(int a) => a.ToString();
+				static string New_DotGram_X(int a) => a.ToString();
 
 				class Reader
 				{
@@ -174,7 +174,7 @@ public class Dga001Tests
 
 					string M(int a)
 					{
-						last0 = Construct_X(a);
+						last0 = New_DotGram_X(a);
 						string fold = last0;
 						return fold;
 					}
@@ -196,20 +196,20 @@ public class Dga001Tests
 		var source = """
 			class C
 			{
-				static string Construct_X(int a) => a.ToString();
-				static string Construct_Y(int a) => a.ToString();
+				static string New_DotGram_X(int a) => a.ToString();
+				static string New_DotGram_Y(int a) => a.ToString();
 
 				static string M(int kind, int a)
 				{
 					if (kind == 0)
 					{
-						string last0 = Construct_X(a);
+						string last0 = New_DotGram_X(a);
 						string fold = last0;
 						return fold;
 					}
 					else if (kind == 1)
 					{
-						string last0 = Construct_Y(a);
+						string last0 = New_DotGram_Y(a);
 						return last0;
 					}
 
@@ -234,11 +234,11 @@ public class Dga001Tests
 		var source = """
 			class C
 			{
-				static string Construct_X(int a) => a.ToString();
+				static string New_DotGram_X(int a) => a.ToString();
 
 				static string M(int a)
 				{
-					string last0 = Construct_X(a);
+					string last0 = New_DotGram_X(a);
 					string fold = last0;
 					last0 += "!";
 					return fold + last0;
@@ -257,12 +257,12 @@ public class Dga001Tests
 		var source = """
 			class C
 			{
-				static string Construct_X(int a) => a.ToString();
+				static string New_DotGram_X(int a) => a.ToString();
 
 				static void M()
 				{
 			#pragma warning disable DGA001
-					string last0 = Construct_X(1);
+					string last0 = New_DotGram_X(1);
 					string fold = last0;
 			#pragma warning restore DGA001
 					System.Console.WriteLine(fold);
