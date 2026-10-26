@@ -410,11 +410,15 @@ public sealed class LexicalAutomaton
 							parts[i + 1] is Node.Literal(var next) { IgnoreCase: false } &&
 							next == delimiter;
 
-						var read = closed && Until(part) is var (stop, item)
-							? Delimited(stop, item, inside, closed: true)
-							: Build(part, inside) is { } alone ? (alone, false) : null;
+						// Anything else after an until is not read with it, but its lookahead still sees
+						// into it: an occurrence of the delimiter begun inside the run and finished past
+						// it is one the rule stops the run before. Those are read on through the rest of
+						// the sequence (Through).
+						var read = Until(part) is var (stop, item) && i + 1 < parts.Count
+							? Delimited(stop, item, inside, closed, followed: true)
+							: Build(part, inside) is { } alone ? (alone, false, []) : null;
 
-						if (read is not ((var one, var end), var absorbed))
+						if (read is not ((var one, var end), var absorbed, var pending))
 							return null;
 
 						_empty[at].Add(one);
@@ -422,6 +426,18 @@ public sealed class LexicalAutomaton
 
 						if (absorbed)
 							i++;
+						else if (pending.Count > 0)
+						{
+							var rest = i + 2 == parts.Count ? parts[i + 1] : new Node.Sequence([.. parts.Skip(i + 1)]);
+
+							if (Build(rest, inside) is not var (after, last))
+								return null;
+
+							_empty[at].Add(after);
+							Through(Until(part)!.Value.Delimiter, pending, after, last);
+
+							return (from, last);
+						}
 					}
 
 					return (from, at);
@@ -445,7 +461,7 @@ public sealed class LexicalAutomaton
 				}
 
 				case Node.Repeat when Until(node) is var (delimiter, item):
-					return Delimited(delimiter, item, inside, closed: false) is (var delimited, _) ? delimited : null;
+					return Delimited(delimiter, item, inside, closed: false, followed: false) is (var delimited, _, _) ? delimited : null;
 
 				case Node.Repeat(var body, var min, var max):
 					return Repeated(body, min, max, inside);
@@ -507,8 +523,9 @@ public sealed class LexicalAutomaton
 		}
 
 		/// <summary>
-		/// The machine for "an item at a time, and the delimiter never begins here", and whether
-		/// it read the delimiter that closes the run too.
+		/// The machine for "an item at a time, and the delimiter never begins here", whether it
+		/// read the delimiter that closes the run too, and the run's states that end it inside an
+		/// occurrence of the delimiter the caller is to read on through what follows.
 		/// </summary>
 		/// <remarks>
 		/// <para>
@@ -537,8 +554,20 @@ public sealed class LexicalAutomaton
 		/// inside the run and end inside the delimiter. And a delimiter of one character is exact
 		/// wherever the run stands, since an occurrence of it lies wholly in the run or not in it.
 		/// </para>
+		/// <para>
+		/// Anywhere else an occurrence may begin inside the run and end past it, which the strings
+		/// the delimiter does not occur in miss: <c>(?!"ab" &amp; ['a'|'b'])* &amp; 'b'</c> refuses
+		/// <c>ab</c>, whose run stops before the <c>a</c>, and the run alone reads the <c>a</c>.
+		/// Where something follows the run in the same sequence (<paramref name="followed"/>),
+		/// the run ends unfinished occurrences only where they are handed back: a state a length of
+		/// matched delimiter prefix is left out of the run's end, and named in the third value,
+		/// with every prefix that is still matched there, for <c>Through</c> to read on. What is
+		/// still unfinished at the end of the sequence is accepted, since what decides it is past
+		/// the pattern — the wider reading, which only a beginning has.
+		/// </para>
 		/// </remarks>
-		((int From, int To) Built, bool Absorbed)? Delimited(string delimiter, Node item, HashSet<RuleSymbol> inside, bool closed)
+		((int From, int To) Built, bool Absorbed, IReadOnlyList<(int State, ulong Matched)> Pending)? Delimited(
+			string delimiter, Node item, HashSet<RuleSymbol> inside, bool closed, bool followed)
 		{
 			if (Escaping(item) is var (escape, escaped, plain))
 			{
@@ -549,7 +578,7 @@ public sealed class LexicalAutomaton
 					return null;
 				}
 
-				return Delimited(delimiter[0], escape, escaped, plain, inside) is { } pair ? (pair, false) : null;
+				return Delimited(delimiter[0], escape, escaped, plain, inside) is { } pair ? (pair, false, []) : null;
 			}
 
 			var over = Consumed(item, inside);
@@ -587,9 +616,15 @@ public sealed class LexicalAutomaton
 
 			var to = State();
 
+			// Whether an occurrence begun inside the run can still end it in what follows: never
+			// where the one machine reads the delimiter with the run, or where the delimiter of
+			// one character, or one that cannot overlap itself, follows it.
+			var narrowed = followed && !absorbs && length is > 1 and < 64 && (!closed || Overlaps(delimiter));
+
 			if (!absorbs)
-				foreach (var state in states)
-					_empty[state].Add(to);
+				for (var state = 0; state < length; state++)
+					if (state == 0 || !narrowed)
+						_empty[states[state]].Add(to);
 
 			// The prefix function, and then the failure links read off it. Written the
 			// standard way rather than in one pass, because the one-pass version this began
@@ -607,6 +642,21 @@ public sealed class LexicalAutomaton
 
 				prefix[i] = matched;
 			}
+
+			// Every prefix of the delimiter the run's end still matches in each state: the state's
+			// own length, and the borders of it — one bit a length.
+			var pending = new List<(int State, ulong Matched)>();
+
+			if (narrowed)
+				for (var state = 1; state < length; state++)
+				{
+					var matches = 0UL;
+
+					for (var held = state; held > 0; held = prefix[held - 1])
+						matches |= 1UL << held;
+
+					pending.Add((states[state], matches));
+				}
 
 			// How much of the delimiter is still matched once the next character is not the
 			// one that would continue it. Strictly less than what came in, which is what makes
@@ -648,7 +698,82 @@ public sealed class LexicalAutomaton
 						_on[states[state]].Add((atom, to));
 				}
 
-			return ((states[0], to), absorbs);
+			return ((states[0], to), absorbs, pending);
+		}
+
+		/// <summary>
+		/// What follows an until, read on from each of the run's <paramref name="pending"/> states
+		/// with the prefixes of the delimiter it still matches, as far as one of them can finish.
+		/// </summary>
+		/// <remarks>
+		/// A copy of the machine of what follows (<paramref name="from"/> to <paramref name="to"/>)
+		/// for each set of prefixes still matched: a character that finishes one is the delimiter
+		/// begun inside the run, which the run's lookahead refuses, so no way is written; one that
+		/// continues none of them leaves the copy for the machine as it was. Every prefix is shorter
+		/// than the delimiter and grows by one a character or is dropped, so the copies run out
+		/// within the delimiter's length of where what follows begins.
+		/// </remarks>
+		void Through(string delimiter, IReadOnlyList<(int State, ulong Matched)> pending, int from, int to)
+		{
+			var copies = new Dictionary<(int Original, ulong Matched), int>();
+			var work   = new Queue<(int Original, ulong Matched)>();
+
+			int Copy(int original, ulong matched)
+			{
+				if (!copies.TryGetValue((original, matched), out var copy))
+				{
+					copies[(original, matched)] = copy = State();
+					work.Enqueue((original, matched));
+				}
+
+				return copy;
+			}
+
+			foreach (var (state, matched) in pending)
+				_empty[state].Add(Copy(from, matched));
+
+			while (work.Count > 0)
+			{
+				var (original, matched) = work.Dequeue();
+				var copy                = copies[(original, matched)];
+
+				// Unfinished at the end of the pattern: what decides it is past the token.
+				if (original == to)
+					_empty[copy].Add(to);
+
+				foreach (var next in _empty[original])
+					_empty[copy].Add(Copy(next, matched));
+
+				foreach (var (atom, next) in _on[original])
+					if (Continued(delimiter, matched, _atoms[atom]) is { } still)
+						_on[copy].Add((atom, still == 0 ? next : Copy(next, still)));
+			}
+		}
+
+		/// <summary>
+		/// The prefixes of <paramref name="delimiter"/> still matched once <paramref name="atom"/>
+		/// is read after <paramref name="matched"/>, or null where it finishes one.
+		/// </summary>
+		static ulong? Continued(string delimiter, ulong matched, CharRange atom)
+		{
+			// An atom is one of the delimiter's characters exactly or holds none of them.
+			if (atom.From != atom.To)
+				return 0;
+
+			var still = 0UL;
+
+			for (var held = 1; held < delimiter.Length; held++)
+			{
+				if ((matched & (1UL << held)) == 0 || delimiter[held] != atom.From)
+					continue;
+
+				if (held + 1 == delimiter.Length)
+					return null;
+
+				still |= 1UL << (held + 1);
+			}
+
+			return still;
 		}
 
 		/// <summary>Whether a proper prefix of <paramref name="delimiter"/> is also its suffix.</summary>
