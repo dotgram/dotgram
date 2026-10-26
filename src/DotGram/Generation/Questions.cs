@@ -315,9 +315,9 @@ static class Questions
 				questions.Add(name with { Name = import + "." + name.Name });
 		}
 
-		// Not qualified under each import the way a type name is: a method is found by
-		// Roslyn searching the compilation for its simple name (RoslynSymbolResolver.
-		// TryResolveExternalValue), not by trying it beside each `using` in turn.
+		// Not qualified under each import the way a type name is: a method is found by its
+		// simple name in the classes the generated call reaches (RoslynSymbolResolver.
+		// Reached), not by trying it beside each `using` in turn.
 		//
 		// And whether it can be called at all, which is asked of every one: the answer is what
 		// says a method is missing about the grammar rather than about a generated file.
