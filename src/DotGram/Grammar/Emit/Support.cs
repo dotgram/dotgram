@@ -56,6 +56,15 @@ public static partial class CSharpEmitter
 			{{suppress:Looking}}
 			public int Looking;
 			{{restore:Looking}}
+
+			/// <summary>
+			/// How many negative lookaheads the reading is inside. A literal the input ends inside
+			/// marks the refusal as one of input that ran out; not inside a negative look, which
+			/// holds there and wants nothing more (§7.5).
+			/// </summary>
+			{{suppress:Negating}}
+			public int Negating;
+			{{restore:Negating}}
 		""";
 
 	const string QuietField = """
@@ -820,6 +829,7 @@ public static partial class CSharpEmitter
 		var fields = new (string Field, string Statement, string Why)[]
 		{
 			("Looking",    "failure.Looking++",     "no reading of this grammar holds a lookahead"),
+			("Negating",   "failure.Negating++",    "no reading of this grammar holds a negative lookahead"),
 			("Quiet",      "Quiet = true",          "no reading whose failure nothing reads is emitted"),
 			("Unasked",    "Unasked = true",        "no reading of this grammar is made for its message alone"),
 			("Doors",      "Doors = ",              "no reading of this grammar records after a quiet one"),
@@ -1029,6 +1039,8 @@ public static partial class CSharpEmitter
 			// and Suppressed puts the answer there once everything has been written.
 			.Replace("{{suppress:Looking}}", Mark("Looking", true))
 			.Replace("{{restore:Looking}}", Mark("Looking", false))
+			.Replace("{{suppress:Negating}}", Mark("Negating", true))
+			.Replace("{{restore:Negating}}", Mark("Negating", false))
 			.Replace("{{suppress:Quiet}}", Mark("Quiet", true))
 			.Replace("{{restore:Quiet}}", Mark("Quiet", false))
 			.Replace("{{suppress:Unasked}}", Mark("Unasked", true))

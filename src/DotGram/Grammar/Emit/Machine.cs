@@ -2369,6 +2369,8 @@ sealed partial class Machine
 				file.Line("var atomic  = -1;");
 				file.Line("var repeat  = -1;");
 				file.Line("var lookahead = -1;");
+				if (_usesNegating)
+					file.Line("var negating = 0;");
 				if (_graph.Climbing.Count > 0)
 					file.Line("var power   = initialPower;");
 				if (_recoveries.Count > 0)
@@ -2892,6 +2894,8 @@ sealed partial class Machine
 						using (file.Block(""))
 						{
 							file.Line("state = entry.State;");
+							if (_usesNegating)
+								file.Line("negating--;");
 							using (file.Block("if (entry.RuleIndex >= 0)"))
 							{
 								file.Line(
@@ -3447,9 +3451,13 @@ sealed partial class Machine
 						{
 							ShortOf(writer, value, ignoreCase);
 						}
-						else
+						else if (Marks == "true")
 						{
 							writer.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
+						}
+						else if (Marks != "false")
+						{
+							writer.Line($"if ({Marks} && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
 						}
 
 						EmitTerminalFailure(writer, _fail, arrayName);
@@ -4540,9 +4548,11 @@ sealed partial class Machine
 
 					_fail = resume;
 					_doorLooking++;
+					_doorNegating++;
 
 					var refused = Compile(body, matched, FollowSets.Continuation.All);
 
+					_doorNegating--;
 					_doorLooking--;
 					_fail = saved;
 					_checkpointsAllowed = checkpoints;
@@ -4575,6 +4585,8 @@ sealed partial class Machine
 					$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {Resuming(writer, next)}, p, call, atomic, " +
 					$"repeat, lookahead, {(isPositive ? 1 : 0)}));");
 				writer.Line("lookahead = lookaheadIndex;");
+				if (!isPositive)
+					writer.Line("negating++;");
 				writer.Line($"Step_DotGram(\"enter {(isPositive ? "positive" : "negative")} lookahead\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
 				writer.Line($"goto {Label(writer, inner)};");
 
@@ -4589,6 +4601,11 @@ sealed partial class Machine
 				atSuccess.Line("atomic    = looked.AtomicIndex;");
 				atSuccess.Line("repeat    = looked.RepeatIndex;");
 				atSuccess.Line("lookahead = looked.LookaheadIndex;");
+				if (!isPositive)
+				{
+					atSuccess.Line("negating--;");
+					_usesNegating = true;
+				}
 				atSuccess.Line($"Step_DotGram(\"lookahead body matched\", {Mark(Lands, next)}, p, entries.Count{Traced});");
 				atSuccess.Line($"goto {(isPositive ? Label(atSuccess, next) : "Fail")};");
 
@@ -5273,6 +5290,8 @@ sealed partial class Machine
 			$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {Resuming(writer, next)}, p, call, atomic, " +
 			$"repeat, lookahead, 0, {slot}));");
 		writer.Line("lookahead = lookaheadIndex;");
+		writer.Line("negating++;");
+		_usesNegating = true;
 		writer.Line($"Step_DotGram(\"enter captured negative lookahead\", {Mark(Lands, inner)}, p, entries.Count{Traced});");
 		writer.Line($"goto {Label(writer, inner)};");
 
@@ -5287,6 +5306,7 @@ sealed partial class Machine
 		atMatched.Line("atomic    = looked.AtomicIndex;");
 		atMatched.Line("repeat    = looked.RepeatIndex;");
 		atMatched.Line("lookahead = looked.LookaheadIndex;");
+		atMatched.Line("negating--;");
 		atMatched.Line("expected  = null;");
 		atMatched.Line("goto Fail;");
 
@@ -5362,7 +5382,7 @@ sealed partial class Machine
 
 			// Where this one stopped agreeing, or the end where the input ends inside it, recorded as a
 			// refusal of its own: the next one is tried from the same place, and the last fails here.
-			Further(writer, $"{RanOut()}(text, p, {Quoted(rest)}, false, true, ref failure)", arrayName);
+			Further(writer, $"{RanOut()}(text, p, {Quoted(rest)}, false, true, {Marks}, ref failure)", arrayName);
 
 			if (after >= 0)
 				writer.Line($"goto {Label(writer, after)};");
@@ -5419,7 +5439,7 @@ sealed partial class Machine
 				if (Final(fail))
 					ShortOf(writer, shared, false, fail);
 				else
-					Further(writer, $"{RanOut()}(text, p, {Quoted(shared)}, false, true, ref failure)", arrayName);
+					Further(writer, $"{RanOut()}(text, p, {Quoted(shared)}, false, true, {Marks}, ref failure)", arrayName);
 
 				EmitTerminalFailure(writer, fail, arrayName);
 			}
@@ -7641,13 +7661,68 @@ sealed partial class Machine
 		var reads = Final(fail ?? _fail) || door;
 		var guard = !reads ? null : _lowering || fail is not null ? "" : "lookahead < 0";
 
-		Reached(writer, value, ignoreCase, guard);
+		Reached(writer, value, ignoreCase, guard, Marks);
 	}
+
+	/// <summary>
+	/// Whether a literal the input ends inside marks the refusal as one of input that ran out
+	/// (<see cref="Reached"/>): not inside a negative look. A negative look holds where its body
+	/// refuses, and what ran out inside it wanted nothing more of the input: the parse is refused
+	/// where the look stands by input that was there, or goes on (§7.5). A positive look that ran
+	/// out wanted more, and its mark stands. Kept in locals the polarity is known here; on the
+	/// arena it is counted as the looks are entered and left (<c>negating</c>).
+	/// </summary>
+	string Marks => _doorNegating > 0 ? "false" : _lowering ? "true" : Negating;
+
+	/// <summary>How many negative looks kept in locals the states being compiled are inside.</summary>
+	int _doorNegating;
+
+	/// <summary>
+	/// Whether reading <paramref name="node"/> can mark the input as run out: a literal of more than one
+	/// character is in it, or in a rule it reaches. Only a literal the input ends inside writes the mark
+	/// (<see cref="Reached"/>, and a scanner's own), and a literal of one character is read without it,
+	/// so a look over a class, a single character or a recognizer of the host has no mark to keep out.
+	/// </summary>
+	internal bool MayRunOut(Node node)
+	{
+		var seen = new HashSet<RuleSymbol>();
+
+		return Reaches(node);
+
+		bool Reaches(Node inside)
+		{
+			foreach (var one in NodeWalk.Descendants(inside))
+			{
+				if (one is Node.Literal { Text.Length: > 1 })
+					return true;
+
+				if (one is Node.Call(var called, _) && seen.Add(called) &&
+					_graph.Bodies.TryGetValue(called, out var body) && Reaches(body))
+					return true;
+			}
+
+			return false;
+		}
+	}
+
+	/// <summary>The engine's count of the negative looks it is inside, declared where some state reads it.</summary>
+	string Negating
+	{
+		get
+		{
+			_usesNegating = true;
+
+			return "negating == 0";
+		}
+	}
+
+	bool _usesNegating;
 
 	/// <summary>
 	/// Moves <c>p</c> where a literal the input ends inside stops agreeing, where <paramref name="moves"/>
 	/// says to — always where it is empty, and otherwise where it holds — and marks the refusal at the
-	/// literal's beginning as one of input that ran out where every character there agrees.
+	/// literal's beginning as one of input that ran out where every character there agrees, where
+	/// <paramref name="marks"/> holds (<see cref="Marks"/>).
 	/// </summary>
 	/// <remarks>
 	/// The mark is for where the refusal is not recorded where the literal stops agreeing — inside a
@@ -7656,7 +7731,7 @@ sealed partial class Machine
 	/// one state machine is a variable more in every flow the C# compiler works out over it, and the
 	/// trace build of the SQL parsers took it from minutes to more than half an hour.
 	/// </remarks>
-	internal void Reached(Writer writer, string value, bool ignoreCase, string? moves)
+	internal void Reached(Writer writer, string value, bool ignoreCase, string? moves, string marks)
 	{
 		if (ignoreCase && !Ascii(value))
 		{
@@ -7665,9 +7740,12 @@ sealed partial class Machine
 				writer.Line("var literalReach = p;");
 				ReachLadder(writer, value, true, "literalReach");
 
-				using (writer.Block($"if ({Past("literalReach")})"))
+				if (marks != "false")
 				{
-					writer.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
+					using (writer.Block($"if ({(marks == "true" ? "" : marks + " && ")}{Past("literalReach")})"))
+					{
+						writer.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
+					}
 				}
 
 				if (moves is not null)
@@ -7678,7 +7756,7 @@ sealed partial class Machine
 		}
 
 		var call = $"{RanOut()}(text, p, {Quoted(value)}, {(ignoreCase ? "true" : "false")}, " +
-			$"{(moves is null ? "false" : moves.Length == 0 ? "true" : moves)}, ref failure);";
+			$"{(moves is null ? "false" : moves.Length == 0 ? "true" : moves)}, {marks}, ref failure);";
 
 		writer.Line(moves is null ? call : "p = " + call);
 	}
@@ -7773,7 +7851,7 @@ sealed partial class Machine
 		var helper   = new Writer(0);
 
 		helper.Line(
-			$"static int {_ranOut}({InputType} text, int p, string value, bool fold, bool moves, " +
+			$"static int {_ranOut}({InputType} text, int p, string value, bool fold, bool moves, bool marks, " +
 			$"ref {CSharpEmitter.FailureType} failure)");
 
 		using (helper.Block(""))
@@ -7781,7 +7859,7 @@ sealed partial class Machine
 			helper.Line($"var reach = {agreeing}(text, p, value, fold);");
 			helper.Line();
 
-			using (helper.Block($"if ({Past("reach")})"))
+			using (helper.Block($"if (marks && {Past("reach")})"))
 			{
 				helper.Line("if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;");
 			}
