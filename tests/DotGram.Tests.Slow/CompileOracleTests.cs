@@ -54,6 +54,9 @@ public sealed class CompileOracleTests
 		}
 	}
 
+	/// <summary>How long one grammar may take to be compiled and its C# read, on a loaded machine.</summary>
+	static readonly TimeSpan Budget = TimeSpan.FromSeconds(120);
+
 	[Theory]
 	[InlineData(1)]
 	[InlineData(2)]
@@ -112,7 +115,22 @@ public sealed class CompileOracleTests
 
 			try
 			{
-				var (refusal, complaints) = Compile(one, cancellation);
+				// A generator that does not come back is a failure of its own, said with the grammar:
+				// the compile is left running, since nothing can stop it, and the run goes on.
+				var work = System.Threading.Tasks.Task.Run(() => Compile(one, cancellation), cancellation);
+
+				if (!work.Wait(Budget, cancellation))
+				{
+					lock (lockObj)
+					{
+						outcome.Errors["hang"] = outcome.Errors.TryGetValue("hang", out var hung) ? hung + 1 : 1;
+						results[index] = one.Describe() + $"\nno answer in {Budget.TotalSeconds} s";
+					}
+
+					return;
+				}
+
+				var (refusal, complaints) = work.Result;
 
 				lock (lockObj)
 				{
@@ -134,8 +152,10 @@ public sealed class CompileOracleTests
 					}
 				}
 			}
-			catch (Exception failure)
+			catch (Exception thrown)
 			{
+				var failure = thrown is AggregateException { InnerExceptions.Count: 1 } single ? single.InnerExceptions[0] : thrown;
+
 				lock (lockObj)
 				{
 					outcome.Errors["crash"] = outcome.Errors.TryGetValue("crash", out var count) ? count + 1 : 1;
@@ -256,6 +276,15 @@ public sealed class CompileOracleTests
 
 		bool _lexical;
 
+		/// <summary>Whether a form over a buffer or bytes is asked for, which a recognizer over a span refuses.</summary>
+		bool _buffered;
+
+		/// <summary>How many lookaheads the operand being drawn stands in.</summary>
+		int _looking;
+
+		/// <summary>The bindings drawn so far, each named apart.</summary>
+		int _bound;
+
 		int _captures;
 
 		bool Chance(int percent)
@@ -273,6 +302,7 @@ public sealed class CompileOracleTests
 			_segments = Chance(12);
 			_lexical  = !_segments && Chance(20);
 			_context  = Chance(15);
+			_buffered = !_segments && Chance(35);
 
 			var count = 1 + random.Next(4);
 
@@ -303,6 +333,13 @@ public sealed class CompileOracleTests
 			if (_rules.Any(static rule => rule.Contains("Wrap(", StringComparison.Ordinal)))
 				_rules.Add("Wrap(item) = '(' & item & ')'");
 
+			if (_rules.Any(static rule => rule.Contains("Twice(", StringComparison.Ordinal)))
+				_rules.Add("Twice(item) = item & item");
+
+			// A rule that builds a value and is read only where a recovery synchronizes.
+			if (_rules.Any(static rule => rule.Contains("recover Sync", StringComparison.Ordinal)))
+				_rules.Add("Sync : @int = n: ['0'..'9']* & ';' => @(n.Length)");
+
 			foreach (var rule in _rules)
 				text.Append(rule).Append('\n');
 
@@ -317,7 +354,14 @@ public sealed class CompileOracleTests
 			return new Case(
 				seed, round, text.ToString(),
 				Direct: Chance(65), Lexical: _lexical, Trace: Chance(25), Split: Chance(20), Tape: Chance(20),
-				Buffered: !_segments && Chance(20), Bytes: !_segments && Chance(15), Spans: Chance(20));
+				Buffered: _buffered && Chance(50), Bytes: _buffered && Chance(40), Spans: Chance(20));
+		}
+
+		/// <summary>Whether a rule is a sequence of the values of one rule and nothing else, which is what may be yielded.</summary>
+		bool Yields(string rule)
+		{
+			return _rules.Exists(one => System.Text.RegularExpressions.Regex.IsMatch(
+				one, "^" + rule + @" : @int\[\] = R[0-9]+[*+]( recover [^=]*)?$"));
 		}
 
 		static bool Calls(string rule, int callee)
@@ -340,8 +384,12 @@ public sealed class CompileOracleTests
 			if (name is not null)
 				line.Append(" as ").Append(name);
 
-			if (Chance(30) && !_segments)
+			if (_buffered && Chance(50))
 				line.Append(Pick(" stream", " stream bytes"));
+
+			// A sequence handed over as it is read, where the rule is one: a repetition of a rule.
+			if (verb == "parse" && name is not null && Yields(rule) && Chance(50))
+				line.Append(" yield");
 
 			return line.Append('\n').ToString();
 		}
@@ -470,7 +518,7 @@ public sealed class CompileOracleTests
 		/// <summary>An operand and what a capture of it would hold, null where none may be taken.</summary>
 		(string Operand, Held? Held) Operand(int index, int depth)
 		{
-			var roll = random.Next(depth > 0 ? 26 : 14);
+			var roll = random.Next(depth > 0 ? 30 : 16);
 
 			switch (roll)
 			{
@@ -482,31 +530,61 @@ public sealed class CompileOracleTests
 				case 5: return ("[^ ';' | '\\n']+", Held.Text);
 				case 6: return ("any", Held.Text);
 				case 7: return (_segments ? "'e'" : "eol", Held.Text);
-				case 8: return ("@Odd", Held.Text);
-				case 9: return Chance(50) ? ("@Num", Held.Int) : ("@Peek", Held.Text);
+				case 8: return (_buffered ? "@Peek" : "@Odd", Held.Text);
+				case 9: return !_buffered && Chance(50) ? ("@Num", Held.Int) : ("@Peek", Held.Text);
 				case 10: return Call(index);
 				case 11: return Call(index);
 				case 12: return (_lexical ? Pick("Lexical.Word", "Lexical.Digits") : Pick("'x'i", "\"yz\""), _lexical ? null : Held.Text);
-				case 13: return (_context ? "@Sized" : Chance(50) ? "@Gen<int>" : "@Gen<long>", null);
+				case 13: return (_context ? "@Sized" : _buffered ? "@Peek" : Chance(50) ? "@Gen<int>" : "@Gen<long>", null);
+				case 14: return (_lexical ? "'o'" : Pick("Std.Digits", "Std.Quoted('\"')", "Twice('k')"), _lexical ? Held.Text : null);
+				case 15: return ("'d' & when @(true)", null);
 			}
+
+			// The operand of a lookahead is drawn knowing it is one: no binding and no recovery there.
+			var looks = roll is 21 or 22;
+
+			if (looks)
+				_looking++;
 
 			var (inner, held) = Operand(index, depth - 1);
 
+			if (looks)
+				_looking--;
+
+			// A body that may read nothing is no body for a repetition (GRAM4001): it is given a
+			// character to read, so that the shape under it is still the one that was drawn.
+			var body = Empty(inner) ? $"{inner} & 'r'" : inner;
+
 			switch (roll)
 			{
-				case 14: return ($"({inner})?", null);
-				case 15: return ($"({inner})*", Repeated(held));
-				case 16: return ($"({inner})+", Repeated(held));
-				case 17: return ($"({inner}){{1,2}}", Repeated(held));
-				case 18: return ($"{{ {inner} }}", held == Held.Text ? Held.Text : null);
-				case 19: return ($"?=({inner})", held);
-				case 20: return ($"?!({inner})", null);
-				case 21: return ($"(?!';' & any)* & ';'", null);
-				case 22: return ($"$q: ({inner}) & $q", null);
-				case 23: return ($"({inner} & {Operand(index, depth - 1).Operand})", null);
-				case 24: return ($"({inner} | {Operand(index, depth - 1).Operand})", null);
-				default: return ($"({inner})* recover {(_segments ? "eos" : Pick("';'", "eol", "@Odd", "@Peek"))}", null);
+				case 16: return ($"({inner})?", null);
+				case 17: return ($"({body})*", Repeated(Empty(inner) ? null : held));
+				case 18: return ($"({body})+", Repeated(Empty(inner) ? null : held));
+				case 19: return ($"({body}){{1,2}}", Repeated(Empty(inner) ? null : held));
+				case 20: return ($"{{ {inner} }}", held == Held.Text ? Held.Text : null);
+				case 21: return ($"?=({inner})", held);
+				case 22: return ($"?!({inner})", null);
+				case 23: return ("(?!';' & any)* & ';'", null);
+				case 24: return _looking > 0 || _lexical ? (inner, held) : ($"$q{_bound++}: ({inner}) & $q{_bound - 1}", null);
+				case 25: return ($"({inner} & {Operand(index, depth - 1).Operand})", null);
+				case 26: return ($"({inner} | {Operand(index, depth - 1).Operand})", null);
+				case 27: return ($"Twice({body})", null);
+				case 28 when _looking == 0:
+					return ($"({body})* recover {(_segments ? "eos" : Pick("';'", "eol", _buffered ? "@Peek" : "@Odd", "@Peek", "(';' & when @(true))", "Sync"))}", null);
+				default: return (inner, held);
 			}
+		}
+
+		/// <summary>Whether a shape drawn may match no input, for all this can tell from its text.</summary>
+		static bool Empty(string operand)
+		{
+			return operand.EndsWith("?", StringComparison.Ordinal) || operand.EndsWith(")*", StringComparison.Ordinal) ||
+				operand.StartsWith("?", StringComparison.Ordinal) || operand.Contains("@Gen", StringComparison.Ordinal) ||
+				operand.Contains("@Sized", StringComparison.Ordinal) || operand.Contains("recover", StringComparison.Ordinal) ||
+				operand.Contains(" | ", StringComparison.Ordinal) || operand.StartsWith("R", StringComparison.Ordinal) ||
+				operand.StartsWith("Wrap", StringComparison.Ordinal) || operand.StartsWith("Twice", StringComparison.Ordinal) ||
+				operand.StartsWith("{", StringComparison.Ordinal) || operand.StartsWith("(", StringComparison.Ordinal) ||
+				operand.Contains("when", StringComparison.Ordinal);
 		}
 
 		/// <summary>A repetition of text is text, and one of values their array; one of what is not known is not captured.</summary>
