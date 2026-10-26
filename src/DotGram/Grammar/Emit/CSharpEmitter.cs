@@ -279,7 +279,8 @@ public static partial class CSharpEmitter
 			var made = new Machine(
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
 				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: groups.Count > 1 || countRules, quiets: quiets,
-				tracing: tracing, expectedSets: expectedSets, places: Places(graph, overKinds, bufferedInput))
+				tracing: tracing, expectedSets: expectedSets, places: Places(graph, overKinds, bufferedInput),
+				placedRecoveries: PlacedRecoveries(graph, overKinds, bufferedInput))
 			{
 				Reporting   = carriers is not null,
 				CountsRules = countRules,
@@ -353,7 +354,8 @@ public static partial class CSharpEmitter
 				graph, results, lines, Streaming(graph, overKinds), graph.Rules.Where(union.Contains).ToArray(),
 				owner.Tag, partSize, overKinds, lexical?.Valued, carrier, stacks, lexical?.Inventory,
 				replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true, quiets: quiets,
-				expectedSets: expectedSets, places: Places(graph, overKinds, bufferedInput));
+				expectedSets: expectedSets, places: Places(graph, overKinds, bufferedInput),
+				placedRecoveries: PlacedRecoveries(graph, overKinds, bufferedInput));
 			made.Anchor = owner.Machine.Anchor;
 			// Reported as the machines it replaces were: a merged machine said nothing in the report.
 			made.Reporting = carriers is not null;
@@ -616,7 +618,8 @@ public static partial class CSharpEmitter
 						// value, which a reader that builds as it reads acts on (Machine.ReplaysUnasked).
 						compiled.Machine.ReplaysUnasked,
 						TrimsWhole(graph, publication, overKinds),
-						compiled.Machine.Places);
+						compiled.Machine.Places,
+						compiled.Machine.PlacesLines);
 
 					file.Line();
 				}
@@ -963,6 +966,7 @@ public static partial class CSharpEmitter
 				ended: RecordsEnded(machines),
 				// Where what a window holds begins in the input, for the values a streamed reading locates.
 				origin: Places(graph, overKinds, bufferedInput),
+				originLines: PlacesLines(graph, overKinds, bufferedInput),
 				trace: tracing is not null));
 			file.Line();
 
@@ -1174,7 +1178,8 @@ public static partial class CSharpEmitter
 				Locating(graph) || Wording(graph),
 				machines.Exists(static compiled => !compiled.Flat && !compiled.Direct && compiled.Machine.KeepsExpectations),
 				machines.Exists(static compiled => !compiled.Flat && !compiled.Direct && compiled.Machine.KeepsTurns),
-				machines.Exists(static compiled => !compiled.Flat && !compiled.Direct && compiled.Machine.Places)));
+				machines.Exists(static compiled => !compiled.Flat && !compiled.Direct && compiled.Machine.Places),
+				machines.Exists(static compiled => !compiled.Flat && !compiled.Direct && compiled.Machine.PlacesLines)));
 
 		// What is said about the carrier, said here: which carrier a machine took is settled by what
 		// it turned out to hold, and nothing before the readers are written knows.
@@ -1843,7 +1848,7 @@ public static partial class CSharpEmitter
 		int? reading = null, bool direct = false, ICollection<GramDiagnostic>? diagnostics = null,
 		MachineTag? tag = null, bool quietFirst = false, bool rewinds = false, bool leads = false, bool bare = false,
 		bool? locating = null, TraceTables? tracing = null, string machine = "methods", bool inert = false,
-		bool unasked = false, bool trims = false, bool places = false)
+		bool unasked = false, bool trims = false, bool places = false, bool lines = false)
 	{
 		// The grammar's own state (§7.7), where anything in this machine names it. The
 		// caller makes one and hands it over; a grammar that declares none, or declares one
@@ -2053,7 +2058,7 @@ public static partial class CSharpEmitter
 				file.Line();
 
 				EmitStreamingFind(
-					file, results, publication, method, name, match, streamedHands, built is not null, takes, places, tracing, machine, built);
+					file, results, publication, method, name, match, streamedHands, built is not null, takes, places, lines, tracing, machine, built);
 			}
 
 			return;

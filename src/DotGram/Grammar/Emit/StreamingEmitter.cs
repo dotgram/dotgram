@@ -53,9 +53,10 @@ public static partial class CSharpEmitter
 	/// <param name="machine">What reads the rule: <c>methods</c> or <c>engine</c>.</param>
 	/// <param name="built">The type of the value the rule builds, where it builds one.</param>
 	/// <param name="places">Whether the machine is told where the window begins (<see cref="Places"/>).</param>
+	/// <param name="lines">And the lines before it (<see cref="PlacesLines"/>).</param>
 	static void EmitStreamingFind(
 		Writer file, ResultTypes results, Publication publication, string method, string name,
-		string match, string hands, bool builds, string takes, bool places,
+		string match, string hands, bool builds, string takes, bool places, bool lines,
 		TraceTables? tracing = null, string machine = "engine", string? built = null)
 	{
 		var recognized = builds ? "recognized" : "window.Text(start, end - start)";
@@ -87,7 +88,7 @@ public static partial class CSharpEmitter
 
 			using (file.Block("while (true)"))
 			{
-				file.Line($"var failure = {WindowFailure(places)};");
+				file.Line($"var failure = {WindowFailure(places, lines)};");
 				file.Line();
 
 				if (tracing is null)
@@ -346,7 +347,7 @@ public static partial class CSharpEmitter
 
 					using (file.Block("while (true)"))
 					{
-						file.Line($"seamFailure{i} = {WindowFailure(Places(graph, false, false))};");
+						file.Line($"seamFailure{i} = {WindowFailure(Places(graph, false, false), PlacesLines(graph, false, false))};");
 						file.Line(
 							$"seamEnd{i}     = {recognize(seamRule)}" +
 							$"(window.Span(), start, ref seamFailure{i}{context});");
@@ -383,7 +384,7 @@ public static partial class CSharpEmitter
 
 						using (file.Block("while (true)"))
 						{
-							file.Line($"continuationFailure{i} = {WindowFailure(Places(graph, false, false))};");
+							file.Line($"continuationFailure{i} = {WindowFailure(Places(graph, false, false), PlacesLines(graph, false, false))};");
 							file.Line($"continuationEnd{i} = {probe}(window.Span(), start, ref continuationFailure{i}{context});");
 							file.Line();
 
@@ -469,7 +470,7 @@ public static partial class CSharpEmitter
 
 				using (file.Block("while (true)"))
 				{
-					file.Line($"triviaFailure{tag} = {WindowFailure(Places(graph, false, false))};");
+					file.Line($"triviaFailure{tag} = {WindowFailure(Places(graph, false, false), PlacesLines(graph, false, false))};");
 					file.Line($"triviaEnd{tag} = {recognizer}(window.Span(), start, {hands});");
 					file.Line();
 
@@ -510,7 +511,7 @@ public static partial class CSharpEmitter
 
 				using (file.Block("while (true)"))
 				{
-					file.Line($"failure{i} = {WindowFailure(Places(graph, false, false))};");
+					file.Line($"failure{i} = {WindowFailure(Places(graph, false, false), PlacesLines(graph, false, false))};");
 
 					if (tracing is null)
 						file.Line($"end{i}     = {method}(window.Span(), start, {hands});");
@@ -582,7 +583,7 @@ public static partial class CSharpEmitter
 						{
 							using (file.Block("while (to <= window.Length)"))
 							{
-								file.Line($"var syncFailure = {WindowFailure(Places(graph, false, false))};");
+								file.Line($"var syncFailure = {WindowFailure(Places(graph, false, false), PlacesLines(graph, false, false))};");
 								file.Line($"at = {sync}(window.Span(), to, ref syncFailure{context});");
 								file.Line();
 
@@ -876,7 +877,15 @@ public static partial class CSharpEmitter
 	/// </param>
 	internal static bool Places(RecognitionGraph graph, bool overKinds, bool bufferedInput)
 	{
-		if (overKinds || bufferedInput || !(graph.Located.Count > 0 || Machine.NamesMarks(graph) || GuardsAskSpan(graph)))
+		return ReadsWindow(graph, overKinds, bufferedInput) &&
+			(graph.Located.Count > 0 || Machine.NamesMarks(graph) || GuardsAskSpan(graph) ||
+			 PlacedRecoveries(graph, overKinds, bufferedInput).Count > 0);
+	}
+
+	/// <summary>Whether a publication of the grammar reads through a window.</summary>
+	static bool ReadsWindow(RecognitionGraph graph, bool overKinds, bool bufferedInput)
+	{
+		if (overKinds || bufferedInput)
 			return false;
 
 		foreach (var publication in graph.Publications)
@@ -884,6 +893,58 @@ public static partial class CSharpEmitter
 				return true;
 
 		return false;
+	}
+
+	/// <summary>
+	/// The recoveries of a grammar read through a window that the engine reads and that tell their host
+	/// a place: every one but the marked repetition a streamed parse steps over itself, whose places the
+	/// reading tells from the window (<see cref="EmitStreamedRejection"/>). The others are reached inside
+	/// a synchronization, a probe or an element, out of the text the window holds. One without a
+	/// <c>=&gt;</c> tells the hook where it was, and so does one that asks for a place by name.
+	/// </summary>
+	internal static IReadOnlyList<Recovery> PlacedRecoveries(RecognitionGraph graph, bool overKinds, bool bufferedInput)
+	{
+		var placed = new List<Recovery>();
+
+		if (!ReadsWindow(graph, overKinds, bufferedInput) || graph.Recoveries.Count == 0)
+			return placed;
+
+		var stepped = new List<Recovery>();
+
+		foreach (var publication in graph.Publications)
+			if (!publication.BufferedInput && Streams(graph, publication, overKinds) && StagesOf(graph, publication.Rule) is { } stages)
+				foreach (var stage in stages)
+					if (stage.Repeated && graph.Recoveries.TryGetValue(stage.Node, out var marked))
+						stepped.Add(marked);
+
+		foreach (var recovery in graph.Recoveries.Values)
+			if (!stepped.Exists(one => ReferenceEquals(one, recovery)) &&
+				(recovery.Factory is null || recovery.Asks.Any(static name => Array.IndexOf(Placing, name) >= 0)))
+			{
+				placed.Add(recovery);
+			}
+
+		return placed;
+	}
+
+	/// <summary>The names a recovery is handed that say where.</summary>
+	static readonly string[] Placing =
+	[
+		"parserPosition", "parserSpan", "parserFailurePosition", "parserLine", "parserColumn",
+		"parserFailureLine", "parserFailureColumn", "parserMessage",
+	];
+
+	/// <summary>Whether a recovery tells a line or a column, its message's place included.</summary>
+	internal static bool TellsLines(Recovery recovery)
+	{
+		return recovery.Factory is null || recovery.Asks.Any(static name =>
+			name is "parserLine" or "parserColumn" or "parserFailureLine" or "parserFailureColumn" or "parserMessage");
+	}
+
+	/// <summary>Whether a recovery the engine reads out of a window tells a line or a column.</summary>
+	internal static bool PlacesLines(RecognitionGraph graph, bool overKinds, bool bufferedInput)
+	{
+		return PlacedRecoveries(graph, overKinds, bufferedInput).Any(TellsLines);
 	}
 
 	/// <summary>Whether a guard of the grammar asks where its rule has got (<c>parserSpan</c>).</summary>
@@ -901,11 +962,20 @@ public static partial class CSharpEmitter
 	/// A failure for a reading of what the window holds, told where the window begins where the
 	/// grammar locates its values (<see cref="Places"/>).
 	/// </summary>
-	static string WindowFailure(bool places)
+	/// <param name="lines">
+	/// Whether the lines before the window are told too, for a recovery that says a line or a column:
+	/// the lines the window let go of, the characters of its first line it let go of, and whether a
+	/// <c>\n</c> it begins with closes a <c>\r</c> it let go of, which a count over what it holds would
+	/// take for a line of its own.
+	/// </param>
+	static string WindowFailure(bool places, bool lines = false)
 	{
-		return places
+		return !places
+			? $"new {FailureType}()"
+			: !lines
 			? $"new {FailureType} {{ Origin = unchecked((int)window.Offset) }}"
-			: $"new {FailureType}()";
+			: $"new {FailureType} {{ Origin = unchecked((int)window.Offset), OriginLine = window.LineAt(0) - 1, OriginColumn = window.ColumnAt(0) - 1, " +
+			  "OriginSkip = window.Length > 0 && window.Span()[0] == '\\n' && window.LineAt(1) == window.LineAt(0) ? 1 : 0 }";
 	}
 
 	/// <summary>

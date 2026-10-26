@@ -26547,11 +26547,16 @@ search for the delimiter that found none jumped to the refusal without saying ho
   dropped a prefix, where the string says `bad 8:1:26`. A guard's own `parserSpan` was the window's too, a
   recovery factory's `parserSpan` likewise, and the probes the reading runs besides the element — the trivia,
   the continuation after a recovering repetition, the synchronization — handed the engine no origin at all,
-  though a guard they run may build a located value.
+  though a guard they run may build a located value. A recovery the engine reads inside one of those probes — a
+  synchronization that recovers from a bad part of its own — told its span, its positions, its lines and its
+  columns from the window's start too, and a guard over them refused what the string reads.
 - **The fix.** The reading writes where the window begins on the failure it hands the engine
   (`Failure.Origin`), the engine keeps it on its parser, and the walk that builds the values adds it to the span a
   located value is handed, to each mark's position and to a guard's span; every reading of the window writes it,
-  the probes included, and a recovery factory's span adds the window's offset where the reading builds it. Only a
+  the probes included, and a recovery factory's span adds the window's offset where the reading builds it. A
+  recovery the engine reads out of a window adds the origin to its positions and its span, and the lines and the
+  characters of the first line the window let go of to its lines and columns (`Failure.OriginLine`,
+  `OriginColumn`, and `OriginSkip` for a `\n` closing a `\r` the window let go of). Only a
   grammar that tells such places and has a publication read through a window carries the field and the add
   (`CSharpEmitter.Places`; a grammar whose reader forms read a buffer does not, which a first version got wrong: the
   field was declared and never written, CS0649). The engine's count of how far an element got begins where the

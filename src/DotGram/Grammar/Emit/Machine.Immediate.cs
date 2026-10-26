@@ -1100,7 +1100,7 @@ sealed partial class Machine
 				yield return "var recovered = (Position: pos, Value: to, AtomicIndex: reach, RuleIndex: ordinal);";
 
 			var arguments = string.Join(", ", plan.Recovery.Asks.Select(name =>
-				machine.RecoverySupplied(name, plan, "located", "expecting")));
+				machine.RecoverySupplied(name, plan, "located", "expecting", engine: false)));
 			// The `recover` factory is the author's construction as any `=>` is, and what it
 			// throws is held the same way (Held).
 			var made      = $"{Last(element)} = {plan.Method}({arguments});";
