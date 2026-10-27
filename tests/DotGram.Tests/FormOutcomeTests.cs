@@ -86,6 +86,31 @@ public sealed class FormOutcomeTests
 		// engine fails the parse there instead.
 		["LookOverBracedChoiceRefused"] = new("R0 = (['a'..'c']+)+ & ?!({ eol })\nparse R0\n", "a", "string", 0, "Success@0+1 a"),
 
+		// A rule that is nothing but a negative look, published after another rule in a grammar with
+		// trivia: the direct reader names an expected set that is not in the table and throws
+		// IndexOutOfRangeException out of a Try method. Both readers refuse it at 0.
+		["LookOnlyRulePublishedSecond"] = new("trivia = ' '*\nR1 = 'a'\nR0 = ?!(\"ab\")\nparse R1 as P1\nparse R0\n", "ab", "string", 0, "NoMatch@0"),
+
+		// A run-out inside a positive look nested in a negative one is the negative look's business
+		// (it holds where its body refuses): the parse is refused at 0 by input that was there. The
+		// engine reads R1 as a scan, which marks the run-out and answers Starved at 1, inside the look.
+		["RunOutInsidePositiveLookInsideNegativeLook"] = new("R1 = ?!(any & ?=(\"kK\"i))\nR0 : @int = R1 => @(parserText.Length)\nparse R0\n", "b", "string", 0, "NoMatch@0"),
+
+		// The same rule called where no construction reads its text: both readers scan it and answer
+		// Starved at 1, where the inline spelling `R0 = ?!(any & ?=("kK"i)) & 'q'` is not starved.
+		["RunOutInsidePositiveLookInsideNegativeLookScanned"] = new("R1 = ?!(any & ?=(\"kK\"i))\nR0 : @int = R1 => @(0)\nparse R0\n", "b", "string", 0, "NoMatch@0"),
+
+		// A positive look that ran out inside a repetition, beside a comment trivia: the string form of
+		// both readers is starved at 0; the direct reader over a reader says NoMatch (the engine agrees
+		// with the string form).
+		["PositiveLookRanOutOverReader"] = new("trivia = (' ' | \"--\" & [^ '\\n']* & ?=eol)*\nR0 = (?=(\"xy\" & \"σς\"i & when @(true)) & \"aσ\"i){1,2}\nparse R0\n", "x", "reader", 0, "Starved@0"),
+
+		// Both readers were starved at 0 before: `"ab"` inside `?=(H1)` runs out on `a` in a positive
+		// look, which keeps the mark. The engine now says NoMatch: the mark it lost is the one the
+		// negative look of the first alternative used to leave behind, and its positive look over a
+		// guarded rule never wrote one of its own.
+		["RunOutInPositiveLookAfterNegativeAlternative"] = new("R0 = ?!(\"ab\") | ?=(H1)\nH1 : @int = g: ('a' | \"ab\") & when @(g.Length > 1) => @(g.Length)\nparse R0\n", "a", "string", 0, "Starved@0"),
+
 		// Over kinds, a repetition short of its minimum that stopped at the end of the tokens says
 		// what it wanted: the direct reader says nothing and answers from the start.
 		["TokenRepetitionBelowMinimum"] = new(Lexical + "R0 = Lexical.Digits & ['a'..'c']+\nparse R0\n", "0", "string", 0, "Starved@1", Lexical: true),
@@ -210,6 +235,42 @@ public sealed class FormOutcomeTests
 		var source = string.Concat(result.Sources.Select(static one => one.Text));
 
 		Assert.Equal(counted, source.Contains("= failure.OutOfInput;", StringComparison.Ordinal));
+	}
+
+	[Theory]
+	[InlineData("trivia = ' '*\nR0 = ?!(\"ab\")\nR1 = 'a'\nparse R0\nparse R1 as P1\n", "ab")]
+	[InlineData("trivia = ' '*\nR1 = 'a'\nR0 = ?=(\"ab\")\nparse R0\nparse R1 as P1\n", "xy")]
+	public void A_refused_look_rule_names_nothing_another_rule_expects(string grammar, string input)
+	{
+		// What Error names would have been accepted where it says (§7.5): `'a'` and `' '` are
+		// another rule's, and R0 cannot begin with either.
+		foreach (var direct in new[] { true, false })
+		{
+			var parser = Build(grammar, direct, lexical: false, positionalFollow: false, buffered: true);
+			var match  = parser.GetType("Grammar")!.GetMethod("TryParseR0", [typeof(string)])!.Invoke(null, [input])!;
+			var error  = (string?)match.GetType().GetProperty("Error")!.GetValue(match);
+
+			Assert.True(error is not null && !error.Contains("'a'", StringComparison.Ordinal), $"{(direct ? "direct" : "engine")}: {error}\n{grammar}");
+		}
+	}
+
+	[Theory]
+	[InlineData("trivia = { (' ' | '#' & ?!'#' & [^ '\\n']*)* }\nR0 : @int = 'a' => @(parserText.Length)\nparse R0\n", "##x")]
+	[InlineData("trivia = { (' ' | '#' & ?!'#' & [^ '\\n']*)* }\nR0 : @int = 'a' => @(parserText.Length)\nparse R0\n", " ##x")]
+	public void A_negative_look_refused_inside_trivia_reads_alike_in_both_readers(string grammar, string input)
+	{
+		// Base: both readers refuse `'a'` at 0. Now the direct reader answers at 1, where the look
+		// stood inside the trivia, and says nothing it expected; the engine still answers 0.
+		var direct = Build(grammar, direct: true, lexical: false, positionalFollow: false, buffered: true);
+		var engine = Build(grammar, direct: false, lexical: false, positionalFollow: false, buffered: true);
+
+		foreach (var form in new[] { "string", "at", "reader", "stream" })
+		{
+			var d = Answer(direct, "R0", form, input, 0);
+			var e = Answer(engine, "R0", form, input, 0);
+
+			Assert.True(d == e, $"{form} \"{input}\": direct {d}, engine {e}\n{grammar}");
+		}
 	}
 
 	// --- Differential ---------------------------------------------------------------------
