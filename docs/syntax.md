@@ -1526,6 +1526,18 @@ namespace Syntax
 **Scoping is lexical:** a rule uses the `trivia` visible where it is **declared**, not
 where it is called. A rule means the same thing wherever it is used.
 
+**Which `trivia` is visible** is looked up in two steps. First the namespace's own chain —
+the namespace, then each one around it, out to the top of the file — and the nearest
+`trivia` declared there wins. Only where none of them declares one does an import count:
+a `trivia` declared by a namespace the chain imports, the nearest scope's `using`s first.
+Where neither finds one, `trivia` is the built-in `none`. The chain coming first is what
+makes the example above read whitespace in `Syntax`: `using Lexical;` brings in
+`Identifier` and `Number`, and the `trivia = none` beside them is shadowed by the
+`WhitespaceAndComments` declared around `Syntax`. And it is the same wherever the `using`
+is written — at the top of the file or at the top of a `namespace` block, as §5 allows — so
+a grammar that declares no `trivia` of its own and imports a namespace that does reads
+with the imported one at either placement.
+
 **`trivia` must be nullable** — it has to accept empty input, or the build fails. That
 condition is what makes unconditional insertion safe: a second application consumes
 nothing, so nothing is ever doubled and no rule of the form "insert after a literal

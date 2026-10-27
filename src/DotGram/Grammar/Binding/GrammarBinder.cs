@@ -178,8 +178,11 @@ public sealed class GrammarBinder
 		// one declared further down, which mutual recursion requires anyway (§4.3).
 		binder.Declare(file.Decls, global);
 		binder.ResolveImports(file.Usings, global);
-		binder.ResolveTrivia(global);
 		binder.Resolve(file.Decls, global);
+
+		// After Resolve, which is where a namespace block's own `using`s are resolved: the trivia
+		// a namespace imports is looked for there too, so all of them have to be in view first.
+		binder.ResolveTrivia(global);
 
 		return new GrammarModel(
 			global, binder._bindings, binder._withBindings, binder._withOwnRebindings, binder._trivia,
@@ -338,16 +341,45 @@ public sealed class GrammarBinder
 	}
 
 	/// <summary>
-	/// Which `trivia` a namespace sees. Ordinary lookup — the mechanism is shadowing and
-	/// nothing else (§4.5).
+	/// Which `trivia` a namespace sees (§4.5): the one its own chain declares — itself, then
+	/// outwards — and only where none of those does, the one its chain imports, the nearest
+	/// scope's imports first. The built-in `none` is what is left.
 	/// </summary>
+	/// <remarks>
+	/// Not ordinary lookup, which asks a namespace's imports before the namespace around it.
+	/// A syntax namespace imports a lexical one to call its tokens, and the lexical one says
+	/// `trivia = none`; asked in that order, the syntax would read no whitespace although the
+	/// grammar around it declares some. And the same order wherever the `using` is written:
+	/// at the top of the file or at the top of a block, an import brings in `trivia` alike.
+	/// </remarks>
 	void ResolveTrivia(GrammarNamespace ns)
 	{
-		if (ns.Lookup(TriviaRule) is { } trivia)
+		if ((DeclaredTrivia(ns) ?? ImportedTrivia(ns) ?? ns.Lookup(TriviaRule)) is { } trivia)
 			_trivia[ns] = trivia;
 
 		foreach (var nested in ns.Nested)
 			ResolveTrivia(nested);
+	}
+
+	/// <summary>A `trivia` the namespace or one around it declares; the built-in rules are not asked.</summary>
+	static RuleSymbol? DeclaredTrivia(GrammarNamespace ns)
+	{
+		for (var scope = ns; scope is { Parent: not null }; scope = scope.Outward)
+			if (scope.Rules.TryGetValue(TriviaRule, out var trivia))
+				return trivia;
+
+		return null;
+	}
+
+	/// <summary>A `trivia` declared by a namespace the chain imports, the nearest scope's imports first.</summary>
+	static RuleSymbol? ImportedTrivia(GrammarNamespace ns)
+	{
+		for (var scope = ns; scope is not null; scope = scope.Outward)
+			foreach (var imported in scope.Imports)
+				if (imported.Rules.TryGetValue(TriviaRule, out var trivia))
+					return trivia;
+
+		return null;
 	}
 
 	void Resolve(IReadOnlyList<Decl> declarations, GrammarNamespace ns)
