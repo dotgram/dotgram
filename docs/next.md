@@ -26694,3 +26694,28 @@ search for the delimiter that found none jumped to the refusal without saying ho
 - **What moved.** Two example files: `FilterFile` and `SettingsFile`, which include `Lexemes`, import it as
   `using static global::…`. Every shipped grammar is emitted byte for byte as before. A host nested in a generic class
   whose type parameter is called `T` still warns CS0693 against the generated `Match<T>`: not changed here.
+
+## Three wrong values: a built span, a place past int.MaxValue, a guard before a later capture
+
+- **A `@SourceSpan` rule's `=>`.** The machine reads a rule typed `SourceSpan` as one whose value is its own
+  extent, cut from its record with no value table; normalization writes §4.1 case 4 as `=> parserSpan` so that
+  this holds. A rule whose `=>` built another span was handed its whole extent instead, in every reading:
+  `Root : @SourceSpan = 'a' & tail: Tail => @(tail)` over `abb` gave `0,3`. The result types now spell such a
+  rule's type `@SourceSpan`, the verbatim identifier: the same type to C#, and to the machine a struct like any
+  other, with a table of its own. The other way round was weighed and not taken: a set of extent rules on the
+  graph, asked at every place that reads a value by its type, would have had to pass the rule to helpers keyed
+  by type alone (the value tables are per type), and a graph field is one more thing every clone of a graph must
+  carry. Keying it on the spelling keeps the plain one meaning the extent everywhere it already did.
+- **A streamed place past `int.MaxValue`.** A reading through a window told the machine where the window
+  begins as `unchecked((int)window.Offset)`, so past 2^31 characters a located value, a guard's span and a
+  recovery's were told negative places. The window now says it through `Origin()`, which throws where any place
+  it holds would not fit an `int`; the places stay ints. Checked once per reading of the window rather than at
+  each place told, since every place of a reading is inside the window it was handed. The method is written only
+  where a reading is told an origin, so no generated file in the repository changes.
+- **A guard before a later capture of the same name.** A run that may take no turn is seeded with an empty
+  capture where its name is optional in the rule; a capture of the same name later in the sequence made it look
+  always written, and a guard before that capture was handed null where the run had been reached. A name is now
+  seeded too where a guard reads it and some route to the guard does not write it first. The seed is a piece of
+  no text, so what is built is the same join as before.
+- **What moved.** No generated file of the solution; of the snapshots, `Located`, whose streamed readings now ask
+  the window for its origin.
