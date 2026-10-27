@@ -108,18 +108,37 @@ static class NodeWalk
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
 
-		var pending = new Queue<Node>();
+		return Reading(node, graph.Recoveries);
+	}
 
-		pending.Enqueue(node);
+	/// <summary>
+	/// The same over the recoveries a pass still holds itself, before there is a graph to ask.
+	/// </summary>
+	public static IEnumerable<Node> Reading(Node node, IReadOnlyDictionary<Node, Recovery> recoveries)
+	{
+		if (node is null)
+			throw new ArgumentNullException(nameof(node));
 
-		while (pending.Count > 0)
-			foreach (var each in Descendants(pending.Dequeue()))
-			{
-				yield return each;
+		if (recoveries is null)
+			throw new ArgumentNullException(nameof(recoveries));
 
-				if (graph.Recoveries.TryGetValue(each, out var recovery))
-					pending.Enqueue(recovery.Sync);
-			}
+		return Walk(node, recoveries);
+
+		static IEnumerable<Node> Walk(Node node, IReadOnlyDictionary<Node, Recovery> recoveries)
+		{
+			var pending = new Queue<Node>();
+
+			pending.Enqueue(node);
+
+			while (pending.Count > 0)
+				foreach (var each in Descendants(pending.Dequeue()))
+				{
+					yield return each;
+
+					if (recoveries.TryGetValue(each, out var recovery))
+						pending.Enqueue(recovery.Sync);
+				}
+		}
 	}
 
 	/// <summary>

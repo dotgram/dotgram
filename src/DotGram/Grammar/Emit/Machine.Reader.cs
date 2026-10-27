@@ -152,7 +152,7 @@ sealed partial class Machine
 
 			foreach (var rule in rules)
 				if (!opens.Contains(rule) &&
-					NodeWalk.Descendants(_graph.Bodies[rule])
+					NodeWalk.Reading(_graph.Bodies[rule], _graph)
 						.Any(one => one is Node.Call(var called, _) && opens.Contains(called)))
 				{
 					opens.Add(rule);
@@ -924,7 +924,7 @@ sealed partial class Machine
 				if (!_graph.Bodies.TryGetValue(rule, out var body))
 					yield break;
 
-				foreach (var node in NodeWalk.Descendants(body))
+				foreach (var node in NodeWalk.Reading(body, _graph))
 					if (node is Node.Call(var called, _) && _rules.Contains(called))
 						yield return called;
 			}

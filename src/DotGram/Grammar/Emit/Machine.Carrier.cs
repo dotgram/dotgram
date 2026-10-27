@@ -193,7 +193,7 @@ sealed partial class Machine
 
 			var named = _graph.ContextOf(rule) is not null;
 
-			foreach (var node in NodeWalk.Descendants(body))
+			foreach (var node in NodeWalk.Reading(body, _graph))
 			{
 				switch (node)
 				{

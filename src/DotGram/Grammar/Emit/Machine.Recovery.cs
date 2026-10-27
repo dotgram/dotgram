@@ -315,7 +315,7 @@ sealed partial class Machine
 		var pending = new Stack<RuleSymbol>();
 
 		foreach (var pair in _graph.Bodies)
-			if (NodeWalk.Descendants(pair.Value).Any(node => ReferenceEquals(node, repeatNode)))
+			if (NodeWalk.Reading(pair.Value, _graph).Any(node => ReferenceEquals(node, repeatNode)))
 				pending.Push(pair.Key);
 
 		// A rule compiled in place holds what it holds wherever it is called.
@@ -327,7 +327,7 @@ sealed partial class Machine
 				continue;
 
 			foreach (var pair in _graph.Bodies)
-				if (NodeWalk.Descendants(pair.Value).Any(node => node is Node.Call(var called, _) && called == rule))
+				if (NodeWalk.Reading(pair.Value, _graph).Any(node => node is Node.Call(var called, _) && called == rule))
 					pending.Push(pair.Key);
 		}
 

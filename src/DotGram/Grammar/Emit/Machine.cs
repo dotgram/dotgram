@@ -83,7 +83,8 @@ sealed partial class Machine
 					 CSharpEmitter.Uses(_graph, expression.Text, "parserInput"))) return false;
 				body = construct.Body;
 			}
-			return NodeWalk.Descendants(body).All(node => node is
+			// A synchronization is read as the body is: a keyword in one looks behind.
+			return NodeWalk.Reading(body, _graph).All(node => node is
 				Node.Empty or Node.Literal or Node.Element or Node.Sequence or Node.Repeat) &&
 				Silent(body, FollowSets.Continuation.End);
 		}
@@ -2169,7 +2170,11 @@ sealed partial class Machine
 	/// The type of the grammar's context where the machine takes one, which a probe is then handed
 	/// and hands on: a streamed publication passes it to every part it reads.
 	/// </param>
-	public static string RenderProbe(string name, string engine, int entry, bool powers, bool input, string? context = null)
+	/// <param name="locating">
+	/// Whether the engine asks if the reading locates (<see cref="UsesLocating"/>): a probe reads for a
+	/// stream, which locates nothing.
+	/// </param>
+	public static string RenderProbe(string name, string engine, int entry, bool powers, bool input, string? context = null, bool locating = false)
 	{
 		var file = new Writer(0);
 
@@ -2180,15 +2185,15 @@ sealed partial class Machine
 			file.Line("object? ignored;");
 			file.Line(
 				$"return {engine}(text, pos, {entry}, -1{(powers ? ", 0" : "")}, " +
-				$"false, false{(input ? NoInput : "")}{(context is null ? "" : ", context")}, ref failure, out ignored);");
+				$"false, false{(input ? NoInput : "")}{(context is null ? "" : ", context")}{(locating ? ", -1" : "")}, ref failure, out ignored);");
 		}
 
 		return file.ToString();
 	}
 
-	public static string RenderSyncProbe(string name, string engine, int entry, bool powers, bool input, string? context = null)
+	public static string RenderSyncProbe(string name, string engine, int entry, bool powers, bool input, string? context = null, bool locating = false)
 	{
-		return RenderProbe(name, engine, entry, powers, input, context);
+		return RenderProbe(name, engine, entry, powers, input, context, locating);
 	}
 
 	/// <param name="root">The rule the wrapper reads.</param>

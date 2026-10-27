@@ -553,13 +553,13 @@ public static class Replay
 		return owner == Because.Losing ? Because.Losing : Because.Under;
 	}
 
-	/// <summary>The rules one rule's body names.</summary>
+	/// <summary>The rules one rule's body names, and its synchronizations.</summary>
 	static IEnumerable<RuleSymbol> Called(RecognitionGraph graph, RuleSymbol rule)
 	{
 		if (!graph.Bodies.TryGetValue(rule, out var body))
 			yield break;
 
-		foreach (var node in NodeWalk.Descendants(body))
+		foreach (var node in NodeWalk.Reading(body, graph))
 			if (node is Node.Call(var called, _))
 				yield return called;
 	}

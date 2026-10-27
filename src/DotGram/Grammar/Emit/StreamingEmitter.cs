@@ -253,10 +253,15 @@ public static partial class CSharpEmitter
 		Writer file, RecognitionGraph graph, Publication publication, ResultTypes results,
 		IReadOnlyList<Stage> stages, IReadOnlyList<string> parts, string? trivia,
 		Recovery? recovery, string? sync, string factory, Func<int, string?> continuation,
-		bool input, Func<RuleSymbol, string> recognize, TraceTables? tracing = null, string takes = "")
+		bool input, Func<RuleSymbol, string> recognize, TraceTables? tracing = null, string takes = "", bool locates = false)
 	{
 		// The grammar's context, where the parts take one: handed to every part the stages read.
 		var context = takes.Length > 0 ? ", context" : "";
+
+		// Where locations are decided per call, a rule's recognizer asks whether this reading locates,
+		// and a reader's does not: it is the plain door's, and the located door is written no reader.
+		// A probe asks the engine itself, and says the same.
+		var locating = locates ? ", -1" : "";
 
 		var element = graph.Types[publication.Rule];
 
@@ -350,7 +355,7 @@ public static partial class CSharpEmitter
 						file.Line($"seamFailure{i} = {WindowFailure(Places(graph, false, false), PlacesLines(graph, false, false))};");
 						file.Line(
 							$"seamEnd{i}     = {recognize(seamRule)}" +
-							$"(window.Span(), start, ref seamFailure{i}{context});");
+							$"(window.Span(), start, ref seamFailure{i}{context}{locating});");
 						file.Line();
 
 						using (file.Block(
@@ -499,7 +504,7 @@ public static partial class CSharpEmitter
 				// No whole input from a window, and nothing here can ask for one: a
 				// publication whose rules do is refused a stream (Retention, GRAM5001).
 				var hands = (built is null ? "ref failure" + i : $"ref failure{i}, out value{i}") +
-					(input ? ", null!" : "") + context;
+					(input ? ", null!" : "") + context + locating;
 
 				file.Line($"var failure{i} = new {FailureType}();");
 

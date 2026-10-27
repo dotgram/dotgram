@@ -42,7 +42,7 @@ public sealed partial class GrammarNormalizer
 		{
 			foreach (var rule in _rules)
 				if (_bodies.TryGetValue(rule, out var body))
-					foreach (var node in NodeWalk.Descendants(body))
+					foreach (var node in NodeWalk.Reading(body, _recoveries))
 						if (node is Node.External { UsesContext: true } external)
 							Report(UnresolvedExternal, $"'@{external.Name}' requires a 'context : @T' declaration.", rule.Declaration?.At ?? default);
 

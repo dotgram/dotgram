@@ -804,7 +804,8 @@ public static partial class CSharpEmitter
 					machines.Exists(static compiled => compiled.Machine.UsesInput),
 					Recognizer,
 					tracing,
-					compiled is { Machine.UsesContext: true } ? $", {graph.Context} context" : "");
+					compiled is { Machine.UsesContext: true } ? $", {graph.Context} context" : "",
+					compiled is { Machine.UsesLocating: true });
 				file.Line();
 			}
 		}
@@ -880,12 +881,14 @@ public static partial class CSharpEmitter
 				}
 
 			// What the readers call from outside, which is all of the generic class that has to be
-			// more than private (Writer.Expose).
+			// more than private (Writer.Expose): in this file, and in the parts a split source moved
+			// methods out to.
 			var called = new HashSet<string>(StringComparer.Ordinal);
 
-			foreach (System.Text.RegularExpressions.Match one in System.Text.RegularExpressions.Regex.Matches(
-				file.ToString(), ReadingClass + @"<\w+>\.(\w+)\("))
-				called.Add(one.Groups[1].Value);
+			foreach (var text in separated.Prepend(file.ToString()))
+				foreach (System.Text.RegularExpressions.Match one in System.Text.RegularExpressions.Regex.Matches(
+					text, ReadingClass + @"<\w+>\.(\w+)\("))
+					called.Add(one.Groups[1].Value);
 
 			file.Expose(genericAt, genericDepth, called);
 			file.Expose(genericAt, genericDepth + 1, called);
@@ -1784,10 +1787,10 @@ public static partial class CSharpEmitter
 				file.Write(probe.Sync
 					? Machine.RenderSyncProbe(
 						probe.Name, engine, entry, graph.Climbing.Count > 0, machine.UsesInput,
-						machine.UsesContext ? graph.Context : null)
+						machine.UsesContext ? graph.Context : null, machine.UsesLocating)
 					: Machine.RenderProbe(
 						probe.Name, engine, entry, graph.Climbing.Count > 0, machine.UsesInput,
-						machine.UsesContext ? graph.Context : null));
+						machine.UsesContext ? graph.Context : null, machine.UsesLocating));
 				file.Line();
 			}
 		}
@@ -5362,7 +5365,7 @@ file.Line("return spare;");
 				var (from, to) = calls ? (rule, other) : (other, rule);
 
 				if (!ReferenceEquals(other, rule) && graph.Bodies.TryGetValue(from, out var body) &&
-					NodeWalk.Descendants(body).Any(node => node is Node.Call(var called, _) && ReferenceEquals(called, to)))
+					NodeWalk.Reading(body, graph).Any(node => node is Node.Call(var called, _) && ReferenceEquals(called, to)))
 					return Name(other);
 			}
 
@@ -5865,7 +5868,9 @@ file.Line("return spare;");
 			// the end of the span says it was the token that was read.
 			using (file.Block($"static {type} {Named("Value", IdentifierOf(rule))}(string source, int at, int length)"))
 			{
-				var input = valuing.UsesInput ? ", source" : "";
+				// Where locations are decided per call, the value of a token read again over its text is
+				// told it locates nothing, as a reading that is not the located door's.
+				var input = (valuing.UsesInput ? ", source" : "") + (valuing.UsesLocating ? ", -1" : "");
 				var text  = "global::System.MemoryExtensions.AsSpan(source, 0, at + length)";
 
 				file.Line($"var failure = new {FailureType} {{ Quiet = true }};");

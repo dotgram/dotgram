@@ -290,8 +290,9 @@ sealed partial class Machine
 			NodeWalk.Descendants(body).Any(node => node is Node.Guard guard && CSharpEmitter.Uses(_graph, guard.Text, "parserText")))
 			return false;
 
+		// A keyword in a synchronization looks behind where it begins as one in a body does.
 		foreach (var one in _rules)
-			if (_graph.Bodies.TryGetValue(one, out var read) && NodeWalk.Descendants(read).Any(static node => node is Node.Behind))
+			if (_graph.Bodies.TryGetValue(one, out var read) && NodeWalk.Reading(read, _graph).Any(static node => node is Node.Behind))
 				return false;
 
 		while (body is Node.Construct(var built, _))
@@ -704,8 +705,18 @@ sealed partial class Machine
 			above.Remove(rule);
 		}
 
+		// The trivia read at the two ends of a publication is a root of its own (DirectRules): woven
+		// between operands it is in the bodies already, but a rule of one operand reads it only there,
+		// and a comment that nests is a cycle whose stack is probed like any other.
 		foreach (var publication in publications)
+		{
 			Visit(publication.Rule);
+
+			if (_graph.Trivia.TryGetValue(publication.Rule, out var seam))
+				foreach (var node in NodeWalk.Reading(seam, _graph))
+					if (node is Node.Call(var called, _))
+						Visit(called);
+		}
 	}
 
 	/// <summary>The name of the tape of ways back, shared by every direct rendering in a file.</summary>

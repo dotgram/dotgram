@@ -531,6 +531,200 @@ public sealed class GeneratedCompileTests
 		A_parse_answers_the_same_in_every_form(grammar, messages: true, input);
 	}
 
+	/// <summary>
+	/// A literal past 255 met only in a synchronization is read by the byte form as surely as one in
+	/// the rule's body: refused (GRAM4026) rather than written <c>(byte)'Ā'</c> (CS0221). A recovery
+	/// that builds nothing is refused the byte form before that, for its hook's line and column.
+	/// </summary>
+	[Theory]
+	[InlineData(true, "Root : @int[] = Row* recover 'Ā' => @(-1)")]
+	[InlineData(false, "Root : @int[] = Row* recover 'Ā' => @(-1)")]
+	[InlineData(true, "Root = Rows & eof\nRows = Row* recover 'Ā'")]
+	[InlineData(true, "Root = (Row* recover 'Ā') & eof")]
+	public void A_wide_literal_in_a_synchronization_refuses_the_byte_form(bool direct, string root)
+	{
+		var result = Compiled(
+			$"""
+			Row : @int = 'z' & ';' => @(1)
+			{root}
+			parse Root stream bytes
+			""",
+			Host, direct, bytes: true);
+
+		var said = Assert.Single(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		Assert.Equal(GramCompiler.BufferedUnsupported, said.Id);
+	}
+
+	/// <summary>
+	/// A keyword synchronization under <c>wordboundary</c> looks behind where it begins, and the buffer
+	/// keeps that character for it as it keeps one a body looks behind at: read in a buffer of two,
+	/// the look read a position already released and threw.
+	/// </summary>
+	[Theory]
+	[InlineData(true, CarrierKind.Immediate, Rows)]
+	[InlineData(true, CarrierKind.Tape, Rows)]
+	[InlineData(false, CarrierKind.Auto, Rows)]
+	[InlineData(true, CarrierKind.Auto, Run)]
+	[InlineData(false, CarrierKind.Auto, Run)]
+	public void A_keyword_synchronization_keeps_what_it_looks_behind_at(bool direct, CarrierKind carrier, string root)
+	{
+		var parser = Build(Compiled(
+			$"""
+			wordboundary = ['a'..'z']
+			{root}
+			parse Root stream
+			""",
+			Host, direct, carrier: carrier), Host);
+
+		var type = parser.GetType("Grammar")!;
+
+		foreach (var input in new[] { "z;end", "z;z;xend", "z;q;z;" })
+		{
+			var whole = Read(parser, "TryParseRoot", input);
+
+			foreach (var size in new[] { 1, 2, 3 })
+			{
+				var match   = type.GetMethod("TryParseRoot", [typeof(TextReader), typeof(int?), typeof(int?)])!.Invoke(null, [new StringReader(input), size, null])!;
+				var success = (bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!;
+				var value   = success ? match.GetType().GetProperty("Value")!.GetValue(match) : null;
+
+				Assert.True(
+					whole.IsSuccess == success && Equals(whole.Value, value),
+					$"\"{input}\" in a buffer of {size}: {success} {value}, over the string {whole.IsSuccess}");
+			}
+		}
+	}
+
+	const string Rows = "Row : @int = ['z'] & ';' => @(1)\nRoot : @string = r: Row* recover \"end\" => @(-1) & eof => @(string.Join(\",\", r))";
+
+	const string Run = "Root : @string = (['z'] & ';')* recover \"end\"";
+
+	/// <summary>
+	/// A recognizer that takes the context, met only in a synchronization of a grammar that declares
+	/// none, is refused as one in a body is (GRAM4025), where the call was handed a <c>context</c>
+	/// nothing declared (CS0103).
+	/// </summary>
+	[Fact]
+	public void A_context_recognizer_in_a_synchronization_needs_a_context()
+	{
+		const string members = """
+			public sealed class Context { public int N; }
+			static bool Odd(ParserInput<char> input, ref int p, Context context) { return input.TryAdvance(ref p, 1); }
+			""";
+
+		var result = Compiled("Row : @int = 'z' & ';' => @(1)\nRoot : @int[] = Row* recover @Odd\nparse Root", members, direct: true);
+
+		Assert.Contains(result.Diagnostics, static one => one.Severity == GramSeverity.Error && one.Message.Contains("requires a 'context : @T' declaration", StringComparison.Ordinal));
+	}
+
+	/// <summary>
+	/// A recognizer that takes the context, met only in the synchronization of a grammar read as a
+	/// stream whose rules build nothing: every reading carries the context for it (CS0103).
+	/// </summary>
+	[Theory]
+	[InlineData(true, CarrierKind.Auto, "Root = Row* recover @Odd")]
+	[InlineData(true, CarrierKind.Tape, "Root = Row* recover @Odd")]
+	[InlineData(true, CarrierKind.Immediate, "Root = Row* recover @Odd")]
+	[InlineData(false, CarrierKind.Auto, "Root = Row* recover @Odd")]
+	[InlineData(true, CarrierKind.Auto, "Root = Rows & eof\nRows = Row* recover @Odd")]
+	[InlineData(false, CarrierKind.Auto, "Root = Rows & eof\nRows = Row* recover @Odd")]
+	[InlineData(true, CarrierKind.Auto, "Root : @int = r: Row* recover @Odd => @(-1) & eof => @(r.Length)")]
+	[InlineData(true, CarrierKind.Immediate, "Root : @int = r: Row* recover @Odd => @(-1) & eof => @(r.Length)")]
+	[InlineData(false, CarrierKind.Auto, "Root : @int = r: Row* recover @Odd => @(-1) & eof => @(r.Length)")]
+	public void A_context_recognizer_only_in_a_synchronization_is_handed_the_context(bool direct, CarrierKind carrier, string root)
+	{
+		const string members = """
+			public sealed class Context { public int N; }
+			static bool Odd(ParserInput<char> input, ref int p, Context context) { context.N++; if (input.Peek(p, out var c) && c % 2 == 1) { p++; return true; } return false; }
+			""";
+
+		var parser = Build(Compiled(
+			$"""
+			context : @Context
+			Row : @int = 'z' & ';' => @(1)
+			{root}
+			parse Root stream
+			""",
+			members, direct, carrier: carrier), members);
+
+		var type    = parser.GetType("Grammar")!;
+		var context = Activator.CreateInstance(type.GetNestedType("Context")!)!;
+		var match   = type.GetMethod("TryParseRoot", [typeof(string), context.GetType()])!.Invoke(null, ["z;az;", context])!;
+
+		Assert.True((bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!);
+		Assert.True((int)context.GetType().GetField("N")!.GetValue(context)! > 0);
+	}
+
+	/// <summary>
+	/// What the generated code may not warn of, in a consumer's build with warnings as errors: a trivia
+	/// that only skips a nested comment, read with the direct machine over a string, wrote an empty
+	/// <c>switch</c> (CS1522) and a field of the recursion's frame nobody assigned (CS0649). Both were
+	/// one defect: the cycle through the trivia had no back edge, so its stack was never probed, and a
+	/// comment nested a hundred thousand deep ran the stack out.
+	/// </summary>
+	[Fact]
+	public void A_nested_comment_in_trivia_compiles_without_warnings()
+	{
+		var parser = Built(
+			"""
+			trivia = { (' ' | Std.Nested("/*", "*/"))* }
+			Root : @string = ':' => @(parserText)
+			parse Root
+			""",
+			Host, direct: true);
+
+		Assert.Equal((true, (object?)":"), Read(parser, "TryParseRoot", " /* a /* b */ */ :"));
+
+		const int deep = 100_000;
+
+		Assert.Equal((true, (object?)":"), Read(parser, "TryParseRoot", string.Concat(Enumerable.Repeat("/*", deep)) + string.Concat(Enumerable.Repeat("*/", deep)) + ":"));
+	}
+
+	/// <summary>
+	/// A grammar whose located door is decided per call compiles where its source is split in parts,
+	/// whose readers call the walk that builds the values from outside its generic class (CS0122,
+	/// where only the calls of the first part made it more than private), and where it is cut into
+	/// tokens whose values are read again over their text (CS7036, where that reading was not told
+	/// whether it locates).
+	/// </summary>
+	[Theory]
+	[InlineData("R0 : @string = Twice(eol) => @(S(parserText))\nTwice(item) = item & item", false, 4000)]
+	[InlineData("R0 : @int = ?=(R1) => @(parserText.Length) | R1 & any & eol => @(parserText.Length)\nR1 on fail \"Expected R1.\" = ['a'..'c']\nparse R1 as P1", false, 4000)]
+	[InlineData("trivia = { ' '* }\nnamespace Lexical\n{\n\ttrivia = none\n\tDigits : @int = { ['0'..'9']+ } => @(parserText.Length)\n}\nR0 : @int = (Lexical.Digits)* => @(0)", true, 0)]
+	public void A_per_call_door_compiles_split_and_over_tokens(string rules, bool lexical, int split)
+	{
+		const string members = """
+			public interface ILoc { void Locate(int at, int length); void Locate(int at, int length, int gapStart); }
+			public sealed class Loc : ILoc { public int At = -1; public void Locate(int at, int length) { At = at; } public void Locate(int at, int length, int gapStart) { At = at; } }
+			static string S(string text) { return text; }
+			""";
+
+		var grammar = rules + "\nL0 : @Loc[] = L1*\nL1 : @Loc = 'k' & eol => @(new Loc())\nparse R0\nparse L0 as PL";
+		var host    = CSharpCompilation.Create(
+			"Host",
+			[CSharpSyntaxTree.ParseText($"public partial class Grammar {{ {members} }}", cancellationToken: TestContext.Current.CancellationToken)],
+			EmittedCode.References);
+
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			ClassName      = "Grammar",
+			CSharpScanner  = RoslynCSharpScanner.Instance,
+			SymbolResolver = new RoslynSymbolResolver(host, "Grammar"),
+			Direct         = true,
+			Lexical        = lexical,
+			Carrier        = lexical ? CarrierKind.Auto : CarrierKind.Tape,
+			SourceFileSize = split,
+			LocationType   = "Grammar.ILoc",
+			LocatedFacade  = "Located",
+		});
+
+		var parser = Build(result, members).GetType("Grammar")!;
+		var read   = (System.Array)parser.GetNestedType("Located")!.GetMethod("PL", [typeof(string)])!.Invoke(null, ["k\nk\n"])!;
+
+		Assert.Equal(2, read.Length);
+	}
+
 	static GramCompilation Compiled(string grammar, string members, bool direct, bool lexical = false, bool spans = false, CarrierKind carrier = CarrierKind.Auto, bool bytes = false)
 	{
 		var host = CSharpCompilation.Create(
