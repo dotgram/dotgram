@@ -63,6 +63,8 @@ public sealed class WebRunRefusalTests
 	[InlineData("a media type with many empty parameters, explained")]
 	[InlineData("an Accept field with many empty parameters")]
 	[InlineData("an Accept field with many empty parameters, explained")]
+	[InlineData("an Accept field with many parameters")]
+	[InlineData("an Accept field with many parameters, explained")]
 	[InlineData("a Link field with many parameters")]
 	[InlineData("a Link field with many parameters, explained")]
 	[InlineData("a Forwarded field with a name written again and again")]
@@ -191,6 +193,8 @@ public sealed class WebRunRefusalTests
 			"a media type with many empty parameters, explained"         => length => Explained(() => MediaType.Parse("a/b;" + new string(';', length) + cut)),
 			"an Accept field with many empty parameters"                 => length => MediaRange.TryParseAccept("a/b;" + new string(';', length) + "@", out _),
 			"an Accept field with many empty parameters, explained"      => length => Explained(() => MediaRange.ParseAccept("a/b;" + new string(';', length) + "@")),
+			"an Accept field with many parameters"                       => length => MediaRange.TryParseAccept("a/b;" + Copies(";a=1", length) + cut, out _),
+			"an Accept field with many parameters, explained"            => length => Explained(() => MediaRange.ParseAccept("a/b;" + Copies(";a=1", length) + cut)),
 			"a Link field with many parameters"                          => length => WebLink.TryParseField("<a>;" + Copies("a;", length) + cut, out _),
 			"a Link field with many parameters, explained"               => length => Explained(() => WebLink.ParseField("<a>;" + Copies("a;", length) + cut)),
 			"a Forwarded field with a name written again and again"     => length => ForwardedElement.TryParseField("a=1," + Copies("a=1;", length) + cut, out _),

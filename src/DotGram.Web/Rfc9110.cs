@@ -255,7 +255,7 @@ public sealed record MediaRange(MediaType Media, decimal Weight)
 	// `a/b;`, eight thousand `;` and a `@`. Not braces, as a media type's are: sealed, the refusal right after
 	// an empty slot (`a/b;@`) no longer names a token among what could stand there, because a sealed run
 	// records a refusal inside its optional parameter only past where that parameter began.
-	Parameters : @MediaType.Parameter[] = slots: ParameterSlot* & ?!(Ows & ';') => @(Rfc9110.Present(slots))
+	Parameters : @MediaType.Parameter[] = slots: RangeSlot* & ?!(Ows & ';') => @(Rfc9110.Present(slots))
 
 	// A media type's slots are read to their end and never handed back: what follows them is OWS and the end,
 	// and a slot given back begins with OWS and a `;`, so a shorter run can never lead anywhere. Without the
@@ -264,6 +264,16 @@ public sealed record MediaRange(MediaType Media, decimal Weight)
 	MediaParameters : @MediaType.Parameter[] = { slots: ParameterSlot* } => @(Rfc9110.Present(slots))
 
 	ParameterSlot : @string = Ows & ';' & Ows & text: ParameterText => @(text)
+
+	// A range's slot reads its parameter to its end and never hands it back, leaving the slot empty. What follows
+	// an empty slot is OWS and a `;`, or what follows the range, and neither begins with the token a parameter
+	// begins with, so the empty reading never led anywhere. Without the braces a refused field emptied the last
+	// slot of each run in turn, each try taking the slots apart and asking the range's guard again: quadratic in
+	// the slots, 0.5 s refusing `a/b;`, two thousand `;a=1` and a stray character. Sealed, the refusal right
+	// after an empty slot no longer names a token among what could stand there (`a/b;@` is "Expected ';' or end
+	// of input", not "Expected Token, ';' or end of input"), as a sealed parameter records a refusal inside it
+	// only past where it began. Where and whether a field is refused does not change.
+	RangeSlot : @string = Ows & ';' & Ows & text: { ParameterText } => @(text)
 
 	ParameterText = (Token & '=' & (Token | QuotedString))?
 
