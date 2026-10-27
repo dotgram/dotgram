@@ -470,7 +470,8 @@ sealed partial class Machine
 
 		FirstSets.First? Consumes(Node body)
 		{
-			return !FirstSets.Nullable(body, _graph) && FirstSets.Of(body, _graph) is { Nothing: false, Anything: false } set ? set : null;
+			return !FirstSets.Nullable(body, _graph) && !FirstSets.LedByRecovery(body, _graph) &&
+				FirstSets.Of(body, _graph) is { Nothing: false, Anything: false } set ? set : null;
 		}
 
 		// One character of anything, which only the end of the input refuses: `eof` is `?!any`.
@@ -962,7 +963,9 @@ sealed partial class Machine
 
 		// One that may stand still through a recognizer of the host may match at the end of the
 		// input, where no token stands (FirstSets.StandsStill) — unless it looks for one first.
+		// Nor one that may begin with a repetition that recovers, which begins with anything.
 		return first.Anything || first.Nothing || FirstSets.Nullable(alternative, _graph) ||
+			FirstSets.LedByRecovery(alternative, _graph) ||
 			FirstSets.StandsStill(alternative, _graph) && !WantsToken(alternative)
 			? null
 			: first;

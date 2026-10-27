@@ -26627,3 +26627,44 @@ search for the delimiter that found none jumped to the refusal without saying ho
   window keeps the one character before what it is told to keep. Other grammars write the window as before.
 - **What moved.** The `Minimal` snapshot's window (the only streamed grammar here that names `wordboundary`); no
   shipped, example or benchmark file.
+
+## A rule that recovers is entered on any character
+
+- **The fault.** `Rows = Row+ recover ';' & '.'` reads `;.`: its first element is bad, is stepped over to the
+  `;`, and the `.` follows. Reached through a choice (`Rows | 'q'`), an optional (`Rows?`), a look of either or a
+  repetition of them, it was refused at 0, in every reading, so no differential between the forms saw it. Each of
+  those decides whether to enter a node by the character in hand, and what a node begins with
+  (`FirstSets.Of`) was what a good element begins with: the choice was dispatched on `a` and `q`, the optional and
+  the turn of a repetition entered only on `a`. A repetition that recovers steps over a bad element whatever it
+  begins with, so it begins with anything. §8.2 says a rule means one thing everywhere it is called.
+- **The change.** `FirstSets.LedByRecovery` says whether a node may begin with a recovering repetition (a fixed
+  point over the rules; nothing to work out in a grammar that recovers nowhere). Where it may, the node is not
+  dispatched on a character (`Determinism.Distinguishable`, `Machine.Decidable`, a look's `Consumes`), its turn is
+  not entered by a character test (`Machine.EntryTest`), and a turn of it is not proved never to be given back
+  (`Determinism.NeverGivesBack`, `Possessive`): entered on `;`, `(Rows)? & ';'+` over `;` has to give the turn
+  back for the `;` to be read, and the proof that it never would rested on the turn beginning with `a`. And a
+  positive look of such a node no longer narrows what the sequence after it begins with (`FirstSets.Following`):
+  `Probe = ?=Rows & any+` begins with anything, and narrowed by `Rows`'s good element it was refused through
+  `Probe | 'q'`, `Probe?` and `Probe*` over `;.` (found in review).
+- **Why not widen `FirstSets.Of`.** Tried first: a recovering repetition answering "anything". It mends the same
+  readings, and it is also what follows everything before such a repetition, so every proof resting on what follows
+  went: `Line* & Row* recover eol` and the feeds' `Header & Row* recover eol & Trailer & eof` lost their reader
+  overloads (GRAM5001, nineteen tests). What follows is left as it was, and with it one reading of the same kind:
+  `';'* & Rows` over `;.` is refused, as on main, because `';'*` is proved never to give its `;` back on the strength
+  of `Rows` beginning with `a`, and so are `';'? & Rows` and `';'{0,2} & Rows` over `;.` and `(";;" | ";") & Rows`
+  over `;;.`, each wanting a shorter reading of the part before. Mending them costs those proofs, which is not this
+  change's to spend; a skipped test names the four as a known false refusal.
+- **The gate.** `RecoveryWhereReachedTests`: `Rows` (wanting a row at least once and not at all) as the first and
+  the second of two alternatives and one of three, under an optional, in a positive and a negative look of a choice,
+  at the head of a sequence, behind a part that may read nothing, as the alternative of a repetition, and a rule
+  that looks for `Rows` before it reads on, as an alternative, an optional and a repetition, each held to
+  a model built from nothing but where reading `Rows` whole over a stretch of the input succeeds; over every input
+  of up to five characters of `a;.qb`, from every position of a string and whole as a string and through a reader,
+  compiled for the positional forms and not, with the direct reader and without it; and the reported shape over
+  characters and cut in two. Red on main (every case), green here. Beside it, 1,920 random grammars over `ab;.`
+  read on every input up to four characters, held to a backtracking model of §8.2: 270 grammars, all of them with
+  a `recover`, answer differently here, 20,681 whole readings among them, each of which the model agrees with now
+  and did not before; not one whole reading moved away from it.
+- **What moved.** Nothing generated in the repository: the 1,023 files the solution's generators write are the same
+  byte for byte, with and without the change (paths taken out). No shipped, example or test grammar enters a
+  recovering repetition on a character.
