@@ -168,6 +168,12 @@ public enum ExternalMethodResolution
 
 	/// <summary>An input-view recognizer also taking the grammar context as its last argument.</summary>
 	FoundInputWithContext,
+
+	/// <summary>
+	/// A method the generated class writes for a publication has that name, and where the call stands
+	/// it hides every method of the name outside the class, none of which it is.
+	/// </summary>
+	Hidden,
 }
 
 /// <summary>A property an object initializer may write.</summary>

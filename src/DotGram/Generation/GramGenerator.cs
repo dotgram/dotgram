@@ -306,7 +306,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 					new RoslynSymbolResolver(
 						compilation,
 						grammar.Host.MetadataName,
-						[.. grammar.Host.Includes.Items.Select(static one => one.ClassName)]))),
+						[.. grammar.Host.Includes.Items.Select(static one => one.ClassName)],
+						grammar.Host.Suffix,
+						grammar.Host.SuffixDeclared,
+						grammar.Published.Items))),
 			};
 		}
 		catch (Exception exception) when (Recoverable(exception))
@@ -856,7 +859,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		EquatableArray<Question> Questions,
 		EquatableArray<Answer>   Answers,
 		EquatableArray<Report>   Reports,
-		EquatableArray<Piece>    Pieces = default);
+		EquatableArray<Piece>    Pieces = default,
+		EquatableArray<string>   Published = default);
 
 	/// <summary>
 	/// One grammar inside the joined text, and everything needed to put a position in it
@@ -1032,7 +1036,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 			new EquatableArray<Question>(Questions.Of(parsed, host.LocationType)),
 			default,
 			Values(reports),
-			new EquatableArray<Piece>(pieces.ToImmutable()));
+			new EquatableArray<Piece>(pieces.ToImmutable()),
+			new EquatableArray<string>(Questions.Published(parsed)));
 	}
 
 	/// <summary>
@@ -1470,19 +1475,23 @@ public sealed class GramGenerator : IIncrementalGenerator
 		/// The host as metadata names it, for looking its own members up.
 		/// </summary>
 		/// <remarks>
-		/// Nested classes are joined by <c>+</c> and not by <c>.</c>, which is the whole
-		/// difference between what a grammar writes and what a compilation is asked. Type
-		/// parameters are not part of it — <c>Parser&lt;T&gt;</c> is metadata's
-		/// <c>Parser`1</c> — so a generic host is left alone rather than looked up wrongly.
+		/// Nested classes are joined by <c>+</c> and not by <c>.</c>, and a generic one is named by
+		/// how many type parameters it has and not by their names — <c>Outer&lt;T&gt;.Parser</c> is
+		/// metadata's <c>Outer`1+Parser</c> — which is the whole difference between what a grammar
+		/// writes and what a compilation is asked. A type parameter's name has no dot in it, so the
+		/// parts are the classes.
 		/// </remarks>
-		public string? MetadataName
+		public string MetadataName
 		{
 			get
 			{
-				if (ClassName.IndexOf('<') >= 0)
-					return null;
+				var parts = ClassName.Split('.');
 
-				var nested = ClassName.Replace('.', '+');
+				for (var at = 0; at < parts.Length; at++)
+					if (parts[at].IndexOf('<') is var open && open >= 0)
+						parts[at] = parts[at].Substring(0, open) + "`" + (parts[at].Count(static one => one == ',') + 1).ToString(CultureInfo.InvariantCulture);
+
+				var nested = string.Join("+", parts);
 
 				return Namespace is null ? nested : Namespace + "." + nested;
 			}

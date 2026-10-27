@@ -24,13 +24,27 @@ namespace DotGram.Generation;
 /// The classes of the grammars the host includes, which the generated file imports statically:
 /// a rule that came from one of them calls its methods by their simple names.
 /// </param>
+/// <param name="suffix">
+/// The nested class a second reading of the grammar is compiled into, or null for the first: its
+/// calls stand in that class, and a name there is looked up from it.
+/// </param>
+/// <param name="suffixDeclared">Whether the author declared that class, which its head says.</param>
+/// <param name="published">
+/// The methods the generated class writes for the grammar's publications: where the call stands they
+/// hide a method of the same name outside the class.
+/// </param>
 /// <remarks>The host matters for nested result types declared beside the grammar.</remarks>
 public sealed class RoslynSymbolResolver(
-	Compilation compilation, string? host = null, IReadOnlyList<string>? statics = null) : ISymbolResolver, ICSharpNames
+	Compilation compilation, string? host = null, IReadOnlyList<string>? statics = null, string? suffix = null, bool suffixDeclared = false,
+	IReadOnlyList<string>? published = null)
+	: ISymbolResolver, ICSharpNames
 {
-	readonly Compilation           _compilation = compilation ?? throw new ArgumentNullException(nameof(compilation));
-	readonly string?               _host        = host;
-	readonly IReadOnlyList<string> _statics     = statics ?? [];
+	readonly Compilation           _compilation    = compilation ?? throw new ArgumentNullException(nameof(compilation));
+	readonly string?               _host           = host;
+	readonly IReadOnlyList<string> _statics        = statics ?? [];
+	readonly string?               _suffix         = suffix;
+	readonly bool                  _suffixDeclared = suffixDeclared;
+	readonly IReadOnlyList<string> _published      = published ?? [];
 
 	readonly Dictionary<string, INamedTypeSymbol?> _types = new(StringComparer.Ordinal);
 
@@ -349,13 +363,25 @@ public sealed class RoslynSymbolResolver(
 		var named = false;
 
 		if (CallSite() is var (site, model, position, called))
+		{
+			var written = false;
+
 			foreach (var method in Invoked(model, position, methodName))
 			{
 				named = true;
 
 				if (site.Callable(method, called, role))
 					return RecognitionForm(method, role);
+
+				written |= method.DeclaringSyntaxReferences.Any(reference => reference.SyntaxTree == model.SyntaxTree);
 			}
+
+			// The call binds to the methods a publication is written as, which are no recognizer: that
+			// one stands in the generated class is certain, so a method of the name anywhere else is
+			// not one the call reaches.
+			if (written)
+				return ExternalMethodResolution.Hidden;
+		}
 
 		foreach (var symbol in _compilation.GetSymbolsWithName(methodName, SymbolFilter.Member))
 		{
@@ -432,6 +458,9 @@ public sealed class RoslynSymbolResolver(
 			host.ContainingNamespace.IsGlobalNamespace ? null : host.ContainingNamespace.ToDisplayString(),
 			string.Join(".", names),
 			_statics,
+			_suffix,
+			_suffixDeclared,
+			_published,
 			out var position);
 
 		_callSiteText = text;
@@ -443,7 +472,12 @@ public sealed class RoslynSymbolResolver(
 		if (copy.GetTypeByMetadataName(_host) is not { } copied)
 			return null;
 
-		return _callSite = (new RoslynSymbolResolver(copy, _host, _statics), copy.GetSemanticModel(tree), position, copied);
+		// The class the call stands in, which is what it must be callable from: a second reading's
+		// own, whose private members its host cannot reach.
+		if (_suffix is { Length: > 0 } && copied.GetTypeMembers(_suffix).FirstOrDefault() is { } reading)
+			copied = reading;
+
+		return _callSite = (new RoslynSymbolResolver(copy, _host, _statics, _suffix, _suffixDeclared, _published), copy.GetSemanticModel(tree), position, copied);
 	}
 
 	/// <summary>The methods a call of the simple name binds among, standing at the call site.</summary>
@@ -474,8 +508,9 @@ public sealed class RoslynSymbolResolver(
 
 	/// <summary>
 	/// The file <see cref="CallSite"/> adds: the frame of the generated file — its namespace, the
-	/// static imports inside it, and a <c>partial class</c> for each part of the class name —
-	/// around one method, and the place inside that method where a call is looked up.
+	/// static imports inside it, a <c>partial class</c> for each part of the class name, and the
+	/// nested class of a second reading — around one method, and the place inside that method
+	/// where a call is looked up.
 	/// </summary>
 	/// <remarks>
 	/// <para>
@@ -491,7 +526,9 @@ public sealed class RoslynSymbolResolver(
 	/// have (GRAM1012), so it hides no recognizer a simple name could mean.
 	/// </para>
 	/// </remarks>
-	internal static string CallSiteText(string? @namespace, string className, IReadOnlyList<string> statics, out int position)
+	internal static string CallSiteText(
+		string? @namespace, string className, IReadOnlyList<string> statics, string? suffix, bool suffixDeclared,
+		IReadOnlyList<string> published, out int position)
 	{
 		var text    = new System.Text.StringBuilder();
 		var closing = 0;
@@ -503,13 +540,24 @@ public sealed class RoslynSymbolResolver(
 		}
 
 		foreach (var import in statics)
-			text.Append("using static ").Append(import).Append(";\n");
+			text.Append(DotGram.Grammar.Emit.CSharpEmitter.StaticImport(import)).Append('\n');
 
 		foreach (var part in className.Split('.'))
 		{
 			text.Append("partial class ").Append(part).Append('\n').Append("{\n");
 			closing++;
 		}
+
+		if (suffix is { Length: > 0 })
+		{
+			text.Append(DotGram.Grammar.Emit.CSharpEmitter.SuffixClass(suffix, suffixDeclared)).Append('\n').Append("{\n");
+			closing++;
+		}
+
+		// The publications' methods, by name alone: a call is looked up by name first, and its
+		// arguments matter only among the methods the name found.
+		foreach (var method in published)
+			text.Append("static void ").Append(method).Append("() { }\n");
 
 		text.Append("static void CallSite_DotGram() { ");
 

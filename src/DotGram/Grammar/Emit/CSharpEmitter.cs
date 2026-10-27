@@ -503,7 +503,7 @@ public static partial class CSharpEmitter
 			// including class declares under a name an included grammar calls is used instead
 			// of theirs, silently, which is the one collision nothing here can see.
 			foreach (var import in statics)
-				file.Line($"using static {import};");
+				file.Line(StaticImport(import));
 
 			file.Line();
 		}
@@ -559,9 +559,7 @@ public static partial class CSharpEmitter
 		// may see it and this part says nothing: `internal static partial class Immediate { }`
 		// beside `[GramOptions(Suffix = "Immediate")]` is a reading nobody outside can reach.
 		if (suffix is { Length: > 0 })
-			scope.Push(file.Block(suffixDeclared
-				? $"static partial class {suffix}"
-				: $"public static partial class {suffix}"));
+			scope.Push(file.Block(SuffixClass(suffix, suffixDeclared)));
 
 		var separated = new List<string>();
 		if (sourceParts is not null && sourceFileSize > 0)
@@ -1327,7 +1325,7 @@ public static partial class CSharpEmitter
 			foreach (var part in classParts)
 				closing.Push(header.Block($"partial class {part}"));
 			if (suffix is { Length: > 0 })
-				closing.Push(header.Block(suffixDeclared ? $"static partial class {suffix}" : $"public static partial class {suffix}"));
+				closing.Push(header.Block(SuffixClass(suffix, suffixDeclared)));
 			var opening = written.Substring(0, namespaceEnd) + header.ToString();
 			var closeAt = header.Length;
 			while (closing.Count > 0)
@@ -1345,6 +1343,25 @@ public static partial class CSharpEmitter
 
 		// Last, so that every offset taken in the text above is an offset in the text it was taken in.
 		return Finished(written, checks, steps);
+	}
+
+	/// <summary>
+	/// The import of an included grammar's host, by its name from the global namespace: the directive
+	/// stands inside the host's namespace, where a name is read from that namespace outward, and
+	/// <c>App.G</c> inside <c>namespace App</c> would be <c>App.App.G</c> once there is an <c>App.App</c>.
+	/// </summary>
+	internal static string StaticImport(string className)
+	{
+		return "using static global::" + className + ";";
+	}
+
+	/// <summary>
+	/// The head of the nested class a second reading is compiled into: public unless the author declared
+	/// it, whose declaration then says who may see it.
+	/// </summary>
+	internal static string SuffixClass(string suffix, bool declared)
+	{
+		return declared ? $"static partial class {suffix}" : $"public static partial class {suffix}";
 	}
 
 	static void EmitEngine(Writer file, Machine machine, string engine)

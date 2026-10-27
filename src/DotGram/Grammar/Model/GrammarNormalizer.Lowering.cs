@@ -313,12 +313,25 @@ public sealed partial class GrammarNormalizer
 								expression.At);
 
 							break;
+
+						case ExternalMethodResolution.Hidden:
+							Report(UnresolvedExternal, HiddenByPublication(reader.Name), expression.At);
+
+							break;
 					}
 
 					return ExternalNode(reader.Name, ExternalName(expression));
 			}
 
 		return new Node.Element(false, [], [], [symbol]);
+	}
+
+	/// <summary>What is said of an external named like a method a publication is written as.</summary>
+	static string HiddenByPublication(string name)
+	{
+		return $"'@{name}' is the name of a method the generated class writes for a publication, which " +
+			"hides every method of that name outside the class where the parser calls it. Rename the method, " +
+			"or give the publication another name with 'as' (docs/syntax.md §6).";
 	}
 
 	/// <summary>
@@ -1367,6 +1380,11 @@ public sealed partial class GrammarNormalizer
 							$"set: 'static bool {predicate.Name}(char c)', that the class the grammar is attached " +
 							"to can reach (docs/syntax.md §7.1).",
 							reference.At);
+
+						break;
+
+					case ExternalMethodResolution.Hidden:
+						Report(UnresolvedExternal, HiddenByPublication(predicate.Name), reference.At);
 
 						break;
 				}

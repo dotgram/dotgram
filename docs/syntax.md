@@ -3246,7 +3246,9 @@ in reach of the class the grammar is attached to — in it, around it, in what i
 from, or in the class of a grammar it includes — that is said about the grammar
 (`GRAM4025`), rather than by the C# compiler about a call in a generated file. It is said
 only where it is certain, and it changes nothing about what `@M` means: the role is still
-the position's. The host also identifies whether a bare recognizer uses a span or
+the position's. A method the generated class writes for a publication (`ParseStart`,
+`TryParseStart`, `FindItems`) is one of those in reach, and hides a method of the same name
+outside the class, so a recognizer named like one is refused the same way. The host also identifies whether a bare recognizer uses a span or
 `ParserInput<char>`, and whether the latter takes a context argument. Declare one
 character-input contract per recognizer name.
 

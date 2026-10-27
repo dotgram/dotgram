@@ -190,6 +190,32 @@ readonly record struct Answer(
 /// </remarks>
 static class Questions
 {
+	/// <summary>
+	/// The methods the grammar's publications are written as, which the generated class declares and
+	/// so which a simple name in it means before anything outside it.
+	/// </summary>
+	/// <remarks>
+	/// Those written at the top of the grammar: an included grammar is spliced into a namespace, and
+	/// what it publishes is its own class's.
+	/// </remarks>
+	public static ImmutableArray<string> Published(GrammarFile file)
+	{
+		var published = ImmutableArray.CreateBuilder<string>();
+
+		foreach (var declaration in file.Decls)
+			if (declaration is Decl.Publish publish)
+				foreach (var method in DotGram.Grammar.Emit.CSharpEmitter.MembersOf(
+					publish.Kind,
+					publish.Alias ?? DotGram.Grammar.Binding.Publication.DefaultMethodName(
+						publish.Kind, publish.RuleName.Substring(publish.RuleName.LastIndexOf('.') + 1))))
+				{
+					if (!published.Contains(method))
+						published.Add(method);
+				}
+
+		return published.ToImmutable();
+	}
+
 	/// <summary>Every question the grammar's C# names could give rise to.</summary>
 	/// <param name="locationType">
 	/// The interface <c>[Gram(…, LocationType = …)]</c> named, where one was named. What is

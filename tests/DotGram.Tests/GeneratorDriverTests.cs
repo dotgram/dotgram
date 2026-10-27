@@ -1508,12 +1508,13 @@ public sealed class GeneratorDriverTests
 	}
 
 	/// <summary>
-	/// The included grammars' static imports are read where the generated file writes them,
-	/// inside the host's namespace: there <c>App.G</c> is read from <c>App</c> outward and names
-	/// <c>App.App.G</c>, whose recognizer hands back a string, and the capture is a string.
+	/// The included grammars' static imports name the class that was included, from the global
+	/// namespace: inside the host's namespace <c>App.G</c> would be read from <c>App</c> outward
+	/// and name <c>App.App.G</c>. The included rule calls its own host's recognizer, which hands
+	/// back an int, and the resolver reads the import as the generated file does.
 	/// </summary>
 	[Fact]
-	public void An_included_grammars_import_is_read_from_inside_the_hosts_namespace()
+	public void An_included_grammars_import_names_the_included_class_beside_a_nested_namespace_of_the_same_name()
 	{
 		var assembly = BuildFiles(
 			"""
@@ -1553,7 +1554,7 @@ public sealed class GeneratorDriverTests
 			}
 			""");
 
-		Assert.Equal("two", assembly.GetType("App.Host")!.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["x"]));
+		Assert.Equal("1", assembly.GetType("App.Host")!.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["x"]));
 	}
 
 	/// <summary>
@@ -1596,7 +1597,7 @@ public sealed class GeneratorDriverTests
 	}
 
 	/// <summary>The same for a host inside a generic class.</summary>
-	[Fact(Skip = "Open, an external lookup gap: a host inside a generic class has no metadata name, so no call site is made and the whole compilation is searched instead.")]
+	[Fact]
 	public void The_frame_a_call_is_looked_up_in_is_the_generated_files_frame_inside_a_generic_class()
 	{
 		FrameIsTheGeneratedFrame(
@@ -1615,13 +1616,13 @@ public sealed class GeneratorDriverTests
 				}
 			}
 			""",
-			null,
+			"Outer`1+Host",
 			[],
 			"Outer_T_.Host.g.cs");
 	}
 
 	/// <summary>The same for a second reading in a nested class of its own.</summary>
-	[Fact(Skip = "Open, an external lookup gap: a Suffix reading's calls stand in its nested class, which the call site does not write.")]
+	[Fact]
 	public void The_frame_a_call_is_looked_up_in_is_the_generated_files_frame_for_a_suffix_reading()
 	{
 		FrameIsTheGeneratedFrame(
@@ -1640,10 +1641,11 @@ public sealed class GeneratorDriverTests
 			""",
 			"Host",
 			[],
-			"Host.Immediate.g.cs");
+			"Host.Immediate.g.cs",
+			"Immediate");
 	}
 
-	static void FrameIsTheGeneratedFrame(string source, string? metadataName, string[] statics, string hintName)
+	static void FrameIsTheGeneratedFrame(string source, string metadataName, string[] statics, string hintName, string? suffix = null)
 	{
 		var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
 		var compilation  = CSharpCompilation.Create(
@@ -1663,7 +1665,7 @@ public sealed class GeneratorDriverTests
 
 		var frame = (string?)typeof(RoslynSymbolResolver)
 			.GetMethod("CallSiteFrame", BindingFlags.NonPublic | BindingFlags.Instance)!
-			.Invoke(new RoslynSymbolResolver(compilation, metadataName, statics), null);
+			.Invoke(new RoslynSymbolResolver(compilation, metadataName, statics, suffix), null);
 
 		Assert.NotNull(frame);
 		Assert.Equal(Frame(frame), Frame(GetGeneratedSource(run, hintName)));
@@ -1696,6 +1698,224 @@ public sealed class GeneratorDriverTests
 
 			return [.. lines];
 		}
+	}
+
+	/// <summary>
+	/// A second reading in a nested class of its own calls what a simple name means there: the
+	/// nested class's own value recognizer, not the host's text one of the same name.
+	/// </summary>
+	[Fact]
+	public void A_suffix_readings_call_binds_where_its_nested_class_stands()
+	{
+		var assembly = BuildStrict(
+			"""
+			[DotGram.Gram("Start = 'a' & @M\nparse Start")]
+			[DotGram.GramOptions(Suffix = "Immediate")]
+			public partial class SuffixHost
+			{
+				static bool M(System.ReadOnlySpan<char> input, ref int pos)
+				{
+					if (pos >= input.Length || input[pos] != 'b')
+						return false;
+
+					pos++;
+
+					return true;
+				}
+
+				public static partial class Immediate
+				{
+					static bool M(System.ReadOnlySpan<char> input, ref int pos, out int value)
+					{
+						value = 0;
+
+						if (pos >= input.Length || input[pos] != 'c')
+							return false;
+
+						pos++;
+
+						return true;
+					}
+				}
+			}
+			""");
+
+		Assert.True(EmittedCode.Match(assembly, "SuffixHost", "TryParseStart", "ab").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "SuffixHost", "TryParseStart", "ac").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "SuffixHost+Immediate", "TryParseStart", "ac").IsSuccess);
+		Assert.False(EmittedCode.Match(assembly, "SuffixHost+Immediate", "TryParseStart", "ab").IsSuccess);
+	}
+
+	/// <summary>
+	/// A host inside a generic class is looked up from where its generated call stands, like any
+	/// other: a value recognizer of the same name elsewhere in the compilation, which the call
+	/// does not bind to, does not make the host's own text recognizer read as one. Its type
+	/// parameter is not called <c>T</c>, which the generated <c>Match&lt;T&gt;</c> would hide (CS0693).
+	/// </summary>
+	[Fact]
+	public void A_host_inside_a_generic_class_calls_its_own_recognizer()
+	{
+		var assembly = BuildStrict(
+			"""
+			public partial class Outer<TKey>
+			{
+				[DotGram.Gram("Start = 'a' & @M\nparse Start")]
+				public partial class Host
+				{
+					static bool M(System.ReadOnlySpan<char> input, ref int pos)
+					{
+						if (pos >= input.Length || input[pos] != 'b')
+							return false;
+
+						pos++;
+
+						return true;
+					}
+				}
+			}
+
+			public static class Elsewhere
+			{
+				public static bool M(System.ReadOnlySpan<char> input, ref int pos, out int value)
+				{
+					value = 0;
+
+					return false;
+				}
+			}
+			""");
+
+		var host  = assembly.GetType("Outer`1+Host")!.MakeGenericType(typeof(int));
+		var match = host.GetMethod("TryParseStart", [typeof(string)])!.Invoke(null, ["ab"])!;
+
+		Assert.True((bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!);
+	}
+
+	/// <summary>
+	/// An external recognizer named like a method the generated class writes: in the generated
+	/// class the simple name means that method, which hides the imported one, so the grammar is
+	/// told so rather than handed code that does not compile.
+	/// </summary>
+	[Fact]
+	public void An_external_named_like_a_publication_is_refused_as_hidden()
+	{
+		var run = RunGenerator(
+			"""
+			global using static Readers;
+
+			public static class Readers
+			{
+				public static bool ParseStart(System.ReadOnlySpan<char> input, ref int pos, out int value)
+				{
+					value = 7;
+					pos   = input.Length;
+
+					return true;
+				}
+			}
+
+			[DotGram.Gram("Start : @int = @ParseStart\nparse Start")]
+			public partial class HiddenExternal
+			{
+			}
+			""",
+			out var output);
+
+		Assert.Contains(run.Diagnostics, static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error && diagnostic.Id == "GRAM4025");
+		Assert.DoesNotContain(output.GetDiagnostics(TestContext.Current.CancellationToken), static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error && diagnostic.Id.StartsWith("CS", StringComparison.Ordinal));
+	}
+
+	/// <summary>
+	/// The host's own recognizer of a publication's name is not hidden: it is an overload of the
+	/// same class, and the call reaches it.
+	/// </summary>
+	[Fact]
+	public void A_hosts_own_recognizer_named_like_a_publication_is_called()
+	{
+		var assembly = BuildStrict(
+			"""
+			[DotGram.Gram("Start : @int = @ParseStart\nparse Start")]
+			public partial class OwnExternal
+			{
+				static bool ParseStart(System.ReadOnlySpan<char> input, ref int pos, out int value)
+				{
+					value = 7;
+					pos   = input.Length;
+
+					return true;
+				}
+			}
+			""");
+
+		Assert.Equal(7, assembly.GetType("OwnExternal")!.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["x"]));
+	}
+
+	/// <summary>
+	/// An included grammar's host is imported by its full name from the global namespace: inside
+	/// the host's namespace a name that begins like a nested namespace would be read from there.
+	/// </summary>
+	[Fact]
+	public void An_included_grammars_import_names_the_included_class_from_the_global_namespace()
+	{
+		var assembly = BuildStrict(
+			"""
+			namespace App
+			{
+				[DotGram.Gram("Rest : @string = n: @M => @(n.ToString())\nparse Rest")]
+				public partial class G
+				{
+					internal static bool M(System.ReadOnlySpan<char> input, ref int pos, out int value)
+					{
+						value = 1;
+						pos   = input.Length;
+
+						return true;
+					}
+				}
+
+				[DotGram.GramInclude(typeof(G))]
+				[DotGram.Gram("using G;\nStart : @string = r: Rest => @(r)\nparse Start")]
+				public partial class Host
+				{
+				}
+			}
+
+			namespace App.App
+			{
+				public static class Unrelated
+				{
+				}
+			}
+			""");
+
+		Assert.Equal("1", assembly.GetType("App.Host")!.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["x"]));
+	}
+
+	/// <summary><see cref="BuildFiles"/>, with the build's warnings held to as errors.</summary>
+	static Assembly BuildStrict(params string[] sources)
+	{
+		var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
+		var compilation  = CSharpCompilation.Create(
+			"DotGram.Tests.GeneratorDriver.Strict",
+			sources.Select((text, at) => CSharpSyntaxTree.ParseText(text, parseOptions, $"GeneratorDriverTest{at}.cs")),
+			GetMetadataReferences(),
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, generalDiagnosticOption: ReportDiagnostic.Error));
+		var run = CSharpGeneratorDriver
+			.Create([new GramGenerator().AsSourceGenerator()], parseOptions: parseOptions)
+			.RunGeneratorsAndUpdateCompilation(compilation, out var output, out _)
+			.GetRunResult();
+
+		Assert.Empty(run.Diagnostics.Where(static diagnostic => diagnostic.Severity != DiagnosticSeverity.Info));
+
+		using var stream = new MemoryStream();
+
+		var emitted = output.Emit(stream, cancellationToken: TestContext.Current.CancellationToken);
+
+		Assert.True(
+			emitted.Success,
+			string.Join("\n", emitted.Diagnostics.Where(static diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)));
+
+		return Assembly.Load(stream.ToArray());
 	}
 
 	/// <summary>

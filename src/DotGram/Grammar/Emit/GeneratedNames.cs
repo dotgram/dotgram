@@ -197,10 +197,16 @@ public static partial class CSharpEmitter
 	/// </summary>
 	internal static IEnumerable<string> MembersOf(Publication publication)
 	{
-		yield return publication.MethodName;
+		return MembersOf(publication.Kind, publication.MethodName);
+	}
 
-		if (publication.Kind == PublishKind.Parse)
-			yield return "Try" + publication.MethodName;
+	/// <summary>The same by the publication's kind and name, for what reads a grammar before it is bound.</summary>
+	internal static IEnumerable<string> MembersOf(PublishKind kind, string methodName)
+	{
+		yield return methodName;
+
+		if (kind == PublishKind.Parse)
+			yield return "Try" + methodName;
 	}
 
 	/// <summary>
