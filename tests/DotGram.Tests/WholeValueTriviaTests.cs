@@ -144,6 +144,16 @@ public sealed class WholeValueTriviaTests
 			false,
 			[("<a><bc>", "4,2"), (" <a> < bc > ", "7,2")]),
 
+		["a capture of a built span or of an extent"] = (
+			Spaces + "A : @SourceSpan = 'a' & 'x' => @(new SourceSpan(parserSpan.Start + 1, 1))\nB : @SourceSpan = 'b'\nRoot : @SourceSpan = s: A => @(s) | s: B => @(s)\nparse Root\n",
+			true,
+			[("b", "0,1"), ("  b ", "2,1"), ("ax", "1,1"), (" a x", "2,1")]),
+
+		["a capture of an extent or of a built span"] = (
+			Spaces + "A : @SourceSpan = 'a' & 'x' => @(new SourceSpan(parserSpan.Start + 1, 1))\nB : @SourceSpan = 'b'\nRoot : @SourceSpan = s: B => @(s) | s: A => @(s)\nparse Root\n",
+			true,
+			[("b", "0,1"), ("  b ", "2,1"), ("ax", "1,1"), (" a x", "2,1")]),
+
 		["the text a guard reads"] = (
 			Spaces + "Root : @string = 'a' & 'b' & when @(parserText.StartsWith(\"a\")) => @(parserText)\nparse Root\n",
 			false,
