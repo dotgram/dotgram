@@ -121,7 +121,9 @@ public static class Determinism
 			!SeamSplits.Matter(graph))
 			return true;
 
-		if (FirstSets.Nullable(body, graph))
+		// A turn that may begin with a repetition that recovers may begin on any character, the
+		// one the continuation begins with too.
+		if (FirstSets.Nullable(body, graph) || FirstSets.LedByRecovery(body, graph))
 			return false;
 
 		// A fold's step is its construction around the sequence: what is read is the same.
@@ -523,6 +525,7 @@ public static class Determinism
 	{
 		return following.Plain.IsKnown &&
 		!FirstSets.Nullable(body, graph) &&
+		!FirstSets.LedByRecovery(body, graph) &&
 		!Decides(body, graph, seam).Overlaps(Against(body, following, seam)) &&
 		Of(body, asked, following.Or(new FollowSets.Continuation(
 			FirstSets.Of(body, graph), FirstSets.Of(body, graph))), graph, seam);
@@ -684,7 +687,9 @@ public static class Determinism
 		{
 			var first = FirstSets.Of(alternatives[at], graph);
 
-			if (first.Anything || first.Nothing || FirstSets.Nullable(alternatives[at], graph))
+			// One that may begin with a repetition that recovers begins with anything.
+			if (first.Anything || first.Nothing || FirstSets.Nullable(alternatives[at], graph) ||
+				FirstSets.LedByRecovery(alternatives[at], graph))
 				return false;
 
 			firsts[at] = first;

@@ -7045,6 +7045,10 @@ sealed partial class Machine
 			case Node.Atomic(var kept):          return EntryTest(kept, seen);
 			case Node.Marked(var kept, _):       return EntryTest(kept, seen);
 
+			// A repetition that recovers steps over a bad first element whatever it begins with.
+			case Node.Repeat when _graph.Recoveries.ContainsKey(node):
+				return "true";
+
 			case Node.Repeat(var repeated, var least, _):
 				return least > 0 ? EntryTest(repeated, seen) : null;
 

@@ -1798,9 +1798,13 @@ public static class FirstSets
 			if (IsSeamCall(parts[i], seam))
 				continue;
 
+			// Not by a body that may begin with a repetition that recovers: what it begins with is
+			// any character (LedByRecovery), and narrowed by a good element's first set, the rest
+			// was entered only where one could begin.
 			if (nothing &&
 				parts[i] is Node.Lookahead(true, var expected) &&
 				!Nullable(expected, graph) &&
+				!LedByRecovery(expected, graph) &&
 				Inner(expected, graph, byRule) is { IsKnown: true } ahead)
 			{
 				expects = expects is { } held ? held.And(ahead) : ahead;
@@ -2591,6 +2595,105 @@ public static class FirstSets
 	static readonly HashSet<RuleSymbol> NoRecognizers = [];
 
 	static readonly System.Runtime.CompilerServices.ConditionalWeakTable<RecognitionGraph, HashSet<RuleSymbol>> _standing = new();
+
+	/// <summary>
+	/// Whether <paramref name="node"/> may begin with a repetition that recovers: one that steps over
+	/// a bad first element whatever character it begins with (§8.2), so that what the node begins
+	/// with is any character, whatever <see cref="Of"/> says.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <see cref="Of"/> answers what a good element begins with, and is left so where it stands for
+	/// what follows something: a repetition before such a one is proved never to give a turn back on
+	/// it, and a part of a stream to be read once, and widened there it would take both from every
+	/// feed that reads a header and then its records. Where a node is <em>entered</em> on the
+	/// character in hand — an alternative of a choice, an optional, a turn of a repetition — and
+	/// where a turn of its own is proved never to be given back, this is asked as well: entered only
+	/// where a good element could begin, a recovering rule reached through a choice or an optional
+	/// was refused where reading it steps over its bad first element, and a rule means one thing
+	/// everywhere it is called.
+	/// </para>
+	/// <para>
+	/// Worked out once a graph, as a fixed point over the rules that begin with one, and not at
+	/// all for a grammar that recovers nowhere.
+	/// </para>
+	/// </remarks>
+	public static bool LedByRecovery(Node node, RecognitionGraph graph)
+	{
+		if (graph is null)
+			throw new ArgumentNullException(nameof(graph));
+
+		if (graph.Recoveries.Count == 0)
+			return false;
+
+		var led = _ledByRecovery.GetValue(graph, static graph => RulesLedByRecovery(graph));
+
+		return LedByRecovery(node, graph, led.Contains);
+	}
+
+	static bool LedByRecovery(Node node, RecognitionGraph graph, Func<RuleSymbol, bool> rule)
+	{
+		switch (node)
+		{
+			case Node.Repeat when graph.Recoveries.ContainsKey(node):
+				return true;
+
+			case Node.Repeat   (var body, _, _):   return LedByRecovery(body,     graph, rule);
+			case Node.Capture  (_, var captured):  return LedByRecovery(captured, graph, rule);
+			case Node.Construct(var built, _):     return LedByRecovery(built,    graph, rule);
+			case Node.Atomic   (var body):         return LedByRecovery(body,     graph, rule);
+			case Node.Marked   (var body, _):      return LedByRecovery(body,     graph, rule);
+			case Node.Bind     (_, var bound, _):  return LedByRecovery(bound,    graph, rule);
+			case Node.Counted  (var body, _, _):   return LedByRecovery(body,     graph, rule);
+
+			case Node.Call(var called, _):
+				return rule(called);
+
+			case Node.Choice(var alternatives):
+				foreach (var alternative in alternatives)
+					if (LedByRecovery(alternative, graph, rule))
+						return true;
+
+				return false;
+
+			// A part that may read nothing leaves the next one to begin the sequence too.
+			case Node.Sequence(var parts):
+				foreach (var part in parts)
+				{
+					if (LedByRecovery(part, graph, rule))
+						return true;
+
+					if (!Nullable(part, graph))
+						return false;
+				}
+
+				return false;
+
+			default:
+				return false;
+		}
+	}
+
+	static HashSet<RuleSymbol> RulesLedByRecovery(RecognitionGraph graph)
+	{
+		var led = new HashSet<RuleSymbol>();
+
+		for (var grew = true; grew; )
+		{
+			grew = false;
+
+			foreach (var pair in graph.Bodies)
+				if (!led.Contains(pair.Key) && LedByRecovery(pair.Value, graph, led.Contains))
+				{
+					led.Add(pair.Key);
+					grew = true;
+				}
+		}
+
+		return led;
+	}
+
+	static readonly System.Runtime.CompilerServices.ConditionalWeakTable<RecognitionGraph, HashSet<RuleSymbol>> _ledByRecovery = new();
 
 	/// <summary>
 	/// Whether the text a binding holds may be empty: whether any of the bodies it is bound to
