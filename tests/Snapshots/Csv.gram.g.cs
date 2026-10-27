@@ -89,7 +89,7 @@ namespace DotGram.Snapshots
 
 				S3:
 				{
-					var scanned = Scan_DotGram_eof(text, p);
+					var scanned = Scan_DotGram_eof(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -637,7 +637,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Scan_DotGram_eof(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_DotGram_eof(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 			var mark0 = 0;

@@ -176,6 +176,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < from)
+					failure.Position = from;
+
 				if (tokens.Cut && failure.Position >= count - 1)
 				{
 
