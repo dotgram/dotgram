@@ -67,7 +67,7 @@ sealed class ResultTypes
 			// and what its captures are for is the `=>` that builds it.
 			if (graph.Types.TryGetValue(rule, out var declared))
 			{
-				_declared[rule] = declared;
+				_declared[rule] = declared == "SourceSpan" && BuildsSpan(graph.Bodies[rule]) ? BuiltSpan : declared;
 
 				continue;
 			}
@@ -108,6 +108,34 @@ sealed class ResultTypes
 
 		foreach (var (rule, _) in wanted)
 			_built.Add(rule);
+	}
+
+	/// <summary>
+	/// A <c>SourceSpan</c> a rule builds rather than the rule's own extent, spelled so that the plain
+	/// spelling keeps meaning the extent.
+	/// </summary>
+	/// <remarks>
+	/// The machine reads <c>SourceSpan</c> as "the bounds the rule's record already holds": no value
+	/// table, no factory call, the span cut from where the rule began and ended. That is right for the
+	/// rule that asked for its own bounds (§4.1 case 4) and wrong for one whose <c>=&gt;</c> builds
+	/// some other span — from a capture, say — which was handed back its whole extent instead. The
+	/// verbatim identifier names the same type to C#, and to the machine a struct like any other,
+	/// kept in a table of its own.
+	/// </remarks>
+	public const string BuiltSpan = "@SourceSpan";
+
+	/// <summary>
+	/// Whether a <c>SourceSpan</c> rule builds its value: a construction that is anything but the
+	/// rule's own <c>parserSpan</c>, which is what normalization makes of a rule that only asked for
+	/// its bounds.
+	/// </summary>
+	static bool BuildsSpan(Node body)
+	{
+		foreach (var node in NodeWalk.Descendants(body))
+			if (node is Node.Construct { How: not Construction.Expression { Text: "parserSpan" } })
+				return true;
+
+		return false;
 	}
 
 	/// <summary>Every rule that has a type of its own, in declaration order.</summary>

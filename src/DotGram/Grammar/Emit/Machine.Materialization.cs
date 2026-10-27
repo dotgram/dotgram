@@ -376,7 +376,7 @@ sealed partial class Machine
 
 	bool IsExtent(RuleSymbol rule)
 	{
-		return _graph.Types.TryGetValue(rule, out var type) && type == "SourceSpan";
+		return _results.QualifiedOf(rule) == "SourceSpan";
 	}
 
 	/// <summary>
