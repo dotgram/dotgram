@@ -2125,6 +2125,9 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("static int Scan_DotGram_trivia(", source, StringComparison.Ordinal);
 		// Handed back how far it got, too: a comment the input ends inside is refused there (§7.5).
+		// Not the failure: a scanner is handed it only where it marks the input as run out inside a
+		// literal (Machine.ScannerTakesFailure), and `"//"` here ends a turn of a loop without a
+		// minimum, which marks nothing.
 		Assert.Contains("p = Scan_DotGram_trivia(text, p, out var scanReached);", source, StringComparison.Ordinal);
 
 		// The seam pays a call, not an arena cycle: no atomic entry anywhere.
