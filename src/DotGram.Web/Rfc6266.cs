@@ -192,7 +192,13 @@ public sealed record ContentDisposition(string Type, IReadOnlyList<ContentDispos
 		= Ows & type: Token & parameters: DispositionParms & Ows & when @(Rfc6266.AreDistinct(parameters!))
 		=> @(new ContentDisposition(type, parameters))
 
-	DispositionParms : @ContentDisposition.Parameter[] = items: DispositionParm* => @(items)
+	// The parameters are read to their end and never handed back. A whole field loses nothing by it: what
+	// follows them is OWS and the end, and a parameter given back begins with OWS and a `;`. A reading from a
+	// position, which may stop where the field does, does lose something: where a name is written twice, it
+	// used to give parameters back until the names were distinct, and stop before the second; now it is
+	// refused. Without the braces each parameter given back read the run again from its start and asked the
+	// check again over it: quadratic in the parameters, 1.3 s refusing `inline` and eight thousand `;a=1`.
+	DispositionParms : @ContentDisposition.Parameter[] = { items: DispositionParm* } => @(items)
 
 	// filename-parm and disp-ext-parm alike: a name, `=`, and a value, taken apart beside the rule.
 	DispositionParm : @ContentDisposition.Parameter
