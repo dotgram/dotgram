@@ -949,6 +949,11 @@ sealed partial class Machine
 	{
 		var kept = new List<string>(_extra);
 
+		// The sentinel, where the arena that reads it at Fail: was rendered: a machine rendered for its
+		// direct reader alone renders none.
+		if (Sentinel is not null && _arenaRendered)
+			kept.Add($"static readonly string[] {Sentinel} = new string[0];");
+
 		// The one thing a machine over kinds needs that a machine over characters does
 		// not: a way from two token positions to the text between them. Emitted here
 		// rather than beside the support types because it is tagged like everything else
@@ -2647,6 +2652,14 @@ sealed partial class Machine
 				file.Line();
 				file.Line("Fail:");
 
+				// The calls open where the failure was (below), read before anything is skipped.
+				if (_saidOnFail.Count > 0)
+					file.Line("var open = call;");
+
+				// Nor does a refusal that says so (Unrecorded): it unwinds past the record.
+				if (Sentinel is not null)
+					file.Line($"if (global::System.Object.ReferenceEquals(expected, {Sentinel})) goto Unwind;");
+
 				// A lookahead records nothing, and neither does a quiet reading — which still writes
 				// down how far it got where that is kept (KeepsDoors).
 				var recording = Quiets ? "lookahead < 0 && !failure.Quiet" : "lookahead < 0";
@@ -2685,8 +2698,8 @@ sealed partial class Machine
 				// The calls open where the failure was, innermost first: one popped while it is open
 				// refused, and one of a rule that says its own refusal says it where it was entered
 				// and the furthest refusal stands no further (§7.5), as the reader says it at a call.
-				if (_saidOnFail.Count > 0)
-					file.Line("var open = call;");
+				if (Sentinel is not null)
+					file.Line("Unwind:");
 
 				using (file.Block("while (entries.Count > 0)"))
 				{
@@ -2929,9 +2942,10 @@ sealed partial class Machine
 						// A look that refused refuses the reading where it began, which is how far
 						// the parse got: what the look tried past it was recorded nowhere, the look
 						// recording nothing, and without this a look that read its rule in states
-						// left the refusal wherever the reading had been before it (§7.5).
+						// left the refusal wherever the reading had been before it (§7.5). Not one
+						// in the seam (Unrecorded), entered with 2 for its value.
 						file.Line();
-						file.Line($"if ({(KeepsDoors ? "lookahead < 0" : Quiets ? "lookahead < 0 && !failure.Quiet" : "lookahead < 0")} && p > failure.Position)");
+						file.Line($"if ({(_unrecordsLooks ? "entry.Value == 1 && " : "")}{(KeepsDoors ? "lookahead < 0" : Quiets ? "lookahead < 0 && !failure.Quiet" : "lookahead < 0")} && p > failure.Position)");
 
 						using (file.Block(""))
 						{
@@ -2992,8 +3006,13 @@ sealed partial class Machine
 			}
 		}
 
+		_arenaRendered = true;
+
 		return Reaching(file.ToString());
 	}
+
+	/// <summary>Whether the arena was rendered: the sentinel (<see cref="Sentinel"/>) is declared only where it was, as the arena's <c>Fail:</c> reads it.</summary>
+	bool _arenaRendered;
 
 	/// <summary>
 	/// Where a state written before every recovering repetition was compiled raises how far each
@@ -4495,11 +4514,11 @@ sealed partial class Machine
 						{
 							atAsk.Line($"if ({Short(1)})");
 							using (atAsk.Block(""))
-								EmitTerminalFailure(atAsk, _fail, askedName);
+								EmitLookRefusal(atAsk, node, askedName);
 							atAsk.Line($"c = {ReadAt("p")};");
 							atAsk.Line($"if (!({asked}))");
 							using (atAsk.Block(""))
-								EmitTerminalFailure(atAsk, _fail, askedName);
+								EmitLookRefusal(atAsk, node, askedName);
 						}
 						else
 						{
@@ -4508,7 +4527,7 @@ sealed partial class Machine
 								atAsk.Line($"c = {ReadAt("p")};");
 								atAsk.Line($"if ({asked})");
 								using (atAsk.Block(""))
-									EmitTerminalFailure(atAsk, _fail, askedName);
+									EmitLookRefusal(atAsk, node, askedName);
 							}
 
 						}
@@ -4533,7 +4552,19 @@ sealed partial class Machine
 						// then fail outward — a lookahead does not report how far it
 						// looked, and both doors go through the same local.
 						var rewind    = GiveBack(next, mine, out var start);
-						var outward   = _fail;
+						var failed    = _fail;
+						var outward   = failed;
+
+						// In the seam, what the body refused is not recorded (Unrecorded): put back,
+						// the refusal goes outward as one that records nothing.
+						if (Unrecords(node))
+						{
+							outward = Reserve(out var atQuiet);
+
+							atQuiet.Line($"expected = {Unrecorded()};");
+							atQuiet.Line($"goto {Label(atQuiet, failed)};");
+						}
+
 						var backOut   = GiveBack(outward, mine, out _);
 
 						_fail = backOut;
@@ -4542,7 +4573,7 @@ sealed partial class Machine
 						var flatInner = Compile(body, rewind, FollowSets.Continuation.All);
 
 						_doorLooking--;
-						_fail = outward;
+						_fail = failed;
 
 						var flatState = Reserve(out var atFlatEnter);
 
@@ -4598,7 +4629,7 @@ sealed partial class Machine
 					atMatched.Line($"p = {begun};");
 					if (marks)
 						atMatched.Line($"failure.OutOfInput = ranOut{mine};");
-					EmitTerminalFailure(atMatched, _fail, arrayName);
+					EmitLookRefusal(atMatched, node, arrayName);
 
 					if (marks)
 						_ranOuts.Add((mine, entered));
@@ -4618,10 +4649,16 @@ sealed partial class Machine
 				var inner   = Compile(body, success, FollowSets.Continuation.All);
 				var state   = Reserve(out var writer);
 
+				// Entered with 2 for its value where its refusal records nothing (Unrecorded): Fail:
+				// records a positive look's refusal where it pops the entry, and asks the value.
+				var quietly = isPositive && Unrecords(node);
+
+				_unrecordsLooks |= quietly;
+
 				writer.Line("var lookaheadIndex = entries.Count;");
 				writer.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Lookahead, {Resuming(writer, next)}, p, call, atomic, " +
-					$"repeat, lookahead, {(isPositive ? 1 : 0)}));");
+					$"repeat, lookahead, {(isPositive ? quietly ? 2 : 1 : 0)}));");
 				writer.Line("lookahead = lookaheadIndex;");
 				if (!isPositive)
 					writer.Line("negating++;");
@@ -4645,6 +4682,19 @@ sealed partial class Machine
 					_usesNegating = true;
 				}
 				atSuccess.Line($"Step_DotGram(\"lookahead body matched\", {Mark(Lands, next)}, p, entries.Count{Traced});");
+
+				// A negative look in the seam records nothing when refused (Unrecorded). Elsewhere its
+				// refusal is recorded with what `expected` holds, which a look inside the trivia before
+				// it may have left as the sentinel: that is put back to nothing, or the refusal went
+				// unrecorded too. What else the body's last refusal left there is said as it was.
+				// Whether the machine has the sentinel is asked of the grammar (Sentinel), not of what
+				// was compiled so far: the trivia whose look declares it may be a namespace's, compiled
+				// after the rule that calls it.
+				if (!isPositive && Unrecords(node))
+					atSuccess.Line($"expected = {Unrecorded()};");
+				else if (!isPositive && !_lowering && Sentinel is not null)
+					atSuccess.Line($"if (global::System.Object.ReferenceEquals(expected, {Sentinel})) expected = null;");
+
 				atSuccess.Line($"goto {(isPositive ? Label(atSuccess, next) : "Fail")};");
 
 				return state;
@@ -7808,6 +7858,71 @@ sealed partial class Machine
 	}
 
 	string? _ranOut;
+
+	string? _unrecorded;
+
+	/// <summary>Whether a look the arena keeps was entered with 2 for its value, to record nothing when it refuses (<see cref="Unrecorded"/>).</summary>
+	bool _unrecordsLooks;
+
+	/// <summary>
+	/// The sentinel a refusal that records nothing reaches <c>Fail:</c> with, which unwinds past the
+	/// record on seeing it: a look's, in the seam or what it calls, where the engine reads in states
+	/// what it otherwise scans without recording (ScannerOf) — the direct reader records nothing
+	/// for such a look either, and a parse refused by the rule after the seam answers where the
+	/// seam stood in every form (§7.5).
+	/// </summary>
+	string Unrecorded()
+	{
+		return Sentinel ?? throw new InvalidOperationException("A look in the seam of a machine without the sentinel.");
+	}
+
+	/// <summary>
+	/// The sentinel's name, or null in a machine that has none: decided from the grammar alone — a
+	/// look in a rule the seam reaches, read in states — and not from what has been compiled so far,
+	/// so that every place that asks gets one answer whatever the order the rules are compiled in.
+	/// Not in the machine that is the seam itself (CSharpEmitter.Seam), which renders a scanner and
+	/// no arena.
+	/// </summary>
+	string? Sentinel
+	{
+		get
+		{
+			if (_sentinelDecided)
+				return _unrecorded;
+
+			_sentinelDecided = true;
+
+			if (Tag != MachineTag.Seam &&
+				SeamReached.Any(rule => _graph.Bodies.TryGetValue(rule, out var body) && NodeWalk.Descendants(body).Any(static node => node is Node.Lookahead)))
+				_unrecorded = Tag.Named("RecognizeUnrecorded");
+
+			return _unrecorded;
+		}
+	}
+
+	bool _sentinelDecided;
+
+	/// <summary>Whether a look's refusal records nothing (<see cref="Unrecorded"/>). Not in a lowered method, whose own <c>Fail:</c> records.</summary>
+	bool Unrecords(Node look)
+	{
+		// Not in the machine that is the seam itself (CSharpEmitter.Seam), which renders a scanner and
+		// no arena: the sentinel would be declared and read nowhere.
+		return !_lowering && Tag != MachineTag.Seam && InSeam(look);
+	}
+
+	/// <summary>A look's refusal: a terminal's, or one that records nothing in the seam (<see cref="Unrecorded"/>).</summary>
+	void EmitLookRefusal(Writer writer, Node look, string arrayName)
+	{
+		if (Unrecords(look))
+		{
+			writer.Line($"expected = {Unrecorded()};");
+			writer.Line($"goto {Label(writer, _fail)};");
+
+			return;
+		}
+
+		EmitTerminalFailure(writer, _fail, arrayName);
+	}
 
 	/// <summary>
 	/// Records a refusal at <paramref name="at"/> where it is further than anything before, leaving the
