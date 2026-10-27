@@ -1398,9 +1398,10 @@ A grammar to which whitespace is insignificant redefines one rule:
 trivia = { WhitespaceAndComments }
 ```
 
-The braces make what trivia reads stay read, and are worth writing every time; why is
-below. No directive, no mode: it is an ordinary rule, and `none` is expressed in the language
-itself as `any{0}` rather than by a new primitive.
+The braces make what trivia reads stay read, and are worth writing wherever nothing needs
+trivia to give a character back; why is below. No directive, no mode: it is an ordinary
+rule, and `none` is expressed in the language itself as `any{0}` rather than by a new
+primitive.
 
 **At every seam between the operands of a sequence.** The turns of a repetition are such a
 seam wherever the thing repeated is itself a sequence — `A & (S & A)*` is how one writes
@@ -1547,7 +1548,7 @@ a `trivia` declared by a namespace the chain imports, the nearest scope's `using
 Where neither finds one, `trivia` is the built-in `none`. The chain coming first is what
 makes the example above read whitespace in `Syntax`: `using Lexical;` brings in
 `Identifier` and `Number`, and the `trivia = none` beside them is shadowed by the
-`WhitespaceAndComments` declared around `Syntax`. And it is the same wherever the `using`
+`trivia` declared around `Syntax`. And it is the same wherever the `using`
 is written — at the top of the file or at the top of a `namespace` block, as §5 allows — so
 a grammar that declares no `trivia` of its own and imports a namespace that does reads
 with the imported one at either placement.
