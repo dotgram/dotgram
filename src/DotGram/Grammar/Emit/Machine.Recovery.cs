@@ -461,7 +461,7 @@ sealed partial class Machine
 
 		string Where(string position)
 		{
-			return placed ? $"parser.Origin + {At(position)}" : At(position);
+			return placed ? $"{CSharpEmitter.WindowType}.Placed(parser.Origin + {At(position)})" : At(position);
 		}
 
 		return name switch
@@ -471,7 +471,7 @@ sealed partial class Machine
 			"parserOrdinal" => "recovered.RuleIndex",
 			"parserLine" => Line("recovered.Position", located, placed),
 			"parserColumn" => Column("recovered.Position", located, placed),
-			"parserSpan" => Span(placed ? "parser.Origin + recovered.Position" : "recovered.Position", "recovered.Value - recovered.Position"),
+			"parserSpan" => Span(placed ? $"{CSharpEmitter.WindowType}.Placed(parser.Origin + recovered.Position)" : "recovered.Position", "recovered.Value - recovered.Position"),
 			"parserFailurePosition" => Where("recovered.AtomicIndex"),
 			"parserFailureLine" => Line("recovered.AtomicIndex", located, placed),
 			"parserFailureColumn" => Column("recovered.AtomicIndex", located, placed),

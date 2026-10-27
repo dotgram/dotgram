@@ -26682,10 +26682,15 @@ search for the delimiter that found none jumped to the refusal without saying ho
   carry. Keying it on the spelling keeps the plain one meaning the extent everywhere it already did.
 - **A streamed place past `int.MaxValue`.** A reading through a window told the machine where the window
   begins as `unchecked((int)window.Offset)`, so past 2^31 characters a located value, a guard's span and a
-  recovery's were told negative places. The window now says it through `Origin()`, which throws where any place
-  it holds would not fit an `int`; the places stay ints. Checked once per reading of the window rather than at
-  each place told, since every place of a reading is inside the window it was handed. The method is written only
-  where a reading is told an origin, so no generated file in the repository changes.
+  recovery's were told negative places. The origin is now a `long`, and each place is told through
+  `Window_DotGram.Placed`, which throws where it would not fit an `int`; the places stay ints. Checked where a
+  place is told and not once per window, which was the first version and was refused in review: a window that
+  merely reaches past the range, in a long feed that locates nothing that far in, is no reason to stop reading.
+  The method is written only where a place read through a window is told, so no generated file of the solution
+  changes.
+- **A built span beside an extent.** The first version spelled only a building rule `@SourceSpan`; a capture
+  holding either of two rules (`s: A => @(s) | s: B => @(s)`) read the extent's value from the built one's table
+  (found in review). Once any span rule of a grammar builds, every span rule is spelled so now.
 - **A guard before a later capture of the same name.** A run that may take no turn is seeded with an empty
   capture where its name is optional in the rule; a capture of the same name later in the sequence made it look
   always written, and a guard before that capture was handed null where the run had been reached. A name is now
