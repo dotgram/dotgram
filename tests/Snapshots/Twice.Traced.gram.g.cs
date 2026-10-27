@@ -165,6 +165,9 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
+					if (failure.Position < at)
+						failure.Position = at;
+
 					var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 					var otherwise = starved
@@ -273,6 +276,9 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
+					if (failure.Position < at)
+						failure.Position = at;
+
 					var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 					var otherwise = starved
