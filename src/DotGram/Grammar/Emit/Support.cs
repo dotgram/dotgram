@@ -296,6 +296,27 @@ public static partial class CSharpEmitter
 			{
 				get { return _offset; }
 			}
+			// <origin>
+
+			/// <summary>
+			/// Where the window begins in the whole input, as the <c>int</c> a place is told in: a
+			/// located value's span, a guard's or a recovery's.
+			/// </summary>
+			/// <remarks>
+			/// Every place in the window has to fit, the one just past its end included. Past that the
+			/// input is too long to be told places in, and saying so is better than telling a place that
+			/// has wrapped round to a negative one.
+			/// </remarks>
+			public int Origin()
+			{
+				if (_offset + _filled > int.MaxValue)
+					throw new global::System.InvalidOperationException(
+						"A place in the input is told as an int, and this input runs past " +
+						"2,147,483,647 characters (int.MaxValue): read it in parts, or locate nothing in it.");
+
+				return (int)_offset;
+			}
+			// </origin>
 
 			/// <summary>
 			/// What the window holds.

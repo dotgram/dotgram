@@ -907,7 +907,7 @@ namespace DotGram.Snapshots
 
 			while (true)
 			{
-				triviaFailureLead = new Failure { Origin = unchecked((int)window.Offset) };
+				triviaFailureLead = new Failure { Origin = window.Origin() };
 				triviaEndLead = WholeTrivia_DotGram_Config(window.Span(), start, ref triviaFailureLead);
 
 				if (((triviaEndLead < 0 ? triviaFailureLead.Position : triviaEndLead) >= window.Length || triviaFailureLead.Starved) && !window.Ended)
@@ -933,7 +933,7 @@ namespace DotGram.Snapshots
 
 				while (true)
 				{
-					seamFailure0 = new Failure { Origin = unchecked((int)window.Offset) };
+					seamFailure0 = new Failure { Origin = window.Origin() };
 					seamEnd0     = Rec_DotGram_trivia(window.Span(), start, ref seamFailure0);
 
 					if (((seamEnd0 < 0 ? seamFailure0.Position : seamEnd0) >= window.Length || seamFailure0.Starved) && !window.Ended)
@@ -957,7 +957,7 @@ namespace DotGram.Snapshots
 
 				while (true)
 				{
-					failure0 = new Failure { Origin = unchecked((int)window.Offset) };
+					failure0 = new Failure { Origin = window.Origin() };
 					end0     = Rec_DotGram_Entry(window.Span(), start, ref failure0, out value0);
 
 					if (((end0 < 0 ? failure0.Position : end0) >= window.Length || failure0.Starved) && !window.Ended)
@@ -984,7 +984,7 @@ namespace DotGram.Snapshots
 
 			while (true)
 			{
-				triviaFailureTrail = new Failure { Origin = unchecked((int)window.Offset) };
+				triviaFailureTrail = new Failure { Origin = window.Origin() };
 				triviaEndTrail = WholeTrivia_DotGram_Config(window.Span(), start, ref triviaFailureTrail);
 
 				if (((triviaEndTrail < 0 ? triviaFailureTrail.Position : triviaEndTrail) >= window.Length || triviaFailureTrail.Starved) && !window.Ended)
@@ -1570,6 +1570,16 @@ namespace DotGram.Snapshots
 			public long Offset
 			{
 				get { return _offset; }
+			}
+
+			public int Origin()
+			{
+				if (_offset + _filled > int.MaxValue)
+					throw new global::System.InvalidOperationException(
+						"A place in the input is told as an int, and this input runs past " +
+						"2,147,483,647 characters (int.MaxValue): read it in parts, or locate nothing in it.");
+
+				return (int)_offset;
 			}
 
 			public global::System.ReadOnlySpan<char> Span()
