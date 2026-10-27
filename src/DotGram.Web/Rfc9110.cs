@@ -247,16 +247,20 @@ public sealed record MediaRange(MediaType Media, decimal Weight)
 
 	// parameters = *( OWS ";" OWS [ parameter ] ), with no whitespace around the `=`. Each slot is its text,
 	// taken apart beside the rule.
-	Parameters : @MediaType.Parameter[] = slots: ParameterSlot* => @(Rfc9110.Present(slots))
+	//
+	// A range's slots may be handed back, but a shorter run is stopped at once: a slot always reads where OWS
+	// and a `;` stand, so they follow only a run that gave one back, and what follows a range (OWS, then a comma
+	// or the end) never begins with a `;`. Without the look a refused field gave the slots back one at a time,
+	// each try taking the slots apart and asking the range's guard again: quadratic in the slots, 1.3 s refusing
+	// `a/b;`, eight thousand `;` and a `@`. Not braces, as a media type's are: sealed, the refusal right after
+	// an empty slot (`a/b;@`) no longer names a token among what could stand there, because a sealed run
+	// records a refusal inside its optional parameter only past where that parameter began.
+	Parameters : @MediaType.Parameter[] = slots: ParameterSlot* & ?!(Ows & ';') => @(Rfc9110.Present(slots))
 
 	// A media type's slots are read to their end and never handed back: what follows them is OWS and the end,
 	// and a slot given back begins with OWS and a `;`, so a shorter run can never lead anywhere. Without the
 	// braces a refused field gave the slots back one at a time, each try reading the field again from its
 	// start: quadratic in the slots, 0.9 s explaining the refusal of `a/b;` and eight thousand `;`.
-	//
-	// A range's are not sealed, though the same holds after them: sealed, the Accept reader changes no outcome
-	// and no position, but its refusal right after an empty slot (`a/b;@`) no longer names a token among what
-	// could stand there. So an Accept field refused after many empty slots is still quadratic in them.
 	MediaParameters : @MediaType.Parameter[] = { slots: ParameterSlot* } => @(Rfc9110.Present(slots))
 
 	ParameterSlot : @string = Ows & ';' & Ows & text: ParameterText => @(text)
