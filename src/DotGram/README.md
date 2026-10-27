@@ -145,7 +145,7 @@ using DotGram;
 [Gram("""
 	@using System.Globalization;
 
-	trivia = Std.Spacing?
+	trivia = { Std.Spacing? }
 
 	Value : @int = d: Std.Digits => @(int.Parse(d))
 	Point        = { Std.Digits ~ ('.' ~ Std.Digits)? }
@@ -297,7 +297,7 @@ generated from it:
 using DotGram;
 
 [Gram("""
-	trivia       = ' '*
+	trivia       = { ' '* }
 	wordboundary = ['a'..'z']
 
 	Version = "2000" | "2008" | "2022"

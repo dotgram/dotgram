@@ -287,11 +287,16 @@ declares reaches.
 `trivia` is an ordinary rule the grammar shadows, and it is woven between operands:
 
 ```dotgram
-trivia = [' ' | '\t']*
+trivia = { [' ' | '\t']* }
 ```
 
 **It must accept empty input** (`GRAM4003`) — it stands between every pair of operands, so
 a required match would demand whitespace everywhere. `Std.Spacing?`, not `Std.Spacing`.
+
+**Write it in braces.** `{ … }` makes what trivia read stay read. Without them, trivia beside
+a class that reads the same characters — `trivia = ' '*` beside `Field = [^ ',' | '\n']+` —
+splits every run of spaces between the two in every way it can, and a refused input is read
+again for each split at each seam: exponential in the number of seams (`GRAM4051`).
 
 ## Precedence, two ways
 
@@ -359,7 +364,7 @@ public static partial class Lexemes;
 
 [GramInclude(typeof(Lexemes), As = "Lex")]
 [Gram("""
-	trivia = ' '*
+	trivia = { ' '* }
 
 	Setting : @string = key: Lex.Word & '=' & value: Lex.Digits => @(key + " is " + value)
 
@@ -559,6 +564,7 @@ sinks never throw on their own account.
 | `GRAM4003` | `trivia` must accept empty input |
 | `GRAM4008` | a `=>` on a rule that does not say what type it builds |
 | `GRAM4018` | a rule nothing reaches, and so nothing compiled — publish it or delete it |
+| `GRAM4051` | `trivia` without braces beside a class that reads its characters: write `trivia = { … }` |
 | `GRAM5001` | a publication got no reader overload, and why |
 | `GRAM5002` | a repetition can begin with the same input as what follows it |
 

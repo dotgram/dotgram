@@ -1829,7 +1829,9 @@ one nothing samples. `benchmarks/README.md`, *What a streamed parse holds*.
 **Pathological backtracking** remains possible: a repetition whose body can consume the
 same input in several ways may take exponential work when failure occurs at the end.
 Extracting that body into a rule no longer changes the search space. Use an explicit
-atomic group only where the language really permits commitment. The historical timings
+atomic group only where the language really permits commitment. Its commonest form in a
+real grammar, trivia without braces beside a class that reads the same characters, is told
+(`GRAM4051`, syntax §4.5). The historical timings
 and generated-size table were measured for the removed per-rule generator and must be
 remeasured against the current automaton before making performance claims.
 

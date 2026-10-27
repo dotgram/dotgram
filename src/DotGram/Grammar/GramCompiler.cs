@@ -158,6 +158,12 @@ public static class GramCompiler
 
 		var lexical = options.Lexical && !HasErrors(diagnostics) ? Cut(graph, diagnostics) : null;
 
+		// Trivia that gives back characters a class beside it also reads: exponential on a refused
+		// input. Over characters only — a grammar cut in two reads its trivia with a scanner, which
+		// never gives back what it took.
+		if (lexical is null && !HasErrors(diagnostics))
+			diagnostics.AddRange(TriviaOverlap.Check(graph));
+
 		// And the one question that has a different answer on the other side of the cut:
 		// over characters an overlap between an optional and what follows it is settled by
 		// backtracking, and over kinds a reading that fits is the one that stands.

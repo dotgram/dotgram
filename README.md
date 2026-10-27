@@ -368,7 +368,7 @@ using DotGram;
 [Gram("""
 	@using System.Globalization;
 
-	trivia = Std.Spacing?
+	trivia = { Std.Spacing? }
 
 	Value : @int = d: Std.Digits => @(int.Parse(d))
 	Point        = { Std.Digits ~ ('.' ~ Std.Digits)? }
@@ -541,7 +541,7 @@ generated from it:
 using DotGram;
 
 [Gram("""
-	trivia       = ' '*
+	trivia       = { ' '* }
 	wordboundary = ['a'..'z']
 
 	Version = "2000" | "2008" | "2022"
@@ -782,7 +782,7 @@ public static partial class Lexemes;
 
 [GramInclude(typeof(Lexemes), As = "Lex")]
 [Gram("""
-	trivia = ' '*
+	trivia = { ' '* }
 
 	Setting : @string = key: Lex.Word & '=' & value: Lex.Digits => @(key + " is " + value)
 
@@ -923,7 +923,7 @@ that language rather than as text:
 
 ```csharp
 [Gram("""
-	trivia = ' '*
+	trivia = { ' '* }
 
 	Word   = ['a'..'z']+
 	Filter = field: Word & '=' & value: Word

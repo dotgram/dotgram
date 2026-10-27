@@ -1395,10 +1395,11 @@ WhitespaceAndComments = (Std.Spacing | Std.LineComment("//") | Std.BlockComment(
 A grammar to which whitespace is insignificant redefines one rule:
 
 ```dotgram
-trivia = WhitespaceAndComments
+trivia = { WhitespaceAndComments }
 ```
 
-No directive, no mode: it is an ordinary rule, and `none` is expressed in the language
+The braces make what trivia reads stay read, and are worth writing every time; why is
+below. No directive, no mode: it is an ordinary rule, and `none` is expressed in the language
 itself as `any{0}` rather than by a new primitive.
 
 **At every seam between the operands of a sequence.** The turns of a repetition are such a
@@ -1414,7 +1415,7 @@ alternative that ends in a guard ends where its last reading operand did, exactl
 guard-free twin does.
 
 ```dotgram
-trivia = Whitespace
+trivia = { Whitespace }
 
 Pair    = Word & Word            // matches "ab cd"
 List    = Word & (',' & Word)*   // matches "a , b , c" — the repeated part is a sequence
@@ -1470,6 +1471,19 @@ needs them too: before an optional part a lexeme may end with, the spaces can be
 seam inside the lexeme or by the one after it, two readings of every such lexeme unless the
 trivia or the lexeme is braced.
 
+**And wherever what stands beside a seam reads what trivia reads, braces are what keeps a
+refusal from taking minutes.** `trivia = ' '*` beside `Field = [^ ',' | '\n']+` — the first
+way a CSV file is written — gives every run of spaces next to a field as many readings as
+it is long: each space is the field's last character or the trivia's first. Trivia without
+braces offers every one of them back. An input that is accepted takes the first reading;
+one that is refused is refused only once every combination at every seam has been tried,
+which is exponential in the number of seams — a few rows of a malformed file take seconds,
+six take over a minute. `trivia = { ' '* }` reads each run once. The compiler tells the
+shape (`GRAM4051`, a warning): trivia without braces whose characters a class, `any` or a
+negated class at the edge of an operand beside one of its seams also reads. Braces on the
+trivia, or on the rule it forwards to, silence it; joining the two with `~` (below) leaves
+no seam to tell.
+
 Braced trivia is read by a scanner, which reads what it calls in place and so cannot follow
 a rule that reaches itself. A comment that holds others is the one such rule trivia needs,
 and is written `Std.Nested("/*", "*/")` (§5.2), which a scanner reads with a counter.
@@ -1505,7 +1519,7 @@ intention.
 **Switching per block is the shadowing from §5**, not a separate mechanism:
 
 ```dotgram
-trivia = WhitespaceAndComments
+trivia = { WhitespaceAndComments }
 
 namespace Lexical
 {
