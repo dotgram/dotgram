@@ -240,6 +240,8 @@ public sealed class CompileOracleTests
 			BufferedInput  = one.Buffered,
 			BufferedBytes  = one.Bytes,
 			SpanCaptures   = one.Spans,
+			LocationType   = one.PerCall ? "Grammar.ILoc" : null,
+			LocatedFacade  = one.PerCall ? "Located" : null,
 		});
 
 		var error = result.Diagnostics.FirstOrDefault(static diagnostic => diagnostic.Severity == GramSeverity.Error);
@@ -261,24 +263,26 @@ public sealed class CompileOracleTests
 	static readonly object Refusing = new();
 
 	/// <summary>One grammar and the options it is compiled under.</summary>
-	internal sealed record Case(int Seed, int Round, string Text, bool Direct, bool Lexical, bool Trace, bool Split, bool Tape, bool Buffered, bool Bytes, bool Spans)
+	internal sealed record Case(int Seed, int Round, string Text, bool Direct, bool Lexical, bool Trace, bool Split, bool Tape, bool Buffered, bool Bytes, bool Spans, bool PerCall)
 	{
 		public string Describe()
 		{
 			return $"seed {Seed}, round {Round}: Direct={Direct} Lexical={Lexical} Trace={Trace} Split={Split} Tape={Tape} " +
-				$"BufferedInput={Buffered} BufferedBytes={Bytes} SpanCaptures={Spans}\n--- grammar ---\n{Text}\n---";
+				$"BufferedInput={Buffered} BufferedBytes={Bytes} SpanCaptures={Spans} PerCall={PerCall}\n--- grammar ---\n{Text}\n---";
 		}
 	}
 
 	/// <summary>
 	/// What the grammars may call in the host: recognizers over spans, over the input view, with a value
-	/// and with the context, each for characters and for bytes, and the text helper the constructions
-	/// hand a raw capture to.
+	/// and with the context, each for characters and for bytes, the text helper the constructions
+	/// hand a raw capture to, and a value told where it was written.
 	/// </summary>
 	static class Host
 	{
 		const string Always = """
 			public sealed class Ctx { public int N; }
+			public interface ILoc { void Locate(int at, int length); void Locate(int at, int length, int gapStart); }
+			public sealed class Loc : ILoc { public int At; public void Locate(int at, int length) { At = at; } public void Locate(int at, int length, int gapStart) { At = at; } }
 			static bool Odd(System.ReadOnlySpan<char> input, ref int p) { if (p < input.Length && input[p] == 'o') { p++; return true; } return false; }
 			static bool Odd(System.ReadOnlySpan<byte> input, ref int p) { if (p < input.Length && input[p] == (byte)'o') { p++; return true; } return false; }
 			static bool Num(System.ReadOnlySpan<char> input, ref int p, out int value) { value = 0; while (p < input.Length && input[p] >= '0' && input[p] <= '9') { value++; p++; } return value > 0; }
@@ -321,6 +325,12 @@ public sealed class CompileOracleTests
 		bool _context;
 
 		bool _lexical;
+
+		/// <summary>Whether the grammar declares a <c>wordboundary</c>, under which a keyword looks behind where it begins.</summary>
+		bool _words;
+
+		/// <summary>Whether a door that locates is decided per call, beside rules whose values are told where they were written.</summary>
+		bool _perCall;
 
 		/// <summary>Whether a form over a buffer or bytes is asked for, which a recognizer over a span refuses.</summary>
 		bool _buffered;
@@ -368,10 +378,15 @@ public sealed class CompileOracleTests
 			if (_context)
 				text.Append("context : @Ctx\n");
 
+			_words = !_lexical && Chance(20);
+
+			if (_words)
+				text.Append("wordboundary = ['a'..'z']\n");
+
 			if (_lexical)
 				text.Append("trivia = { ' '* }\nnamespace Lexical\n{\n\ttrivia = none\n\tWord = { ['a'..'z']+ }\n\tDigits : @int = { ['0'..'9']+ } => @(parserText.Length)\n}\n");
-			else if (Chance(15))
-				text.Append(Pick("trivia = ' '*\n", "trivia = { ' '* }\n"));
+			else if (Chance(20))
+				text.Append(Pick("trivia = ' '*\n", "trivia = { ' '* }\n", "trivia = { (' ' | Std.Nested(\"/*\", \"*/\"))* }\n", "trivia = (' ' | Std.Nested(\"/*\", \"*/\"))*\n"));
 
 			for (var i = count - 1; i >= 0; i--)
 				_rules.Insert(0, Rule(i));
@@ -386,6 +401,12 @@ public sealed class CompileOracleTests
 			if (_rules.Any(static rule => rule.Contains("recover Sync", StringComparison.Ordinal)))
 				_rules.Add("Sync : @int = n: ['0'..'9']* & ';' => @(n.Length)");
 
+			// Values told where they were written, in a repetition a reader may hand over one at a time.
+			_perCall = !_segments && Chance(15);
+
+			if (_perCall)
+				_rules.Add(Pick("L0 : @Loc[] = L1*", "L0 : @Loc[] = L1* recover eol", "L0 : @Loc[] = '{' & ls: L1* & '}' => @(ls)") + "\nL1 : @Loc = 'k' & " + Pick("eol", "';' & eol", "['a'..'c']+ & eol") + " => @(new Loc())");
+
 			foreach (var rule in _rules)
 				text.Append(rule).Append('\n');
 
@@ -397,10 +418,13 @@ public sealed class CompileOracleTests
 				if (Chance(35) || !_rules.Take(i).Any(rule => Calls(rule, i)))
 					text.Append(Publication($"R{i}", $"P{i}"));
 
+			if (_perCall)
+				text.Append(Publication("L0", "PL"));
+
 			return new Case(
 				seed, round, text.ToString(),
 				Direct: Chance(65), Lexical: _lexical, Trace: Chance(25), Split: Chance(20), Tape: Chance(20),
-				Buffered: _buffered && Chance(50), Bytes: _buffered && Chance(40), Spans: Chance(20));
+				Buffered: _buffered && Chance(50), Bytes: _buffered && Chance(40), Spans: Chance(20), PerCall: _perCall);
 		}
 
 		/// <summary>Whether a rule is a sequence of the values of one rule and nothing else, which is what may be yielded.</summary>
@@ -470,7 +494,7 @@ public sealed class CompileOracleTests
 		string ListBody(int index)
 		{
 			var element = Element(index);
-			var end     = _segments ? Pick("eos", "';' & eos") : Pick("';'", "eol", "@Odd", "(';' | eol)");
+			var end     = _segments ? Pick("eos", "';' & eos") : Chance(50) ? Pick("';'", "eol", "@Odd", "(';' | eol)") : Sync();
 			var each    = element ?? Pick("('x' & ';')", "(['a'..'c']+ & ';')");
 			var recover = Chance(60) ? $" recover {end}" + (element is not null && Chance(50) ? $" => @({Pick("0", "parserText.Length", "(int)parserPosition", "parserOrdinal")})" : "") : "";
 
@@ -618,9 +642,31 @@ public sealed class CompileOracleTests
 				case 26: return ($"({inner} | {Operand(index, depth - 1).Operand})", null);
 				case 27: return ($"Twice({body})", null);
 				case 28 when _looking == 0:
-					return ($"({body})* recover {(_segments ? "eos" : Pick("';'", "eol", _buffered ? "@Peek" : "@Odd", "@Peek", "(';' & when @(true))", "Sync"))}", null);
+					return ($"({body})* recover {(_segments ? "eos" : Chance(50) ? Pick("';'", "eol", _buffered ? "@Peek" : "@Odd", "@Peek", "(';' & when @(true))", "Sync") : Sync())}", null);
 				default: return (inner, held);
 			}
+		}
+
+		/// <summary>
+		/// A synchronization that reads what a body would: a recognizer of the host, one over the input view
+		/// or handed the context, a keyword that looks behind where it begins, a character past what a byte
+		/// holds, and a rule that builds. Every question about what a rule reads asks it as it asks a body.
+		/// </summary>
+		string Sync()
+		{
+			var picks = new List<string> { "@Peek", "Sync", "'Ā'", "(\"é\" & ';')", "(?=@Peek & eol)" };
+
+			if (!_buffered)
+				picks.AddRange(["@Odd", "@Num", "@Gen<int>"]);
+
+			// Handed the context, and drawn where none is declared too: that is refused, as in a body.
+			if (_context || Chance(20))
+				picks.AddRange(["@Sized", "(@Sized & ';')"]);
+
+			if (_words)
+				picks.AddRange(["\"end\"", "(\"end\" & eol)", "(';' | \"end\")"]);
+
+			return Pick([.. picks]);
 		}
 
 		/// <summary>Whether a shape drawn may match no input, for all this can tell from its text.</summary>
