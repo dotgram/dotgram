@@ -907,7 +907,7 @@ namespace DotGram.Snapshots
 
 			while (true)
 			{
-				triviaFailureLead = new Failure { Origin = window.Origin() };
+				triviaFailureLead = new Failure { Origin = window.Offset };
 				triviaEndLead = WholeTrivia_DotGram_Config(window.Span(), start, ref triviaFailureLead);
 
 				if (((triviaEndLead < 0 ? triviaFailureLead.Position : triviaEndLead) >= window.Length || triviaFailureLead.Starved) && !window.Ended)
@@ -933,7 +933,7 @@ namespace DotGram.Snapshots
 
 				while (true)
 				{
-					seamFailure0 = new Failure { Origin = window.Origin() };
+					seamFailure0 = new Failure { Origin = window.Offset };
 					seamEnd0     = Rec_DotGram_trivia(window.Span(), start, ref seamFailure0);
 
 					if (((seamEnd0 < 0 ? seamFailure0.Position : seamEnd0) >= window.Length || seamFailure0.Starved) && !window.Ended)
@@ -957,7 +957,7 @@ namespace DotGram.Snapshots
 
 				while (true)
 				{
-					failure0 = new Failure { Origin = window.Origin() };
+					failure0 = new Failure { Origin = window.Offset };
 					end0     = Rec_DotGram_Entry(window.Span(), start, ref failure0, out value0);
 
 					if (((end0 < 0 ? failure0.Position : end0) >= window.Length || failure0.Starved) && !window.Ended)
@@ -984,7 +984,7 @@ namespace DotGram.Snapshots
 
 			while (true)
 			{
-				triviaFailureTrail = new Failure { Origin = window.Origin() };
+				triviaFailureTrail = new Failure { Origin = window.Offset };
 				triviaEndTrail = WholeTrivia_DotGram_Config(window.Span(), start, ref triviaFailureTrail);
 
 				if (((triviaEndTrail < 0 ? triviaFailureTrail.Position : triviaEndTrail) >= window.Length || triviaFailureTrail.Starved) && !window.Ended)
@@ -1158,7 +1158,7 @@ namespace DotGram.Snapshots
 						global::System.Diagnostics.Debug.Assert(captured1_0From >= 0);
 						var captured1 = New_DotGram_Rest(captured1_0From < 0 ? string.Empty : text.Slice(captured1_0From, captured1_0To - captured1_0From).ToString());
 
-						values1[completedAt] = New_DotGram_Entry(new SourceSpan(parser.Origin + completed.Position, completed.Value - completed.Position), captured0!, captured1!);
+						values1[completedAt] = New_DotGram_Entry(new SourceSpan(Window_DotGram.Placed(parser.Origin + completed.Position), completed.Value - completed.Position), captured0!, captured1!);
 						break;
 					}
 					case 3:
@@ -1185,7 +1185,7 @@ namespace DotGram.Snapshots
 						global::System.Diagnostics.Debug.Assert(captured0_0From >= 0);
 						var captured0 = New_DotGram_Word(captured0_0From < 0 ? string.Empty : text.Slice(captured0_0From, captured0_0To - captured0_0From).ToString());
 
-						values2[completedAt] = New_DotGram_Name(new SourceSpan(parser.Origin + completed.Position, completed.Value - completed.Position), captured0!);
+						values2[completedAt] = New_DotGram_Name(new SourceSpan(Window_DotGram.Placed(parser.Origin + completed.Position), completed.Value - completed.Position), captured0!);
 						break;
 					}
 					case 4:
@@ -1486,7 +1486,7 @@ namespace DotGram.Snapshots
 
 			public int OutOfInput;
 		public int Began;
-		public int Origin;
+		public long Origin;
 
 			public bool Starved;
 
@@ -1572,14 +1572,14 @@ namespace DotGram.Snapshots
 				get { return _offset; }
 			}
 
-			public int Origin()
+			public static int Placed(long at)
 			{
-				if (_offset + _filled > int.MaxValue)
+				if (at > int.MaxValue)
 					throw new global::System.InvalidOperationException(
-						"A place in the input is told as an int, and this input runs past " +
-						"2,147,483,647 characters (int.MaxValue): read it in parts, or locate nothing in it.");
+						"A place in the input is told as an int, and this one is past " +
+						"2,147,483,647 characters (int.MaxValue): read the input in parts, or locate nothing that far in.");
 
-				return (int)_offset;
+				return (int)at;
 			}
 
 			public global::System.ReadOnlySpan<char> Span()
@@ -1758,7 +1758,7 @@ namespace DotGram.Snapshots
 			Entry[] _values1 = global::System.Array.Empty<Entry>();
 			Place[] _values2 = global::System.Array.Empty<Place>();
 			string[] _values3 = global::System.Array.Empty<string>();
-			internal int Origin;
+			internal long Origin;
 			int[] _linkHeads = global::System.Array.Empty<int>();
 			int[] _linkNexts = global::System.Array.Empty<int>();
 

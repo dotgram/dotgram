@@ -499,8 +499,8 @@ public sealed class StreamedPositionTests
 	}
 
 	/// <summary>
-	/// A place is told as an <c>int</c>, and a window that reaches past <c>int.MaxValue</c> characters
-	/// says so rather than tell a place that wrapped round to a negative one: a located value, a guard's
+	/// A place is told as an <c>int</c>, and one past <c>int.MaxValue</c> characters is refused rather
+	/// than told as a place that wrapped round to a negative one: a located value, a guard's
 	/// span and a recovery's. The window is begun just short of the limit, standing in for two gigabytes
 	/// of input read before it; a short input still fits, and is told its places from there.
 	/// </summary>
@@ -541,6 +541,43 @@ public sealed class StreamedPositionTests
 
 		Assert.Contains("InvalidOperationException", said, StringComparison.Ordinal);
 		Assert.Contains("2,147,483,647", said, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// What is refused is a place told past the range, not a window that reaches past it: a reading
+	/// that tells no place there, or tells one before it, reads on. The window is begun just short of
+	/// the limit, as above.
+	/// </summary>
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public void A_window_past_the_int_range_is_read_while_no_place_past_it_is_told(bool direct)
+	{
+		const long near = int.MaxValue - 10;
+
+		var parser = Located("""
+			Hit = 'a' & when @(parserSpan.Start >= 0)
+			find Hit
+			""", direct, CarrierKind.Auto, buffered: false);
+		var field  = "private long   _offset;";
+
+		Assert.True(parser.Streams);
+		Assert.Contains(field, parser.Source, StringComparison.Ordinal);
+
+		var late = new WindowEdge.Parser(
+			parser.Source.Replace(field, $"private long   _offset = {near}L;", StringComparison.Ordinal), "Grammar", null, Host, []);
+
+		string Found(string input)
+		{
+			return WindowEdge.Said(() => late.Call("FindHit", typeof(TextReader), new StringReader(input)));
+		}
+
+		var tail = new string('b', 40);
+
+		Assert.Equal("", Found(tail));
+		Assert.DoesNotContain("Exception", Found("ab" + tail), StringComparison.Ordinal);
+		Assert.Contains(near.ToString(System.Globalization.CultureInfo.InvariantCulture), Found("ab" + tail), StringComparison.Ordinal);
+		Assert.Contains("2,147,483,647", Found(tail + "a"), StringComparison.Ordinal);
 	}
 
 	/// <summary>Each value handed over, and for a match where it was found and what it holds.</summary>

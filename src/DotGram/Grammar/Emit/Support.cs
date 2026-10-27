@@ -299,22 +299,22 @@ public static partial class CSharpEmitter
 			// <origin>
 
 			/// <summary>
-			/// Where the window begins in the whole input, as the <c>int</c> a place is told in: a
-			/// located value's span, a guard's or a recovery's.
+			/// A place in the whole input, as the <c>int</c> it is told in: a located value's span, a
+			/// guard's, a recovery's or a mark's.
 			/// </summary>
 			/// <remarks>
-			/// Every place in the window has to fit, the one just past its end included. Past that the
-			/// input is too long to be told places in, and saying so is better than telling a place that
-			/// has wrapped round to a negative one.
+			/// Asked where a place is told and not of the window, so that a long input is read as far
+			/// as it tells no place past the range. Saying so there is better than telling a place
+			/// that has wrapped round to a negative one.
 			/// </remarks>
-			public int Origin()
+			public static int Placed(long at)
 			{
-				if (_offset + _filled > int.MaxValue)
+				if (at > int.MaxValue)
 					throw new global::System.InvalidOperationException(
-						"A place in the input is told as an int, and this input runs past " +
-						"2,147,483,647 characters (int.MaxValue): read it in parts, or locate nothing in it.");
+						"A place in the input is told as an int, and this one is past " +
+						"2,147,483,647 characters (int.MaxValue): read the input in parts, or locate nothing that far in.");
 
-				return (int)_offset;
+				return (int)at;
 			}
 			// </origin>
 
@@ -1082,7 +1082,7 @@ public static partial class CSharpEmitter
 	/// </remarks>
 	const string OriginField = """
 		/// <summary>Where the text being read begins in the input: zero, except through a window.</summary>
-		public int Origin;
+		public long Origin;
 		""";
 
 	/// <summary>
@@ -1834,7 +1834,7 @@ public static partial class CSharpEmitter
 
 		// Where the text the engine was handed begins in the input, for the values it locates
 		// (Failure.Origin). Put back to nought with the parser, which a reading of a string reads.
-		runtime = CacheRuntime(runtime, "ORIGIN_FIELD", "internal int Origin;", origin);
+		runtime = CacheRuntime(runtime, "ORIGIN_FIELD", "internal long Origin;", origin);
 		runtime = CacheRuntime(runtime, "ORIGIN_RESET", "Origin = 0;", origin);
 		runtime = CacheRuntime(runtime, "ORIGIN_LINES_FIELD", "internal int OriginLine;\ninternal int OriginColumn;\ninternal int OriginSkip;", originLines);
 		runtime = CacheRuntime(runtime, "ORIGIN_LINES_RESET", "OriginLine = 0;\nOriginColumn = 0;\nOriginSkip = 0;", originLines);

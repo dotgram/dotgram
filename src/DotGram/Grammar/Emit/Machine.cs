@@ -2002,7 +2002,7 @@ sealed partial class Machine
 	/// <summary>A position of the text handed to the machine, as a place in the whole input (<see cref="Places"/>).</summary>
 	string Placed(string position)
 	{
-		return Places ? $"parser.Origin + {position}" : position;
+		return Places ? $"{CSharpEmitter.WindowType}.Placed(parser.Origin + {position})" : position;
 	}
 
 	string ReadingParameter =>

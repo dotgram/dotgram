@@ -743,10 +743,10 @@ public static partial class CSharpEmitter
 				"parserLine" => "window.LineAt(from)",
 				"parserColumn" => "window.ColumnAt(from)",
 				// Where in the input, as every other place a streamed reading hands out: the window's
-				// origin added, in the `int` a span holds, which says so rather than wrap. A recovery
+				// offset added, in the `int` a span holds, which says so rather than wrap. A recovery
 				// factory may ask for it, which no stream refuses (Retention refuses a span a
 				// construction asks for).
-				"parserSpan" => "new SourceSpan(window.Origin() + from, to - from)",
+				"parserSpan" => $"new SourceSpan({WindowType}.Placed(window.Offset + from), to - from)",
 				"parserFailurePosition" => "window.Offset + from + reached",
 				"parserFailureLine" => "window.LineAt(from + reached)",
 				"parserFailureColumn" => "window.ColumnAt(from + reached)",
@@ -920,8 +920,9 @@ public static partial class CSharpEmitter
 	}
 
 	/// <summary>
-	/// Whether a reading of the window is told where it begins: where the machine is told (<see cref="Places"/>,
-	/// whichever way the reader forms read), or where a recovery the reading steps over asks for its span.
+	/// Whether a place read through the window is told as an <c>int</c> (<c>Window_DotGram.Placed</c>): where
+	/// the machine is told where the window begins (<see cref="Places"/>, whichever way the reader forms read),
+	/// or where a recovery the reading steps over asks for its span.
 	/// </summary>
 	internal static bool TellsOrigin(RecognitionGraph graph, bool overKinds)
 	{
@@ -1059,8 +1060,8 @@ public static partial class CSharpEmitter
 		return !places
 			? $"new {FailureType}()"
 			: !lines
-			? $"new {FailureType} {{ Origin = window.Origin() }}"
-			: $"new {FailureType} {{ Origin = window.Origin(), OriginLine = window.LineAt(0) - 1, OriginColumn = window.ColumnAt(0) - 1, " +
+			? $"new {FailureType} {{ Origin = window.Offset }}"
+			: $"new {FailureType} {{ Origin = window.Offset, OriginLine = window.LineAt(0) - 1, OriginColumn = window.ColumnAt(0) - 1, " +
 			  "OriginSkip = window.Length > 0 && window.Span()[0] == '\\n' && window.LineAt(1) == window.LineAt(0) ? 1 : 0 }";
 	}
 
