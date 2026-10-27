@@ -168,7 +168,7 @@ public sealed class EmptyRunCaptureTests
 	/// A guard before a later capture of the same name: the name is written after the guard, so
 	/// where the guard stands the run of no turn has to say it was reached.
 	/// </summary>
-	[Theory(Skip = "Open: the seed is decided over the whole construction, and a later capture of the same name hides a guard's need for it; optionality at a guard depends on its position.")]
+	[Theory]
 	[MemberData(nameof(StringReadings))]
 	public void A_guard_before_a_later_capture_of_the_same_name_sees_the_run_as_empty_text(CarrierKind carrier, bool direct)
 	{
@@ -179,6 +179,27 @@ public sealed class EmptyRunCaptureTests
 			""", carrier, direct, buffered: false);
 
 		Same(assembly, "TryParseR", "xb", "b", buffered: false);
+		Same(assembly, "TryParseR", "a,a,xb", "aab", buffered: false);
+
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseR", "b").IsSuccess);
+	}
+
+	/// <summary>
+	/// The same where every route reaches the run: a run of no turn is reached all the same, and a
+	/// guard after it sees <c>""</c>, however the name is written later.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(StringReadings))]
+	public void A_guard_after_a_run_every_route_reaches_sees_the_run_as_empty_text(CarrierKind carrier, bool direct)
+	{
+		var assembly = Compile(
+			"""
+			R : @string = (c: 'a' & ',')* & when @(c != null) & c: 'b' => @(c)
+			parse R
+			""", carrier, direct, buffered: false);
+
+		Same(assembly, "TryParseR", "b", "b", buffered: false);
+		Same(assembly, "TryParseR", "a,b", "ab", buffered: false);
 	}
 
 	/// <summary>

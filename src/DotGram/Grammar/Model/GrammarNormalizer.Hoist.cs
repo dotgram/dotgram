@@ -219,20 +219,24 @@ public sealed partial class GrammarNormalizer
 		}
 
 		// The names a rule captures as text and may leave unwritten where a value is built from
-		// them: the rule's members that are optional, and the names an alternative that builds —
-		// a `=>`, the base or a step of a fold — may leave unwritten. A fold's step writing a
-		// name says nothing of the base, which is built before any step is read. In the order
-		// they are first captured, so that the seeds of one run stand in an order the next
-		// generation repeats.
+		// them: the rule's members that are optional, the names an alternative that builds —
+		// a `=>`, the base or a step of a fold — may leave unwritten, and the names a guard reads
+		// that may be unwritten where it stands. A fold's step writing a name says nothing of the
+		// base, which is built before any step is read; a capture after a guard says nothing of
+		// what the guard is handed. In the order they are first captured, so that the seeds of
+		// one run stand in an order the next generation repeats.
 		List<string> OptionalText(Node body)
 		{
 			var seen   = new HashSet<string>(StringComparer.Ordinal);
 			var names  = new List<string>();
 			var builds = new List<Node>();
+			var guards = new List<Node.Guard>();
 
 			foreach (var one in Unlooked(body))
 				if (one is Node.Construct)
 					builds.Add(one);
+				else if (one is Node.Guard guard)
+					guards.Add(guard);
 
 			if (loop is not null && body is Node.Sequence([var start, ..]) && !ReferenceEquals(start, loop))
 				builds.Add(start);
@@ -241,12 +245,45 @@ public sealed partial class GrammarNormalizer
 				if (one is Node.Capture(var name, var captured) &&
 					CaptureLayout.ValuedCall(captured, BuildsValue) is null &&
 					seen.Add(name) &&
-					(!Writes(body, name) || builds.Exists(built => Captures(built, name) && !Writes(built, name))))
+					(!Writes(body, name) || builds.Exists(built => Captures(built, name) && !Writes(built, name)) ||
+					 guards.Exists(guard => Names(guard.Text, name) && !WrittenBefore(body, guard, name))))
 				{
 					names.Add(name);
 				}
 
 			return names;
+		}
+
+		// Whether every route from the start of a node to a guard inside it writes a name: in a
+		// sequence, a part before the one that holds the guard writes it, or that part does on
+		// the way in. An earlier turn of a repetition does not count, since the first turn has
+		// none before it.
+		static bool WrittenBefore(Node node, Node guard, string name)
+		{
+			if (node is Node.Sequence(var parts))
+			{
+				foreach (var part in parts)
+				{
+					if (Holds(part, guard))
+						return WrittenBefore(part, guard, name);
+
+					if (Writes(part, name))
+						return true;
+				}
+
+				return false;
+			}
+
+			foreach (var child in node.Children)
+				if (Holds(child, guard))
+					return WrittenBefore(child, guard, name);
+
+			return false;
+		}
+
+		static bool Holds(Node node, Node guard)
+		{
+			return Unlooked(node).Any(one => ReferenceEquals(one, guard));
 		}
 
 		static bool Captures(Node node, string name)
