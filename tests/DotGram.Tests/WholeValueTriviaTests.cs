@@ -129,6 +129,21 @@ public sealed class WholeValueTriviaTests
 			false,
 			[("  a  ", "a"), (" a", "a"), ("a ", "a")]),
 
+		["a span built by the rule"] = (
+			Spaces + "Tail : @SourceSpan = 'b'+\nRoot : @SourceSpan = 'a' & tail: Tail => @(tail)\nparse Root\n",
+			true,
+			[("abb", "1,2"), ("  a bb  ", "4,2"), ("a b", "2,1")]),
+
+		["a span built from the rule's own"] = (
+			Spaces + "Root : @SourceSpan = 'a' & 'b'+ & 'c' => @(new SourceSpan(parserSpan.Start + 1, parserSpan.Length - 2))\nparse Root\n",
+			true,
+			[("abc", "1,1"), ("  abbc ", "3,2"), ("a b c", "1,3")]),
+
+		["the last of the spans built by a repeated rule"] = (
+			Spaces + "Letters : @SourceSpan = ['a'..'z']+\nWord : @SourceSpan = '<' & w: Letters & '>' => @(w)\nRoot : @SourceSpan = items: Word+ => @(items[items.Length - 1])\nparse Root\n",
+			false,
+			[("<a><bc>", "4,2"), (" <a> < bc > ", "7,2")]),
+
 		["the text a guard reads"] = (
 			Spaces + "Root : @string = 'a' & 'b' & when @(parserText.StartsWith(\"a\")) => @(parserText)\nparse Root\n",
 			false,
@@ -201,6 +216,35 @@ public sealed class WholeValueTriviaTests
 		var read = Compile(grammar, new GramCompilerOptions { Direct = direct, Lexical = true }).GetType("Grammar")!;
 
 		foreach (var (input, value) in new[] { ("ab:cd", "ab:cd"), ("  ab:cd", "ab:cd"), ("ab : cd  ", "ab : cd"), ("  ab: cd  ", "ab: cd") })
+		{
+			Assert.Equal((true, value), Read(over.GetMethod("TryParseRoot", [typeof(string)])!.Invoke(null, [input])!));
+			Assert.Equal((true, value), Read(read.GetMethod("TryParseRoot", [typeof(string)])!.Invoke(null, [input])!));
+		}
+	}
+
+	/// <summary>A span a rule builds is the one it built over tokens as over characters.</summary>
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void A_span_built_by_the_rule_over_tokens_is_the_one_built_over_characters(bool direct)
+	{
+		const string grammar =
+			"""
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				Word = ['a'..'z']+
+			}
+			Tail : @SourceSpan = Lexical.Word
+			Root : @SourceSpan = Lexical.Word & tail: Tail => @(tail)
+			parse Root
+			""";
+
+		var over = Compile(grammar, new GramCompilerOptions { Direct = direct }).GetType("Grammar")!;
+		var read = Compile(grammar, new GramCompilerOptions { Direct = direct, Lexical = true }).GetType("Grammar")!;
+
+		foreach (var (input, value) in new[] { ("ab cd", "3,2"), ("  ab   cde  ", "7,3") })
 		{
 			Assert.Equal((true, value), Read(over.GetMethod("TryParseRoot", [typeof(string)])!.Invoke(null, [input])!));
 			Assert.Equal((true, value), Read(read.GetMethod("TryParseRoot", [typeof(string)])!.Invoke(null, [input])!));
