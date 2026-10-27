@@ -2124,7 +2124,7 @@ namespace DotGram.Snapshots
 
 					S25:
 					{
-						var scanned = ScanValue_DotGram_eof(text, p, ref failure);
+						var scanned = ScanValue_DotGram_eof(text, p);
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2268,7 +2268,7 @@ namespace DotGram.Snapshots
 
 					S37:
 					{
-						var scanned = ScanValue_DotGram_eof(text, p, ref failure);
+						var scanned = ScanValue_DotGram_eof(text, p);
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2385,7 +2385,7 @@ namespace DotGram.Snapshots
 
 					S46:
 					{
-						var scanned = ScanValue_DotGram_eof(text, p, ref failure);
+						var scanned = ScanValue_DotGram_eof(text, p);
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2777,7 +2777,7 @@ namespace DotGram.Snapshots
 
 					S74:
 					{
-						var scanned = ScanValue_DotGram_eof(text, p, ref failure);
+						var scanned = ScanValue_DotGram_eof(text, p);
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -2894,7 +2894,7 @@ namespace DotGram.Snapshots
 
 					S83:
 					{
-						var scanned = ScanValue_DotGram_eof(text, p, ref failure);
+						var scanned = ScanValue_DotGram_eof(text, p);
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -3189,7 +3189,7 @@ namespace DotGram.Snapshots
 
 					S106:
 					{
-						var scanned = ScanValue_DotGram_any(text, p, ref failure);
+						var scanned = ScanValue_DotGram_any(text, p);
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -3416,7 +3416,7 @@ namespace DotGram.Snapshots
 
 					S121:
 					{
-						var scanned = ScanValue_DotGram_any(text, p, ref failure);
+						var scanned = ScanValue_DotGram_any(text, p);
 						if (scanned < 0)
 						{
 							p = -1 - scanned;
@@ -3591,7 +3591,7 @@ namespace DotGram.Snapshots
 				}
 			}
 
-			static int ScanValue_DotGram_eof(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+			static int ScanValue_DotGram_eof(global::System.ReadOnlySpan<char> text, int pos)
 			{
 				var p = pos;
 				var mark0 = 0;
@@ -3609,7 +3609,7 @@ namespace DotGram.Snapshots
 				return -1 - p;
 			}
 
-			static int ScanValue_DotGram_any(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+			static int ScanValue_DotGram_any(global::System.ReadOnlySpan<char> text, int pos)
 			{
 				var p = pos;
 
