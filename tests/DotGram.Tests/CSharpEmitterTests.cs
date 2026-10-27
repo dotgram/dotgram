@@ -2125,7 +2125,9 @@ public sealed class CSharpEmitterTests
 
 		Assert.Contains("static int Scan_DotGram_trivia(", source, StringComparison.Ordinal);
 		// Handed back how far it got, too: a comment the input ends inside is refused there (§7.5).
-		Assert.Contains("p = Scan_DotGram_trivia(text, p, out var scanReached);", source, StringComparison.Ordinal);
+		// The scanner takes the failure: a literal of more than one character is in the grammar, and a
+		// scan inside a positive look marks the input as run out inside one (Machine.MarksRunOut).
+		Assert.Contains("p = Scan_DotGram_trivia(text, p, ref failure, out var scanReached);", source, StringComparison.Ordinal);
 
 		// The seam pays a call, not an arena cycle: no atomic entry anywhere.
 		Assert.DoesNotContain("ParserEntry.Atomic, 0", source, StringComparison.Ordinal);
