@@ -89,6 +89,18 @@ public sealed class FormOutcomeTests
 		// Over kinds, a repetition short of its minimum that stopped at the end of the tokens says
 		// what it wanted: the direct reader says nothing and answers from the start.
 		["TokenRepetitionBelowMinimum"] = new(Lexical + "R0 = Lexical.Digits & ['a'..'c']+\nparse R0\n", "0", "string", 0, "Starved@1", Lexical: true),
+
+		// A positive look over a rule the engine reads as a scan: the literal the input ends inside
+		// marks the input as run out (§7.5), as it does read by methods, and the look keeps the
+		// mark. The scanner lost it, and the engine's string form said NoMatch where its buffered
+		// forms and the direct reader said Starved.
+		["LookOverScannedLiteralRanOut"] = new("R0 : @int = ?=R1 & when @(true) & 'z' => @(0)\nR1 = { \"ab\" }\nparse R0\n", "a", "string", 0, "Starved@0"),
+
+		// A recovering repetition from a position, where the first element is valid: both readers
+		// read nothing, the complete continuation — nothing, from a position — being tried first and
+		// succeeding (§8.2). Pinned as the readers' one answer; whether a reading from a position
+		// should read the valid elements it is handed is a question for the language.
+		["RecoveryFromAPositionReadsNothing"] = new("R1 : @int = 'z' & ';' => @(1)\nR0 : @int[] = R1* recover @Odd => @(0)\nparse R0\n", "z;", "at", 0, "Success@0+0 []", Buffered: false),
 	};
 
 	public static TheoryData<string> Names()
@@ -255,6 +267,8 @@ public sealed class FormOutcomeTests
 
 			foreach (var input in Inputs("abc; ", 5))
 			{
+				string? firstDirect = null, firstEngine = null, firstForm = null;
+
 				foreach (var form in forms)
 				{
 					var at = form == "at" ? Math.Min(1, input.Length) : 0;
@@ -263,6 +277,16 @@ public sealed class FormOutcomeTests
 
 					if (d != e && found++ < 3)
 						failures.Add($"round {round}, {form} \"{input}\": direct {d}, engine {e}\n{grammar}");
+
+					// And each reader agrees with itself across the forms (§7.5).
+					if (firstForm is null)
+					{
+						(firstDirect, firstEngine, firstForm) = (d, e, form);
+					}
+					else if (d is not null && e is not null && (d != firstDirect || e != firstEngine) && found++ < 3)
+					{
+						failures.Add($"round {round}, \"{input}\": {firstForm} direct {firstDirect} engine {firstEngine}, {form} direct {d} engine {e}\n{grammar}");
+					}
 				}
 
 				if (found >= 3)
@@ -516,6 +540,7 @@ public sealed class FormOutcomeTests
 			"at"     => type.GetMethod(name, [typeof(string), typeof(int)]),
 			"reader" => type.GetMethod(name, [typeof(TextReader), typeof(int?), typeof(int?)]),
 			"stream" => type.GetMethod(name, [typeof(Stream), typeof(int?), typeof(int?)]),
+			"bytes"  => type.GetMethod(name, [typeof(byte[])]),
 			_        => throw new ArgumentOutOfRangeException(nameof(form)),
 		};
 
@@ -531,6 +556,7 @@ public sealed class FormOutcomeTests
 				"string" => method.Invoke(null, [input])!,
 				"at"     => method.Invoke(null, [input, at])!,
 				"reader" => method.Invoke(null, [new StringReader(input), 1, null])!,
+				"bytes"  => method.Invoke(null, [Encoding.UTF8.GetBytes(input)])!,
 				_        => method.Invoke(null, [new MemoryStream(Encoding.UTF8.GetBytes(input)), 1, null])!,
 			};
 		}
@@ -549,9 +575,10 @@ public sealed class FormOutcomeTests
 
 		var value = Read("Value") switch
 		{
-			int[] many => "[" + string.Join(",", many) + "]",
-			null       => "null",
-			var one    => one.ToString(),
+			int[] many   => "[" + string.Join(",", many) + "]",
+			byte[] bytes => Encoding.UTF8.GetString(bytes),
+			null         => "null",
+			var one      => one.ToString(),
 		};
 
 		return $"Success@{Read("Position")}+{Read("Length")} {value}";
