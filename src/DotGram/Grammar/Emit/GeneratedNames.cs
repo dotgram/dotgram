@@ -65,7 +65,7 @@ public static partial class CSharpEmitter
 		"Traced", "TracedOwn",
 
 		// A machine's, named after the rule it was compiled for, or with no name where it is the only one.
-		"Recognize{v}", "RecognizeDispatch{v}", "RecognizePart{v}#", "RecognizeGuard{v}#", "RecognizeGuardKey{v}#", "RecognizeSharpen{v}#", "RecognizeFurther{v}", "RecognizeRanOut{v}",
+		"Recognize{v}", "RecognizeDispatch{v}", "RecognizePart{v}#", "RecognizeGuard{v}#", "RecognizeGuardKey{v}#", "RecognizeSharpen{v}#", "RecognizeFurther{v}", "RecognizeRanOut{v}", "RecognizeUnrecorded{v}",
 		"RecognizeAgreeing{v}", "RecognizeClass{v}#", "RecognizeBits{v}#", "RecognizeBit{v}", "RecognizeGroups{v}#",
 		"RecognizeSet{v}#", "RecognizeIn{v}", "RecognizeFoldSoFar{v}#",
 		"Materialize{v}", "MaterializePart{v}#", "MaterializeConstruct{v}#Part#", "MaterializeDirect{v}",
