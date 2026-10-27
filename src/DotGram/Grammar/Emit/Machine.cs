@@ -3816,7 +3816,7 @@ sealed partial class Machine
 							? inside
 							: _graph.Bodies[rule]))
 					{
-						atScan.Line($"p = {Scanning(rule, $"{scanner}(text, p{ScannerArguments}{reached})")};");
+						atScan.Line($"p = {Scanning(rule, $"{scanner}(text, p{ScannerArgumentsOf(rule)}{reached})")};");
 
 						if (reports)
 							RecordReached(atScan, node, DeclareExpected([Named(rule)]));
@@ -3825,7 +3825,7 @@ sealed partial class Machine
 					{
 						var arrayName = DeclareExpected([Named(rule)]);
 
-						atScan.Line($"var scanned = {Scanning(rule, $"{scanner}(text, p{ScannerArguments}{reached})")};");
+						atScan.Line($"var scanned = {Scanning(rule, $"{scanner}(text, p{ScannerArgumentsOf(rule)}{reached})")};");
 						atScan.Line("if (scanned < 0)");
 
 						using (atScan.Block(""))
