@@ -348,7 +348,7 @@ sealed partial class Machine
 		if (_scannerRunsOut.TryGetValue(rule, out var known))
 			return known;
 
-		var runsOut = new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _starves, StopCharacters, recordsRunOut: true)
+		var runsOut = new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _starves, StopCharacters, recordsRunOut: true, marksRunOut: MarksRunOut)
 			.Render(ScanBody(rule))
 			.Contains("ranOut", StringComparison.Ordinal);
 
@@ -385,10 +385,10 @@ sealed partial class Machine
 		// machine is being built.
 		var body    = ScanBody(rule);
 		var reports = SeamReached.Contains(rule)
-			? Tag != MachineTag.Seam && new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _starves, StopCharacters) { Seam = true }
+			? Tag != MachineTag.Seam && new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _starves, StopCharacters, marksRunOut: MarksRunOut) { Seam = true }
 				.Render(body, reports: true)
 				.Contains("> furthest", StringComparison.Ordinal)
-			: new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _starves, StopCharacters)
+			: new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _starves, StopCharacters, marksRunOut: MarksRunOut)
 				.Render(body, reports: true)
 				.Contains("> furthest", StringComparison.Ordinal);
 
@@ -420,6 +420,73 @@ sealed partial class Machine
 	/// <summary>And what a call to one hands over.</summary>
 	string ScannerArguments => _starves ? ", ref failure" : "";
 
+	/// <summary>
+	/// Whether the scanner of <paramref name="rule"/> takes the failure: where a window feeds the
+	/// machine, as every scanner does, and otherwise only where it marks the input as run out
+	/// (<see cref="MarksRunOut"/>) — a scanner that never writes to it is not handed it, which is
+	/// most of them.
+	/// </summary>
+	internal bool ScannerTakesFailure(RuleSymbol rule)
+	{
+		if (_starves)
+			return true;
+
+		if (!MarksRunOut)
+			return false;
+
+		if (_scannerMarks.TryGetValue(rule, out var known))
+			return known;
+
+		var marks = new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _starves, StopCharacters, marksRunOut: true)
+			.Render(ScanBody(rule))
+			.Contains("failure.OutOfInput", StringComparison.Ordinal);
+
+		_scannerMarks[rule] = marks;
+
+		return marks;
+	}
+
+	readonly Dictionary<RuleSymbol, bool> _scannerMarks = [];
+
+	/// <summary>The parameters of the scanner of <paramref name="rule"/> beyond the input.</summary>
+	string ScannerParametersOf(RuleSymbol rule)
+	{
+		return ScannerTakesFailure(rule) ? $", ref {CSharpEmitter.FailureType} failure" : "";
+	}
+
+	/// <summary>And what a call to it hands over.</summary>
+	internal string ScannerArgumentsOf(RuleSymbol rule)
+	{
+		return ScannerTakesFailure(rule) ? ", ref failure" : "";
+	}
+
+	/// <summary>
+	/// Whether some scanner of this machine can mark the input as run out: a literal of more than one
+	/// character is read in one, which the input may end inside. The mark is a positive look's to keep
+	/// (§7.5): a rule read as a scan inside one answered NoMatch where the same rule read by methods
+	/// answered Starved. Every scanner then takes the failure, as the streaming ones do. Not the seam
+	/// a lexer skips with (CSharpEmitter.Seam), which records no refusal and is called without one.
+	/// </summary>
+	internal bool MarksRunOut
+	{
+		get
+		{
+			if (_marksRunOut is { } known)
+				return known;
+
+			// Asked of every body rather than of the scanners alone: which rules are scanned is
+			// settled as they are met, and asking here would settle more of them while the
+			// scanners are being written out. A scanner given the failure it never writes to
+			// costs a reference at its call and nothing else.
+			_marksRunOut = Tag != MachineTag.Seam &&
+				_graph.Bodies.Values.Any(static body => NodeWalk.Descendants(body).Any(static one => one is Node.Literal { Text.Length: > 1 }));
+
+			return _marksRunOut.Value;
+		}
+	}
+
+	bool? _marksRunOut;
+
 	public string RenderScanners()
 	{
 		var file    = new Writer(0);
@@ -435,7 +502,7 @@ sealed partial class Machine
 			var rule = pair.Key;
 			var body = ScanBody(rule);
 
-			var scan  = new ScanWriter(_graph, Tabulate, one => RangesTest(one, Tabulate), Tag, _starves, StopCharacters, RecordsRunOut)
+			var scan  = new ScanWriter(_graph, Tabulate, one => RangesTest(one, Tabulate), Tag, _starves, StopCharacters, RecordsRunOut, ScannerTakesFailure(rule))
 			{
 				Seam = SeamReached.Contains(rule) && Tag != MachineTag.Seam,
 			};
@@ -446,7 +513,7 @@ sealed partial class Machine
 			file.Line($"/// <summary><c>{rule.Name}</c>, recognized with nothing written down.</summary>");
 
 			using (file.Block(
-				$"static int {name}(global::System.ReadOnlySpan<char> text, int pos{ScannerParameters}" +
+				$"static int {name}(global::System.ReadOnlySpan<char> text, int pos{ScannerParametersOf(rule)}" +
 				(ScannerRunsOut(rule) ? ", ref int ranOut" : "") +
 				(ScannerReports(rule) ? ", out int reachedAt)" : ")")))
 			{
@@ -882,8 +949,31 @@ sealed partial class Machine
 		MachineTag? tag = null,
 		bool starves = false,
 		Func<Node, char[]?>? stops = null,
-		bool recordsRunOut = false)
+		bool recordsRunOut = false,
+		bool marksRunOut = false)
 	{
+		/// <summary>How many negative looks the node being written is inside: nothing in one marks the input as run out.</summary>
+		int _negating;
+
+		/// <summary>
+		/// The mark of input that ran out inside a literal, where every character the input held agreed
+		/// with it (<paramref name="reached"/> is where the walk stopped): what a positive look over
+		/// this scan keeps, as the readers keep it for a literal read in place (Machine.Reached). Only
+		/// where the literal's refusal is the scan's own, or a sequence's way back to it: a turn or an
+		/// optional that stops agreeing is the loop ending, which no reader marks. Not inside a
+		/// negative look, which holds there and wants nothing more. The end is tested as every test of
+		/// the end here is (<see cref="Short"/>): where a window feeds the scan, it says it ran out.
+		/// </summary>
+		string Marked(string reached, string fail)
+		{
+			if (!marksRunOut || _negating > 0 || !(fail == "Refuse" || _restores.Contains(fail)))
+				return "";
+
+			var ended = $"(uint){reached} >= (uint)text.Length";
+
+			return $"if ({(starves ? $"({ended} && (failure.Starved = true))" : ended)} && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;";
+		}
+
 		/// <summary>
 		/// Whether fewer than <paramref name="count"/> characters remain, saying so where the scanner is told
 		/// of a window — every test of the end the scanner writes is this one, as the machine's are
@@ -1177,6 +1267,8 @@ sealed partial class Machine
 
 								code.Line($"var reached = {(tag ?? MachineTag.None).Named("Reach")}(text, p, {Spanned(text)});");
 								code.Line("if (reached > furthest) furthest = reached;");
+								if (Marked("reached", fail) is { Length: > 0 } marked)
+									code.Line(marked);
 								code.Line($"goto {fail};");
 							}
 
@@ -1185,6 +1277,17 @@ sealed partial class Machine
 								code.Line(ExitElse);
 								code.Then($"goto {fail};");
 								code.Line(ExitClose);
+							}
+						}
+						else if (Marked("reached", fail) is { Length: > 0 } marked)
+						{
+							_reaches = true;
+
+							using (code.Block(""))
+							{
+								code.Line($"var reached = {(tag ?? MachineTag.None).Named("Reach")}(text, p, {Spanned(text)});");
+								code.Line(marked);
+								code.Line($"goto {fail};");
 							}
 						}
 						else
@@ -1210,6 +1313,8 @@ sealed partial class Machine
 								code.Line("var reached = p;");
 								Machine.ReachLadder(code, text, folded, "reached", "text[reached]", "(uint)reached < (uint)text.Length");
 								code.Line(exit ? "if (reached > p && reached > furthest) furthest = reached;" : "if (reached > furthest) furthest = reached;");
+								if (Marked("reached", fail) is { Length: > 0 } marked)
+									code.Line(marked);
 								code.Line($"goto {fail};");
 							}
 
@@ -1218,6 +1323,18 @@ sealed partial class Machine
 								code.Line(ExitElse);
 								code.Line($"if ({Short(text.Length)}) goto {fail};");
 								code.Line(ExitClose);
+							}
+						}
+						else if (text.Length > 1 && Marked("reached", fail) is { Length: > 0 } marked)
+						{
+							code.Line($"if ({Short(text.Length)})");
+
+							using (code.Block(""))
+							{
+								code.Line("var reached = p;");
+								Machine.ReachLadder(code, text, folded, "reached", "text[reached]", "(uint)reached < (uint)text.Length");
+								code.Line(marked);
+								code.Line($"goto {fail};");
 							}
 						}
 						else
@@ -1330,10 +1447,15 @@ sealed partial class Machine
 						code.Write(written);
 						code.Line($"goto {over};");
 
+						// A way back inside a look raises nothing: the look puts the position back and
+						// what it read is not how far the scan came (as the readers record nothing
+						// inside one). `R1 = ?!(any & ?=("kK"i))` on `b` reported a reach of 1 from the
+						// look's own sequence, and the rule was refused there.
 						if (raises)
 						{
 							code.Line($"{restore}:");
-							code.Line("if (p > furthest) furthest = p;");
+							if (_lookingAhead == 0)
+								code.Line("if (p > furthest) furthest = p;");
 						}
 
 						if (quiet)
@@ -1454,7 +1576,9 @@ sealed partial class Machine
 					{
 						var absent = $"L{_labels++}_absent";
 
+						_negating++;
 						Emit(code, inside, absent, loaded);
+						_negating--;
 						code.Line($"p = mark{mark};");
 						code.Line($"goto {Quiet(fail)};");
 						code.Line($"{absent}: ;");
