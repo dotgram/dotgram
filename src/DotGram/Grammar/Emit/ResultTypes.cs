@@ -60,6 +60,7 @@ sealed class ResultTypes
 		var host   = SimpleNameOf(className);
 		var taken  = CSharpEmitter.TypeNamesTaken(host, traced, graph, lexical);
 		var wanted = new List<(RuleSymbol Rule, string Name)>();
+		var spans  = BuildsSpans(graph);
 
 		foreach (var rule in graph.Rules)
 		{
@@ -67,7 +68,7 @@ sealed class ResultTypes
 			// and what its captures are for is the `=>` that builds it.
 			if (graph.Types.TryGetValue(rule, out var declared))
 			{
-				_declared[rule] = declared == "SourceSpan" && BuildsSpan(graph.Bodies[rule]) ? BuiltSpan : declared;
+				_declared[rule] = declared == "SourceSpan" && spans ? BuiltSpan : declared;
 
 				continue;
 			}
@@ -121,19 +122,27 @@ sealed class ResultTypes
 	/// some other span — from a capture, say — which was handed back its whole extent instead. The
 	/// verbatim identifier names the same type to C#, and to the machine a struct like any other,
 	/// kept in a table of its own.
+	/// <para>
+	/// Every span rule of the grammar is spelled so once one of them builds, the ones that only ask
+	/// for their bounds included (their value is then built from <c>parserSpan</c>). One capture
+	/// may hold the value of either kind (<c>s: A =&gt; @(s) | s: B =&gt; @(s)</c>), and a value is
+	/// read by its type: a built span and an extent under one type are one storage, read one way.
+	/// </para>
 	/// </remarks>
 	public const string BuiltSpan = "@SourceSpan";
 
 	/// <summary>
-	/// Whether a <c>SourceSpan</c> rule builds its value: a construction that is anything but the
-	/// rule's own <c>parserSpan</c>, which is what normalization makes of a rule that only asked for
-	/// its bounds.
+	/// Whether a <c>SourceSpan</c> rule of the grammar builds its value: a construction that is
+	/// anything but the rule's own <c>parserSpan</c>, which is what normalization makes of a rule
+	/// that only asked for its bounds.
 	/// </summary>
-	static bool BuildsSpan(Node body)
+	static bool BuildsSpans(RecognitionGraph graph)
 	{
-		foreach (var node in NodeWalk.Descendants(body))
-			if (node is Node.Construct { How: not Construction.Expression { Text: "parserSpan" } })
-				return true;
+		foreach (var rule in graph.Rules)
+			if (graph.Types.TryGetValue(rule, out var type) && type == "SourceSpan" && graph.Bodies.TryGetValue(rule, out var body))
+				foreach (var node in NodeWalk.Descendants(body))
+					if (node is Node.Construct { How: not Construction.Expression { Text: "parserSpan" } })
+						return true;
 
 		return false;
 	}
