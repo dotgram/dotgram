@@ -231,6 +231,7 @@ static class Questions
 		var declared  = new List<string>();
 		var known     = new HashSet<string>(StringComparer.Ordinal);
 		var externals = new List<string>();
+		var called    = new List<string>();
 		var predicates = new List<string>();
 		var producers = new List<(string Method, string Against)>();
 		var contexts  = new List<string>();
@@ -368,6 +369,9 @@ static class Questions
 			questions.Add(Question.ValueOf(method));
 			questions.Add(Question.Recognizes(method));
 		}
+
+		foreach (var method in called)
+			questions.Add(Question.Recognizes(method));
 
 		foreach (var method in predicates)
 			questions.Add(Question.Tests(method));
@@ -516,8 +520,14 @@ static class Questions
 				// reached for [@Name] (ElementSet has no children) or for a when/=> value
 				// (Guard/Construct already returned above), so this is exactly the
 				// external-recognizer-as-operand shape.
-				case Expr.Reference(true, var method, _):
+				// Whether it can be called is asked as the call writes it, with its type arguments: a
+				// call of `F<int>` passes over every method of the name that is not generic.
+				case Expr.Reference(true, var method, var typeArguments):
 					externals.Add(method);
+
+					if (typeArguments.Count > 0)
+						called.Add(GrammarNormalizer.ExternalName(expression));
+
 					break;
 
 				// And [@Name], its first row: a predicate over one character, which is asked

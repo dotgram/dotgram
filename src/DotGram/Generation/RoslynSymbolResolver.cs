@@ -355,6 +355,8 @@ public sealed class RoslynSymbolResolver(
 	/// and where there is no host to look from nothing is looked for at all.
 	/// </para>
 	/// </remarks>
+	/// <param name="methodName">The name as the call writes it, with any type arguments: <c>F&lt;int&gt;</c> is looked up
+	/// among the generic methods of the name only, as C# looks it up.</param>
 	public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role)
 	{
 		if (_host is null || _compilation.GetTypeByMetadataName(_host) is not { } host)
@@ -383,7 +385,10 @@ public sealed class RoslynSymbolResolver(
 				return ExternalMethodResolution.Hidden;
 		}
 
-		foreach (var symbol in _compilation.GetSymbolsWithName(methodName, SymbolFilter.Member))
+		// The name alone, without the type arguments a call may give it.
+		var bare = methodName.IndexOf('<') is var open && open > 0 ? methodName.Substring(0, open) : methodName;
+
+		foreach (var symbol in _compilation.GetSymbolsWithName(bare, SymbolFilter.Member))
 		{
 			if (symbol is not IMethodSymbol method)
 				continue;
@@ -532,6 +537,9 @@ public sealed class RoslynSymbolResolver(
 	{
 		var text    = new System.Text.StringBuilder();
 		var closing = 0;
+
+		foreach (var alias in DotGram.Grammar.Emit.CSharpEmitter.ExternAliases(statics))
+			text.Append(alias).Append('\n');
 
 		if (@namespace is not null)
 		{

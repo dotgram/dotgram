@@ -26682,7 +26682,11 @@ search for the delimiter that found none jumped to the refusal without saying ho
   `global using static`, is hidden in the generated class by the `ParseStart` it writes (CS1501). And, read by
   methods, a text that a repetition inside a fold's step captures again was collected from a mark nothing declared
   (CS0103 `refs_Spans`).
-- **The change.** The import is written from the global namespace, by one function the call site writes it with too.
+- **The change.** The import is written under the root its class is reached from (`global::`, or the extern alias of
+  the reference that brings it in, which the file declares), by one function the call site writes it with too. That
+  changes what an included rule binds to beside a namespace of the same name, on purpose: unrooted, C# read it from the
+  host's namespace outward. A typed external, `@F<int>`, is asked about as the call writes it, so a generic recognizer is
+  looked up among the generic methods of its name, as C# does, and a publication's method does not hide it.
   A generic host is named as metadata names it (`Outer`1+Host`). The call site writes the second reading's nested
   class, asks what is callable from that class, and declares the publications' methods by name, so a name they hide
   is said on the grammar (GRAM4025) and a host's own recognizer of that name, an overload in the same class, is still

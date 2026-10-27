@@ -1592,7 +1592,7 @@ public sealed class GeneratorDriverTests
 			}
 			""",
 			"App.Inner.Outer+Host",
-			["App.Inner.G"],
+			["global::App.Inner.G"],
 			"App.Inner.Outer.Host.g.cs");
 	}
 
@@ -1848,6 +1848,51 @@ public sealed class GeneratorDriverTests
 			""");
 
 		Assert.Equal(7, assembly.GetType("OwnExternal")!.GetMethod("ParseStart", [typeof(string)])!.Invoke(null, ["x"]));
+	}
+
+	/// <summary>
+	/// A generic recognizer named like a publication's method is not hidden by it: the call gives
+	/// type arguments, and C# looks it up among the generic methods of the name only. In a second
+	/// reading's class, where the call stands, and imported.
+	/// </summary>
+	[Fact]
+	public void A_generic_recognizer_named_like_a_publication_is_called()
+	{
+		var assembly = BuildStrict(
+			"""
+			global using static Readers;
+
+			public static class Readers
+			{
+				public static bool ParseStart<TItem>(System.ReadOnlySpan<char> input, ref int pos)
+				{
+					pos = input.Length;
+
+					return true;
+				}
+			}
+
+			[DotGram.Gram("Start = @ParseStart<int>\nparse Start")]
+			[DotGram.GramOptions(Suffix = "Other")]
+			public partial class GenericOwn
+			{
+				static bool ParseStart<TItem>(System.ReadOnlySpan<char> input, ref int pos)
+				{
+					pos = input.Length;
+
+					return true;
+				}
+			}
+
+			[DotGram.Gram("Start = @ParseStart<int>\nparse Start")]
+			public partial class GenericImported
+			{
+			}
+			""");
+
+		Assert.True(EmittedCode.Match(assembly, "GenericOwn", "TryParseStart", "abc").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "GenericOwn+Other", "TryParseStart", "abc").IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "GenericImported", "TryParseStart", "abc").IsSuccess);
 	}
 
 	/// <summary>

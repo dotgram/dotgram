@@ -272,7 +272,7 @@ public sealed partial class GrammarNormalizer
 			switch (_resolver.TryResolveExternalValue(reader.Name, against: null, out var valueType))
 			{
 				case ExternalValueResolution.Found:
-					return CallTo(ExternalRuleFor(reader.Name, ExternalName(expression), valueType!), []);
+					return CallTo(ExternalRuleFor(ExternalName(expression), valueType!), []);
 
 				case ExternalValueResolution.Ambiguous:
 					Report(
@@ -288,7 +288,7 @@ public sealed partial class GrammarNormalizer
 					// And whether it can be called at all. Without this the grammar compiled and the C#
 					// compiler refused the call, in a generated file, at a line of it the author never
 					// wrote. The host says no only where it is sure (RoslynSymbolResolver).
-					switch (_resolver.ResolveExternalMethod(reader.Name, ExternalMethodRole.Recognizer))
+					switch (_resolver.ResolveExternalMethod(ExternalName(expression), ExternalMethodRole.Recognizer))
 					{
 						case ExternalMethodResolution.NoMethod:
 							Report(
@@ -320,7 +320,7 @@ public sealed partial class GrammarNormalizer
 							break;
 					}
 
-					return ExternalNode(reader.Name, ExternalName(expression));
+					return ExternalNode(ExternalName(expression));
 			}
 
 		return new Node.Element(false, [], [], [symbol]);
@@ -351,9 +351,10 @@ public sealed partial class GrammarNormalizer
 		return open < 0 ? written : written.Substring(0, open);
 	}
 
-	Node.External ExternalNode(string method, string written)
+	/// <remarks>Asked as the call is written, type arguments and all, which is what C# looks the name up by.</remarks>
+	Node.External ExternalNode(string written)
 	{
-		var resolution = _resolver.ResolveExternalMethod(method, ExternalMethodRole.Recognizer);
+		var resolution = _resolver.ResolveExternalMethod(written, ExternalMethodRole.Recognizer);
 
 		return new Node.External(written)
 		{
@@ -378,7 +379,7 @@ public sealed partial class GrammarNormalizer
 	/// is null (confirmed at <c>ComputeTypes</c>'s first line, the same guarantee every
 	/// built-in already relies on).
 	/// </remarks>
-	RuleSymbol ExternalRuleFor(string method, string written, string valueType)
+	RuleSymbol ExternalRuleFor(string written, string valueType)
 	{
 		if (_externals.TryGetValue(written, out var existing))
 			return existing;
@@ -387,7 +388,7 @@ public sealed partial class GrammarNormalizer
 
 		_externals[written] = rule;
 		_rules.Add(rule);
-		_bodies[rule] = ExternalNode(method, written) with { HasValue = true };
+		_bodies[rule] = ExternalNode(written) with { HasValue = true };
 		_types[rule]  = valueType;
 
 		return rule;

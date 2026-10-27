@@ -111,6 +111,49 @@ public sealed class ReferencedGrammarTests
 		Assert.Equal(consumer.IndexOf("DotGram.Gram(", StringComparison.Ordinal), unreached.Location.SourceSpan.Start);
 	}
 
+	/// <summary>
+	/// An included class in an assembly referenced under an extern alias, reached through a global
+	/// alias of its namespace: the generated file imports it through the extern alias, which is the
+	/// one root its namespace is under, and builds with warnings as errors.
+	/// </summary>
+	[Fact]
+	public void An_include_from_an_assembly_under_an_extern_alias_is_imported_through_the_alias()
+	{
+		const string library = """
+			namespace Lib
+			{
+				[DotGram.Gram("Rest = @M\nparse Rest")]
+				public partial class G
+				{
+					public static bool M(System.ReadOnlySpan<char> input, ref int pos)
+					{
+						pos = input.Length;
+
+						return true;
+					}
+				}
+			}
+			""";
+
+		const string consumer = """
+			extern alias X;
+			global using Lib = X::Lib;
+
+			namespace App
+			{
+				[DotGram.GramInclude(typeof(Lib.G))]
+				[DotGram.Gram("using G;\nStart = Rest\nparse Start")]
+				public partial class Host { }
+			}
+			""";
+
+		var image    = Emit("AliasLibrary", library);
+		var context  = new Context("AliasLibrary", image);
+		var built    = context.LoadFromStream(new MemoryStream(Emit("AliasConsumer", consumer, reference: image, aliases: ["X"])));
+
+		Assert.True(IsSuccess(built, "App.Host", "TryParseStart", "abc"));
+	}
+
 	static object? Call(Assembly assembly, string type, string method, string input)
 	{
 		return assembly.GetType(type, true)!.GetMethod(method, [typeof(string)])!.Invoke(null, [input]);
@@ -124,7 +167,8 @@ public sealed class ReferencedGrammarTests
 	}
 
 	/// <summary>The generator run over one source, and what it and the source make together.</summary>
-	static byte[] Emit(string name, string source, (string Path, string Text)? file = null, byte[]? reference = null)
+	/// <param name="aliases">The extern aliases the reference is given; with them, the build holds warnings to be errors.</param>
+	static byte[] Emit(string name, string source, (string Path, string Text)? file = null, byte[]? reference = null, string[]? aliases = null)
 	{
 		var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
 		var compilation  = CSharpCompilation.Create(
@@ -132,8 +176,10 @@ public sealed class ReferencedGrammarTests
 			[CSharpSyntaxTree.ParseText(source, parseOptions, name + ".cs")],
 			((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!).Split(Path.PathSeparator)
 				.Select(static path => (MetadataReference)MetadataReference.CreateFromFile(path))
-				.Concat(reference is null ? [] : [MetadataReference.CreateFromImage(reference)]),
-			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+				.Concat(reference is null ? [] : [MetadataReference.CreateFromImage(reference).WithAliases(aliases ?? [])]),
+			new CSharpCompilationOptions(
+				OutputKind.DynamicallyLinkedLibrary,
+				generalDiagnosticOption: aliases is null ? ReportDiagnostic.Default : ReportDiagnostic.Error));
 
 		CSharpGeneratorDriver
 			.Create(

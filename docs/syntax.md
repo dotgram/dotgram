@@ -2823,8 +2823,14 @@ different names they cannot collide at all, whatever they are called inside.
 
 **The C# comes with the grammar.** A rule that came from another grammar goes on calling
 the methods its author wrote on that grammar's class: the generated file names each
-included class with `using static global::`, and the code is in scope without the host deriving
-from anything. What that does not settle is two grammars' C# using one name, and the
+included class with `using static`, and the code is in scope without the host deriving
+from anything. The class is named by its full name under the root it is reached from —
+`global::App.G`, or `X::App.G` for an assembly referenced under the extern alias `X`, which
+the generated file then declares — and so it is the class the include names. Written unrooted,
+as it once was, the import was read from inside the host's namespace, where `App.G` beside a
+namespace `App.App` meant `App.App.G`: that was C#'s reading of what was written, and the
+rooted import is a change of what an included rule binds to, not a correction of it.
+What that does not settle is two grammars' C# using one name, and the
 answer is that it settles nothing: two included classes offering the same method is the
 compiler's ordinary ambiguity error, a method that resolves nowhere is its ordinary
 missing-method error, and a method of the host's own under a name an included rule calls

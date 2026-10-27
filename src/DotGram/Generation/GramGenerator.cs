@@ -306,7 +306,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 					new RoslynSymbolResolver(
 						compilation,
 						grammar.Host.MetadataName,
-						[.. grammar.Host.Includes.Items.Select(static one => one.ClassName)],
+						[.. grammar.Host.Includes.Items.Select(static one => one.Imported)],
 						grammar.Host.Suffix,
 						grammar.Host.SuffixDeclared,
 						grammar.Published.Items))),
@@ -1101,7 +1101,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// The host of every grammar this one is built on: what a rule from there calls
 			// lives beside it, and `using static` is what puts it in reach without the
 			// including class having to derive from anything.
-			StaticImports  = [.. host.Includes.Items.Select(static one => one.ClassName)],
+			StaticImports  = [.. host.Includes.Items.Select(static one => one.Imported)],
 			Portable       = host.Portable,
 			Carrier        = (CarrierKind)host.Carrier,
 			ConstructionsMayThrow = host.ConstructionsMayThrow,
@@ -1393,13 +1393,18 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// generator. What makes an include work across an assembly boundary, where the
 	/// <c>.gram</c> file is nowhere in reach.
 	/// </param>
+	/// <param name="Imported">
+	/// The class as the generated file imports it: its name under the root it is reached from,
+	/// <c>global::</c>, or the extern alias of the reference that brings it in.
+	/// </param>
 	readonly record struct Included(
 		string    Name,
 		string    ClassName,
 		string?   Source,
 		string?   Literal,
 		bool      Placed,
-		string?   Portable = null);
+		string?   Portable = null,
+		string    Imported = "");
 
 	/// <summary>
 	/// A class marked <c>[Gram]</c>, reduced to what generation needs.
@@ -1726,7 +1731,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			var hintName = type.ToDisplayString().Replace('<', '_').Replace('>', '_') +
 				(suffix is { Length: > 0 } ? "." + suffix : "");
 			var key      = hintName + "#" + reading.ToString(CultureInfo.InvariantCulture);
-			var included = Inherited(type);
+			var included = Inherited(type, candidate.SemanticModel.Compilation);
 
 			// Where the literal is: the first's where the grammar is, as the spelling is.
 			var literal = written == default
@@ -1833,13 +1838,28 @@ public sealed class GramGenerator : IIncrementalGenerator
 			};
 		}
 
+		/// <summary>
+		/// An included class by the root it is reached from: a reference with extern aliases and
+		/// no <c>global</c> among them puts its namespaces under the alias and not under
+		/// <c>global::</c>, and the generated file declares the alias it names.
+		/// </summary>
+		static string Imported(INamedTypeSymbol type, Compilation compilation)
+		{
+			var aliases = type.ContainingAssembly is { } assembly && compilation.GetMetadataReference(assembly) is { } reference
+				? reference.Properties.Aliases
+				: ImmutableArray<string>.Empty;
+			var root    = aliases.IsDefaultOrEmpty || aliases.Contains("global") ? "global" : aliases[0];
+
+			return root + "::" + type.ToDisplayString();
+		}
+
 		/// <summary>Every grammar this one is built on, nearest first.</summary>
 		/// <remarks>
 		/// The walk is <see cref="GramIncludes.Walk"/>, which the editor reads too, so that what
 		/// it analyses a grammar with is what this compiles it with. What is added here is
 		/// where each one's attribute is written, for a report to point at.
 		/// </remarks>
-		static ImmutableArray<(Included Included, Site.Base Site)> Inherited(INamedTypeSymbol type)
+		static ImmutableArray<(Included Included, Site.Base Site)> Inherited(INamedTypeSymbol type, Compilation compilation)
 		{
 			var included = ImmutableArray.CreateBuilder<(Included, Site.Base)>();
 
@@ -1867,7 +1887,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 						Source:    include.Source,
 						Literal:   spelled == default ? null : spelled.Text,
 						Placed:    at is not null,
-						Portable:  include.Portable),
+						Portable:  include.Portable,
+						Imported:  Imported(include.Type, compilation)),
 					new Site.Base(at, spelled == default ? 0 : spelled.SpanStart)));
 			}
 

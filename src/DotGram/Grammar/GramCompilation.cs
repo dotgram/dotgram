@@ -189,7 +189,9 @@ public sealed class GramCompilerOptions
 	public bool LocatedFacadeDeclared { get; set; }
 
 	/// <summary>
-	/// The classes whose static members the generated code may name, by qualified name.
+	/// The classes whose static members the generated code may name, each as a <c>using static</c>
+	/// names it: rooted, <c>global::App.G</c>, or <c>X::App.G</c> under an extern alias the
+	/// generated file then declares.
 	/// </summary>
 	/// <remarks>
 	/// One per grammar this one is built on. A rule that comes from another grammar goes on
