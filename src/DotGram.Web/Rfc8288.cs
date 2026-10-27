@@ -207,9 +207,9 @@ public sealed record ExtendedValue(string Charset, string? Language, string? Val
 	// strict reading asks a registered relation type to be lowercase, as reg-rel-type is; the other takes
 	// it in any case, as relation types compare (§2.1.1) and as Appendix B and HTML read them.
 	LinkValue : @WebLink
-		= '<' & target: Target & '>' & parameters: Parameters & when Reading is "strict"
+		= '<' & target: Target & '>' & Ows & parameters: Parameters & when Reading is "strict"
 		  & when @(Rfc8288.AreValid(parameters!, strict: true)) => @(new WebLink(target, parameters))
-		| '<' & target: Target & '>' & parameters: Parameters & when Reading is "practice"
+		| '<' & target: Target & '>' & Ows & parameters: Parameters & when Reading is "practice"
 		  & when @(Rfc8288.AreValid(parameters!, strict: false)) => @(new WebLink(target, parameters))
 
 	Reading = "strict" | "practice"
@@ -225,7 +225,15 @@ public sealed record ExtendedValue(string Charset, string? Language, string? Val
 
 	// link-param = token BWS [ "=" BWS ( token / quoted-string ) ]. The value is a rule that may read
 	// nothing, and what it read is taken apart beside the name.
-	LinkParam : @WebLink.Parameter = Ows & ';' & Ows & name: Token & Ows & assigned: Assignment => @(Rfc8288.Parameter(name, assigned))
+	//
+	// The OWS of `*( OWS ";" OWS link-param )` is read after each parameter, and once after the `>`, rather
+	// than before each `;`. The text is the same, but now a parameter begins with the `;` alone, which nothing
+	// after the parameters begins with (a comma or the end), so the run of them is read to its end and never
+	// handed back. Begun with OWS, a parameter shared its first characters with the OWS after the link-value,
+	// and a refused field gave the parameters back one at a time, each try reading the run again from its
+	// start and asking the guard again over it: quadratic in the parameters, 2.3 s refusing `<a>;` and eight
+	// thousand `a;`. Not braces: sealed, a refused field names less of what could have stood where it stopped.
+	LinkParam : @WebLink.Parameter = ';' & Ows & name: Token & Ows & assigned: Assignment & Ows => @(Rfc8288.Parameter(name, assigned))
 
 	Assignment = ('=' & Ows & (Token | QuotedString))?
 

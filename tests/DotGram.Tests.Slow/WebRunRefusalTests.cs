@@ -63,6 +63,8 @@ public sealed class WebRunRefusalTests
 	[InlineData("a media type with many empty parameters, explained")]
 	[InlineData("an Accept field with many empty parameters")]
 	[InlineData("an Accept field with many empty parameters, explained")]
+	[InlineData("a Link field with many parameters")]
+	[InlineData("a Link field with many parameters, explained")]
 	[InlineData("a Structured Field dictionary with many members")]
 	[InlineData("a Structured Field dictionary with many members, explained")]
 	[InlineData("an address list with an unclosed comment")]
@@ -185,6 +187,8 @@ public sealed class WebRunRefusalTests
 			"a media type with many empty parameters, explained"         => length => Explained(() => MediaType.Parse("a/b;" + new string(';', length) + cut)),
 			"an Accept field with many empty parameters"                 => length => MediaRange.TryParseAccept("a/b;" + new string(';', length) + "@", out _),
 			"an Accept field with many empty parameters, explained"      => length => Explained(() => MediaRange.ParseAccept("a/b;" + new string(';', length) + "@")),
+			"a Link field with many parameters"                          => length => WebLink.TryParseField("<a>;" + Copies("a;", length) + cut, out _),
+			"a Link field with many parameters, explained"               => length => Explained(() => WebLink.ParseField("<a>;" + Copies("a;", length) + cut)),
 			"a Structured Field dictionary with many members"            => length => StructuredField.TryParseDictionary(Copies("x,", length) + cut, out _),
 			"a Structured Field dictionary with many members, explained" => length => Explained(() => StructuredField.ParseDictionary(Copies("x,", length) + cut)),
 			"an address list with an unclosed comment"                   => length => EmailAddress.TryParseList("(" + new string('a', length) + cut, out _),
