@@ -26724,3 +26724,28 @@ search for the delimiter that found none jumped to the refusal without saying ho
   no text, so what is built is the same join as before.
 - **What moved.** No generated file of the solution; of the snapshots, `Located`, whose streamed readings now ask
   the window for its origin.
+
+## Trivia that gives back what a class beside it reads; trivia a block's `using` imports
+
+- **The shape.** `trivia = ' '*` beside `Field = [^ ',' | '\n']+` is how a first CSV grammar is written, and it is
+  exponential on a refused input: every run of spaces next to a field can end the field or begin the trivia, trivia
+  without braces gives each split back, and a refusal is final only once every combination at every seam has been
+  tried. A few refused rows took seconds, six over a minute, on both readers. Making trivia atomic by default would
+  remove it outright, and was not taken: it is a change of the language, and a grammar that leans on trivia giving
+  a character back to a literal beside it would stop parsing. What was taken is a warning, `GRAM4051`, and the
+  examples in braces.
+- **What the warning asks.** Trivia not written in braces (nor forwarding to a rule that is), whose first
+  characters a class, `any` or a negated class at the edge of an operand beside one of its seams admits. The edges
+  of a called rule are settled once, as a fixed point over the call graph, like what a rule begins with; a walk
+  that cut recursion instead answered differently depending on which rule it met first. Asked on the graph over
+  characters, after the cut: a grammar cut in two reads trivia with a scanner, which never gives it back. A literal
+  beside a seam is not told (it is text the author wrote there), nor an element that asks the host, whose set is not
+  known. No grammar or example of the solution is told; the four trivia of the README, two of the package README and
+  two of SKILL.md are braced now, since nothing beside their seams reads a space and the meaning is the same.
+- **Trivia and `using`.** A `using` at the top of the file brought the imported namespace's `trivia` into the global
+  namespace; the same `using` at the top of a block did not, because a block's imports were resolved after every
+  namespace's trivia had been looked up. Trivia is now resolved once every import is in view, by one rule: the chain
+  first (the namespace, then outwards), then what the chain imports, the nearest scope first, then `none`. Ordinary
+  lookup — imports before the namespace around — was not taken: §4.5's own example, a syntax namespace importing a
+  lexical one that says `trivia = none`, would then read no whitespace although the grammar around it declares some.
+- **What moved.** No generated file of the solution.
