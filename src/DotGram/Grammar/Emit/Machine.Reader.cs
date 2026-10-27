@@ -58,6 +58,15 @@ sealed partial class Machine
 
 	HashSet<Node>? _seamNodes;
 
+	/// <summary>
+	/// The negative looks that begin a turn of a repetition, whose refusal is not recorded
+	/// (ReaderWriter.EmitLookahead): the loop ends where they refuse, and the continuation — or the
+	/// loop short of its fewest turns — says what was wanted there. The machine's, not the writer's:
+	/// the turn is written by the writer of the rule, and the look by the writer of the part the
+	/// turn is lowered into.
+	/// </summary>
+	readonly HashSet<Node> _quietLooks = new(NodeIdentity.Instance);
+
 	HashSet<RuleSymbol> ReachedFromSeams()
 	{
 		var reached = new HashSet<RuleSymbol>();
@@ -5646,6 +5655,16 @@ sealed partial class Machine
 			// turn has no next to stop.
 			var nullable = FirstSets.Nullable(body, _graph);
 			var stands   = !nullable && repeat?.Max != 1 && FirstSets.StandsStill(body, _graph);
+
+			// A negative look that begins the turn records nothing (EmitLookahead): below the fewest
+			// turns, the loop refuses where the turn began with nothing said, as the look would have.
+			var quiet = (body is Node.Sequence { Nodes: [Node.Lookahead(false, _) first, ..] } ? first : body as Node.Lookahead) is { IsPositive: false } heading
+				? heading
+				: null;
+
+			if (quiet is not null)
+				machine._quietLooks.Add(quiet);
+
 			var (call, undo, opens) = Called(body, inside);
 
 			// `(?!X & any)*` goes straight to where X may begin (Machine.UntilStops). Where a
@@ -5942,8 +5961,19 @@ sealed partial class Machine
 							code.Line();
 						}
 
-						code.Line($"if ({turn} < {min})");
-						code.Then(Fails());
+						if (quiet is not null)
+						{
+							using (code.Block($"if ({turn} < {min})"))
+							{
+								code.Line(Refusal("null"));
+								code.Line(Fails());
+							}
+						}
+						else
+						{
+							code.Line($"if ({turn} < {min})");
+							code.Then(Fails());
+						}
 					}
 
 					code.Line();
@@ -6583,6 +6613,21 @@ sealed partial class Machine
 			{
 				using (code.Block($"if ({seen} >= 0)"))
 					Refused(code, input ? machine.EndOfInputExpected() : machine.EndOfSegmentExpected());
+
+				return;
+			}
+
+			// Not in a rule the engine reads as a scan, nor in the seam or what it calls, which the
+			// engine reads without recording: a look inside the trivia refused where the trivia
+			// stood, and a parse refused by the rule after it answered from inside the trivia. Nor
+			// a negative look that begins a turn of a repetition: the loop ends where it refuses,
+			// and what follows the loop — or the loop itself, short of its fewest turns (EmitTurns)
+			// — records there or further. The one that ends every field of a feed,
+			// `(?!Separator & any)+`, recorded at the end of each.
+			if (!named && (machine.SeamReached.Contains(owner) || machine._quietLooks.Contains(node)))
+			{
+				code.Line($"if ({seen} {(positive ? "<" : ">=")} 0)");
+				code.Then(Fails());
 
 				return;
 			}
