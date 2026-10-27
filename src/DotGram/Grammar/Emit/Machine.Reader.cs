@@ -6602,6 +6602,9 @@ sealed partial class Machine
 			// says nothing: what is said there is left to what else is read that far.
 			var said = named ? machine.DeclareExpected([owner.Name]) : "null";
 
+			if (named)
+				machine._expectedUsed.Add(said);
+
 			using (code.Block($"if ({seen} {(positive ? "<" : ">=")} 0)"))
 			{
 				code.Line(Refusal(said));
