@@ -2193,7 +2193,7 @@ public static class FirstSets
 	static readonly Dictionary<string, IReadOnlyList<CharRange>> _categoryRanges = [];
 
 	/// <summary>Everything outside a normalized set of ranges.</summary>
-	static IReadOnlyList<CharRange> Complement(IReadOnlyList<CharRange> ranges)
+	internal static IReadOnlyList<CharRange> Complement(IReadOnlyList<CharRange> ranges)
 	{
 		var outside = new List<CharRange>(ranges.Count + 1);
 		var next    = 0;

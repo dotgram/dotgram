@@ -118,6 +118,107 @@ public sealed class TriviaOverlapTests
 		Assert.Empty(Told(trivia + "\n" + rules + "\nparse Start\n"));
 	}
 
+	/// <summary>A braced operand keeps the spaces it ends with, so there is no split at its end.</summary>
+	[Fact]
+	public void The_end_of_a_braced_operand_is_not_told()
+	{
+		Assert.Empty(Told(
+			"trivia = ' '*\n" +
+			"Field = { ['a'..'z'] ~ ['a'..'z' | ' ']* }\n" +
+			"Row = Field & (',' & Field)* & eof\n" +
+			"parse Row\n"));
+	}
+
+	/// <summary>The trivia in front of a braced operand can still give it the spaces it begins with.</summary>
+	[Fact]
+	public void The_beginning_of_a_braced_operand_is_told()
+	{
+		var told = Assert.Single(Told(
+			"trivia = ' '*\n" +
+			"Field = { [' ' | 'a'..'z'] ~ ['a'..'z']* }\n" +
+			"Row = Field & (',' & Field)* & eof\n" +
+			"parse Row\n"));
+
+		Assert.Contains("in 'Field'", told.Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A repetition of braced turns can stop a turn early, and the turn it gives back stands at
+	/// its end: the braces on the turn do not keep it.
+	/// </summary>
+	[Fact]
+	public void A_braced_turn_of_a_repetition_is_told_at_its_end()
+	{
+		Assert.Single(Told(
+			"trivia = ' '*\n" +
+			"Field = ['a'..'z'] ~ { ['a'..'z' | ' '] }*\n" +
+			"Row = Field & (',' & Field)* & eof\n" +
+			"parse Row\n"));
+	}
+
+	/// <summary>The idiom of a run of anything but some characters: the look takes them out of <c>any</c>.</summary>
+	[Theory]
+	[InlineData("(?![' ' | ','] ~ any)+")]
+	[InlineData("(?![' ' | ','] & any)+")]
+	[InlineData("(?![' ' | ',']) ~ any & (?![' ' | ',']) ~ any")]
+	[InlineData("(?!(' ' | ',')) ~ any")]
+	public void A_negative_look_in_front_of_any_takes_its_characters_out(string field)
+	{
+		Assert.Empty(Told(
+			"trivia = ' '*\n" +
+			$"namespace Lexical {{ trivia = none\n Field = {field} }}\n" +
+			"Row = Lexical.Field & (',' & Lexical.Field)* & eof\n" +
+			"parse Row\n"));
+	}
+
+	[Theory]
+	[InlineData("any+")]
+	[InlineData("(?![',']) ~ any")]
+	[InlineData("(?![',' | ' '] ~ 'x') ~ any")]
+	public void A_look_that_leaves_the_space_in_is_still_told(string field)
+	{
+		Assert.Single(Told(
+			"trivia = ' '*\n" +
+			$"namespace Lexical {{ trivia = none\n Field = {field} }}\n" +
+			"Row = Lexical.Field & (',' & Lexical.Field)* & eof\n" +
+			"parse Row\n"));
+	}
+
+	/// <summary>
+	/// What every rule begins and ends with is worked out once, not once for each trivia: a
+	/// grammar of many namespaces, each with a trivia of its own, costs in proportion to its size.
+	/// </summary>
+	[Fact]
+	public void Many_trivia_cost_in_proportion_to_the_grammar()
+	{
+		var small = Steps(250);
+		var large = Steps(1000);
+
+		// Four times the grammar; a search per trivia over the whole graph was sixteen times.
+		Assert.True(large <= 5 * small, $"{small} steps for 250 namespaces, {large} for 1000");
+	}
+
+	static int Steps(int namespaces)
+	{
+		var text = new System.Text.StringBuilder();
+
+		for (var i = 0; i < namespaces; i++)
+			text.Append($"namespace N{i} {{ trivia = ' '*\n Word = ['a'..'z']+\n Pair = Word & ',' & Word }}\n");
+
+		text.Append("Root = ").Append(string.Join(" & ", Enumerable.Range(0, namespaces).Select(static i => $"N{i}.Pair"))).Append(" & eof\n");
+		text.Append("parse Root\n");
+
+		var model = DotGram.Grammar.Binding.GrammarBinder.Bind(
+			DotGram.Grammar.Parsing.GramParser.Parse(
+				DotGram.Grammar.Parsing.GramLexer.Tokenize(text.ToString(), RoslynCSharpScanner.Instance)).File);
+
+		var graph = GrammarNormalizer.Normalize(model, scanner: RoslynCSharpScanner.Instance);
+
+		Assert.Empty(TriviaOverlap.Check(graph, out var steps));
+
+		return steps;
+	}
+
 	[Fact]
 	public void One_trivia_is_told_once_however_many_namespaces_see_it()
 	{
