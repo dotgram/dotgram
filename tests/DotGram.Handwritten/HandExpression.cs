@@ -3955,9 +3955,20 @@ public static class HandExpression
 
 			if (kind == OrElse)  return 2;
 			if (kind == AndAlso) return 3;
-			if (kind == Pipe)    return Peek(i + 1) == Pipe ? 0 : 4;
 			if (kind == Caret)   return 5;
-			if (kind == Amp)     return Peek(i + 1) == Amp ? 0 : 6;
+
+			// `|` and `&` are not operators before another of their kind, and two `>` or `<` apart
+			// are not a shift: the token after is looked at and not read, and the refusal stands
+			// there, where the grammar's look refuses (§7.5).
+			if (kind == Pipe || kind == Amp)
+			{
+				if (Peek(i + 1) != kind)
+					return kind == Pipe ? 4 : 6;
+
+				Refuse(i + 1);
+
+				return 0;
+			}
 
 			if (kind == Equal || kind == NotEqual)
 				return 7;
@@ -3968,7 +3979,11 @@ public static class HandExpression
 					return 8;
 
 				if (_starts[i] + _lengths[i] != _starts[i + 1])
+				{
+					Refuse(i + 1);
+
 					return 0;
+				}
 
 				width = 2;
 

@@ -343,12 +343,13 @@ public sealed class TokenReadingFindingsTests
 	/// rendering over characters.
 	/// </summary>
 	/// <remarks>
-	/// Three shapes, found by review. (1) An optional before a required turn whose look refuses
-	/// silently: the quiet reading passes the optional by at its door and refuses the required
-	/// turn at 1 — below the minimum, recording nothing on its own path — while the reading that
-	/// records tries the optional's turn at 0, which is all that is ever recorded, so the message
-	/// is the optional's, at 0. Were the quiet reading's furthest written where only it goes, the
-	/// turn at 0 would go untried and the message would say only that the input did not match.
+	/// Three shapes, found by review. (1) An optional before a required turn whose look refuses:
+	/// the quiet reading passes the optional by at its door and refuses the required turn at 1 —
+	/// below the minimum — and the look refuses where it stands, as the engine's does, saying
+	/// nothing it expected where the engine's look kept in locals says itself; before a look
+	/// recorded nothing, the reading that records tried the optional's turn at 0, which was all
+	/// that was ever recorded. Were the quiet reading's furthest written where only it goes, the
+	/// turn at 0 would go untried.
 	/// (2) A look before an optional turn's first item reads to the last character of the text,
 	/// which does not fit; the turn stands below where the quiet reading got, and is tried all the
 	/// same. (3) The same, where nothing names what was wanted: the fallback says only that the
@@ -360,7 +361,7 @@ public sealed class TokenReadingFindingsTests
 	[Theory]
 	[InlineData(
 		"Start = (\"mn\")? & 'a' & (?!('x' & 'y') & 'b' & 'c')+ & when @(Keep())\nparse Start\n",
-		"axy", "NoMatch at 0: Expected \"mn\".", "NoMatch at 1: Expected ?!\"xy\".")]
+		"axy", "NoMatch at 1: Input does not match 'Start'.", "NoMatch at 1: Expected ?!\"xy\".")]
 	[InlineData(
 		"Start = (?!(['a' | 'A'] & \"zz\") & 'b' & 'c')? & 'a' & 'q' & when @(Keep())\nparse Start\n",
 		"ax", "NoMatch at 1: Expected \"aq\".", null)]
@@ -369,7 +370,7 @@ public sealed class TokenReadingFindingsTests
 		"ax", "NoMatch at 1: Input does not match 'Start'.", null)]
 	[InlineData(
 		"Start = (\"mn\")? & Expr & ?!'x' & when @(Keep())\nExpr : @int = l: Expr & ?!'x' & '+' & 'a' => @(l + 1) | 'a' => @(1)\nparse Start\n",
-		"ax", "NoMatch at 0: Expected \"mn\".", "NoMatch at 1: Expected ?!'x'.")]
+		"ax", "NoMatch at 1: Input does not match 'Start'.", "NoMatch at 1: Expected ?!'x'.")]
 	public void A_turn_behind_a_shut_door_below_where_the_quiet_reading_got_is_said_as_it_was(string grammar, string input, string said, string? saidByTheEngine)
 	{
 		const string members = "public static bool Keep() { return true; } public static bool Reject() { return false; }";
@@ -1091,7 +1092,8 @@ public sealed class TokenReadingFindingsTests
 	/// The columns: from the position or in the window over tokens, the whole reading over tokens,
 	/// and both over characters, which say the same. A literal wanting more than is left, where
 	/// what is left agrees, is starved at the end, over characters as over tokens. Over tokens <c>@aabx</c> from a
-	/// position is characters no token begins with, which answer it as they do over characters (§6.3).
+	/// position is characters no token begins with, which answer it as they do over characters (§6.3);
+	/// <c>@aabcz</c> over characters is refused by the look at the <c>z</c>, where it stands (§7.5).
 	/// </para>
 	/// </remarks>
 	[Theory]
@@ -1105,7 +1107,7 @@ public sealed class TokenReadingFindingsTests
 	[InlineData("@aaabc !", 0, 5, "Starved 5", null, "Starved 5")]
 	[InlineData("@aabc", 0, null, "Success 0", "Success 0", "Success 0")]
 	[InlineData("@aabx", 0, null, "NoMatch 0", "NoMatch 0", "NoMatch 4")]
-	[InlineData("@aabcz", 0, null, "NoMatch 0", "NoMatch 0", "NoMatch 3")]
+	[InlineData("@aabcz", 0, null, "NoMatch 0", "NoMatch 0", "NoMatch 5")]
 	public void A_token_a_rule_measures_is_cut_short_where_the_rule_ran_out_furthest(
 		string input, int at, int? length, string tokens, string? whole, string characters)
 	{
