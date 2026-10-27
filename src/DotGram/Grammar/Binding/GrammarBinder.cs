@@ -111,6 +111,16 @@ public sealed class GrammarBinder
 	public const string UnknownBinding            = "GRAM3021";
 
 	/// <summary>
+	/// Two imports at one scope each declare a <c>trivia</c>, and nothing nearer declares one.
+	/// </summary>
+	/// <remarks>
+	/// Which one a namespace reads with would be decided by the order of its <c>using</c>s,
+	/// which §5 says never decides between two imports of one name. Settled by declaring the
+	/// trivia meant in the namespace itself: <c>trivia = Spaces.trivia</c>.
+	/// </remarks>
+	public const string AmbiguousTrivia           = "GRAM3022";
+
+	/// <summary>
 	/// The built-in rules: what every grammar has without declaring it (§3.1.1). They live
 	/// in a namespace outside the global one, so a grammar can shadow any of them by
 	/// declaring its own — which is exactly how whitespace handling works (§4.5). Not the
@@ -129,6 +139,12 @@ public sealed class GrammarBinder
 	readonly Dictionary<Expr, IReadOnlyList<ResolvedRebinding>> _withOwnRebindings =
 		new(NodeIdentityComparer.Instance);
 	readonly Dictionary<GrammarNamespace, RuleSymbol> _trivia   = [];
+
+	/// <summary>Where each grammar import was written, by the namespace it was written in and the one it names.</summary>
+	readonly Dictionary<(GrammarNamespace In, GrammarNamespace Imported), Location> _importedAt = [];
+
+	/// <summary>The scopes already told their imports' trivia is ambiguous, so each is told once.</summary>
+	readonly HashSet<GrammarNamespace> _ambiguousTrivia = [];
 	readonly List<Publication>                      _publications = [];
 	readonly List<GramDiagnostic>                   _diagnostics  = [];
 
@@ -314,7 +330,11 @@ public sealed class GrammarBinder
 			if (target is null)
 				Report(UnknownNamespace, $"No namespace named '{import.Name}' is in view here.", import.At);
 			else
+			{
 				ns.Import(target);
+
+				_importedAt[(ns, target)] = import.At;
+			}
 		}
 	}
 
@@ -371,13 +391,36 @@ public sealed class GrammarBinder
 		return null;
 	}
 
-	/// <summary>A `trivia` declared by a namespace the chain imports, the nearest scope's imports first.</summary>
-	static RuleSymbol? ImportedTrivia(GrammarNamespace ns)
+	/// <summary>
+	/// A `trivia` declared by a namespace the chain imports, the nearest scope's imports first.
+	/// Two at one scope are ambiguous, and told so once, at the second `using`.
+	/// </summary>
+	RuleSymbol? ImportedTrivia(GrammarNamespace ns)
 	{
 		for (var scope = ns; scope is not null; scope = scope.Outward)
+		{
+			RuleSymbol? found = null;
+
 			foreach (var imported in scope.Imports)
-				if (imported.Rules.TryGetValue(TriviaRule, out var trivia))
-					return trivia;
+			{
+				if (!imported.Rules.TryGetValue(TriviaRule, out var trivia) || ReferenceEquals(trivia, found))
+					continue;
+
+				if (found is null)
+					found = trivia;
+
+				else if (_ambiguousTrivia.Add(scope))
+					Report(
+						AmbiguousTrivia,
+						$"Both '{found.Namespace.Name}' and '{imported.Name}' declare 'trivia', and this scope " +
+						"declares none: which one it reads with would depend on the order of the imports. " +
+						$"Declare the one meant here, 'trivia = {imported.Name}.trivia' (docs/syntax.md §4.5).",
+						_importedAt.TryGetValue((scope, imported), out var at) ? at : default);
+			}
+
+			if (found is not null)
+				return found;
+		}
 
 		return null;
 	}
