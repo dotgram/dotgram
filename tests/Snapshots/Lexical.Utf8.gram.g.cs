@@ -178,6 +178,9 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
+					if (failure.Position < from)
+						failure.Position = from;
+
 					if (tokens.Cut && failure.Position >= count - 1)
 					{
 
@@ -949,6 +952,14 @@ namespace DotGram.Snapshots
 				public global::System.Collections.Generic.List<string[]>? ExpectedMore;
 
 				public int Looking;
+
+				// Nothing assigns this here: no reading of this grammar holds a negative lookahead.
+				// A field nothing assigns is CS0649 in somebody else's build, which for one
+				// that treats warnings as errors is a broken compilation of a file they did
+				// not write.
+				#pragma warning disable 0649
+				public int Negating;
+				#pragma warning restore 0649
 
 				public bool Quiet;
 

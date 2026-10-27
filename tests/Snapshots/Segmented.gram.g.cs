@@ -496,7 +496,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				if ((uint)(p + 9) > (uint)text.Length)
 				{
-					p = RecognizeRanOut_DotGram(text, p, "--comment", false, !failure.Quiet, ref failure);
+					p = RecognizeRanOut_DotGram(text, p, "--comment", false, !failure.Quiet, failure.Negating == 0, ref failure);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(8));
 					return -1;
 				}
@@ -527,7 +527,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				if ((uint)(p + 8) > (uint)text.Length)
 				{
-					p = RecognizeRanOut_DotGram(text, p, "--quoted", false, !failure.Quiet, ref failure);
+					p = RecognizeRanOut_DotGram(text, p, "--quoted", false, !failure.Quiet, failure.Negating == 0, ref failure);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(6));
 					return -1;
 				}
@@ -626,7 +626,7 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
-					p = RecognizeRanOut_DotGram(text, p, "/*", false, !failure.Quiet, ref failure);
+					p = RecognizeRanOut_DotGram(text, p, "/*", false, !failure.Quiet, failure.Negating == 0, ref failure);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(14));
 					return -1;
 				}
@@ -687,7 +687,7 @@ namespace DotGram.Snapshots
 				}
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
-					p = RecognizeRanOut_DotGram(text, p, "*/", false, !failure.Quiet, ref failure);
+					p = RecognizeRanOut_DotGram(text, p, "*/", false, !failure.Quiet, failure.Negating == 0, ref failure);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(12));
 					return -1;
 				}
@@ -706,12 +706,17 @@ namespace DotGram.Snapshots
 			{
 				var p = pos;
 				failure.Looking++;
+				failure.Negating++;
 				var q0 = ReadPart1_Comment(p);
 				failure.Looking--;
+				failure.Negating--;
 
 
 				if (q0 >= 0)
+				{
+					Refused_DotGram(ref failure, p, null);
 					return -1;
+				}
 				var q1 = Read_any(p);
 				if (q1 < 0) return -1;
 				p = q1;
@@ -723,7 +728,7 @@ namespace DotGram.Snapshots
 				var p = pos;
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
-					p = RecognizeRanOut_DotGram(text, p, "*/", false, !failure.Quiet, ref failure);
+					p = RecognizeRanOut_DotGram(text, p, "*/", false, !failure.Quiet, failure.Negating == 0, ref failure);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(12));
 					return -1;
 				}
@@ -839,7 +844,10 @@ namespace DotGram.Snapshots
 
 
 				if (q0 >= 0)
+				{
+					Refused_DotGram(ref failure, p, null);
 					return -1;
+				}
 				var q1 = Read_any(p);
 				if (q1 < 0) return -1;
 				p = q1;
@@ -864,7 +872,7 @@ namespace DotGram.Snapshots
 				var c = '\0';
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
-					p = RecognizeRanOut_DotGram(text, p, "''", false, !failure.Quiet, ref failure);
+					p = RecognizeRanOut_DotGram(text, p, "''", false, !failure.Quiet, failure.Negating == 0, ref failure);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(5));
 					return -1;
 				}
@@ -930,7 +938,10 @@ namespace DotGram.Snapshots
 
 
 				if (q0 >= 0)
+				{
+					Refused_DotGram(ref failure, p, null);
 					return -1;
+				}
 				var q1 = Read_any(p);
 				if (q1 < 0) return -1;
 				p = q1;
@@ -1176,13 +1187,13 @@ namespace DotGram.Snapshots
 			return p + i;
 		}
 
-		static int RecognizeRanOut_DotGram(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
+		static int RecognizeRanOut_DotGram(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, bool marks, ref Failure failure)
 		{
 			var reach = RecognizeAgreeing_DotGram(text, p, value, fold);
 
 			if ((uint)reach >= (uint)text.Length)
 			{
-				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+				if (marks && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 			}
 
 			return moves ? reach : p;
@@ -1418,6 +1429,8 @@ namespace DotGram.Snapshots
 			public global::System.Collections.Generic.List<string[]>? ExpectedMore;
 
 			public int Looking;
+
+			public int Negating;
 
 			public bool Quiet;
 

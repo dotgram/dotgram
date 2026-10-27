@@ -99,6 +99,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -165,6 +168,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -321,6 +327,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -387,6 +396,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -521,6 +533,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -587,6 +602,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -721,6 +739,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -787,6 +808,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -921,6 +945,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -987,6 +1014,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -1121,6 +1151,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -1187,6 +1220,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -1324,6 +1360,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -1392,6 +1431,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -1527,6 +1569,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -1593,6 +1638,9 @@ namespace DotGram.Snapshots
 
 			if (end < 0)
 			{
+				if (failure.Position < at)
+					failure.Position = at;
+
 				var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 				var otherwise = starved
@@ -1659,6 +1707,7 @@ namespace DotGram.Snapshots
 				var atomic  = -1;
 				var repeat  = -1;
 				var lookahead = -1;
+				var negating = 0;
 				var c       = '\0';
 				string[]? expected = null;
 				var opened0 = -1;
@@ -1877,6 +1926,7 @@ namespace DotGram.Snapshots
 					var lookaheadIndex = entries.Count;
 					entries.Add(new ParserEntry(ParserEntry.Lookahead, 21, p, call, atomic, repeat, lookahead, 0));
 					lookahead = lookaheadIndex;
+					negating++;
 				}
 
 				{
@@ -1915,12 +1965,13 @@ namespace DotGram.Snapshots
 					atomic    = looked.AtomicIndex;
 					repeat    = looked.RepeatIndex;
 					lookahead = looked.LookaheadIndex;
+					negating--;
 					goto Fail;
 				}
 
 				S21:
 				{
-					var scanned = Scan_DotGram_any_DotGram_RawString(text, p);
+					var scanned = Scan_DotGram_any_DotGram_RawString(text, p, ref failure);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2047,6 +2098,7 @@ namespace DotGram.Snapshots
 						if (entry.Value == 0)
 						{
 							state = entry.State;
+							negating--;
 							if (entry.RuleIndex >= 0)
 							{
 								entries.Add(new ParserEntry(ParserEntry.Capture, entry.RuleIndex, p, call, atomic, repeat, lookahead, p));
@@ -2075,7 +2127,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Scan_DotGram_any_DotGram_RawString(global::System.ReadOnlySpan<char> text, int pos)
+		static int Scan_DotGram_any_DotGram_RawString(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
 		{
 			var p = pos;
 
@@ -2231,7 +2283,10 @@ namespace DotGram.Snapshots
 
 
 				if (q0 >= 0)
+				{
+					Refused_DotGram(ref failure, p, null);
 					return -1;
+				}
 				var q1 = Read_any(p);
 				if (q1 < 0) return -1;
 				p = q1;
@@ -2482,7 +2537,10 @@ namespace DotGram.Snapshots
 
 
 				if (q0 >= 0)
+				{
+					Refused_DotGram(ref failure, p, null);
 					return -1;
+				}
 				var q1 = Read_any(p);
 				if (q1 < 0) return -1;
 				p = q1;
@@ -3466,7 +3524,7 @@ namespace DotGram.Snapshots
 				}
 				if ((uint)(p + 2) > (uint)text.Length)
 				{
-					p = RecognizeRanOut_DotGram_Element(text, p, "</", false, !failure.Quiet, ref failure);
+					p = RecognizeRanOut_DotGram_Element(text, p, "</", false, !failure.Quiet, failure.Negating == 0, ref failure);
 					Refused_DotGram(ref failure, p, ExpectedSet_DotGram(33));
 					return -1;
 				}
@@ -4210,13 +4268,13 @@ namespace DotGram.Snapshots
 			return p + i;
 		}
 
-		static int RecognizeRanOut_DotGram_Element(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, ref Failure failure)
+		static int RecognizeRanOut_DotGram_Element(global::System.ReadOnlySpan<char> text, int p, string value, bool fold, bool moves, bool marks, ref Failure failure)
 		{
 			var reach = RecognizeAgreeing_DotGram_Element(text, p, value, fold);
 
 			if ((uint)reach >= (uint)text.Length)
 			{
-				if (p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
+				if (marks && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
 			}
 
 			return moves ? reach : p;
@@ -4417,6 +4475,14 @@ namespace DotGram.Snapshots
 			public global::System.Collections.Generic.List<string[]>? ExpectedMore;
 
 			public int Looking;
+
+			// Nothing assigns this here: no reading of this grammar holds a negative lookahead.
+			// A field nothing assigns is CS0649 in somebody else's build, which for one
+			// that treats warnings as errors is a broken compilation of a file they did
+			// not write.
+			#pragma warning disable 0649
+			public int Negating;
+			#pragma warning restore 0649
 
 			public bool Quiet;
 

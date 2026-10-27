@@ -106,6 +106,9 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
+					if (failure.Position < at)
+						failure.Position = at;
+
 					var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 					var otherwise = starved
@@ -178,6 +181,9 @@ namespace DotGram.Snapshots
 
 				if (end < 0)
 				{
+					if (failure.Position < at)
+						failure.Position = at;
+
 					var starved = failure.OutOfInput == failure.Position + 1 || failure.Position >= text.Length;
 
 					var otherwise = starved
@@ -1509,6 +1515,14 @@ namespace DotGram.Snapshots
 				// not write.
 				#pragma warning disable 0649
 				public int Looking;
+				#pragma warning restore 0649
+
+				// Nothing assigns this here: no reading of this grammar holds a negative lookahead.
+				// A field nothing assigns is CS0649 in somebody else's build, which for one
+				// that treats warnings as errors is a broken compilation of a file they did
+				// not write.
+				#pragma warning disable 0649
+				public int Negating;
 				#pragma warning restore 0649
 
 				public bool Quiet;
