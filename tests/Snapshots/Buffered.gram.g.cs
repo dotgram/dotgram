@@ -1276,23 +1276,9 @@ namespace DotGram.Snapshots
 			public int ReadBody_Feed(int pos)
 			{
 				var p = pos;
-				var c = '\0';
 				while (true)
 				{
-					var o1 = text.Ensure(p, 1);
-
-					if (o1)
-					{
-						c = text.Get(p);
-						o1 = c == 'R';
-					}
-
-					if (!o1)
-					{
-						break;
-					}
-
-					var s2  = ways.Cursor;
+					var s1  = ways.Cursor;
 					var q0 = -1;
 
 					while (true)
@@ -1303,7 +1289,7 @@ namespace DotGram.Snapshots
 							break;
 
 
-						if (ways.Cursor > s2 && ways.Retry(s2))
+						if (ways.Cursor > s1 && ways.Retry(s1))
 							continue;
 
 						break;
@@ -1749,23 +1735,9 @@ namespace DotGram.Snapshots
 			public int ReadBody_Feed(int pos)
 			{
 				var p = pos;
-				var c = 0;
 				while (true)
 				{
-					var o1 = text.Ensure(p, 1);
-
-					if (o1)
-					{
-						c = text.Get(p);
-						o1 = c == 'R';
-					}
-
-					if (!o1)
-					{
-						break;
-					}
-
-					var s2  = ways.Cursor;
+					var s1  = ways.Cursor;
 					var q0 = -1;
 
 					while (true)
@@ -1776,7 +1748,7 @@ namespace DotGram.Snapshots
 							break;
 
 
-						if (ways.Cursor > s2 && ways.Retry(s2))
+						if (ways.Cursor > s1 && ways.Retry(s1))
 							continue;
 
 						break;
