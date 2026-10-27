@@ -1971,7 +1971,7 @@ namespace DotGram.Snapshots
 
 				S21:
 				{
-					var scanned = Scan_DotGram_any_DotGram_RawString(text, p, ref failure);
+					var scanned = Scan_DotGram_any_DotGram_RawString(text, p);
 					if (scanned < 0)
 					{
 						p = -1 - scanned;
@@ -2127,7 +2127,7 @@ namespace DotGram.Snapshots
 			}
 		}
 
-		static int Scan_DotGram_any_DotGram_RawString(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure)
+		static int Scan_DotGram_any_DotGram_RawString(global::System.ReadOnlySpan<char> text, int pos)
 		{
 			var p = pos;
 
@@ -2283,10 +2283,7 @@ namespace DotGram.Snapshots
 
 
 				if (q0 >= 0)
-				{
-					Refused_DotGram(ref failure, p, null);
 					return -1;
-				}
 				var q1 = Read_any(p);
 				if (q1 < 0) return -1;
 				p = q1;
@@ -2537,10 +2534,7 @@ namespace DotGram.Snapshots
 
 
 				if (q0 >= 0)
-				{
-					Refused_DotGram(ref failure, p, null);
 					return -1;
-				}
 				var q1 = Read_any(p);
 				if (q1 < 0) return -1;
 				p = q1;
