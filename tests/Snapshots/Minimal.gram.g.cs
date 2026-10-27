@@ -6417,6 +6417,13 @@ namespace DotGram.Snapshots
 				if (_ended)
 					return false;
 
+				// A reading looks back one character from where it begins, at the end of a word
+				// before a word literal (wordboundary, §4.6), so the character before `from` is
+				// kept with it: dropped, a word's end would read as the start of the input.
+				var kept = from > 0 ? 1 : 0;
+
+				from -= kept;
+
 				// Room is made by dropping what is behind `from` first, and the buffer only
 				// grows when there is nothing behind it to drop — an element genuinely
 				// larger than the window. Growing while a prefix was still droppable made
@@ -6452,6 +6459,8 @@ namespace DotGram.Snapshots
 
 					_buffer = grown;
 				}
+
+				from += kept;
 
 				var read = _input.Read(_buffer, _filled, _buffer.Length - _filled);
 

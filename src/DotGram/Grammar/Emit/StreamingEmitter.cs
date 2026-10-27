@@ -868,6 +868,21 @@ public static partial class CSharpEmitter
 		return stages;
 	}
 
+	/// <summary>
+	/// Whether a reading of the grammar looks at the character before where it begins: a word literal
+	/// under <c>wordboundary</c> refuses after a word character (§4.6). A window refilled under a reading
+	/// keeps that character then, or the reading would take the end of a word for the start of the input.
+	/// </summary>
+	static bool LooksBehind(RecognitionGraph graph)
+	{
+		foreach (var body in graph.Bodies.Values)
+			foreach (var node in NodeWalk.Reading(body, graph))
+				if (node is Node.Behind)
+					return true;
+
+		return false;
+	}
+
 	/// <summary>Whether anything in this grammar reads through a window.</summary>
 	internal static bool Streaming(RecognitionGraph graph, bool overKinds = false)
 	{

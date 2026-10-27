@@ -1035,7 +1035,9 @@ public static partial class CSharpEmitter
 
 		if (Streaming(graph, overKinds))
 		{
-			file.Write(graph.Segmented ? Segmented(WindowClass) : WindowClass);
+			var window = Region(WindowClass, "behind", LooksBehind(graph));
+
+			file.Write(graph.Segmented ? Segmented(window) : window);
 			file.Line();
 			file.Write(graph.Segmented ? Segmented(LinesClass) : LinesClass);
 			file.Line();

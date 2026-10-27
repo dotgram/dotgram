@@ -26614,3 +26614,16 @@ search for the delimiter that found none jumped to the refusal without saying ho
 - **What moved.** One generated file in the repository: `DotGram.Web.Rfc9110`, whose internal reader form of
   `ParseAccept` reads `(',' & Ows)*` a turn at a time (the part's machine drops the repetition, the driver
   loops); no string form changes, and no shipped grammar gains or loses a reader.
+
+## A refilled window keeps the character a word looks behind at
+
+- **The fault (found in review).** A word literal under `wordboundary` refuses after a word character, and looks at
+  the character before where its reading begins (§4.6). A streamed reading that met the end of its window refilled it
+  by dropping everything before the element it was reading, so the element's look then stood at the window's start
+  and took it for the start of the input: `Hd? & Row* & eof` with `Row = { ("a" & '!' | ['a'] & '!' & '!') & ['x'] }`
+  over 4,092 dots and `a!xa!x` accepted through a reader where the string refuses after `x`. The same through the
+  seams of a spaced collection, and, with the run of a group now read a turn at a time, through a repeated group.
+- **The change.** Where a reading of the grammar looks behind (a `Node.Behind` anywhere a reading reaches), the
+  window keeps the one character before what it is told to keep. Other grammars write the window as before.
+- **What moved.** The `Minimal` snapshot's window (the only streamed grammar here that names `wordboundary`); no
+  shipped, example or benchmark file.
