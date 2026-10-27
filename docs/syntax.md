@@ -2573,7 +2573,8 @@ the caller's own making is the caller's mistake, not something the input answers
 None of them demands the end of the input, and none reads the trivia after the rule: a
 reading that begins where it is told stops where the value ends, which is the extent a
 host holding the text is asking for, and the trivia after it is the leading trivia of the
-next reading. `Position` says where the value began, past the trivia the reading started
+next reading. A repetition marked `recover` at the end of such a reading reads its fewest
+turns (§8.2). `Position` says where the value began, past the trivia the reading started
 on, and `Length` is its own extent: what comes back is the value and neither the trivia
 before it nor the trivia after, as from a whole parse (§6). What comes back says where the reading began and how far it got, and every
 position in it — and in whatever the reading builds — is an offset into `input`, so a host
@@ -3915,6 +3916,12 @@ Feed : FeedItem[] = Header
    test the continuation at every character of a rejected element. An invalid final
    fragment is recovered through EOF; an empty EOF is never invented as an error
    element. A missing required element or trailer still fails the enclosing parse.
+
+A reading that ends where the rule does — one that begins at a position or reads a
+window (§6.3) — has nothing after the rule, so a marked repetition at the end of it finds
+its continuation at once: past its minimum it reads no further. To read a recovering list
+from a position, publish a rule that ends with what ends the list: `RowsToEnd = Rows & eof`,
+or a terminator.
 
 At a boundary between elements, however, the parser first tries the **complete
 continuation after the repetition**. If that continuation succeeds, the repetition is

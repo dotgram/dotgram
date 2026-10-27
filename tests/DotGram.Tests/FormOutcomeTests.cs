@@ -96,11 +96,15 @@ public sealed class FormOutcomeTests
 		// forms and the direct reader said Starved.
 		["LookOverScannedLiteralRanOut"] = new("R0 : @int = ?=R1 & when @(true) & 'z' => @(0)\nR1 = { \"ab\" }\nparse R0\n", "a", "string", 0, "Starved@0"),
 
-		// A recovering repetition from a position, where the first element is valid: both readers
-		// read nothing, the complete continuation — nothing, from a position — being tried first and
-		// succeeding (§8.2). Pinned as the readers' one answer; whether a reading from a position
-		// should read the valid elements it is handed is a question for the language.
+		// A recovering repetition at the end of a reading from a position reads its fewest turns
+		// (§8.2, §6.3): the reading has nothing after the rule, so the complete continuation is
+		// tried first and succeeds at once, and a valid first element is not read. Both readers
+		// answer so, as v0.2.0 did.
 		["RecoveryFromAPositionReadsNothing"] = new("R1 : @int = 'z' & ';' => @(1)\nR0 : @int[] = R1* recover @Odd => @(0)\nparse R0\n", "z;", "at", 0, "Success@0+0 []", Buffered: false),
+
+		// The recipe §8.2 gives for reading a recovering list from a position: a rule that ends with
+		// what ends the list. From a position it then recovers to the end, the bad element included.
+		["RecoveryToTheEndFromAPosition"] = new("R1 : @int = 'z' & ';' => @(1)\nRows : @int[] = R1* recover @Odd => @(0)\nR0 : @int[] = r: Rows & eof => @(r)\nparse R0\n", "z;q", "at", 0, "Success@0+3 [1,0]", Buffered: false),
 	};
 
 	public static TheoryData<string> Names()
