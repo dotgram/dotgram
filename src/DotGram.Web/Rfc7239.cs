@@ -252,7 +252,14 @@ public sealed record ForwardedNode(ForwardedNode.Kinds Kind, string Name, string
 	// apart beside the rule, and what the pairs mean is one check.
 	Element : @ForwardedElement = pairs: PairList & when @(Rfc7239.IsElement(pairs!)) => @(new ForwardedElement(pairs))
 
-	PairList : @ForwardedElement.Pair[] = first: PairSlot & rest: NextPairSlot* => @(Rfc7239.Pairs(first, rest))
+	// The slots are read to their end and never handed back. A whole field loses nothing by it: what follows
+	// an element is OWS, then a comma or the end, never the `;` a slot begins with. A reading from a position,
+	// which may stop where the field does, does lose something: where the check refuses the element (a name
+	// written twice, a `by` that is no node), it used to give the slots back until the check held, and stop
+	// before the slot it gave back first; now the element is refused whole. Without the braces each slot given
+	// back read the run again from its start and asked the check again over it: quadratic in the slots, 3.5 s
+	// refusing `a=1,` and eight thousand `a=1;`.
+	PairList : @ForwardedElement.Pair[] = first: PairSlot & { rest: NextPairSlot* } => @(Rfc7239.Pairs(first, rest))
 
 	NextPairSlot : @string = ';' & text: PairSlot => @(text)
 
