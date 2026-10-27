@@ -26748,4 +26748,16 @@ search for the delimiter that found none jumped to the refusal without saying ho
   first (the namespace, then outwards), then what the chain imports, the nearest scope first, then `none`. Ordinary
   lookup — imports before the namespace around — was not taken: §4.5's own example, a syntax namespace importing a
   lexical one that says `trivia = none`, would then read no whitespace although the grammar around it declares some.
+- **Review, round two.** Three false readings and a cost. The end of a braced operand was taken as an edge,
+  though it keeps what it read; its beginning still is one. A negative look in front of `any` was passed over as
+  reading nothing, so `(?![' ' | ','] ~ any)+` was told for a space it never reads; a look that is a class, with at
+  most `any` after it, now takes its characters out of the element behind it. And each trivia settled the edges of
+  the whole graph again, so a thousand namespaces with a trivia each cost a thousand times the graph (twelve million
+  steps, against thirteen thousand now): the edges do not depend on the trivia asked about, so they are settled once
+  as sets of characters, and the element that witnesses an overlap is looked for only where one is found. A
+  repetition's end now also holds what a turn begins with, since a repetition can stop a turn early and leave it
+  beside the seam; without that, braces on a turn would have hidden it.
+- **Two imports that declare trivia.** Two `using`s at one scope whose namespaces each declare `trivia` chose by
+  their order, at the top of the file as much as in a block. That is now `GRAM3022`, an error at the second, since
+  §5 says the order of imports never decides; the scope settles it by declaring the one it means.
 - **What moved.** No generated file of the solution.

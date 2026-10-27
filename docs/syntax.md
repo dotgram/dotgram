@@ -1483,7 +1483,9 @@ six take over a minute. `trivia = { ' '* }` reads each run once. The compiler te
 shape (`GRAM4051`, a warning): trivia without braces whose characters a class, `any` or a
 negated class at the edge of an operand beside one of its seams also reads. Braces on the
 trivia, or on the rule it forwards to, silence it; joining the two with `~` (below) leaves
-no seam to tell.
+no seam to tell. The end of a braced operand keeps what it read and is not told, and a
+negative look in front of an element takes what it refuses out of it:
+`(?![' ' | ','] ~ any)+` reads no space.
 
 Braced trivia is read by a scanner, which reads what it calls in place and so cannot follow
 a rule that reaches itself. A comment that holds others is the one such rule trivia needs,
@@ -1551,7 +1553,9 @@ makes the example above read whitespace in `Syntax`: `using Lexical;` brings in
 `trivia` declared around `Syntax`. And it is the same wherever the `using`
 is written — at the top of the file or at the top of a `namespace` block, as §5 allows — so
 a grammar that declares no `trivia` of its own and imports a namespace that does reads
-with the imported one at either placement.
+with the imported one at either placement. Two imports at one scope that each declare a
+`trivia` are ambiguous and refused (`GRAM3022`): the order of the `using`s never decides
+between two imports (§5). Declaring the one meant settles it, `trivia = Spaces.trivia`.
 
 **`trivia` must be nullable** — it has to accept empty input, or the build fails. That
 condition is what makes unconditional insertion safe: a second application consumes
