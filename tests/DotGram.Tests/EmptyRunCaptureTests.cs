@@ -273,17 +273,12 @@ public sealed class EmptyRunCaptureTests
 			Same(assembly, method, input, expected, buffered);
 	}
 
-	/// <summary>A step of a fold whose run is of separated pieces, on the tape.</summary>
+	/// <summary>A step of a fold whose run is of separated pieces, in every reading.</summary>
 	[Theory]
 	[MemberData(nameof(Readings))]
 	public void A_run_of_separated_pieces_that_took_no_turn_is_empty_text_in_a_fold_step(
 		CarrierKind carrier, bool direct, bool buffered)
 	{
-		// Read by methods, a text capture a repetition inside a fold's step repeats does not compile
-		// (CS0103), with or without this run's seed: those rows are the skipped test below.
-		if (direct && carrier != CarrierKind.Tape)
-			return;
-
 		var assembly = Compile(
 			"""
 			Stepped : @string = prior: Stepped & '+' & (c: 'a' & ','){0,2} & 'x' => @(prior + Shown(c)) | 'b' => @("b")
@@ -298,7 +293,7 @@ public sealed class EmptyRunCaptureTests
 	/// Read by methods, a text capture that a repetition inside a fold's step repeats: the
 	/// generated code names its spans' count outside the scope that declares it.
 	/// </summary>
-	[Theory(Skip = "Open: CS0103 'refs_Spans' where a repetition inside a fold's step repeats a text capture, read by methods.")]
+	[Theory]
 	[InlineData(CarrierKind.Auto)]
 	[InlineData(CarrierKind.Immediate)]
 	public void A_repeated_text_capture_in_a_fold_step_compiles_when_read_by_methods(CarrierKind carrier)

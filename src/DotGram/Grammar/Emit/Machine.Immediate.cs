@@ -1260,7 +1260,7 @@ sealed partial class Machine
 
 			foreach (var member in machine.DirectMembers(owner, factory))
 			{
-				if (member.Slots.All(steps.Contains))
+				if (member.Shape != MemberShape.Pieces && member.Slots.All(steps.Contains))
 					continue;
 
 				var stack = member.Shape switch
@@ -1282,7 +1282,10 @@ sealed partial class Machine
 		/// Not the captures of a fold's steps: a step's is written once a turn and built into
 		/// the value so far there and then (§4.3), so it is a sequence to the walk over the
 		/// tape's records and never on a stack here — and a rule that only folds marked and
-		/// unwound a stack it never pushed on, every turn.
+		/// unwound a stack it never pushed on, every turn. Except a text a repetition inside the
+		/// step captures again, which is pushed a turn of that repetition at a time like any
+		/// other: the step's record takes the pieces from the rule's mark, and a part of the step
+		/// is handed that mark.
 		/// </remarks>
 		IEnumerable<string> GatheredStacks(RuleSymbol owner)
 		{
@@ -1291,7 +1294,7 @@ sealed partial class Machine
 
 			foreach (var member in machine.DirectMembers(owner))
 			{
-				if (member.Slots.All(steps.Contains))
+				if (member.Shape != MemberShape.Pieces && member.Slots.All(steps.Contains))
 					continue;
 
 				var stack = member.Shape switch
