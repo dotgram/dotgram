@@ -130,6 +130,11 @@ static class EmittedCode
 	/// The errors and warnings the compiler finds in what the generator wrote, and in nothing else: for a
 	/// harness whose own declaration is not under test.
 	/// </summary>
+	/// <remarks>
+	/// Compiled as a consumer's build that treats warnings as errors compiles it, every warning wave
+	/// on: a warning the default level leaves out still fails such a build. A warning in the harness's
+	/// own declaration is not the generator's and is left out; an error there is the harness's, and fails.
+	/// </remarks>
 	public static Diagnostic[] Complaints(
 		string source,
 		string className,
@@ -138,13 +143,16 @@ static class EmittedCode
 		System.Threading.CancellationToken cancellation)
 	{
 		var compilation = Create(source, className, null, declarationMembers, sourceParts, null, false);
+
+		compilation = compilation.WithOptions(compilation.Options.WithWarningLevel(9999).WithGeneralDiagnosticOption(ReportDiagnostic.Error));
+
 		var declaration = compilation.SyntaxTrees.First();
 
 		return
 		[
 			.. compilation.GetDiagnostics(cancellation)
-				.Where(diagnostic => diagnostic.Severity is DiagnosticSeverity.Error or DiagnosticSeverity.Warning)
-				.Where(diagnostic => diagnostic.Location.SourceTree != declaration || diagnostic.Severity == DiagnosticSeverity.Error),
+				.Where(static diagnostic => diagnostic.Severity is DiagnosticSeverity.Error or DiagnosticSeverity.Warning)
+				.Where(diagnostic => diagnostic.Location.SourceTree != declaration || diagnostic is { Severity: DiagnosticSeverity.Error, IsWarningAsError: false }),
 		];
 	}
 
