@@ -5719,11 +5719,25 @@ sealed partial class Machine
 				var way   = _ways++;
 				var stops = min is not null ? $"{turn} >= {min}" : null;
 
+				// Only where nothing is recorded. A reading that records tries the turn anyway,
+				// as the engine does, so that what refused it is said: where the loop ends and
+				// what follows it refuses too, the turn's refusal is half of the message, and
+				// without it a parse refused past the loop said only that it did not match. Not
+				// in a rule the engine reads as a scan — a word — nor in the seam or what it calls,
+				// which the engine reads without recording what they refuse.
+				// Nor a turn that would run code of the host before its first item
+				// (RunsCodeBeforeItsFirstItem): what the reading that records does must not
+				// change what the quiet one answered.
+				var tries = machine.ScannerOf(owner) is null && !machine.SeamReached.Contains(owner) &&
+					!machine.RunsCodeBeforeItsFirstItem(body);
+
 				// The turn is not tried where the token in hand cannot begin it — the same
 				// door the reading over kinds has, and for the same two reasons: a turn that
 				// cannot begin is the loop ending and not a failure to record, and a turn not
-				// tried is a call not made.
-				if (Door([body]) is { } door)
+				// tried is a call not made. No door at all in a machine every reading of which
+				// records, where the turn is tried anyway: a reader fed through a window answered
+				// from the door what its string form answered from the turn (§7.5).
+				if ((machine.Quiets || !tries) && Door([body]) is { } door)
 				{
 					var open = $"o{_ways++}";
 
@@ -5738,17 +5752,7 @@ sealed partial class Machine
 
 					code.Line();
 
-					// Only where nothing is recorded. A reading that records tries the turn anyway,
-					// as the engine does, so that what refused it is said: where the loop ends and
-					// what follows it refuses too, the turn's refusal is half of the message, and
-					// without it a parse refused past the loop said only that it did not match. Not
-					// in a rule the engine reads as a scan — a word — nor in the seam or what it calls,
-					// which the engine reads without recording what they refuse.
-					// Nor a turn that would run code of the host before its first item
-					// (RunsCodeBeforeItsFirstItem): what the reading that records does must not
-					// change what the quiet one answered.
-					var tries = machine.Quiets && machine.ScannerOf(owner) is null && !machine.SeamReached.Contains(owner) &&
-						!machine.RunsCodeBeforeItsFirstItem(body);
+					tries &= machine.Quiets;
 
 					// Nor below where the quiet reading got (FromTheQuiet): what the turn would say
 					// there is wiped when the furthest refusal moves on.
