@@ -26724,3 +26724,70 @@ search for the delimiter that found none jumped to the refusal without saying ho
   no text, so what is built is the same join as before.
 - **What moved.** No generated file of the solution; of the snapshots, `Located`, whose streamed readings now ask
   the window for its origin.
+## The direct reader and the engine give one outcome, position and value
+
+- **The promise.** `syntax.md` §7.5: what `Error` names may differ between forms, but "the outcome, the position
+  and the value do not vary this way: those are the same in every form, and what a host branches on." A
+  differential over 4,292 random grammars (every shape of the syntax: looks, captures, recovery, guards, trivia,
+  kinds), 300 inputs each, every published form, the direct reader against the engine, found 383 of them
+  (8.9%) answering differently in outcome, position, length or value — 114,424 of 27.8 million comparisons
+  (698 before the whole value, the positive look and the recovering rule were put right) — and a positional
+  reading refused before the place it began.
+- **The causes, and which side the contract names.** Each is now a row of `FormOutcomeTests`, with the
+  answer the contract gives: the direct reader recorded nothing for a refused negative lookahead, so the
+  parse answered from the last refusal before it (188 grammars; §7.5's "furthest position the parse reached"
+  is the look's own); a reading from a position that recorded nothing answered 0, before where it began
+  (§6.3); a literal the input ends inside, read inside a negative look, marked the parse as starved; a rule
+  read as a scan lost how far an optional or repeated literal had agreed, and a buffered reading refused
+  `W = ("xy"i)?` on `xc` at 1 where the string refused it at 0; the entry of a positional reading let the
+  trivia give characters back to the rule; a recovering repetition at a positional entry stepped over a bad
+  element where its continuation is nothing and succeeds (§8.2); and over kinds a repetition short of its
+  fewest turns, whose door stayed shut, said nothing. Each is one site in an emitter; none changes an
+  analysis, so the two spellings of a grammar still agree on what they record. The hand-written expression
+  parser, the generated one's reference, refused `x | | 1` at the first `|`, where the grammar's look
+  refuses at the second: it now refuses where it looked.
+- **A negative look wants nothing more of the input.** Where the two readers differed on *Starved* against
+  *NoMatch* the cause was the mark a literal writes when the input ends inside it, written inside a negative
+  lookahead too: `?!("kk") & 'z'` on `k` was starved at 0 in the reader and in every buffered form, although
+  `k` was there and did not fit, and the engine's string form, which reads a rule that is nothing but a look
+  as a scan, said NoMatch. A negative look holds where its body refuses, so what ran out inside it is not
+  the parse wanting more; a positive look that ran out wanted more, and its mark stands, as it did. Neither
+  reader keeps a mark written inside a negative look now, whichever way the look is kept: the direct reader
+  and the engine's looks in locals put the mark back as it was, where a literal of more than one character
+  inside could have written it, and the engine counts the looks on its arena as they are entered and left. The alternative — no mark inside any
+  look — would have a positive look that ran out at the end of the input refuse as NoMatch, which
+  `RefusalPlaceTests` holds to Starved. A rule the engine reads as a scan kept no mark at all, so a positive
+  look over `R1 = { "ab" }` on `a` was NoMatch in the engine's string form and Starved everywhere else: a
+  scanner now takes the failure wherever the grammar holds a literal of more than one character, and marks
+  the input as run out where such a literal's refusal is the scan's own.
+- **What moved.** After the fixes 57 grammars (1.3%) differ, 7,416 comparisons: 51 are the documented default
+  of a published rule compiled against the end of the input for its positional forms too (§6.3,
+  `DotGramPositionalFollow`), where each reader cuts a reading from a position short on the strength of that
+  end — `Std.Quoted` and a loop before a repeated literal in the reader, an optional committed on its first
+  character in the engine; `FormOutcomeTests` holds those three shapes to one answer under the switch. Four
+  are a positive look over a rule the engine reads as a scan, `?=(Twice("ab"))` on `a`: the scan marks no
+  input as run out, and the engine says NoMatch where the reader, which reads the rule by methods, says
+  Starved; one is a back-reference refused at the end of the input, said at 1 by the reader and at 2 by the
+  engine; one is the engine running out of memory on the exponential grammar of the corpus under a loaded
+  machine, 5.5 GB on either side read alone. Against main, 106,884 answers of the direct reader moved to
+  the engine's and 124 of the engine's to the reader's; of the answers both agreed on, 132 turned from Starved to NoMatch inside a negative
+  look, in both alike, and none other changed: no accepted input is refused and no refused input accepted.
+- **What it cost.** Generated source: the T-SQL parser +0.24% (9,080,416 to 9,101,831 bytes), SQL:2023 +0.24%,
+  SQL-92 +0.14%: the positional forms clamp their position, the ran-out helper takes whether it is inside a
+  negative look, the engine declares and counts `negating`, and the direct reader counts `Negating` on the
+  failure. A paired stand against main, each pair taken twice with the sides in either order, five runs each,
+  on a shared machine with other agents' validations beside it (directional). The SQL and T-SQL rows, five
+  of five runs kept, taken before the count of negative looks was kept to the looks a literal could run out
+  inside (the boundary woven after every keyword counts nothing now): every change read within its own A/A
+  band but a few points on a few short rows — `sql/script` +4.3% and +2.9% (A/A +1.0% and −1.1%),
+  `tsql/select-join` +4.1% and +2.2% (A/A +2.4% and +1.3%), `tsql/create-table` +3.2% and +1.9% (A/A +1.2%
+  and +0.6%) — and as many rows read faster (`tsql/select-long` −3.1%, `tsql/update-subquery` −3.1%); what
+  read beyond the band in one order read the other way in the other. The whole set with the expression and
+  web rows, on the final commit, kept three of five runs in either order for a loaded machine: of 138 rows,
+  15 read the same way beyond 2% in both orders, as many faster (`web/json.object` −6.0% and −2.5%,
+  `web/sf.dictionary` −8.1% and −3.9%, `web/language-tag.refused` −8.4% and −4.2%) as slower (`el/floor`
+  +3.3% and +2.6%, `el/raw` +3.1% and +2.3%, `sql/select20.window` +5.9% and +2.6%), with A/A bands as wide
+  as the changes on most of them; nothing moves by more than a few percent in both orders. The generator's
+  own time, held to main's in one run (three rounds, base and head alternately): T-SQL 0.98x, SQL:2023 1.00x,
+  the expression language 1.00x, every host of the web and FIX within 0.97x-1.04x; nothing beyond the gate's
+  tolerance.
