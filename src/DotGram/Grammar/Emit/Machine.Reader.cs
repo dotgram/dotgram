@@ -5727,6 +5727,18 @@ sealed partial class Machine
 				var way   = _ways++;
 				var stops = min is not null ? $"{turn} >= {min}" : null;
 
+				// Only where nothing is recorded. A reading that records tries the turn anyway,
+				// as the engine does, so that what refused it is said: where the loop ends and
+				// what follows it refuses too, the turn's refusal is half of the message, and
+				// without it a parse refused past the loop said only that it did not match. Not
+				// in a rule the engine reads as a scan — a word — nor in the seam or what it calls,
+				// which the engine reads without recording what they refuse.
+				// Nor a turn that would run code of the host before its first item
+				// (RunsCodeBeforeItsFirstItem): what the reading that records does must not
+				// change what the quiet one answered.
+				var tries = machine.ScannerOf(owner) is null && !machine.SeamReached.Contains(owner) &&
+					!machine.RunsCodeBeforeItsFirstItem(body);
+
 				// The turn is not tried where the token in hand cannot begin it — the same
 				// door the reading over kinds has, and for the same two reasons: a turn that
 				// cannot begin is the loop ending and not a failure to record, and a turn not
@@ -5746,24 +5758,22 @@ sealed partial class Machine
 
 					code.Line();
 
-					// Only where nothing is recorded. A reading that records tries the turn anyway,
-					// as the engine does, so that what refused it is said: where the loop ends and
-					// what follows it refuses too, the turn's refusal is half of the message, and
-					// without it a parse refused past the loop said only that it did not match. Not
-					// in a rule the engine reads as a scan — a word — nor in the seam or what it calls,
-					// which the engine reads without recording what they refuse.
-					// Nor a turn that would run code of the host before its first item
-					// (RunsCodeBeforeItsFirstItem): what the reading that records does must not
-					// change what the quiet one answered.
-					var tries = machine.Quiets && machine.ScannerOf(owner) is null && !machine.SeamReached.Contains(owner) &&
-						!machine.RunsCodeBeforeItsFirstItem(body);
+					// Shut on the quiet reading alone, where there is one. A machine every reading of
+					// which records — a reader fed through a window — shuts it once the fewest turns
+					// are read, where the loop ends and nothing is recorded, and tries the turn below
+					// them, so that what refused it is said: shut there, it answered from the door
+					// what its string form answered from the turn (§7.5).
+					var quietly = tries && machine.Quiets;
+					var loudly  = min is not null && (tries && !machine.Quiets || silent);
 
 					// Nor below where the quiet reading got (FromTheQuiet): what the turn would say
 					// there is wiped when the furthest refusal moves on.
-					var shut = tries && FromTheQuiet(body)
+					var shut = quietly && FromTheQuiet(body)
 						? $"if (!{open} && (failure.Quiet || p < failure.Doors))"
-						: tries
+						: quietly
 						? $"if (!{open} && failure.Quiet)"
+						: loudly
+						? $"if (!{open} && {turn} >= {min})"
 						: $"if (!{open})";
 
 					using (code.Block(shut))
@@ -5773,10 +5783,10 @@ sealed partial class Machine
 						// records tries the turn instead, this is the quiet reading's path alone,
 						// and the furthest it writes down is not written here: the turn tried may
 						// say nothing at all, refused by a look before its first item.
-						if (min is not null)
+						if (min is not null && !loudly)
 						{
 							using (code.Block($"if ({turn} < {min})"))
-								Refused(code, machine.DeclareExpected(machine.Displays(body)), furthest: !tries);
+								Refused(code, machine.DeclareExpected(machine.Displays(body)), furthest: !quietly);
 
 							code.Line();
 						}
@@ -5785,7 +5795,7 @@ sealed partial class Machine
 						// is tried instead (found by review: the turn tried may say nothing, and the
 						// note would then have put the furthest past what was recorded).
 						if (repeat is not null)
-							NoteTails(code, repeat, body, furthest: !tries);
+							NoteTails(code, repeat, body, furthest: !quietly);
 
 						code.Line("break;");
 					}
