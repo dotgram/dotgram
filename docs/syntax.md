@@ -2938,6 +2938,10 @@ seen.
 An implementor may be a class or a struct; a struct is told on the value the rule returns. A rule
 whose value is a `Nullable` of a struct has nothing to write it on, and is refused (`GRAM4046`).
 
+A place is an `int`. Read through a reader, a window that reaches past `int.MaxValue` characters of
+the input cannot tell its places, and the reading throws `InvalidOperationException` rather than
+tell one that has wrapped round; so does a guard's `parserSpan` and a recovery's there.
+
 It changes nothing about what is read, and a grammar that names no interface pays nothing.
 Being an option, it may be given to one reading of a grammar and not to another (§6.6).
 

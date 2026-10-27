@@ -498,6 +498,51 @@ public sealed class StreamedPositionTests
 		Assert.Contains(result.Diagnostics, static one => one.Id == "GRAM5001" && one.Message.Contains("reads the rule's extent", StringComparison.Ordinal));
 	}
 
+	/// <summary>
+	/// A place is told as an <c>int</c>, and a window that reaches past <c>int.MaxValue</c> characters
+	/// says so rather than tell a place that wrapped round to a negative one: a located value, a guard's
+	/// span and a recovery's. The window is begun just short of the limit, standing in for two gigabytes
+	/// of input read before it; a short input still fits, and is told its places from there.
+	/// </summary>
+	[Theory]
+	[InlineData("guard", false)]
+	[InlineData("guard", true)]
+	[InlineData("recovery", false)]
+	[InlineData("recovery", true)]
+	public void A_place_past_the_int_range_is_refused_rather_than_wrapped(string name, bool direct)
+	{
+		const long near = int.MaxValue - 100;
+
+		var (_, method, grammar, _, _) = Handed.Single(one => one.Name == name);
+		var parser = Located(grammar, direct, CarrierKind.Auto, buffered: false);
+		var field  = "private long   _offset;";
+
+		Assert.Contains(field, parser.Source, StringComparison.Ordinal);
+
+		var late = new WindowEdge.Parser(
+			parser.Source.Replace(field, $"private long   _offset = {near}L;", StringComparison.Ordinal), "Grammar", null, Host, []);
+
+		var input = name == "recovery" ? "a\na\nz\na\n" : "a\na\na\na\n";
+		var fits  = ((IEnumerable)late.Call(method, typeof(TextReader), new StringReader(input))!).Cast<object>().ToArray();
+
+		int At(object value)
+		{
+			return (int)value.GetType().GetProperty("At")!.GetValue(value)!;
+		}
+
+		Assert.Equal(4, fits.Length);
+		Assert.Equal(near, At(fits[0]));
+		Assert.Equal(near + 6, At(fits[3]));
+
+		if (name == "recovery")
+			Assert.StartsWith($"{near + 4}+", (string)fits[2].GetType().GetProperty("Name")!.GetValue(fits[2])!, StringComparison.Ordinal);
+
+		var said = WindowEdge.Said(() => late.Call(method, typeof(TextReader), new StringReader(string.Concat(Enumerable.Repeat("a\n", 100)))));
+
+		Assert.Contains("InvalidOperationException", said, StringComparison.Ordinal);
+		Assert.Contains("2,147,483,647", said, StringComparison.Ordinal);
+	}
+
 	/// <summary>Each value handed over, and for a match where it was found and what it holds.</summary>
 	static string[] Said(Type host, string method, Type over, object input)
 	{
