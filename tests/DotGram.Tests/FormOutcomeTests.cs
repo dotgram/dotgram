@@ -36,7 +36,7 @@ public sealed class FormOutcomeTests
 
 		""";
 
-	sealed record Row(string Grammar, string Input, string Form, int At, string Expected, bool Lexical = false, bool Buffered = true);
+	sealed record Row(string Grammar, string Input, string Form, int At, string Expected, bool Lexical = false, bool Buffered = true, string Rule = "R0");
 
 	/// <summary>
 	/// One row a class of disagreement: the shape, the input and the form it shows on, and what
@@ -96,11 +96,17 @@ public sealed class FormOutcomeTests
 		// forms and the direct reader said Starved.
 		["LookOverScannedLiteralRanOut"] = new("R0 : @int = ?=R1 & when @(true) & 'z' => @(0)\nR1 = { \"ab\" }\nparse R0\n", "a", "string", 0, "Starved@0"),
 
-		// A recovering repetition from a position, where the first element is valid: both readers
-		// read nothing, the complete continuation — nothing, from a position — being tried first and
-		// succeeding (§8.2). Pinned as the readers' one answer; whether a reading from a position
-		// should read the valid elements it is handed is a question for the language.
+		// A recovering repetition at the end of a reading from a position reads its fewest turns
+		// (§8.2, §6.3): the reading has nothing after the rule, so the complete continuation is
+		// tried first and succeeds at once, and a valid first element is not read. Both readers
+		// answer so, as v0.2.0 did.
 		["RecoveryFromAPositionReadsNothing"] = new("R1 : @int = 'z' & ';' => @(1)\nR0 : @int[] = R1* recover @Odd => @(0)\nparse R0\n", "z;", "at", 0, "Success@0+0 []", Buffered: false),
+
+		// The recipe §8.2 gives for reading a recovering list from a position, spelled as the doc
+		// spells it, typed and untyped: a rule that ends with what ends the list. From a position it
+		// then recovers to the end, the bad element included.
+		["RecoveryToTheEndFromAPosition"] = new("Row : @int = 'z' & ';' => @(1)\nRows : @int[] = Row* recover @Odd => @(0)\nRowsToEnd : @int[] = r: Rows & eof => @(r)\nparse RowsToEnd\n", "z;q", "at", 0, "Success@0+3 [1,0]", Buffered: false, Rule: "RowsToEnd"),
+		["RecoveryToTheEndFromAPositionUntyped"] = new("Row = 'z' & ';'\nRows = Row* recover @Odd\nRowsToEnd = Rows & eof\nparse RowsToEnd\n", "z;q", "at", 0, "Success@0+3 z;q", Buffered: false, Rule: "RowsToEnd"),
 	};
 
 	public static TheoryData<string> Names()
@@ -122,7 +128,7 @@ public sealed class FormOutcomeTests
 		foreach (var direct in new[] { true, false })
 		{
 			var parser = Build(row.Grammar, direct, row.Lexical, positionalFollow: false, buffered: row.Buffered);
-			var answer = Answer(parser, "R0", row.Form, row.Input, row.At);
+			var answer = Answer(parser, row.Rule, row.Form, row.Input, row.At);
 
 			Assert.True(answer == row.Expected, $"{name} ({(direct ? "direct" : "engine")}, {row.Form}): expected {row.Expected}, got {answer}\n{row.Grammar}");
 		}
