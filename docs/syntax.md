@@ -2823,7 +2823,7 @@ different names they cannot collide at all, whatever they are called inside.
 
 **The C# comes with the grammar.** A rule that came from another grammar goes on calling
 the methods its author wrote on that grammar's class: the generated file names each
-included class with `using static`, and the code is in scope without the host deriving
+included class with `using static global::`, and the code is in scope without the host deriving
 from anything. What that does not settle is two grammars' C# using one name, and the
 answer is that it settles nothing: two included classes offering the same method is the
 compiler's ordinary ambiguity error, a method that resolves nowhere is its ordinary

@@ -26668,3 +26668,25 @@ search for the delimiter that found none jumped to the refusal without saying ho
 - **What moved.** Nothing generated in the repository: the 1,023 files the solution's generators write are the same
   byte for byte, with and without the change (paths taken out). No shipped, example or test grammar enters a
   recovering repetition on a character.
+
+## An external call is looked up in the frame the generated file writes
+
+- **The faults.** Legal grammars whose generated code did not compile, each because the resolver asked where a
+  simple name binds from a place that is not where the generated call stands. An included grammar's host was
+  imported as `using static App.G;` inside `namespace App`, where `App` is read from that namespace outward: beside
+  a namespace `App.App` it named `App.App.G` or nothing (CS0234). A host inside a generic class had no metadata
+  name, so no call site was made, the whole compilation was searched, and an unrelated `Elsewhere.M(…, out int)`
+  turned the host's text `@M` into a value call (CS1501). A `Suffix` reading's calls stand in its nested class, and
+  the call site wrote only the host: the host's text `M` was asked about where the nested class's value `M` is the
+  one called (CS7036). An external named like a publication's method, `@ParseStart` imported by a
+  `global using static`, is hidden in the generated class by the `ParseStart` it writes (CS1501). And, read by
+  methods, a text that a repetition inside a fold's step captures again was collected from a mark nothing declared
+  (CS0103 `refs_Spans`).
+- **The change.** The import is written from the global namespace, by one function the call site writes it with too.
+  A generic host is named as metadata names it (`Outer`1+Host`). The call site writes the second reading's nested
+  class, asks what is callable from that class, and declares the publications' methods by name, so a name they hide
+  is said on the grammar (GRAM4025) and a host's own recognizer of that name, an overload in the same class, is still
+  called. The step's repeated text is a gathered stack like any other, marked by the body and handed to every part.
+- **What moved.** Two example files: `FilterFile` and `SettingsFile`, which include `Lexemes`, import it as
+  `using static global::…`. Every shipped grammar is emitted byte for byte as before. A host nested in a generic class
+  whose type parameter is called `T` still warns CS0693 against the generated `Match<T>`: not changed here.
