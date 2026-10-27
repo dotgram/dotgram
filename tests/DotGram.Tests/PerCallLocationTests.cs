@@ -215,6 +215,100 @@ public sealed class PerCallLocationTests
 		Assert.Equal((5, 3), (Field(Name(located, "Value"), "At"), Field(Name(located, "Value"), "Length")));
 	}
 
+	static string StreamedSource(string carrier, string config)
+	{
+		return $$""""
+			using DotGram;
+
+			namespace PerCallStreamProbe
+			{
+				public interface ILoc
+				{
+					void Locate(int at, int length);
+
+					void Locate(int at, int length, int gapStart);
+				}
+
+				public sealed class Entry : ILoc
+				{
+					public Entry(string key, string value)
+					{
+						Key   = key;
+						Value = value;
+					}
+
+					public string Key { get; }
+
+					public string Value { get; }
+
+					public int At = -1;
+
+					public void Locate(int at, int length)
+					{
+						At = at;
+					}
+
+					public void Locate(int at, int length, int gapStart)
+					{
+						At = at;
+					}
+				}
+
+				[Gram("""
+					trivia = { ' '* }
+
+					{{config}}
+					Entry  : @Entry   = k: Name & '=' & v: Word & eol => @(new Entry(k, v))
+					Name   = { ['a'..'z']+ }
+					Word   = { ['a'..'z' | '0'..'9']+ }
+
+					parse Config
+					""", Carrier = GramCarrier.{{carrier}})]
+				[GramOptions(LocationType = typeof(ILoc), Suffix = "Located", PerCall = true)]
+				public static partial class P
+				{
+				}
+			}
+			"""";
+	}
+
+	/// <summary>
+	/// A grammar read from a <c>TextReader</c> as well as a string compiles with a per-call door: the
+	/// reader belongs to the plain door, and its loop tells each element's recognizer that it locates
+	/// nothing, where it passed no such argument at all (CS7036). The located door reads the string
+	/// and is written no reader.
+	/// </summary>
+	[Theory]
+	[InlineData("Auto", false)]
+	[InlineData("Tape", false)]
+	[InlineData("Immediate", false)]
+	[InlineData("Auto", true)]
+	[InlineData("Immediate", true)]
+	public void A_per_call_reading_of_a_streamed_grammar_compiles(string carrier, bool staged)
+	{
+		// Staged, the reader reads the brackets through probes of its parts and the entries through their rule.
+		var config   = staged ? "Config : @Entry[] = '{' & eol & es: Entry* & '}' => @(es)" : "Config : @Entry[] = Entry*";
+		var assembly = GeneratorDriverTests.Build(StreamedSource(carrier, config), permittedWarning: "GRAM5007");
+		var host     = assembly.GetType("PerCallStreamProbe.P")!;
+		var located  = host.GetNestedType("Located")!;
+		var text     = staged ? "{\nab = 1\ncd = x2\n}" : "ab = 1\ncd = x2\n";
+
+		var reader = host.GetMethods(BindingFlags.Public | BindingFlags.Static).Single(one => one.Name == "ParseConfig" && one.GetParameters()[0].ParameterType == typeof(System.IO.TextReader));
+		var read   = ((System.Collections.IEnumerable)reader.Invoke(null, [new System.IO.StringReader(text), .. reader.GetParameters().Skip(1).Select(static _ => (object?)null)])!).Cast<object>().ToArray();
+
+		Assert.Equal(["1", "x2"], read.Select(static one => (string)one.GetType().GetProperty("Value")!.GetValue(one)!));
+		Assert.Equal([-1, -1], read.Select(static one => Field(one, "At")));
+
+		foreach (var door in new[] { host, located })
+		{
+			var whole = ((Array)door.GetMethod("ParseConfig", BindingFlags.Public | BindingFlags.Static, [typeof(string)])!.Invoke(null, [text])!).Cast<object>().ToArray();
+
+			Assert.Equal(["1", "x2"], whole.Select(static one => (string)one.GetType().GetProperty("Value")!.GetValue(one)!));
+		}
+
+		Assert.DoesNotContain(located.GetMethods(BindingFlags.Public | BindingFlags.Static), static one => one.GetParameters().FirstOrDefault()?.ParameterType == typeof(System.IO.TextReader));
+	}
+
 	static object ReadEntry(Type door, string text)
 	{
 		var parse = door.GetMethod("ParseEntry", BindingFlags.Public | BindingFlags.Static, [typeof(string)])!;

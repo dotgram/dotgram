@@ -26574,3 +26574,27 @@ search for the delimiter that found none jumped to the refusal without saying ho
 - **What moved.** The `Located` snapshot (the field, the write, the add) and one local's first value in
   `Minimal`'s engine; nothing else the snapshots hold. A per-call located door over a reader does not compile on
   the parent or here (the reading does not hand the door its argument); it is not in this change.
+
+## What a rule reads is asked of its synchronizations and its trivia too, and a per-call door compiles where it streams
+
+- **The fault.** Several questions about what a rule reads walked its body and not the synchronization of a
+  repetition marked `recover`, which hangs beside the tree. Two of them changed what a parser does: a keyword
+  synchronization under `wordboundary` looks behind where it begins, and the immediate carrier still let the
+  buffer go at each turn of a stream, so the look read a released position and threw; a recognizer handed the
+  context, met only in a synchronization of a grammar that declares none, was called with a `context` nobody
+  declared (CS0103) instead of being refused (GRAM4025). The reader's call graph, its rules that open ways,
+  `Reenters` and the replay's spread asked bodies alone too, with no grammar found where it showed. The back edges, where the reader probes the stack, walked
+  bodies from each publication but not the trivia a publication reads at its two ends: a root of one operand
+  whose trivia nests a comment had a cycle with no probe, wrote a deep frame with nothing to resume (CS1522, CS0649),
+  and a comment nested deep enough ran the stack out. A per-call located grammar read from a `TextReader` called its
+  recognizers without `parserLocating` (CS7036), in the reader's loop, its probes and a token read again over its
+  text; split in parts, the walk that builds its values stayed private to calls from the other parts (CS0122).
+- **The change.** Those walks read through `NodeWalk.Reading`, which has an overload for the normalizer's own
+  recoveries; the back edges take a publication's trivia as a root of its own (not every rule's seam, which made
+  false cycles through the trivia rule); a reader's recognizer and a probe are told the reading locates nothing,
+  since the plain door owns the reader and the located door is written none; and the generic class exposes what
+  any part calls. The compile oracle compiles at every warning wave with warnings counted as errors, and draws
+  synchronizations of host recognizers, the input view, the context (declared or not), keywords under a
+  `wordboundary` and characters past a byte, nested comments in trivia, and a per-call located door.
+- **What it cost.** Every shipped grammar and the examples are emitted byte for byte as before. The generator
+  writes SQL's hosts in 0.99 of the time (genprof, eight cold runs a side, shared machine).
