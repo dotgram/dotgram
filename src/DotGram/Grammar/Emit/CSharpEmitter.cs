@@ -280,7 +280,7 @@ public static partial class CSharpEmitter
 				graph, results, lines, Streaming(graph, overKinds), only, tag, partSize, overKinds,
 				lexical?.Valued, carrier, stacks, lexical?.Inventory, replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: groups.Count > 1 || countRules, quiets: quiets,
 				tracing: tracing, expectedSets: expectedSets, places: Places(graph, overKinds, bufferedInput),
-				placedRecoveries: PlacedRecoveries(graph, overKinds, bufferedInput))
+				placedRecoveries: PlacedRecoveries(graph, overKinds, bufferedInput), rereadLocates: RereadLocates(lexical))
 			{
 				Reporting   = carriers is not null,
 				CountsRules = countRules,
@@ -355,7 +355,7 @@ public static partial class CSharpEmitter
 				owner.Tag, partSize, overKinds, lexical?.Valued, carrier, stacks, lexical?.Inventory,
 				replay, spanCaptures: spanCaptures, prefixTables: prefixTables, expectedTables: expectedTables, deferCompilation: true, quiets: quiets,
 				expectedSets: expectedSets, places: Places(graph, overKinds, bufferedInput),
-				placedRecoveries: PlacedRecoveries(graph, overKinds, bufferedInput));
+				placedRecoveries: PlacedRecoveries(graph, overKinds, bufferedInput), rereadLocates: RereadLocates(lexical));
 			made.Anchor = owner.Machine.Anchor;
 			// Reported as the machines it replaces were: a merged machine said nothing in the report.
 			made.Reporting = carriers is not null;
@@ -866,6 +866,12 @@ public static partial class CSharpEmitter
 			var genericAt    = file.Length;
 			var genericDepth = file.Depth + 1;
 
+			// Not split out to a part of its own: a part repeats the host's class and not this one, and
+			// what moved there would stand outside the generic class its callers name.
+			var separate = file.SeparateMethods;
+
+			file.SeparateMethods = null;
+
 			using (file.Block(PerCallClass))
 				foreach (var compiled in machines)
 				{
@@ -879,6 +885,8 @@ public static partial class CSharpEmitter
 					}
 
 				}
+
+			file.SeparateMethods = separate;
 
 			// What the readers call from outside, which is all of the generic class that has to be
 			// more than private (Writer.Expose): in this file, and in the parts a split source moved
@@ -5716,7 +5724,11 @@ file.Line("return spare;");
 
 		var factory = factories[0];
 
-		// Anything supplied is something the token does not say.
+		// Anything supplied is something the token does not say — where it was written among it, for
+		// a value told so per call: the reading again is what offers it the place.
+		if (graph.PerCall is not null && graph.Located.Contains(rule))
+			return null;
+
 		if (WantsText(graph, factory) || Asks(graph, factory, "parserSpan") ||
 			Asks(graph, factory, "parserInput") || Asks(graph, factory, "context") ||
 			Asks(graph, factory, "parserState") || Asks(graph, factory, "parserMarks"))
@@ -5818,12 +5830,16 @@ file.Line("return spare;");
 
 			// Where the token is the whole of what the construction can be told, there is
 			// nothing to read again and the construction is called on the text itself.
+			// Where locations are decided per call, the caller says whether this reading locates, and the
+			// reading again is told the same (Machine.TokenOf).
+			var locates = valuing.UsesLocating ? ", int parserLocating" : "";
+
 			if (Verbatim(lexical.Source, valuing.Results, rule) is { } made)
 			{
 				file.Line($"/// <summary>What the text of one <c>{rule.Name}</c> token is worth.</summary>");
 				file.Line("/// <remarks>The token itself: the capture spans it, so nothing about how it was read is wanted.</remarks>");
 				file.Line(
-					$"static {type} {Named("Value", IdentifierOf(rule))}(string source, int at, int length) => " +
+					$"static {type} {Named("Value", IdentifierOf(rule))}(string source, int at, int length{locates}) => " +
 					$"{made}(Cut_DotGram_Value(source, at, length));");
 				file.Line();
 
@@ -5866,11 +5882,9 @@ file.Line("return spare;");
 			// costs nothing and keeps the positions true. The reading stays whole: a rule's
 			// first derivation may be shorter than what the lexer measured, and only reading to
 			// the end of the span says it was the token that was read.
-			using (file.Block($"static {type} {Named("Value", IdentifierOf(rule))}(string source, int at, int length)"))
+			using (file.Block($"static {type} {Named("Value", IdentifierOf(rule))}(string source, int at, int length{locates})"))
 			{
-				// Where locations are decided per call, the value of a token read again over its text is
-				// told it locates nothing, as a reading that is not the located door's.
-				var input = (valuing.UsesInput ? ", source" : "") + (valuing.UsesLocating ? ", -1" : "");
+				var input = (valuing.UsesInput ? ", source" : "") + (valuing.UsesLocating ? ", parserLocating" : "");
 				var text  = "global::System.MemoryExtensions.AsSpan(source, 0, at + length)";
 
 				file.Line($"var failure = new {FailureType} {{ Quiet = true }};");
@@ -6046,6 +6060,15 @@ file.Line("return spare;");
 		body is not Node.External
 			? rule
 			: null;
+	}
+
+	/// <summary>
+	/// Whether the value of a terminal read again over its text asks whether the reading locates: what
+	/// the machine that reads it again over characters asks (<c>Machine.UsesLocating</c>).
+	/// </summary>
+	static bool RereadLocates(LexicalSplit? lexical)
+	{
+		return lexical is not null && lexical.Source.PerCall is not null && lexical.Source.Located.Count > 0;
 	}
 
 	/// <summary>The host's call measuring a terminal's rest, moving <c>measured</c> on.</summary>

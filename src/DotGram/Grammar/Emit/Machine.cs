@@ -524,7 +524,7 @@ sealed partial class Machine
 		Replay.Report? replay = null, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool bufferedFind = false, bool prefixTables = false,
 		Dictionary<string, int>? expectedTables = null, bool deferCompilation = false,
 		bool quiets = false, TraceTables? tracing = null, ExpectedSets? expectedSets = null, bool? keepsDoors = null,
-		bool places = false, IReadOnlyList<Recovery>? placedRecoveries = null)
+		bool places = false, IReadOnlyList<Recovery>? placedRecoveries = null, bool rereadLocates = false)
 	{
 		// Before anything is compiled: the engine's states write the trace's events as they are compiled.
 		Tracing = tracing;
@@ -553,6 +553,7 @@ sealed partial class Machine
 		Tag = tag ?? MachineTag.None;
 		OverKinds = overKinds;
 		_reread = reread;
+		_rereadLocates = rereadLocates;
 		_inventory = inventory;
 		PartSize = partSize ?? Part;
 		_rules = only ?? graph.Rules;
@@ -1663,12 +1664,19 @@ sealed partial class Machine
 	/// extent is that token's start and length, with no run to add up. Only over kinds: a
 	/// terminal is read again only because a lexer swallowed it.
 	/// </remarks>
+	/// <remarks>
+	/// Where the token's value is told where it was written (<see cref="_rereadLocates"/>), the reading
+	/// again is told whether this one locates: the located door's, or nothing.
+	/// </remarks>
 	string TokenOf(string at)
 	{
 		return OverKinds
-			? $"parserSource, parserStarts[{at}], parserLengths[{at}]"
+			? $"parserSource, parserStarts[{at}], parserLengths[{at}]" + (_rereadLocates ? UsesLocating ? ", parserLocating" : ", -1" : "")
 			: throw new InvalidOperationException("A terminal is read again only over kinds.");
 	}
+
+	/// <summary>Whether the value of a terminal read again over its text asks whether the reading locates.</summary>
+	readonly bool _rereadLocates;
 
 	/// <summary>Where one position of the machine's own stands in the input.</summary>
 	/// <remarks>

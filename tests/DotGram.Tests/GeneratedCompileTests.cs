@@ -682,6 +682,109 @@ public sealed class GeneratedCompileTests
 	}
 
 	/// <summary>
+	/// A token whose value is told where it was written, read through the located door of a grammar cut
+	/// into tokens, is told so: the value is read again over the token's text with the door's own
+	/// locating, where that reading was told it located nothing and every token said -1.
+	/// </summary>
+	[Theory]
+	[InlineData(true, CarrierKind.Immediate, BuiltToken)]
+	[InlineData(true, CarrierKind.Tape, BuiltToken)]
+	[InlineData(false, CarrierKind.Auto, BuiltToken)]
+	[InlineData(true, CarrierKind.Immediate, CapturedToken)]
+	[InlineData(true, CarrierKind.Tape, CapturedToken)]
+	[InlineData(false, CarrierKind.Auto, CapturedToken)]
+	public void A_located_token_is_located_through_the_per_call_door(bool direct, CarrierKind carrier, string token)
+	{
+		const string members = """
+			public interface ILoc { void Locate(int at, int length); void Locate(int at, int length, int gapStart); }
+			public sealed class Loc : ILoc { public Loc() { } public Loc(string text) { } public int At = -1; public void Locate(int at, int length) { At = at; } public void Locate(int at, int length, int gapStart) { At = at; } }
+			""";
+
+		var grammar = $$"""
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				{{token}}
+			}
+			Root : @Loc[] = Lexical.Token*
+			parse Root
+			""";
+
+		var host = CSharpCompilation.Create(
+			"Host",
+			[CSharpSyntaxTree.ParseText($"public partial class Grammar {{ {members} }}", cancellationToken: TestContext.Current.CancellationToken)],
+			EmittedCode.References);
+
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			ClassName      = "Grammar",
+			CSharpScanner  = RoslynCSharpScanner.Instance,
+			SymbolResolver = new RoslynSymbolResolver(host, "Grammar"),
+			Direct         = direct,
+			Lexical        = true,
+			Carrier        = carrier,
+			LocationType   = "Grammar.ILoc",
+			LocatedFacade  = "Located",
+		});
+
+		var parser = Build(result, members).GetType("Grammar")!;
+
+		int[] At(Type door)
+		{
+			var read = (System.Array)door.GetMethod("ParseRoot", [typeof(string)])!.Invoke(null, [" ab cd"])!;
+
+			return [.. read.Cast<object>().Select(static one => (int)one.GetType().GetField("At")!.GetValue(one)!)];
+		}
+
+		Assert.Equal([1, 4], At(parser.GetNestedType("Located")!));
+		Assert.Equal([-1, -1], At(parser));
+	}
+
+	/// <summary>
+	/// A per-call located grammar large enough that its source is split, whose walk that builds the values
+	/// is itself larger than a part: it stays inside the generic class it is written in, where the split
+	/// moved it out to the host's class and nothing found it (CS0117, CS0246).
+	/// </summary>
+	[Fact]
+	public void A_per_call_walk_larger_than_a_part_stays_in_its_class()
+	{
+		const string members = """
+			public interface ILoc { void Locate(int at, int length); void Locate(int at, int length, int gapStart); }
+			public sealed class Loc : ILoc { public int At = -1; public void Locate(int at, int length) { At = at; } public void Locate(int at, int length, int gapStart) { At = at; } }
+			""";
+
+		var grammar = "Root : @Loc = " + string.Join(" | ", Enumerable.Range(0, 25).Select(static i => $"\"k{i}\" => @(new Loc())")) + "\nparse Root";
+		var host    = CSharpCompilation.Create(
+			"Host",
+			[CSharpSyntaxTree.ParseText($"public partial class Grammar {{ {members} }}", cancellationToken: TestContext.Current.CancellationToken)],
+			EmittedCode.References);
+
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
+		{
+			ClassName      = "Grammar",
+			CSharpScanner  = RoslynCSharpScanner.Instance,
+			SymbolResolver = new RoslynSymbolResolver(host, "Grammar"),
+			Direct         = true,
+			Carrier        = CarrierKind.Tape,
+			SourceFileSize = 4000,
+			LocationType   = "Grammar.ILoc",
+			LocatedFacade  = "Located",
+		});
+
+		var parser = Build(result, members).GetType("Grammar")!;
+		var read   = parser.GetNestedType("Located")!.GetMethod("ParseRoot", [typeof(string)])!.Invoke(null, ["k24"])!;
+
+		Assert.Equal(0, (int)read.GetType().GetField("At")!.GetValue(read)!);
+	}
+
+	/// <summary>A token whose value is built by a construction that reads nothing of it.</summary>
+	const string BuiltToken = "Token : @Loc = { ['a'..'z']+ } => @(new Loc())";
+
+	/// <summary>A token whose value is built from its whole text alone, which is otherwise not read again.</summary>
+	const string CapturedToken = "Token : @Loc = t: { ['a'..'z']+ } => @(new Loc(t))";
+
+	/// <summary>
 	/// A grammar whose located door is decided per call compiles where its source is split in parts,
 	/// whose readers call the walk that builds the values from outside its generic class (CS0122,
 	/// where only the calls of the first part made it more than private), and where it is cut into
