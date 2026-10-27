@@ -67,6 +67,8 @@ public sealed class WebRunRefusalTests
 	[InlineData("a Link field with many parameters, explained")]
 	[InlineData("a Forwarded field with a name written again and again")]
 	[InlineData("a Forwarded field with a name written again and again, explained")]
+	[InlineData("a Content-Disposition field with a name written again and again")]
+	[InlineData("a Content-Disposition field with a name written again and again, explained")]
 	[InlineData("a Structured Field dictionary with many members")]
 	[InlineData("a Structured Field dictionary with many members, explained")]
 	[InlineData("an address list with an unclosed comment")]
@@ -193,6 +195,8 @@ public sealed class WebRunRefusalTests
 			"a Link field with many parameters, explained"               => length => Explained(() => WebLink.ParseField("<a>;" + Copies("a;", length) + cut)),
 			"a Forwarded field with a name written again and again"     => length => ForwardedElement.TryParseField("a=1," + Copies("a=1;", length) + cut, out _),
 			"a Forwarded field with a name written again and again, explained" => length => Explained(() => ForwardedElement.ParseField("a=1," + Copies("a=1;", length) + cut)),
+			"a Content-Disposition field with a name written again and again" => length => ContentDisposition.TryParse("inline" + Copies(";a=1", length) + cut, out _),
+			"a Content-Disposition field with a name written again and again, explained" => length => Explained(() => ContentDisposition.Parse("inline" + Copies(";a=1", length) + cut)),
 			"a Structured Field dictionary with many members"            => length => StructuredField.TryParseDictionary(Copies("x,", length) + cut, out _),
 			"a Structured Field dictionary with many members, explained" => length => Explained(() => StructuredField.ParseDictionary(Copies("x,", length) + cut)),
 			"an address list with an unclosed comment"                   => length => EmailAddress.TryParseList("(" + new string('a', length) + cut, out _),
