@@ -713,10 +713,7 @@ namespace DotGram.Snapshots
 
 
 				if (q0 >= 0)
-				{
-					Refused_DotGram(ref failure, p, null);
 					return -1;
-				}
 				var q1 = Read_any(p);
 				if (q1 < 0) return -1;
 				p = q1;
@@ -844,10 +841,7 @@ namespace DotGram.Snapshots
 
 
 				if (q0 >= 0)
-				{
-					Refused_DotGram(ref failure, p, null);
 					return -1;
-				}
 				var q1 = Read_any(p);
 				if (q1 < 0) return -1;
 				p = q1;
@@ -938,10 +932,7 @@ namespace DotGram.Snapshots
 
 
 				if (q0 >= 0)
-				{
-					Refused_DotGram(ref failure, p, null);
 					return -1;
-				}
 				var q1 = Read_any(p);
 				if (q1 < 0) return -1;
 				p = q1;
