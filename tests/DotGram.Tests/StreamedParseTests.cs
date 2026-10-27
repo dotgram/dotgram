@@ -95,6 +95,8 @@ public sealed class StreamedParseTests
 		{ "a least on the marked one after an ordinary one", Rules("Start : @string[] = Line* & Row{2,} recover eol"), ["a\n[a]\n[b]\n", "a\n[a]\n", "a\n[a]\n9\n"] },
 		{ "a least and a most through the seams", Spaced("Start : @string[] = Item{1,2} & '.'"), ["a; b; .", "a; b; c; .", "."] },
 		{ "a group that builds nothing", Rules("Start : @string[] = Line* & ('#' & eol)*"), ["a\nb\n#\n#\n", "#\na\n"] },
+		{ "a least and a most on a group, read a turn at a time", Rules("Start : @string[] = Line* & ('#' & '#'? & eol){1,2}"), ["a\n#\n", "a\n##\n#\n", "a\n#\n#\n#\n", "a\n", "#\n#\n"] },
+		{ "a rule without a type repeated, read a turn at a time", Rules("Hash : @string = '#' & w: Word & eol => @(w)\nBlank = '-' & eol\nStart : @string[] = Line* & Blank* & Hash*"), ["a\n-\n-\n#b\n", "-\n#c\n", "a\n-\n9\n"] },
 		{ "a => that hands back the repetition it captured", Rules("Start : @string[] = \"H\" & eol & l: Line* & \"T\" & eol => @( l )"), ["H\na\nb\nT\n", "H\nT\n", "H\na\n9\nT\n"] },
 		{ "an optional call", Rules("Hash : @string = '#' & w: Word & eol => @(w)\nStart : @string[] = Line* & Hash?"), ["a\nb\n#c\n", "a\n", "#c\n#d\n"] },
 	};

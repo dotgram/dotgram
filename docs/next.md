@@ -26598,3 +26598,19 @@ search for the delimiter that found none jumped to the refusal without saying ho
   `wordboundary` and characters past a byte, nested comments in trivia, and a per-call located door.
 - **What it cost.** Every shipped grammar and the examples are emitted byte for byte as before. The generator
   writes SQL's hosts in 0.99 of the time (genprof, eight cold runs a side, shared machine).
+
+## A streamed parse reads a run that hands over nothing a turn at a time
+
+- **The fault.** A part of a streamed `parse` that is a repetition of something other than a call that hands over
+  a value — a group, `('t' & eol)*`, or a rule without a type, `Blank*` — was read as one part, by one machine, and
+  the window under it held the whole run. The retention analysis measured every repetition by one turn, so such a
+  feed kept its reader and said nothing: `Feed : @string[] = Hd? & ('t' & 't' & eol)* & eof` over 50,000 lines
+  of `tt` grew a 64-character window to 150,000 characters, where `Row*` keeps it at 64.
+- **The change.** The driver reads such a repetition a turn at a time, its least and its most held as for a
+  repetition of a rule, and hands over nothing; the window moves between the turns. Where it ends was already
+  settled turn by turn, as for a repetition of a rule. A marked one is the exception: it recovers inside the part,
+  as over a string, and stays read whole, so the analysis measures it whole and refuses the reader (GRAM5001) where
+  its run may take more than a line. On the parent the reader of such a marked run refused input the string reads.
+- **What moved.** One generated file in the repository: `DotGram.Web.Rfc9110`, whose internal reader form of
+  `ParseAccept` reads `(',' & Ows)*` a turn at a time (the part's machine drops the repetition, the driver
+  loops); no string form changes, and no shipped grammar gains or loses a reader.

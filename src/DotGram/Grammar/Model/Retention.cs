@@ -826,14 +826,25 @@ public static class Retention
 		var extents   = ExtentOf(graph);
 		var consuming = Consuming(graph);
 
-		// Measured a part at a time, and a repetition by one of its elements: the window
-		// moves between them, so the run's own length is what streaming is *for*. What has
-		// to fit is the largest thing the parse is ever in the middle of.
+		// Measured a part at a time, and a repetition by one of its turns: the window moves
+		// between them, so the run's own length is what streaming is *for*. What has to fit
+		// is the largest thing the parse is ever in the middle of. The driver reads every
+		// repetition a turn at a time but one: marked, and not a repetition it hands over,
+		// it recovers inside the part as over a string, and the window holds the whole run.
 		foreach (var part in parts)
 		{
-			var measured = part is Node.Repeat(var element, _, _)
-				? Extent(PastSeam(element, seam), extents, consuming, graph)
+			var turned = part is Node.Repeat && (Handed(part, seam) || !graph.Recoveries.ContainsKey(part));
+			// The seam is the driver's to skip only before an element it hands over; a turn read
+			// by a machine of its own holds its seam too.
+			var measured = turned && part is Node.Repeat(var element, _, _)
+				? Extent(Handed(part, seam) ? PastSeam(element, seam) : element, extents, consuming, graph)
 				: Extent(part, extents, consuming, graph);
+
+			if (part is Node.Repeat && !turned && measured == LineExtent.Beyond)
+				return $"in '{rule.Name}', '{part}' recovers inside the part, read whole, because it does not " +
+					$"hand over a value, and it may take more than one {Unit(graph)}, so what would have to be " +
+					"held grows with the input. Give what it repeats a type, and the run is read and recovered " +
+					"a record at a time (docs/syntax.md §6.3).";
 
 			if (measured != LineExtent.Beyond && Stepped(part, measured, graph) == LineExtent.Beyond)
 				return $"in '{rule.Name}', '{part}' steps over a bad element to '{graph.Recoveries[part].Sync}', " +

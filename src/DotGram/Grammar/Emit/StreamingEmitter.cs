@@ -789,7 +789,11 @@ public static partial class CSharpEmitter
 	/// For a repeated stage of a spaced collection: the trivia rule the driver skips
 	/// before each element, §4.5's seam between the turns.
 	/// </param>
-	sealed record Stage(RuleSymbol? Rule, bool Repeated, Node Node, RuleSymbol? Seam = null);
+	/// <param name="Turn">
+	/// For a repeated stage that is not a call of a rule: what one turn reads, which the driver
+	/// reads until it stops matching.
+	/// </param>
+	sealed record Stage(RuleSymbol? Rule, bool Repeated, Node Node, RuleSymbol? Seam = null, Node? Turn = null);
 
 	/// <summary>
 	/// A published rule broken into the parts a streamed parse reads one at a time.
@@ -838,6 +842,16 @@ public static partial class CSharpEmitter
 					Node.Sequence([Node.Call(var seam, _), Node.Capture(_, Node.Call(var spaced, _))]),
 					_, _) when IsSeamOf(graph, rule, seam):
 					stages.Add(new Stage(spaced, Repeated: true, part, seam));
+					break;
+
+				// A repetition of anything else hands over nothing, and is still read a turn
+				// at a time, the window moving between the turns: read as one part, the window
+				// would hold the whole run, `('#' & eol)*` a line more at every turn. Where it
+				// ends the analysis settled turn by turn (Retention.StreamedParse), as it does
+				// for a repetition of a rule. Not the marked one, which recovers inside the
+				// part as over a string, nor an option, which is one turn whichever way it is read.
+				case Node.Repeat(var turn, _, var most) when most != 1 && !graph.Recoveries.ContainsKey(part):
+					stages.Add(new Stage(null, Repeated: true, part, Turn: turn));
 					break;
 
 				// Consumes and yields nothing. A capture of something that is not a call

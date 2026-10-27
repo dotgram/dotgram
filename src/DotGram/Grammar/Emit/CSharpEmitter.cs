@@ -1609,7 +1609,7 @@ public static partial class CSharpEmitter
 
 						var part = WholeOf(publication.Rule, "WholePart", stage);
 
-						var at = machine.Register(stages[stage].Node);
+						var at = machine.Register(stages[stage].Turn ?? stages[stage].Node);
 
 						streamedParts[(publication.Rule, stage)] = (part, at);
 						mine.Add((part, at, Sync: false));

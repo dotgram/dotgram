@@ -49,6 +49,13 @@ public sealed class PartWindowTests
 		"Row  : @string   = 'r' & eol => @(parserText)\n" +
 		"parse Feed\n",
 
+		// A marked repetition of a rule that hands over nothing: it recovers inside the part.
+		"Feed : @string[] = Hd? & Blank* recover eol & Row* & eof\n" +
+		"Hd   : @string   = 'h' & eol => @(parserText)\n" +
+		"Blank = 't' & 't' & eol\n" +
+		"Row  : @string   = 'r' & eol => @(parserText)\n" +
+		"parse Feed\n",
+
 		// The controls: a run of records read a record at a time.
 		"Feed : @string[] = Hd? & Row* & eof\n" +
 		"Hd   : @string   = 'h' & eol => @(parserText)\n" +
