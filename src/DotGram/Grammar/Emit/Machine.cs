@@ -5420,7 +5420,13 @@ sealed partial class Machine
 
 			// Where this one stopped agreeing, or the end where the input ends inside it, recorded as a
 			// refusal of its own: the next one is tried from the same place, and the last fails here.
-			Further(writer, $"{RanOut()}(text, p, {Quoted(rest)}, false, true, {Marks}, ref failure)", arrayName);
+			// Agreed from where the alternative began, prefix and all: the mark of input that ran
+			// out inside it stands where the literal began, as it does in a reader that compares
+			// the whole literal (§7.5), not past the prefix the run shares.
+			Further(
+				writer,
+				$"{RanOut()}(text, p - {matched}, {Quoted(carry)}, false, true, {Marks}, ref failure)",
+				arrayName);
 
 			if (after >= 0)
 				writer.Line($"goto {Label(writer, after)};");
@@ -7842,6 +7848,19 @@ sealed partial class Machine
 			{
 				writer.Line($"var further = {at};");
 				RecordFurther(writer, "further > p", "further", said);
+			}
+
+			return;
+		}
+
+		// The walk marks the input as run out inside a positive look the arena keeps as well, where
+		// nothing is recorded (§7.5): it is called before the record asks whether it is in a look.
+		if (_ranOut is not null && at.StartsWith(_ranOut + "(", StringComparison.Ordinal) && Marks != "false")
+		{
+			using (writer.Block(""))
+			{
+				writer.Line($"var further = {at};");
+				writer.Line($"if (lookahead < 0) {Furthered()}(ref failure, further, {said});");
 			}
 
 			return;
