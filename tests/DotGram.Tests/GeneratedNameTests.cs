@@ -298,6 +298,100 @@ public sealed class GeneratedNameTests
 	}
 
 	/// <summary>
+	/// A name with the mark in it is one the generator made for its own use, and nothing outside the
+	/// class may call it: on a public class it would be public surface with a name that moves with the
+	/// grammar. No member the class itself declares with the mark is public or protected, over every
+	/// rendering.
+	/// </summary>
+	[Theory]
+	[MemberData(nameof(Snapshots))]
+	public void No_name_the_generator_makes_for_itself_is_public(string name)
+	{
+		var text   = File.ReadAllText(Path.Combine(SnapshotDirectory, name + ".gram"));
+		var faults = new SortedSet<string>(StringComparer.Ordinal);
+		var seen   = 0;
+
+		foreach (var (options, _) in SnapshotTests.Renderings(name, text))
+		{
+			var result = GramCompiler.Compile(text, options);
+
+			foreach (var one in result.Sources)
+			{
+				var root = CSharpSyntaxTree.ParseText(one.Text, cancellationToken: TestContext.Current.CancellationToken).GetRoot(TestContext.Current.CancellationToken);
+
+				foreach (var host in root.DescendantNodes().OfType<TypeDeclarationSyntax>().Where(static type => type.Modifiers.Any(static modifier => modifier.Text == "partial")))
+					foreach (var member in host.Members)
+					{
+						var identifiers = member switch
+						{
+							MethodDeclarationSyntax method     => [method.Identifier.Text],
+							FieldDeclarationSyntax field       => field.Declaration.Variables.Select(static variable => variable.Identifier.Text),
+							PropertyDeclarationSyntax property => [property.Identifier.Text],
+							BaseTypeDeclarationSyntax nested   => [nested.Identifier.Text],
+							_                                  => Array.Empty<string>(),
+						};
+
+						foreach (var identifier in identifiers.Where(static identifier => identifier.Contains(CSharpEmitter.NameMark, StringComparison.Ordinal)))
+						{
+							seen++;
+
+							if (member.Modifiers.Any(static modifier => modifier.Text is "public" or "protected"))
+								faults.Add($"{host.Identifier.Text}.{identifier}: {member.Modifiers}");
+						}
+					}
+			}
+		}
+
+		Assert.True(seen > 0, "no member with the mark was found");
+		Assert.True(faults.Count == 0, $"{faults.Count} generated names are not private:\n" + string.Join("\n", faults));
+	}
+
+	/// <summary>
+	/// The same held to the libraries this project builds with the generator: no type they export has a
+	/// public or protected member whose name carries the mark.
+	/// </summary>
+	[Fact]
+	public void No_library_exports_a_name_the_generator_makes_for_itself()
+	{
+		const BindingFlags all = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
+
+		Assembly[] assemblies =
+		[
+			typeof(DotGram.ExpressionLanguage.ExpressionParser).Assembly,
+			typeof(DotGram.Web.JsonValue).Assembly,
+			typeof(DotGram.Examples.Formats.JsonParser).Assembly,
+		];
+
+		var faults = new List<string>();
+
+		foreach (var assembly in assemblies)
+			foreach (var type in assembly.GetExportedTypes())
+			{
+				if (type.Name.Contains(CSharpEmitter.NameMark, StringComparison.Ordinal))
+					faults.Add(type.FullName!);
+
+				foreach (var member in type.GetMembers(all).Where(static member => member.Name.Contains(CSharpEmitter.NameMark, StringComparison.Ordinal)))
+					if (Visible(member))
+						faults.Add($"{type.FullName}.{member.Name}");
+			}
+
+		Assert.True(faults.Count == 0, $"{faults.Count} generated names are exported:\n" + string.Join("\n", faults));
+
+		static bool Visible(MemberInfo member)
+		{
+			return member switch
+			{
+				MethodBase method     => method.IsPublic || method.IsFamily || method.IsFamilyOrAssembly,
+				FieldInfo field       => field.IsPublic || field.IsFamily || field.IsFamilyOrAssembly,
+				PropertyInfo property => property.GetAccessors(nonPublic: true).Any(static accessor => Visible(accessor)),
+				EventInfo @event      => @event.AddMethod is { } add && Visible(add),
+				Type nested           => nested.IsNestedPublic || nested.IsNestedFamily || nested.IsNestedFamORAssem,
+				_                     => false,
+			};
+		}
+	}
+
+	/// <summary>
 	/// Every member of a generated file: the scope it is declared in, whether that is the class the
 	/// generator writes into, its name, and what tells two of one name apart — a method's parameters, or
 	/// nothing for anything else.

@@ -1473,16 +1473,7 @@ namespace DotGram.Snapshots
 		};
 
 
-		/// <summary>
-		/// One token: its kind by way of <paramref name="kind"/>, and where it ends.
-		/// </summary>
-		/// <remarks>
-		/// Longest match. The machine is run until it can go no further and the last state
-		/// that accepted is the answer, which is why a keyword beats the identifier it starts
-		/// and <c>&gt;=</c> beats <c>&gt;</c> without either being written down as a rule.
-		/// </remarks>
-		/// <returns>Where the token ends, or <paramref name="pos"/> where none begins here.</returns>
-		public static int Lex_DotGram_Unbound(global::System.ReadOnlySpan<char> text, int pos, out int kind)
+		static int Lex_DotGram_Unbound(global::System.ReadOnlySpan<char> text, int pos, out int kind)
 		{
 			var state = 0;
 			var end   = pos;

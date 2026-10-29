@@ -981,8 +981,12 @@ public static class LexerEmitter
 		text.Line("/// </remarks>");
 		text.Line("/// <returns>Where the token ends, or <paramref name=\"pos\"/> where none begins here.</returns>");
 
-		text.Line(
-			$"public static int {(tag.Length == 0 ? "Scan" : "Lex_DotGram" + tag)}(global::System.ReadOnlySpan<char> text, int pos, out int kind)");
+		// Only the grammar's own scanner is public: it is the one the class offers (LexerNames). A tagged
+		// machine scans for a continuation or an unbound terminal on the generated code's behalf, and
+		// keeps the accessibility of the other members whose names carry the mark.
+		text.Line(tag.Length == 0
+			? "public static int Scan(global::System.ReadOnlySpan<char> text, int pos, out int kind)"
+			: $"static int Lex_DotGram{tag}(global::System.ReadOnlySpan<char> text, int pos, out int kind)");
 
 		using (text.Braces())
 		{
