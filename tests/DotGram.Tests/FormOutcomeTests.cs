@@ -126,6 +126,22 @@ public sealed class FormOutcomeTests
 		["TriviaRepetitionBelowItsFewestAtALookRead"] = new("trivia = { ('#' & (?!\"ab\" & any)+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "reader", 0, "NoMatch@0"),
 		["TriviaRepetitionBelowItsFewestAtALookStreamed"] = new("trivia = { ('#' & (?!\"ab\" & any)+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "stream", 0, "NoMatch@0"),
 
+		// The trivia of a namespace a rule outside it reaches: the look refused inside it records
+		// nothing, and leaves nothing behind for the negative look after the call either, whichever
+		// is compiled first. The engine fed through a window answered 0 where the namespace came
+		// after the rule.
+		["NegativeLookAfterANamespacesTriviaLook"] = new("R0 : @int = S.R1 & ?!('b'*) => @(0)\nnamespace S\n{\n\ttrivia = { ('#' & ?!'#')* }\n\tR1 = 'a' & 'b'*\n}\nparse R0\n", "a##", "string", 0, "NoMatch@1"),
+		["NegativeLookAfterANamespacesTriviaLookRead"] = new("R0 : @int = S.R1 & ?!('b'*) => @(0)\nnamespace S\n{\n\ttrivia = { ('#' & ?!'#')* }\n\tR1 = 'a' & 'b'*\n}\nparse R0\n", "a##", "reader", 0, "NoMatch@1"),
+		["NegativeLookAfterANamespacesTriviaLookStreamed"] = new("R0 : @int = S.R1 & ?!('b'*) => @(0)\nnamespace S\n{\n\ttrivia = { ('#' & ?!'#')* }\n\tR1 = 'a' & 'b'*\n}\nparse R0\n", "a##", "stream", 0, "NoMatch@1"),
+
+		// A look nested in the look that begins a trivia repetition's turn, short of its fewest
+		// turns: the scan of the seam raised how far it got where the turn began, and the
+		// engine's string form answered from inside the trivia where its other forms, and the
+		// direct reader, answered from the rule.
+		["TriviaRepetitionBelowItsFewestAtANestedLook"] = new("trivia = { ('#' & (?!(?=\"ab\") & any)+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "string", 0, "NoMatch@0"),
+		["TriviaRepetitionBelowItsFewestAtANestedLookRead"] = new("trivia = { ('#' & (?!(?=\"ab\") & any)+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "reader", 0, "NoMatch@0"),
+		["TriviaRepetitionBelowItsFewestAtANestedLookStreamed"] = new("trivia = { ('#' & (?!(?=\"ab\") & any)+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "stream", 0, "NoMatch@0"),
+
 		// Over kinds, a repetition short of its minimum that stopped at the end of the tokens says
 		// what it wanted: the direct reader says nothing and answers from the start.
 		["TokenRepetitionBelowMinimum"] = new(Lexical + "R0 = Lexical.Digits & ['a'..'c']+\nparse R0\n", "0", "string", 0, "Starved@1", Lexical: true),
