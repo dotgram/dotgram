@@ -5595,7 +5595,7 @@ sealed partial class Machine
 				if (Final(fail))
 					ShortOf(writer, shared, false, fail);
 				else
-					Further(writer, $"{RanOut()}(text, p, {Quoted(shared)}, false, true, {Marks}, ref failure)", arrayName);
+					FurtherSeamed(writer, $"{RanOut()}(text, p, {Quoted(shared)}, false, true, {Marks}, ref failure)", arrayName);
 
 				EmitTerminalFailure(writer, fail, arrayName);
 			}
@@ -5616,7 +5616,7 @@ sealed partial class Machine
 				if (Final(fail))
 					Sharpen(writer, shared);
 				else
-					Further(writer, $"{Agreeing()}(text, p, {Quoted(shared)}, false)", arrayName);
+					FurtherSeamed(writer, $"{Agreeing()}(text, p, {Quoted(shared)}, false)", arrayName);
 
 				EmitTerminalFailure(writer, fail, arrayName);
 			}
@@ -5762,6 +5762,11 @@ sealed partial class Machine
 				if (_starves)
 					writer.Line("if (p >= text.Length) failure.Starved = true;");
 
+				// Inside the trivia, recorded only where the input ran out (§7.5), as EmitTerminalFailure
+				// takes it: the sentinel where the texts stopped agreeing on input that was there.
+				if (_seamRule && !_lowering && Sentinel is not null)
+					writer.Line($"if (!{Recorded("p")}) expected = {Sentinel};");
+
 				writer.Line($"goto {Label(writer, fail)};");
 			}
 			else
@@ -5781,14 +5786,14 @@ sealed partial class Machine
 						writer.Line("if (ranTo >= text.Length) failure.Starved = true;");
 
 						if (!_lowering)
-							Further(writer, "ranTo", "expected");
+							FurtherSeamed(writer, "ranTo", "expected");
 					}
 				}
 				else if (!_lowering)
 				{
 					_expectedUsed.Add(arrayName);
 					writer.Line($"expected = {arrayName};");
-					Further(writer, $"{Sharpening(texts, displays)}(text, p, ref expected)", "expected");
+					FurtherSeamed(writer, $"{Sharpening(texts, displays)}(text, p, ref expected)", "expected");
 				}
 
 				EmitTerminalFailure(writer, fail, arrayName);
@@ -8071,6 +8076,33 @@ sealed partial class Machine
 
 		writer.Line($"if (lookahead < 0) {Furthered()}(ref failure, {at}, {said});");
 	}
+
+	/// <summary>
+	/// <see cref="Further"/> inside the trivia: the walk runs — it marks the input that ran out — and
+	/// how far it got is recorded only where the input ran out there (§7.5), as the trivia's
+	/// terminals record. Outside the trivia, or inside a look kept in locals, <see cref="Further"/>.
+	/// </summary>
+	void FurtherSeamed(Writer writer, string at, string said)
+	{
+		if (!(_seamRule && !_lowering && Sentinel is not null) || _doorLooking > 0)
+		{
+			Further(writer, at, said);
+			return;
+		}
+
+		var walked = $"walked{_walks++}";
+
+		using (writer.Block(""))
+		{
+			writer.Line($"var {walked} = {at};");
+
+			using (writer.Block($"if ({Recorded(walked)})"))
+				Further(writer, walked, said);
+		}
+	}
+
+	/// <summary>How many walks <see cref="FurtherSeamed"/> has kept in a local of their own.</summary>
+	int _walks;
 
 	string? _furthered;
 
