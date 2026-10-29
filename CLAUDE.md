@@ -30,6 +30,8 @@ docs/
 	syntax.md             the language: notation and its bond with C#
 	feeds.md              a guide: feeds in pipes, CSV and fixed width, and one loaded into a
 	                      database; every example run by FeedsPageTests
+	cli.md                dotnet dotgram, the DotGram.Cli tool: every command, option and
+	                      exit code
 	status.md             what this version does, held against that specification
 	diagnostics.md        every message the generator reports, by identifier
 	implementation.md     engine plan
@@ -58,6 +60,9 @@ src/
 		SKILL.md          how to write a grammar, for an agent. Ships in the package
 		                  beside that README, which points at it in a comment nothing
 		                  renders
+	DotGram.Cli/          the generator as a .NET tool, dotnet dotgram: writes the parsers a
+	                      build would generate, so that a project compiles them without
+	                      referencing the package (docs/cli.md)
 	DotGram.ExpressionLanguage/ the C#-style expression language, a package of its own:
 	                      ExpressionParser, in the namespace the project is named for
 	DotGram.Finance/      FIX, a package of its own: the wire read into typed fields and the
@@ -112,6 +117,9 @@ tests/
 	                      GRAM5003's parts at every size, and a nine-hundred-rule split
 	DotGram.Sql.Tests/    the SQL parsers held to what SQL Server answers, and the tree, its
 	                      writer and walker
+	DotGram.Sql.Productions/ SQL:2023's productions one by one, which the shipped parser does
+	                      not publish: a fixture the tests and the stand read
+	DotGram.Cli.Tests/    the tool held to what a build of the same project writes
 	DotGram.Handwritten/  the hand-written parsers the tests and the stand hold the generated
 	                      ones against. Not shipped: it is a fixture, and nothing a user copies
 	DotGram.Finance.Tests/ the FIX package: fields, messages, the streaming forms, and the
@@ -141,6 +149,8 @@ tests/
 	                      Roslyn it supports. Not in the solution; CI runs it after packing
 	DotGram.Finance.PackageSmoke/ the same for the FIX package, on both frameworks it
 	                      ships for. Not in the solution; CI runs it after packing
+	DotGram.Cli.PackageSmoke/, DotGram.Sql.PackageSmoke/, DotGram.Web.PackageSmoke/,
+	DotGram.ExpressionLanguage.PackageSmoke/ the same for the other packages
 	DotGram.Language.Tests/ the shared language core held to the generator, on any machine;
 	                      compiles the core from Language.projitems and does not reference
 	                      the generator

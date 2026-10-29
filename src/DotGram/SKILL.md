@@ -12,9 +12,8 @@ time, no runtime package, and nothing to deploy beside the application.
 Everything below is checkable. The full specification is [`docs/syntax.md`][syntax], every
 diagnostic is [`docs/diagnostics.md`][diagnostics], whole parsers to copy are under
 [`examples/`][examples], and the largest grammars written in this notation — Microsoft's
-T-SQL, its own grammar of over 1,000 rules that includes SQL-92's for what the two share
-and builds one tree of records with it; ISO SQL:2023, a separate grammar with a tree of its
-own; an expression language; a FIX message format; and RFC 3986, RFC 5646, RFC 6570 and
+T-SQL, a grammar of over 1,000 rules; ISO SQL:2023 and SQL-92, two more, all three building
+one tree of records; an expression language; a FIX message format; and RFC 3986, RFC 5646, RFC 6570 and
 RFC 9651 among others — are [`DotGram.Sql`][sql], [`DotGram.ExpressionLanguage`][expressions],
 [`DotGram.Finance`][finance] and [`DotGram.Web`][web].
 

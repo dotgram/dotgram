@@ -164,7 +164,7 @@ generated parser's own contract, not something this package adds
 ## Taking one
 
 ```xml
-<PackageReference Include="DotGram.Sql" Version="0.2.0" />
+<PackageReference Include="DotGram.Sql" Version="0.3.0" />
 ```
 
 There is no companion runtime package, and no generator to install alongside it: the parsers

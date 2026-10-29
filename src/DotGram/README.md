@@ -33,7 +33,7 @@ A grammar is read in one of two modes. **Character-level** parsing has no separa
 ## Getting started
 
 ```xml
-<PackageReference Include="DotGram" Version="0.2.0"
+<PackageReference Include="DotGram" Version="0.3.0"
                   PrivateAssets="all" ExcludeAssets="runtime" />
 ```
 
@@ -456,8 +456,8 @@ and the [benchmarks](https://github.com/dotgram/dotgram/tree/main/benchmarks).
 package of its own — RFC 3986 URIs, RFC 5646 language tags, RFC 6570 URI templates,
 RFC 9651 structured field values and the rest of the formats of the web —
 [`DotGram.Sql`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Sql) another —
-Microsoft's T-SQL, which includes SQL-92's grammar for what the two share and builds one
-tree of records with it, and ISO SQL:2023, a separate grammar with a tree of its own —
+Microsoft's T-SQL, SQL-92 and ISO SQL:2023, three grammars that build one tree of
+records —
 [`DotGram.ExpressionLanguage`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.ExpressionLanguage)
 a third — a C#-style expression language that builds `System.Linq.Expressions` trees — and
 [`DotGram.Finance`](https://github.com/dotgram/dotgram/tree/main/src/DotGram.Finance) a

@@ -27,6 +27,8 @@ DotGram language support
   first `[Gram]` gives it, as the generator compiles it.
 - Find All References reopens the read-only copy of an included or standard-library grammar if it
   has been removed since it was made.
+- Bindings and back-references, `$q: X`, `$q` and `X{#q}`, are classified and described in
+  Quick Info.
 
 0.2.0
 
