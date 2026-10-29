@@ -233,15 +233,27 @@ public sealed class FormOutcomeTests
 		["RecognizerRefusedInTrivia"] = new("trivia = { ('#' & 'a' & @Odd & when @(true))* }\nR0 = 'z'\nparse R0\n", "#az", "string", 0, "NoMatch@0"),
 		["RecognizerRefusedInTriviaAtTheEnd"] = new("trivia = { ('#' & 'a' & @Odd & when @(true))* }\nR0 = 'z'\nparse R0\n", "#a", "string", 0, "Starved@2"),
 
-		// Known issue: a choice of literals inside the trivia, refused past their shared prefix on
-		// input that was there, is recorded by the engine where the literals stopped agreeing — the
-		// literal walk sharpens the set and goes to Fail: without asking whether it is inside the
-		// trivia — where the direct reader records nothing. Braced, the string forms of both readers
-		// record nothing and their reader forms record where the literals stopped agreeing.
-		["LiteralChoiceRefusedInTrivia"] = new("trivia = ('#' & (\"ab\" | \"ac\"))*\nR0 = 'z'\nparse R0\n", "#ax", "string", 0, "NoMatch@0", Engine: "NoMatch@2"),
-		["LiteralChoiceRefusedInTriviaRead"] = new("trivia = ('#' & (\"ab\" | \"ac\"))*\nR0 = 'z'\nparse R0\n", "#ax", "reader", 0, "NoMatch@0", Engine: "NoMatch@2"),
+		// A choice of literals inside the trivia, refused past their shared prefix on input that
+		// was there, records nothing in either reader and every form: the engine's literal walk
+		// sharpened the set and went to Fail: without asking whether it was inside the trivia, and
+		// the direct reader's reader form of a braced trivia wrote down where the literals stopped
+		// agreeing. Found by review; main recorded 2 everywhere.
+		["LiteralChoiceRefusedInTrivia"] = new("trivia = ('#' & (\"ab\" | \"ac\"))*\nR0 = 'z'\nparse R0\n", "#ax", "string", 0, "NoMatch@0"),
+		["LiteralChoiceRefusedInTriviaRead"] = new("trivia = ('#' & (\"ab\" | \"ac\"))*\nR0 = 'z'\nparse R0\n", "#ax", "reader", 0, "NoMatch@0"),
 		["LiteralChoiceRefusedInBracedTrivia"] = new("trivia = { ('#' & (\"ab\" | \"ac\"))* }\nR0 = 'z'\nparse R0\n", "#ax", "string", 0, "NoMatch@0"),
-		["LiteralChoiceRefusedInBracedTriviaRead"] = new("trivia = { ('#' & (\"ab\" | \"ac\"))* }\nR0 = 'z'\nparse R0\n", "#ax", "reader", 0, "NoMatch@2"),
+		["LiteralChoiceRefusedInBracedTriviaRead"] = new("trivia = { ('#' & (\"ab\" | \"ac\"))* }\nR0 = 'z'\nparse R0\n", "#ax", "reader", 0, "NoMatch@0"),
+		["LiteralChoiceRefusedInBracedTriviaStreamed"] = new("trivia = { ('#' & (\"ab\" | \"ac\"))* }\nR0 = 'z'\nparse R0\n", "#ax", "stream", 0, "NoMatch@0"),
+		["LiteralChoiceRefusedInTriviaAtTheEnd"] = new("trivia = ('#' & (\"ab\" | \"ac\"))*\nR0 = 'z'\nparse R0\n", "#a", "string", 0, "Starved@2"),
+		["LiteralChoiceRefusedInTriviaAtTheEndRead"] = new("trivia = { ('#' & (\"ab\" | \"ac\"))* }\nR0 = 'z'\nparse R0\n", "#a", "reader", 0, "Starved@2"),
+
+		// A braced trivia that is an optional call to a repeating rule — the SQL:2023 grammar's
+		// `{ Separator? }` — over a reader: the rule after the trivia is refused where it stands, as
+		// over a string. Found by probing the shipped trivia: the engine answered from the start.
+		["OptionalRepeatingRuleTrivia"] = new("trivia = { Sep? }\nSep = (\"/*\" & [^ '*']* & \"*/\" | ' ')+\nR0 = \"select\" & ' '? & '1'\nparse R0\n", "select /x 1", "string", 0, "NoMatch@7"),
+		["OptionalRepeatingRuleTriviaRead"] = new("trivia = { Sep? }\nSep = (\"/*\" & [^ '*']* & \"*/\" | ' ')+\nR0 = \"select\" & ' '? & '1'\nparse R0\n", "select /x 1", "reader", 0, "NoMatch@7"),
+		["OptionalRepeatingRuleTriviaStreamed"] = new("trivia = { Sep? }\nSep = (\"/*\" & [^ '*']* & \"*/\" | ' ')+\nR0 = \"select\" & ' '? & '1'\nparse R0\n", "select /x 1", "stream", 0, "NoMatch@7"),
+		["OptionalRepeatingRuleTriviaBytes"] = new("trivia = { Sep? }\nSep = (\"/*\" & [^ '*']* & \"*/\" | ' ')+\nR0 = \"select\" & ' '? & '1'\nparse R0\n", "select /x 1", "bytes", 0, "NoMatch@7"),
+		["OptionalRepeatingRuleTriviaInANamespaceRead"] = new("trivia = { L.Sep? }\nnamespace L\n{\n\ttrivia = none\n\tSep = (Cmt | ' ')+\n\tCmt = \"/*\" & [^ '*']* & \"*/\" | \"--\" & [^ '\\n']*\n}\nR0 = \"select\" & ' '? & '1'\nparse R0\n", "select /x 1", "reader", 0, "NoMatch@7"),
 
 		// Known issue: a counted repetition's extra turn refused at the end of the input inside a
 		// braced trivia is recorded by the engine, where the input ran out, and not by the direct
