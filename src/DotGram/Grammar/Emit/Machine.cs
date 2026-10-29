@@ -3199,8 +3199,8 @@ sealed partial class Machine
 				// Not above the ceiling either: the high half is one more than the strength the
 				// last operand was read at, and 0 — no ceiling — wraps to the largest unsigned.
 				writer.Line(after is not null
-					? $"if ({level} < (power & 0xFFFF) || (uint)((power >> 16) - 1) <= {level}u) {{ expected = null; goto Fail; }}"
-					: $"if ({level} < power) {{ expected = null; goto Fail; }}");
+					? $"if ({level} < (power & 0xFFFF) || (uint)((power >> 16) - 1) <= {level}u) {{ {Cleared()} goto Fail; }}"
+					: $"if ({level} < power) {{ {Cleared()} goto Fail; }}");
 				writer.Line($"goto {Label(writer, inner)};");
 
 				return state;
@@ -4017,7 +4017,7 @@ sealed partial class Machine
 				// where there is one, is recovered later by re-invoking the method against
 				// the recorded start position (Machine.Materialization.cs), not trusted from
 				// a call that may run on an abandoned path.
-				writer.Line($"if (!{ExternalCall(external, "p", external.HasValue ? "_" : null)}) {{ expected = null; goto {Label(writer, _fail)}; }}");
+				writer.Line($"if (!{ExternalCall(external, "p", external.HasValue ? "_" : null)}) {{ {Cleared()} goto {Label(writer, _fail)}; }}");
 				writer.Line($"goto {Label(writer, next)};");
 
 				return state;
@@ -4421,7 +4421,7 @@ sealed partial class Machine
 					{
 						for (var index = 0; index < selection.Targets.Length; index++)
 							writer.Line($"case {index}: goto {Label(writer, selection.Targets[index])};");
-						writer.Line($"default: expected = null; goto {Label(writer, _fail)};");
+						writer.Line($"default: {Cleared()} goto {Label(writer, _fail)};");
 					}
 					return state;
 				}
@@ -4432,7 +4432,7 @@ sealed partial class Machine
 				}
 				writer.Line(
 					$"if (!{guardCall}) " +
-					$"{{ expected = null; goto {Label(writer, _fail)}; }}");
+					$"{{ {Cleared()} goto {Label(writer, _fail)}; }}");
 				writer.Line($"goto {Label(writer, next)};");
 
 				return state;
@@ -9519,8 +9519,21 @@ sealed partial class Machine
 	/// </summary>
 	void EmitFailure(Writer writer, int fail)
 	{
-		writer.Line("expected = null;");
+		writer.Line(Cleared());
 		writer.Line($"goto {Label(writer, fail)};");
+	}
+
+	/// <summary>
+	/// The statement that clears <c>expected</c> for a failure that is not a terminal test
+	/// (<see cref="EmitFailure"/>): a guard, an external recognizer, a binding-power ceiling.
+	/// Inside the trivia it is the sentinel where the input has not run out (§7.5), as
+	/// <see cref="EmitTerminalFailure"/> takes it: the parse answers from the rule after the trivia.
+	/// </summary>
+	string Cleared()
+	{
+		return _seamRule && !_lowering && Sentinel is not null
+			? $"expected = {Recorded("p")} ? null : {Sentinel};"
+			: "expected = null;";
 	}
 
 	void PushRepeatExit(Writer writer, int exit)

@@ -3319,9 +3319,10 @@ sealed partial class Machine
 						}
 						else
 						{
-							code.Line(machine.Quiets
-								? $"if (!failure.Quiet) {Refusing}_Over(ref failure, p, {expected}, {covered}, {stood});"
-								: $"{Refusing}_Over(ref failure, p, {expected}, {covered}, {stood});");
+							// Inside the trivia, recorded only where the input ran out (Seamed), as Refusal records.
+							var covering = $"{Refusing}_Over(ref failure, p, {expected}, {covered}, {stood});";
+
+							code.Line(Recording is { } recording ? $"if ({recording}) {covering}" : covering);
 							code.Line(Fails());
 						}
 					}
@@ -6432,7 +6433,9 @@ sealed partial class Machine
 		/// <summary>
 		/// A refusal that names <paramref name="expected"/> where the guard would let its group
 		/// read, and <paramref name="without"/> where it would not. The guard is asked only when
-		/// the refusal is recorded, so a reading that goes on pays nothing for it.
+		/// the refusal is recorded, so a reading that goes on pays nothing for it. Inside the
+		/// trivia it is recorded only where the input ran out (<see cref="Seamed"/>), as
+		/// <see cref="Refusal"/> records.
 		/// </summary>
 		void RefusedUnless(Writer code, string expected, Node.Guard guard, string without, (string Set, string Stood)? covered = null)
 		{
@@ -6443,7 +6446,7 @@ sealed partial class Machine
 			// way in; asked again here, it must not take that place.
 			var kept = new Dictionary<string, string>(_guardTexts, StringComparer.Ordinal);
 
-			using (code.Block(machine.Quiets ? "if (!failure.Quiet)" : ""))
+			using (code.Block(Recording is { } recording ? $"if ({recording})" : ""))
 			{
 				var call  = EmitGuardCall(code, guard);
 				var named = ExpectedEither(call, expected, without);
@@ -6799,6 +6802,12 @@ sealed partial class Machine
 
 		/// <summary>Whether the input ran out where the reading stands: at the end of the text, or inside a literal that marked it (<see cref="Refusal"/>).</summary>
 		string RanOut => $"{machine.Past("p")} || failure.OutOfInput > p";
+
+		/// <summary>The condition a refusal here is recorded under at all, or null where it always is: <see cref="Seamed"/>, and not a quiet reading where readings may be quiet.</summary>
+		string? Recording =>
+			Seamed is { } seamed ? machine.Quiets ? $"({seamed}) && !failure.Quiet" : seamed
+			: machine.Quiets ? "!failure.Quiet"
+			: null;
 
 		/// <summary>The condition a refusal of this rule is recorded under, or null where it is recorded as any rule's: inside the seam, where the input ran out; in a rule the grammar calls too, or where the reading is not inside the trivia.</summary>
 		string? Seamed =>
