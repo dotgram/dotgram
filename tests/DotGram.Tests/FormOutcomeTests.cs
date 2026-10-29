@@ -157,16 +157,27 @@ public sealed class FormOutcomeTests
 		["TriviaRepetitionBelowItsFewestAtALookAfterAChoice"] = new("trivia = { ('#' & (('a' | 'c') & ?!'b')+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "string", 0, "NoMatch@0"),
 		["TriviaRepetitionBelowItsFewestAtALookInNestedRepetitions"] = new("trivia = { ('#' & (('a' & ?!'b'){1,2} & 'x')+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "string", 0, "NoMatch@0"),
 
-		// A look refused in a counted rule the trivia calls, and a braced trivia turn given back over a
-		// reader, record nothing: the parse answers from the rule after the trivia. Found by a breaker
-		// and the harness.
+		// Inside the trivia a refusal is recorded only where the input ran out (§7.5): a look refused
+		// there, an alternative refused beside it, a rule it calls refused, a turn given back — all
+		// record nothing, and the parse answers from the rule after the trivia. Found by a breaker
+		// and the harness: the readers split on which of these each recorded.
+		["QuietLookAlternativeInTrivia"] = new("trivia = { ('#' & (?!\"ab\" & any | 'z')+)* }\nR0 = 'z'\nparse R0\n", "#ab", "string", 0, "NoMatch@0"),
+		["QuietLookAlternativeInTriviaRead"] = new("trivia = { ('#' & (?!\"ab\" & any | 'z')+)* }\nR0 = 'z'\nparse R0\n", "#ab", "reader", 0, "NoMatch@0"),
+		["QuietLookAlternativeInTriviaStreamed"] = new("trivia = { ('#' & (?!\"ab\" & any | 'z')+)* }\nR0 = 'z'\nparse R0\n", "#ab", "stream", 0, "NoMatch@0"),
+		["QuietLookSecondAlternativeInTrivia"] = new("trivia = (' ' | '#' & ('y' | ?!\"ab\" & any)+)*\nR0 = 'z'\nparse R0\n", "#ab", "string", 0, "NoMatch@0"),
+		["QuietLookInACalledRuleInTrivia"] = new("trivia = ('#' & (NotA)+)*\nNotA = ?!'a' & any\nR0 = 'z'\nparse R0\n", "#a", "string", 0, "NoMatch@0"),
+		["QuietLookInACalledRuleInTriviaRead"] = new("trivia = ('#' & (NotA)+)*\nNotA = ?!'a' & any\nR0 = 'z'\nparse R0\n", "#a", "reader", 0, "NoMatch@0"),
+		["QuietLookInACalledRuleInTriviaStreamed"] = new("trivia = ('#' & (NotA)+)*\nNotA = ?!'a' & any\nR0 = 'z'\nparse R0\n", "#a", "stream", 0, "NoMatch@0"),
 		["QuietLookInACountedCalledRuleInTrivia"] = new("trivia = ('#' & (H0){2,})*\nH0 = ?!(\"ab\" | 'y') & any\nR0 = 'z'\nparse R0\n", "#y", "string", 0, "NoMatch@0"),
+		["BracedTriviaTurnGivenBack"] = new("trivia = { ('#' & 'y'+)* }\nR0 = 'z'\nparse R0\n", "#a", "string", 0, "NoMatch@0"),
 		["BracedTriviaTurnGivenBackRead"] = new("trivia = { ('#' & 'y'+)* }\nR0 = 'z'\nparse R0\n", "#a", "reader", 0, "NoMatch@0"),
 
-		// Where the input ran out inside the trivia the parse is starved there: a literal the input
-		// ends inside, a terminal refused at the end, a positive look whose body ran out — a comment
-		// left open at the end of the input wanted more.
+		// And where the input ran out inside the trivia the parse is starved there: a literal the
+		// input ends inside, a terminal refused at the end, a positive look whose body ran out — a
+		// comment left open at the end of the input wanted more.
 		["BracedTriviaTurnAtTheEnd"] = new("trivia = { ('#' & 'y'+)* }\nR0 = 'z'\nparse R0\n", "#", "string", 0, "Starved@1"),
+		["BracedTriviaTurnAtTheEndRead"] = new("trivia = { ('#' & 'y'+)* }\nR0 = 'z'\nparse R0\n", "#", "reader", 0, "Starved@1"),
+		["TriviaRunAtTheEnd"] = new("trivia = (' ' | '#' & ('y'){2,})*\nR0 = 'z'\nparse R0\n", "#", "string", 0, "Starved@1"),
 		["PositiveLookRanOutInTrivia"] = new("trivia = (' ' | '#' & ?=\"ab\" & [^ ' ']*)*\nR0 = 'c'\nparse R0\n", "#a", "string", 0, "Starved@1"),
 		["PositiveLookRanOutInTriviaRead"] = new("trivia = (' ' | '#' & ?=\"ab\" & [^ ' ']*)*\nR0 = 'c'\nparse R0\n", "#a", "reader", 0, "Starved@1"),
 		["PositiveLookAtTheEndInTrivia"] = new("trivia = (' ' | '#' & ?=\"ab\" & [^ ' ']*)*\nR0 = 'c'\nparse R0\n", "#", "string", 0, "Starved@1"),
@@ -174,24 +185,38 @@ public sealed class FormOutcomeTests
 		["PositiveLookOverAGuardedRuleRanOutInTriviaRead"] = new("trivia = { (' ' | '#' & ?=H & [^ ' ']*)* }\nH : @int = g: ('a' | \"ab\") & when @(g.Length > 1) => @(g.Length)\nR0 = 'c'\nparse R0\n", "#a", "reader", 0, "Starved@1"),
 		["UnclosedCommentAtTheEnd"] = new("trivia = (' ' | \"--\" & [^ '\\n']* & ?=eol)*\nR0 = ['a'..'c']+\nparse R0\n", "--", "string", 0, "Starved@2"),
 
-		// A rule both the trivia and the grammar call, refused where the grammar called it, is recorded
-		// as any rule; refused inside the trivia over a reader, it says nothing.
+		// A rule both the trivia and the grammar call is read as the call stands: refused inside the
+		// trivia it says nothing, refused where the grammar called it, it is recorded as any rule.
 		["SharedRuleCalledFromTriviaAndTheGrammar"] = new("trivia = { (' ' | '#' & W)* }\nW = 'x' & 'y'\nR0 = 'a' & W\nparse R0\n", "axz", "string", 0, "NoMatch@2"),
 		["SharedRuleCalledFromTriviaAndTheGrammarRead"] = new("trivia = { (' ' | '#' & W)* }\nW = 'x' & 'y'\nR0 = 'a' & W\nparse R0\n", "axz", "reader", 0, "NoMatch@2"),
 		["SharedRuleCalledFromTriviaAndTheGrammarStreamed"] = new("trivia = { (' ' | '#' & W)* }\nW = 'x' & 'y'\nR0 = 'a' & W\nparse R0\n", "axz", "stream", 0, "NoMatch@2"),
 		["SharedRuleWithALookCalledFromTriviaAndTheGrammar"] = new("trivia = { (' ' | '#' & W)* }\nW = 'x' & ?!'z' & any\nR0 = 'a' & W\nparse R0\n", "axz", "string", 0, "NoMatch@2"),
 		["SharedRuleWithALookCalledFromTriviaAndTheGrammarRead"] = new("trivia = { (' ' | '#' & W)* }\nW = 'x' & ?!'z' & any\nR0 = 'a' & W\nparse R0\n", "axz", "reader", 0, "NoMatch@2"),
+		["SharedRuleRefusedInsideTheTrivia"] = new("trivia = { (' ' | '#' & W)* }\nW = 'x' & 'y'\nR0 = 'a' & W\nparse R0\n", "#xz", "string", 0, "NoMatch@0"),
 		["SharedRuleRefusedInsideTheTriviaRead"] = new("trivia = { (' ' | '#' & W)* }\nW = 'x' & 'y'\nR0 = 'a' & W\nparse R0\n", "#xz", "reader", 0, "NoMatch@0"),
 		["SharedRuleSayingItsRefusal"] = new("trivia = { (' ' | '#' & W)* }\nW : @int on fail \"no W\" = 'x' & 'y' => @(0)\nR0 : @int = 'a' & W => @(0)\nparse R0\n", "axz", "string", 0, "NoMatch@2"),
+		["SharedRuleSayingItsRefusalInsideTheTrivia"] = new("trivia = { (' ' | '#' & W)* }\nW : @int on fail \"no W\" = 'x' & 'y' => @(0)\nR0 : @int = 'a' & W => @(0)\nparse R0\n", "#xz", "string", 0, "NoMatch@0"),
 
-		// A block comment left open at the end of the input starves the parse where the comment
-		// stands.
+		// §7.5's example: a block comment left open at the end of the input starves the parse where
+		// the comment stands.
 		["BlockCommentLeftOpenAtTheEnd"] = new("trivia = { (' ' | Std.BlockComment(\"/*\", \"*/\"))* }\nR0 = 'z' & 'q'\nparse R0\n", "z /* x", "string", 0, "Starved@6"),
 		["BlockCommentLeftOpenAtTheEndRead"] = new("trivia = { (' ' | Std.BlockComment(\"/*\", \"*/\"))* }\nR0 = 'z' & 'q'\nparse R0\n", "z /* x", "reader", 0, "Starved@6"),
 
-		// A scanned positive look whose body ran out over a reader starves the parse where it stands;
-		// a recognizer refused inside the trivia records nothing.
+		// Found by review of round nine: four more sites that recorded inside the trivia where the
+		// input had not run out, or lost a run-out that had — a scanned positive look's body, a
+		// choice resumed inside the trivia after a rule returned, the direct reader's dispatch
+		// recorders, and the engine's guard and recognizer failures.
+		["ScannedPositiveLookBodyRanOutInTrivia"] = new("trivia = { ('#' & ?=\"ab\" & any*)* }\nR0 = 'z'\nparse R0\n", "#a", "string", 0, "Starved@1"),
 		["ScannedPositiveLookBodyRanOutInTriviaRead"] = new("trivia = { ('#' & ?=\"ab\" & any*)* }\nR0 = 'z'\nparse R0\n", "#a", "reader", 0, "Starved@1"),
+		["ChoiceResumedInsideTriviaAfterAReturn"] = new("trivia = ('#' & W)*\nW = 'x' & ('y' | 'y' & 'q' & 'r')\nR0 = 'a' & W\nparse R0\n", "#xyqz", "string", 0, "NoMatch@3"),
+		["ChoiceResumedInsideTriviaAfterAReturnRead"] = new("trivia = ('#' & W)*\nW = 'x' & ('y' | 'y' & 'q' & 'r')\nR0 = 'a' & W\nparse R0\n", "#xyqz", "reader", 0, "NoMatch@3"),
+		["ChoiceResumedInsideTriviaAfterAReturnStreamed"] = new("trivia = ('#' & W)*\nW = 'x' & ('y' | 'y' & 'q' & 'r')\nR0 = 'a' & W\nparse R0\n", "#xyqz", "stream", 0, "NoMatch@3"),
+		["GuardedAlternativeInTrivia"] = new("trivia = { ('#' & (when @(true) & 'x' | 'y'))* }\nR0 = 'z'\nparse R0\n", "#a", "string", 0, "NoMatch@0"),
+		["GuardedAlternativeInTriviaRead"] = new("trivia = { ('#' & (when @(true) & 'x' | 'y'))* }\nR0 = 'z'\nparse R0\n", "#a", "reader", 0, "NoMatch@0"),
+		["RecursiveRuleInTrivia"] = new("trivia = { ('#' & W)* }\nW = 'x' & (W | 'y')\nR0 = 'a' & W\nparse R0\n", "#xxz", "string", 0, "NoMatch@0"),
+		["RecursiveRuleInTriviaRead"] = new("trivia = { ('#' & W)* }\nW = 'x' & (W | 'y')\nR0 = 'a' & W\nparse R0\n", "#xxz", "reader", 0, "NoMatch@0"),
+		["GuardRefusedInTrivia"] = new("trivia = { ('#' & 'a' & when @(false))* }\nR0 = 'z'\nparse R0\n", "#az", "string", 0, "NoMatch@0"),
+		["GuardRefusedInTriviaRead"] = new("trivia = { ('#' & 'a' & when @(false))* }\nR0 = 'z'\nparse R0\n", "#az", "reader", 0, "NoMatch@0"),
 		["RecognizerRefusedInTrivia"] = new("trivia = { ('#' & 'a' & @Odd)* }\nR0 = 'z'\nparse R0\n", "#az", "string", 0, "NoMatch@0"),
 
 		// Over kinds, a repetition short of its minimum that stopped at the end of the tokens says
