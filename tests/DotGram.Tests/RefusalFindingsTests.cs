@@ -64,10 +64,10 @@ public sealed class RefusalFindingsTests
 	/// for an input that one more character turns into a match.
 	/// </summary>
 	[Theory]
-	[InlineData("T = \"ac\"? & \"ab\" & ?='x' & 'x'",  "ab",  "Starved@2", Skip = "The engine records a look ahead that saw nothing where it stands only where the look is kept in locals; the reader never does. One rule for both is a change of its own.")]
+	[InlineData("T = \"ac\"? & \"ab\" & ?='x' & 'x'",  "ab",  "Starved@2")]
 	[InlineData("T = \"ac\"? & \"ab\" & ?='x' & 'x'",  "abx", "Success@3")]
-	[InlineData("T = 'a'? & \"ab\" & ?='x' & 'x'",     "ab",  "Starved@2", Skip = "The engine records a look ahead that saw nothing where it stands only where the look is kept in locals; the reader never does. One rule for both is a change of its own.")]
-	[InlineData("T = \"a\" & \"aab\"? & \"ab\" & ?='x' & any", "aab",  "Starved@3", Skip = "The engine records a look ahead that saw nothing where it stands only where the look is kept in locals; the reader never does. One rule for both is a change of its own.")]
+	[InlineData("T = 'a'? & \"ab\" & ?='x' & 'x'",     "ab",  "Starved@2")]
+	[InlineData("T = \"a\" & \"aab\"? & \"ab\" & ?='x' & any", "aab",  "Starved@3")]
 	[InlineData("T = \"a\" & \"aab\"? & \"ab\" & ?='x' & any", "aabx", "Success@4")]
 	public void A_look_at_the_end_after_a_literal_that_disagreed_is_starved(string grammar, string input, string expected)
 	{
@@ -105,7 +105,7 @@ public sealed class RefusalFindingsTests
 	/// A source that blocks once its text is used up must not be waited on after a character it gave already
 	/// refuses: the room for the whole literal was asked for first, so <c>X</c> against <c>"abc"</c> waits for two more.
 	/// </summary>
-	[Theory(Skip = "A literal asks for room for the whole of itself before it compares its first character, which is how the buffer is filled; a source that blocks after the text it gave waits there. Left to the stream's design.")]
+	[Theory]
 	[InlineData("T = \"abc\" & eof")]
 	[InlineData("T = \"ab\" & \"cd\" & \"ef\" & eof")]
 	public void A_reader_is_not_waited_on_after_a_character_that_refuses(string grammar)
