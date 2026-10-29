@@ -72,7 +72,7 @@ public abstract partial record Statement : ISqlNode
 	/// common table expression and an INSERT's source hold as well; a statement adds only what no
 	/// subquery may write.
 	/// </remarks>
-	public partial record Select : Statement
+	public sealed partial record Select : Statement
 	{
 		public required Query Query { get; init; }
 
@@ -81,7 +81,7 @@ public abstract partial record Statement : ISqlNode
 	}
 
 	// BNF: <insert statement>
-	public partial record Insert : Statement
+	public sealed partial record Insert : Statement
 	{
 		/// <summary>T-SQL: TOP. <c>INSERT TOP (n) INTO t …</c>.</summary>
 		public TopClause? Top { get; init; }
@@ -92,7 +92,7 @@ public abstract partial record Statement : ISqlNode
 	}
 
 	// BNF: <update statement: searched>, <update statement: positioned>, dynamic/preparable positioned update
-	public partial record Update : Statement
+	public sealed partial record Update : Statement
 	{
 		/// <summary>T-SQL: TOP. <c>UPDATE TOP (n) t SET …</c>.</summary>
 		public TopClause? Top { get; init; }
@@ -106,7 +106,7 @@ public abstract partial record Statement : ISqlNode
 	}
 
 	// BNF: <delete statement: searched>, <delete statement: positioned>, dynamic/preparable positioned delete
-	public partial record Delete : Statement
+	public sealed partial record Delete : Statement
 	{
 		/// <summary>T-SQL: TOP. <c>DELETE TOP (n) FROM t …</c>.</summary>
 		public TopClause? Top { get; init; }
@@ -119,7 +119,7 @@ public abstract partial record Statement : ISqlNode
 	}
 
 	// BNF: <merge statement>
-	public partial record Merge : Statement
+	public sealed partial record Merge : Statement
 	{
 		/// <summary>T-SQL: TOP. <c>MERGE TOP (n) INTO t …</c>.</summary>
 		public TopClause? Top { get; init; }
@@ -131,14 +131,14 @@ public abstract partial record Statement : ISqlNode
 	}
 
 	// BNF: <truncate table statement>
-	public partial record TruncateTable : Statement
+	public sealed partial record TruncateTable : Statement
 	{
 		public required TableSource Target { get; init; }
 		public IdentityRestart? Identity { get; init; }
 	}
 
 	// BNF: <schema definition>
-	public record CreateSchema : Statement
+	public sealed record CreateSchema : Statement
 	{
 		public QualifiedName? Name { get; init; }
 		// BNF: <schema character set or path>, written either way round.
@@ -150,7 +150,7 @@ public abstract partial record Statement : ISqlNode
 	}
 
 	// BNF: <table definition>
-	public partial record CreateTable : Statement
+	public sealed partial record CreateTable : Statement
 	{
 		public TableScope? Scope { get; init; }
 		public required QualifiedName Name { get; init; }
@@ -160,7 +160,7 @@ public abstract partial record Statement : ISqlNode
 	}
 
 	// BNF: <alter table statement>
-	public partial record AlterTable : Statement
+	public sealed partial record AlterTable : Statement
 	{
 		public required QualifiedName Name { get; init; }
 		// T-SQL: several actions in one statement; the standard's is a list of one (design/sql-tsql-tree.md, 17).
@@ -168,13 +168,13 @@ public abstract partial record Statement : ISqlNode
 	}
 
 	// BNF: <drop schema statement>. T-SQL's drops name a list, say IF EXISTS, and may leave the behavior out (design/sql-tsql-tree.md).
-	public record DropSchema : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
+	public sealed record DropSchema : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: <drop table statement>
-	public record DropTable : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
+	public sealed record DropTable : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: <view definition>
-	public partial record CreateView : Statement
+	public sealed partial record CreateView : Statement
 	{
 		public bool Recursive { get; init; }
 		public required QualifiedName Name { get; init; }
@@ -184,25 +184,25 @@ public abstract partial record Statement : ISqlNode
 	}
 
 	// BNF: <drop view statement>
-	public record DropView : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
+	public sealed record DropView : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: <domain definition>, <alter domain statement>, <drop domain statement>
-	public record CreateDomain : Statement { public required QualifiedName Name { get; init; } public bool AsKeyword { get; init; } public required DataType Type { get; init; } public Expression? Default { get; init; } public SqlList<Constraint> Constraints { get; init; } = []; public CollationName? Collation { get; init; } }
-	public record AlterDomain : Statement { public required QualifiedName Name { get; init; } public required AlterDomainAction Action { get; init; } }
-	public record DropDomain : Statement { public required QualifiedName Name { get; init; } public required DropBehavior Behavior { get; init; } }
+	public sealed record CreateDomain : Statement { public required QualifiedName Name { get; init; } public bool AsKeyword { get; init; } public required DataType Type { get; init; } public Expression? Default { get; init; } public SqlList<Constraint> Constraints { get; init; } = []; public CollationName? Collation { get; init; } }
+	public sealed record AlterDomain : Statement { public required QualifiedName Name { get; init; } public required AlterDomainAction Action { get; init; } }
+	public sealed record DropDomain : Statement { public required QualifiedName Name { get; init; } public required DropBehavior Behavior { get; init; } }
 
 	// BNF: character set/collation/translation/assertion statements
-	public record CreateCharacterSet : Statement { public required CharacterSetName Name { get; init; } public bool AsKeyword { get; init; } public required CharacterSetName Source { get; init; } public CollationName? Collation { get; init; } }
-	public record DropCharacterSet : Statement { public required CharacterSetName Name { get; init; } }
-	public record CreateCollation : Statement { public required CollationName Name { get; init; } public required CharacterSetName CharacterSet { get; init; } public required CollationName Source { get; init; } public PadCharacteristic? Padding { get; init; } }
-	public record DropCollation : Statement { public required CollationName Name { get; init; } public required DropBehavior Behavior { get; init; } }
-	public record CreateTranslation : Statement { public required QualifiedName Name { get; init; } public required CharacterSetName SourceCharacterSet { get; init; } public required CharacterSetName TargetCharacterSet { get; init; } public required TranslationSource Source { get; init; } }
-	public record DropTranslation : Statement { public required QualifiedName Name { get; init; } }
-	public record CreateAssertion : Statement { public required QualifiedName Name { get; init; } public required Expression Condition { get; init; } public ConstraintCharacteristics? Characteristics { get; init; } }
-	public record DropAssertion : Statement { public required QualifiedName Name { get; init; } public DropBehavior? Behavior { get; init; } }
+	public sealed record CreateCharacterSet : Statement { public required CharacterSetName Name { get; init; } public bool AsKeyword { get; init; } public required CharacterSetName Source { get; init; } public CollationName? Collation { get; init; } }
+	public sealed record DropCharacterSet : Statement { public required CharacterSetName Name { get; init; } }
+	public sealed record CreateCollation : Statement { public required CollationName Name { get; init; } public required CharacterSetName CharacterSet { get; init; } public required CollationName Source { get; init; } public PadCharacteristic? Padding { get; init; } }
+	public sealed record DropCollation : Statement { public required CollationName Name { get; init; } public required DropBehavior Behavior { get; init; } }
+	public sealed record CreateTranslation : Statement { public required QualifiedName Name { get; init; } public required CharacterSetName SourceCharacterSet { get; init; } public required CharacterSetName TargetCharacterSet { get; init; } public required TranslationSource Source { get; init; } }
+	public sealed record DropTranslation : Statement { public required QualifiedName Name { get; init; } }
+	public sealed record CreateAssertion : Statement { public required QualifiedName Name { get; init; } public required Expression Condition { get; init; } public ConstraintCharacteristics? Characteristics { get; init; } }
+	public sealed record DropAssertion : Statement { public required QualifiedName Name { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: trigger definition/drop trigger
-	public partial record CreateTrigger : Statement
+	public sealed partial record CreateTrigger : Statement
 	{
 		public required QualifiedName Name { get; init; }
 		public required TriggerTime Time { get; init; }
@@ -213,116 +213,116 @@ public abstract partial record Statement : ISqlNode
 	}
 	// T-SQL: DROP TRIGGER (Transact-SQL). `On` is the DDL trigger's scope, which the page publishes as
 	// `ON { DATABASE | ALL SERVER }` and requires there; null is the DML form, which has no scope.
-	public record DropTrigger : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public TriggerScope? On { get; init; } }
+	public sealed record DropTrigger : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public TriggerScope? On { get; init; } }
 
 	// BNF: user-defined type/cast/ordering/transform statements
-	public record CreateType : Statement { public required UserDefinedTypeDefinition Definition { get; init; } }
-	public record AlterType : Statement { public required QualifiedName Name { get; init; } public required AlterTypeAction Action { get; init; } }
-	public record DropType : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
-	public record CreateCast : Statement { public required DataType SourceType { get; init; } public required DataType TargetType { get; init; } public required RoutineDesignator Function { get; init; } public bool AsAssignment { get; init; } }
-	public record DropCast : Statement { public required DataType SourceType { get; init; } public required DataType TargetType { get; init; } public required DropBehavior Behavior { get; init; } }
-	public record CreateOrdering : Statement { public required QualifiedName TypeName { get; init; } public required OrderingDefinition Ordering { get; init; } }
-	public record DropOrdering : Statement { public required QualifiedName TypeName { get; init; } public required DropBehavior Behavior { get; init; } }
-	public record CreateTransform : Statement { public bool PluralKeyword { get; init; } public required QualifiedName TypeName { get; init; } public SqlList<TransformGroup> Groups { get; init; } = []; }
-	public record AlterTransform : Statement { public bool PluralKeyword { get; init; } public required QualifiedName TypeName { get; init; } public SqlList<TransformAlterGroup> Groups { get; init; } = []; }
-	public record DropTransform : Statement { public bool PluralKeyword { get; init; } public required TransformDropTarget Target { get; init; } public required QualifiedName TypeName { get; init; } public required DropBehavior Behavior { get; init; } }
+	public sealed record CreateType : Statement { public required UserDefinedTypeDefinition Definition { get; init; } }
+	public sealed record AlterType : Statement { public required QualifiedName Name { get; init; } public required AlterTypeAction Action { get; init; } }
+	public sealed record DropType : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
+	public sealed record CreateCast : Statement { public required DataType SourceType { get; init; } public required DataType TargetType { get; init; } public required RoutineDesignator Function { get; init; } public bool AsAssignment { get; init; } }
+	public sealed record DropCast : Statement { public required DataType SourceType { get; init; } public required DataType TargetType { get; init; } public required DropBehavior Behavior { get; init; } }
+	public sealed record CreateOrdering : Statement { public required QualifiedName TypeName { get; init; } public required OrderingDefinition Ordering { get; init; } }
+	public sealed record DropOrdering : Statement { public required QualifiedName TypeName { get; init; } public required DropBehavior Behavior { get; init; } }
+	public sealed record CreateTransform : Statement { public bool PluralKeyword { get; init; } public required QualifiedName TypeName { get; init; } public SqlList<TransformGroup> Groups { get; init; } = []; }
+	public sealed record AlterTransform : Statement { public bool PluralKeyword { get; init; } public required QualifiedName TypeName { get; init; } public SqlList<TransformAlterGroup> Groups { get; init; } = []; }
+	public sealed record DropTransform : Statement { public bool PluralKeyword { get; init; } public required TransformDropTarget Target { get; init; } public required QualifiedName TypeName { get; init; } public required DropBehavior Behavior { get; init; } }
 
 	// BNF: schema routine, alter/drop routine
-	public partial record CreateRoutine : Statement { public required RoutineDefinition Definition { get; init; } }
-	public record AlterRoutine : Statement { public required RoutineDesignator Routine { get; init; } public SqlList<RoutineCharacteristic> Characteristics { get; init; } = []; public required AlterRoutineBehavior Behavior { get; init; } }
+	public sealed partial record CreateRoutine : Statement { public required RoutineDefinition Definition { get; init; } }
+	public sealed record AlterRoutine : Statement { public required RoutineDesignator Routine { get; init; } public SqlList<RoutineCharacteristic> Characteristics { get; init; } = []; public required AlterRoutineBehavior Behavior { get; init; } }
 	// T-SQL: DROP PROCEDURE (Transact-SQL). The page publishes `DROP { PROC | PROCEDURE }`, two words for
 	// one statement, so which was written is kept beside it or `DROP PROC p` writes back as
 	// `DROP PROCEDURE p`.
-	public record DropRoutine : Statement { public SqlList<RoutineDesignator> Routines { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } [Spelling] public bool Proc { get; init; } }
+	public sealed record DropRoutine : Statement { public SqlList<RoutineDesignator> Routines { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } [Spelling] public bool Proc { get; init; } }
 
 	// BNF: sequence generator definition/alter/drop
-	public record CreateSequence : Statement { public required QualifiedName Name { get; init; } public SqlList<SequenceOption> Options { get; init; } = []; }
-	public record AlterSequence : Statement { public required QualifiedName Name { get; init; } public SqlList<SequenceOption> Options { get; init; } = []; }
-	public record DropSequence : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
+	public sealed record CreateSequence : Statement { public required QualifiedName Name { get; init; } public SqlList<SequenceOption> Options { get; init; } = []; }
+	public sealed record AlterSequence : Statement { public required QualifiedName Name { get; init; } public SqlList<SequenceOption> Options { get; init; } = []; }
+	public sealed record DropSequence : Statement { public SqlList<QualifiedName> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: GRANT/REVOKE/ROLE
-	public record Grant : Statement { public required GrantBody Body { get; init; } }
-	public record Revoke : Statement { public required RevokeBody Body { get; init; } }
-	public partial record CreateRole : Statement { public required Identifier Name { get; init; } public Grantor? Admin { get; init; } }
-	public record DropRole : Statement { public SqlList<Identifier> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
+	public sealed record Grant : Statement { public required GrantBody Body { get; init; } }
+	public sealed record Revoke : Statement { public required RevokeBody Body { get; init; } }
+	public sealed partial record CreateRole : Statement { public required Identifier Name { get; init; } public Grantor? Admin { get; init; } }
+	public sealed record DropRole : Statement { public SqlList<Identifier> Names { get; init; } = []; public bool IfExists { get; init; } public DropBehavior? Behavior { get; init; } }
 
 	// BNF: cursor/data control statements
 	// T-SQL: DECLARE CURSOR (Transact-SQL). The page publishes two forms: the ISO one writes the
 	// properties before the word CURSOR, the extended one after it, and `Extended` says which was
 	// written. With no property written at all the two forms print the same, so the flag only decides
 	// anything once one was.
-	public record DeclareCursor : Statement { public required CursorReference Cursor { get; init; } public required CursorProperties Properties { get; init; } public required CursorSource SourceValue { get; init; } [Spelling] public bool Extended { get; init; } }
-	public record OpenCursor : Statement { public required CursorReference Cursor { get; init; } public DynamicArguments? Using { get; init; } }
+	public sealed record DeclareCursor : Statement { public required CursorReference Cursor { get; init; } public required CursorProperties Properties { get; init; } public required CursorSource SourceValue { get; init; } [Spelling] public bool Extended { get; init; } }
+	public sealed record OpenCursor : Statement { public required CursorReference Cursor { get; init; } public DynamicArguments? Using { get; init; } }
 	// BNF: <fetch statement>, <dynamic fetch statement>: targets, or `INTO [SQL] DESCRIPTOR d`, and whether FROM was written.
-	public record FetchCursor : Statement { public FetchOrientation? Orientation { get; init; } public bool FromKeyword { get; init; } public required CursorReference Cursor { get; init; } public DynamicArguments? Into { get; init; } }
-	public record CloseCursor : Statement { public required CursorReference Cursor { get; init; } }
-	public record AllocateCursor : Statement { public required CursorReference Cursor { get; init; } public bool CursorKeyword { get; init; } public CursorProperties? Properties { get; init; } public required CursorAllocationSource SourceValue { get; init; } }
+	public sealed record FetchCursor : Statement { public FetchOrientation? Orientation { get; init; } public bool FromKeyword { get; init; } public required CursorReference Cursor { get; init; } public DynamicArguments? Into { get; init; } }
+	public sealed record CloseCursor : Statement { public required CursorReference Cursor { get; init; } }
+	public sealed record AllocateCursor : Statement { public required CursorReference Cursor { get; init; } public bool CursorKeyword { get; init; } public CursorProperties? Properties { get; init; } public required CursorAllocationSource SourceValue { get; init; } }
 
 	// BNF: <temporary table declaration>.
-	public record DeclareLocalTemporaryTable : Statement { public required QualifiedName Name { get; init; } public SqlList<TableElement> Elements { get; init; } = []; public TableCommitAction? OnCommit { get; init; } }
+	public sealed record DeclareLocalTemporaryTable : Statement { public required QualifiedName Name { get; init; } public SqlList<TableElement> Elements { get; init; } = []; public TableCommitAction? OnCommit { get; init; } }
 
 	// BNF: <get diagnostics statement>.
-	public record GetDiagnostics : Statement { public required DiagnosticsInformation Information { get; init; } }
+	public sealed record GetDiagnostics : Statement { public required DiagnosticsInformation Information { get; init; } }
 
-	public record FreeLocator : Statement { public SqlList<Expression> Locators { get; init; } = []; }
-	public record HoldLocator : Statement { public SqlList<Expression> Locators { get; init; } = []; }
-	public record Call : Statement { public required Expression.Invocation Invocation { get; init; } }
-	public record Return : Statement { public Expression? Value { get; init; } public bool NullKeyword { get; init; } }
+	public sealed record FreeLocator : Statement { public SqlList<Expression> Locators { get; init; } = []; }
+	public sealed record HoldLocator : Statement { public SqlList<Expression> Locators { get; init; } = []; }
+	public sealed record Call : Statement { public required Expression.Invocation Invocation { get; init; } }
+	public sealed record Return : Statement { public Expression? Value { get; init; } public bool NullKeyword { get; init; } }
 
 	// BNF: transaction statements
-	public record StartTransaction : Statement { public SqlList<TransactionMode> Modes { get; init; } = []; }
+	public sealed record StartTransaction : Statement { public SqlList<TransactionMode> Modes { get; init; } = []; }
 	// T-SQL: SET TRANSACTION ISOLATION LEVEL (Transact-SQL). `Tran` is the word written where the page
 	// publishes `TRAN` for `TRANSACTION`.
-	public record SetTransaction : Statement { public bool Local { get; init; } public SqlList<TransactionMode> Modes { get; init; } = []; [Spelling] public bool Tran { get; init; } }
-	public record SetConstraints : Statement { public ConstraintTarget Target { get; init; } = new ConstraintTarget.All(); public required ConstraintTiming Timing { get; init; } }
-	public record Savepoint : Statement { public required Identifier Name { get; init; } }
-	public record ReleaseSavepoint : Statement { public required Identifier Name { get; init; } }
+	public sealed record SetTransaction : Statement { public bool Local { get; init; } public SqlList<TransactionMode> Modes { get; init; } = []; [Spelling] public bool Tran { get; init; } }
+	public sealed record SetConstraints : Statement { public ConstraintTarget Target { get; init; } = new ConstraintTarget.All(); public required ConstraintTiming Timing { get; init; } }
+	public sealed record Savepoint : Statement { public required Identifier Name { get; init; } }
+	public sealed record ReleaseSavepoint : Statement { public required Identifier Name { get; init; } }
 	// T-SQL: COMMIT TRANSACTION, COMMIT WORK (Transact-SQL). `Keyword` is the word after COMMIT, which the
 	// page makes optional — `COMMIT` and `COMMIT TRANSACTION` are both text and are not the same text — so
 	// null is no word and each value is one. A flag for the word beside a flag for its spelling would have
 	// had a state no text says: TRAN written and no keyword. `Name` is the transaction a commit may name,
 	// and
 	// `DelayedDurability` its `WITH (DELAYED_DURABILITY = { OFF | ON })`; null is no WITH at all.
-	public record Commit : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } [Spelling] public TransactionKeyword? Keyword { get; init; } public TransactionName? Name { get; init; } public bool? DelayedDurability { get; init; } }
+	public sealed record Commit : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } [Spelling] public TransactionKeyword? Keyword { get; init; } public TransactionName? Name { get; init; } public bool? DelayedDurability { get; init; } }
 	// T-SQL: ROLLBACK TRANSACTION, ROLLBACK WORK (Transact-SQL). `Keyword` is as Commit's. `Name` is what
 	// T-SQL writes after `ROLLBACK TRAN`, which its page says may be a transaction or a savepoint and
 	// which the syntax cannot tell apart; `ToSavepoint` is the standard's `TO SAVEPOINT s`, a different
 	// construct that knows what it names. At most one of the two is set — the writer refuses a node with
 	// both, and `SqlWriterCoverageTests` holds each grammar to the one it may use.
-	public record Rollback : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } public Identifier? ToSavepoint { get; init; } [Spelling] public TransactionKeyword? Keyword { get; init; } public TransactionName? Name { get; init; } }
+	public sealed record Rollback : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } public Identifier? ToSavepoint { get; init; } [Spelling] public TransactionKeyword? Keyword { get; init; } public TransactionName? Name { get; init; } }
 
 	// BNF: connection/session statements
-	public record Connect : Statement { public required ConnectionTarget Target { get; init; } }
-	public record SetConnection : Statement { public required ConnectionObject Connection { get; init; } }
-	public record Disconnect : Statement { public required DisconnectObject Object { get; init; } }
-	public record SetSessionAuthorization : Statement { public required Expression Value { get; init; } }
-	public record SetRole : Statement { public Expression? Value { get; init; } public bool None { get; init; } }
-	public record SetTimeZone : Statement { public Expression? Value { get; init; } public bool Local { get; init; } }
-	public record SetCatalog : Statement { public required Expression Value { get; init; } }
-	public record SetSchema : Statement { public required Expression Value { get; init; } }
-	public record SetNames : Statement { public required Expression Value { get; init; } }
-	public record SetPath : Statement { public required Expression Value { get; init; } }
-	public record SetTransformGroup : Statement { public required TransformGroupCharacteristic Value { get; init; } }
-	public record SetCollation : Statement { public bool NoCollation { get; init; } public Expression? Value { get; init; } public SqlList<CharacterSetName> ForCharacterSets { get; init; } = []; }
+	public sealed record Connect : Statement { public required ConnectionTarget Target { get; init; } }
+	public sealed record SetConnection : Statement { public required ConnectionObject Connection { get; init; } }
+	public sealed record Disconnect : Statement { public required DisconnectObject Object { get; init; } }
+	public sealed record SetSessionAuthorization : Statement { public required Expression Value { get; init; } }
+	public sealed record SetRole : Statement { public Expression? Value { get; init; } public bool None { get; init; } }
+	public sealed record SetTimeZone : Statement { public Expression? Value { get; init; } public bool Local { get; init; } }
+	public sealed record SetCatalog : Statement { public required Expression Value { get; init; } }
+	public sealed record SetSchema : Statement { public required Expression Value { get; init; } }
+	public sealed record SetNames : Statement { public required Expression Value { get; init; } }
+	public sealed record SetPath : Statement { public required Expression Value { get; init; } }
+	public sealed record SetTransformGroup : Statement { public required TransformGroupCharacteristic Value { get; init; } }
+	public sealed record SetCollation : Statement { public bool NoCollation { get; init; } public Expression? Value { get; init; } public SqlList<CharacterSetName> ForCharacterSets { get; init; } = []; }
 	// BNF: <session characteristic list>: one list of modes per `TRANSACTION ...` written.
-	public record SetSessionCharacteristics : Statement { public SqlList<SqlList<TransactionMode>> Characteristics { get; init; } = []; }
+	public sealed record SetSessionCharacteristics : Statement { public SqlList<SqlList<TransactionMode>> Characteristics { get; init; } = []; }
 
 	// BNF: diagnostics/descriptor/dynamic SQL
-	public record AllocateDescriptor : Statement { public bool SqlKeyword { get; init; } public required DescriptorReference Descriptor { get; init; } public Expression? Max { get; init; } }
-	public record DeallocateDescriptor : Statement { public bool SqlKeyword { get; init; } public required DescriptorReference Descriptor { get; init; } }
-	public record GetDescriptor : Statement { public bool SqlKeyword { get; init; } public required DescriptorReference Descriptor { get; init; } public required DescriptorGet Body { get; init; } }
-	public record SetDescriptor : Statement { public bool SqlKeyword { get; init; } public required DescriptorReference Descriptor { get; init; } public required DescriptorSet Body { get; init; } }
-	public record CopyDescriptor : Statement { public required DescriptorCopy Body { get; init; } }
-	public record Prepare : Statement { public required StatementReference Statement { get; init; } public Expression? Attributes { get; init; } public required Expression Sql { get; init; } }
-	public record DeallocatePrepare : Statement { public required StatementReference Statement { get; init; } }
-	public record Describe : Statement { public required DescribeBody Body { get; init; } }
-	public record Execute : Statement { public required StatementReference Statement { get; init; } public DynamicArguments? Result { get; init; } public DynamicArguments? Parameters { get; init; } }
-	public record ExecuteImmediate : Statement { public required Expression Sql { get; init; } }
-	public record PipeRow : Statement { public required DescriptorReference Descriptor { get; init; } }
+	public sealed record AllocateDescriptor : Statement { public bool SqlKeyword { get; init; } public required DescriptorReference Descriptor { get; init; } public Expression? Max { get; init; } }
+	public sealed record DeallocateDescriptor : Statement { public bool SqlKeyword { get; init; } public required DescriptorReference Descriptor { get; init; } }
+	public sealed record GetDescriptor : Statement { public bool SqlKeyword { get; init; } public required DescriptorReference Descriptor { get; init; } public required DescriptorGet Body { get; init; } }
+	public sealed record SetDescriptor : Statement { public bool SqlKeyword { get; init; } public required DescriptorReference Descriptor { get; init; } public required DescriptorSet Body { get; init; } }
+	public sealed record CopyDescriptor : Statement { public required DescriptorCopy Body { get; init; } }
+	public sealed record Prepare : Statement { public required StatementReference Statement { get; init; } public Expression? Attributes { get; init; } public required Expression Sql { get; init; } }
+	public sealed record DeallocatePrepare : Statement { public required StatementReference Statement { get; init; } }
+	public sealed record Describe : Statement { public required DescribeBody Body { get; init; } }
+	public sealed record Execute : Statement { public required StatementReference Statement { get; init; } public DynamicArguments? Result { get; init; } public DynamicArguments? Parameters { get; init; } }
+	public sealed record ExecuteImmediate : Statement { public required Expression Sql { get; init; } }
+	public sealed record PipeRow : Statement { public required DescriptorReference Descriptor { get; init; } }
 
 	// BNF: embedded WHENEVER and implementation-defined preparable statement escape hatch
-	public record Whenever : Statement { public required SqlCondition Condition { get; init; } public required ConditionAction Action { get; init; } }
-	public record Extension : Statement { public required string Dialect { get; init; } public required string Kind { get; init; } public SqlList<ISqlNode> Parts { get; init; } = []; }
+	public sealed record Whenever : Statement { public required SqlCondition Condition { get; init; } public required ConditionAction Action { get; init; } }
+	public sealed record Extension : Statement { public required string Dialect { get; init; } public required string Kind { get; init; } public SqlList<ISqlNode> Parts { get; init; } = []; }
 }
 
 /// <summary>
@@ -422,7 +422,7 @@ public abstract partial record Query : ISqlNode
 	/// Its members are the first operand's where the query has set operations; the clauses on
 	/// <see cref="Query"/> are the whole result's.
 	/// </remarks>
-	public partial record Select : Query
+	public sealed partial record Select : Query
 	{
 		/// <summary>T-SQL: TOP. Of this operand alone, not of the whole result.</summary>
 		public TopClause? Top { get; init; }
@@ -463,7 +463,7 @@ public abstract partial record Query : ISqlNode
 	/// <c>((SELECT 1))</c>. What is inside is <see cref="Query"/>, with its own clauses; this node's
 	/// members are outside the brackets.
 	/// </summary>
-	public record Parenthesized(Query Query) : Query;
+	public sealed record Parenthesized(Query Query) : Query;
 
 	/// <summary>
 	/// The query specifications, <c>VALUES</c> lists and explicit tables this query combines, in text
@@ -538,9 +538,9 @@ public abstract partial record SelectColumn : ISqlNode, ISqlLocatable
 		_location = SqlLocation.Told(at, length);
 	}
 
-	public record All : SelectColumn;
-	public partial record ExpressionItem(Expression Expression, Identifier? Alias = null, bool AsKeyword = false) : SelectColumn;
-	public record QualifiedAll(Expression Qualifier, SqlList<Identifier>? RenamedFields = null) : SelectColumn;
+	public sealed record All : SelectColumn;
+	public sealed partial record ExpressionItem(Expression Expression, Identifier? Alias = null, bool AsKeyword = false) : SelectColumn;
+	public sealed record QualifiedAll(Expression Qualifier, SqlList<Identifier>? RenamedFields = null) : SelectColumn;
 }
 
 public enum SetQuantifier { All, Distinct }
@@ -712,20 +712,20 @@ public abstract partial record TableSource : ISqlNode
 
 	// BNF: <table factor>'s <sample clause>, which may follow any <table primary>.
 	public SampleClause? Sample { get; init; }
-	public partial record Named(QualifiedName Name) : TableSource
+	public sealed partial record Named(QualifiedName Name) : TableSource
 	{
 		public SystemTimeSpecification? SystemTime { get; init; }
 		public Alias? Alias { get; init; }
 		public bool Only { get; init; }
 	}
 
-	public partial record Subquery(Query Query) : TableSource
+	public sealed partial record Subquery(Query Query) : TableSource
 	{
 		public bool Lateral { get; init; }
 		public Alias? Alias { get; init; }
 	}
 
-	public partial record Join : TableSource
+	public sealed partial record Join : TableSource
 	{
 		public required TableSource Left { get; init; }
 		public required TableSource Right { get; init; }
@@ -743,19 +743,19 @@ public abstract partial record TableSource : ISqlNode
 		public JoinHint? Hint { get; init; }
 	}
 
-	public record Unnest(SqlList<Expression> Expressions, bool WithOrdinality, Alias? Alias) : TableSource;
-	public partial record Function(Expression.Invocation Invocation, Alias? Alias = null) : TableSource;
+	public sealed record Unnest(SqlList<Expression> Expressions, bool WithOrdinality, Alias? Alias) : TableSource;
+	public sealed partial record Function(Expression.Invocation Invocation, Alias? Alias = null) : TableSource;
 
 	// BNF: <table function derived table>, `TABLE (f (a))`.
-	public record TableFunction(Expression Value, Alias? Alias = null) : TableSource;
+	public sealed record TableFunction(Expression Value, Alias? Alias = null) : TableSource;
 
 	// BNF: <row pattern recognition clause> after a table primary, `t MATCH_RECOGNIZE (…) AS m`.
-	public record RowPatternRecognition(TableSource Source, RowPatternClause Clause, Alias? Alias = null) : TableSource;
-	public record JsonTable(JsonTableDefinition Definition, Alias? Alias = null) : TableSource;
+	public sealed record RowPatternRecognition(TableSource Source, RowPatternClause Clause, Alias? Alias = null) : TableSource;
+	public sealed record JsonTable(JsonTableDefinition Definition, Alias? Alias = null) : TableSource;
 	// T-SQL: INSERT (Transact-SQL). Option null is T-SQL's form, `(MERGE … OUTPUT …) AS c`, where the statement's OUTPUT is the rows.
-	public record DataChange(ResultOption? Option, Statement Change, Alias? Alias = null) : TableSource;
-	public record Parenthesized(TableSource Source) : TableSource;
-	public record Extension(string Dialect, string Kind, SqlList<ISqlNode> Parts) : TableSource;
+	public sealed record DataChange(ResultOption? Option, Statement Change, Alias? Alias = null) : TableSource;
+	public sealed record Parenthesized(TableSource Source) : TableSource;
+	public sealed record Extension(string Dialect, string Kind, SqlList<ISqlNode> Parts) : TableSource;
 }
 
 // T-SQL: FROM plus JOIN, APPLY, PIVOT, UNPIVOT (Transact-SQL). `CrossApply` and `OuterApply` join a
@@ -771,8 +771,8 @@ public abstract record JoinSpecification : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record On(Expression Condition) : JoinSpecification;
-	public record Using(SqlList<Identifier> Columns, Identifier? Correlation = null) : JoinSpecification;
+	public sealed record On(Expression Condition) : JoinSpecification;
+	public sealed record Using(SqlList<Identifier> Columns, Identifier? Correlation = null) : JoinSpecification;
 }
 public sealed record Alias(Identifier Name, SqlList<Identifier>? Columns = null, bool AsKeyword = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
@@ -809,10 +809,10 @@ public abstract partial record Expression : ISqlNode, ISqlLocatable
 	/// <summary>Where a reading said the value was written, whether the reading published locations or not.</summary>
 	internal SqlSpan Read => _location.Read;
 
-	public record Reference(QualifiedName Name) : Expression;
+	public sealed record Reference(QualifiedName Name) : Expression;
 
 	// BNF: <host parameter specification>, <embedded variable specification>, <dynamic parameter specification>.
-	public record Parameter(ParameterKind Kind, Identifier? Name = null) : Expression
+	public sealed record Parameter(ParameterKind Kind, Identifier? Name = null) : Expression
 	{
 		// BNF: <indicator parameter>, <indicator variable> — `:a INDICATOR :i` or `:a :i`.
 		public Identifier? Indicator { get; init; }
@@ -820,30 +820,30 @@ public abstract partial record Expression : ISqlNode, ISqlLocatable
 	}
 
 	// BNF: <general value specification>'s key words, <datetime value function>. Precision is `CURRENT_TIME (3)`'s.
-	public record Current(CurrentValue Kind, QualifiedName? TypeName = null, Expression? Precision = null) : Expression;
+	public sealed record Current(CurrentValue Kind, QualifiedName? TypeName = null, Expression? Precision = null) : Expression;
 
-	public record Unary(UnaryOperator Operator, Expression Operand) : Expression;
-	public record Binary(Expression Left, BinaryOperator Operator, Expression Right) : Expression;
+	public sealed record Unary(UnaryOperator Operator, Expression Operand) : Expression;
+	public sealed record Binary(Expression Left, BinaryOperator Operator, Expression Right) : Expression;
 
 	// BNF: <multiset value expression>, <multiset term> — `MULTISET UNION ALL`, which carries a quantifier.
-	public record MultisetOperation(Expression Left, MultisetOperator Operator, SetQuantifier? Quantifier, Expression Right) : Expression;
+	public sealed record MultisetOperation(Expression Left, MultisetOperator Operator, SetQuantifier? Quantifier, Expression Right) : Expression;
 
-	public record Row(SqlList<Expression> Items, bool RowKeyword = false) : Expression;
-	public record Parenthesized(Expression Value) : Expression;
-	public record Subquery(Query Query) : Expression;
+	public sealed record Row(SqlList<Expression> Items, bool RowKeyword = false) : Expression;
+	public sealed record Parenthesized(Expression Value) : Expression;
+	public sealed record Subquery(Query Query) : Expression;
 
 	// BNF: <case expression>. In a simple CASE a when operand may be a predicate without its left side,
 	// `WHEN < 5`, whose missing operand is written as CaseOperand.
-	public record Case(Expression? Operand, SqlList<CaseWhen> Whens, Expression? Else) : Expression;
+	public sealed record Case(Expression? Operand, SqlList<CaseWhen> Whens, Expression? Else) : Expression;
 
 	// BNF: <case operand> standing where a <when operand> leaves it out. Nothing is written for it.
-	public record CaseOperand : Expression;
+	public sealed record CaseOperand : Expression;
 
-	public partial record Cast(Expression Value, DataType Target, string? Format = null) : Expression;
+	public sealed partial record Cast(Expression Value, DataType Target, string? Format = null) : Expression;
 
 	// BNF: <routine invocation>, <aggregate function>, <window function>, <row pattern navigation operation>,
 	// and the functions whose arguments are a plain comma list.
-	public partial record Invocation(QualifiedName Name, SqlList<Argument> Arguments) : Expression
+	public sealed partial record Invocation(QualifiedName Name, SqlList<Argument> Arguments) : Expression
 	{
 		// BNF: <set quantifier> in a <general set function>, `COUNT (DISTINCT a)`.
 		public SetQuantifier? Quantifier { get; init; }
@@ -873,62 +873,62 @@ public abstract partial record Expression : ISqlNode, ISqlLocatable
 	}
 
 	// BNF: `COUNT (*)`'s <asterisk>, as the one argument.
-	public record Asterisk : Expression;
+	public sealed record Asterisk : Expression;
 
 	// BNF: <method invocation>, <attribute or method reference>, <static method invocation> (`T::m`), <dereference operation>.
-	public record Member(Expression Target, MemberAccessKind Kind, Identifier Name, SqlList<Argument>? Arguments = null) : Expression;
+	public sealed record Member(Expression Target, MemberAccessKind Kind, Identifier Name, SqlList<Argument>? Arguments = null) : Expression;
 
 	// BNF: <generalized expression>, `(a AS t).m ()`.
-	public record Generalized(Expression Value, DataType Type) : Expression;
+	public sealed record Generalized(Expression Value, DataType Type) : Expression;
 
 	// BNF: <subtype treatment>, <new specification>, <reference resolution>.
-	public record Treat(Expression Value, DataType Target) : Expression;
-	public record New(QualifiedName TypeName, SqlList<Argument> Arguments) : Expression;
-	public record Dereference(Expression Value) : Expression;
+	public sealed record Treat(Expression Value, DataType Target) : Expression;
+	public sealed record New(QualifiedName TypeName, SqlList<Argument> Arguments) : Expression;
+	public sealed record Dereference(Expression Value) : Expression;
 
-	public record Array(SqlList<Expression> Items, bool Trigraphs = false) : Expression;
-	public record Multiset(SqlList<Expression> Items, bool Trigraphs = false) : Expression;
-	public record CollectionQuery(CollectionKind Kind, Query Query) : Expression;
+	public sealed record Array(SqlList<Expression> Items, bool Trigraphs = false) : Expression;
+	public sealed record Multiset(SqlList<Expression> Items, bool Trigraphs = false) : Expression;
+	public sealed record CollectionQuery(CollectionKind Kind, Query Query) : Expression;
 
 	// BNF: <array element reference>, and a JSON simplified accessor's `[1 TO 3]`. Trigraphs are `??(` and `??)`.
-	public record Element(Expression Collection, Expression Index, Expression? To = null, bool Trigraphs = false) : Expression;
+	public sealed record Element(Expression Collection, Expression Index, Expression? To = null, bool Trigraphs = false) : Expression;
 
 	// BNF: a JSON simplified accessor's `.*` and `[*]`.
 	// T-SQL: `t.*` as an argument (CHECKSUM, BINARY_CHECKSUM, CONTAINS, FREETEXT): all columns of `t`; the target is the table's reference, as in `SelectColumn.QualifiedAll`.
-	public record Wildcard(Expression Target, WildcardKind Kind) : Expression;
+	public sealed record Wildcard(Expression Target, WildcardKind Kind) : Expression;
 
 	// BNF: a JSON simplified accessor's <JSON array accessor>, whose subscripts are in the path language: `a[$ to last]`.
-	public record JsonAccessor(Expression Target, JsonPathAccessor Accessor) : Expression;
+	public sealed record JsonAccessor(Expression Target, JsonPathAccessor Accessor) : Expression;
 
-	public partial record NextValue(QualifiedName Sequence) : Expression;
+	public sealed partial record NextValue(QualifiedName Sequence) : Expression;
 
 	// BNF: <collate clause> on a character factor.
-	public record Collate(Expression Value, CollationName Collation) : Expression;
+	public sealed record Collate(Expression Value, CollationName Collation) : Expression;
 
 	// BNF: <time zone>, `a AT TIME ZONE z` and `a AT LOCAL`, where Zone is null.
-	public record AtTimeZone(Expression Value, Expression? Zone) : Expression;
+	public sealed record AtTimeZone(Expression Value, Expression? Zone) : Expression;
 
 	// BNF: <interval value expression>'s `(a - b) DAY TO SECOND`.
-	public record IntervalQualified(Expression Value, IntervalQualifier Qualifier) : Expression;
+	public sealed record IntervalQualified(Expression Value, IntervalQualifier Qualifier) : Expression;
 
 	// BNF: <string value function>s whose arguments are key words and not a comma list.
-	public record Substring(Expression Value, Expression From, Expression? For, CharacterLengthUnits? Using) : Expression;
-	public record SubstringSimilar(Expression Value, Expression Pattern, Expression Escape) : Expression;
-	public record Trim(TrimSpecification? Specification, Expression? Character, bool FromKeyword, Expression Source) : Expression;
-	public record Overlay(Expression Value, Expression Placing, Expression From, Expression? For, CharacterLengthUnits? Using) : Expression;
-	public record Position(Expression Value, Expression Within, CharacterLengthUnits? Using) : Expression;
-	public record Length(LengthFunction Function, Expression Value, CharacterLengthUnits? Using) : Expression;
-	public record Extract(ExtractField Field, Expression Source) : Expression;
+	public sealed record Substring(Expression Value, Expression From, Expression? For, CharacterLengthUnits? Using) : Expression;
+	public sealed record SubstringSimilar(Expression Value, Expression Pattern, Expression Escape) : Expression;
+	public sealed record Trim(TrimSpecification? Specification, Expression? Character, bool FromKeyword, Expression Source) : Expression;
+	public sealed record Overlay(Expression Value, Expression Placing, Expression From, Expression? For, CharacterLengthUnits? Using) : Expression;
+	public sealed record Position(Expression Value, Expression Within, CharacterLengthUnits? Using) : Expression;
+	public sealed record Length(LengthFunction Function, Expression Value, CharacterLengthUnits? Using) : Expression;
+	public sealed record Extract(ExtractField Field, Expression Source) : Expression;
 	// BNF: <normalize function>; a result length may carry a multiplier and its units, `10 K CHARACTERS`.
-	public record Normalize(Expression Value, NormalForm? Form, Expression? MaxLength) : Expression
+	public sealed record Normalize(Expression Value, NormalForm? Form, Expression? MaxLength) : Expression
 	{
 		public char? MaxLengthMultiplier { get; init; }
 		public LengthUnit? MaxLengthUnit { get; init; }
 	}
-	public record TranslateUsing(TranslateFunction Function, Expression Value, QualifiedName Name) : Expression;
+	public sealed record TranslateUsing(TranslateFunction Function, Expression Value, QualifiedName Name) : Expression;
 
 	// BNF: <regex occurrences function>, <regex position expression>, <regex substring function>, <regex transliteration>.
-	public record Regex(RegexFunction Function, Expression Pattern, Expression Value) : Expression
+	public sealed record Regex(RegexFunction Function, Expression Pattern, Expression Value) : Expression
 	{
 		public Expression? Flag { get; init; }
 		public Expression? From { get; init; }
@@ -945,64 +945,64 @@ public abstract partial record Expression : ISqlNode, ISqlLocatable
 	// `NotEqual` written with `!`; `!<` and `!>` are operators of their own, `NotLess` and
 	// `NotGreater`. A spelling is kept as a flag beside the value here as `Trigraphs` is on
 	// `AssignmentTarget`, so one meaning stays one operator and the text still writes back.
-	public record Comparison(Expression Left, ComparisonOperator Operator, Expression Right, [property: Spelling] bool Exclamation = false) : Expression;
-	public record Between(Expression Value, bool Not, BetweenSymmetry? Symmetry, Expression Lower, Expression Upper) : Expression;
-	public record In(Expression Value, bool Not, InSource SourceValue) : Expression;
+	public sealed record Comparison(Expression Left, ComparisonOperator Operator, Expression Right, [property: Spelling] bool Exclamation = false) : Expression;
+	public sealed record Between(Expression Value, bool Not, BetweenSymmetry? Symmetry, Expression Lower, Expression Upper) : Expression;
+	public sealed record In(Expression Value, bool Not, InSource SourceValue) : Expression;
 
 	// BNF: <like predicate>, <similar predicate>, <regex like predicate> — whose FLAG is Flag.
-	public partial record Like(Expression Value, bool Not, LikeKind Kind, Expression Pattern, Expression? Escape = null, Expression? Flag = null) : Expression;
+	public sealed partial record Like(Expression Value, bool Not, LikeKind Kind, Expression Pattern, Expression? Escape = null, Expression? Flag = null) : Expression;
 
-	public record IsNull(Expression Value, bool Not) : Expression;
+	public sealed record IsNull(Expression Value, bool Not) : Expression;
 
 	// BNF: <boolean test>, `a IS NOT UNKNOWN`.
-	public record IsTruth(Expression Value, bool Not, BooleanLiteral Truth) : Expression;
+	public sealed record IsTruth(Expression Value, bool Not, BooleanLiteral Truth) : Expression;
 
-	public record QuantifiedComparison(Expression Left, ComparisonOperator Operator, Quantifier Quantifier, Query Query) : Expression;
-	public record Exists(Query Query) : Expression;
-	public record Unique(NullDistinctness? Nulls, Query Query) : Expression;
+	public sealed record QuantifiedComparison(Expression Left, ComparisonOperator Operator, Quantifier Quantifier, Query Query) : Expression;
+	public sealed record Exists(Query Query) : Expression;
+	public sealed record Unique(NullDistinctness? Nulls, Query Query) : Expression;
 
 	// BNF: <match predicate>.
-	public record Match(Expression Value, bool UniqueKeyword, MatchType? Type, Query Query) : Expression;
+	public sealed record Match(Expression Value, bool UniqueKeyword, MatchType? Type, Query Query) : Expression;
 
 	// BNF: <overlaps predicate>, whose two sides are rows.
-	public record Overlaps(Expression Left, Expression Right) : Expression;
+	public sealed record Overlaps(Expression Left, Expression Right) : Expression;
 
-	public partial record IsDistinct(Expression Left, bool Not, Expression Right) : Expression;
-	public record IsNormalized(Expression Value, bool Not, NormalForm? Form) : Expression;
-	public record MemberOf(Expression Value, bool Not, bool OfKeyword, Expression Collection) : Expression;
-	public record SubmultisetOf(Expression Value, bool Not, bool OfKeyword, Expression Collection) : Expression;
-	public record IsSet(Expression Value, bool Not) : Expression;
-	public record IsOf(Expression Value, bool Not, SqlList<TypeTest> Types) : Expression;
-	public record PeriodPredicate(PeriodValue Left, PeriodOperator Operator, PeriodRight Right) : Expression;
-	public record JsonPredicate(Expression Value, JsonInputClause? Input, bool Not, JsonPredicateType? Type, JsonKeyUniqueness? Uniqueness) : Expression;
-	public record JsonExists(JsonApiCommon Common, JsonExistsErrorBehavior? OnError) : Expression;
+	public sealed partial record IsDistinct(Expression Left, bool Not, Expression Right) : Expression;
+	public sealed record IsNormalized(Expression Value, bool Not, NormalForm? Form) : Expression;
+	public sealed record MemberOf(Expression Value, bool Not, bool OfKeyword, Expression Collection) : Expression;
+	public sealed record SubmultisetOf(Expression Value, bool Not, bool OfKeyword, Expression Collection) : Expression;
+	public sealed record IsSet(Expression Value, bool Not) : Expression;
+	public sealed record IsOf(Expression Value, bool Not, SqlList<TypeTest> Types) : Expression;
+	public sealed record PeriodPredicate(PeriodValue Left, PeriodOperator Operator, PeriodRight Right) : Expression;
+	public sealed record JsonPredicate(Expression Value, JsonInputClause? Input, bool Not, JsonPredicateType? Type, JsonKeyUniqueness? Uniqueness) : Expression;
+	public sealed record JsonExists(JsonApiCommon Common, JsonExistsErrorBehavior? OnError) : Expression;
 
 	// BNF: <JSON value function>, <JSON query>, the <JSON value constructor>s and <JSON aggregate function>s.
-	public record JsonValue(JsonApiCommon Common, DataType? Returning, JsonValueBehavior? OnEmpty, JsonValueBehavior? OnError) : Expression;
-	public record JsonQuery(JsonApiCommon Common, JsonOutput? Output, JsonWrapperBehavior? Wrapper, JsonQuotes? Quotes, JsonQueryBehavior? OnEmpty, JsonQueryBehavior? OnError) : Expression;
-	public record JsonObject(SqlList<JsonMember> Members, JsonNullHandling? Nulls, JsonKeyUniqueness? Uniqueness, JsonOutput? Output) : Expression;
-	public record JsonArray(SqlList<JsonElement> Elements, JsonNullHandling? Nulls, JsonOutput? Output) : Expression;
-	public record JsonArrayQuery(Query Query, JsonInputClause? Format, JsonOutput? Output, JsonNullHandling? Nulls = null) : Expression;
-	public record JsonObjectAggregate(JsonMember Pair, JsonNullHandling? Nulls, JsonKeyUniqueness? Uniqueness, JsonOutput? Output) : Expression
+	public sealed record JsonValue(JsonApiCommon Common, DataType? Returning, JsonValueBehavior? OnEmpty, JsonValueBehavior? OnError) : Expression;
+	public sealed record JsonQuery(JsonApiCommon Common, JsonOutput? Output, JsonWrapperBehavior? Wrapper, JsonQuotes? Quotes, JsonQueryBehavior? OnEmpty, JsonQueryBehavior? OnError) : Expression;
+	public sealed record JsonObject(SqlList<JsonMember> Members, JsonNullHandling? Nulls, JsonKeyUniqueness? Uniqueness, JsonOutput? Output) : Expression;
+	public sealed record JsonArray(SqlList<JsonElement> Elements, JsonNullHandling? Nulls, JsonOutput? Output) : Expression;
+	public sealed record JsonArrayQuery(Query Query, JsonInputClause? Format, JsonOutput? Output, JsonNullHandling? Nulls = null) : Expression;
+	public sealed record JsonObjectAggregate(JsonMember Pair, JsonNullHandling? Nulls, JsonKeyUniqueness? Uniqueness, JsonOutput? Output) : Expression
 	{
 		// BNF: <aggregate function>'s <filter clause>, a <window function>'s window, a navigation's `RUNNING` or `FINAL`.
 		public FilterClause? Filter { get; init; }
 		public WindowReference? Over { get; init; }
 		public RowPatternSemantics? Semantics { get; init; }
 	}
-	public record JsonArrayAggregate(JsonElement Item, OrderByClause? OrderBy, JsonNullHandling? Nulls, JsonOutput? Output) : Expression
+	public sealed record JsonArrayAggregate(JsonElement Item, OrderByClause? OrderBy, JsonNullHandling? Nulls, JsonOutput? Output) : Expression
 	{
 		// BNF: <aggregate function>'s <filter clause>, a <window function>'s window, a navigation's `RUNNING` or `FINAL`.
 		public FilterClause? Filter { get; init; }
 		public WindowReference? Over { get; init; }
 		public RowPatternSemantics? Semantics { get; init; }
 	}
-	public record JsonParse(Expression Value, JsonInputClause? Input, JsonKeyUniqueness? Uniqueness) : Expression;
-	public record JsonScalar(Expression Value) : Expression;
-	public record JsonSerialize(Expression Value, JsonOutput? Output) : Expression;
+	public sealed record JsonParse(Expression Value, JsonInputClause? Input, JsonKeyUniqueness? Uniqueness) : Expression;
+	public sealed record JsonScalar(Expression Value) : Expression;
+	public sealed record JsonSerialize(Expression Value, JsonOutput? Output) : Expression;
 
 	// BNF: <table argument>: `TABLE (t)`, `TABLE (SELECT ...)` or a call, with its name, partitioning, pruning and order.
-	public record TableArgument(Expression Source, bool TableKeyword) : Expression
+	public sealed record TableArgument(Expression Source, bool TableKeyword) : Expression
 	{
 		public Alias? Alias { get; init; }
 		public SqlList<Expression>? PartitionBy { get; init; }
@@ -1013,19 +1013,19 @@ public abstract partial record Expression : ISqlNode, ISqlLocatable
 	}
 
 	// BNF: <descriptor value constructor>, `DESCRIPTOR (a INT, b)`.
-	public record DescriptorConstructor(SqlList<DescriptorColumn> Columns) : Expression;
+	public sealed record DescriptorConstructor(SqlList<DescriptorColumn> Columns) : Expression;
 
 	// BNF: <current collation specification>, `COLLATION FOR (x)`.
-	public record CollationFor(Expression Value) : Expression;
+	public sealed record CollationFor(Expression Value) : Expression;
 
 	// BNF: <default specification>, `DEFAULT` where a value stands.
-	public record Default : Expression;
+	public sealed record Default : Expression;
 
 	// BNF: <row marker expression>, `END_FRAME - 1`, and <value_of expression at row>, `VALUE_OF (x AT BEGIN_FRAME, d)`.
-	public record RowMarker(RowMarkerKind Kind, UnaryOperator? DeltaSign = null, Expression? Delta = null) : Expression;
-	public record ValueOf(Expression Value, Expression At, Expression? Otherwise = null) : Expression;
+	public sealed record RowMarker(RowMarkerKind Kind, UnaryOperator? DeltaSign = null, Expression? Delta = null) : Expression;
+	public sealed record ValueOf(Expression Value, Expression At, Expression? Otherwise = null) : Expression;
 
-	public record Extension(string Dialect, string Kind, SqlList<ISqlNode> Parts) : Expression;
+	public sealed record Extension(string Dialect, string Kind, SqlList<ISqlNode> Parts) : Expression;
 }
 
 public enum ParameterKind { Host, Sql, Dynamic, Embedded }
@@ -1083,18 +1083,18 @@ public sealed record ListaggOverflow(bool Truncate, Expression? Filler = null, b
 /// </summary>
 public abstract partial record LiteralValue : Expression
 {
-	public record Numeric(string Text, NumericLiteralKind Kind) : LiteralValue;
+	public sealed record Numeric(string Text, NumericLiteralKind Kind) : LiteralValue;
 	// Text is the literal's spelling as written, from its first quote to its last: the segments of `'a' 'b'`
 	// and the separators between them included, the introducer not.
-	public record String(string Text, StringLiteralKind Kind, CharacterSetName? CharacterSet = null, char? UnicodeEscape = null) : LiteralValue;
+	public sealed record String(string Text, StringLiteralKind Kind, CharacterSetName? CharacterSet = null, char? UnicodeEscape = null) : LiteralValue;
 	// `new`: Expression.Binary, an operator applied to two values, is another node, which a literal's own
 	// Binary hides inside LiteralValue.
-	public new partial record Binary(string Text) : LiteralValue;
-	public record Boolean(BooleanLiteral Value) : LiteralValue;
-	public record DateTime(DateTimeLiteralKind Kind, string Text) : LiteralValue;
+	public new sealed partial record Binary(string Text) : LiteralValue;
+	public sealed record Boolean(BooleanLiteral Value) : LiteralValue;
+	public sealed record DateTime(DateTimeLiteralKind Kind, string Text) : LiteralValue;
 	// Sign is `INTERVAL -'1' DAY`'s, null where none was written.
-	public record Interval(string Text, IntervalQualifier Qualifier, UnaryOperator? Sign = null) : LiteralValue;
-	public record Null : LiteralValue;
+	public sealed record Interval(string Text, IntervalQualifier Qualifier, UnaryOperator? Sign = null) : LiteralValue;
+	public sealed record Null : LiteralValue;
 }
 // T-SQL: money and smallmoney (Transact-SQL). `Money` is a literal written with a currency sign.
 public enum NumericLiteralKind { DecimalInteger, HexInteger, OctalInteger, BinaryInteger, Decimal, Approximate, Money }
@@ -1128,7 +1128,7 @@ public sealed record WithinGroupClause(OrderByClause OrderBy) : ISqlNode { SqlLo
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public abstract record WindowReference : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record NameRef(Identifier Name) : WindowReference; public record Specification(WindowSpecification Value) : WindowReference; }
+public abstract record WindowReference : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record NameRef(Identifier Name) : WindowReference; public sealed record Specification(WindowSpecification Value) : WindowReference; }
 public sealed record WindowSpecification(Identifier? Existing, SqlList<Expression> PartitionBy, OrderByClause? OrderBy, WindowFrame? Frame) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
@@ -1148,7 +1148,7 @@ public sealed record WindowFrame(WindowFrameUnit Unit, WindowFrameExtent Extent,
 	}
 }
 public enum WindowFrameUnit { Rows, Range, Groups }
-public abstract record WindowFrameExtent : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Single(WindowFrameBound Bound) : WindowFrameExtent; public record Between(WindowFrameBound From, WindowFrameBound To) : WindowFrameExtent; }
+public abstract record WindowFrameExtent : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Single(WindowFrameBound Bound) : WindowFrameExtent; public sealed record Between(WindowFrameBound From, WindowFrameBound To) : WindowFrameExtent; }
 public sealed record WindowFrameBound(WindowBoundKind Kind, Expression? Offset = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
@@ -1158,15 +1158,15 @@ public sealed record WindowFrameBound(WindowBoundKind Kind, Expression? Offset =
 public enum WindowBoundKind { UnboundedPreceding, Preceding, CurrentRow, Following, UnboundedFollowing }
 public enum WindowFrameExclusion { CurrentRow, Group, Ties, NoOthers }
 
-public abstract record InSource : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Subquery(Query Query) : InSource; public record Values(SqlList<Expression> Items) : InSource; }
+public abstract record InSource : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Subquery(Query Query) : InSource; public sealed record Values(SqlList<Expression> Items) : InSource; }
 public sealed record TypeTest(QualifiedName TypeName, bool Only) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public abstract record PeriodValue : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Reference(QualifiedName Name) : PeriodValue; public record Range(Expression Start, Expression End) : PeriodValue; }
-public abstract record PeriodRight : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Period(PeriodValue Value) : PeriodRight; public record Point(Expression Value) : PeriodRight; }
+public abstract record PeriodValue : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Reference(QualifiedName Name) : PeriodValue; public sealed record Range(Expression Start, Expression End) : PeriodValue; }
+public abstract record PeriodRight : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Period(PeriodValue Value) : PeriodRight; public sealed record Point(Expression Value) : PeriodRight; }
 public enum PeriodOperator { Overlaps, Equals, Contains, Precedes, Succeeds, ImmediatelyPrecedes, ImmediatelySucceeds }
 
 /// <summary>BNF: <c>&lt;data type&gt;</c> and all predefined/row/reference/collection/user-defined type rules.</summary>
@@ -1181,24 +1181,24 @@ public abstract partial record DataType : ISqlNode
 
 	// T-SQL: char and varchar, nchar and nvarchar (Transact-SQL). `Max` is the length written as
 	// `MAX`, and `Length` is null where it is set.
-	public record Character(CharacterTypeKind Kind, int? Length = null, LengthUnit? Unit = null, CharacterSetName? CharacterSet = null, CollationName? Collation = null, LargeObjectSize? LargeObject = null, [property: Spelling] bool Max = false) : DataType;
+	public sealed record Character(CharacterTypeKind Kind, int? Length = null, LengthUnit? Unit = null, CharacterSetName? CharacterSet = null, CollationName? Collation = null, LargeObjectSize? LargeObject = null, [property: Spelling] bool Max = false) : DataType;
 	// T-SQL: binary and varbinary (Transact-SQL). `Max` is the length written as `MAX`, and
 	// `Length` is null where it is set.
-	public record Binary(BinaryTypeKind Kind, int? Length = null, LargeObjectSize? LargeObject = null, [property: Spelling] bool Max = false) : DataType;
-	public record Numeric(NumericTypeKind Kind, int? Precision = null, int? Scale = null) : DataType;
-	public record Boolean : DataType;
-	public record DateTime(DateTimeTypeKind Kind, int? Precision = null, TimeZoneMode? TimeZone = null) : DataType;
-	public record Interval(IntervalQualifier Qualifier) : DataType;
-	public record Row(SqlList<FieldDefinition> Fields) : DataType;
-	public record Reference(QualifiedName ReferencedType, QualifiedName? Scope = null) : DataType;
-	public record Array(DataType ElementType, int? MaximumCardinality = null, bool Trigraphs = false) : DataType;
-	public record Multiset(DataType ElementType) : DataType;
-	public partial record UserDefined(QualifiedName Name) : DataType;
-	public record Json : DataType;
-	public record Domain(QualifiedName Name) : DataType;
-	public record Descriptor : DataType;
-	public record GenericTable(PassThroughMode? PassThrough, TableSemantics? Semantics, TablePruning? Pruning) : DataType;
-	public record Extension(string Dialect, string Name, SqlList<ISqlNode> Arguments) : DataType;
+	public sealed record Binary(BinaryTypeKind Kind, int? Length = null, LargeObjectSize? LargeObject = null, [property: Spelling] bool Max = false) : DataType;
+	public sealed record Numeric(NumericTypeKind Kind, int? Precision = null, int? Scale = null) : DataType;
+	public sealed record Boolean : DataType;
+	public sealed record DateTime(DateTimeTypeKind Kind, int? Precision = null, TimeZoneMode? TimeZone = null) : DataType;
+	public sealed record Interval(IntervalQualifier Qualifier) : DataType;
+	public sealed record Row(SqlList<FieldDefinition> Fields) : DataType;
+	public sealed record Reference(QualifiedName ReferencedType, QualifiedName? Scope = null) : DataType;
+	public sealed record Array(DataType ElementType, int? MaximumCardinality = null, bool Trigraphs = false) : DataType;
+	public sealed record Multiset(DataType ElementType) : DataType;
+	public sealed partial record UserDefined(QualifiedName Name) : DataType;
+	public sealed record Json : DataType;
+	public sealed record Domain(QualifiedName Name) : DataType;
+	public sealed record Descriptor : DataType;
+	public sealed record GenericTable(PassThroughMode? PassThrough, TableSemantics? Semantics, TablePruning? Pruning) : DataType;
+	public sealed record Extension(string Dialect, string Name, SqlList<ISqlNode> Arguments) : DataType;
 }
 
 public enum CharacterTypeKind
@@ -1238,10 +1238,10 @@ public abstract partial record TableContents : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Elements(SqlList<TableElement> Items) : TableContents;
-	public record Typed(QualifiedName TypeName, QualifiedName? Under, SqlList<TableElement> Items) : TableContents;
+	public sealed record Elements(SqlList<TableElement> Items) : TableContents;
+	public sealed record Typed(QualifiedName TypeName, QualifiedName? Under, SqlList<TableElement> Items) : TableContents;
 	// T-SQL: CREATE TABLE AS SELECT (Microsoft Fabric and Azure Synapse Analytics) writes no `WITH [NO] DATA`: Data is null there.
-	public partial record AsQuery(SqlList<Identifier> Columns, Query Query, WithDataMode? Data) : TableContents;
+	public sealed partial record AsQuery(SqlList<Identifier> Columns, Query Query, WithDataMode? Data) : TableContents;
 }
 public enum WithDataMode { WithData, WithNoData }
 public abstract partial record TableElement : ISqlNode
@@ -1253,12 +1253,12 @@ public abstract partial record TableElement : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Column(ColumnDefinition Definition) : TableElement;
-	public record Period(PeriodDefinition Definition) : TableElement;
-	public record TableConstraint(Constraint Value) : TableElement;
-	public record Like(QualifiedName Table, SqlList<LikeOption> Options) : TableElement;
-	public record SelfReference(Identifier Name, ReferenceGeneration? Generation) : TableElement;
-	public record ColumnOptions(Identifier Name, ColumnOptionList Options) : TableElement;
+	public sealed record Column(ColumnDefinition Definition) : TableElement;
+	public sealed record Period(PeriodDefinition Definition) : TableElement;
+	public sealed record TableConstraint(Constraint Value) : TableElement;
+	public sealed record Like(QualifiedName Table, SqlList<LikeOption> Options) : TableElement;
+	public sealed record SelfReference(Identifier Name, ReferenceGeneration? Generation) : TableElement;
+	public sealed record ColumnOptions(Identifier Name, ColumnOptionList Options) : TableElement;
 }
 public sealed partial record ColumnDefinition(Identifier Name, DataType? Type, ColumnGeneration? Generation, SqlList<Constraint> Constraints, CollationName? Collation) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
@@ -1275,11 +1275,11 @@ public abstract record ColumnGeneration : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Default(Expression Value) : ColumnGeneration;
-	public record Identity(IdentityGeneration Generation, SqlList<SequenceOption> Options) : ColumnGeneration;
-	public record Generated(Expression Expression) : ColumnGeneration;
-	public record RowStart : ColumnGeneration;
-	public record RowEnd : ColumnGeneration;
+	public sealed record Default(Expression Value) : ColumnGeneration;
+	public sealed record Identity(IdentityGeneration Generation, SqlList<SequenceOption> Options) : ColumnGeneration;
+	public sealed record Generated(Expression Expression) : ColumnGeneration;
+	public sealed record RowStart : ColumnGeneration;
+	public sealed record RowEnd : ColumnGeneration;
 }
 public enum IdentityGeneration { Always, ByDefault }
 public sealed record ColumnOptionList(QualifiedName? Scope, Expression? Default, SqlList<Constraint> Constraints) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
@@ -1302,10 +1302,10 @@ public abstract partial record Constraint : ISqlNode
 
 	public QualifiedName? Name { get; init; }
 	public ConstraintCharacteristics? Characteristics { get; init; }
-	public record NotNull : Constraint;
-	public partial record Unique(UniqueKind Kind, NullDistinctness? Nulls, SqlList<Identifier> Columns, Identifier? WithoutOverlapsPeriod = null) : Constraint;
-	public partial record ForeignKey(SqlList<Identifier> Columns, Identifier? ReferencingPeriod, ReferencesSpecification References) : Constraint;
-	public partial record Check(Expression Condition) : Constraint;
+	public sealed record NotNull : Constraint;
+	public sealed partial record Unique(UniqueKind Kind, NullDistinctness? Nulls, SqlList<Identifier> Columns, Identifier? WithoutOverlapsPeriod = null) : Constraint;
+	public sealed partial record ForeignKey(SqlList<Identifier> Columns, Identifier? ReferencingPeriod, ReferencesSpecification References) : Constraint;
+	public sealed partial record Check(Expression Condition) : Constraint;
 }
 public enum UniqueKind { Unique, PrimaryKey, UniqueValue }
 public enum NullDistinctness { Distinct, NotDistinct }
@@ -1335,21 +1335,21 @@ public abstract partial record AlterTableAction : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record AddColumn(ColumnDefinition Column, bool ColumnKeyword = false) : AlterTableAction;
-	public record AlterColumn(Identifier Column, AlterColumnAction Action, bool ColumnKeyword = false) : AlterTableAction;
+	public sealed record AddColumn(ColumnDefinition Column, bool ColumnKeyword = false) : AlterTableAction;
+	public sealed record AlterColumn(Identifier Column, AlterColumnAction Action, bool ColumnKeyword = false) : AlterTableAction;
 	// T-SQL: ALTER TABLE (Transact-SQL) writes no behavior, so it is null there; the standard's parser always sets it.
-	public partial record DropColumn(Identifier Column, DropBehavior? Behavior, bool ColumnKeyword = false) : AlterTableAction;
-	public record AddConstraint(Constraint Constraint) : AlterTableAction;
-	public record AlterConstraint(QualifiedName Name, bool Enforced) : AlterTableAction;
+	public sealed partial record DropColumn(Identifier Column, DropBehavior? Behavior, bool ColumnKeyword = false) : AlterTableAction;
+	public sealed record AddConstraint(Constraint Constraint) : AlterTableAction;
+	public sealed record AlterConstraint(QualifiedName Name, bool Enforced) : AlterTableAction;
 	// T-SQL: ALTER TABLE (Transact-SQL) writes no behavior, so it is null there; the standard's parser always sets it.
-	public partial record DropConstraint(QualifiedName Name, DropBehavior? Behavior) : AlterTableAction;
-	public record AddPeriod(PeriodDefinition Period, SqlList<AddColumn> AddedColumns) : AlterTableAction;
+	public sealed partial record DropConstraint(QualifiedName Name, DropBehavior? Behavior) : AlterTableAction;
+	public sealed record AddPeriod(PeriodDefinition Period, SqlList<AddColumn> AddedColumns) : AlterTableAction;
 	// T-SQL: ALTER TABLE (Transact-SQL). `DROP PERIOD FOR SYSTEM_TIME` writes no behavior, which the standard demands: the
 	// behavior is null there, and each writer refuses the form its own grammar does not read.
-	public record DropPeriod(PeriodKind Kind, Identifier? ApplicationName, DropBehavior? Behavior) : AlterTableAction;
-	public record AddSystemVersioning : AlterTableAction;
-	public record DropSystemVersioning(DropBehavior Behavior) : AlterTableAction;
-	public record Extension(string Dialect, string Kind, SqlList<ISqlNode> Parts) : AlterTableAction;
+	public sealed record DropPeriod(PeriodKind Kind, Identifier? ApplicationName, DropBehavior? Behavior) : AlterTableAction;
+	public sealed record AddSystemVersioning : AlterTableAction;
+	public sealed record DropSystemVersioning(DropBehavior Behavior) : AlterTableAction;
+	public sealed record Extension(string Dialect, string Kind, SqlList<ISqlNode> Parts) : AlterTableAction;
 }
 public abstract partial record AlterColumnAction : ISqlNode
 {
@@ -1360,17 +1360,17 @@ public abstract partial record AlterColumnAction : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record SetDefault(Expression Value) : AlterColumnAction;
-	public record DropDefault : AlterColumnAction;
-	public record SetNotNull : AlterColumnAction;
-	public record DropNotNull : AlterColumnAction;
-	public record AddScope(QualifiedName Table) : AlterColumnAction;
-	public record DropScope(DropBehavior Behavior) : AlterColumnAction;
-	public partial record SetDataType(DataType Type) : AlterColumnAction;
-	public record SetIdentityGeneration(IdentityGeneration Generation, SqlList<SequenceOption> Options) : AlterColumnAction;
-	public record IdentityOptions(SqlList<SequenceOption> Options) : AlterColumnAction;
-	public record DropIdentity : AlterColumnAction;
-	public record DropExpression : AlterColumnAction;
+	public sealed record SetDefault(Expression Value) : AlterColumnAction;
+	public sealed record DropDefault : AlterColumnAction;
+	public sealed record SetNotNull : AlterColumnAction;
+	public sealed record DropNotNull : AlterColumnAction;
+	public sealed record AddScope(QualifiedName Table) : AlterColumnAction;
+	public sealed record DropScope(DropBehavior Behavior) : AlterColumnAction;
+	public sealed partial record SetDataType(DataType Type) : AlterColumnAction;
+	public sealed record SetIdentityGeneration(IdentityGeneration Generation, SqlList<SequenceOption> Options) : AlterColumnAction;
+	public sealed record IdentityOptions(SqlList<SequenceOption> Options) : AlterColumnAction;
+	public sealed record DropIdentity : AlterColumnAction;
+	public sealed record DropExpression : AlterColumnAction;
 }
 public sealed record PeriodDefinition(PeriodKind Kind, Identifier? ApplicationName, Identifier BeginColumn, Identifier EndColumn) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
@@ -1393,11 +1393,11 @@ public abstract partial record GroupingElement : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public partial record Ordinary(SqlList<Expression> Expressions, bool Parenthesized = false) : GroupingElement;
-	public record Rollup(SqlList<GroupingElement> Items) : GroupingElement;
-	public record Cube(SqlList<GroupingElement> Items) : GroupingElement;
-	public record Sets(SqlList<GroupingElement> Items) : GroupingElement;
-	public record Empty : GroupingElement;
+	public sealed partial record Ordinary(SqlList<Expression> Expressions, bool Parenthesized = false) : GroupingElement;
+	public sealed record Rollup(SqlList<GroupingElement> Items) : GroupingElement;
+	public sealed record Cube(SqlList<GroupingElement> Items) : GroupingElement;
+	public sealed record Sets(SqlList<GroupingElement> Items) : GroupingElement;
+	public sealed record Empty : GroupingElement;
 }
 
 /// <summary>BNF: MATCH_RECOGNIZE and row-pattern grammar. Kept separate from normal SQL expressions.</summary>
@@ -1410,15 +1410,15 @@ public abstract record RowPattern : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Variable(Identifier Name) : RowPattern;
-	public record StartAnchor : RowPattern;
-	public record EndAnchor : RowPattern;
-	public record Sequence(SqlList<RowPattern> Items) : RowPattern;
-	public record Alternation(SqlList<RowPattern> Items) : RowPattern;
-	public record Quantified(RowPattern Pattern, RowPatternQuantifier Quantifier) : RowPattern;
-	public record Parenthesized(RowPattern? Pattern) : RowPattern;
-	public record Excluded(RowPattern Pattern) : RowPattern;
-	public record Permute(SqlList<RowPattern> Items) : RowPattern;
+	public sealed record Variable(Identifier Name) : RowPattern;
+	public sealed record StartAnchor : RowPattern;
+	public sealed record EndAnchor : RowPattern;
+	public sealed record Sequence(SqlList<RowPattern> Items) : RowPattern;
+	public sealed record Alternation(SqlList<RowPattern> Items) : RowPattern;
+	public sealed record Quantified(RowPattern Pattern, RowPatternQuantifier Quantifier) : RowPattern;
+	public sealed record Parenthesized(RowPattern? Pattern) : RowPattern;
+	public sealed record Excluded(RowPattern Pattern) : RowPattern;
+	public sealed record Permute(SqlList<RowPattern> Items) : RowPattern;
 }
 public sealed record RowPatternQuantifier(RowPatternQuantifierKind Kind, int? Min = null, int? Max = null, bool Reluctant = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
@@ -1471,13 +1471,13 @@ public abstract record JsonPathExpression : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Literal(string Text, JsonPathLiteralKind Kind) : JsonPathExpression;
-	public record Variable(JsonPathVariableKind Kind, Identifier? Name = null) : JsonPathExpression;
-	public record Unary(JsonPathUnaryOperator Operator, JsonPathExpression Operand) : JsonPathExpression;
-	public record Binary(JsonPathExpression Left, JsonPathBinaryOperator Operator, JsonPathExpression Right) : JsonPathExpression;
-	public record Access(JsonPathExpression Target, JsonPathAccessor Accessor) : JsonPathExpression;
-	public record Predicate(JsonPathPredicate Value) : JsonPathExpression;
-	public record Parenthesized(JsonPathExpression Value) : JsonPathExpression;
+	public sealed record Literal(string Text, JsonPathLiteralKind Kind) : JsonPathExpression;
+	public sealed record Variable(JsonPathVariableKind Kind, Identifier? Name = null) : JsonPathExpression;
+	public sealed record Unary(JsonPathUnaryOperator Operator, JsonPathExpression Operand) : JsonPathExpression;
+	public sealed record Binary(JsonPathExpression Left, JsonPathBinaryOperator Operator, JsonPathExpression Right) : JsonPathExpression;
+	public sealed record Access(JsonPathExpression Target, JsonPathAccessor Accessor) : JsonPathExpression;
+	public sealed record Predicate(JsonPathPredicate Value) : JsonPathExpression;
+	public sealed record Parenthesized(JsonPathExpression Value) : JsonPathExpression;
 }
 public enum JsonPathLiteralKind { String, Numeric, Other }
 public enum JsonPathVariableKind { Context, Named, Current, Last }
@@ -1492,12 +1492,12 @@ public abstract record JsonPathAccessor : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Member(string Name, bool Quoted) : JsonPathAccessor;
-	public record WildcardMember : JsonPathAccessor;
-	public record Array(SqlList<JsonSubscript> Subscripts) : JsonPathAccessor;
-	public record WildcardArray : JsonPathAccessor;
-	public record Filter(JsonPathPredicate Predicate) : JsonPathAccessor;
-	public record Method(JsonMethod Value) : JsonPathAccessor;
+	public sealed record Member(string Name, bool Quoted) : JsonPathAccessor;
+	public sealed record WildcardMember : JsonPathAccessor;
+	public sealed record Array(SqlList<JsonSubscript> Subscripts) : JsonPathAccessor;
+	public sealed record WildcardArray : JsonPathAccessor;
+	public sealed record Filter(JsonPathPredicate Predicate) : JsonPathAccessor;
+	public sealed record Method(JsonMethod Value) : JsonPathAccessor;
 }
 public sealed record JsonSubscript(JsonPathExpression From, JsonPathExpression? To = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
@@ -1514,15 +1514,15 @@ public abstract record JsonPathPredicate : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Exists(JsonPathExpression Expression) : JsonPathPredicate;
-	public record Comparison(JsonPathExpression Left, JsonPathComparisonOperator Operator, JsonPathExpression Right) : JsonPathPredicate;
-	public record LikeRegex(JsonPathExpression Value, string Pattern, string? Flags) : JsonPathPredicate;
-	public record StartsWith(JsonPathExpression Value, JsonPathExpression Initial) : JsonPathPredicate;
-	public record IsUnknown(JsonPathPredicate Predicate) : JsonPathPredicate;
-	public record Not(JsonPathPredicate Predicate) : JsonPathPredicate;
-	public record And(SqlList<JsonPathPredicate> Items) : JsonPathPredicate;
-	public record Or(SqlList<JsonPathPredicate> Items) : JsonPathPredicate;
-	public record Parenthesized(JsonPathPredicate Predicate) : JsonPathPredicate;
+	public sealed record Exists(JsonPathExpression Expression) : JsonPathPredicate;
+	public sealed record Comparison(JsonPathExpression Left, JsonPathComparisonOperator Operator, JsonPathExpression Right) : JsonPathPredicate;
+	public sealed record LikeRegex(JsonPathExpression Value, string Pattern, string? Flags) : JsonPathPredicate;
+	public sealed record StartsWith(JsonPathExpression Value, JsonPathExpression Initial) : JsonPathPredicate;
+	public sealed record IsUnknown(JsonPathPredicate Predicate) : JsonPathPredicate;
+	public sealed record Not(JsonPathPredicate Predicate) : JsonPathPredicate;
+	public sealed record And(SqlList<JsonPathPredicate> Items) : JsonPathPredicate;
+	public sealed record Or(SqlList<JsonPathPredicate> Items) : JsonPathPredicate;
+	public sealed record Parenthesized(JsonPathPredicate Predicate) : JsonPathPredicate;
 }
 public enum JsonPathComparisonOperator { Equal, NotEqual, NotEqualBang, Less, Greater, LessOrEqual, GreaterOrEqual }
 public sealed record JsonMethod(JsonMethodKind Kind, int? Precision = null, int? Scale = null, string? DateTimeTemplate = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
@@ -1587,11 +1587,11 @@ public abstract record JsonTableColumn : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Ordinality(Identifier Name) : JsonTableColumn;
-	public record Regular(Identifier Name, DataType Type, string? Path, JsonValueBehavior? OnEmpty, JsonValueBehavior? OnError) : JsonTableColumn;
-	public record Formatted(Identifier Name, DataType Type, JsonRepresentation? Format, string? Path, JsonWrapperBehavior? Wrapper, JsonQuotes? Quotes, JsonQueryBehavior? OnEmpty, JsonQueryBehavior? OnError) : JsonTableColumn;
-	public record Nested(string Path, Identifier? Name, SqlList<JsonTableColumn> Columns, bool PathKeyword = false) : JsonTableColumn;
-	public record Chaining(Identifier Name) : JsonTableColumn;
+	public sealed record Ordinality(Identifier Name) : JsonTableColumn;
+	public sealed record Regular(Identifier Name, DataType Type, string? Path, JsonValueBehavior? OnEmpty, JsonValueBehavior? OnError) : JsonTableColumn;
+	public sealed record Formatted(Identifier Name, DataType Type, JsonRepresentation? Format, string? Path, JsonWrapperBehavior? Wrapper, JsonQuotes? Quotes, JsonQueryBehavior? OnEmpty, JsonQueryBehavior? OnError) : JsonTableColumn;
+	public sealed record Nested(string Path, Identifier? Name, SqlList<JsonTableColumn> Columns, bool PathKeyword = false) : JsonTableColumn;
+	public sealed record Chaining(Identifier Name) : JsonTableColumn;
 }
 public abstract record JsonTablePlan : ISqlNode
 {
@@ -1602,18 +1602,18 @@ public abstract record JsonTablePlan : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Name(Identifier Value) : JsonTablePlan;
-	public record Outer(Identifier Parent, JsonTablePlan Child) : JsonTablePlan;
-	public record Inner(Identifier Parent, JsonTablePlan Child) : JsonTablePlan;
-	public record Union(SqlList<JsonTablePlan> Items) : JsonTablePlan;
-	public record Cross(SqlList<JsonTablePlan> Items) : JsonTablePlan;
-	public record Default(JsonTableDefaultInnerOuter? InnerOuter, JsonTableDefaultUnionCross? UnionCross, bool UnionCrossFirst = false) : JsonTablePlan;
-	public record Parenthesized(JsonTablePlan Value) : JsonTablePlan;
+	public sealed record Name(Identifier Value) : JsonTablePlan;
+	public sealed record Outer(Identifier Parent, JsonTablePlan Child) : JsonTablePlan;
+	public sealed record Inner(Identifier Parent, JsonTablePlan Child) : JsonTablePlan;
+	public sealed record Union(SqlList<JsonTablePlan> Items) : JsonTablePlan;
+	public sealed record Cross(SqlList<JsonTablePlan> Items) : JsonTablePlan;
+	public sealed record Default(JsonTableDefaultInnerOuter? InnerOuter, JsonTableDefaultUnionCross? UnionCross, bool UnionCrossFirst = false) : JsonTablePlan;
+	public sealed record Parenthesized(JsonTablePlan Value) : JsonTablePlan;
 }
 public enum JsonTableDefaultInnerOuter { Inner, Outer }
 public enum JsonTableDefaultUnionCross { Union, Cross }
 public enum JsonTableErrorBehavior { Error, Empty }
-public abstract record JsonValueBehavior : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Error : JsonValueBehavior; public record Null : JsonValueBehavior; public record Default(Expression Value) : JsonValueBehavior; }
+public abstract record JsonValueBehavior : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Error : JsonValueBehavior; public sealed record Null : JsonValueBehavior; public sealed record Default(Expression Value) : JsonValueBehavior; }
 public enum JsonWrapperBehavior { Without, WithoutArray, With, WithConditional, WithUnconditional, WithArray, WithConditionalArray, WithUnconditionalArray }
 public enum JsonQuotesBehavior { Keep, Omit }
 public enum JsonQueryBehavior { Error, Null, EmptyArray, EmptyObject }
@@ -1664,9 +1664,9 @@ public abstract partial record InsertSource : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Subquery(Query Query) : InsertSource;
-	public record Values(SqlList<RowValue> Rows) : InsertSource;
-	public record DefaultValues : InsertSource;
+	public sealed record Subquery(Query Query) : InsertSource;
+	public sealed record Values(SqlList<RowValue> Rows) : InsertSource;
+	public sealed record DefaultValues : InsertSource;
 }
 public sealed record RowValue(SqlList<Expression> Items, bool RowKeyword = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
@@ -1685,10 +1685,10 @@ public abstract partial record MergeClause : ISqlNode
 	}
 
 	public Expression? Condition { get; init; }
-	public record Matched(MergeMatchedAction Action) : MergeClause;
-	public partial record NotMatched(MergeInsertAction Action) : MergeClause;
+	public sealed record Matched(MergeMatchedAction Action) : MergeClause;
+	public sealed partial record NotMatched(MergeInsertAction Action) : MergeClause;
 }
-public abstract record MergeMatchedAction : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Update(SqlList<Assignment> Assignments) : MergeMatchedAction; public record Delete : MergeMatchedAction; }
+public abstract record MergeMatchedAction : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Update(SqlList<Assignment> Assignments) : MergeMatchedAction; public sealed record Delete : MergeMatchedAction; }
 public sealed partial record MergeInsertAction(SqlList<Identifier> Columns, OverrideKind? Override, SqlList<Expression> Values) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
@@ -1938,9 +1938,9 @@ public abstract partial record SystemTimeSpecification : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record AsOf(Expression Point) : SystemTimeSpecification;
-	public record Between(Expression From, Expression To, BetweenSymmetry? Symmetry) : SystemTimeSpecification;
-	public record FromTo(Expression From, Expression To) : SystemTimeSpecification;
+	public sealed record AsOf(Expression Point) : SystemTimeSpecification;
+	public sealed record Between(Expression From, Expression To, BetweenSymmetry? Symmetry) : SystemTimeSpecification;
+	public sealed record FromTo(Expression From, Expression To) : SystemTimeSpecification;
 }
 
 // --- ALTER DOMAIN -----------------------------------------------------------
@@ -1953,10 +1953,10 @@ public abstract record AlterDomainAction : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record SetDefault(Expression Value) : AlterDomainAction;
-	public record DropDefault : AlterDomainAction;
-	public record AddConstraint(Constraint Constraint) : AlterDomainAction;
-	public record DropConstraint(QualifiedName Name) : AlterDomainAction;
+	public sealed record SetDefault(Expression Value) : AlterDomainAction;
+	public sealed record DropDefault : AlterDomainAction;
+	public sealed record AddConstraint(Constraint Constraint) : AlterDomainAction;
+	public sealed record DropConstraint(QualifiedName Name) : AlterDomainAction;
 }
 
 // --- Views -----------------------------------------------------------------
@@ -1969,10 +1969,10 @@ public abstract record ViewSpecification : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Regular(SqlList<Identifier> Columns) : ViewSpecification;
-	public record Referenceable(QualifiedName TypeName, QualifiedName? Under, SqlList<ViewElement> Elements) : ViewSpecification;
+	public sealed record Regular(SqlList<Identifier> Columns) : ViewSpecification;
+	public sealed record Referenceable(QualifiedName TypeName, QualifiedName? Under, SqlList<ViewElement> Elements) : ViewSpecification;
 }
-public abstract record ViewElement : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record SelfReference(Identifier Name, ReferenceGeneration? Generation) : ViewElement; public record ColumnOption(Identifier Name, QualifiedName Scope) : ViewElement; }
+public abstract record ViewElement : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record SelfReference(Identifier Name, ReferenceGeneration? Generation) : ViewElement; public sealed record ColumnOption(Identifier Name, QualifiedName Scope) : ViewElement; }
 public enum CheckOption { Cascaded, Local, Unqualified }
 
 // --- Triggers ---------------------------------------------------------------
@@ -2006,7 +2006,7 @@ public sealed record UserDefinedTypeDefinition(QualifiedName Name, QualifiedName
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public abstract record TypeRepresentation : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Type(DataType Value) : TypeRepresentation; public record Members(SqlList<AttributeDefinition> Attributes) : TypeRepresentation; /* T-SQL: CREATE TYPE (Transact-SQL). `CREATE TYPE t AS TABLE (...)`, which the standard has no representation for. */ public record Table(SqlList<TableElement> Elements) : TypeRepresentation; }
+public abstract record TypeRepresentation : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Type(DataType Value) : TypeRepresentation; public sealed record Members(SqlList<AttributeDefinition> Attributes) : TypeRepresentation; /* T-SQL: CREATE TYPE (Transact-SQL). `CREATE TYPE t AS TABLE (...)`, which the standard has no representation for. */ public sealed record Table(SqlList<TableElement> Elements) : TypeRepresentation; }
 public sealed record AttributeDefinition(Identifier Name, DataType Type, Expression? Default, CollationName? Collation) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
@@ -2022,14 +2022,14 @@ public abstract record UserTypeOption : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Instantiable(bool Value) : UserTypeOption;
-	public record Final(bool Value) : UserTypeOption;
-	public record Reference(UserTypeReference Representation) : UserTypeOption;
-	public record Cast(UserTypeCastKind Kind, Identifier FunctionName) : UserTypeOption;
+	public sealed record Instantiable(bool Value) : UserTypeOption;
+	public sealed record Final(bool Value) : UserTypeOption;
+	public sealed record Reference(UserTypeReference Representation) : UserTypeOption;
+	public sealed record Cast(UserTypeCastKind Kind, Identifier FunctionName) : UserTypeOption;
 }
-public abstract record UserTypeReference : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Using(DataType Type) : UserTypeReference; public record FromAttributes(SqlList<Identifier> Attributes) : UserTypeReference; public record SystemGenerated : UserTypeReference; }
+public abstract record UserTypeReference : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Using(DataType Type) : UserTypeReference; public sealed record FromAttributes(SqlList<Identifier> Attributes) : UserTypeReference; public sealed record SystemGenerated : UserTypeReference; }
 public enum UserTypeCastKind { ToRef, ToType, ToDistinct, ToSource }
-public abstract record AlterTypeAction : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record AddAttribute(AttributeDefinition Attribute) : AlterTypeAction; public record DropAttribute(Identifier Name) : AlterTypeAction; public record AddMethod(MethodSpecification Method, bool Overriding) : AlterTypeAction; public record DropMethod(MethodDesignator Method) : AlterTypeAction; }
+public abstract record AlterTypeAction : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record AddAttribute(AttributeDefinition Attribute) : AlterTypeAction; public sealed record DropAttribute(Identifier Name) : AlterTypeAction; public sealed record AddMethod(MethodSpecification Method, bool Overriding) : AlterTypeAction; public sealed record DropMethod(MethodDesignator Method) : AlterTypeAction; }
 public sealed record MethodSpecification(MethodModifier? Modifier, Identifier Name, SqlList<ParameterDefinition> Parameters, ReturnsDefinition Returns, QualifiedName? SpecificName, bool SelfAsResult, bool SelfAsLocator, SqlList<RoutineCharacteristic> Characteristics, bool Overriding = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
@@ -2087,16 +2087,16 @@ public abstract record RoutineCharacteristic : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Language(string Name) : RoutineCharacteristic;
-	public record ParameterStyle(ParameterStyleKind Style) : RoutineCharacteristic;
-	public record Specific(QualifiedName Name) : RoutineCharacteristic;
-	public record Deterministic(bool Value) : RoutineCharacteristic;
-	public record DataAccess(SqlDataAccess Value) : RoutineCharacteristic;
-	public record NullCall(NullCallMode Value) : RoutineCharacteristic;
-	public record DynamicResultSets(int Maximum) : RoutineCharacteristic;
-	public record SavepointLevel(SavepointLevelKind Value) : RoutineCharacteristic;
+	public sealed record Language(string Name) : RoutineCharacteristic;
+	public sealed record ParameterStyle(ParameterStyleKind Style) : RoutineCharacteristic;
+	public sealed record Specific(QualifiedName Name) : RoutineCharacteristic;
+	public sealed record Deterministic(bool Value) : RoutineCharacteristic;
+	public sealed record DataAccess(SqlDataAccess Value) : RoutineCharacteristic;
+	public sealed record NullCall(NullCallMode Value) : RoutineCharacteristic;
+	public sealed record DynamicResultSets(int Maximum) : RoutineCharacteristic;
+	public sealed record SavepointLevel(SavepointLevelKind Value) : RoutineCharacteristic;
 	// BNF: `NAME <external routine name>`. Name is written as it stands, quotes included: `NAME x` and `NAME 'x'` differ.
-	public record ExternalName(string Name) : RoutineCharacteristic;
+	public sealed record ExternalName(string Name) : RoutineCharacteristic;
 }
 public enum ParameterStyleKind { Sql, General }
 public enum SqlDataAccess { NoSql, ContainsSql, ReadsSqlData, ModifiesSqlData }
@@ -2112,10 +2112,10 @@ public abstract partial record RoutineBody : ISqlNode
 	}
 
 	// BNF: <SQL routine spec>: the rights it runs with and one <SQL procedure statement>.
-	public record Sql(Statement Statement, SqlSecurity? Security = null) : RoutineBody;
+	public sealed record Sql(Statement Statement, SqlSecurity? Security = null) : RoutineBody;
 	// BNF: <external body reference>. Name is the <external routine name> as written, quotes included.
-	public record External(string? Name, ParameterStyleKind? ParameterStyle, TransformGroupSpecification? TransformGroup, ExternalSecurity? Security) : RoutineBody;
-	public record PolymorphicTableFunction(PolymorphicTableFunctionBody Body) : RoutineBody;
+	public sealed record External(string? Name, ParameterStyleKind? ParameterStyle, TransformGroupSpecification? TransformGroup, ExternalSecurity? Security) : RoutineBody;
+	public sealed record PolymorphicTableFunction(PolymorphicTableFunctionBody Body) : RoutineBody;
 }
 public enum SqlSecurity { Invoker, Definer }
 public enum ExternalSecurity { Definer, Invoker, ImplementationDefined }
@@ -2147,7 +2147,7 @@ public sealed record OrderingDefinition(OrderingForm Form, OrderingCategory Cate
 	}
 }
 public enum OrderingForm { EqualsOnly, Full }
-public abstract record OrderingCategory : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Relative(RoutineDesignator Function) : OrderingCategory; public record Map(RoutineDesignator Function) : OrderingCategory; public record State(QualifiedName? SpecificName) : OrderingCategory; }
+public abstract record OrderingCategory : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Relative(RoutineDesignator Function) : OrderingCategory; public sealed record Map(RoutineDesignator Function) : OrderingCategory; public sealed record State(QualifiedName? SpecificName) : OrderingCategory; }
 public sealed record TransformGroup(Identifier Name, SqlList<TransformElement> Elements) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
@@ -2173,7 +2173,7 @@ public sealed record TransformAlterAction(bool Add, SqlList<TransformElement> El
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public abstract record TransformDropTarget : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record All : TransformDropTarget; public record Group(Identifier Name) : TransformDropTarget; }
+public abstract record TransformDropTarget : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record All : TransformDropTarget; public sealed record Group(Identifier Name) : TransformDropTarget; }
 public sealed record TransformGroupSpecification(Identifier? SingleGroup, SqlList<TransformGroupForType> Groups) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
@@ -2198,13 +2198,13 @@ public abstract partial record SequenceOption : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record DataTypeOption(DataType Type) : SequenceOption;
-	public record Start(Expression Value) : SequenceOption;
-	public record Increment(Expression Value) : SequenceOption;
-	public record Max(Expression? Value, bool No = false) : SequenceOption;
-	public record Min(Expression? Value, bool No = false) : SequenceOption;
-	public record Cycle(bool Value) : SequenceOption;
-	public record Restart(Expression? Value) : SequenceOption;
+	public sealed record DataTypeOption(DataType Type) : SequenceOption;
+	public sealed record Start(Expression Value) : SequenceOption;
+	public sealed record Increment(Expression Value) : SequenceOption;
+	public sealed record Max(Expression? Value, bool No = false) : SequenceOption;
+	public sealed record Min(Expression? Value, bool No = false) : SequenceOption;
+	public sealed record Cycle(bool Value) : SequenceOption;
+	public sealed record Restart(Expression? Value) : SequenceOption;
 }
 
 // --- Privileges/roles -------------------------------------------------------
@@ -2221,8 +2221,8 @@ public abstract record GrantBody : ISqlNode
 	// permission is granted to a principal and names nothing — and `AsPrincipal` is its `AS p`, which is
 	// not `GrantedBy`: that is the standard's `GRANTED BY { CURRENT_USER | CURRENT_ROLE }`, an enum of
 	// two, where this is a principal's name.
-	public record Privileges(SqlList<Privilege> Items, PrivilegeObject? Object, SqlList<Grantee> Grantees, bool HierarchyOption, bool GrantOption, Grantor? GrantedBy, Identifier? AsPrincipal = null) : GrantBody;
-	public record Roles(SqlList<Identifier> Names, SqlList<Grantee> Grantees, bool AdminOption, Grantor? GrantedBy) : GrantBody;
+	public sealed record Privileges(SqlList<Privilege> Items, PrivilegeObject? Object, SqlList<Grantee> Grantees, bool HierarchyOption, bool GrantOption, Grantor? GrantedBy, Identifier? AsPrincipal = null) : GrantBody;
+	public sealed record Roles(SqlList<Identifier> Names, SqlList<Grantee> Grantees, bool AdminOption, Grantor? GrantedBy) : GrantBody;
 }
 public abstract record RevokeBody : ISqlNode
 {
@@ -2237,8 +2237,8 @@ public abstract record RevokeBody : ISqlNode
 	// because T-SQL writes CASCADE or nothing where the standard always writes one of the two words, and
 	// `To` is the page's other spelling: it publishes `{ TO | FROM }` for the same clause, and FROM is
 	// the standard's, so the flag marks the deviation and not the norm.
-	public record Privileges(RevokeOption? Option, SqlList<Privilege> Items, PrivilegeObject? Object, SqlList<Grantee> Grantees, Grantor? GrantedBy, DropBehavior? Behavior, Identifier? AsPrincipal = null, [property: Spelling] bool To = false) : RevokeBody;
-	public record Roles(bool AdminOptionFor, SqlList<Identifier> Names, SqlList<Grantee> Grantees, Grantor? GrantedBy, DropBehavior Behavior) : RevokeBody;
+	public sealed record Privileges(RevokeOption? Option, SqlList<Privilege> Items, PrivilegeObject? Object, SqlList<Grantee> Grantees, Grantor? GrantedBy, DropBehavior? Behavior, Identifier? AsPrincipal = null, [property: Spelling] bool To = false) : RevokeBody;
+	public sealed record Roles(bool AdminOptionFor, SqlList<Identifier> Names, SqlList<Grantee> Grantees, Grantor? GrantedBy, DropBehavior Behavior) : RevokeBody;
 }
 // BNF: <action>. PrivilegeKind is written by TransactSql/permissions.py, in SqlAst.Permissions.cs,
 // because T-SQL's members are its permission catalogue (D148).
@@ -2268,17 +2268,17 @@ public abstract record PrivilegeObject : ISqlNode
 	// OBJECT. `Columns` is the column list that page lets follow the SECURABLE — `ON t (a, b)` — and not
 	// only a permission, which is `Privilege.Columns`. The engine reads both and objects afterwards where
 	// both are written (1019), so the tree holds them apart.
-	public record Named(PrivilegeObjectKind Kind, QualifiedName Name, RoutineDesignator? Routine = null, bool TableKeyword = false, SqlList<Identifier>? Columns = null) : PrivilegeObject;
+	public sealed record Named(PrivilegeObjectKind Kind, QualifiedName Name, RoutineDesignator? Routine = null, bool TableKeyword = false, SqlList<Identifier>? Columns = null) : PrivilegeObject;
 
 	// T-SQL: GRANT (Transact-SQL). `ON class::securable`, `SCHEMA::s`; `OBJECT::t` is the class written out.
 	// The grammar reads a column list after any class, `ON SCHEMA::s (c1)`, which the engine objects to
 	// afterwards (1019), so `Columns` is here too.
-	public record Classed(SecurableClass Class, QualifiedName Name, SqlList<Identifier>? Columns = null) : PrivilegeObject;
+	public sealed record Classed(SecurableClass Class, QualifiedName Name, SqlList<Identifier>? Columns = null) : PrivilegeObject;
 }
 public enum PrivilegeObjectKind { Table, Domain, Collation, CharacterSet, Translation, Type, Sequence, Routine }
 // T-SQL: GRANT (Transact-SQL). `Null` is the `NULL` the engine reads anywhere among the principals of GRANT,
 // DENY and REVOKE (and refuses after AS), which the standard has no word for.
-public abstract record Grantee : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Public : Grantee; public record Identifier(AuthorizationIdentifier Value) : Grantee; public record Null : Grantee; }
+public abstract record Grantee : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Public : Grantee; public sealed record Identifier(AuthorizationIdentifier Value) : Grantee; public sealed record Null : Grantee; }
 public enum Grantor { CurrentUser, CurrentRole }
 public enum RevokeOption { GrantOptionFor, HierarchyOptionFor }
 
@@ -2318,7 +2318,7 @@ public enum CursorReturnability { WithReturn, WithoutReturn }
 // and the cursor's `FOR UPDATE` was written first, which the engine reads either way round. It is a flag
 // about two children of this node — the Select whose OPTION it is, and the updatability beside it — and not
 // about a sibling's text, which is why it is allowed to live here.
-public abstract record CursorSource : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Query(Statement.Select Select, UpdatabilityClause? Updatability, [property: Spelling] bool UpdatabilityBeforeOptions = false) : CursorSource; public record Prepared(StatementReference Statement) : CursorSource; }
+public abstract record CursorSource : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Query(Statement.Select Select, UpdatabilityClause? Updatability, [property: Spelling] bool UpdatabilityBeforeOptions = false) : CursorSource; public sealed record Prepared(StatementReference Statement) : CursorSource; }
 // T-SQL: DECLARE CURSOR (Transact-SQL). `Underscored` is `READ_ONLY`, which the ISO form of that page
 // publishes where the standard and T-SQL's `SET @c = CURSOR` write `READ ONLY`.
 public sealed record UpdatabilityClause(bool ReadOnly, SqlList<Identifier> UpdateColumns, [property: Spelling] bool Underscored = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
@@ -2334,7 +2334,7 @@ public sealed record FetchOrientation(FetchOrientationKind Kind, Expression? Off
 	}
 }
 public enum FetchOrientationKind { Next, Prior, First, Last, Absolute, Relative }
-public abstract record CursorAllocationSource : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Prepared(StatementReference Statement) : CursorAllocationSource; public record Routine(RoutineDesignator Designator) : CursorAllocationSource; }
+public abstract record CursorAllocationSource : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Prepared(StatementReference Statement) : CursorAllocationSource; public sealed record Routine(RoutineDesignator Designator) : CursorAllocationSource; }
 public sealed record StatementReference(Identifier? Name, Expression? ExtendedName = null, bool Global = false, bool Local = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
@@ -2347,8 +2347,8 @@ public sealed record DescriptorReference(Identifier? Name, Expression? ExtendedN
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public abstract record DescriptorGet : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Header(SqlList<DescriptorRead> Items) : DescriptorGet; public record Value(Expression Index, SqlList<DescriptorRead> Items) : DescriptorGet; }
-public abstract record DescriptorSet : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Header(SqlList<DescriptorWrite> Items) : DescriptorSet; public record Value(Expression Index, SqlList<DescriptorWrite> Items) : DescriptorSet; }
+public abstract record DescriptorGet : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Header(SqlList<DescriptorRead> Items) : DescriptorGet; public sealed record Value(Expression Index, SqlList<DescriptorRead> Items) : DescriptorGet; }
+public abstract record DescriptorSet : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Header(SqlList<DescriptorWrite> Items) : DescriptorSet; public sealed record Value(Expression Index, SqlList<DescriptorWrite> Items) : DescriptorSet; }
 public sealed record DescriptorRead(Expression Target, DescriptorItem Item) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
@@ -2362,18 +2362,18 @@ public sealed record DescriptorWrite(DescriptorItem Item, Expression Value) : IS
 	}
 }
 public enum DescriptorItem { Count, KeyType, DynamicFunction, DynamicFunctionCode, TopLevelCount, Cardinality, CharacterSetCatalog, CharacterSetName, CharacterSetSchema, CollationCatalog, CollationName, CollationSchema, Data, DatetimeIntervalCode, DatetimeIntervalPrecision, Degree, Indicator, KeyMember, Length, Level, Name, Nullable, NullOrdering, OctetLength, ParameterMode, ParameterOrdinalPosition, ParameterSpecificCatalog, ParameterSpecificName, ParameterSpecificSchema, Precision, ReturnedCardinality, ReturnedLength, ReturnedOctetLength, Scale, ScopeCatalog, ScopeName, ScopeSchema, SortDirection, Type, Unnamed, UserDefinedTypeCatalog, UserDefinedTypeName, UserDefinedTypeSchema, UserDefinedTypeCode }
-public abstract record DescriptorCopy : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Whole(DescriptorReference Source, DescriptorReference Target) : DescriptorCopy; public record Item(DescriptorReference Source, Expression SourceIndex, SqlList<DescriptorCopyOption> Options, DescriptorReference Target, Expression TargetIndex) : DescriptorCopy; }
+public abstract record DescriptorCopy : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Whole(DescriptorReference Source, DescriptorReference Target) : DescriptorCopy; public sealed record Item(DescriptorReference Source, Expression SourceIndex, SqlList<DescriptorCopyOption> Options, DescriptorReference Target, Expression TargetIndex) : DescriptorCopy; }
 public enum DescriptorCopyOption { Name, Type, Data }
-public abstract record DescribeBody : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Input(StatementReference Statement, DescriptorReference Descriptor, bool? WithNesting, bool SqlKeyword = false) : DescribeBody; public record Output(DescribeObject Object, DescriptorReference Descriptor, bool? WithNesting, bool OutputKeyword, bool SqlKeyword = false) : DescribeBody; }
-public abstract record DescribeObject : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Statement(StatementReference Value) : DescribeObject; public record Cursor(CursorReference Value) : DescribeObject; }
-public abstract record DynamicArguments : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Values(SqlList<Expression> Items) : DynamicArguments; public record Descriptor(DescriptorReference Value, bool SqlKeyword) : DynamicArguments; }
+public abstract record DescribeBody : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Input(StatementReference Statement, DescriptorReference Descriptor, bool? WithNesting, bool SqlKeyword = false) : DescribeBody; public sealed record Output(DescribeObject Object, DescriptorReference Descriptor, bool? WithNesting, bool OutputKeyword, bool SqlKeyword = false) : DescribeBody; }
+public abstract record DescribeObject : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Statement(StatementReference Value) : DescribeObject; public sealed record Cursor(CursorReference Value) : DescribeObject; }
+public abstract record DynamicArguments : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Values(SqlList<Expression> Items) : DynamicArguments; public sealed record Descriptor(DescriptorReference Value, bool SqlKeyword) : DynamicArguments; }
 
 // --- Transactions/connections ---------------------------------------------
-public abstract record TransactionMode : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Isolation(IsolationLevel Level) : TransactionMode; public record Access(TransactionAccess Mode) : TransactionMode; public record DiagnosticsSize(Expression Size) : TransactionMode; }
+public abstract record TransactionMode : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Isolation(IsolationLevel Level) : TransactionMode; public sealed record Access(TransactionAccess Mode) : TransactionMode; public sealed record DiagnosticsSize(Expression Size) : TransactionMode; }
 // T-SQL: SET TRANSACTION ISOLATION LEVEL (Transact-SQL). `Snapshot` is T-SQL's.
 public enum IsolationLevel { ReadUncommitted, ReadCommitted, RepeatableRead, Serializable, Snapshot }
 public enum TransactionAccess { ReadOnly, ReadWrite }
-public abstract record ConstraintTarget : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record All : ConstraintTarget; public record Names(SqlList<QualifiedName> Values) : ConstraintTarget; }
+public abstract record ConstraintTarget : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record All : ConstraintTarget; public sealed record Names(SqlList<QualifiedName> Values) : ConstraintTarget; }
 public enum ChainMode { Chain, NoChain }
 public sealed record ConnectionTarget(Expression? Server, Expression? Name, Expression? User, bool Default) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
@@ -2381,8 +2381,8 @@ public sealed record ConnectionTarget(Expression? Server, Expression? Name, Expr
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public abstract record ConnectionObject : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Default : ConnectionObject; public record Named(Expression Name) : ConnectionObject; }
-public abstract record DisconnectObject : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Connection(ConnectionObject Value) : DisconnectObject; public record All : DisconnectObject; public record Current : DisconnectObject; }
+public abstract record ConnectionObject : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Default : ConnectionObject; public sealed record Named(Expression Name) : ConnectionObject; }
+public abstract record DisconnectObject : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Connection(ConnectionObject Value) : DisconnectObject; public sealed record All : DisconnectObject; public sealed record Current : DisconnectObject; }
 public sealed record TransformGroupCharacteristic(bool DefaultGroup, QualifiedName? ForType, Expression Value) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
@@ -2402,11 +2402,11 @@ public abstract record DiagnosticsInformation : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Statement(SqlList<StatementInformationItem> Items) : DiagnosticsInformation;
-	public record Condition(Expression Number, SqlList<ConditionInformationItem> Items) : DiagnosticsInformation;
+	public sealed record Statement(SqlList<StatementInformationItem> Items) : DiagnosticsInformation;
+	public sealed record Condition(Expression Number, SqlList<ConditionInformationItem> Items) : DiagnosticsInformation;
 
 	// BNF: <all information>, `:t = ALL CONDITION 1`; Qualifier null where none was written.
-	public record All(Expression Target, AllInformationQualifier? Qualifier, Expression? ConditionNumber = null) : DiagnosticsInformation;
+	public sealed record All(Expression Target, AllInformationQualifier? Qualifier, Expression? ConditionNumber = null) : DiagnosticsInformation;
 }
 public sealed record StatementInformationItem(Expression Target, StatementInformationItemName Name) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
@@ -2425,9 +2425,9 @@ public enum StatementInformationItemName { Number, More, CommandFunction, Comman
 public enum ConditionInformationItemName { CatalogName, ClassOrigin, ColumnName, ConditionNumber, ConnectionName, ConstraintCatalog, ConstraintName, ConstraintSchema, CursorName, MessageLength, MessageOctetLength, MessageText, ParameterMode, ParameterName, ParameterOrdinalPosition, ReturnedSqlstate, RoutineCatalog, RoutineName, RoutineSchema, SchemaName, ServerName, SpecificName, SubclassOrigin, TableName, TriggerCatalog, TriggerName, TriggerSchema }
 
 // --- SQL conditions / WHENEVER ---------------------------------------------
-public abstract record SqlCondition : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Major(SqlConditionMajor Value) : SqlCondition; public record State(string ClassCode, string? SubclassCode) : SqlCondition; public record Constraint(QualifiedName Name) : SqlCondition; }
+public abstract record SqlCondition : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Major(SqlConditionMajor Value) : SqlCondition; public sealed record State(string ClassCode, string? SubclassCode) : SqlCondition; public sealed record Constraint(QualifiedName Name) : SqlCondition; }
 public enum SqlConditionMajor { Exception, Warning, NotFound }
-public abstract record ConditionAction : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public record Continue : ConditionAction; public record GoTo(string Target, bool TwoWordKeyword) : ConditionAction; }
+public abstract record ConditionAction : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Continue : ConditionAction; public sealed record GoTo(string Target, bool TwoWordKeyword) : ConditionAction; }
 
 // --- Embedded SQL -----------------------------------------------------------
 /// <summary>BNF: embedded SQL host-program sections. Kept out of the core SQL families.</summary>
@@ -2440,12 +2440,12 @@ public abstract record EmbeddedSql : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Statement(EmbeddedPrefix Prefix, DotGram.Sql.Ast.Statement Value, EmbeddedTerminator? Terminator) : EmbeddedSql;
-	public record DeclareSection(EmbeddedPrefix Prefix, CharacterSetName? CharacterSet, SqlList<HostDeclaration> Declarations, EmbeddedTerminator? Terminator, EmbeddedPrefix? EndPrefix = null, EmbeddedTerminator? EndTerminator = null) : EmbeddedSql;
-	public record Authorization(EmbeddedAuthorization Value) : EmbeddedSql;
-	public record Path(PathSpecification Value) : EmbeddedSql;
-	public record Transform(TransformGroupSpecification Value) : EmbeddedSql;
-	public record Collation(SqlList<ModuleCollation> Values) : EmbeddedSql;
+	public sealed record Statement(EmbeddedPrefix Prefix, DotGram.Sql.Ast.Statement Value, EmbeddedTerminator? Terminator) : EmbeddedSql;
+	public sealed record DeclareSection(EmbeddedPrefix Prefix, CharacterSetName? CharacterSet, SqlList<HostDeclaration> Declarations, EmbeddedTerminator? Terminator, EmbeddedPrefix? EndPrefix = null, EmbeddedTerminator? EndTerminator = null) : EmbeddedSql;
+	public sealed record Authorization(EmbeddedAuthorization Value) : EmbeddedSql;
+	public sealed record Path(PathSpecification Value) : EmbeddedSql;
+	public sealed record Transform(TransformGroupSpecification Value) : EmbeddedSql;
+	public sealed record Collation(SqlList<ModuleCollation> Values) : EmbeddedSql;
 }
 public enum EmbeddedPrefix { ExecSql, AmpersandSqlParen }
 public enum EmbeddedTerminator { EndExec, Semicolon, RightParen }
@@ -2458,13 +2458,13 @@ public abstract record HostDeclaration : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Ada(string Text) : HostDeclaration;
-	public record C(string Text) : HostDeclaration;
-	public record Cobol(string Text) : HostDeclaration;
-	public record Fortran(string Text) : HostDeclaration;
-	public record Mumps(string Text) : HostDeclaration;
-	public record Pascal(string Text) : HostDeclaration;
-	public record Pli(string Text) : HostDeclaration;
+	public sealed record Ada(string Text) : HostDeclaration;
+	public sealed record C(string Text) : HostDeclaration;
+	public sealed record Cobol(string Text) : HostDeclaration;
+	public sealed record Fortran(string Text) : HostDeclaration;
+	public sealed record Mumps(string Text) : HostDeclaration;
+	public sealed record Pascal(string Text) : HostDeclaration;
+	public sealed record Pli(string Text) : HostDeclaration;
 }
 public sealed record EmbeddedAuthorization(QualifiedName? Schema, AuthorizationIdentifier? Authorization, EmbeddedStaticMode? StaticMode) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
@@ -2515,8 +2515,8 @@ public abstract record ModuleContent : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Cursor(Statement.DeclareCursor Declaration) : ModuleContent;
-	public record Procedure(Identifier Name, SqlList<HostParameterDeclaration> Parameters, Statement Body) : ModuleContent;
+	public sealed record Cursor(Statement.DeclareCursor Declaration) : ModuleContent;
+	public sealed record Procedure(Identifier Name, SqlList<HostParameterDeclaration> Parameters, Statement Body) : ModuleContent;
 }
 
 // BNF: <host parameter declaration>: a host parameter with its type, or the status parameter SQLSTATE.
@@ -2529,8 +2529,8 @@ public abstract record HostParameterDeclaration : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	public record Parameter(Identifier Name, DataType Type, bool Locator = false) : HostParameterDeclaration;
-	public record Status : HostParameterDeclaration;
+	public sealed record Parameter(Identifier Name, DataType Type, bool Locator = false) : HostParameterDeclaration;
+	public sealed record Status : HostParameterDeclaration;
 }
 
 // --- Misc ------------------------------------------------------------------

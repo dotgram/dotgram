@@ -8,7 +8,7 @@ namespace DotGram.Sql.Ast;
 
 public abstract partial record Statement
 {
-	public partial record CreateRole
+	public sealed partial record CreateRole
 	{
 		/// <summary>
 		/// T-SQL: CREATE ROLE (Transact-SQL). <c>AUTHORIZATION owner_name</c>: the owner of the role; null where none is

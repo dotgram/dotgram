@@ -420,7 +420,7 @@ public abstract partial record Expression
 		public LiteralValue.Numeric? Increment { get; init; }
 	}
 
-	public partial record IsDistinct
+	public sealed partial record IsDistinct
 	{
 		/// <summary>
 		/// T-SQL: IS [NOT] DISTINCT FROM (Transact-SQL) (the quantified form is not published). <c>a IS DISTINCT FROM ALL
@@ -470,7 +470,7 @@ public abstract partial record Expression
 	/// </summary>
 	public sealed record DatePart(DatePartKind Kind, [property: Spelling] DatePartSpelling Spelling = DatePartSpelling.Name) : Expression;
 
-	public partial record Like
+	public sealed partial record Like
 	{
 		/// <summary>
 		/// T-SQL: LIKE (Transact-SQL). The escape clause written in ODBC's braces, <c>{ESCAPE '%'}</c>.
@@ -481,7 +481,7 @@ public abstract partial record Expression
 	/// <summary>
 	/// T-SQL: TRY_CAST (Transact-SQL). <c>Try</c> is <c>TRY_CAST</c>, which gives null where <c>CAST</c> fails.
 	/// </summary>
-	public partial record Cast
+	public sealed partial record Cast
 	{
 		public bool Try { get; init; }
 	}
@@ -490,7 +490,7 @@ public abstract partial record Expression
 	/// T-SQL: NEXT VALUE FOR (Transact-SQL). <c>OVER (ORDER BY …)</c>, which numbers the rows of one statement in
 	/// that order.
 	/// </summary>
-	public partial record NextValue
+	public sealed partial record NextValue
 	{
 		public WindowSpecification? Over { get; init; }
 	}
@@ -536,7 +536,7 @@ public abstract partial record DataType
 		public bool Max { get; init; }
 	}
 
-	public partial record UserDefined
+	public sealed partial record UserDefined
 	{
 		/// <summary>
 		/// T-SQL: Data types (Transact-SQL). <c>dbo.mytype (10, 2)</c>: the numbers a type of the user's is written with,
@@ -608,7 +608,7 @@ public abstract partial record LiteralValue
 	/// T-SQL: Constants (Transact-SQL), a page syntax.md does not transcribe. T-SQL writes a binary string
 	/// <c>0x0A</c> where the standard writes <c>X'0A'</c>.
 	/// </summary>
-	public new partial record Binary
+	public new sealed partial record Binary
 	{
 		/// <summary>
 		/// Written <c>0x…</c>. Then <c>Text</c> is the digits after the <c>0x</c>; without it, <c>Text</c> is the

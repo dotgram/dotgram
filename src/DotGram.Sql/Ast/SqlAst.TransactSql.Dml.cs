@@ -7,7 +7,7 @@ namespace DotGram.Sql.Ast;
 
 public abstract partial record Statement
 {
-	public partial record Insert
+	public sealed partial record Insert
 	{
 		/// <summary>
 		/// T-SQL: WITH common_table_expression (Transact-SQL). The common table expressions or XML namespaces
@@ -28,7 +28,7 @@ public abstract partial record Statement
 		[Spelling] public IntoKeyword? Into { get; init; } = IntoKeyword.Into;
 	}
 
-	public partial record Update
+	public sealed partial record Update
 	{
 		/// <summary>
 		/// T-SQL: WITH common_table_expression (Transact-SQL). The common table expressions or XML namespaces
@@ -48,7 +48,7 @@ public abstract partial record Statement
 		public FromClause? From { get; init; }
 	}
 
-	public partial record Delete
+	public sealed partial record Delete
 	{
 		/// <summary>
 		/// T-SQL: WITH common_table_expression (Transact-SQL). The common table expressions or XML namespaces
@@ -71,7 +71,7 @@ public abstract partial record Statement
 		[Spelling] public bool FromOmitted { get; init; }
 	}
 
-	public partial record Merge
+	public sealed partial record Merge
 	{
 		/// <summary>
 		/// T-SQL: WITH common_table_expression (Transact-SQL). The common table expressions or XML namespaces
@@ -89,7 +89,7 @@ public abstract partial record Statement
 		[Spelling] public bool IntoOmitted { get; init; }
 	}
 
-	public partial record TruncateTable
+	public sealed partial record TruncateTable
 	{
 		/// <summary>T-SQL: TRUNCATE TABLE (Transact-SQL). <c>WITH (PARTITIONS (1, 3 TO 5))</c>: the partitions emptied.</summary>
 		public SqlList<PartitionRange> Partitions { get; init; } = [];
@@ -145,7 +145,7 @@ public abstract partial record MergeClause
 	/// </summary>
 	public sealed record NotMatchedBySource(MergeMatchedAction Action) : MergeClause;
 
-	public partial record NotMatched
+	public sealed partial record NotMatched
 	{
 		/// <summary>T-SQL: MERGE (Transact-SQL). <c>WHEN NOT MATCHED BY TARGET</c>, which means what the words without BY TARGET mean.</summary>
 		[Spelling] public bool ByTarget { get; init; }

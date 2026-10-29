@@ -12,7 +12,7 @@ namespace DotGram.Sql.Ast;
 
 public abstract partial record Statement
 {
-	public partial record CreateTable
+	public sealed partial record CreateTable
 	{
 		/// <summary>
 		/// T-SQL: CREATE TABLE (Transact-SQL), CREATE TABLE (SQL Graph). <c>AS FILETABLE</c>, written before the
@@ -35,7 +35,7 @@ public abstract partial record Statement
 		public SqlList<Option> Options { get; init; } = [];
 	}
 
-	public partial record AlterTable
+	public sealed partial record AlterTable
 	{
 		/// <summary>
 		/// T-SQL: ALTER TABLE (Transact-SQL). <c>WITH CHECK</c> or <c>WITH NOCHECK</c> before an <c>ADD</c> or a
@@ -167,7 +167,7 @@ public enum GeneratedAlwaysKind { RowStart, RowEnd, TransactionIdStart, Transact
 
 public abstract partial record Constraint
 {
-	public partial record Unique
+	public sealed partial record Unique
 	{
 		/// <summary>T-SQL: table_constraint (Transact-SQL). <c>CLUSTERED</c> or <c>NONCLUSTERED</c>.</summary>
 		public IndexClustering? Clustering { get; init; }
@@ -201,7 +201,7 @@ public abstract partial record Constraint
 		public Placement? On { get; init; }
 	}
 
-	public partial record ForeignKey
+	public sealed partial record ForeignKey
 	{
 		/// <summary>
 		/// T-SQL: column_constraint (Transact-SQL). <c>FOREIGN KEY REFERENCES …</c> on a column, which names no
@@ -210,7 +210,7 @@ public abstract partial record Constraint
 		[Spelling] public bool ForeignKeyWords { get; init; }
 	}
 
-	public partial record Check
+	public sealed partial record Check
 	{
 		/// <summary>T-SQL: table_constraint (Transact-SQL). <c>CHECK NOT FOR REPLICATION (…)</c>.</summary>
 		public bool NotForReplication { get; init; }
@@ -296,7 +296,7 @@ public sealed record IndexDefinition(Identifier Name) : ISqlNode
 
 public abstract partial record TableContents
 {
-	public partial record AsQuery
+	public sealed partial record AsQuery
 	{
 		/// <summary>
 		/// T-SQL: CREATE TABLE AS SELECT (Microsoft Fabric and Azure Synapse Analytics). <c>AS SELECT … OPTION (LABEL =
@@ -314,7 +314,7 @@ public abstract partial record TableElement
 
 public abstract partial record AlterTableAction
 {
-	public partial record DropColumn
+	public sealed partial record DropColumn
 	{
 		/// <summary>T-SQL: ALTER TABLE (Transact-SQL). <c>DROP COLUMN IF EXISTS a</c>.</summary>
 		public bool IfExists { get; init; }
@@ -323,7 +323,7 @@ public abstract partial record AlterTableAction
 		public SqlList<Option> Options { get; init; } = [];
 	}
 
-	public partial record DropConstraint
+	public sealed partial record DropConstraint
 	{
 		/// <summary>T-SQL: ALTER TABLE (Transact-SQL). <c>DROP CONSTRAINT IF EXISTS c</c>.</summary>
 		public bool IfExists { get; init; }
@@ -412,7 +412,7 @@ public abstract partial record AlterTableAction
 
 public abstract partial record AlterColumnAction
 {
-	public partial record SetDataType
+	public sealed partial record SetDataType
 	{
 		/// <summary>
 		/// T-SQL: ALTER TABLE (Transact-SQL). <c>ALTER COLUMN c INT</c>: the type written alone, without the
@@ -586,7 +586,7 @@ public abstract partial record Statement
 	/// <summary>T-SQL: ALTER FULLTEXT INDEX (Transact-SQL). <c>ALTER FULLTEXT INDEX ON t …</c>.</summary>
 	public sealed record AlterFullTextIndex(QualifiedName Table, FullTextAlteration Action) : Statement;
 
-	public partial record CreateView
+	public sealed partial record CreateView
 	{
 		/// <summary>
 		/// T-SQL: CREATE VIEW (Transact-SQL), ALTER VIEW (Transact-SQL). <c>ALTER</c> or <c>CREATE OR ALTER</c>; null for

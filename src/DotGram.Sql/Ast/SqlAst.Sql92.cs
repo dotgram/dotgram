@@ -17,7 +17,7 @@ public abstract partial record DataType
 	/// A string of bits, not T-SQL's <c>bit</c>, which is an integer that is 0 or 1 and is
 	/// <see cref="Named"/>.
 	/// </remarks>
-	public record BitString(BitStringTypeKind Kind, int? Length = null) : DataType;
+	public sealed record BitString(BitStringTypeKind Kind, int? Length = null) : DataType;
 }
 
 /// <summary>SQL-92: §6.1 &lt;bit string type&gt;; removed in SQL:2003. <c>BIT</c> or <c>BIT VARYING</c>.</summary>
@@ -29,5 +29,5 @@ public abstract partial record LiteralValue
 	/// SQL-92: §5.3 &lt;bit string literal&gt;; removed in SQL:2003. <c>B'0101'</c>: the text from its first quote,
 	/// as <see cref="Binary"/> holds <c>X'…'</c>.
 	/// </summary>
-	public record BitString(string Text) : LiteralValue;
+	public sealed record BitString(string Text) : LiteralValue;
 }

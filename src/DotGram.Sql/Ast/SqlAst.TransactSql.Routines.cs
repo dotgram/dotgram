@@ -165,7 +165,7 @@ public abstract partial record InsertSource
 
 public abstract partial record Statement
 {
-	public partial record CreateRoutine
+	public sealed partial record CreateRoutine
 	{
 		/// <summary>
 		/// T-SQL: CREATE PROCEDURE (Transact-SQL), CREATE FUNCTION (Transact-SQL). <c>ALTER</c> or <c>CREATE OR ALTER</c>;
@@ -283,7 +283,7 @@ public abstract record RoutineOption : ISqlNode
 
 public abstract partial record Statement
 {
-	public partial record CreateTrigger
+	public sealed partial record CreateTrigger
 	{
 		/// <summary>T-SQL: CREATE TRIGGER (Transact-SQL). <c>ALTER</c> or <c>CREATE OR ALTER</c>; null for the plain CREATE.</summary>
 		public DefinitionVerb? Verb { get; init; }

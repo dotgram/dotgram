@@ -7,7 +7,7 @@ namespace DotGram.Sql.Ast;
 
 public abstract partial record Query
 {
-	public partial record Select
+	public sealed partial record Select
 	{
 		/// <summary>
 		/// T-SQL: INTO Clause (Transact-SQL). <c>SELECT … INTO t [ON fg]</c>, which makes a table: not
@@ -57,7 +57,7 @@ public sealed partial record GroupByClause
 
 public abstract partial record GroupingElement
 {
-	public partial record Ordinary
+	public sealed partial record Ordinary
 	{
 		/// <summary>
 		/// T-SQL: GROUP BY (Transact-SQL), Azure Synapse's. <c>GROUP BY c WITH (DISTRIBUTED_AGG)</c>: the grouping column's
@@ -72,7 +72,7 @@ public enum GroupByWith { Cube, Rollup }
 
 public abstract partial record TableSource
 {
-	public partial record Named
+	public sealed partial record Named
 	{
 		/// <summary>T-SQL: Table Hints (Transact-SQL). <c>WITH (NOLOCK, INDEX (ix))</c>.</summary>
 		public SqlList<TableHint> Hints { get; init; } = [];
@@ -127,7 +127,7 @@ public enum SampleUnit { Percent, Rows }
 // values is TableSource.Function.
 public abstract partial record TableSource
 {
-	public partial record Named
+	public sealed partial record Named
 	{
 		/// <summary>
 		/// T-SQL: OPENDATASOURCE (Transact-SQL). <c>OPENDATASOURCE ('provider', 'init').db.s.t</c>: the server the
@@ -283,7 +283,7 @@ public abstract partial record TableSource
 		public SqlList<TableHint> Hints { get; init; } = [];
 	}
 
-	public partial record Function
+	public sealed partial record Function
 	{
 		/// <summary>
 		/// T-SQL: FROM clause plus JOIN, APPLY, PIVOT (Transact-SQL). <c>FROM @v.f (1) AS t (c)</c>: the variable of a
@@ -298,7 +298,7 @@ public abstract partial record TableSource
 
 public abstract partial record SelectColumn
 {
-	public partial record ExpressionItem
+	public sealed partial record ExpressionItem
 	{
 		/// <summary>
 		/// T-SQL: SELECT Clause (Transact-SQL). <c>x = a</c> against <c>a AS x</c>: the alias written before the value,
@@ -322,7 +322,7 @@ public enum AssignmentOperator { Assign, Add, Subtract, Multiply, Divide, Modulo
 
 public abstract partial record Expression
 {
-	public partial record Invocation
+	public sealed partial record Invocation
 	{
 		/// <summary>
 		/// T-SQL: SHORTEST_PATH (Transact-SQL). <c>WITHIN GROUP (GRAPH PATH)</c>: the aggregate is taken over the
@@ -346,7 +346,7 @@ public abstract partial record Expression
 
 public abstract partial record TableSource
 {
-	public partial record Named
+	public sealed partial record Named
 	{
 		/// <summary>
 		/// T-SQL: MATCH (SQL Graph). <c>FOR PATH</c>, after the table's version and before its alias: the table is
@@ -355,7 +355,7 @@ public abstract partial record TableSource
 		public bool ForPath { get; init; }
 	}
 
-	public partial record Subquery
+	public sealed partial record Subquery
 	{
 		/// <summary>T-SQL: MATCH (SQL Graph). <c>FOR PATH</c> after the bracketed query, before its alias.</summary>
 		public bool ForPath { get; init; }
