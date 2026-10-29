@@ -554,7 +554,27 @@ public sealed partial class GrammarNormalizer
 		// Captured whole, `rows: (Row* recover ';' => …)`, the repetition is its text (§7.3), and
 		// the values its elements build go nowhere: no more a sequence than a run of text is.
 		if (element is Node.Call(var called, _) && BuildsValue(called) && !CapturedWhole(rule, repetition))
+		{
+			// Each element is kept where it is captured: by the author's name, or by the capture a
+			// sequence result gives every operand that joins it (§4.1 case 2), inside a group too.
+			// A rule with a `=>` of its own has said what it builds, and may leave this value out
+			// as it may any other. One with neither is its text: the elements build values nothing
+			// keeps, and the rejection was built for nobody and dropped with them.
+			if (repeated is Node.Capture || ValueAlternatives(_bodies[rule]).Any(static one => one is Node.Construct))
+				return;
+
+			Report(
+				UnbuiltRecovery,
+				$"'{rule.Name}' recovers with a '=>', which puts the rejected element in the same " +
+				"sequence as the ones that were read — but nothing keeps the elements of this " +
+				$"repetition: '{rule.Name}' is its text, not a sequence of them, and no capture holds " +
+				"them, so the rejected element would be dropped with them. Declare the rule as a " +
+				"sequence (': T[]'), capture each element, or drop the '=>' and report out of band " +
+				"(docs/syntax.md §8.3).",
+				rule.Declaration!.At);
+
 			return;
+		}
 
 		Report(
 			UnbuiltRecovery,

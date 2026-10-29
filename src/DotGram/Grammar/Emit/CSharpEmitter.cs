@@ -4907,11 +4907,18 @@ file.Line("return spare;");
 	/// state — and cannot have that name, so it takes the machine's tag, the same one the
 	/// engine carries. Both are wanted, and they are not one method twice: the reader
 	/// enters this machine where it left off, and `find` enters the one compiled for it.
+	/// <para>
+	/// A rule published nowhere is no different: two machines that each stream a rule
+	/// calling it — two `parse` directives over the same repetition's element — each wrap it
+	/// over their own engine, and under the plain name both would be one member declared
+	/// twice (CS0111). The tag tells them apart; the one machine of a grammar has none, and
+	/// its wrapper keeps the plain name.
+	/// </para>
 	/// </remarks>
 	internal static string MethodOf(
 		RecognitionGraph graph, RuleSymbol rule, RuleSymbol? owner, MachineTag tag)
 	{
-		return rule.Equals(owner) || !IsPublished(graph, rule) ? MethodOf(rule) : tag.Of("Rec", IdentifierOf(rule));
+		return rule.Equals(owner) ? MethodOf(rule) : tag.Of("Rec", IdentifierOf(rule));
 	}
 
 	/// <summary>What a publication's methods are declared as: what its directive said (§6).</summary>
@@ -4927,16 +4934,6 @@ file.Line("return spare;");
 			PublishAccess.Private => "private",
 			_ => "public",
 		};
-	}
-
-	/// <summary>Whether a rule is published, and so owns the plain name of its wrapper.</summary>
-	static bool IsPublished(RecognitionGraph graph, RuleSymbol rule)
-	{
-		foreach (var publication in graph.Publications)
-			if (rule.Equals(publication.Rule))
-				return true;
-
-		return false;
 	}
 
 	/// <summary>

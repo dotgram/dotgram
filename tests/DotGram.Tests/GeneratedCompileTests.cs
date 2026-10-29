@@ -259,6 +259,94 @@ public sealed class GeneratedCompileTests
 	}
 
 	/// <summary>
+	/// Two publications that each stream a recovering repetition of the same rule, published by
+	/// neither: each machine wraps that rule over its own engine, and both wrappers were written
+	/// under the rule's plain name, one member declared twice (CS0111). Each publication reads its
+	/// own repetition, over a string and over a reader, and steps over the same bad element.
+	/// </summary>
+	[Theory]
+	[InlineData(true)]
+	[InlineData(false)]
+	public void Two_publications_streaming_one_unpublished_element_compile(bool direct)
+	{
+		var parser = Built(
+			"""
+			R1 : @int = 'z' & ';' => @(1)
+			R2 : @int[] = R1* recover ';' => @(0)
+			R0 : @int[] = 'a' & R1* recover ';' => @(0)
+			parse R0
+			parse R2
+			""",
+			Host, direct);
+
+		var type = parser.GetType("Grammar")!;
+
+		foreach (var (method, input) in new[] { ("R0", "az;x;z;"), ("R2", "z;x;z;") })
+		{
+			var (success, value) = Read(parser, "TryParse" + method, input);
+
+			Assert.True(success, method);
+			Assert.Equal([1, 0, 1], (int[])value!);
+
+			var streamed = (System.Collections.Generic.IEnumerable<int>)type
+				.GetMethod("Parse" + method, [typeof(TextReader)])!
+				.Invoke(null, [new StringReader(input)])!;
+
+			Assert.Equal([1, 0, 1], streamed.ToArray());
+		}
+	}
+
+	/// <summary>
+	/// The repro as first reported: a rule that is a sequence of <c>int</c> made of one operand that
+	/// is an <c>int[]</c>. The operand does not join the sequence (§4.1 case 2), so the rule has
+	/// nothing to build from, and is told so by the grammar's own diagnostic rather than by an
+	/// exception or a C# error.
+	/// </summary>
+	[Theory]
+	[InlineData("R0 : @int[] = R2", true)]
+	[InlineData("R0 : @int[] = R2", false)]
+	[InlineData("R0 : @int[] = 'a' & R2", true)]
+	[InlineData("R0 : @int[] = 'a' & R2", false)]
+	public void A_sequence_of_a_recovering_sequence_is_refused(string rule, bool direct)
+	{
+		var result = Compiled(
+			"R1 : @int = 'z' & ';' => @(1)\nR2 : @int[] = R1* recover ';' => @(0)\n" + rule + "\nparse R0",
+			Host, direct);
+
+		Assert.Contains(result.Diagnostics, static one => one.Id == GrammarNormalizer.UnbuiltConstruction);
+		Assert.Empty(result.Sources);
+	}
+
+	/// <summary>
+	/// A recovery's <c>=&gt;</c> in a rule that is its text, with no capture of each element: the
+	/// elements build values nothing keeps, and the rejection was built nowhere and dropped in silence.
+	/// It is refused (GRAM4010), as a factory with no sequence is. Captured element by element, or
+	/// collected by a sequence result, inside a group too, it is kept; a rule with a <c>=&gt;</c> of its
+	/// own has said what it builds, and may leave the repetition's values out like any other.
+	/// </summary>
+	[Theory]
+	[InlineData("R2 = 'a' & R1* recover ';' => @(0) & 'b'", true, null)]
+	[InlineData("R2 : @string = 'a' & R1* recover ';' => @(0) & 'b'", true, null)]
+	[InlineData("R2 : @int[] = 'a' & R1* recover ';' => @(0) & 'b'", false, "1,0,1")]
+	[InlineData("R2 : @int[] = ('a' & R1* recover ';' => @(0) & 'b')* recover 'b'", false, "1,0,1")]
+	[InlineData("R2 : @int[] = 'a' & xs: R1* recover ';' => @(0) & 'b' => @xs", false, "1,0,1")]
+	[InlineData("R2 : @int = 'a' & R1* recover ';' => @(0) & 'b' => @(5)", false, "5")]
+	public void A_recovery_that_builds_needs_its_elements_kept(string rule, bool refused, string? read)
+	{
+		var result = Compiled("R1 : @int = 'z' & ';' => @(1)\n" + rule + "\nparse R2", Host, direct: true);
+
+		Assert.Equal(refused, result.Diagnostics.Any(static one => one.Id == GrammarNormalizer.UnbuiltRecovery));
+
+		if (refused)
+			return;
+
+		var (success, value) = Read(Build(result, Host), "TryParseR2", "az;x;z;b");
+
+		Assert.True(success);
+		Assert.Equal(read, value is int[] values ? string.Join(",", values) : value?.ToString());
+	}
+
+	/// <summary>
 	/// Over bytes a raw capture is a <c>ReadOnlySpan&lt;byte&gt;</c> that nothing decodes (§6.3): a rule
 	/// declared a string and built from one, <c>=&gt; @(t)</c>, is refused the byte form (GRAM4026),
 	/// where it was CS0029. Handed to a method of the host's, the same capture builds one.

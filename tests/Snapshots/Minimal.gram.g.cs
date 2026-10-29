@@ -4676,7 +4676,7 @@ namespace DotGram.Snapshots
 			return end;
 		}
 
-		static int Rec_DotGram_Row(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
+		static int Rec_DotGram_Row_DotGram_Sheet(global::System.ReadOnlySpan<char> text, int pos, ref Failure failure, out string value)
 		{
 			object? recognized;
 			var end = Recognize_DotGram_Sheet(text, pos, 7, 2, 0, false, true, ref failure, out recognized);
@@ -5357,7 +5357,7 @@ namespace DotGram.Snapshots
 				while (true)
 				{
 					failure0 = new Failure();
-					end0     = Rec_DotGram_Row(window.Span(), start, ref failure0, out value0);
+					end0     = Rec_DotGram_Row_DotGram_Sheet(window.Span(), start, ref failure0, out value0);
 
 					if (((end0 < 0 ? failure0.Position : end0) >= window.Length || failure0.Starved) && !window.Ended)
 					{
