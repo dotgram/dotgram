@@ -255,6 +255,12 @@ public sealed class FormOutcomeTests
 		["OptionalRepeatingRuleTriviaBytes"] = new("trivia = { Sep? }\nSep = (\"/*\" & [^ '*']* & \"*/\" | ' ')+\nR0 = \"select\" & ' '? & '1'\nparse R0\n", "select /x 1", "bytes", 0, "NoMatch@7"),
 		["OptionalRepeatingRuleTriviaInANamespaceRead"] = new("trivia = { L.Sep? }\nnamespace L\n{\n\ttrivia = none\n\tSep = (Cmt | ' ')+\n\tCmt = \"/*\" & [^ '*']* & \"*/\" | \"--\" & [^ '\\n']*\n}\nR0 = \"select\" & ' '? & '1'\nparse R0\n", "select /x 1", "reader", 0, "NoMatch@7"),
 
+		// Known issue: an optional call to a rule that is itself a repetition loses, in the engine's
+		// string form, the run-out recorded inside the rule, where the reader and the engine's other
+		// forms starve the parse there; main answered so too.
+		["OptionalNullableRuleTrivia"] = new("trivia = { Sep? }\nSep = (' ' | '#' & 'y')*\nR0 = 'b' & eof\nparse R0\n", "#", "string", 0, "Starved@1", Engine: "NoMatch@0"),
+		["OptionalNullableRuleTriviaRead"] = new("trivia = { Sep? }\nSep = (' ' | '#' & 'y')*\nR0 = 'b' & eof\nparse R0\n", "#", "reader", 0, "Starved@1"),
+
 		// Known issue: a counted repetition's extra turn refused at the end of the input inside a
 		// braced trivia is recorded by the engine, where the input ran out, and not by the direct
 		// reader, which gives the turn back; main answered so too.
