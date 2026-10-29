@@ -6972,7 +6972,13 @@ sealed partial class Machine
 		// `Q` matching, which is where the continuation begins — and `(?!Q & 'a')? & Q`
 		// entered on the `a` of `ac` refused what skipping would have read. A positional
 		// stop can begin anywhere, so it is asked of the halves, where the stop is anything.
-		if (settled && min == 0 && max == 1 && Decidable(body) is { } begins &&
+		//
+		// Not inside the trivia: a refusal there is recorded only where the input ran out (§7.5),
+		// so a body that failed after it was entered — `{ Separator? }` over `/x`, a comment's
+		// opener cut short — must give its turn back for the rule after the trivia to say what it
+		// wanted, as the direct reader and the scan of the trivia do; entered with no way back
+		// out, the reading would be refused with nothing recorded.
+		if (settled && min == 0 && max == 1 && !InSeam(repeatNode) && Decidable(body) is { } begins &&
 			!begins.Overlaps(following.Surface.Plain))
 		{
 			_usesChar = true;
