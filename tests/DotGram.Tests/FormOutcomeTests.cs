@@ -157,6 +157,34 @@ public sealed class FormOutcomeTests
 		["TriviaRepetitionBelowItsFewestAtALookAfterAChoice"] = new("trivia = { ('#' & (('a' | 'c') & ?!'b')+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "string", 0, "NoMatch@0"),
 		["TriviaRepetitionBelowItsFewestAtALookInNestedRepetitions"] = new("trivia = { ('#' & (('a' & ?!'b'){1,2} & 'x')+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "string", 0, "NoMatch@0"),
 
+		// Inside the trivia a refusal is recorded only where the input ran out (§7.5): a look refused
+		// there, an alternative refused beside it, a rule it calls refused, a turn given back — all
+		// record nothing, and the parse answers from the rule after the trivia. Found by a breaker
+		// and the harness: the readers split on which of these each recorded.
+		["QuietLookAlternativeInTrivia"] = new("trivia = { ('#' & (?!\"ab\" & any | 'z')+)* }\nR0 = 'z'\nparse R0\n", "#ab", "string", 0, "NoMatch@0"),
+		["QuietLookAlternativeInTriviaRead"] = new("trivia = { ('#' & (?!\"ab\" & any | 'z')+)* }\nR0 = 'z'\nparse R0\n", "#ab", "reader", 0, "NoMatch@0"),
+		["QuietLookAlternativeInTriviaStreamed"] = new("trivia = { ('#' & (?!\"ab\" & any | 'z')+)* }\nR0 = 'z'\nparse R0\n", "#ab", "stream", 0, "NoMatch@0"),
+		["QuietLookSecondAlternativeInTrivia"] = new("trivia = (' ' | '#' & ('y' | ?!\"ab\" & any)+)*\nR0 = 'z'\nparse R0\n", "#ab", "string", 0, "NoMatch@0"),
+		["QuietLookInACalledRuleInTrivia"] = new("trivia = ('#' & (NotA)+)*\nNotA = ?!'a' & any\nR0 = 'z'\nparse R0\n", "#a", "string", 0, "NoMatch@0"),
+		["QuietLookInACalledRuleInTriviaRead"] = new("trivia = ('#' & (NotA)+)*\nNotA = ?!'a' & any\nR0 = 'z'\nparse R0\n", "#a", "reader", 0, "NoMatch@0"),
+		["QuietLookInACalledRuleInTriviaStreamed"] = new("trivia = ('#' & (NotA)+)*\nNotA = ?!'a' & any\nR0 = 'z'\nparse R0\n", "#a", "stream", 0, "NoMatch@0"),
+		["QuietLookInACountedCalledRuleInTrivia"] = new("trivia = ('#' & (H0){2,})*\nH0 = ?!(\"ab\" | 'y') & any\nR0 = 'z'\nparse R0\n", "#y", "string", 0, "NoMatch@0"),
+		["BracedTriviaTurnGivenBack"] = new("trivia = { ('#' & 'y'+)* }\nR0 = 'z'\nparse R0\n", "#a", "string", 0, "NoMatch@0"),
+		["BracedTriviaTurnGivenBackRead"] = new("trivia = { ('#' & 'y'+)* }\nR0 = 'z'\nparse R0\n", "#a", "reader", 0, "NoMatch@0"),
+
+		// And where the input ran out inside the trivia the parse is starved there: a literal the
+		// input ends inside, a terminal refused at the end, a positive look whose body ran out — a
+		// comment left open at the end of the input wanted more.
+		["BracedTriviaTurnAtTheEnd"] = new("trivia = { ('#' & 'y'+)* }\nR0 = 'z'\nparse R0\n", "#", "string", 0, "Starved@1"),
+		["BracedTriviaTurnAtTheEndRead"] = new("trivia = { ('#' & 'y'+)* }\nR0 = 'z'\nparse R0\n", "#", "reader", 0, "Starved@1"),
+		["TriviaRunAtTheEnd"] = new("trivia = (' ' | '#' & ('y'){2,})*\nR0 = 'z'\nparse R0\n", "#", "string", 0, "Starved@1"),
+		["PositiveLookRanOutInTrivia"] = new("trivia = (' ' | '#' & ?=\"ab\" & [^ ' ']*)*\nR0 = 'c'\nparse R0\n", "#a", "string", 0, "Starved@1"),
+		["PositiveLookRanOutInTriviaRead"] = new("trivia = (' ' | '#' & ?=\"ab\" & [^ ' ']*)*\nR0 = 'c'\nparse R0\n", "#a", "reader", 0, "Starved@1"),
+		["PositiveLookAtTheEndInTrivia"] = new("trivia = (' ' | '#' & ?=\"ab\" & [^ ' ']*)*\nR0 = 'c'\nparse R0\n", "#", "string", 0, "Starved@1"),
+		["PositiveLookOverAGuardedRuleRanOutInTrivia"] = new("trivia = { (' ' | '#' & ?=H & [^ ' ']*)* }\nH : @int = g: ('a' | \"ab\") & when @(g.Length > 1) => @(g.Length)\nR0 = 'c'\nparse R0\n", "#a", "string", 0, "Starved@1"),
+		["PositiveLookOverAGuardedRuleRanOutInTriviaRead"] = new("trivia = { (' ' | '#' & ?=H & [^ ' ']*)* }\nH : @int = g: ('a' | \"ab\") & when @(g.Length > 1) => @(g.Length)\nR0 = 'c'\nparse R0\n", "#a", "reader", 0, "Starved@1"),
+		["UnclosedCommentAtTheEnd"] = new("trivia = (' ' | \"--\" & [^ '\\n']* & ?=eol)*\nR0 = ['a'..'c']+\nparse R0\n", "--", "string", 0, "Starved@2"),
+
 		// Over kinds, a repetition short of its minimum that stopped at the end of the tokens says
 		// what it wanted: the direct reader says nothing and answers from the start.
 		["TokenRepetitionBelowMinimum"] = new(Lexical + "R0 = Lexical.Digits & ['a'..'c']+\nparse R0\n", "0", "string", 0, "Starved@1", Lexical: true),
