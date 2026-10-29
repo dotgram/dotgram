@@ -573,6 +573,8 @@ public sealed class ProjectInputTests
 	{
 		using var scratch = new Scratch();
 
+		Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
 		var project = App(
 			scratch,
 			"p",
@@ -587,10 +589,13 @@ public sealed class ProjectInputTests
 
 		// The letter survives where the file's encoding is the one the compiler reads it in. Without a
 		// code page, bytes that are no UTF-8 are read in the system's default code page: UTF-8 on Linux
-		// (a replacement character), the ANSI page, Windows-1252 here, on Windows.
+		// (a replacement character), the machine's ANSI page on Windows, which reads the Windows-1252
+		// bytes of the letter as the letter only where that page is Windows-1252 (not on a Windows-1251 host).
 		var written = File.ReadAllText(scratch.Path("out", "Demo.Pairs.g.cs"));
 
-		var survives = codePage.Length > 0 ? encoding == 1252 : encoding == 65001 || (encoding == 1252 && OperatingSystem.IsWindows());
+		var defaultIs1252 = OperatingSystem.IsWindows() && Encoding.GetEncoding(0).CodePage == 1252;
+
+		var survives = codePage.Length > 0 ? encoding == 1252 : encoding == 65001 || (encoding == 1252 && defaultIs1252);
 
 		Assert.Equal(survives, written.Contains('\u00e9', StringComparison.Ordinal));
 	}
