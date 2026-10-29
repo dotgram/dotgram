@@ -557,10 +557,11 @@ public sealed partial class GrammarNormalizer
 		{
 			// Each element is kept where it is captured: by the author's name, or by the capture a
 			// sequence result gives every operand that joins it (§4.1 case 2), inside a group too.
-			// A rule with a `=>` of its own has said what it builds, and may leave this value out
-			// as it may any other. One with neither is its text: the elements build values nothing
-			// keeps, and the rejection was built for nobody and dropped with them.
-			if (repeated is Node.Capture || ValueAlternatives(_bodies[rule]).Any(static one => one is Node.Construct))
+			// An alternative with a `=>` the author wrote has said what it builds, and may leave
+			// this value out as it may any other. Anything else — the rule's text, its extent, a
+			// sequence the elements do not join — keeps nothing of them, and the rejection was
+			// built for nobody and dropped with them.
+			if (repeated is Node.Capture || WrittenConstruction(rule, repetition))
 				return;
 
 			Report(
@@ -583,6 +584,24 @@ public sealed partial class GrammarNormalizer
 			"than values, so there is no sequence to put it in. Give the repeated rule a " +
 			"capture of its own, or drop the '=>' and report out of band (docs/syntax.md §8.3).",
 			rule.Declaration!.At);
+	}
+
+	/// <summary>
+	/// Whether the alternative a repetition stands in builds its value with a <c>=&gt;</c> the author
+	/// wrote, rather than one the compiler made for it (a sequence, an operand, a constructor, an
+	/// extent).
+	/// </summary>
+	/// <remarks>
+	/// The alternatives as the rule offers them, a fold's steps and bases included, where its
+	/// constructions stand once left recursion is rewritten. A repetition in no alternative — one
+	/// in a synchronization — is asked of the rule's alternatives together.
+	/// </remarks>
+	bool WrittenConstruction(RuleSymbol rule, Node repetition)
+	{
+		var offered = Fold.Of(_bodies[rule], _folds.TryGetValue(rule, out var fold) ? fold : null);
+		var holding = offered.Where(one => NodeWalk.Descendants(one).Any(node => ReferenceEquals(node, repetition))).ToList();
+
+		return (holding.Count > 0 ? holding : offered).Any(static one => one is Node.Construct(_, Construction.Expression { At: >= 0 }));
 	}
 
 	/// <summary>Whether the rule captures this repetition itself, rather than each of its elements.</summary>

@@ -347,6 +347,33 @@ public sealed class GeneratedCompileTests
 	}
 
 	/// <summary>
+	/// The same question where the rule's value is not its text. A <c>=&gt;</c> the author wrote is
+	/// found wherever normalization leaves it — a fold step or base of left recursion, a case of a
+	/// trailing <c>switch</c> — and keeps the alternative accepted. One the compiler made is no such
+	/// word: a sequence the elements do not join, or the extent, keeps none of them, and the
+	/// rejection would be dropped with them (GRAM4010).
+	/// </summary>
+	[Theory]
+	[InlineData("R : @int = n: R & 'a' => @(n + 1) | Row* recover ';' => @(0) & 'b' => @(5)", "z;x;ba", "6")]
+	[InlineData("R : @int = 'k' & switch @(1) { case 1: Row* recover ';' => @(0) & 'b' => @(5) default: 'x' => @(0) }", "kz;x;b", "5")]
+	[InlineData("R : @string[] = Word & Row* recover ';' => @(0) & 'b'\nWord : @string = 'a' => @(\"a\")", "az;x;z;b", null)]
+	[InlineData("R : @SourceSpan = 'a' & Row* recover ';' => @(0) & 'b'", "az;x;z;b", null)]
+	public void A_recovery_that_builds_is_kept_only_by_a_written_construction(string rule, string input, string? read)
+	{
+		var result = Compiled("Row : @int = 'z' & ';' => @(1)\n" + rule + "\nparse R", Host, direct: true);
+
+		Assert.Equal(read is null, result.Diagnostics.Any(static one => one.Id == GrammarNormalizer.UnbuiltRecovery));
+
+		if (read is null)
+			return;
+
+		var (success, value) = Read(Build(result, Host), "TryParseR", input);
+
+		Assert.True(success);
+		Assert.Equal(read, value?.ToString());
+	}
+
+	/// <summary>
 	/// Over bytes a raw capture is a <c>ReadOnlySpan&lt;byte&gt;</c> that nothing decodes (§6.3): a rule
 	/// declared a string and built from one, <c>=&gt; @(t)</c>, is refused the byte form (GRAM4026),
 	/// where it was CS0029. Handed to a method of the host's, the same capture builds one.
