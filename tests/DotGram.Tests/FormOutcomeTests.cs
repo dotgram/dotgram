@@ -142,6 +142,21 @@ public sealed class FormOutcomeTests
 		["TriviaRepetitionBelowItsFewestAtANestedLookRead"] = new("trivia = { ('#' & (?!(?=\"ab\") & any)+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "reader", 0, "NoMatch@0"),
 		["TriviaRepetitionBelowItsFewestAtANestedLookStreamed"] = new("trivia = { ('#' & (?!(?=\"ab\") & any)+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "stream", 0, "NoMatch@0"),
 
+		// A literal spelled like a name the generator writes for itself is read as any other: the
+		// mark the engine once settled by rewriting the method's text rewrote the literal too.
+		["LiteralSpelledLikeTheResetMark"] = new("trivia = { ('#' & ?!'#')* }\nR0 : @int = \"__DotGram_UnrecordedReset__;\" & when @(true) => @(0)\nparse R0\n", "__DotGram_UnrecordedReset__;", "string", 0, "Success@0+28 0"),
+		["LiteralSpelledLikeTheResetMarkRead"] = new("trivia = { ('#' & ?!'#')* }\nR0 : @int = \"__DotGram_UnrecordedReset__;\" & when @(true) => @(0)\nparse R0\n", "__DotGram_UnrecordedReset__;", "reader", 0, "Success@0+28 0"),
+		["LiteralSpelledLikeTheSentinel"] = new("trivia = { ('#' & ?!'#')* }\nR0 : @int = \"RecognizeUnrecorded_DotGram\" => @(0)\nparse R0\n", "RecognizeUnrecorded_DotGram", "string", 0, "Success@0+27 0"),
+
+		// A look refused inside a sequence inside a trivia repetition short of its fewest turns: the
+		// scan of the seam went quietly out of the sequence and loudly out of the repetition, and
+		// the engine's string form answered from inside the trivia.
+		["TriviaRepetitionBelowItsFewestAtALookInASequence"] = new("trivia = { ('#' & ('a' & ?!'b')+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "string", 0, "NoMatch@0"),
+		["TriviaRepetitionBelowItsFewestAtALookInASequenceRead"] = new("trivia = { ('#' & ('a' & ?!'b')+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "reader", 0, "NoMatch@0"),
+		["TriviaRepetitionBelowItsFewestAtALookInASequenceStreamed"] = new("trivia = { ('#' & ('a' & ?!'b')+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "stream", 0, "NoMatch@0"),
+		["TriviaRepetitionBelowItsFewestAtALookAfterAChoice"] = new("trivia = { ('#' & (('a' | 'c') & ?!'b')+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "string", 0, "NoMatch@0"),
+		["TriviaRepetitionBelowItsFewestAtALookInNestedRepetitions"] = new("trivia = { ('#' & (('a' & ?!'b'){1,2} & 'x')+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "string", 0, "NoMatch@0"),
+
 		// Over kinds, a repetition short of its minimum that stopped at the end of the tokens says
 		// what it wanted: the direct reader says nothing and answers from the start.
 		["TokenRepetitionBelowMinimum"] = new(Lexical + "R0 = Lexical.Digits & ['a'..'c']+\nparse R0\n", "0", "string", 0, "Starved@1", Lexical: true),
