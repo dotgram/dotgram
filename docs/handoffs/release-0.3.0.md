@@ -53,7 +53,9 @@ Each package's notes list them with what to write instead. The ones most project
   which fail a build with warnings as errors until the grammar is changed; `GRAM0010` below C# 8;
   ignore-case literals no longer take a case partner across ASCII (`'s'i` and `ſ`).
 - **DotGram.Sql:** the 0.2.0 T-SQL tree in `DotGram.Sql` is removed — read, walk and write
-  `DotGram.Sql.Ast`; `Sql2023Writer` is `SqlWriter`; `SqlStandardParser` publishes six entries
+  `DotGram.Sql.Ast`; the 0.2.0 `DotGram.Sql.Ast` tree changes shape (a SELECT holds a `Query`,
+  `SelectColumn`, one `Limit`, a DROP record per kind, reshaped SET options; docs/ast.md);
+  `Sql2023Writer` is `SqlWriter`; `SqlStandardParser` publishes six entries
   where it published forty-two productions; the position and window forms of `TryParseScript`
   are removed in favour of `SqlScript.Read`.
 - **DotGram.Finance:** `Validate` returns the findings and keeps none (`InvalidFindings` and
@@ -77,9 +79,10 @@ Each package's notes list them with what to write instead. The ones most project
 - Over tokens (`Lexical = true`), a reading from a position counts trivia before trailing empty
   operands differently: `'a' & 'b'*` on `"a "` has length 2 over characters and 1 over tokens
   ([#5](https://github.com/dotgram/dotgram/issues/5)).
-- A published lexical rule that can be empty (`namespace Lex { trivia = none; Opt = 'z'* }`,
-  `parse Lex.Opt`) accepts `""` over characters and refuses it over tokens, with no diagnostic
-  ([#5](https://github.com/dotgram/dotgram/issues/5)).
+- A published lexical rule that can be empty is refused the empty input over tokens, with no
+  diagnostic: with `namespace Lex { trivia = { ' '* } Name = ['a'..'y']+ Opt = 'z'* }`,
+  `Start = Lex.Name & Lex.Opt` and `parse Lex.Opt`, `TryParseOpt("")` accepts over characters and
+  refuses over tokens ([#5](https://github.com/dotgram/dotgram/issues/5)).
 - `Start = (Lex.Kw | Lex.Digits)*` refuses `"if 12"` and `"1 2"` over characters and accepts them
   over tokens ([#5](https://github.com/dotgram/dotgram/issues/5)).
 - Below C# 11, each parser class adds its expected-set table to the assembly's user-string heap
@@ -93,14 +96,20 @@ Each package's notes list them with what to write instead. The ones most project
   element: with `Rows = Row+ recover ';' & '.'`, `';'* & Rows` refuses `;.`, which `Rows` reads.
 - Two shapes are refused a reader overload they could have: space trivia reached through the
   seam after an optional prefix, and alternatives that call fixed-width rules.
-- A literal asks a reader for room for its whole length before it compares its first character,
-  so a reader that blocks after its text is waited on even where that text already refuses it.
 - Over characters, a repetition that gives a turn back reads the turns before it again from the
   start, so a refused text can cost the square of its length. Bound the size of untrusted input.
-- The `PerCall` located class (`TransactSqlParser.Located`) has no forms over a buffered input
-  (`TextReader`, `Stream`, bytes).
-- TODO(freeze): the remaining skipped tests at the candidate — the three look-ahead rows of
-  refusal findings and the two lexical-probe rows — either fixed by then or one line each here.
+- A `PerCall` located class has no forms over a buffered input (`TextReader`, `Stream`, bytes); a
+  grammar that needs them located names a second reading without `PerCall`.
+- Over tokens, a window that holds no token (empty, or trivia alone) is refused, where over
+  characters an empty repetition reads it.
+- By default a parse read from a position or a window can refuse, or cut short, the rule's first
+  reading in a few shapes (an optional or a repetition before a negative lookahead, a quoted string
+  with doubled quotes; docs/syntax.md §6.8). The whole forms are right. The experimental build
+  property `DotGramPositionalFollow` fixes them at a cost.
+- On the tape (`Carrier = GramCarrier.Tape`), a `switch` selector or a guard that reads what a
+  construction writes into the context sees it before that construction runs, since the tape runs
+  constructions once the parse is accepted. DotGram.Finance's FIX grammar is pinned to the
+  immediate carrier for this.
 
 The attached files are the exact artifacts published to NuGet and the Marketplace;
 `SHA256SUMS.txt` lists their hashes.
