@@ -384,10 +384,11 @@ sealed partial class Machine
 		// (RecordsRunOut) and records no refusal; asked by its tag, since this is asked while the
 		// machine is being built.
 		var body    = ScanBody(rule);
+		// A scan of the seam a look may refuse reports too: a reach of -1 says the refusal was the
+		// look's, which the caller records nothing for (Refuse_q).
 		var reports = SeamReached.Contains(rule)
 			? Tag != MachineTag.Seam && new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _starves, StopCharacters, marksRunOut: MarksRunOut) { Seam = true }
-				.Render(body, reports: true)
-				.Contains("> furthest", StringComparison.Ordinal)
+				.Render(body, reports: true) is var seamed && (seamed.Contains("> furthest", StringComparison.Ordinal) || seamed.Contains("goto Refuse_q;", StringComparison.Ordinal))
 			: new ScanWriter(_graph, static _ => null, static _ => "true", Tag, _starves, StopCharacters, marksRunOut: MarksRunOut)
 				.Render(body, reports: true)
 				.Contains("> furthest", StringComparison.Ordinal);
@@ -976,7 +977,8 @@ sealed partial class Machine
 		/// </summary>
 		string Marked(string reached, string fail)
 		{
-			if (!marksRunOut || _negating > 0 || !(fail == "Refuse" || _restores.Contains(fail)))
+			// Inside a positive look too: its body running out is the look's refusal, which keeps the mark.
+			if (!marksRunOut || _negating > 0 || !(fail == "Refuse" || _restores.Contains(fail) || _positive > 0))
 				return "";
 
 			var ended = $"(uint){reached} >= (uint)text.Length";
@@ -1027,6 +1029,9 @@ sealed partial class Machine
 		/// <summary>The failure labels that put the position back where a sequence began.</summary>
 		readonly HashSet<string> _restores = [];
 
+		/// <summary>How many positive looks the part being written is inside (Marked).</summary>
+		int _positive;
+
 		/// <summary>The labels a repetition's turn fails into where the repetition ends.</summary>
 		readonly HashSet<string> _exits = [];
 
@@ -1056,8 +1061,11 @@ sealed partial class Machine
 		/// </summary>
 		string Quiet(string fail)
 		{
-			return Seam && (_restores.Contains(fail) || _exits.Contains(fail)) ? fail + "_q" : fail;
+			return Seam && (_restores.Contains(fail) || _exits.Contains(fail) || fail == "Refuse" && _reports) ? fail + "_q" : fail;
 		}
+
+		/// <summary>Whether the scan reports how far it got (Render): a quiet refusal then reports -1, which a caller in the seam records nothing for.</summary>
+		bool _reports;
 
 		/// <summary>
 		/// Whether a run that fails into <paramref name="fail"/> has to put the position back
@@ -1127,12 +1135,17 @@ sealed partial class Machine
 		{
 			var code = new Writer(0);
 
+			_reports = reports;
+
 			Emit(code, body, "Refuse");
 
 			var written = Exits(Threaded(code.ToString()), reports || starves);
 			var head    = new Writer(0);
 
 			head.Line("var p = pos;");
+
+			if (written.Contains("quietAt", StringComparison.Ordinal))
+				head.Line("var quietAt = pos;");
 
 			if (_character)
 				head.Line("var c = '\\0';");
@@ -1182,6 +1195,16 @@ sealed partial class Machine
 				head.Line("reachedAt = furthest;");
 
 			head.Line("return p;");
+
+			// A look's refusal, in the seam: reaching nowhere (Quiet), refused where the look stood,
+			// which a caller of a rule the grammar calls too records where the grammar called it.
+			if (written.Contains("goto Refuse_q;", StringComparison.Ordinal))
+			{
+				head.Line();
+				head.Line("Refuse_q:");
+				head.Line("reachedAt = -1;");
+				head.Line("return -1 - quietAt;");
+			}
 
 			if (written.Contains("goto Refuse;", StringComparison.Ordinal))
 			{
@@ -1579,7 +1602,9 @@ sealed partial class Machine
 						var over = $"L{_labels++}_past";
 						var seen = $"L{_labels++}_seen";
 
+						_positive++;
 						Emit(code, inside, seen, loaded);
+						_positive--;
 						// A lookahead's own advance is not distance covered: it looked and
 						// put the position back. Counting it would have `eof` — which is
 						// `?!any` — report a refusal one character past where the input
@@ -1587,6 +1612,13 @@ sealed partial class Machine
 						code.Line($"p = mark{mark};");
 						code.Line($"goto {over};");
 						code.Line($"{seen}:");
+						// A positive look refused at the end of the input wanted more (§7.5): refused aloud,
+						// where the scan of the seam would otherwise say nothing.
+						if (Seam)
+						{
+							code.Line($"if ({(starves ? $"((uint)mark{mark} >= (uint)text.Length && (failure.Starved = true))" : $"(uint)mark{mark} >= (uint)text.Length")}) goto {fail};");
+							code.Line($"quietAt = mark{mark};");
+						}
 						code.Line($"goto {Quiet(fail)};");
 						code.Line($"{over}: ;");
 					}
@@ -1598,6 +1630,8 @@ sealed partial class Machine
 						Emit(code, inside, absent, loaded);
 						_negating--;
 						code.Line($"p = mark{mark};");
+						if (Seam)
+							code.Line("quietAt = p;");
 						code.Line($"goto {Quiet(fail)};");
 						code.Line($"{absent}: ;");
 					}

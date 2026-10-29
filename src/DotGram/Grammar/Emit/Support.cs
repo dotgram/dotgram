@@ -46,6 +46,18 @@ public static partial class CSharpEmitter
 	// - a Failure is a local of each entry and lives in that parse's reader, never in a
 	//   spare or a field that outlives the call;
 	// - deepening carries `failure` to the new thread and back, count included.
+	const string SeamingField = """
+
+			/// <summary>
+			/// How many readings of the trivia the reading is inside. A rule both the trivia and the
+			/// grammar call records a refusal as the call stands: inside the trivia only where the
+			/// input ran out (§7.5), where the grammar called it as any rule.
+			/// </summary>
+			{{suppress:Seaming}}
+			public int Seaming;
+			{{restore:Seaming}}
+		""";
+
 	const string LookingField = """
 
 			/// <summary>
@@ -820,6 +832,7 @@ public static partial class CSharpEmitter
 		var fields = new (string Field, string Statement, string Why)[]
 		{
 			("Looking",    "failure.Looking++",     "no reading of this grammar holds a lookahead"),
+			("Seaming",    "failure.Seaming++",     "no reading of this grammar enters the trivia by a method of its own"),
 			("Quiet",      "Quiet = true",          "no reading whose failure nothing reads is emitted"),
 			("Unasked",    "Unasked = true",        "no reading of this grammar is made for its message alone"),
 			("Doors",      "Doors = ",              "no reading of this grammar records after a quiet one"),
@@ -977,7 +990,7 @@ public static partial class CSharpEmitter
 	internal static string FailureStructWith(
 		bool reach, bool stood = false, bool starved = false, bool expected = false, bool expectedMore = false, bool recoveryOrdinal = false,
 		bool looking = false, bool quiet = false, bool began = false, bool trace = false, bool unasked = false, bool doors = false,
-		bool ended = false, bool origin = false, bool originLines = false)
+		bool ended = false, bool origin = false, bool originLines = false, bool seaming = false)
 	{
 		return Lines.Normalize(FailureStruct)
 			.Replace(
@@ -1012,6 +1025,9 @@ public static partial class CSharpEmitter
 				"\t{{looking}}" + Lines.Ending,
 				looking ? Lines.Normalize(LookingField) + Lines.Ending : "")
 			.Replace(
+				"\t{{seaming}}" + Lines.Ending,
+				seaming ? Lines.Normalize(SeamingField) + Lines.Ending : "")
+			.Replace(
 				"\t{{quiet}}" + Lines.Ending,
 				quiet ? Lines.Normalize(QuietField) + Lines.Ending : "")
 			.Replace(
@@ -1029,6 +1045,8 @@ public static partial class CSharpEmitter
 			// and Suppressed puts the answer there once everything has been written.
 			.Replace("{{suppress:Looking}}", Mark("Looking", true))
 			.Replace("{{restore:Looking}}", Mark("Looking", false))
+			.Replace("{{suppress:Seaming}}", Mark("Seaming", true))
+			.Replace("{{restore:Seaming}}", Mark("Seaming", false))
 			.Replace("{{suppress:Quiet}}", Mark("Quiet", true))
 			.Replace("{{restore:Quiet}}", Mark("Quiet", false))
 			.Replace("{{suppress:Unasked}}", Mark("Unasked", true))
@@ -1152,6 +1170,7 @@ public static partial class CSharpEmitter
 			{{expected}}
 			{{expectedMore}}
 			{{looking}}
+			{{seaming}}
 			{{quiet}}
 			{{unasked}}
 			{{doors}}

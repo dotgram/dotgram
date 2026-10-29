@@ -2390,6 +2390,8 @@ sealed partial class Machine
 				file.Line("var lookahead = -1;");
 				if (_usesNegating)
 					file.Line("var negating = 0;");
+				if (CountsSeam)
+					file.Line("var seaming = 0;");
 				if (_graph.Climbing.Count > 0)
 					file.Line("var power   = initialPower;");
 				if (_recoveries.Count > 0)
@@ -2567,6 +2569,16 @@ sealed partial class Machine
 				file.Line("state = returned.State;");
 				if (_graph.Climbing.Count > 0)
 					file.Line("power = returned.Power;");
+				// A reading of the trivia returned: counted back, and the entry, where it stays below
+				// others, no longer counts as one when Fail: takes it back.
+				if (CountsSeam)
+				{
+					using (file.Block("if (returned.RuleIndex == -2)"))
+					{
+						file.Line("seaming--;");
+						file.Line("if (entries.Count != call + 1) entries[call] = new ParserEntry(returned.Kind, returned.State, returned.Position, returned.CallIndex, returned.AtomicIndex, returned.RepeatIndex, returned.LookaheadIndex, returned.Value, -1" + (_graph.Climbing.Count > 0 ? ", returned.Power" : "") + ");");
+					}
+				}
 				file.Line("var previousCall = returned.CallIndex;");
 				if (_usesCompleted)
 					file.Line("completedCall = call;");
@@ -2884,6 +2896,8 @@ sealed partial class Machine
 						// A call still open fails here, and one that returned is taken back.
 						if (Tracing is not null)
 							file.Line("failure.Trace?.Popped(last);");
+						if (CountsSeam)
+							file.Line("if (entry.RuleIndex == -2) seaming--;");
 						file.Line("call   = entry.CallIndex;");
 						file.Line("atomic = entry.AtomicIndex;");
 						file.Line("repeat = entry.RepeatIndex;");
@@ -2945,7 +2959,7 @@ sealed partial class Machine
 						// left the refusal wherever the reading had been before it (§7.5). Not one
 						// in the seam (Unrecorded), entered with 2 for its value.
 						file.Line();
-						file.Line($"if ({(_unrecordsLooks ? "entry.Value == 1 && " : "")}{(KeepsDoors ? "lookahead < 0" : Quiets ? "lookahead < 0 && !failure.Quiet" : "lookahead < 0")} && p > failure.Position)");
+						file.Line($"if ({(_unrecordsLooks ? $"(entry.Value == 1 || {(CountsSeam ? "seaming == 0 || " : "")}{RanOut("p")}) && " : "")}{(KeepsDoors ? "lookahead < 0" : Quiets ? "lookahead < 0 && !failure.Quiet" : "lookahead < 0")} && p > failure.Position)");
 
 						using (file.Block(""))
 						{
@@ -3126,6 +3140,30 @@ sealed partial class Machine
 	/// </param>
 	int Compile(Node node, int next, FollowSets.Continuation following)
 	{
+		// The seam is known by its nodes, not by the rule being compiled: the trivia is woven into
+		// a publication's reading and inlined into the rules that call it, where its refusals are
+		// recorded only where the input ran out (EmitTerminalFailure), and a rule read in place of a
+		// call is read as the call stands. A rule both the trivia and the grammar call asks at run
+		// time which it is being read for (Shared, `seaming`).
+		if (InSeam(node) && (!_seamRule || SharedNode(node) != _sharedSeam))
+		{
+			var wasSeam   = _seamRule;
+			var wasShared = _sharedSeam;
+
+			_seamRule   = true;
+			_sharedSeam = SharedNode(node);
+
+			try
+			{
+				return Compile(node, next, following);
+			}
+			finally
+			{
+				_seamRule   = wasSeam;
+				_sharedSeam = wasShared;
+			}
+		}
+
 		if (_lowering && !ReferenceEquals(node, _speaking) &&
 			(node is Node.Capture(_, Node.Call spoken) ? spoken : node as Node.Call) is { } called &&
 			SaysOf(called.Rule) is { } says)
@@ -3849,6 +3887,18 @@ sealed partial class Machine
 
 						using (atScan.Block(""))
 						{
+							// A scan of the seam refused by a look says so with a reach of -1 (ScanWriter
+							// Refuse_q): the refusal records nothing, as the look would not.
+							if (_seamRule && !_lowering && reports && Sentinel is not null)
+							{
+								atScan.Line(_sharedSeam ? "if (seaming > 0 && scanReached < 0)" : "if (scanReached < 0)");
+								using (atScan.Block(""))
+								{
+									atScan.Line($"expected = {Sentinel};");
+									atScan.Line($"goto {Label(atScan, _fail)};");
+								}
+							}
+
 							// A refusal comes back negated and carrying how far the scan
 							// reached, so the failure is recorded there rather than where the
 							// rule began — which is all the caller would otherwise know.
@@ -3886,9 +3936,14 @@ sealed partial class Machine
 				// A rule that says its own refusal (§4's `on fail`) is entered on the engine rather than
 				// inlined (CanInline), so that its call is an entry `Fail:` pops when the rule refused,
 				// and says the sentence there (SaidOnFail).
+				// A rule that says its own refusal says nothing inside the trivia (§7.5); where a rule
+				// the grammar calls too is read, Fail: asks whether the reading is inside the trivia.
 				var saying = _lowering || SaysOf(rule) is not { } spoken ? -1 : SaidOnFail(spoken);
 
-				if (CanInline(rule))
+				// The trivia is entered rather than read in place where a reading counts how many
+				// readings of it it is inside (Shared): its call is the entry Return: and Fail: count
+				// it back by. Only on the arena: a lowered method counts none.
+				if (CanInline(rule) && !(CountsSeam && !_lowering && SeamRoots.Contains(rule)))
 				{
 					// The inlined body composes continuations against its own seam. Where
 					// that seam is another namespace's, what this site knows past its own
@@ -3930,10 +3985,17 @@ sealed partial class Machine
 					}
 				}
 
+				// A call into the trivia is counted while it is open (Shared): entered with -2 for its
+				// rule, which Return: and Fail: count it back by.
+				var seams = CountsSeam && SeamRoots.Contains(rule);
+
+				if (seams)
+					writer.Line("seaming++;");
+
 				writer.Line("var callIndex = entries.Count;");
 				writer.Line(
 					$"entries.Add(new ParserEntry(ParserEntry.Call, {Resuming(writer, next)}, p, call, atomic, repeat, " +
-					$"lookahead, {(saying < 0 ? "0" : (-1 - saying).ToString(System.Globalization.CultureInfo.InvariantCulture))}, {ValueRule(rule)}" +
+					$"lookahead, {(saying < 0 ? "0" : (-1 - saying).ToString(System.Globalization.CultureInfo.InvariantCulture))}, {(seams ? "-2" : ValueRule(rule))}" +
 					(_graph.Climbing.Count > 0 ? ", power" : "") + "));");
 				if (Tracing is not null)
 					writer.Line($"failure.Trace?.Called(callIndex, call, {Tracing.RuleOf(rule)}, p);");
@@ -4514,7 +4576,7 @@ sealed partial class Machine
 						{
 							atAsk.Line($"if ({Short(1)})");
 							using (atAsk.Block(""))
-								EmitLookRefusal(atAsk, node, askedName);
+								EmitLookRefusal(atAsk, node, askedName, atEnd: true);
 							atAsk.Line($"c = {ReadAt("p")};");
 							atAsk.Line($"if (!({asked}))");
 							using (atAsk.Block(""))
@@ -4561,7 +4623,7 @@ sealed partial class Machine
 						{
 							outward = Reserve(out var atQuiet);
 
-							atQuiet.Line($"expected = {Unrecorded()};");
+							atQuiet.Line($"expected = {Recorded("p")} ? null : {Unrecorded()};");
 							atQuiet.Line($"goto {Label(atQuiet, failed)};");
 						}
 
@@ -6470,6 +6532,8 @@ sealed partial class Machine
 
 		if (recording is not null && _doorLooking == 0 && !InSeam(recording))
 			RecordGivenBack(writer, start);
+		// In the seam, only where the input ran out (§7.5). A lowered method counts no readings of
+		// the trivia: it reads for the grammar, so a rule the grammar calls too records there as any.
 
 		writer.Line($"p = {start};");
 
@@ -6589,6 +6653,9 @@ sealed partial class Machine
 
 		_expectedUsed.Add(said);
 
+		// How far the seam's scan got is recorded only where the input ran out there (§7.5); a rule
+		// the grammar calls too, where it called it, as any rule's. A lowered method reads for the
+		// grammar, and counts no readings of the trivia.
 		RecordFurther(writer, "scanReached > p", "scanReached", said);
 	}
 
@@ -7892,6 +7959,8 @@ sealed partial class Machine
 
 			_sentinelDecided = true;
 
+			// Every rule of the seam read in states refuses with it where the input did not run out
+			// (EmitTerminalFailure), not only its looks.
 			if (Tag != MachineTag.Seam &&
 				SeamReached.Any(rule => _graph.Bodies.TryGetValue(rule, out var body) && NodeWalk.Descendants(body).Any(static node => node is Node.Lookahead)))
 				_unrecorded = Tag.Named("RecognizeUnrecorded");
@@ -7911,11 +7980,19 @@ sealed partial class Machine
 	}
 
 	/// <summary>A look's refusal: a terminal's, or one that records nothing in the seam (<see cref="Unrecorded"/>).</summary>
-	void EmitLookRefusal(Writer writer, Node look, string arrayName)
+	void EmitLookRefusal(Writer writer, Node look, string arrayName, bool atEnd = false)
 	{
 		if (Unrecords(look))
 		{
-			writer.Line($"expected = {Unrecorded()};");
+			// A positive look refused at the end of the input, in the seam, wanted more: recorded,
+			// the parse is starved there (§7.5). In a rule the grammar calls too, a look refused
+			// where the grammar called it is recorded as any look's.
+			_expectedUsed.Add(arrayName);
+
+			writer.Line(
+				atEnd && look is Node.Lookahead(true, _) ? "expected = null;"
+				: _sharedSeam ? $"expected = seaming == 0 ? {arrayName} : {Unrecorded()};"
+				: $"expected = {Unrecorded()};");
 			writer.Line($"goto {Label(writer, _fail)};");
 
 			return;
@@ -9354,8 +9431,75 @@ sealed partial class Machine
 	{
 		_expectedUsed.Add(arrayName);
 
+		// Inside the trivia, and what it calls, a refusal is recorded only where the input ran out
+		// (§7.5): elsewhere it goes to Fail: with the sentinel, and the parse answers from the rule
+		// after the trivia, as the direct reader's Refusal answers.
 		writer.Line($"expected = {arrayName};");
+
 		writer.Line($"goto {Label(writer, fail)};");
+	}
+
+	/// <summary>Whether a node of the seam — the trivia's body, or that of a rule it reaches — is being compiled (<see cref="Compile"/>, <see cref="EmitTerminalFailure"/>).</summary>
+	bool _seamRule;
+
+	/// <summary>Whether the node of the seam being compiled is one of a rule the grammar calls too (<see cref="Shared"/>), read as the call stands.</summary>
+	bool _sharedSeam;
+
+	/// <summary>
+	/// Whether a refusal at <paramref name="at"/> inside the seam is recorded: where the input ran out
+	/// (§7.5), or, in a rule the grammar calls too, where the reading is not inside the trivia at all.
+	/// </summary>
+	string Recorded(string at)
+	{
+		return _sharedSeam ? $"(seaming == 0 || {RanOut(at)})" : RanOut(at);
+	}
+
+	/// <summary>The rules the trivia reaches that the grammar reaches too, by calls that do not pass through the trivia: read as each call stands.</summary>
+	internal HashSet<RuleSymbol> Shared => _shared ??= SharedRules();
+
+	HashSet<RuleSymbol>? _shared;
+
+	/// <summary>Whether a reading counts how many readings of the trivia it is inside: only where a rule is shared (<see cref="Shared"/>).</summary>
+	internal bool CountsSeam => Tag != MachineTag.Seam && Shared.Count > 0;
+
+	/// <summary>The rules the trivia of each namespace is: what a reading enters the seam by.</summary>
+	HashSet<RuleSymbol> SeamRoots => _seamRoots ??= new HashSet<RuleSymbol>(_graph.Trivia.Values.OfType<Node.Call>().Select(static call => call.Rule));
+
+	HashSet<RuleSymbol>? _seamRoots;
+
+	HashSet<RuleSymbol> SharedRules()
+	{
+		var main    = new HashSet<RuleSymbol>();
+		var pending = new Stack<RuleSymbol>();
+
+		// The grammar reads every rule the seam does not reach, and every published one, which a
+		// reading enters for the grammar whether or not the trivia reaches it too.
+		foreach (var rule in _graph.Bodies.Keys.Concat(_graph.Publications.Select(static publication => publication.Rule)))
+			if ((!SeamReached.Contains(rule) || _graph.Publications.Any(publication => publication.Rule.Equals(rule))) && main.Add(rule))
+				pending.Push(rule);
+
+		while (pending.Count > 0)
+			if (_graph.Bodies.TryGetValue(pending.Pop(), out var body))
+				foreach (var node in NodeWalk.Descendants(body))
+					if (node is Node.Call(var called, _) && !SeamRoots.Contains(called) && main.Add(called))
+						pending.Push(called);
+
+		return new HashSet<RuleSymbol>(SeamReached.Where(main.Contains));
+	}
+
+	/// <summary>Whether a node stands in the body of a rule the trivia and the grammar both call.</summary>
+	bool SharedNode(Node node)
+	{
+		return (_sharedNodes ??= NodeWalk.ByIdentity(Shared.Where(_graph.Bodies.ContainsKey).SelectMany(rule => NodeWalk.Descendants(_graph.Bodies[rule])))).Contains(node);
+	}
+
+	HashSet<Node>? _sharedNodes;
+
+	/// <summary>Whether the input ran out at <paramref name="at"/>: the end of the text, or a literal there that marked it.</summary>
+	string RanOut(string at)
+	{
+		// Tested as every end is (Ran): where a window feeds the machine, the test says that the reading ran out.
+		return $"({Past(at)} || failure.OutOfInput > {at})";
 	}
 
 	/// <summary>

@@ -2143,6 +2143,10 @@ sealed partial class Machine
 
 			Declare("var p = pos;");
 
+			// The trivia's own method counts itself in as it enters (SeamRoot), and out as it leaves.
+			if (SeamRoot)
+				Declare("failure.Seaming++;");
+
 			foreach (var line in _hoisted)
 				Declare(line);
 
@@ -2275,6 +2279,10 @@ sealed partial class Machine
 		{
 			var given = GivenBack();
 
+			// The trivia's own method counts itself out as it leaves (SeamRoot).
+			if (SeamRoot)
+				given = "failure.Seaming--; " + given;
+
 			if (machine.Tracing is not { } tracing)
 				return given.Length == 0 ? "return -1;" : $"{{ {given} return -1; }}";
 
@@ -2314,9 +2322,11 @@ sealed partial class Machine
 		/// <summary>What leaves this method having read to <paramref name="end"/>.</summary>
 		string Succeeds(string end)
 		{
-			return Reports
+			var leave = Reports
 				? $"return Exited_DotGram({machine.Tracing!.RuleOf(owner)}, pos, {end});"
 				: $"return {end};";
+
+			return SeamRoot ? $"{{ failure.Seaming--; {leave} }}" : leave;
 		}
 
 		/// <summary>The rules of the frames open here, those of the caller first.</summary>
@@ -6642,7 +6652,25 @@ sealed partial class Machine
 			// and what follows the loop — or the loop itself, short of its fewest turns (EmitTurns)
 			// — records there or further. The one that ends every field of a feed,
 			// `(?!Separator & any)+`, recorded at the end of each.
-			if (!named && (machine.SeamReached.Contains(owner) || machine._quietLooks.Contains(node)))
+			// In the seam a positive look whose body ran out records where it stands — the parse is
+			// starved there (Refusal asks) — and nothing else is recorded; in a rule the grammar calls
+			// too, a look refused where the grammar called it is recorded as any look's.
+			if (!named && machine.SeamReached.Contains(owner))
+			{
+				using (code.Block($"if ({seen} {(positive ? "<" : ">=")} 0)"))
+				{
+					if (machine.Shared.Contains(owner))
+						code.Line($"if (failure.Seaming == 0{(positive ? $" || {RanOut}" : "")}) {Record("null")}");
+					else if (positive)
+						code.Line($"if ({RanOut}) {Record("null")}");
+
+					code.Line(Fails());
+				}
+
+				return;
+			}
+
+			if (!named && machine._quietLooks.Contains(node))
 			{
 				code.Line($"if ({seen} {(positive ? "<" : ">=")} 0)");
 				code.Then(Fails());
@@ -6747,12 +6775,37 @@ sealed partial class Machine
 		/// </summary>
 		string Refusal(string expected, bool furthest = true)
 		{
+			var record = Record(expected, furthest);
+
+			// Inside the trivia, and what it calls, a refusal is recorded only where the input ran
+			// out (§7.5): a turn given back, a look refused, a rule refused there say nothing, and
+			// the parse answers from the rule after the trivia; a literal the input ended inside, or
+			// a terminal refused at the end, is what starves it. A rule the grammar calls too asks
+			// whether the reading is inside the trivia at all (Seaming).
+			return record;
+		}
+
+		/// <summary>The statement that records a refusal here, whatever stands around it (<see cref="Refusal"/>).</summary>
+		string Record(string expected, bool furthest = true)
+		{
 			return machine.KeepsDoors && furthest
 				? $"Refused_DotGram(ref failure, p, {expected});"
 				: machine.Quiets
 				? $"if (!failure.Quiet) {Refusing}(ref failure, p, {expected});"
 				: $"{Refusing}(ref failure, p, {expected});";
 		}
+
+		/// <summary>Whether the input ran out where the reading stands: at the end of the text, or inside a literal that marked it (<see cref="Refusal"/>).</summary>
+		string RanOut => $"{machine.Past("p")} || failure.OutOfInput > p";
+
+		/// <summary>The condition a refusal of this rule is recorded under, or null where it is recorded as any rule's: inside the seam, where the input ran out; in a rule the grammar calls too, or where the reading is not inside the trivia.</summary>
+		string? Seamed =>
+			machine.Shared.Contains(owner) ? $"failure.Seaming == 0 || {RanOut}"
+			: machine.SeamReached.Contains(owner) ? RanOut
+			: null;
+
+		/// <summary>Whether this is the method of the trivia itself, counted on the failure while it reads (<see cref="Seamed"/>).</summary>
+		bool SeamRoot => !_part && machine.CountsSeam && machine.SeamRoots.Contains(owner);
 	}
 }
 
