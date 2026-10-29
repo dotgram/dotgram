@@ -160,17 +160,21 @@ writes them: the folder's path from the root, since a bare `Generated/**` matche
 `.gitattributes`; the tool prints the line for its output folder. It prints
 the GRAM diagnostics; the editor does not show them in a project that no longer references the package.
 
-Under `core.autocrlf=true` Git converts line endings on checkout and commit, and a fresh generation then
-differs from what is committed, so `git status` is not clean. The generated files and `.dotgram.json` are
-written with LF, and the grammar sources (`.gram` files, and the `.cs` files that hold inline grammars) are
-read as checked out, so their line endings reach the generated text. Pin all of them in `.gitattributes`
-(the first line is the one above; it covers `.dotgram.json`, which sits in the output folder):
+Under `core.autocrlf=true` Git converts line endings on checkout and commit, and a fresh generation can then
+differ from what is committed, so `git status` is not clean. The generated C# is written with CRLF and
+`.dotgram.json` with LF; `-text` (the line above) keeps both exactly as written. The grammar sources
+(`.gram` files, and the `.cs` files that hold inline grammars) are read as checked out, so pin their line
+endings too, so that every machine generates from the same text. Later lines of `.gitattributes` win, so the
+output folder's `-text` line comes last: a `*.cs` rule after it would convert the generated files.
 
 ```gitattributes
-src/Grammars/Generated/** -text
 *.gram                    text eol=lf
 src/Grammars/**/*.cs      text eol=lf
+src/Grammars/Generated/** -text
 ```
+
+With these lines, a fresh generation after a checkout under `core.autocrlf=true` leaves `git status` clean,
+and the committed files are byte for byte what the tool wrote.
 
 ## Exit codes
 
