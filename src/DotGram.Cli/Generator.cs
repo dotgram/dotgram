@@ -56,6 +56,69 @@ static class Generator
 	const string ReportSuffix       = ".DotGramReport.g.cs";
 	const string ReportDetailSuffix = ".DotGramReportDetail.g.cs";
 
+	/// <summary>
+	/// The failure of DotGram's own generator as the user reads it: what failed in a line, and the stack trace
+	/// for <c>--verbose</c>. Two sources that declare the same generated file make Roslyn throw from
+	/// <c>AddSource</c>, which is what a nested project that the outer one did not exclude does.
+	/// </summary>
+	static ToolException Failed(Exception exception, Compilation compilation)
+	{
+		var detail = exception.ToString();
+
+		if (exception is ArgumentException { ParamName: "hintName" } && HintOf(exception.Message) is { } hint)
+		{
+			var text = $"two sources declare the generated file '{hint}': a class generated twice. A nested project that the outer project's files include does this; exclude it with Compile Remove.";
+
+			if (DeclaredAs(compilation, hint) is { Length: > 0 } files)
+				text += " Declared in: " + files + ".";
+
+			return new ToolException(text, ExitCode.Failure) { Detail = detail };
+		}
+
+		return new ToolException($"the generator failed: {exception.GetType().Name}: {exception.Message}", ExitCode.Failure) { Detail = detail };
+	}
+
+	/// <summary>The name Roslyn quotes in "The hintName '...' of the added source file must be unique".</summary>
+	static string? HintOf(string message)
+	{
+		const string Start = "hintName '";
+
+		var from = message.IndexOf(Start, StringComparison.Ordinal);
+
+		if (from < 0)
+			return null;
+
+		from += Start.Length;
+
+		var to = message.IndexOf('\'', from);
+
+		return to < 0 ? null : message.Substring(from, to - from);
+	}
+
+	/// <summary>The files of the classes whose generated file is called <paramref name="hint"/>, where they can be told.</summary>
+	static string DeclaredAs(Compilation compilation, string hint)
+	{
+		var name = hint.EndsWith(".g.cs", StringComparison.Ordinal) ? hint.Substring(0, hint.Length - ".g.cs".Length) : hint;
+
+		try
+		{
+			var paths = new SortedSet<string>(StringComparer.Ordinal);
+
+			foreach (var symbol in compilation.GetSymbolsWithName(static _ => true, SymbolFilter.Type))
+				if (symbol is INamedTypeSymbol type && type.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat) == name)
+					foreach (var location in type.Locations)
+						if (location.SourceTree?.FilePath is { Length: > 0 } path)
+							paths.Add(path);
+
+			return string.Join(", ", paths);
+		}
+		catch (Exception)
+		{
+			// The files are a help to the reader; the message is complete without them.
+			return "";
+		}
+	}
+
 	/// <param name="others">The project's other generators, run beside DotGram's as the build runs them.</param>
 	public static GeneratorOutput Run(GenerationInputs inputs, ImmutableArray<SyntaxTree> extraSources, IReadOnlyList<ISourceGenerator> others)
 	{
@@ -81,7 +144,7 @@ static class Generator
 		var result  = results.Single(one => ReferenceEquals(one.Generator, gram));
 
 		if (result.Exception is { } exception)
-			throw ToolException.Failure($"the generator failed: {exception}");
+			throw Failed(exception, compilation);
 
 		var files     = new SortedDictionary<string, string>(StringComparer.Ordinal);
 		var trees     = new Dictionary<string, SyntaxTree>(StringComparer.Ordinal);
@@ -105,7 +168,7 @@ static class Generator
 		{
 			var type = failed.Generator.GetGeneratorType();
 
-			throw ToolException.Failure($"the generator {type.FullName} in {type.Assembly.Location} failed: {failure.Message}");
+			throw new ToolException($"the generator {type.FullName} in {type.Assembly.Location} failed: {failure.GetType().Name}: {failure.Message}", ExitCode.Failure) { Detail = failure.ToString() };
 		}
 
 		var otherTrees = results

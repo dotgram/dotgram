@@ -23,6 +23,9 @@ sealed class ToolException(string message, int exitCode, bool usage = false) : E
 {
 	public int ExitCode { get; } = exitCode;
 
+	/// <summary>What <c>--verbose</c> adds to the message, such as the stack trace of an exception behind it.</summary>
+	public string? Detail { get; init; }
+
 	/// <summary>Whether the message is about how the tool was called, and <c>--help</c> is worth a mention.</summary>
 	public bool IsUsage { get; } = usage;
 

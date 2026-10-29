@@ -596,6 +596,38 @@ public sealed class ProjectInputTests
 	}
 
 	/// <summary>
+	/// Two sources that declare the same generated class make Roslyn refuse the second file of the same
+	/// name: the tool says which file is declared twice and where, in one message; the stack trace of the
+	/// exception behind it is printed only for <c>--verbose</c>.
+	/// </summary>
+	[Fact]
+	public void A_class_declared_in_two_files_is_reported_without_the_exception()
+	{
+		using var scratch = new Scratch();
+
+		var project = App(scratch, "p", PlainHost);
+
+		scratch.Write("p/sub/Again.cs", PlainHost);
+
+		Dotnet.Restore(project);
+
+		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--line-paths", "absolute");
+
+		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
+		Assert.Contains("two sources declare the generated file 'Demo.Pairs.g.cs'", run.Error, StringComparison.Ordinal);
+		Assert.Contains("Again.cs", run.Error, StringComparison.Ordinal);
+		Assert.Contains("--verbose", run.Error, StringComparison.Ordinal);
+		Assert.DoesNotContain("ArgumentException", run.Error, StringComparison.Ordinal);
+		Assert.DoesNotContain("   at ", run.Error, StringComparison.Ordinal);
+
+		var verbose = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--line-paths", "absolute", "--verbose");
+
+		Assert.True(verbose.Exit == ExitCode.Failure, verbose.ToString());
+		Assert.Contains("ArgumentException", verbose.Error, StringComparison.Ordinal);
+		Assert.Contains("   at ", verbose.Error, StringComparison.Ordinal);
+	}
+
+	/// <summary>
 	/// Without a code page a file is UTF-8 where it is valid UTF-8, and otherwise in the system's default
 	/// code page, as the compiler falls back to it (UTF-8 itself on Linux and macOS, the ANSI page on
 	/// Windows); a byte order mark and an explicit code page decide before that.

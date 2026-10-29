@@ -30,6 +30,7 @@ sealed class GenerateOptions
 	public string             Configuration    { get; init; } = "Release";
 	public LinePaths          LinePaths        { get; init; }
 	public bool               AllowUnresolved  { get; init; }
+	public bool               Verbose          { get; init; }
 
 	// `.gram` input only. A project's build decides the first four, and its hosts say the rest.
 	public List<string>       References       { get; } = [];
@@ -106,6 +107,7 @@ sealed class GenerateOptions
 		string?   languageVersion = null;
 		LinePaths? linePaths      = null;
 		var       allowUnresolved = false;
+		var       verbose         = false;
 		string?   @namespace      = null;
 		string?   className       = null;
 		var       @public         = false;
@@ -143,6 +145,7 @@ sealed class GenerateOptions
 					switch (name)
 					{
 						case "--allow-unresolved": allowUnresolved = true; break;
+						case "--verbose":          verbose = true; break;
 						case "--public":           gramOnly.Add(name); @public = true; break;
 						default:                   throw ToolException.Usage($"{name} is not an option of generate ({argument.Argument.Source}).");
 					}
@@ -267,6 +270,7 @@ sealed class GenerateOptions
 			LanguageVersion = languageVersion,
 			LinePaths       = linePaths ?? LinePaths.Relative,
 			AllowUnresolved = allowUnresolved,
+			Verbose         = verbose,
 			Namespace       = @namespace,
 			ClassName       = className,
 			Public          = @public,

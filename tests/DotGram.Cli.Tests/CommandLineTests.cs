@@ -234,7 +234,7 @@ public sealed class CommandLineTests
 		foreach (var option in new[]
 		{
 			"--output", "--framework", "--configuration", "--reference", "--package", "--define", "--langversion",
-			"--line-paths", "--allow-unresolved", "--namespace", "--class", "--public", "--option", "--sources", "@file.rsp",
+			"--line-paths", "--allow-unresolved", "--verbose", "--namespace", "--class", "--public", "--option", "--sources", "@file.rsp",
 			"--skill", "--version", "Exit codes:",
 		})
 			Assert.Contains(option, run.Output, StringComparison.Ordinal);

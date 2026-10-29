@@ -61,7 +61,7 @@ static partial class CommandLine
 	];
 
 	/// <summary>The options that take none.</summary>
-	internal static readonly HashSet<string> Flags = ["--allow-unresolved", "--public", "--help", "-h", "-?", "--version", "--skill"];
+	internal static readonly HashSet<string> Flags = ["--allow-unresolved", "--verbose", "--public", "--help", "-h", "-?", "--version", "--skill"];
 
 	/// <exception cref="ToolException">An unknown command or option, or a value that does not fit.</exception>
 	public static Command Parse(IReadOnlyList<string> arguments, string currentDirectory)

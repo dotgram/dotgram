@@ -65,6 +65,7 @@ static class Help
 		  --line-paths relative|absolute
 		                              #line paths relative to <dir> (default), or as a build writes them
 		  --allow-unresolved          generate even where the project's code has errors (reported as warnings)
+		  --verbose                   print the stack trace of a failure inside the generator
 
 		For a .gram input only (a project's build decides these for a project):
 		  --reference <file.dll|dir>  an assembly the grammar's types come from (every *.dll of a dir)

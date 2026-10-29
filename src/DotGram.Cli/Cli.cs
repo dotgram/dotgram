@@ -27,6 +27,8 @@ static class Cli
 	/// <summary>Runs one command line, writing to the two writers given; what <c>Main</c> runs, and what the tests run.</summary>
 	public static int Run(IReadOnlyList<string> arguments, TextWriter output, TextWriter error, string currentDirectory)
 	{
+		var verbose = false;
+
 		try
 		{
 			switch (CommandLine.Parse(arguments, currentDirectory))
@@ -52,6 +54,7 @@ static class Cli
 					return ExitCode.Done;
 
 				case Command.Generate(var options):
+					verbose = options.Verbose;
 					return Generate(options, output);
 
 				default:
@@ -61,6 +64,9 @@ static class Cli
 		catch (ToolException exception)
 		{
 			error.WriteLine("dotnet dotgram: error: " + exception.Message);
+
+			if (exception.Detail is not null)
+				error.WriteLine(verbose ? exception.Detail : "Run again with --verbose for the stack trace.");
 
 			if (exception.IsUsage)
 				error.WriteLine("Run 'dotnet dotgram --help' for the commands and options.");

@@ -67,6 +67,7 @@ coding agents. The reference is [`docs/cli.md`](https://github.com/dotgram/dotgr
 | `--configuration <name>` | project | the project's configuration (default Release) |
 | `--line-paths relative\|absolute` | both | `#line` paths relative to the output folder (default), or as a build writes them |
 | `--allow-unresolved` | both | generate even where the project's code has errors (reported as warnings) |
+| `--verbose` | both | print the stack trace of a failure inside the generator |
 | `--reference <file.dll\|dir>` | `.gram` | an assembly the grammar's types come from (every `*.dll` of a directory) |
 | `--package <Name>@<Version>` | `.gram` | a package's assemblies, from the global packages folder |
 | `--define <SYMBOL>` | `.gram` | a preprocessor symbol, beside the framework's |
