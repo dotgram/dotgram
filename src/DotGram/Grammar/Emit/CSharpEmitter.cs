@@ -964,6 +964,9 @@ public static partial class CSharpEmitter
 				recoveryOrdinal: graph.Publications.Any(publication => publication.YieldRecovery),
 				// A reader's refusals inside a lookahead are counted on the failure (Refuse_DotGram).
 				looking: machines.Exists(static compiled => compiled.Direct),
+				// How many readings of the trivia a reading is inside, where a rule both the trivia and
+				// the grammar call records as the call stands (Machine.CountsSeam).
+				seaming: machines.Exists(static compiled => compiled.Machine.CountsSeam),
 				// A reading whose failure nothing reads records none (Q7.2): a `find` over text, and the
 				// lexer measuring or valuing a token again.
 				quiet: quietField,
