@@ -2991,7 +2991,7 @@ written need not be a second parser. With `PerCall`, the `[GramOptions]` compile
 its own: the grammar is compiled once, its constructions are told where they were written only
 when a call asks, and the nested class the suffix names — `TransactSqlParser.Located` — holds
 the same published methods, each of them asking. A call through the class itself does not ask,
-and pays a test per construction for the choice. The interface then offers a third argument,
+and pays a test per construction for the choice. The interface must then declare a three-argument
 `Locate(int at, int length, int gapStart)`, where the gap start is where the text between the
 value and the token before it begins: the end of that token, or where the reading began.
 

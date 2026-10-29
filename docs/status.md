@@ -509,6 +509,15 @@ And one thing bundled with `Expected` when it was still a plan is still not buil
 its own: the outcome that tells a malformed record from no record (§8.1) — a third
 thing beside `Position`, not delivered by this.
 
+**A reading from a position can refuse, or cut short, the rule's first reading.** A rule is
+compiled once for its whole forms and the forms that begin at a position or read a window, and
+by default against the end of the input, which only the whole forms demand. Some decisions taken
+on the strength of that end hold for the whole forms only, so in a few shapes — an optional or a
+repetition before a negative lookahead, a quoted string with doubled quotes — a reading from a
+position refuses, or stops short of, what the rule's first reading is (§4). The whole forms are
+right. The experimental build property `DotGramPositionalFollow` (§6.8) compiles the positional
+forms against what follows instead, and they read the first reading, at the cost §6.8 gives.
+
 ## Back-references
 
 `syntax.md` §3.5.1 describes a binding, `$q: X`, and the operands that read it: `$q`,
@@ -814,11 +823,6 @@ then resumes mid-number, as none at all, which is what the test saw.
 It is also what keeps `eof` honest. The end of a full buffer is indistinguishable from
 the end of the input to a recognizer, and the only thing that can tell them apart is
 whether the reader is finished.
-
-A literal asks the window for room for the whole of itself before it compares its first
-character, which is how the window is filled. So a reader that blocks once its text is used up
-is waited on even where a character it has already given refuses the literal: `"abc"` against
-a reader that has given `X` waits for two more.
 
 **A grammar that does not get one is told so**, as `GRAM5001`, at the directive that
 asked — `'FindStart' gets no overload taking a reader: 'any*' may take more than one
@@ -1572,6 +1576,10 @@ with `GRAM5004`. A terminal that is nothing but `@M` has no beginning, so the ho
 at the start of every token before the automaton; that works and is `GRAM5011`, a warning.
 `Std.Nested(open, close)`, as the terminal or its last operand, is begun by its `open`, and
 its rest is read by its counter rather than by a machine over characters.
+
+**A window that holds no token is refused over kinds.** A window, or a position, whose text is
+empty or trivia alone gives the syntactic half no token to read, and it refuses there, where
+over characters an empty repetition reads it.
 
 ## Carriers
 
