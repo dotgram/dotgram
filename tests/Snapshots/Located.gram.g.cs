@@ -310,12 +310,12 @@ namespace DotGram.Snapshots
 					if (((uint)p >= (uint)text.Length && (failure.Starved = true)))
 					{
 						if (negating == 0 && p + 1 > failure.OutOfInput) failure.OutOfInput = p + 1;
-						expected = ExpectedSet_DotGram(0);
+						expected = (((uint)p >= (uint)text.Length && (failure.Starved = true)) || failure.OutOfInput > p) ? ExpectedSet_DotGram(0) : RecognizeUnrecorded_DotGram;
 						goto Return;
 					}
 					if (text[p] != ' ')
 					{
-						expected = ExpectedSet_DotGram(0);
+						expected = (((uint)p >= (uint)text.Length && (failure.Starved = true)) || failure.OutOfInput > p) ? ExpectedSet_DotGram(0) : RecognizeUnrecorded_DotGram;
 						goto Return;
 					}
 					p += 1;
@@ -703,6 +703,7 @@ namespace DotGram.Snapshots
 				return p;
 
 				Fail:
+				if (global::System.Object.ReferenceEquals(expected, RecognizeUnrecorded_DotGram)) goto Unwind;
 				if (lookahead < 0 && p > failure.Position)
 				{
 					failure.Position = p;
@@ -717,6 +718,7 @@ namespace DotGram.Snapshots
 					(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
 				}
 
+				Unwind:
 				while (entries.Count > 0)
 				{
 					var last = entries.Count - 1;
@@ -1259,6 +1261,8 @@ namespace DotGram.Snapshots
 				}
 			}
 		}
+
+		static readonly string[] RecognizeUnrecorded_DotGram = new string[0];
 
 		/// <summary>
 		/// Half-open range of the input: [Start, End).

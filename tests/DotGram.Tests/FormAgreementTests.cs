@@ -144,10 +144,14 @@ public sealed class FormAgreementTests
 		Assert.True(failures.Count == 0, $"{name}: {grammar}\n" + string.Join("\n", failures));
 	}
 
-	/// <summary>A comment in the trivia that the input ends inside, or stops agreeing with, is refused there in every form (§7.5).</summary>
+	/// <summary>
+	/// A comment in the trivia that the input ends inside starves the parse there, in every form; one
+	/// the input stops agreeing with is given back, and the parse answers from the rule after the
+	/// trivia (§7.5: inside the trivia a refusal is recorded only where the input ran out).
+	/// </summary>
 	[Theory]
 	[InlineData("-",   "Starved@1")]
-	[InlineData("- ",  "NoMatch@1")]
+	[InlineData("- ",  "NoMatch@0")]
 	[InlineData("a -", "Starved@3")]
 	public void A_comment_in_the_trivia_is_refused_where_it_stops_agreeing(string input, string expected)
 	{
@@ -164,12 +168,13 @@ public sealed class FormAgreementTests
 
 	/// <summary>
 	/// The same where the comment is the first alternative of the trivia, and where a look ends a
-	/// turn of it: a literal that fails into the next alternative is refused as far as it agreed,
-	/// and a look that refuses reaches nothing, as the readers record neither more nor less.
+	/// turn of it: a literal the input ends inside starves the parse as far as it agreed, one that
+	/// fails into the next alternative on input that was there says nothing, and a look that
+	/// refuses reaches nothing, as the readers record neither more nor less (§7.5).
 	/// </summary>
 	[Theory]
 	[InlineData("trivia = { (\"--\" & [^ '\\n']* | ' ')* }\nT = 'a' & 'b' & eof", "-",  "Starved@1")]
-	[InlineData("trivia = { (\"--\" & [^ '\\n']* | ' ')* }\nT = 'a' & 'b' & eof", "- ", "NoMatch@1")]
+	[InlineData("trivia = { (\"--\" & [^ '\\n']* | ' ')* }\nT = 'a' & 'b' & eof", "- ", "NoMatch@0")]
 	[InlineData("trivia = { (' ' & ?='a')* }\nT = 'b' & eof", " x", "NoMatch@0")]
 	public void A_trivia_turn_is_refused_where_the_readers_refuse_it(string grammar, string input, string expected)
 	{

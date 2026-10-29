@@ -4544,6 +4544,7 @@ namespace DotGram.Snapshots
 				return p;
 
 				Fail:
+				if (global::System.Object.ReferenceEquals(expected, RecognizeUnrecorded_DotGram_Sheet)) goto Unwind;
 				if (lookahead < 0 && p > failure.Position)
 				{
 					failure.Position = p;
@@ -4562,6 +4563,7 @@ namespace DotGram.Snapshots
 				if (lookahead < 0 && p > reach0)
 					reach0 = p;
 
+				Unwind:
 				while (entries.Count > 0)
 				{
 					var last = entries.Count - 1;
@@ -4842,7 +4844,7 @@ namespace DotGram.Snapshots
 
 			{
 				p = Scan_DotGram_Spaced_trivia_DotGram_Spaced_Pair(text, p, ref failure, out var scanReached);
-				if (scanReached > p && scanReached > failure.Position)
+				if (scanReached > p && (((uint)scanReached >= (uint)text.Length && (failure.Starved = true)) || failure.OutOfInput > scanReached) && scanReached > failure.Position)
 				{
 					failure.Position = scanReached;
 					if (!failure.Quiet)
@@ -4893,7 +4895,7 @@ namespace DotGram.Snapshots
 
 			{
 				p = Scan_DotGram_Spaced_trivia_DotGram_Spaced_Pair(text, p, ref failure, out var scanReached);
-				if (scanReached > p && scanReached > failure.Position)
+				if (scanReached > p && (((uint)scanReached >= (uint)text.Length && (failure.Starved = true)) || failure.OutOfInput > scanReached) && scanReached > failure.Position)
 				{
 					failure.Position = scanReached;
 					if (!failure.Quiet)
@@ -4926,7 +4928,7 @@ namespace DotGram.Snapshots
 
 			{
 				p = Scan_DotGram_Spaced_trivia_DotGram_Spaced_Pair(text, p, ref failure, out var scanReached);
-				if (scanReached > p && scanReached > failure.Position)
+				if (scanReached > p && (((uint)scanReached >= (uint)text.Length && (failure.Starved = true)) || failure.OutOfInput > scanReached) && scanReached > failure.Position)
 				{
 					failure.Position = scanReached;
 					if (!failure.Quiet)
@@ -4982,7 +4984,7 @@ namespace DotGram.Snapshots
 
 			{
 				p = Scan_DotGram_Spaced_trivia_DotGram_Spaced_Pair(text, p, ref failure, out var scanReached);
-				if (scanReached > p && scanReached > failure.Position)
+				if (scanReached > p && (((uint)scanReached >= (uint)text.Length && (failure.Starved = true)) || failure.OutOfInput > scanReached) && scanReached > failure.Position)
 				{
 					failure.Position = scanReached;
 					if (!failure.Quiet)
@@ -5214,6 +5216,7 @@ namespace DotGram.Snapshots
 				return p;
 
 				Fail:
+				if (global::System.Object.ReferenceEquals(expected, RecognizeUnrecorded_DotGram_Item)) goto Unwind;
 				if (lookahead < 0 && p > failure.Position)
 				{
 					failure.Position = p;
@@ -5228,6 +5231,7 @@ namespace DotGram.Snapshots
 					(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
 				}
 
+				Unwind:
 				while (entries.Count > 0)
 				{
 					var last = entries.Count - 1;
@@ -5931,6 +5935,8 @@ namespace DotGram.Snapshots
 			}
 		}
 
+		static readonly string[] RecognizeUnrecorded_DotGram_Sheet = new string[0];
+
 		static int RecognizeAgreeing_DotGram_Ci(global::System.ReadOnlySpan<char> text, int p, string value, bool fold)
 		{
 			var i = 0;
@@ -6056,6 +6062,8 @@ namespace DotGram.Snapshots
 				}
 			}
 		}
+
+		static readonly string[] RecognizeUnrecorded_DotGram_Item = new string[0];
 
 		/// <summary>
 		/// Half-open range of the input: [Start, End).

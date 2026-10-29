@@ -3292,9 +3292,11 @@ sealed partial class Machine
 
 				// The quiet reading writes down how far it got here too (KeepsDoors): the reading
 				// that records gets at least this far, recording the words or having got past them.
+				var seamed = Seamed is { } gate ? $"({gate}) && " : "";
+
 				code.Line(machine.KeepsDoors
-					? $"if ({result} < 0 && failure.Position <= p) Refused_DotGram(ref failure, p, {said});"
-					: $"if ({result} < 0 && failure.Position <= p{(machine.Quiets ? " && !failure.Quiet" : "")}) " +
+					? $"if ({seamed}{result} < 0 && failure.Position <= p) Refused_DotGram(ref failure, p, {said});"
+					: $"if ({seamed}{result} < 0 && failure.Position <= p{(machine.Quiets ? " && !failure.Quiet" : "")}) " +
 						$"{Refusing}(ref failure, p, {said});");
 			}
 
@@ -6782,7 +6784,7 @@ sealed partial class Machine
 			// the parse answers from the rule after the trivia; a literal the input ended inside, or
 			// a terminal refused at the end, is what starves it. A rule the grammar calls too asks
 			// whether the reading is inside the trivia at all (Seaming).
-			return record;
+			return Seamed is { } seamed ? $"if ({seamed}) {record}" : record;
 		}
 
 		/// <summary>The statement that records a refusal here, whatever stands around it (<see cref="Refusal"/>).</summary>

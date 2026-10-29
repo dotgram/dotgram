@@ -2573,7 +2573,9 @@ the caller's own making is the caller's mistake, not something the input answers
 None of them demands the end of the input, and none reads the trivia after the rule: a
 reading that begins where it is told stops where the value ends, which is the extent a
 host holding the text is asking for, and the trivia after it is the leading trivia of the
-next reading. A repetition marked `recover` at the end of such a reading reads its fewest
+next reading. The trivia such a reading starts on is sealed: the rule reads from where the
+trivia ended and takes nothing back from it, so an input a whole reading accepts by reading
+less trivia, a reading from that position may refuse. A repetition marked `recover` at the end of such a reading reads its fewest
 turns (§8.2). `Position` says where the value began, past the trivia the reading started
 on, and `Length` is its own extent: what comes back is the value and neither the trivia
 before it nor the trivia after, as from a whole parse (§6). What comes back says where the reading began and how far it got, and every
@@ -3622,11 +3624,23 @@ input matched pays nothing for the words.
 `NoMatch` is input that was there and did not fit; `Starved` is input that ran out
 where more was needed — the answer a caller reading from a stream acts on differently
 from the one reading a finished document. Both are exact: the furthest position the
-parse reached is either the end of the input, or a place where something wanted more
-characters than remained. A literal the input ends inside has run out only where every
+parse reached (outside the trivia, below) is either the end of the input, or a place where
+something wanted more characters than remained. A literal the input ends inside has run out only where every
 character there agrees with it, and is then refused at the end; where one does not, more
 input could not change that, and the refusal is `NoMatch` at that character. So
 `T = "/*" & ';'` refuses `/` as `Starved` at 1 and `/x` as `NoMatch` at 1.
+
+Over characters, inside the trivia — and in the rules it reaches, while it reads them — a
+refusal is recorded only where the input, or the window, ran out. A turn the trivia gives
+back, a look refused on input that was there, a rule it called and refused say nothing: the
+parse answers from what follows the trivia, as if the trivia had read what it could and
+stopped, so the furthest position is counted outside it. A literal the input ended inside, a
+terminal refused at the end, or a look whose body ran out starves the parse there, since
+more input could have finished the trivia. So with `trivia = { ('#' & 'y'+)* }` and
+`R = 'z'`, `#a` is `NoMatch` at 0 — where `R` stands, not where `y` was wanted — and `#` is
+`Starved` at 1; and with `trivia = { (' ' | Std.BlockComment("/*", "*/"))* }` and
+`R = 'z' & 'q'`, a comment left open at the end, `z /* x`, is `Starved` at 6. Over tokens the
+trivia is the lexer's, and a comment it leaves open is read as §6.3 says.
 
 **What `Error` names is sound, not complete.** An alternative it names would have been
 accepted where it says; the set of them may be narrower in one form of the input than in

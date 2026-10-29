@@ -1714,6 +1714,8 @@ namespace DotGram.Snapshots
 				}
 			}
 
+			static readonly string[] RecognizeUnrecordedValue_DotGram = new string[0];
+
 			static int RecognizeValue_DotGram(global::System.ReadOnlySpan<char> text, int pos, int state, int rootRule, bool whole, bool materialize, ref Failure failure, out object? recognized)
 			{
 				recognized = null;
@@ -2221,6 +2223,7 @@ namespace DotGram.Snapshots
 						repeat    = looked.RepeatIndex;
 						lookahead = looked.LookaheadIndex;
 						negating--;
+						if (global::System.Object.ReferenceEquals(expected, RecognizeUnrecordedValue_DotGram)) expected = null;
 						goto Fail;
 					}
 
@@ -2730,6 +2733,7 @@ namespace DotGram.Snapshots
 						repeat    = looked.RepeatIndex;
 						lookahead = looked.LookaheadIndex;
 						negating--;
+						if (global::System.Object.ReferenceEquals(expected, RecognizeUnrecordedValue_DotGram)) expected = null;
 						goto Fail;
 					}
 
@@ -3175,6 +3179,7 @@ namespace DotGram.Snapshots
 						repeat    = looked.RepeatIndex;
 						lookahead = looked.LookaheadIndex;
 						negating--;
+						if (global::System.Object.ReferenceEquals(expected, RecognizeUnrecordedValue_DotGram)) expected = null;
 						goto Fail;
 					}
 
@@ -3402,6 +3407,7 @@ namespace DotGram.Snapshots
 						repeat    = looked.RepeatIndex;
 						lookahead = looked.LookaheadIndex;
 						negating--;
+						if (global::System.Object.ReferenceEquals(expected, RecognizeUnrecordedValue_DotGram)) expected = null;
 						goto Fail;
 					}
 
@@ -3472,6 +3478,7 @@ namespace DotGram.Snapshots
 					return p;
 
 					Fail:
+					if (global::System.Object.ReferenceEquals(expected, RecognizeUnrecordedValue_DotGram)) goto Unwind;
 					if (lookahead < 0 && p > failure.Position)
 					{
 						failure.Position = p;
@@ -3486,6 +3493,7 @@ namespace DotGram.Snapshots
 						(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
 					}
 
+					Unwind:
 					while (entries.Count > 0)
 					{
 						var last = entries.Count - 1;

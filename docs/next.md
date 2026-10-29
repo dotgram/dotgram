@@ -26797,18 +26797,23 @@ search for the delimiter that found none jumped to the refusal without saying ho
   look over `R1 = { "ab" }` on `a` was NoMatch in the engine's string form and Starved everywhere else: a
   scanner now takes the failure wherever the grammar holds a literal of more than one character, and marks
   the input as run out where such a literal's refusal is the scan's own.
-- **What moved.** After the fixes 57 grammars (1.3%) differ, 7,416 comparisons: 51 are the documented default
-  of a published rule compiled against the end of the input for its positional forms too (§6.3,
-  `DotGramPositionalFollow`), where each reader cuts a reading from a position short on the strength of that
-  end — `Std.Quoted` and a loop before a repeated literal in the reader, an optional committed on its first
-  character in the engine; `FormOutcomeTests` holds those three shapes to one answer under the switch. Four
-  are a positive look over a rule the engine reads as a scan, `?=(Twice("ab"))` on `a`: the scan marks no
-  input as run out, and the engine says NoMatch where the reader, which reads the rule by methods, says
-  Starved; one is a back-reference refused at the end of the input, said at 1 by the reader and at 2 by the
-  engine; one is the engine running out of memory on the exponential grammar of the corpus under a loaded
-  machine, 5.5 GB on either side read alone. Against main, 106,884 answers of the direct reader moved to
-  the engine's and 124 of the engine's to the reader's; of the answers both agreed on, 132 turned from Starved to NoMatch inside a negative
-  look, in both alike, and none other changed: no accepted input is refused and no refused input accepted.
+- **What moved.** A harness of 6,000 random grammars — every shape of the syntax, and a trivia generator that nests
+  looks, choices, repetitions below and above their fewest turns, rules the trivia and the grammar both call, and a
+  namespace's trivia a rule outside it reaches — read 300 inputs each in every published form. Against main, 658
+  grammars answered differently in some form; after the fixes 50 do: 15 are the documented default of a positional
+  reading compiled against the end of the input (§6.3, `DotGramPositionalFollow`), 30 are `Std.Quoted` and a loop
+  before a repeated literal giving characters back differently from a position, and five are a host recognizer in a
+  turn the direct reader does not give back. Of 28 million comparisons 93,775 answers of the direct reader moved to
+  the engine's and 2,245 of the engine's to the reader's; no input one reader accepted and the other refused is
+  answered otherwise now, and no answer both readers agreed on moved apart.
+- **What the trivia records.** Of the answers both readers agreed on, 12,472 moved, in both alike, under §7.5's rule
+  that inside the trivia a refusal is recorded only where the input ran out: 12,140 are NoMatch answered from the rule
+  after the trivia rather than from a literal or a look inside it (a comment's `--` that stopped agreeing, a look
+  refused on input that was there, a braced trivia's turn given back), 112 are NoMatch turned Starved at the end of
+  the input, where a terminal inside the trivia was refused with nothing left, and 101 are Starved turned NoMatch where
+  a mark inside a negative look no longer counts. The rule itself — against the readers with every look fixed but the
+  trivia's terminals still recorded — moves 7,413 agreed answers: 7,327 NoMatch answered from the rule after the trivia,
+  69 NoMatch turned Starved at the end, 17 Starved moved to the end; it is its own commit, and its own paragraph of §7.5.
 - **What it cost.** Generated source: the T-SQL parser +0.24% (9,080,416 to 9,101,831 bytes), SQL:2023 +0.24%,
   SQL-92 +0.14%: the positional forms clamp their position, the ran-out helper takes whether it is inside a
   negative look, the engine declares and counts `negating`, and the direct reader counts `Negating` on the
