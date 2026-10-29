@@ -214,6 +214,11 @@ public abstract record EmailAddress
 	}
 
 	/// <summary>A group: a display name and its mailboxes, of which there may be none.</summary>
+	/// <param name="DisplayName">
+	/// The phrase before the colon as it reads: comments dropped, each run of whitespace one space, quoted strings
+	/// unquoted.
+	/// </param>
+	/// <param name="Members">The mailboxes between the colon and the semicolon, in their order; empty for <c>name:;</c>.</param>
 	public sealed record Group(string DisplayName, IReadOnlyList<Mailbox> Members) : EmailAddress
 	{
 		/// <summary>

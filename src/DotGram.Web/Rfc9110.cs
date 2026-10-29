@@ -24,6 +24,8 @@ namespace DotGram.Web;
 public sealed record MediaType(string Type, string Subtype, IReadOnlyList<MediaType.Parameter> Parameters)
 {
 	/// <summary>A parameter: its name as written and its value after unquoting.</summary>
+	/// <param name="Name">The parameter's name, case as written; compare it without regard to case.</param>
+	/// <param name="Value">The token, or the quoted string's content with each backslash escape undone.</param>
 	public sealed record Parameter(string Name, string Value);
 
 	/// <summary>A Content-Type field value (RFC 9110 §8.3): a media type, with whitespace around it allowed.</summary>

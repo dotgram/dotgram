@@ -73,21 +73,35 @@ public sealed record JsonPatch(IReadOnlyList<JsonPatch.Operation> Operations)
 		public JsonPointer Path { get; }
 
 		/// <summary>§4.1: <see cref="Value"/> at the target location — a new member, a replaced one, or an element inserted.</summary>
+		/// <param name="Path">The target location, the operation's <c>path</c> member.</param>
+		/// <param name="Value">The value to add, the operation's <c>value</c> member.</param>
 		public sealed record Add(JsonPointer Path, JsonValue Value) : Operation(Path);
 
 		/// <summary>§4.2: the value at the target location taken out.</summary>
+		/// <param name="Path">The target location, the operation's <c>path</c> member.</param>
 		public sealed record Remove(JsonPointer Path) : Operation(Path);
 
 		/// <summary>§4.3: the value at the target location, which has to exist, replaced by <see cref="Value"/>.</summary>
+		/// <param name="Path">The target location, the operation's <c>path</c> member.</param>
+		/// <param name="Value">The value that takes the old one's place, the operation's <c>value</c> member.</param>
 		public sealed record Replace(JsonPointer Path, JsonValue Value) : Operation(Path);
 
 		/// <summary>§4.4: the value at <see cref="From"/> taken out and added at the target location.</summary>
+		/// <param name="From">
+		/// Where the value is taken from, the operation's <c>from</c> member. Applying the patch fails where it is a proper
+		/// prefix of <paramref name="Path"/>: a value cannot be moved into its own child.
+		/// </param>
+		/// <param name="Path">The target location, the operation's <c>path</c> member.</param>
 		public sealed record Move(JsonPointer From, JsonPointer Path) : Operation(Path);
 
 		/// <summary>§4.5: the value at <see cref="From"/> added at the target location.</summary>
+		/// <param name="From">Where the value is copied from, the operation's <c>from</c> member.</param>
+		/// <param name="Path">The target location, the operation's <c>path</c> member.</param>
 		public sealed record Copy(JsonPointer From, JsonPointer Path) : Operation(Path);
 
 		/// <summary>§4.6: whether the value at the target location equals <see cref="Value"/>, as <see cref="AreEqual"/> compares.</summary>
+		/// <param name="Path">The target location, the operation's <c>path</c> member.</param>
+		/// <param name="Value">The value the target is held to, the operation's <c>value</c> member.</param>
 		public sealed record Test(JsonPointer Path, JsonValue Value) : Operation(Path);
 
 		/// <summary>The operation as a patch document writes it.</summary>

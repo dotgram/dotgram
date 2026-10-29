@@ -60,6 +60,8 @@ public sealed record LanguageTag(
 
 	/// <summary>§2.2.6: a single letter or digit other than <c>x</c>, and the subtags it introduces.</summary>
 	/// <remarks>Equal to another whatever the case of either, as a tag is (§2.1.1).</remarks>
+	/// <param name="Singleton">The letter or digit that opens the extension, case as written.</param>
+	/// <param name="Subtags">The two- to eight-character subtags after it, in order, case as written.</param>
 	public sealed record Extension(char Singleton, IReadOnlyList<string> Subtags)
 	{
 		/// <summary>

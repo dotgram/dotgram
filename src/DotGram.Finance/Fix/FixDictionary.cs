@@ -33,6 +33,14 @@ namespace DotGram.Finance.Fix;
 /// </remarks>
 public sealed class FixDictionary
 {
+	/// <summary>
+	/// An empty dictionary, to be filled in code: it describes no header, trailer, message,
+	/// component or field, and so has no opinion about any of them.
+	/// </summary>
+	public FixDictionary()
+	{
+	}
+
 	/// <summary>The fields, components and groups of the standard header, where the dictionary describes it.</summary>
 	public List<FixDictionaryMember> Header { get; } = [];
 

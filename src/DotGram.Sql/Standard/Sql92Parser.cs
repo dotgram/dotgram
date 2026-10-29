@@ -74,4 +74,8 @@ namespace DotGram.Sql.Standard;
 [Gram("SqlStandard92.gram", Lexical = true, Carrier = GramCarrier.Immediate)]
 public abstract partial class Sql92Parser
 {
+	// Every entry is static and nothing is made of the class, so nothing outside derives from it either.
+	Sql92Parser()
+	{
+	}
 }

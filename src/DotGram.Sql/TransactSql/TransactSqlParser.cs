@@ -52,4 +52,8 @@ namespace DotGram.Sql.TransactSql;
 [GramOptions(LocationType = typeof(ISqlLocatable), Suffix = "Located", PerCall = true)]
 public abstract partial class TransactSqlParser
 {
+	// Every entry is static and nothing is made of the class, so nothing outside derives from it either.
+	TransactSqlParser()
+	{
+	}
 }

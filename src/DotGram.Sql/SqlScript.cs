@@ -203,6 +203,15 @@ public sealed class ScriptOptions
 	internal static readonly ScriptOptions Default = new();
 
 	/// <summary>
+	/// The options sqlcmd starts with: its own profile, no variables given beforehand, <c>$(name)</c>
+	/// replaced, no file a <c>:r</c> can read, no name for the script, and at most 10,000 includes. Set
+	/// what differs with an object initializer.
+	/// </summary>
+	public ScriptOptions()
+	{
+	}
+
+	/// <summary>
 	/// The tool; <see cref="ScriptProfile.SqlCmd"/> unless said.
 	/// </summary>
 	public ScriptProfile Profile { get; init; } = ScriptProfile.SqlCmd();

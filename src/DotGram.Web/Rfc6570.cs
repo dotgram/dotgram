@@ -15,6 +15,7 @@ namespace DotGram.Web;
 /// The two are apart because a
 /// template is written once and expanded many times.
 /// </remarks>
+/// <param name="Parts">The literals and expressions of the template, in the order written.</param>
 public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 {
 	/// <summary>A URI Template of any of RFC 6570's four levels.</summary>
@@ -35,9 +36,19 @@ public sealed record UriTemplate(IReadOnlyList<UriTemplate.Part> Parts)
 	}
 
 	/// <summary>A piece of a template: a <see cref="Literal"/> or an <see cref="Expression"/>.</summary>
-	public abstract record Part;
+	public abstract record Part
+	{
+		/// <summary>
+		/// The base of <see cref="Literal"/> and <see cref="Expression"/>, and of nothing else:
+		/// <see cref="Expand(IReadOnlyDictionary{string, object?})"/> knows those two kinds of part and no other.
+		/// </summary>
+		protected Part()
+		{
+		}
+	}
 
 	/// <summary>§2.1: text copied to the URI, pct-encoded where a URI may not hold it.</summary>
+	/// <param name="Text">The literal as the template writes it, its pct-encoded triplets kept.</param>
 	public sealed record Literal(string Text) : Part;
 
 	/// <summary>§2.2: an operator, or none, and the variables it expands.</summary>

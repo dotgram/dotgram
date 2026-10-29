@@ -28,6 +28,8 @@ namespace DotGram.Web;
 public sealed record SetCookie(string Name, string Value, IReadOnlyList<SetCookie.Attribute> Attributes)
 {
 	/// <summary>A cookie-av: its name and its value, empty where there was no <c>=</c> or nothing after it.</summary>
+	/// <param name="Name">The text before the first <c>=</c>, whitespace trimmed, case as written.</param>
+	/// <param name="Value">The text after the first <c>=</c>, whitespace trimmed; empty where there was none.</param>
 	public sealed record Attribute(string Name, string Value);
 
 	/// <summary>A Set-Cookie field value, read by RFC 6265 §5.2's algorithm.</summary>

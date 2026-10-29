@@ -212,7 +212,10 @@ public readonly struct SqlList<T> : IReadOnlyList<T>, IEquatable<SqlList<T>>
 		return true;
 	}
 
-	/// <inheritdoc/>
+	/// <summary>
+	/// Whether <paramref name="obj"/> is a <see cref="SqlList{T}"/> of the same element type holding equal
+	/// elements in the same order.
+	/// </summary>
 	public override bool Equals(object? obj)
 	{
 		return obj is SqlList<T> other && Equals(other);

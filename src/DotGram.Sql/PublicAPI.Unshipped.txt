@@ -11912,7 +11912,6 @@ DotGram.Sql.Standard.Sql92Parser.Outcome
 DotGram.Sql.Standard.Sql92Parser.Outcome.NoMatch = 1 -> DotGram.Sql.Standard.Sql92Parser.Outcome
 DotGram.Sql.Standard.Sql92Parser.Outcome.Starved = 2 -> DotGram.Sql.Standard.Sql92Parser.Outcome
 DotGram.Sql.Standard.Sql92Parser.Outcome.Success = 0 -> DotGram.Sql.Standard.Sql92Parser.Outcome
-DotGram.Sql.Standard.Sql92Parser.Sql92Parser() -> void
 DotGram.Sql.Standard.SqlStandardParser
 DotGram.Sql.Standard.SqlStandardParser.Match<T>
 DotGram.Sql.Standard.SqlStandardParser.Match<T>.Error.get -> string?
@@ -11926,7 +11925,6 @@ DotGram.Sql.Standard.SqlStandardParser.Outcome
 DotGram.Sql.Standard.SqlStandardParser.Outcome.NoMatch = 1 -> DotGram.Sql.Standard.SqlStandardParser.Outcome
 DotGram.Sql.Standard.SqlStandardParser.Outcome.Starved = 2 -> DotGram.Sql.Standard.SqlStandardParser.Outcome
 DotGram.Sql.Standard.SqlStandardParser.Outcome.Success = 0 -> DotGram.Sql.Standard.SqlStandardParser.Outcome
-DotGram.Sql.Standard.SqlStandardParser.SqlStandardParser() -> void
 DotGram.Sql.StatementCategory
 DotGram.Sql.StatementCategory.Admin = 8 -> DotGram.Sql.StatementCategory
 DotGram.Sql.StatementCategory.Control = 4 -> DotGram.Sql.StatementCategory
@@ -11966,7 +11964,6 @@ DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.On(System.ReadOnlySpan<char
 DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.SourceSpan() -> void
 DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.SourceSpan(int start, int length) -> void
 DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.Start.get -> int
-DotGram.Sql.TransactSql.TransactSqlParser.TransactSqlParser() -> void
 DotGram.Sql.TransactSql.TransactSqlParser.UpdateStatisticsWith
 DotGram.Sql.TransactSql.TransactSqlParser.UpdateStatisticsWith.T.get -> string!
 DotGram.Sql.TransactSql.TransactSqlParser.UpdateStatisticsWith.UpdateStatisticsWith(string! t) -> void

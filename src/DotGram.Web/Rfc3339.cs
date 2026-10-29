@@ -145,6 +145,8 @@ static partial class Rfc3339
 }
 
 /// <summary>A date-time (RFC 3339 §5.6): a full-date, and a full-time on it.</summary>
+/// <param name="Date">The day, as the full-date before the <c>T</c> names it.</param>
+/// <param name="Time">The time of day after the <c>T</c>, with the offset it was written in.</param>
 public sealed record Timestamp(FullDate Date, FullTime Time)
 {
 	/// <summary>A date-time, with §5.7's days, hours, minutes and leap second.</summary>
@@ -195,6 +197,9 @@ public sealed record Timestamp(FullDate Date, FullTime Time)
 }
 
 /// <summary>A full-date (RFC 3339 §5.6): a day of the Gregorian calendar.</summary>
+/// <param name="Year">0000 to 9999.</param>
+/// <param name="Month">01 to 12.</param>
+/// <param name="Day">01 to the last day of the month in that year: 28, 29, 30 or 31.</param>
 public sealed record FullDate(int Year, int Month, int Day)
 {
 	/// <summary>A full-date, a day its month has.</summary>

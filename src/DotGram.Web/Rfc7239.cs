@@ -22,6 +22,8 @@ namespace DotGram.Web;
 public sealed record ForwardedElement(IReadOnlyList<ForwardedElement.Pair> Pairs)
 {
 	/// <summary>A parameter-identifier pair: the name as written and the value after unquoting.</summary>
+	/// <param name="Name">The parameter's name, case as written: <c>for</c>, <c>by</c>, <c>host</c>, <c>proto</c> or an extension.</param>
+	/// <param name="Value">The value, its quotes and their escapes taken off.</param>
 	public sealed record Pair(string Name, string Value);
 
 	/// <summary>A Forwarded field value (RFC 7239 §4): an element per proxy, empty ones left out.</summary>

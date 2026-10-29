@@ -11,13 +11,20 @@ namespace DotGram.Web;
 
 /// <summary>What a List or a Dictionary holds: an Item or an Inner List, each with its parameters.</summary>
 /// <remarks>RFC 9651 §3.1. The two are told apart by type: <c>member is Item</c>.</remarks>
+/// <param name="Parameters">
+/// The parameters written after the member (§3.1.2), in their order; empty where there are none.
+/// </param>
 public abstract record Member(OrderedMap<BareItem> Parameters);
 
 /// <summary>A bare item and its parameters (RFC 9651 §3.3).</summary>
+/// <param name="Value">The value itself, one of the eight kinds of <see cref="BareItem"/>.</param>
+/// <param name="Parameters">The parameters written after the value (§3.1.2), in their order.</param>
 public sealed record Item(BareItem Value, OrderedMap<BareItem> Parameters) : Member(Parameters);
 
 /// <summary>Items in parentheses, and the parameters of the whole (RFC 9651 §3.1.1).</summary>
 /// <remarks>Equal to another with equal items in the same order and equal parameters.</remarks>
+/// <param name="Items">The items between the parentheses, in their order, each with its own parameters.</param>
+/// <param name="Parameters">The parameters written after the closing parenthesis, which belong to the whole list.</param>
 public sealed record InnerList(IReadOnlyList<Item> Items, OrderedMap<BareItem> Parameters) : Member(Parameters)
 {
 	/// <summary>Whether the other list has the same items in the same order and the same parameters.</summary>
@@ -135,19 +142,24 @@ public abstract record BareItem
 	}
 
 	/// <summary>§3.3.1: fifteen digits at most, signed.</summary>
+	/// <param name="Value">The integer, from -999,999,999,999,999 to 999,999,999,999,999.</param>
 	public sealed record Integer(long Value) : BareItem;
 
 	/// <summary>§3.3.2: twelve digits before the point at most, and three after.</summary>
+	/// <param name="Value">The number, its digits after the point kept as written.</param>
 	public sealed record Decimal(decimal Value) : BareItem;
 
 	/// <summary>§3.3.3: printable ASCII, with its escapes taken off.</summary>
+	/// <param name="Value">The text between the quotes, each <c>\"</c> and <c>\\</c> read as the character it escapes.</param>
 	public sealed record String(string Value) : BareItem;
 
 	/// <summary>§3.3.4: a word that begins with a letter or <c>*</c>.</summary>
+	/// <param name="Value">The token as written, case kept.</param>
 	public sealed record Token(string Value) : BareItem;
 
 	/// <summary>§3.3.5: the bytes the base64 between the colons stands for.</summary>
 	/// <remarks>Equal to another holding the same bytes.</remarks>
+	/// <param name="Value">The decoded bytes.</param>
 	public sealed record ByteSequence(byte[] Value) : BareItem
 	{
 		/// <summary>Whether the other sequence holds the same bytes.</summary>
@@ -164,6 +176,7 @@ public abstract record BareItem
 	}
 
 	/// <summary>§3.3.6.</summary>
+	/// <param name="Value">Whether it is <c>?1</c>; <see langword="false"/> for <c>?0</c>.</param>
 	public sealed record Boolean(bool Value) : BareItem
 	{
 		/// <summary>The true value, which §3.3.6 writes <c>?1</c>.</summary>
@@ -174,9 +187,11 @@ public abstract record BareItem
 	}
 
 	/// <summary>§3.3.7: seconds from 1970-01-01T00:00:00Z, leap seconds excluded.</summary>
+	/// <param name="Value">The seconds, negative before 1970, within the fifteen digits an Integer has.</param>
 	public sealed record Date(long Value) : BareItem;
 
 	/// <summary>§3.3.8: Unicode text, with its percent-escapes decoded as UTF-8.</summary>
+	/// <param name="Value">The decoded text.</param>
 	public sealed record DisplayString(string Value) : BareItem;
 }
 
@@ -254,6 +269,7 @@ public sealed class OrderedMap<T> : IReadOnlyList<KeyValuePair<string, T>>, IEqu
 	/// <summary>The entry at a place, counting from zero in the order the entries were written.</summary>
 	public KeyValuePair<string, T> this[int index] => _entries[index];
 
+	/// <summary>The value a key names, the key compared as it was written.</summary>
 	/// <exception cref="KeyNotFoundException">The key is not in the map.</exception>
 	public T this[string key] =>
 		TryGetValue(key, out var value) ? value : throw new KeyNotFoundException($"'{key}' is not in the map.");

@@ -44,6 +44,7 @@ public abstract record JsonValue
 
 	/// <summary>§4: members in the order written, names as unescaped strings, duplicates kept.</summary>
 	/// <remarks>Equal to another with the same members in the same order, a name written twice counted twice.</remarks>
+	/// <param name="Members">Each name with its value, in the order written; a name written twice is there twice.</param>
 	public sealed record Object(IReadOnlyList<KeyValuePair<string, JsonValue>> Members) : JsonValue
 	{
 		/// <summary>
@@ -64,6 +65,7 @@ public abstract record JsonValue
 
 	/// <summary>§5.</summary>
 	/// <remarks>Equal to another with equal elements in the same order.</remarks>
+	/// <param name="Items">The elements, in the order written.</param>
 	public sealed record Array(IReadOnlyList<JsonValue> Items) : JsonValue
 	{
 		/// <summary>Whether the other array has equal elements in the same order.</summary>
@@ -80,9 +82,11 @@ public abstract record JsonValue
 	}
 
 	/// <summary>§7: the string with its escapes undone. An escaped lone surrogate stays one (§8.2).</summary>
+	/// <param name="Value">The text between the quotes, each escape read as the character it stands for.</param>
 	public sealed record String(string Value) : JsonValue;
 
 	/// <summary>§6: the number as written, which <see cref="ToDouble"/> and the rest read at a precision of the caller's choice.</summary>
+	/// <param name="Text">The number exactly as written: sign, digits, fraction and exponent, nothing rounded.</param>
 	public sealed record Number(string Text) : JsonValue
 	{
 		/// <summary>The nearest double, as IEEE 754 binary64 reads it; an exponent past its range is infinity.</summary>
@@ -202,6 +206,7 @@ public abstract record JsonValue
 	}
 
 	/// <summary>§3: <c>true</c> or <c>false</c>.</summary>
+	/// <param name="Value">Which of the two literal names was written.</param>
 	public sealed record Boolean(bool Value) : JsonValue
 	{
 		/// <summary>The literal name <c>true</c>.</summary>
@@ -216,6 +221,13 @@ public abstract record JsonValue
 	{
 		/// <summary>The literal name <c>null</c>.</summary>
 		public static Null Instance { get; } = new();
+
+		/// <summary>
+		/// A <c>null</c> of its own. It equals <see cref="Instance"/>, which is the one the parser hands back.
+		/// </summary>
+		public Null()
+		{
+		}
 	}
 
 	/// <summary>The value as JSON text with no insignificant whitespace, which reads back as the same value.</summary>
