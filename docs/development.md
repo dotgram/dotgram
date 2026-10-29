@@ -258,6 +258,10 @@ framework has is in `PublicAPI/<framework>/`, beside the shared files, and read 
 framework's build alone. The generated FIX versions are most of the surface, so a change to
 `generate.cs` or a template that changes a version's members changes these files too.
 
+The generator package, `DotGram`, has no such files and is left out of the review of the public surface
+before a release: it ships as an analyzer, under `analyzers/` with no `lib/`, so no consumer compiles
+against its types, which are public only for the repository's own projects.
+
 The lines are written by the analyzer, not by hand. The editor's fix for RS0016 adds one, and a
 build that lets the analyzer warn rather than fail prints every missing one, each RS0016 naming
 the line it wants — which is how the 0.2.0 surface, some forty thousand lines, was recorded.
