@@ -5534,8 +5534,9 @@ sealed partial class Machine
 			// refusal of its own: the next one is tried from the same place, and the last fails here.
 			// Agreed from where the alternative began, prefix and all: the mark of input that ran
 			// out inside it stands where the literal began, as it does in a reader that compares
-			// the whole literal (§7.5), not past the prefix the run shares.
-			Further(
+			// the whole literal (§7.5), not past the prefix the run shares. Inside the trivia, recorded
+			// only where the input ran out (FurtherSeamed).
+			FurtherSeamed(
 				writer,
 				$"{RanOut()}(text, p - {matched}, {Quoted(carry)}, false, true, {Marks}, ref failure)",
 				arrayName);
