@@ -104,8 +104,10 @@ static class Generator
 		{
 			var paths = new SortedSet<string>(StringComparer.Ordinal);
 
+			// The generator's own naming, so that P<T> and P_T_, which share a file name, are both found; a
+			// suffix is a nested grammar's, and follows the host's name after a dot.
 			foreach (var symbol in compilation.GetSymbolsWithName(static _ => true, SymbolFilter.Type))
-				if (symbol is INamedTypeSymbol type && type.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat) == name)
+				if (symbol is INamedTypeSymbol type && (GramGenerator.HintNameOf(type, null) is var host) && (host == name || name.StartsWith(host + ".", StringComparison.Ordinal)))
 					foreach (var location in type.Locations)
 						if (location.SourceTree?.FilePath is { Length: > 0 } path)
 							paths.Add(path);

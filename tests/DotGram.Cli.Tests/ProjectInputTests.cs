@@ -589,13 +589,13 @@ public sealed class ProjectInputTests
 
 		// The letter survives where the file's encoding is the one the compiler reads it in. Without a
 		// code page, bytes that are no UTF-8 are read in the system's default code page: UTF-8 on Linux
-		// (a replacement character), the machine's ANSI page on Windows, which reads the Windows-1252
-		// bytes of the letter as the letter only where that page is Windows-1252 (not on a Windows-1251 host).
+		// (a replacement character), the machine's ANSI page on Windows. The letter's Windows-1252 byte
+		// is the letter in whatever the default page makes of it (also in Windows-1250, not in 1251).
 		var written = File.ReadAllText(scratch.Path("out", "Demo.Pairs.g.cs"));
 
-		var defaultIs1252 = OperatingSystem.IsWindows() && Encoding.GetEncoding(0).CodePage == 1252;
+		var defaultReadsLetter = Encoding.GetEncoding(0).GetString([0xE9]) == "\u00e9";
 
-		var survives = codePage.Length > 0 ? encoding == 1252 : encoding == 65001 || (encoding == 1252 && defaultIs1252);
+		var survives = codePage.Length > 0 ? encoding == 1252 : encoding == 65001 || (encoding == 1252 && defaultReadsLetter);
 
 		Assert.Equal(survives, written.Contains('\u00e9', StringComparison.Ordinal));
 	}
@@ -630,6 +630,32 @@ public sealed class ProjectInputTests
 		Assert.True(verbose.Exit == ExitCode.Failure, verbose.ToString());
 		Assert.Contains("ArgumentException", verbose.Error, StringComparison.Ordinal);
 		Assert.Contains("   at ", verbose.Error, StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// Hosts whose generated files get one name (<c>P&lt;T&gt;</c> and <c>P_T_</c> are both <c>P_T_</c>) are
+	/// both named, and so is a generic host declared twice.
+	/// </summary>
+	[Fact]
+	public void Hosts_that_share_a_generated_file_name_are_all_named()
+	{
+		using var scratch = new Scratch();
+
+		var project = App(scratch, "p", PlainHost);
+
+		scratch.Write("p/Generic.cs", "using DotGram;\n\nnamespace Demo\n{\n\t[Gram(\"Pairs.gram\")]\n\tpublic static partial class P<T> { }\n}\n");
+		scratch.Write("p/Flat.cs", "using DotGram;\n\nnamespace Demo\n{\n\t[Gram(\"Pairs.gram\")]\n\tpublic static partial class P_T_ { }\n}\n");
+		scratch.Write("p/sub/Generic.cs", "using DotGram;\n\nnamespace Demo\n{\n\t[Gram(\"Pairs.gram\")]\n\tpublic static partial class P<T> { }\n}\n");
+
+		Dotnet.Restore(project);
+
+		var run = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--line-paths", "absolute");
+
+		Assert.True(run.Exit == ExitCode.Failure, run.ToString());
+		Assert.Contains("'Demo.P_T_.g.cs'", run.Error, StringComparison.Ordinal);
+		Assert.Contains(scratch.Path("p", "Generic.cs"), run.Error, StringComparison.Ordinal);
+		Assert.Contains(scratch.Path("p", "Flat.cs"), run.Error, StringComparison.Ordinal);
+		Assert.Contains(scratch.Path("p", "sub", "Generic.cs"), run.Error, StringComparison.Ordinal);
 	}
 
 	/// <summary>

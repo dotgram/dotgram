@@ -28,6 +28,16 @@ namespace DotGram.Generation;
 [Generator(LanguageNames.CSharp)]
 public sealed class GramGenerator : IIncrementalGenerator
 {
+	/// <summary>
+	/// The name a grammar's generated file is added under, without its <c>.g.cs</c>: the host type as written
+	/// with its type parameters (<c>P&lt;T&gt;</c> is <c>P_T_</c>), and the suffix of a nested grammar.
+	/// Two hosts that give the same name are two sources for one file.
+	/// </summary>
+	public static string HintNameOf(INamedTypeSymbol type, string? suffix)
+	{
+		return type.ToDisplayString().Replace('<', '_').Replace('>', '_') + (suffix is { Length: > 0 } ? "." + suffix : "");
+	}
+
 	const string GramFileExtension = ".gram";
 	const string GramAttribute        = "DotGram.GramAttribute";
 	const string GramOptionsAttribute = "DotGram.GramOptionsAttribute";
@@ -1728,8 +1738,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 				isPartial &= node.Modifiers.Any(modifier => modifier.ValueText == "partial");
 			}
 
-			var hintName = type.ToDisplayString().Replace('<', '_').Replace('>', '_') +
-				(suffix is { Length: > 0 } ? "." + suffix : "");
+			var hintName = HintNameOf(type, suffix);
 			var key      = hintName + "#" + reading.ToString(CultureInfo.InvariantCulture);
 			var included = Inherited(type, candidate.SemanticModel.Compilation);
 
