@@ -2727,7 +2727,7 @@ sealed partial class Machine
 						using (file.Block("if (last == open && entry.Kind == ParserEntry.Call)"))
 						{
 							// Recorded as Fail: records: the furthest refusal, or one tied with it.
-							using (file.Block($"if (entry.Value < 0 && entry.LookaheadIndex < 0{(Quiets ? " && !failure.Quiet" : "")} && failure.Position <= entry.Position)"))
+							using (file.Block($"if (entry.Value < 0 && entry.LookaheadIndex < 0{(Quiets ? " && !failure.Quiet" : "")} {(CountsSeam ? $" && (seaming == 0 || {RanOut("entry.Position")})" : "")} && failure.Position <= entry.Position)"))
 							{
 								file.Line("string[] said;");
 
@@ -3938,7 +3938,7 @@ sealed partial class Machine
 				// and says the sentence there (SaidOnFail).
 				// A rule that says its own refusal says nothing inside the trivia (§7.5); where a rule
 				// the grammar calls too is read, Fail: asks whether the reading is inside the trivia.
-				var saying = _lowering || SaysOf(rule) is not { } spoken ? -1 : SaidOnFail(spoken);
+				var saying = _lowering || SaysOf(rule) is not { } spoken || _seamRule && !_sharedSeam ? -1 : SaidOnFail(spoken);
 
 				// The trivia is entered rather than read in place where a reading counts how many
 				// readings of it it is inside (Shared): its call is the entry Return: and Fail: count
@@ -6534,6 +6534,8 @@ sealed partial class Machine
 			RecordGivenBack(writer, start);
 		// In the seam, only where the input ran out (§7.5). A lowered method counts no readings of
 		// the trivia: it reads for the grammar, so a rule the grammar calls too records there as any.
+		else if (recording is not null && _doorLooking == 0)
+			RecordFurther(writer, $"p > {start} && {(_lowering ? _sharedSeam ? "true" : RanOut("p") : Recorded("p"))}", "p", "expected");
 
 		writer.Line($"p = {start};");
 
@@ -6656,7 +6658,11 @@ sealed partial class Machine
 		// How far the seam's scan got is recorded only where the input ran out there (§7.5); a rule
 		// the grammar calls too, where it called it, as any rule's. A lowered method reads for the
 		// grammar, and counts no readings of the trivia.
-		RecordFurther(writer, "scanReached > p", "scanReached", said);
+		var seamed = call is Node.Call(var called, _) && SeamReached.Contains(called)
+			? Shared.Contains(called) ? _lowering ? "scanReached > p" : $"scanReached > p && (seaming == 0 || {RanOut("scanReached")})" : $"scanReached > p && {RanOut("scanReached")}"
+			: "scanReached > p";
+
+		RecordFurther(writer, seamed, "scanReached", said);
 	}
 
 	/// <summary>How many look arounds kept in locals the states being compiled are inside.</summary>
@@ -7961,8 +7967,7 @@ sealed partial class Machine
 
 			// Every rule of the seam read in states refuses with it where the input did not run out
 			// (EmitTerminalFailure), not only its looks.
-			if (Tag != MachineTag.Seam &&
-				SeamReached.Any(rule => _graph.Bodies.TryGetValue(rule, out var body) && NodeWalk.Descendants(body).Any(static node => node is Node.Lookahead)))
+			if (Tag != MachineTag.Seam && SeamReached.Any(_graph.Bodies.ContainsKey))
 				_unrecorded = Tag.Named("RecognizeUnrecorded");
 
 			return _unrecorded;
@@ -9434,7 +9439,10 @@ sealed partial class Machine
 		// Inside the trivia, and what it calls, a refusal is recorded only where the input ran out
 		// (§7.5): elsewhere it goes to Fail: with the sentinel, and the parse answers from the rule
 		// after the trivia, as the direct reader's Refusal answers.
-		writer.Line($"expected = {arrayName};");
+		if (_seamRule && !_lowering && Sentinel is not null)
+			writer.Line($"expected = {Recorded("p")} ? {arrayName} : {Sentinel};");
+		else
+			writer.Line($"expected = {arrayName};");
 
 		writer.Line($"goto {Label(writer, fail)};");
 	}
