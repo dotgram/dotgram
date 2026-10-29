@@ -32,7 +32,7 @@ is what to decide before using one, the contract they share, and what is easy to
   `INTERSECT` is a list on the query it follows (`Query.SetOperations`), and that query's
   `OrderBy`, `Limit` and locking clauses are then the whole result's; its `Columns`, `From`,
   `Where` are the first operand's. `Query.Operands()` gives every SELECT of a compound.
-- **`Sql92Parser`** (`DotGram.Sql.Standard`) — SQL-92, the base T-SQL is written on. Four
+- **`Sql92Parser`** (`DotGram.Sql.Standard`) — SQL-92 as the standard writes it. Four
   entries: `ParseSelect` (an `Ast.Statement`, a `Statement.Select`), `ParseQuery` (an `Ast.Query`),
   `ParseSearchCondition` and `ParseValueExpression` (an `Ast.Expression`). It builds the tree in
   `DotGram.Sql.Ast`, the one `SqlStandardParser` builds: a text both read is the same tree, and

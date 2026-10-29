@@ -14,6 +14,8 @@ DotGram language support
   own text, as the generator compiles it.
 - A grammar embedded in an attribute reads includes that are .gram files or carried by a
   referenced assembly.
+- Bindings and back-references, `$q: X`, `$q` and `X{#q}`, are classified and described in
+  Quick Info.
 
 0.2.0
 

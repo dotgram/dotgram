@@ -9,7 +9,7 @@
 
 		<Description>Parsers for the formats of the web — JSON, JSON Pointer and Patch, HTTP header fields, URIs and URI Templates, email addresses, timestamps and language tags — written against their specifications and held to their test suites.</Description>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageTags>parser;rfc3339;timestamp;date-time;uri;rfc3986;email;email-address;mailbox;rfc5322;bcp47;language-tag;rfc5646;cookie;set-cookie;rfc6265;content-disposition;filename;rfc6266;uri-template;rfc6570;json-pointer;rfc6901;json-patch;rfc6902;forwarded;proxy;rfc7239;json;rfc8259;link-header;web-linking;rfc8288;media-type;mime;content-type;accept;rfc9110;http;structured-fields;rfc9651;web;dotgram</PackageTags>
+		<PackageTags>parser;json;json-patch;uri;uri-template;email;http;http-headers;content-type;link-header;cookie;language-tag;rfc3339;structured-fields;dotgram</PackageTags>
 		<PackageReleaseNotes>Since 0.2.0. The same formats, read the same way on accepted input; refusals that cost more than linear time are gone, and a few readers follow their RFC more closely.
 
 BREAKING CHANGES, and what to do

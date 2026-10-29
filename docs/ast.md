@@ -3,8 +3,9 @@
 `src/DotGram.Sql/Ast` holds the one tree every SQL parser of the package builds, in the namespace
 `DotGram.Sql.Ast`: `SqlStandardParser` reads SQL:2023 into it, `Sql92Parser` SQL-92, and
 `TransactSqlParser` T-SQL as SQL Server reads it. `SqlAst.cs` is the standard's part, laid out by
-`design/sql-ast.md`; `SqlAst.TransactSql*.cs` add T-SQL's own constructs, in the standard's families
-where it has one and beside them where it does not. `SqlWriter` prints a tree back as SQL and
+`design/sql-ast.md`; `SqlAst.Sql92.cs` adds what SQL-92 has and SQL:2003 removed;
+`SqlAst.TransactSql*.cs` add T-SQL's own constructs, in the standard's families where it has one
+and beside them where it does not. `SqlWriter` prints a tree back as SQL and
 `TransactSqlWriter` as T-SQL reads it; `SqlWalker` visits it. This page is the map of that tree:
 what is in it and where each node comes from, with T-SQL's nodes among the standard's.
 
@@ -17,9 +18,10 @@ specification, and two dialects that read the same production build the same nod
 one each. That is the point of having one tree at all: a text two parsers read is one tree.
 
 Each record says where it comes from in its documentation: `BNF: <…>`, the standard's production,
-or `T-SQL: <page> (Transact-SQL)`, the title of the page of Microsoft's reference. The tables below
-say it for every node, from that comment, from the rule of `SqlStandard.gram` that builds the node
-(whose names are the standard's productions), or from the family the node is in.
+`SQL-92: §<clause> <…>`, the 1992 standard's, or `T-SQL: <page> (Transact-SQL)`, the title of the
+page of Microsoft's reference. The tables below say it for every node, from that comment, from the
+rule of `SqlStandard.gram` that builds the node (whose names are the standard's productions), or
+from the family the node is in.
 
 Three sources appear in the tables:
 

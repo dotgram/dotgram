@@ -2909,6 +2909,7 @@ of it fails a build.
 | `Carrier` | `GramCarrier.Auto` | how a reader carries what it read until the constructions run; below. |
 | `ConstructionsMayThrow` | `false` | a construction may throw on a reading the parse gives up: the immediate carrier holds what it throws and throws it only where the tape would have (§7.5). Ignored on the tape. |
 | `LocationType` | none | an interface whose implementors are told where they were written; below. |
+| `PerCall` | `false` | on a `[GramOptions]` with a `LocationType` and a `Suffix`: the locations are asked for per call, not compiled in; below. |
 | `Trace` | `false` | a trace build: the parser reports what it reads to a sink (§6.9). Changes no answer. |
 
 `[Gram]` is a `[GramOptions]` with a grammar in it, so every option but `Source` and
@@ -2976,6 +2977,27 @@ there. A reading that tells no place that far in reads on.
 
 It changes nothing about what is read, and a grammar that names no interface pays nothing.
 Being an option, it may be given to one reading of a grammar and not to another (§6.6).
+
+#### `PerCall`
+
+```csharp
+[Gram("TransactSql.gram", Lexical = true)]
+[GramOptions(LocationType = typeof(ISqlLocatable), Suffix = "Located", PerCall = true)]
+public abstract partial class TransactSqlParser { }
+```
+
+A second reading that differs from the first only in being told where its values were
+written need not be a second parser. With `PerCall`, the `[GramOptions]` compiles nothing of
+its own: the grammar is compiled once, its constructions are told where they were written only
+when a call asks, and the nested class the suffix names — `TransactSqlParser.Located` — holds
+the same published methods, each of them asking. A call through the class itself does not ask,
+and pays a test per construction for the choice. The interface then offers a third argument,
+`Locate(int at, int length, int gapStart)`, where the gap start is where the text between the
+value and the token before it begins: the end of that token, or where the reading began.
+
+The nested class holds the forms over a string and over segments. The forms over a buffered
+input — a `TextReader`, a `Stream`, bytes — are written on the class itself only; a grammar that
+wants them located names a second reading without `PerCall`, compiled with locations in.
 
 #### `DotGramPositionalFollow` (experimental)
 
@@ -3639,7 +3661,9 @@ form, and what a host branches on.
 rule has to have been entered where the parse stopped and read nothing: a rule that read
 part of what it wanted and failed further in is not what went wrong here, and what it
 wanted there is the better answer. Where one applies, it is the whole of `Error` — the
-author took the wording, and nothing is appended to it.
+author took the wording, and nothing is appended to it. Being part of `Error`, the sentence
+is held to what `Error` is held to above, not to the outcome's standard: a form may name what
+it expected where another says the sentence ([`status.md`](status.md) lists where this version does).
 
 Exceptions appear only at the publication boundary, and only in the methods without a
 `Try` prefix — where a .NET developer expects them. What is thrown is

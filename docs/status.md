@@ -272,11 +272,17 @@ Once that Row either matched or was explicitly recovered, it would not be offere
 to a later path. This preserves a valid trailer or other continuation
 without using atomic groups to classify a failed element.
 
+**A part in front of a rule that recovers does not give back for its bad first element.**
+With `Rows = Row+ recover ';' & '.'`, `Rows` reads `;.` by stepping over the `;`, and
+`';'* & Rows` refuses it: the part is taken never to need a shorter reading on the strength of
+what a good element begins with, and keeps the `;` the recovery would have stepped over. An
+option, a count or a choice of literals in front does the same.
+
 ## What a rejection is told
 
-All thirteen names of §8.2 are supplied — the eleven a recovery names, and `parserInput` and
-`parserState`, which a construction may ask for too (`SuppliedNames`). Two differ from
-the specification in ways worth knowing:
+All fourteen names the parser supplies are there — the eleven a recovery names, and
+`parserInput`, `parserState` and `parserMarks` (§7.8), which a construction may ask for too
+(`SuppliedNames`). Two differ from the specification in ways worth knowing:
 
 - **`parserText` and `parserSpan` stop where the synchronization point begins.** `eol`
   separates the elements and is not part of one, so a rejected `b1b\n` is three
@@ -601,7 +607,7 @@ A method rather than an expression written where the value is assigned, and that
 what makes the capture names usable at all: inside a recognizer they would have to
 dodge every local it has, and a capture called `p` or `state` would collide with the
 machine itself. `parserText` is supplied — the matched extent, §7.3 — and a capture that
-takes that name, or any of the other eight, is refused (GRAM4012).
+takes that name, or any of the other thirteen, is refused (GRAM4012).
 
 **§7.3's first way of filling a type in works**: a rule that declares `: @T` and writes
 no `=>` is built by calling `T`'s constructor, with its captures as the arguments.
@@ -765,7 +771,7 @@ the machine's internals cannot leak in either direction.
 It also means a capture may not be called `parserText`: the parameter is already taken.
 That is the whole reason the supplied names carry a prefix — with it, nothing an author
 would naturally write collides — and `GRAM4012` is the backstop for a capture that takes
-one of the nine anyway. Before it was refused, the generated code simply did not
+one of the fourteen anyway. Before it was refused, the generated code simply did not
 compile — "no overload takes 2 arguments", in a file the author never wrote, about a
 grammar it did not mention. §8.2 of [`syntax.md`](syntax.md) says why the names are
 separate arguments rather than one context object.
@@ -808,6 +814,11 @@ then resumes mid-number, as none at all, which is what the test saw.
 It is also what keeps `eof` honest. The end of a full buffer is indistinguishable from
 the end of the input to a recognizer, and the only thing that can tell them apart is
 whether the reader is finished.
+
+A literal asks the window for room for the whole of itself before it compares its first
+character, which is how the window is filled. So a reader that blocks once its text is used up
+is waited on even where a character it has already given refuses the literal: `"abc"` against
+a reader that has given `X` waits for two more.
 
 **A grammar that does not get one is told so**, as `GRAM5001`, at the directive that
 asked — `'FindStart' gets no overload taking a reader: 'any*' may take more than one
@@ -1100,7 +1111,7 @@ seam that second-guessed the code on the other side of it would cost every parse
 one and still not make a wrong recognizer right. Reaching into the parse means taking the
 parse's invariants on with it.
 
-The one consequence: a grammar containing one gets no streaming overloads. The method is
+The one consequence: a publication that reaches one gets no streaming overloads. The method is
 handed a span and told nothing about where it came from, so it cannot tell the end of a
 window from the end of the input — and, unlike a literal, has no way to say which it hit,
 which is exactly the distinction `Starved` exists to carry. It would read a record cut in
@@ -1367,12 +1378,13 @@ free while nothing had been released, and it stops being free at 0.1.0. From the
 retired number is not reused, because a suppression written against the old meaning would
 silently acquire a new one — which is what `AnalyzerReleases.Shipped.md` is for.
 
-Numbers go by the stage that raises them: `GRAM0002`–`GRAM0008` the Roslyn shell
-(`AnalyzerReleases.Shipped.md`), `GRAM1xxx` the lexer, `GRAM2xxx` the parser, `GRAM3xxx`
+Numbers go by the stage that raises them: `GRAM0002`–`GRAM0010` the Roslyn shell
+(the analyzer's release files), `GRAM1xxx` the lexer, `GRAM2xxx` the parser, `GRAM3xxx`
 the binder, `GRAM4xxx` the normalizer, `GRAM5xxx` the analyses that decide what a grammar
-gets rather than whether it is one. Retired, and listed at the end of
+gets rather than whether it is one; `GRAM6xxx` is the Visual Studio extension's, not the
+generator's. Retired, and listed at the end of
 [`diagnostics.md`](diagnostics.md): `GRAM3013`, `GRAM3015`, `GRAM3017`, `GRAM3018`,
-`GRAM4004`, `GRAM5006`, `GRAM5008` and `GRAM5010`.
+`GRAM4004`, `GRAM5006`, `GRAM5008`, `GRAM5010` and `GRAM5015`.
 
 This file talks about the diagnostics a section explains; `diagnostics.md` is the list.
 Several there have no section here beyond a mention: `GRAM4016` (two alternatives read the
@@ -1450,6 +1462,12 @@ the list of everything that could have stood there. A rule that vanishes in lowe
 that only forwards — leaves its message to the rule that took its place. Nothing reads the
 text.
 
+Three shapes still differ between the forms in what the message says, the outcome and the
+position agreeing: a root read after leading trivia names what it expected on the engine where
+the methods say its sentence; a root a flat method compiles names it where the reader and the
+stream say the sentence; and the reader's call of a rule read whole inside braces names it where
+the engine says the sentence.
+
 ## Who may call a publication, and from where
 
 **`internal parse …` and `private find …`** declare every method the directive makes with
@@ -1486,8 +1504,9 @@ and never where the smaller one streams.
 ## One grammar, several readings and several sources
 
 **`[GramOptions]`** carries what `[Gram]` does except which grammar: `Suffix`, `PartSize`,
-`Direct`, `Lexical`, `Carrier`, `Stacks`, `LocationType`, `Portable` and `Trace`. `[Gram]` derives
-from it and adds the source and `IncludedAs`. Every `[GramOptions]` on a class is a
+`Lexical`, `Carrier`, `ConstructionsMayThrow`, `BufferedInput`, `BufferedBytes`, `SpanCaptures`,
+`MaxRetained`, `BufferSize`, `Stacks`, `LocationType`, `PerCall`, `Portable` and `Trace`.
+`[Gram]` derives from it and adds the source and `IncludedAs`. Every `[GramOptions]` on a class is a
 compilation of its own in a nested class named by `Suffix` — `Sql.Immediate.TryParseR` —
 taking from `[Gram]` whatever it does not say. Two wanting one scope is `GRAM0006`; a
 `Suffix` that is not an identifier is `GRAM0007`.
@@ -1496,8 +1515,9 @@ taking from `[Gram]` whatever it does not say. Two wanting one scope is `GRAM000
 namespace named `As`, or `X`'s `IncludedAs`, or `X`'s name, and brings `X`'s static
 members into the generated code's scope. It may be written many times, and what it names is
 walked in turn, together with the base classes. Two under one name is `GRAM0008`; an
-`IncludedAs` that is not an identifier is `GRAM0005`. `DotGram.Sql`'s T-SQL grammar
-includes SQL-92 this way.
+`IncludedAs` that is not an identifier is `GRAM0005`. `LexemeLibraryExample` in `examples/`
+includes a grammar this way. `DotGram.Sql`'s grammars include none: its T-SQL grammar restates
+the rules it shares with SQL-92.
 
 **`[GramSource]`** is the grammar's text, written by the generator onto a class it
 compiled where `Portable` holds — by default, where the class is visible outside its
@@ -1744,6 +1764,11 @@ first, an ordinary one beside it is read greedily, least and most are held, and 
 after the last part is refused. A part that collects a value without being a call, and a rule
 with its own `=>`, get no reader.
 
+Two shapes that read the same either way are refused a reader all the same, because the check
+cannot tell them from shapes that do not: space trivia reached through the seam after a part's
+optional prefix, beside the trivia in front of the part; and a choice of alternatives that call
+fixed-width rules, whose overlapping first sets are taken for one being a prefix of the other.
+
 ## What has been measured
 
 Eight of the architecture's claims now have numbers rather than reasoning behind them.
@@ -1927,7 +1952,7 @@ Everything the architecture claims now has a number behind it.
 ## What the tests cover
 
 `SemanticTests` is a corpus of small grammars run against real input, and grammars
-that must be refused. `SnapshotTests` compiles one whole grammar and compares the
+that must be refused. `SnapshotTests` compiles whole grammars and compares each
 generated file with the one checked in, so a change to code generation is a diff.
 `GeneratorDriverTests` drives the generator in memory; the test project also has the
 generator attached as an analyzer, so it runs over the tests' own sources.
@@ -1952,7 +1977,7 @@ either in the code or listed as retired. That is a check on the reference, not o
 coverage. Many diagnostics are raised and asserted by the semantic, driver and emitter
 tests, but no test checks that each of them is, and "every diagnostic has a test that
 raises it" — which this paragraph used to say, of twenty-nine — is not claimed for today's
-eighty-odd.
+hundred and more.
 
 `ConcurrentParsingTests` holds the concurrency claim to a real race rather than to
 reasoning about it: a parser of every shipped package, read at once by a large batch of

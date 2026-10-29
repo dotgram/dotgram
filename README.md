@@ -52,7 +52,7 @@ query and filter languages, markup, and languages of your own — including ones
 ## Getting started
 
 ```xml
-<PackageReference Include="DotGram" Version="0.2.0"
+<PackageReference Include="DotGram" Version="0.3.0"
                   PrivateAssets="all" ExcludeAssets="runtime" />
 ```
 
@@ -865,7 +865,7 @@ query.From!.Sources[0];  // TableSource.Named { Name = Users }
 | --- | --- |
 | [`SqlStandardParser`](src/DotGram.Sql/Standard/SqlStandard.gram) | ISO SQL:2023, written from its BNF, with typed expressions, queries and statements |
 | [`Sql92Parser`](src/DotGram.Sql/Standard/SqlStandard92.gram) | SQL-92, read through a lexical split |
-| [`TransactSqlParser`](src/DotGram.Sql/TransactSql/TransactSql.gram) | T-SQL, written as a dialect over SQL-92 rather than as a copy of it |
+| [`TransactSqlParser`](src/DotGram.Sql/TransactSql/TransactSql.gram) | T-SQL, a grammar that stands alone, restating the SQL-92 rules it reads as the standard has them |
 
 `TransactSqlParser` reads at four of the standard's levels — `ParseExpression`, `ParseSearchCondition`,
 `ParseStatement` and `ParseSql`, with the per-version entries and `ParseSelect` — and `SqlStandardParser`
@@ -1013,6 +1013,13 @@ The generated parser is C# 8 and targets whatever the project around it targets.
 One thing is written differently above the floor: where the project's C# is 11 or later, a
 lexical grammar's transition table is a UTF-8 literal rather than an array initializer of
 every cell, which the compiler reads as one token. The parser it makes is the same.
+
+One thing costs more below C# 11: the table of what each refusal expected is then an ordinary
+string rather than a UTF-8 literal, and an ordinary string goes into the assembly's user-string
+heap, which holds about 16 MB in all. For the T-SQL grammar that is about 600 KB per parser
+class; several classes with different tables add up, while identical ones are stored once. An
+assembly compiled at C# 8 to 10 that already holds close to 16 MB of strings fails to compile
+(CS8103). From C# 11 the table takes none of that heap.
 
 Two things an older target has to say:
 
