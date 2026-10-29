@@ -160,6 +160,18 @@ writes them: the folder's path from the root, since a bare `Generated/**` matche
 `.gitattributes`; the tool prints the line for its output folder. It prints
 the GRAM diagnostics; the editor does not show them in a project that no longer references the package.
 
+Under `core.autocrlf=true` Git converts line endings on checkout and commit, and a fresh generation then
+differs from what is committed, so `git status` is not clean. The generated files and `.dotgram.json` are
+written with LF, and the grammar sources (`.gram` files, and the `.cs` files that hold inline grammars) are
+read as checked out, so their line endings reach the generated text. Pin all of them in `.gitattributes`
+(the first line is the one above; it covers `.dotgram.json`, which sits in the output folder):
+
+```gitattributes
+src/Grammars/Generated/** -text
+*.gram                    text eol=lf
+src/Grammars/**/*.cs      text eol=lf
+```
+
 ## Exit codes
 
 | Code | Meaning |
