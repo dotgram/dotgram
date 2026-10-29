@@ -19,6 +19,25 @@ public sealed class WorkingDirectoryTests
 		Assert.Null(temporary);
 	}
 
+	/// <summary>The message of an unsatisfiable <c>global.json</c> names the user's file, not the tool's temporary copy of it.</summary>
+	[Fact]
+	public void A_message_names_the_global_json_of_the_project_not_the_temporary_copy()
+	{
+		using var scratch = new Scratch();
+
+		var deep = scratch.Path("a", "b");
+
+		Directory.CreateDirectory(deep);
+		File.WriteAllText(scratch.Path("global.json"), "{}");
+
+		var copy = Path.Combine(scratch.Path("tmp"), "global.json");
+
+		var text = MSBuild.NamedForUser($"A compatible .NET SDK was not found.\nGlobal.json file: {copy}\n", scratch.Path("tmp"), deep);
+
+		Assert.Contains("Global.json file: " + scratch.Path("global.json"), text, StringComparison.Ordinal);
+		Assert.DoesNotContain(copy, text, StringComparison.Ordinal);
+	}
+
 	/// <summary>A directory too long to start a process in is replaced by a short one holding the <c>global.json</c> the long one would find.</summary>
 	[Fact]
 	public void A_long_directory_is_replaced_by_a_short_one_with_the_same_global_json()

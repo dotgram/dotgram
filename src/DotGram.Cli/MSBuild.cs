@@ -313,7 +313,11 @@ static class MSBuild
 
 		try
 		{
-			return Run(workingDirectory, directory, arguments);
+			var (exit, output, error) = Run(workingDirectory, directory, arguments);
+
+			return temporary is null
+				? (exit, output, error)
+				: (exit, NamedForUser(output, temporary, directory), NamedForUser(error, temporary, directory));
 		}
 		finally
 		{
@@ -329,6 +333,28 @@ static class MSBuild
 				}
 			}
 		}
+	}
+
+	/// <summary>
+	/// What <c>dotnet</c> printed with the <c>global.json</c> of the temporary folder (an unsatisfiable one is
+	/// named in its message) said as the file the user wrote: the one the project's directory finds.
+	/// </summary>
+	internal static string NamedForUser(string text, string temporary, string directory)
+	{
+		var copy = Path.Combine(temporary, "global.json");
+
+		if (!text.Contains(copy, StringComparison.OrdinalIgnoreCase))
+			return text;
+
+		for (var folder = new DirectoryInfo(directory); folder is not null; folder = folder.Parent)
+		{
+			var pinned = Path.Combine(folder.FullName, "global.json");
+
+			if (File.Exists(pinned))
+				return text.Replace(copy, pinned, StringComparison.OrdinalIgnoreCase);
+		}
+
+		return text.Replace(copy, "(no global.json)", StringComparison.OrdinalIgnoreCase);
 	}
 
 	static (int Exit, string Output, string Error) Run(string workingDirectory, string directory, IEnumerable<string> arguments)
