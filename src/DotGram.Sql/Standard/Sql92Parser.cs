@@ -5,16 +5,18 @@ using DotGram;
 namespace DotGram.Sql.Standard;
 
 /// <summary>
-/// SQL-92, kept for now. The expression layer of standard SQL — <c>&lt;value expression&gt;</c> and
-/// <c>&lt;search condition&gt;</c> — as ISO/IEC 9075:1992 defines them.
+/// SQL-92 as ISO/IEC 9075:1992 writes it: a <c>SELECT</c>, a query expression, a search condition and a
+/// value expression, each read into the tree of <c>DotGram.Sql.Ast</c>.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The bottom of the language, and deliberately only the bottom. SQL divides into
-/// expressions, clauses and statements, and the two above cannot be written honestly
-/// without the one below: a <c>SELECT</c> is mostly places where an expression stands.
-/// So this is the expression layer, finished and testable on its own, and the query
-/// level goes above it later.
+/// The parser for a text held to SQL-92, the compact core every later edition and most engines start
+/// from. What that edition does not have is refused, with two exceptions: a <c>/* … */</c> comment,
+/// which SQL:1999 added, is read as trivia beside SQL-92's <c>--</c>, and a sign may stand before a
+/// value that is itself signed (<c>- -1</c>), where §6.12 gives a factor one sign. It also reads what
+/// later editions removed: a bit string literal (<c>B'0101'</c>), <c>BIT</c> and <c>BIT VARYING</c>,
+/// and <c>UNION JOIN</c>. <see cref="SqlStandardParser"/> reads SQL:2023, which keeps most of the
+/// earlier editions' syntax but refuses those removed constructs; both build the same tree.
 /// </para>
 /// <para>
 /// <b>The rule names are the standard's, production for production.</b>
@@ -50,11 +52,6 @@ namespace DotGram.Sql.Standard;
 /// no larger than one (a <c>CURRENT_TIME</c> precision is a literal, and keeps its digits): what SQL-92 does
 /// not say is refused, and nothing it reads is left without a record. Its reserved words are §5.2's, all
 /// of them, so a field's word after a value is an interval primary (§6.15) and never a name.
-/// </para>
-/// <para>
-/// <b>Temporary.</b> The standard's parser is <c>SqlStandardParser</c>, written from SQL:2023 down
-/// through the earlier editions (docs/design/sql-parsers.md). This one stays while the benchmarks
-/// hold it against a hand-written recognizer, and goes when they do not; T-SQL no longer includes it.
 /// </para>
 /// <para>
 /// <b>It is carried immediately, by name.</b> A node is built the moment its rule has been read, and

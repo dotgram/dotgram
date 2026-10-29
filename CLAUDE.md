@@ -70,7 +70,7 @@ src/
 	                      DotGram.Sql namespace, and a directory and namespace per dialect
 		Ast/              the one tree every SQL parser builds, in DotGram.Sql.Ast:
 		                  its records (SqlAst*.cs) and SqlWriter
-		Standard/         ISO SQL: SqlStandardParser (SQL:2023) and, for now, Sql92Parser;
+		Standard/         ISO SQL: SqlStandardParser (SQL:2023) and Sql92Parser (SQL-92);
 		                  Specification/ holds the ISO BNF
 		TransactSql/      T-SQL, TransactSqlParser; Specification/ holds Microsoft's
 		                  published syntax. Each dialect is its own grammar, meeting the
