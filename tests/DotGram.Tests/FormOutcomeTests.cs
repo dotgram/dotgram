@@ -185,6 +185,23 @@ public sealed class FormOutcomeTests
 		["PositiveLookOverAGuardedRuleRanOutInTriviaRead"] = new("trivia = { (' ' | '#' & ?=H & [^ ' ']*)* }\nH : @int = g: ('a' | \"ab\") & when @(g.Length > 1) => @(g.Length)\nR0 = 'c'\nparse R0\n", "#a", "reader", 0, "Starved@1"),
 		["UnclosedCommentAtTheEnd"] = new("trivia = (' ' | \"--\" & [^ '\\n']* & ?=eol)*\nR0 = ['a'..'c']+\nparse R0\n", "--", "string", 0, "Starved@2"),
 
+		// A rule both the trivia and the grammar call is read as the call stands: refused inside the
+		// trivia it says nothing, refused where the grammar called it, it is recorded as any rule.
+		["SharedRuleCalledFromTriviaAndTheGrammar"] = new("trivia = { (' ' | '#' & W)* }\nW = 'x' & 'y'\nR0 = 'a' & W\nparse R0\n", "axz", "string", 0, "NoMatch@2"),
+		["SharedRuleCalledFromTriviaAndTheGrammarRead"] = new("trivia = { (' ' | '#' & W)* }\nW = 'x' & 'y'\nR0 = 'a' & W\nparse R0\n", "axz", "reader", 0, "NoMatch@2"),
+		["SharedRuleCalledFromTriviaAndTheGrammarStreamed"] = new("trivia = { (' ' | '#' & W)* }\nW = 'x' & 'y'\nR0 = 'a' & W\nparse R0\n", "axz", "stream", 0, "NoMatch@2"),
+		["SharedRuleWithALookCalledFromTriviaAndTheGrammar"] = new("trivia = { (' ' | '#' & W)* }\nW = 'x' & ?!'z' & any\nR0 = 'a' & W\nparse R0\n", "axz", "string", 0, "NoMatch@2"),
+		["SharedRuleWithALookCalledFromTriviaAndTheGrammarRead"] = new("trivia = { (' ' | '#' & W)* }\nW = 'x' & ?!'z' & any\nR0 = 'a' & W\nparse R0\n", "axz", "reader", 0, "NoMatch@2"),
+		["SharedRuleRefusedInsideTheTrivia"] = new("trivia = { (' ' | '#' & W)* }\nW = 'x' & 'y'\nR0 = 'a' & W\nparse R0\n", "#xz", "string", 0, "NoMatch@0"),
+		["SharedRuleRefusedInsideTheTriviaRead"] = new("trivia = { (' ' | '#' & W)* }\nW = 'x' & 'y'\nR0 = 'a' & W\nparse R0\n", "#xz", "reader", 0, "NoMatch@0"),
+		["SharedRuleSayingItsRefusal"] = new("trivia = { (' ' | '#' & W)* }\nW : @int on fail \"no W\" = 'x' & 'y' => @(0)\nR0 : @int = 'a' & W => @(0)\nparse R0\n", "axz", "string", 0, "NoMatch@2"),
+		["SharedRuleSayingItsRefusalInsideTheTrivia"] = new("trivia = { (' ' | '#' & W)* }\nW : @int on fail \"no W\" = 'x' & 'y' => @(0)\nR0 : @int = 'a' & W => @(0)\nparse R0\n", "#xz", "string", 0, "NoMatch@0"),
+
+		// §7.5's example: a block comment left open at the end of the input starves the parse where
+		// the comment stands.
+		["BlockCommentLeftOpenAtTheEnd"] = new("trivia = { (' ' | Std.BlockComment(\"/*\", \"*/\"))* }\nR0 = 'z' & 'q'\nparse R0\n", "z /* x", "string", 0, "Starved@6"),
+		["BlockCommentLeftOpenAtTheEndRead"] = new("trivia = { (' ' | Std.BlockComment(\"/*\", \"*/\"))* }\nR0 = 'z' & 'q'\nparse R0\n", "z /* x", "reader", 0, "Starved@6"),
+
 		// Over kinds, a repetition short of its minimum that stopped at the end of the tokens says
 		// what it wanted: the direct reader says nothing and answers from the start.
 		["TokenRepetitionBelowMinimum"] = new(Lexical + "R0 = Lexical.Digits & ['a'..'c']+\nparse R0\n", "0", "string", 0, "Starved@1", Lexical: true),
