@@ -26816,14 +26816,17 @@ search for the delimiter that found none jumped to the refusal without saying ho
   NoMatch where a mark inside a negative look no longer counts, and 45 are Starved moved to where the input ran out.
   The rule itself — against the readers with every look fixed but the trivia's terminals still recorded — moves 7,413
   agreed answers: 7,327 NoMatch answered from the rule after the trivia, 69 NoMatch turned Starved at the end, 17
-  Starved moved to the end; it is its own commit, and its own paragraph of §7.5. Three shapes inside the trivia still
+  Starved moved to the end; it is its own commit, and its own paragraph of §7.5. Four shapes inside the trivia still
   answer apart, and `FormOutcomeTests` pins them as they stand: a choice the engine resumes after a rule it called
   returned records the alternative's refusal where the reader records nothing (`trivia = ('#' & W)*`,
   `W = 'x' & ('y' | 'y' & 'q' & 'r')` on `#xyqz`: NoMatch at 3 and at 4); over a string the scan of a positive look's
   body keeps no mark of input that ran out inside it, so `{ ('#' & ?="ab" & any*)* }` on `#a` is NoMatch at 0 where the
   reader forms say Starved at 1, as main did; and a counted repetition's extra turn refused at the end of a braced
   trivia, `{ ('#' & ([^ '\n'] & any){1,2} & ?!('#'?))* }` on `#cp`, is Starved at 3 in the engine and NoMatch at 1 in
-  the reader.
+  the reader; and a choice of literals inside the trivia refused past their shared prefix on input that was there,
+  `trivia = ('#' & ("ab" | "ac"))*` on `#ax`, is recorded by the engine where the literals stopped agreeing (NoMatch at
+  2) and by the reader nowhere (NoMatch at 0), the literal walk sharpening its set and failing without asking whether
+  it is inside the trivia.
 - **What it cost.** Generated source: the T-SQL parser +0.24% (9,080,416 to 9,101,831 bytes), SQL:2023 +0.24%,
   SQL-92 +0.14%: the positional forms clamp their position, the ran-out helper takes whether it is inside a
   negative look, the engine declares and counts `negating`, and the direct reader counts `Negating` on the

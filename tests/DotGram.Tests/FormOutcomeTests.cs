@@ -228,7 +228,25 @@ public sealed class FormOutcomeTests
 		["RecursiveRuleInTriviaRead"] = new("trivia = { ('#' & W)* }\nW = 'x' & (W | 'y')\nR0 = 'a' & W\nparse R0\n", "#xxz", "reader", 0, "NoMatch@0"),
 		["GuardRefusedInTrivia"] = new("trivia = { ('#' & 'a' & when @(false))* }\nR0 = 'z'\nparse R0\n", "#az", "string", 0, "NoMatch@0"),
 		["GuardRefusedInTriviaRead"] = new("trivia = { ('#' & 'a' & when @(false))* }\nR0 = 'z'\nparse R0\n", "#az", "reader", 0, "NoMatch@0"),
-		["RecognizerRefusedInTrivia"] = new("trivia = { ('#' & 'a' & @Odd)* }\nR0 = 'z'\nparse R0\n", "#az", "string", 0, "NoMatch@0"),
+		// The guard after the recognizer keeps the engine from reading the turn as a scan, so the
+		// arena's own recognizer failure is what the row exercises.
+		["RecognizerRefusedInTrivia"] = new("trivia = { ('#' & 'a' & @Odd & when @(true))* }\nR0 = 'z'\nparse R0\n", "#az", "string", 0, "NoMatch@0"),
+		["RecognizerRefusedInTriviaAtTheEnd"] = new("trivia = { ('#' & 'a' & @Odd & when @(true))* }\nR0 = 'z'\nparse R0\n", "#a", "string", 0, "Starved@2"),
+
+		// Known issue: a choice of literals inside the trivia, refused past their shared prefix on
+		// input that was there, is recorded by the engine where the literals stopped agreeing — the
+		// literal walk sharpens the set and goes to Fail: without asking whether it is inside the
+		// trivia — where the direct reader records nothing. Braced, the string forms of both readers
+		// record nothing and their reader forms record where the literals stopped agreeing.
+		["LiteralChoiceRefusedInTrivia"] = new("trivia = ('#' & (\"ab\" | \"ac\"))*\nR0 = 'z'\nparse R0\n", "#ax", "string", 0, "NoMatch@0", Engine: "NoMatch@2"),
+		["LiteralChoiceRefusedInTriviaRead"] = new("trivia = ('#' & (\"ab\" | \"ac\"))*\nR0 = 'z'\nparse R0\n", "#ax", "reader", 0, "NoMatch@0", Engine: "NoMatch@2"),
+		["LiteralChoiceRefusedInBracedTrivia"] = new("trivia = { ('#' & (\"ab\" | \"ac\"))* }\nR0 = 'z'\nparse R0\n", "#ax", "string", 0, "NoMatch@0"),
+		["LiteralChoiceRefusedInBracedTriviaRead"] = new("trivia = { ('#' & (\"ab\" | \"ac\"))* }\nR0 = 'z'\nparse R0\n", "#ax", "reader", 0, "NoMatch@2"),
+
+		// Known issue: a counted repetition's extra turn refused at the end of the input inside a
+		// braced trivia is recorded by the engine, where the input ran out, and not by the direct
+		// reader, which gives the turn back; main answered so too.
+		["CountedTurnAtTheEndOfBracedTrivia"] = new("trivia = { ('#' & ([^ '\\n'] & any){1,2} & ?!('#'?))* }\nR0 = any & eof\nparse R0\n", "#cp", "string", 0, "NoMatch@1", Engine: "Starved@3"),
 
 		// Over kinds, a repetition short of its minimum that stopped at the end of the tokens says
 		// what it wanted: the direct reader says nothing and answers from the start.
