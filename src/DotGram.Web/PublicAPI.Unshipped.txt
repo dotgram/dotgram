@@ -1,0 +1,904 @@
+#nullable enable
+DotGram.Web.AddrSpec
+DotGram.Web.AddrSpec.<Clone>$() -> DotGram.Web.AddrSpec!
+DotGram.Web.AddrSpec.AddrSpec(string! LocalPart, string! Domain) -> void
+DotGram.Web.AddrSpec.Deconstruct(out string! LocalPart, out string! Domain) -> void
+DotGram.Web.AddrSpec.Domain.get -> string!
+DotGram.Web.AddrSpec.Domain.init -> void
+DotGram.Web.AddrSpec.Equals(DotGram.Web.AddrSpec? other) -> bool
+DotGram.Web.AddrSpec.IsDomainLiteral.get -> bool
+DotGram.Web.AddrSpec.LocalPart.get -> string!
+DotGram.Web.AddrSpec.LocalPart.init -> void
+DotGram.Web.BareItem
+DotGram.Web.BareItem.BareItem(DotGram.Web.BareItem! original) -> void
+DotGram.Web.BareItem.Boolean
+DotGram.Web.BareItem.Boolean.Boolean(bool Value) -> void
+DotGram.Web.BareItem.Boolean.Deconstruct(out bool Value) -> void
+DotGram.Web.BareItem.Boolean.Equals(DotGram.Web.BareItem.Boolean? other) -> bool
+DotGram.Web.BareItem.Boolean.Value.get -> bool
+DotGram.Web.BareItem.Boolean.Value.init -> void
+DotGram.Web.BareItem.ByteSequence
+DotGram.Web.BareItem.ByteSequence.ByteSequence(byte[]! Value) -> void
+DotGram.Web.BareItem.ByteSequence.Deconstruct(out byte[]! Value) -> void
+DotGram.Web.BareItem.ByteSequence.Equals(DotGram.Web.BareItem.ByteSequence? other) -> bool
+DotGram.Web.BareItem.ByteSequence.Value.get -> byte[]!
+DotGram.Web.BareItem.ByteSequence.Value.init -> void
+DotGram.Web.BareItem.Date
+DotGram.Web.BareItem.Date.Date(long Value) -> void
+DotGram.Web.BareItem.Date.Deconstruct(out long Value) -> void
+DotGram.Web.BareItem.Date.Equals(DotGram.Web.BareItem.Date? other) -> bool
+DotGram.Web.BareItem.Date.Value.get -> long
+DotGram.Web.BareItem.Date.Value.init -> void
+DotGram.Web.BareItem.Decimal
+DotGram.Web.BareItem.Decimal.Decimal(decimal Value) -> void
+DotGram.Web.BareItem.Decimal.Deconstruct(out decimal Value) -> void
+DotGram.Web.BareItem.Decimal.Equals(DotGram.Web.BareItem.Decimal? other) -> bool
+DotGram.Web.BareItem.Decimal.Value.get -> decimal
+DotGram.Web.BareItem.Decimal.Value.init -> void
+DotGram.Web.BareItem.DisplayString
+DotGram.Web.BareItem.DisplayString.Deconstruct(out string! Value) -> void
+DotGram.Web.BareItem.DisplayString.DisplayString(string! Value) -> void
+DotGram.Web.BareItem.DisplayString.Equals(DotGram.Web.BareItem.DisplayString? other) -> bool
+DotGram.Web.BareItem.DisplayString.Value.get -> string!
+DotGram.Web.BareItem.DisplayString.Value.init -> void
+DotGram.Web.BareItem.Integer
+DotGram.Web.BareItem.Integer.Deconstruct(out long Value) -> void
+DotGram.Web.BareItem.Integer.Equals(DotGram.Web.BareItem.Integer? other) -> bool
+DotGram.Web.BareItem.Integer.Integer(long Value) -> void
+DotGram.Web.BareItem.Integer.Value.get -> long
+DotGram.Web.BareItem.Integer.Value.init -> void
+DotGram.Web.BareItem.String
+DotGram.Web.BareItem.String.Deconstruct(out string! Value) -> void
+DotGram.Web.BareItem.String.Equals(DotGram.Web.BareItem.String? other) -> bool
+DotGram.Web.BareItem.String.String(string! Value) -> void
+DotGram.Web.BareItem.String.Value.get -> string!
+DotGram.Web.BareItem.String.Value.init -> void
+DotGram.Web.BareItem.Token
+DotGram.Web.BareItem.Token.Deconstruct(out string! Value) -> void
+DotGram.Web.BareItem.Token.Equals(DotGram.Web.BareItem.Token? other) -> bool
+DotGram.Web.BareItem.Token.Token(string! Value) -> void
+DotGram.Web.BareItem.Token.Value.get -> string!
+DotGram.Web.BareItem.Token.Value.init -> void
+DotGram.Web.ContentDisposition
+DotGram.Web.ContentDisposition.<Clone>$() -> DotGram.Web.ContentDisposition!
+DotGram.Web.ContentDisposition.ContentDisposition(string! Type, System.Collections.Generic.IReadOnlyList<DotGram.Web.ContentDisposition.Parameter!>! Parameters) -> void
+DotGram.Web.ContentDisposition.Deconstruct(out string! Type, out System.Collections.Generic.IReadOnlyList<DotGram.Web.ContentDisposition.Parameter!>! Parameters) -> void
+DotGram.Web.ContentDisposition.Equals(DotGram.Web.ContentDisposition? other) -> bool
+DotGram.Web.ContentDisposition.Filename.get -> string?
+DotGram.Web.ContentDisposition.Find(string! name) -> DotGram.Web.ContentDisposition.Parameter?
+DotGram.Web.ContentDisposition.IsAttachment.get -> bool
+DotGram.Web.ContentDisposition.IsInline.get -> bool
+DotGram.Web.ContentDisposition.Parameter
+DotGram.Web.ContentDisposition.Parameter.<Clone>$() -> DotGram.Web.ContentDisposition.Parameter!
+DotGram.Web.ContentDisposition.Parameter.Deconstruct(out string! Name, out string! Value, out DotGram.Web.ExtendedValue? Extended) -> void
+DotGram.Web.ContentDisposition.Parameter.Equals(DotGram.Web.ContentDisposition.Parameter? other) -> bool
+DotGram.Web.ContentDisposition.Parameter.Extended.get -> DotGram.Web.ExtendedValue?
+DotGram.Web.ContentDisposition.Parameter.Extended.init -> void
+DotGram.Web.ContentDisposition.Parameter.Name.get -> string!
+DotGram.Web.ContentDisposition.Parameter.Name.init -> void
+DotGram.Web.ContentDisposition.Parameter.Parameter(string! Name, string! Value, DotGram.Web.ExtendedValue? Extended) -> void
+DotGram.Web.ContentDisposition.Parameter.Value.get -> string!
+DotGram.Web.ContentDisposition.Parameter.Value.init -> void
+DotGram.Web.ContentDisposition.Parameters.get -> System.Collections.Generic.IReadOnlyList<DotGram.Web.ContentDisposition.Parameter!>!
+DotGram.Web.ContentDisposition.Parameters.init -> void
+DotGram.Web.ContentDisposition.Type.get -> string!
+DotGram.Web.ContentDisposition.Type.init -> void
+DotGram.Web.CookieDate
+DotGram.Web.CookiePair
+DotGram.Web.CookiePair.<Clone>$() -> DotGram.Web.CookiePair!
+DotGram.Web.CookiePair.CookiePair(string! Name, string! Value) -> void
+DotGram.Web.CookiePair.Deconstruct(out string! Name, out string! Value) -> void
+DotGram.Web.CookiePair.Equals(DotGram.Web.CookiePair? other) -> bool
+DotGram.Web.CookiePair.Name.get -> string!
+DotGram.Web.CookiePair.Name.init -> void
+DotGram.Web.CookiePair.Value.get -> string!
+DotGram.Web.CookiePair.Value.init -> void
+DotGram.Web.EmailAddress
+DotGram.Web.EmailAddress.EmailAddress(DotGram.Web.EmailAddress! original) -> void
+DotGram.Web.EmailAddress.Group
+DotGram.Web.EmailAddress.Group.Deconstruct(out string! DisplayName, out System.Collections.Generic.IReadOnlyList<DotGram.Web.EmailAddress.Mailbox!>! Members) -> void
+DotGram.Web.EmailAddress.Group.DisplayName.get -> string!
+DotGram.Web.EmailAddress.Group.DisplayName.init -> void
+DotGram.Web.EmailAddress.Group.Equals(DotGram.Web.EmailAddress.Group? other) -> bool
+DotGram.Web.EmailAddress.Group.Group(string! DisplayName, System.Collections.Generic.IReadOnlyList<DotGram.Web.EmailAddress.Mailbox!>! Members) -> void
+DotGram.Web.EmailAddress.Group.Members.get -> System.Collections.Generic.IReadOnlyList<DotGram.Web.EmailAddress.Mailbox!>!
+DotGram.Web.EmailAddress.Group.Members.init -> void
+DotGram.Web.EmailAddress.Mailbox
+DotGram.Web.EmailAddress.Mailbox.Address.get -> DotGram.Web.AddrSpec!
+DotGram.Web.EmailAddress.Mailbox.Address.init -> void
+DotGram.Web.EmailAddress.Mailbox.Deconstruct(out string? DisplayName, out DotGram.Web.AddrSpec! Address) -> void
+DotGram.Web.EmailAddress.Mailbox.DisplayName.get -> string?
+DotGram.Web.EmailAddress.Mailbox.DisplayName.init -> void
+DotGram.Web.EmailAddress.Mailbox.Equals(DotGram.Web.EmailAddress.Mailbox? other) -> bool
+DotGram.Web.EmailAddress.Mailbox.Mailbox(string? DisplayName, DotGram.Web.AddrSpec! Address) -> void
+DotGram.Web.ExtendedValue
+DotGram.Web.ExtendedValue.<Clone>$() -> DotGram.Web.ExtendedValue!
+DotGram.Web.ExtendedValue.Charset.get -> string!
+DotGram.Web.ExtendedValue.Charset.init -> void
+DotGram.Web.ExtendedValue.Deconstruct(out string! Charset, out string? Language, out string? Value) -> void
+DotGram.Web.ExtendedValue.Equals(DotGram.Web.ExtendedValue? other) -> bool
+DotGram.Web.ExtendedValue.ExtendedValue(string! Charset, string? Language, string? Value) -> void
+DotGram.Web.ExtendedValue.Language.get -> string?
+DotGram.Web.ExtendedValue.Language.init -> void
+DotGram.Web.ExtendedValue.Value.get -> string?
+DotGram.Web.ExtendedValue.Value.init -> void
+DotGram.Web.ForwardedElement
+DotGram.Web.ForwardedElement.<Clone>$() -> DotGram.Web.ForwardedElement!
+DotGram.Web.ForwardedElement.By.get -> DotGram.Web.ForwardedNode?
+DotGram.Web.ForwardedElement.Deconstruct(out System.Collections.Generic.IReadOnlyList<DotGram.Web.ForwardedElement.Pair!>! Pairs) -> void
+DotGram.Web.ForwardedElement.Equals(DotGram.Web.ForwardedElement? other) -> bool
+DotGram.Web.ForwardedElement.Find(string! name) -> string?
+DotGram.Web.ForwardedElement.For.get -> DotGram.Web.ForwardedNode?
+DotGram.Web.ForwardedElement.ForwardedElement(System.Collections.Generic.IReadOnlyList<DotGram.Web.ForwardedElement.Pair!>! Pairs) -> void
+DotGram.Web.ForwardedElement.Host.get -> string?
+DotGram.Web.ForwardedElement.Pair
+DotGram.Web.ForwardedElement.Pair.<Clone>$() -> DotGram.Web.ForwardedElement.Pair!
+DotGram.Web.ForwardedElement.Pair.Deconstruct(out string! Name, out string! Value) -> void
+DotGram.Web.ForwardedElement.Pair.Equals(DotGram.Web.ForwardedElement.Pair? other) -> bool
+DotGram.Web.ForwardedElement.Pair.Name.get -> string!
+DotGram.Web.ForwardedElement.Pair.Name.init -> void
+DotGram.Web.ForwardedElement.Pair.Pair(string! Name, string! Value) -> void
+DotGram.Web.ForwardedElement.Pair.Value.get -> string!
+DotGram.Web.ForwardedElement.Pair.Value.init -> void
+DotGram.Web.ForwardedElement.Pairs.get -> System.Collections.Generic.IReadOnlyList<DotGram.Web.ForwardedElement.Pair!>!
+DotGram.Web.ForwardedElement.Pairs.init -> void
+DotGram.Web.ForwardedElement.Proto.get -> string?
+DotGram.Web.ForwardedNode
+DotGram.Web.ForwardedNode.<Clone>$() -> DotGram.Web.ForwardedNode!
+DotGram.Web.ForwardedNode.Deconstruct(out DotGram.Web.ForwardedNode.Kinds Kind, out string! Name, out string? Port) -> void
+DotGram.Web.ForwardedNode.Equals(DotGram.Web.ForwardedNode? other) -> bool
+DotGram.Web.ForwardedNode.ForwardedNode(DotGram.Web.ForwardedNode.Kinds Kind, string! Name, string? Port) -> void
+DotGram.Web.ForwardedNode.Kind.get -> DotGram.Web.ForwardedNode.Kinds
+DotGram.Web.ForwardedNode.Kind.init -> void
+DotGram.Web.ForwardedNode.Kinds
+DotGram.Web.ForwardedNode.Kinds.IPv4 = 0 -> DotGram.Web.ForwardedNode.Kinds
+DotGram.Web.ForwardedNode.Kinds.IPv6 = 1 -> DotGram.Web.ForwardedNode.Kinds
+DotGram.Web.ForwardedNode.Kinds.Obfuscated = 3 -> DotGram.Web.ForwardedNode.Kinds
+DotGram.Web.ForwardedNode.Kinds.Unknown = 2 -> DotGram.Web.ForwardedNode.Kinds
+DotGram.Web.ForwardedNode.Name.get -> string!
+DotGram.Web.ForwardedNode.Name.init -> void
+DotGram.Web.ForwardedNode.Port.get -> string?
+DotGram.Web.ForwardedNode.Port.init -> void
+DotGram.Web.ForwardedNode.PortNumber.get -> int?
+DotGram.Web.FullDate
+DotGram.Web.FullDate.<Clone>$() -> DotGram.Web.FullDate!
+DotGram.Web.FullDate.Day.get -> int
+DotGram.Web.FullDate.Day.init -> void
+DotGram.Web.FullDate.Deconstruct(out int Year, out int Month, out int Day) -> void
+DotGram.Web.FullDate.Equals(DotGram.Web.FullDate? other) -> bool
+DotGram.Web.FullDate.FullDate(int Year, int Month, int Day) -> void
+DotGram.Web.FullDate.Month.get -> int
+DotGram.Web.FullDate.Month.init -> void
+DotGram.Web.FullDate.Year.get -> int
+DotGram.Web.FullDate.Year.init -> void
+DotGram.Web.FullTime
+DotGram.Web.FullTime.<Clone>$() -> DotGram.Web.FullTime!
+DotGram.Web.FullTime.Deconstruct(out int Hour, out int Minute, out int Second, out string? Fraction, out System.TimeSpan Offset, out bool LocalOffsetUnknown) -> void
+DotGram.Web.FullTime.Equals(DotGram.Web.FullTime? other) -> bool
+DotGram.Web.FullTime.Fraction.get -> string?
+DotGram.Web.FullTime.Fraction.init -> void
+DotGram.Web.FullTime.FullTime(int Hour, int Minute, int Second, string? Fraction, System.TimeSpan Offset, bool LocalOffsetUnknown) -> void
+DotGram.Web.FullTime.Hour.get -> int
+DotGram.Web.FullTime.Hour.init -> void
+DotGram.Web.FullTime.LocalOffsetUnknown.get -> bool
+DotGram.Web.FullTime.LocalOffsetUnknown.init -> void
+DotGram.Web.FullTime.Minute.get -> int
+DotGram.Web.FullTime.Minute.init -> void
+DotGram.Web.FullTime.Offset.get -> System.TimeSpan
+DotGram.Web.FullTime.Offset.init -> void
+DotGram.Web.FullTime.Second.get -> int
+DotGram.Web.FullTime.Second.init -> void
+DotGram.Web.InnerList
+DotGram.Web.InnerList.Deconstruct(out System.Collections.Generic.IReadOnlyList<DotGram.Web.Item!>! Items, out DotGram.Web.OrderedMap<DotGram.Web.BareItem!>! Parameters) -> void
+DotGram.Web.InnerList.Equals(DotGram.Web.InnerList? other) -> bool
+DotGram.Web.InnerList.InnerList(System.Collections.Generic.IReadOnlyList<DotGram.Web.Item!>! Items, DotGram.Web.OrderedMap<DotGram.Web.BareItem!>! Parameters) -> void
+DotGram.Web.InnerList.Items.get -> System.Collections.Generic.IReadOnlyList<DotGram.Web.Item!>!
+DotGram.Web.InnerList.Items.init -> void
+DotGram.Web.Item
+DotGram.Web.Item.Deconstruct(out DotGram.Web.BareItem! Value, out DotGram.Web.OrderedMap<DotGram.Web.BareItem!>! Parameters) -> void
+DotGram.Web.Item.Equals(DotGram.Web.Item? other) -> bool
+DotGram.Web.Item.Item(DotGram.Web.BareItem! Value, DotGram.Web.OrderedMap<DotGram.Web.BareItem!>! Parameters) -> void
+DotGram.Web.Item.Value.get -> DotGram.Web.BareItem!
+DotGram.Web.Item.Value.init -> void
+DotGram.Web.JsonPatch
+DotGram.Web.JsonPatch.<Clone>$() -> DotGram.Web.JsonPatch!
+DotGram.Web.JsonPatch.Apply(DotGram.Web.JsonValue! document) -> DotGram.Web.JsonValue!
+DotGram.Web.JsonPatch.Deconstruct(out System.Collections.Generic.IReadOnlyList<DotGram.Web.JsonPatch.Operation!>! Operations) -> void
+DotGram.Web.JsonPatch.Equals(DotGram.Web.JsonPatch? other) -> bool
+DotGram.Web.JsonPatch.JsonPatch(System.Collections.Generic.IReadOnlyList<DotGram.Web.JsonPatch.Operation!>! Operations) -> void
+DotGram.Web.JsonPatch.Operation
+DotGram.Web.JsonPatch.Operation.Add
+DotGram.Web.JsonPatch.Operation.Add.Add(DotGram.Web.JsonPointer! Path, DotGram.Web.JsonValue! Value) -> void
+DotGram.Web.JsonPatch.Operation.Add.Deconstruct(out DotGram.Web.JsonPointer! Path, out DotGram.Web.JsonValue! Value) -> void
+DotGram.Web.JsonPatch.Operation.Add.Equals(DotGram.Web.JsonPatch.Operation.Add? other) -> bool
+DotGram.Web.JsonPatch.Operation.Add.Value.get -> DotGram.Web.JsonValue!
+DotGram.Web.JsonPatch.Operation.Add.Value.init -> void
+DotGram.Web.JsonPatch.Operation.Copy
+DotGram.Web.JsonPatch.Operation.Copy.Copy(DotGram.Web.JsonPointer! From, DotGram.Web.JsonPointer! Path) -> void
+DotGram.Web.JsonPatch.Operation.Copy.Deconstruct(out DotGram.Web.JsonPointer! From, out DotGram.Web.JsonPointer! Path) -> void
+DotGram.Web.JsonPatch.Operation.Copy.Equals(DotGram.Web.JsonPatch.Operation.Copy? other) -> bool
+DotGram.Web.JsonPatch.Operation.Copy.From.get -> DotGram.Web.JsonPointer!
+DotGram.Web.JsonPatch.Operation.Copy.From.init -> void
+DotGram.Web.JsonPatch.Operation.Move
+DotGram.Web.JsonPatch.Operation.Move.Deconstruct(out DotGram.Web.JsonPointer! From, out DotGram.Web.JsonPointer! Path) -> void
+DotGram.Web.JsonPatch.Operation.Move.Equals(DotGram.Web.JsonPatch.Operation.Move? other) -> bool
+DotGram.Web.JsonPatch.Operation.Move.From.get -> DotGram.Web.JsonPointer!
+DotGram.Web.JsonPatch.Operation.Move.From.init -> void
+DotGram.Web.JsonPatch.Operation.Move.Move(DotGram.Web.JsonPointer! From, DotGram.Web.JsonPointer! Path) -> void
+DotGram.Web.JsonPatch.Operation.Operation(DotGram.Web.JsonPatch.Operation! original) -> void
+DotGram.Web.JsonPatch.Operation.Path.get -> DotGram.Web.JsonPointer!
+DotGram.Web.JsonPatch.Operation.Remove
+DotGram.Web.JsonPatch.Operation.Remove.Deconstruct(out DotGram.Web.JsonPointer! Path) -> void
+DotGram.Web.JsonPatch.Operation.Remove.Equals(DotGram.Web.JsonPatch.Operation.Remove? other) -> bool
+DotGram.Web.JsonPatch.Operation.Remove.Remove(DotGram.Web.JsonPointer! Path) -> void
+DotGram.Web.JsonPatch.Operation.Replace
+DotGram.Web.JsonPatch.Operation.Replace.Deconstruct(out DotGram.Web.JsonPointer! Path, out DotGram.Web.JsonValue! Value) -> void
+DotGram.Web.JsonPatch.Operation.Replace.Equals(DotGram.Web.JsonPatch.Operation.Replace? other) -> bool
+DotGram.Web.JsonPatch.Operation.Replace.Replace(DotGram.Web.JsonPointer! Path, DotGram.Web.JsonValue! Value) -> void
+DotGram.Web.JsonPatch.Operation.Replace.Value.get -> DotGram.Web.JsonValue!
+DotGram.Web.JsonPatch.Operation.Replace.Value.init -> void
+DotGram.Web.JsonPatch.Operation.Test
+DotGram.Web.JsonPatch.Operation.Test.Deconstruct(out DotGram.Web.JsonPointer! Path, out DotGram.Web.JsonValue! Value) -> void
+DotGram.Web.JsonPatch.Operation.Test.Equals(DotGram.Web.JsonPatch.Operation.Test? other) -> bool
+DotGram.Web.JsonPatch.Operation.Test.Test(DotGram.Web.JsonPointer! Path, DotGram.Web.JsonValue! Value) -> void
+DotGram.Web.JsonPatch.Operation.Test.Value.get -> DotGram.Web.JsonValue!
+DotGram.Web.JsonPatch.Operation.Test.Value.init -> void
+DotGram.Web.JsonPatch.Operation.ToJson() -> DotGram.Web.JsonValue!
+DotGram.Web.JsonPatch.Operations.get -> System.Collections.Generic.IReadOnlyList<DotGram.Web.JsonPatch.Operation!>!
+DotGram.Web.JsonPatch.Operations.init -> void
+DotGram.Web.JsonPatch.ToJson() -> DotGram.Web.JsonValue!
+DotGram.Web.JsonPatch.TryApply(DotGram.Web.JsonValue! document, out DotGram.Web.JsonValue? result, out string? error) -> bool
+DotGram.Web.JsonPatchException
+DotGram.Web.JsonPatchException.JsonPatchException(string! message) -> void
+DotGram.Web.JsonPointer
+DotGram.Web.JsonPointer.<Clone>$() -> DotGram.Web.JsonPointer!
+DotGram.Web.JsonPointer.Deconstruct(out System.Collections.Generic.IReadOnlyList<string!>! Tokens) -> void
+DotGram.Web.JsonPointer.Equals(DotGram.Web.JsonPointer? other) -> bool
+DotGram.Web.JsonPointer.JsonPointer(System.Collections.Generic.IReadOnlyList<string!>! Tokens) -> void
+DotGram.Web.JsonPointer.Resolve(DotGram.Web.JsonValue! document) -> DotGram.Web.JsonValue?
+DotGram.Web.JsonPointer.ToUriFragment() -> string!
+DotGram.Web.JsonPointer.Tokens.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DotGram.Web.JsonPointer.Tokens.init -> void
+DotGram.Web.JsonValue
+DotGram.Web.JsonValue.Array
+DotGram.Web.JsonValue.Array.Array(System.Collections.Generic.IReadOnlyList<DotGram.Web.JsonValue!>! Items) -> void
+DotGram.Web.JsonValue.Array.Deconstruct(out System.Collections.Generic.IReadOnlyList<DotGram.Web.JsonValue!>! Items) -> void
+DotGram.Web.JsonValue.Array.Equals(DotGram.Web.JsonValue.Array? other) -> bool
+DotGram.Web.JsonValue.Array.Items.get -> System.Collections.Generic.IReadOnlyList<DotGram.Web.JsonValue!>!
+DotGram.Web.JsonValue.Array.Items.init -> void
+DotGram.Web.JsonValue.Boolean
+DotGram.Web.JsonValue.Boolean.Boolean(bool Value) -> void
+DotGram.Web.JsonValue.Boolean.Deconstruct(out bool Value) -> void
+DotGram.Web.JsonValue.Boolean.Equals(DotGram.Web.JsonValue.Boolean? other) -> bool
+DotGram.Web.JsonValue.Boolean.Value.get -> bool
+DotGram.Web.JsonValue.Boolean.Value.init -> void
+DotGram.Web.JsonValue.JsonValue(DotGram.Web.JsonValue! original) -> void
+DotGram.Web.JsonValue.Null
+DotGram.Web.JsonValue.Null.Equals(DotGram.Web.JsonValue.Null? other) -> bool
+DotGram.Web.JsonValue.Null.Null() -> void
+DotGram.Web.JsonValue.Number
+DotGram.Web.JsonValue.Number.Deconstruct(out string! Text) -> void
+DotGram.Web.JsonValue.Number.Equals(DotGram.Web.JsonValue.Number? other) -> bool
+DotGram.Web.JsonValue.Number.Number(string! Text) -> void
+DotGram.Web.JsonValue.Number.Text.get -> string!
+DotGram.Web.JsonValue.Number.Text.init -> void
+DotGram.Web.JsonValue.Number.ToDouble() -> double
+DotGram.Web.JsonValue.Number.TryToDecimal(out decimal value) -> bool
+DotGram.Web.JsonValue.Number.TryToInt64(out long value) -> bool
+DotGram.Web.JsonValue.Object
+DotGram.Web.JsonValue.Object.Deconstruct(out System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, DotGram.Web.JsonValue!>>! Members) -> void
+DotGram.Web.JsonValue.Object.Equals(DotGram.Web.JsonValue.Object? other) -> bool
+DotGram.Web.JsonValue.Object.Members.get -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, DotGram.Web.JsonValue!>>!
+DotGram.Web.JsonValue.Object.Members.init -> void
+DotGram.Web.JsonValue.Object.Object(System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, DotGram.Web.JsonValue!>>! Members) -> void
+DotGram.Web.JsonValue.String
+DotGram.Web.JsonValue.String.Deconstruct(out string! Value) -> void
+DotGram.Web.JsonValue.String.Equals(DotGram.Web.JsonValue.String? other) -> bool
+DotGram.Web.JsonValue.String.String(string! Value) -> void
+DotGram.Web.JsonValue.String.Value.get -> string!
+DotGram.Web.JsonValue.String.Value.init -> void
+DotGram.Web.LanguageTag
+DotGram.Web.LanguageTag.<Clone>$() -> DotGram.Web.LanguageTag!
+DotGram.Web.LanguageTag.Deconstruct(out string? Language, out System.Collections.Generic.IReadOnlyList<string!>! ExtendedLanguages, out string? Script, out string? Region, out System.Collections.Generic.IReadOnlyList<string!>! Variants, out System.Collections.Generic.IReadOnlyList<DotGram.Web.LanguageTag.Extension!>! Extensions, out System.Collections.Generic.IReadOnlyList<string!>! PrivateUse, out string? Grandfathered) -> void
+DotGram.Web.LanguageTag.Equals(DotGram.Web.LanguageTag? other) -> bool
+DotGram.Web.LanguageTag.ExtendedLanguages.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DotGram.Web.LanguageTag.ExtendedLanguages.init -> void
+DotGram.Web.LanguageTag.Extension
+DotGram.Web.LanguageTag.Extension.<Clone>$() -> DotGram.Web.LanguageTag.Extension!
+DotGram.Web.LanguageTag.Extension.Deconstruct(out char Singleton, out System.Collections.Generic.IReadOnlyList<string!>! Subtags) -> void
+DotGram.Web.LanguageTag.Extension.Equals(DotGram.Web.LanguageTag.Extension? other) -> bool
+DotGram.Web.LanguageTag.Extension.Extension(char Singleton, System.Collections.Generic.IReadOnlyList<string!>! Subtags) -> void
+DotGram.Web.LanguageTag.Extension.Singleton.get -> char
+DotGram.Web.LanguageTag.Extension.Singleton.init -> void
+DotGram.Web.LanguageTag.Extension.Subtags.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DotGram.Web.LanguageTag.Extension.Subtags.init -> void
+DotGram.Web.LanguageTag.Extensions.get -> System.Collections.Generic.IReadOnlyList<DotGram.Web.LanguageTag.Extension!>!
+DotGram.Web.LanguageTag.Extensions.init -> void
+DotGram.Web.LanguageTag.Grandfathered.get -> string?
+DotGram.Web.LanguageTag.Grandfathered.init -> void
+DotGram.Web.LanguageTag.Language.get -> string?
+DotGram.Web.LanguageTag.Language.init -> void
+DotGram.Web.LanguageTag.LanguageTag(string? Language, System.Collections.Generic.IReadOnlyList<string!>! ExtendedLanguages, string? Script, string? Region, System.Collections.Generic.IReadOnlyList<string!>! Variants, System.Collections.Generic.IReadOnlyList<DotGram.Web.LanguageTag.Extension!>! Extensions, System.Collections.Generic.IReadOnlyList<string!>! PrivateUse, string? Grandfathered) -> void
+DotGram.Web.LanguageTag.PrivateUse.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DotGram.Web.LanguageTag.PrivateUse.init -> void
+DotGram.Web.LanguageTag.Region.get -> string?
+DotGram.Web.LanguageTag.Region.init -> void
+DotGram.Web.LanguageTag.Script.get -> string?
+DotGram.Web.LanguageTag.Script.init -> void
+DotGram.Web.LanguageTag.Variants.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DotGram.Web.LanguageTag.Variants.init -> void
+DotGram.Web.MediaRange
+DotGram.Web.MediaRange.<Clone>$() -> DotGram.Web.MediaRange!
+DotGram.Web.MediaRange.Deconstruct(out DotGram.Web.MediaType! Media, out decimal Weight) -> void
+DotGram.Web.MediaRange.Equals(DotGram.Web.MediaRange? other) -> bool
+DotGram.Web.MediaRange.Matches(DotGram.Web.MediaType! type) -> bool
+DotGram.Web.MediaRange.Media.get -> DotGram.Web.MediaType!
+DotGram.Web.MediaRange.Media.init -> void
+DotGram.Web.MediaRange.MediaRange(DotGram.Web.MediaType! Media, decimal Weight) -> void
+DotGram.Web.MediaRange.Weight.get -> decimal
+DotGram.Web.MediaRange.Weight.init -> void
+DotGram.Web.MediaType
+DotGram.Web.MediaType.<Clone>$() -> DotGram.Web.MediaType!
+DotGram.Web.MediaType.Charset.get -> string?
+DotGram.Web.MediaType.Deconstruct(out string! Type, out string! Subtype, out System.Collections.Generic.IReadOnlyList<DotGram.Web.MediaType.Parameter!>! Parameters) -> void
+DotGram.Web.MediaType.Equals(DotGram.Web.MediaType? other) -> bool
+DotGram.Web.MediaType.MediaType(string! Type, string! Subtype, System.Collections.Generic.IReadOnlyList<DotGram.Web.MediaType.Parameter!>! Parameters) -> void
+DotGram.Web.MediaType.Parameter
+DotGram.Web.MediaType.Parameter.<Clone>$() -> DotGram.Web.MediaType.Parameter!
+DotGram.Web.MediaType.Parameter.Deconstruct(out string! Name, out string! Value) -> void
+DotGram.Web.MediaType.Parameter.Equals(DotGram.Web.MediaType.Parameter? other) -> bool
+DotGram.Web.MediaType.Parameter.Name.get -> string!
+DotGram.Web.MediaType.Parameter.Name.init -> void
+DotGram.Web.MediaType.Parameter.Parameter(string! Name, string! Value) -> void
+DotGram.Web.MediaType.Parameter.Value.get -> string!
+DotGram.Web.MediaType.Parameter.Value.init -> void
+DotGram.Web.MediaType.ParameterValue(string! name) -> string?
+DotGram.Web.MediaType.Parameters.get -> System.Collections.Generic.IReadOnlyList<DotGram.Web.MediaType.Parameter!>!
+DotGram.Web.MediaType.Parameters.init -> void
+DotGram.Web.MediaType.Subtype.get -> string!
+DotGram.Web.MediaType.Subtype.init -> void
+DotGram.Web.MediaType.Suffix.get -> string?
+DotGram.Web.MediaType.Type.get -> string!
+DotGram.Web.MediaType.Type.init -> void
+DotGram.Web.Member
+DotGram.Web.Member.Deconstruct(out DotGram.Web.OrderedMap<DotGram.Web.BareItem!>! Parameters) -> void
+DotGram.Web.Member.Member(DotGram.Web.Member! original) -> void
+DotGram.Web.Member.Member(DotGram.Web.OrderedMap<DotGram.Web.BareItem!>! Parameters) -> void
+DotGram.Web.Member.Parameters.get -> DotGram.Web.OrderedMap<DotGram.Web.BareItem!>!
+DotGram.Web.Member.Parameters.init -> void
+DotGram.Web.OrderedMap<T>
+DotGram.Web.OrderedMap<T>.ContainsKey(string! key) -> bool
+DotGram.Web.OrderedMap<T>.Count.get -> int
+DotGram.Web.OrderedMap<T>.Equals(DotGram.Web.OrderedMap<T>? other) -> bool
+DotGram.Web.OrderedMap<T>.GetEnumerator() -> System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<string!, T>>!
+DotGram.Web.OrderedMap<T>.OrderedMap(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string!, T>>! entries) -> void
+DotGram.Web.OrderedMap<T>.TryGetValue(string! key, out T value) -> bool
+DotGram.Web.OrderedMap<T>.this[int index].get -> System.Collections.Generic.KeyValuePair<string!, T>
+DotGram.Web.OrderedMap<T>.this[string! key].get -> T
+DotGram.Web.SetCookie
+DotGram.Web.SetCookie.<Clone>$() -> DotGram.Web.SetCookie!
+DotGram.Web.SetCookie.Attribute
+DotGram.Web.SetCookie.Attribute.<Clone>$() -> DotGram.Web.SetCookie.Attribute!
+DotGram.Web.SetCookie.Attribute.Attribute(string! Name, string! Value) -> void
+DotGram.Web.SetCookie.Attribute.Deconstruct(out string! Name, out string! Value) -> void
+DotGram.Web.SetCookie.Attribute.Equals(DotGram.Web.SetCookie.Attribute? other) -> bool
+DotGram.Web.SetCookie.Attribute.Name.get -> string!
+DotGram.Web.SetCookie.Attribute.Name.init -> void
+DotGram.Web.SetCookie.Attribute.Value.get -> string!
+DotGram.Web.SetCookie.Attribute.Value.init -> void
+DotGram.Web.SetCookie.Attributes.get -> System.Collections.Generic.IReadOnlyList<DotGram.Web.SetCookie.Attribute!>!
+DotGram.Web.SetCookie.Attributes.init -> void
+DotGram.Web.SetCookie.Deconstruct(out string! Name, out string! Value, out System.Collections.Generic.IReadOnlyList<DotGram.Web.SetCookie.Attribute!>! Attributes) -> void
+DotGram.Web.SetCookie.Domain.get -> string?
+DotGram.Web.SetCookie.Equals(DotGram.Web.SetCookie? other) -> bool
+DotGram.Web.SetCookie.Expires.get -> System.DateTimeOffset?
+DotGram.Web.SetCookie.ExpiryTime(System.DateTimeOffset now) -> System.DateTimeOffset?
+DotGram.Web.SetCookie.HttpOnly.get -> bool
+DotGram.Web.SetCookie.MaxAge.get -> long?
+DotGram.Web.SetCookie.Name.get -> string!
+DotGram.Web.SetCookie.Name.init -> void
+DotGram.Web.SetCookie.Path.get -> string?
+DotGram.Web.SetCookie.Secure.get -> bool
+DotGram.Web.SetCookie.SetCookie(string! Name, string! Value, System.Collections.Generic.IReadOnlyList<DotGram.Web.SetCookie.Attribute!>! Attributes) -> void
+DotGram.Web.SetCookie.Value.get -> string!
+DotGram.Web.SetCookie.Value.init -> void
+DotGram.Web.StructuredField
+DotGram.Web.Timestamp
+DotGram.Web.Timestamp.<Clone>$() -> DotGram.Web.Timestamp!
+DotGram.Web.Timestamp.Date.get -> DotGram.Web.FullDate!
+DotGram.Web.Timestamp.Date.init -> void
+DotGram.Web.Timestamp.Deconstruct(out DotGram.Web.FullDate! Date, out DotGram.Web.FullTime! Time) -> void
+DotGram.Web.Timestamp.Equals(DotGram.Web.Timestamp? other) -> bool
+DotGram.Web.Timestamp.Time.get -> DotGram.Web.FullTime!
+DotGram.Web.Timestamp.Time.init -> void
+DotGram.Web.Timestamp.Timestamp(DotGram.Web.FullDate! Date, DotGram.Web.FullTime! Time) -> void
+DotGram.Web.Timestamp.ToDateTimeOffset() -> System.DateTimeOffset
+DotGram.Web.UriReference
+DotGram.Web.UriReference.<Clone>$() -> DotGram.Web.UriReference!
+DotGram.Web.UriReference.Deconstruct(out string? Scheme, out string? UserInfo, out string? Host, out string? Port, out string! Path, out string? Query, out string? Fragment) -> void
+DotGram.Web.UriReference.Equals(DotGram.Web.UriReference? other) -> bool
+DotGram.Web.UriReference.Fragment.get -> string?
+DotGram.Web.UriReference.Fragment.init -> void
+DotGram.Web.UriReference.Host.get -> string?
+DotGram.Web.UriReference.Host.init -> void
+DotGram.Web.UriReference.Path.get -> string!
+DotGram.Web.UriReference.Path.init -> void
+DotGram.Web.UriReference.Port.get -> string?
+DotGram.Web.UriReference.Port.init -> void
+DotGram.Web.UriReference.Query.get -> string?
+DotGram.Web.UriReference.Query.init -> void
+DotGram.Web.UriReference.Scheme.get -> string?
+DotGram.Web.UriReference.Scheme.init -> void
+DotGram.Web.UriReference.UriReference(string? Scheme, string? UserInfo, string? Host, string? Port, string! Path, string? Query, string? Fragment) -> void
+DotGram.Web.UriReference.UserInfo.get -> string?
+DotGram.Web.UriReference.UserInfo.init -> void
+DotGram.Web.UriTemplate
+DotGram.Web.UriTemplate.<Clone>$() -> DotGram.Web.UriTemplate!
+DotGram.Web.UriTemplate.Deconstruct(out System.Collections.Generic.IReadOnlyList<DotGram.Web.UriTemplate.Part!>! Parts) -> void
+DotGram.Web.UriTemplate.Equals(DotGram.Web.UriTemplate? other) -> bool
+DotGram.Web.UriTemplate.Expand(System.Collections.Generic.IReadOnlyDictionary<string!, object?>! variables) -> string!
+DotGram.Web.UriTemplate.Expression
+DotGram.Web.UriTemplate.Expression.Deconstruct(out char? Operator, out System.Collections.Generic.IReadOnlyList<DotGram.Web.UriTemplate.Variable!>! Variables) -> void
+DotGram.Web.UriTemplate.Expression.Equals(DotGram.Web.UriTemplate.Expression? other) -> bool
+DotGram.Web.UriTemplate.Expression.Expression(char? Operator, System.Collections.Generic.IReadOnlyList<DotGram.Web.UriTemplate.Variable!>! Variables) -> void
+DotGram.Web.UriTemplate.Expression.Operator.get -> char?
+DotGram.Web.UriTemplate.Expression.Operator.init -> void
+DotGram.Web.UriTemplate.Expression.Variables.get -> System.Collections.Generic.IReadOnlyList<DotGram.Web.UriTemplate.Variable!>!
+DotGram.Web.UriTemplate.Expression.Variables.init -> void
+DotGram.Web.UriTemplate.Literal
+DotGram.Web.UriTemplate.Literal.Deconstruct(out string! Text) -> void
+DotGram.Web.UriTemplate.Literal.Equals(DotGram.Web.UriTemplate.Literal? other) -> bool
+DotGram.Web.UriTemplate.Literal.Literal(string! Text) -> void
+DotGram.Web.UriTemplate.Literal.Text.get -> string!
+DotGram.Web.UriTemplate.Literal.Text.init -> void
+DotGram.Web.UriTemplate.Part
+DotGram.Web.UriTemplate.Part.Part() -> void
+DotGram.Web.UriTemplate.Part.Part(DotGram.Web.UriTemplate.Part! original) -> void
+DotGram.Web.UriTemplate.Parts.get -> System.Collections.Generic.IReadOnlyList<DotGram.Web.UriTemplate.Part!>!
+DotGram.Web.UriTemplate.Parts.init -> void
+DotGram.Web.UriTemplate.UriTemplate(System.Collections.Generic.IReadOnlyList<DotGram.Web.UriTemplate.Part!>! Parts) -> void
+DotGram.Web.UriTemplate.Variable
+DotGram.Web.UriTemplate.Variable.<Clone>$() -> DotGram.Web.UriTemplate.Variable!
+DotGram.Web.UriTemplate.Variable.Deconstruct(out string! Name, out int? Prefix, out bool Explode) -> void
+DotGram.Web.UriTemplate.Variable.Equals(DotGram.Web.UriTemplate.Variable? other) -> bool
+DotGram.Web.UriTemplate.Variable.Explode.get -> bool
+DotGram.Web.UriTemplate.Variable.Explode.init -> void
+DotGram.Web.UriTemplate.Variable.Name.get -> string!
+DotGram.Web.UriTemplate.Variable.Name.init -> void
+DotGram.Web.UriTemplate.Variable.Prefix.get -> int?
+DotGram.Web.UriTemplate.Variable.Prefix.init -> void
+DotGram.Web.UriTemplate.Variable.Variable(string! Name, int? Prefix, bool Explode) -> void
+DotGram.Web.WebLink
+DotGram.Web.WebLink.<Clone>$() -> DotGram.Web.WebLink!
+DotGram.Web.WebLink.Anchor.get -> string?
+DotGram.Web.WebLink.Deconstruct(out string! Target, out System.Collections.Generic.IReadOnlyList<DotGram.Web.WebLink.Parameter!>! Parameters) -> void
+DotGram.Web.WebLink.Equals(DotGram.Web.WebLink? other) -> bool
+DotGram.Web.WebLink.First(string! name) -> DotGram.Web.WebLink.Parameter?
+DotGram.Web.WebLink.HrefLangs.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DotGram.Web.WebLink.Media.get -> string?
+DotGram.Web.WebLink.Parameter
+DotGram.Web.WebLink.Parameter.<Clone>$() -> DotGram.Web.WebLink.Parameter!
+DotGram.Web.WebLink.Parameter.Deconstruct(out string! Name, out string! Value, out DotGram.Web.ExtendedValue? Extended) -> void
+DotGram.Web.WebLink.Parameter.Equals(DotGram.Web.WebLink.Parameter? other) -> bool
+DotGram.Web.WebLink.Parameter.Extended.get -> DotGram.Web.ExtendedValue?
+DotGram.Web.WebLink.Parameter.Extended.init -> void
+DotGram.Web.WebLink.Parameter.Name.get -> string!
+DotGram.Web.WebLink.Parameter.Name.init -> void
+DotGram.Web.WebLink.Parameter.Parameter(string! Name, string! Value, DotGram.Web.ExtendedValue? Extended) -> void
+DotGram.Web.WebLink.Parameter.Value.get -> string!
+DotGram.Web.WebLink.Parameter.Value.init -> void
+DotGram.Web.WebLink.Parameters.get -> System.Collections.Generic.IReadOnlyList<DotGram.Web.WebLink.Parameter!>!
+DotGram.Web.WebLink.Parameters.init -> void
+DotGram.Web.WebLink.Relations.get -> System.Collections.Generic.IReadOnlyList<string!>!
+DotGram.Web.WebLink.Target.get -> string!
+DotGram.Web.WebLink.Target.init -> void
+DotGram.Web.WebLink.Title.get -> string?
+DotGram.Web.WebLink.Type.get -> string?
+DotGram.Web.WebLink.WebLink(string! Target, System.Collections.Generic.IReadOnlyList<DotGram.Web.WebLink.Parameter!>! Parameters) -> void
+abstract DotGram.Web.BareItem.<Clone>$() -> DotGram.Web.BareItem!
+abstract DotGram.Web.EmailAddress.<Clone>$() -> DotGram.Web.EmailAddress!
+abstract DotGram.Web.JsonPatch.Operation.<Clone>$() -> DotGram.Web.JsonPatch.Operation!
+abstract DotGram.Web.JsonValue.<Clone>$() -> DotGram.Web.JsonValue!
+abstract DotGram.Web.Member.<Clone>$() -> DotGram.Web.Member!
+abstract DotGram.Web.UriTemplate.Part.<Clone>$() -> DotGram.Web.UriTemplate.Part!
+override DotGram.Web.AddrSpec.Equals(object? obj) -> bool
+override DotGram.Web.AddrSpec.GetHashCode() -> int
+override DotGram.Web.AddrSpec.ToString() -> string!
+override DotGram.Web.BareItem.Boolean.Equals(object? obj) -> bool
+override DotGram.Web.BareItem.Boolean.GetHashCode() -> int
+override DotGram.Web.BareItem.Boolean.ToString() -> string!
+override DotGram.Web.BareItem.ByteSequence.Equals(object? obj) -> bool
+override DotGram.Web.BareItem.ByteSequence.GetHashCode() -> int
+override DotGram.Web.BareItem.ByteSequence.ToString() -> string!
+override DotGram.Web.BareItem.Date.Equals(object? obj) -> bool
+override DotGram.Web.BareItem.Date.GetHashCode() -> int
+override DotGram.Web.BareItem.Date.ToString() -> string!
+override DotGram.Web.BareItem.Decimal.Equals(object? obj) -> bool
+override DotGram.Web.BareItem.Decimal.GetHashCode() -> int
+override DotGram.Web.BareItem.Decimal.ToString() -> string!
+override DotGram.Web.BareItem.DisplayString.Equals(object? obj) -> bool
+override DotGram.Web.BareItem.DisplayString.GetHashCode() -> int
+override DotGram.Web.BareItem.DisplayString.ToString() -> string!
+override DotGram.Web.BareItem.Equals(object? obj) -> bool
+override DotGram.Web.BareItem.GetHashCode() -> int
+override DotGram.Web.BareItem.Integer.Equals(object? obj) -> bool
+override DotGram.Web.BareItem.Integer.GetHashCode() -> int
+override DotGram.Web.BareItem.Integer.ToString() -> string!
+override DotGram.Web.BareItem.String.Equals(object? obj) -> bool
+override DotGram.Web.BareItem.String.GetHashCode() -> int
+override DotGram.Web.BareItem.String.ToString() -> string!
+override DotGram.Web.BareItem.ToString() -> string!
+override DotGram.Web.BareItem.Token.Equals(object? obj) -> bool
+override DotGram.Web.BareItem.Token.GetHashCode() -> int
+override DotGram.Web.BareItem.Token.ToString() -> string!
+override DotGram.Web.ContentDisposition.Equals(object? obj) -> bool
+override DotGram.Web.ContentDisposition.GetHashCode() -> int
+override DotGram.Web.ContentDisposition.Parameter.Equals(object? obj) -> bool
+override DotGram.Web.ContentDisposition.Parameter.GetHashCode() -> int
+override DotGram.Web.ContentDisposition.Parameter.ToString() -> string!
+override DotGram.Web.ContentDisposition.ToString() -> string!
+override DotGram.Web.CookiePair.Equals(object? obj) -> bool
+override DotGram.Web.CookiePair.GetHashCode() -> int
+override DotGram.Web.CookiePair.ToString() -> string!
+override DotGram.Web.EmailAddress.Equals(object? obj) -> bool
+override DotGram.Web.EmailAddress.GetHashCode() -> int
+override DotGram.Web.EmailAddress.Group.Equals(object? obj) -> bool
+override DotGram.Web.EmailAddress.Group.GetHashCode() -> int
+override DotGram.Web.EmailAddress.Mailbox.Equals(object? obj) -> bool
+override DotGram.Web.EmailAddress.Mailbox.GetHashCode() -> int
+override DotGram.Web.ExtendedValue.Equals(object? obj) -> bool
+override DotGram.Web.ExtendedValue.GetHashCode() -> int
+override DotGram.Web.ExtendedValue.ToString() -> string!
+override DotGram.Web.ForwardedElement.Equals(object? obj) -> bool
+override DotGram.Web.ForwardedElement.GetHashCode() -> int
+override DotGram.Web.ForwardedElement.Pair.Equals(object? obj) -> bool
+override DotGram.Web.ForwardedElement.Pair.GetHashCode() -> int
+override DotGram.Web.ForwardedElement.Pair.ToString() -> string!
+override DotGram.Web.ForwardedElement.ToString() -> string!
+override DotGram.Web.ForwardedNode.Equals(object? obj) -> bool
+override DotGram.Web.ForwardedNode.GetHashCode() -> int
+override DotGram.Web.ForwardedNode.ToString() -> string!
+override DotGram.Web.FullDate.Equals(object? obj) -> bool
+override DotGram.Web.FullDate.GetHashCode() -> int
+override DotGram.Web.FullDate.ToString() -> string!
+override DotGram.Web.FullTime.Equals(object? obj) -> bool
+override DotGram.Web.FullTime.GetHashCode() -> int
+override DotGram.Web.FullTime.ToString() -> string!
+override DotGram.Web.InnerList.Equals(object? obj) -> bool
+override DotGram.Web.InnerList.GetHashCode() -> int
+override DotGram.Web.InnerList.ToString() -> string!
+override DotGram.Web.Item.Equals(object? obj) -> bool
+override DotGram.Web.Item.GetHashCode() -> int
+override DotGram.Web.Item.ToString() -> string!
+override DotGram.Web.JsonPatch.Equals(object? obj) -> bool
+override DotGram.Web.JsonPatch.GetHashCode() -> int
+override DotGram.Web.JsonPatch.Operation.Add.Equals(object? obj) -> bool
+override DotGram.Web.JsonPatch.Operation.Add.GetHashCode() -> int
+override DotGram.Web.JsonPatch.Operation.Copy.Equals(object? obj) -> bool
+override DotGram.Web.JsonPatch.Operation.Copy.GetHashCode() -> int
+override DotGram.Web.JsonPatch.Operation.Equals(object? obj) -> bool
+override DotGram.Web.JsonPatch.Operation.GetHashCode() -> int
+override DotGram.Web.JsonPatch.Operation.Move.Equals(object? obj) -> bool
+override DotGram.Web.JsonPatch.Operation.Move.GetHashCode() -> int
+override DotGram.Web.JsonPatch.Operation.Remove.Equals(object? obj) -> bool
+override DotGram.Web.JsonPatch.Operation.Remove.GetHashCode() -> int
+override DotGram.Web.JsonPatch.Operation.Replace.Equals(object? obj) -> bool
+override DotGram.Web.JsonPatch.Operation.Replace.GetHashCode() -> int
+override DotGram.Web.JsonPatch.Operation.Test.Equals(object? obj) -> bool
+override DotGram.Web.JsonPatch.Operation.Test.GetHashCode() -> int
+override DotGram.Web.JsonPatch.ToString() -> string!
+override DotGram.Web.JsonPointer.Equals(object? obj) -> bool
+override DotGram.Web.JsonPointer.GetHashCode() -> int
+override DotGram.Web.JsonPointer.ToString() -> string!
+override DotGram.Web.JsonValue.Array.Equals(object? obj) -> bool
+override DotGram.Web.JsonValue.Array.GetHashCode() -> int
+override DotGram.Web.JsonValue.Boolean.Equals(object? obj) -> bool
+override DotGram.Web.JsonValue.Boolean.GetHashCode() -> int
+override DotGram.Web.JsonValue.Equals(object? obj) -> bool
+override DotGram.Web.JsonValue.GetHashCode() -> int
+override DotGram.Web.JsonValue.Null.Equals(object? obj) -> bool
+override DotGram.Web.JsonValue.Null.GetHashCode() -> int
+override DotGram.Web.JsonValue.Number.Equals(object? obj) -> bool
+override DotGram.Web.JsonValue.Number.GetHashCode() -> int
+override DotGram.Web.JsonValue.Object.Equals(object? obj) -> bool
+override DotGram.Web.JsonValue.Object.GetHashCode() -> int
+override DotGram.Web.JsonValue.String.Equals(object? obj) -> bool
+override DotGram.Web.JsonValue.String.GetHashCode() -> int
+override DotGram.Web.LanguageTag.Equals(object? obj) -> bool
+override DotGram.Web.LanguageTag.Extension.Equals(object? obj) -> bool
+override DotGram.Web.LanguageTag.Extension.GetHashCode() -> int
+override DotGram.Web.LanguageTag.Extension.ToString() -> string!
+override DotGram.Web.LanguageTag.GetHashCode() -> int
+override DotGram.Web.LanguageTag.ToString() -> string!
+override DotGram.Web.MediaRange.Equals(object? obj) -> bool
+override DotGram.Web.MediaRange.GetHashCode() -> int
+override DotGram.Web.MediaRange.ToString() -> string!
+override DotGram.Web.MediaType.Equals(object? obj) -> bool
+override DotGram.Web.MediaType.GetHashCode() -> int
+override DotGram.Web.MediaType.Parameter.Equals(object? obj) -> bool
+override DotGram.Web.MediaType.Parameter.GetHashCode() -> int
+override DotGram.Web.MediaType.Parameter.ToString() -> string!
+override DotGram.Web.MediaType.ToString() -> string!
+override DotGram.Web.Member.Equals(object? obj) -> bool
+override DotGram.Web.Member.GetHashCode() -> int
+override DotGram.Web.Member.ToString() -> string!
+override DotGram.Web.OrderedMap<T>.Equals(object? other) -> bool
+override DotGram.Web.OrderedMap<T>.GetHashCode() -> int
+override DotGram.Web.SetCookie.Attribute.Equals(object? obj) -> bool
+override DotGram.Web.SetCookie.Attribute.GetHashCode() -> int
+override DotGram.Web.SetCookie.Attribute.ToString() -> string!
+override DotGram.Web.SetCookie.Equals(object? obj) -> bool
+override DotGram.Web.SetCookie.GetHashCode() -> int
+override DotGram.Web.SetCookie.ToString() -> string!
+override DotGram.Web.Timestamp.Equals(object? obj) -> bool
+override DotGram.Web.Timestamp.GetHashCode() -> int
+override DotGram.Web.Timestamp.ToString() -> string!
+override DotGram.Web.UriReference.Equals(object? obj) -> bool
+override DotGram.Web.UriReference.GetHashCode() -> int
+override DotGram.Web.UriReference.ToString() -> string!
+override DotGram.Web.UriTemplate.Equals(object? obj) -> bool
+override DotGram.Web.UriTemplate.Expression.Equals(object? obj) -> bool
+override DotGram.Web.UriTemplate.Expression.GetHashCode() -> int
+override DotGram.Web.UriTemplate.Expression.ToString() -> string!
+override DotGram.Web.UriTemplate.GetHashCode() -> int
+override DotGram.Web.UriTemplate.Literal.Equals(object? obj) -> bool
+override DotGram.Web.UriTemplate.Literal.GetHashCode() -> int
+override DotGram.Web.UriTemplate.Literal.ToString() -> string!
+override DotGram.Web.UriTemplate.Part.Equals(object? obj) -> bool
+override DotGram.Web.UriTemplate.Part.GetHashCode() -> int
+override DotGram.Web.UriTemplate.Part.ToString() -> string!
+override DotGram.Web.UriTemplate.ToString() -> string!
+override DotGram.Web.UriTemplate.Variable.Equals(object? obj) -> bool
+override DotGram.Web.UriTemplate.Variable.GetHashCode() -> int
+override DotGram.Web.UriTemplate.Variable.ToString() -> string!
+override DotGram.Web.WebLink.Equals(object? obj) -> bool
+override DotGram.Web.WebLink.GetHashCode() -> int
+override DotGram.Web.WebLink.Parameter.Equals(object? obj) -> bool
+override DotGram.Web.WebLink.Parameter.GetHashCode() -> int
+override DotGram.Web.WebLink.Parameter.ToString() -> string!
+override DotGram.Web.WebLink.ToString() -> string!
+override sealed DotGram.Web.BareItem.Boolean.Equals(DotGram.Web.BareItem? other) -> bool
+override sealed DotGram.Web.BareItem.ByteSequence.Equals(DotGram.Web.BareItem? other) -> bool
+override sealed DotGram.Web.BareItem.Date.Equals(DotGram.Web.BareItem? other) -> bool
+override sealed DotGram.Web.BareItem.Decimal.Equals(DotGram.Web.BareItem? other) -> bool
+override sealed DotGram.Web.BareItem.DisplayString.Equals(DotGram.Web.BareItem? other) -> bool
+override sealed DotGram.Web.BareItem.Integer.Equals(DotGram.Web.BareItem? other) -> bool
+override sealed DotGram.Web.BareItem.String.Equals(DotGram.Web.BareItem? other) -> bool
+override sealed DotGram.Web.BareItem.Token.Equals(DotGram.Web.BareItem? other) -> bool
+override sealed DotGram.Web.EmailAddress.Group.Equals(DotGram.Web.EmailAddress? other) -> bool
+override sealed DotGram.Web.EmailAddress.Mailbox.Equals(DotGram.Web.EmailAddress? other) -> bool
+override sealed DotGram.Web.EmailAddress.ToString() -> string!
+override sealed DotGram.Web.InnerList.Equals(DotGram.Web.Member? other) -> bool
+override sealed DotGram.Web.Item.Equals(DotGram.Web.Member? other) -> bool
+override sealed DotGram.Web.JsonPatch.Operation.Add.Equals(DotGram.Web.JsonPatch.Operation? other) -> bool
+override sealed DotGram.Web.JsonPatch.Operation.Copy.Equals(DotGram.Web.JsonPatch.Operation? other) -> bool
+override sealed DotGram.Web.JsonPatch.Operation.Move.Equals(DotGram.Web.JsonPatch.Operation? other) -> bool
+override sealed DotGram.Web.JsonPatch.Operation.Remove.Equals(DotGram.Web.JsonPatch.Operation? other) -> bool
+override sealed DotGram.Web.JsonPatch.Operation.Replace.Equals(DotGram.Web.JsonPatch.Operation? other) -> bool
+override sealed DotGram.Web.JsonPatch.Operation.Test.Equals(DotGram.Web.JsonPatch.Operation? other) -> bool
+override sealed DotGram.Web.JsonPatch.Operation.ToString() -> string!
+override sealed DotGram.Web.JsonValue.Array.Equals(DotGram.Web.JsonValue? other) -> bool
+override sealed DotGram.Web.JsonValue.Boolean.Equals(DotGram.Web.JsonValue? other) -> bool
+override sealed DotGram.Web.JsonValue.Null.Equals(DotGram.Web.JsonValue? other) -> bool
+override sealed DotGram.Web.JsonValue.Number.Equals(DotGram.Web.JsonValue? other) -> bool
+override sealed DotGram.Web.JsonValue.Object.Equals(DotGram.Web.JsonValue? other) -> bool
+override sealed DotGram.Web.JsonValue.String.Equals(DotGram.Web.JsonValue? other) -> bool
+override sealed DotGram.Web.JsonValue.ToString() -> string!
+override sealed DotGram.Web.UriTemplate.Expression.Equals(DotGram.Web.UriTemplate.Part? other) -> bool
+override sealed DotGram.Web.UriTemplate.Literal.Equals(DotGram.Web.UriTemplate.Part? other) -> bool
+static DotGram.Web.AddrSpec.IsDotAtom(string! text) -> bool
+static DotGram.Web.AddrSpec.Parse(string! text) -> DotGram.Web.AddrSpec!
+static DotGram.Web.AddrSpec.ParseStrict(string! text) -> DotGram.Web.AddrSpec!
+static DotGram.Web.AddrSpec.TryParse(string! text, out DotGram.Web.AddrSpec? address) -> bool
+static DotGram.Web.AddrSpec.TryParseStrict(string! text, out DotGram.Web.AddrSpec? address) -> bool
+static DotGram.Web.AddrSpec.operator !=(DotGram.Web.AddrSpec? left, DotGram.Web.AddrSpec? right) -> bool
+static DotGram.Web.AddrSpec.operator ==(DotGram.Web.AddrSpec? left, DotGram.Web.AddrSpec? right) -> bool
+static DotGram.Web.BareItem.Boolean.False.get -> DotGram.Web.BareItem.Boolean!
+static DotGram.Web.BareItem.Boolean.True.get -> DotGram.Web.BareItem.Boolean!
+static DotGram.Web.BareItem.Boolean.operator !=(DotGram.Web.BareItem.Boolean? left, DotGram.Web.BareItem.Boolean? right) -> bool
+static DotGram.Web.BareItem.Boolean.operator ==(DotGram.Web.BareItem.Boolean? left, DotGram.Web.BareItem.Boolean? right) -> bool
+static DotGram.Web.BareItem.ByteSequence.operator !=(DotGram.Web.BareItem.ByteSequence? left, DotGram.Web.BareItem.ByteSequence? right) -> bool
+static DotGram.Web.BareItem.ByteSequence.operator ==(DotGram.Web.BareItem.ByteSequence? left, DotGram.Web.BareItem.ByteSequence? right) -> bool
+static DotGram.Web.BareItem.Date.operator !=(DotGram.Web.BareItem.Date? left, DotGram.Web.BareItem.Date? right) -> bool
+static DotGram.Web.BareItem.Date.operator ==(DotGram.Web.BareItem.Date? left, DotGram.Web.BareItem.Date? right) -> bool
+static DotGram.Web.BareItem.Decimal.operator !=(DotGram.Web.BareItem.Decimal? left, DotGram.Web.BareItem.Decimal? right) -> bool
+static DotGram.Web.BareItem.Decimal.operator ==(DotGram.Web.BareItem.Decimal? left, DotGram.Web.BareItem.Decimal? right) -> bool
+static DotGram.Web.BareItem.DisplayString.operator !=(DotGram.Web.BareItem.DisplayString? left, DotGram.Web.BareItem.DisplayString? right) -> bool
+static DotGram.Web.BareItem.DisplayString.operator ==(DotGram.Web.BareItem.DisplayString? left, DotGram.Web.BareItem.DisplayString? right) -> bool
+static DotGram.Web.BareItem.Integer.operator !=(DotGram.Web.BareItem.Integer? left, DotGram.Web.BareItem.Integer? right) -> bool
+static DotGram.Web.BareItem.Integer.operator ==(DotGram.Web.BareItem.Integer? left, DotGram.Web.BareItem.Integer? right) -> bool
+static DotGram.Web.BareItem.String.operator !=(DotGram.Web.BareItem.String? left, DotGram.Web.BareItem.String? right) -> bool
+static DotGram.Web.BareItem.String.operator ==(DotGram.Web.BareItem.String? left, DotGram.Web.BareItem.String? right) -> bool
+static DotGram.Web.BareItem.Token.operator !=(DotGram.Web.BareItem.Token? left, DotGram.Web.BareItem.Token? right) -> bool
+static DotGram.Web.BareItem.Token.operator ==(DotGram.Web.BareItem.Token? left, DotGram.Web.BareItem.Token? right) -> bool
+static DotGram.Web.BareItem.operator !=(DotGram.Web.BareItem? left, DotGram.Web.BareItem? right) -> bool
+static DotGram.Web.BareItem.operator ==(DotGram.Web.BareItem? left, DotGram.Web.BareItem? right) -> bool
+static DotGram.Web.ContentDisposition.Parameter.operator !=(DotGram.Web.ContentDisposition.Parameter? left, DotGram.Web.ContentDisposition.Parameter? right) -> bool
+static DotGram.Web.ContentDisposition.Parameter.operator ==(DotGram.Web.ContentDisposition.Parameter? left, DotGram.Web.ContentDisposition.Parameter? right) -> bool
+static DotGram.Web.ContentDisposition.Parse(string! text) -> DotGram.Web.ContentDisposition!
+static DotGram.Web.ContentDisposition.TryParse(string! text, out DotGram.Web.ContentDisposition? field) -> bool
+static DotGram.Web.ContentDisposition.operator !=(DotGram.Web.ContentDisposition? left, DotGram.Web.ContentDisposition? right) -> bool
+static DotGram.Web.ContentDisposition.operator ==(DotGram.Web.ContentDisposition? left, DotGram.Web.ContentDisposition? right) -> bool
+static DotGram.Web.CookieDate.Parse(string! text) -> System.DateTimeOffset
+static DotGram.Web.CookieDate.TryParse(string! text, out System.DateTimeOffset date) -> bool
+static DotGram.Web.CookiePair.ParseField(string! text) -> DotGram.Web.CookiePair![]!
+static DotGram.Web.CookiePair.TryParseField(string! text, out DotGram.Web.CookiePair![]? pairs) -> bool
+static DotGram.Web.CookiePair.operator !=(DotGram.Web.CookiePair? left, DotGram.Web.CookiePair? right) -> bool
+static DotGram.Web.CookiePair.operator ==(DotGram.Web.CookiePair? left, DotGram.Web.CookiePair? right) -> bool
+static DotGram.Web.EmailAddress.Group.operator !=(DotGram.Web.EmailAddress.Group? left, DotGram.Web.EmailAddress.Group? right) -> bool
+static DotGram.Web.EmailAddress.Group.operator ==(DotGram.Web.EmailAddress.Group? left, DotGram.Web.EmailAddress.Group? right) -> bool
+static DotGram.Web.EmailAddress.Mailbox.Parse(string! text) -> DotGram.Web.EmailAddress.Mailbox!
+static DotGram.Web.EmailAddress.Mailbox.ParseStrict(string! text) -> DotGram.Web.EmailAddress.Mailbox!
+static DotGram.Web.EmailAddress.Mailbox.TryParse(string! text, out DotGram.Web.EmailAddress.Mailbox? mailbox) -> bool
+static DotGram.Web.EmailAddress.Mailbox.TryParseStrict(string! text, out DotGram.Web.EmailAddress.Mailbox? mailbox) -> bool
+static DotGram.Web.EmailAddress.Mailbox.operator !=(DotGram.Web.EmailAddress.Mailbox? left, DotGram.Web.EmailAddress.Mailbox? right) -> bool
+static DotGram.Web.EmailAddress.Mailbox.operator ==(DotGram.Web.EmailAddress.Mailbox? left, DotGram.Web.EmailAddress.Mailbox? right) -> bool
+static DotGram.Web.EmailAddress.ParseList(string! text) -> DotGram.Web.EmailAddress![]!
+static DotGram.Web.EmailAddress.ParseMailboxList(string! text) -> DotGram.Web.EmailAddress.Mailbox![]!
+static DotGram.Web.EmailAddress.ParseStrictList(string! text) -> DotGram.Web.EmailAddress![]!
+static DotGram.Web.EmailAddress.ParseStrictMailboxList(string! text) -> DotGram.Web.EmailAddress.Mailbox![]!
+static DotGram.Web.EmailAddress.TryParseList(string! text, out DotGram.Web.EmailAddress![]? addresses) -> bool
+static DotGram.Web.EmailAddress.TryParseMailboxList(string! text, out DotGram.Web.EmailAddress.Mailbox![]? mailboxes) -> bool
+static DotGram.Web.EmailAddress.TryParseStrictList(string! text, out DotGram.Web.EmailAddress![]? addresses) -> bool
+static DotGram.Web.EmailAddress.TryParseStrictMailboxList(string! text, out DotGram.Web.EmailAddress.Mailbox![]? mailboxes) -> bool
+static DotGram.Web.EmailAddress.operator !=(DotGram.Web.EmailAddress? left, DotGram.Web.EmailAddress? right) -> bool
+static DotGram.Web.EmailAddress.operator ==(DotGram.Web.EmailAddress? left, DotGram.Web.EmailAddress? right) -> bool
+static DotGram.Web.ExtendedValue.operator !=(DotGram.Web.ExtendedValue? left, DotGram.Web.ExtendedValue? right) -> bool
+static DotGram.Web.ExtendedValue.operator ==(DotGram.Web.ExtendedValue? left, DotGram.Web.ExtendedValue? right) -> bool
+static DotGram.Web.ForwardedElement.Pair.operator !=(DotGram.Web.ForwardedElement.Pair? left, DotGram.Web.ForwardedElement.Pair? right) -> bool
+static DotGram.Web.ForwardedElement.Pair.operator ==(DotGram.Web.ForwardedElement.Pair? left, DotGram.Web.ForwardedElement.Pair? right) -> bool
+static DotGram.Web.ForwardedElement.ParseField(string! text) -> DotGram.Web.ForwardedElement![]!
+static DotGram.Web.ForwardedElement.TryParseField(string! text, out DotGram.Web.ForwardedElement![]? elements) -> bool
+static DotGram.Web.ForwardedElement.operator !=(DotGram.Web.ForwardedElement? left, DotGram.Web.ForwardedElement? right) -> bool
+static DotGram.Web.ForwardedElement.operator ==(DotGram.Web.ForwardedElement? left, DotGram.Web.ForwardedElement? right) -> bool
+static DotGram.Web.ForwardedNode.Parse(string! text) -> DotGram.Web.ForwardedNode!
+static DotGram.Web.ForwardedNode.TryParse(string! text, out DotGram.Web.ForwardedNode? node) -> bool
+static DotGram.Web.ForwardedNode.operator !=(DotGram.Web.ForwardedNode? left, DotGram.Web.ForwardedNode? right) -> bool
+static DotGram.Web.ForwardedNode.operator ==(DotGram.Web.ForwardedNode? left, DotGram.Web.ForwardedNode? right) -> bool
+static DotGram.Web.FullDate.Parse(string! text) -> DotGram.Web.FullDate!
+static DotGram.Web.FullDate.TryParse(string! text, out DotGram.Web.FullDate? date) -> bool
+static DotGram.Web.FullDate.operator !=(DotGram.Web.FullDate? left, DotGram.Web.FullDate? right) -> bool
+static DotGram.Web.FullDate.operator ==(DotGram.Web.FullDate? left, DotGram.Web.FullDate? right) -> bool
+static DotGram.Web.FullTime.Parse(string! text) -> DotGram.Web.FullTime!
+static DotGram.Web.FullTime.TryParse(string! text, out DotGram.Web.FullTime? time) -> bool
+static DotGram.Web.FullTime.operator !=(DotGram.Web.FullTime? left, DotGram.Web.FullTime? right) -> bool
+static DotGram.Web.FullTime.operator ==(DotGram.Web.FullTime? left, DotGram.Web.FullTime? right) -> bool
+static DotGram.Web.InnerList.operator !=(DotGram.Web.InnerList? left, DotGram.Web.InnerList? right) -> bool
+static DotGram.Web.InnerList.operator ==(DotGram.Web.InnerList? left, DotGram.Web.InnerList? right) -> bool
+static DotGram.Web.Item.operator !=(DotGram.Web.Item? left, DotGram.Web.Item? right) -> bool
+static DotGram.Web.Item.operator ==(DotGram.Web.Item? left, DotGram.Web.Item? right) -> bool
+static DotGram.Web.JsonPatch.AreEqual(DotGram.Web.JsonValue! left, DotGram.Web.JsonValue! right) -> bool
+static DotGram.Web.JsonPatch.Operation.Add.operator !=(DotGram.Web.JsonPatch.Operation.Add? left, DotGram.Web.JsonPatch.Operation.Add? right) -> bool
+static DotGram.Web.JsonPatch.Operation.Add.operator ==(DotGram.Web.JsonPatch.Operation.Add? left, DotGram.Web.JsonPatch.Operation.Add? right) -> bool
+static DotGram.Web.JsonPatch.Operation.Copy.operator !=(DotGram.Web.JsonPatch.Operation.Copy? left, DotGram.Web.JsonPatch.Operation.Copy? right) -> bool
+static DotGram.Web.JsonPatch.Operation.Copy.operator ==(DotGram.Web.JsonPatch.Operation.Copy? left, DotGram.Web.JsonPatch.Operation.Copy? right) -> bool
+static DotGram.Web.JsonPatch.Operation.Move.operator !=(DotGram.Web.JsonPatch.Operation.Move? left, DotGram.Web.JsonPatch.Operation.Move? right) -> bool
+static DotGram.Web.JsonPatch.Operation.Move.operator ==(DotGram.Web.JsonPatch.Operation.Move? left, DotGram.Web.JsonPatch.Operation.Move? right) -> bool
+static DotGram.Web.JsonPatch.Operation.Remove.operator !=(DotGram.Web.JsonPatch.Operation.Remove? left, DotGram.Web.JsonPatch.Operation.Remove? right) -> bool
+static DotGram.Web.JsonPatch.Operation.Remove.operator ==(DotGram.Web.JsonPatch.Operation.Remove? left, DotGram.Web.JsonPatch.Operation.Remove? right) -> bool
+static DotGram.Web.JsonPatch.Operation.Replace.operator !=(DotGram.Web.JsonPatch.Operation.Replace? left, DotGram.Web.JsonPatch.Operation.Replace? right) -> bool
+static DotGram.Web.JsonPatch.Operation.Replace.operator ==(DotGram.Web.JsonPatch.Operation.Replace? left, DotGram.Web.JsonPatch.Operation.Replace? right) -> bool
+static DotGram.Web.JsonPatch.Operation.Test.operator !=(DotGram.Web.JsonPatch.Operation.Test? left, DotGram.Web.JsonPatch.Operation.Test? right) -> bool
+static DotGram.Web.JsonPatch.Operation.Test.operator ==(DotGram.Web.JsonPatch.Operation.Test? left, DotGram.Web.JsonPatch.Operation.Test? right) -> bool
+static DotGram.Web.JsonPatch.Operation.operator !=(DotGram.Web.JsonPatch.Operation? left, DotGram.Web.JsonPatch.Operation? right) -> bool
+static DotGram.Web.JsonPatch.Operation.operator ==(DotGram.Web.JsonPatch.Operation? left, DotGram.Web.JsonPatch.Operation? right) -> bool
+static DotGram.Web.JsonPatch.Parse(string! text) -> DotGram.Web.JsonPatch!
+static DotGram.Web.JsonPatch.Read(DotGram.Web.JsonValue! document) -> DotGram.Web.JsonPatch!
+static DotGram.Web.JsonPatch.TryRead(DotGram.Web.JsonValue! document, out DotGram.Web.JsonPatch? patch, out string? error) -> bool
+static DotGram.Web.JsonPatch.operator !=(DotGram.Web.JsonPatch? left, DotGram.Web.JsonPatch? right) -> bool
+static DotGram.Web.JsonPatch.operator ==(DotGram.Web.JsonPatch? left, DotGram.Web.JsonPatch? right) -> bool
+static DotGram.Web.JsonPointer.ArrayIndex(string! token) -> int?
+static DotGram.Web.JsonPointer.IsPastTheEnd(string! token) -> bool
+static DotGram.Web.JsonPointer.Parse(string! text) -> DotGram.Web.JsonPointer!
+static DotGram.Web.JsonPointer.ParseFragment(string! text) -> DotGram.Web.JsonPointer!
+static DotGram.Web.JsonPointer.Root.get -> DotGram.Web.JsonPointer!
+static DotGram.Web.JsonPointer.TryParse(string! text, out DotGram.Web.JsonPointer? pointer) -> bool
+static DotGram.Web.JsonPointer.TryParseFragment(string! text, out DotGram.Web.JsonPointer? pointer) -> bool
+static DotGram.Web.JsonPointer.operator !=(DotGram.Web.JsonPointer? left, DotGram.Web.JsonPointer? right) -> bool
+static DotGram.Web.JsonPointer.operator ==(DotGram.Web.JsonPointer? left, DotGram.Web.JsonPointer? right) -> bool
+static DotGram.Web.JsonValue.Array.operator !=(DotGram.Web.JsonValue.Array? left, DotGram.Web.JsonValue.Array? right) -> bool
+static DotGram.Web.JsonValue.Array.operator ==(DotGram.Web.JsonValue.Array? left, DotGram.Web.JsonValue.Array? right) -> bool
+static DotGram.Web.JsonValue.Boolean.False.get -> DotGram.Web.JsonValue.Boolean!
+static DotGram.Web.JsonValue.Boolean.True.get -> DotGram.Web.JsonValue.Boolean!
+static DotGram.Web.JsonValue.Boolean.operator !=(DotGram.Web.JsonValue.Boolean? left, DotGram.Web.JsonValue.Boolean? right) -> bool
+static DotGram.Web.JsonValue.Boolean.operator ==(DotGram.Web.JsonValue.Boolean? left, DotGram.Web.JsonValue.Boolean? right) -> bool
+static DotGram.Web.JsonValue.Null.Instance.get -> DotGram.Web.JsonValue.Null!
+static DotGram.Web.JsonValue.Null.operator !=(DotGram.Web.JsonValue.Null? left, DotGram.Web.JsonValue.Null? right) -> bool
+static DotGram.Web.JsonValue.Null.operator ==(DotGram.Web.JsonValue.Null? left, DotGram.Web.JsonValue.Null? right) -> bool
+static DotGram.Web.JsonValue.Number.operator !=(DotGram.Web.JsonValue.Number? left, DotGram.Web.JsonValue.Number? right) -> bool
+static DotGram.Web.JsonValue.Number.operator ==(DotGram.Web.JsonValue.Number? left, DotGram.Web.JsonValue.Number? right) -> bool
+static DotGram.Web.JsonValue.Object.operator !=(DotGram.Web.JsonValue.Object? left, DotGram.Web.JsonValue.Object? right) -> bool
+static DotGram.Web.JsonValue.Object.operator ==(DotGram.Web.JsonValue.Object? left, DotGram.Web.JsonValue.Object? right) -> bool
+static DotGram.Web.JsonValue.Parse(string! text) -> DotGram.Web.JsonValue!
+static DotGram.Web.JsonValue.String.operator !=(DotGram.Web.JsonValue.String? left, DotGram.Web.JsonValue.String? right) -> bool
+static DotGram.Web.JsonValue.String.operator ==(DotGram.Web.JsonValue.String? left, DotGram.Web.JsonValue.String? right) -> bool
+static DotGram.Web.JsonValue.TryParse(string! text, out DotGram.Web.JsonValue? value) -> bool
+static DotGram.Web.JsonValue.operator !=(DotGram.Web.JsonValue? left, DotGram.Web.JsonValue? right) -> bool
+static DotGram.Web.JsonValue.operator ==(DotGram.Web.JsonValue? left, DotGram.Web.JsonValue? right) -> bool
+static DotGram.Web.LanguageTag.Extension.operator !=(DotGram.Web.LanguageTag.Extension? left, DotGram.Web.LanguageTag.Extension? right) -> bool
+static DotGram.Web.LanguageTag.Extension.operator ==(DotGram.Web.LanguageTag.Extension? left, DotGram.Web.LanguageTag.Extension? right) -> bool
+static DotGram.Web.LanguageTag.Parse(string! text) -> DotGram.Web.LanguageTag!
+static DotGram.Web.LanguageTag.TryParse(string! text, out DotGram.Web.LanguageTag? tag) -> bool
+static DotGram.Web.LanguageTag.operator !=(DotGram.Web.LanguageTag? left, DotGram.Web.LanguageTag? right) -> bool
+static DotGram.Web.LanguageTag.operator ==(DotGram.Web.LanguageTag? left, DotGram.Web.LanguageTag? right) -> bool
+static DotGram.Web.MediaRange.ParseAccept(string! text) -> DotGram.Web.MediaRange![]!
+static DotGram.Web.MediaRange.Quality(System.Collections.Generic.IReadOnlyList<DotGram.Web.MediaRange!>! accept, DotGram.Web.MediaType! type) -> decimal
+static DotGram.Web.MediaRange.TryParseAccept(string! text, out DotGram.Web.MediaRange![]? ranges) -> bool
+static DotGram.Web.MediaRange.operator !=(DotGram.Web.MediaRange? left, DotGram.Web.MediaRange? right) -> bool
+static DotGram.Web.MediaRange.operator ==(DotGram.Web.MediaRange? left, DotGram.Web.MediaRange? right) -> bool
+static DotGram.Web.MediaType.Parameter.operator !=(DotGram.Web.MediaType.Parameter? left, DotGram.Web.MediaType.Parameter? right) -> bool
+static DotGram.Web.MediaType.Parameter.operator ==(DotGram.Web.MediaType.Parameter? left, DotGram.Web.MediaType.Parameter? right) -> bool
+static DotGram.Web.MediaType.Parse(string! text) -> DotGram.Web.MediaType!
+static DotGram.Web.MediaType.TryParse(string! text, out DotGram.Web.MediaType? type) -> bool
+static DotGram.Web.MediaType.operator !=(DotGram.Web.MediaType? left, DotGram.Web.MediaType? right) -> bool
+static DotGram.Web.MediaType.operator ==(DotGram.Web.MediaType? left, DotGram.Web.MediaType? right) -> bool
+static DotGram.Web.Member.operator !=(DotGram.Web.Member? left, DotGram.Web.Member? right) -> bool
+static DotGram.Web.Member.operator ==(DotGram.Web.Member? left, DotGram.Web.Member? right) -> bool
+static DotGram.Web.SetCookie.Attribute.operator !=(DotGram.Web.SetCookie.Attribute? left, DotGram.Web.SetCookie.Attribute? right) -> bool
+static DotGram.Web.SetCookie.Attribute.operator ==(DotGram.Web.SetCookie.Attribute? left, DotGram.Web.SetCookie.Attribute? right) -> bool
+static DotGram.Web.SetCookie.DefaultPath(string! requestPath) -> string!
+static DotGram.Web.SetCookie.DomainMatches(string! host, string! domain) -> bool
+static DotGram.Web.SetCookie.Parse(string! text) -> DotGram.Web.SetCookie!
+static DotGram.Web.SetCookie.PathMatches(string! requestPath, string! cookiePath) -> bool
+static DotGram.Web.SetCookie.TryParse(string! text, out DotGram.Web.SetCookie? cookie) -> bool
+static DotGram.Web.SetCookie.operator !=(DotGram.Web.SetCookie? left, DotGram.Web.SetCookie? right) -> bool
+static DotGram.Web.SetCookie.operator ==(DotGram.Web.SetCookie? left, DotGram.Web.SetCookie? right) -> bool
+static DotGram.Web.StructuredField.Combine(System.Collections.Generic.IEnumerable<string!>! lines) -> string!
+static DotGram.Web.StructuredField.ParseDictionary(string! text) -> DotGram.Web.OrderedMap<DotGram.Web.Member!>!
+static DotGram.Web.StructuredField.ParseItem(string! text) -> DotGram.Web.Item!
+static DotGram.Web.StructuredField.ParseList(string! text) -> System.Collections.Generic.IReadOnlyList<DotGram.Web.Member!>!
+static DotGram.Web.StructuredField.SerializeDictionary(DotGram.Web.OrderedMap<DotGram.Web.Member!>! dictionary) -> string!
+static DotGram.Web.StructuredField.SerializeItem(DotGram.Web.Item! item) -> string!
+static DotGram.Web.StructuredField.SerializeList(System.Collections.Generic.IReadOnlyList<DotGram.Web.Member!>! list) -> string!
+static DotGram.Web.StructuredField.TryParseDictionary(string! text, out DotGram.Web.OrderedMap<DotGram.Web.Member!>? dictionary) -> bool
+static DotGram.Web.StructuredField.TryParseItem(string! text, out DotGram.Web.Item? item) -> bool
+static DotGram.Web.StructuredField.TryParseList(string! text, out System.Collections.Generic.IReadOnlyList<DotGram.Web.Member!>? list) -> bool
+static DotGram.Web.Timestamp.Parse(string! text) -> DotGram.Web.Timestamp!
+static DotGram.Web.Timestamp.TryParse(string! text, out DotGram.Web.Timestamp? timestamp) -> bool
+static DotGram.Web.Timestamp.operator !=(DotGram.Web.Timestamp? left, DotGram.Web.Timestamp? right) -> bool
+static DotGram.Web.Timestamp.operator ==(DotGram.Web.Timestamp? left, DotGram.Web.Timestamp? right) -> bool
+static DotGram.Web.UriReference.Decode(string! part) -> string!
+static DotGram.Web.UriReference.Parse(string! text) -> DotGram.Web.UriReference!
+static DotGram.Web.UriReference.ParseUri(string! text) -> DotGram.Web.UriReference!
+static DotGram.Web.UriReference.TryParse(string! text, out DotGram.Web.UriReference? reference) -> bool
+static DotGram.Web.UriReference.TryParseUri(string! text, out DotGram.Web.UriReference? uri) -> bool
+static DotGram.Web.UriReference.operator !=(DotGram.Web.UriReference? left, DotGram.Web.UriReference? right) -> bool
+static DotGram.Web.UriReference.operator ==(DotGram.Web.UriReference? left, DotGram.Web.UriReference? right) -> bool
+static DotGram.Web.UriTemplate.Expression.operator !=(DotGram.Web.UriTemplate.Expression? left, DotGram.Web.UriTemplate.Expression? right) -> bool
+static DotGram.Web.UriTemplate.Expression.operator ==(DotGram.Web.UriTemplate.Expression? left, DotGram.Web.UriTemplate.Expression? right) -> bool
+static DotGram.Web.UriTemplate.Literal.operator !=(DotGram.Web.UriTemplate.Literal? left, DotGram.Web.UriTemplate.Literal? right) -> bool
+static DotGram.Web.UriTemplate.Literal.operator ==(DotGram.Web.UriTemplate.Literal? left, DotGram.Web.UriTemplate.Literal? right) -> bool
+static DotGram.Web.UriTemplate.Parse(string! text) -> DotGram.Web.UriTemplate!
+static DotGram.Web.UriTemplate.Part.operator !=(DotGram.Web.UriTemplate.Part? left, DotGram.Web.UriTemplate.Part? right) -> bool
+static DotGram.Web.UriTemplate.Part.operator ==(DotGram.Web.UriTemplate.Part? left, DotGram.Web.UriTemplate.Part? right) -> bool
+static DotGram.Web.UriTemplate.TryParse(string! text, out DotGram.Web.UriTemplate? template) -> bool
+static DotGram.Web.UriTemplate.Variable.operator !=(DotGram.Web.UriTemplate.Variable? left, DotGram.Web.UriTemplate.Variable? right) -> bool
+static DotGram.Web.UriTemplate.Variable.operator ==(DotGram.Web.UriTemplate.Variable? left, DotGram.Web.UriTemplate.Variable? right) -> bool
+static DotGram.Web.UriTemplate.operator !=(DotGram.Web.UriTemplate? left, DotGram.Web.UriTemplate? right) -> bool
+static DotGram.Web.UriTemplate.operator ==(DotGram.Web.UriTemplate? left, DotGram.Web.UriTemplate? right) -> bool
+static DotGram.Web.WebLink.Parameter.operator !=(DotGram.Web.WebLink.Parameter? left, DotGram.Web.WebLink.Parameter? right) -> bool
+static DotGram.Web.WebLink.Parameter.operator ==(DotGram.Web.WebLink.Parameter? left, DotGram.Web.WebLink.Parameter? right) -> bool
+static DotGram.Web.WebLink.ParseField(string! text) -> DotGram.Web.WebLink![]!
+static DotGram.Web.WebLink.ParseStrictField(string! text) -> DotGram.Web.WebLink![]!
+static DotGram.Web.WebLink.TryParseField(string! text, out DotGram.Web.WebLink![]? links) -> bool
+static DotGram.Web.WebLink.TryParseStrictField(string! text, out DotGram.Web.WebLink![]? links) -> bool
+static DotGram.Web.WebLink.operator !=(DotGram.Web.WebLink? left, DotGram.Web.WebLink? right) -> bool
+static DotGram.Web.WebLink.operator ==(DotGram.Web.WebLink? left, DotGram.Web.WebLink? right) -> bool
+virtual DotGram.Web.BareItem.EqualityContract.get -> System.Type!
+virtual DotGram.Web.BareItem.Equals(DotGram.Web.BareItem? other) -> bool
+virtual DotGram.Web.BareItem.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual DotGram.Web.EmailAddress.EqualityContract.get -> System.Type!
+virtual DotGram.Web.EmailAddress.Equals(DotGram.Web.EmailAddress? other) -> bool
+virtual DotGram.Web.EmailAddress.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual DotGram.Web.JsonPatch.Operation.EqualityContract.get -> System.Type!
+virtual DotGram.Web.JsonPatch.Operation.Equals(DotGram.Web.JsonPatch.Operation? other) -> bool
+virtual DotGram.Web.JsonPatch.Operation.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual DotGram.Web.JsonValue.EqualityContract.get -> System.Type!
+virtual DotGram.Web.JsonValue.Equals(DotGram.Web.JsonValue? other) -> bool
+virtual DotGram.Web.JsonValue.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual DotGram.Web.Member.EqualityContract.get -> System.Type!
+virtual DotGram.Web.Member.Equals(DotGram.Web.Member? other) -> bool
+virtual DotGram.Web.Member.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual DotGram.Web.UriTemplate.Part.EqualityContract.get -> System.Type!
+virtual DotGram.Web.UriTemplate.Part.Equals(DotGram.Web.UriTemplate.Part? other) -> bool
+virtual DotGram.Web.UriTemplate.Part.PrintMembers(System.Text.StringBuilder! builder) -> bool

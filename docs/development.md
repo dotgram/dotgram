@@ -243,8 +243,9 @@ done
 
 ### The public surface
 
-`DotGram.Finance` holds its public surface to text: every public type and member is a line of
-`src/DotGram.Finance/PublicAPI.Shipped.txt` or `PublicAPI.Unshipped.txt`, and
+Each library package — `DotGram.Finance`, `DotGram.Sql`, `DotGram.Web` and
+`DotGram.ExpressionLanguage` — holds its public surface to text: every public type and member is a
+line of `src/<package>/PublicAPI.Shipped.txt` or `PublicAPI.Unshipped.txt`, and
 Microsoft.CodeAnalysis.PublicApiAnalyzers compares the two with the assembly on every build. A
 member added without its line is RS0016 and a line whose member is gone is RS0017, both errors here,
 so the surface cannot move without the diff showing it. Shipped is what a published version has.

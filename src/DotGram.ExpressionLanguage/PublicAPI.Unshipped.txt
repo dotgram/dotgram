@@ -1,0 +1,43 @@
+#nullable enable
+DotGram.ExpressionLanguage.ExpressionParser
+DotGram.ExpressionLanguage.ExpressionParser.Match<T>
+DotGram.ExpressionLanguage.ExpressionParser.Match<T>.Error.get -> string?
+DotGram.ExpressionLanguage.ExpressionParser.Match<T>.IsSuccess.get -> bool
+DotGram.ExpressionLanguage.ExpressionParser.Match<T>.Length.get -> int
+DotGram.ExpressionLanguage.ExpressionParser.Match<T>.Match() -> void
+DotGram.ExpressionLanguage.ExpressionParser.Match<T>.Outcome.get -> DotGram.ExpressionLanguage.ExpressionParser.Outcome
+DotGram.ExpressionLanguage.ExpressionParser.Match<T>.Position.get -> long
+DotGram.ExpressionLanguage.ExpressionParser.Match<T>.Value.get -> T
+DotGram.ExpressionLanguage.ExpressionParser.Outcome
+DotGram.ExpressionLanguage.ExpressionParser.Outcome.NoMatch = 1 -> DotGram.ExpressionLanguage.ExpressionParser.Outcome
+DotGram.ExpressionLanguage.ExpressionParser.Outcome.Starved = 2 -> DotGram.ExpressionLanguage.ExpressionParser.Outcome
+DotGram.ExpressionLanguage.ExpressionParser.Outcome.Success = 0 -> DotGram.ExpressionLanguage.ExpressionParser.Outcome
+DotGram.ExpressionLanguage.ExpressionParser.SourceSpan
+DotGram.ExpressionLanguage.ExpressionParser.SourceSpan.End.get -> int
+DotGram.ExpressionLanguage.ExpressionParser.SourceSpan.Length.get -> int
+DotGram.ExpressionLanguage.ExpressionParser.SourceSpan.On(System.ReadOnlySpan<char> text) -> System.ReadOnlySpan<char>
+DotGram.ExpressionLanguage.ExpressionParser.SourceSpan.SourceSpan() -> void
+DotGram.ExpressionLanguage.ExpressionParser.SourceSpan.SourceSpan(int start, int length) -> void
+DotGram.ExpressionLanguage.ExpressionParser.SourceSpan.Start.get -> int
+DotGram.ExpressionLanguage.ResolutionScope
+DotGram.ExpressionLanguage.ResolutionScope.Assemblies.get -> System.Collections.Generic.IReadOnlyList<System.Reflection.Assembly!>!
+DotGram.ExpressionLanguage.ResolutionScope.Caller.get -> System.Reflection.Assembly!
+DotGram.ExpressionLanguage.ResolutionScope.ImportsDefault.get -> bool
+DotGram.ExpressionLanguage.ResolutionScope.SeesInternals.get -> bool
+DotGram.ExpressionLanguage.ResolutionScope.With(params System.Reflection.Assembly![]! more) -> DotGram.ExpressionLanguage.ResolutionScope!
+DotGram.ExpressionLanguage.ResolutionScope.WithoutDefaultImports() -> DotGram.ExpressionLanguage.ResolutionScope!
+DotGram.ExpressionLanguage.ResolutionScope.WithoutInternals() -> DotGram.ExpressionLanguage.ResolutionScope!
+override DotGram.ExpressionLanguage.ExpressionParser.SourceSpan.ToString() -> string!
+static DotGram.ExpressionLanguage.ExpressionParser.Compile<TDelegate>(string! text) -> TDelegate!
+static DotGram.ExpressionLanguage.ExpressionParser.Compile<TDelegate>(string! text, DotGram.ExpressionLanguage.ResolutionScope! scope) -> TDelegate!
+static DotGram.ExpressionLanguage.ExpressionParser.Compile<TDelegate>(string! text, System.Reflection.Assembly! caller) -> TDelegate!
+static DotGram.ExpressionLanguage.ExpressionParser.Parse(string! text) -> System.Linq.Expressions.LambdaExpression!
+static DotGram.ExpressionLanguage.ExpressionParser.Parse(string! text, DotGram.ExpressionLanguage.ResolutionScope! scope) -> System.Linq.Expressions.LambdaExpression!
+static DotGram.ExpressionLanguage.ExpressionParser.Parse(string! text, System.Reflection.Assembly! caller) -> System.Linq.Expressions.LambdaExpression!
+static DotGram.ExpressionLanguage.ExpressionParser.Scan(System.ReadOnlySpan<char> text, int pos, out int kind) -> int
+static DotGram.ExpressionLanguage.ExpressionParser.TryParse(string! text) -> DotGram.ExpressionLanguage.ExpressionParser.Match<System.Linq.Expressions.LambdaExpression!>
+static DotGram.ExpressionLanguage.ExpressionParser.TryParse(string! text, DotGram.ExpressionLanguage.ResolutionScope! scope) -> DotGram.ExpressionLanguage.ExpressionParser.Match<System.Linq.Expressions.LambdaExpression!>
+static DotGram.ExpressionLanguage.ExpressionParser.TryParse(string! text, System.Reflection.Assembly! caller) -> DotGram.ExpressionLanguage.ExpressionParser.Match<System.Linq.Expressions.LambdaExpression!>
+static DotGram.ExpressionLanguage.ResolutionScope.Around(System.Reflection.Assembly! caller) -> DotGram.ExpressionLanguage.ResolutionScope!
+static DotGram.ExpressionLanguage.ResolutionScope.DefaultImports.get -> System.Collections.Generic.IReadOnlyList<string!>!
+static DotGram.ExpressionLanguage.ResolutionScope.Of(System.Reflection.Assembly! caller, params System.Reflection.Assembly![]! assemblies) -> DotGram.ExpressionLanguage.ResolutionScope!

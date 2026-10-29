@@ -42,6 +42,16 @@
 		                  OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<!-- The public surface, held to PublicAPI.*.txt beside this file, as DotGram.Finance and
+		     DotGram.Sql hold theirs: a type or a member made public, or changed, is a line in a
+		     diff and not an accident. What only one framework has is in PublicAPI/<framework>/:
+		     a record's clone returns its own type on net10.0 and the base type on
+		     netstandard2.0, which has no covariant returns. -->
+		<PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+		<AdditionalFiles Include="PublicAPI/$(TargetFramework)/PublicAPI.*.txt" />
+	</ItemGroup>
+
 	<ItemGroup Condition="'$(DotGramAnalyzeGenerated)' == 'true'">
 		<!-- The generator's own output, analysed for dead or redundant emitted code
 		     (tools/DotGram.GeneratedAnalyzers), never packed, loaded only under this
