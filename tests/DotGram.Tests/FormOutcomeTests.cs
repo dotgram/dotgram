@@ -245,6 +245,20 @@ public sealed class FormOutcomeTests
 		["LiteralChoiceRefusedInBracedTriviaStreamed"] = new("trivia = { ('#' & (\"ab\" | \"ac\"))* }\nR0 = 'z'\nparse R0\n", "#ax", "stream", 0, "NoMatch@0"),
 		["LiteralChoiceRefusedInTriviaAtTheEnd"] = new("trivia = ('#' & (\"ab\" | \"ac\"))*\nR0 = 'z'\nparse R0\n", "#a", "string", 0, "Starved@2"),
 		["LiteralChoiceRefusedInTriviaAtTheEndRead"] = new("trivia = { ('#' & (\"ab\" | \"ac\"))* }\nR0 = 'z'\nparse R0\n", "#a", "reader", 0, "Starved@2"),
+		// Each walk of a literal run inside the trivia that gives way to an alternative after it: the
+		// prefix the run shares refused on input that was there (over a string, and over a reader
+		// where the walk marks the input), the run refused past the prefix (over a string, and over
+		// a reader where the walk is asked whether the input ended), and a literal carried past a
+		// shorter one that matched. Main recorded 2 in every form.
+		["LiteralChoicePrefixRefusedInTrivia"] = new("trivia = ('#' & (\"abc\" | \"abd\" | ['0'..'9']))*\nR0 = 'z'\nparse R0\n", "#ax", "string", 0, "NoMatch@0"),
+		["LiteralChoicePrefixRefusedInTriviaRead"] = new("trivia = ('#' & (\"abc\" | \"abd\" | ['0'..'9']))*\nR0 = 'z'\nparse R0\n", "#ax", "reader", 0, "NoMatch@0"),
+		["LiteralChoicePrefixAtTheEndInTrivia"] = new("trivia = ('#' & (\"abc\" | \"abd\" | ['0'..'9']))*\nR0 = 'z'\nparse R0\n", "#a", "reader", 0, "Starved@2"),
+		["LiteralChoiceGivenWayInTrivia"] = new("trivia = ('#' & (\"ab\" | \"ac\" | ['0'..'9']))*\nR0 = 'z'\nparse R0\n", "#ax", "string", 0, "NoMatch@0"),
+		["LiteralChoiceGivenWayInTriviaRead"] = new("trivia = ('#' & (\"ab\" | \"ac\" | ['0'..'9']))*\nR0 = 'z'\nparse R0\n", "#ax", "reader", 0, "NoMatch@0"),
+		["LiteralChoiceGivenWayAtTheEndInTrivia"] = new("trivia = ('#' & (\"ab\" | \"ac\" | ['0'..'9']))*\nR0 = 'z'\nparse R0\n", "#a", "reader", 0, "Starved@2"),
+		["LiteralChoiceCarriedInTrivia"] = new("trivia = ('#' & (\"a\" | \"abc\" | \"abd\"))*\nR0 = 'z'\nparse R0\n", "#abx", "string", 0, "NoMatch@2"),
+		["LiteralChoiceCarriedInTriviaRead"] = new("trivia = ('#' & (\"a\" | \"abc\" | \"abd\"))*\nR0 = 'z'\nparse R0\n", "#abx", "reader", 0, "NoMatch@2"),
+		["LiteralChoiceCarriedAtTheEndInTrivia"] = new("trivia = ('#' & (\"a\" | \"abc\" | \"abd\"))*\nR0 = 'z'\nparse R0\n", "#ab", "string", 0, "Starved@3"),
 
 		// A braced trivia that is an optional call to a repeating rule — the SQL:2023 grammar's
 		// `{ Separator? }` — over a reader: the rule after the trivia is refused where it stands, as
