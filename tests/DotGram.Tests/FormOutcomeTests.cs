@@ -202,6 +202,23 @@ public sealed class FormOutcomeTests
 		["BlockCommentLeftOpenAtTheEnd"] = new("trivia = { (' ' | Std.BlockComment(\"/*\", \"*/\"))* }\nR0 = 'z' & 'q'\nparse R0\n", "z /* x", "string", 0, "Starved@6"),
 		["BlockCommentLeftOpenAtTheEndRead"] = new("trivia = { (' ' | Std.BlockComment(\"/*\", \"*/\"))* }\nR0 = 'z' & 'q'\nparse R0\n", "z /* x", "reader", 0, "Starved@6"),
 
+		// Found by review of round nine: four more sites that recorded inside the trivia where the
+		// input had not run out, or lost a run-out that had — a scanned positive look's body, a
+		// choice resumed inside the trivia after a rule returned, the direct reader's dispatch
+		// recorders, and the engine's guard and recognizer failures.
+		["ScannedPositiveLookBodyRanOutInTrivia"] = new("trivia = { ('#' & ?=\"ab\" & any*)* }\nR0 = 'z'\nparse R0\n", "#a", "string", 0, "Starved@1"),
+		["ScannedPositiveLookBodyRanOutInTriviaRead"] = new("trivia = { ('#' & ?=\"ab\" & any*)* }\nR0 = 'z'\nparse R0\n", "#a", "reader", 0, "Starved@1"),
+		["ChoiceResumedInsideTriviaAfterAReturn"] = new("trivia = ('#' & W)*\nW = 'x' & ('y' | 'y' & 'q' & 'r')\nR0 = 'a' & W\nparse R0\n", "#xyqz", "string", 0, "NoMatch@3"),
+		["ChoiceResumedInsideTriviaAfterAReturnRead"] = new("trivia = ('#' & W)*\nW = 'x' & ('y' | 'y' & 'q' & 'r')\nR0 = 'a' & W\nparse R0\n", "#xyqz", "reader", 0, "NoMatch@3"),
+		["ChoiceResumedInsideTriviaAfterAReturnStreamed"] = new("trivia = ('#' & W)*\nW = 'x' & ('y' | 'y' & 'q' & 'r')\nR0 = 'a' & W\nparse R0\n", "#xyqz", "stream", 0, "NoMatch@3"),
+		["GuardedAlternativeInTrivia"] = new("trivia = { ('#' & (when @(true) & 'x' | 'y'))* }\nR0 = 'z'\nparse R0\n", "#a", "string", 0, "NoMatch@0"),
+		["GuardedAlternativeInTriviaRead"] = new("trivia = { ('#' & (when @(true) & 'x' | 'y'))* }\nR0 = 'z'\nparse R0\n", "#a", "reader", 0, "NoMatch@0"),
+		["RecursiveRuleInTrivia"] = new("trivia = { ('#' & W)* }\nW = 'x' & (W | 'y')\nR0 = 'a' & W\nparse R0\n", "#xxz", "string", 0, "NoMatch@0"),
+		["RecursiveRuleInTriviaRead"] = new("trivia = { ('#' & W)* }\nW = 'x' & (W | 'y')\nR0 = 'a' & W\nparse R0\n", "#xxz", "reader", 0, "NoMatch@0"),
+		["GuardRefusedInTrivia"] = new("trivia = { ('#' & 'a' & when @(false))* }\nR0 = 'z'\nparse R0\n", "#az", "string", 0, "NoMatch@0"),
+		["GuardRefusedInTriviaRead"] = new("trivia = { ('#' & 'a' & when @(false))* }\nR0 = 'z'\nparse R0\n", "#az", "reader", 0, "NoMatch@0"),
+		["RecognizerRefusedInTrivia"] = new("trivia = { ('#' & 'a' & @Odd)* }\nR0 = 'z'\nparse R0\n", "#az", "string", 0, "NoMatch@0"),
+
 		// Over kinds, a repetition short of its minimum that stopped at the end of the tokens says
 		// what it wanted: the direct reader says nothing and answers from the start.
 		["TokenRepetitionBelowMinimum"] = new(Lexical + "R0 = Lexical.Digits & ['a'..'c']+\nparse R0\n", "0", "string", 0, "Starved@1", Lexical: true),
