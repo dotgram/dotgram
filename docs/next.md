@@ -26800,14 +26800,21 @@ search for the delimiter that found none jumped to the refusal without saying ho
 - **What moved.** A harness of 6,000 random grammars — every shape of the syntax, and a trivia generator that nests
   looks, choices, repetitions below and above their fewest turns, rules the trivia and the grammar both call, and a
   namespace's trivia a rule outside it reaches, guards, host recognizers, recursion and a choice resumed after a
-  return inside the trivia — read 300 inputs each in every published form. Against main, 650 grammars answered
-  differently in some form; after the fixes 49 do: 14 are the documented default of a positional reading compiled
-  against the end of the input (§6.3, `DotGramPositionalFollow`), 30 are `Std.Quoted` and a loop before a repeated
-  literal giving characters back differently from a position, five are a host recognizer in a turn the direct
-  reader does not give back, and two are the known differences below. Of 28 million comparisons 93,802 answers of
-  the direct reader moved to the engine's, 2,127 of the engine's to the reader's and 135 of both to a third; no input
-  one reader accepted and the other refused is answered otherwise now, and no answer both readers agreed on moved
-  apart.
+  return inside the trivia, and a braced trivia that is an optional, starred or repeated call to a repeating rule of
+  comment-like alternatives, as the SQL grammars write theirs — read 300 inputs each in every published form.
+  Against main, 613 grammars answered differently in some form; after the fixes 52 do: 14 are the documented
+  default of a positional reading compiled against the end of the input (§6.3, `DotGramPositionalFollow`), 26 are
+  `Std.Quoted` and a loop before a repeated literal giving characters back differently from a position, six are a
+  host recognizer in a turn the direct reader does not give back, and the rest are the known differences below. Of
+  28 million comparisons 93,330 answers of the direct reader moved to the engine's, 2,057 of the engine's to the
+  reader's and 85 of both to a third; no input one reader accepted and the other refused is answered otherwise now,
+  and no answer both readers agreed on moved apart. Probing the shipped trivia found what the harness had not
+  generated: `{ Separator? }` with `Separator = (Comment | Whitespace)+`, SQL:2023's own, read over a reader, was
+  refused at the start of the input on `select /x 1` where main said 8 and the string form 7 — a settled optional
+  the engine enters with no way back out, whose body failing after `/` recorded nothing inside the trivia; inside
+  the trivia it keeps its standing exit now. A choice of literals refused past their shared prefix inside the
+  trivia, `('#' & ("ab" | "ac"))*` on `#ax`, was recorded by the engine where the literals stopped agreeing and by
+  the reader nowhere, where main recorded 2 in every form: the literal walk takes the sentinel there now too.
 - **What the trivia records.** Of the answers both readers agreed on, 13,502 moved, in both alike, under §7.5's rule
   that inside the trivia a refusal is recorded only where the input ran out: 13,107 are NoMatch answered from the rule
   after the trivia rather than from a literal, a look, a guard or a recognizer inside it (a comment's `--` that stopped
@@ -26817,16 +26824,15 @@ search for the delimiter that found none jumped to the refusal without saying ho
   The rule itself — against the readers with every look fixed but the trivia's terminals still recorded — moves 7,413
   agreed answers: 7,327 NoMatch answered from the rule after the trivia, 69 NoMatch turned Starved at the end, 17
   Starved moved to the end; it is its own commit, and its own paragraph of §7.5. Four shapes inside the trivia still
-  answer apart, and `FormOutcomeTests` pins them as they stand: a choice the engine resumes after a rule it called
+  answer apart — none of them answered alike on main — and `FormOutcomeTests` pins them as they stand: a choice the engine resumes after a rule it called
   returned records the alternative's refusal where the reader records nothing (`trivia = ('#' & W)*`,
   `W = 'x' & ('y' | 'y' & 'q' & 'r')` on `#xyqz`: NoMatch at 3 and at 4); over a string the scan of a positive look's
   body keeps no mark of input that ran out inside it, so `{ ('#' & ?="ab" & any*)* }` on `#a` is NoMatch at 0 where the
   reader forms say Starved at 1, as main did; and a counted repetition's extra turn refused at the end of a braced
   trivia, `{ ('#' & ([^ '\n'] & any){1,2} & ?!('#'?))* }` on `#cp`, is Starved at 3 in the engine and NoMatch at 1 in
-  the reader; and a choice of literals inside the trivia refused past their shared prefix on input that was there,
-  `trivia = ('#' & ("ab" | "ac"))*` on `#ax`, is recorded by the engine where the literals stopped agreeing (NoMatch at
-  2) and by the reader nowhere (NoMatch at 0), the literal walk sharpening its set and failing without asking whether
-  it is inside the trivia.
+  the reader; and an optional call to a rule that is itself a repetition, `trivia = { Sep? }` with
+  `Sep = (' ' | '#' & 'y')*`, on `#` loses the run-out in the engine's string form (NoMatch at 0) where the reader
+  and the engine's other forms say Starved at 1, as main did.
 - **What it cost.** Generated source: the T-SQL parser +0.24% (9,080,416 to 9,101,831 bytes), SQL:2023 +0.24%,
   SQL-92 +0.14%: the positional forms clamp their position, the ran-out helper takes whether it is inside a
   negative look, the engine declares and counts `negating`, and the direct reader counts `Negating` on the
