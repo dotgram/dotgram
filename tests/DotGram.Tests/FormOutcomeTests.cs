@@ -111,6 +111,21 @@ public sealed class FormOutcomeTests
 		// guarded rule never wrote one of its own.
 		["RunOutInPositiveLookAfterNegativeAlternative"] = new("R0 = ?!(\"ab\") | ?=(H1)\nH1 : @int = g: ('a' | \"ab\") & when @(g.Length > 1) => @(g.Length)\nparse R0\n", "a", "string", 0, "Starved@0"),
 
+		// A look refused inside the trivia records nothing, and leaves nothing behind either: the
+		// negative look after the trivia is refused at 1 in every form of the engine, as in the
+		// direct reader. The engine fed through a window carried the trivia look's unrecorded
+		// refusal into the outer look's, which then went unrecorded too, and answered 0.
+		["NegativeLookAfterATriviaLook"] = new("trivia = { ('#' & ?!'#')* }\nR0 = 'a' & ?!('b'*)\nparse R0\n", "a##", "string", 0, "NoMatch@1"),
+		["NegativeLookAfterATriviaLookStreamed"] = new("trivia = { ('#' & ?!'#')* }\nR0 = 'a' & ?!('b'*)\nparse R0\n", "a##", "stream", 0, "NoMatch@1"),
+		["NegativeLookAfterATriviaLookRead"] = new("trivia = { ('#' & ?!'#')* }\nR0 = 'a' & ?!('b'*)\nparse R0\n", "a##", "reader", 0, "NoMatch@1"),
+
+		// A repetition in the trivia short of its fewest turns, refused by the look that begins its
+		// turn, records nothing either: the direct reader recorded the turn's start, and answered
+		// from inside the trivia where the engine answered from the rule.
+		["TriviaRepetitionBelowItsFewestAtALook"] = new("trivia = { ('#' & (?!\"ab\" & any)+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "string", 0, "NoMatch@0"),
+		["TriviaRepetitionBelowItsFewestAtALookRead"] = new("trivia = { ('#' & (?!\"ab\" & any)+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "reader", 0, "NoMatch@0"),
+		["TriviaRepetitionBelowItsFewestAtALookStreamed"] = new("trivia = { ('#' & (?!\"ab\" & any)+)* }\nR0 : @int = 'z' => @(parserText.Length)\nparse R0\n", "#ab", "stream", 0, "NoMatch@0"),
+
 		// Over kinds, a repetition short of its minimum that stopped at the end of the tokens says
 		// what it wanted: the direct reader says nothing and answers from the start.
 		["TokenRepetitionBelowMinimum"] = new(Lexical + "R0 = Lexical.Digits & ['a'..'c']+\nparse R0\n", "0", "string", 0, "Starved@1", Lexical: true),
