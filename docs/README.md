@@ -126,3 +126,5 @@ anything: by asking one to write a grammar knowing nothing else.
 - [`handoffs/finance.md`](handoffs/finance.md): Finance progress, decisions, validation
   commands and open questions for continuing on another device. Verify its recorded
   commits and current working tree before relying on the snapshot.
+- [`handoffs/release-0.3.0.md`](handoffs/release-0.3.0.md): the draft of the 0.3.0 GitHub
+  release text and its known issues, until the tag.
