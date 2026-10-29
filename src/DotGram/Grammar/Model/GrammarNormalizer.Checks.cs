@@ -605,10 +605,27 @@ public sealed partial class GrammarNormalizer
 	}
 
 	/// <summary>Whether the rule captures this repetition itself, rather than each of its elements.</summary>
+	/// <remarks>
+	/// A synchronization hangs off its repetition rather than being one of its children, so it is
+	/// walked as well: a capture written there holds a repetition there as one in the body does.
+	/// </remarks>
 	bool CapturedWhole(RuleSymbol rule, Node repetition)
 	{
 		return _bodies.TryGetValue(rule, out var body) &&
-			NodeWalk.Descendants(body).Any(node => node is Node.Capture(_, var held) && ReferenceEquals(held, repetition));
+			WithSyncs(body).Any(node => node is Node.Capture(_, var held) && ReferenceEquals(held, repetition));
+	}
+
+	/// <summary>Every node under <paramref name="from"/>, and under each recovery's synchronization in it.</summary>
+	IEnumerable<Node> WithSyncs(Node from)
+	{
+		foreach (var node in NodeWalk.Descendants(from))
+		{
+			yield return node;
+
+			if (_recoveries.TryGetValue(node, out var recovery))
+				foreach (var inner in WithSyncs(recovery.Sync))
+					yield return inner;
+		}
 	}
 
 	/// <summary>What the rule offers: its alternatives, or the body when it offers one.</summary>

@@ -374,6 +374,22 @@ public sealed class GeneratedCompileTests
 	}
 
 	/// <summary>
+	/// A recovering repetition captured whole inside another one's synchronization is its text there
+	/// as anywhere (§7.3), so its <c>=&gt;</c> has no sequence to go in: refused (GRAM4010) written in
+	/// place as it is when the synchronization is a rule of its own, whatever the enclosing rule's
+	/// own <c>=&gt;</c> builds.
+	/// </summary>
+	[Theory]
+	[InlineData("R : @int = Row* recover (xs: (Row* recover ';' => @(0)) & '!') & 'b' => @(5)")]
+	[InlineData("R : @int = Row* recover Sync & 'b' => @(5)\nSync : @string = xs: (Row* recover ';' => @(0)) & '!' => @(xs)")]
+	public void A_recovery_captured_whole_in_a_synchronization_is_refused(string rule)
+	{
+		var result = Compiled("Row : @int = 'z' & ';' => @(1)\n" + rule + "\nparse R", Host, direct: true);
+
+		Assert.Contains(result.Diagnostics, static one => one.Id == GrammarNormalizer.UnbuiltRecovery);
+	}
+
+	/// <summary>
 	/// Over bytes a raw capture is a <c>ReadOnlySpan&lt;byte&gt;</c> that nothing decodes (§6.3): a rule
 	/// declared a string and built from one, <c>=&gt; @(t)</c>, is refused the byte form (GRAM4026),
 	/// where it was CS0029. Handed to a method of the host's, the same capture builds one.
