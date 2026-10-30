@@ -23,6 +23,10 @@ DotGram language support
   parser supplies there (a construction, a `when` and a recovery's factory are each handed their
   own) and the rule's captures and parameters, which C# completion cannot see.
 - A keyword used as a rule's name, such as a rule called `state`, is coloured as a name.
+- A grammar embedded in a second `[Gram(...)]` on a class is analysed with the options the class's
+  first `[Gram]` gives it, as the generator compiles it.
+- Find All References reopens the read-only copy of an included or standard-library grammar if it
+  has been removed since it was made.
 
 0.2.0
 
