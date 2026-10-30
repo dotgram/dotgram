@@ -1352,9 +1352,10 @@ public static class GramLanguageService
 	/// span overlaps from the whole list in turn: a grammar with many actions has tens of
 	/// thousands of both, and that pass alone took seconds on the T-SQL grammar. Here the C#
 	/// spans are put in the order they start, and a span is overlapped when one of those that
-	/// start before it ends reaches past its start.
+	/// start before it ends reaches past its start. Internal for the test that holds it to that
+	/// removal.
 	/// </remarks>
-	static void Overlay(List<GramClassifiedSpan> classifications, IReadOnlyList<GramClassifiedSpan> csharp)
+	internal static void Overlay(List<GramClassifiedSpan> classifications, IReadOnlyList<GramClassifiedSpan> csharp)
 	{
 		if (csharp.Count == 0)
 			return;

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using Xunit;
@@ -705,4 +706,51 @@ public sealed class GramLanguageServiceTests
 		Assert.Contains(uses, symbol => symbol.Position == source.IndexOf("Word &", StringComparison.Ordinal));
 	}
 
+	/// <summary>
+	/// The C# spans are laid over the grammar's as removing every span each of them overlaps,
+	/// then adding it, would lay them: the same spans in the same order, which the sort after
+	/// it, not a stable one, needs where two spans start together. Spans of every overlap are
+	/// drawn, empty ones and C# spans overlapping each other among them.
+	/// </summary>
+	[Fact]
+	public void CSharpSpansOverlayAsRemovingWhatEachOverlaps()
+	{
+		var random = new Random(12345);
+
+		for (var trial = 0; trial < 5000; trial++)
+		{
+			var width    = random.Next(1, 40);
+			var grammar  = Spans(random.Next(0, 30), GramSyntaxKind.Identifier);
+			var csharp   = Spans(random.Next(0, 30), GramSyntaxKind.EmbeddedCode);
+			var expected = grammar.ToList();
+
+			foreach (var span in csharp)
+			{
+				expected.RemoveAll(existing =>
+					existing.Position < span.Position + span.Length && span.Position < existing.Position + existing.Length);
+				expected.Add(span);
+			}
+
+			var actual = grammar.ToList();
+
+			GramLanguageService.Overlay(actual, csharp);
+
+			Assert.Equal(expected.Select(Shown), actual.Select(Shown));
+
+			List<GramClassifiedSpan> Spans(int count, GramSyntaxKind kind)
+			{
+				var result = new List<GramClassifiedSpan>(count);
+
+				for (var index = 0; index < count; index++)
+					result.Add(new GramClassifiedSpan(random.Next(0, width), random.Next(0, 6), kind, $"{kind} {index}"));
+
+				return result;
+			}
+		}
+
+		static (int, int, GramSyntaxKind, string?) Shown(GramClassifiedSpan span)
+		{
+			return (span.Position, span.Length, span.Kind, span.QuickInfo);
+		}
+	}
 }
