@@ -79,14 +79,24 @@ names, as many as the construction, the `when` or the recovery's factory is hand
 captures and parameters, are offered by completion beside what C# offers.
 
 What the editor says about these comes from `src/DotGram/Language/GramVocabulary.cs`. The
-generator's tests hold it to the generator: `EditorVocabularyTests` to the words the parser
-takes, the built-in rules, the supplied names, the token kinds, the Unicode categories and the
-standard library; `EditorSuppliedNamesTests` to what the generated C# accepts of each supplied
-name in each place; `EditorDiagnosticsTests` to every diagnostic number, each with a grammar the
-editor shows it for or the reason it cannot (`EditorDiagnostics.txt`); and, in the slow tests,
-`EditorCorpusTests` to every grammar in the repository, every token of which must be classified.
+tests in `tests/DotGram.Language.Tests`, which run on any machine, hold it to the generator:
+`EditorVocabularyTests` to the words the parser takes, the built-in rules, the supplied names,
+the token kinds, the Unicode categories and the standard library; `EditorSuppliedNamesTests` to
+what the generated C# accepts of each supplied name in each place; `EditorDiagnosticsTests` to
+every diagnostic number, each with a grammar the editor shows it for or the reason it cannot
+(`EditorDiagnostics.txt`); and, in `tests/DotGram.Language.Tests.Slow`, `EditorCorpusTests` to
+every grammar in the repository, every token of which must be classified, and
+`EditorParityTests` to the compiler's diagnostics for each under the same options.
 
 ## Build the VSIX
+
+The extension compiles the shared language core — `src/DotGram/Grammar/` and
+`src/DotGram/Language/` — from source, through `src/DotGram/Language.projitems`, and holds only
+what is Visual Studio's itself: taggers, completion sources, command handlers and the rest that
+map the core's answers onto the editor. What may go where, and why it is sources rather than a
+reference to the generator, is `src/DotGram/Language/README.md`. The core's own tests are in
+`tests/DotGram.Language.Tests` and run on Linux; `tests/DotGram.VisualStudio.Tests` keeps those
+that need a type of the extension's.
 
 From the repository root:
 

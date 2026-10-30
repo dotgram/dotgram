@@ -16,14 +16,16 @@ the host knows, it goes behind a seam:
 | Need | Seam | Roslyn implementation |
 | --- | --- | --- |
 | what a grammar's `@Name` refers to in C# | `ISymbolResolver` | `Generation/RoslynSymbolResolver.cs` |
-| where an inline `@(...)` expression ends | `ICSharpScanner` | `Generation/RoslynCSharpScanner.cs` |
+| where an inline `@(...)` expression ends | `ICSharpScanner` | `Language/RoslynCSharpScanner.cs` |
 
 A third kind of host knowledge means a third seam — an interface here, its
-implementation in `Generation/`, and a default or fake so callers that do not care
-still work.
+implementation in `Generation/` (or in `Language/`, where the editor needs it too, as it
+needs the scanner), and a default or fake so callers that do not care still work.
 
 Diagnostics are reported as `GramDiagnostic` (id, message, position, length). The
 shell converts them; this half never constructs a Roslyn `Diagnostic`.
 
-The split is currently inside one assembly. Keeping it honest is what makes
-splitting it later mechanical instead of a redesign.
+The split is inside one assembly in the generator, and the build holds it there:
+`src/DotGram.Grammar.Guard` compiles `Grammar/` with no Roslyn and nothing of
+`Language/` or `Generation/` in reach, so a `using` of any of them does not build
+(`src/DotGram/Language/README.md`).

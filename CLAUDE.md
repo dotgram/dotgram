@@ -47,8 +47,12 @@ src/
 	DotGram/              the generator: one analyzer package, no runtime
 		Grammar/          pure: a function of grammar text, no Roslyn
 		Generation/       the Roslyn shell
-		Language/         the editor-neutral analysis of a .gram document — classification,
-		                  symbols, diagnostics — that the Visual Studio extension reads
+		Language/         the editor-neutral analysis of a .gram document and of the C#
+		                  around one — classification, symbols, diagnostics — that the
+		                  editors compile; the generator compiles only its three Roslyn
+		                  seams. What may go where: Language/README.md
+		Language.projitems the shared core's list of sources, Grammar/ and Language/,
+		                  which every editor host imports
 		README.md         the package's own front page, not the repository's: what to
 		                  write once it is installed, and links back for the rest
 		SKILL.md          how to write a grammar, for an agent. Ships in the package
@@ -75,6 +79,10 @@ src/
 		TransactSql/      T-SQL, TransactSqlParser; Specification/ holds Microsoft's
 		                  published syntax. Each dialect is its own grammar, meeting the
 		                  others only in the tree (docs/design/sql-parsers.md)
+	DotGram.Grammar.Guard/ Grammar/ compiled alone, with no Roslyn in reach; referenced
+	                      by nothing: building it is the assertion
+	DotGram.Language.Guard/ Grammar/ and Language/ compiled with Roslyn's Workspaces and
+	                      nothing else: no generator shell, no editor. The same kind of guard
 	DotGram.VisualStudio/ the Visual Studio extension: .Gram language support in the
 	                      editor, over DotGram/Language (docs/visual-studio.md)
 	DotGram.Web/          the formats of the web, a package of its own, in the DotGram.Web
@@ -133,7 +141,12 @@ tests/
 	                      Roslyn it supports. Not in the solution; CI runs it after packing
 	DotGram.Finance.PackageSmoke/ the same for the FIX package, on both frameworks it
 	                      ships for. Not in the solution; CI runs it after packing
-	DotGram.VisualStudio.Tests/
+	DotGram.Language.Tests/ the shared language core held to the generator, on any machine;
+	                      compiles the core from Language.projitems and does not reference
+	                      the generator
+	DotGram.Language.Tests.Slow/ every grammar in the repository read by the editor: classified
+	                      token for token, and with the compiler's diagnostics (D12)
+	DotGram.VisualStudio.Tests/ what needs a type of the extension's; Windows only
 	  Playground/         grammars to open in the experimental instance, each with the
 	                      manual check beside it (docs/visual-studio.md)
 	Snapshots/            a grammar and the file it must compile into, checked in so

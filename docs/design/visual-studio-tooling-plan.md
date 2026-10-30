@@ -111,8 +111,12 @@ The detailed design and explicit deferrals are in
 ## Validation rules
 
 - Standalone and embedded grammar must use the same language intelligence.
-- Tooling stays under `DotGram.VisualStudio` or editor-neutral files directly included
-  by that project; no separate project until there is a demonstrated need.
+- Editor-neutral tooling lives in `src/DotGram/Language/` and Visual Studio's own in
+  `DotGram.VisualStudio`; every host compiles the core from `src/DotGram/Language.projitems`.
+  This supersedes the earlier rule of no separate project: two guard projects
+  (`DotGram.Grammar.Guard`, `DotGram.Language.Guard`) and the core's tests
+  (`DotGram.Language.Tests`) now hold the boundary on every build, as
+  `src/DotGram/Language/README.md` says.
 - Do not change parser recognition semantics for an editor feature.
 - Every source position crossing a C# string boundary uses `CSharpStringMap`.
 - New behavior needs editor-neutral tests and embedded-source-map tests where relevant.
