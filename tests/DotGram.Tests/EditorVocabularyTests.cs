@@ -287,6 +287,23 @@ public sealed class EditorVocabularyTests
 		Assert.Equal(found, GramVocabulary.QualifiedStandardRule(text, nameStart, end - nameStart) is not null);
 	}
 
+	/// <summary>Where the grammar's own lexer says C# is, whatever the parentheses in C#'s strings say.</summary>
+	[Theory]
+	[InlineData("A : @string = 'a' => @(F(\"(\"))\nB = Std.Integer|",   false)]
+	[InlineData("A : @string = 'a' => @(\")\" + Std.Integer|)",          true)]
+	[InlineData("A : @string = 'a' => @(Std.Integer|)",                   true)]
+	[InlineData("A : @string = 'a' => @Std.Integer|",                     true)]
+	[InlineData("A = Std.Integer|",                                       false)]
+	[InlineData("A = Std.|",                                              false)]
+	[InlineData("A : @string = 'a' => @(Std.|",                           true)]
+	[InlineData("A : @string = 'a' => @(F() /* ( */)\nB = Std.Integer|", false)]
+	public void C_sharp_is_where_the_grammar_s_lexer_reads_it(string marked, bool csharp)
+	{
+		var position = marked.IndexOf('|', StringComparison.Ordinal);
+
+		Assert.Equal(csharp, GramVocabulary.InCSharp(marked.Remove(position, 1), position));
+	}
+
 	[Theory]
 	[InlineData("A = 'a' => @(par|)",                true)]
 	[InlineData("A = 'a' => @(x + par|)",            true)]
@@ -325,6 +342,8 @@ public sealed class EditorVocabularyTests
 	[InlineData("int A() { return Take().Value! switch { \"arm\" => 1, _ => 0 }; }", "arm")]
 	[InlineData("void A() { switch (Take().Value) { case \"sw\": break; } }",        "sw")]
 	[InlineData("bool A() { return string.Equals(Next.Value, \"eq\"); }",            "eq")]
+	[InlineData("bool AtKeyword(string keyword) { return Current.Value == keyword || Current.Value == \"newword\"; }", "newword")]
+	[InlineData("bool TakeIfKeyword(string keyword) { return AtKeyword(keyword) || AtKeyword(\"other\"); }",            "other")]
 	public void The_parser_s_words_are_found_however_it_compares_them(string member, string words)
 	{
 		Assert.Equal(words.Split(' ').Order(StringComparer.Ordinal), ParserWords($"class P {{ {member} }}").Order(StringComparer.Ordinal));
@@ -367,7 +386,8 @@ public sealed class EditorVocabularyTests
 		{
 			if (expression is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.StringLiteralExpression))
 				words.Add(literal.Token.ValueText);
-			else if (expression is not LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression })
+			else if (expression is not LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression } &&
+				!IsHelperParameter(expression, where))
 				unsupported.Add(where.ToString());
 		}
 
@@ -402,12 +422,7 @@ public sealed class EditorVocabularyTests
 			}
 		}
 
-		// The keyword helpers' own bodies compare the text with the word they are handed.
-		var helpers = root.DescendantNodes().OfType<MethodDeclarationSyntax>()
-			.Where(static method => method.Identifier.ValueText.EndsWith("Keyword", StringComparison.Ordinal))
-			.ToArray();
-
-		foreach (var node in root.DescendantNodes().Where(node => !helpers.Any(helper => helper.Span.Contains(node.Span))))
+		foreach (var node in root.DescendantNodes())
 			switch (node)
 			{
 				// `Next.Value is Word` reads as a type test, and could as well be a constant.
@@ -464,6 +479,19 @@ public sealed class EditorVocabularyTests
 			throw new InvalidOperationException("Comparisons of a token's text the test cannot read: " + string.Join("; ", unsupported));
 
 		return words;
+	}
+
+	/// <summary>
+	/// The word a keyword helper is handed, compared with the text inside the helper itself: what
+	/// the helper is asked about is read where it is called, and anything else it compares is read
+	/// here like any other comparison.
+	/// </summary>
+	static bool IsHelperParameter(ExpressionSyntax? expression, SyntaxNode where)
+	{
+		return expression is IdentifierNameSyntax name &&
+			where.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault() is { } method &&
+			method.Identifier.ValueText.EndsWith("Keyword", StringComparison.Ordinal) &&
+			method.ParameterList.Parameters.Any(parameter => parameter.Identifier.ValueText == name.Identifier.ValueText);
 	}
 
 	static string? Called(InvocationExpressionSyntax invocation)

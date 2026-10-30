@@ -366,6 +366,53 @@ public static class GramVocabulary
 	}
 
 	/// <summary>
+	/// Whether <paramref name="position"/> of a grammar is in C# rather than in the grammar's own
+	/// text: inside an <c>@(…)</c>, or in the name of an <c>@Name</c> or <c>@Name.Member</c>.
+	/// </summary>
+	/// <remarks>
+	/// Asked of the grammar's own lexer, which reads an <c>@(…)</c> with C#'s tokenizer, so that a
+	/// parenthesis inside a C# string or comment cannot move the boundary. An <c>@(</c> the lexer
+	/// found no end for — the one being typed — runs to the end of the text.
+	/// </remarks>
+	public static bool InCSharp(string grammar, int position)
+	{
+		var tokens = GramLexer.Tokenize(grammar, RoslynCSharpScanner.Instance);
+
+		foreach (var diagnostic in tokens.Diagnostics)
+			if (diagnostic.Id == GramLexer.UnterminatedExpression && diagnostic.Position < position)
+				return true;
+
+		var list = tokens.Tokens;
+
+		for (var index = 0; index < list.Count; index++)
+		{
+			var token = list[index];
+
+			if (token.Kind == TokenKind.EndOfFile || token.Position > position)
+				break;
+
+			if (token.Kind == TokenKind.CSharpExpression && token.Position < position && position < token.Position + token.Length)
+				return true;
+
+			if (token.Kind is not (TokenKind.Identifier or TokenKind.Dot) || position > token.Position + token.Length)
+				continue;
+
+			// The name under the caret: back over the dotted chain it ends, to what stands before it.
+			var first = index;
+
+			while (first > 0 && list[first - 1].Kind is TokenKind.Identifier or TokenKind.Dot &&
+				list[first - 1].Position + list[first - 1].Length == list[first].Position)
+				first--;
+
+			if (first > 0 && list[first - 1].Kind == TokenKind.At &&
+				list[first - 1].Position + list[first - 1].Length == list[first].Position)
+				return true;
+		}
+
+		return false;
+	}
+
+	/// <summary>
 	/// Whether the supplied names belong among what C# completion offers at <paramref name="position"/>:
 	/// inside an <c>@(…)</c>, where a name stands on its own, and not after a dot or in an <c>@Name</c>.
 	/// </summary>

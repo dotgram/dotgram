@@ -45,4 +45,28 @@ public sealed class IncludedGrammarViewTests
 			File.Delete(paths[0]!);
 		}
 	}
+
+	/// <summary>A copy found again is marked as used, so that no cleanup takes it for a stale one.</summary>
+	[Fact]
+	public void A_copy_found_again_is_marked_as_used()
+	{
+		var grammar = new StandaloneIncludedGrammar("ViewTest" + Guid.NewGuid().ToString("N"), "A = 'a'\nparse A", null);
+		var path    = IncludedGrammarView.PathOf(grammar)!;
+
+		try
+		{
+			File.SetAttributes(path, FileAttributes.Normal);
+			File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddDays(-3));
+			File.SetAttributes(path, FileAttributes.ReadOnly);
+
+			Assert.Equal(path, IncludedGrammarView.PathToOpen(grammar));
+			Assert.True(File.GetLastWriteTimeUtc(path) > DateTime.UtcNow.AddHours(-1));
+			Assert.True(File.GetAttributes(path).HasFlag(FileAttributes.ReadOnly));
+		}
+		finally
+		{
+			File.SetAttributes(path, FileAttributes.Normal);
+			File.Delete(path);
+		}
+	}
 }

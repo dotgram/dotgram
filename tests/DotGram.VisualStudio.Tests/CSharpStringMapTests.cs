@@ -11,6 +11,22 @@ namespace DotGram.VisualStudio.Tests;
 
 public sealed class CSharpStringMapTests
 {
+	/// <summary>A caret in a <c>[Gram]</c> literal lands where it stands in the grammar, however the literal is spelled.</summary>
+	[Theory]
+	[InlineData("\"A = 'a' => @(par|)\"")]
+	[InlineData("\"A = '\\n' => @(par|)\"")]
+	[InlineData("@\"A = \"\"x\"\" => @(par|)\"")]
+	[InlineData("\"\"\"\nA = 'a' => @(par|)\n\"\"\"")]
+	public void DecodesALiteralAndTheCaretInIt(string marked)
+	{
+		var caret = marked.IndexOf('|');
+		var literal = marked.Remove(caret, 1);
+
+		Assert.True(CSharpStringMap.TryDecode(literal, caret, out var grammar, out var position));
+		Assert.EndsWith("@(par", grammar.Substring(0, position), StringComparison.Ordinal);
+		Assert.StartsWith(")", grammar.Substring(position), StringComparison.Ordinal);
+	}
+
 	[Fact]
 	public void MapsRegularEscapesToTheirWholeSpelling()
 	{

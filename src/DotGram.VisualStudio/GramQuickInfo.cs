@@ -146,7 +146,8 @@ sealed class GramQuickInfoSource(
 					item.Position,
 					item.Length,
 					item.Kind,
-					item.QuickInfo ?? StandardQuickInfo(snapshot, item.Position, item.Length, item.Kind));
+					item.QuickInfo ?? StandardQuickInfo(
+						snapshot, item.Position, item.Length, item.Kind, GrammarPosition.Standalone(snapshot, item.Position)));
 			}
 
 		return null;
@@ -196,10 +197,10 @@ sealed class GramQuickInfoSource(
 	/// the analysis of the document itself does not carry: the library is no part of its text. Not
 	/// in C# inside the grammar, where <c>Std</c> is whatever C# says it is.
 	/// </summary>
-	internal static string? StandardQuickInfo(ITextSnapshot snapshot, int position, int length, GramSyntaxKind kind)
+	internal static string? StandardQuickInfo(
+		ITextSnapshot snapshot, int position, int length, GramSyntaxKind kind, (string Text, int Position)? grammar)
 	{
-		if (kind != GramSyntaxKind.Identifier ||
-			GramCSharpCompletionContext.TryGetPrefix(snapshot.GetText(), position, out _))
+		if (kind != GramSyntaxKind.Identifier || !GrammarPosition.InGrammarText(grammar))
 			return null;
 
 		var start = Math.Max(0, position - StandardLibrary.Name.Length - 2);
@@ -614,7 +615,9 @@ sealed class EmbeddedGramQuickInfoSource(
 					item.Span.Start,
 					item.Span.Length,
 					item.Kind,
-					item.QuickInfo ?? GramQuickInfoSource.StandardQuickInfo(snapshot, item.Span.Start, item.Span.Length, item.Kind));
+					item.QuickInfo ?? GramQuickInfoSource.StandardQuickInfo(
+						snapshot, item.Span.Start, item.Span.Length, item.Kind,
+						GrammarPosition.Embedded(snapshot, item.Span.Start, classifications)));
 			}
 
 		foreach (var item in classifications)

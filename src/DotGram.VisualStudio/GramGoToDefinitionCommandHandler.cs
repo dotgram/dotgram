@@ -77,7 +77,7 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 		}
 
 		if (StandardRuleAt(args, snapshot, position) is { } standard)
-			return IncludedGrammarView.PathOf(new StandaloneIncludedGrammar(StandardLibrary.Name, StandardLibrary.Text, null)) is { } path &&
+			return IncludedGrammarView.PathToOpen(new StandaloneIncludedGrammar(StandardLibrary.Name, StandardLibrary.Text, null)) is { } path &&
 				Navigate(new GeneratedApiSource(path, standard.Line, standard.Column));
 
 		if (IsCSharpContext(args, snapshot, position, out var expression, out var expressionPosition))
@@ -89,7 +89,7 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 
 		if (args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name) &&
 			GramBufferAnalysis.For(args.SubjectBuffer).ExternalDefinition(snapshot, position) is { } external)
-			return IncludedGrammarView.PathOf(external.Target.Grammar) is { } path &&
+			return IncludedGrammarView.PathToOpen(external.Target.Grammar) is { } path &&
 				Navigate(new GeneratedApiSource(path, external.Target.Line, external.Target.Column));
 
 		var found = Target(args);
@@ -207,10 +207,14 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 	/// </summary>
 	StandardRule? StandardRuleAt(GoToDefinitionCommandArgs args, ITextSnapshot snapshot, int position)
 	{
-		if (!args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name) &&
-			(!EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents)
-				.TryGet(snapshot, out var classifications, out _) ||
-			!classifications.Any(item => item.GrammarSpan.Contains(position))))
+		var grammar = args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name)
+			? GrammarPosition.Standalone(snapshot, position)
+			: EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents)
+				.TryGet(snapshot, out var classifications, out _)
+				? GrammarPosition.Embedded(snapshot, position, classifications)
+				: null;
+
+		if (!GrammarPosition.InGrammarText(grammar))
 			return null;
 
 		var start = position;
@@ -222,7 +226,7 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 		while (end < snapshot.Length && IsNameCharacter(snapshot[end]))
 			end++;
 
-		if (start == end || GramCSharpCompletionContext.TryGetPrefix(snapshot.GetText(), start, out _))
+		if (start == end)
 			return null;
 
 		var from = Math.Max(0, start - StandardLibrary.Name.Length - 2);

@@ -56,6 +56,35 @@ public sealed class CSharpStringMap
 		return true;
 	}
 
+	/// <summary>
+	/// The value of a string literal written as <paramref name="literal"/>, and where in that value
+	/// <paramref name="offset"/> into the spelling falls: on the character whose spelling starts
+	/// there or after it, or at the end.
+	/// </summary>
+	/// <remarks>What the grammar in a <c>[Gram("…")]</c> is, and where the caret is in it.</remarks>
+	public static bool TryDecode(string literal, int offset, out string value, out int position)
+	{
+		value    = "";
+		position = 0;
+
+		var token = SyntaxFactory.ParseToken(literal);
+
+		if (token.FullSpan.Length != literal.Length || !TryCreate(token, out var map))
+			return false;
+
+		value    = token.ValueText;
+		position = map!.Length;
+
+		for (var at = 0; at < map.Length; at++)
+			if (map._starts[at] >= offset)
+			{
+				position = at;
+				break;
+			}
+
+		return true;
+	}
+
 	/// <summary>Maps a decoded span to a correct, possibly broader, host source span.</summary>
 	public bool TryMap(int decodedStart, int decodedLength, out TextSpan sourceSpan)
 	{

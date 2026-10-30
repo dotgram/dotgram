@@ -106,7 +106,9 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 		var text    = triggerLocation.Snapshot.GetText();
 		var grammar = GrammarAt(triggerLocation);
 
-		if (GramCSharpCompletionContext.TryGetPrefix(text, triggerLocation.Position, out var prefix))
+		// C# where the grammar's own lexer says so; the text before the caret only says what to ask Roslyn.
+		if (GramCSharpCompletionContext.TryGetPrefix(text, triggerLocation.Position, out var prefix) &&
+			(grammar is not { } lexed || GramVocabulary.InCSharp(lexed.Text, lexed.Position)))
 		{
 			var csharpItems = await CSharpCompletionsAsync(prefix, token).ConfigureAwait(false);
 			_descriptions.Clear();
@@ -141,7 +143,7 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 		}
 
 		// `Std.` in the grammar itself; in C# above, `Std` is whatever C# says it is.
-		if (grammar is { } qualified && GramVocabulary.IsStandardQualifier(
+		if (grammar is { } qualified && GrammarPosition.InGrammarText(grammar) && GramVocabulary.IsStandardQualifier(
 			qualified.Text, qualified.Position - (triggerLocation.Position - applicableToSpan.Start.Position)))
 			return new CompletionContext(StandardCompletions());
 
@@ -300,7 +302,7 @@ sealed class GramCompletionSource(
 
 	protected override (string Text, int Position)? GrammarAt(SnapshotPoint point)
 	{
-		return (point.Snapshot.GetText(), point.Position);
+		return GrammarPosition.Standalone(point.Snapshot, point.Position);
 	}
 
 	protected override IReadOnlyDictionary<string, RuleCompletion> Definitions(SnapshotPoint point)
@@ -354,21 +356,11 @@ sealed class EmbeddedGramCompletionSource(
 			LiteralCompletions(expected).Count > 0;
 	}
 
-	/// <remarks>
-	/// The literal's text as it stands in the C# source. A grammar in a raw or verbatim string is
-	/// that text; in a regular string an escape before the point moves it by the escape's length,
-	/// which is close enough to tell which action the point is in.
-	/// </remarks>
 	protected override (string Text, int Position)? GrammarAt(SnapshotPoint point)
 	{
-		if (!analysis.TryGet(point.Snapshot, out var classifications, out _))
-			return null;
-
-		foreach (var item in classifications)
-			if (item.GrammarSpan.Contains(point.Position) || item.GrammarSpan.End == point.Position)
-				return (point.Snapshot.GetText(item.GrammarSpan.Start, item.GrammarSpan.Length), point.Position - item.GrammarSpan.Start);
-
-		return null;
+		return analysis.TryGet(point.Snapshot, out var classifications, out _)
+			? GrammarPosition.Embedded(point.Snapshot, point.Position, classifications)
+			: null;
 	}
 
 	protected override IReadOnlyList<DslLiteralCompletion> DslCompletions(SnapshotPoint point)

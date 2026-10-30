@@ -241,7 +241,7 @@ sealed class IncludedGrammarNavigableSymbol(
 		if (relationship != PredefinedNavigableRelationships.Definition)
 			return;
 
-		if (IncludedGrammarView.PathOf(target.Grammar) is { } path)
+		if (IncludedGrammarView.PathToOpen(target.Grammar) is { } path)
 			FileNavigableSymbol.Open(services, path, target.Line, target.Column);
 	}
 }

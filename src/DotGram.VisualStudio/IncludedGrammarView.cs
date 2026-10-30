@@ -34,7 +34,7 @@ static class IncludedGrammarView
 		var name = FileName(grammar.Name);
 		var path = Path.Combine(CopyDirectory, $"{name}.{Hash(grammar.Text)}.gram");
 
-		if (File.Exists(path))
+		if (File.Exists(path) && Touch(path))
 			return path;
 
 		string? written = null;
@@ -72,6 +72,40 @@ static class IncludedGrammarView
 		{
 			if (written is not null)
 				Delete(written);
+		}
+	}
+
+	/// <summary>
+	/// The file to open, made again where it went in the moment between being found and being
+	/// opened: another instance's cleanup may take a copy it found a day old.
+	/// </summary>
+	public static string? PathToOpen(StandaloneIncludedGrammar grammar)
+	{
+		for (var attempt = 0; attempt < 3; attempt++)
+			if (PathOf(grammar) is { } path && File.Exists(path))
+				return path;
+
+		return null;
+	}
+
+	/// <summary>
+	/// Marks a copy as used now, so that no instance's cleanup takes it for one a changed reference
+	/// left behind; false where it went meanwhile.
+	/// </summary>
+	static bool Touch(string path)
+	{
+		try
+		{
+			File.SetAttributes(path, FileAttributes.Normal);
+			File.SetLastWriteTimeUtc(path, DateTime.UtcNow);
+			File.SetAttributes(path, FileAttributes.ReadOnly);
+
+			return true;
+		}
+		catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+		{
+			// Gone, or held by someone who is about to use it: what is there is current either way.
+			return File.Exists(path);
 		}
 	}
 
