@@ -44,7 +44,9 @@ the polyfills and `System.Memory`, so a Roslyn type there does not build, nor a 
 `Generation/**`. (A bare `using Microsoft.CodeAnalysis;` does: the polyfills declare their `EmbeddedAttribute` in that
 namespace. Anything taken from it does not.)
 `src/DotGram.Language.Guard` compiles `Grammar/**` and this folder for net472, the oldest host, with a reference to
-`Microsoft.CodeAnalysis.CSharp.Workspaces` only, so a reach into `Generation/**` or into an editor does not build.
+`Microsoft.CodeAnalysis.CSharp.Workspaces` only, so a reach into `Generation/**` or into an editor does not build;
+MEF, which Workspaces brings with it and .NET Framework carries, is taken out of what it compiles against, so an
+`[Export]` does not build either.
 Both are in the Linux solution configuration.
 
 The guards hold the dependency line. They cannot see a feature re-implemented inside an adapter from knowledge that

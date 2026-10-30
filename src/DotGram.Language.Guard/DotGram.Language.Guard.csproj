@@ -19,4 +19,17 @@
 
 	<Import Project="..\DotGram\Language.projitems" />
 
+	<!-- MEF is how an editor composes itself, and the core must not: Workspaces brings
+	     System.Composition with it, and .NET Framework has System.ComponentModel.Composition, the
+	     MEF Visual Studio's own [Export]s are written in. Both are taken out of what the compiler
+	     is handed, so an [Export] of either here does not build. The core reads Workspaces'
+	     types and never composes them. -->
+	<Target Name="WithoutComposition" AfterTargets="ResolveAssemblyReferences" BeforeTargets="CoreCompile">
+		<ItemGroup>
+			<ReferencePath Remove="@(ReferencePath)"
+			               Condition="$([System.String]::Copy('%(Filename)').StartsWith('System.Composition')) or
+			                          '%(Filename)' == 'System.ComponentModel.Composition'" />
+		</ItemGroup>
+	</Target>
+
 </Project>
