@@ -1037,7 +1037,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// third stage for the answer. Both are cheap next to normalization and emission,
 		// and this one only re-runs when the grammar itself changes. Through the compiler's
 		// own reading, so that what the standard library brings in is asked about too.
-		var parsed = GramCompiler.Read(text, RoslynCSharpScanner.Instance).File;
+		var parsed = GramCompiler.Read(text, RoslynCSharpScanner.Instance, parts.Count == 0 ? null : own.Length).File;
 
 		return new Grammar(
 			host,

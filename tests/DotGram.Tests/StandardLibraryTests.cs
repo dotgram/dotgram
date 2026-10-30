@@ -278,8 +278,7 @@ public sealed class StandardLibraryTests
 		var compiled = GramCompiler.Compile(grammar, Scanning);
 
 		Assert.Contains(compiled.Diagnostics, d => d.Id == id && d.Position == position);
-		Assert.All(compiled.Diagnostics, d => Assert.True(
-			d.Position <= grammar.Length, $"{d.Id} at {d.Position}+{d.Length}: {d.Message}"));
+		Assert.All(compiled.Diagnostics, d => AssertInside(d, grammar.Length));
 	}
 
 	[Theory]
@@ -295,7 +294,78 @@ public sealed class StandardLibraryTests
 		var compiled = GramCompiler.Compile(grammar, Scanning);
 
 		Assert.NotEmpty(compiled.Diagnostics);
-		Assert.All(compiled.Diagnostics, d => Assert.True(
-			d.Position <= grammar.Length, $"{d.Id} at {d.Position}+{d.Length}: {d.Message}"));
+		Assert.All(compiled.Diagnostics, d => AssertInside(d, grammar.Length));
+	}
+
+	/// <summary>
+	/// A diagnostic ends inside the text it is about. The parser marks a missing token at the end
+	/// of the file with a one-character extent starting at the end, which is allowed.
+	/// </summary>
+	static void AssertInside(GramDiagnostic d, int length)
+	{
+		var atEnd = d.Position == length && d.Length <= 1;
+
+		Assert.True(
+			atEnd || d.Position + d.Length <= length,
+			$"{d.Id} at {d.Position}+{d.Length} of {length}: {d.Message}");
+	}
+
+	[Fact]
+	public void The_library_after_malformed_text_keeps_its_own_positions()
+	{
+		foreach (var grammar in new[] { "A = ('a'", "A = 'a' /* open", "A = \"x\\", "A = @(F(1" })
+		{
+			var text   = StandardLibrary.SplicedOnto(grammar);
+			var parsed = GramCompiler.Read(grammar, RoslynCSharpScanner.Instance);
+			var std    = Assert.Single(parsed.File.Decls.OfType<Decl.Namespace>(), n => n.Name == StandardLibrary.Name);
+
+			Assert.Equal(text.IndexOf("namespace Std", StringComparison.Ordinal), std.At.Position);
+			Assert.NotEmpty(std.Decls);
+
+			foreach (var rule in std.Decls.OfType<Decl.Rule>())
+				Assert.StartsWith(rule.Name, text.Substring(rule.At.Position), StringComparison.Ordinal);
+
+			Assert.All(parsed.Diagnostics, d => AssertInside(d, grammar.Length));
+		}
+	}
+
+	[Fact]
+	public void Both_tokenizers_refuse_null()
+	{
+		Assert.Throws<ArgumentNullException>(() => GramLexer.Tokenize(null!));
+		Assert.Throws<ArgumentNullException>(() => GramLexer.Tokenize(null!, null, 0, null));
+		Assert.Throws<ArgumentNullException>(() => GramLexer.Tokenize(null!, null, 0, 0, null));
+	}
+
+	/// <summary>
+	/// Grammars the host included sit between the author's text and the library, in wrappers of
+	/// their own; what the author left open is not closed by them.
+	/// </summary>
+	[Theory]
+	[InlineData("A = 'a' /* open", GramLexer.UnterminatedComment)]
+	[InlineData("A = ('a'",        "GRAM2001")]
+	[InlineData("A = \"x\\",       GramLexer.UnterminatedString)]
+	public void An_included_grammar_is_not_reached_by_the_authors_open_construct(string own, string id)
+	{
+		const string included = "Word = ['a'..'z']+ /* closed */\n";
+
+		var (text, _) = GrammarSplice.Join(
+			new GrammarSplice.Part(own, null, null), [new GrammarSplice.Part(included, "Base", null)]);
+
+		var options = new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance, Own = own.Length };
+		var read    = GramCompiler.Read(text, options.CSharpScanner, options.Own);
+		var start   = text.IndexOf("namespace Base", StringComparison.Ordinal);
+		var included_   = Assert.Single(read.File.Decls.OfType<Decl.Namespace>(), n => n.Name == "Base");
+
+		Assert.Contains(read.Diagnostics, d => d.Id == id && d.Position <= own.Length);
+		Assert.All(read.Diagnostics, d => AssertInside(d, own.Length));
+		Assert.Equal(start, included_.At.Position);
+
+		var word = Assert.Single(included_.Decls.OfType<Decl.Rule>());
+
+		Assert.Equal("Word", word.Name);
+		Assert.Equal(text.IndexOf("Word =", StringComparison.Ordinal), word.At.Position);
+
+		Assert.Contains(GramCompiler.Compile(text, options).Diagnostics, d => d.Id == id);
 	}
 }

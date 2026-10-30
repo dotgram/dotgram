@@ -48,6 +48,9 @@ public static class GramLexer
 	/// </param>
 	public static TokenList Tokenize(string text, ICSharpScanner? scanner = null)
 	{
+		if (text is null)
+			throw new ArgumentNullException(nameof(text));
+
 		return Lex(text, scanner);
 	}
 
@@ -72,28 +75,49 @@ public static class GramLexer
 	/// </remarks>
 	public static TokenList Tokenize(string text, ICSharpScanner? scanner, int splicedAt, ICSharpScanner? spliced)
 	{
+		return Tokenize(text, scanner, int.MaxValue, splicedAt, spliced);
+	}
+
+	/// <summary>
+	/// As above, for a text that also has grammars included by the host between the author's own
+	/// text (ending at <paramref name="ownEnd"/>) and the library: each of the three is read as a
+	/// text of its own.
+	/// </summary>
+	public static TokenList Tokenize(string text, ICSharpScanner? scanner, int ownEnd, int splicedAt, ICSharpScanner? spliced)
+	{
 		if (text is null)
 			throw new ArgumentNullException(nameof(text));
 
-		if (splicedAt <= 0 || splicedAt >= text.Length)
+		var cuts = new List<int>();
+
+		if (ownEnd > 0 && ownEnd < splicedAt && ownEnd < text.Length)
+			cuts.Add(ownEnd);
+
+		if (splicedAt > 0 && splicedAt < text.Length)
+			cuts.Add(splicedAt);
+
+		if (cuts.Count == 0)
 			return Lex(text, splicedAt <= 0 ? spliced : scanner);
 
-		var own     = Lex(text.Substring(0, splicedAt), scanner);
-		var library = Lex(text.Substring(splicedAt), spliced);
+		var tokens      = new List<Token>();
+		var diagnostics = new List<GramDiagnostic>();
+		var from        = 0;
 
-		var tokens = new List<Token>(own.Tokens.Count + library.Tokens.Count);
+		for (var i = 0; i <= cuts.Count; i++)
+		{
+			var to    = i < cuts.Count ? cuts[i] : text.Length;
+			var piece = Lex(text.Substring(from, to - from), from >= splicedAt ? spliced : scanner);
 
-		// The author's end-of-file token stays in the middle of the list: the parser reads it as the
-		// end of what the author wrote, and goes on to the library after it.
-		tokens.AddRange(own.Tokens);
+			// Each part keeps its end-of-file token, in the middle of the list: the parser reads it
+			// as the end of that part and goes on to the next one after it.
+			foreach (var token in piece.Tokens)
+				tokens.Add(token with { Position = token.Position + from });
 
-		foreach (var token in library.Tokens)
-			tokens.Add(token with { Position = token.Position + splicedAt });
+			foreach (var diagnostic in piece.Diagnostics)
+				diagnostics.Add(diagnostic with { Position = diagnostic.Position + from });
 
-		var diagnostics = new List<GramDiagnostic>(own.Diagnostics);
-
-		foreach (var diagnostic in library.Diagnostics)
-			diagnostics.Add(diagnostic with { Position = diagnostic.Position + splicedAt });
+			from = to;
+		}
 
 		return new TokenList(tokens, diagnostics);
 	}

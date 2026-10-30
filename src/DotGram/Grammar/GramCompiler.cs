@@ -32,13 +32,16 @@ public static class GramCompiler
 	/// method so that whoever reads a grammar ahead of compiling it — the generator, for its
 	/// questions — reads the same text.
 	/// </remarks>
-	public static ParseResult Read(string grammarText, ICSharpScanner? scanner = null)
+	public static ParseResult Read(string grammarText, ICSharpScanner? scanner = null, int? own = null)
 	{
 		if (grammarText is null)
 			throw new ArgumentNullException(nameof(grammarText));
 
+		// The author's own text, the grammars the host included after it and the library are
+		// three texts: what one leaves open is not closed by the next.
 		return GramParser.Parse(GramLexer.Tokenize(
-			StandardLibrary.SplicedOnto(grammarText), scanner, grammarText.Length, StandardLibrary.Scanner));
+			StandardLibrary.SplicedOnto(grammarText), scanner, own ?? int.MaxValue, grammarText.Length,
+			StandardLibrary.Scanner));
 	}
 
 	/// <summary>Compiles one grammar.</summary>
@@ -63,7 +66,7 @@ public static class GramCompiler
 		//   GrammarNormalizer.Normalize (model)         -> RecognitionGraph
 		//   CSharpEmitter    .Emit      (graph)         -> C#
 
-		var parsed = Read(grammarText, options.CSharpScanner);
+		var parsed = Read(grammarText, options.CSharpScanner, options.Own);
 
 		diagnostics.AddRange(parsed.Diagnostics);
 
