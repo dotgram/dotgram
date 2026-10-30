@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Input;
 
+using DotGram.Grammar;
 using DotGram.Language;
 
 using Microsoft.CodeAnalysis;
@@ -145,7 +146,7 @@ sealed class GramQuickInfoSource(
 					item.Position,
 					item.Length,
 					item.Kind,
-					item.QuickInfo);
+					item.QuickInfo ?? StandardQuickInfo(snapshot, item.Position, item.Length, item.Kind));
 			}
 
 		return null;
@@ -190,6 +191,21 @@ sealed class GramQuickInfoSource(
 		return item;
 	}
 
+	/// <summary>
+	/// The definition of the standard library's rule a name written <c>Std.Name</c> ends in, which
+	/// the analysis of the document itself does not carry: the library is no part of its text.
+	/// </summary>
+	internal static string? StandardQuickInfo(ITextSnapshot snapshot, int position, int length, GramSyntaxKind kind)
+	{
+		if (kind != GramSyntaxKind.Identifier)
+			return null;
+
+		var start = Math.Max(0, position - StandardLibrary.Name.Length - 2);
+		var text  = snapshot.GetText(start, position + length - start);
+
+		return GramVocabulary.QualifiedStandardRule(text, position - start, length)?.Description;
+	}
+
 	internal static QuickInfoItem Create(
 		ITextView view,
 		IClassificationFormatMapService formatMaps,
@@ -210,7 +226,7 @@ sealed class GramQuickInfoSource(
 				view,
 				formatMaps,
 				classificationTypes,
-				quickInfo ?? Describe(kind, text),
+				quickInfo ?? GramVocabulary.Describe(kind, text),
 				trackingSpan,
 				kind,
 				quickInfo is not null));
@@ -495,47 +511,6 @@ sealed class GramQuickInfoSource(
 		public bool IsMouseOverAggregated => IsMouseOver;
 	}
 
-	static string Describe(GramSyntaxKind kind, string text)
-	{
-		return kind switch
-		{
-			GramSyntaxKind.Keyword => $"DotGram keyword: {text}",
-			GramSyntaxKind.Identifier => $"DotGram rule or binding: {text}",
-			GramSyntaxKind.Number => "DotGram numeric literal",
-			GramSyntaxKind.Character => "DotGram character literal",
-			GramSyntaxKind.String => "DotGram string literal",
-			GramSyntaxKind.CaseInsensitiveCharacter => "DotGram case-insensitive character literal",
-			GramSyntaxKind.CaseInsensitiveString => "DotGram case-insensitive string literal",
-			GramSyntaxKind.CharacterClass => "DotGram character class",
-			GramSyntaxKind.EmbeddedCode => "Embedded C# expression",
-			GramSyntaxKind.Transition => "Switch from DotGram grammar to C#",
-			GramSyntaxKind.SpecialSymbol => SpecialSymbol(text),
-			GramSyntaxKind.Comment => "DotGram comment",
-			GramSyntaxKind.Invalid => "Unrecognized DotGram syntax",
-			GramSyntaxKind.Operator => $"DotGram operator: {text}",
-			GramSyntaxKind.Binding => $"DotGram binding: {text}",
-			_ => $"DotGram syntax: {text}",
-		};
-	}
-
-	static string SpecialSymbol(string text)
-	{
-		return text switch
-		{
-			"*" => "DotGram repetition: zero or more",
-			"+" => "DotGram repetition: one or more",
-			"?" => "DotGram optional expression",
-			"?!" => "DotGram negative lookahead",
-			"?=" => "DotGram positive lookahead",
-			"|" => "DotGram alternative",
-			"&" => "DotGram sequence",
-			"~" => "DotGram sequence without trivia",
-			"^" => "DotGram element set: complement, [^ a | b ]",
-			".." => "DotGram range",
-			_ => $"DotGram special symbol: {text}",
-		};
-	}
-
 	static bool Contains(int start, int length, int position)
 	{
 		return start <= position && position < start + length;
@@ -637,7 +612,7 @@ sealed class EmbeddedGramQuickInfoSource(
 					item.Span.Start,
 					item.Span.Length,
 					item.Kind,
-					item.QuickInfo);
+					item.QuickInfo ?? GramQuickInfoSource.StandardQuickInfo(snapshot, item.Span.Start, item.Span.Length, item.Kind));
 			}
 
 		foreach (var item in classifications)

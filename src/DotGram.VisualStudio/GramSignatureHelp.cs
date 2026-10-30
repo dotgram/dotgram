@@ -5,6 +5,8 @@ using System.ComponentModel.Composition;
 using System.Linq;
 using System.Threading.Tasks;
 
+using DotGram.Grammar;
+
 using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.LanguageServices;
 using Microsoft.VisualStudio.Shell;
@@ -131,11 +133,12 @@ abstract class GramSignatureHelpSourceBase(ITextBuffer buffer) : ISignatureHelpS
 			.TranslateTo(snapshot, PointTrackingMode.Negative)
 			.Position;
 
-		if (!TryFindCall(snapshot, trigger, out var name, out var openParen, out var argument))
+		if (!TryFindCall(snapshot, trigger, out var name, out var nameStart, out var openParen, out var argument))
 			return;
 
 		var available = Definitions(snapshot, trigger).ToArray();
-		var definition = available.FirstOrDefault(item => string.Equals(item.Name, name, StringComparison.Ordinal));
+		var definition = StandardRule(snapshot, name, nameStart) ??
+			available.FirstOrDefault(item => string.Equals(item.Name, name, StringComparison.Ordinal));
 
 		if (definition.Signature is null)
 			return;
@@ -160,6 +163,17 @@ abstract class GramSignatureHelpSourceBase(ITextBuffer buffer) : ISignatureHelpS
 			: description;
 	}
 
+	/// <summary>The standard library's rule a call written <c>Std.Name(</c> names, which no document declares.</summary>
+	static RuleSignature? StandardRule(ITextSnapshot snapshot, string name, int nameStart)
+	{
+		var start = Math.Max(0, nameStart - StandardLibrary.Name.Length - 2);
+		var text  = snapshot.GetText(start, nameStart + name.Length - start);
+
+		return GramVocabulary.QualifiedStandardRule(text, nameStart - start, name.Length) is { ParameterCount: > 0 } rule
+			? new RuleSignature(name, rule.Signature, rule.Description)
+			: null;
+	}
+
 	public ISignature? GetBestMatch(ISignatureHelpSession session)
 	{
 		return session.Signatures.FirstOrDefault();
@@ -182,6 +196,7 @@ abstract class GramSignatureHelpSourceBase(ITextBuffer buffer) : ISignatureHelpS
 		ITextSnapshot snapshot,
 		int position,
 		out string name,
+		out int nameStart,
 		out int openParen,
 		out int argument)
 	{
@@ -203,11 +218,13 @@ abstract class GramSignatureHelpSourceBase(ITextBuffer buffer) : ISignatureHelpS
 					end = start;
 					while (start > 0 && (char.IsLetterOrDigit(snapshot[start - 1]) || snapshot[start - 1] == '_')) start--;
 
-					name = snapshot.GetText(start, end - start);
+					name      = snapshot.GetText(start, end - start);
+					nameStart = start;
 					return name.Length > 0;
 			}
 
-		name = "";
+		name      = "";
+		nameStart = 0;
 		openParen = 0;
 		return false;
 	}

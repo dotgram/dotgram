@@ -3,6 +3,8 @@ using System.Linq;
 using System.Threading;
 using System.ComponentModel.Composition;
 
+using DotGram.Grammar;
+
 using Microsoft.VisualStudio.Commanding;
 using Microsoft.VisualStudio.LanguageServices;
 using Microsoft.VisualStudio.Text;
@@ -38,7 +40,8 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 		var position = Position(args, snapshot);
 		return args.SubjectBuffer.ContentType.IsOfType("CSharp") ||
 			PublishedApi(args, snapshot, position) is not null ||
-			IsCSharpContext(args, snapshot, position, out _, out _) || Target(args) is not null
+			IsCSharpContext(args, snapshot, position, out _, out _) || Target(args) is not null ||
+			StandardDefinition(args, snapshot, position) is not null
 			? CommandState.Available
 			: CommandState.Unavailable;
 	}
@@ -71,6 +74,9 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 			return Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.Run(() =>
 				roslyn.NavigateToDefinitionAsync(publishedApi, 0, CancellationToken.None));
 		}
+
+		if (StandardDefinition(args, snapshot, position) is { } standard)
+			return Navigate(standard);
 
 		if (IsCSharpContext(args, snapshot, position, out var expression, out var expressionPosition))
 		{
@@ -190,6 +196,45 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 
 		expressionPosition = position - expressionStart;
 		return true;
+	}
+
+	/// <summary>
+	/// The standard library's rule under the caret, written <c>Std.Name</c>, opened as a read-only
+	/// copy of the library the generator carries: no project holds it as a file.
+	/// </summary>
+	GeneratedApiSource? StandardDefinition(GoToDefinitionCommandArgs args, ITextSnapshot snapshot, int position)
+	{
+		if (!args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name) &&
+			(!EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents)
+				.TryGet(snapshot, out var classifications, out _) ||
+			!classifications.Any(item => item.GrammarSpan.Contains(position))))
+			return null;
+
+		var start = position;
+		var end   = position;
+
+		while (start > 0 && IsNameCharacter(snapshot[start - 1]))
+			start--;
+
+		while (end < snapshot.Length && IsNameCharacter(snapshot[end]))
+			end++;
+
+		if (start == end)
+			return null;
+
+		var from = Math.Max(0, start - StandardLibrary.Name.Length - 2);
+		var text = snapshot.GetText(from, end - from);
+
+		if (GramVocabulary.QualifiedStandardRule(text, start - from, end - start) is not { } rule ||
+			IncludedGrammarView.PathOf(new StandaloneIncludedGrammar(StandardLibrary.Name, StandardLibrary.Text, null)) is not { } path)
+			return null;
+
+		return new GeneratedApiSource(path, rule.Line, rule.Column);
+	}
+
+	static bool IsNameCharacter(char character)
+	{
+		return char.IsLetterOrDigit(character) || character == '_';
 	}
 
 	static int Position(GoToDefinitionCommandArgs args, ITextSnapshot snapshot)

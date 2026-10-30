@@ -8,7 +8,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
-using DotGram.Grammar.Binding;
+using DotGram.Grammar;
 using DotGram.Language;
 
 using Microsoft.CodeAnalysis;
@@ -72,24 +72,6 @@ sealed class EmbeddedGramCompletionSourceProvider : IAsyncCompletionSourceProvid
 
 abstract class GramCompletionSourceBase : IAsyncCompletionSource
 {
-	/// <summary>What a grammar may write where a name goes: the built-in rules, and the words.</summary>
-	/// <remarks>
-	/// The built-in rules are taken from the compiler rather than listed again here. They were
-	/// listed again once, and the copy had six of the seven: `word` was offered by the classifier
-	/// and by the compiler and not by this list, for as long as `word` has existed. A list that is
-	/// derived cannot fall behind the thing it is derived from, which is the only property that
-	/// matters here — the words below still are a copy, and are the next thing to derive.
-	/// </remarks>
-	static readonly string[] BuiltIns =
-	[
-		.. GrammarBinder.BuiltIn,
-		"using", "namespace", "parse", "find", "as", "when", "recover", "with",
-		"on", "fail", "public", "internal", "private",
-		"is", "not", "and", "or",
-		"context", "state", "stream", "bytes", "yield",
-		"switch", "case", "default",
-	];
-
 	readonly Dictionary<string, string> _descriptions = new(StringComparer.Ordinal);
 	readonly HashSet<string> _csharpItems = new(StringComparer.Ordinal);
 
@@ -121,18 +103,46 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 			return new CompletionContext(dslItems.Select(DslCompletion).ToImmutableArray());
 		}
 
-		if (GramCSharpCompletionContext.TryGetPrefix(
-			triggerLocation.Snapshot.GetText(), triggerLocation.Position, out var prefix))
+		var text = triggerLocation.Snapshot.GetText();
+
+		if (GramVocabulary.IsStandardQualifier(text, applicableToSpan.Start.Position))
+			return new CompletionContext(StandardCompletions());
+
+		if (GramCSharpCompletionContext.TryGetPrefix(text, triggerLocation.Position, out var prefix))
 		{
 			var csharpItems = await CSharpCompletionsAsync(prefix, token).ConfigureAwait(false);
+			_descriptions.Clear();
 			_csharpItems.Clear();
 			foreach (var item in csharpItems)
 				_csharpItems.Add(item.DisplayText);
-			return new CompletionContext(csharpItems);
+
+			// The names the parser supplies, and the captures and parameters in scope, are no
+			// part of the C# Roslyn is asked about, so it never offers them.
+			if (!GramVocabulary.SuppliedNamesApply(text, triggerLocation.Position, prefix))
+				return new CompletionContext(csharpItems);
+
+			var local = Definitions(triggerLocation)
+				.Where(static pair => pair.Value.IsLocal)
+				.Select(static pair => (pair.Key, pair.Value.Description));
+			var extra = GramVocabulary.SuppliedNames
+				.Select(static name => (Key: name, Description: GramVocabulary.Supplied(name)!))
+				.Concat(local)
+				.Where(pair => !_csharpItems.Contains(pair.Key))
+				.GroupBy(static pair => pair.Key, StringComparer.Ordinal)
+				.Select(static group => group.Last())
+				.ToArray();
+
+			foreach (var (name, description) in extra)
+				_descriptions[name] = description;
+
+			return new CompletionContext(csharpItems.AddRange(extra.Select(pair => new CompletionItem(pair.Key, this))));
 		}
 
 		var definitions = Definitions(triggerLocation);
-		var names = definitions.Keys.Concat(BuiltIns).Distinct(StringComparer.Ordinal).OrderBy(static name => name);
+		var words = GramVocabulary.InCallArguments(text, triggerLocation.Position)
+			? GramVocabulary.CompletionWords.Concat(GramVocabulary.SuppliedNames)
+			: GramVocabulary.CompletionWords;
+		var names = definitions.Keys.Concat(words).Distinct(StringComparer.Ordinal).OrderBy(static name => name);
 		var items = ImmutableArray.CreateBuilder<CompletionItem>();
 
 		_descriptions.Clear();
@@ -157,7 +167,7 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 			items.Add(item);
 			_descriptions[name] = definition.Description is not null
 				? definition.Description
-				: BuiltInDescription(name);
+				: GramVocabulary.DescribeWord(name);
 		}
 
 		return new CompletionContext(items.ToImmutable());
@@ -175,6 +185,35 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 					? "C# symbol provided by Roslyn"
 				: "DotGram syntax");
 	}
+
+	ImmutableArray<CompletionItem> StandardCompletions()
+	{
+		_descriptions.Clear();
+		_csharpItems.Clear();
+
+		var items = ImmutableArray.CreateBuilder<CompletionItem>();
+
+		foreach (var rule in GramVocabulary.StandardRules.Values.OrderBy(static rule => rule.Name, StringComparer.Ordinal))
+		{
+			var signature = rule.Signature.Substring(GramLibraryPrefix.Length + rule.Name.Length);
+
+			items.Add(new CompletionItem(
+				rule.Name,
+				this,
+				ImageElement.Empty,
+				ImmutableArray<CompletionFilter>.Empty,
+				signature,
+				rule.ParameterCount > 0 ? rule.Name + "(" : rule.Name,
+				rule.Name,
+				rule.Name,
+				ImmutableArray<ImageElement>.Empty));
+			_descriptions[rule.Name] = rule.Description;
+		}
+
+		return items.ToImmutable();
+	}
+
+	static string GramLibraryPrefix { get; } = StandardLibrary.Name + ".";
 
 	protected abstract bool IsApplicable(SnapshotPoint point);
 	protected abstract IReadOnlyDictionary<string, RuleCompletion> Definitions(SnapshotPoint point);
@@ -200,11 +239,14 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 			ImmutableArray<ImageElement>.Empty);
 	}
 
-	protected readonly struct RuleCompletion(string description, string signature, int parameterCount)
+	protected readonly struct RuleCompletion(string description, string signature, int parameterCount, bool isLocal = false)
 	{
 		public string Description { get; } = description;
 		public string Signature { get; } = signature;
 		public int ParameterCount { get; } = parameterCount;
+
+		/// <summary>A capture or a parameter, which C# inside the rule may name, rather than a rule.</summary>
+		public bool IsLocal { get; } = isLocal;
 	}
 
 	protected static RuleCompletion LocalCompletion(string name, GramSymbolKind kind)
@@ -214,7 +256,8 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 				? $"{name}: DotGram rule parameter"
 				: $"{name}: DotGram capture",
 			name,
-			0);
+			0,
+			isLocal: true);
 	}
 
 	static SnapshotSpan WordSpan(SnapshotPoint point)
@@ -232,22 +275,6 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 	static bool IsNameCharacter(char character)
 	{
 		return char.IsLetterOrDigit(character) || character == '_';
-	}
-
-	static string BuiltInDescription(string name)
-	{
-		return name switch
-		{
-			"any" => "DotGram built-in rule: matches any character",
-			"none" => "DotGram built-in rule: never matches",
-			"eol" => "DotGram built-in rule: matches an end of line",
-			"eof" => "DotGram built-in rule: matches the end of input",
-			"eos" => "DotGram built-in rule: matches the end of a segment; a grammar that names it reads a sequence of them",
-			"trivia" => "DotGram built-in rule: matches grammar trivia",
-			"word" => "DotGram built-in rule: one whole word, as wordboundary defines it",
-			"wordboundary" => "DotGram built-in rule: what a word is made of",
-			_ => $"DotGram keyword: {name}",
-		};
 	}
 }
 
