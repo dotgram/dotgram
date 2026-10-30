@@ -638,7 +638,13 @@ public static class GramLanguageService
 		}
 	}
 
-	static IReadOnlyList<GramDiagnostic> NormalizeDiagnostics(
+	/// <summary>
+	/// The compiler's diagnostics as the editor shows them: a GRAM3002 that covers a whole
+	/// reference is narrowed to the name the reference starts with, which is what an underline
+	/// is wanted under. Internal for the parity tests, which hold the compiler's diagnostics to
+	/// the editor's through it.
+	/// </summary>
+	internal static IReadOnlyList<GramDiagnostic> NormalizeDiagnostics(
 		IReadOnlyList<GramDiagnostic> diagnostics,
 		IReadOnlyList<Token> tokens)
 	{

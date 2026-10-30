@@ -159,7 +159,7 @@ public sealed class EditorCorpusTests
 	static readonly List<string> Unread = [];
 
 	/// <summary>The text of a constant string: a literal, or literals joined with <c>+</c>.</summary>
-	static string? Constant(ExpressionSyntax expression)
+	internal static string? Constant(ExpressionSyntax expression)
 	{
 		return expression switch
 		{
@@ -171,7 +171,7 @@ public sealed class EditorCorpusTests
 		};
 	}
 
-	static IEnumerable<string> Files(string pattern)
+	internal static IEnumerable<string> Files(string pattern)
 	{
 		foreach (var top in new[] { "src", "examples", "tests", "benchmarks" })
 			foreach (var file in Directory.EnumerateFiles(Path.Combine(Root, top), pattern, SearchOption.AllDirectories))
@@ -185,7 +185,7 @@ public sealed class EditorCorpusTests
 			}
 	}
 
-	static string Relative(string file)
+	internal static string Relative(string file)
 	{
 		return Path.GetRelativePath(Root, file).Replace('\\', '/');
 	}
