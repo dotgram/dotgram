@@ -31,10 +31,21 @@ public sealed class IncludedGrammarViewTests
 			Assert.Equal(StandardLibrary.Text, File.ReadAllText(paths[0]!));
 			Assert.True(File.GetAttributes(paths[0]!).HasFlag(FileAttributes.ReadOnly));
 
-			var written = File.GetLastWriteTimeUtc(paths[0]!);
+			// Written once: the file asked for again is the one that was written, not another moved
+			// into its place. A marker the writer cannot know of survives only in the same file.
+			var marker = DateTime.UtcNow.AddMinutes(-5);
+
+			File.SetAttributes(paths[0]!, FileAttributes.Normal);
+			File.SetCreationTimeUtc(paths[0]!, marker);
+			File.SetAttributes(paths[0]!, FileAttributes.ReadOnly);
+
+			// And a copy marked as used within the hour is not marked again.
+			var used = File.GetLastWriteTimeUtc(paths[0]!);
 
 			Assert.Equal(paths[0], IncludedGrammarView.PathOf(grammar));
-			Assert.Equal(written, File.GetLastWriteTimeUtc(paths[0]!));
+			Assert.Equal(marker, File.GetCreationTimeUtc(paths[0]!));
+			Assert.Equal(used, File.GetLastWriteTimeUtc(paths[0]!));
+			Assert.Equal(StandardLibrary.Text, File.ReadAllText(paths[0]!));
 
 			// Nothing half written is left beside it.
 			Assert.Empty(Directory.EnumerateFiles(Path.GetDirectoryName(paths[0]!)!, grammar.Name + ".*.tmp"));

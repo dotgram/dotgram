@@ -90,12 +90,16 @@ static class IncludedGrammarView
 
 	/// <summary>
 	/// Marks a copy as used now, so that no instance's cleanup takes it for one a changed reference
-	/// left behind; false where it went meanwhile.
+	/// left behind; false where it went meanwhile. Only a copy last marked an hour ago or more:
+	/// cleanup waits a day, and a copy asked for again and again is left as it is.
 	/// </summary>
 	static bool Touch(string path)
 	{
 		try
 		{
+			if (File.GetLastWriteTimeUtc(path) > DateTime.UtcNow.AddHours(-1))
+				return true;
+
 			File.SetAttributes(path, FileAttributes.Normal);
 			File.SetLastWriteTimeUtc(path, DateTime.UtcNow);
 			File.SetAttributes(path, FileAttributes.ReadOnly);
