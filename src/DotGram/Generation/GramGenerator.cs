@@ -1581,7 +1581,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 			for (var index = 1; index < readings.Count; index++)
 			{
-				var (perCall, _) = From(candidate, readings[index], index);
+				var (perCall, _, _) = From(candidate, readings[index], index);
 
 				if (!perCall.PerCall || perCall.LocationType is null || perCall.Suffix is not { Length: > 0 } || facade is not null)
 					continue;
@@ -1593,13 +1593,18 @@ public sealed class GramGenerator : IIncrementalGenerator
 				index--;
 			}
 
+			GramHostOptions? firstOptions = null;
+
 			foreach (var attribute in readings)
 			{
 				// Everything a reading does not say, it takes from the grammar's own: which
 				// grammar, whether it is read as tokens, how it is divided. That is what a
 				// `[GramOptions]` means — the same parser, compiled differently — and what it
 				// does say is the difference. The first has nothing to take from.
-				var (host, site) = From(candidate, attribute, hosts.Count, hosts.Count > 0 ? hosts[0] : null);
+				var (host, site, options) = From(
+					candidate, attribute, hosts.Count, firstOptions is null ? null : (hosts[0].Host, hosts[0].Site, firstOptions));
+
+				firstOptions ??= options;
 
 				hosts.Add((
 					host with
@@ -1630,8 +1635,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 		}
 
 		/// <param name="reading">Which of the class's readings this is, the first being 0.</param>
-		static (Host Host, Site Site) From(
-			GeneratorAttributeSyntaxContext candidate, AttributeData attribute, int reading, (Host Host, Site Site)? firstRead = null)
+		static (Host Host, Site Site, GramHostOptions Options) From(
+			GeneratorAttributeSyntaxContext candidate,
+			AttributeData attribute,
+			int reading,
+			(Host Host, Site Site, GramHostOptions Options)? firstRead = null)
 		{
 			var first = firstRead?.Host;
 
@@ -1644,9 +1652,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 			var named = source is null && first is not null;
 
-			var includedAs = attribute.NamedArguments
-				.FirstOrDefault(static named => named.Key == nameof(Host.IncludedAs))
-				.Value.Value as string;
+			// What the reading's named arguments say, and what it does not say taken from the
+			// first's: read where the editor reads them too, so that it analyses a grammar with the
+			// options this compiles it with.
+			var options = GramHostOptions.Read(attribute, type, firstRead?.Options);
+
 			var languageId = type.GetAttributes()
 				.FirstOrDefault(static candidate =>
 					candidate.AttributeClass?.ToDisplayString() == "DotGram.GramLanguageAttribute")
@@ -1660,52 +1670,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 				.Select(RecognitionContract)
 				.Where(static value => value is not null));
 
-			// Zero for "nothing was said", which is also what a consumer writing
-			// `PartSize = 0` means: the emitter reads it as no wish and takes its default.
-			// Anything else goes through as written and is answered with a parser, however
-			// unreasonable — see `Machine.PartSize`.
-			var partSize = attribute.NamedArguments
-				.FirstOrDefault(static named => named.Key == nameof(Host.PartSize))
-				.Value.Value as int? ?? first?.PartSize ?? 0;
-
-			// A request and not a setting: a grammar that cannot be cut in two is compiled
-			// over characters and told why (GRAM5004), so nothing written here fails a build.
-			var lexical = attribute.NamedArguments
-				.FirstOrDefault(static named => named.Key == nameof(Host.Lexical))
-				.Value.Value as bool? ?? first?.Lexical ?? false;
-
-			// A `typeof(…)` argument arrives as the symbol it named, and what the compiler
-			// needs of it is a name it can ask the resolver about — the same currency every
-			// other type in a grammar is written in.
-			// What the class already says, unless the attribute says otherwise: a host nobody
-			// outside can name is a host nobody outside can include, and carrying its grammar
-			// would be paying for a door into a wall.
-			var portable = attribute.NamedArguments
-				.FirstOrDefault(static named => named.Key == nameof(Host.Portable))
-				.Value.Value as bool? ?? first?.Portable ?? Visible(type);
-
-			var locationType = (attribute.NamedArguments
-				.FirstOrDefault(static named => named.Key == nameof(Host.LocationType))
-				.Value.Value as INamedTypeSymbol)?.ToDisplayString() ?? first?.LocationType;
-
-			// Which carrier the author chose (docs/next.md, the redesign). An enum constant
-			// reaches an analyzer as its underlying integer, and nought is the generator's own
-			// choice.
-			var carrier = attribute.NamedArguments
-				.FirstOrDefault(static named => named.Key == nameof(Host.Carrier))
-				.Value.Value as int? ?? first?.Carrier ?? 0;
-
-			// How many stacks a parse may take past the one it began on. Nought is as many
-			// as there is memory for, which is the default.
-			var stacks = attribute.NamedArguments
-				.FirstOrDefault(static named => named.Key == nameof(Host.Stacks))
-				.Value.Value as int? ?? first?.Stacks ?? 0;
-
-			// Which nested class this compilation goes into, where the host has more than
-			// one grammar. Null is the host class itself, which one of them may be.
-			var suffix = attribute.NamedArguments
-				.FirstOrDefault(static named => named.Key == nameof(Host.Suffix))
-				.Value.Value as string;
+			var suffix = options.Suffix;
 
 			// Whether the host declares that nested class itself, and so says how visible it
 			// is. What a generator sees is the author's code alone — its own output is not in
@@ -1790,40 +1755,30 @@ public sealed class GramGenerator : IIncrementalGenerator
 				// offset into the grammar, and putting it where the author can see it means
 				// finding it in the text they actually wrote.
 				Literal:    named ? first!.Value.Literal   : written == default ? null : written.Text,
-				IncludedAs: includedAs,
+				IncludedAs: options.IncludedAs,
 				Includes:   new EquatableArray<Included>([.. included.Select(static one => one.Included)]),
-				PartSize:   partSize,
-				Lexical:    lexical,
-				Carrier:    carrier,
+				PartSize:   options.PartSize,
+				Lexical:    options.Lexical,
+				Carrier:    options.Carrier,
 				// What the author says of the grammar's constructions, which the immediate carrier
 				// pays for on every one of them and so does not assume (docs/syntax.md §7.5).
-				ConstructionsMayThrow: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.ConstructionsMayThrow)).Value.Value as bool? ?? first?.ConstructionsMayThrow ?? false,
-				SpanCaptures: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.SpanCaptures)).Value.Value as bool? ?? first?.SpanCaptures ?? false,
-				BufferedBytes: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.BufferedBytes)).Value.Value as bool? ?? first?.BufferedBytes ?? false,
-				BufferedInput: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.BufferedInput)).Value.Value as bool? ?? first?.BufferedInput ?? false,
-				MaxRetained: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.MaxRetained)).Value.Value as int? ?? first?.MaxRetained ?? int.MaxValue,
-				BufferSize: attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.BufferSize)).Value.Value as int? ?? first?.BufferSize ?? 4096,
-				Stacks:     stacks,
+				ConstructionsMayThrow: options.ConstructionsMayThrow,
+				SpanCaptures:  options.SpanCaptures,
+				BufferedBytes: options.BufferedBytes,
+				BufferedInput: options.BufferedInput,
+				MaxRetained:   options.MaxRetained,
+				BufferSize:    options.BufferSize,
+				Stacks:     options.Stacks,
 				Suffix:     suffix,
 				SuffixDeclared: suffixDeclared,
-				LocationType: locationType,
-				Portable:   portable,
-				PerCall:    attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.PerCall)).Value.Value as bool? ?? false,
+				LocationType: options.LocationType,
+				Portable:   options.Portable,
+				PerCall:    options.PerCall,
 				// A trace build of this reading (GramCompilerOptions.Trace), which a later reading
 				// takes from the first like everything else it does not say.
-				Trace:      attribute.NamedArguments.FirstOrDefault(static named => named.Key == nameof(Host.Trace)).Value.Value as bool? ?? first?.Trace ?? false);
+				Trace:      options.Trace);
 
-			return (host, site);
-		}
-
-		/// <summary>Whether anything outside this assembly could name the class.</summary>
-		static bool Visible(INamedTypeSymbol type)
-		{
-			for (var at = (ITypeSymbol?)type; at is not null; at = at.ContainingType)
-				if (at.DeclaredAccessibility != Accessibility.Public)
-					return false;
-
-			return true;
+			return (host, site, options);
 		}
 
 		static string? Classification(AttributeData attribute)

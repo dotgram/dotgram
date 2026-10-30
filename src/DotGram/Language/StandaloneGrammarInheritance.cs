@@ -194,7 +194,9 @@ static class StandaloneGrammarInheritance
 
 		// The reading that names this file, and what it does not say it takes from the
 		// class's own, as the generator reads a suffixed one.
-		var lexical = Lexical(reading!) ?? (GramIncludes.Primary(host) is { } primary ? Lexical(primary) : null) ?? false;
+		var primary = GramIncludes.Primary(host);
+		var lexical = GramHostOptions.Read(
+			reading!, host, primary is null ? null : GramHostOptions.Read(primary, host, first: null)).Lexical;
 
 		return new StandaloneGrammarResolution(
 			StandaloneGrammarState.Resolved,
@@ -340,13 +342,6 @@ static class StandaloneGrammarInheritance
 		}
 
 		return false;
-	}
-
-	static bool? Lexical(AttributeData reading)
-	{
-		return reading.NamedArguments
-			.FirstOrDefault(static argument => argument.Key == "Lexical")
-			.Value.Value as bool?;
 	}
 
 	/// <summary>
