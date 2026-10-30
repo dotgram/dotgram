@@ -19,7 +19,10 @@ parse A
 === GRAM1002
 A = "abc
 parse A
---- GRAM1003 the standard library is spliced after the text and its comments contain */, which closes an unterminated block comment; the failure surfaces as GRAM1002 and GRAM2002 instead
+=== GRAM1003
+A = 'a'
+/* never closed
+parse A
 === GRAM1004
 A = "\q"
 parse A
