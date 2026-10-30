@@ -146,6 +146,9 @@ public sealed class GramAnalysisOptions
 	/// </summary>
 	public int? Own { get; set; }
 
+	/// <summary>Where each included grammar's wrapper ends in the text; see <see cref="GrammarSplice.Cuts"/>.</summary>
+	public IReadOnlyList<int>? Cuts { get; set; }
+
 	/// <summary>Whether the host asks for the grammar to be read as tokens: <c>[Gram(Lexical = true)]</c>.</summary>
 	public bool Lexical { get; set; }
 }
@@ -191,11 +194,13 @@ public static class GramLanguageService
 		{
 			CSharpScanner = RoslynCSharpScanner.Instance,
 			Own           = options?.Own,
+			Cuts          = options?.Cuts,
 			Lexical       = options?.Lexical ?? false,
 			Bound         = bound => model = bound,
 		});
 
-		var tokens = GramLexer.Tokenize(text, RoslynCSharpScanner.Instance);
+		var tokens = GramLexer.Tokenize(
+			text, RoslynCSharpScanner.Instance, GramCompiler.CutsOf(options?.Own, options?.Cuts), text.Length, null);
 		var parsed = GramParser.Parse(tokens);
 		var classifications = new List<GramClassifiedSpan>(tokens.Count);
 		var (rules, rulesByPosition) = RuleDefinitions(text, parsed.File.Decls, tokens.Tokens);

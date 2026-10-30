@@ -76,12 +76,15 @@ public static class EmbeddedGrammarFinder
 				continue;
 
 			var (included, lexical) = Host(model, attribute, includedFile, cancellationToken);
-			var analysisText = included.Count == 0
-				? own
-				: GrammarSplice.Join(new GrammarSplice.Part(own, null, null), included).Text;
+			var (analysisText, joinedMap) = included.Count == 0
+				? (own, null)
+				: GrammarSplice.Join(new GrammarSplice.Part(own, null, null), included);
 			var options = new GramAnalysisOptions
 			{
 				Own     = included.Count == 0 ? null : own.Length,
+				Cuts    = joinedMap is null
+					? null
+					: GrammarSplice.Cuts(analysisText, joinedMap.Segments.Skip(1).Select(static one => (one.Start, one.Length))),
 				Lexical = lexical,
 			};
 

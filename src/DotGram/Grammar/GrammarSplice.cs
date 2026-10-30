@@ -43,6 +43,26 @@ public static class GrammarSplice
 	/// <param name="Map">Where a position inside it belongs, in its own offsets.</param>
 	public readonly record struct Part(string Text, string? Name, ILineMap? Map);
 
+	/// <summary>
+	/// The offsets in a joined text at which each text of its own begins after the first: the end
+	/// of the one before it together with the closing of its wrapper. Worked out from where each
+	/// included body stands, the way <see cref="Join"/> wrote it.
+	/// </summary>
+	public static IReadOnlyList<int> Cuts(string text, IEnumerable<(int Start, int Length)> bodies)
+	{
+		var cuts = new List<int>();
+
+		foreach (var (start, length) in bodies)
+		{
+			var end = start + length;
+
+			// The line break written when the body does not end in one, and the closing brace.
+			cuts.Add(end + (length > 0 && text[end - 1] != '\n' ? 1 : 0) + 2);
+		}
+
+		return cuts;
+	}
+
 	/// <summary>The joined text, and the map that takes a position in it back apart.</summary>
 	public static (string Text, SplicedLineMap Map) Join(Part own, IReadOnlyList<Part> included)
 	{

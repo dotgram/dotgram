@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using DotGram.Generation;
 using DotGram.Grammar;
 using DotGram.Grammar.Parsing;
+using DotGram.Language;
 
 using Microsoft.CodeAnalysis;
 
@@ -334,7 +336,7 @@ public sealed class StandardLibraryTests
 	{
 		Assert.Throws<ArgumentNullException>(() => GramLexer.Tokenize(null!));
 		Assert.Throws<ArgumentNullException>(() => GramLexer.Tokenize(null!, null, 0, null));
-		Assert.Throws<ArgumentNullException>(() => GramLexer.Tokenize(null!, null, 0, 0, null));
+		Assert.Throws<ArgumentNullException>(() => GramLexer.Tokenize(null!, null, (IReadOnlyList<int>?)null, 0, null));
 	}
 
 	/// <summary>
@@ -367,5 +369,64 @@ public sealed class StandardLibraryTests
 		Assert.Equal(text.IndexOf("Word =", StringComparison.Ordinal), word.At.Position);
 
 		Assert.Contains(GramCompiler.Compile(text, options).Diagnostics, d => d.Id == id);
+	}
+
+	/// <summary>
+	/// An included grammar that leaves a construct open ends it at its own end, and the next one
+	/// is read whole — for the compiler and for the editor alike.
+	/// </summary>
+	[Theory]
+	[InlineData("W1 = 'a' /* open\n", GramLexer.UnterminatedComment)]
+	[InlineData("W1 = ('a'\n",        "GRAM2001")]
+	[InlineData("W1 = \"x\\\n",       GramLexer.UnterminatedString)]
+	public void An_included_grammar_does_not_reach_the_next_one(string first, string id)
+	{
+		const string own    = "A = 'a'\n";
+		const string second = "W2 = ['a'..'z']+\n";
+
+		var (text, map) = GrammarSplice.Join(
+			new GrammarSplice.Part(own, null, null),
+			[new GrammarSplice.Part(first, "One", null), new GrammarSplice.Part(second, "Two", null)]);
+
+		var cuts = GrammarSplice.Cuts(text, map.Segments.Skip(1).Select(one => (one.Start, one.Length)));
+
+		Assert.Equal(map.Segments[2].Start - "\nnamespace Two\n{\n".Length, cuts[0]);
+
+		var read = GramCompiler.Read(text, RoslynCSharpScanner.Instance, own.Length, cuts);
+		var two  = Assert.Single(read.File.Decls.OfType<Decl.Namespace>(), n => n.Name == "Two");
+		var rule = Assert.Single(two.Decls.OfType<Decl.Rule>());
+
+		Assert.Equal("W2", rule.Name);
+		Assert.Equal(text.IndexOf("W2 =", StringComparison.Ordinal), rule.At.Position);
+		Assert.Contains(read.Diagnostics, d => d.Id == id && d.Position >= map.Segments[1].Start && d.Position <= cuts[0]);
+		Assert.DoesNotContain(read.Diagnostics, d => d.Position > cuts[0] && d.Position < text.Length);
+
+		var options = new GramAnalysisOptions { Own = own.Length, Cuts = cuts };
+		var tokens  = GramLexer.Tokenize(text, RoslynCSharpScanner.Instance, [own.Length, .. cuts], text.Length, null);
+
+		Assert.Contains(tokens.Tokens, t => t.Kind == TokenKind.Identifier && t.Value == "W2");
+		Assert.Contains(GramLanguageService.Analyze(text, options).Symbols, item => item.Name == "W2");
+	}
+
+	/// <summary>In the editor an author's open comment ends with their text, and the included symbols stay.</summary>
+	[Fact]
+	public void The_editor_reads_the_authors_open_comment_apart_from_the_included_grammars()
+	{
+		const string own = "A = Base.Word /* open\n";
+
+		var (text, map) = GrammarSplice.Join(
+			new GrammarSplice.Part(own, null, null),
+			[new GrammarSplice.Part("Word = ['a'..'z']+\n", "Base", null)]);
+
+		var document = GramLanguageService.Analyze(
+			text,
+			new GramAnalysisOptions
+			{
+				Own  = own.Length,
+				Cuts = GrammarSplice.Cuts(text, map.Segments.Skip(1).Select(one => (one.Start, one.Length))),
+			});
+
+		Assert.Contains(document.Symbols, item => item.Name == "Word");
+		Assert.Contains(document.Diagnostics, d => d.Id == GramLexer.UnterminatedComment);
 	}
 }
