@@ -258,4 +258,44 @@ public sealed class StandardLibraryTests
 
 		Assert.Equal(declared, listed);
 	}
+
+	/// <summary>
+	/// Nothing the author left open can be closed by the library that follows: it is read after
+	/// their text, not as a continuation of it, so every report stays inside what they wrote.
+	/// </summary>
+	[Theory]
+	[InlineData("A = 'a' /* never closed", GramLexer.UnterminatedComment, 8)]
+	[InlineData("A = 'a' /*",              GramLexer.UnterminatedComment, 8)]
+	[InlineData("A = 'a' /* *",            GramLexer.UnterminatedComment, 8)]
+	[InlineData("A = \"abc\\",            GramLexer.UnterminatedString,  4)]
+	[InlineData("A = '\\",                 GramLexer.UnterminatedCharacter, 4)]
+	[InlineData("A = '\\u00",              GramLexer.UnterminatedCharacter, 4)]
+	[InlineData("A = [\\p{Lu",             GramLexer.MalformedCategory,   5)]
+	[InlineData("A = @(Foo(1, \"x\"",      GramLexer.UnterminatedExpression, 4)]
+	[InlineData("A = @(Foo(1",             GramLexer.UnterminatedExpression, 4)]
+	public void An_unterminated_construct_is_reported_inside_the_authors_text(string grammar, string id, int position)
+	{
+		var compiled = GramCompiler.Compile(grammar, Scanning);
+
+		Assert.Contains(compiled.Diagnostics, d => d.Id == id && d.Position == position);
+		Assert.All(compiled.Diagnostics, d => Assert.True(
+			d.Position <= grammar.Length, $"{d.Id} at {d.Position}+{d.Length}: {d.Message}"));
+	}
+
+	[Theory]
+	[InlineData("A = ('a'")]
+	[InlineData("A = ['a'")]
+	[InlineData("A = 'a'{2")]
+	[InlineData("A = ('a' | ")]
+	[InlineData("A = 'a' &")]
+	[InlineData("A = \"x\" $")]
+	[InlineData("A = 'a'; namespace N {")]
+	public void An_open_bracket_or_operator_does_not_reach_into_the_library(string grammar)
+	{
+		var compiled = GramCompiler.Compile(grammar, Scanning);
+
+		Assert.NotEmpty(compiled.Diagnostics);
+		Assert.All(compiled.Diagnostics, d => Assert.True(
+			d.Position <= grammar.Length, $"{d.Id} at {d.Position}+{d.Length}: {d.Message}"));
+	}
 }
