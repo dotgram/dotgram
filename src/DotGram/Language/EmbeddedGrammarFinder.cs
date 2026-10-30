@@ -196,11 +196,17 @@ public static class EmbeddedGrammarFinder
 				included.Add(new GrammarSplice.Part(text, include.Name, null));
 		}
 
-		// The attribute's own options, read as the generator reads them; what a reading does not
-		// say it is not given from another one here.
+		// The attribute's own options, read as the generator reads them: what a reading does not
+		// say it takes from the class's first one.
 		var reading = type.GetAttributes()
 			.FirstOrDefault(candidate => candidate.ApplicationSyntaxReference?.Span == attribute.Span);
-		var lexical = reading is not null && GramHostOptions.Read(reading, type, first: null).Lexical;
+		var firstReading = GramIncludes.Grams(type).FirstOrDefault();
+		var lexical = reading is not null && GramHostOptions.Read(
+			reading,
+			type,
+			firstReading is null || ReferenceEquals(firstReading, reading)
+				? null
+				: GramHostOptions.Read(firstReading, type, first: null)).Lexical;
 
 		return (included, lexical);
 	}

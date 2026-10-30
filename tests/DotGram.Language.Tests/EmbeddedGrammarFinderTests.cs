@@ -266,6 +266,32 @@ public sealed class EmbeddedGrammarFinderTests
 		Assert.True(grammar.Options?.Lexical);
 	}
 
+	[Fact]
+	public void A_later_reading_takes_what_it_does_not_say_from_the_first()
+	{
+		var source = """
+			namespace DotGram
+			{
+				[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
+				sealed class GramAttribute(string source) : System.Attribute
+				{
+					public bool Lexical { get; set; }
+					public string Suffix { get; set; } = "";
+				}
+			}
+
+			[DotGram.Gram("Word = ['a'..'z']+\nparse Word", Lexical = true)]
+			[DotGram.Gram("Other = 'o'\nparse Other", Suffix = "Second")]
+			class Dialect;
+			""";
+
+		var grammars = Find(source);
+
+		Assert.Equal(2, grammars.Length);
+		Assert.True(grammars[0].Options?.Lexical);
+		Assert.True(grammars[1].Options?.Lexical);
+	}
+
 	static EmbeddedGrammar[] Find(string source, Func<string, string?>? includedFile = null)
 	{
 		var tree = CSharpSyntaxTree.ParseText(source);
