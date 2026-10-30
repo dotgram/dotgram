@@ -1,0 +1,44 @@
+<Project>
+
+	<!-- The shared language core as one list of sources: Grammar/ (pure: grammar text in, a
+	     model and C# out) and Language/ (what an editor asks of a grammar and of the C#
+	     around it). Every host that shows the language in an editor imports this file and
+	     compiles these sources into its own assembly, so nothing references the generator's
+	     assembly and nothing internal has to be made public to be shared. Why, and what
+	     may be referenced from here: Language/README.md.
+
+	     The generator does not import it. It compiles Grammar/ by its own globs and only
+	     the Roslyn seams of Language/ it shares with the editor (DotGram.csproj), so that
+	     the analyzer carries no editor code and no Roslyn Workspaces. -->
+
+	<PropertyGroup Label="Enabled Polyfills">
+		<!-- The types Grammar/ and Language/ use that .NET Framework and netstandard2.0 lack;
+		     Meziantou.Polyfill emits them as internal into whichever assembly compiles these
+		     sources. Inert in a project that does not reference the polyfill package. -->
+		<Polyfill></Polyfill>
+		<Polyfill>$(Polyfill)|T:System.HashCode</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Index</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Range</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Diagnostics.CodeAnalysis</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.CallerArgumentExpressionAttribute</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.CompilerFeatureRequiredAttribute</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.IsExternalInit</Polyfill>
+		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.RequiredMemberAttribute</Polyfill>
+		<MeziantouPolyfill_IncludedPolyfills>$(Polyfill)</MeziantouPolyfill_IncludedPolyfills>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- The writers of the case-fold and category tables are file-based apps, not part of
+		     any library. -->
+		<Compile Include="$(MSBuildThisFileDirectory)Grammar\**\*.cs"
+		         Exclude="$(MSBuildThisFileDirectory)Grammar\**\*.generate.cs"
+		         Link="Grammar\%(RecursiveDir)%(Filename)%(Extension)" />
+		<!-- The standard library goes wherever Grammar/ goes: StandardLibrary.cs reads it
+		     out of the assembly it was compiled into, under this name. -->
+		<EmbeddedResource Include="$(MSBuildThisFileDirectory)Grammar\Std.gram"
+		                  Link="Grammar\Std.gram" LogicalName="DotGram.Std.gram" />
+		<Compile Include="$(MSBuildThisFileDirectory)Language\**\*.cs"
+		         Link="Language\%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+</Project>

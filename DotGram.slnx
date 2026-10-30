@@ -61,6 +61,12 @@
 		<Project Path="src/DotGram.Finance/DotGram.Finance.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
+		<Project Path="src/DotGram.Grammar.Guard/DotGram.Grammar.Guard.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
+		<Project Path="src/DotGram.Language.Guard/DotGram.Language.Guard.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<Project Path="src/DotGram/DotGram.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
@@ -101,6 +107,12 @@
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
 		<Project Path="tests/DotGram.Handwritten/DotGram.Handwritten.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
+		<Project Path="tests/DotGram.Language.Tests/DotGram.Language.Tests.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
+		<Project Path="tests/DotGram.Language.Tests.Slow/DotGram.Language.Tests.Slow.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
 		<Project Path="tests/DotGram.VisualStudio.Tests/DotGram.VisualStudio.Tests.csproj">

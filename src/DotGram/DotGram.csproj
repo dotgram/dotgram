@@ -171,6 +171,13 @@ Changed in the examples and docs: the feeds of docs/feeds.md and the README (end
 		<Compile Remove="Grammar/Model/CaseFold.generate.cs" />
 		<Compile Remove="Grammar/UnicodeCategories.generate.cs" />
 
+		<!-- Language/ is the editor's half of the shared core (Language/README.md), compiled by
+		     the editors from Language.projitems. The analyzer takes only the Roslyn seams it shares
+		     with them — the scanner of @(...) and the walk of included grammars — and none of the
+		     rest, which is editor code and needs Roslyn's Workspaces. -->
+		<Compile Remove="Language/**" />
+		<Compile Include="Language/RoslynCSharpScanner.cs;Language/GramIncludes.cs" />
+
 		<!-- The package's own README, not the repository's. The two answer different
 		     questions: the front page argues for the project and the package tells
 		     somebody who has already installed it what to write. It links back rather

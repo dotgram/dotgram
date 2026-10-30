@@ -27,7 +27,7 @@ public sealed class CallGraphTests
 			GrammarBinder.Bind(
 				DotGram.Grammar.Parsing.GramParser.Parse(
 					DotGram.Grammar.Parsing.GramLexer.Tokenize(
-						grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!));
+						grammar, DotGram.Language.RoslynCSharpScanner.Instance)).File!));
 	}
 
 	static bool Recurses(string grammar, string rule)

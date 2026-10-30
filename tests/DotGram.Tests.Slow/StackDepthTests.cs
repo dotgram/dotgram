@@ -8,6 +8,7 @@ using DotGram.Generation;
 
 using System.Reflection;
 
+using DotGram.Language;
 using DotGram.Sql.Standard;
 
 using Xunit;

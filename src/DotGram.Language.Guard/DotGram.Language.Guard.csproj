@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- The shared language core compiled with Roslyn, Workspaces included, and nothing else:
+	     building it is the assertion that Language/ reaches neither the generator's shell
+	     (Generation/) nor an editor — Visual Studio, LSP, WPF, MEF. .NET Framework 4.7.2, the
+	     oldest host that compiles these sources (the Visual Studio extension), built here from
+	     reference assemblies alone. Referenced by nothing; its output is the build succeeding
+	     (../DotGram/Language/README.md). -->
+	<PropertyGroup>
+		<TargetFramework>net472</TargetFramework>
+		<IsPackable>false</IsPackable>
+		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
+		<PackageReference Include="Meziantou.Polyfill" PrivateAssets="all" />
+	</ItemGroup>
+
+	<Import Project="..\DotGram\Language.projitems" />
+
+</Project>

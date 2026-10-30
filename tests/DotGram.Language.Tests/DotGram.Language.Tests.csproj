@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- The shared language core held to what it promises, on any machine: the editor's
+	     analysis of a grammar, of the C# around one and of a referenced parser's metadata,
+	     and the drift checks that keep it the generator's own language. The sources are
+	     compiled here from Language.projitems, as every editor compiles them, and the
+	     generator's assembly is not referenced: it carries Grammar/ too, and the two copies
+	     would collide (CS0436). -->
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>DotGram.Language.Tests</RootNamespace>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+
+		<!-- A test project is an executable: it hosts Microsoft.Testing.Platform itself
+		     rather than being hosted by VSTest. -->
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="xunit.v3" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
+	</ItemGroup>
+
+	<Import Project="..\..\src\DotGram\Language.projitems" />
+
+	<ItemGroup>
+		<!-- The compiler of emitted code, written once in DotGram.Tests. -->
+		<Compile Include="..\DotGram.Tests\EmittedCode.cs" Link="Shared\EmittedCode.cs" />
+	</ItemGroup>
+
+</Project>

@@ -3,6 +3,7 @@
 using DotGram.Generation;
 using DotGram.Grammar;
 using DotGram.Grammar.Emit;
+using DotGram.Language;
 
 using Xunit;
 

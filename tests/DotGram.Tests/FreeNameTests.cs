@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-using DotGram.Generation;
+using DotGram.Language;
 
 using Xunit;
 

@@ -126,7 +126,7 @@ public sealed class RereadTests
 		return GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(
 				GramParser.Parse(
-					GramLexer.Tokenize(grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!));
+					GramLexer.Tokenize(grammar, DotGram.Language.RoslynCSharpScanner.Instance)).File!));
 	}
 
 	/// <summary>What the ordinary parser makes of it.</summary>
@@ -138,7 +138,7 @@ public sealed class RereadTests
 				new DotGram.Grammar.GramCompilerOptions
 				{
 					ClassName     = "Grammar",
-					CSharpScanner = DotGram.Generation.RoslynCSharpScanner.Instance,
+					CSharpScanner = DotGram.Language.RoslynCSharpScanner.Instance,
 				}).Sources.Single().Text);
 
 		return Told(source.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(string)])!.Invoke(null, [input])!);

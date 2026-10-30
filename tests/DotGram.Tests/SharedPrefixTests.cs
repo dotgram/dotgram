@@ -100,7 +100,7 @@ public sealed class SharedPrefixTests
 			.Compile(grammar, new GramCompilerOptions
 			{
 				ClassName = "G",
-				CSharpScanner = DotGram.Generation.RoslynCSharpScanner.Instance,
+				CSharpScanner = DotGram.Language.RoslynCSharpScanner.Instance,
 			})
 			.Diagnostics
 			.Where(one => one.Id == "GRAM4016")

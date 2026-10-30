@@ -60,7 +60,7 @@ public sealed class ShrinkTests
 					new Grammar.GramCompilerOptions
 					{
 						ClassName = "Grammar",
-						CSharpScanner = Generation.RoslynCSharpScanner.Instance,
+						CSharpScanner = Language.RoslynCSharpScanner.Instance,
 					});
 
 				foreach (var diagnostic in result.Diagnostics)

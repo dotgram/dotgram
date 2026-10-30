@@ -401,32 +401,8 @@ public sealed class StandardLibraryTests
 		Assert.Contains(read.Diagnostics, d => d.Id == id && d.Position >= map.Segments[1].Start && d.Position <= cuts[0]);
 		Assert.DoesNotContain(read.Diagnostics, d => d.Position > cuts[0] && d.Position < text.Length);
 
-		var options = new GramAnalysisOptions { Own = own.Length, Cuts = cuts };
-		var tokens  = GramLexer.Tokenize(text, RoslynCSharpScanner.Instance, [own.Length, .. cuts], text.Length, null);
+		var tokens = GramLexer.Tokenize(text, RoslynCSharpScanner.Instance, [own.Length, .. cuts], text.Length, null);
 
 		Assert.Contains(tokens.Tokens, t => t.Kind == TokenKind.Identifier && t.Value == "W2");
-		Assert.Contains(GramLanguageService.Analyze(text, options).Symbols, item => item.Name == "W2");
-	}
-
-	/// <summary>In the editor an author's open comment ends with their text, and the included symbols stay.</summary>
-	[Fact]
-	public void The_editor_reads_the_authors_open_comment_apart_from_the_included_grammars()
-	{
-		const string own = "A = Base.Word /* open\n";
-
-		var (text, map) = GrammarSplice.Join(
-			new GrammarSplice.Part(own, null, null),
-			[new GrammarSplice.Part("Word = ['a'..'z']+\n", "Base", null)]);
-
-		var document = GramLanguageService.Analyze(
-			text,
-			new GramAnalysisOptions
-			{
-				Own  = own.Length,
-				Cuts = GrammarSplice.Cuts(text, map.Segments.Skip(1).Select(one => (one.Start, one.Length))),
-			});
-
-		Assert.Contains(document.Symbols, item => item.Name == "Word");
-		Assert.Contains(document.Diagnostics, d => d.Id == GramLexer.UnterminatedComment);
 	}
 }

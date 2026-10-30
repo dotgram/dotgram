@@ -73,7 +73,7 @@ public sealed class ProvenanceTests
 				new DotGram.Grammar.GramCompilerOptions
 				{
 					ClassName     = "Grammar",
-					CSharpScanner = DotGram.Generation.RoslynCSharpScanner.Instance,
+					CSharpScanner = DotGram.Language.RoslynCSharpScanner.Instance,
 				}).Sources.Single().Text);
 
 		var method = source.GetType("Grammar")!.GetMethod("TryParseStart", [typeof(string)])!;
@@ -88,7 +88,7 @@ public sealed class ProvenanceTests
 			GrammarNormalizer.Normalize(
 				GrammarBinder.Bind(
 					GramParser.Parse(
-						GramLexer.Tokenize(Grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!)));
+						GramLexer.Tokenize(Grammar, DotGram.Language.RoslynCSharpScanner.Instance)).File!)));
 
 		Assert.NotNull(split);
 		Assert.Empty(split.Blocked);

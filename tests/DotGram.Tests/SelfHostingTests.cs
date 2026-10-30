@@ -5,8 +5,8 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 
 using DotGram.Examples.Languages;
-using DotGram.Generation;
 using DotGram.Grammar.Parsing;
+using DotGram.Language;
 
 using Xunit;
 

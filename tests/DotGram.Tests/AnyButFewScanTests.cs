@@ -12,6 +12,7 @@ using DotGram.Grammar.Binding;
 using DotGram.Grammar.Emit;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Parsing;
+using DotGram.Language;
 
 using Xunit;
 

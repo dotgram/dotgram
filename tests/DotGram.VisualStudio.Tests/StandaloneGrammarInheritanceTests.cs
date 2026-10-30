@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using DotGram.Grammar;
+using DotGram.Language;
 using DotGram.VisualStudio;
 
 using Microsoft.CodeAnalysis;

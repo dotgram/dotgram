@@ -5,10 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
-using DotGram.Generation;
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Parsing;
+using DotGram.Language;
 
 using Xunit;
 

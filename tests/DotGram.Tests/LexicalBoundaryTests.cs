@@ -201,7 +201,7 @@ public sealed class LexicalBoundaryTests
 			GrammarNormalizer.Normalize(
 				GrammarBinder.Bind(
 					GramParser.Parse(
-						GramLexer.Tokenize(grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!)));
+						GramLexer.Tokenize(grammar, DotGram.Language.RoslynCSharpScanner.Instance)).File!)));
 		var machine   = inventory.Machine!;
 
 		TestContext.Current.TestOutputHelper?.WriteLine(
@@ -282,7 +282,7 @@ public sealed class LexicalBoundaryTests
 			GrammarNormalizer.Normalize(
 				GrammarBinder.Bind(
 					GramParser.Parse(
-						GramLexer.Tokenize(grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!))).Machine!;
+						GramLexer.Tokenize(grammar, DotGram.Language.RoslynCSharpScanner.Instance)).File!))).Machine!;
 
 		TestContext.Current.TestOutputHelper?.WriteLine(
 			$"{runs} turns of {length}: {machine.Nondeterministic} states built, {machine.Next.Count} deterministic, {machine.Walked} walked");

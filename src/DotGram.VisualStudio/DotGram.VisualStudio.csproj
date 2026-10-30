@@ -23,19 +23,6 @@
 		<StartArguments>/RootSuffix DotGram</StartArguments>
 	</PropertyGroup>
 
-	<PropertyGroup Label="Enabled Polyfills">
-		<Polyfill></Polyfill>
-		<Polyfill>$(Polyfill)|T:System.HashCode</Polyfill>
-		<Polyfill>$(Polyfill)|T:System.Index</Polyfill>
-		<Polyfill>$(Polyfill)|T:System.Range</Polyfill>
-		<Polyfill>$(Polyfill)|T:System.Diagnostics.CodeAnalysis</Polyfill>
-		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.CallerArgumentExpressionAttribute</Polyfill>
-		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.CompilerFeatureRequiredAttribute</Polyfill>
-		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.IsExternalInit</Polyfill>
-		<Polyfill>$(Polyfill)|T:System.Runtime.CompilerServices.RequiredMemberAttribute</Polyfill>
-		<MeziantouPolyfill_IncludedPolyfills>$(Polyfill)</MeziantouPolyfill_IncludedPolyfills>
-	</PropertyGroup>
-
 	<ItemGroup>
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" ExcludeAssets="runtime" />
 		<PackageReference Include="Microsoft.VisualStudio.LanguageServices" ExcludeAssets="runtime" />
@@ -78,22 +65,11 @@
 
 	<ItemGroup>
 		<Compile Include="*.cs" />
-		<!-- CaseFold.generate.cs is a file-based app that rebuilds the case table; it is no
-		     part of any library, here as in DotGram.csproj. -->
-		<Compile Include="..\DotGram\Grammar\**\*.cs" Exclude="..\DotGram\Grammar\**\*.generate.cs"
-		         Link="Grammar\%(RecursiveDir)%(Filename)%(Extension)" />
-		<!-- The standard library goes wherever Grammar/ goes: StandardLibrary.cs reads it
-		     out of the assembly it was compiled into, under this name. -->
-		<EmbeddedResource Include="..\DotGram\Grammar\Std.gram"
-		                  Link="Grammar\Std.gram" LogicalName="DotGram.Std.gram" />
-		<Compile Include="..\DotGram\Generation\RoslynCSharpScanner.cs"
-		         Link="Generation\RoslynCSharpScanner.cs" />
-		<!-- Which grammars a host includes is the generator's walk, read here as it is there. -->
-		<Compile Include="..\DotGram\Generation\GramIncludes.cs"
-		         Link="Generation\GramIncludes.cs" />
-		<Compile Include="..\DotGram\Language\**\*.cs"
-		         Link="Language\%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
+
+	<!-- The language itself — the grammar half and the editor-neutral analysis over it — is
+	     compiled here from the shared sources rather than referenced: ../DotGram/Language/README.md. -->
+	<Import Project="..\DotGram\Language.projitems" />
 
 	<Target Name="GetVsixVersion" Returns="$(Version)" />
 

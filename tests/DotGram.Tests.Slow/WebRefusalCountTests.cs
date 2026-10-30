@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using DotGram.Generation;
 using DotGram.Grammar;
 using DotGram.Grammar.Emit;
+using DotGram.Language;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;

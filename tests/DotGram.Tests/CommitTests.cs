@@ -266,6 +266,6 @@ public sealed class CommitTests
 		return GrammarNormalizer.Normalize(
 			GrammarBinder.Bind(
 				GramParser.Parse(
-					GramLexer.Tokenize(grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!));
+					GramLexer.Tokenize(grammar, DotGram.Language.RoslynCSharpScanner.Instance)).File!));
 	}
 }

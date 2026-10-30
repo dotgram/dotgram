@@ -6,6 +6,7 @@ using DotGram.Grammar;
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Parsing;
+using DotGram.Language;
 
 using Xunit;
 

@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- Grammar/ compiled alone, with nothing to reach but the polyfills and System.Memory: building
+	     it is the assertion that the grammar half is a function of grammar text — no Roslyn, nothing
+	     of Language/ or of the generator's shell. A `using` of any of them there does not build here,
+	     wherever else it would. netstandard2.0, as the generator compiles it. Referenced by nothing;
+	     its output is the build succeeding (../DotGram/Language/README.md). -->
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<IsPackable>false</IsPackable>
+		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Meziantou.Polyfill" PrivateAssets="all" />
+		<!-- `ReadOnlySpan<char>`, which netstandard2.0 lacks; the generator has it through Roslyn. -->
+		<PackageReference Include="System.Memory" />
+	</ItemGroup>
+
+	<!-- The shared list, less Language/: one list of what Grammar/ is, whoever compiles it. -->
+	<Import Project="..\DotGram\Language.projitems" />
+
+	<ItemGroup>
+		<Compile Remove="..\DotGram\Language\**" />
+	</ItemGroup>
+
+</Project>

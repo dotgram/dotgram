@@ -1,6 +1,6 @@
 ﻿using System;
 
-using DotGram.Generation;
+using DotGram.Language;
 
 using Xunit;
 

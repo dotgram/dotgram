@@ -27,7 +27,7 @@ public sealed class TerminalInventoryTests
 			GrammarNormalizer.Normalize(
 				GrammarBinder.Bind(
 					GramParser.Parse(
-						GramLexer.Tokenize(grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!)));
+						GramLexer.Tokenize(grammar, DotGram.Language.RoslynCSharpScanner.Instance)).File!)));
 	}
 
 	/// <summary>A grammar in which nothing is trivia has no boundary to find.</summary>

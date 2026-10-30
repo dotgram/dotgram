@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 using DotGram.Generation;
 using DotGram.Grammar;
+using DotGram.Language;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;

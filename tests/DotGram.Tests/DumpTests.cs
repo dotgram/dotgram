@@ -1,9 +1,9 @@
 ﻿using System;
 
-using DotGram.Generation;
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Parsing;
+using DotGram.Language;
 
 using Xunit;
 

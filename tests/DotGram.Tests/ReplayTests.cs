@@ -24,7 +24,7 @@ public sealed class ReplayTests
 			GrammarNormalizer.Normalize(
 				GrammarBinder.Bind(
 					GramParser.Parse(
-						GramLexer.Tokenize(grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!)));
+						GramLexer.Tokenize(grammar, DotGram.Language.RoslynCSharpScanner.Instance)).File!)));
 	}
 
 	static Replay.Because Of(Replay.Report report, string rule)

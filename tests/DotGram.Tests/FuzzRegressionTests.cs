@@ -90,7 +90,7 @@ public sealed class FuzzRegressionTests
 			find Url as AllUrls
 			""";
 
-		var result = GramCompiler.Compile(grammar, new GramCompilerOptions { ClassName = "Fuzz", CSharpScanner = DotGram.Generation.RoslynCSharpScanner.Instance });
+		var result = GramCompiler.Compile(grammar, new GramCompilerOptions { ClassName = "Fuzz", CSharpScanner = DotGram.Language.RoslynCSharpScanner.Instance });
 
 		// The lost `&` made `Path (…)?` a call with an argument, to a rule that takes none.
 		Assert.Contains(result.Diagnostics, static one => one.Id == GrammarNormalizer.UnbuiltCall && one.Message.Contains("'Path' takes no parameters", StringComparison.Ordinal));

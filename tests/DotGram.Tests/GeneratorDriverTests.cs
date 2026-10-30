@@ -13,6 +13,7 @@ using System.Threading;
 
 using DotGram.Generation;
 using DotGram.Grammar.Model;
+using DotGram.Language;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;

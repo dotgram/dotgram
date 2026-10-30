@@ -6,6 +6,7 @@ using System.Text;
 
 using DotGram.Generation;
 using DotGram.Grammar;
+using DotGram.Language;
 
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;

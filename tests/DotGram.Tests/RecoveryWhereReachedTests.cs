@@ -5,6 +5,7 @@ using System.Linq;
 
 using DotGram.Generation;
 using DotGram.Grammar;
+using DotGram.Language;
 
 using Xunit;
 

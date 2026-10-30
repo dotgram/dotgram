@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- What DotGram.Language.Tests leaves to the runs that pay for it, as DotGram.Tests.Slow does
+	     for DotGram.Tests (D12): every grammar in the repository classified token for token, about
+	     twenty seconds, which would more than double the ordinary run. `dotnet test` over the
+	     solution runs it, and CI with it. The sources are compiled from Language.projitems, as in
+	     DotGram.Language.Tests and for the same reason. -->
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>DotGram.Language.Tests</RootNamespace>
+		<OutputType>Exe</OutputType>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="xunit.v3" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
+	</ItemGroup>
+
+	<Import Project="..\..\src\DotGram\Language.projitems" />
+
+</Project>

@@ -8,6 +8,7 @@ using DotGram.Grammar.Binding;
 using DotGram.Grammar.Emit;
 using DotGram.Grammar.Model;
 using DotGram.Grammar.Parsing;
+using DotGram.Language;
 
 using Xunit;
 
@@ -83,7 +84,7 @@ public sealed class LexerEmitterTests
 			GrammarNormalizer.Normalize(
 				GrammarBinder.Bind(
 					GramParser.Parse(
-						GramLexer.Tokenize(grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!)));
+						GramLexer.Tokenize(grammar, DotGram.Language.RoslynCSharpScanner.Instance)).File!)));
 
 		Assert.NotNull(split);
 		Assert.NotNull(split.Inventory.Machine);
@@ -97,7 +98,7 @@ public sealed class LexerEmitterTests
 			GrammarNormalizer.Normalize(
 				GrammarBinder.Bind(
 					GramParser.Parse(
-						GramLexer.Tokenize(grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!)));
+						GramLexer.Tokenize(grammar, DotGram.Language.RoslynCSharpScanner.Instance)).File!)));
 
 		Assert.NotNull(split);
 		Assert.NotNull(split.Inventory.Machine);
@@ -212,7 +213,7 @@ public sealed class LexerEmitterTests
 			GrammarNormalizer.Normalize(
 				GrammarBinder.Bind(
 					GramParser.Parse(
-						GramLexer.Tokenize(Sql, DotGram.Generation.RoslynCSharpScanner.Instance)).File!)));
+						GramLexer.Tokenize(Sql, DotGram.Language.RoslynCSharpScanner.Instance)).File!)));
 
 		var source = LexerEmitter.Emit(split!.Inventory.Machine!);
 
@@ -286,7 +287,7 @@ public sealed class LexerEmitterTests
 			GrammarNormalizer.Normalize(
 				GrammarBinder.Bind(
 					GramParser.Parse(
-						GramLexer.Tokenize(Sql, DotGram.Generation.RoslynCSharpScanner.Instance)).File!)));
+						GramLexer.Tokenize(Sql, DotGram.Language.RoslynCSharpScanner.Instance)).File!)));
 
 		var machine = split!.Inventory.Machine!;
 		var source  = LexerEmitter.Emit(machine);
@@ -377,7 +378,7 @@ public sealed class LexerEmitterTests
 					GrammarBinder.Bind(
 						GramParser.Parse(
 							GramLexer.Tokenize(
-								grammar, DotGram.Generation.RoslynCSharpScanner.Instance)).File!)))!
+								grammar, DotGram.Language.RoslynCSharpScanner.Instance)).File!)))!
 			.Inventory.Machine!, utf8: utf8);
 	}
 
