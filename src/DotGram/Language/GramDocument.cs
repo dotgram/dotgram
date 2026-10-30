@@ -260,11 +260,7 @@ public static class GramLanguageService
 
 		ClassifyComments(text, tokens.Tokens, classifications);
 
-		foreach (var classified in GramCSharpClassifier.Classify(text, parsed.File))
-		{
-			classifications.RemoveAll(existing => Intersects(existing, classified));
-			classifications.Add(classified);
-		}
+		Overlay(classifications, GramCSharpClassifier.Classify(text, parsed.File));
 
 		classifications.Sort(static (left, right) => left.Position.CompareTo(right.Position));
 
@@ -349,6 +345,23 @@ public static class GramLanguageService
 		}
 
 		return low;
+	}
+
+	/// <summary>The furthest end of the tokens that start within <paramref name="at"/>, or null when none does.</summary>
+	/// <remarks>
+	/// Only those tokens are visited, found by where they start, and not every token of the
+	/// text once per declaration: a grammar of thousands of rules made that a second.
+	/// </remarks>
+	static int? EndOfTokens(IReadOnlyList<Token> tokens, Location at)
+	{
+		int? result = null;
+
+		for (var index = FirstTokenAtOrAfter(tokens, at.Position);
+			index < tokens.Count && tokens[index].Position < at.End;
+			index++)
+			result = Math.Max(result ?? int.MinValue, tokens[index].Position + tokens[index].Length);
+
+		return result;
 	}
 
 	static HashSet<int> OnFailKeywordPositions(
@@ -481,11 +494,7 @@ public static class GramLanguageService
 
 		foreach (var declaration in declarations)
 		{
-			var end = tokens
-				.Where(token => token.Position >= declaration.At.Position && token.Position < declaration.At.End)
-				.Select(static token => token.Position + token.Length)
-				.DefaultIfEmpty(declaration.At.End)
-				.Max();
+			var end = EndOfTokens(tokens, declaration.At) ?? declaration.At.End;
 
 			switch (declaration)
 			{
@@ -1150,11 +1159,7 @@ public static class GramLanguageService
 				switch (declaration)
 				{
 					case Decl.Rule rule:
-						var end = tokens
-							.Where(token => token.Position >= rule.At.Position && token.Position < rule.At.End)
-							.Select(static token => token.Position + token.Length)
-							.DefaultIfEmpty(rule.At.Position)
-							.Max();
+						var end = EndOfTokens(tokens, rule.At) ?? rule.At.Position;
 						var length = Math.Min(end - rule.At.Position, text.Length - rule.At.Position);
 
 						if (length > 0 && !byPosition.ContainsKey(rule.At.Position))
@@ -1337,9 +1342,97 @@ public static class GramLanguageService
 		}
 	}
 
-	static bool Intersects(GramClassifiedSpan left, GramClassifiedSpan right)
+	/// <summary>
+	/// Lays the spans the C# classifier made over the grammar's own: a span the C# overlaps is
+	/// dropped, and so is a C# span that a later one overlaps, which is what removing every span
+	/// a C# span overlaps before adding it leaves, in the same order.
+	/// </summary>
+	/// <remarks>
+	/// Two spans overlap when each starts before the other ends. Not by removing what each C#
+	/// span overlaps from the whole list in turn: a grammar with many actions has tens of
+	/// thousands of both, and that pass alone took seconds on the T-SQL grammar. Here the C#
+	/// spans are put in the order they start, and a span is overlapped when one of those that
+	/// start before it ends reaches past its start.
+	/// </remarks>
+	static void Overlay(List<GramClassifiedSpan> classifications, IReadOnlyList<GramClassifiedSpan> csharp)
 	{
-		return left.Position < right.Position + right.Length && right.Position < left.Position + left.Length;
+		if (csharp.Count == 0)
+			return;
+
+		var order  = new int[csharp.Count];
+		var starts = new int[csharp.Count];
+
+		for (var index = 0; index < order.Length; index++)
+			order[index] = index;
+
+		Array.Sort(order, (left, right) =>
+		{
+			var byPosition = csharp[left].Position.CompareTo(csharp[right].Position);
+			return byPosition != 0 ? byPosition : left.CompareTo(right);
+		});
+
+		// The furthest end among the first so many C# spans in that order.
+		var reach = new int[csharp.Count];
+		var rank  = new int[csharp.Count];
+
+		for (var index = 0; index < order.Length; index++)
+		{
+			var span = csharp[order[index]];
+
+			starts[index]      = span.Position;
+			reach[index]       = Math.Max(index > 0 ? reach[index - 1] : int.MinValue, span.Position + span.Length);
+			rank[order[index]] = index;
+		}
+
+		classifications.RemoveAll(span =>
+		{
+			var before = StartingBefore(span.Position + span.Length);
+			return before > 0 && reach[before - 1] > span.Position;
+		});
+
+		// A C# span is only overlapped by those after it, so they are walked from the last, and
+		// the end of each is kept, by its place in the start order, in a tree of prefix maxima.
+		var later    = new int[csharp.Count + 1];
+		var survives = new bool[csharp.Count];
+
+		for (var index = 0; index < later.Length; index++)
+			later[index] = int.MinValue;
+
+		for (var index = csharp.Count - 1; index >= 0; index--)
+		{
+			var span     = csharp[index];
+			var furthest = int.MinValue;
+
+			for (var node = StartingBefore(span.Position + span.Length); node > 0; node -= node & -node)
+				furthest = Math.Max(furthest, later[node]);
+
+			survives[index] = furthest <= span.Position;
+
+			for (var node = rank[index] + 1; node < later.Length; node += node & -node)
+				later[node] = Math.Max(later[node], span.Position + span.Length);
+		}
+
+		for (var index = 0; index < csharp.Count; index++)
+			if (survives[index])
+				classifications.Add(csharp[index]);
+
+		// How many C# spans start before the position.
+		int StartingBefore(int position)
+		{
+			var low  = 0;
+			var high = starts.Length;
+
+			while (low < high)
+			{
+				var middle = low + (high - low) / 2;
+				if (starts[middle] < position)
+					low = middle + 1;
+				else
+					high = middle;
+			}
+
+			return low;
+		}
 	}
 
 	static void ClassifyComments(
