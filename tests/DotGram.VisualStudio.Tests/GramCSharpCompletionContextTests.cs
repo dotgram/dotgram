@@ -53,4 +53,22 @@ public sealed class GramCSharpCompletionContextTests
 		Assert.Equal(text.IndexOf("decimal", System.StringComparison.Ordinal), expressionStart);
 		Assert.Equal("Parse", text.Substring(symbolStart, symbolLength));
 	}
+
+	/// <summary>
+	/// <c>Std.Name</c> means the standard library only in the grammar's own text: in C# inside it,
+	/// as in <c>@(Std.Integer)</c> or <c>@Std.Integer</c>, it is whatever C# says, and the standard
+	/// library's completion, Quick Info, signature help and Go To Definition leave it alone.
+	/// </summary>
+	[Theory]
+	[InlineData("Rule = Std.Integer", false)]
+	[InlineData("Rule = Std.Nested(\"(\", \")\")", false)]
+	[InlineData("Rule = 'a' => @(Std.Integer)", true)]
+	[InlineData("Rule = 'a' => @Std.Integer", true)]
+	[InlineData("Rule = 'a' => @(Std.)", true)]
+	public void Std_in_C_sharp_is_not_the_standard_library(string text, bool csharp)
+	{
+		var name = text.IndexOf("Std.", System.StringComparison.Ordinal) + 4;
+
+		Assert.Equal(csharp, GramCSharpCompletionContext.TryGetPrefix(text, name, out _));
+	}
 }

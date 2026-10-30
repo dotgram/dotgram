@@ -113,21 +113,56 @@ public sealed class EditorVocabularyTests
 		}
 	}
 
-	/// <summary>A contextual keyword is a keyword where it is read as one, and a name everywhere else.</summary>
+	/// <summary>
+	/// A word of the notation used as a rule's name is a name, declared and referred to alike, and
+	/// a contextual one stays a name everywhere but its own place.
+	/// </summary>
 	[Fact]
-	public void A_contextual_keyword_is_an_identifier_outside_its_place()
+	public void A_keyword_used_as_a_rule_s_name_is_an_identifier()
 	{
 		Assert.Subset(GramVocabulary.Keywords.Keys.ToHashSet(StringComparer.Ordinal), GramVocabulary.ContextualKeywords.ToHashSet(StringComparer.Ordinal));
 
-		foreach (var word in GramVocabulary.ContextualKeywords)
-		{
-			var sample   = $"Start = 'a' & {word}\n{word} = 'b'\nparse Start";
-			var document = GramLanguageService.Analyze(sample);
+		var unreferenced = new List<string>();
+		var undeclared   = new List<string>();
 
-			Assert.All(
-				document.Classifications.Where(span => sample.Substring(span.Position, span.Length) == word),
-				span => Assert.Equal(GramSyntaxKind.Identifier, span.Kind));
+		foreach (var word in GramVocabulary.Keywords.Keys)
+		{
+			// Declared first, then used where the parser reads the word as a name: after a
+			// connector, or else first in a group; where it reads it as a name at all.
+			var used = new[] { $"{word} = 'b'\nStart = 'a' & {word}\nparse Start", $"{word} = 'b'\nStart = ({word}) & 'a'\nparse Start" }
+				.FirstOrDefault(static one => GramCompiler.Read(one).Diagnostics.Count == 0);
+			var sample = used ?? $"{word} = 'b'\nStart = 'a'\nparse Start";
+
+			if (used is null)
+				unreferenced.Add(word);
+
+			if (GramCompiler.Read(sample).Diagnostics.Count > 0)
+			{
+				undeclared.Add(word);
+				continue;
+			}
+
+			var document  = GramLanguageService.Analyze(sample);
+			var positions = new List<int> { 0 };
+
+			if (used is not null)
+				positions.Add(sample.IndexOf("& " + word, StringComparison.Ordinal) is >= 0 and var after
+					? after + 2
+					: sample.IndexOf("(" + word, StringComparison.Ordinal) + 1);
+
+			foreach (var position in positions)
+			{
+				var spans = document.Classifications.Where(span => span.Position == position && span.Length == word.Length).ToArray();
+
+				Assert.True(spans.Length == 1, $"'{word}' at {position} has {spans.Length} classifications in:\n{sample}");
+				Assert.True(spans[0].Kind == GramSyntaxKind.Identifier, $"'{word}' at {position} is {spans[0].Kind} in:\n{sample}");
+			}
 		}
+
+		// The words that are never a name, or never one where an operand begins: each starts
+		// what it means there. A change to the parser that frees or takes one shows up here.
+		Assert.Equal("when", string.Join(" ", unreferenced));
+		Assert.Equal("", string.Join(" ", undeclared));
 	}
 
 	[Fact]
@@ -279,64 +314,190 @@ public sealed class EditorVocabularyTests
 		Assert.Equal(inside, GramVocabulary.InCallArguments(marked.Remove(position, 1), position));
 	}
 
-	/// <summary>
-	/// The words the parser compares an identifier's text with: what <c>AtKeyword</c> and
-	/// <c>TakeIfKeyword</c> are asked about, and every literal a token's <c>Value</c> is held to
-	/// by <c>==</c>, a pattern or a switch.
-	/// </summary>
+	[Theory]
+	[InlineData("bool A() { return this.AtKeyword(\"newword\"); }",                  "newword")]
+	[InlineData("bool A() { return AtKeyword(\"with_state\"); }",                    "with_state")]
+	[InlineData("bool A() { return TakeIfKeyword(\"w2\"); }",                        "w2")]
+	[InlineData("bool A() { return ExpectKeyword(\"expected\"); }",                  "expected")]
+	[InlineData("bool A() { return Next.Value != \"neu\"; }",                        "neu")]
+	[InlineData("bool A() { return \"left\" == Next.Value; }",                       "left")]
+	[InlineData("bool A() { return Current.Value is not (\"x1\" or \"x2\"); }",    "x1 x2")]
+	[InlineData("int A() { return Take().Value! switch { \"arm\" => 1, _ => 0 }; }", "arm")]
+	[InlineData("void A() { switch (Take().Value) { case \"sw\": break; } }",        "sw")]
+	[InlineData("bool A() { return string.Equals(Next.Value, \"eq\"); }",            "eq")]
+	public void The_parser_s_words_are_found_however_it_compares_them(string member, string words)
+	{
+		Assert.Equal(words.Split(' ').Order(StringComparer.Ordinal), ParserWords($"class P {{ {member} }}").Order(StringComparer.Ordinal));
+	}
+
+	[Theory]
+	[InlineData("bool A(string name) { return AtKeyword(name); }")]
+	[InlineData("bool A(string other) { return Next.Value == other; }")]
+	[InlineData("bool A() { return Next.Value is Word; }")]
+	[InlineData("int A() { return Next.Value switch { Word => 1, _ => 0 }; }")]
+	[InlineData("bool A(string other) { return string.Equals(Next.Value, other); }")]
+	public void A_comparison_the_test_cannot_read_fails_it(string member)
+	{
+		Assert.Throws<InvalidOperationException>(() => ParserWords($"class P {{ const string Word = \"w\"; {member} }}"));
+	}
+
+	/// <summary>The words the generator's parser compares an identifier's text with.</summary>
 	static HashSet<string> ParserWords()
 	{
-		var path  = Path.Combine(Root, "src", "DotGram", "Grammar", "Parsing", "GramParser.cs");
-		var root  = CSharpSyntaxTree.ParseText(File.ReadAllText(path)).GetRoot();
-		var words = new HashSet<string>(StringComparer.Ordinal);
+		return ParserWords(File.ReadAllText(Path.Combine(Root, "src", "DotGram", "Grammar", "Parsing", "GramParser.cs")));
+	}
 
-		foreach (var literal in root.DescendantNodes().OfType<LiteralExpressionSyntax>())
+	/// <summary>
+	/// The words a parser's source compares a token's text with: what a method named
+	/// <c>…Keyword</c> is asked about, and every literal a token's <c>Value</c> is held to by
+	/// <c>==</c>, <c>!=</c>, <c>string.Equals</c>, a pattern, a switch expression or a switch
+	/// statement.
+	/// </summary>
+	/// <exception cref="InvalidOperationException">
+	/// A comparison whose other side is not a literal: a word could be hiding behind it, so the
+	/// test would rather fail than miss it.
+	/// </exception>
+	static HashSet<string> ParserWords(string source)
+	{
+		var root        = CSharpSyntaxTree.ParseText(source).GetRoot();
+		var words       = new HashSet<string>(StringComparer.Ordinal);
+		var unsupported = new List<string>();
+
+		void Literal(ExpressionSyntax? expression, SyntaxNode where)
 		{
-			if (!literal.IsKind(SyntaxKind.StringLiteralExpression) || !IsComparedWord(literal))
-				continue;
-
-			words.Add(literal.Token.ValueText);
+			if (expression is LiteralExpressionSyntax literal && literal.IsKind(SyntaxKind.StringLiteralExpression))
+				words.Add(literal.Token.ValueText);
+			else if (expression is not LiteralExpressionSyntax { RawKind: (int)SyntaxKind.NullLiteralExpression })
+				unsupported.Add(where.ToString());
 		}
+
+		void Pattern(PatternSyntax pattern, SyntaxNode where)
+		{
+			switch (pattern)
+			{
+				case ConstantPatternSyntax constant:
+					Literal(constant.Expression, where);
+					break;
+
+				case BinaryPatternSyntax binary:
+					Pattern(binary.Left, where);
+					Pattern(binary.Right, where);
+					break;
+
+				case UnaryPatternSyntax unary:
+					Pattern(unary.Pattern, where);
+					break;
+
+				case ParenthesizedPatternSyntax parenthesized:
+					Pattern(parenthesized.Pattern, where);
+					break;
+
+				// What binds or tests a shape compares the text with no word: `is { } text`, `is var t`.
+				case DiscardPatternSyntax or DeclarationPatternSyntax or VarPatternSyntax or RecursivePatternSyntax:
+					break;
+
+				default:
+					unsupported.Add(where.ToString());
+					break;
+			}
+		}
+
+		// The keyword helpers' own bodies compare the text with the word they are handed.
+		var helpers = root.DescendantNodes().OfType<MethodDeclarationSyntax>()
+			.Where(static method => method.Identifier.ValueText.EndsWith("Keyword", StringComparison.Ordinal))
+			.ToArray();
+
+		foreach (var node in root.DescendantNodes().Where(node => !helpers.Any(helper => helper.Span.Contains(node.Span))))
+			switch (node)
+			{
+				// `Next.Value is Word` reads as a type test, and could as well be a constant.
+				case BinaryExpressionSyntax binary when binary.IsKind(SyntaxKind.IsExpression) && IsTokenText(binary.Left):
+					unsupported.Add(binary.ToString());
+					break;
+
+				case InvocationExpressionSyntax invocation when Called(invocation) is { } name && name.EndsWith("Keyword", StringComparison.Ordinal):
+					Literal(invocation.ArgumentList.Arguments.FirstOrDefault()?.Expression, invocation);
+					break;
+
+				case InvocationExpressionSyntax invocation when Called(invocation) == "Equals" &&
+					invocation.ArgumentList.Arguments.Any(argument => IsTokenText(argument.Expression)):
+					foreach (var argument in invocation.ArgumentList.Arguments.Where(argument => !IsTokenText(argument.Expression)))
+						Literal(argument.Expression, invocation);
+
+					break;
+
+				case BinaryExpressionSyntax binary when binary.IsKind(SyntaxKind.EqualsExpression) || binary.IsKind(SyntaxKind.NotEqualsExpression):
+					if (IsTokenText(binary.Left))
+						Literal(binary.Right, binary);
+					else if (IsTokenText(binary.Right))
+						Literal(binary.Left, binary);
+
+					break;
+
+				case IsPatternExpressionSyntax isPattern when IsTokenText(isPattern.Expression):
+					Pattern(isPattern.Pattern, isPattern);
+					break;
+
+				case SwitchExpressionSyntax switchExpression when IsTokenText(switchExpression.GoverningExpression):
+					foreach (var arm in switchExpression.Arms)
+						Pattern(arm.Pattern, arm);
+
+					break;
+
+				case SwitchStatementSyntax switchStatement when IsTokenText(switchStatement.Expression):
+					foreach (var label in switchStatement.Sections.SelectMany(static section => section.Labels))
+						switch (label)
+						{
+							case CaseSwitchLabelSyntax caseLabel:
+								Literal(caseLabel.Value, caseLabel);
+								break;
+
+							case CasePatternSwitchLabelSyntax patternLabel:
+								Pattern(patternLabel.Pattern, patternLabel);
+								break;
+						}
+
+					break;
+			}
+
+		if (unsupported.Count > 0)
+			throw new InvalidOperationException("Comparisons of a token's text the test cannot read: " + string.Join("; ", unsupported));
 
 		return words;
 	}
 
-	static bool IsComparedWord(LiteralExpressionSyntax literal)
+	static string? Called(InvocationExpressionSyntax invocation)
 	{
-		var text = literal.Token.ValueText;
-
-		if (text.Length == 0 || !text.All(char.IsLetter))
-			return false;
-
-		// `AtKeyword("parse")`, `TakeIfKeyword("with")`.
-		if (literal.Parent is ArgumentSyntax { Parent: ArgumentListSyntax { Parent: InvocationExpressionSyntax invocation } } &&
-			invocation.Expression is IdentifierNameSyntax { Identifier.ValueText: "AtKeyword" or "TakeIfKeyword" })
-			return true;
-
-		// `Next.Value == "using"`.
-		if (literal.Parent is BinaryExpressionSyntax binary && binary.IsKind(SyntaxKind.EqualsExpression))
-			return IsTokenText(binary.Left == literal ? binary.Right : binary.Left);
-
-		// `Next.Value is "parse" or "find"`, and the arms of `Take().Value switch { "internal" => … }`.
-		for (SyntaxNode? node = literal.Parent; node is PatternSyntax or SwitchExpressionArmSyntax; node = node.Parent)
+		return invocation.Expression switch
 		{
-			if (node.Parent is IsPatternExpressionSyntax isPattern)
-				return IsTokenText(isPattern.Expression);
-
-			if (node.Parent is SwitchExpressionArmSyntax { Parent: SwitchExpressionSyntax switchExpression } arm && arm.Pattern == node)
-				return IsTokenText(switchExpression.GoverningExpression);
-		}
-
-		return false;
+			IdentifierNameSyntax name             => name.Identifier.ValueText,
+			MemberAccessExpressionSyntax member   => member.Name.Identifier.ValueText,
+			MemberBindingExpressionSyntax binding => binding.Name.Identifier.ValueText,
+			_                                     => null,
+		};
 	}
 
-	/// <summary>A token's text: <c>Next.Value</c>, <c>Take().Value!</c>.</summary>
+	/// <summary>A token's text: <c>Next.Value</c>, <c>Take().Value!</c>, <c>token?.Value</c>.</summary>
 	static bool IsTokenText(ExpressionSyntax expression)
 	{
-		while (expression is PostfixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.SuppressNullableWarningExpression } suppressed)
-			expression = suppressed.Operand;
+		while (true)
+		{
+			switch (expression)
+			{
+				case PostfixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.SuppressNullableWarningExpression } suppressed:
+					expression = suppressed.Operand;
+					continue;
 
-		return expression is MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Value" };
+				case ParenthesizedExpressionSyntax parenthesized:
+					expression = parenthesized.Expression;
+					continue;
+
+				case ConditionalAccessExpressionSyntax { WhenNotNull: MemberBindingExpressionSyntax { Name.Identifier.ValueText: "Value" } }:
+					return true;
+			}
+
+			return expression is MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Value" };
+		}
 	}
 
 	static string Root =>

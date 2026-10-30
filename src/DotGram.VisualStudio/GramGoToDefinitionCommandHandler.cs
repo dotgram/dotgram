@@ -42,7 +42,7 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 		return args.SubjectBuffer.ContentType.IsOfType("CSharp") ||
 			PublishedApi(args, snapshot, position) is not null ||
 			IsCSharpContext(args, snapshot, position, out _, out _) || Target(args) is not null ||
-			StandardDefinition(args, snapshot, position) is not null
+			StandardRuleAt(args, snapshot, position) is not null
 			? CommandState.Available
 			: CommandState.Unavailable;
 	}
@@ -76,8 +76,9 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 				roslyn.NavigateToDefinitionAsync(publishedApi, 0, CancellationToken.None));
 		}
 
-		if (StandardDefinition(args, snapshot, position) is { } standard)
-			return Navigate(standard);
+		if (StandardRuleAt(args, snapshot, position) is { } standard)
+			return IncludedGrammarView.PathOf(new StandaloneIncludedGrammar(StandardLibrary.Name, StandardLibrary.Text, null)) is { } path &&
+				Navigate(new GeneratedApiSource(path, standard.Line, standard.Column));
 
 		if (IsCSharpContext(args, snapshot, position, out var expression, out var expressionPosition))
 		{
@@ -200,10 +201,11 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 	}
 
 	/// <summary>
-	/// The standard library's rule under the caret, written <c>Std.Name</c>, opened as a read-only
-	/// copy of the library the generator carries: no project holds it as a file.
+	/// The standard library's rule under the caret, written <c>Std.Name</c> in a grammar's own text
+	/// and not in C# inside it. Only found here: the read-only copy it opens in is written when the
+	/// command runs, not when Visual Studio asks whether it can.
 	/// </summary>
-	GeneratedApiSource? StandardDefinition(GoToDefinitionCommandArgs args, ITextSnapshot snapshot, int position)
+	StandardRule? StandardRuleAt(GoToDefinitionCommandArgs args, ITextSnapshot snapshot, int position)
 	{
 		if (!args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name) &&
 			(!EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents)
@@ -220,17 +222,13 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 		while (end < snapshot.Length && IsNameCharacter(snapshot[end]))
 			end++;
 
-		if (start == end)
+		if (start == end || GramCSharpCompletionContext.TryGetPrefix(snapshot.GetText(), start, out _))
 			return null;
 
 		var from = Math.Max(0, start - StandardLibrary.Name.Length - 2);
 		var text = snapshot.GetText(from, end - from);
 
-		if (GramVocabulary.QualifiedStandardRule(text, start - from, end - start) is not { } rule ||
-			IncludedGrammarView.PathOf(new StandaloneIncludedGrammar(StandardLibrary.Name, StandardLibrary.Text, null)) is not { } path)
-			return null;
-
-		return new GeneratedApiSource(path, rule.Line, rule.Column);
+		return GramVocabulary.QualifiedStandardRule(text, start - from, end - start);
 	}
 
 	static bool IsNameCharacter(char character)

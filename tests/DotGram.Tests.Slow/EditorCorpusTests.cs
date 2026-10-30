@@ -73,6 +73,9 @@ public sealed class EditorCorpusTests
 	{
 		var corpus = Corpus();
 
+		Assert.True(Unread.Count == 0, "A [Gram] whose grammar is no constant this test can read: " + string.Join("; ", Unread));
+		Assert.Contains(corpus, static grammar => grammar.Name.StartsWith("tests/DotGram.Compatibility/Consumer.cs#", StringComparison.Ordinal));
+
 		Assert.Contains(corpus, static grammar => grammar.Name.EndsWith("TransactSql.gram", StringComparison.Ordinal));
 		Assert.Contains(corpus, static grammar => grammar.Name.Contains(".cs#", StringComparison.Ordinal));
 	}
@@ -114,30 +117,60 @@ public sealed class EditorCorpusTests
 		{
 			var source = File.ReadAllText(file);
 
-			if (!source.Contains("Gram(", StringComparison.Ordinal))
+			// Only a cheap way past the files that cannot hold one: every spelling of the
+			// attribute's name, `Gram` and `GramAttribute`, alone or qualified, has this in it.
+			if (!source.Contains("Gram", StringComparison.Ordinal))
 				continue;
 
 			var index = 0;
 
 			foreach (var attribute in CSharpSyntaxTree.ParseText(source).GetRoot().DescendantNodes().OfType<AttributeSyntax>())
 			{
-				if (attribute.Name.ToString() is not ("Gram" or "GramAttribute" or "DotGram.Gram" or "DotGram.GramAttribute") ||
-					attribute.ArgumentList?.Arguments.FirstOrDefault() is not { NameEquals: null, NameColon: null } argument ||
-					argument.Expression is not LiteralExpressionSyntax literal ||
-					!literal.IsKind(SyntaxKind.StringLiteralExpression))
+				var name = attribute.Name switch
+				{
+					QualifiedNameSyntax qualified   => qualified.Right.Identifier.ValueText,
+					AliasQualifiedNameSyntax global => global.Name.Identifier.ValueText,
+					SimpleNameSyntax simple         => simple.Identifier.ValueText,
+					_                               => "",
+				};
+
+				if (name is not ("Gram" or "GramAttribute") ||
+					attribute.ArgumentList?.Arguments.FirstOrDefault() is not { NameEquals: null } argument)
 					continue;
 
-				var grammar = literal.Token.ValueText;
+				var place = $"{Relative(file)}#{++index}";
+
+				if (Constant(argument.Expression) is not { } grammar)
+				{
+					Unread.Add($"{place}: {argument.Expression}");
+					continue;
+				}
 
 				// A file's name, which the grammar of that file stands for.
 				if (grammar.EndsWith(".gram", StringComparison.OrdinalIgnoreCase) && grammar.IndexOf('\n') < 0)
 					continue;
 
-				result.Add(($"{Relative(file)}#{++index}", grammar));
+				result.Add((place, grammar));
 			}
 		}
 
 		return result;
+	}
+
+	/// <summary>The first arguments of a <c>[Gram]</c> that are not a constant this test can read.</summary>
+	static readonly List<string> Unread = [];
+
+	/// <summary>The text of a constant string: a literal, or literals joined with <c>+</c>.</summary>
+	static string? Constant(ExpressionSyntax expression)
+	{
+		return expression switch
+		{
+			LiteralExpressionSyntax literal when literal.IsKind(SyntaxKind.StringLiteralExpression) => literal.Token.ValueText,
+			ParenthesizedExpressionSyntax parenthesized => Constant(parenthesized.Expression),
+			BinaryExpressionSyntax binary when binary.IsKind(SyntaxKind.AddExpression) &&
+				Constant(binary.Left) is { } left && Constant(binary.Right) is { } right => left + right,
+			_ => null,
+		};
 	}
 
 	static IEnumerable<string> Files(string pattern)

@@ -103,10 +103,8 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 			return new CompletionContext(dslItems.Select(DslCompletion).ToImmutableArray());
 		}
 
-		var text = triggerLocation.Snapshot.GetText();
-
-		if (GramVocabulary.IsStandardQualifier(text, applicableToSpan.Start.Position))
-			return new CompletionContext(StandardCompletions());
+		var text    = triggerLocation.Snapshot.GetText();
+		var grammar = GrammarAt(triggerLocation);
 
 		if (GramCSharpCompletionContext.TryGetPrefix(text, triggerLocation.Position, out var prefix))
 		{
@@ -116,15 +114,19 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 			foreach (var item in csharpItems)
 				_csharpItems.Add(item.DisplayText);
 
-			// The names the parser supplies, and the captures and parameters in scope, are no
-			// part of the C# Roslyn is asked about, so it never offers them.
-			if (!GramVocabulary.SuppliedNamesApply(text, triggerLocation.Position, prefix))
+			// What the parser supplies, and the captures and parameters in scope, are no part of
+			// the C# Roslyn is asked about, so it never offers them. Which of them the C# here is
+			// handed depends on whether it is a construction's or a recovery's.
+			if (grammar is not { } at || !GramVocabulary.SuppliedNamesApply(text, triggerLocation.Position, prefix))
 				return new CompletionContext(csharpItems);
 
-			var local = Definitions(triggerLocation)
-				.Where(static pair => pair.Value.IsLocal)
-				.Select(static pair => (pair.Key, pair.Value.Description));
-			var extra = GramVocabulary.SuppliedNames
+			var action = GramVocabulary.ActionAt(at.Text, at.Position, out _);
+			var local  = action is GramAction.Construction or GramAction.Guard
+				? Definitions(triggerLocation)
+					.Where(static pair => pair.Value.IsLocal)
+					.Select(static pair => (pair.Key, pair.Value.Description))
+				: [];
+			var extra = GramVocabulary.SuppliedAt(at.Text, at.Position)
 				.Select(static name => (Key: name, Description: GramVocabulary.Supplied(name)!))
 				.Concat(local)
 				.Where(pair => !_csharpItems.Contains(pair.Key))
@@ -138,9 +140,14 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 			return new CompletionContext(csharpItems.AddRange(extra.Select(pair => new CompletionItem(pair.Key, this))));
 		}
 
+		// `Std.` in the grammar itself; in C# above, `Std` is whatever C# says it is.
+		if (grammar is { } qualified && GramVocabulary.IsStandardQualifier(
+			qualified.Text, qualified.Position - (triggerLocation.Position - applicableToSpan.Start.Position)))
+			return new CompletionContext(StandardCompletions());
+
 		var definitions = Definitions(triggerLocation);
-		var words = GramVocabulary.InCallArguments(text, triggerLocation.Position)
-			? GramVocabulary.CompletionWords.Concat(GramVocabulary.SuppliedNames)
+		var words = grammar is { } arguments && GramVocabulary.InCallArguments(arguments.Text, arguments.Position)
+			? GramVocabulary.CompletionWords.Concat(GramVocabulary.SuppliedAt(arguments.Text, arguments.Position))
 			: GramVocabulary.CompletionWords;
 		var names = definitions.Keys.Concat(words).Distinct(StringComparer.Ordinal).OrderBy(static name => name);
 		var items = ImmutableArray.CreateBuilder<CompletionItem>();
@@ -215,6 +222,9 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 
 	static string GramLibraryPrefix { get; } = StandardLibrary.Name + ".";
 
+	/// <summary>The grammar the point stands in, and the point's place in it; null outside a grammar.</summary>
+	protected abstract (string Text, int Position)? GrammarAt(SnapshotPoint point);
+
 	protected abstract bool IsApplicable(SnapshotPoint point);
 	protected abstract IReadOnlyDictionary<string, RuleCompletion> Definitions(SnapshotPoint point);
 	protected abstract Task<ImmutableArray<CompletionItem>> CSharpCompletionsAsync(
@@ -288,6 +298,11 @@ sealed class GramCompletionSource(
 		return point.Snapshot.TextBuffer == buffer;
 	}
 
+	protected override (string Text, int Position)? GrammarAt(SnapshotPoint point)
+	{
+		return (point.Snapshot.GetText(), point.Position);
+	}
+
 	protected override IReadOnlyDictionary<string, RuleCompletion> Definitions(SnapshotPoint point)
 	{
 		var document = analysis.Document(point.Snapshot);
@@ -337,6 +352,23 @@ sealed class EmbeddedGramCompletionSource(
 			classifications.Any(item => item.GrammarSpan.Contains(point.Position)) ||
 			analysis.TryGetDslCompletions(point.Snapshot, point.Position, out var expected) &&
 			LiteralCompletions(expected).Count > 0;
+	}
+
+	/// <remarks>
+	/// The literal's text as it stands in the C# source. A grammar in a raw or verbatim string is
+	/// that text; in a regular string an escape before the point moves it by the escape's length,
+	/// which is close enough to tell which action the point is in.
+	/// </remarks>
+	protected override (string Text, int Position)? GrammarAt(SnapshotPoint point)
+	{
+		if (!analysis.TryGet(point.Snapshot, out var classifications, out _))
+			return null;
+
+		foreach (var item in classifications)
+			if (item.GrammarSpan.Contains(point.Position) || item.GrammarSpan.End == point.Position)
+				return (point.Snapshot.GetText(item.GrammarSpan.Start, item.GrammarSpan.Length), point.Position - item.GrammarSpan.Start);
+
+		return null;
 	}
 
 	protected override IReadOnlyList<DslLiteralCompletion> DslCompletions(SnapshotPoint point)

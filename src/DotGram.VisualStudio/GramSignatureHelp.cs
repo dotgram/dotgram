@@ -138,7 +138,7 @@ abstract class GramSignatureHelpSourceBase(ITextBuffer buffer) : ISignatureHelpS
 			return;
 
 		var available = Definitions(snapshot, trigger).ToArray();
-		var definition = StandardRule(snapshot, name, nameStart) ??
+		var definition = (InGrammar(snapshot, nameStart) ? StandardRule(snapshot, name, nameStart) : null) ??
 			available.FirstOrDefault(item => string.Equals(item.Name, name, StringComparison.Ordinal));
 
 		if (definition.Signature is null)
@@ -162,6 +162,15 @@ abstract class GramSignatureHelpSourceBase(ITextBuffer buffer) : ISignatureHelpS
 		return description.StartsWith(signature, StringComparison.Ordinal)
 			? description.Substring(signature.Length).TrimStart()
 			: description;
+	}
+
+	/// <summary>Whether a position is in a grammar's own text, and not in C# inside it or outside it.</summary>
+	protected abstract bool InGrammarText(ITextSnapshot snapshot, int position);
+
+	bool InGrammar(ITextSnapshot snapshot, int position)
+	{
+		return InGrammarText(snapshot, position) &&
+			!GramCSharpCompletionContext.TryGetPrefix(snapshot.GetText(), position, out _);
 	}
 
 	/// <summary>The standard library's rule a call written <c>Std.Name(</c> names, which no document declares.</summary>
@@ -234,6 +243,11 @@ abstract class GramSignatureHelpSourceBase(ITextBuffer buffer) : ISignatureHelpS
 sealed class GramSignatureHelpSource(ITextBuffer buffer, GramBufferAnalysis analysis)
 	: GramSignatureHelpSourceBase(buffer)
 {
+	protected override bool InGrammarText(ITextSnapshot snapshot, int position)
+	{
+		return true;
+	}
+
 	protected override IEnumerable<RuleSignature> Definitions(ITextSnapshot snapshot, int position)
 	{
 		return analysis.Document(snapshot).Classifications
@@ -249,6 +263,12 @@ sealed class EmbeddedGramSignatureHelpSource(
 	ITextBuffer buffer,
 	EmbeddedGrammarBufferAnalysis analysis) : GramSignatureHelpSourceBase(buffer)
 {
+	protected override bool InGrammarText(ITextSnapshot snapshot, int position)
+	{
+		return analysis.TryGet(snapshot, out var classifications, out _) &&
+			classifications.Any(item => item.GrammarSpan.Contains(position));
+	}
+
 	protected override IEnumerable<RuleSignature> Definitions(ITextSnapshot snapshot, int position)
 	{
 		if (!analysis.TryGet(snapshot, out var classifications, out _))

@@ -19,8 +19,10 @@ DotGram language support
 - Quick Info describes every keyword, built-in rule, symbol and Unicode category, and the names a
   parser supplies (`parserText`, `parserSpan`, ...); a built-in rule such as `eos` is no longer
   called a keyword.
-- Inside `@(...)` and among the arguments of an `@Name(...)` call, completion offers the supplied
-  names and the rule's captures and parameters, which C# completion cannot see.
+- Inside `@(...)` and among the arguments of an `@Name(...)` call, completion offers the names the
+  parser supplies there (a construction, a `when` and a recovery's factory are each handed their
+  own) and the rule's captures and parameters, which C# completion cannot see.
+- A keyword used as a rule's name, such as a rule called `state`, is coloured as a name.
 
 0.2.0
 

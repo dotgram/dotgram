@@ -210,6 +210,14 @@ public static class GramLanguageService
 		foreach (var token in tokens.Tokens)
 			if (TryClassify(token, contextualKeywords, out var kind))
 			{
+				// A word of the notation used as a name — a rule called `state`, declared or
+				// referred to — is a name there: the parser read it as one, and so did the binder.
+				if (kind == GramSyntaxKind.Keyword && token.Kind == TokenKind.Identifier &&
+					GramVocabulary.Keywords.ContainsKey(token.Value!) &&
+					!contextualKeywords.Contains(token.Position) &&
+					symbolsByPosition.ContainsKey(token.Position))
+					kind = GramSyntaxKind.Identifier;
+
 				if (symbolsByPosition.TryGetValue(token.Position, out var symbol) &&
 					symbol.Kind != GramSymbolKind.Rule)
 					classifications.Add(new GramClassifiedSpan(

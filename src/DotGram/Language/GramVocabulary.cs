@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
+using DotGram.Generation;
 using DotGram.Grammar;
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Parsing;
@@ -88,8 +89,8 @@ public static class GramVocabulary
 		["parserFailureLine"]     = "the line where reading the rejected element stopped, from 1; in a recovery's factory only",
 		["parserFailureColumn"]   = "the column where reading the rejected element stopped, from 1; in a recovery's factory only",
 		["parserInput"]           = "the whole of what was read, as a string",
-		["parserState"]           = "the state the element is read under, as 'with state' set it",
-		["parserMarks"]           = "every state the element is read under, innermost first",
+		["parserState"]           = "the marks 'with state' placed over the construction, outermost first (ReadOnlySpan of the declared state type)",
+		["parserMarks"]           = "for each mark in parserState, where in the input the reading under it began, outermost first (ReadOnlySpan<int>)",
 	};
 
 	public static IReadOnlyDictionary<TokenKind, string> SymbolDescriptions { get; } = new Dictionary<TokenKind, string>()
@@ -253,6 +254,117 @@ public static class GramVocabulary
 			(start == 0 || !(char.IsLetterOrDigit(text[start - 1]) || text[start - 1] is '_' or '.'));
 	}
 
+	/// <summary>The supplied names a construction's <c>=&gt;</c> is handed, besides the two a <c>state</c> brings.</summary>
+	/// <remarks>
+	/// The rest are a rejected element's, and a construction that named one would be handed nothing:
+	/// EditorVocabularyTests compiles every name in every place and holds these lists to what the
+	/// generated C# accepts.
+	/// </remarks>
+	public static IReadOnlyCollection<string> SuppliedToConstructions { get; } = new HashSet<string>(StringComparer.Ordinal)
+	{
+		"parserText", "parserSpan", "parserInput",
+	};
+
+	/// <summary>The supplied names a <c>when</c> is handed.</summary>
+	public static IReadOnlyCollection<string> SuppliedToGuards { get; } = new HashSet<string>(StringComparer.Ordinal)
+	{
+		"parserText", "parserSpan",
+	};
+
+	/// <summary>The supplied names only a grammar that declares <c>state : @T</c> hands over.</summary>
+	public static IReadOnlyCollection<string> SuppliedWithState { get; } = new HashSet<string>(StringComparer.Ordinal)
+	{
+		"parserState", "parserMarks",
+	};
+
+	/// <summary>The supplied names a recovery's factory, <c>recover Sync =&gt; …</c>, is handed.</summary>
+	public static IReadOnlyCollection<string> SuppliedToRecoveries { get; } =
+		new HashSet<string>(Grammar.Binding.SuppliedNames.All.Except(["parserState", "parserMarks", "parserInput"]), StringComparer.Ordinal);
+
+	/// <summary>
+	/// The supplied names the C# at <paramref name="position"/> of a grammar may name: a
+	/// construction's, a guard's or a recovery's, and the state's where the grammar declares one;
+	/// none outside them.
+	/// </summary>
+	public static IReadOnlyList<string> SuppliedAt(string grammar, int position)
+	{
+		var action = ActionAt(grammar, position, out var state);
+
+		if (action == GramAction.None)
+			return [];
+
+		var names = action switch
+		{
+			GramAction.Recovery => SuppliedToRecoveries,
+			GramAction.Guard    => SuppliedToGuards,
+			_                   => SuppliedToConstructions,
+		};
+
+		return [.. SuppliedNames.Where(name => names.Contains(name) || state && action == GramAction.Construction && SuppliedWithState.Contains(name))];
+	}
+
+	/// <summary>Which C# of the grammar <paramref name="position"/> stands in, and whether the grammar declares a <c>state</c>.</summary>
+	public static GramAction ActionAt(string grammar, int position, out bool declaresState)
+	{
+		var file   = GramCompiler.Read(grammar, RoslynCSharpScanner.Instance).File;
+		var state  = false;
+		var action = GramAction.None;
+
+		void Walk(Expr expression)
+		{
+			switch (expression)
+			{
+				case Expr.Recovering { Factory: { } factory } when Inside(factory.At, position):
+					action = GramAction.Recovery;
+					return;
+
+				case Expr.Construct construct when Inside(construct.Value.At, position):
+					if (action == GramAction.None)
+						action = GramAction.Construction;
+
+					break;
+
+				case Expr.Guard guard when Inside(guard.At, position):
+					if (action == GramAction.None)
+						action = GramAction.Guard;
+
+					break;
+			}
+
+			foreach (var child in Dump.Children(expression))
+				Walk(child);
+		}
+
+		void Declarations(IReadOnlyList<Decl> declarations)
+		{
+			foreach (var declaration in declarations)
+				switch (declaration)
+				{
+					case Decl.State:
+						state = true;
+						break;
+
+					case Decl.Namespace nested:
+						Declarations(nested.Decls);
+						break;
+
+					case Decl.Rule rule:
+						Walk(rule.Body);
+						break;
+				}
+		}
+
+		Declarations(file.Decls);
+		declaresState = state;
+
+		return action;
+	}
+
+	static bool Inside(Location at, int position)
+	{
+		return at.Position <= position && position <= at.Position + at.Length;
+	}
+
 	/// <summary>
 	/// Whether the supplied names belong among what C# completion offers at <paramref name="position"/>:
 	/// inside an <c>@(…)</c>, where a name stands on its own, and not after a dot or in an <c>@Name</c>.
@@ -363,3 +475,19 @@ public static class GramVocabulary
 /// <param name="Line">The line it is declared on in the standard library, from 0.</param>
 /// <param name="Column">The column its name starts at there, from 0.</param>
 public readonly record struct StandardRule(string Name, string Description, string Signature, int ParameterCount, int Line, int Column);
+
+/// <summary>The C# a position of a grammar stands in, which decides what the parser supplies to it.</summary>
+public enum GramAction
+{
+	/// <summary>No construction, guard or recovery: nothing is supplied.</summary>
+	None,
+
+	/// <summary>A construction's <c>=&gt; …</c>: the rule's captures, and what the parser supplies to them.</summary>
+	Construction,
+
+	/// <summary>A <c>when</c>: the captures read so far, and the extent read so far.</summary>
+	Guard,
+
+	/// <summary>A recovery's factory, <c>recover Sync =&gt; …</c>: what the parser supplies about the rejected element, and no capture.</summary>
+	Recovery,
+}

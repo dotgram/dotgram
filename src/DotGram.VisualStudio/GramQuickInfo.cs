@@ -193,11 +193,13 @@ sealed class GramQuickInfoSource(
 
 	/// <summary>
 	/// The definition of the standard library's rule a name written <c>Std.Name</c> ends in, which
-	/// the analysis of the document itself does not carry: the library is no part of its text.
+	/// the analysis of the document itself does not carry: the library is no part of its text. Not
+	/// in C# inside the grammar, where <c>Std</c> is whatever C# says it is.
 	/// </summary>
 	internal static string? StandardQuickInfo(ITextSnapshot snapshot, int position, int length, GramSyntaxKind kind)
 	{
-		if (kind != GramSyntaxKind.Identifier)
+		if (kind != GramSyntaxKind.Identifier ||
+			GramCSharpCompletionContext.TryGetPrefix(snapshot.GetText(), position, out _))
 			return null;
 
 		var start = Math.Max(0, position - StandardLibrary.Name.Length - 2);

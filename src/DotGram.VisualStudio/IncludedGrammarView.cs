@@ -21,6 +21,11 @@ static class IncludedGrammarView
 	static string CopyDirectory { get; } = Path.Combine(Path.GetTempPath(), "DotGram", "Included");
 
 	/// <summary>The file to open, or null where a copy could not be written.</summary>
+	/// <remarks>
+	/// A copy is named for its content and never changed once it is there, so two instances of
+	/// Visual Studio that open the same grammar at once write the same file: whichever moves its
+	/// copy into place first wins, and the other takes that one.
+	/// </remarks>
 	public static string? PathOf(StandaloneIncludedGrammar grammar)
 	{
 		if (grammar.FilePath is not null)
@@ -29,27 +34,31 @@ static class IncludedGrammarView
 		var name = FileName(grammar.Name);
 		var path = Path.Combine(CopyDirectory, $"{name}.{Hash(grammar.Text)}.gram");
 
+		if (File.Exists(path))
+			return path;
+
+		string? written = null;
+
 		try
 		{
-			if (File.Exists(path) && File.ReadAllText(path, Utf8) == grammar.Text)
-				return path;
-
 			Directory.CreateDirectory(CopyDirectory);
 
 			// Written whole under a name of its own and then moved into place, so that a copy
-			// is never seen half written; one that is there and differs is replaced.
-			var written = Path.Combine(CopyDirectory, $"{name}.{Guid.NewGuid():N}.tmp");
+			// is never seen half written.
+			written = Path.Combine(CopyDirectory, $"{name}.{Guid.NewGuid():N}.tmp");
 
 			File.WriteAllText(written, grammar.Text, Utf8);
+			File.SetAttributes(written, File.GetAttributes(written) | FileAttributes.ReadOnly);
 
-			if (File.Exists(path))
+			try
 			{
-				File.SetAttributes(path, FileAttributes.Normal);
-				File.Delete(path);
+				File.Move(written, path);
+				written = null;
 			}
-
-			File.Move(written, path);
-			File.SetAttributes(path, File.GetAttributes(path) | FileAttributes.ReadOnly);
+			catch (IOException) when (File.Exists(path))
+			{
+				// Another instance put the same content there first.
+			}
 
 			RemoveOlder(name, path);
 
@@ -57,7 +66,12 @@ static class IncludedGrammarView
 		}
 		catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
 		{
-			return null;
+			return File.Exists(path) ? path : null;
+		}
+		finally
+		{
+			if (written is not null)
+				Delete(written);
 		}
 	}
 
@@ -71,22 +85,32 @@ static class IncludedGrammarView
 	}
 
 	/// <summary>The copies of earlier texts of the same grammar, which a changed reference left behind.</summary>
+	/// <remarks>
+	/// Only those nobody has written for a day: a newer one may be the copy another instance of
+	/// Visual Studio has just made for a reference of its own, and is about to open.
+	/// </remarks>
 	static void RemoveOlder(string name, string current)
 	{
 		foreach (var older in Directory.EnumerateFiles(CopyDirectory, name + ".*.gram"))
 		{
-			if (string.Equals(older, current, StringComparison.OrdinalIgnoreCase))
+			if (string.Equals(older, current, StringComparison.OrdinalIgnoreCase) ||
+				File.GetLastWriteTimeUtc(older) > DateTime.UtcNow.AddDays(-1))
 				continue;
 
-			try
-			{
-				File.SetAttributes(older, FileAttributes.Normal);
-				File.Delete(older);
-			}
-			catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-			{
-				// Open in an editor, most likely; it goes the next time.
-			}
+			Delete(older);
+		}
+	}
+
+	static void Delete(string path)
+	{
+		try
+		{
+			File.SetAttributes(path, FileAttributes.Normal);
+			File.Delete(path);
+		}
+		catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+		{
+			// Open in an editor, most likely; it goes the next time.
 		}
 	}
 
