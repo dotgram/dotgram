@@ -75,26 +75,27 @@ public static class GramLexer
 	/// </remarks>
 	public static TokenList Tokenize(string text, ICSharpScanner? scanner, int splicedAt, ICSharpScanner? spliced)
 	{
-		return Tokenize(text, scanner, int.MaxValue, splicedAt, spliced);
+		return Tokenize(text, scanner, null, splicedAt, spliced);
 	}
 
 	/// <summary>
-	/// As above, for a text that also has grammars included by the host between the author's own
-	/// text (ending at <paramref name="ownEnd"/>) and the library: each of the three is read as a
-	/// text of its own.
+	/// As above, for a text that also has grammars included by the host after the author's own:
+	/// <paramref name="cuts"/> are the offsets at which each text of its own begins (the end of the
+	/// author's, and of each included body with its wrapper), and every one is read apart from the
+	/// rest.
 	/// </summary>
-	public static TokenList Tokenize(string text, ICSharpScanner? scanner, int ownEnd, int splicedAt, ICSharpScanner? spliced)
+	public static TokenList Tokenize(
+		string text, ICSharpScanner? scanner, IReadOnlyList<int>? cuts, int splicedAt, ICSharpScanner? spliced)
 	{
 		if (text is null)
 			throw new ArgumentNullException(nameof(text));
 
-		var cuts = new List<int>();
+		var points = new SortedSet<int>(cuts ?? []);
 
-		if (ownEnd > 0 && ownEnd < splicedAt && ownEnd < text.Length)
-			cuts.Add(ownEnd);
+		points.Add(splicedAt);
+		points.RemoveWhere(point => point <= 0 || point >= text.Length);
 
-		if (splicedAt > 0 && splicedAt < text.Length)
-			cuts.Add(splicedAt);
+		cuts = [.. points];
 
 		if (cuts.Count == 0)
 			return Lex(text, splicedAt <= 0 ? spliced : scanner);

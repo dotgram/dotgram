@@ -480,7 +480,15 @@ sealed class GramBufferAnalysis
 	{
 		var tail    = context?.AnalysisTail ?? "";
 		var options = context is { } known
-			? new GramAnalysisOptions { Own = tail.Length == 0 ? null : own.Length, Lexical = known.Lexical }
+			? new GramAnalysisOptions
+			{
+				Own     = tail.Length == 0 ? null : own.Length,
+				Cuts    = tail.Length == 0
+					? null
+					: GrammarSplice.Cuts(
+						own + tail, known.Included.Select(item => (own.Length + item.Start, item.Text.Length))),
+				Lexical = known.Lexical,
+			}
 			: null;
 		var whole   = GramLanguageService.Analyze(own + tail, options);
 

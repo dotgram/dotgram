@@ -1037,7 +1037,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// third stage for the answer. Both are cheap next to normalization and emission,
 		// and this one only re-runs when the grammar itself changes. Through the compiler's
 		// own reading, so that what the standard library brings in is asked about too.
-		var parsed = GramCompiler.Read(text, RoslynCSharpScanner.Instance, parts.Count == 0 ? null : own.Length).File;
+		var parsed = GramCompiler.Read(
+			text, RoslynCSharpScanner.Instance, parts.Count == 0 ? null : own.Length,
+			GrammarSplice.Cuts(text, joined.Segments.Skip(1).Select(static one => (one.Start, one.Length)))).File;
 
 		return new Grammar(
 			host,
@@ -1126,6 +1128,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 			SharedTypes    = host.Shared,
 			Inherits       = inherits,
 			Own            = inherits ? grammar.Pieces.Items[0].Length : null,
+			Cuts           = inherits
+				? GrammarSplice.Cuts(grammar.Text!, grammar.Pieces.Items.Skip(1).Select(static one => (one.Start, one.Length)))
+				: null,
 
 			// The report asked for is the carriers' too: the carrier of each machine and what the
 			// tape would hold back, rule by rule.

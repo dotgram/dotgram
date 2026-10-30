@@ -32,7 +32,8 @@ public static class GramCompiler
 	/// method so that whoever reads a grammar ahead of compiling it — the generator, for its
 	/// questions — reads the same text.
 	/// </remarks>
-	public static ParseResult Read(string grammarText, ICSharpScanner? scanner = null, int? own = null)
+	public static ParseResult Read(
+		string grammarText, ICSharpScanner? scanner = null, int? own = null, IReadOnlyList<int>? cuts = null)
 	{
 		if (grammarText is null)
 			throw new ArgumentNullException(nameof(grammarText));
@@ -40,8 +41,22 @@ public static class GramCompiler
 		// The author's own text, the grammars the host included after it and the library are
 		// three texts: what one leaves open is not closed by the next.
 		return GramParser.Parse(GramLexer.Tokenize(
-			StandardLibrary.SplicedOnto(grammarText), scanner, own ?? int.MaxValue, grammarText.Length,
+			StandardLibrary.SplicedOnto(grammarText), scanner, CutsOf(own, cuts), grammarText.Length,
 			StandardLibrary.Scanner));
+	}
+
+	/// <summary>Where each text of its own begins in a joined one: the host's own cut, and the given ones.</summary>
+	internal static IReadOnlyList<int>? CutsOf(int? own, IReadOnlyList<int>? cuts)
+	{
+		if (own is null)
+			return cuts;
+
+		List<int> all = [own.Value];
+
+		if (cuts is not null)
+			all.AddRange(cuts);
+
+		return all;
 	}
 
 	/// <summary>Compiles one grammar.</summary>
@@ -66,7 +81,7 @@ public static class GramCompiler
 		//   GrammarNormalizer.Normalize (model)         -> RecognitionGraph
 		//   CSharpEmitter    .Emit      (graph)         -> C#
 
-		var parsed = Read(grammarText, options.CSharpScanner, options.Own);
+		var parsed = Read(grammarText, options.CSharpScanner, options.Own, options.Cuts);
 
 		diagnostics.AddRange(parsed.Diagnostics);
 

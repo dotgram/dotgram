@@ -484,6 +484,13 @@ public sealed class GramCompilerOptions
 	public int? Own { get; set; }
 
 	/// <summary>
+	/// Where each included grammar's wrapper and the one after it begin in the joined text
+	/// (<see cref="GrammarSplice.Cuts"/>), so that what one leaves open is not closed by the next.
+	/// Null when there is nothing to cut besides <see cref="Own"/>.
+	/// </summary>
+	public IReadOnlyList<int>? Cuts { get; set; }
+
+	/// <summary>
 	/// Handed the bound grammar once names are resolved, for a caller that asks where each
 	/// name went — the editor, which navigates by it. Null for the generator, which keeps
 	/// nothing of the model past the compile.
