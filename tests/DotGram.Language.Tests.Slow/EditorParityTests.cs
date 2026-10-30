@@ -62,9 +62,34 @@ public sealed class EditorParityTests
 		var analysed = GramLanguageService.Analyze(grammar.Text, new GramAnalysisOptions { Lexical = lexical });
 		var tokens   = GramLexer.Tokenize(grammar.Text, RoslynCSharpScanner.Instance).Tokens;
 
+		// Only the compiler's side is narrowed here: the editor's must come narrowed already.
 		Assert.Equal(
 			GramLanguageService.NormalizeDiagnostics(compiled.Diagnostics, tokens).Select(Shown),
-			GramLanguageService.NormalizeDiagnostics(analysed.Diagnostics, tokens).Select(Shown));
+			analysed.Diagnostics.Select(Shown));
+	}
+
+	/// <summary>
+	/// A reference that does not resolve is reported by the compiler over the whole reference and
+	/// shown by the editor under its first name, which is the narrowing the corpus comparison
+	/// holds the editor to: here it changes something, so the comparison above is not idle.
+	/// </summary>
+	[Theory]
+	[InlineData("A = Missing.Word\nparse A", "Missing")]
+	[InlineData("A = Base.Missing.Word\nparse A", "Base")]
+	public void A_qualified_reference_that_does_not_resolve_is_shown_under_its_first_name(string text, string first)
+	{
+		var compiled = GramCompiler.Compile(text, new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance });
+		var analysed = GramLanguageService.Analyze(text);
+		var tokens   = GramLexer.Tokenize(text, RoslynCSharpScanner.Instance).Tokens;
+		var reported = Assert.Single(compiled.Diagnostics, static diagnostic => diagnostic.Id == "GRAM3002");
+		var shown    = Assert.Single(analysed.Diagnostics, static diagnostic => diagnostic.Id == "GRAM3002");
+
+		Assert.Equal(text.IndexOf(first, StringComparison.Ordinal), shown.Position);
+		Assert.Equal(first.Length, shown.Length);
+		Assert.True(reported.Length > shown.Length, $"The compiler reports {reported.Length} characters; nothing is narrowed.");
+		Assert.Equal(
+			GramLanguageService.NormalizeDiagnostics(compiled.Diagnostics, tokens).Select(Shown),
+			analysed.Diagnostics.Select(Shown));
 	}
 
 	[Fact]
