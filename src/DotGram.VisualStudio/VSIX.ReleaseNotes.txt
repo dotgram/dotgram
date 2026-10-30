@@ -14,6 +14,13 @@ DotGram language support
   own text, as the generator compiles it.
 - A grammar embedded in an attribute reads includes that are .gram files or carried by a
   referenced assembly.
+- The standard library is known to the editor: `Std.` offers its rules, and `Std.Name` has Quick
+  Info, signature help and Go To Definition, which opens a read-only copy of the library.
+- Quick Info describes every keyword, built-in rule, symbol and Unicode category, and the names a
+  parser supplies (`parserText`, `parserSpan`, ...); a built-in rule such as `eos` is no longer
+  called a keyword.
+- Inside `@(...)` and among the arguments of an `@Name(...)` call, completion offers the supplied
+  names and the rule's captures and parameters, which C# completion cannot see.
 
 0.2.0
 

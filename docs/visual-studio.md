@@ -68,6 +68,22 @@ lists the uses in the included grammars beside those in the open file. Rename is
 a rule an included grammar declares or uses, since the edit would have to reach a file the
 buffer does not own.
 
+## The standard library and the words of the notation
+
+The standard library (`Std`, docs/syntax.md §5.2) is no file of the project, yet a grammar names
+it: `Std.` offers its rules, and `Std.Name` has Quick Info, signature help and Go To Definition,
+which opens a read-only copy of the library the generator carries. Quick Info describes every
+keyword, built-in rule, symbol and Unicode category, and the names a parser supplies
+(`parserText`, `parserSpan`, …); inside `@(…)` and among an `@Name(…)` call's arguments those
+names, and the rule's captures and parameters, are offered by completion beside what C# offers.
+
+What the editor says about these comes from `src/DotGram/Language/GramVocabulary.cs`. The
+generator's tests hold it to the generator: `EditorVocabularyTests` to the words the parser
+takes, the built-in rules, the supplied names, the token kinds, the Unicode categories and the
+standard library; `EditorDiagnosticsTests` to every diagnostic number, each with a grammar the
+editor shows it for or the reason it cannot (`EditorDiagnostics.txt`); and, in the slow tests,
+`EditorCorpusTests` to every grammar in the repository, every token of which must be classified.
+
 ## Build the VSIX
 
 From the repository root:
