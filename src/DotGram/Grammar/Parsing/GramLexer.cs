@@ -48,7 +48,7 @@ public static class GramLexer
 	/// </param>
 	public static TokenList Tokenize(string text, ICSharpScanner? scanner = null)
 	{
-		return Tokenize(text, scanner, int.MaxValue, null);
+		return Lex(text, scanner);
 	}
 
 	/// <summary>
@@ -56,16 +56,50 @@ public static class GramLexer
 	/// compiler — the standard library — and is read with the scanner that comes with it.
 	/// </summary>
 	/// <remarks>
+	/// <para>
 	/// The author's text keeps the author's scanner, and keeps being refused a <c>@(...)</c>
 	/// where none was supplied (GRAM1007): that contract is about their text. The library's
 	/// C# was written to be read by <see cref="StandardLibrary.Scanner"/>, and is, whatever
 	/// the caller brought.
+	/// </para>
+	/// <para>
+	/// The two parts are read as two texts and joined, so that nothing in the author's part — a
+	/// comment, a literal, an escape, an inline expression — can run on into the library and be
+	/// closed by what it finds there. An unterminated construct ends, and is reported, at the
+	/// end of the author's own text. The tokens are one list with an end-of-file token between
+	/// the parts, which the parser stops at in the same way.
+	/// </para>
 	/// </remarks>
 	public static TokenList Tokenize(string text, ICSharpScanner? scanner, int splicedAt, ICSharpScanner? spliced)
 	{
 		if (text is null)
 			throw new ArgumentNullException(nameof(text));
 
+		if (splicedAt <= 0 || splicedAt >= text.Length)
+			return Lex(text, splicedAt <= 0 ? spliced : scanner);
+
+		var own     = Lex(text.Substring(0, splicedAt), scanner);
+		var library = Lex(text.Substring(splicedAt), spliced);
+
+		var tokens = new List<Token>(own.Tokens.Count + library.Tokens.Count);
+
+		// The author's end-of-file token stays in the middle of the list: the parser reads it as the
+		// end of what the author wrote, and goes on to the library after it.
+		tokens.AddRange(own.Tokens);
+
+		foreach (var token in library.Tokens)
+			tokens.Add(token with { Position = token.Position + splicedAt });
+
+		var diagnostics = new List<GramDiagnostic>(own.Diagnostics);
+
+		foreach (var diagnostic in library.Diagnostics)
+			diagnostics.Add(diagnostic with { Position = diagnostic.Position + splicedAt });
+
+		return new TokenList(tokens, diagnostics);
+	}
+
+	static TokenList Lex(string text, ICSharpScanner? scanner)
+	{
 		var tokens      = new List<Token>();
 		var diagnostics = new List<GramDiagnostic>();
 		var position    = 0;
@@ -230,7 +264,7 @@ public static class GramLexer
 
 				case '@' when position + 1 < text.Length && text[position + 1] == '(':
 					position = ReadCSharpExpression(
-						text, position, position >= splicedAt ? spliced : scanner, diagnostics, out var expression);
+						text, position, scanner, diagnostics, out var expression);
 
 					if (expression is not null)
 						Add(TokenKind.CSharpExpression, start, position - start, expression);

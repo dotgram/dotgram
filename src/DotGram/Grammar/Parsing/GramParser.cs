@@ -176,23 +176,34 @@ public sealed class GramParser
 		while (AtUsing())
 			usings.Add(ParseUsing());
 
-		while (!AtEnd)
+		// An end-of-file token that is not the last one ends the author's text, and what follows is
+		// the library spliced on after it. Nothing the author left open reaches past it: every loop
+		// below stops at an end of file, so the library is read as a text of its own.
+		for (;;)
 		{
-			var before      = _index;
-			var declaration = ParseDeclaration();
+			while (!AtEnd)
+			{
+				var before      = _index;
+				var declaration = ParseDeclaration();
 
-			// Before the directive that lifted them, so the block reads in the order it
-			// was written: what the expression became, and then its publication.
-			declarations.AddRange(_lifted);
-			_lifted.Clear();
+				// Before the directive that lifted them, so the block reads in the order it
+				// was written: what the expression became, and then its publication.
+				declarations.AddRange(_lifted);
+				_lifted.Clear();
 
-			if (declaration is not null)
-				declarations.Add(declaration);
+				if (declaration is not null)
+					declarations.Add(declaration);
 
-			// Nothing consumed means the current token starts nothing at all; skipping
-			// it is what keeps the loop from spinning on the same diagnostic.
-			if (_index == before)
-				SkipToDeclaration();
+				// Nothing consumed means the current token starts nothing at all; skipping
+				// it is what keeps the loop from spinning on the same diagnostic.
+				if (_index == before)
+					SkipToDeclaration();
+			}
+
+			if (_index + 1 >= _tokens.Count)
+				break;
+
+			_index++;
 		}
 
 		return new GrammarFile(usings, declarations, new Location(0, _tokens[_tokens.Count - 1].Position));
@@ -298,7 +309,7 @@ public sealed class GramParser
 		var at    = head + 1;
 		var depth = 1;
 
-		while (at < _tokens.Count && depth > 0)
+		while (at < _tokens.Count && depth > 0 && _tokens[at].Kind != TokenKind.EndOfFile)
 		{
 			if (_tokens[at].Kind == TokenKind.OpenParen)  depth++;
 			if (_tokens[at].Kind == TokenKind.CloseParen) depth--;
