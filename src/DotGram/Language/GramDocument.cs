@@ -156,17 +156,15 @@ public sealed class GramAnalysisOptions
 /// </summary>
 public static class GramLanguageService
 {
-	/// <summary>The words a grammar document colours as keywords, and the built-in rules with them.</summary>
+	/// <summary>The words a grammar document colours as keywords wherever they stand, and the built-in rules with them.</summary>
 	/// <remarks>
-	/// The built-in rules come from the binder that resolves them, so a rule added there is coloured
-	/// here without anybody remembering to. The words are still a copy of what the parser takes;
-	/// they are checked against it by hand today.
+	/// The built-in rules come from the binder that resolves them, and the words from
+	/// <see cref="GramVocabulary"/>, which the generator's tests hold to what the parser takes.
+	/// The contextual ones are coloured only where the parser reads them as keywords.
 	/// </remarks>
-	static readonly HashSet<string> Keywords = new(GrammarBinder.BuiltIn, StringComparer.Ordinal)
-	{
-		"using", "namespace", "parse", "find", "as", "when", "switch", "case", "default", "recover", "with",
-		"context", "state", "stream", "bytes", "yield",
-	};
+	static readonly HashSet<string> Keywords = new(
+		GrammarBinder.BuiltIn.Concat(GramVocabulary.Keywords.Keys.Except(GramVocabulary.ContextualKeywords)),
+		StringComparer.Ordinal);
 
 	/// <summary>Analyzes a complete snapshot of a standalone <c>.gram</c> document.</summary>
 	public static GramDocument Analyze(string text)

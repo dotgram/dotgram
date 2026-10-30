@@ -8,7 +8,6 @@ using DotGram.Grammar;
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Parsing;
 using DotGram.Language;
-using DotGram.VisualStudio;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -24,8 +23,8 @@ namespace DotGram.Tests;
 /// without a test failing.
 /// </summary>
 /// <remarks>
-/// The extension's vocabulary (<see cref="GramVocabulary"/>) uses no Visual Studio type, and is
-/// compiled into this project as well, so these run wherever the generator's tests run. The
+/// The editors' vocabulary (<see cref="GramVocabulary"/>) is part of the editor-neutral analysis,
+/// so these run wherever the generator's tests run. The
 /// parser keeps its words in no table: they are the strings it compares an identifier with,
 /// and those are read out of its source here.
 /// </remarks>
@@ -111,6 +110,23 @@ public sealed class EditorVocabularyTests
 				document.Classifications.Any(span =>
 					span.Kind == GramSyntaxKind.Keyword && sample.Substring(span.Position, span.Length) == word),
 				$"'{word}' is not classified as a keyword in:\n{sample}");
+		}
+	}
+
+	/// <summary>A contextual keyword is a keyword where it is read as one, and a name everywhere else.</summary>
+	[Fact]
+	public void A_contextual_keyword_is_an_identifier_outside_its_place()
+	{
+		Assert.Subset(GramVocabulary.Keywords.Keys.ToHashSet(StringComparer.Ordinal), GramVocabulary.ContextualKeywords.ToHashSet(StringComparer.Ordinal));
+
+		foreach (var word in GramVocabulary.ContextualKeywords)
+		{
+			var sample   = $"Start = 'a' & {word}\n{word} = 'b'\nparse Start";
+			var document = GramLanguageService.Analyze(sample);
+
+			Assert.All(
+				document.Classifications.Where(span => sample.Substring(span.Position, span.Length) == word),
+				span => Assert.Equal(GramSyntaxKind.Identifier, span.Kind));
 		}
 	}
 

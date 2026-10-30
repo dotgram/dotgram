@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using DotGram.Grammar;
+using DotGram.Language;
 
 using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.LanguageServices;

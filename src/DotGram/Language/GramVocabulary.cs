@@ -5,9 +5,8 @@ using System.Linq;
 using DotGram.Grammar;
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Parsing;
-using DotGram.Language;
 
-namespace DotGram.VisualStudio;
+namespace DotGram.Language;
 
 /// <summary>
 /// What the editor says about the words and symbols of the notation: the words completion
@@ -28,7 +27,7 @@ namespace DotGram.VisualStudio;
 /// generator's tables; only the descriptions are written here.
 /// </para>
 /// </remarks>
-static class GramVocabulary
+public static class GramVocabulary
 {
 	/// <summary>
 	/// Every word the parser reads as part of the notation, with what it does. Most are words only
@@ -124,6 +123,15 @@ static class GramVocabulary
 	};
 
 	static readonly Lazy<IReadOnlyDictionary<string, StandardRule>> Standard = new(ReadStandardLibrary);
+
+	/// <summary>
+	/// The keywords that are keywords only where the parser reads them as one, and are coloured
+	/// only there: a condition's words, <c>on fail</c>, and a publication's access.
+	/// </summary>
+	public static IReadOnlyCollection<string> ContextualKeywords { get; } = new HashSet<string>(StringComparer.Ordinal)
+	{
+		"is", "not", "and", "or", "on", "fail", "public", "internal", "private",
+	};
 
 	/// <summary>The words completion offers where a name goes: the built-in rules, and the keywords.</summary>
 	public static IReadOnlyList<string> CompletionWords { get; } = [.. GrammarBinder.BuiltIn, .. Keywords.Keys];
@@ -354,4 +362,4 @@ static class GramVocabulary
 /// <param name="ParameterCount">How many parameters it takes.</param>
 /// <param name="Line">The line it is declared on in the standard library, from 0.</param>
 /// <param name="Column">The column its name starts at there, from 0.</param>
-readonly record struct StandardRule(string Name, string Description, string Signature, int ParameterCount, int Line, int Column);
+public readonly record struct StandardRule(string Name, string Description, string Signature, int ParameterCount, int Line, int Column);

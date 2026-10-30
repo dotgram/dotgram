@@ -4,6 +4,7 @@ using System.Threading;
 using System.ComponentModel.Composition;
 
 using DotGram.Grammar;
+using DotGram.Language;
 
 using Microsoft.VisualStudio.Commanding;
 using Microsoft.VisualStudio.LanguageServices;

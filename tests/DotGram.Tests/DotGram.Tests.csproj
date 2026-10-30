@@ -23,13 +23,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<!-- What the Visual Studio extension says about the notation's words, which uses no
-		     Visual Studio type: compiled here too, so that EditorVocabularyTests holds it to the
-		     generator on every platform the generator is tested on. -->
-		<Compile Include="..\..\src\DotGram.VisualStudio\GramVocabulary.cs" Link="Editor\GramVocabulary.cs" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<PackageReference Include="xunit.v3" />
 		<!-- For driving the generator in memory and reading back what it produced. -->
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
