@@ -6,6 +6,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 
+using DotGram.Grammar;
+
 using Microsoft.CodeAnalysis;
 
 namespace DotGram.Language;
@@ -92,12 +94,12 @@ public static class DslLanguageDiscovery
 
 	const string GramAttribute                 = "DotGram.GramAttribute";
 	const string GramIncludeAttribute          = "DotGram.GramIncludeAttribute";
-	const string LanguageAttribute             = "DotGram.GramLanguageAttribute";
-	const string ClassificationAttribute       = "DotGram.GramClassifyAttribute";
+	const string LanguageAttribute             = GramMetadataNames.QualifiedLanguage;
+	const string ClassificationAttribute       = GramMetadataNames.QualifiedClassify;
 	const string Classification                = "DotGram.GramClassification";
-	const string LanguageDescriptorAttribute   = "DotGram.GramLanguageDescriptorAttribute";
-	const string ToolingGuardAttribute         = "DotGram.GramToolingGuardAttribute";
-	const string ToolingExternalAttribute      = "DotGram.GramToolingExternalAttribute";
+	const string LanguageDescriptorAttribute   = GramMetadataNames.QualifiedLanguageDescriptor;
+	const string ToolingGuardAttribute         = GramMetadataNames.QualifiedToolingGuard;
+	const string ToolingExternalAttribute      = GramMetadataNames.QualifiedToolingExternal;
 
 	static readonly string[] ClassificationMembers =
 	[
@@ -350,8 +352,8 @@ public static class DslLanguageDiscovery
 	static bool HasDescriptorMarker(IAssemblySymbol assembly)
 	{
 		return assembly.GlobalNamespace.GetNamespaceMembers()
-			.FirstOrDefault(static item => item.Name == "DotGram")?
-			.GetTypeMembers("GramLanguageDescriptorAttribute").Length > 0;
+			.FirstOrDefault(static item => item.Name == GramMetadataNames.Namespace)?
+			.GetTypeMembers(GramMetadataNames.LanguageDescriptor).Length > 0;
 	}
 
 	static (DslGrammarSourceKind Kind, string Source)? Grammar(

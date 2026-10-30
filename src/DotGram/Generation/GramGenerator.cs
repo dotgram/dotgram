@@ -1659,11 +1659,11 @@ public sealed class GramGenerator : IIncrementalGenerator
 
 			var languageId = type.GetAttributes()
 				.FirstOrDefault(static candidate =>
-					candidate.AttributeClass?.ToDisplayString() == "DotGram.GramLanguageAttribute")
+					candidate.AttributeClass?.ToDisplayString() == GramMetadataNames.QualifiedLanguage)
 				?.ConstructorArguments.FirstOrDefault().Value as string;
 			var classifications = string.Join("\n", type.GetAttributes()
 				.Where(static candidate =>
-					candidate.AttributeClass?.ToDisplayString() == "DotGram.GramClassifyAttribute")
+					candidate.AttributeClass?.ToDisplayString() == GramMetadataNames.QualifiedClassify)
 				.Select(Classification)
 				.Where(static value => value is not null));
 			var recognitionContract = string.Join("\n", type.GetAttributes()
@@ -1800,9 +1800,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 			var name = attribute.AttributeClass?.ToDisplayString();
 			return (name, attribute.ConstructorArguments) switch
 			{
-				("DotGram.GramToolingGuardAttribute", [{ Value: string expression }, { Value: bool accepted }]) =>
+				(GramMetadataNames.QualifiedToolingGuard, [{ Value: string expression }, { Value: bool accepted }]) =>
 					"G\t" + expression + "\t" + (accepted ? "1" : "0"),
-				("DotGram.GramToolingExternalAttribute", [{ Value: string method }, { Value: string rule }]) =>
+				(GramMetadataNames.QualifiedToolingExternal, [{ Value: string method }, { Value: string rule }]) =>
 					"E\t" + method + "\t" + rule,
 				_ => null,
 			};
