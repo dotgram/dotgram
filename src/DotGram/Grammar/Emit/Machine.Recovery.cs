@@ -630,6 +630,12 @@ sealed partial class Machine
 		}
 	}
 
+	/// <summary>The statement that records a set which tied for the furthest position.</summary>
+	internal static string TieStatement(string set)
+	{
+		return $"Tie_DotGram(ref failure, {set});";
+	}
+
 	/// <summary>Whether the engine keeps what its rejected elements wanted until they are built.</summary>
 	public bool KeepsExpectations => _recoveryPlans.Exists(static plan => plan.Recovery.Explains);
 

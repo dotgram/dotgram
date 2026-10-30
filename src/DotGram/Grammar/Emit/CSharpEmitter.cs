@@ -942,6 +942,14 @@ public static partial class CSharpEmitter
 		// Two of the failure's fields exist only where something writes them, and the trace's helpers
 		// read them only where they exist.
 		var quietField = quiets || valuing is not null;
+		var stoodField = machines.Exists(static compiled => compiled.Direct && compiled.Machine.ReadsExplainedRecovery);
+
+		// A long list of ties takes a set only if it does not hold it. A recovery told what would have fit
+		// counts the sets said since its turn began, and a set said before it is said again inside it, so
+		// a reading with one keeps every tie.
+		var distinctTies = !machines.Exists(static compiled =>
+			compiled.Machine.KeepsExpectations || compiled.Machine.TapeKeepsExpectations ||
+			compiled.Direct && compiled.Machine.ReadsExplainedRecovery);
 		var moreField  = valuing is not null || machines.Exists(static compiled => !compiled.Flat || compiled.Machine.Ties);
 
 		// Whether some entry reads a refused input again asking nothing of its value, and says so
@@ -954,7 +962,7 @@ public static partial class CSharpEmitter
 				reach: graph.Recoveries.Count > 0 && (Streaming(graph, overKinds) || readsRecovery),
 				// What stood where a turn of a recovering repetition began, where its element is told
 				// what would have fit (Expecting_DotGram).
-				stood: machines.Exists(static compiled => compiled.Direct && compiled.Machine.ReadsExplainedRecovery),
+				stood: stoodField,
 				starved: Streaming(graph, overKinds),
 				expected: true,
 				// The machine that reads a terminal again is an engine too, and an engine
@@ -989,7 +997,7 @@ public static partial class CSharpEmitter
 			// The thread's list for a reading's ties, where some machine writes ties at all.
 			if (moreField)
 			{
-				file.Write(Region(Region(TiesSupport, "tied", tracing is not null), "handed", tracing is null));
+				file.Write(Region(Region(Region(TiesSupport, "distinct", distinctTies), "tied", tracing is not null), "handed", tracing is null));
 				file.Line();
 			}
 

@@ -1282,6 +1282,59 @@ public static partial class CSharpEmitter
 
 			return ties;
 		}
+
+		/// <summary>
+		/// Records a set that tied for the furthest position. A grammar that refuses at one place by
+		/// as many paths as it has of splitting its input says the same sets once for each, and a list
+		/// that kept them all held two to the n of them. So a list that has reached a thousand and
+		/// twenty-four takes a set only if it does not hold it, and a shorter one, which is every
+		/// refusal that is not that, takes it as it comes: what a refusal costs stays an append.
+		/// Nothing is ever taken out of the list or moved in it, so a count of its length kept
+		/// elsewhere (the sets a call added, the sets a replayed reading added) stays what it was.
+		/// </summary>
+		private static void Tie_DotGram(ref Failure failure, string[] expected)
+		{
+			var more = failure.ExpectedMore;
+
+			if (more == null)
+				failure.ExpectedMore = more = Ties_DotGram();
+			// <distinct>
+			else if (more.Count >= 1024 && Told_DotGram(more, expected))
+				return;
+			// </distinct>
+
+			more.Add(expected);
+		}
+		// <distinct>
+
+		/// <summary>Where a set was last put in a long list, by the set: told apart by reference, and checked against the list before it is believed.</summary>
+		[global::System.ThreadStatic]
+		private static string[]?[]? _toldSets;
+
+		/// <summary>See <c>_toldSets</c>.</summary>
+		[global::System.ThreadStatic]
+		private static int[]? _toldAt;
+
+		/// <summary>
+		/// Whether the list holds the set, going by the places it was put at: a set that hashes where
+		/// another one does is forgotten and put again, which costs a copy and nothing else. Where it
+		/// is not held, its place is written down for the add that follows.
+		/// </summary>
+		private static bool Told_DotGram(global::System.Collections.Generic.List<string[]> more, string[] expected)
+		{
+			var sets = _toldSets ??= new string[256][];
+			var at   = _toldAt   ??= new int[256];
+			var slot = global::System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(expected) & 255;
+
+			if (ReferenceEquals(sets[slot], expected) && at[slot] < more.Count && ReferenceEquals(more[at[slot]], expected))
+				return true;
+
+			sets[slot] = expected;
+			at[slot]   = more.Count;
+
+			return false;
+		}
+		// </distinct>
 		// <tied>
 
 		/// <summary>The sets that tied, as the match keeps them: an array, or null where none did. The list stays as it is, for the sink to read.</summary>
@@ -3462,12 +3515,10 @@ public static partial class CSharpEmitter
 				// several times is a list that grew on a parse that went on to succeed.
 				var more = failure.ExpectedMore;
 
-				if (more == null)
-					failure.ExpectedMore = more = Ties_DotGram();
-				else if (more.Count > 0 && ReferenceEquals(more[more.Count - 1], expected))
+				if (more != null && more.Count > 0 && ReferenceEquals(more[more.Count - 1], expected))
 					return;
 
-				more.Add(expected);
+				Tie_DotGram(ref failure, expected);
 			}
 			// </noturn>
 			// <turn>
@@ -3482,12 +3533,10 @@ public static partial class CSharpEmitter
 				if (turn < 0 && ReferenceEquals(expected, failure.Expected))
 					return;
 
-				if (more == null)
-					failure.ExpectedMore = more = Ties_DotGram();
-				else if (more.Count > (turn < 0 ? 0 : turn) && ReferenceEquals(more[more.Count - 1], expected))
+				if (more != null && more.Count > (turn < 0 ? 0 : turn) && ReferenceEquals(more[more.Count - 1], expected))
 					return;
 
-				more.Add(expected);
+				Tie_DotGram(ref failure, expected);
 			}
 			// </turn>
 		}

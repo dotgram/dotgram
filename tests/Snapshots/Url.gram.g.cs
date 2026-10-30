@@ -1126,7 +1126,7 @@ namespace DotGram.Snapshots
 							}
 						}
 						else if (!failure.Quiet && p == failure.Position)
-							(failure.ExpectedMore ??= Ties_DotGram()).Add(ExpectedSet_DotGram(26));
+							Tie_DotGram(ref failure, ExpectedSet_DotGram(26));
 					}
 				}
 
@@ -1242,7 +1242,7 @@ namespace DotGram.Snapshots
 							}
 						}
 						else if (!failure.Quiet && p == failure.Position)
-							(failure.ExpectedMore ??= Ties_DotGram()).Add(ExpectedSet_DotGram(26));
+							Tie_DotGram(ref failure, ExpectedSet_DotGram(26));
 					}
 				}
 
@@ -1424,7 +1424,7 @@ namespace DotGram.Snapshots
 							}
 						}
 						else if (!failure.Quiet && p == failure.Position)
-							(failure.ExpectedMore ??= Ties_DotGram()).Add(ExpectedSet_DotGram(26));
+							Tie_DotGram(ref failure, ExpectedSet_DotGram(26));
 					}
 				}
 
@@ -1606,7 +1606,7 @@ namespace DotGram.Snapshots
 							}
 						}
 						else if (!failure.Quiet && p == failure.Position)
-							(failure.ExpectedMore ??= Ties_DotGram()).Add(ExpectedSet_DotGram(26));
+							Tie_DotGram(ref failure, ExpectedSet_DotGram(26));
 					}
 				}
 
@@ -1765,7 +1765,7 @@ namespace DotGram.Snapshots
 							}
 						}
 						else if (!failure.Quiet && p == failure.Position)
-							(failure.ExpectedMore ??= Ties_DotGram()).Add(ExpectedSet_DotGram(26));
+							Tie_DotGram(ref failure, ExpectedSet_DotGram(26));
 					}
 				}
 
@@ -1898,7 +1898,7 @@ namespace DotGram.Snapshots
 							}
 						}
 						else if (!failure.Quiet && p == failure.Position)
-							(failure.ExpectedMore ??= Ties_DotGram()).Add(ExpectedSet_DotGram(26));
+							Tie_DotGram(ref failure, ExpectedSet_DotGram(26));
 					}
 				}
 
@@ -2022,7 +2022,7 @@ namespace DotGram.Snapshots
 							}
 						}
 						else if (!failure.Quiet && p == failure.Position)
-							(failure.ExpectedMore ??= Ties_DotGram()).Add(ExpectedSet_DotGram(26));
+							Tie_DotGram(ref failure, ExpectedSet_DotGram(26));
 					}
 				}
 
@@ -3484,7 +3484,7 @@ namespace DotGram.Snapshots
 				}
 				else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
 				{
-					(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
+					Tie_DotGram(ref failure, expected);
 				}
 
 				while (entries.Count > 0)
@@ -4347,6 +4347,39 @@ namespace DotGram.Snapshots
 			_spareTies = null;
 
 			return ties;
+		}
+
+		private static void Tie_DotGram(ref Failure failure, string[] expected)
+		{
+			var more = failure.ExpectedMore;
+
+			if (more == null)
+				failure.ExpectedMore = more = Ties_DotGram();
+			else if (more.Count >= 1024 && Told_DotGram(more, expected))
+				return;
+
+			more.Add(expected);
+		}
+
+		[global::System.ThreadStatic]
+		private static string[]?[]? _toldSets;
+
+		[global::System.ThreadStatic]
+		private static int[]? _toldAt;
+
+		private static bool Told_DotGram(global::System.Collections.Generic.List<string[]> more, string[] expected)
+		{
+			var sets = _toldSets ??= new string[256][];
+			var at   = _toldAt   ??= new int[256];
+			var slot = global::System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(expected) & 255;
+
+			if (ReferenceEquals(sets[slot], expected) && at[slot] < more.Count && ReferenceEquals(more[at[slot]], expected))
+				return true;
+
+			sets[slot] = expected;
+			at[slot]   = more.Count;
+
+			return false;
 		}
 
 		private static string[][]? Handed_DotGram(global::System.Collections.Generic.List<string[]>? ties)

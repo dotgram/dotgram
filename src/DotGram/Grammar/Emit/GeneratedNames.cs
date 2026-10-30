@@ -190,6 +190,7 @@ public static partial class CSharpEmitter
 		"_deeperTokens", "_largeParser", "_largeParserIdle", "_largeParserLetGo", "_largeTokens",
 		"_largeTokensIdle", "_largeTokensLetGo", "_spareParser", "_spareParserIdle", "_spareParserLetGo",
 		"_spareTies", "_spareTokens", "_spareTokensIdle", "_spareTokensLetGo",
+		"_toldAt", "_toldSets",
 	];
 
 	/// <summary>

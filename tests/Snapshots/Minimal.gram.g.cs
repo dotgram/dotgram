@@ -2079,7 +2079,7 @@ namespace DotGram.Snapshots
 			}
 			else if (!failure.Quiet && p == failure.Position && expected != null)
 			{
-				(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
+				Tie_DotGram(ref failure, expected);
 			}
 
 			Resume:
@@ -2239,7 +2239,7 @@ namespace DotGram.Snapshots
 			}
 			else if (!failure.Quiet && p == failure.Position && expected != null)
 			{
-				(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
+				Tie_DotGram(ref failure, expected);
 			}
 
 			Resume:
@@ -2361,7 +2361,7 @@ namespace DotGram.Snapshots
 			}
 			else if (!failure.Quiet && p == failure.Position && expected != null)
 			{
-				(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
+				Tie_DotGram(ref failure, expected);
 			}
 
 			Resume:
@@ -4556,7 +4556,7 @@ namespace DotGram.Snapshots
 				}
 				else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
 				{
-					(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
+					Tie_DotGram(ref failure, expected);
 				}
 				if (lookahead < 0 && p > reach)
 					reach = p;
@@ -5228,7 +5228,7 @@ namespace DotGram.Snapshots
 				}
 				else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
 				{
-					(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
+					Tie_DotGram(ref failure, expected);
 				}
 
 				Unwind:
@@ -6348,6 +6348,16 @@ namespace DotGram.Snapshots
 			return ties;
 		}
 
+		private static void Tie_DotGram(ref Failure failure, string[] expected)
+		{
+			var more = failure.ExpectedMore;
+
+			if (more == null)
+				failure.ExpectedMore = more = Ties_DotGram();
+
+			more.Add(expected);
+		}
+
 		private static string[][]? Handed_DotGram(global::System.Collections.Generic.List<string[]>? ties)
 		{
 			if (ties == null)
@@ -7092,12 +7102,10 @@ namespace DotGram.Snapshots
 				// several times is a list that grew on a parse that went on to succeed.
 				var more = failure.ExpectedMore;
 
-				if (more == null)
-					failure.ExpectedMore = more = Ties_DotGram();
-				else if (more.Count > 0 && ReferenceEquals(more[more.Count - 1], expected))
+				if (more != null && more.Count > 0 && ReferenceEquals(more[more.Count - 1], expected))
 					return;
 
-				more.Add(expected);
+				Tie_DotGram(ref failure, expected);
 			}
 		}
 
