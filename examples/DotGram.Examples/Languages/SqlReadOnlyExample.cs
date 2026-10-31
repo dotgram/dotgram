@@ -66,25 +66,43 @@ namespace DotGram.Examples.Languages;
 	// ── The lexical part, where the bypasses live ────────────────────────────────
 
 	// `''` is an escaped quote, so it is part of the string rather than its end.
-	String     = '\'' & ([^ '\''] | "''")* & '\''
+	//
+	// Atomic, as the comments and words are: a string runs to the quote that ends it, and a doubled
+	// quote inside it is never the end of one string and the start of the next.
+	String     = '\'' & { ([^ '\''] | "''")* } & '\''
 
 	Quoted     = '"' & [^ '"']* & '"'
 	Bracketed  = '[' & [^ ']']* & ']'
 
 	Comment    = LineComment | BlockComment
-	LineComment  = "--" & [^ '\n']*
+	LineComment  = "--" & { [^ '\n']* }
 	BlockComment = "/*" & (?!"*/" & any)* & "*/"
 
-	Space      = [' ' | '\t' | '\r' | '\n']*
+	// Atomic: the blanks between two tokens belong to the one before or to the one after, and
+	// given back they would be both, once for each blank, in every gap of a text refused late.
+	Space      = { [' ' | '\t' | '\r' | '\n']* }
 
 	// ── The words ────────────────────────────────────────────────────────────────
 
 	// A word is anything word-shaped that is not one of the writing ones. The negative
 	// lookahead is the whole guard: refused before it is ever read as a word.
-	Word       = ?!Writes & ['a'..'z' | 'A'..'Z' | '_' | '$'] & ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '$']*
+	//
+	// Atomic, as a number is below: a word is read to its end. Given back, `abc` would also be `a`
+	// and `bc`, or `ab` and `c`, and a text refused late would be read every way its words could
+	// be cut.
+	Word       = { ?!Writes & ['a'..'z' | 'A'..'Z' | '_' | '$'] & ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '$']* }
 
-	Symbol     = ['(' | ')' | ',' | '.' | '*' | '=' | '<' | '>' | '+' | '-' | '/' | '%' | '|' | ':' | '?' | '@' | '!' | '~' | '^' | '&']
-	           | ['0'..'9'] & ['0'..'9' | '.' | 'e' | 'E' | '+' | '-']*
+	Symbol     = ['(' | ')' | ',' | '.' | '*' | '=' | '<' | '>' | '+' | '%' | '|' | ':' | '?' | '@' | '!' | '~' | '^' | '&']
+	           | Minus | Slash
+	           | { ['0'..'9'] & (['0'..'9' | '.' | 'e' | 'E' | '+'] | Minus)* }
+
+	// A minus that starts a line comment, or a slash that starts a block comment, is that
+	// comment and never a symbol. Left to read either way, `-- ' ...` could be two symbols and
+	// a string that runs on to a quote on a later line, which hides the rest of the statement
+	// from this check but not from the server that reads it as a comment; and a text refused
+	// late was read as every way of choosing between the two for each comment in it.
+	Minus      = '-' & ?!'-'
+	Slash      = '/' & ?!'*'
 
 	// Anything that could write, or could hide a write behind it. A list of the refused,
 	// which is safe only because everything not lexically a word is refused as well.
