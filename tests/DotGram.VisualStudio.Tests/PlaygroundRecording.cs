@@ -85,6 +85,14 @@ public sealed class PlaygroundRecording
 		if (Application.Current is null)
 			_ = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
 
+		// Visual Studio's main thread, which ThreadHelper otherwise asks Visual Studio for: this one.
+		var context = typeof(ThreadHelper).GetField("_joinableTaskContextCache", BindingFlags.Static | BindingFlags.NonPublic)
+			?? throw new InvalidOperationException("ThreadHelper's fields: " + string.Join(", ",
+				typeof(ThreadHelper).GetFields(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public).Select(static field => field.Name)));
+#pragma warning disable VSSDK005 // Outside Visual Studio there is no singleton to take; this one stands in for it.
+		context.SetValue(null, new Microsoft.VisualStudio.Threading.JoinableTaskContext());
+#pragma warning restore VSSDK005
+
 		var output = Path.Combine(Path.GetTempPath(), "dotgram-playground-recording");
 		Directory.CreateDirectory(output);
 
@@ -107,6 +115,334 @@ public sealed class PlaygroundRecording
 
 			File.WriteAllText(Path.Combine(output, Path.GetFileNameWithoutExtension(grammar) + ".txt"), record, new UTF8Encoding(false));
 		}
+
+		// The grammars embedded in C#: the playground's attributes and its StringSyntax(".gram") literal.
+		const string embedded = "VisualStudioToolingPlayground.cs";
+		string embeddedRecord;
+		try
+		{
+			embeddedRecord = RecordEmbedded(
+				File.ReadAllText(Path.Combine(root, embedded)),
+				root,
+				markers.Where(line => line.StartsWith(embedded + "|", StringComparison.Ordinal)).Select(line => line.Substring(embedded.Length + 1)).ToArray());
+		}
+		catch (Exception exception)
+		{
+			throw new InvalidOperationException(embedded + " at " + Stage, exception);
+		}
+
+		File.WriteAllText(Path.Combine(output, embedded + ".txt"), embeddedRecord, new UTF8Encoding(false));
+	}
+
+	/// <summary>
+	/// What a C# document's embedded grammars are analysed into, as the extension's buffer analysis
+	/// computes it once Roslyn has a semantic model: the same functions, over a workspace that holds the
+	/// playground's C# beside its .gram files. The DotGram attributes are declared as source, as the
+	/// generator would emit them; the generator itself does not run, so the DSL literals, which need
+	/// its publications, are not recognized.
+	/// </summary>
+	internal static (Microsoft.CodeAnalysis.Document Document, IReadOnlyList<EmbeddedGrammarAnalysis> Analyses, DslEmbeddedSiteResult Dsl, IReadOnlyList<HostDiagnostic> DslDiagnostics) EmbeddedState(string text, string root)
+	{
+		var workspace = new Microsoft.CodeAnalysis.AdhocWorkspace();
+		var project   = workspace.AddProject(Microsoft.CodeAnalysis.ProjectInfo.Create(
+			Microsoft.CodeAnalysis.ProjectId.CreateNewId(),
+			Microsoft.CodeAnalysis.VersionStamp.Default,
+			"Playground",
+			"Playground",
+			Microsoft.CodeAnalysis.LanguageNames.CSharp,
+			parseOptions: Microsoft.CodeAnalysis.CSharp.CSharpParseOptions.Default.WithLanguageVersion(Microsoft.CodeAnalysis.CSharp.LanguageVersion.Preview),
+			metadataReferences: [Microsoft.CodeAnalysis.MetadataReference.CreateFromFile(typeof(object).Assembly.Location)]));
+		var document  = project.AddDocument("VisualStudioToolingPlayground.cs", Microsoft.CodeAnalysis.Text.SourceText.From(text), filePath: @"P:\Playground\VisualStudioToolingPlayground.cs");
+		project = document.Project
+			.AddDocument("DotGram.Attributes.g.cs", Microsoft.CodeAnalysis.Text.SourceText.From(DotGram.Grammar.GramCompiler.EmitMarkerAttributes().Text)).Project
+			.AddDocument("Declarations.cs", EmbeddedDeclarations).Project;
+
+		foreach (var grammar in Grammars)
+			project = project.AddAdditionalDocument(grammar, Microsoft.CodeAnalysis.Text.SourceText.From(File.ReadAllText(Path.Combine(root, grammar))), filePath: @"P:\Playground\" + grammar).Project;
+
+		document = project.GetDocument(document.Id)!;
+
+		var rootNode     = document.GetSyntaxRootAsync().GetAwaiter().GetResult()!;
+		var model        = document.GetSemanticModelAsync().GetAwaiter().GetResult()!;
+		var includedFile = StandaloneGrammarInheritance.GramFilesAsync(document.Project, CancellationToken.None).GetAwaiter().GetResult();
+		var analyses     = EmbeddedGrammarService.Analyze(model, rootNode, CancellationToken.None, includedFile);
+		var dsl          = DslEmbeddedSiteAnalysis.AnalyzeAsync(document, rootNode, model, CancellationToken.None, new DslEmbeddedSiteCache()).GetAwaiter().GetResult();
+		var diagnostics  = DslClassificationDiagnostics.AnalyzeAsync(document, rootNode, model.Compilation, CancellationToken.None).GetAwaiter().GetResult();
+
+		return (document, analyses, dsl, diagnostics);
+	}
+
+	const string EmbeddedDeclarations = """
+		namespace DotGram
+		{
+			public enum GramClassification { Keyword, Identifier, Type, Variable, Function, Method, Property, Number, String, Comment, Operator, Punctuation, Namespace, Parameter, Label }
+
+			[System.AttributeUsage(System.AttributeTargets.Class)]
+			sealed class GramLanguageAttribute(string id) : System.Attribute;
+
+			[System.AttributeUsage(System.AttributeTargets.Class, AllowMultiple = true)]
+			sealed class GramClassifyAttribute(string target, GramClassification classification) : System.Attribute;
+		}
+
+		namespace System.Diagnostics.CodeAnalysis
+		{
+			[System.AttributeUsage(System.AttributeTargets.All)]
+			sealed class StringSyntaxAttribute(string syntax) : System.Attribute;
+		}
+		""";
+
+	static string RecordEmbedded(string text, string root, IReadOnlyList<string> completionMarkers)
+	{
+		Stage = "embedded analysis";
+		var (_, analyses, dsl, dslDiagnostics) = EmbeddedState(text, root);
+		var buffer   = new FakeBuffer(text, "CSharp");
+		var snapshot = buffer.CurrentSnapshot;
+		var result   = new StringBuilder();
+
+		// The extension's buffer analysis, holding that state for this snapshot, as its AnalyzeAsync leaves it.
+		var analysis = (EmbeddedGrammarBufferAnalysis)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(typeof(EmbeddedGrammarBufferAnalysis));
+		void Set(string field, object? value)
+		{
+			typeof(EmbeddedGrammarBufferAnalysis).GetField(field, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(analysis, value);
+		}
+
+		var documents = new Mock<ITextDocumentFactoryService>();
+		ITextDocument? none = null;
+		documents.Setup(service => service.TryGetTextDocument(It.IsAny<ITextBuffer>(), out none)).Returns(false);
+
+		Set("_gate", new object());
+		Set("_buffer", buffer);
+		Set("_documents", documents.Object);
+		Set("_snapshot", snapshot);
+		Set("_classifications", analyses.SelectMany(static item => item.Classifications).ToArray());
+		Set("_dslClassifications", dsl.Classifications);
+		Set("_dslSymbols", dsl.Symbols);
+		Set("_dslSites", dsl.Sites);
+		Set("_diagnostics", analyses.SelectMany(static item => item.Diagnostics).Concat(dslDiagnostics).Concat(dsl.Diagnostics).ToArray());
+		Set("_symbols", analyses.SelectMany(static item => item.Symbols).ToArray());
+		Set("_braces", analyses.SelectMany(static item => item.Braces).ToArray());
+		Set("_foldingRanges", analyses.SelectMany(static item => item.FoldingRanges).ToArray());
+		Set("_documentSymbols", analyses.SelectMany(static item => item.DocumentSymbols).ToArray());
+		Set("_publishedApis", analyses.SelectMany(static item => item.PublishedApis).ToArray());
+		buffer.Properties.AddProperty(typeof(EmbeddedGrammarBufferAnalysis), analysis);
+
+		Assert.True(analysis.TryGet(snapshot, out var classifications, out _));
+		Assert.NotEmpty(classifications);
+
+		var tokens = classifications.Select(static item => item.Span.Start)
+			.Concat(dsl.Classifications.Select(static item => item.Span.Start))
+			.Concat(dsl.Sites.Select(static item => item.Span.Start))
+			.Distinct().OrderBy(static at => at).ToArray();
+		var roslyn = new RoslynGramCompletion(buffer, null!, documents.Object);
+
+		result.Append("# grammars ").Append(analyses.Count).Append(", dsl sites ").Append(dsl.Sites.Count).Append(", dsl symbols ").Append(dsl.Symbols.Count).Append('\n');
+
+		// Completion, at the marked places.
+		var completion = new RecordingCompletionSource(new EmbeddedGramCompletionSource(buffer, analysis, roslyn));
+
+		foreach (var marker in completionMarkers)
+		{
+			var position = Marker(text, marker);
+			var point    = new SnapshotPoint(snapshot, position);
+			var trigger  = new CompletionTrigger(CompletionTriggerReason.Invoke, snapshot);
+			Stage = "embedded completion " + marker;
+			var start    = completion.InitializeCompletion(trigger, point, CancellationToken.None);
+
+			result.Append("completion ").Append(Place(text, position));
+
+			if (start.Participation == CompletionParticipation.DoesNotProvideItems)
+			{
+				result.Append(" none\n");
+				continue;
+			}
+
+			result.Append(" applicable=").Append(Span(text, start.ApplicableToSpan.Start, start.ApplicableToSpan.Length)).Append('\n');
+
+			var context = completion.GetCompletionContextAsync(null!, trigger, point, start.ApplicableToSpan, CancellationToken.None)
+				.GetAwaiter().GetResult();
+
+			foreach (var item in context.ItemList)
+			{
+				var description = completion.GetDescriptionAsync(null!, item, CancellationToken.None).GetAwaiter().GetResult();
+
+				result.Append("  ").Append(Escape(item.DisplayText))
+					.Append(" | insert=").Append(Escape(item.InsertText))
+					.Append(" | suffix=").Append(Escape(item.Suffix))
+					.Append(" | sort=").Append(Escape(item.SortText))
+					.Append(" | filter=").Append(Escape(item.FilterText))
+					.Append(" | ").Append(Escape(description as string ?? description?.ToString() ?? "")).Append('\n');
+			}
+		}
+
+		// Quick Info, at the start of every classified span: the extension's own source, run on this
+		// thread as its main thread. Where it asks Roslyn, there is none, and that is recorded as C#.
+		var view       = View(buffer, snapshot, 0, out var caret);
+		var formatMaps = new Mock<IClassificationFormatMapService>();
+		formatMaps.Setup(service => service.GetClassificationFormatMap(It.IsAny<ITextView>()))
+			.Returns(new Mock<IClassificationFormatMap>().Object);
+		var types      = new Mock<IClassificationTypeRegistryService>();
+		var quickInfo  = new EmbeddedGramQuickInfoSource(buffer, analysis, roslyn, formatMaps.Object, types.Object);
+
+		foreach (var position in tokens)
+		{
+			Stage = "embedded quickinfo " + Place(text, position);
+			var session = new Mock<IAsyncQuickInfoSession>();
+			session.Setup(item => item.GetTriggerPoint(It.IsAny<ITextSnapshot>())).Returns(new SnapshotPoint(snapshot, position));
+			session.Setup(item => item.TextView).Returns(view);
+
+			QuickInfoItem? item;
+			try
+			{
+				item = ThreadHelper.JoinableTaskFactory.Run(() => quickInfo.GetQuickInfoItemAsync(session.Object, CancellationToken.None));
+			}
+			catch (NullReferenceException)
+			{
+				result.Append("quickinfo ").Append(Place(text, position)).Append(" csharp\n");
+				continue;
+			}
+
+			if (item is null)
+				continue;
+
+			var span = item.ApplicableToSpan.GetSpan(snapshot);
+
+			result.Append("quickinfo ").Append(Place(text, position)).Append(" span=").Append(Span(text, span.Start, span.Length)).Append('\n');
+			Content(item.Item, result, "  ");
+		}
+
+		// Signature help, after every opening parenthesis and comma.
+		Stage = "embedded signature";
+		var signatures = new EmbeddedGramSignatureHelpSource(buffer, analysis);
+
+		for (var position = 0; position < text.Length; position++)
+		{
+			if (text[position] is not ('(' or ','))
+				continue;
+
+			var at      = position + 1;
+			var session = new Mock<ISignatureHelpSession>();
+			session.Setup(item => item.TextView).Returns(View(buffer, snapshot, at, out _));
+			var list = new List<ISignature>();
+
+			signatures.AugmentSignatureHelpSession(session.Object, list);
+
+			foreach (var signature in list)
+			{
+				var span = signature.ApplicableToSpan.GetSpan(snapshot);
+
+				result.Append("signature ").Append(Place(text, at))
+					.Append(" applicable=").Append(Span(text, span.Start, span.Length))
+					.Append(" | ").Append(Escape(signature.Content))
+					.Append(" | ").Append(Escape(signature.Documentation))
+					.Append(" | current=").Append(Escape(signature.CurrentParameter?.Name ?? "-"))
+					.Append(" | ").Append(string.Join(", ", signature.Parameters.Select(static parameter =>
+						$"{Escape(parameter.Name)}@{parameter.Locus.Start}+{parameter.Locus.Length}")))
+					.Append('\n');
+			}
+		}
+
+		// Definition, Ctrl+click, references, rename and highlights.
+		var handler = new GramGoToDefinitionCommandHandler();
+		SetImport(handler, "Documents", documents.Object);
+		var navigation = new EmbeddedGramNavigableSymbolSource(view, buffer, analysis, new Mock<IServiceProvider>().Object, null!, documents.Object);
+		var highlights = new EmbeddedGramReferenceHighlightTagger(view, analysis);
+
+		foreach (var position in tokens)
+		{
+			caret.Position = position;
+			Stage = "embedded navigation " + Place(text, position);
+
+			var args       = new GoToDefinitionCommandArgs(view, buffer);
+			var definition = EmbeddedDefinition(handler, args, snapshot, text, position);
+
+			if (definition is not null)
+				result.Append("definition ").Append(Place(text, position)).Append(" -> ").Append(definition).Append('\n');
+
+			if (navigation.GetNavigableSymbolAsync(new SnapshotSpan(snapshot, position, 0), CancellationToken.None)
+				.GetAwaiter().GetResult() is { } symbol)
+			{
+				result.Append("navigable ").Append(Place(text, position)).Append(" span=")
+					.Append(Span(text, symbol.SymbolSpan.Start, symbol.SymbolSpan.Length)).Append(" -> ");
+
+				if (symbol is GramNavigableSymbol)
+				{
+					var target = (FakeTrackingPoint)typeof(GramNavigableSymbol)
+						.GetField("<definition>P", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(symbol);
+					result.Append(Place(text, target.Position));
+				}
+				else if (symbol is FileNavigableSymbol)
+				{
+					var file = typeof(FileNavigableSymbol);
+					result.Append("file ").Append(file.GetField("<filePath>P", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(symbol))
+						.Append(' ').Append(file.GetField("<line>P", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(symbol))
+						.Append(':').Append(file.GetField("<column>P", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(symbol));
+				}
+				else
+					result.Append(symbol.GetType().Name);
+
+				result.Append('\n');
+			}
+
+			var found = GramFindReferencesTarget.Embedded(snapshot, position, analysis);
+
+			if (found is not null)
+			{
+				result.Append("references ").Append(Place(text, position))
+					.Append(" name=").Append(found.Name)
+					.Append(" definition=").Append(found.DefinitionPosition >= text.Length ? "elsewhere" : Place(text, found.DefinitionPosition))
+					.Append(" at=[").Append(string.Join(", ", found.Positions.Select(at => Place(text, at)))).Append(']')
+					.Append(" elsewhere=").Append(found.Elsewhere.Count)
+					.Append('\n');
+				result.Append("rename ").Append(Place(text, position)).Append(' ');
+
+				if (found.Renamable)
+					result.Append("edits=[").Append(string.Join(", ", found.Positions.Select(at => Span(text, at, found.Name.Length)))).Append(']');
+				else
+					result.Append("refused");
+
+				result.Append('\n');
+			}
+
+			var tags = highlights.GetTags(new NormalizedSnapshotSpanCollection(new SnapshotSpan(snapshot, 0, snapshot.Length))).ToArray();
+
+			if (tags.Length > 0)
+				result.Append("highlight ").Append(Place(text, position)).Append(" -> [")
+					.Append(string.Join(", ", tags.Select(tag => Span(text, tag.Span.Start, tag.Span.Length) + " " + tag.Tag.Type)))
+					.Append("]\n");
+		}
+
+		return result.ToString();
+	}
+
+	/// <summary>What Go To Definition does at a place of a C# document, in its command handler's order, Roslyn answering nothing.</summary>
+	static string? EmbeddedDefinition(
+		GramGoToDefinitionCommandHandler handler,
+		GoToDefinitionCommandArgs args,
+		ITextSnapshot snapshot,
+		string text,
+		int position)
+	{
+		if (Call(handler, "DslDefinition", args, snapshot, position) is { } dsl)
+		{
+			var type = dsl.GetType();
+			return $"file {type.GetProperty("FilePath")!.GetValue(dsl)} {type.GetProperty("Line")!.GetValue(dsl)}:{type.GetProperty("Column")!.GetValue(dsl)}";
+		}
+
+		if (Call(handler, "PublishedApi", args, snapshot, position) is string api)
+			return "published " + api;
+
+		if (Call(handler, "StandardRuleAt", args, snapshot, position) is { } standard)
+			return "std " + standard.GetType().GetProperty("Name")!.GetValue(standard) + " " +
+				standard.GetType().GetProperty("Line")!.GetValue(standard) + ":" + standard.GetType().GetProperty("Column")!.GetValue(standard);
+
+		var parameters = new object?[] { args, snapshot, position, null, null };
+		if ((bool)typeof(GramGoToDefinitionCommandHandler).GetMethod("IsCSharpContext", BindingFlags.Instance | BindingFlags.NonPublic)!
+			.Invoke(handler, parameters)!)
+			return "csharp " + Escape((string)parameters[3]!) + " @" + parameters[4];
+
+		var found = Call(handler, "Target", args) as GramFindReferencesTarget;
+
+		return found is null || found.DefinedElsewhere ? null : "here " + Place(text, found.DefinitionPosition);
 	}
 
 	static string Stage = "";
@@ -523,13 +859,14 @@ public sealed class PlaygroundRecording
 
 	sealed class FakeBuffer : ITextBuffer
 	{
-		public FakeBuffer(string text)
+		public FakeBuffer(string text, string contentType = GramContentType.Name)
 		{
 			CurrentSnapshot = new FakeSnapshot(this, text);
+			ContentType     = Content(contentType);
 		}
 
 		public PropertyCollection Properties { get; } = new();
-		public IContentType ContentType { get; } = GramContent();
+		public IContentType ContentType { get; }
 		public ITextSnapshot CurrentSnapshot { get; }
 		public bool EditInProgress => false;
 
@@ -557,11 +894,11 @@ public sealed class PlaygroundRecording
 		public void TakeThreadOwnership() { }
 	}
 
-	static IContentType GramContent()
+	static IContentType Content(string contentType)
 	{
 		var type = new Mock<IContentType>();
-		type.Setup(item => item.IsOfType(It.IsAny<string>())).Returns<string>(name => name == GramContentType.Name);
-		type.Setup(item => item.TypeName).Returns(GramContentType.Name);
+		type.Setup(item => item.IsOfType(It.IsAny<string>())).Returns<string>(name => name == contentType);
+		type.Setup(item => item.TypeName).Returns(contentType);
 
 		return type.Object;
 	}
@@ -624,7 +961,7 @@ public sealed class PlaygroundRecording
 	/// The extension's completion source with its own answers, and none from Roslyn: what the C# around
 	/// a grammar completes to is Roslyn's, and there is no project here to ask.
 	/// </summary>
-	sealed class RecordingCompletionSource(GramCompletionSource real) : GramCompletionSourceBase
+	sealed class RecordingCompletionSource(GramCompletionSourceBase real) : GramCompletionSourceBase
 	{
 		protected override (string Text, int Position)? GrammarAt(SnapshotPoint point)
 		{
@@ -647,9 +984,14 @@ public sealed class PlaygroundRecording
 			return Task.FromResult(System.Collections.Immutable.ImmutableArray<CompletionItem>.Empty);
 		}
 
+		protected override IReadOnlyList<DslLiteralCompletion> DslCompletions(SnapshotPoint point)
+		{
+			return (IReadOnlyList<DslLiteralCompletion>)Invoke("DslCompletions", point)!;
+		}
+
 		object? Invoke(string name, SnapshotPoint point)
 		{
-			return typeof(GramCompletionSource).GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(real, [point]);
+			return real.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(real, [point]);
 		}
 	}
 }

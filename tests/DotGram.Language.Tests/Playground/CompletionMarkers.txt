@@ -16,3 +16,12 @@ ToolingQuery.gram|parse ^Query
 RecoveryPlayground.gram|Rows = Row* recover ^eol
 RecoveryPlayground.gram|parse Rows     as ^ToolingRecovering
 RecoveryPlayground.gram|Row  = [^'a'..
+VisualStudioToolingPlayground.cs|Sum     : @decimal = ^left: Sum
+VisualStudioToolingPlayground.cs|=> @(op == "+" ? le^ft
+VisualStudioToolingPlayground.cs|Primary : @decimal = ^'(' & inner
+VisualStudioToolingPlayground.cs|Raise(left, ^exponent)
+VisualStudioToolingPlayground.cs|parse ^Sum as ToolingEvaluate
+VisualStudioToolingPlayground.cs|		Start = ^Word
+VisualStudioToolingPlayground.cs|static decimal Ra^ise
+VisualStudioToolingPlayground.cs|ParseSelectQuery("^select")
+VisualStudioToolingPlayground.cs|Items : @int[] = ^Item*
