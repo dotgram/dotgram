@@ -1,4 +1,4 @@
-﻿name: build
+name: build
 
 on:
   push:
@@ -350,14 +350,15 @@ jobs:
       - name: Test the language server
         run: dotnet test --project tests/DotGram.LanguageServer.Tests/DotGram.LanguageServer.Tests.csproj --configuration Release
 
-      # The packaged extension in a real VS Code, downloaded for the run, with the .NET Install Tool
-      # from the Marketplace: a grammar opened, its diagnostics and its semantic tokens waited for.
-      - name: Smoke-test the extension
-        working-directory: editors/vscode
-        run: xvfb-run -a npm test
-
+      # Kept before the smoke test, so that a package the smoke test refuses can still be looked at.
       - uses: actions/upload-artifact@v4
         with:
           name: vscode-vsix
           path: artifacts/*.vsix
           if-no-files-found: error
+
+      # The packaged extension in a real VS Code, downloaded for the run, with the .NET Install Tool
+      # from the Marketplace: a grammar opened, its diagnostics and its semantic tokens waited for.
+      - name: Smoke-test the extension
+        working-directory: editors/vscode
+        run: xvfb-run -a npm test
