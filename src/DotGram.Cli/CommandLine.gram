@@ -5,9 +5,14 @@ trivia = none
 // csc's syntax: words separated by blanks and line ends; a run in double quotes kept whole, blanks
 // and all, the quotes dropped — "a b"c is one word, a bc — and a quote that never closes running
 // to the end of its line; a line whose first word begins with # a comment.
+//
+// Each line after the first is read one way, so that a text this does not read is not read again
+// for every way of cutting it: a line end whole, never `\r` ending one empty line and `\n` the
+// next, and what the line holds in braces, since a comment reads to the end of the line and so do
+// its words — a line that begins with # is never also read as a word.
 
 ResponseText : @Word[] = Blank & (Comment | (Word & (Gap & Word)* & Blank)?)
-                         & (eol & Blank & (Comment | (Word & (Gap & Word)* & Blank)?))* & eof
+                         & ({ eol } & Blank & { Comment | (Word & (Gap & Word)* & Blank)? })* & eof
 
 Comment = '#' & [^ '\r' | '\n']*
 
