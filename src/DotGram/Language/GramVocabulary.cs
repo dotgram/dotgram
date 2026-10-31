@@ -303,9 +303,9 @@ public static class GramVocabulary
 	}
 
 	/// <summary>Which C# of the grammar <paramref name="position"/> stands in, and whether the grammar declares a <c>state</c>.</summary>
-	public static GramAction ActionAt(string grammar, int position, out bool declaresState)
+	public static GramAction ActionAt(string grammar, int position, out bool declaresState, ICSharpScanner? scanner = null)
 	{
-		var file   = GramCompiler.Read(grammar, RoslynCSharpScanner.Instance).File;
+		var file   = GramCompiler.Read(grammar, scanner ?? RoslynCSharpScanner.Instance).File;
 		var state  = false;
 		var action = GramAction.None;
 
@@ -373,9 +373,9 @@ public static class GramVocabulary
 	/// parenthesis inside a C# string or comment cannot move the boundary. An <c>@(</c> the lexer
 	/// found no end for — the one being typed — runs to the end of the text.
 	/// </remarks>
-	public static bool InCSharp(string grammar, int position)
+	public static bool InCSharp(string grammar, int position, ICSharpScanner? scanner = null)
 	{
-		var tokens = GramLexer.Tokenize(grammar, RoslynCSharpScanner.Instance);
+		var tokens = GramLexer.Tokenize(grammar, scanner ?? RoslynCSharpScanner.Instance);
 
 		foreach (var diagnostic in tokens.Diagnostics)
 			if (diagnostic.Id == GramLexer.UnterminatedExpression && diagnostic.Position < position)

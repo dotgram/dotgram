@@ -150,6 +150,9 @@ public sealed class GramAnalysisOptions
 
 	/// <summary>Whether the host asks for the grammar to be read as tokens: <c>[Gram(Lexical = true)]</c>.</summary>
 	public bool Lexical { get; set; }
+
+	/// <summary>What reads the C# inside <c>@(...)</c>; Roslyn's tokenizer when null.</summary>
+	public ICSharpScanner? CSharpScanner { get; set; }
 }
 
 /// <summary>
@@ -189,9 +192,10 @@ public static class GramLanguageService
 		// in an included grammar, through a `using` or a qualified name, is found by the same
 		// lookup the generator makes, and not by the first rule anywhere that has its name.
 		GrammarModel? model = null;
+		var scanner     = options?.CSharpScanner ?? RoslynCSharpScanner.Instance;
 		var compilation = GramCompiler.Compile(text, new GramCompilerOptions
 		{
-			CSharpScanner = RoslynCSharpScanner.Instance,
+			CSharpScanner = scanner,
 			Own           = options?.Own,
 			Cuts          = options?.Cuts,
 			Lexical       = options?.Lexical ?? false,
@@ -199,7 +203,7 @@ public static class GramLanguageService
 		});
 
 		var tokens = GramLexer.Tokenize(
-			text, RoslynCSharpScanner.Instance, GramCompiler.CutsOf(options?.Own, options?.Cuts), text.Length, null);
+			text, scanner, GramCompiler.CutsOf(options?.Own, options?.Cuts), text.Length, null);
 		var parsed = GramParser.Parse(tokens);
 		var classifications = new List<GramClassifiedSpan>(tokens.Count);
 		var (rules, rulesByPosition) = RuleDefinitions(text, parsed.File.Decls, tokens.Tokens);
