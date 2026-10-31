@@ -4,12 +4,15 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 
 using DotGram.Grammar;
 using DotGram.Grammar.Binding;
 using DotGram.Grammar.Model;
 using DotGram.Language;
+
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 using Xunit;
 
@@ -281,9 +284,10 @@ public sealed class ExponentialRepetitionTests
 	/// takes for one, which is a defect of the analysis; each is judged by driving it.
 	/// </para>
 	/// <para>
-	/// The grammars are the files, every raw-string <c>[Gram]</c> attribute, and each read the
-	/// way it is compiled: over kinds where some attribute or snapshot rendering asks for
-	/// <c>Lexical</c>, over characters where some use does not.
+	/// The grammars are the files and every <c>[Gram]</c> attribute, however its text is written,
+	/// each joined with what it includes and read the way it is compiled: over kinds where some
+	/// attribute or snapshot rendering asks for <c>Lexical</c>, over characters where some use
+	/// does not.
 	/// </para>
 	/// </remarks>
 	[Fact]
@@ -294,9 +298,11 @@ public sealed class ExponentialRepetitionTests
 		var hits   = 0;
 		var read   = 0;
 
-		foreach (var (name, text, modes) in Grammars(root))
+		foreach (var grammar in Grammars(root))
 		{
-			foreach (var lexical in modes)
+			var (name, text) = (grammar.Name, grammar.Text);
+
+			foreach (var lexical in grammar.Modes)
 			{
 				RecognitionGraph graph;
 				LexicalSplit?    split;
@@ -306,7 +312,7 @@ public sealed class ExponentialRepetitionTests
 
 				try
 				{
-					graph = Built(name, text, lexical, out split);
+					graph = Built(grammar, lexical, out split);
 					built = watch.ElapsedTicks;
 				}
 				catch (Exception error)
@@ -324,7 +330,8 @@ public sealed class ExponentialRepetitionTests
 				read++;
 				hits += result.Found.Count;
 
-				var mode = lexical ? split is null ? "kinds asked, read over chars" : "kinds" : "chars";
+				var mode = (lexical ? split is null ? "kinds asked, read over chars" : "kinds" : "chars") +
+					(grammar.Included.Count == 0 ? "" : ", with " + string.Join(", ", grammar.Included.Select(static one => one.Name)));
 
 				report.AppendLine(string.Create(
 					System.Globalization.CultureInfo.InvariantCulture,
@@ -363,14 +370,33 @@ public sealed class ExponentialRepetitionTests
 		return text.Length <= most ? text : text.Substring(0, most) + " …";
 	}
 
-	/// <summary>The graph a grammar compiles to; the library itself is read as it is, with nothing spliced onto it.</summary>
-	static RecognitionGraph Built(string name, string text, bool lexical, out LexicalSplit? split)
+	/// <summary>The graph a grammar compiles to, with the grammars it includes spliced on; the library itself is read as it is, with nothing spliced onto it.</summary>
+	static RecognitionGraph Built(CorpusGrammar grammar, bool lexical, out LexicalSplit? split)
 	{
-		var parsed = name == "Std.gram"
-			? DotGram.Grammar.Parsing.GramParser.Parse(DotGram.Grammar.Parsing.GramLexer.Tokenize(text, RoslynCSharpScanner.Instance))
-			: GramCompiler.Read(text, RoslynCSharpScanner.Instance);
+		var text = grammar.Text;
 
-		var model = GrammarBinder.Bind(parsed.File, null, text.Length);
+		DotGram.Grammar.Parsing.ParseResult parsed;
+
+		if (grammar.Name == "Std.gram")
+			parsed = DotGram.Grammar.Parsing.GramParser.Parse(DotGram.Grammar.Parsing.GramLexer.Tokenize(text, RoslynCSharpScanner.Instance));
+		else if (grammar.Included.Count == 0)
+			parsed = GramCompiler.Read(text, RoslynCSharpScanner.Instance);
+		else
+		{
+			// Joined as the generator joins them: the author's text first and untouched, each
+			// included one wrapped in a namespace of its name.
+			var (joined, map) = GrammarSplice.Join(
+				new GrammarSplice.Part(text, null, null),
+				[.. grammar.Included.Select(static one => new GrammarSplice.Part(one.Text, one.Name, null))]);
+
+			parsed = GramCompiler.Read(
+				joined, RoslynCSharpScanner.Instance, text.Length,
+				GrammarSplice.Cuts(joined, map.Segments.Skip(1).Select(static one => (one.Start, one.Length))));
+
+			text = joined;
+		}
+
+		var model = GrammarBinder.Bind(parsed.File, null, grammar.Text.Length);
 		var graph = GrammarNormalizer.Normalize(model, scanner: RoslynCSharpScanner.Instance);
 
 		split = lexical ? LexicalSplit.Of(graph) : null;
@@ -378,20 +404,35 @@ public sealed class ExponentialRepetitionTests
 		return graph;
 	}
 
-	/// <summary>
-	/// Every grammar in the repository, with the ways it is read: over characters, over kinds, or both.
-	/// </summary>
-	static IEnumerable<(string Name, string Text, bool[] Modes)> Grammars(string root)
-	{
-		var attribute = new Regex(
-			"\\[(?:DotGram\\.)?Gram\\((?:\"\"\"\\r?\\n(?<text>.*?)\\r?\\n\\s*\"\"\"|\"(?<file>[^\"]+\\.gram)\")(?<rest>[^\\]]*)\\]",
-			RegexOptions.Singleline);
+	/// <summary>A grammar of the repository: what the report calls it, its own text, what it includes, and the ways it is read.</summary>
+	/// <param name="Included">Every grammar it is built on, each once, with the namespace it is reached under.</param>
+	/// <param name="Modes">Over characters (false), over kinds (true), or both.</param>
+	sealed record CorpusGrammar(string Name, string Text, IReadOnlyList<(string Name, string Text)> Included, bool[] Modes);
 
-		// A file's modes by the attributes that name it: those beside it, where there are any, since
-		// that is its host; a test that writes the name in a string of its own is not.
-		var files  = new Dictionary<string, HashSet<bool>>(StringComparer.Ordinal);
-		var beside = new Dictionary<string, HashSet<bool>>(StringComparer.Ordinal);
-		var inline = new List<(string, string, bool[])>();
+	/// <summary>A class that carries a <c>[Gram]</c>, as its source writes it.</summary>
+	/// <param name="Where">Where it was written: the file, and the line of the attribute.</param>
+	/// <param name="Scope">The file, and the string it was written in where it is a test's source: where a name it includes is looked for first.</param>
+	/// <param name="Text">The grammar written into the attribute, or null where it names a file.</param>
+	/// <param name="File">The file it names, or null.</param>
+	/// <param name="Bases">The classes it derives from and the classes it includes, each with the <c>As</c> it is included under.</param>
+	sealed record Host(
+		string Where, string Scope, string Directory, string Class, string? Text, string? File, bool Lexical, bool Primary,
+		string? IncludedAs, IReadOnlyList<(string Class, string? As)> Bases);
+
+	/// <summary>
+	/// Every grammar in the repository, with what it includes and the ways it is read: over
+	/// characters, over kinds, or both.
+	/// </summary>
+	/// <remarks>
+	/// The sources are read as C#, so that every way of writing the attribute's text is read the
+	/// way the compiler reads it — a raw string, a quoted one with its escapes, a verbatim one —
+	/// and a test's source written into a string of its own is read again as C#, its grammars
+	/// with it. A class's grammar is joined with what it is built on, by <c>[GramInclude]</c> or
+	/// by its base, found by class name: in the same string or file first, then anywhere.
+	/// </remarks>
+	static IEnumerable<CorpusGrammar> Grammars(string root)
+	{
+		var hosts = new List<Host>();
 
 		foreach (var path in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
 		{
@@ -400,30 +441,13 @@ public sealed class ExponentialRepetitionTests
 
 			var source = File.ReadAllText(path);
 
-			foreach (Match match in attribute.Matches(source))
-			{
-				var lexical = Regex.IsMatch(match.Groups["rest"].Value, "Lexical\\s*=\\s*true");
+			if (!source.Contains("Gram", StringComparison.Ordinal))
+				continue;
 
-				if (match.Groups["file"].Success)
-				{
-					var file = Path.GetFileName(match.Groups["file"].Value);
-					var near = File.Exists(Path.Combine(Path.GetDirectoryName(path)!, file));
-					var table = near ? beside : files;
-
-					if (!table.TryGetValue(file, out var modes))
-						table[file] = modes = [];
-
-					modes.Add(lexical);
-
-					continue;
-				}
-
-				inline.Add((
-					Path.GetFileName(path) + ":" + (1 + source.Take(match.Index).Count(static c => c == '\n')),
-					string.Join("\n", match.Groups["text"].Value.Split('\n').Select(static one => one.TrimStart('\t'))),
-					[lexical]));
-			}
+			Hosts(CSharpSyntaxTree.ParseText(source).GetRoot(), Path.GetFileName(path), Path.GetDirectoryName(path)!, 0, path, hosts, 0);
 		}
+
+		var files = new Dictionary<string, List<string>>(StringComparer.Ordinal);
 
 		foreach (var path in Directory.EnumerateFiles(root, "*.gram", SearchOption.AllDirectories))
 		{
@@ -431,23 +455,178 @@ public sealed class ExponentialRepetitionTests
 				continue;
 
 			var name = Path.GetFileName(path);
-			var text = File.ReadAllText(path);
 
-			var modes = beside.TryGetValue(name, out var hosted) ? [.. hosted] :
-				files.TryGetValue(name, out var used) ? [.. used] : new HashSet<bool>();
+			if (!files.TryGetValue(name, out var paths))
+				files[name] = paths = [];
 
-			if (Path.GetFileName(Path.GetDirectoryName(path)) == "Snapshots")
-				foreach (var (options, _) in SnapshotRenderings.Of(Path.GetFileNameWithoutExtension(path), text, EmittedCode.References))
-					modes.Add(options.Lexical);
-
-			if (modes.Count == 0)
-				modes.Add(false);
-
-			yield return (name, text, [.. modes.OrderBy(static one => one)]);
+			paths.Add(path);
 		}
 
-		foreach (var one in inline)
-			yield return one;
+		// What a host's grammar is: the text written into it, or the file it names, beside it where there is one.
+		string? TextOf(Host host)
+		{
+			if (host.Text is not null)
+				return host.Text;
+
+			if (host.File is null || !files.TryGetValue(Path.GetFileName(host.File), out var paths))
+				return null;
+
+			var near = paths.FirstOrDefault(one => string.Equals(Path.GetDirectoryName(one), host.Directory, StringComparison.Ordinal));
+
+			return File.ReadAllText(near ?? paths[0]);
+		}
+
+		// The host a name it includes means: in the same string or file first, then anywhere.
+		Host? Named(string name, Host from)
+		{
+			var all = hosts.Where(one => one.Class == name && one.Primary).ToList();
+
+			return all.FirstOrDefault(one => one.Scope == from.Scope) ??
+				all.FirstOrDefault(one => one.Where.Split(':')[0] == from.Where.Split(':')[0]) ??
+				(all.Count == 1 ? all[0] : null);
+		}
+
+		// Everything a host is built on, each grammar once however many paths lead to it.
+		List<(string Name, string Text)> Included(Host host)
+		{
+			var included = new List<(string, string)>();
+			var seen     = new HashSet<Host> { host };
+			var pending  = new Queue<(Host Host, string? As)>();
+
+			foreach (var (name, called) in host.Bases)
+				if (Named(name, host) is { } found)
+					pending.Enqueue((found, called));
+
+			while (pending.Count > 0)
+			{
+				var (one, called) = pending.Dequeue();
+
+				if (!seen.Add(one) || TextOf(one) is not { } text)
+					continue;
+
+				included.Add((called ?? one.IncludedAs ?? one.Class, text));
+
+				foreach (var (name, further) in one.Bases)
+					if (Named(name, one) is { } found)
+						pending.Enqueue((found, further));
+			}
+
+			return included;
+		}
+
+		// A file's modes by the attributes that name it: those beside it, where there are any, since
+		// that is its host; a test that writes the name in a string of its own is not.
+		foreach (var (name, paths) in files.OrderBy(static one => one.Key, StringComparer.Ordinal))
+		{
+			foreach (var path in paths)
+			{
+				var text   = File.ReadAllText(path);
+				var naming = hosts.Where(one => one.File is { } file && Path.GetFileName(file) == name).ToList();
+				var beside = naming.Where(one => string.Equals(one.Directory, Path.GetDirectoryName(path), StringComparison.Ordinal)).ToList();
+				var owners = beside.Count > 0 ? beside : naming;
+				var modes  = new HashSet<bool>(owners.Select(static one => one.Lexical));
+
+				if (Path.GetFileName(Path.GetDirectoryName(path)) == "Snapshots")
+					foreach (var (options, _) in SnapshotRenderings.Of(Path.GetFileNameWithoutExtension(path), text, EmittedCode.References))
+						modes.Add(options.Lexical);
+
+				if (modes.Count == 0)
+					modes.Add(false);
+
+				var host = beside.FirstOrDefault(static one => one.Primary) ?? beside.FirstOrDefault();
+
+				yield return new CorpusGrammar(name, text, host is null ? [] : Included(host), [.. modes.OrderBy(static one => one)]);
+			}
+		}
+
+		foreach (var host in hosts)
+			if (host.Text is { } text)
+				yield return new CorpusGrammar(host.Where, text, Included(host), [host.Lexical]);
+	}
+
+	/// <summary>Every class in a tree that carries a <c>[Gram]</c>, and those of any source written into a string in it.</summary>
+	static void Hosts(SyntaxNode root, string file, string directory, int lines, string scope, List<Host> hosts, int depth)
+	{
+		foreach (var type in root.DescendantNodes().OfType<TypeDeclarationSyntax>())
+		{
+			var attributes = type.AttributeLists.SelectMany(static list => list.Attributes).ToList();
+			var bases      = new List<(string, string?)>();
+
+			foreach (var above in type.BaseList?.Types ?? default)
+				bases.Add((Simple(above.Type), null));
+
+			foreach (var include in attributes.Where(static one => Is(one, "GramInclude")))
+				if (include.ArgumentList?.Arguments.FirstOrDefault()?.Expression is TypeOfExpressionSyntax named)
+					bases.Add((Simple(named.Type), Argument(include, "As")));
+
+			foreach (var gram in attributes.Where(static one => Is(one, "Gram")))
+			{
+				if (gram.ArgumentList?.Arguments.FirstOrDefault() is not { NameEquals: null, NameColon: null } first ||
+					first.Expression is not LiteralExpressionSyntax { Token.Value: string value })
+					continue;
+
+				var line  = lines + 1 + gram.GetLocation().GetLineSpan().StartLinePosition.Line;
+				var named = value.EndsWith(".gram", StringComparison.Ordinal) && !value.Contains('\n');
+
+				hosts.Add(new Host(
+					$"{file}:{line}", scope, directory, type.Identifier.ValueText,
+					named ? null : value, named ? value : null,
+					Argument(gram, "Lexical") == "true", Argument(gram, "Suffix") is null,
+					Argument(gram, "IncludedAs"), bases));
+			}
+		}
+
+		// A test's source written into a string, read again as C#; in an interpolated one, what is
+		// put in is left out, so that an option a test varies reads as its default.
+		if (depth < 3)
+			foreach (var node in root.DescendantNodes())
+			{
+				var written = node switch
+				{
+					LiteralExpressionSyntax { Token.Value: string text } => text,
+					InterpolatedStringExpressionSyntax interpolated => string.Concat(interpolated.Contents.Select(static part =>
+						part is InterpolatedStringTextSyntax text ? text.TextToken.ValueText : "")),
+					_ => null,
+				};
+
+				if (written is null || !written.Contains("Gram(", StringComparison.Ordinal) || !written.Contains("class ", StringComparison.Ordinal))
+					continue;
+
+				// A raw string of many lines begins on the line after its quotes.
+				var at = lines + node.GetLocation().GetLineSpan().StartLinePosition.Line +
+					(node.ToString().TrimStart('$').StartsWith("\"\"\"", StringComparison.Ordinal) ? 1 : 0);
+
+				Hosts(CSharpSyntaxTree.ParseText(written).GetRoot(), file, directory, at, $"{scope}:{at}", hosts, depth + 1);
+			}
+
+		static bool Is(AttributeSyntax attribute, string name)
+		{
+			var simple = Simple(attribute.Name);
+
+			return simple == name || simple == name + "Attribute";
+		}
+
+		static string Simple(TypeSyntax type)
+		{
+			return type switch
+			{
+				QualifiedNameSyntax qualified => Simple(qualified.Right),
+				AliasQualifiedNameSyntax aliased => Simple(aliased.Name),
+				GenericNameSyntax generic => generic.Identifier.ValueText,
+				SimpleNameSyntax simple => simple.Identifier.ValueText,
+				_ => type.ToString(),
+			};
+		}
+
+		// A named argument's value as written: a string's value, or the expression's text.
+		static string? Argument(AttributeSyntax attribute, string name)
+		{
+			foreach (var argument in attribute.ArgumentList?.Arguments ?? default)
+				if (argument.NameEquals?.Name.Identifier.ValueText == name)
+					return argument.Expression is LiteralExpressionSyntax { Token.Value: string text } ? text : argument.Expression.ToString();
+
+			return null;
+		}
 	}
 
 	/// <summary>Build output and scratch, judged below the root as <c>ExponentialShapeProbe</c> judges it.</summary>
