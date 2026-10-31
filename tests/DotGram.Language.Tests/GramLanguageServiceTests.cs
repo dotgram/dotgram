@@ -309,6 +309,33 @@ public sealed class GramLanguageServiceTests
 				symbol.Position + symbol.Length <= @namespace.Position + @namespace.Length));
 	}
 
+	/// <summary>
+	/// A rule published by a qualified name is selected from its first name to its last, inside the
+	/// publication: an outline refuses a symbol whose selection is not inside its range.
+	/// </summary>
+	[Fact]
+	public void SelectsAQualifiedPublicationsWholeName()
+	{
+		const string source =
+			"namespace Dialect\n" +
+			"{\n" +
+			"Select = 'a'\n" +
+			"}\n" +
+			"internal parse Dialect.Select as ParseSelect\n" +
+			"parse Dialect.Select\n";
+
+		var document     = GramLanguageService.Analyze(source);
+		var publications = document.DocumentSymbols.Where(static symbol => symbol.Kind == GramDocumentSymbolKind.Publication).ToArray();
+
+		Assert.Equal(2, publications.Length);
+		Assert.All(publications, symbol =>
+		{
+			Assert.Equal("Dialect.Select", source.Substring(symbol.SelectionPosition, symbol.SelectionLength));
+			Assert.True(symbol.Position <= symbol.SelectionPosition &&
+				symbol.SelectionPosition + symbol.SelectionLength <= symbol.Position + symbol.Length);
+		});
+	}
+
 	[Fact]
 	public void ClassifiesContextAndStateDeclarationsAsKeywords()
 	{
