@@ -1056,7 +1056,7 @@ Besides captures, the names the parser supplies are always in scope inside `=>` 
 `when`: `parserText` (the matched text, when `TIn` is a character) and `parserSpan` (the
 current rule's `SourceSpan`) in both, and §8.2's table says which of the rest a `=>` or a
 `recover` is handed; a `when` is handed no more than those two. A name written where it is
-not handed is refused (`GRAM4052`) rather than left to the C# compiler. They all begin with
+not handed is refused (`GRAM4053`) rather than left to the C# compiler. They all begin with
 `parser`, which is what that prefix is for — a capture may not take one of those names
 (GRAM4012), and every other name in the grammar is the author's to choose.
 
@@ -4091,7 +4091,7 @@ A `=>` is handed `parserText`, `parserSpan`, `parserInput` and, where the gramma
 `parserMarks` (§7.8); a `when` only `parserText` and `parserSpan`; a `recover` factory every name in the table but
 the marks. `parserInput` in a `recover` factory is the whole input, as it is in a `=>`, and is refused where
 there is none to hand over (a streamed parse, a buffered form, a grammar that names `eos`). Naming one where it
-is not handed is `GRAM4052`.
+is not handed is `GRAM4053`.
 
 **Where a bad element began is not where it went wrong.** `Flat white     3,20` is
 rejected as a whole line, and `parserLine` and `parserColumn` say where that line begins;

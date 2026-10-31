@@ -125,7 +125,7 @@ public sealed partial class GrammarNormalizer
 	public const string MarkWithoutState = "GRAM4029";
 
 	/// <summary>A supplied name in C# that is not handed it: the input to a <c>when</c>, a mark to a <c>when</c>, a rejected element's to a <c>=&gt;</c>.</summary>
-	public const string SuppliedNameNotHere = "GRAM4052";
+	public const string SuppliedNameNotHere = "GRAM4053";
 
 	/// <summary>A mark whose value names a capture of its own alternative.</summary>
 	public const string MarkNamesCapture = "GRAM4030";
