@@ -39,7 +39,7 @@ namespace DotGram.Examples.Formats;
 	                       | Blank            => @(new MarkdownBlank())
 	                       | block: Paragraph => @(block)
 
-	Heading : @MarkdownBlock = hashes: '#'+ & ' ' & text: Line & eol
+	Heading : @MarkdownBlock = hashes: '#'+ & ' ' & text: Line & Eol
 	                             => @(new MarkdownHeading(hashes.Length, text))
 
 	// One `Bullet+` is one list. The next blank line or ordinary line ends it, because
@@ -51,16 +51,24 @@ namespace DotGram.Examples.Formats;
 	// lists: sixteen of them took twelve seconds, and each further one doubled it.
 	Bullets : @MarkdownBlock = { items: Bullet+ } => @(new MarkdownList(items))
 
-	Bullet : @string = "- " & text: Line & eol => @(text)
+	Bullet : @string = "- " & text: Line & Eol => @(text)
 
-	Code : @MarkdownBlock = "```" & Line & eol & lines: CodeLine* & "```" & eol
+	Code : @MarkdownBlock = "```" & Line & Eol & lines: CodeLine* & "```" & Eol
 	                          => @(new MarkdownCode(lines))
 
-	CodeLine : @string = ?!"```" & text: Line & eol => @(text)
+	CodeLine : @string = ?!"```" & text: Line & Eol => @(text)
 
-	Blank = eol
+	Blank = Eol
 
-	Paragraph : @MarkdownBlock = text: Line & eol => @(new MarkdownParagraph(text))
+	// "A line that is none of the others" is written as that: without the lookahead a heading,
+	// a bullet, a fence or a blank line is also a paragraph, and a document refused late is read
+	// once for every line that could go either way.
+	Paragraph : @MarkdownBlock = ?!(Heading | Bullet | Code | Blank) & text: Line & Eol
+	                               => @(new MarkdownParagraph(text))
+
+	// One line ending, taken as a unit: `\r\n` is not a `\r` and then a `\n`. `eol` alone lets the
+	// repetitions give the `\n` back and read it as a blank line of its own.
+	Eol = { eol }
 
 	Line : @string = chars: [^ '\n' | '\r']* => @(chars)
 
