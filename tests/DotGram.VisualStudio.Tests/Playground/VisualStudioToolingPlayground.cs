@@ -54,6 +54,11 @@ namespace DotGram.VisualStudio.Tests.Playground;
 	Power   : @decimal = left: Primary & ('^' & right: Unary)?
 	                   => @(right is { } exponent ? Raise(left, exponent) : left)
 
+	// Put the caret inside the arguments of Digits below and press Ctrl+Shift+Space:
+	// signature help shows the parameterized rule with n, and keeps the active argument.
+	Digits(n) = ['0'..'9']{n}
+	Fixed     = Digits(4)
+
 	// F12 on ToolingEvaluate should open the generated C# publication method.
 	parse Sum as ToolingEvaluate
 
@@ -63,6 +68,7 @@ namespace DotGram.VisualStudio.Tests.Playground;
 	// in a generated method the way it does on `Sum`.
 	parse Backtracking as ToolingBacktracking
 	parse Power        as ToolingPower
+	parse Fixed        as ToolingFixed
 	""")]
 [GramLanguage("dotgram.tooling.playground")]
 [GramClassify("Sum", GramClassification.Function)]
