@@ -439,11 +439,6 @@ sealed class GramQuickInfoSource(
 		public bool KeepQuickInfoOpen => false;
 		public bool IsMouseOverAggregated => IsMouseOver;
 	}
-
-	static bool Contains(int start, int length, int position)
-	{
-		return start <= position && position < start + length;
-	}
 }
 
 sealed class EmbeddedGramQuickInfoSource(

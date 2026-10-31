@@ -78,8 +78,12 @@ interface IGramAnalysisHost<TVersion> where TVersion : class
 	/// <summary>Whether one of these edited documents now declares a class that could be the grammar's host.</summary>
 	Task<bool> MayHostAsync(IReadOnlyList<DocumentId> documents, string filePath, CancellationToken cancellationToken);
 
-	/// <summary>Where the session's <c>Changed</c> event may be raised: Visual Studio raises its own events on its main thread.</summary>
-	Task BeforeChangedAsync(CancellationToken cancellationToken);
+	/// <summary>
+	/// Raises the session's <c>Changed</c> event where the editor's own events are raised: Visual Studio
+	/// raises them on its main thread. The host calls <paramref name="raise"/> itself, there, since a
+	/// switch of thread made inside an awaited method does not carry over to its caller.
+	/// </summary>
+	Task RaiseAsync(Action raise, CancellationToken cancellationToken);
 
 	/// <summary>An exception the session caught and went on after.</summary>
 	void Report(Exception exception);
@@ -807,10 +811,11 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 
 				var published = false;
 
+				// Work done for a version something newer has replaced — cancelled by the edit, or
+				// overtaken without one — is not shown, and is still counted as work done.
 				lock (_gate)
 				{
-					cancellationToken.ThrowIfCancellationRequested();
-					if (_host.Current == snapshot)
+					if (!cancellationToken.IsCancellationRequested && _host.Current == snapshot)
 					{
 						published = true;
 						timing    = clock.Timing(text.Length + (context?.AnalysisTail.Length ?? 0), published: true);
@@ -835,8 +840,7 @@ sealed class GramAnalysisSession<TVersion> where TVersion : class
 				_analysisGate.Release();
 			}
 
-			await _host.BeforeChangedAsync(cancellationToken).ConfigureAwait(false);
-			GramAnalysisSession.Raise(Changed, snapshot, _host.Report);
+			await _host.RaiseAsync(() => GramAnalysisSession.Raise(Changed, snapshot, _host.Report), cancellationToken).ConfigureAwait(false);
 		}
 		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
 		{

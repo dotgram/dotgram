@@ -128,6 +128,137 @@ public sealed class EmbeddedGrammarSessionTests
 		Assert.Empty(edited.Symbols);
 	}
 
+	/// <summary>Both of the session's notices of an analysis, the colours and the meaning, are raised on the editor's main thread.</summary>
+	[Fact]
+	public void Changed_after_an_analysis_is_raised_on_the_editors_main_thread()
+	{
+		using var main      = new MainThread();
+		using var workspace = new AdhocWorkspace();
+		var host    = Host(workspace);
+		var threads = new List<int>();
+		var changed = new SemaphoreSlim(0);
+
+		host.Main = main;
+
+		var session = new EmbeddedGrammarSession<EmbeddedHost.Version>(host);
+
+		session.Changed += _ =>
+		{
+			lock (threads)
+				threads.Add(Environment.CurrentManagedThreadId);
+
+			changed.Release();
+		};
+
+		host.Scheduler.Advance(EmbeddedGrammarSession.AnalysisDelayMilliseconds);
+		Assert.True(changed.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
+		Assert.True(host.Scheduler.WaitForTimer(TimeSpan.FromSeconds(30)));
+		host.Scheduler.Advance(EmbeddedGrammarSession.SemanticAnalysisDelayMilliseconds);
+		Assert.True(changed.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
+
+		lock (threads)
+			Assert.Equal([main.ManagedThreadId, main.ManagedThreadId], threads);
+	}
+
+	/// <summary>A burst of edits is analysed once, at its last version.</summary>
+	[Fact]
+	public void Rapid_edits_analyse_only_the_last_version()
+	{
+		using var workspace = new AdhocWorkspace();
+		var host    = Host(workspace);
+		var changed = new SemaphoreSlim(0);
+		var session = new EmbeddedGrammarSession<EmbeddedHost.Version>(host);
+
+		session.Changed += _ => changed.Release();
+
+		var first = host.Current;
+		var one   = host.Edit(HostSource + " ");
+		session.Edited(first, one);
+		host.Scheduler.Advance(100);
+		var two   = host.Edit(HostSource + "  ");
+		session.Edited(one, two);
+		host.Scheduler.Advance(100);
+		var last  = host.Edit(HostSource + "   ");
+		session.Edited(two, last);
+
+		host.Scheduler.Advance(EmbeddedGrammarSession.AnalysisDelayMilliseconds);
+		Assert.True(changed.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
+
+		Assert.Equal([last], host.Analysed);
+		Assert.True(session.View(last).Current);
+	}
+
+	/// <summary>An analysis of a version the document has moved past while it ran is not published.</summary>
+	[Fact]
+	public void A_result_for_a_superseded_version_is_dropped()
+	{
+		using var workspace = new AdhocWorkspace();
+		var host    = Host(workspace);
+		var changed = new SemaphoreSlim(0);
+		var session = new EmbeddedGrammarSession<EmbeddedHost.Version>(host);
+		var stale   = host.Current;
+		EmbeddedHost.Version? newer = null;
+
+		session.Changed += _ => changed.Release();
+		host.During = version =>
+		{
+			if (version == stale)
+				newer = host.Edit(HostSource + " ");
+		};
+
+		host.Scheduler.Advance(EmbeddedGrammarSession.AnalysisDelayMilliseconds);
+
+		Assert.True(SpinWait.SpinUntil(() => host.AnalysedCount == 1, TimeSpan.FromSeconds(30)));
+		Assert.False(changed.Wait(TimeSpan.FromMilliseconds(500), TestContext.Current.CancellationToken));
+		Assert.False(session.View(stale).Current);
+
+		host.During = null;
+		session.Edited(stale, newer!);
+		host.Scheduler.Advance(EmbeddedGrammarSession.AnalysisDelayMilliseconds);
+		Assert.True(changed.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
+		Assert.True(session.View(newer!).Current);
+	}
+
+	/// <summary>
+	/// A document that names <c>[Gram</c> and yields no grammar — its project not loaded yet — is
+	/// analysed again a few times, and then left until it changes.
+	/// </summary>
+	[Fact]
+	public void A_document_that_names_Gram_and_yields_none_is_asked_again_a_few_times()
+	{
+		using var workspace = new AdhocWorkspace();
+		var host    = Host(workspace, "// [Gram(...)] is what this file will hold.\nclass Parser;\n");
+		var session = new EmbeddedGrammarSession<EmbeddedHost.Version>(host);
+
+		for (var step = 0; step < 4 * EmbeddedGrammarSession.RetryCount && host.Scheduler.WaitForTimer(TimeSpan.FromSeconds(2)); step++)
+			host.Scheduler.Advance(EmbeddedGrammarSession.RetryDelayMilliseconds + EmbeddedGrammarSession.AnalysisDelayMilliseconds);
+
+		Assert.Equal(1 + EmbeddedGrammarSession.RetryCount, host.AnalysedCount);
+		Assert.True(session.View(host.Current).Current);
+	}
+
+	const string HostSource = """
+		namespace DotGram
+		{
+			sealed class GramAttribute(string text) : System.Attribute;
+		}
+
+		[DotGram.Gram("Start = 'a'\nparse Start")]
+		class Parser;
+		""";
+
+	const string HostPath = @"P:\Host\Parser.cs";
+
+	static EmbeddedHost Host(AdhocWorkspace workspace, string source = HostSource)
+	{
+		var project  = workspace.AddProject("Host", LanguageNames.CSharp)
+			.AddMetadataReference(MetadataReference.CreateFromFile(typeof(object).Assembly.Location));
+		var document = project.AddDocument("Parser.cs", SourceText.From(source), filePath: HostPath);
+		Assert.True(workspace.TryApplyChanges(document.Project.Solution));
+
+		return new EmbeddedHost(workspace, HostPath, source);
+	}
+
 	sealed class EmbeddedHost(Workspace workspace, string filePath, string text) : IEmbeddedGrammarHost<EmbeddedHost.Version>
 	{
 		public sealed class Version(string text)
@@ -137,7 +268,15 @@ public sealed class EmbeddedGrammarSessionTests
 
 		public ThreadSafeVirtualScheduler Scheduler { get; } = new();
 
-		public Version Current { get; private set; } = new(text);
+		volatile Version _current = new(text);
+
+		public Version Current => _current;
+
+		/// <summary>The versions an analysis was started on, in order.</summary>
+		public List<Version> Analysed { get; } = [];
+
+		/// <summary>Called as an analysis starts, on whatever thread it runs on.</summary>
+		public Action<Version>? During { get; set; }
 
 		public string? FilePath => filePath;
 
@@ -145,8 +284,17 @@ public sealed class EmbeddedGrammarSessionTests
 
 		public Version Edit(string next)
 		{
-			Current = new Version(next);
-			return Current;
+			_current = new Version(next);
+			return _current;
+		}
+
+		public int AnalysedCount
+		{
+			get
+			{
+				lock (Analysed)
+					return Analysed.Count;
+			}
 		}
 
 		public string Text(Version version)
@@ -171,12 +319,23 @@ public sealed class EmbeddedGrammarSessionTests
 
 		public Document? Document(Version version)
 		{
+			lock (Analysed)
+				Analysed.Add(version);
+
+			During?.Invoke(version);
+
 			return EmbeddedGrammarDocuments.WithText(workspace.CurrentSolution, filePath, version.Text);
 		}
 
-		public Task BeforeChangedAsync(CancellationToken cancellationToken)
+		/// <summary>The editor's main thread, where the session's event is raised; on the caller's thread where null.</summary>
+		public MainThread? Main { get; set; }
+
+		public async Task RaiseAsync(Action raise, CancellationToken cancellationToken)
 		{
-			return Task.CompletedTask;
+			if (Main is not null)
+				await Main.SwitchTo();
+
+			raise();
 		}
 
 		public void Report(Exception exception)
