@@ -1,0 +1,247 @@
+completion 4:24 applicable=4:24+5
+  and | insert=and | suffix= | sort=and | filter=and | DotGram keyword and: in a 'when' condition: both conditions hold
+  any | insert=any | suffix= | sort=any | filter=any | DotGram built-in rule any: one input item, whatever it is; fails only where there is none left
+  as | insert=as | suffix= | sort=as | filter=as | DotGram keyword as: names the method a 'parse' or 'find' publishes
+  bytes | insert=bytes | suffix= | sort=bytes | filter=bytes | DotGram keyword bytes: a publication option after 'stream': the method reads bytes, from a Stream, a byte[] or a ReadOnlyMemory<byte>
+  case | insert=case | suffix= | sort=case | filter=case | DotGram keyword case: a case of a computed choice: 'case value: Expr;'
+  context | insert=context | suffix= | sort=context | filter=context | DotGram keyword context: 'context : @T' declares the object every publication is handed and the C# code reads as 'context'
+  default | insert=default | suffix= | sort=default | filter=default | DotGram keyword default: the case of a computed choice taken where no other case matches
+  eof | insert=eof | suffix= | sort=eof | filter=eof | DotGram built-in rule eof: the end of the input: succeeds exactly where 'any' would fail, consuming nothing
+  eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
+  eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  field | insert=field | suffix= | sort=field | filter=field | field: DotGram capture
+  find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
+  Identifier | insert=Identifier | suffix= | sort=Identifier | filter=Identifier | Identifier = ['a'..'z']+
+  internal | insert=internal | suffix= | sort=internal | filter=internal | DotGram keyword internal: a publication's method is internal: the assembly and its friends
+  is | insert=is | suffix= | sort=is | filter=is | DotGram keyword is: in a 'when' condition: 'Rule is "text"' holds where the rule is bound to that text
+  Keyword | insert=Keyword | suffix= | sort=Keyword | filter=Keyword | Keyword    = "select"
+  namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
+  none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
+  not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
+  parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+  private | insert=private | suffix= | sort=private | filter=private | DotGram keyword private: a publication's method is private to the class the grammar is attached to
+  public | insert=public | suffix= | sort=public | filter=public | DotGram keyword public: a publication's method is public (the default)
+  Query | insert=Query | suffix= | sort=Query | filter=Query | Query      = Keyword & field: (Identifier)\n\nReferenced rule:\nKeyword    = "select"\n\nReferenced rule:\nIdentifier = ['a'..'z']+
+  recover | insert=recover | suffix= | sort=recover | filter=recover | DotGram keyword recover: a repetition that survives a bad element: 'X* recover Sync' skips to Sync and goes on; '=> @Factory(...)' builds the rejected element
+  state | insert=state | suffix= | sort=state | filter=state | DotGram keyword state: 'state : @T' declares what holds while an operand is read; 'with state @(...)' sets it and 'parserState' reads it
+  stream | insert=stream | suffix= | sort=stream | filter=stream | DotGram keyword stream: a publication option: the method also reads a TextReader, or with 'bytes' a byte Stream
+  switch | insert=switch | suffix= | sort=switch | filter=switch | DotGram keyword switch: computed choice: 'switch @(selector) { case value: Expr; default: Expr }' reads the case the C# selector names
+  trivia | insert=trivia | suffix= | sort=trivia | filter=trivia | trivia     = [' ' | '\\t']*
+  using | insert=using | suffix= | sort=using | filter=using | DotGram keyword using: imports a grammar namespace, as in 'using Lexical;'; '@using' imports a C# namespace
+  when | insert=when | suffix= | sort=when | filter=when | DotGram keyword when: a guard: the alternative goes on only where the condition holds, as in 'when @IsValid(x)', 'when @(x > 0)' or 'when Version is "2022"'
+  with | insert=with | suffix= | sort=with | filter=with | DotGram keyword with: rebinds names for an expression, a namespace or a publication: 'with (A = B)'; 'with state @(...)' sets the parser state while its operand is read
+  word | insert=word | suffix= | sort=word | filter=word | DotGram built-in rule word: one whole word, whatever it says, as 'wordboundary' defines a word
+  wordboundary | insert=wordboundary | suffix= | sort=wordboundary | filter=wordboundary | DotGram built-in rule wordboundary: what a word is made of; none until the grammar declares 'wordboundary'
+  yield | insert=yield | suffix= | sort=yield | filter=yield | DotGram keyword yield: a publication option: the method returns the elements of a sequence lazily, 'yield : @T' naming their type
+completion 4:37 applicable=4:32+10
+  and | insert=and | suffix= | sort=and | filter=and | DotGram keyword and: in a 'when' condition: both conditions hold
+  any | insert=any | suffix= | sort=any | filter=any | DotGram built-in rule any: one input item, whatever it is; fails only where there is none left
+  as | insert=as | suffix= | sort=as | filter=as | DotGram keyword as: names the method a 'parse' or 'find' publishes
+  bytes | insert=bytes | suffix= | sort=bytes | filter=bytes | DotGram keyword bytes: a publication option after 'stream': the method reads bytes, from a Stream, a byte[] or a ReadOnlyMemory<byte>
+  case | insert=case | suffix= | sort=case | filter=case | DotGram keyword case: a case of a computed choice: 'case value: Expr;'
+  context | insert=context | suffix= | sort=context | filter=context | DotGram keyword context: 'context : @T' declares the object every publication is handed and the C# code reads as 'context'
+  default | insert=default | suffix= | sort=default | filter=default | DotGram keyword default: the case of a computed choice taken where no other case matches
+  eof | insert=eof | suffix= | sort=eof | filter=eof | DotGram built-in rule eof: the end of the input: succeeds exactly where 'any' would fail, consuming nothing
+  eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
+  eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  field | insert=field | suffix= | sort=field | filter=field | field: DotGram capture
+  find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
+  Identifier | insert=Identifier | suffix= | sort=Identifier | filter=Identifier | Identifier = ['a'..'z']+
+  internal | insert=internal | suffix= | sort=internal | filter=internal | DotGram keyword internal: a publication's method is internal: the assembly and its friends
+  is | insert=is | suffix= | sort=is | filter=is | DotGram keyword is: in a 'when' condition: 'Rule is "text"' holds where the rule is bound to that text
+  Keyword | insert=Keyword | suffix= | sort=Keyword | filter=Keyword | Keyword    = "select"
+  namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
+  none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
+  not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
+  parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+  private | insert=private | suffix= | sort=private | filter=private | DotGram keyword private: a publication's method is private to the class the grammar is attached to
+  public | insert=public | suffix= | sort=public | filter=public | DotGram keyword public: a publication's method is public (the default)
+  Query | insert=Query | suffix= | sort=Query | filter=Query | Query      = Keyword & field: (Identifier)\n\nReferenced rule:\nKeyword    = "select"\n\nReferenced rule:\nIdentifier = ['a'..'z']+
+  recover | insert=recover | suffix= | sort=recover | filter=recover | DotGram keyword recover: a repetition that survives a bad element: 'X* recover Sync' skips to Sync and goes on; '=> @Factory(...)' builds the rejected element
+  state | insert=state | suffix= | sort=state | filter=state | DotGram keyword state: 'state : @T' declares what holds while an operand is read; 'with state @(...)' sets it and 'parserState' reads it
+  stream | insert=stream | suffix= | sort=stream | filter=stream | DotGram keyword stream: a publication option: the method also reads a TextReader, or with 'bytes' a byte Stream
+  switch | insert=switch | suffix= | sort=switch | filter=switch | DotGram keyword switch: computed choice: 'switch @(selector) { case value: Expr; default: Expr }' reads the case the C# selector names
+  trivia | insert=trivia | suffix= | sort=trivia | filter=trivia | trivia     = [' ' | '\\t']*
+  using | insert=using | suffix= | sort=using | filter=using | DotGram keyword using: imports a grammar namespace, as in 'using Lexical;'; '@using' imports a C# namespace
+  when | insert=when | suffix= | sort=when | filter=when | DotGram keyword when: a guard: the alternative goes on only where the condition holds, as in 'when @IsValid(x)', 'when @(x > 0)' or 'when Version is "2022"'
+  with | insert=with | suffix= | sort=with | filter=with | DotGram keyword with: rebinds names for an expression, a namespace or a publication: 'with (A = B)'; 'with state @(...)' sets the parser state while its operand is read
+  word | insert=word | suffix= | sort=word | filter=word | DotGram built-in rule word: one whole word, whatever it says, as 'wordboundary' defines a word
+  wordboundary | insert=wordboundary | suffix= | sort=wordboundary | filter=wordboundary | DotGram built-in rule wordboundary: what a word is made of; none until the grammar declares 'wordboundary'
+  yield | insert=yield | suffix= | sort=yield | filter=yield | DotGram keyword yield: a publication option: the method returns the elements of a sequence lazily, 'yield : @T' naming their type
+completion 6:7 applicable=6:7+5
+  and | insert=and | suffix= | sort=and | filter=and | DotGram keyword and: in a 'when' condition: both conditions hold
+  any | insert=any | suffix= | sort=any | filter=any | DotGram built-in rule any: one input item, whatever it is; fails only where there is none left
+  as | insert=as | suffix= | sort=as | filter=as | DotGram keyword as: names the method a 'parse' or 'find' publishes
+  bytes | insert=bytes | suffix= | sort=bytes | filter=bytes | DotGram keyword bytes: a publication option after 'stream': the method reads bytes, from a Stream, a byte[] or a ReadOnlyMemory<byte>
+  case | insert=case | suffix= | sort=case | filter=case | DotGram keyword case: a case of a computed choice: 'case value: Expr;'
+  context | insert=context | suffix= | sort=context | filter=context | DotGram keyword context: 'context : @T' declares the object every publication is handed and the C# code reads as 'context'
+  default | insert=default | suffix= | sort=default | filter=default | DotGram keyword default: the case of a computed choice taken where no other case matches
+  eof | insert=eof | suffix= | sort=eof | filter=eof | DotGram built-in rule eof: the end of the input: succeeds exactly where 'any' would fail, consuming nothing
+  eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
+  eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
+  Identifier | insert=Identifier | suffix= | sort=Identifier | filter=Identifier | Identifier = ['a'..'z']+
+  internal | insert=internal | suffix= | sort=internal | filter=internal | DotGram keyword internal: a publication's method is internal: the assembly and its friends
+  is | insert=is | suffix= | sort=is | filter=is | DotGram keyword is: in a 'when' condition: 'Rule is "text"' holds where the rule is bound to that text
+  Keyword | insert=Keyword | suffix= | sort=Keyword | filter=Keyword | Keyword    = "select"
+  namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
+  none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
+  not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
+  parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+  private | insert=private | suffix= | sort=private | filter=private | DotGram keyword private: a publication's method is private to the class the grammar is attached to
+  public | insert=public | suffix= | sort=public | filter=public | DotGram keyword public: a publication's method is public (the default)
+  Query | insert=Query | suffix= | sort=Query | filter=Query | Query      = Keyword & field: (Identifier)\n\nReferenced rule:\nKeyword    = "select"\n\nReferenced rule:\nIdentifier = ['a'..'z']+
+  recover | insert=recover | suffix= | sort=recover | filter=recover | DotGram keyword recover: a repetition that survives a bad element: 'X* recover Sync' skips to Sync and goes on; '=> @Factory(...)' builds the rejected element
+  state | insert=state | suffix= | sort=state | filter=state | DotGram keyword state: 'state : @T' declares what holds while an operand is read; 'with state @(...)' sets it and 'parserState' reads it
+  stream | insert=stream | suffix= | sort=stream | filter=stream | DotGram keyword stream: a publication option: the method also reads a TextReader, or with 'bytes' a byte Stream
+  switch | insert=switch | suffix= | sort=switch | filter=switch | DotGram keyword switch: computed choice: 'switch @(selector) { case value: Expr; default: Expr }' reads the case the C# selector names
+  trivia | insert=trivia | suffix= | sort=trivia | filter=trivia | trivia     = [' ' | '\\t']*
+  using | insert=using | suffix= | sort=using | filter=using | DotGram keyword using: imports a grammar namespace, as in 'using Lexical;'; '@using' imports a C# namespace
+  when | insert=when | suffix= | sort=when | filter=when | DotGram keyword when: a guard: the alternative goes on only where the condition holds, as in 'when @IsValid(x)', 'when @(x > 0)' or 'when Version is "2022"'
+  with | insert=with | suffix= | sort=with | filter=with | DotGram keyword with: rebinds names for an expression, a namespace or a publication: 'with (A = B)'; 'with state @(...)' sets the parser state while its operand is read
+  word | insert=word | suffix= | sort=word | filter=word | DotGram built-in rule word: one whole word, whatever it says, as 'wordboundary' defines a word
+  wordboundary | insert=wordboundary | suffix= | sort=wordboundary | filter=wordboundary | DotGram built-in rule wordboundary: what a word is made of; none until the grammar declares 'wordboundary'
+  yield | insert=yield | suffix= | sort=yield | filter=yield | DotGram keyword yield: a publication option: the method returns the elements of a sequence lazily, 'yield : @T' naming their type
+quickinfo 1:1 span=1:1+6
+  icon Method
+  text trivia     = [' ' | '\\t']*
+quickinfo 1:12 span=1:12+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 1:14 span=1:14+1
+  icon IntellisenseKeyword
+  text DotGram '[': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 1:15 span=1:15+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 1:19 span=1:19+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 1:21 span=1:21+4
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 1:25 span=1:25+1
+  icon IntellisenseKeyword
+  text DotGram ']': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 1:26 span=1:26+1
+  icon IntellisenseKeyword
+  text DotGram '*': repetition: zero or more
+quickinfo 2:1 span=2:1+7
+  icon Method
+  text Keyword    = "select"
+quickinfo 2:12 span=2:12+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 2:14 span=2:14+8
+  icon IntellisenseKeyword
+  text DotGram string literal
+quickinfo 3:1 span=3:1+10
+  icon Method
+  text Identifier = ['a'..'z']+
+quickinfo 3:12 span=3:12+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 3:14 span=3:14+1
+  icon IntellisenseKeyword
+  text DotGram '[': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 3:15 span=3:15+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 3:18 span=3:18+2
+  icon IntellisenseKeyword
+  text DotGram '..': range: 'a'..'z'
+quickinfo 3:20 span=3:20+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 3:23 span=3:23+1
+  icon IntellisenseKeyword
+  text DotGram ']': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 3:24 span=3:24+1
+  icon IntellisenseKeyword
+  text DotGram '+': repetition: one or more
+quickinfo 4:1 span=4:1+5
+  icon Method
+  text Query      = Keyword & field: (Identifier)
+  text Show referenced rules
+  hidden Referenced rule:\nKeyword    = "select"\n\nReferenced rule:\nIdentifier = ['a'..'z']+
+quickinfo 4:12 span=4:12+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 4:14 span=4:14+7
+  icon Method
+  text Keyword    = "select"
+quickinfo 4:22 span=4:22+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 4:24 span=4:24+5
+  icon Method
+  text field: DotGram capture
+quickinfo 4:29 span=4:29+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 4:31 span=4:31+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 4:32 span=4:32+10
+  icon Method
+  text Identifier = ['a'..'z']+
+quickinfo 4:42 span=4:42+1
+  icon IntellisenseKeyword
+  text DotGram ')': grouping, a rule's parameters or a call's arguments
+quickinfo 6:1 span=6:1+5
+  icon IntellisenseKeyword
+  text DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+quickinfo 6:7 span=6:7+5
+  icon Method
+  text Query      = Keyword & field: (Identifier)
+  text Show referenced rules
+  hidden Referenced rule:\nKeyword    = "select"\n\nReferenced rule:\nIdentifier = ['a'..'z']+
+definition 1:1 -> here 1:1
+navigable 1:1 span=1:1+6 -> 1:1
+references 1:1 name=trivia definition=1:1 at=[1:1] elsewhere=0
+rename 1:1 edits=[1:1+6]
+highlight 1:1 -> [1:1+6 DefinitionHighlightTag]
+definition 2:1 -> here 2:1
+navigable 2:1 span=2:1+7 -> 2:1
+references 2:1 name=Keyword definition=2:1 at=[2:1, 4:14] elsewhere=0
+rename 2:1 edits=[2:1+7, 4:14+7]
+highlight 2:1 -> [2:1+7 DefinitionHighlightTag, 4:14+7 ReferenceHighlightTag]
+definition 3:1 -> here 3:1
+navigable 3:1 span=3:1+10 -> 3:1
+references 3:1 name=Identifier definition=3:1 at=[3:1, 4:32] elsewhere=0
+rename 3:1 edits=[3:1+10, 4:32+10]
+highlight 3:1 -> [3:1+10 DefinitionHighlightTag, 4:32+10 ReferenceHighlightTag]
+definition 4:1 -> here 4:1
+navigable 4:1 span=4:1+5 -> 4:1
+references 4:1 name=Query definition=4:1 at=[4:1, 6:7] elsewhere=0
+rename 4:1 edits=[4:1+5, 6:7+5]
+highlight 4:1 -> [4:1+5 DefinitionHighlightTag, 6:7+5 ReferenceHighlightTag]
+definition 4:14 -> here 2:1
+navigable 4:14 span=4:14+7 -> 2:1
+references 4:14 name=Keyword definition=2:1 at=[2:1, 4:14] elsewhere=0
+rename 4:14 edits=[2:1+7, 4:14+7]
+highlight 4:14 -> [2:1+7 DefinitionHighlightTag, 4:14+7 ReferenceHighlightTag]
+definition 4:24 -> here 4:24
+navigable 4:24 span=4:24+5 -> 4:24
+references 4:24 name=field definition=4:24 at=[4:24] elsewhere=0
+rename 4:24 edits=[4:24+5]
+highlight 4:24 -> [4:24+5 DefinitionHighlightTag]
+definition 4:32 -> here 3:1
+navigable 4:32 span=4:32+10 -> 3:1
+references 4:32 name=Identifier definition=3:1 at=[3:1, 4:32] elsewhere=0
+rename 4:32 edits=[3:1+10, 4:32+10]
+highlight 4:32 -> [3:1+10 DefinitionHighlightTag, 4:32+10 ReferenceHighlightTag]
+definition 6:7 -> here 4:1
+navigable 6:7 span=6:7+5 -> 4:1
+references 6:7 name=Query definition=4:1 at=[4:1, 6:7] elsewhere=0
+rename 6:7 edits=[4:1+5, 6:7+5]
+highlight 6:7 -> [4:1+5 DefinitionHighlightTag, 6:7+5 ReferenceHighlightTag]
