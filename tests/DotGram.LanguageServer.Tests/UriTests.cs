@@ -13,7 +13,7 @@ public sealed class UriTests
 	{
 		Assert.SkipUnless(OperatingSystem.IsWindows(), "Windows paths.");
 
-		Assert.Equal(@"c:\Users\Igor\a b.gram", FileUris.ToPath("file:///c%3A/Users/Igor/a%20b.gram"), ignoreCase: true);
+		Assert.Equal(@"C:\Users\Igor\a b.gram", FileUris.ToPath("file:///c%3A/Users/Igor/a%20b.gram"));
 		Assert.Equal(@"C:\Users\a.gram", FileUris.ToPath("file:///C:/Users/a.gram"), ignoreCase: true);
 		Assert.Equal(@"\\server\share\a.gram", FileUris.ToPath("file://server/share/a.gram"), ignoreCase: true);
 		Assert.Equal("file:///c%3A/Users/a%20b.gram", FileUris.ToUri(@"C:\Users\a b.gram"));

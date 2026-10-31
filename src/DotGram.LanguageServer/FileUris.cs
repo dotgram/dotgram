@@ -50,8 +50,9 @@ static class FileUris
 				if (authority.Length > 0)
 					return Path.GetFullPath(@"\\" + authority + path.Replace('/', '\\'));
 
+				// The drive as Windows writes it, upper-case, which VS Code lower-cases.
 				if (path.Length >= 3 && path[0] == '/' && char.IsAsciiLetter(path[1]) && path[2] == ':')
-					path = path.Substring(1);
+					path = char.ToUpperInvariant(path[1]) + path.Substring(2);
 
 				return Path.GetFullPath(path.Replace('/', '\\'));
 			}
