@@ -1,5 +1,7 @@
 using System.ComponentModel.Composition;
 
+using DotGram.Language;
+
 using Microsoft.VisualStudio.Commanding;
 using Microsoft.VisualStudio.LanguageServices;
 using Microsoft.VisualStudio.Shell;
@@ -44,45 +46,40 @@ sealed class GramRenameCommandHandler : ICommandHandler<RenameCommandArgs>
 		return true;
 	}
 
-	internal static void Rename(IWpfTextView view, GramFindReferencesTarget found)
+	internal static void Rename(IWpfTextView view, GramReferences found)
 	{
 		ThreadHelper.ThrowIfNotOnUIThread();
 
-		// A rule an included grammar declares or uses is renamed there too, which this
-		// buffer cannot do; renaming half of it is worse than not renaming it.
-		if (!found.Renamable)
+		if (GramRenameProvider.Refusal(found) is { } refusal)
 		{
 			if (ServiceProvider.GlobalProvider.GetService(typeof(SVsStatusbar)) is IVsStatusbar status)
-				status.SetText($"'{found.Name}' is declared or used in an included grammar and cannot be renamed from here.");
+				status.SetText(refusal);
 
 			return;
 		}
 
 		GramRenameAdornment.Show(view, found.Name, replacement =>
 		{
-			if (replacement == found.Name)
+			var rename = GramRenameProvider.Rename(found, replacement);
+
+			if (rename.Edits.Count == 0)
 				return;
 
 			using var edit = view.TextBuffer.CreateEdit();
 
-			foreach (var position in found.Positions)
-				edit.Replace(position, found.Name.Length, replacement);
+			foreach (var change in rename.Edits)
+				edit.Replace(change.Span.Start, change.Span.Length, change.NewText);
 
 			edit.Apply();
 		});
 	}
 
-	GramFindReferencesTarget? Target(RenameCommandArgs args)
+	GramReferences? Target(RenameCommandArgs args)
 	{
 		var snapshot = args.TextView.TextSnapshot;
 		var position = args.TextView.Caret.Position.BufferPosition
 			.TranslateTo(snapshot, PointTrackingMode.Negative).Position;
 
-		return args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name)
-			? GramFindReferencesTarget.Standalone(snapshot, position, GramBufferAnalysis.For(args.SubjectBuffer))
-			: GramFindReferencesTarget.Embedded(
-				snapshot,
-				position,
-				EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents));
+		return GramFindReferencesTarget.At(args.SubjectBuffer, snapshot, position, Workspace, Documents);
 	}
 }

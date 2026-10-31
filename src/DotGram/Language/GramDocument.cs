@@ -185,6 +185,12 @@ public static class GramLanguageService
 	/// <param name="options">What the host's attribute says, or null for a grammar with no host.</param>
 	public static GramDocument Analyze(string text, GramAnalysisOptions? options)
 	{
+		return Analyze(text, options, null);
+	}
+
+	/// <summary>As <see cref="Analyze(string, GramAnalysisOptions?)"/>, telling the clock where the compiler's part ends.</summary>
+	internal static GramDocument Analyze(string text, GramAnalysisOptions? options, GramAnalysisClock? clock)
+	{
 		if (text is null)
 			throw new ArgumentNullException(nameof(text));
 
@@ -201,6 +207,8 @@ public static class GramLanguageService
 			Lexical       = options?.Lexical ?? false,
 			Bound         = bound => model = bound,
 		});
+
+		clock?.StartPostProcessing();
 
 		var tokens = GramLexer.Tokenize(
 			text, scanner, GramCompiler.CutsOf(options?.Own, options?.Cuts), text.Length, null);

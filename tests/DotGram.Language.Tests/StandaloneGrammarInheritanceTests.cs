@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 
 using DotGram.Grammar;
 using DotGram.Language;
-using DotGram.VisualStudio;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -12,7 +11,7 @@ using Microsoft.CodeAnalysis.Text;
 
 using Xunit;
 
-namespace DotGram.VisualStudio.Tests;
+namespace DotGram.Language.Tests;
 
 public sealed class StandaloneGrammarInheritanceTests
 {
@@ -200,7 +199,7 @@ public sealed class StandaloneGrammarInheritanceTests
 	{
 		const string dialect = "using Sql92;\nStart = Word & Sql92.Word & Sql92.Lexical.Digits\nparse Start";
 		var context  = Context();
-		var analysis = GramBufferAnalysis.Analyze(dialect, context, suppressContextDiagnostics: false);
+		var analysis = GramAnalysisSession.Analyze(dialect, context, suppressContextDiagnostics: false);
 		var symbols  = analysis.Document.Symbols;
 
 		StandaloneDefinition? At(string word, int occurrence = 0)
@@ -210,7 +209,7 @@ public sealed class StandaloneGrammarInheritanceTests
 			for (var index = 0; index <= occurrence; index++)
 				position = dialect.IndexOf(word, position + 1, StringComparison.Ordinal);
 
-			return GramBufferAnalysis.ExternalDefinition(dialect, context, symbols, position);
+			return GramAnalysisSession.ExternalDefinition(dialect, context, symbols, position);
 		}
 
 		// The included grammar's own name opens its file at the top.
@@ -242,10 +241,10 @@ public sealed class StandaloneGrammarInheritanceTests
 	{
 		const string dialect = "using Sql92;\nStart = Word\nparse Start";
 		var context  = Context();
-		var analysis = GramBufferAnalysis.Analyze(dialect, context, suppressContextDiagnostics: false);
+		var analysis = GramAnalysisSession.Analyze(dialect, context, suppressContextDiagnostics: false);
 		var word     = analysis.Document.Symbols.Single(symbol => symbol.Name == "Word");
 
-		var references = GramBufferAnalysis.IncludedReferences(
+		var references = GramAnalysisSession.IncludedReferences(
 			analysis.Included, context, dialect.Length, word.Name, word.DefinitionPosition);
 
 		// The definition on the first line of the included file, and its use in `Start92`.
@@ -261,8 +260,8 @@ public sealed class StandaloneGrammarInheritanceTests
 	{
 		const string dialect = "using Sql92;\nStart = Sql92.Word & Word\nparse Start";
 
-		var found = GramBufferAnalysis.Analyze(dialect, Context(), suppressContextDiagnostics: false);
-		var pending = GramBufferAnalysis.Analyze(dialect, null, suppressContextDiagnostics: true);
+		var found = GramAnalysisSession.Analyze(dialect, Context(), suppressContextDiagnostics: false);
+		var pending = GramAnalysisSession.Analyze(dialect, null, suppressContextDiagnostics: true);
 
 		Assert.Empty(found.Document.Diagnostics);
 		Assert.Empty(pending.Document.Diagnostics);
@@ -290,7 +289,7 @@ public sealed class StandaloneGrammarInheritanceTests
 
 		StandaloneGrammarConcern Concerns(WorkspaceChangeKind kind, ProjectId? changedProject, DocumentId? changedDocument, StandaloneGrammarResolution? state = null)
 		{
-			return GramBufferAnalysis.Concerns(
+			return GramAnalysisSession.Concerns(
 				new WorkspaceChangeEventArgs(kind, before, before, changedProject, changedDocument),
 				state ?? resolution,
 				DialectPath);

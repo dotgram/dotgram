@@ -1,9 +1,7 @@
 using System;
-using System.Linq;
 using System.Threading;
 using System.ComponentModel.Composition;
 
-using DotGram.Grammar;
 using DotGram.Language;
 
 using Microsoft.VisualStudio.Commanding;
@@ -40,9 +38,8 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 		var snapshot = args.TextView.TextSnapshot;
 		var position = Position(args, snapshot);
 		return args.SubjectBuffer.ContentType.IsOfType("CSharp") ||
-			PublishedApi(args, snapshot, position) is not null ||
-			IsCSharpContext(args, snapshot, position, out _, out _) || Target(args) is not null ||
-			StandardRuleAt(args, snapshot, position) is not null
+			args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name) &&
+			GramNavigationProvider.CanGoToDefinition(GramBufferAnalysis.For(args.SubjectBuffer).View(snapshot), position)
 			? CommandState.Available
 			: CommandState.Unavailable;
 	}
@@ -52,64 +49,52 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 		ThreadHelper.ThrowIfNotOnUIThread();
 		var snapshot = args.TextView.TextSnapshot;
 		var position = Position(args, snapshot);
-		if (DslDefinition(args, snapshot, position) is { } dslDefinition)
-			return Navigate(dslDefinition);
+		var roslyn   = RoslynGramFeatures.For(args.SubjectBuffer, Workspace, Documents);
+		var store    = TempDirectoryIncludedGrammarStore.Instance;
+		var location = args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name)
+			? ThreadHelper.JoinableTaskFactory.Run(() => GramNavigationProvider.DefinitionAsync(
+				GramBufferAnalysis.For(args.SubjectBuffer).View(snapshot), position, roslyn.Core, CancellationToken.None))
+			: ThreadHelper.JoinableTaskFactory.Run(() => GramNavigationProvider.DefinitionAsync(
+				snapshot.GetText(),
+				EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents).View(snapshot),
+				position,
+				roslyn.Core,
+				CancellationToken.None));
 
-		if (args.SubjectBuffer.ContentType.IsOfType("CSharp"))
+		switch (location)
 		{
-			var roslyn = new RoslynGramCompletion(args.SubjectBuffer, Workspace, Documents);
-			var grammarFile = Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.Run(() =>
-				roslyn.GrammarFileSourceAsync(position, CancellationToken.None));
-			if (grammarFile is { } file)
-				return Navigate(file);
+			case GramLocation.InDocument target:
+				var point = new SnapshotPoint(args.TextView.TextSnapshot, target.Position);
+				args.TextView.Caret.MoveTo(point);
+				args.TextView.ViewScroller.EnsureSpanVisible(new SnapshotSpan(point, 0));
+				return true;
 
-			var source = Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.Run(() =>
-				roslyn.GeneratedApiSourceAsync(position, CancellationToken.None));
-			if (source is { } generated)
-				return Navigate(generated);
+			case GramLocation.InFile target:
+				return Navigate(target.Path, target.Line, target.Column);
+
+			case GramLocation.InIncludedGrammar target:
+				return store.PathToOpen(target.Grammar) is { } path && Navigate(path, target.Line, target.Column);
+
+			case GramLocation.InStandardLibrary target:
+				return store.PathToOpen(target.Grammar) is { } library && Navigate(library, target.Line, target.Column);
+
+			case GramLocation.HostSymbol target:
+				return ThreadHelper.JoinableTaskFactory.Run(() => roslyn.NavigateAsync(target.Targets, CancellationToken.None));
+
+			case GramLocation.PublishedMethod target:
+				return ThreadHelper.JoinableTaskFactory.Run(() => roslyn.NavigateAsync(target.Targets, CancellationToken.None));
+
+			default:
+				return false;
 		}
-
-		if (PublishedApi(args, snapshot, position) is { } publishedApi)
-		{
-			var roslyn = new RoslynGramCompletion(args.SubjectBuffer, Workspace, Documents);
-			return Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.Run(() =>
-				roslyn.NavigateToDefinitionAsync(publishedApi, 0, CancellationToken.None));
-		}
-
-		if (StandardRuleAt(args, snapshot, position) is { } standard)
-			return IncludedGrammarView.PathToOpen(new StandaloneIncludedGrammar(StandardLibrary.Name, StandardLibrary.Text, null)) is { } path &&
-				Navigate(new GeneratedApiSource(path, standard.Line, standard.Column));
-
-		if (IsCSharpContext(args, snapshot, position, out var expression, out var expressionPosition))
-		{
-			var roslyn = new RoslynGramCompletion(args.SubjectBuffer, Workspace, Documents);
-			return Microsoft.VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.Run(() =>
-				roslyn.NavigateToDefinitionAsync(expression, expressionPosition, CancellationToken.None));
-		}
-
-		if (args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name) &&
-			GramBufferAnalysis.For(args.SubjectBuffer).ExternalDefinition(snapshot, position) is { } external)
-			return IncludedGrammarView.PathToOpen(external.Target.Grammar) is { } path &&
-				Navigate(new GeneratedApiSource(path, external.Target.Line, external.Target.Column));
-
-		var found = Target(args);
-
-		if (found is null || found.DefinedElsewhere)
-			return false;
-
-		var point = new SnapshotPoint(args.TextView.TextSnapshot, found.DefinitionPosition);
-		args.TextView.Caret.MoveTo(point);
-		args.TextView.ViewScroller.EnsureSpanVisible(new SnapshotSpan(point, 0));
-
-		return true;
 	}
 
-	bool Navigate(GeneratedApiSource source)
+	bool Navigate(string filePath, int line, int column)
 	{
 		ThreadHelper.ThrowIfNotOnUIThread();
 		VsShellUtilities.OpenDocument(
 			Services,
-			source.FilePath,
+			filePath,
 			Guid.Empty,
 			out _,
 			out _,
@@ -117,127 +102,9 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 			out IVsTextView view);
 
 		frame.Show();
-		view.SetCaretPos(source.Line, source.Column);
-		view.CenterLines(source.Line, 1);
+		view.SetCaretPos(line, column);
+		view.CenterLines(line, 1);
 		return true;
-	}
-
-	GeneratedApiSource? DslDefinition(
-		GoToDefinitionCommandArgs args,
-		ITextSnapshot snapshot,
-		int position)
-	{
-		if (!args.SubjectBuffer.ContentType.IsOfType("CSharp"))
-			return null;
-
-		var analysis = EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents);
-		if (!analysis.TryGetDslSymbols(snapshot, out var symbols))
-			return null;
-
-		var symbol = symbols.FirstOrDefault(item => item.Span.Contains(position));
-		return symbol.DefinitionPath is null
-			? null
-			: new GeneratedApiSource(
-				symbol.DefinitionPath,
-				symbol.DefinitionLine,
-				symbol.DefinitionColumn);
-	}
-
-	string? PublishedApi(GoToDefinitionCommandArgs args, ITextSnapshot snapshot, int position)
-	{
-		if (args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name))
-			return GramBufferAnalysis.For(args.SubjectBuffer).Document(snapshot).PublishedApis
-				.FirstOrDefault(item => position >= item.Position && position < item.Position + item.Length)
-				.MethodName;
-
-		var analysis = EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents);
-		return analysis.TryGetPublishedApis(snapshot, out var publications)
-			? publications.FirstOrDefault(item => item.Span.Contains(position)).MethodName
-			: null;
-	}
-
-	GramFindReferencesTarget? Target(GoToDefinitionCommandArgs args)
-	{
-		var snapshot = args.TextView.TextSnapshot;
-		var position = Position(args, snapshot);
-
-		return args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name)
-			? GramFindReferencesTarget.Standalone(snapshot, position, GramBufferAnalysis.For(args.SubjectBuffer))
-			: GramFindReferencesTarget.Embedded(
-				snapshot,
-				position,
-				EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents));
-	}
-
-	bool IsCSharpContext(
-		GoToDefinitionCommandArgs args,
-		ITextSnapshot snapshot,
-		int position,
-		out string expression,
-		out int expressionPosition)
-	{
-		if (!args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name))
-		{
-			var analysis = EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents);
-			if (!analysis.TryGet(snapshot, out var classifications, out _) ||
-				!classifications.Any(item => item.GrammarSpan.Contains(position)))
-			{
-				expression = "";
-				expressionPosition = 0;
-				return false;
-			}
-		}
-
-		if (!GramCSharpCompletionContext.TryGetExpression(
-			snapshot.GetText(), position,
-			out expression, out var expressionStart, out _, out _))
-		{
-			expressionPosition = 0;
-			return false;
-		}
-
-		expressionPosition = position - expressionStart;
-		return true;
-	}
-
-	/// <summary>
-	/// The standard library's rule under the caret, written <c>Std.Name</c> in a grammar's own text
-	/// and not in C# inside it. Only found here: the read-only copy it opens in is written when the
-	/// command runs, not when Visual Studio asks whether it can.
-	/// </summary>
-	StandardRule? StandardRuleAt(GoToDefinitionCommandArgs args, ITextSnapshot snapshot, int position)
-	{
-		var grammar = args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name)
-			? GrammarPosition.Standalone(snapshot, position)
-			: EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents)
-				.TryGet(snapshot, out var classifications, out _)
-				? GrammarPosition.Embedded(snapshot, position, classifications)
-				: null;
-
-		if (!GrammarPosition.InGrammarText(grammar))
-			return null;
-
-		var start = position;
-		var end   = position;
-
-		while (start > 0 && IsNameCharacter(snapshot[start - 1]))
-			start--;
-
-		while (end < snapshot.Length && IsNameCharacter(snapshot[end]))
-			end++;
-
-		if (start == end)
-			return null;
-
-		var from = Math.Max(0, start - StandardLibrary.Name.Length - 2);
-		var text = snapshot.GetText(from, end - from);
-
-		return GramVocabulary.QualifiedStandardRule(text, start - from, end - start);
-	}
-
-	static bool IsNameCharacter(char character)
-	{
-		return char.IsLetterOrDigit(character) || character == '_';
 	}
 
 	static int Position(GoToDefinitionCommandArgs args, ITextSnapshot snapshot)
