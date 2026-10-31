@@ -120,7 +120,7 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 	GramVersion          _current;
 	GramVersion?         _lastPublished;
 	object?              _lastResult;
-	Workspace?           _workspace;
+	FolderWorkspace?     _workspace;
 	bool                 _started;
 	bool                 _closed;
 
@@ -168,7 +168,7 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 	/// </summary>
 	/// <param name="workspace">The workspace whose changes can change the grammar's host; null where none is followed.</param>
 	/// <returns>False where the document was closed first.</returns>
-	public bool Start(Workspace? workspace)
+	public bool Start(FolderWorkspace? workspace)
 	{
 		lock (_gate)
 		{
@@ -181,7 +181,7 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 			if (workspace is not null)
 			{
 				_workspace = workspace;
-				workspace.WorkspaceChanged += WorkspaceChanged;
+				workspace.Changed += WorkspaceChanged;
 			}
 
 			_started = true;
@@ -222,7 +222,7 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 	}
 
 	/// <summary>The server's workspace changed: the session looks for the host again where that concerns it.</summary>
-	void WorkspaceChanged(object? sender, WorkspaceChangeEventArgs change)
+	void WorkspaceChanged(WorkspaceChangeEventArgs change)
 	{
 		Session.WorkspaceChanged(change);
 	}
@@ -232,7 +232,7 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 	public void Close(Action closed)
 	{
 		List<(GramVersion Version, TaskCompletionSource<GramDocument?> Done)> waiting;
-		Workspace? workspace;
+		FolderWorkspace? workspace;
 
 		lock (_gate)
 		{
@@ -249,7 +249,7 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 		}
 
 		if (workspace is not null)
-			workspace.WorkspaceChanged -= WorkspaceChanged;
+			workspace.Changed -= WorkspaceChanged;
 
 		Session.Close();
 
