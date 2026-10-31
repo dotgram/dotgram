@@ -56,6 +56,9 @@ readonly struct RpcReply
 /// <summary>What the connection asks of the server it carries.</summary>
 interface IRpcTarget
 {
+	/// <summary>Whether <c>initialize</c> was answered: before it, <c>shutdown</c> is refused as any request is.</summary>
+	bool Initialized { get; }
+
 	/// <summary>
 	/// A notification, handled on the reading thread before the next message is read: the
 	/// notifications about one document are applied in the order they were sent, and a request
@@ -200,6 +203,12 @@ sealed class JsonRpcConnection
 				_ = LogAsync(Lsp.MessageError, $"{method}: {exception}");
 			}
 
+			return true;
+		}
+
+		if (method == "shutdown" && !target.Initialized)
+		{
+			_ = WriteErrorAsync(id, Lsp.ServerNotInitialized, "The server is not initialized.");
 			return true;
 		}
 
