@@ -86,7 +86,7 @@ public sealed class LocatedNullTests
 
 					List  : @Table[] = Entry* & eof
 					Entry : @Table   = n: Key & a: Alias & ';' => @(new Table(n, a))
-					Key   : @Name    = w: Identifier => @(new Name(w))
+					Key   : @Name    = w: { Identifier } => @(new Name(w))
 					Alias : @Name    = "AS" & w: Identifier => @(new Name(w))
 					                 | none => @(null!)
 
