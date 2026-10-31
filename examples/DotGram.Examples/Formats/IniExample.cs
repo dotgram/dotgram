@@ -41,7 +41,7 @@ namespace DotGram.Examples.Formats;
 	Ini : @IniFile = global: Entries & sections: Section* & eof
 	                   => @(new IniFile(global, sections))
 
-	Section : @IniSection = Space & '[' & name: Name & ']' & Space & eol & entries: Entries
+	Section : @IniSection = Space & '[' & name: Name & ']' & Space & Eol & entries: Entries
 	                          => @(new IniSection(name, entries))
 
 	// §4.1 case 2: the entries are what this collects, and the lines that are not entries
@@ -52,11 +52,16 @@ namespace DotGram.Examples.Formats;
 	// allowed to end without a terminator is the last, and `Tail` is where it is said.
 	Entries : @IniEntry[] = (Entry | Blank)* & Tail?
 
-	Entry : @IniEntry = Space & key: Key & Space & '=' & value: Value & (eol | ?=eof)
+	Entry : @IniEntry = Space & key: Key & Space & '=' & value: Value & (Eol | ?=eof)
 	                      => @(new IniEntry(key, value.Trim()))
 
 	// Not an entry and not a section: a comment, or nothing at all.
-	Blank = Space & Comment? & eol
+	Blank = Space & Comment? & Eol
+
+	// One line ending, taken as a unit: `\r\n` is not a `\r` and then a `\n`. `eol` alone lets the
+	// repetitions above give the `\n` back and read it as a blank line of its own, so a text that is
+	// refused late is read as every way of cutting its line endings in two.
+	Eol = { eol }
 
 	Tail  = Space & Comment | Comment
 
