@@ -184,6 +184,8 @@ public sealed class ExampleRefusalGrowthTests
 		Assert.True(SqlReadOnly.IsReadOnly("select a -- c\n from t"));
 		Assert.True(SqlReadOnly.IsReadOnly("select a /* c */ from t where 1e-3 < 'it''s' and b.c = \"q\" or [b] = 2 - 1 / 3"));
 		Assert.True(SqlReadOnly.IsReadOnly("select 1end"));
+		Assert.True(SqlReadOnly.IsReadOnly("select 1 /* unterminated"));
+		Assert.False(SqlReadOnly.IsReadOnly("select 1 /* drop table t"));
 		Assert.False(SqlReadOnly.IsReadOnly("select a -- c\n insert into t values (1)"));
 	}
 
