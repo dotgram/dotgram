@@ -241,64 +241,36 @@ sealed class GramDiagnosticTagger : ITagger<ErrorTag>
 	}
 }
 
-sealed class GramBufferAnalysis
+/// <summary>
+/// A standalone <c>.gram</c> buffer's analysis session, one per buffer: the core session fed with the
+/// buffer's edits and the solution's changes, and read back by every tagger and command.
+/// </summary>
+sealed class GramBufferAnalysis : IGramAnalysisHost<ITextSnapshot>
 {
-	const int AnalysisDelayMilliseconds = 150;
-
-	/// <summary>
-	/// How long after the last change that concerns the grammar its host is looked for again:
-	/// a build, a branch switch or a solution load is a burst of changes, answered once.
-	/// </summary>
-	const int ResolveDelayMilliseconds = 500;
-
-	/// <summary>
-	/// While the host cannot be asked yet, it is asked again this long after, doubling, a few
-	/// times; every change to the project starts the count again. Nothing gives up for good.
-	/// </summary>
-	const int RetryDelayMilliseconds = 1000;
-	const int RetryCount             = 5;
-
-	/// <summary>
-	/// How long a grammar whose host is not settled stays quiet about what depends on its
-	/// includes. Past it the grammar is told about as it stands, and is told again the moment
-	/// the host is found.
-	/// </summary>
-	const int SettleMilliseconds = 20000;
-
-	static readonly GramDocument EmptyDocument = new([], [], [], [], [], [], []);
-	static readonly IReadOnlyList<GramSymbolOccurrence> NoSymbols = [];
-
-	readonly ITextBuffer   _buffer;
-	readonly object        _gate         = new();
-	readonly SemaphoreSlim _analysisGate = new(1, 1);
-	readonly Stopwatch     _age          = new();
-
-	ITextSnapshot?                      _snapshot;
-	GramDocument?                       _document;
-	IReadOnlyList<GramSymbolOccurrence> _includedSymbols = NoSymbols;
-	StandaloneGrammarContext?           _analysedContext;
-	ITextSnapshot?                      _scheduledSnapshot;
-	CancellationTokenSource?            _analysisCancellation;
+	readonly ITextBuffer                          _buffer;
+	readonly GramAnalysisSession<ITextSnapshot>   _session;
+	readonly object                               _gate = new();
 
 	Workspace?                   _workspace;
 	ITextDocumentFactoryService? _documents;
 	ITextDocument?               _textDocument;
-	CancellationTokenSource?     _resolveCancellation;
-	StandaloneGrammarResolution  _resolution = StandaloneGrammarResolution.NotReady;
-	int                          _retries;
 	bool                         _configured;
-	bool                         _copy;
 	bool                         _closed;
-	bool                         _pendingFull;
-	readonly HashSet<DocumentId> _pendingDocuments = [];
 
 	GramBufferAnalysis(ITextBuffer buffer)
 	{
-		_buffer = buffer;
+		_buffer  = buffer;
+		_session = new GramAnalysisSession<ITextSnapshot>(this);
 		_buffer.Changed += BufferChanged;
 	}
 
-	public event Action<ITextSnapshot>? Changed;
+	public event Action<ITextSnapshot>? Changed
+	{
+		add => _session.Changed += value;
+		remove => _session.Changed -= value;
+	}
+
+	public IIncludedGrammarStore Store => _session.Store;
 
 	public static GramBufferAnalysis For(ITextBuffer buffer)
 	{
@@ -319,41 +291,32 @@ sealed class GramBufferAnalysis
 			if (_configured)
 				return;
 
-			_configured = true;
-
-			// A read-only copy of what an assembly carries belongs to no project and includes
-			// what it includes from somewhere out of reach: it is read as it stands, quiet about
-			// what depends on its includes, and nothing is looked for.
-			if (document.FilePath is { } path && IncludedGrammarView.IsCopy(path))
-			{
-				_copy = true;
-				return;
-			}
-
+			_configured   = true;
 			_workspace    = workspace;
 			_documents    = documents;
 			_textDocument = document;
-			_pendingFull  = true;
-			_age.Start();
 		}
+
+		if (document.FilePath is not { } path || !_session.Follow(path))
+			return;
 
 		workspace.WorkspaceChanged    += WorkspaceChanged;
 		documents.TextDocumentDisposed += TextDocumentDisposed;
-
-		ScheduleResolve(0);
-		_ = SettleAsync();
 	}
 
 	public GramDocument Document(ITextSnapshot snapshot)
 	{
-		lock (_gate)
-		{
-			if (_snapshot == snapshot && _document is not null)
-				return _document;
-		}
+		return _session.Document(snapshot);
+	}
 
-		ScheduleAnalysis(snapshot, immediate: true);
-		return EmptyDocument;
+	/// <summary>What the feature providers read of one version of the buffer.</summary>
+	public GramStandaloneView View(ITextSnapshot snapshot)
+	{
+		return new GramStandaloneView(
+			snapshot.GetText(),
+			Document(snapshot),
+			position => _session.ExternalDefinition(snapshot, position),
+			(name, definitionPosition) => _session.IncludedReferences(snapshot, name, definitionPosition));
 	}
 
 	/// <summary>
@@ -362,280 +325,12 @@ sealed class GramBufferAnalysis
 	/// </summary>
 	public StandaloneDefinition? ExternalDefinition(ITextSnapshot snapshot, int position)
 	{
-		GramDocument?             document;
-		StandaloneGrammarContext? context;
-
-		lock (_gate)
-		{
-			var current = _snapshot == snapshot && _document is not null;
-
-			document = current ? _document : null;
-			context  = current ? _analysedContext : _resolution.Context;
-		}
-
-		return context is null
-			? null
-			: ExternalDefinition(snapshot.GetText(), context.Value, document?.Symbols ?? NoSymbols, position);
-	}
-
-	internal static StandaloneDefinition? ExternalDefinition(
-		string text,
-		StandaloneGrammarContext context,
-		IReadOnlyList<GramSymbolOccurrence> symbols,
-		int position)
-	{
-		// A use the binder resolved past the end of the text: into an included grammar, by a
-		// `using`, a qualified name or a name qualified more than once.
-		foreach (var symbol in symbols)
-			if (symbol.Position <= position && position < symbol.Position + symbol.Length)
-				return symbol.DefinitionPosition >= text.Length &&
-					context.Locate(symbol.DefinitionPosition, text.Length) is { } location
-						? new StandaloneDefinition(symbol.Position, symbol.Length, location)
-						: null;
-
-		// The included grammar's own name, as `using Sql92;` and `Sql92.Word` write it.
-		if (text.Length == 0)
-			return null;
-
-		var bounded = Math.Max(0, Math.Min(position, text.Length - 1));
-		var start   = bounded;
-		var end     = bounded;
-
-		while (start > 0 && IsIdentifier(text[start - 1]))
-			start--;
-
-		while (end < text.Length && IsIdentifier(text[end]))
-			end++;
-
-		if (start == end)
-			return null;
-
-		var name = text.Substring(start, end - start);
-
-		foreach (var included in context.Included)
-			if (name == included.Name)
-				return new StandaloneDefinition(start, end - start, new StandaloneLocation(included, 0, 0, 0));
-
-		return null;
-	}
-
-	/// <summary>
-	/// The uses of a rule inside the grammars the host includes, and its definition where it
-	/// is one of theirs: what Find All References adds to what is in the buffer.
-	/// </summary>
-	public IReadOnlyList<StandaloneReference> IncludedReferences(
-		ITextSnapshot snapshot,
-		string name,
-		int definitionPosition)
-	{
-		IReadOnlyList<GramSymbolOccurrence> included;
-		StandaloneGrammarContext?           context;
-
-		lock (_gate)
-		{
-			if (_snapshot != snapshot || _document is null)
-				return [];
-
-			included = _includedSymbols;
-			context  = _analysedContext;
-		}
-
-		return context is null
-			? []
-			: IncludedReferences(included, context.Value, snapshot.Length, name, definitionPosition);
-	}
-
-	internal static IReadOnlyList<StandaloneReference> IncludedReferences(
-		IReadOnlyList<GramSymbolOccurrence> included,
-		StandaloneGrammarContext context,
-		int ownLength,
-		string name,
-		int definitionPosition)
-	{
-		var result = new List<StandaloneReference>();
-
-		foreach (var symbol in included)
-			if (symbol.Name == name &&
-				symbol.DefinitionPosition == definitionPosition &&
-				context.Locate(symbol.Position, ownLength) is { } location)
-				result.Add(new StandaloneReference(location, symbol.Length, symbol.IsDefinition));
-
-		return result;
-	}
-
-	/// <summary>
-	/// A grammar read with what it includes spliced on after it, and told about only as far as
-	/// its own text goes. Until the includes are known, what depends on them is not said: a
-	/// name from an included grammar is not missing, it has not been looked up yet.
-	/// </summary>
-	/// <remarks>
-	/// Compiled as the generator compiles it: with the host's <c>Lexical</c>, and with the
-	/// own text's length where something is included, so that a <c>parse</c> in an included
-	/// grammar is that grammar's and not this one's.
-	/// </remarks>
-	internal static StandaloneAnalysis Analyze(
-		string own,
-		StandaloneGrammarContext? context,
-		bool suppressContextDiagnostics)
-	{
-		var tail    = context?.AnalysisTail ?? "";
-		var options = context is { } known
-			? new GramAnalysisOptions
-			{
-				Own     = tail.Length == 0 ? null : own.Length,
-				Cuts    = tail.Length == 0
-					? null
-					: GrammarSplice.Cuts(
-						own + tail, known.Included.Select(item => (own.Length + item.Start, item.Text.Length))),
-				Lexical = known.Lexical,
-			}
-			: null;
-		var whole   = GramLanguageService.Analyze(own + tail, options);
-
-		return new StandaloneAnalysis(
-			Project(whole, own.Length, suppressContextDiagnostics),
-			tail.Length == 0 ? NoSymbols : whole.Symbols.Where(item => item.Position >= own.Length).ToArray());
-	}
-
-	/// <summary>
-	/// Whether a change to the solution can change what this grammar is compiled with: its
-	/// host, what the host includes, or how it is read.
-	/// </summary>
-	/// <remarks>
-	/// The grammar's own text is not among them — it is the buffer's, and read from there —
-	/// and nothing in a project that neither holds the grammar nor declares what it includes
-	/// is either. Until the host is found, an edit to a document of the grammar's own project
-	/// may be the one that makes it findable; that is answered by looking at the one document
-	/// (<see cref="StandaloneGrammarConcern.Document"/>), not by looking for the host again.
-	/// </remarks>
-	internal static StandaloneGrammarConcern Concerns(
-		WorkspaceChangeEventArgs change,
-		StandaloneGrammarResolution resolution,
-		string filePath)
-	{
-		switch (change.Kind)
-		{
-			case WorkspaceChangeKind.SolutionAdded:
-			case WorkspaceChangeKind.SolutionChanged:
-			case WorkspaceChangeKind.SolutionRemoved:
-			case WorkspaceChangeKind.SolutionCleared:
-			case WorkspaceChangeKind.SolutionReloaded:
-				return StandaloneGrammarConcern.Full;
-		}
-
-		if (change.ProjectId is not { } project)
-			return StandaloneGrammarConcern.Full;
-
-		if (change.Kind == WorkspaceChangeKind.AdditionalDocumentChanged &&
-			change.DocumentId is { } edited &&
-			string.Equals(
-				change.NewSolution.GetAdditionalDocument(edited)?.FilePath,
-				filePath,
-				StringComparison.OrdinalIgnoreCase))
-			return StandaloneGrammarConcern.None;
-
-		if (change.DocumentId is { } document && resolution.Documents.Contains(document))
-			return StandaloneGrammarConcern.Full;
-
-		var watched = resolution.Projects.Contains(project);
-
-		switch (change.Kind)
-		{
-			case WorkspaceChangeKind.DocumentChanged:
-				return watched && resolution.State != StandaloneGrammarState.Resolved
-					? StandaloneGrammarConcern.Document
-					: StandaloneGrammarConcern.None;
-
-			case WorkspaceChangeKind.AdditionalDocumentChanged:
-			case WorkspaceChangeKind.AnalyzerConfigDocumentChanged:
-				return StandaloneGrammarConcern.None;
-
-			// What can put the grammar into a project, or take it out: asked of both
-			// solutions, since a removal is only in the old one.
-			case WorkspaceChangeKind.ProjectAdded:
-			case WorkspaceChangeKind.ProjectRemoved:
-			case WorkspaceChangeKind.ProjectReloaded:
-			case WorkspaceChangeKind.DocumentAdded:
-			case WorkspaceChangeKind.DocumentRemoved:
-			case WorkspaceChangeKind.DocumentReloaded:
-			case WorkspaceChangeKind.AdditionalDocumentAdded:
-			case WorkspaceChangeKind.AdditionalDocumentRemoved:
-			case WorkspaceChangeKind.AdditionalDocumentReloaded:
-				return watched ||
-					resolution.State != StandaloneGrammarState.Resolved &&
-					(Holds(change.NewSolution, project, filePath) || Holds(change.OldSolution, project, filePath))
-						? StandaloneGrammarConcern.Full
-						: StandaloneGrammarConcern.None;
-
-			default:
-				return watched ? StandaloneGrammarConcern.Full : StandaloneGrammarConcern.None;
-		}
-	}
-
-	static bool Holds(Solution solution, ProjectId project, string filePath)
-	{
-		return solution.GetProject(project)?.AdditionalDocuments.Any(document =>
-			string.Equals(document.FilePath, filePath, StringComparison.OrdinalIgnoreCase)) == true;
-	}
-
-	static bool IsIdentifier(char character)
-	{
-		return character == '_' || char.IsLetterOrDigit(character);
-	}
-
-	static GramDocument Project(GramDocument document, int length, bool suppressContextDiagnostics)
-	{
-		return new(
-			document.Classifications.Where(item => item.Position < length).ToArray(),
-			document.Diagnostics.Where(item =>
-				item.Position < length &&
-				(!suppressContextDiagnostics || IsSyntaxDiagnostic(item.Id))).ToArray(),
-			document.Symbols.Where(item => item.Position < length).ToArray(),
-			document.Braces.Where(item => item.OpenPosition < length && item.ClosePosition < length).ToArray(),
-			document.FoldingRanges.Where(item => item.Position < length).ToArray(),
-			document.DocumentSymbols.Where(item => item.Position < length).ToArray(),
-			document.PublishedApis.Where(item => item.Position < length).ToArray());
-	}
-
-	static bool IsSyntaxDiagnostic(string id)
-	{
-		return id.StartsWith("GRAM1", StringComparison.Ordinal) ||
-		id.StartsWith("GRAM2", StringComparison.Ordinal);
+		return _session.ExternalDefinition(snapshot, position);
 	}
 
 	void WorkspaceChanged(object sender, WorkspaceChangeEventArgs change)
 	{
-		StandaloneGrammarResolution resolution;
-		string?                     filePath;
-
-		lock (_gate)
-		{
-			if (_closed)
-				return;
-
-			resolution = _resolution;
-			filePath   = _textDocument?.FilePath;
-		}
-
-		if (filePath is null)
-			return;
-
-		var concern = Concerns(change, resolution, filePath);
-
-		if (concern == StandaloneGrammarConcern.None)
-			return;
-
-		lock (_gate)
-		{
-			_retries = 0;
-
-			if (concern == StandaloneGrammarConcern.Full)
-				_pendingFull = true;
-			else
-				_pendingDocuments.Add(change.DocumentId!);
-		}
-
-		ScheduleResolve(ResolveDelayMilliseconds);
+		_session.WorkspaceChanged(change);
 	}
 
 	void TextDocumentDisposed(object sender, Microsoft.VisualStudio.Text.TextDocumentEventArgs e)
@@ -648,11 +343,12 @@ sealed class GramBufferAnalysis
 			if (_closed || e.TextDocument != _textDocument)
 				return;
 
-			_closed = true;
-			_resolveCancellation?.Cancel();
+			_closed   = true;
 			workspace = _workspace;
 			documents = _documents;
 		}
+
+		_session.Close();
 
 		if (workspace is not null)
 			workspace.WorkspaceChanged -= WorkspaceChanged;
@@ -661,116 +357,48 @@ sealed class GramBufferAnalysis
 			documents.TextDocumentDisposed -= TextDocumentDisposed;
 	}
 
-	void ScheduleResolve(int delay)
+	void BufferChanged(object sender, TextContentChangedEventArgs change)
 	{
-		CancellationToken cancellationToken;
-
-		lock (_gate)
-		{
-			if (_closed)
-				return;
-
-			_resolveCancellation?.Cancel();
-			_resolveCancellation?.Dispose();
-			_resolveCancellation = new CancellationTokenSource();
-			cancellationToken    = _resolveCancellation.Token;
-		}
-
-		_ = Task.Run(() => ResolveAsync(delay, cancellationToken));
+		_session.Edited(change.Before, change.After);
 	}
 
-	async Task ResolveAsync(int delay, CancellationToken cancellationToken)
+	IGramScheduler IGramAnalysisHost<ITextSnapshot>.Scheduler => GramScheduler.Instance;
+
+	IIncludedGrammarStore IGramAnalysisHost<ITextSnapshot>.Store => TempDirectoryIncludedGrammarStore.Instance;
+
+	ITextSnapshot IGramAnalysisHost<ITextSnapshot>.Current => _buffer.CurrentSnapshot;
+
+	string? IGramAnalysisHost<ITextSnapshot>.FilePath
 	{
-		try
+		get
 		{
-			if (delay > 0)
-				await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-
-			Workspace?   workspace;
-			string?      filePath;
-			bool         full;
-			DocumentId[] edited;
-
 			lock (_gate)
-			{
-				workspace = _workspace;
-				filePath  = _textDocument?.FilePath;
-				full      = _pendingFull;
-				edited    = [.. _pendingDocuments];
-
-				_pendingFull = false;
-				_pendingDocuments.Clear();
-			}
-
-			if (workspace is null || filePath is null)
-				return;
-
-			// Only documents of the grammar's project were edited while it has no host: look for
-			// the host again only if one of them now declares a class spelled as one.
-			if (!full && !await AnyMayHostAsync(workspace.CurrentSolution, edited, filePath, cancellationToken).ConfigureAwait(false))
-				return;
-
-			StandaloneGrammarResolution resolution;
-
-			try
-			{
-				resolution = await StandaloneGrammarInheritance.ResolveAsync(
-					workspace.CurrentSolution,
-					filePath,
-					cancellationToken).ConfigureAwait(false);
-			}
-			catch (Exception exception) when (exception is not OperationCanceledException and not OutOfMemoryException)
-			{
-				// The project system mutates the solution while it is loading. A transient
-				// snapshot failure is equivalent to the context not being ready yet.
-				resolution = StandaloneGrammarResolution.NotReady;
-			}
-
-			bool reanalyse;
-			var  retry = -1;
-
-			lock (_gate)
-			{
-				cancellationToken.ThrowIfCancellationRequested();
-
-				var before = _resolution;
-
-				_resolution = resolution;
-				reanalyse   = before.State != resolution.State || !Same(before.Context, resolution.Context);
-
-				if (reanalyse)
-					_scheduledSnapshot = null;
-
-				if (resolution.State == StandaloneGrammarState.NotReady && _retries < RetryCount)
-					retry = RetryDelayMilliseconds << _retries++;
-			}
-
-			if (reanalyse)
-				ScheduleAnalysis(_buffer.CurrentSnapshot, immediate: true);
-
-			if (retry >= 0)
-			{
-				lock (_gate)
-					_pendingFull = true;
-
-				ScheduleResolve(retry);
-			}
-		}
-		catch (OperationCanceledException)
-		{
-		}
-		catch (Exception exception) when (exception is not OutOfMemoryException)
-		{
-			ActivityLog.LogError("DotGram.VisualStudio", exception.ToString());
+				return _textDocument?.FilePath;
 		}
 	}
 
-	static async Task<bool> AnyMayHostAsync(
-		Solution solution,
+	string IGramAnalysisHost<ITextSnapshot>.Text(ITextSnapshot version)
+	{
+		return version.GetText();
+	}
+
+	GramDocument IGramAnalysisHost<ITextSnapshot>.Translate(GramDocument document, ITextSnapshot from, ITextSnapshot to)
+	{
+		return TranslateDocument(document, from, to);
+	}
+
+	Task<StandaloneGrammarResolution> IGramAnalysisHost<ITextSnapshot>.ResolveAsync(string filePath, CancellationToken cancellationToken)
+	{
+		return StandaloneGrammarInheritance.ResolveAsync(Workspace().CurrentSolution, filePath, cancellationToken);
+	}
+
+	async Task<bool> IGramAnalysisHost<ITextSnapshot>.MayHostAsync(
 		IReadOnlyList<DocumentId> documents,
 		string filePath,
 		CancellationToken cancellationToken)
 	{
+		var solution = Workspace().CurrentSolution;
+
 		foreach (var id in documents)
 			if (solution.GetDocument(id) is { } document &&
 				await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false) is { } root &&
@@ -780,117 +408,20 @@ sealed class GramBufferAnalysis
 		return false;
 	}
 
-	/// <summary>Once the settling time is over, a grammar still waiting for its host is told about as it stands.</summary>
-	async Task SettleAsync()
+	async Task IGramAnalysisHost<ITextSnapshot>.BeforeChangedAsync(CancellationToken cancellationToken)
 	{
-		await Task.Delay(SettleMilliseconds).ConfigureAwait(false);
-
-		lock (_gate)
-		{
-			if (_closed || _resolution.State != StandaloneGrammarState.NotReady)
-				return;
-
-			_scheduledSnapshot = null;
-		}
-
-		ScheduleAnalysis(_buffer.CurrentSnapshot, immediate: true);
+		await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
 	}
 
-	static bool Same(StandaloneGrammarContext? left, StandaloneGrammarContext? right)
+	void IGramAnalysisHost<ITextSnapshot>.Report(Exception exception)
 	{
-		return left is { } one && right is { } other
-			? one.SameAs(other)
-			: left is null && right is null;
+		ActivityLog.LogError("DotGram.VisualStudio", exception.ToString());
 	}
 
-	void BufferChanged(object sender, TextContentChangedEventArgs change)
+	Workspace Workspace()
 	{
 		lock (_gate)
-		{
-			_document = _snapshot == change.Before && _document is not null
-				? TranslateDocument(_document, change.Before, change.After)
-				: EmptyDocument;
-			_includedSymbols = NoSymbols;
-			_snapshot = change.After;
-		}
-
-		Changed?.Invoke(change.After);
-		ScheduleAnalysis(change.After, immediate: false);
-	}
-
-	void ScheduleAnalysis(ITextSnapshot snapshot, bool immediate)
-	{
-		CancellationToken cancellationToken;
-		lock (_gate)
-		{
-			if (_scheduledSnapshot == snapshot)
-				return;
-
-			_analysisCancellation?.Cancel();
-			_analysisCancellation?.Dispose();
-			_analysisCancellation = new CancellationTokenSource();
-			_scheduledSnapshot = snapshot;
-			cancellationToken = _analysisCancellation.Token;
-		}
-
-		_ = Task.Run(() => AnalyzeAsync(snapshot, immediate, cancellationToken));
-	}
-
-	async Task AnalyzeAsync(
-		ITextSnapshot snapshot,
-		bool immediate,
-		CancellationToken cancellationToken)
-	{
-		try
-		{
-			if (!immediate)
-				await Task.Delay(AnalysisDelayMilliseconds, cancellationToken).ConfigureAwait(false);
-			await _analysisGate.WaitAsync(cancellationToken).ConfigureAwait(false);
-
-			try
-			{
-				cancellationToken.ThrowIfCancellationRequested();
-				StandaloneGrammarContext? context;
-				bool suppressContextDiagnostics;
-				lock (_gate)
-				{
-					context = _resolution.Context;
-					suppressContextDiagnostics =
-						_copy ||
-						_configured &&
-						_resolution.State == StandaloneGrammarState.NotReady &&
-						_age.ElapsedMilliseconds < SettleMilliseconds;
-				}
-
-				var analysis = Analyze(snapshot.GetText(), context, suppressContextDiagnostics);
-
-				lock (_gate)
-				{
-					cancellationToken.ThrowIfCancellationRequested();
-					if (_buffer.CurrentSnapshot != snapshot)
-						return;
-
-					_snapshot        = snapshot;
-					_document        = analysis.Document;
-					_includedSymbols = analysis.Included;
-					_analysedContext = context;
-				}
-			}
-			finally
-			{
-				_analysisGate.Release();
-			}
-
-			await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
-			Changed?.Invoke(snapshot);
-		}
-		catch (OperationCanceledException)
-		{
-		}
-		catch (Exception exception) when (exception is not OutOfMemoryException)
-		{
-			ActivityLog.LogError("DotGram.VisualStudio", exception.ToString());
-		}
+			return _workspace ?? throw new InvalidOperationException("The grammar's host is looked for before the buffer follows a workspace.");
 	}
 
 	static GramDocument TranslateDocument(
@@ -929,25 +460,3 @@ sealed class GramBufferAnalysis
 		return new Span(translated.Start.Position, translated.Length);
 	}
 }
-
-/// <summary>What a change to the solution asks of a standalone grammar.</summary>
-enum StandaloneGrammarConcern
-{
-	/// <summary>Nothing: it cannot change what the grammar is compiled with.</summary>
-	None,
-
-	/// <summary>A document was edited that may now declare the host: look at it, and only then for the host.</summary>
-	Document,
-
-	/// <summary>Look for the host again.</summary>
-	Full,
-}
-
-/// <summary>A standalone grammar's analysis, and the symbols of what it includes kept for Find All References.</summary>
-readonly record struct StandaloneAnalysis(GramDocument Document, IReadOnlyList<GramSymbolOccurrence> Included);
-
-/// <summary>A name in the buffer whose definition is in an included grammar.</summary>
-readonly record struct StandaloneDefinition(int Position, int Length, StandaloneLocation Target);
-
-/// <summary>A use of a rule in an included grammar, or its definition there.</summary>
-readonly record struct StandaloneReference(StandaloneLocation Location, int Length, bool IsDefinition);

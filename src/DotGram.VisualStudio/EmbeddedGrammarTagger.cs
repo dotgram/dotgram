@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -218,31 +217,16 @@ sealed class EmbeddedGrammarDiagnosticTagger : ITagger<ErrorTag>
 	}
 }
 
-sealed class EmbeddedGrammarBufferAnalysis
+/// <summary>
+/// A C# buffer's embedded-grammar analysis session, one per buffer: the core session fed with the
+/// buffer's edits and the solution's changes, and read back by every tagger and command.
+/// </summary>
+sealed class EmbeddedGrammarBufferAnalysis : IEmbeddedGrammarHost<ITextSnapshot>
 {
-	const int AnalysisDelayMilliseconds = 200;
-	const int SemanticAnalysisDelayMilliseconds = 800;
-
-	readonly ITextBuffer                _buffer;
-	readonly VisualStudioWorkspace      _workspace;
-	readonly ITextDocumentFactoryService _documents;
-	readonly object                     _gate = new();
-	readonly DslEmbeddedSiteCache       _dslCache = new();
-
-	CancellationTokenSource?          _cancellation;
-	ITextSnapshot?                    _snapshot;
-	ITextSnapshot?                    _retrySnapshot;
-	int                               _retryCount;
-	IReadOnlyList<HostClassification> _classifications = [];
-	IReadOnlyList<HostDslClassification> _dslClassifications = [];
-	IReadOnlyList<HostDslSymbol>         _dslSymbols = [];
-	IReadOnlyList<HostDslSite>           _dslSites = [];
-	IReadOnlyList<HostDiagnostic>     _diagnostics     = [];
-	IReadOnlyList<HostSymbolOccurrence> _symbols       = [];
-	IReadOnlyList<HostBracePair>       _braces        = [];
-	IReadOnlyList<HostFoldingRange>    _foldingRanges = [];
-	IReadOnlyList<HostDocumentSymbol> _documentSymbols = [];
-	IReadOnlyList<HostPublishedApi>    _publishedApis = [];
+	readonly ITextBuffer                          _buffer;
+	readonly VisualStudioWorkspace                _workspace;
+	readonly ITextDocumentFactoryService          _documents;
+	readonly EmbeddedGrammarSession<ITextSnapshot> _session;
 
 	EmbeddedGrammarBufferAnalysis(
 		ITextBuffer buffer,
@@ -255,10 +239,14 @@ sealed class EmbeddedGrammarBufferAnalysis
 
 		_buffer.Changed += BufferChanged;
 		_workspace.WorkspaceChanged += WorkspaceChanged;
-		Schedule(buffer.CurrentSnapshot);
+		_session = new EmbeddedGrammarSession<ITextSnapshot>(this);
 	}
 
-	public event Action<ITextSnapshot>? Changed;
+	public event Action<ITextSnapshot>? Changed
+	{
+		add => _session.Changed += value;
+		remove => _session.Changed -= value;
+	}
 
 	public static EmbeddedGrammarBufferAnalysis For(
 		ITextBuffer buffer,
@@ -269,132 +257,34 @@ sealed class EmbeddedGrammarBufferAnalysis
 			new EmbeddedGrammarBufferAnalysis(buffer, workspace, documents));
 	}
 
+	/// <summary>What the feature providers read of one version of the buffer.</summary>
+	public EmbeddedGrammarView View(ITextSnapshot snapshot)
+	{
+		return _session.View(snapshot);
+	}
+
 	public bool TryGet(
 		ITextSnapshot snapshot,
 		out IReadOnlyList<HostClassification> classifications,
 		out IReadOnlyList<HostDiagnostic> diagnostics)
 	{
-		lock (_gate)
-		{
-			if (_snapshot == snapshot)
-			{
-				classifications = _classifications;
-				diagnostics     = _diagnostics;
+		var view = _session.View(snapshot);
 
-				return true;
-			}
-		}
+		classifications = view.Classifications;
+		diagnostics     = view.Diagnostics;
 
-		Schedule(snapshot);
-
-		classifications = [];
-		diagnostics     = [];
-
-		return false;
-	}
-
-	public bool TryGetSymbols(
-		ITextSnapshot snapshot,
-		out IReadOnlyList<HostSymbolOccurrence> symbols)
-	{
-		lock (_gate)
-		{
-			if (_snapshot == snapshot)
-			{
-				symbols = _symbols;
-
-				return true;
-			}
-		}
-
-		Schedule(snapshot);
-		symbols = [];
-
-		return false;
+		return view.Current;
 	}
 
 	public bool TryGetDslClassifications(
 		ITextSnapshot snapshot,
 		out IReadOnlyList<HostDslClassification> classifications)
 	{
-		lock (_gate)
-		{
-			if (_snapshot == snapshot)
-			{
-				classifications = _dslClassifications;
-				return true;
-			}
-		}
+		var view = _session.View(snapshot);
 
-		Schedule(snapshot);
-		classifications = [];
-		return false;
-	}
+		classifications = view.DslClassifications;
 
-	public bool TryGetDslSites(ITextSnapshot snapshot, out IReadOnlyList<HostDslSite> sites)
-	{
-		lock (_gate)
-		{
-			if (_snapshot == snapshot)
-			{
-				sites = _dslSites;
-				return true;
-			}
-		}
-
-		Schedule(snapshot);
-		sites = [];
-		return false;
-	}
-
-	public bool TryGetDslSymbols(ITextSnapshot snapshot, out IReadOnlyList<HostDslSymbol> symbols)
-	{
-		lock (_gate)
-		{
-			if (_snapshot == snapshot)
-			{
-				symbols = _dslSymbols;
-				return true;
-			}
-		}
-
-		Schedule(snapshot);
-		symbols = [];
-		return false;
-	}
-
-	public bool TryGetDslCompletions(
-		ITextSnapshot snapshot,
-		int position,
-		out IReadOnlyList<string> expected)
-	{
-		if (TryGetDslSites(snapshot, out var sites) &&
-			sites.FirstOrDefault(site => site.CompletionPosition == position) is { Expected.Count: > 0 } site)
-		{
-			expected = site.Expected;
-			return true;
-		}
-
-		expected = [];
-		return false;
-	}
-
-	public bool TryGetPublishedApis(
-		ITextSnapshot snapshot,
-		out IReadOnlyList<HostPublishedApi> publishedApis)
-	{
-		lock (_gate)
-		{
-			if (_snapshot == snapshot)
-			{
-				publishedApis = _publishedApis;
-				return true;
-			}
-		}
-
-		Schedule(snapshot);
-		publishedApis = [];
-		return false;
+		return view.Current;
 	}
 
 	public bool TryGetStructure(
@@ -402,440 +292,79 @@ sealed class EmbeddedGrammarBufferAnalysis
 		out IReadOnlyList<HostBracePair> braces,
 		out IReadOnlyList<HostFoldingRange> foldingRanges)
 	{
-		lock (_gate)
-		{
-			if (_snapshot == snapshot)
-			{
-				braces = _braces;
-				foldingRanges = _foldingRanges;
-				return true;
-			}
-		}
+		var view = _session.View(snapshot);
 
-		Schedule(snapshot);
-		braces = [];
-		foldingRanges = [];
-		return false;
+		braces        = view.Braces;
+		foldingRanges = view.FoldingRanges;
+
+		return view.Current;
 	}
 
 	public bool TryGetDocumentSymbols(
 		ITextSnapshot snapshot,
 		out IReadOnlyList<HostDocumentSymbol> symbols)
 	{
-		lock (_gate)
-		{
-			if (_snapshot == snapshot)
-			{
-				symbols = _documentSymbols;
-				return true;
-			}
-		}
+		var view = _session.View(snapshot);
 
-		Schedule(snapshot);
-		symbols = [];
-		return false;
+		symbols = view.DocumentSymbols;
+
+		return view.Current;
 	}
 
 	void BufferChanged(object sender, TextContentChangedEventArgs change)
 	{
-		var translated = false;
-
-		lock (_gate)
-		{
-			if (_snapshot == change.Before)
-			{
-				_classifications = TranslateClassifications(_classifications, change.Before, change.After);
-				(_classifications, _) = RefreshLiteralStyles(
-					_classifications,
-					change.After);
-				_dslClassifications = TranslateDslClassifications(_dslClassifications, change.Before, change.After);
-				// Semantic spans must not be exposed against a newer snapshot. In particular,
-				// Visual Studio turns stale navigable spans into Ctrl+click hyperlinks that can
-				// cover the entire embedded string. Fresh analysis restores them shortly after.
-				_symbols = [];
-				_dslSymbols = [];
-				_dslSites = [];
-				_snapshot = change.After;
-				translated = true;
-			}
-		}
-
-		// Visual Studio invalidates classifications for the changed snapshot immediately.
-		// Tell it that the translated DotGram spans are already available; otherwise the
-		// C# string classification is visible until the deferred analysis publishes again.
-		if (translated)
-			Changed?.Invoke(change.After);
-
-		Schedule(change.After);
+		_session.Edited(change.Before, change.After);
 	}
 
 	void WorkspaceChanged(object sender, WorkspaceChangeEventArgs change)
 	{
-		if (!_documents.TryGetTextDocument(_buffer, out var textDocument) || textDocument.FilePath is null)
-			return;
-
-		var ids = change.NewSolution.GetDocumentIdsWithFilePath(textDocument.FilePath);
-
-		if (!ids.Any() ||
-			change.DocumentId is not null && !ids.Contains(change.DocumentId) ||
-			change.ProjectId is not null && !ids.Any(id => id.ProjectId == change.ProjectId))
-			return;
-
-		Schedule(_buffer.CurrentSnapshot);
+		_session.WorkspaceChanged(change);
 	}
 
-	void Schedule(ITextSnapshot snapshot)
+	IGramScheduler IEmbeddedGrammarHost<ITextSnapshot>.Scheduler => GramScheduler.Instance;
+
+	ITextSnapshot IEmbeddedGrammarHost<ITextSnapshot>.Current => _buffer.CurrentSnapshot;
+
+	string? IEmbeddedGrammarHost<ITextSnapshot>.FilePath =>
+		_documents.TryGetTextDocument(_buffer, out var textDocument) ? textDocument.FilePath : null;
+
+	string IEmbeddedGrammarHost<ITextSnapshot>.Text(ITextSnapshot version)
 	{
-		CancellationToken cancellationToken;
-
-		lock (_gate)
-		{
-			_cancellation?.Cancel();
-			_cancellation?.Dispose();
-			_cancellation = new CancellationTokenSource();
-			cancellationToken = _cancellation.Token;
-		}
-
-		_ = Task.Run(() => AnalyzeScheduledAsync(snapshot, cancellationToken));
+		return version.GetText();
 	}
 
-	async Task AnalyzeScheduledAsync(ITextSnapshot snapshot, CancellationToken cancellationToken)
+	int IEmbeddedGrammarHost<ITextSnapshot>.Length(ITextSnapshot version)
 	{
-		try
-		{
-			await Task.Delay(AnalysisDelayMilliseconds, cancellationToken).ConfigureAwait(false);
-			await AnalyzeAsync(snapshot, cancellationToken).ConfigureAwait(false);
-		}
-		catch (OperationCanceledException)
-		{
-		}
+		return version.Length;
 	}
 
-	async Task AnalyzeAsync(ITextSnapshot snapshot, CancellationToken cancellationToken)
+	char IEmbeddedGrammarHost<ITextSnapshot>.At(ITextSnapshot version, int position)
 	{
-		try
-		{
-			if (!_documents.TryGetTextDocument(_buffer, out var textDocument) || textDocument.FilePath is null)
-				return;
-
-			var id       = _workspace.CurrentSolution.GetDocumentIdsWithFilePath(textDocument.FilePath).FirstOrDefault();
-			var document = id is null ? null : _workspace.CurrentSolution.GetDocument(id);
-
-			if (document is null)
-				return;
-
-			document = document.WithText(SourceText.From(snapshot.GetText(), Encoding.UTF8));
-
-			var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-
-			if (root is null)
-				return;
-
-			// Initial colors and structure need only C# syntax. Publish those before asking
-			// Roslyn for a semantic model: on large source files compilation can contend with
-			// the editor's own document-load work for several seconds.
-			var provisional = EmbeddedGrammarService.AnalyzeSyntactic(root, cancellationToken);
-			if (provisional.Count > 0)
-			{
-				if (!PublishProvisional(snapshot, provisional, cancellationToken))
-					return;
-
-				await NotifyChangedAsync(snapshot);
-				await Task.Delay(SemanticAnalysisDelayMilliseconds, cancellationToken).ConfigureAwait(false);
-			}
-
-			var model = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-			if (model is null)
-				return;
-
-			// The project's .gram files only where this document has a grammar in an attribute,
-			// the one place an include is read; most C# documents have none.
-			var includedFile   = provisional.Count == 0
-				? null
-				: await StandaloneGrammarInheritance.GramFilesAsync(document.Project, cancellationToken).ConfigureAwait(false);
-			var analyses       = EmbeddedGrammarService.Analyze(model, root, cancellationToken, includedFile);
-			var classifications = analyses.SelectMany(static analysis => analysis.Classifications).ToArray();
-			var dslSites        = await DslEmbeddedSiteAnalysis.AnalyzeAsync(
-				document,
-				root,
-				model,
-				cancellationToken,
-				_dslCache).ConfigureAwait(false);
-			var dslDiagnostics  = await DslClassificationDiagnostics.AnalyzeAsync(
-				document,
-				root,
-				model.Compilation,
-				cancellationToken).ConfigureAwait(false);
-			var diagnostics     = analyses.SelectMany(static analysis => analysis.Diagnostics)
-				.Concat(dslDiagnostics)
-				.Concat(dslSites.Diagnostics)
-				.ToArray();
-			var symbols         = analyses.SelectMany(static analysis => analysis.Symbols).ToArray();
-			var braces          = analyses.SelectMany(static analysis => analysis.Braces).ToArray();
-			var foldingRanges   = analyses.SelectMany(static analysis => analysis.FoldingRanges).ToArray();
-			var documentSymbols = analyses.SelectMany(static analysis => analysis.DocumentSymbols).ToArray();
-			var publishedApis   = analyses.SelectMany(static analysis => analysis.PublishedApis).ToArray();
-			var retry           = false;
-
-			lock (_gate)
-			{
-				cancellationToken.ThrowIfCancellationRequested();
-
-				if (_buffer.CurrentSnapshot != snapshot)
-					return;
-
-				var preserveEmbeddedAnalysis = ShouldPreserveEmbeddedAnalysis(
-					root.ContainsDiagnostics,
-					analyses.Count,
-					_classifications.Count,
-					_dslClassifications.Count,
-					_documentSymbols.Count,
-					_dslSites.Count);
-
-				if (preserveEmbeddedAnalysis && _snapshot is not null)
-				{
-					_classifications = TranslateClassifications(_classifications, _snapshot, snapshot);
-					_dslClassifications = TranslateDslClassifications(_dslClassifications, _snapshot, snapshot);
-					_dslSymbols = TranslateDslSymbols(_dslSymbols, _snapshot, snapshot);
-					_dslSites = TranslateDslSites(_dslSites, _snapshot, snapshot);
-				}
-				else
-				{
-					_classifications = classifications;
-					_dslClassifications = dslSites.Classifications;
-					_dslSymbols = dslSites.Symbols;
-					_dslSites = dslSites.Sites;
-				}
-
-				_snapshot        = snapshot;
-				_diagnostics     = diagnostics;
-				_symbols         = symbols;
-				_braces          = braces;
-				_foldingRanges   = foldingRanges;
-				if (!preserveEmbeddedAnalysis)
-					_documentSymbols = documentSymbols;
-				_publishedApis   = publishedApis;
-
-				if (_retrySnapshot != snapshot)
-				{
-					_retrySnapshot = snapshot;
-					_retryCount    = 0;
-				}
-
-				retry = analyses.Count == 0 &&
-					snapshot.GetText().IndexOf("[Gram", StringComparison.Ordinal) >= 0 &&
-					_retryCount++ < 5;
-			}
-
-			await NotifyChangedAsync(snapshot);
-
-			if (retry)
-				_ = RetryAsync(snapshot, cancellationToken);
-		}
-		catch (OperationCanceledException)
-		{
-		}
-		catch (Exception exception) when (exception is not OutOfMemoryException)
-		{
-			ActivityLog.LogError("DotGram.VisualStudio", exception.ToString());
-			// An editor extension must degrade to no tags rather than destabilize Visual Studio.
-		}
+		return version[position];
 	}
 
-	bool PublishProvisional(
-		ITextSnapshot snapshot,
-		IReadOnlyList<EmbeddedGrammarAnalysis> analyses,
-		CancellationToken cancellationToken)
+	TextSpan IEmbeddedGrammarHost<ITextSnapshot>.Translate(TextSpan span, ITextSnapshot from, ITextSnapshot to)
 	{
-		var classifications = analyses.SelectMany(static analysis => analysis.Classifications).ToArray();
-		var braces = analyses.SelectMany(static analysis => analysis.Braces).ToArray();
-		var foldingRanges = analyses.SelectMany(static analysis => analysis.FoldingRanges).ToArray();
-
-		lock (_gate)
-		{
-			cancellationToken.ThrowIfCancellationRequested();
-			if (_buffer.CurrentSnapshot != snapshot)
-				return false;
-
-			_snapshot = snapshot;
-			_classifications = MergeProvisionalClassifications(_classifications, classifications);
-			_braces = braces;
-			_foldingRanges = foldingRanges;
-		}
-
-		return true;
-	}
-
-	internal static IReadOnlyList<HostClassification> MergeProvisionalClassifications(
-		IReadOnlyList<HostClassification> previous,
-		IReadOnlyList<HostClassification> provisional)
-	{
-		if (previous.Count == 0 || provisional.Count == 0)
-			return provisional.Count == 0 ? previous : provisional;
-
-		var current = provisional.OrderBy(static item => item.Span.Start).ToArray();
-		var old = previous.OrderBy(static item => item.Span.Start).ToArray();
-		var maximumEnds = new int[current.Length];
-		for (var index = 0; index < current.Length; index++)
-			maximumEnds[index] = Math.Max(index == 0 ? 0 : maximumEnds[index - 1], current[index].Span.End);
-
-		var merged = new List<HostClassification>(current);
-		foreach (var candidate in old)
-		{
-			var low = 0;
-			var high = current.Length;
-			while (low < high)
-			{
-				var middle = low + (high - low) / 2;
-				if (current[middle].Span.Start < candidate.Span.End)
-					low = middle + 1;
-				else
-					high = middle;
-			}
-
-			if (low == 0 || maximumEnds[low - 1] <= candidate.Span.Start)
-				merged.Add(candidate);
-		}
-
-		return merged.OrderBy(static item => item.Span.Start).ToArray();
-	}
-
-	async Task NotifyChangedAsync(ITextSnapshot snapshot)
-	{
-		await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-		Changed?.Invoke(snapshot);
-	}
-
-	internal static bool ShouldPreserveEmbeddedAnalysis(
-		bool hasSyntaxErrors,
-		int analysisCount,
-		int previousClassificationCount,
-		int previousDslClassificationCount,
-		int previousSymbolCount,
-		int previousDslSiteCount)
-	{
-		return hasSyntaxErrors && analysisCount == 0 &&
-		(previousClassificationCount > 0 || previousDslClassificationCount > 0 ||
-		 previousSymbolCount > 0 || previousDslSiteCount > 0);
-	}
-
-	static IReadOnlyList<HostClassification> TranslateClassifications(
-		IReadOnlyList<HostClassification> classifications,
-		ITextSnapshot source,
-		ITextSnapshot target)
-	{
-		return classifications.Select(item => new HostClassification(
-			Translate(item.Span, source, target),
-			item.Kind,
-			item.QuickInfo,
-			item.DefinitionSpan is { } definition ? Translate(definition, source, target) : null,
-			Translate(item.GrammarSpan, source, target),
-			item.RuleSignature,
-			item.RuleParameterCount,
-			item.SymbolKind)).ToArray();
-	}
-
-	static (IReadOnlyList<HostClassification> Classifications, bool Changed) RefreshLiteralStyles(
-		IReadOnlyList<HostClassification> classifications,
-		ITextSnapshot snapshot)
-	{
-		var result = new HostClassification[classifications.Count];
-		var changed = false;
-
-		for (var index = 0; index < classifications.Count; index++)
-		{
-			var item = classifications[index];
-			var span = item.Span;
-			var kind = item.Kind;
-			var isCharacter = kind is GramSyntaxKind.Character or GramSyntaxKind.CaseInsensitiveCharacter;
-			var isString = kind is GramSyntaxKind.String or GramSyntaxKind.CaseInsensitiveString;
-
-			if ((isCharacter || isString) && span.End <= snapshot.Length)
-			{
-				var hasSuffix = span.Length > 0 && snapshot[span.End - 1] == 'i';
-				if (!hasSuffix && span.End < snapshot.Length && snapshot[span.End] == 'i')
-				{
-					span = new TextSpan(span.Start, span.Length + 1);
-					hasSuffix = true;
-				}
-
-				var refreshed = isCharacter
-					? hasSuffix ? GramSyntaxKind.CaseInsensitiveCharacter : GramSyntaxKind.Character
-					: hasSuffix ? GramSyntaxKind.CaseInsensitiveString : GramSyntaxKind.String;
-				changed |= refreshed != kind || span != item.Span;
-				kind = refreshed;
-			}
-
-			result[index] = new HostClassification(
-				span,
-				kind,
-				item.QuickInfo,
-				item.DefinitionSpan,
-				item.GrammarSpan,
-				item.RuleSignature,
-				item.RuleParameterCount,
-				item.SymbolKind);
-		}
-
-		return (result, changed);
-	}
-
-	static IReadOnlyList<HostDslClassification> TranslateDslClassifications(
-		IReadOnlyList<HostDslClassification> classifications,
-		ITextSnapshot source,
-		ITextSnapshot target)
-	{
-		return classifications.Select(item => new HostDslClassification(
-			Translate(item.Span, source, target),
-			item.Role)).ToArray();
-	}
-
-	static IReadOnlyList<HostDslSymbol> TranslateDslSymbols(
-		IReadOnlyList<HostDslSymbol> symbols,
-		ITextSnapshot source,
-		ITextSnapshot target)
-	{
-		return symbols.Select(item => new HostDslSymbol(
-			Translate(item.Span, source, target),
-			item.Role,
-			item.Target,
-			item.DefinitionPath,
-			item.DefinitionLine,
-			item.DefinitionColumn)).ToArray();
-	}
-
-	static IReadOnlyList<HostDslSite> TranslateDslSites(
-		IReadOnlyList<HostDslSite> sites,
-		ITextSnapshot source,
-		ITextSnapshot target)
-	{
-		return sites.Select(item => new HostDslSite(
-			Translate(item.Span, source, target),
-			item.LanguageId,
-			item.EntryRule,
-			Translate(new TextSpan(item.CompletionPosition, 0), source, target).Start,
-			item.Expected)).ToArray();
-	}
-
-	static TextSpan Translate(TextSpan span, ITextSnapshot source, ITextSnapshot target)
-	{
-		var translated = new SnapshotSpan(source, span.Start, span.Length)
-			.TranslateTo(target, SpanTrackingMode.EdgeExclusive);
+		var translated = new SnapshotSpan(from, span.Start, span.Length)
+			.TranslateTo(to, SpanTrackingMode.EdgeExclusive);
 
 		return new TextSpan(translated.Start.Position, translated.Length);
 	}
 
-	async Task RetryAsync(ITextSnapshot snapshot, CancellationToken cancellationToken)
+	Document? IEmbeddedGrammarHost<ITextSnapshot>.Document(ITextSnapshot version)
 	{
-		try
-		{
-			await Task.Delay(500, cancellationToken).ConfigureAwait(false);
+		return _documents.TryGetTextDocument(_buffer, out var textDocument)
+			? EmbeddedGrammarDocuments.WithText(_workspace.CurrentSolution, textDocument.FilePath, version.GetText())
+			: null;
+	}
 
-			if (_buffer.CurrentSnapshot == snapshot)
-				Schedule(snapshot);
-		}
-		catch (OperationCanceledException)
-		{
-		}
+	async Task IEmbeddedGrammarHost<ITextSnapshot>.BeforeChangedAsync(CancellationToken cancellationToken)
+	{
+		await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+	}
+
+	void IEmbeddedGrammarHost<ITextSnapshot>.Report(Exception exception)
+	{
+		ActivityLog.LogError("DotGram.VisualStudio", exception.ToString());
 	}
 }
