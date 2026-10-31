@@ -20,6 +20,7 @@ using Microsoft.VisualStudio.Imaging.Interop;
 using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
 using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data;
+using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Text.Editor;
@@ -81,6 +82,15 @@ public sealed class PlaygroundAdapterTests
 
 		if (Application.Current is null)
 			_ = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+
+		// Visual Studio's main thread, which ThreadHelper otherwise asks Visual Studio for: this one, so
+		// that the extension's Quick Info sources run as they do there.
+		var context = typeof(ThreadHelper).GetField("_joinableTaskContextCache", BindingFlags.Static | BindingFlags.NonPublic)
+			?? throw new InvalidOperationException("ThreadHelper's fields: " + string.Join(", ",
+				typeof(ThreadHelper).GetFields(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public).Select(static field => field.Name)));
+#pragma warning disable VSSDK005 // Outside Visual Studio there is no singleton to take; this one stands in for it.
+		context.SetValue(null, new Microsoft.VisualStudio.Threading.JoinableTaskContext());
+#pragma warning restore VSSDK005
 
 		var root      = SourceRootDirectory();
 		var grammars  = Path.Combine(root, "tests", "DotGram.VisualStudio.Tests", "Playground");
@@ -198,33 +208,26 @@ public sealed class PlaygroundAdapterTests
 		formatMaps.Setup(service => service.GetClassificationFormatMap(It.IsAny<ITextView>()))
 			.Returns(new Mock<IClassificationFormatMap>().Object);
 		var types      = new Mock<IClassificationTypeRegistryService>();
+		var noRoslyn   = new RoslynGramFeatures(new RoslynGramCompletion(null!, static () => null), null!);
+		var quickInfo  = new EmbeddedGramQuickInfoSource(buffer, analysis, noRoslyn, formatMaps.Object, types.Object);
 
 		foreach (var position in tokens)
 		{
-			var askedRoslyn = false;
-			var answer = GramQuickInfoProvider.EmbeddedAsync(
-				text,
-				analysis.View(snapshot),
-				position,
-				(_, _, _) =>
-				{
-					askedRoslyn = true;
-					return Task.FromResult<RoslynGramQuickInfo?>(null);
-				},
-				CancellationToken.None).GetAwaiter().GetResult();
+			var session = new Mock<IAsyncQuickInfoSession>();
+			session.Setup(item => item.GetTriggerPoint(It.IsAny<ITextSnapshot>())).Returns(new SnapshotPoint(snapshot, position));
+			session.Setup(item => item.TextView).Returns(textView);
 
-			if (askedRoslyn)
+			QuickInfoItem? item;
+			try
 			{
+				item = ThreadHelper.JoinableTaskFactory.Run(() => quickInfo.GetQuickInfoItemAsync(session.Object, CancellationToken.None));
+			}
+			catch (NullReferenceException)
+			{
+				// Where the source asks Roslyn, the workspace that is not there: recorded as C#, as it was.
 				result.Append("quickinfo ").Append(Place(text, position)).Append(" csharp\n");
 				continue;
 			}
-
-			if (answer is null)
-				continue;
-
-			var item = GramQuickInfoSource.WithDiagnostics(
-				GramQuickInfoSource.Item(textView, formatMaps.Object, types.Object, snapshot, answer.Item),
-				answer.Diagnostics);
 
 			if (item is null)
 				continue;
@@ -478,29 +481,26 @@ public sealed class PlaygroundAdapterTests
 		formatMaps.Setup(service => service.GetClassificationFormatMap(It.IsAny<ITextView>()))
 			.Returns(new Mock<IClassificationFormatMap>().Object);
 		var types      = new Mock<IClassificationTypeRegistryService>();
+		var noRoslyn   = new RoslynGramFeatures(new RoslynGramCompletion(null!, static () => null), null!);
+		var quickInfo  = new GramQuickInfoSource(buffer, analysis, noRoslyn, formatMaps.Object, types.Object);
 
 		foreach (var position in tokens)
 		{
-			var askedRoslyn = false;
-			var answer = GramQuickInfoProvider.StandaloneAsync(
-				analysis.View(snapshot),
-				position,
-				(_, _, _) =>
-				{
-					askedRoslyn = true;
-					return Task.FromResult<RoslynGramQuickInfo?>(null);
-				},
-				CancellationToken.None).GetAwaiter().GetResult();
+			var session = new Mock<IAsyncQuickInfoSession>();
+			session.Setup(item => item.GetTriggerPoint(It.IsAny<ITextSnapshot>())).Returns(new SnapshotPoint(snapshot, position));
+			session.Setup(item => item.TextView).Returns(view);
 
-			if (askedRoslyn)
+			QuickInfoItem? item;
+			try
 			{
+				item = ThreadHelper.JoinableTaskFactory.Run(() => quickInfo.GetQuickInfoItemAsync(session.Object, CancellationToken.None));
+			}
+			catch (NullReferenceException)
+			{
+				// Where the source asks Roslyn, the workspace that is not there: recorded as C#, as it was.
 				result.Append("quickinfo ").Append(Place(text, position)).Append(" csharp\n");
 				continue;
 			}
-
-			var item = GramQuickInfoSource.WithDiagnostics(
-				GramQuickInfoSource.Item(view, formatMaps.Object, types.Object, snapshot, answer.Item),
-				answer.Diagnostics);
 
 			if (item is null)
 				continue;
