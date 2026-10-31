@@ -73,6 +73,8 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 	/// <summary>The workspace, where it has been read.</summary>
 	FolderWorkspace? Loaded => Folder.IsCompletedSuccessfully ? Folder.Result : null;
 
+	public bool Initialized => Volatile.Read(ref _initialized);
+
 	public OpenGrammar? Document(string uri)
 	{
 		return Volatile.Read(ref _documents).TryGetValue(uri, out var document) ? document : null;
@@ -347,7 +349,7 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 	{
 		try
 		{
-			return FolderWorkspace.Create(folders, message => _ = _rpc.LogAsync(Lsp.MessageInfo, message), CancellationToken.None);
+			return FolderWorkspace.Load(folders, message => _ = _rpc.LogAsync(Lsp.MessageInfo, message));
 		}
 		catch (Exception exception) when (exception is not OutOfMemoryException)
 		{
