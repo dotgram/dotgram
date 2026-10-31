@@ -32,9 +32,13 @@ tests of this folder have projects of their own.
   workspace in a server — is the host's business.
 - `Generation/**`: no. That is the generator's shell: Roslyn's incremental pipeline, its caches and reports. The files
   both sides need live here, not there, so that the rule has no exceptions.
-- Visual Studio, LSP, WPF, MEF, the file system as policy: no. Those are the adapters'. `IncludedGrammarView`, which
-  writes read-only copies of included grammars to a temporary folder for Visual Studio to open, is the one file here
-  that still decides something about the file system, and is to move behind a seam the host provides.
+- Roslyn's Features — its completion and Quick Info services: no. An editor that has them asks them and hands the
+  answer in (the providers take it as a delegate); the core's Roslyn is what it reads C# with, not what it completes
+  C# with.
+- Visual Studio, LSP, WPF, MEF, the file system as policy: no. Those are the adapters'. Where an included grammar
+  that has no file of its own is opened is the host's to say, through `IIncludedGrammarStore`: Visual Studio's
+  read-only copies under the temporary directory are `TempDirectoryIncludedGrammarStore`, a test's are
+  `InMemoryIncludedGrammarStore`, and the analysis session takes its store from its host.
 
 ## How this is enforced, and what is not enforced
 
@@ -64,6 +68,23 @@ Write the editor-independent question here, with a test beside it in `tests/DotG
 adapter to show the answer: the Visual Studio project maps it to a tagger, a completion source or a command handler; a
 language server maps it to the LSP request it answers. If a feature seems to need an editor type to be computed at all,
 the boundary is in the wrong place: find the editor-independent part and put that here.
+
+What is here already, and where a new feature joins it:
+
+- **The session.** `GramAnalysisSession` keeps one open `.gram` document's analysis current — when to analyse after
+  typing, when to look for the grammar's host and what to drop as stale — over `IGramAnalysisHost`, which the editor
+  implements: the document's versions, the solution's changes, a scheduler. `EmbeddedGrammarSession` does the same for
+  the grammars in a C# document. Every analysis the session publishes carries its `GramAnalysisTiming`.
+- **The providers**, each a function of what the session knows about one version — a `GramStandaloneView` or an
+  `EmbeddedGrammarView` — and a position, returning plain data: `GramCompletionProvider`, `GramQuickInfoProvider`,
+  `GramSignatureHelpProvider`, `GramNavigationProvider` (definition, Ctrl+click, references, highlights) and
+  `GramRenameProvider`. Classification, diagnostics, braces, folding and document symbols are read off the
+  `GramDocument` as they are.
+- **What holds them.** The playground's recorded answers (`tests/DotGram.Language.Tests/Playground`), recorded once
+  through the Visual Studio extension and held since by `PlaygroundSnapshotTests` here and by the extension's own
+  adapter test on Windows; the session's lifecycle tests, on a clock the test moves; and, in
+  `tests/DotGram.Language.Tests.Slow`, `EditorAnalysisCostTests`, which reports what one analysis of the largest
+  grammars costs, phase by phase.
 
 ## Known models, not truths
 
