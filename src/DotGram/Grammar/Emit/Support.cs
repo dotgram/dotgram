@@ -771,7 +771,7 @@ public static partial class CSharpEmitter
 					}
 
 					if (expected.Length == 0)
-						return "Expected many alternatives.";
+						return "Expected many alternatives, among others.";
 
 					var among = cut ? ", among others." : ".";
 
@@ -2557,7 +2557,7 @@ text.Append("\tinternal static void Return(DirectValues_DotGram values)\n\t{\n")
 			if (stood == at)
 			{
 				if (more == null || more.Count <= tied)
-					return more != null && more.Count > TieCap_DotGram ? Truncated_DotGram : null;
+					return more != null && Cut_DotGram(more) ? Truncated_DotGram : null;
 
 				return more.Count - tied == 1
 					? more[tied]
@@ -2568,6 +2568,16 @@ text.Append("\tinternal static void Return(DirectValues_DotGram values)\n\t{\n")
 				return failure.Expected;
 
 			return Merged_DotGram(failure.Expected, more, 0);
+		}
+
+		/// <summary>Whether the list still holds the mark of a cut: removals below the cap may leave it with fewer sets than the cap.</summary>
+		static bool Cut_DotGram(global::System.Collections.Generic.List<string[]> more)
+		{
+			for (var at = more.Count - 1; at >= 0; at--)
+				if (ReferenceEquals(more[at], Truncated_DotGram))
+					return true;
+
+			return false;
 		}
 
 		/// <summary>The sets from <paramref name="from"/> on, after the first where there is one, as one.</summary>
@@ -2644,7 +2654,7 @@ text.Append("\tinternal static void Return(DirectValues_DotGram values)\n\t{\n")
 			}
 
 			if (kept == 0)
-				return "many alternatives";
+				return "many alternatives, among others";
 
 			var wanted = kept == 1
 				? unique[0]

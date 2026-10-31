@@ -6278,7 +6278,7 @@ namespace DotGram.Snapshots
 					}
 
 					if (expected.Length == 0)
-						return "Expected many alternatives.";
+						return "Expected many alternatives, among others.";
 
 					var among = cut ? ", among others." : ".";
 
@@ -6694,7 +6694,7 @@ namespace DotGram.Snapshots
 			if (stood == at)
 			{
 				if (more == null || more.Count <= tied)
-					return more != null && more.Count > TieCap_DotGram ? Truncated_DotGram : null;
+					return more != null && Cut_DotGram(more) ? Truncated_DotGram : null;
 
 				return more.Count - tied == 1
 					? more[tied]
@@ -6705,6 +6705,15 @@ namespace DotGram.Snapshots
 				return failure.Expected;
 
 			return Merged_DotGram(failure.Expected, more, 0);
+		}
+
+		static bool Cut_DotGram(global::System.Collections.Generic.List<string[]> more)
+		{
+			for (var at = more.Count - 1; at >= 0; at--)
+				if (ReferenceEquals(more[at], Truncated_DotGram))
+					return true;
+
+			return false;
 		}
 
 		static string[] Merged_DotGram(string[]? first, global::System.Collections.Generic.List<string[]> more, int from)
@@ -6775,7 +6784,7 @@ namespace DotGram.Snapshots
 			}
 
 			if (kept == 0)
-				return "many alternatives";
+				return "many alternatives, among others";
 
 			var wanted = kept == 1
 				? unique[0]

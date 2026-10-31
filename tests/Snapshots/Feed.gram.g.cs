@@ -2565,7 +2565,7 @@ namespace DotGram.Snapshots
 					}
 
 					if (expected.Length == 0)
-						return "Expected many alternatives.";
+						return "Expected many alternatives, among others.";
 
 					var among = cut ? ", among others." : ".";
 

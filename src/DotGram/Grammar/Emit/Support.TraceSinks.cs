@@ -620,7 +620,7 @@ public static partial class CSharpEmitter
 					text.Append(named[i]);
 				}
 
-				return cut ? (text.Length == 0 ? "many alternatives" : text + ", among others") : text.ToString();
+				return cut ? (text.Length == 0 ? "many alternatives, among others" : text + ", among others") : text.ToString();
 			}
 		}
 
@@ -706,7 +706,7 @@ public static partial class CSharpEmitter
 					Write(end >= 0
 						? "read to " + Where(read, end)
 						: "refused, the furthest refusal at " + Where(read, position) +
-							(expected != null ? ": " + Wanted(expected) : ""));
+							(expected != null ? ": " + Wanted(expected) + (Cut(expectedMore) ? ", among others" : "") : ""));
 
 				if (_reads.Count > 0)
 					return;
@@ -933,6 +933,20 @@ public static partial class CSharpEmitter
 				return shown.ToString();
 			}
 
+			/// <summary>Whether the sets that tied end with the mark of a cut list (<see cref="GramTrace.TruncatedTies"/>).</summary>
+			static bool Cut(global::System.Collections.Generic.IReadOnlyList<string[]>? more)
+			{
+				if (more == null)
+					return false;
+
+				for (var i = more.Count - 1; i >= 0; i--)
+					for (var j = 0; j < more[i].Length; j++)
+						if (more[i][j] == GramTrace.TruncatedTies)
+							return true;
+
+				return false;
+			}
+
 			static string Wanted(string[] expected)
 			{
 				var text = new global::System.Text.StringBuilder();
@@ -959,7 +973,7 @@ public static partial class CSharpEmitter
 					text.Append(one.Length > 0 && one[0] == '\u0000' ? one.Substring(1) : one);
 				}
 
-				return cut ? (!any ? "many alternatives" : text + ", among others") : text.ToString();
+				return cut ? (!any ? "many alternatives, among others" : text + ", among others") : text.ToString();
 			}
 		}
 

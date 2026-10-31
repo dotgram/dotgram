@@ -131,8 +131,10 @@ public sealed class RefusalTiesTests
 	}
 
 	/// <summary>
-	/// A turn that begins where the list already holds the cap and the mark has nothing of its own in it:
-	/// it is told the mark, so the recovery says "among others" rather than nothing (Expecting_DotGram).
+	/// A turn that begins where the list holds the mark of a cut and has nothing of its own in it is told the
+	/// mark, so the recovery says "among others" rather than nothing (Expecting_DotGram). The mark is looked
+	/// for itself and not inferred from the length: two calls refused over the ties take back sets below the
+	/// cap while the mark stays.
 	/// </summary>
 	[Fact]
 	public void A_turn_that_begins_past_the_cap_is_told_the_list_was_cut()
@@ -159,7 +161,7 @@ public sealed class RefusalTiesTests
 		}
 
 		// Began before the cap: the sets the turn recorded, the mark among them.
-		Assert.Equal(new[] { "'x'", "\u0001" }, ((string[])Turn(5, TieShapes.Cap - 1)!).Concat(Array.Empty<string>()).ToArray());
+		Assert.Equal(new[] { "'x'", "\u0001" }, ((string[])Turn(5, TieShapes.Cap - 1)!).ToArray());
 
 		// Began at the mark: the mark alone.
 		Assert.Same(mark, Turn(5, TieShapes.Cap));
@@ -167,25 +169,122 @@ public sealed class RefusalTiesTests
 		// Began after the mark: the list holds nothing of the turn's, and says it was cut.
 		Assert.Same(mark, Turn(5, TieShapes.Cap + 1));
 
-		// A list that was not cut and holds nothing of the turn's says nothing, as it did.
-		sets.RemoveRange(TieShapes.Cap, 1);
+		// Sets taken back below the cap while the mark stays (Count 16385, 16384, 16383 by two calls refused
+		// over the ties): the mark is still there, and the empty turn still says so.
+		sets.RemoveAt(TieShapes.Cap - 1);
+		Assert.Equal(TieShapes.Cap, sets.Count);
+		Assert.Same(mark, Turn(5, TieShapes.Cap));
 
-		Assert.Null(Turn(5, TieShapes.Cap));
+		sets.RemoveAt(TieShapes.Cap - 2);
+		Assert.Equal(TieShapes.Cap - 1, sets.Count);
+		Assert.Same(mark, Turn(5, TieShapes.Cap - 1));
+
+		// More than one mark (the cap reopened and was reached again): any of them counts, and one removed
+		// leaves the other.
+		sets.Add(["'y'"]);
+		sets.Add(mark);
+		Assert.Same(mark, Turn(5, sets.Count));
+		sets.RemoveAt(sets.Count - 1);
+		Assert.Same(mark, Turn(5, sets.Count));
+
+		// The last mark taken back: nothing was cut, and the turn says nothing, as it did.
+		sets.RemoveAt(sets.IndexOf(mark));
+		Assert.DoesNotContain(mark, sets);
+		Assert.Null(Turn(5, sets.Count));
 	}
 
 	/// <summary>
-	/// A trace build ends the same way: the match says it, the sinks are handed the mark as the last set
-	/// and a constant that names it, and the built-in sinks word it as "among others".
+	/// A message made of the mark alone says there were others, as every message that ends so does: the
+	/// match's, the one a recovery builds, and the built-in sinks'. The text is asserted, not the array.
+	/// </summary>
+	[Fact]
+	public void A_message_of_the_mark_alone_says_among_others()
+	{
+		var parser = TieShapes.Grammar(TieShapes.Cross, direct: false, CarrierKind.Auto);
+		var mark   = (string[])parser.GetField("Truncated_DotGram", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
+
+		var match   = parser.GetNestedType("Match`1")!.MakeGenericType(typeof(int));
+		var outcome = parser.GetNestedType("Outcome")!;
+		var failed  = match.GetMethod("Failed", BindingFlags.NonPublic | BindingFlags.Static)!.Invoke(null, [Enum.GetValues(outcome).GetValue(1), "otherwise", 0L, null, new[] { mark }])!;
+
+		Assert.Equal("Expected many alternatives, among others.", (string?)match.GetProperty("Error")!.GetValue(failed));
+
+		var wanted = parser.GetMethod("Wanted_DotGram", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+		Assert.Equal("many alternatives, among others", (string?)wanted.Invoke(null, [mark]));
+		Assert.Equal("'x', among others", (string?)wanted.Invoke(null, [new[] { "'x'", "\u0001", "\u0001" }]));
+	}
+
+	const string Tap = """
+		public sealed class Tap : GramTrace
+		{
+			public static string[][] Last;
+			public static int Ends;
+
+			public override void End(GramRead read, int end, int position, string[] expected, System.Collections.Generic.IReadOnlyList<string[]> expectedMore)
+			{
+				Ends++;
+				Last = expectedMore == null ? null : System.Linq.Enumerable.ToArray(expectedMore);
+			}
+		}
+		""";
+
+	/// <summary>
+	/// A trace build ends the same way, with sinks really installed: the match says it, a sink is handed
+	/// the mark as the last set and a constant that names it, and the built-in sinks word it.
 	/// </summary>
 	[Fact]
 	public void A_trace_build_words_the_cut_as_the_match_does()
 	{
-		var parser = TieShapes.Grammar(TieShapes.Once, direct: false, CarrierKind.Auto, trace: true);
-
-		Assert.Equal("Expected 'a' or 'b', among others.", TieShapes.Ask(parser, "TryParseR0", new string('a', 16) + "c").Said);
-
-		var trace = parser.GetNestedType("GramTrace")!;
+		var parser = TieShapes.Grammar(TieShapes.Once, direct: false, CarrierKind.Auto, trace: true, members: Tap);
+		var trace  = parser.GetNestedType("GramTrace")!;
+		var input  = new string('a', 16) + "c";
 
 		Assert.Equal("\u0001", trace.GetField("TruncatedTies")!.GetRawConstantValue());
+
+		var tap     = parser.GetNestedType("Tap")!;
+		var tracing = parser.GetMethod("Tracing")!;
+
+		// A sink of the host's own is handed the sets that tied, the mark last.
+		string said;
+
+		using (var scope = (IDisposable)tracing.Invoke(null, [Activator.CreateInstance(tap)])!)
+			said = TieShapes.Ask(parser, "TryParseR0", input).Said;
+
+		Assert.Equal("Expected 'a' or 'b', among others.", said);
+
+		var last = (string[][])tap.GetField("Last")!.GetValue(null)!;
+
+		Assert.True(last.Length <= TieShapes.Cap + 1);
+		Assert.Equal(new[] { "\u0001" }, last[^1]);
+
+		// The log words the refusal as the match does (its budget of lines raised past the refusals of every way).
+		var writer = new System.IO.StringWriter();
+		var log    = Activator.CreateInstance(parser.GetNestedType("GramTraceLog")!, writer, 10_000_000)!;
+
+		using (var scope = (IDisposable)tracing.Invoke(null, [log])!)
+			TieShapes.Ask(parser, "TryParseR0", input);
+
+		Assert.Contains("refused, the furthest refusal at", writer.ToString());
+		Assert.Contains("refused, the furthest refusal at 1:17: 'a', among others", writer.ToString());
+
+		// Not cut: the log is as it was.
+		writer = new System.IO.StringWriter();
+		log    = Activator.CreateInstance(parser.GetNestedType("GramTraceLog")!, writer, 10_000_000)!;
+
+		using (var scope = (IDisposable)tracing.Invoke(null, [log])!)
+			TieShapes.Ask(parser, "TryParseR0", new string('a', 8) + "c");
+
+		Assert.Contains("refused, the furthest refusal at 1:9: 'a'", writer.ToString());
+		Assert.DoesNotContain("among others", writer.ToString());
+
+		// The explaining sink's own words for the mark alone.
+		foreach (var (sink, method) in new[] { ("GramWhy", "Wanted_DotGram"), ("GramTraceLog", "Wanted") })
+		{
+			var format = parser.GetNestedType(sink)!.GetMethod(method, BindingFlags.NonPublic | BindingFlags.Static)!;
+			var argument = sink == "GramWhy" ? (object)new List<string> { "\u0001" } : new[] { "\u0001" };
+
+			Assert.Equal("many alternatives, among others", (string?)format.Invoke(null, [argument]));
+		}
 	}
 }

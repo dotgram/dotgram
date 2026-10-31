@@ -68,11 +68,11 @@ internal static class TieShapes
 		("immediate", true, CarrierKind.Immediate),
 	];
 
-	static readonly ConcurrentDictionary<(string, bool, CarrierKind, bool), Type> Built = new();
+	static readonly ConcurrentDictionary<(string, bool, CarrierKind, bool, string?), Type> Built = new();
 
-	internal static Type Grammar(string grammar, bool direct, CarrierKind carrier, bool trace = false)
+	internal static Type Grammar(string grammar, bool direct, CarrierKind carrier, bool trace = false, string? members = null)
 	{
-		return Built.GetOrAdd((grammar, direct, carrier, trace), static key =>
+		return Built.GetOrAdd((grammar, direct, carrier, trace, members), static key =>
 		{
 			var result = GramCompiler.Compile(key.Item1, new GramCompilerOptions
 			{
@@ -89,7 +89,7 @@ internal static class TieShapes
 			// A choice of two to the n copies is more than one method can hold optimized (GRAM5003): the grammar is built to be that large.
 			EmittedCode.Quiet(result.Diagnostics.Where(static one => one.Id != GramCompiler.BufferedUnsupported && one.Id != "GRAM5003"));
 
-			return EmittedCode.Compile(result.Sources[0].Text, sourceParts: result.Sources.Skip(1).Select(static one => one.Text)).GetType("Grammar")!;
+			return EmittedCode.Compile(result.Sources[0].Text, declarationMembers: key.Item5, sourceParts: result.Sources.Skip(1).Select(static one => one.Text)).GetType("Grammar")!;
 		});
 	}
 
