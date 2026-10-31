@@ -106,19 +106,27 @@ public sealed class AnalysisTests
 	}
 
 	/// <summary>
-	/// A keystroke into the T-SQL grammar, 469 KB, costs the server about what a keystroke into a grammar
-	/// of one line does: an edit reads what it changed, not the whole text.
+	/// A keystroke into the T-SQL grammar, 469 KB, costs the server little more than a keystroke into a
+	/// grammar of one line: an edit reads what it changed, not the whole text.
 	/// </summary>
 	/// <remarks>
+	/// <para>
 	/// The server reads a thousand edits that are all in its input before it starts, so that nothing
 	/// it does slows the sender and nothing the sender does slows it; their cost is the run with them
-	/// less the same run without them. The yardstick is the same thousand edits of a one-line grammar,
-	/// measured beside them, so that a busy machine slows both; and the small grammar's thousand edits
-	/// are held to a thousand reads of T-SQL into its lines, measured beside them too, so that a delay
-	/// every edit pays alike does not hide behind the ratio. What an edit of T-SQL still costs more is
-	/// Roslyn's: its <c>WithChanges</c> takes about 50 µs on a text of that size. Measured here: T-SQL
-	/// 1.1-3.4 times the small grammar, whose edits cost 60-300 reads; an edit that read the whole
-	/// grammar, as one did, cost T-SQL over ten times the small one's.
+	/// less the same run without them. The yardstick is one read of T-SQL into its lines, measured
+	/// beside them, so that a busy machine slows all alike: what T-SQL's edits cost more than the
+	/// one-line grammar's is held to 800 such reads, and the one-line grammar's own to 1,000, so that
+	/// a delay every edit pays alike does not hide behind the difference.
+	/// </para>
+	/// <para>
+	/// Measured (Linux here, and CI's Windows runner): T-SQL's edits cost about 150 reads more on a
+	/// quiet machine and up to 420 on a busy one, nearly all of it Roslyn's <c>WithChanges</c>, about
+	/// 50 µs on a text of that size. A version that copied the text on every edit cost 1,100 reads
+	/// more on a quiet machine; one that read it into lines twice per edit, 2,000. The bound is a
+	/// guard against those, not a measurement.
+	/// Whether the session has started on the document when the burst arrives moves the one-line
+	/// grammar's cost by up to 60 µs an edit, which is why the bound is on the difference, not a ratio.
+	/// </para>
 	/// </remarks>
 	[Fact]
 	public void A_burst_of_keystrokes_costs_what_it_costs_in_a_small_grammar()
@@ -138,7 +146,9 @@ public sealed class AnalysisTests
 			$"1,000 edits: T-SQL {large.TotalMilliseconds:F0} ms, one line {small.TotalMilliseconds:F0} ms; " +
 			$"one read of T-SQL into lines {read.TotalMilliseconds:F2} ms");
 
-		Assert.True(large < small * 6, $"1,000 edits of T-SQL cost {large.TotalMilliseconds:F0} ms, of one line {small.TotalMilliseconds:F0} ms.");
+		Assert.True(
+			large - small < read * 800,
+			$"1,000 edits of T-SQL cost {large.TotalMilliseconds:F0} ms, of one line {small.TotalMilliseconds:F0} ms: {(large - small) / read:F0} reads of T-SQL more.");
 		Assert.True(small < read * 1000, $"1,000 edits of one line cost {small.TotalMilliseconds:F0} ms, {small / read:F0} reads of T-SQL.");
 	}
 
