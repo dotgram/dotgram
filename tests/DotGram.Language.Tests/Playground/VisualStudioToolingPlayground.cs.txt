@@ -1,0 +1,1961 @@
+# grammars 4, dsl sites 0, dsl symbols 0
+completion 25:23 applicable=25:23+4
+  and | insert=and | suffix= | sort=and | filter=and | DotGram keyword and: in a 'when' condition: both conditions hold
+  any | insert=any | suffix= | sort=any | filter=any | DotGram built-in rule any: one input item, whatever it is; fails only where there is none left
+  as | insert=as | suffix= | sort=as | filter=as | DotGram keyword as: names the method a 'parse' or 'find' publishes
+  Backtracking | insert=Backtracking | suffix=? | sort=Backtracking | filter=Backtracking | Backtracking? = 'x'?
+  bytes | insert=bytes | suffix= | sort=bytes | filter=bytes | DotGram keyword bytes: a publication option after 'stream': the method reads bytes, from a Stream, a byte[] or a ReadOnlyMemory<byte>
+  case | insert=case | suffix= | sort=case | filter=case | DotGram keyword case: a case of a computed choice: 'case value: Expr;'
+  context | insert=context | suffix= | sort=context | filter=context | DotGram keyword context: 'context : @T' declares the object every publication is handed and the C# code reads as 'context'
+  default | insert=default | suffix= | sort=default | filter=default | DotGram keyword default: the case of a computed choice taken where no other case matches
+  eof | insert=eof | suffix= | sort=eof | filter=eof | DotGram built-in rule eof: the end of the input: succeeds exactly where 'any' would fail, consuming nothing
+  eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
+  eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
+  internal | insert=internal | suffix= | sort=internal | filter=internal | DotGram keyword internal: a publication's method is internal: the assembly and its friends
+  is | insert=is | suffix= | sort=is | filter=is | DotGram keyword is: in a 'when' condition: 'Rule is "text"' holds where the rule is bound to that text
+  left | insert=left | suffix= | sort=left | filter=left | left: DotGram capture
+  namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
+  none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
+  not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  op | insert=op | suffix= | sort=op | filter=op | op: DotGram capture
+  or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
+  parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+  Power | insert=Power | suffix=   : @decimal | sort=Power | filter=Power | Power   : @decimal = left: Primary & ('^' & right: Unary)?\r\n                   => @(right is { } exponent ? Raise(left, exponent) : left)\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nRecursive reference: Primary
+  Primary | insert=Primary | suffix= : @decimal | sort=Primary | filter=Primary | Primary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nRecursive reference: Primary
+  private | insert=private | suffix= | sort=private | filter=private | DotGram keyword private: a publication's method is private to the class the grammar is attached to
+  Product | insert=Product | suffix= : @decimal | sort=Product | filter=Product | Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nRecursive reference: Product
+  public | insert=public | suffix= | sort=public | filter=public | DotGram keyword public: a publication's method is public (the default)
+  recover | insert=recover | suffix= | sort=recover | filter=recover | DotGram keyword recover: a repetition that survives a bad element: 'X* recover Sync' skips to Sync and goes on; '=> @Factory(...)' builds the rejected element
+  right | insert=right | suffix= | sort=right | filter=right | right: DotGram capture
+  state | insert=state | suffix= | sort=state | filter=state | DotGram keyword state: 'state : @T' declares what holds while an operand is read; 'with state @(...)' sets it and 'parserState' reads it
+  stream | insert=stream | suffix= | sort=stream | filter=stream | DotGram keyword stream: a publication option: the method also reads a TextReader, or with 'bytes' a byte Stream
+  Sum | insert=Sum | suffix=     : @decimal | sort=Sum | filter=Sum | Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nRecursive reference: Sum
+  switch | insert=switch | suffix= | sort=switch | filter=switch | DotGram keyword switch: computed choice: 'switch @(selector) { case value: Expr; default: Expr }' reads the case the C# selector names
+  trivia | insert=trivia | suffix= | sort=trivia | filter=trivia | trivia = [' ' | '\\t']*
+  Unary | insert=Unary | suffix=   : @decimal | sort=Unary | filter=Unary | Unary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nRecursive reference: Unary
+  using | insert=using | suffix= | sort=using | filter=using | DotGram keyword using: imports a grammar namespace, as in 'using Lexical;'; '@using' imports a C# namespace
+  value | insert=value | suffix= | sort=value | filter=value | value: DotGram capture
+  when | insert=when | suffix= | sort=when | filter=when | DotGram keyword when: a guard: the alternative goes on only where the condition holds, as in 'when @IsValid(x)', 'when @(x > 0)' or 'when Version is "2022"'
+  with | insert=with | suffix= | sort=with | filter=with | DotGram keyword with: rebinds names for an expression, a namespace or a publication: 'with (A = B)'; 'with state @(...)' sets the parser state while its operand is read
+  word | insert=word | suffix= | sort=word | filter=word | DotGram built-in rule word: one whole word, whatever it says, as 'wordboundary' defines a word
+  wordboundary | insert=wordboundary | suffix= | sort=wordboundary | filter=wordboundary | DotGram built-in rule wordboundary: what a word is made of; none until the grammar declares 'wordboundary'
+  yield | insert=yield | suffix= | sort=yield | filter=yield | DotGram keyword yield: a publication option: the method returns the elements of a sequence lazily, 'yield : @T' naming their type
+completion 25:91 applicable=25:89+4
+  parserText | insert=parserText | suffix= | sort=parserText | filter=parserText | DotGram supplied name parserText: the input the element covers, as a string
+  parserSpan | insert=parserSpan | suffix= | sort=parserSpan | filter=parserSpan | DotGram supplied name parserSpan: the element's extent in the input
+  parserInput | insert=parserInput | suffix= | sort=parserInput | filter=parserInput | DotGram supplied name parserInput: the whole of what was read, as a string
+  left | insert=left | suffix= | sort=left | filter=left | left: DotGram capture
+  op | insert=op | suffix= | sort=op | filter=op | op: DotGram capture
+  right | insert=right | suffix= | sort=right | filter=right | right: DotGram capture
+  value | insert=value | suffix= | sort=value | filter=value | value: DotGram capture
+completion 42:23 applicable=42:23+0
+  and | insert=and | suffix= | sort=and | filter=and | DotGram keyword and: in a 'when' condition: both conditions hold
+  any | insert=any | suffix= | sort=any | filter=any | DotGram built-in rule any: one input item, whatever it is; fails only where there is none left
+  as | insert=as | suffix= | sort=as | filter=as | DotGram keyword as: names the method a 'parse' or 'find' publishes
+  Backtracking | insert=Backtracking | suffix=? | sort=Backtracking | filter=Backtracking | Backtracking? = 'x'?
+  bytes | insert=bytes | suffix= | sort=bytes | filter=bytes | DotGram keyword bytes: a publication option after 'stream': the method reads bytes, from a Stream, a byte[] or a ReadOnlyMemory<byte>
+  case | insert=case | suffix= | sort=case | filter=case | DotGram keyword case: a case of a computed choice: 'case value: Expr;'
+  context | insert=context | suffix= | sort=context | filter=context | DotGram keyword context: 'context : @T' declares the object every publication is handed and the C# code reads as 'context'
+  default | insert=default | suffix= | sort=default | filter=default | DotGram keyword default: the case of a computed choice taken where no other case matches
+  digits | insert=digits | suffix= | sort=digits | filter=digits | digits: DotGram capture
+  eof | insert=eof | suffix= | sort=eof | filter=eof | DotGram built-in rule eof: the end of the input: succeeds exactly where 'any' would fail, consuming nothing
+  eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
+  eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
+  inner | insert=inner | suffix= | sort=inner | filter=inner | inner: DotGram capture
+  internal | insert=internal | suffix= | sort=internal | filter=internal | DotGram keyword internal: a publication's method is internal: the assembly and its friends
+  is | insert=is | suffix= | sort=is | filter=is | DotGram keyword is: in a 'when' condition: 'Rule is "text"' holds where the rule is bound to that text
+  namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
+  none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
+  not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
+  parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+  Power | insert=Power | suffix=   : @decimal | sort=Power | filter=Power | Power   : @decimal = left: Primary & ('^' & right: Unary)?\r\n                   => @(right is { } exponent ? Raise(left, exponent) : left)\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nRecursive reference: Primary
+  Primary | insert=Primary | suffix= : @decimal | sort=Primary | filter=Primary | Primary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nRecursive reference: Primary
+  private | insert=private | suffix= | sort=private | filter=private | DotGram keyword private: a publication's method is private to the class the grammar is attached to
+  Product | insert=Product | suffix= : @decimal | sort=Product | filter=Product | Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nRecursive reference: Product
+  public | insert=public | suffix= | sort=public | filter=public | DotGram keyword public: a publication's method is public (the default)
+  recover | insert=recover | suffix= | sort=recover | filter=recover | DotGram keyword recover: a repetition that survives a bad element: 'X* recover Sync' skips to Sync and goes on; '=> @Factory(...)' builds the rejected element
+  state | insert=state | suffix= | sort=state | filter=state | DotGram keyword state: 'state : @T' declares what holds while an operand is read; 'with state @(...)' sets it and 'parserState' reads it
+  stream | insert=stream | suffix= | sort=stream | filter=stream | DotGram keyword stream: a publication option: the method also reads a TextReader, or with 'bytes' a byte Stream
+  Sum | insert=Sum | suffix=     : @decimal | sort=Sum | filter=Sum | Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nRecursive reference: Sum
+  switch | insert=switch | suffix= | sort=switch | filter=switch | DotGram keyword switch: computed choice: 'switch @(selector) { case value: Expr; default: Expr }' reads the case the C# selector names
+  trivia | insert=trivia | suffix= | sort=trivia | filter=trivia | trivia = [' ' | '\\t']*
+  Unary | insert=Unary | suffix=   : @decimal | sort=Unary | filter=Unary | Unary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nRecursive reference: Unary
+  using | insert=using | suffix= | sort=using | filter=using | DotGram keyword using: imports a grammar namespace, as in 'using Lexical;'; '@using' imports a C# namespace
+  when | insert=when | suffix= | sort=when | filter=when | DotGram keyword when: a guard: the alternative goes on only where the condition holds, as in 'when @IsValid(x)', 'when @(x > 0)' or 'when Version is "2022"'
+  with | insert=with | suffix= | sort=with | filter=with | DotGram keyword with: rebinds names for an expression, a namespace or a publication: 'with (A = B)'; 'with state @(...)' sets the parser state while its operand is read
+  word | insert=word | suffix= | sort=word | filter=word | DotGram built-in rule word: one whole word, whatever it says, as 'wordboundary' defines a word
+  wordboundary | insert=wordboundary | suffix= | sort=wordboundary | filter=wordboundary | DotGram built-in rule wordboundary: what a word is made of; none until the grammar declares 'wordboundary'
+  yield | insert=yield | suffix= | sort=yield | filter=yield | DotGram keyword yield: a publication option: the method returns the elements of a sequence lazily, 'yield : @T' naming their type
+completion 55:62 applicable=55:62+8
+  parserText | insert=parserText | suffix= | sort=parserText | filter=parserText | DotGram supplied name parserText: the input the element covers, as a string
+  parserSpan | insert=parserSpan | suffix= | sort=parserSpan | filter=parserSpan | DotGram supplied name parserSpan: the element's extent in the input
+  parserInput | insert=parserInput | suffix= | sort=parserInput | filter=parserInput | DotGram supplied name parserInput: the whole of what was read, as a string
+  left | insert=left | suffix= | sort=left | filter=left | left: DotGram capture
+  right | insert=right | suffix= | sort=right | filter=right | right: DotGram capture
+completion 58:8 applicable=58:8+3
+  and | insert=and | suffix= | sort=and | filter=and | DotGram keyword and: in a 'when' condition: both conditions hold
+  any | insert=any | suffix= | sort=any | filter=any | DotGram built-in rule any: one input item, whatever it is; fails only where there is none left
+  as | insert=as | suffix= | sort=as | filter=as | DotGram keyword as: names the method a 'parse' or 'find' publishes
+  Backtracking | insert=Backtracking | suffix=? | sort=Backtracking | filter=Backtracking | Backtracking? = 'x'?
+  bytes | insert=bytes | suffix= | sort=bytes | filter=bytes | DotGram keyword bytes: a publication option after 'stream': the method reads bytes, from a Stream, a byte[] or a ReadOnlyMemory<byte>
+  case | insert=case | suffix= | sort=case | filter=case | DotGram keyword case: a case of a computed choice: 'case value: Expr;'
+  context | insert=context | suffix= | sort=context | filter=context | DotGram keyword context: 'context : @T' declares the object every publication is handed and the C# code reads as 'context'
+  default | insert=default | suffix= | sort=default | filter=default | DotGram keyword default: the case of a computed choice taken where no other case matches
+  eof | insert=eof | suffix= | sort=eof | filter=eof | DotGram built-in rule eof: the end of the input: succeeds exactly where 'any' would fail, consuming nothing
+  eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
+  eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
+  internal | insert=internal | suffix= | sort=internal | filter=internal | DotGram keyword internal: a publication's method is internal: the assembly and its friends
+  is | insert=is | suffix= | sort=is | filter=is | DotGram keyword is: in a 'when' condition: 'Rule is "text"' holds where the rule is bound to that text
+  namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
+  none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
+  not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
+  parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+  Power | insert=Power | suffix=   : @decimal | sort=Power | filter=Power | Power   : @decimal = left: Primary & ('^' & right: Unary)?\r\n                   => @(right is { } exponent ? Raise(left, exponent) : left)\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nRecursive reference: Primary
+  Primary | insert=Primary | suffix= : @decimal | sort=Primary | filter=Primary | Primary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nRecursive reference: Primary
+  private | insert=private | suffix= | sort=private | filter=private | DotGram keyword private: a publication's method is private to the class the grammar is attached to
+  Product | insert=Product | suffix= : @decimal | sort=Product | filter=Product | Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nRecursive reference: Product
+  public | insert=public | suffix= | sort=public | filter=public | DotGram keyword public: a publication's method is public (the default)
+  recover | insert=recover | suffix= | sort=recover | filter=recover | DotGram keyword recover: a repetition that survives a bad element: 'X* recover Sync' skips to Sync and goes on; '=> @Factory(...)' builds the rejected element
+  state | insert=state | suffix= | sort=state | filter=state | DotGram keyword state: 'state : @T' declares what holds while an operand is read; 'with state @(...)' sets it and 'parserState' reads it
+  stream | insert=stream | suffix= | sort=stream | filter=stream | DotGram keyword stream: a publication option: the method also reads a TextReader, or with 'bytes' a byte Stream
+  Sum | insert=Sum | suffix=     : @decimal | sort=Sum | filter=Sum | Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nRecursive reference: Sum
+  switch | insert=switch | suffix= | sort=switch | filter=switch | DotGram keyword switch: computed choice: 'switch @(selector) { case value: Expr; default: Expr }' reads the case the C# selector names
+  trivia | insert=trivia | suffix= | sort=trivia | filter=trivia | trivia = [' ' | '\\t']*
+  Unary | insert=Unary | suffix=   : @decimal | sort=Unary | filter=Unary | Unary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nRecursive reference: Unary
+  using | insert=using | suffix= | sort=using | filter=using | DotGram keyword using: imports a grammar namespace, as in 'using Lexical;'; '@using' imports a C# namespace
+  when | insert=when | suffix= | sort=when | filter=when | DotGram keyword when: a guard: the alternative goes on only where the condition holds, as in 'when @IsValid(x)', 'when @(x > 0)' or 'when Version is "2022"'
+  with | insert=with | suffix= | sort=with | filter=with | DotGram keyword with: rebinds names for an expression, a namespace or a publication: 'with (A = B)'; 'with state @(...)' sets the parser state while its operand is read
+  word | insert=word | suffix= | sort=word | filter=word | DotGram built-in rule word: one whole word, whatever it says, as 'wordboundary' defines a word
+  wordboundary | insert=wordboundary | suffix= | sort=wordboundary | filter=wordboundary | DotGram built-in rule wordboundary: what a word is made of; none until the grammar declares 'wordboundary'
+  yield | insert=yield | suffix= | sort=yield | filter=yield | DotGram keyword yield: a publication option: the method returns the elements of a sequence lazily, 'yield : @T' naming their type
+completion 104:11 applicable=104:11+4
+  and | insert=and | suffix= | sort=and | filter=and | DotGram keyword and: in a 'when' condition: both conditions hold
+  any | insert=any | suffix= | sort=any | filter=any | DotGram built-in rule any: one input item, whatever it is; fails only where there is none left
+  as | insert=as | suffix= | sort=as | filter=as | DotGram keyword as: names the method a 'parse' or 'find' publishes
+  bytes | insert=bytes | suffix= | sort=bytes | filter=bytes | DotGram keyword bytes: a publication option after 'stream': the method reads bytes, from a Stream, a byte[] or a ReadOnlyMemory<byte>
+  case | insert=case | suffix= | sort=case | filter=case | DotGram keyword case: a case of a computed choice: 'case value: Expr;'
+  context | insert=context | suffix= | sort=context | filter=context | DotGram keyword context: 'context : @T' declares the object every publication is handed and the C# code reads as 'context'
+  default | insert=default | suffix= | sort=default | filter=default | DotGram keyword default: the case of a computed choice taken where no other case matches
+  eof | insert=eof | suffix= | sort=eof | filter=eof | DotGram built-in rule eof: the end of the input: succeeds exactly where 'any' would fail, consuming nothing
+  eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
+  eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
+  internal | insert=internal | suffix= | sort=internal | filter=internal | DotGram keyword internal: a publication's method is internal: the assembly and its friends
+  is | insert=is | suffix= | sort=is | filter=is | DotGram keyword is: in a 'when' condition: 'Rule is "text"' holds where the rule is bound to that text
+  namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
+  none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
+  not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
+  parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+  private | insert=private | suffix= | sort=private | filter=private | DotGram keyword private: a publication's method is private to the class the grammar is attached to
+  public | insert=public | suffix= | sort=public | filter=public | DotGram keyword public: a publication's method is public (the default)
+  recover | insert=recover | suffix= | sort=recover | filter=recover | DotGram keyword recover: a repetition that survives a bad element: 'X* recover Sync' skips to Sync and goes on; '=> @Factory(...)' builds the rejected element
+  Start | insert=Start | suffix= | sort=Start | filter=Start | Start = Word\n\nReferenced rule:\nWord = ['a'..'z']+
+  state | insert=state | suffix= | sort=state | filter=state | DotGram keyword state: 'state : @T' declares what holds while an operand is read; 'with state @(...)' sets it and 'parserState' reads it
+  stream | insert=stream | suffix= | sort=stream | filter=stream | DotGram keyword stream: a publication option: the method also reads a TextReader, or with 'bytes' a byte Stream
+  switch | insert=switch | suffix= | sort=switch | filter=switch | DotGram keyword switch: computed choice: 'switch @(selector) { case value: Expr; default: Expr }' reads the case the C# selector names
+  trivia | insert=trivia | suffix= | sort=trivia | filter=trivia | DotGram built-in rule trivia: what may stand between the operands of a sequence; none until the grammar declares 'trivia'
+  using | insert=using | suffix= | sort=using | filter=using | DotGram keyword using: imports a grammar namespace, as in 'using Lexical;'; '@using' imports a C# namespace
+  when | insert=when | suffix= | sort=when | filter=when | DotGram keyword when: a guard: the alternative goes on only where the condition holds, as in 'when @IsValid(x)', 'when @(x > 0)' or 'when Version is "2022"'
+  with | insert=with | suffix= | sort=with | filter=with | DotGram keyword with: rebinds names for an expression, a namespace or a publication: 'with (A = B)'; 'with state @(...)' sets the parser state while its operand is read
+  word | insert=word | suffix= | sort=word | filter=word | DotGram built-in rule word: one whole word, whatever it says, as 'wordboundary' defines a word
+  Word | insert=Word | suffix= | sort=Word | filter=Word | Word = ['a'..'z']+
+  wordboundary | insert=wordboundary | suffix= | sort=wordboundary | filter=wordboundary | DotGram built-in rule wordboundary: what a word is made of; none until the grammar declares 'wordboundary'
+  yield | insert=yield | suffix= | sort=yield | filter=yield | DotGram keyword yield: a publication option: the method returns the elements of a sequence lazily, 'yield : @T' naming their type
+completion 77:19 none
+completion 213:47 none
+completion 191:19 applicable=191:19+4
+  and | insert=and | suffix= | sort=and | filter=and | DotGram keyword and: in a 'when' condition: both conditions hold
+  any | insert=any | suffix= | sort=any | filter=any | DotGram built-in rule any: one input item, whatever it is; fails only where there is none left
+  as | insert=as | suffix= | sort=as | filter=as | DotGram keyword as: names the method a 'parse' or 'find' publishes
+  bytes | insert=bytes | suffix= | sort=bytes | filter=bytes | DotGram keyword bytes: a publication option after 'stream': the method reads bytes, from a Stream, a byte[] or a ReadOnlyMemory<byte>
+  case | insert=case | suffix= | sort=case | filter=case | DotGram keyword case: a case of a computed choice: 'case value: Expr;'
+  context | insert=context | suffix= | sort=context | filter=context | DotGram keyword context: 'context : @T' declares the object every publication is handed and the C# code reads as 'context'
+  default | insert=default | suffix= | sort=default | filter=default | DotGram keyword default: the case of a computed choice taken where no other case matches
+  eof | insert=eof | suffix= | sort=eof | filter=eof | DotGram built-in rule eof: the end of the input: succeeds exactly where 'any' would fail, consuming nothing
+  eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
+  eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
+  internal | insert=internal | suffix= | sort=internal | filter=internal | DotGram keyword internal: a publication's method is internal: the assembly and its friends
+  is | insert=is | suffix= | sort=is | filter=is | DotGram keyword is: in a 'when' condition: 'Rule is "text"' holds where the rule is bound to that text
+  Item | insert=Item | suffix= : @int | sort=Item | filter=Item | Item : @int = switch @(1) { case 1: 'x' => @(1); default: 'y' => @(2) }
+  Items | insert=Items | suffix= : @int[] | sort=Items | filter=Items | Items : @int[] = Item*\n\nReferenced rule:\nItem : @int = switch @(1) { case 1: 'x' => @(1); default: 'y' => @(2) }
+  namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
+  none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
+  not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
+  parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+  private | insert=private | suffix= | sort=private | filter=private | DotGram keyword private: a publication's method is private to the class the grammar is attached to
+  public | insert=public | suffix= | sort=public | filter=public | DotGram keyword public: a publication's method is public (the default)
+  recover | insert=recover | suffix= | sort=recover | filter=recover | DotGram keyword recover: a repetition that survives a bad element: 'X* recover Sync' skips to Sync and goes on; '=> @Factory(...)' builds the rejected element
+  state | insert=state | suffix= | sort=state | filter=state | DotGram keyword state: 'state : @T' declares what holds while an operand is read; 'with state @(...)' sets it and 'parserState' reads it
+  stream | insert=stream | suffix= | sort=stream | filter=stream | DotGram keyword stream: a publication option: the method also reads a TextReader, or with 'bytes' a byte Stream
+  switch | insert=switch | suffix= | sort=switch | filter=switch | DotGram keyword switch: computed choice: 'switch @(selector) { case value: Expr; default: Expr }' reads the case the C# selector names
+  trivia | insert=trivia | suffix= | sort=trivia | filter=trivia | DotGram built-in rule trivia: what may stand between the operands of a sequence; none until the grammar declares 'trivia'
+  using | insert=using | suffix= | sort=using | filter=using | DotGram keyword using: imports a grammar namespace, as in 'using Lexical;'; '@using' imports a C# namespace
+  when | insert=when | suffix= | sort=when | filter=when | DotGram keyword when: a guard: the alternative goes on only where the condition holds, as in 'when @IsValid(x)', 'when @(x > 0)' or 'when Version is "2022"'
+  with | insert=with | suffix= | sort=with | filter=with | DotGram keyword with: rebinds names for an expression, a namespace or a publication: 'with (A = B)'; 'with state @(...)' sets the parser state while its operand is read
+  word | insert=word | suffix= | sort=word | filter=word | DotGram built-in rule word: one whole word, whatever it says, as 'wordboundary' defines a word
+  wordboundary | insert=wordboundary | suffix= | sort=wordboundary | filter=wordboundary | DotGram built-in rule wordboundary: what a word is made of; none until the grammar declares 'wordboundary'
+  yield | insert=yield | suffix= | sort=yield | filter=yield | DotGram keyword yield: a publication option: the method returns the elements of a sequence lazily, 'yield : @T' naming their type
+quickinfo 17:2 span=17:2+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 17:3 csharp
+quickinfo 17:9 span=17:9+6
+  icon LocalVariable
+  text DotGram rule or binding: System
+quickinfo 17:15 span=17:15+1
+  icon IntellisenseKeyword
+  text DotGram '.': a qualified name: 'Namespace.Rule' or a C# member
+quickinfo 17:16 span=17:16+13
+  icon LocalVariable
+  text DotGram rule or binding: Globalization
+quickinfo 17:29 span=17:29+1
+  icon IntellisenseKeyword
+  text DotGram ';': ends a 'using', a case of a computed choice, or separates rules
+quickinfo 19:2 span=19:2+6
+  icon Method
+  text trivia = [' ' | '\\t']*
+quickinfo 19:9 span=19:9+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 19:11 span=19:11+1
+  icon IntellisenseKeyword
+  text DotGram '[': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 19:12 span=19:12+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 19:16 span=19:16+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 19:18 span=19:18+4
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 19:22 span=19:22+1
+  icon IntellisenseKeyword
+  text DotGram ']': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 19:23 span=19:23+1
+  icon IntellisenseKeyword
+  text DotGram '*': repetition: zero or more
+quickinfo 21:2 span=21:2+79
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 22:2 span=22:2+83
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 23:2 span=23:2+81
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 24:2 span=24:2+63
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 25:2 span=25:2+3
+  icon Method
+  text Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nRecursive reference: Sum
+quickinfo 25:10 span=25:10+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 25:12 span=25:12+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 25:13 csharp
+quickinfo 25:21 span=25:21+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 25:23 span=25:23+4
+  icon Method
+  text left: DotGram capture
+quickinfo 25:27 span=25:27+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 25:29 span=25:29+3
+  icon Method
+  text Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nRecursive reference: Sum
+quickinfo 25:37 span=25:37+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 25:39 span=25:39+2
+  icon Method
+  text op: DotGram capture
+quickinfo 25:41 span=25:41+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 25:43 span=25:43+1
+  icon IntellisenseKeyword
+  text DotGram '[': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 25:44 span=25:44+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 25:48 span=25:48+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 25:50 span=25:50+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 25:53 span=25:53+1
+  icon IntellisenseKeyword
+  text DotGram ']': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 25:55 span=25:55+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 25:57 span=25:57+5
+  icon Method
+  text right: DotGram capture
+quickinfo 25:62 span=25:62+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 25:64 span=25:64+7
+  icon Method
+  text Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nRecursive reference: Product
+quickinfo 25:72 span=25:72+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 25:75 span=25:75+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 25:76 span=25:76+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 25:77 csharp
+quickinfo 25:80 span=25:80+2
+  icon IntellisenseKeyword
+  text DotGram operator: ==
+quickinfo 25:83 span=25:83+3
+  icon IntellisenseKeyword
+  text DotGram string literal
+quickinfo 25:87 span=25:87+1
+  icon IntellisenseKeyword
+  text DotGram '?': optional: zero or one; after a rule's name, that the rule may give back within its body
+quickinfo 25:89 csharp
+quickinfo 25:94 span=25:94+1
+  icon IntellisenseKeyword
+  text DotGram '+': repetition: one or more
+quickinfo 25:96 csharp
+quickinfo 25:102 span=25:102+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 25:104 csharp
+quickinfo 25:109 span=25:109+1
+  icon IntellisenseKeyword
+  text DotGram '-': a negative number, in a case of a computed choice
+quickinfo 25:111 csharp
+quickinfo 25:116 csharp
+quickinfo 26:21 span=26:21+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 26:23 span=26:23+5
+  icon Method
+  text value: DotGram capture
+quickinfo 26:28 span=26:28+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 26:30 span=26:30+7
+  icon Method
+  text Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nRecursive reference: Product
+quickinfo 26:72 span=26:72+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 26:75 span=26:75+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 26:76 span=26:76+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 26:77 csharp
+quickinfo 26:82 csharp
+quickinfo 28:2 span=28:2+82
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 29:2 span=29:2+71
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 30:2 span=30:2+7
+  icon Method
+  text Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nRecursive reference: Product
+quickinfo 30:10 span=30:10+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 30:12 span=30:12+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 30:13 csharp
+quickinfo 30:21 span=30:21+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 30:23 span=30:23+4
+  icon Method
+  text left: DotGram capture
+quickinfo 30:27 span=30:27+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 30:29 span=30:29+7
+  icon Method
+  text Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\n                   | value: Primary                                   => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nRecursive reference: Product
+quickinfo 30:37 span=30:37+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 30:39 span=30:39+2
+  icon Method
+  text op: DotGram capture
+quickinfo 30:41 span=30:41+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 30:43 span=30:43+1
+  icon IntellisenseKeyword
+  text DotGram '[': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 30:44 span=30:44+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 30:48 span=30:48+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 30:50 span=30:50+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 30:53 span=30:53+1
+  icon IntellisenseKeyword
+  text DotGram ']': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 30:55 span=30:55+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 30:57 span=30:57+5
+  icon Method
+  text right: DotGram capture
+quickinfo 30:62 span=30:62+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 30:64 span=30:64+5
+  icon Method
+  text Unary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Primary                                   => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Unary\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nRecursive reference: Unary
+quickinfo 30:72 span=30:72+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 30:75 span=30:75+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 30:76 span=30:76+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 30:77 csharp
+quickinfo 30:80 span=30:80+2
+  icon IntellisenseKeyword
+  text DotGram operator: ==
+quickinfo 30:83 span=30:83+3
+  icon IntellisenseKeyword
+  text DotGram string literal
+quickinfo 30:87 span=30:87+1
+  icon IntellisenseKeyword
+  text DotGram '?': optional: zero or one; after a rule's name, that the rule may give back within its body
+quickinfo 30:89 csharp
+quickinfo 30:94 span=30:94+1
+  icon IntellisenseKeyword
+  text DotGram '*': repetition: zero or more
+quickinfo 30:96 csharp
+quickinfo 30:102 span=30:102+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 30:104 csharp
+quickinfo 30:109 span=30:109+1
+  icon IntellisenseKeyword
+  text DotGram operator: /
+quickinfo 30:111 csharp
+quickinfo 30:116 csharp
+quickinfo 31:21 span=31:21+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 31:23 span=31:23+5
+  icon Method
+  text value: DotGram capture
+quickinfo 31:28 span=31:28+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 31:30 span=31:30+5
+  icon Method
+  text Unary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Primary                                   => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Unary\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nRecursive reference: Unary
+quickinfo 31:72 span=31:72+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 31:75 span=31:75+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 31:76 span=31:76+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 31:77 csharp
+quickinfo 31:82 csharp
+quickinfo 33:2 span=33:2+81
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 34:2 span=34:2+81
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 35:2 span=35:2+37
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 36:2 csharp
+quickinfo 36:10 span=36:10+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 36:12 span=36:12+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 36:13 csharp
+quickinfo 36:21 span=36:21+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 36:23 span=36:23+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 36:27 span=36:27+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 36:29 csharp
+quickinfo 36:36 csharp
+quickinfo 36:38 csharp
+quickinfo 36:72 span=36:72+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 36:75 span=36:75+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 36:76 span=36:76+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 36:77 span=36:77+1
+  icon IntellisenseKeyword
+  text DotGram '-': a negative number, in a case of a computed choice
+quickinfo 36:78 csharp
+quickinfo 36:85 csharp
+quickinfo 37:21 span=37:21+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 37:23 csharp
+quickinfo 37:28 csharp
+quickinfo 37:30 csharp
+quickinfo 37:72 span=37:72+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 37:75 span=37:75+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 37:76 span=37:76+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 37:77 csharp
+quickinfo 37:82 csharp
+quickinfo 39:2 span=39:2+76
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 40:2 span=40:2+77
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 41:2 span=41:2+62
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 42:2 csharp
+quickinfo 42:10 span=42:10+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 42:12 span=42:12+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 42:13 csharp
+quickinfo 42:21 span=42:21+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 42:23 span=42:23+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 42:27 span=42:27+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 42:29 csharp
+quickinfo 42:34 csharp
+quickinfo 42:36 csharp
+quickinfo 42:40 span=42:40+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 42:42 span=42:42+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 42:72 span=42:72+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 42:75 span=42:75+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 42:76 span=42:76+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 42:77 csharp
+quickinfo 42:82 csharp
+quickinfo 43:21 span=43:21+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 43:23 csharp
+quickinfo 43:29 csharp
+quickinfo 43:31 span=43:31+1
+  icon IntellisenseKeyword
+  text DotGram '[': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 43:32 span=43:32+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 43:35 span=43:35+2
+  icon IntellisenseKeyword
+  text DotGram '..': range: 'a'..'z'
+quickinfo 43:37 span=43:37+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 43:40 span=43:40+1
+  icon IntellisenseKeyword
+  text DotGram ']': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 43:41 span=43:41+1
+  icon IntellisenseKeyword
+  text DotGram '+': repetition: one or more
+quickinfo 43:72 span=43:72+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 43:75 span=43:75+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 43:76 span=43:76+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 43:77 csharp
+quickinfo 43:84 csharp
+quickinfo 43:85 csharp
+quickinfo 43:90 csharp
+quickinfo 43:91 csharp
+quickinfo 43:97 csharp
+quickinfo 43:99 csharp
+quickinfo 43:110 csharp
+quickinfo 43:111 csharp
+quickinfo 43:127 csharp
+quickinfo 43:128 span=43:128+1
+  icon IntellisenseKeyword
+  text DotGram ')': grouping, a rule's parameters or a call's arguments
+quickinfo 45:2 span=45:2+76
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 46:2 span=46:2+45
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 47:2 csharp
+quickinfo 47:14 csharp
+quickinfo 47:16 span=47:16+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 47:18 span=47:18+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 47:21 span=47:21+1
+  icon IntellisenseKeyword
+  text DotGram '?': optional: zero or one; after a rule's name, that the rule may give back within its body
+quickinfo 49:2 span=49:2+81
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 50:2 span=50:2+31
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 52:2 span=52:2+82
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 53:2 span=53:2+79
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 54:2 csharp
+quickinfo 54:10 span=54:10+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 54:12 span=54:12+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 54:13 csharp
+quickinfo 54:21 span=54:21+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 54:23 csharp
+quickinfo 54:27 csharp
+quickinfo 54:29 csharp
+quickinfo 54:37 span=54:37+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 54:39 span=54:39+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 54:40 span=54:40+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 54:44 span=54:44+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 54:46 csharp
+quickinfo 54:51 csharp
+quickinfo 54:53 csharp
+quickinfo 54:58 csharp
+quickinfo 54:59 span=54:59+1
+  icon IntellisenseKeyword
+  text DotGram '?': optional: zero or one; after a rule's name, that the rule may give back within its body
+quickinfo 55:21 span=55:21+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 55:24 span=55:24+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 55:25 span=55:25+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 55:26 csharp
+quickinfo 55:32 csharp
+quickinfo 55:35 span=55:35+1
+  icon IntellisenseKeyword
+  text DotGram '{': an atomic group '{ ... }', a count 'X{2,4}', or a namespace's or computed choice's body
+quickinfo 55:37 span=55:37+1
+  icon IntellisenseKeyword
+  text DotGram '}': an atomic group '{ ... }', a count 'X{2,4}', or a namespace's or computed choice's body
+quickinfo 55:39 csharp
+quickinfo 55:48 span=55:48+1
+  icon IntellisenseKeyword
+  text DotGram '?': optional: zero or one; after a rule's name, that the rule may give back within its body
+quickinfo 55:50 csharp
+quickinfo 55:55 csharp
+quickinfo 55:56 csharp
+quickinfo 55:60 csharp
+quickinfo 55:62 csharp
+quickinfo 55:70 csharp
+quickinfo 55:72 span=55:72+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 55:74 csharp
+quickinfo 55:78 csharp
+quickinfo 57:2 span=57:2+74
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 58:2 csharp
+quickinfo 58:8 csharp
+quickinfo 58:12 csharp
+quickinfo 58:15 csharp
+quickinfo 60:2 span=60:2+84
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 61:2 span=61:2+86
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 62:2 span=62:2+86
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 63:2 span=63:2+50
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 64:2 csharp
+quickinfo 64:8 csharp
+quickinfo 64:21 csharp
+quickinfo 64:24 csharp
+quickinfo 65:2 csharp
+quickinfo 65:8 csharp
+quickinfo 65:21 csharp
+quickinfo 65:24 csharp
+quickinfo 103:3 span=103:3+4
+  icon Method
+  text Word = ['a'..'z']+
+quickinfo 103:8 span=103:8+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 103:10 span=103:10+1
+  icon IntellisenseKeyword
+  text DotGram '[': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 103:11 span=103:11+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 103:14 span=103:14+2
+  icon IntellisenseKeyword
+  text DotGram '..': range: 'a'..'z'
+quickinfo 103:16 span=103:16+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 103:19 span=103:19+1
+  icon IntellisenseKeyword
+  text DotGram ']': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 103:20 span=103:20+1
+  icon IntellisenseKeyword
+  text DotGram '+': repetition: one or more
+quickinfo 104:3 span=104:3+5
+  icon Method
+  text Start = Word
+  text Show referenced rules
+  hidden Referenced rule:\nWord = ['a'..'z']+
+quickinfo 104:9 span=104:9+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 104:11 span=104:11+4
+  icon Method
+  text Word = ['a'..'z']+
+quickinfo 105:3 span=105:3+5
+  icon IntellisenseKeyword
+  text DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+quickinfo 105:9 span=105:9+5
+  icon Method
+  text Start = Word
+  text Show referenced rules
+  hidden Referenced rule:\nWord = ['a'..'z']+
+quickinfo 164:2 span=164:2+6
+  icon Method
+  text trivia       = [' ' | '\\t']*
+quickinfo 164:15 span=164:15+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 164:17 span=164:17+1
+  icon IntellisenseKeyword
+  text DotGram '[': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 164:18 span=164:18+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 164:22 span=164:22+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 164:24 span=164:24+4
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 164:28 span=164:28+1
+  icon IntellisenseKeyword
+  text DotGram ']': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 164:29 span=164:29+1
+  icon IntellisenseKeyword
+  text DotGram '*': repetition: zero or more
+quickinfo 165:2 span=165:2+10
+  icon Method
+  text SelectWord   = "select" | "choose"
+quickinfo 165:15 span=165:15+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 165:17 span=165:17+8
+  icon IntellisenseKeyword
+  text DotGram string literal
+quickinfo 165:26 span=165:26+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 165:28 span=165:28+8
+  icon IntellisenseKeyword
+  text DotGram string literal
+quickinfo 166:2 span=166:2+9
+  icon Method
+  text CountWord    = "count"
+quickinfo 166:15 span=166:15+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 166:17 span=166:17+7
+  icon IntellisenseKeyword
+  text DotGram string literal
+quickinfo 167:2 span=167:2+10
+  icon Method
+  text Identifier   = ['a'..'z']+
+quickinfo 167:15 span=167:15+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 167:17 span=167:17+1
+  icon IntellisenseKeyword
+  text DotGram '[': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 167:18 span=167:18+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 167:21 span=167:21+2
+  icon IntellisenseKeyword
+  text DotGram '..': range: 'a'..'z'
+quickinfo 167:23 span=167:23+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 167:26 span=167:26+1
+  icon IntellisenseKeyword
+  text DotGram ']': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 167:27 span=167:27+1
+  icon IntellisenseKeyword
+  text DotGram '+': repetition: one or more
+quickinfo 168:2 span=168:2+8
+  icon Method
+  text Operator     = '+' | '-'
+quickinfo 168:15 span=168:15+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 168:17 span=168:17+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 168:21 span=168:21+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 168:23 span=168:23+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 169:2 span=169:2+11
+  icon Method
+  text SelectQuery  = SelectWord & field: (Identifier)
+  text Show referenced rules
+  hidden Referenced rule:\nSelectWord   = "select" | "choose"\n\nReferenced rule:\nIdentifier   = ['a'..'z']+
+quickinfo 169:15 span=169:15+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 169:17 span=169:17+10
+  icon Method
+  text SelectWord   = "select" | "choose"
+quickinfo 169:28 span=169:28+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 169:30 span=169:30+5
+  icon Method
+  text field: DotGram capture
+quickinfo 169:35 span=169:35+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 169:37 span=169:37+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 169:38 span=169:38+10
+  icon Method
+  text Identifier   = ['a'..'z']+
+quickinfo 169:48 span=169:48+1
+  icon IntellisenseKeyword
+  text DotGram ')': grouping, a rule's parameters or a call's arguments
+quickinfo 170:2 span=170:2+10
+  icon Method
+  text CountQuery   = CountWord & field: (Identifier)
+  text Show referenced rules
+  hidden Referenced rule:\nCountWord    = "count"\n\nReferenced rule:\nIdentifier   = ['a'..'z']+
+quickinfo 170:15 span=170:15+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 170:17 span=170:17+9
+  icon Method
+  text CountWord    = "count"
+quickinfo 170:27 span=170:27+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 170:29 span=170:29+5
+  icon Method
+  text field: DotGram capture
+quickinfo 170:34 span=170:34+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 170:36 span=170:36+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 170:37 span=170:37+10
+  icon Method
+  text Identifier   = ['a'..'z']+
+quickinfo 170:47 span=170:47+1
+  icon IntellisenseKeyword
+  text DotGram ')': grouping, a rule's parameters or a call's arguments
+quickinfo 171:2 span=171:2+9
+  icon Method
+  text Operation    = left: Identifier & Operator & right: Identifier
+  text Show referenced rules
+  hidden Referenced rule:\nIdentifier   = ['a'..'z']+\n\nReferenced rule:\nOperator     = '+' | '-'
+quickinfo 171:15 span=171:15+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 171:17 span=171:17+4
+  icon Method
+  text left: DotGram capture
+quickinfo 171:21 span=171:21+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 171:23 span=171:23+10
+  icon Method
+  text Identifier   = ['a'..'z']+
+quickinfo 171:34 span=171:34+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 171:36 span=171:36+8
+  icon Method
+  text Operator     = '+' | '-'
+quickinfo 171:45 span=171:45+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 171:47 span=171:47+5
+  icon Method
+  text right: DotGram capture
+quickinfo 171:52 span=171:52+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 171:54 span=171:54+10
+  icon Method
+  text Identifier   = ['a'..'z']+
+quickinfo 172:2 span=172:2+5
+  icon IntellisenseKeyword
+  text DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+quickinfo 172:8 span=172:8+11
+  icon Method
+  text SelectQuery  = SelectWord & field: (Identifier)
+  text Show referenced rules
+  hidden Referenced rule:\nSelectWord   = "select" | "choose"\n\nReferenced rule:\nIdentifier   = ['a'..'z']+
+quickinfo 173:2 span=173:2+5
+  icon IntellisenseKeyword
+  text DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+quickinfo 173:8 span=173:8+10
+  icon Method
+  text CountQuery   = CountWord & field: (Identifier)
+  text Show referenced rules
+  hidden Referenced rule:\nCountWord    = "count"\n\nReferenced rule:\nIdentifier   = ['a'..'z']+
+quickinfo 174:2 span=174:2+5
+  icon IntellisenseKeyword
+  text DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+quickinfo 174:8 span=174:8+9
+  icon Method
+  text Operation    = left: Identifier & Operator & right: Identifier
+  text Show referenced rules
+  hidden Referenced rule:\nIdentifier   = ['a'..'z']+\n\nReferenced rule:\nOperator     = '+' | '-'
+quickinfo 190:2 span=190:2+4
+  icon Method
+  text Item : @int = switch @(1) { case 1: 'x' => @(1); default: 'y' => @(2) }
+quickinfo 190:7 span=190:7+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 190:9 span=190:9+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 190:10 csharp
+quickinfo 190:14 span=190:14+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 190:16 span=190:16+6
+  icon IntellisenseKeyword
+  text DotGram keyword switch: computed choice: 'switch @(selector) { case value: Expr; default: Expr }' reads the case the C# selector names
+quickinfo 190:23 span=190:23+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 190:24 span=190:24+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 190:25 csharp
+quickinfo 190:26 csharp
+quickinfo 190:28 span=190:28+1
+  icon IntellisenseKeyword
+  text DotGram '{': an atomic group '{ ... }', a count 'X{2,4}', or a namespace's or computed choice's body
+quickinfo 190:30 span=190:30+4
+  icon IntellisenseKeyword
+  text DotGram keyword case: a case of a computed choice: 'case value: Expr;'
+quickinfo 190:35 span=190:35+1
+  icon IntellisenseKeyword
+  text DotGram numeric literal
+quickinfo 190:36 span=190:36+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 190:38 span=190:38+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 190:42 span=190:42+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 190:45 span=190:45+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 190:46 span=190:46+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 190:47 csharp
+quickinfo 190:48 csharp
+quickinfo 190:49 span=190:49+1
+  icon IntellisenseKeyword
+  text DotGram ';': ends a 'using', a case of a computed choice, or separates rules
+quickinfo 190:51 span=190:51+7
+  icon IntellisenseKeyword
+  text DotGram keyword default: the case of a computed choice taken where no other case matches
+quickinfo 190:58 span=190:58+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 190:60 span=190:60+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 190:64 span=190:64+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 190:67 span=190:67+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 190:68 span=190:68+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 190:69 csharp
+quickinfo 190:70 csharp
+quickinfo 190:72 span=190:72+1
+  icon IntellisenseKeyword
+  text DotGram '}': an atomic group '{ ... }', a count 'X{2,4}', or a namespace's or computed choice's body
+quickinfo 191:2 span=191:2+5
+  icon Method
+  text Items : @int[] = Item*
+  text Show referenced rules
+  hidden Referenced rule:\nItem : @int = switch @(1) { case 1: 'x' => @(1); default: 'y' => @(2) }
+quickinfo 191:8 span=191:8+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 191:10 span=191:10+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 191:11 csharp
+quickinfo 191:14 csharp
+quickinfo 191:15 span=191:15+1
+  icon IntellisenseKeyword
+  text DotGram ']': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 191:17 span=191:17+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 191:19 span=191:19+4
+  icon Method
+  text Item : @int = switch @(1) { case 1: 'x' => @(1); default: 'y' => @(2) }
+quickinfo 191:23 span=191:23+1
+  icon IntellisenseKeyword
+  text DotGram '*': repetition: zero or more
+quickinfo 192:2 span=192:2+5
+  icon IntellisenseKeyword
+  text DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+quickinfo 192:8 span=192:8+4
+  icon Method
+  text Item : @int = switch @(1) { case 1: 'x' => @(1); default: 'y' => @(2) }
+quickinfo 192:13 span=192:13+2
+  icon IntellisenseKeyword
+  text DotGram keyword as: names the method a 'parse' or 'find' publishes
+quickinfo 192:16 span=192:16+5
+  icon LocalVariable
+  text DotGram rule or binding: Value
+quickinfo 192:22 span=192:22+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 192:24 span=192:24+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 192:25 csharp
+quickinfo 193:2 span=193:2+5
+  icon IntellisenseKeyword
+  text DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+quickinfo 193:8 span=193:8+5
+  icon Method
+  text Items : @int[] = Item*
+  text Show referenced rules
+  hidden Referenced rule:\nItem : @int = switch @(1) { case 1: 'x' => @(1); default: 'y' => @(2) }
+quickinfo 193:14 span=193:14+2
+  icon IntellisenseKeyword
+  text DotGram keyword as: names the method a 'parse' or 'find' publishes
+quickinfo 193:17 span=193:17+6
+  icon LocalVariable
+  text DotGram rule or binding: Values
+quickinfo 193:24 span=193:24+6
+  icon IntellisenseKeyword
+  text DotGram keyword stream: a publication option: the method also reads a TextReader, or with 'bytes' a byte Stream
+quickinfo 193:31 span=193:31+5
+  icon IntellisenseKeyword
+  text DotGram keyword bytes: a publication option after 'stream': the method reads bytes, from a Stream, a byte[] or a ReadOnlyMemory<byte>
+quickinfo 193:37 span=193:37+5
+  icon IntellisenseKeyword
+  text DotGram keyword yield: a publication option: the method returns the elements of a sequence lazily, 'yield : @T' naming their type
+quickinfo 193:43 span=193:43+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 193:45 span=193:45+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 193:46 csharp
+navigable 17:2 span=17:2+1 -> NonNavigableSymbol
+definition 17:3 -> csharp using @0
+navigable 17:3 span=17:3+1 -> NonNavigableSymbol
+navigable 17:9 span=17:9+1 -> NonNavigableSymbol
+navigable 17:15 span=17:15+1 -> NonNavigableSymbol
+navigable 17:16 span=17:16+1 -> NonNavigableSymbol
+navigable 17:29 span=17:29+1 -> NonNavigableSymbol
+definition 19:2 -> here 19:2
+navigable 19:2 span=19:2+6 -> 19:2
+references 19:2 name=trivia definition=19:2 at=[19:2] elsewhere=0
+rename 19:2 edits=[19:2+6]
+highlight 19:2 -> [19:2+6 DefinitionHighlightTag]
+navigable 19:9 span=19:9+1 -> NonNavigableSymbol
+navigable 19:11 span=19:11+1 -> NonNavigableSymbol
+navigable 19:12 span=19:12+1 -> NonNavigableSymbol
+navigable 19:16 span=19:16+1 -> NonNavigableSymbol
+navigable 19:18 span=19:18+1 -> NonNavigableSymbol
+navigable 19:22 span=19:22+1 -> NonNavigableSymbol
+navigable 19:23 span=19:23+1 -> NonNavigableSymbol
+navigable 21:2 span=21:2+1 -> NonNavigableSymbol
+navigable 22:2 span=22:2+1 -> NonNavigableSymbol
+navigable 23:2 span=23:2+1 -> NonNavigableSymbol
+navigable 24:2 span=24:2+1 -> NonNavigableSymbol
+definition 25:2 -> here 25:2
+navigable 25:2 span=25:2+3 -> 25:2
+references 25:2 name=Sum definition=25:2 at=[25:2, 25:29, 42:36, 58:8] elsewhere=0
+rename 25:2 edits=[25:2+3, 25:29+3, 42:36+3, 58:8+3]
+highlight 25:2 -> [25:2+3 DefinitionHighlightTag, 25:29+3 ReferenceHighlightTag, 42:36+3 ReferenceHighlightTag, 58:8+3 ReferenceHighlightTag]
+navigable 25:10 span=25:10+1 -> NonNavigableSymbol
+navigable 25:12 span=25:12+1 -> NonNavigableSymbol
+definition 25:13 -> csharp decimal @0
+navigable 25:13 span=25:13+1 -> NonNavigableSymbol
+navigable 25:21 span=25:21+1 -> NonNavigableSymbol
+definition 25:23 -> here 25:23
+navigable 25:23 span=25:23+4 -> 25:23
+references 25:23 name=left definition=25:23 at=[25:23, 25:89, 25:104] elsewhere=0
+rename 25:23 edits=[25:23+4, 25:89+4, 25:104+4]
+highlight 25:23 -> [25:23+4 DefinitionHighlightTag, 25:89+4 ReferenceHighlightTag, 25:104+4 ReferenceHighlightTag]
+navigable 25:27 span=25:27+1 -> NonNavigableSymbol
+definition 25:29 -> here 25:2
+navigable 25:29 span=25:29+3 -> 25:2
+references 25:29 name=Sum definition=25:2 at=[25:2, 25:29, 42:36, 58:8] elsewhere=0
+rename 25:29 edits=[25:2+3, 25:29+3, 42:36+3, 58:8+3]
+highlight 25:29 -> [25:2+3 DefinitionHighlightTag, 25:29+3 ReferenceHighlightTag, 42:36+3 ReferenceHighlightTag, 58:8+3 ReferenceHighlightTag]
+navigable 25:37 span=25:37+1 -> NonNavigableSymbol
+definition 25:39 -> here 25:39
+navigable 25:39 span=25:39+2 -> 25:39
+references 25:39 name=op definition=25:39 at=[25:39, 25:77] elsewhere=0
+rename 25:39 edits=[25:39+2, 25:77+2]
+highlight 25:39 -> [25:39+2 DefinitionHighlightTag, 25:77+2 ReferenceHighlightTag]
+navigable 25:41 span=25:41+1 -> NonNavigableSymbol
+navigable 25:43 span=25:43+1 -> NonNavigableSymbol
+navigable 25:44 span=25:44+1 -> NonNavigableSymbol
+navigable 25:48 span=25:48+1 -> NonNavigableSymbol
+navigable 25:50 span=25:50+1 -> NonNavigableSymbol
+navigable 25:53 span=25:53+1 -> NonNavigableSymbol
+navigable 25:55 span=25:55+1 -> NonNavigableSymbol
+definition 25:57 -> here 25:57
+navigable 25:57 span=25:57+5 -> 25:57
+references 25:57 name=right definition=25:57 at=[25:57, 25:96, 25:111] elsewhere=0
+rename 25:57 edits=[25:57+5, 25:96+5, 25:111+5]
+highlight 25:57 -> [25:57+5 DefinitionHighlightTag, 25:96+5 ReferenceHighlightTag, 25:111+5 ReferenceHighlightTag]
+navigable 25:62 span=25:62+1 -> NonNavigableSymbol
+definition 25:64 -> here 30:2
+navigable 25:64 span=25:64+7 -> 30:2
+references 25:64 name=Product definition=30:2 at=[25:64, 26:30, 30:2, 30:29] elsewhere=0
+rename 25:64 edits=[25:64+7, 26:30+7, 30:2+7, 30:29+7]
+highlight 25:64 -> [25:64+7 ReferenceHighlightTag, 26:30+7 ReferenceHighlightTag, 30:2+7 DefinitionHighlightTag, 30:29+7 ReferenceHighlightTag]
+navigable 25:72 span=25:72+1 -> NonNavigableSymbol
+navigable 25:75 span=25:75+1 -> NonNavigableSymbol
+navigable 25:76 span=25:76+1 -> NonNavigableSymbol
+definition 25:77 -> csharp op == "+" ? left + right : left - right @0
+navigable 25:77 span=25:77+2 -> 25:39
+references 25:77 name=op definition=25:39 at=[25:39, 25:77] elsewhere=0
+rename 25:77 edits=[25:39+2, 25:77+2]
+highlight 25:77 -> [25:39+2 DefinitionHighlightTag, 25:77+2 ReferenceHighlightTag]
+navigable 25:80 span=25:80+1 -> NonNavigableSymbol
+navigable 25:83 span=25:83+1 -> NonNavigableSymbol
+navigable 25:87 span=25:87+1 -> NonNavigableSymbol
+definition 25:89 -> csharp op == "+" ? left + right : left - right @12
+navigable 25:89 span=25:89+4 -> 25:23
+references 25:89 name=left definition=25:23 at=[25:23, 25:89, 25:104] elsewhere=0
+rename 25:89 edits=[25:23+4, 25:89+4, 25:104+4]
+highlight 25:89 -> [25:23+4 DefinitionHighlightTag, 25:89+4 ReferenceHighlightTag, 25:104+4 ReferenceHighlightTag]
+navigable 25:94 span=25:94+1 -> NonNavigableSymbol
+definition 25:96 -> csharp op == "+" ? left + right : left - right @19
+navigable 25:96 span=25:96+5 -> 25:57
+references 25:96 name=right definition=25:57 at=[25:57, 25:96, 25:111] elsewhere=0
+rename 25:96 edits=[25:57+5, 25:96+5, 25:111+5]
+highlight 25:96 -> [25:57+5 DefinitionHighlightTag, 25:96+5 ReferenceHighlightTag, 25:111+5 ReferenceHighlightTag]
+navigable 25:102 span=25:102+1 -> NonNavigableSymbol
+definition 25:104 -> csharp op == "+" ? left + right : left - right @27
+navigable 25:104 span=25:104+4 -> 25:23
+references 25:104 name=left definition=25:23 at=[25:23, 25:89, 25:104] elsewhere=0
+rename 25:104 edits=[25:23+4, 25:89+4, 25:104+4]
+highlight 25:104 -> [25:23+4 DefinitionHighlightTag, 25:89+4 ReferenceHighlightTag, 25:104+4 ReferenceHighlightTag]
+navigable 25:109 span=25:109+1 -> NonNavigableSymbol
+definition 25:111 -> csharp op == "+" ? left + right : left - right @34
+navigable 25:111 span=25:111+5 -> 25:57
+references 25:111 name=right definition=25:57 at=[25:57, 25:96, 25:111] elsewhere=0
+rename 25:111 edits=[25:57+5, 25:96+5, 25:111+5]
+highlight 25:111 -> [25:57+5 DefinitionHighlightTag, 25:96+5 ReferenceHighlightTag, 25:111+5 ReferenceHighlightTag]
+definition 25:116 -> csharp op == "+" ? left + right : left - right @39
+navigable 25:116 span=25:116+1 -> NonNavigableSymbol
+navigable 26:21 span=26:21+1 -> NonNavigableSymbol
+definition 26:23 -> here 26:23
+navigable 26:23 span=26:23+5 -> 26:23
+references 26:23 name=value definition=26:23 at=[26:23, 26:77] elsewhere=0
+rename 26:23 edits=[26:23+5, 26:77+5]
+highlight 26:23 -> [26:23+5 DefinitionHighlightTag, 26:77+5 ReferenceHighlightTag]
+navigable 26:28 span=26:28+1 -> NonNavigableSymbol
+definition 26:30 -> here 30:2
+navigable 26:30 span=26:30+7 -> 30:2
+references 26:30 name=Product definition=30:2 at=[25:64, 26:30, 30:2, 30:29] elsewhere=0
+rename 26:30 edits=[25:64+7, 26:30+7, 30:2+7, 30:29+7]
+highlight 26:30 -> [25:64+7 ReferenceHighlightTag, 26:30+7 ReferenceHighlightTag, 30:2+7 DefinitionHighlightTag, 30:29+7 ReferenceHighlightTag]
+navigable 26:72 span=26:72+1 -> NonNavigableSymbol
+navigable 26:75 span=26:75+1 -> NonNavigableSymbol
+navigable 26:76 span=26:76+1 -> NonNavigableSymbol
+definition 26:77 -> csharp value @0
+navigable 26:77 span=26:77+5 -> 26:23
+references 26:77 name=value definition=26:23 at=[26:23, 26:77] elsewhere=0
+rename 26:77 edits=[26:23+5, 26:77+5]
+highlight 26:77 -> [26:23+5 DefinitionHighlightTag, 26:77+5 ReferenceHighlightTag]
+definition 26:82 -> csharp value @5
+navigable 26:82 span=26:82+1 -> NonNavigableSymbol
+navigable 28:2 span=28:2+1 -> NonNavigableSymbol
+navigable 29:2 span=29:2+1 -> NonNavigableSymbol
+definition 30:2 -> here 30:2
+navigable 30:2 span=30:2+7 -> 30:2
+references 30:2 name=Product definition=30:2 at=[25:64, 26:30, 30:2, 30:29] elsewhere=0
+rename 30:2 edits=[25:64+7, 26:30+7, 30:2+7, 30:29+7]
+highlight 30:2 -> [25:64+7 ReferenceHighlightTag, 26:30+7 ReferenceHighlightTag, 30:2+7 DefinitionHighlightTag, 30:29+7 ReferenceHighlightTag]
+navigable 30:10 span=30:10+1 -> NonNavigableSymbol
+navigable 30:12 span=30:12+1 -> NonNavigableSymbol
+definition 30:13 -> csharp decimal @0
+navigable 30:13 span=30:13+1 -> NonNavigableSymbol
+navigable 30:21 span=30:21+1 -> NonNavigableSymbol
+definition 30:23 -> here 30:23
+navigable 30:23 span=30:23+4 -> 30:23
+references 30:23 name=left definition=30:23 at=[30:23, 30:89, 30:104] elsewhere=0
+rename 30:23 edits=[30:23+4, 30:89+4, 30:104+4]
+highlight 30:23 -> [30:23+4 DefinitionHighlightTag, 30:89+4 ReferenceHighlightTag, 30:104+4 ReferenceHighlightTag]
+navigable 30:27 span=30:27+1 -> NonNavigableSymbol
+definition 30:29 -> here 30:2
+navigable 30:29 span=30:29+7 -> 30:2
+references 30:29 name=Product definition=30:2 at=[25:64, 26:30, 30:2, 30:29] elsewhere=0
+rename 30:29 edits=[25:64+7, 26:30+7, 30:2+7, 30:29+7]
+highlight 30:29 -> [25:64+7 ReferenceHighlightTag, 26:30+7 ReferenceHighlightTag, 30:2+7 DefinitionHighlightTag, 30:29+7 ReferenceHighlightTag]
+navigable 30:37 span=30:37+1 -> NonNavigableSymbol
+definition 30:39 -> here 30:39
+navigable 30:39 span=30:39+2 -> 30:39
+references 30:39 name=op definition=30:39 at=[30:39, 30:77] elsewhere=0
+rename 30:39 edits=[30:39+2, 30:77+2]
+highlight 30:39 -> [30:39+2 DefinitionHighlightTag, 30:77+2 ReferenceHighlightTag]
+navigable 30:41 span=30:41+1 -> NonNavigableSymbol
+navigable 30:43 span=30:43+1 -> NonNavigableSymbol
+navigable 30:44 span=30:44+1 -> NonNavigableSymbol
+navigable 30:48 span=30:48+1 -> NonNavigableSymbol
+navigable 30:50 span=30:50+1 -> NonNavigableSymbol
+navigable 30:53 span=30:53+1 -> NonNavigableSymbol
+navigable 30:55 span=30:55+1 -> NonNavigableSymbol
+definition 30:57 -> here 30:57
+navigable 30:57 span=30:57+5 -> 30:57
+references 30:57 name=right definition=30:57 at=[30:57, 30:96, 30:111] elsewhere=0
+rename 30:57 edits=[30:57+5, 30:96+5, 30:111+5]
+highlight 30:57 -> [30:57+5 DefinitionHighlightTag, 30:96+5 ReferenceHighlightTag, 30:111+5 ReferenceHighlightTag]
+navigable 30:62 span=30:62+1 -> NonNavigableSymbol
+definition 30:64 -> here 36:2
+navigable 30:64 span=30:64+5 -> 36:2
+references 30:64 name=Unary definition=36:2 at=[30:64, 31:30, 36:2, 36:38, 54:53] elsewhere=0
+rename 30:64 edits=[30:64+5, 31:30+5, 36:2+5, 36:38+5, 54:53+5]
+highlight 30:64 -> [30:64+5 ReferenceHighlightTag, 31:30+5 ReferenceHighlightTag, 36:2+5 DefinitionHighlightTag, 36:38+5 ReferenceHighlightTag, 54:53+5 ReferenceHighlightTag]
+navigable 30:72 span=30:72+1 -> NonNavigableSymbol
+navigable 30:75 span=30:75+1 -> NonNavigableSymbol
+navigable 30:76 span=30:76+1 -> NonNavigableSymbol
+definition 30:77 -> csharp op == "*" ? left * right : left / right @0
+navigable 30:77 span=30:77+2 -> 30:39
+references 30:77 name=op definition=30:39 at=[30:39, 30:77] elsewhere=0
+rename 30:77 edits=[30:39+2, 30:77+2]
+highlight 30:77 -> [30:39+2 DefinitionHighlightTag, 30:77+2 ReferenceHighlightTag]
+navigable 30:80 span=30:80+1 -> NonNavigableSymbol
+navigable 30:83 span=30:83+1 -> NonNavigableSymbol
+navigable 30:87 span=30:87+1 -> NonNavigableSymbol
+definition 30:89 -> csharp op == "*" ? left * right : left / right @12
+navigable 30:89 span=30:89+4 -> 30:23
+references 30:89 name=left definition=30:23 at=[30:23, 30:89, 30:104] elsewhere=0
+rename 30:89 edits=[30:23+4, 30:89+4, 30:104+4]
+highlight 30:89 -> [30:23+4 DefinitionHighlightTag, 30:89+4 ReferenceHighlightTag, 30:104+4 ReferenceHighlightTag]
+navigable 30:94 span=30:94+1 -> NonNavigableSymbol
+definition 30:96 -> csharp op == "*" ? left * right : left / right @19
+navigable 30:96 span=30:96+5 -> 30:57
+references 30:96 name=right definition=30:57 at=[30:57, 30:96, 30:111] elsewhere=0
+rename 30:96 edits=[30:57+5, 30:96+5, 30:111+5]
+highlight 30:96 -> [30:57+5 DefinitionHighlightTag, 30:96+5 ReferenceHighlightTag, 30:111+5 ReferenceHighlightTag]
+navigable 30:102 span=30:102+1 -> NonNavigableSymbol
+definition 30:104 -> csharp op == "*" ? left * right : left / right @27
+navigable 30:104 span=30:104+4 -> 30:23
+references 30:104 name=left definition=30:23 at=[30:23, 30:89, 30:104] elsewhere=0
+rename 30:104 edits=[30:23+4, 30:89+4, 30:104+4]
+highlight 30:104 -> [30:23+4 DefinitionHighlightTag, 30:89+4 ReferenceHighlightTag, 30:104+4 ReferenceHighlightTag]
+navigable 30:109 span=30:109+1 -> NonNavigableSymbol
+definition 30:111 -> csharp op == "*" ? left * right : left / right @34
+navigable 30:111 span=30:111+5 -> 30:57
+references 30:111 name=right definition=30:57 at=[30:57, 30:96, 30:111] elsewhere=0
+rename 30:111 edits=[30:57+5, 30:96+5, 30:111+5]
+highlight 30:111 -> [30:57+5 DefinitionHighlightTag, 30:96+5 ReferenceHighlightTag, 30:111+5 ReferenceHighlightTag]
+definition 30:116 -> csharp op == "*" ? left * right : left / right @39
+navigable 30:116 span=30:116+1 -> NonNavigableSymbol
+navigable 31:21 span=31:21+1 -> NonNavigableSymbol
+definition 31:23 -> here 31:23
+navigable 31:23 span=31:23+5 -> 31:23
+references 31:23 name=value definition=31:23 at=[31:23, 31:77] elsewhere=0
+rename 31:23 edits=[31:23+5, 31:77+5]
+highlight 31:23 -> [31:23+5 DefinitionHighlightTag, 31:77+5 ReferenceHighlightTag]
+navigable 31:28 span=31:28+1 -> NonNavigableSymbol
+definition 31:30 -> here 36:2
+navigable 31:30 span=31:30+5 -> 36:2
+references 31:30 name=Unary definition=36:2 at=[30:64, 31:30, 36:2, 36:38, 54:53] elsewhere=0
+rename 31:30 edits=[30:64+5, 31:30+5, 36:2+5, 36:38+5, 54:53+5]
+highlight 31:30 -> [30:64+5 ReferenceHighlightTag, 31:30+5 ReferenceHighlightTag, 36:2+5 DefinitionHighlightTag, 36:38+5 ReferenceHighlightTag, 54:53+5 ReferenceHighlightTag]
+navigable 31:72 span=31:72+1 -> NonNavigableSymbol
+navigable 31:75 span=31:75+1 -> NonNavigableSymbol
+navigable 31:76 span=31:76+1 -> NonNavigableSymbol
+definition 31:77 -> csharp value @0
+navigable 31:77 span=31:77+5 -> 31:23
+references 31:77 name=value definition=31:23 at=[31:23, 31:77] elsewhere=0
+rename 31:77 edits=[31:23+5, 31:77+5]
+highlight 31:77 -> [31:23+5 DefinitionHighlightTag, 31:77+5 ReferenceHighlightTag]
+definition 31:82 -> csharp value @5
+navigable 31:82 span=31:82+1 -> NonNavigableSymbol
+navigable 33:2 span=33:2+1 -> NonNavigableSymbol
+navigable 34:2 span=34:2+1 -> NonNavigableSymbol
+navigable 35:2 span=35:2+1 -> NonNavigableSymbol
+definition 36:2 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @95
+navigable 36:2 span=36:2+5 -> 36:2
+references 36:2 name=Unary definition=36:2 at=[30:64, 31:30, 36:2, 36:38, 54:53] elsewhere=0
+rename 36:2 edits=[30:64+5, 31:30+5, 36:2+5, 36:38+5, 54:53+5]
+highlight 36:2 -> [30:64+5 ReferenceHighlightTag, 31:30+5 ReferenceHighlightTag, 36:2+5 DefinitionHighlightTag, 36:38+5 ReferenceHighlightTag, 54:53+5 ReferenceHighlightTag]
+navigable 36:10 span=36:10+1 -> NonNavigableSymbol
+navigable 36:12 span=36:12+1 -> NonNavigableSymbol
+definition 36:13 -> csharp decimal @0
+navigable 36:13 span=36:13+1 -> NonNavigableSymbol
+navigable 36:21 span=36:21+1 -> NonNavigableSymbol
+navigable 36:23 span=36:23+1 -> NonNavigableSymbol
+navigable 36:27 span=36:27+1 -> NonNavigableSymbol
+definition 36:29 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @122
+navigable 36:29 span=36:29+7 -> 36:29
+references 36:29 name=operand definition=36:29 at=[36:29, 36:78] elsewhere=0
+rename 36:29 edits=[36:29+7, 36:78+7]
+highlight 36:29 -> [36:29+7 DefinitionHighlightTag, 36:78+7 ReferenceHighlightTag]
+definition 36:36 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @129
+navigable 36:36 span=36:36+1 -> NonNavigableSymbol
+definition 36:38 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @131
+navigable 36:38 span=36:38+5 -> 36:2
+references 36:38 name=Unary definition=36:2 at=[30:64, 31:30, 36:2, 36:38, 54:53] elsewhere=0
+rename 36:38 edits=[30:64+5, 31:30+5, 36:2+5, 36:38+5, 54:53+5]
+highlight 36:38 -> [30:64+5 ReferenceHighlightTag, 31:30+5 ReferenceHighlightTag, 36:2+5 DefinitionHighlightTag, 36:38+5 ReferenceHighlightTag, 54:53+5 ReferenceHighlightTag]
+navigable 36:72 span=36:72+1 -> NonNavigableSymbol
+navigable 36:75 span=36:75+1 -> NonNavigableSymbol
+navigable 36:76 span=36:76+1 -> NonNavigableSymbol
+navigable 36:77 span=36:77+1 -> NonNavigableSymbol
+definition 36:78 -> csharp -operand @1
+navigable 36:78 span=36:78+7 -> 36:29
+references 36:78 name=operand definition=36:29 at=[36:29, 36:78] elsewhere=0
+rename 36:78 edits=[36:29+7, 36:78+7]
+highlight 36:78 -> [36:29+7 DefinitionHighlightTag, 36:78+7 ReferenceHighlightTag]
+definition 36:85 -> csharp -operand @8
+navigable 36:85 span=36:85+1 -> NonNavigableSymbol
+navigable 37:21 span=37:21+1 -> NonNavigableSymbol
+definition 37:23 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @203
+navigable 37:23 span=37:23+5 -> 37:23
+references 37:23 name=value definition=37:23 at=[37:23, 37:77] elsewhere=0
+rename 37:23 edits=[37:23+5, 37:77+5]
+highlight 37:23 -> [37:23+5 DefinitionHighlightTag, 37:77+5 ReferenceHighlightTag]
+definition 37:28 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @208
+navigable 37:28 span=37:28+1 -> NonNavigableSymbol
+definition 37:30 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @210
+navigable 37:30 span=37:30+7 -> 42:2
+references 37:30 name=Primary definition=42:2 at=[37:30, 42:2, 54:29] elsewhere=0
+rename 37:30 edits=[37:30+7, 42:2+7, 54:29+7]
+highlight 37:30 -> [37:30+7 ReferenceHighlightTag, 42:2+7 DefinitionHighlightTag, 54:29+7 ReferenceHighlightTag]
+navigable 37:72 span=37:72+1 -> NonNavigableSymbol
+navigable 37:75 span=37:75+1 -> NonNavigableSymbol
+navigable 37:76 span=37:76+1 -> NonNavigableSymbol
+definition 37:77 -> csharp value @0
+navigable 37:77 span=37:77+5 -> 37:23
+references 37:77 name=value definition=37:23 at=[37:23, 37:77] elsewhere=0
+rename 37:77 edits=[37:23+5, 37:77+5]
+highlight 37:77 -> [37:23+5 DefinitionHighlightTag, 37:77+5 ReferenceHighlightTag]
+definition 37:82 -> csharp value @5
+navigable 37:82 span=37:82+1 -> NonNavigableSymbol
+navigable 39:2 span=39:2+1 -> NonNavigableSymbol
+navigable 40:2 span=40:2+1 -> NonNavigableSymbol
+navigable 41:2 span=41:2+1 -> NonNavigableSymbol
+definition 42:2 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @492
+navigable 42:2 span=42:2+7 -> 42:2
+references 42:2 name=Primary definition=42:2 at=[37:30, 42:2, 54:29] elsewhere=0
+rename 42:2 edits=[37:30+7, 42:2+7, 54:29+7]
+highlight 42:2 -> [37:30+7 ReferenceHighlightTag, 42:2+7 DefinitionHighlightTag, 54:29+7 ReferenceHighlightTag]
+navigable 42:10 span=42:10+1 -> NonNavigableSymbol
+navigable 42:12 span=42:12+1 -> NonNavigableSymbol
+definition 42:13 -> csharp decimal @0
+navigable 42:13 span=42:13+1 -> NonNavigableSymbol
+navigable 42:21 span=42:21+1 -> NonNavigableSymbol
+navigable 42:23 span=42:23+1 -> NonNavigableSymbol
+navigable 42:27 span=42:27+1 -> NonNavigableSymbol
+definition 42:29 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @519
+navigable 42:29 span=42:29+5 -> 42:29
+references 42:29 name=inner definition=42:29 at=[42:29, 42:77] elsewhere=0
+rename 42:29 edits=[42:29+5, 42:77+5]
+highlight 42:29 -> [42:29+5 DefinitionHighlightTag, 42:77+5 ReferenceHighlightTag]
+definition 42:34 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @524
+navigable 42:34 span=42:34+1 -> NonNavigableSymbol
+definition 42:36 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @526
+navigable 42:36 span=42:36+3 -> 25:2
+references 42:36 name=Sum definition=25:2 at=[25:2, 25:29, 42:36, 58:8] elsewhere=0
+rename 42:36 edits=[25:2+3, 25:29+3, 42:36+3, 58:8+3]
+highlight 42:36 -> [25:2+3 DefinitionHighlightTag, 25:29+3 ReferenceHighlightTag, 42:36+3 ReferenceHighlightTag, 58:8+3 ReferenceHighlightTag]
+navigable 42:40 span=42:40+1 -> NonNavigableSymbol
+navigable 42:42 span=42:42+1 -> NonNavigableSymbol
+navigable 42:72 span=42:72+1 -> NonNavigableSymbol
+navigable 42:75 span=42:75+1 -> NonNavigableSymbol
+navigable 42:76 span=42:76+1 -> NonNavigableSymbol
+definition 42:77 -> csharp inner @0
+navigable 42:77 span=42:77+5 -> 42:29
+references 42:77 name=inner definition=42:29 at=[42:29, 42:77] elsewhere=0
+rename 42:77 edits=[42:29+5, 42:77+5]
+highlight 42:77 -> [42:29+5 DefinitionHighlightTag, 42:77+5 ReferenceHighlightTag]
+definition 42:82 -> csharp inner @5
+navigable 42:82 span=42:82+1 -> NonNavigableSymbol
+navigable 43:21 span=43:21+1 -> NonNavigableSymbol
+definition 43:23 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @597
+navigable 43:23 span=43:23+6 -> 43:23
+references 43:23 name=digits definition=43:23 at=[43:23, 43:91] elsewhere=0
+rename 43:23 edits=[43:23+6, 43:91+6]
+highlight 43:23 -> [43:23+6 DefinitionHighlightTag, 43:91+6 ReferenceHighlightTag]
+definition 43:29 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @603
+navigable 43:29 span=43:29+1 -> NonNavigableSymbol
+navigable 43:31 span=43:31+1 -> NonNavigableSymbol
+navigable 43:32 span=43:32+1 -> NonNavigableSymbol
+navigable 43:35 span=43:35+1 -> NonNavigableSymbol
+navigable 43:37 span=43:37+1 -> NonNavigableSymbol
+navigable 43:40 span=43:40+1 -> NonNavigableSymbol
+navigable 43:41 span=43:41+1 -> NonNavigableSymbol
+navigable 43:72 span=43:72+1 -> NonNavigableSymbol
+navigable 43:75 span=43:75+1 -> NonNavigableSymbol
+navigable 43:76 span=43:76+1 -> NonNavigableSymbol
+definition 43:77 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @0
+navigable 43:77 span=43:77+1 -> NonNavigableSymbol
+definition 43:84 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @7
+navigable 43:84 span=43:84+1 -> NonNavigableSymbol
+definition 43:85 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @8
+navigable 43:85 span=43:85+1 -> NonNavigableSymbol
+definition 43:90 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @13
+navigable 43:90 span=43:90+1 -> NonNavigableSymbol
+definition 43:91 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @14
+navigable 43:91 span=43:91+6 -> 43:23
+references 43:91 name=digits definition=43:23 at=[43:23, 43:91] elsewhere=0
+rename 43:91 edits=[43:23+6, 43:91+6]
+highlight 43:91 -> [43:23+6 DefinitionHighlightTag, 43:91+6 ReferenceHighlightTag]
+definition 43:97 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @20
+navigable 43:97 span=43:97+1 -> NonNavigableSymbol
+definition 43:99 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @22
+navigable 43:99 span=43:99+1 -> NonNavigableSymbol
+definition 43:110 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @33
+navigable 43:110 span=43:110+1 -> NonNavigableSymbol
+definition 43:111 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @34
+navigable 43:111 span=43:111+1 -> NonNavigableSymbol
+definition 43:127 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @50
+navigable 43:127 span=43:127+1 -> NonNavigableSymbol
+navigable 43:128 span=43:128+1 -> NonNavigableSymbol
+navigable 45:2 span=45:2+1 -> NonNavigableSymbol
+navigable 46:2 span=46:2+1 -> NonNavigableSymbol
+definition 47:2 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @835
+navigable 47:2 span=47:2+12 -> 47:2
+references 47:2 name=Backtracking definition=47:2 at=[47:2, 64:8] elsewhere=0
+rename 47:2 edits=[47:2+12, 64:8+12]
+highlight 47:2 -> [47:2+12 DefinitionHighlightTag, 64:8+12 ReferenceHighlightTag]
+definition 47:14 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @847
+navigable 47:14 span=47:14+1 -> NonNavigableSymbol
+navigable 47:16 span=47:16+1 -> NonNavigableSymbol
+navigable 47:18 span=47:18+1 -> NonNavigableSymbol
+navigable 47:21 span=47:21+1 -> NonNavigableSymbol
+navigable 49:2 span=49:2+1 -> NonNavigableSymbol
+navigable 50:2 span=50:2+1 -> NonNavigableSymbol
+navigable 52:2 span=52:2+1 -> NonNavigableSymbol
+navigable 53:2 span=53:2+1 -> NonNavigableSymbol
+definition 54:2 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @1147
+navigable 54:2 span=54:2+5 -> 54:2
+references 54:2 name=Power definition=54:2 at=[54:2, 65:8] elsewhere=0
+rename 54:2 edits=[54:2+5, 65:8+5]
+highlight 54:2 -> [54:2+5 DefinitionHighlightTag, 65:8+5 ReferenceHighlightTag]
+navigable 54:10 span=54:10+1 -> NonNavigableSymbol
+navigable 54:12 span=54:12+1 -> NonNavigableSymbol
+definition 54:13 -> csharp decimal @0
+navigable 54:13 span=54:13+1 -> NonNavigableSymbol
+navigable 54:21 span=54:21+1 -> NonNavigableSymbol
+definition 54:23 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @1168
+navigable 54:23 span=54:23+4 -> 54:23
+references 54:23 name=left definition=54:23 at=[54:23, 55:56, 55:74] elsewhere=0
+rename 54:23 edits=[54:23+4, 55:56+4, 55:74+4]
+highlight 54:23 -> [54:23+4 DefinitionHighlightTag, 55:56+4 ReferenceHighlightTag, 55:74+4 ReferenceHighlightTag]
+definition 54:27 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @1172
+navigable 54:27 span=54:27+1 -> NonNavigableSymbol
+definition 54:29 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @1174
+navigable 54:29 span=54:29+7 -> 42:2
+references 54:29 name=Primary definition=42:2 at=[37:30, 42:2, 54:29] elsewhere=0
+rename 54:29 edits=[37:30+7, 42:2+7, 54:29+7]
+highlight 54:29 -> [37:30+7 ReferenceHighlightTag, 42:2+7 DefinitionHighlightTag, 54:29+7 ReferenceHighlightTag]
+navigable 54:37 span=54:37+1 -> NonNavigableSymbol
+navigable 54:39 span=54:39+1 -> NonNavigableSymbol
+navigable 54:40 span=54:40+1 -> NonNavigableSymbol
+navigable 54:44 span=54:44+1 -> NonNavigableSymbol
+definition 54:46 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @1191
+navigable 54:46 span=54:46+5 -> 54:46
+references 54:46 name=right definition=54:46 at=[54:46, 55:26] elsewhere=0
+rename 54:46 edits=[54:46+5, 55:26+5]
+highlight 54:46 -> [54:46+5 DefinitionHighlightTag, 55:26+5 ReferenceHighlightTag]
+definition 54:51 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @1196
+navigable 54:51 span=54:51+1 -> NonNavigableSymbol
+definition 54:53 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @1198
+navigable 54:53 span=54:53+5 -> 36:2
+references 54:53 name=Unary definition=36:2 at=[30:64, 31:30, 36:2, 36:38, 54:53] elsewhere=0
+rename 54:53 edits=[30:64+5, 31:30+5, 36:2+5, 36:38+5, 54:53+5]
+highlight 54:53 -> [30:64+5 ReferenceHighlightTag, 31:30+5 ReferenceHighlightTag, 36:2+5 DefinitionHighlightTag, 36:38+5 ReferenceHighlightTag, 54:53+5 ReferenceHighlightTag]
+definition 54:58 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @1203
+navigable 54:58 span=54:58+1 -> NonNavigableSymbol
+navigable 54:59 span=54:59+1 -> NonNavigableSymbol
+navigable 55:21 span=55:21+1 -> NonNavigableSymbol
+navigable 55:24 span=55:24+1 -> NonNavigableSymbol
+navigable 55:25 span=55:25+1 -> NonNavigableSymbol
+definition 55:26 -> csharp right is { } exponent ? Raise(left, exponent) : left @0
+navigable 55:26 span=55:26+5 -> 54:46
+references 55:26 name=right definition=54:46 at=[54:46, 55:26] elsewhere=0
+rename 55:26 edits=[54:46+5, 55:26+5]
+highlight 55:26 -> [54:46+5 DefinitionHighlightTag, 55:26+5 ReferenceHighlightTag]
+definition 55:32 -> csharp right is { } exponent ? Raise(left, exponent) : left @6
+navigable 55:32 span=55:32+1 -> NonNavigableSymbol
+navigable 55:35 span=55:35+1 -> NonNavigableSymbol
+navigable 55:37 span=55:37+1 -> NonNavigableSymbol
+definition 55:39 -> csharp right is { } exponent ? Raise(left, exponent) : left @13
+navigable 55:39 span=55:39+1 -> NonNavigableSymbol
+navigable 55:48 span=55:48+1 -> NonNavigableSymbol
+definition 55:50 -> csharp right is { } exponent ? Raise(left, exponent) : left @24
+navigable 55:50 span=55:50+1 -> NonNavigableSymbol
+definition 55:55 -> csharp right is { } exponent ? Raise(left, exponent) : left @29
+navigable 55:55 span=55:55+1 -> NonNavigableSymbol
+definition 55:56 -> csharp right is { } exponent ? Raise(left, exponent) : left @30
+navigable 55:56 span=55:56+4 -> 54:23
+references 55:56 name=left definition=54:23 at=[54:23, 55:56, 55:74] elsewhere=0
+rename 55:56 edits=[54:23+4, 55:56+4, 55:74+4]
+highlight 55:56 -> [54:23+4 DefinitionHighlightTag, 55:56+4 ReferenceHighlightTag, 55:74+4 ReferenceHighlightTag]
+definition 55:60 -> csharp right is { } exponent ? Raise(left, exponent) : left @34
+navigable 55:60 span=55:60+1 -> NonNavigableSymbol
+definition 55:62 -> csharp right is { } exponent ? Raise(left, exponent) : left @36
+navigable 55:62 span=55:62+1 -> NonNavigableSymbol
+definition 55:70 -> csharp right is { } exponent ? Raise(left, exponent) : left @44
+navigable 55:70 span=55:70+1 -> NonNavigableSymbol
+navigable 55:72 span=55:72+1 -> NonNavigableSymbol
+definition 55:74 -> csharp right is { } exponent ? Raise(left, exponent) : left @48
+navigable 55:74 span=55:74+4 -> 54:23
+references 55:74 name=left definition=54:23 at=[54:23, 55:56, 55:74] elsewhere=0
+rename 55:74 edits=[54:23+4, 55:56+4, 55:74+4]
+highlight 55:74 -> [54:23+4 DefinitionHighlightTag, 55:56+4 ReferenceHighlightTag, 55:74+4 ReferenceHighlightTag]
+definition 55:78 -> csharp right is { } exponent ? Raise(left, exponent) : left @52
+navigable 55:78 span=55:78+1 -> NonNavigableSymbol
+navigable 57:2 span=57:2+1 -> NonNavigableSymbol
+definition 58:2 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @1367
+navigable 58:2 span=58:2+1 -> NonNavigableSymbol
+definition 58:8 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @1373
+navigable 58:8 span=58:8+3 -> 25:2
+references 58:8 name=Sum definition=25:2 at=[25:2, 25:29, 42:36, 58:8] elsewhere=0
+rename 58:8 edits=[25:2+3, 25:29+3, 42:36+3, 58:8+3]
+highlight 58:8 -> [25:2+3 DefinitionHighlightTag, 25:29+3 ReferenceHighlightTag, 42:36+3 ReferenceHighlightTag, 58:8+3 ReferenceHighlightTag]
+definition 58:12 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @1377
+navigable 58:12 span=58:12+1 -> NonNavigableSymbol
+definition 58:15 -> published ToolingEvaluate
+navigable 58:15 span=58:15+1 -> NonNavigableSymbol
+navigable 60:2 span=60:2+1 -> NonNavigableSymbol
+navigable 61:2 span=61:2+1 -> NonNavigableSymbol
+navigable 62:2 span=62:2+1 -> NonNavigableSymbol
+navigable 63:2 span=63:2+1 -> NonNavigableSymbol
+definition 64:2 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @1718
+navigable 64:2 span=64:2+1 -> NonNavigableSymbol
+definition 64:8 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @1724
+navigable 64:8 span=64:8+12 -> 47:2
+references 64:8 name=Backtracking definition=47:2 at=[47:2, 64:8] elsewhere=0
+rename 64:8 edits=[47:2+12, 64:8+12]
+highlight 64:8 -> [47:2+12 DefinitionHighlightTag, 64:8+12 ReferenceHighlightTag]
+definition 64:21 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @1737
+navigable 64:21 span=64:21+1 -> NonNavigableSymbol
+definition 64:24 -> published ToolingBacktracking
+navigable 64:24 span=64:24+1 -> NonNavigableSymbol
+definition 65:2 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @1762
+navigable 65:2 span=65:2+1 -> NonNavigableSymbol
+definition 65:8 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @1768
+navigable 65:8 span=65:8+5 -> 54:2
+references 65:8 name=Power definition=54:2 at=[54:2, 65:8] elsewhere=0
+rename 65:8 edits=[54:2+5, 65:8+5]
+highlight 65:8 -> [54:2+5 DefinitionHighlightTag, 65:8+5 ReferenceHighlightTag]
+definition 65:21 -> csharp Raise(operand, ri). Roslyn completion should appear;\r\n\t// undo the temporary edit afterward.\r\n\tUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n\t                   | value: Primary                                   => @(value)\r\n\r\n\t// F12 on decimal or Parse should open Metadata-as-Source; hover should show\r\n\t// classified Roslyn Quick Info. Click beside (), [], or {} and collapse this\r\n\t// multiline rule/comment to check brace matching and folding.\r\n\tPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n\t                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\r\n\r\n\t// Hover both question marks: the first describes a rule that may give back;\r\n\t// the second remains an optional expression.\r\n\tBacktracking? = 'x'?\r\n\r\n\t// Temporarily uncomment: only the two invalid `i` suffixes should be underlined.\r\n\t//InvalidRange = ['a'i .. 'z'i]\r\n\r\n\t// F12 on Raise should navigate to the C# method below. Shift+F12 on `left` should\r\n\t// include its occurrence inside this C# expression and its capture definition.\r\n\tPower   : @decimal = left: Primary & ('^' & right: Unary)?\r\n\t                   => @(right is { } exponent ? Raise(left, exponent) : left)\r\n\r\n\t// F12 on ToolingEvaluate should open the generated C# publication method.\r\n\tparse Sum as ToolingEvaluate\r\n\r\n\t// The two rules above are here to be hovered rather than to be read from, and `Sum`\r\n\t// does not reach either — which is what GRAM4018 is for. Publishing them is what says\r\n\t// they are meant: each becomes an entry point of its own, so F12 on either name lands\r\n\t// in a generated method the way it does on `Sum`.\r\n\tparse Backtracking as ToolingBacktracking\r\n\tparse Power        as ToolingPower\r\n\t""" @1781
+navigable 65:21 span=65:21+1 -> NonNavigableSymbol
+definition 65:24 -> published ToolingPower
+navigable 65:24 span=65:24+1 -> NonNavigableSymbol
+definition 103:3 -> here 103:3
+navigable 103:3 span=103:3+4 -> 103:3
+references 103:3 name=Word definition=103:3 at=[103:3, 104:11] elsewhere=0
+rename 103:3 edits=[103:3+4, 104:11+4]
+highlight 103:3 -> [103:3+4 DefinitionHighlightTag, 104:11+4 ReferenceHighlightTag]
+navigable 103:8 span=103:8+1 -> NonNavigableSymbol
+navigable 103:10 span=103:10+1 -> NonNavigableSymbol
+navigable 103:11 span=103:11+1 -> NonNavigableSymbol
+navigable 103:14 span=103:14+1 -> NonNavigableSymbol
+navigable 103:16 span=103:16+1 -> NonNavigableSymbol
+navigable 103:19 span=103:19+1 -> NonNavigableSymbol
+navigable 103:20 span=103:20+1 -> NonNavigableSymbol
+definition 104:3 -> here 104:3
+navigable 104:3 span=104:3+5 -> 104:3
+references 104:3 name=Start definition=104:3 at=[104:3, 105:9] elsewhere=0
+rename 104:3 edits=[104:3+5, 105:9+5]
+highlight 104:3 -> [104:3+5 DefinitionHighlightTag, 105:9+5 ReferenceHighlightTag]
+navigable 104:9 span=104:9+1 -> NonNavigableSymbol
+definition 104:11 -> here 103:3
+navigable 104:11 span=104:11+4 -> 103:3
+references 104:11 name=Word definition=103:3 at=[103:3, 104:11] elsewhere=0
+rename 104:11 edits=[103:3+4, 104:11+4]
+highlight 104:11 -> [103:3+4 DefinitionHighlightTag, 104:11+4 ReferenceHighlightTag]
+navigable 105:3 span=105:3+1 -> NonNavigableSymbol
+definition 105:9 -> here 104:3
+navigable 105:9 span=105:9+5 -> 104:3
+references 105:9 name=Start definition=104:3 at=[104:3, 105:9] elsewhere=0
+rename 105:9 edits=[104:3+5, 105:9+5]
+highlight 105:9 -> [104:3+5 DefinitionHighlightTag, 105:9+5 ReferenceHighlightTag]
+definition 164:2 -> here 164:2
+navigable 164:2 span=164:2+6 -> 164:2
+references 164:2 name=trivia definition=164:2 at=[164:2] elsewhere=0
+rename 164:2 edits=[164:2+6]
+highlight 164:2 -> [164:2+6 DefinitionHighlightTag]
+navigable 164:15 span=164:15+1 -> NonNavigableSymbol
+navigable 164:17 span=164:17+1 -> NonNavigableSymbol
+navigable 164:18 span=164:18+1 -> NonNavigableSymbol
+navigable 164:22 span=164:22+1 -> NonNavigableSymbol
+navigable 164:24 span=164:24+1 -> NonNavigableSymbol
+navigable 164:28 span=164:28+1 -> NonNavigableSymbol
+navigable 164:29 span=164:29+1 -> NonNavigableSymbol
+definition 165:2 -> here 165:2
+navigable 165:2 span=165:2+10 -> 165:2
+references 165:2 name=SelectWord definition=165:2 at=[165:2, 169:17] elsewhere=0
+rename 165:2 edits=[165:2+10, 169:17+10]
+highlight 165:2 -> [165:2+10 DefinitionHighlightTag, 169:17+10 ReferenceHighlightTag]
+navigable 165:15 span=165:15+1 -> NonNavigableSymbol
+navigable 165:17 span=165:17+1 -> NonNavigableSymbol
+navigable 165:26 span=165:26+1 -> NonNavigableSymbol
+navigable 165:28 span=165:28+1 -> NonNavigableSymbol
+definition 166:2 -> here 166:2
+navigable 166:2 span=166:2+9 -> 166:2
+references 166:2 name=CountWord definition=166:2 at=[166:2, 170:17] elsewhere=0
+rename 166:2 edits=[166:2+9, 170:17+9]
+highlight 166:2 -> [166:2+9 DefinitionHighlightTag, 170:17+9 ReferenceHighlightTag]
+navigable 166:15 span=166:15+1 -> NonNavigableSymbol
+navigable 166:17 span=166:17+1 -> NonNavigableSymbol
+definition 167:2 -> here 167:2
+navigable 167:2 span=167:2+10 -> 167:2
+references 167:2 name=Identifier definition=167:2 at=[167:2, 169:38, 170:37, 171:23, 171:54] elsewhere=0
+rename 167:2 edits=[167:2+10, 169:38+10, 170:37+10, 171:23+10, 171:54+10]
+highlight 167:2 -> [167:2+10 DefinitionHighlightTag, 169:38+10 ReferenceHighlightTag, 170:37+10 ReferenceHighlightTag, 171:23+10 ReferenceHighlightTag, 171:54+10 ReferenceHighlightTag]
+navigable 167:15 span=167:15+1 -> NonNavigableSymbol
+navigable 167:17 span=167:17+1 -> NonNavigableSymbol
+navigable 167:18 span=167:18+1 -> NonNavigableSymbol
+navigable 167:21 span=167:21+1 -> NonNavigableSymbol
+navigable 167:23 span=167:23+1 -> NonNavigableSymbol
+navigable 167:26 span=167:26+1 -> NonNavigableSymbol
+navigable 167:27 span=167:27+1 -> NonNavigableSymbol
+definition 168:2 -> here 168:2
+navigable 168:2 span=168:2+8 -> 168:2
+references 168:2 name=Operator definition=168:2 at=[168:2, 171:36] elsewhere=0
+rename 168:2 edits=[168:2+8, 171:36+8]
+highlight 168:2 -> [168:2+8 DefinitionHighlightTag, 171:36+8 ReferenceHighlightTag]
+navigable 168:15 span=168:15+1 -> NonNavigableSymbol
+navigable 168:17 span=168:17+1 -> NonNavigableSymbol
+navigable 168:21 span=168:21+1 -> NonNavigableSymbol
+navigable 168:23 span=168:23+1 -> NonNavigableSymbol
+definition 169:2 -> here 169:2
+navigable 169:2 span=169:2+11 -> 169:2
+references 169:2 name=SelectQuery definition=169:2 at=[169:2, 172:8] elsewhere=0
+rename 169:2 edits=[169:2+11, 172:8+11]
+highlight 169:2 -> [169:2+11 DefinitionHighlightTag, 172:8+11 ReferenceHighlightTag]
+navigable 169:15 span=169:15+1 -> NonNavigableSymbol
+definition 169:17 -> here 165:2
+navigable 169:17 span=169:17+10 -> 165:2
+references 169:17 name=SelectWord definition=165:2 at=[165:2, 169:17] elsewhere=0
+rename 169:17 edits=[165:2+10, 169:17+10]
+highlight 169:17 -> [165:2+10 DefinitionHighlightTag, 169:17+10 ReferenceHighlightTag]
+navigable 169:28 span=169:28+1 -> NonNavigableSymbol
+definition 169:30 -> here 169:30
+navigable 169:30 span=169:30+5 -> 169:30
+references 169:30 name=field definition=169:30 at=[169:30] elsewhere=0
+rename 169:30 edits=[169:30+5]
+highlight 169:30 -> [169:30+5 DefinitionHighlightTag]
+navigable 169:35 span=169:35+1 -> NonNavigableSymbol
+navigable 169:37 span=169:37+1 -> NonNavigableSymbol
+definition 169:38 -> here 167:2
+navigable 169:38 span=169:38+10 -> 167:2
+references 169:38 name=Identifier definition=167:2 at=[167:2, 169:38, 170:37, 171:23, 171:54] elsewhere=0
+rename 169:38 edits=[167:2+10, 169:38+10, 170:37+10, 171:23+10, 171:54+10]
+highlight 169:38 -> [167:2+10 DefinitionHighlightTag, 169:38+10 ReferenceHighlightTag, 170:37+10 ReferenceHighlightTag, 171:23+10 ReferenceHighlightTag, 171:54+10 ReferenceHighlightTag]
+navigable 169:48 span=169:48+1 -> NonNavigableSymbol
+definition 170:2 -> here 170:2
+navigable 170:2 span=170:2+10 -> 170:2
+references 170:2 name=CountQuery definition=170:2 at=[170:2, 173:8] elsewhere=0
+rename 170:2 edits=[170:2+10, 173:8+10]
+highlight 170:2 -> [170:2+10 DefinitionHighlightTag, 173:8+10 ReferenceHighlightTag]
+navigable 170:15 span=170:15+1 -> NonNavigableSymbol
+definition 170:17 -> here 166:2
+navigable 170:17 span=170:17+9 -> 166:2
+references 170:17 name=CountWord definition=166:2 at=[166:2, 170:17] elsewhere=0
+rename 170:17 edits=[166:2+9, 170:17+9]
+highlight 170:17 -> [166:2+9 DefinitionHighlightTag, 170:17+9 ReferenceHighlightTag]
+navigable 170:27 span=170:27+1 -> NonNavigableSymbol
+definition 170:29 -> here 170:29
+navigable 170:29 span=170:29+5 -> 170:29
+references 170:29 name=field definition=170:29 at=[170:29] elsewhere=0
+rename 170:29 edits=[170:29+5]
+highlight 170:29 -> [170:29+5 DefinitionHighlightTag]
+navigable 170:34 span=170:34+1 -> NonNavigableSymbol
+navigable 170:36 span=170:36+1 -> NonNavigableSymbol
+definition 170:37 -> here 167:2
+navigable 170:37 span=170:37+10 -> 167:2
+references 170:37 name=Identifier definition=167:2 at=[167:2, 169:38, 170:37, 171:23, 171:54] elsewhere=0
+rename 170:37 edits=[167:2+10, 169:38+10, 170:37+10, 171:23+10, 171:54+10]
+highlight 170:37 -> [167:2+10 DefinitionHighlightTag, 169:38+10 ReferenceHighlightTag, 170:37+10 ReferenceHighlightTag, 171:23+10 ReferenceHighlightTag, 171:54+10 ReferenceHighlightTag]
+navigable 170:47 span=170:47+1 -> NonNavigableSymbol
+definition 171:2 -> here 171:2
+navigable 171:2 span=171:2+9 -> 171:2
+references 171:2 name=Operation definition=171:2 at=[171:2, 174:8] elsewhere=0
+rename 171:2 edits=[171:2+9, 174:8+9]
+highlight 171:2 -> [171:2+9 DefinitionHighlightTag, 174:8+9 ReferenceHighlightTag]
+navigable 171:15 span=171:15+1 -> NonNavigableSymbol
+definition 171:17 -> here 171:17
+navigable 171:17 span=171:17+4 -> 171:17
+references 171:17 name=left definition=171:17 at=[171:17] elsewhere=0
+rename 171:17 edits=[171:17+4]
+highlight 171:17 -> [171:17+4 DefinitionHighlightTag]
+navigable 171:21 span=171:21+1 -> NonNavigableSymbol
+definition 171:23 -> here 167:2
+navigable 171:23 span=171:23+10 -> 167:2
+references 171:23 name=Identifier definition=167:2 at=[167:2, 169:38, 170:37, 171:23, 171:54] elsewhere=0
+rename 171:23 edits=[167:2+10, 169:38+10, 170:37+10, 171:23+10, 171:54+10]
+highlight 171:23 -> [167:2+10 DefinitionHighlightTag, 169:38+10 ReferenceHighlightTag, 170:37+10 ReferenceHighlightTag, 171:23+10 ReferenceHighlightTag, 171:54+10 ReferenceHighlightTag]
+navigable 171:34 span=171:34+1 -> NonNavigableSymbol
+definition 171:36 -> here 168:2
+navigable 171:36 span=171:36+8 -> 168:2
+references 171:36 name=Operator definition=168:2 at=[168:2, 171:36] elsewhere=0
+rename 171:36 edits=[168:2+8, 171:36+8]
+highlight 171:36 -> [168:2+8 DefinitionHighlightTag, 171:36+8 ReferenceHighlightTag]
+navigable 171:45 span=171:45+1 -> NonNavigableSymbol
+definition 171:47 -> here 171:47
+navigable 171:47 span=171:47+5 -> 171:47
+references 171:47 name=right definition=171:47 at=[171:47] elsewhere=0
+rename 171:47 edits=[171:47+5]
+highlight 171:47 -> [171:47+5 DefinitionHighlightTag]
+navigable 171:52 span=171:52+1 -> NonNavigableSymbol
+definition 171:54 -> here 167:2
+navigable 171:54 span=171:54+10 -> 167:2
+references 171:54 name=Identifier definition=167:2 at=[167:2, 169:38, 170:37, 171:23, 171:54] elsewhere=0
+rename 171:54 edits=[167:2+10, 169:38+10, 170:37+10, 171:23+10, 171:54+10]
+highlight 171:54 -> [167:2+10 DefinitionHighlightTag, 169:38+10 ReferenceHighlightTag, 170:37+10 ReferenceHighlightTag, 171:23+10 ReferenceHighlightTag, 171:54+10 ReferenceHighlightTag]
+navigable 172:2 span=172:2+1 -> NonNavigableSymbol
+definition 172:8 -> here 169:2
+navigable 172:8 span=172:8+11 -> 169:2
+references 172:8 name=SelectQuery definition=169:2 at=[169:2, 172:8] elsewhere=0
+rename 172:8 edits=[169:2+11, 172:8+11]
+highlight 172:8 -> [169:2+11 DefinitionHighlightTag, 172:8+11 ReferenceHighlightTag]
+navigable 173:2 span=173:2+1 -> NonNavigableSymbol
+definition 173:8 -> here 170:2
+navigable 173:8 span=173:8+10 -> 170:2
+references 173:8 name=CountQuery definition=170:2 at=[170:2, 173:8] elsewhere=0
+rename 173:8 edits=[170:2+10, 173:8+10]
+highlight 173:8 -> [170:2+10 DefinitionHighlightTag, 173:8+10 ReferenceHighlightTag]
+navigable 174:2 span=174:2+1 -> NonNavigableSymbol
+definition 174:8 -> here 171:2
+navigable 174:8 span=174:8+9 -> 171:2
+references 174:8 name=Operation definition=171:2 at=[171:2, 174:8] elsewhere=0
+rename 174:8 edits=[171:2+9, 174:8+9]
+highlight 174:8 -> [171:2+9 DefinitionHighlightTag, 174:8+9 ReferenceHighlightTag]
+definition 190:2 -> here 190:2
+navigable 190:2 span=190:2+4 -> 190:2
+references 190:2 name=Item definition=190:2 at=[190:2, 191:19, 192:8] elsewhere=0
+rename 190:2 edits=[190:2+4, 191:19+4, 192:8+4]
+highlight 190:2 -> [190:2+4 DefinitionHighlightTag, 191:19+4 ReferenceHighlightTag, 192:8+4 ReferenceHighlightTag]
+navigable 190:7 span=190:7+1 -> NonNavigableSymbol
+navigable 190:9 span=190:9+1 -> NonNavigableSymbol
+definition 190:10 -> csharp int @0
+navigable 190:10 span=190:10+1 -> NonNavigableSymbol
+navigable 190:14 span=190:14+1 -> NonNavigableSymbol
+navigable 190:16 span=190:16+1 -> NonNavigableSymbol
+navigable 190:23 span=190:23+1 -> NonNavigableSymbol
+navigable 190:24 span=190:24+1 -> NonNavigableSymbol
+definition 190:25 -> csharp 1 @0
+navigable 190:25 span=190:25+1 -> NonNavigableSymbol
+definition 190:26 -> csharp 1 @1
+navigable 190:26 span=190:26+1 -> NonNavigableSymbol
+navigable 190:28 span=190:28+1 -> NonNavigableSymbol
+navigable 190:30 span=190:30+1 -> NonNavigableSymbol
+navigable 190:35 span=190:35+1 -> NonNavigableSymbol
+navigable 190:36 span=190:36+1 -> NonNavigableSymbol
+navigable 190:38 span=190:38+1 -> NonNavigableSymbol
+navigable 190:42 span=190:42+1 -> NonNavigableSymbol
+navigable 190:45 span=190:45+1 -> NonNavigableSymbol
+navigable 190:46 span=190:46+1 -> NonNavigableSymbol
+definition 190:47 -> csharp 1 @0
+navigable 190:47 span=190:47+1 -> NonNavigableSymbol
+definition 190:48 -> csharp 1 @1
+navigable 190:48 span=190:48+1 -> NonNavigableSymbol
+navigable 190:49 span=190:49+1 -> NonNavigableSymbol
+navigable 190:51 span=190:51+1 -> NonNavigableSymbol
+navigable 190:58 span=190:58+1 -> NonNavigableSymbol
+navigable 190:60 span=190:60+1 -> NonNavigableSymbol
+navigable 190:64 span=190:64+1 -> NonNavigableSymbol
+navigable 190:67 span=190:67+1 -> NonNavigableSymbol
+navigable 190:68 span=190:68+1 -> NonNavigableSymbol
+definition 190:69 -> csharp 2 @0
+navigable 190:69 span=190:69+1 -> NonNavigableSymbol
+definition 190:70 -> csharp 2 @1
+navigable 190:70 span=190:70+1 -> NonNavigableSymbol
+navigable 190:72 span=190:72+1 -> NonNavigableSymbol
+definition 191:2 -> here 191:2
+navigable 191:2 span=191:2+5 -> 191:2
+references 191:2 name=Items definition=191:2 at=[191:2, 193:8] elsewhere=0
+rename 191:2 edits=[191:2+5, 193:8+5]
+highlight 191:2 -> [191:2+5 DefinitionHighlightTag, 193:8+5 ReferenceHighlightTag]
+navigable 191:8 span=191:8+1 -> NonNavigableSymbol
+navigable 191:10 span=191:10+1 -> NonNavigableSymbol
+definition 191:11 -> csharp int @0
+navigable 191:11 span=191:11+1 -> NonNavigableSymbol
+definition 191:14 -> csharp int @3
+navigable 191:14 span=191:14+1 -> NonNavigableSymbol
+navigable 191:15 span=191:15+1 -> NonNavigableSymbol
+navigable 191:17 span=191:17+1 -> NonNavigableSymbol
+definition 191:19 -> here 190:2
+navigable 191:19 span=191:19+4 -> 190:2
+references 191:19 name=Item definition=190:2 at=[190:2, 191:19, 192:8] elsewhere=0
+rename 191:19 edits=[190:2+4, 191:19+4, 192:8+4]
+highlight 191:19 -> [190:2+4 DefinitionHighlightTag, 191:19+4 ReferenceHighlightTag, 192:8+4 ReferenceHighlightTag]
+navigable 191:23 span=191:23+1 -> NonNavigableSymbol
+navigable 192:2 span=192:2+1 -> NonNavigableSymbol
+definition 192:8 -> here 190:2
+navigable 192:8 span=192:8+4 -> 190:2
+references 192:8 name=Item definition=190:2 at=[190:2, 191:19, 192:8] elsewhere=0
+rename 192:8 edits=[190:2+4, 191:19+4, 192:8+4]
+highlight 192:8 -> [190:2+4 DefinitionHighlightTag, 191:19+4 ReferenceHighlightTag, 192:8+4 ReferenceHighlightTag]
+navigable 192:13 span=192:13+1 -> NonNavigableSymbol
+definition 192:16 -> published Value
+navigable 192:16 span=192:16+1 -> NonNavigableSymbol
+navigable 192:22 span=192:22+1 -> NonNavigableSymbol
+navigable 192:24 span=192:24+1 -> NonNavigableSymbol
+definition 192:25 -> csharp object @0
+navigable 192:25 span=192:25+1 -> NonNavigableSymbol
+navigable 193:2 span=193:2+1 -> NonNavigableSymbol
+definition 193:8 -> here 191:2
+navigable 193:8 span=193:8+5 -> 191:2
+references 193:8 name=Items definition=191:2 at=[191:2, 193:8] elsewhere=0
+rename 193:8 edits=[191:2+5, 193:8+5]
+highlight 193:8 -> [191:2+5 DefinitionHighlightTag, 193:8+5 ReferenceHighlightTag]
+navigable 193:14 span=193:14+1 -> NonNavigableSymbol
+definition 193:17 -> published Values
+navigable 193:17 span=193:17+1 -> NonNavigableSymbol
+navigable 193:24 span=193:24+1 -> NonNavigableSymbol
+navigable 193:31 span=193:31+1 -> NonNavigableSymbol
+navigable 193:37 span=193:37+1 -> NonNavigableSymbol
+navigable 193:43 span=193:43+1 -> NonNavigableSymbol
+navigable 193:45 span=193:45+1 -> NonNavigableSymbol
+definition 193:46 -> csharp int @0
+navigable 193:46 span=193:46+1 -> NonNavigableSymbol
