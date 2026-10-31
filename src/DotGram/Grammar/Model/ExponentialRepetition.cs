@@ -297,7 +297,8 @@ public static class ExponentialRepetition
 	{
 		readonly Dictionary<object, int> _opaque = [];
 		readonly Dictionary<Node, int>   _nodes  = new(NodeIdentity.Instance);
-		readonly ExecutionPlan           _plan   = ExecutionPlan.Of(graph);
+
+		ExecutionPlan? _plan;
 
 		public int Steps { get; private set; }
 
@@ -363,6 +364,8 @@ public static class ExponentialRepetition
 
 		bool InPlace(RuleSymbol rule)
 		{
+			_plan ??= ExecutionPlan.Of(graph);
+
 			return _plan.CompiledInPlace.Contains(rule) && rule.OnFail is null && !graph.Says.ContainsKey(rule);
 		}
 
