@@ -126,6 +126,11 @@ public sealed class ExponentialRepetitionTests
 
 	// A look that ends a way lets nothing it refuses follow on that way.
 	[InlineData("R = ('\"' & ['a'..'z']* & ('\"' | eof))* & ';'")]
+	[InlineData("R = (['a'..'z']+ & ':' & [^ '\\n']* & ('\\n' | ?=eof))* & eof")]
+
+	// A braced run read to its end leaves nothing of its class to what follows: a comment to the
+	// end of the line, written either way, ends a turn that cannot go on.
+	[InlineData("C = ';' & { [^ '\\n']* }\nT = ' '* & C | C\nR = ('[' & ['a'..'z'] & ']' & T?)* & eof")]
 
 	// A repetition that recovers commits every turn it finishes.
 	[InlineData("R = ('x' & 'y' | 'x' & 'y')* recover ';' & eof")]
@@ -562,7 +567,7 @@ public sealed class ExponentialRepetitionTests
 			foreach (var gram in attributes.Where(static one => Is(one, "Gram")))
 			{
 				if (gram.ArgumentList?.Arguments.FirstOrDefault() is not { NameEquals: null, NameColon: null } first ||
-					first.Expression is not LiteralExpressionSyntax { Token.Value: string value })
+					Constant(first.Expression) is not { } value)
 					continue;
 
 				var line  = lines + 1 + gram.GetLocation().GetLineSpan().StartLinePosition.Line;
@@ -598,6 +603,19 @@ public sealed class ExponentialRepetitionTests
 
 				Hosts(CSharpSyntaxTree.ParseText(written).GetRoot(), file, directory, at, $"{scope}:{at}", hosts, depth + 1);
 			}
+
+		// A string as the compiler reads it, where it is a constant: a literal, or literals joined with `+`.
+		static string? Constant(ExpressionSyntax expression)
+		{
+			return expression switch
+			{
+				LiteralExpressionSyntax { Token.Value: string text } => text,
+				ParenthesizedExpressionSyntax inner => Constant(inner.Expression),
+				BinaryExpressionSyntax { RawKind: (int)SyntaxKind.AddExpression } joined =>
+					Constant(joined.Left) is { } left && Constant(joined.Right) is { } right ? left + right : null,
+				_ => null,
+			};
+		}
 
 		static bool Is(AttributeSyntax attribute, string name)
 		{

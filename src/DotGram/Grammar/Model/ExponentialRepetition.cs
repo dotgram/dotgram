@@ -492,7 +492,7 @@ public static class ExponentialRepetition
 					return Repeated(repeat);
 
 				case Node.Atomic atomic:
-					return Opaqued(atomic, "{…}");
+					return Braced(Opaqued(atomic, "{…}"), atomic.Body);
 
 				case Node.Same same:
 					return Opaqued(same.Binding, same.ToString());
@@ -513,6 +513,10 @@ public static class ExponentialRepetition
 
 				// A look that is one class holds what may follow it; any other is taken as reading nothing.
 				case Node.Lookahead(false, var body) when OneClass(body) is { } one:
+					return Fragment.Look(one);
+
+				// `?=eof`: what the look inside it refuses, the look outside refuses too.
+				case Node.Lookahead(true, var body) when Unwrapped(body) is Node.Lookahead(false, var inner) && OneClass(inner) is { } one:
 					return Fragment.Look(one);
 
 				case Node.Lookahead(true, var body) when Begins(body) is { } one:
@@ -545,6 +549,10 @@ public static class ExponentialRepetition
 						continue;
 
 					case Node.Lookahead(false, var body) when OneClass(body) is { } one:
+						refused = refused is null ? one : refused.Or(one);
+						continue;
+
+					case Node.Lookahead(true, var body) when Unwrapped(body) is Node.Lookahead(false, var inner) && OneClass(inner) is { } one:
 						refused = refused is null ? one : refused.Or(one);
 						continue;
 
@@ -585,6 +593,60 @@ public static class ExponentialRepetition
 				fragment = Then(fragment, Fragment.Look(Joined(refused, wanted is null ? null : Outside(wanted))));
 
 			return fragment;
+		}
+
+		/// <summary>What a call to a rule without arguments stands for, through every such call: <c>eof</c> is a look.</summary>
+		Node Unwrapped(Node node)
+		{
+			var seen = new HashSet<RuleSymbol>();
+
+			while (node is Node.Call(var called, { Count: 0 }) && seen.Add(called) && context.Graph.Bodies.TryGetValue(called, out var body))
+				node = body;
+
+			return node;
+		}
+
+		/// <summary>
+		/// A braced group that ends with a run of one class read to its end: what follows it cannot
+		/// begin with that class, since the run would have taken it. <c>{ [^ '\n']* }</c> is
+		/// followed by a line end or by nothing.
+		/// </summary>
+		Fragment Braced(Fragment opaque, Node body)
+		{
+			var last = body;
+
+			while (true)
+			{
+				switch (last)
+				{
+					case Node.Sequence(var parts) when parts.Count > 0:
+						last = parts[parts.Count - 1];
+						continue;
+
+					case Node.Capture(_, var held):
+						last = held;
+						continue;
+
+					case Node.Marked(var held, _):
+						last = held;
+						continue;
+
+					case Node.Construct(var held, _):
+						last = held;
+						continue;
+
+					case Node.Bind(_, var held, _):
+						last = held;
+						continue;
+				}
+
+				break;
+			}
+
+			if (last is not Node.Repeat { Max: null } run || OneClass(run.Body) is not { } taken)
+				return opaque;
+
+			return opaque with { Last = [.. opaque.Last.Select(end => (end.Letter, end.Ways, Joined(end.Refused, taken)))] };
 		}
 
 		/// <summary>Every character a set does not hold.</summary>
@@ -747,8 +809,8 @@ public static class ExponentialRepetition
 				context.OverKinds && !called.IsBuiltIn && !called.GivesBack)
 				return Opaqued(called, called.Name);
 
-			if (body is Node.Atomic)
-				return Opaqued(called, called.Name);
+			if (body is Node.Atomic(var braced))
+				return Braced(Opaqued(called, called.Name), braced);
 
 			if (Letters.Count >= Positions)
 				return Opaqued(called, called.Name);
