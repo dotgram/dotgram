@@ -194,6 +194,155 @@ public sealed class PlaygroundSnapshotTests
 		return result.ToString();
 	}
 
+	/// <summary>The same in the grammars embedded in the playground's C#, through the embedded providers.</summary>
+	[Fact]
+	public async Task The_embedded_providers_answer_as_the_extension_did()
+	{
+		var root     = SourceRoot();
+		var folder   = Path.Combine(root, "tests", "DotGram.VisualStudio.Tests", "Playground");
+		var text     = File.ReadAllText(Path.Combine(folder, PlaygroundEmbedded.FileName));
+		var markers  = File.ReadAllLines(Path.Combine(root, "tests", "DotGram.Language.Tests", "Playground", "CompletionMarkers.txt"))
+			.Where(static line => line.StartsWith(PlaygroundEmbedded.FileName + "|", StringComparison.Ordinal))
+			.Select(static line => line.Substring(PlaygroundEmbedded.FileName.Length + 1))
+			.ToArray();
+		var expected = File.ReadAllText(Path.Combine(root, "tests", "DotGram.Language.Tests", "Playground", PlaygroundEmbedded.FileName + ".txt"))
+			.Replace("\r\n", "\n");
+
+		var view   = await PlaygroundEmbedded.ViewAsync(text, folder, TestContext.Current.CancellationToken);
+		var actual = await RecordEmbeddedAsync(text, view, markers);
+
+		Assert.True(
+			expected == actual,
+			$"{PlaygroundEmbedded.FileName}: the providers no longer answer as the extension did. First difference:\n{FirstDifference(expected, actual)}");
+	}
+
+	static async Task<string> RecordEmbeddedAsync(string text, EmbeddedGrammarView view, IReadOnlyList<string> completionMarkers)
+	{
+		var result = new StringBuilder(PlaygroundEmbedded.Heading(view));
+		var tokens = PlaygroundEmbedded.Positions(view);
+
+		var completion = new EmbeddedGramCompletionProvider(view);
+
+		foreach (var marker in completionMarkers)
+		{
+			var position = Marker(text, marker);
+
+			result.Append("completion ").Append(Place(text, position));
+
+			if (completion.Start(text, position) is not { } applicable)
+			{
+				result.Append(" none\n");
+				continue;
+			}
+
+			result.Append(" applicable=").Append(Span(text, applicable.Start, applicable.Length)).Append('\n');
+
+			foreach (var item in await completion.ItemsAsync(text, position, applicable, null, CancellationToken.None))
+				result.Append("  ").Append(Escape(item.Label))
+					.Append(" | insert=").Append(Escape(item.InsertText ?? item.Label))
+					.Append(" | suffix=").Append(Escape(item.Suffix))
+					.Append(" | sort=").Append(Escape(item.SortText ?? item.Label))
+					.Append(" | filter=").Append(Escape(item.FilterText ?? item.Label))
+					.Append(" | ").Append(Escape(item.Description)).Append('\n');
+		}
+
+		foreach (var position in tokens)
+		{
+			var askedRoslyn = false;
+			var answer = await GramQuickInfoProvider.EmbeddedAsync(
+				text,
+				view,
+				position,
+				(_, _, _) =>
+				{
+					askedRoslyn = true;
+					return Task.FromResult<RoslynGramQuickInfo?>(null);
+				},
+				CancellationToken.None);
+
+			if (askedRoslyn)
+			{
+				result.Append("quickinfo ").Append(Place(text, position)).Append(" csharp\n");
+				continue;
+			}
+
+			if (answer?.Item is not { } item)
+				continue;
+
+			result.Append("quickinfo ").Append(Place(text, position)).Append(" span=").Append(Span(text, item.Span.Start, item.Span.Length)).Append('\n');
+			QuickInfo(item, answer.Diagnostics, result);
+		}
+
+		var signatures = new EmbeddedGramSignatureHelpProvider(view);
+
+		for (var position = 0; position < text.Length; position++)
+		{
+			if (text[position] is not ('(' or ','))
+				continue;
+
+			var at = position + 1;
+
+			if (signatures.At(text, at) is not { } help)
+				continue;
+
+			foreach (var signature in help.Signatures)
+				result.Append("signature ").Append(Place(text, at))
+					.Append(" applicable=").Append(Span(text, help.ApplicableSpan.Start, help.ApplicableSpan.Length))
+					.Append(" | ").Append(Escape(signature.Label))
+					.Append(" | ").Append(Escape(signature.Documentation))
+					.Append(" | current=").Append(Escape(help.ActiveParameter >= 0 ? signature.Parameters[help.ActiveParameter].Name : "-"))
+					.Append(" | ").Append(string.Join(", ", signature.Parameters.Select(static parameter =>
+						$"{Escape(parameter.Name)}@{parameter.Locus.Start}+{parameter.Locus.Length}")))
+					.Append('\n');
+		}
+
+		foreach (var position in tokens)
+		{
+			if (await GramNavigationProvider.DefinitionAsync(text, () => view, position, null, CancellationToken.None) is { } definition)
+				result.Append("definition ").Append(Place(text, position)).Append(" -> ").Append(Definition(text, definition)).Append('\n');
+
+			if (await GramNavigationProvider.NavigableAsync(text, () => view, position, null, CancellationToken.None) is { } navigable)
+				result.Append("navigable ").Append(Place(text, position)).Append(" span=")
+					.Append(Span(text, navigable.Span.Start, navigable.Span.Length)).Append(" -> ")
+					.Append(navigable.Target switch
+					{
+						GramLocation.InDocument target => Place(text, target.Position),
+						GramLocation.InFile target     => $"file {target.Path} {target.Line}:{target.Column}",
+						_                              => "NonNavigableSymbol",
+					})
+					.Append('\n');
+
+			if (GramNavigationProvider.References(view, position) is { } found)
+			{
+				result.Append("references ").Append(Place(text, position))
+					.Append(" name=").Append(found.Name)
+					.Append(" definition=").Append(found.DefinitionPosition >= text.Length ? "elsewhere" : Place(text, found.DefinitionPosition))
+					.Append(" at=[").Append(string.Join(", ", found.Positions.Select(at => Place(text, at)))).Append(']')
+					.Append(" elsewhere=").Append(found.Elsewhere.Count)
+					.Append('\n');
+
+				var rename = GramRenameProvider.Rename(found, found.Name + "_");
+
+				result.Append("rename ").Append(Place(text, position)).Append(' ')
+					.Append(rename.Conflicts.Count > 0
+						? "refused"
+						: "edits=[" + string.Join(", ", rename.Edits.Select(edit => Span(text, edit.Span.Start, edit.Span.Length))) + "]")
+					.Append('\n');
+			}
+
+			var highlights = GramNavigationProvider.Highlights(view, position);
+
+			if (highlights.Count > 0)
+				result.Append("highlight ").Append(Place(text, position)).Append(" -> [")
+					.Append(string.Join(", ", highlights.Select(highlight =>
+						Span(text, highlight.Span.Start, highlight.Span.Length) + " " +
+						(highlight.IsDefinition ? "DefinitionHighlightTag" : "ReferenceHighlightTag"))))
+					.Append("]\n");
+		}
+
+		return result.ToString();
+	}
+
 	static string Definition(string text, GramLocation definition)
 	{
 		return definition switch
@@ -203,6 +352,7 @@ public sealed class PlaygroundSnapshotTests
 			GramLocation.HostSymbol target        => $"csharp {Escape(target.Expression)} @{target.Position}",
 			GramLocation.InIncludedGrammar target => $"included {target.Grammar.Name} {target.Line}:{target.Column}",
 			GramLocation.InDocument target        => "here " + Place(text, target.Position),
+			GramLocation.InFile target            => $"file {target.Path} {target.Line}:{target.Column}",
 			_                                     => definition.ToString(),
 		};
 	}
