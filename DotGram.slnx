@@ -67,6 +67,9 @@
 		<Project Path="src/DotGram.Language.Guard/DotGram.Language.Guard.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
+		<Project Path="src/DotGram.LanguageServer/DotGram.LanguageServer.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
 		<Project Path="src/DotGram/DotGram.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
@@ -113,6 +116,9 @@
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
 		<Project Path="tests/DotGram.Language.Tests.Slow/DotGram.Language.Tests.Slow.csproj">
+			<BuildType Solution="Linux|*" Project="Release" />
+		</Project>
+		<Project Path="tests/DotGram.LanguageServer.Tests/DotGram.LanguageServer.Tests.csproj">
 			<BuildType Solution="Linux|*" Project="Release" />
 		</Project>
 		<Project Path="tests/DotGram.VisualStudio.Tests/DotGram.VisualStudio.Tests.csproj">

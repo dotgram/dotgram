@@ -27,9 +27,9 @@ public sealed class CodeSnippetsTests
 	{
 		get
 		{
-			// tools/snippets/vscode/gram.code-snippets, from the repository root the build declared:
+			// editors/vscode/snippets/gram.code-snippets, from the repository root the build declared:
 			// where the assembly is built to is not a fixed number of folders below it.
-			return Path.Combine(SourceRoot.Directory, "tools", "snippets", "vscode", "gram.code-snippets");
+			return Path.Combine(SourceRoot.Directory, "editors", "vscode", "snippets", "gram.code-snippets");
 		}
 	}
 

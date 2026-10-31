@@ -4,21 +4,10 @@ Quick-start code snippets for writing `.gram` grammars and their C# host classes
 
 ## VS Code
 
-The VS Code snippets support both `.gram` files and C# files where grammars appear.
-
-### Installation
-
-1. **User Snippets** (applies to all workspaces):
-   - Open the VS Code command palette: `Ctrl+Shift+P` (or `Cmd+Shift+P` on Mac)
-   - Type **"Configure User Snippets"** and select **"DotGram"** (if prompted to choose a language)
-   - If "DotGram" is not listed, select **"New Global Snippets file..."** and name it `gram`
-   - Copy the contents of `vscode/gram.code-snippets` into the file
-   - Save and restart VS Code
-
-2. **Workspace Snippets** (applies only to this project):
-   - Create a `.vscode` directory in your project root if it doesn't exist
-   - Copy `vscode/gram.code-snippets` to `.vscode/gram.code-snippets`
-   - Snippets are available immediately in that workspace
+The VS Code snippets ship with the DotGram extension (`editors/vscode`, see `docs/vscode.md`), which offers
+them in `.gram` files and in C# files where grammars appear. Without the extension, copy
+`editors/vscode/snippets/gram.code-snippets` into a workspace's `.vscode` directory or into your user snippets
+(command palette, **Configure User Snippets**).
 
 ### Available Snippets
 
