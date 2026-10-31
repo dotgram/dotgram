@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- The language server for editors other than Visual Studio: the Language Server Protocol over
+	     standard input and output, answered by the shared language core, which is compiled here from
+	     Language.projitems as every editor compiles it. What is its own is the protocol and the mapping
+	     of the core's answers onto it. The transport is written here against System.Text.Json's
+	     generated serializers: the protocol's base layer is a header and JSON-RPC, and the packages that
+	     offer it bring Newtonsoft.Json, MessagePack, Visual Studio's threading library or a reflection
+	     framework with them. VS Code ships it framework-dependent inside its extension (docs/vscode.md). -->
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<OutputType>Exe</OutputType>
+		<RootNamespace>DotGram.LanguageServer</RootNamespace>
+		<IsPackable>false</IsPackable>
+		<InvariantGlobalization>true</InvariantGlobalization>
+
+		<!-- Roslyn carries a dozen resource cultures, several megabytes, that a server writing English
+		     messages never reads. -->
+		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
+
+		<!-- Completion and Quick Info in a grammar's C#: Roslyn's Features, which the shared core leaves to
+		     the editor and takes as delegates. -->
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" />
+
+		<!-- The framework's reference assemblies, which the ad-hoc project a grammar's host is looked for
+		     in is compiled against: what the folder's C# builds against is not known without a build. -->
+		<PackageReference Include="Basic.Reference.Assemblies.Net100" />
+
+		<PackageReference Include="Meziantou.Polyfill" PrivateAssets="all" />
+	</ItemGroup>
+
+	<Import Project="..\DotGram\Language.projitems" />
+
+</Project>

@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<!-- The language server held to what it promises: the protocol, and the shared core's answers
+	     arriving through it unchanged. The server's sources are compiled here beside the core's, as the
+	     server itself compiles them, rather than its assembly referenced: everything in both is
+	     internal, and nothing is made visible to be tested. The server runs in this process, on a pair
+	     of pipes. -->
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>DotGram.LanguageServer.Tests</RootNamespace>
+		<IsPackable>false</IsPackable>
+		<IsTestProject>true</IsTestProject>
+
+		<!-- A test project is an executable: it hosts Microsoft.Testing.Platform itself
+		     rather than being hosted by VSTest. -->
+		<OutputType>Exe</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="xunit.v3" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" />
+		<PackageReference Include="Basic.Reference.Assemblies.Net100" />
+	</ItemGroup>
+
+	<Import Project="..\..\src\DotGram\Language.projitems" />
+
+	<ItemGroup>
+		<!-- The server's own entry point is left out: the test platform has one of its own. -->
+		<Compile Include="..\..\src\DotGram.LanguageServer\**\*.cs"
+		         Exclude="..\..\src\DotGram.LanguageServer\Program.cs"
+		         Link="Server\%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+</Project>

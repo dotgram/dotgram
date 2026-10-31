@@ -23,6 +23,13 @@
 		<PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
 	</ItemGroup>
 
+	<ItemGroup Label="Language server">
+		<!-- Completion and Quick Info in a grammar's C#, for src/DotGram.LanguageServer: Roslyn's Features,
+		     which Visual Studio carries for its own extension and a language server brings itself. The
+		     same Roslyn as the Workspaces above, which it must match. -->
+		<PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Features" Version="4.14.0" />
+	</ItemGroup>
+
 	<!-- The newest Roslyn, for DotGram.Cli alone (and its tests), which takes it by VersionOverride: the
 	     tool parses its users' sources, which may be written in a newer C# than the generator's floor
 	     above, and the generator built against that floor runs inside it as in any newer compiler. -->
