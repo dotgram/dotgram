@@ -94,7 +94,7 @@ static class GramNavigationProvider
 					.Select(symbol => symbol.Position)
 					.ToArray(),
 				view.IncludedReferences?.Invoke(current.Name, current.DefinitionPosition) ?? [],
-				current.DefinitionPosition >= view.Text.Length);
+				current.DefinitionPosition >= view.Length);
 	}
 
 	/// <summary>The symbol at a position of a C# document's grammars and its occurrences in that grammar; null where there is none.</summary>
@@ -189,7 +189,7 @@ static class GramNavigationProvider
 		// placed; there is nowhere in this document to go.
 		foreach (var item in view.Document.Symbols)
 			if (item.Position <= position && position < item.Position + item.Length)
-				return item.DefinitionPosition >= view.Text.Length
+				return item.DefinitionPosition >= view.Length
 					? null
 					: new GramNavigable(new TextSpan(item.Position, item.Length), new GramLocation.InDocument(item.DefinitionPosition));
 
@@ -197,9 +197,10 @@ static class GramNavigationProvider
 	}
 
 	/// <summary>What a click at a position of a C# document navigates to.</summary>
+	/// <param name="analysis">What the document's analysis knows now; asked after Roslyn has answered, not before.</param>
 	public static async Task<GramNavigable?> NavigableAsync(
 		string text,
-		EmbeddedGrammarView view,
+		Func<EmbeddedGrammarView> analysis,
 		int position,
 		RoslynGramCompletion? roslyn,
 		CancellationToken cancellationToken)
@@ -211,6 +212,9 @@ static class GramNavigationProvider
 			return new GramNavigable(
 				new TextSpan(position, position < text.Length ? 1 : 0),
 				new GramLocation.InFile(file.FilePath, file.Line, file.Column));
+
+		// What the analysis knows once Roslyn has answered: an analysis may have been published meanwhile.
+		var view = analysis();
 
 		if (!view.Current)
 			return null;
@@ -276,11 +280,13 @@ static class GramNavigationProvider
 	/// <summary>Where Go To Definition goes from a position of a C# document; null where nowhere, and then the editor's own C# definition is not asked either.</summary>
 	public static async Task<GramLocation?> DefinitionAsync(
 		string text,
-		EmbeddedGrammarView view,
+		Func<EmbeddedGrammarView> analysis,
 		int position,
 		RoslynGramCompletion? roslyn,
 		CancellationToken cancellationToken)
 	{
+		var view = analysis();
+
 		if (view.Current && view.DslSymbols.FirstOrDefault(item => item.Span.Contains(position)) is { DefinitionPath: { } path } symbol)
 			return new GramLocation.InFile(path, symbol.DefinitionLine, symbol.DefinitionColumn);
 
@@ -292,6 +298,9 @@ static class GramNavigationProvider
 			if (await roslyn.GeneratedApiSourceAsync(position, cancellationToken).ConfigureAwait(false) is { } generated)
 				return new GramLocation.InFile(generated.FilePath, generated.Line, generated.Column);
 		}
+
+		// Read again once Roslyn has answered: an analysis may have been published meanwhile.
+		view = analysis();
 
 		var publications = view.Current ? view.PublishedApis : [];
 
