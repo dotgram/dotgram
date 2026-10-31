@@ -4,15 +4,56 @@ using System.Collections.Generic;
 namespace DotGram.Language;
 
 /// <summary>What one version of a standalone <c>.gram</c> document is known as, for the feature providers.</summary>
-/// <param name="Text">The document's text at that version.</param>
-/// <param name="Document">Its analysis; empty while that is not ready.</param>
-/// <param name="ExternalDefinition">Where a name at a position is defined in an included grammar; null where nothing is included.</param>
-/// <param name="IncludedReferences">The uses of a rule, by name and definition, in the grammars the host includes.</param>
-sealed record GramStandaloneView(
-	string Text,
-	GramDocument Document,
-	Func<int, StandaloneDefinition?>? ExternalDefinition = null,
-	Func<string, int, IReadOnlyList<StandaloneReference>>? IncludedReferences = null);
+/// <remarks>
+/// The text is read only where a question needs it: an editor's text is not a string, and copying a
+/// large grammar's whole text for every caret move would be most of what the question costs.
+/// </remarks>
+sealed class GramStandaloneView
+{
+	readonly Lazy<string> _text;
+
+	/// <param name="text">The document's text at that version.</param>
+	/// <param name="document">Its analysis; empty while that is not ready.</param>
+	/// <param name="externalDefinition">Where a name at a position is defined in an included grammar; null where nothing is included.</param>
+	/// <param name="includedReferences">The uses of a rule, by name and definition, in the grammars the host includes.</param>
+	public GramStandaloneView(
+		string text,
+		GramDocument document,
+		Func<int, StandaloneDefinition?>? externalDefinition = null,
+		Func<string, int, IReadOnlyList<StandaloneReference>>? includedReferences = null)
+		: this(() => text, text.Length, document, externalDefinition, includedReferences)
+	{
+	}
+
+	/// <param name="text">The document's text at that version, asked for only where it is needed.</param>
+	/// <param name="length">Its length.</param>
+	/// <param name="document">Its analysis; empty while that is not ready.</param>
+	/// <param name="externalDefinition">Where a name at a position is defined in an included grammar; null where nothing is included.</param>
+	/// <param name="includedReferences">The uses of a rule, by name and definition, in the grammars the host includes.</param>
+	public GramStandaloneView(
+		Func<string> text,
+		int length,
+		GramDocument document,
+		Func<int, StandaloneDefinition?>? externalDefinition = null,
+		Func<string, int, IReadOnlyList<StandaloneReference>>? includedReferences = null)
+	{
+		_text              = new Lazy<string>(text);
+		Length             = length;
+		Document           = document;
+		ExternalDefinition = externalDefinition;
+		IncludedReferences = includedReferences;
+	}
+
+	public string Text => _text.Value;
+
+	public int Length { get; }
+
+	public GramDocument Document { get; }
+
+	public Func<int, StandaloneDefinition?>? ExternalDefinition { get; }
+
+	public Func<string, int, IReadOnlyList<StandaloneReference>>? IncludedReferences { get; }
+}
 
 /// <summary>The grammar a position of a document stands in, as the generator reads it, and the position's place in it.</summary>
 /// <remarks>

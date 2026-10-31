@@ -48,6 +48,32 @@ public sealed class GramAnalysisSessionTests
 		Assert.Same(host.Documents[0], session.Document(last));
 	}
 
+	/// <summary>
+	/// What an analysis published is told about on the editor's main thread, where its taggers and
+	/// its dropdown bar may be touched: the host raises the event there, not the session after
+	/// awaiting the host, whose switch of thread would not carry over.
+	/// </summary>
+	[Fact]
+	public void Changed_after_an_analysis_is_raised_on_the_editors_main_thread()
+	{
+		using var main   = new MainThread();
+		using var raised = new ManualResetEventSlim();
+		var host    = new FakeHost("A = 'a'") { Main = main };
+		var session = host.Session();
+		int? thread = null;
+
+		session.Changed += _ =>
+		{
+			thread = Environment.CurrentManagedThreadId;
+			raised.Set();
+		};
+
+		session.Document(host.Current);
+
+		Assert.True(raised.Wait(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken));
+		Assert.Equal(main.ManagedThreadId, thread);
+	}
+
 	[Fact]
 	public void A_result_for_a_superseded_version_is_dropped()
 	{
@@ -78,6 +104,43 @@ public sealed class GramAnalysisSessionTests
 
 		Assert.Same(newer, session.Result?.Version);
 		Assert.Equal([false, true], timings.Select(static timing => timing.Published));
+	}
+
+	/// <summary>
+	/// An analysis an edit cancels while it runs is not published, and what it cost is still
+	/// reported, as dropped.
+	/// </summary>
+	[Fact]
+	public void An_analysis_an_edit_cancels_is_reported_as_dropped()
+	{
+		var host    = new FakeHost("A = 'a'");
+		var session = host.Session();
+		var timings = new List<GramAnalysisTiming>();
+		FakeVersion? newer = null;
+
+		session.Analyzed += timings.Add;
+
+		var stale = host.Edit(session, "A = 'b'");
+
+		// The edit arrives while the analysis of the version before it runs.
+		host.During = text =>
+		{
+			if (text == "A = 'b'")
+				newer = host.Edit(session, "A = 'c'");
+		};
+
+		host.Scheduler.Advance(GramAnalysisSession.AnalysisDelayMilliseconds);
+
+		Assert.Null(session.Result);
+		Assert.Equal([false], timings.Select(static timing => timing.Published));
+
+		host.During = null;
+		host.Scheduler.Advance(GramAnalysisSession.AnalysisDelayMilliseconds);
+
+		Assert.Same(newer, session.Result?.Version);
+		Assert.Equal([false, true], timings.Select(static timing => timing.Published));
+		Assert.Equal(["A = 'b'", "A = 'c'"], host.Analysed.Select(static item => item.Text));
+		Assert.NotSame(stale, session.Result?.Version);
 	}
 
 	[Fact]
@@ -356,9 +419,15 @@ public sealed class GramAnalysisSessionTests
 			return Task.FromResult(MayHost);
 		}
 
-		public Task BeforeChangedAsync(CancellationToken cancellationToken)
+		/// <summary>The editor's main thread, where the session's event is raised; on the caller's thread where null.</summary>
+		public MainThread? Main { get; set; }
+
+		public async Task RaiseAsync(Action raise, CancellationToken cancellationToken)
 		{
-			return Task.CompletedTask;
+			if (Main is not null)
+				await Main.SwitchTo();
+
+			raise();
 		}
 
 		public void Report(Exception exception)

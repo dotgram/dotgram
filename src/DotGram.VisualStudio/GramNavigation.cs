@@ -127,7 +127,7 @@ sealed class EmbeddedGramNavigableSymbolSource(
 		var position = triggerSpan.TranslateTo(snapshot, SpanTrackingMode.EdgeExclusive).Start.Position;
 		var navigable = await GramNavigationProvider.NavigableAsync(
 			snapshot.GetText(),
-			analysis.View(snapshot),
+			() => analysis.View(snapshot),
 			position,
 			RoslynGramFeatures.For(buffer, workspace, documents).Core,
 			token).ConfigureAwait(false);
