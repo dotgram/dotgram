@@ -149,7 +149,12 @@ public sealed class AnalysisTests
 			$"1,000 edits sent in {sent.TotalMilliseconds:F0} ms; a request after them answered at {answered.TotalMilliseconds:F0} ms");
 
 		Assert.Equal(text, client.Server.Document(uri)!.Current.String);
-		Assert.True(answered - sent < TimeSpan.FromSeconds(6), $"A request waited {(answered - sent).TotalMilliseconds:F0} ms behind 1,000 edits.");
+		// Against what sending them cost the client, on the same machine and at the same time: a shared
+		// runner is several times slower than a quiet machine, and slows both alike. Before an edit read
+		// only what it changed, the server took several times the client's time; now it takes less.
+		Assert.True(
+			answered - sent < sent * 2,
+			$"A request waited {(answered - sent).TotalMilliseconds:F0} ms behind 1,000 edits the client sent in {sent.TotalMilliseconds:F0} ms.");
 	}
 
 	/// <summary>Every grammar of the repository coloured through the protocol exactly as its classifications say, through the legend.</summary>
