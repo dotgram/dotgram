@@ -1072,8 +1072,25 @@ sealed partial class Machine
 	/// general machinery is pure overhead: it has no choice to resume, no capture to record
 	/// and no frame to return to, so every iteration's arena traffic is bookkeeping about
 	/// nothing. The test is written against <c>c</c>, like every other element test.
+	/// <para>
+	/// Whether the body is one is <see cref="ExecutionPlan.OneCharacter"/>'s answer, which the
+	/// analysis of repetitions that read a run two ways asks as well; this writes the test. It
+	/// is written as it always was, every alternative up to the first that is not one, since a
+	/// class table it names is declared by being named.
+	/// </para>
 	/// </remarks>
 	string? RunTest(Node body)
+	{
+		var test = WrittenTest(body);
+		var one  = ExecutionPlan.OneCharacter(body, _graph, CanInline);
+
+		System.Diagnostics.Debug.Assert(one == (test is not null), "The test written and the plan's answer disagree.");
+
+		return one ? test : null;
+	}
+
+	/// <summary>The test <see cref="RunTest"/> writes, or null where the body is not one character.</summary>
+	string? WrittenTest(Node body)
 	{
 		switch (body)
 		{
@@ -1090,10 +1107,10 @@ sealed partial class Machine
 			// A rule that is inlined anyway is its body written somewhere else, and a grammar
 			// names its character classes far more often than it spells them out.
 			case Node.Call(var rule, _) when CanInline(rule):
-				return RunTest(_graph.Bodies[rule]);
+				return WrittenTest(_graph.Bodies[rule]);
 
 			case Node.Sequence(var nodes) when nodes.Count == 1:
-				return RunTest(nodes[0]);
+				return WrittenTest(nodes[0]);
 
 			// Alternatives that each consume exactly one character and keep nothing are a
 			// disjunction, not a choice: whichever one matched, the position afterwards is the
@@ -1103,7 +1120,7 @@ sealed partial class Machine
 				var tests = new string[alternatives.Count];
 
 				for (var i = 0; i < alternatives.Count; i++)
-					if (RunTest(alternatives[i]) is { } test)
+					if (WrittenTest(alternatives[i]) is { } test)
 						tests[i] = test == "true" ? "true" : $"({test})";
 					else
 						return null;
