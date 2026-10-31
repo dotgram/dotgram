@@ -10,26 +10,19 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
-
-using Span = Microsoft.VisualStudio.Text.Span;
-using Hyper = System.Windows.Documents.Span;
 using System.Windows.Threading;
 
 using DotGram.Language;
-using DotGram.VisualStudio;
 
-using Microsoft.CodeAnalysis.Host.Mef;
+using Microsoft.CodeAnalysis;
 using Microsoft.VisualStudio.Imaging;
 using Microsoft.VisualStudio.Imaging.Interop;
 using Microsoft.VisualStudio.Language.Intellisense;
 using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion;
 using Microsoft.VisualStudio.Language.Intellisense.AsyncCompletion.Data;
-using Microsoft.VisualStudio.LanguageServices;
-using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Text;
 using Microsoft.VisualStudio.Text.Classification;
 using Microsoft.VisualStudio.Text.Editor;
-using Microsoft.VisualStudio.Text.Editor.Commanding.Commands;
 using Microsoft.VisualStudio.Text.Tagging;
 using Microsoft.VisualStudio.Utilities;
 
@@ -37,27 +30,31 @@ using Moq;
 
 using Xunit;
 
-// The recording runs on a thread of its own with nothing else on it: waiting there deadlocks nothing.
+using Hyper = System.Windows.Documents.Span;
+using Span = Microsoft.VisualStudio.Text.Span;
+
+// The test runs on a thread of its own with nothing else on it: waiting there deadlocks nothing.
 #pragma warning disable VSTHRD002
 
 namespace DotGram.VisualStudio.Tests;
 
 /// <summary>
-/// Records what the extension's own feature code answers on the playground grammars — completion,
-/// Quick Info, signature help, definition, references, highlights and rename — through the classes
-/// Visual Studio calls, so that the answers can be held unchanged when that code moves.
+/// The extension's adapters — its completion source, Quick Info panels, signature help, Ctrl+click and
+/// highlight taggers, the references a command acts on — answer on the playground grammars what the
+/// extension answered there before its feature code moved into the shared providers.
 /// </summary>
 /// <remarks>
-/// Written to <c>%TEMP%\dotgram-playground-recording</c>, one file per grammar. The C# around a grammar
-/// is left to Roslyn and is not recorded: the workspace here has no project, so every question asked of
-/// Roslyn answers nothing, and what is recorded is DotGram's own part.
+/// The same baselines <c>DotGram.Language.Tests</c> holds the providers to, read the same way, through
+/// the Visual Studio types instead: what is held here is that the adapters map the providers' answers
+/// onto Visual Studio and add nothing. Go To Definition is the provider's answer, which its command
+/// only opens. Nothing reaches Roslyn: the workspace here has no project.
 /// </remarks>
-public sealed class PlaygroundRecording
+public sealed class PlaygroundAdapterTests
 {
 	static readonly string[] Grammars = ["VisualStudioToolingPlayground.gram", "ToolingQuery.gram", "RecoveryPlayground.gram"];
 
 	[Fact]
-	public void Records_the_playground_answers()
+	public void The_adapters_answer_as_the_extension_did()
 	{
 		ExceptionDispatchInfo? failure = null;
 		var thread = new Thread(() =>
@@ -85,55 +82,40 @@ public sealed class PlaygroundRecording
 		if (Application.Current is null)
 			_ = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
 
-		var output = Path.Combine(Path.GetTempPath(), "dotgram-playground-recording");
-		Directory.CreateDirectory(output);
-
-		var root    = Path.Combine(SourceRootDirectory(), "tests", "DotGram.VisualStudio.Tests", "Playground");
-		var markers = File.ReadAllLines(Path.Combine(SourceRootDirectory(), "tests", "DotGram.Language.Tests", "Playground", "CompletionMarkers.txt"));
+		var root      = SourceRootDirectory();
+		var grammars  = Path.Combine(root, "tests", "DotGram.VisualStudio.Tests", "Playground");
+		var baselines = Path.Combine(root, "tests", "DotGram.Language.Tests", "Playground");
+		var markers   = File.ReadAllLines(Path.Combine(baselines, "CompletionMarkers.txt"));
 
 		foreach (var grammar in Grammars)
 		{
-			var text   = File.ReadAllText(Path.Combine(root, grammar));
-			string record;
-			try
-			{
-			record = Record(text, markers.Where(line => line.StartsWith(grammar + "|", StringComparison.Ordinal))
+			var text     = File.ReadAllText(Path.Combine(grammars, grammar));
+			var expected = File.ReadAllText(Path.Combine(baselines, Path.GetFileNameWithoutExtension(grammar) + ".txt")).Replace("\r\n", "\n");
+			var actual   = Record(text, markers.Where(line => line.StartsWith(grammar + "|", StringComparison.Ordinal))
 				.Select(line => line.Substring(grammar.Length + 1)).ToArray());
-			}
-			catch (Exception exception)
-			{
-				throw new InvalidOperationException(grammar + " at " + Stage, exception);
-			}
 
-			File.WriteAllText(Path.Combine(output, Path.GetFileNameWithoutExtension(grammar) + ".txt"), record, new UTF8Encoding(false));
+			Assert.True(expected == actual, $"{grammar}: the adapters no longer answer as the extension did. First difference:\n{FirstDifference(expected, actual)}");
 		}
 	}
 
-	static string Stage = "";
-
 	static string Record(string text, IReadOnlyList<string> completionMarkers)
 	{
-		Stage = "analysis";
 		var buffer   = new FakeBuffer(text);
 		var snapshot = buffer.CurrentSnapshot;
 		var analysis = GramBufferAnalysis.For(buffer);
 		var document = Analysed(analysis, snapshot);
 		var result   = new StringBuilder();
 
-		// No Visual Studio workspace can be made outside Visual Studio, so nothing here reaches Roslyn:
-		// completion answers C# with nothing, and Quick Info in C# is recorded as C# and not asked.
-		var roslyn = new RoslynGramCompletion(buffer, null!, null!);
-
+		using var workspace = new AdhocWorkspace();
+		var roslyn = new RoslynGramFeatures(new RoslynGramCompletion(workspace, static () => null), null!);
 		var tokens = document.Classifications.Select(static item => item.Position).Distinct().OrderBy(static at => at).ToArray();
 
 		// Completion, at the marked places.
-		Stage = "completion";
-		var completion = new RecordingCompletionSource(new GramCompletionSource(buffer, analysis, roslyn));
+		var completion = new GramCompletionSource(buffer, analysis, roslyn);
 
 		foreach (var marker in completionMarkers)
 		{
 			var position = Marker(text, marker);
-			Stage = "completion " + marker;
 			var point    = new SnapshotPoint(snapshot, position);
 			var trigger  = new CompletionTrigger(CompletionTriggerReason.Invoke, snapshot);
 			var start    = completion.InitializeCompletion(trigger, point, CancellationToken.None);
@@ -164,44 +146,36 @@ public sealed class PlaygroundRecording
 			}
 		}
 
-		Stage = "quickinfo setup";
-		// Quick Info, at the start of every classified token.
-		var view        = View(buffer, snapshot, 0, out var caret);
-		var formatMaps  = new Mock<IClassificationFormatMapService>();
+		// Quick Info, at the start of every classified token: the provider's answer, and the panel the
+		// extension makes of it.
+		var view       = View(buffer, snapshot, 0, out var caret);
+		var formatMaps = new Mock<IClassificationFormatMapService>();
 		formatMaps.Setup(service => service.GetClassificationFormatMap(It.IsAny<ITextView>()))
 			.Returns(new Mock<IClassificationFormatMap>().Object);
-		var types       = new Mock<IClassificationTypeRegistryService>();
+		var types      = new Mock<IClassificationTypeRegistryService>();
 
 		foreach (var position in tokens)
 		{
-			if (GramCSharpCompletionContext.TryGetExpression(text, position, out _, out _, out _, out _))
+			var askedRoslyn = false;
+			var answer = GramQuickInfoProvider.StandaloneAsync(
+				analysis.View(snapshot),
+				position,
+				(_, _, _) =>
+				{
+					askedRoslyn = true;
+					return Task.FromResult<RoslynGramQuickInfo?>(null);
+				},
+				CancellationToken.None).GetAwaiter().GetResult();
+
+			if (askedRoslyn)
 			{
 				result.Append("quickinfo ").Append(Place(text, position)).Append(" csharp\n");
 				continue;
 			}
 
-			Stage = "quickinfo " + Place(text, position);
-
-			// What GramQuickInfoSource.GetQuickInfoItemAsync does between its switches to the main
-			// thread, which needs Visual Studio's own JoinableTaskContext: the item of the first
-			// classification under the point, and the squiggles' messages in front of it.
-			QuickInfoItem? item = null;
-
-			foreach (var classification in document.Classifications)
-				if (classification.Position <= position && position < classification.Position + classification.Length)
-				{
-					item = GramQuickInfoSource.Create(
-						view, formatMaps.Object, types.Object, snapshot, classification.Position, classification.Length, classification.Kind,
-						classification.QuickInfo ?? GramQuickInfoSource.StandardQuickInfo(
-							snapshot, classification.Position, classification.Length, classification.Kind,
-							GrammarPosition.Standalone(snapshot, classification.Position)));
-					break;
-				}
-
-			item = GramQuickInfoSource.WithDiagnostics(item, GramDiagnosticText.At(
-				document.Diagnostics.Select(static diagnostic => (diagnostic.Position, diagnostic.Length, diagnostic)),
-				position,
-				snapshot.Length));
+			var item = GramQuickInfoSource.WithDiagnostics(
+				GramQuickInfoSource.Item(view, formatMaps.Object, types.Object, snapshot, answer.Item),
+				answer.Diagnostics);
 
 			if (item is null)
 				continue;
@@ -212,7 +186,6 @@ public sealed class PlaygroundRecording
 			Content(item.Item, result, "  ");
 		}
 
-		Stage = "signature";
 		// Signature help, after every opening parenthesis and comma.
 		var signatures = new GramSignatureHelpSource(buffer, analysis);
 
@@ -243,22 +216,17 @@ public sealed class PlaygroundRecording
 			}
 		}
 
-		Stage = "navigation";
-		// Definition, references, highlights and rename, at the start of every classified token.
-		var handler = new GramGoToDefinitionCommandHandler();
+		// Definition, Ctrl+click, references, rename and highlights, at the start of every classified token.
 		var navigation = new GramNavigableSymbolSource(view, buffer, analysis, new Mock<IServiceProvider>().Object);
 		var highlights = new GramReferenceHighlightTagger(view, analysis);
 
 		foreach (var position in tokens)
 		{
 			caret.Position = position;
-			Stage = "navigation " + Place(text, position);
 
-			var args       = new GoToDefinitionCommandArgs(view, buffer);
-			var definition = Definition(handler, args, analysis, snapshot, text, position);
-
-			if (definition is not null)
-				result.Append("definition ").Append(Place(text, position)).Append(" -> ").Append(definition).Append('\n');
+			if (GramNavigationProvider.DefinitionAsync(analysis.View(snapshot), position, null, CancellationToken.None)
+				.GetAwaiter().GetResult() is { } definition)
+				result.Append("definition ").Append(Place(text, position)).Append(" -> ").Append(Definition(text, definition)).Append('\n');
 
 			if (navigation.GetNavigableSymbolAsync(new SnapshotSpan(snapshot, position, 0), CancellationToken.None)
 				.GetAwaiter().GetResult() is { } symbol)
@@ -278,7 +246,7 @@ public sealed class PlaygroundRecording
 				result.Append('\n');
 			}
 
-			var found = GramFindReferencesTarget.Standalone(snapshot, position, analysis);
+			var found = GramFindReferencesTarget.At(buffer, snapshot, position, null!, null!);
 
 			if (found is not null)
 			{
@@ -290,7 +258,7 @@ public sealed class PlaygroundRecording
 					.Append('\n');
 				result.Append("rename ").Append(Place(text, position)).Append(' ');
 
-				if (found.Renamable)
+				if (GramRenameProvider.Refusal(found) is null)
 					result.Append("edits=[").Append(string.Join(", ", found.Positions.Select(at => Span(text, at, found.Name.Length)))).Append(']');
 				else
 					result.Append("refused");
@@ -309,43 +277,34 @@ public sealed class PlaygroundRecording
 		return result.ToString();
 	}
 
-	/// <summary>What Go To Definition does at a place, in the order its command handler asks, without opening anything.</summary>
-	static string? Definition(
-		GramGoToDefinitionCommandHandler handler,
-		GoToDefinitionCommandArgs args,
-		GramBufferAnalysis analysis,
-		ITextSnapshot snapshot,
-		string text,
-		int position)
+	static string Definition(string text, GramLocation definition)
 	{
-		if (Call(handler, "PublishedApi", args, snapshot, position) is string api)
-			return "published " + api;
-
-		if (Call(handler, "StandardRuleAt", args, snapshot, position) is { } standard)
-			return "std " + standard.GetType().GetProperty("Name")!.GetValue(standard) + " " +
-				standard.GetType().GetProperty("Line")!.GetValue(standard) + ":" + standard.GetType().GetProperty("Column")!.GetValue(standard);
-
-		var parameters = new object?[] { args, snapshot, position, null, null };
-		if ((bool)typeof(GramGoToDefinitionCommandHandler).GetMethod("IsCSharpContext", BindingFlags.Instance | BindingFlags.NonPublic)!
-			.Invoke(handler, parameters)!)
-			return "csharp " + Escape((string)parameters[3]!) + " @" + parameters[4];
-
-		if (analysis.ExternalDefinition(snapshot, position) is { } external)
-			return "included " + external.Target.Grammar.Name + " " + external.Target.Line + ":" + external.Target.Column;
-
-		var found = Call(handler, "Target", args) as GramFindReferencesTarget;
-
-		return found is null || found.DefinedElsewhere ? null : "here " + Place(text, found.DefinitionPosition);
+		return definition switch
+		{
+			GramLocation.PublishedMethod target   => "published " + target.MethodName,
+			GramLocation.InStandardLibrary target => $"std {target.Rule} {target.Line}:{target.Column}",
+			GramLocation.HostSymbol target        => $"csharp {Escape(target.Expression)} @{target.Position}",
+			GramLocation.InIncludedGrammar target => $"included {target.Grammar.Name} {target.Line}:{target.Column}",
+			GramLocation.InDocument target        => "here " + Place(text, target.Position),
+			_                                     => definition.ToString(),
+		};
 	}
 
-	static object? Call(object target, string name, params object[] arguments)
+	static string FirstDifference(string expected, string actual)
 	{
-		return target.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(target, arguments);
-	}
+		var left  = expected.Split('\n');
+		var right = actual.Split('\n');
 
-	static void SetImport(object target, string name, object value)
-	{
-		target.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(target, value);
+		for (var index = 0; index < Math.Max(left.Length, right.Length); index++)
+		{
+			var one   = index < left.Length ? left[index] : "<end>";
+			var other = index < right.Length ? right[index] : "<end>";
+
+			if (one != other)
+				return $"line {index + 1}\n  recorded: {one}\n  now:      {other}";
+		}
+
+		return "none";
 	}
 
 	/// <summary>The text a Quick Info panel shows, element by element.</summary>
@@ -476,7 +435,7 @@ public sealed class PlaygroundRecording
 
 	static string SourceRootDirectory()
 	{
-		var declared = typeof(PlaygroundRecording).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+		var declared = typeof(PlaygroundAdapterTests).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
 			.FirstOrDefault(static one => one.Key == "DotGramSourceRoot")?.Value;
 
 		if (declared is { Length: > 0 } && File.Exists(Path.Combine(declared, "DotGram.slnx")))
@@ -618,38 +577,5 @@ public sealed class PlaygroundRecording
 		public SnapshotSpan GetSpan(ITextSnapshot target) { return new SnapshotSpan(target, span); }
 		public SnapshotPoint GetStartPoint(ITextSnapshot target) { return new SnapshotPoint(target, span.Start); }
 		public string GetText(ITextSnapshot target) { return target.GetText(span); }
-	}
-
-	/// <summary>
-	/// The extension's completion source with its own answers, and none from Roslyn: what the C# around
-	/// a grammar completes to is Roslyn's, and there is no project here to ask.
-	/// </summary>
-	sealed class RecordingCompletionSource(GramCompletionSource real) : GramCompletionSourceBase
-	{
-		protected override (string Text, int Position)? GrammarAt(SnapshotPoint point)
-		{
-			return ((string Text, int Position)?)Invoke("GrammarAt", point);
-		}
-
-		protected override bool IsApplicable(SnapshotPoint point)
-		{
-			return (bool)Invoke("IsApplicable", point)!;
-		}
-
-		protected override IReadOnlyDictionary<string, RuleCompletion> Definitions(SnapshotPoint point)
-		{
-			return (IReadOnlyDictionary<string, RuleCompletion>)Invoke("Definitions", point)!;
-		}
-
-		protected override Task<System.Collections.Immutable.ImmutableArray<CompletionItem>> CSharpCompletionsAsync(
-			string prefix, CancellationToken cancellationToken)
-		{
-			return Task.FromResult(System.Collections.Immutable.ImmutableArray<CompletionItem>.Empty);
-		}
-
-		object? Invoke(string name, SnapshotPoint point)
-		{
-			return typeof(GramCompletionSource).GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(real, [point]);
-		}
 	}
 }
