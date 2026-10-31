@@ -53,7 +53,7 @@ namespace DotGram.Examples.Formats;
 
 	Bullet : @string = "- " & text: Line & Eol => @(text)
 
-	Code : @MarkdownBlock = "```" & Line & Eol & lines: CodeLine* & "```" & Eol
+	Code : @MarkdownBlock = "```" & Line & Eol & { lines: CodeLine* } & "```" & Eol
 	                          => @(new MarkdownCode(lines))
 
 	CodeLine : @string = ?!"```" & text: Line & Eol => @(text)
