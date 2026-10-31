@@ -102,14 +102,23 @@ sealed class FolderWorkspace
 	/// <summary>The same with what reads the folders given: a test's hook.</summary>
 	internal static FolderWorkspace Load(Func<CancellationToken, FolderWorkspace> create, Action<string> log, TimeSpan limit)
 	{
-		using var cancellation = new CancellationTokenSource();
+		var cancellation = new CancellationTokenSource();
 		var reading = Task.Run(() => create(cancellation.Token), CancellationToken.None);
 
 		if (reading.Wait(limit))
 			return reading.Result;
 
+		// The reading stops at its next look at the token; a workspace it finishes anyway is let go.
 		cancellation.Cancel();
-		_ = reading.ContinueWith(static task => _ = task.Exception, TaskScheduler.Default);
+		_ = reading.ContinueWith(
+			static task =>
+			{
+				if (task.IsCompletedSuccessfully)
+					task.Result.Workspace.Dispose();
+				else
+					_ = task.Exception;
+			},
+			TaskScheduler.Default);
 		log($"DotGram: the workspace took longer than {limit.TotalSeconds:0} s to read: grammars are read as they stand, without their hosts.");
 
 		return Empty();
@@ -125,13 +134,17 @@ sealed class FolderWorkspace
 	/// Reads the folders; logs and reads none where they hold more C# files than the cap, or more
 	/// entries than <paramref name="maxEntries"/>, or take longer than <paramref name="maxWalk"/> to walk.
 	/// </summary>
+	/// <param name="read">What reads a file; null where it cannot be read. A test's hook.</param>
 	public static FolderWorkspace Create(
 		IReadOnlyList<string> folders,
 		Action<string> log,
 		CancellationToken cancellationToken,
 		int maxEntries = MaxEntries,
-		TimeSpan? maxWalk = null)
+		TimeSpan? maxWalk = null,
+		Func<string, string?>? read = null)
 	{
+		read ??= Read;
+
 		var sources  = new List<string>();
 		var grammars = new List<string>();
 		var walk     = new Walk(maxEntries, maxWalk ?? MaxWalk);
@@ -167,22 +180,38 @@ sealed class FolderWorkspace
 		var markers  = GramCompiler.EmitMarkerAttributes();
 		var solution = project.AddDocument(markers.HintName, SourceText.From(markers.Text)).Project.Solution;
 
-		foreach (var path in sources)
+		try
 		{
+			// A reading given up is looked at before every read and before the project is made: past
+			// its deadline it reads and builds nothing more.
+			foreach (var path in sources)
+			{
+				cancellationToken.ThrowIfCancellationRequested();
+
+				if (read(path) is { } text && Declares(text))
+					solution = result.AddSource(solution, path, text);
+			}
+
+			foreach (var path in grammars)
+			{
+				cancellationToken.ThrowIfCancellationRequested();
+
+				if (read(path) is { } text)
+					solution = result.AddGrammar(solution, path, text);
+			}
+
 			cancellationToken.ThrowIfCancellationRequested();
 
-			if (Read(path) is { } text && Declares(text))
-				solution = result.AddSource(solution, path, text);
+			if (!workspace.TryApplyChanges(solution))
+				throw new InvalidOperationException("The workspace refused its own first project.");
+
+			return result;
 		}
-
-		foreach (var path in grammars)
-			if (Read(path) is { } text)
-				solution = result.AddGrammar(solution, path, text);
-
-		if (!workspace.TryApplyChanges(solution))
-			throw new InvalidOperationException("The workspace refused its own first project.");
-
-		return result;
+		catch
+		{
+			workspace.Dispose();
+			throw;
+		}
 	}
 
 	/// <summary>Whether a file is in one of the folders, and so has its host looked for here.</summary>
@@ -199,16 +228,29 @@ sealed class FolderWorkspace
 		return false;
 	}
 
-	/// <summary>A watched file was created, changed or deleted: the project follows.</summary>
+	/// <summary>Whether a file's changes concern the project: in a folder, and not in one the walk skips.</summary>
+	public bool Watches(string path)
+	{
+		return Hosts && Contains(path) && !Skipped(path);
+	}
+
+	/// <summary>A watched file was created, changed or deleted: read now, and the project follows.</summary>
 	public void FileChanged(string path, bool deleted)
 	{
-		if (!Hosts || !Contains(path) || Skipped(path))
+		if (Watches(path))
+			FileRead(path, deleted ? null : Read(path));
+	}
+
+	/// <summary>A watched file's text as it was read, or null where it is gone: the project follows.</summary>
+	/// <remarks>The file is read by the caller, so that a read that stalls holds up nothing else.</remarks>
+	public void FileRead(string path, string? text)
+	{
+		if (!Watches(path))
 			return;
 
 		lock (_gate)
 		{
 			var solution = Workspace.CurrentSolution;
-			var text     = deleted ? null : Read(path);
 
 			if (path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
 			{
@@ -279,16 +321,11 @@ sealed class FolderWorkspace
 		}
 	}
 
-	/// <summary>An open grammar was closed: it is its file again, or nothing where it has none.</summary>
+	/// <summary>An open grammar was closed: what it is from now on is its file, which the caller reads and hands in.</summary>
 	public void GrammarClosed(string path)
 	{
 		lock (_gate)
-		{
-			if (!_open.Remove(path))
-				return;
-		}
-
-		FileChanged(path, deleted: !File.Exists(path));
+			_open.Remove(path);
 	}
 
 	/// <summary>Whether a C# file's syntax names a grammar attribute: a host, an inclusion, or a carried grammar.</summary>
@@ -457,7 +494,7 @@ sealed class FolderWorkspace
 		return true;
 	}
 
-	static string? Read(string path)
+	internal static string? Read(string path)
 	{
 		try
 		{

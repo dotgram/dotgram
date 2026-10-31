@@ -18,7 +18,7 @@ using Microsoft.CodeAnalysis;
 namespace DotGram.LanguageServer;
 
 /// <summary>What a host of the server may change; the defaults are the shipped server's.</summary>
-sealed class ServerOptions
+sealed record ServerOptions
 {
 	public IGramScheduler Scheduler { get; init; } = GramScheduler.Instance;
 
@@ -50,7 +50,7 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 
 	ImmutableDictionary<string, OpenGrammar> _documents = ImmutableDictionary.Create<string, OpenGrammar>(StringComparer.Ordinal);
 	Task<FolderWorkspace>                    _load;
-	Task                                     _changes;
+	readonly WorkspaceUpdates                _updates;
 	bool                                     _refreshSemanticTokens;
 	bool                                     _initialized;
 	int                                      _completionList;
@@ -61,7 +61,7 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 		_options = options;
 		_store   = new ServerStore(options.Store, this);
 		_load    = Task.Run(FolderWorkspace.Empty);
-		_changes = _load;
+		_updates = new WorkspaceUpdates(() => Folder, Report);
 	}
 
 	public static string Version { get; } =
@@ -128,9 +128,7 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 		// What an included grammar is compiled with is its open text, not its file's.
 		if (path is not null)
 		{
-			var text = document.Current.Text;
-
-			Chain(folder => folder.GrammarOpened(path, text));
+			_updates.Opened(path, document.Current.Text);
 		}
 
 		// Whether the grammar's host is looked for depends on the folders, which are read by now or
@@ -155,11 +153,7 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 		document.Edit(parameters.TextDocument.Version, parameters.ContentChanges);
 
 		if (document.FilePath is { } path)
-		{
-			var text = document.Current.Text;
-
-			Chain(folder => folder.GrammarEdited(path, text));
-		}
+			_updates.Edited(path, document.Current.Text);
 	}
 
 	void Close(DidCloseTextDocumentParams parameters)
@@ -177,37 +171,18 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 
 		// The file is the grammar again, for what includes it.
 		if (document.FilePath is { } path)
-			Chain(folder => folder.GrammarClosed(path));
+			_updates.Closed(path);
 	}
 
 	void WatchedFiles(DidChangeWatchedFilesParams parameters)
 	{
 		foreach (var change in parameters.Changes)
 			if (FileUris.ToPath(change.Uri) is { } path)
-				Chain(folder => folder.FileChanged(path, change.Type == Lsp.FileDeleted));
+				_updates.FileChanged(path, change.Type == Lsp.FileDeleted);
 	}
 
-	/// <summary>A change to the workspace, made after every change before it, once the folders are read.</summary>
-	void Chain(Action<FolderWorkspace> change)
-	{
-		var folder = Folder;
-
-		_changes = _changes.ContinueWith(
-			_ =>
-			{
-				try
-				{
-					change(folder.Result);
-				}
-				catch (Exception exception) when (exception is not OutOfMemoryException)
-				{
-					Report(exception);
-				}
-			},
-			CancellationToken.None,
-			TaskContinuationOptions.None,
-			TaskScheduler.Default);
-	}
+	/// <summary>The workspace's pending updates; a test's barrier is their <see cref="WorkspaceUpdates.Drained"/>.</summary>
+	internal WorkspaceUpdates Updates => _updates;
 
 	void Published(OpenGrammar document, GramAnalysisResult<GramVersion> result, bool republished)
 	{
@@ -325,7 +300,6 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 			var load = Task.Run(() => ReadFolders(folders));
 
 			Volatile.Write(ref _load, load);
-			_changes = Task.WhenAll(_changes, load);
 		}
 
 		var capabilities = new ServerCapabilities(

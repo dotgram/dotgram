@@ -237,10 +237,10 @@ public sealed class ProtocolTests
 		await client.OpenAsync(uri, text);
 
 		var symbols  = client.RequestRawAsync("textDocument/documentSymbol", new { textDocument = new { uri } });
-		var watch    = System.Diagnostics.Stopwatch.StartNew();
+		// Answered while the analysis the request waits for is still held.
 		var shutdown = await client.RequestRawAsync("shutdown", null);
 
-		Assert.True(watch.Elapsed < TimeSpan.FromSeconds(2), $"shutdown took {watch.Elapsed}.");
+		Assert.False(release.IsSet);
 		Assert.Equal(JsonValueKind.Null, shutdown.GetProperty("result").ValueKind);
 		Assert.Equal(Lsp.RequestCancelled, (await symbols).GetProperty("error").GetProperty("code").GetInt32());
 
@@ -391,8 +391,8 @@ public sealed class ProtocolTests
 			await Task.WhenAll(requests).WaitAsync(LspClient.Timeout, TestContext.Current.CancellationToken);
 		}
 
-		// Whatever is still running for a closed document has had its time.
-		await Task.Delay(500, TestContext.Current.CancellationToken);
+		// Whatever was still running for a closed document has ended.
+		await client.SettleAsync();
 
 		for (var round = 0; round < 20; round++)
 			AssertToldInOrderAndClosed(client, $"untitled:Busy{round}.gram", round % 2 == 0 ? 2 : 1);
@@ -444,7 +444,7 @@ public sealed class ProtocolTests
 
 		hold.Set();
 
-		await Task.Delay(500, TestContext.Current.CancellationToken);
+		await client.SettleAsync();
 
 		AssertToldInOrderAndClosed(client, uri, 1);
 		Assert.DoesNotContain(client.Notifications("textDocument/publishDiagnostics"), static item =>
@@ -591,6 +591,32 @@ public sealed class ProtocolTests
 		Assert.Equal(versions.Order(), versions);
 		Assert.False(published[^1].TryGetProperty("version", out _), $"{uri}: something was told after its close.");
 		Assert.Equal(0, published[^1].GetProperty("diagnostics").GetArrayLength());
+	}
+
+	/// <summary>
+	/// A definition carried over to an edited version moves with its token: text typed right before a
+	/// rule's name moves both, and the uses of the rule still go to it.
+	/// </summary>
+	[Fact]
+	public void A_carried_definition_moves_with_its_token()
+	{
+		const string text = "Start = Word\nWord = 'a'\n";
+
+		var at       = text.IndexOf("Word =", StringComparison.Ordinal);
+		var before   = new GramVersion(1, SourceText.From(text));
+		var point    = new LineMap(text).Position(at);
+		var after    = before.Apply(2, [new TextDocumentContentChangeEvent("X", new Range(point, point))]);
+		var document = new GramDocument(
+			[
+				new GramClassifiedSpan(text.IndexOf("Word", StringComparison.Ordinal), 4, GramSyntaxKind.Identifier, definitionPosition: at),
+				new GramClassifiedSpan(at, 4, GramSyntaxKind.Identifier, definitionPosition: at),
+			],
+			[], [], [], [], [], []);
+
+		var carried = OpenGrammar.Translate(document, before, after).Classifications;
+
+		Assert.Equal([at + 1, at + 1], carried.Select(static item => item.DefinitionPosition));
+		Assert.Equal(at + 1, carried[1].Position);
 	}
 
 	/// <summary>The line map of an edited text, worked out from the one before, is the one read afresh.</summary>

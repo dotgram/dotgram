@@ -50,12 +50,15 @@ sealed class LspClient : IAsyncDisposable
 		_serverOut = new AnonymousPipeClientStream(PipeDirection.Out, _fromServer.ClientSafePipeHandle);
 
 		Connection = new JsonRpcConnection(_serverIn, _serverOut);
-		Server     = new GramLanguageServer(Connection, options ?? new ServerOptions { CSharp = false });
+		Server     = new GramLanguageServer(Connection, (options ?? new ServerOptions { CSharp = false }) with { Scheduler = Scheduler });
 		_serverRun = Task.Run(() => Connection.RunAsync(Server, CancellationToken.None));
 		_reader    = Task.Run(ReadAsync);
 	}
 
 	public JsonRpcConnection Connection { get; }
+
+	/// <summary>The clock and threads the server's analyses run on, which say when nothing is running.</summary>
+	public TrackingScheduler Scheduler { get; } = new();
 
 	public GramLanguageServer Server { get; }
 
@@ -203,6 +206,41 @@ sealed class LspClient : IAsyncDisposable
 
 		Assert.Fail($"No {method} came in {Timeout}.");
 		return default;
+	}
+
+	/// <summary>
+	/// Waits until the server has nothing left to do — the folders read, the workspace's updates applied,
+	/// no analysis or search for a host running or about to — and until everything it sent meanwhile has
+	/// arrived: a barrier, where a test would otherwise wait for a while and hope.
+	/// </summary>
+	public async Task SettleAsync()
+	{
+		var deadline = DateTime.UtcNow + Timeout;
+
+		while (true)
+		{
+			Assert.True(DateTime.UtcNow < deadline, $"The server did not settle in {Timeout}.");
+
+			await Server.Folder.WaitAsync(Timeout);
+			await Server.Updates.Drained.WaitAsync(Timeout);
+
+			if (Scheduler.Idle && Server.Updates.Drained.IsCompleted)
+				break;
+
+			await Task.Delay(5);
+		}
+
+		// Answered after everything sent before it: what the server told before settling has arrived.
+		await RequestRawAsync("textDocument/documentSymbol", new { textDocument = new { uri = "untitled:barrier" } });
+	}
+
+	/// <summary>A message as the protocol frames it.</summary>
+	public static byte[] Frame(object message)
+	{
+		var body   = JsonSerializer.SerializeToUtf8Bytes(message, Json);
+		var header = Encoding.ASCII.GetBytes($"Content-Length: {body.Length.ToString(CultureInfo.InvariantCulture)}\r\n\r\n");
+
+		return [.. header, .. body];
 	}
 
 	/// <summary>The diagnostics of a document's version, once published.</summary>
@@ -369,5 +407,57 @@ sealed class LspClient : IAsyncDisposable
 			at = at.Parent;
 
 		return at?.FullName ?? throw new InvalidOperationException("The repository root is neither declared by the build nor above the test binaries.");
+	}
+}
+
+/// <summary>
+/// The machine's clock and thread pool, counting what runs on them: work is running from its start to
+/// its end, except while it waits a second or more — for a host to settle, or before a retry — which
+/// is waiting, not work, and would hold a barrier for its whole length.
+/// </summary>
+sealed class TrackingScheduler : DotGram.Language.IGramScheduler
+{
+	readonly System.Diagnostics.Stopwatch _clock = System.Diagnostics.Stopwatch.StartNew();
+	int                                   _busy;
+
+	public bool Idle => Volatile.Read(ref _busy) == 0;
+
+	public long Now => _clock.ElapsedMilliseconds;
+
+	public async Task DelayAsync(int milliseconds, CancellationToken cancellationToken)
+	{
+		if (milliseconds < 1000)
+		{
+			await Task.Delay(milliseconds, cancellationToken);
+			return;
+		}
+
+		Interlocked.Decrement(ref _busy);
+
+		try
+		{
+			await Task.Delay(milliseconds, cancellationToken);
+		}
+		finally
+		{
+			Interlocked.Increment(ref _busy);
+		}
+	}
+
+	public void Run(Func<Task> work)
+	{
+		Interlocked.Increment(ref _busy);
+
+		_ = Task.Run(async () =>
+		{
+			try
+			{
+				await work();
+			}
+			finally
+			{
+				Interlocked.Decrement(ref _busy);
+			}
+		});
 	}
 }

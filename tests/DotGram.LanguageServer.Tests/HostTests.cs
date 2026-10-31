@@ -277,7 +277,6 @@ public sealed class HostTests : IDisposable
 		string? said = null;
 
 		var stalled = new ManualResetEventSlim(false);
-		var watch   = System.Diagnostics.Stopwatch.StartNew();
 		var read    = FolderWorkspace.Load(
 			cancellationToken =>
 			{
@@ -288,7 +287,7 @@ public sealed class HostTests : IDisposable
 			TimeSpan.FromMilliseconds(300));
 
 		Assert.False(read.Hosts);
-		Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), $"The reading was given up after {watch.Elapsed}.");
+		Assert.False(stalled.IsSet);
 		Assert.Contains("took longer than", said, StringComparison.Ordinal);
 
 		stalled.Set();
@@ -321,7 +320,7 @@ public sealed class HostTests : IDisposable
 
 		var resolved = await ResolvedAsync(session);
 
-		await Task.Delay(300, TestContext.Current.CancellationToken);
+		await client.SettleAsync();
 
 		var told = client.Notifications("textDocument/publishDiagnostics")
 			.Where(item => item.GetProperty("uri").GetString() == uri)
@@ -335,6 +334,101 @@ public sealed class HostTests : IDisposable
 		Assert.NotEqual(
 			told[0].GetProperty("diagnostics").GetArrayLength(),
 			told[^1].GetProperty("diagnostics").GetArrayLength());
+	}
+
+	/// <summary>A reading given up reads no more files: it stops at the next one.</summary>
+	[Fact]
+	public void A_reading_given_up_reads_no_more()
+	{
+		for (var index = 0; index < 3; index++)
+			File.WriteAllText(Path.Combine(_folder, $"G{index}.gram"), Base);
+
+		using var cancellation = new CancellationTokenSource();
+		var read = 0;
+
+		Assert.Throws<OperationCanceledException>(() => FolderWorkspace.Create(
+			[_folder],
+			static _ => { },
+			cancellation.Token,
+			read: path =>
+			{
+				read++;
+				cancellation.Cancel();
+				return File.ReadAllText(path);
+			}));
+
+		Assert.Equal(1, read);
+	}
+
+	/// <summary>
+	/// A watched file whose read never ends — a pipe here, a share that does not answer elsewhere —
+	/// holds up neither the other updates nor the texts behind them: a hundred edits of an open grammar
+	/// and its close leave none of its texts alive.
+	/// </summary>
+	[Fact]
+	public async Task A_read_that_stalls_holds_no_edited_text()
+	{
+		Assert.SkipWhen(OperatingSystem.IsWindows(), "A file whose read blocks is a named pipe, made with mkfifo.");
+
+		File.WriteAllText(Path.Combine(_folder, "Hosts.cs"), Hosts);
+		File.WriteAllText(Path.Combine(_folder, "Base.gram"), Base);
+
+		var basePath = Path.Combine(_folder, "Base.gram");
+		var uri      = LspClient.Uri(basePath);
+		var pipe     = Path.Combine(_folder, "Stalled.cs");
+
+		await using var client = await LspClient.StartAsync(null, _folder);
+
+		await client.Server.Folder.WaitAsync(LspClient.Timeout, TestContext.Current.CancellationToken);
+
+		using (var mkfifo = System.Diagnostics.Process.Start("mkfifo", pipe))
+			await mkfifo.WaitForExitAsync(TestContext.Current.CancellationToken);
+
+		try
+		{
+			await client.NotifyAsync("workspace/didChangeWatchedFiles", new { changes = new[] { new { uri = LspClient.Uri(pipe), type = Lsp.FileCreated } } });
+			await client.OpenAsync(uri, Base);
+
+			var texts = await EditAsync(client, uri, 100);
+
+			await client.NotifyAsync("textDocument/didClose", new { textDocument = new { uri } });
+			await client.SettleAsync();
+
+			GC.Collect();
+			GC.WaitForPendingFinalizers();
+			GC.Collect();
+
+			var alive = texts.Count(static text => text.TryGetTarget(out _));
+
+			Assert.True(alive <= 1, $"{alive} of 100 edited texts are still alive.");
+		}
+		finally
+		{
+			// The read is let go: a writer that opens the pipe and closes it ends it.
+			await File.WriteAllTextAsync(pipe, "", TestContext.Current.CancellationToken);
+		}
+	}
+
+	/// <summary>Edits an open document so many times and returns its texts, held weakly.</summary>
+	static async Task<List<WeakReference<Microsoft.CodeAnalysis.Text.SourceText>>> EditAsync(LspClient client, string uri, int count)
+	{
+		var texts = new List<WeakReference<Microsoft.CodeAnalysis.Text.SourceText>>();
+
+		for (var version = 2; version < 2 + count; version++)
+		{
+			await client.NotifyAsync("textDocument/didChange", new
+			{
+				textDocument   = new { uri, version },
+				contentChanges = new[] { new { range = new { start = new { line = 0, character = 0 }, end = new { line = 0, character = 0 } }, text = " " } },
+			});
+
+			while (client.Server.Document(uri)?.Current.Number != version)
+				await Task.Delay(1, TestContext.Current.CancellationToken);
+
+			texts.Add(new WeakReference<Microsoft.CodeAnalysis.Text.SourceText>(client.Server.Document(uri)!.Current.Text));
+		}
+
+		return texts;
 	}
 
 	/// <summary>A folder that holds more entries than the walk looks at is given up, and said so.</summary>
@@ -422,7 +516,7 @@ public sealed class HostTests : IDisposable
 		Assert.False(document.Start(workspace));
 		Assert.Equal(1, told);
 
-		await Task.Delay(300, TestContext.Current.CancellationToken);
+		await client.SettleAsync();
 
 		Assert.Null(document.Session.Result);
 	}
