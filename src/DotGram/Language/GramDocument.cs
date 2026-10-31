@@ -245,14 +245,20 @@ static class GramLanguageService
 	/// </remarks>
 	public static GramDocument Analyze(string text, GramAnalysisOptions? options)
 	{
+		return Analyze(text, options, null);
+	}
+
+	/// <summary>As <see cref="Analyze(string, GramAnalysisOptions?)"/>, telling the clock where the compiler's part ends.</summary>
+	internal static GramDocument Analyze(string text, GramAnalysisOptions? options, GramAnalysisClock? clock)
+	{
 		if (text is null)
 			throw new ArgumentNullException(nameof(text));
 
-		return DeepStack.Entry(() => AnalyzeHere(text, options));
+		return DeepStack.Entry(() => AnalyzeHere(text, options, clock));
 	}
 
 	/// <summary><see cref="Analyze(string, GramAnalysisOptions?)"/> on whichever thread it is called on.</summary>
-	static GramDocument AnalyzeHere(string text, GramAnalysisOptions? options)
+	static GramDocument AnalyzeHere(string text, GramAnalysisOptions? options, GramAnalysisClock? clock)
 	{
 		// Compiled first, because where a name resolves is the binder's to say: a rule named
 		// in an included grammar, through a `using` or a qualified name, is found by the same
@@ -260,6 +266,8 @@ static class GramLanguageService
 		GrammarModel? model = null;
 		var scanner     = options?.CSharpScanner ?? RoslynCSharpScanner.Instance;
 		var compilation = GramCompiler.Compile(text, CompilerOptions(options, bound => model = bound));
+
+		clock?.StartPostProcessing();
 
 		var tokens = GramLexer.Tokenize(
 			text, scanner, GramCompiler.CutsOf(options?.Own, options?.Cuts), text.Length, null);

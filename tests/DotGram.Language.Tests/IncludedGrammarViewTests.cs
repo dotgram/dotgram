@@ -22,7 +22,7 @@ public sealed class IncludedGrammarViewTests
 
 		var paths = Enumerable.Range(0, 16)
 			.AsParallel()
-			.Select(_ => IncludedGrammarView.PathOf(grammar))
+			.Select(_ => TempDirectoryIncludedGrammarStore.Instance.PathOf(grammar))
 			.ToArray();
 
 		try
@@ -42,7 +42,7 @@ public sealed class IncludedGrammarViewTests
 			// And a copy marked as used within the hour is not marked again.
 			var used = File.GetLastWriteTimeUtc(paths[0]!);
 
-			Assert.Equal(paths[0], IncludedGrammarView.PathOf(grammar));
+			Assert.Equal(paths[0], TempDirectoryIncludedGrammarStore.Instance.PathOf(grammar));
 			Assert.Equal(marker, File.GetCreationTimeUtc(paths[0]!));
 			Assert.Equal(used, File.GetLastWriteTimeUtc(paths[0]!));
 			Assert.Equal(StandardLibrary.Text, File.ReadAllText(paths[0]!));
@@ -62,7 +62,7 @@ public sealed class IncludedGrammarViewTests
 	public void A_copy_found_again_is_marked_as_used()
 	{
 		var grammar = new StandaloneIncludedGrammar("ViewTest" + Guid.NewGuid().ToString("N"), "A = 'a'\nparse A", null);
-		var path    = IncludedGrammarView.PathOf(grammar)!;
+		var path    = TempDirectoryIncludedGrammarStore.Instance.PathOf(grammar)!;
 
 		try
 		{
@@ -70,7 +70,7 @@ public sealed class IncludedGrammarViewTests
 			File.SetLastWriteTimeUtc(path, DateTime.UtcNow.AddDays(-3));
 			File.SetAttributes(path, FileAttributes.ReadOnly);
 
-			Assert.Equal(path, IncludedGrammarView.PathToOpen(grammar));
+			Assert.Equal(path, TempDirectoryIncludedGrammarStore.Instance.PathToOpen(grammar));
 			Assert.True(File.GetLastWriteTimeUtc(path) > DateTime.UtcNow.AddHours(-1));
 			Assert.True(File.GetAttributes(path).HasFlag(FileAttributes.ReadOnly));
 		}
@@ -79,5 +79,27 @@ public sealed class IncludedGrammarViewTests
 			File.SetAttributes(path, FileAttributes.Normal);
 			File.Delete(path);
 		}
+	}
+
+	/// <summary>
+	/// A copy kept in memory is named as one on disk would be, the same every time it is asked
+	/// for, and known for a copy by its path; a grammar with a file of its own is opened there.
+	/// </summary>
+	[Fact]
+	public void A_copy_in_memory_is_named_for_its_content_and_known_for_a_copy()
+	{
+		var store   = new InMemoryIncludedGrammarStore();
+		var grammar = new StandaloneIncludedGrammar("Sql92", "A = 'a'\nparse A", null);
+		var path    = store.PathToOpen(grammar)!;
+
+		Assert.Equal(path, store.PathToOpen(grammar));
+		Assert.StartsWith(InMemoryIncludedGrammarStore.Prefix, path, StringComparison.Ordinal);
+		Assert.EndsWith(IncludedGrammarView.CopyName(grammar), path, StringComparison.Ordinal);
+		Assert.True(store.IsCopy(path));
+		Assert.Equal(grammar.Text, store.Text(path));
+
+		Assert.NotEqual(path, store.PathToOpen(grammar with { Text = "B = 'b'\nparse B" }));
+		Assert.Equal(@"P:\Parsers\Sql92.gram", store.PathToOpen(grammar with { FilePath = @"P:\Parsers\Sql92.gram" }));
+		Assert.False(store.IsCopy(@"P:\Parsers\Sql92.gram"));
 	}
 }
