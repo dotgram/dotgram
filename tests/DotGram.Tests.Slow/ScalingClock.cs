@@ -122,24 +122,30 @@ static class ScalingClock
 		return (shorter, longer);
 	}
 
-	/// <summary>How many runs make a timing cover <see cref="FloorMilliseconds"/>, judged by the fastest of up to three.</summary>
+	/// <summary>How many runs make a timing cover <see cref="FloorMilliseconds"/>, found by growing a batch until one does.</summary>
 	static int Runs(Action run)
 	{
-		var least = double.MaxValue;
+		const int Most = 1 << 24;
 
-		for (var one = 0; one < 3; one++)
+		var runs = 1;
+
+		while (true)
 		{
 			var watch = Stopwatch.StartNew();
 
-			run();
+			for (var one = 0; one < runs; one++)
+				run();
 
-			least = Math.Min(least, watch.Elapsed.TotalMilliseconds);
+			var spent = watch.Elapsed.TotalMilliseconds;
 
-			if (least >= FloorMilliseconds)
-				break;
+			if (spent >= FloorMilliseconds || runs >= Most)
+				return runs;
+
+			// Aim a little past the floor, and at least double, so that a batch too short to read is not repeated.
+			var wanted = (long)Math.Ceiling(1.2 * FloorMilliseconds * runs / Math.Max(spent, 0.0005));
+
+			runs = (int)Math.Min(Most, Math.Max(2L * runs, wanted));
 		}
-
-		return least >= FloorMilliseconds ? 1 : (int)Math.Min(1000, Math.Ceiling(FloorMilliseconds / Math.Max(least, 0.005)));
 	}
 
 	/// <summary>One run's time in microseconds, from <paramref name="runs"/> back to back.</summary>

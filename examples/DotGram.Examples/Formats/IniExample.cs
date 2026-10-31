@@ -50,7 +50,7 @@ namespace DotGram.Examples.Formats;
 	// `eol` is the standard rule and not a copy of it with `eof` added. A nullable `eol`
 	// would take that check away from every line-oriented grammar at once; the one line
 	// allowed to end without a terminator is the last, and `Tail` is where it is said.
-	Entries : @IniEntry[] = (Entry | Blank)* & Tail?
+	Entries : @IniEntry[] = { (Entry | Blank)* } & Tail?
 
 	// The blanks around a key are read by `Key` and trimmed from it. Written as `Space & Key & Space`
 	// they could be the key's or the separators' in any proportion, a way for each split of each

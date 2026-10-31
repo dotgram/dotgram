@@ -175,6 +175,9 @@ public sealed class ExampleRefusalGrowthTests
 	[InlineData(" a -- c\n")]
 	[InlineData(" 1--c\n")]
 	[InlineData(" /* c */")]
+	[InlineData(" /* ")]
+	[InlineData(" /* -- \n")]
+	[InlineData(" -- /* \n")]
 	[InlineData(" a/* c */b")]
 	public void A_read_only_query_of_repeated_tokens_is_refused_in_step_with_its_length(string piece)
 	{
@@ -199,6 +202,10 @@ public sealed class ExampleRefusalGrowthTests
 		// reads the first line as a comment.
 		Assert.False(SqlReadOnly.IsReadOnly("select 1 -- '\n insert into t values (1) --'"));
 		Assert.False(SqlReadOnly.IsReadOnly("select 1 /* '\n */ insert into t values (1) /* ' */"));
+
+		// One comment opener inside another comment is part of that comment, and does not start a second reading.
+		Assert.False(SqlReadOnly.IsReadOnly("select /* -- */ insert"));
+		Assert.False(SqlReadOnly.IsReadOnly("select -- /*\n insert */"));
 	}
 
 	[Theory]
@@ -214,8 +221,21 @@ public sealed class ExampleRefusalGrowthTests
 	}
 
 	[Fact]
+	public void A_located_config_whose_last_key_is_one_long_name_is_refused_in_step_with_its_length()
+	{
+		Ladder("located config long name", static n => "a=" + new string('b', n * 8) + "!\n!", static text => Config.Located.TryParseFile(text).IsSuccess);
+	}
+
+	[Fact]
 	public void A_located_config_still_reads_what_it_read()
 	{
+		// A name inside a comment is not a place to stop.
+		var commented = Config.Located.ParseFile("a=b=#c\n!");
+
+		Assert.Equal(["a", "b"], commented.Select(static one => one.Key).ToArray());
+		Assert.Equal(["", "!"], commented.Select(static one => one.Value).ToArray());
+		Assert.Equal([new At(0, 2), new At(2, 6)], commented.Select(static one => one.Where).ToArray());
+
 		Assert.True(Config.Located.TryParseFile("a=b=c\nd = e\n").IsSuccess);
 
 		// The first value gives back `b=`, so that the key before the line's end is the next entry's.
