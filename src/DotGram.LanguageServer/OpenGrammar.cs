@@ -30,7 +30,7 @@ sealed class GramVersion
 	{
 	}
 
-	GramVersion(int number, string text, LineMap? lines, (long From, TextChangeRange Change)? changed)
+	GramVersion(int number, string text, LineMap? lines, (long From, IReadOnlyList<TextChangeRange> Changes)? changed)
 	{
 		Id      = Interlocked.Increment(ref _nextId);
 		Number  = number;
@@ -51,23 +51,26 @@ sealed class GramVersion
 
 	public LineMap Lines => _lines.Value;
 
-	/// <summary>The version this one was made from, and the one change that made it; null where it was made otherwise.</summary>
-	public (long From, TextChangeRange Change)? Changed { get; }
+	/// <summary>
+	/// The version this one was made from, and the changes that made it, in order, each in the text the
+	/// one before it left; null where it was made otherwise.
+	/// </summary>
+	public (long From, IReadOnlyList<TextChangeRange> Changes)? Changed { get; }
 
 	/// <summary>The version after the client's changes, applied in order, each to the text the one before left.</summary>
 	public GramVersion Apply(int number, IReadOnlyList<TextDocumentContentChangeEvent> changes)
 	{
 		var text  = String;
 		var lines = Lines;
-		TextChangeRange? only = null;
+		var made  = new List<TextChangeRange>(changes.Count);
 
 		foreach (var change in changes)
 		{
 			if (change.Range is not { } range)
 			{
 				text  = change.Text;
+				made.Add(new TextChangeRange(new TextSpan(0, lines.Length), text.Length));
 				lines = new LineMap(text);
-				only  = new TextChangeRange(new TextSpan(0, String.Length), text.Length);
 				continue;
 			}
 
@@ -76,11 +79,10 @@ sealed class GramVersion
 
 			text  = string.Concat(text.AsSpan(0, start), change.Text, text.AsSpan(end));
 			lines = lines.Apply(SourceText.From(text), start, end, change.Text.Length);
-			only  = new TextChangeRange(TextSpan.FromBounds(start, end), change.Text.Length);
+			made.Add(new TextChangeRange(TextSpan.FromBounds(start, end), change.Text.Length));
 		}
 
-		// Several changes at once are not carried over: their ranges would have to be composed.
-		return new GramVersion(number, text, lines, changes.Count == 1 && only is { } single ? (Id, single) : null);
+		return new GramVersion(number, text, lines, (Id, made));
 	}
 }
 
@@ -99,6 +101,7 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 	// this document asks the session while it holds this one; one order of the two locks only.
 	GramVersion          _current;
 	GramVersion?         _lastPublished;
+	object?              _lastResult;
 	Workspace?           _workspace;
 	bool                 _started;
 	bool                 _closed;
@@ -129,6 +132,16 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 	public event Action<OpenGrammar, GramAnalysisResult<GramVersion>, bool>? Published;
 
 	public GramVersion Current => Volatile.Read(ref _current);
+
+	/// <summary>How many requests wait for an analysis now.</summary>
+	internal int Waiting
+	{
+		get
+		{
+			lock (_gate)
+				return _waiting.Count;
+		}
+	}
 
 	/// <summary>
 	/// Starts the first analysis, following the grammar's host where it has a file: once the server
@@ -166,6 +179,7 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 		GramVersion after;
 
 		bool started;
+		List<TaskCompletionSource<GramDocument?>> overtaken;
 
 		lock (_gate)
 		{
@@ -174,7 +188,15 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 			started = _started;
 
 			Volatile.Write(ref _current, after);
+
+			// A request waiting for the version before has its answer now: it was overtaken, and the
+			// version's text is not held for it.
+			overtaken = [.. _waiting.Select(static item => item.Done)];
+			_waiting.Clear();
 		}
+
+		foreach (var done in overtaken)
+			done.TrySetResult(null);
 
 		// Before the start the session has seen no version, and the start analyses the latest.
 		if (started)
@@ -278,27 +300,42 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 				Session.Document(version);
 		}
 
-		using (cancellationToken.Register(static state => ((TaskCompletionSource<GramDocument?>)state!).TrySetCanceled(), done))
+		var waiter = (version, done);
+
+		// A cancelled request lets go of the version it waited for at once, not at its publication.
+		using (cancellationToken.Register(() =>
+		{
+			lock (_gate)
+				_waiting.Remove(waiter);
+
+			done.TrySetCanceled(cancellationToken);
+		}))
 			return await done.Task.ConfigureAwait(false);
 	}
 
 	void Changed(GramVersion version)
 	{
-		if (Session.Result is not { } result || result.Version != version)
-			return;
-
 		List<TaskCompletionSource<GramDocument?>> answered = [];
 		List<TaskCompletionSource<GramDocument?>> overtaken = [];
+		GramAnalysisResult<GramVersion>? result;
 
 		lock (_gate)
 		{
+			// The latest result, read under the lock: two analyses of one version raise this in
+			// either order, and the one told last must be the one made last.
+			result = Session.Result;
+
+			if (result is null || result.Version != version)
+				return;
+
 			// Told to the client under the lock an edit and a close take, and only while the version
-			// is the document's: no publication of an older version, or of a closed document, can
-			// follow a newer one.
-			if (!_closed && version == _current)
+			// is the document's and the result one not told yet: no publication of an older version,
+			// of an older analysis, or of a closed document can follow a newer one.
+			if (!_closed && version == _current && !ReferenceEquals(result, _lastResult))
 			{
 				Published?.Invoke(this, result, _lastPublished == version);
 				_lastPublished = version;
+				_lastResult    = result;
 			}
 
 			for (var index = _waiting.Count - 1; index >= 0; index--)
@@ -371,8 +408,7 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 		if (to.Changed is not { } changed || changed.From != from.Id)
 			return GramAnalysisSession.EmptyDocument;
 
-		var changes = new[] { changed.Change };
-
+		var changes = changed.Changes;
 		var result = new List<GramClassifiedSpan>(document.Classifications.Count);
 
 		foreach (var item in document.Classifications)
@@ -401,25 +437,23 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 	/// <summary>Where a span of the old text is in the new one, or null where an edit touched it.</summary>
 	static int? Map(int position, int length, IReadOnlyList<TextChangeRange> changes)
 	{
-		var shift = 0;
-
-		// The ranges are in the old text's order and do not overlap: those after the span leave it
-		// where it is, those before it move it, and one that reaches into it drops it.
+		// The changes in the order they were made, each in the text the one before it left: one
+		// after the span leaves it where it is, one before it moves it, one that reaches into it drops it.
 		foreach (var change in changes)
 		{
 			if (change.Span.Start >= position + length)
-				break;
+				continue;
 
 			if (change.Span.End <= position)
 			{
-				shift += change.NewLength - change.Span.Length;
+				position += change.NewLength - change.Span.Length;
 				continue;
 			}
 
 			return null;
 		}
 
-		return position + shift;
+		return position;
 	}
 }
 
