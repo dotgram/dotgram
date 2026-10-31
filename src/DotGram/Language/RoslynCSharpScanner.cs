@@ -108,7 +108,13 @@ public sealed class RoslynCSharpScanner : ICSharpScanner
 
 		static bool IsCalled(IdentifierNameSyntax name)
 		{
-			return name.Parent is InvocationExpressionSyntax call && call.Expression == name;
+			// Through the parentheses and the `!` it may be wrapped in: `(parserText)()` and `parserText!()`.
+			SyntaxNode target = name;
+
+			while (target.Parent is ParenthesizedExpressionSyntax or PostfixUnaryExpressionSyntax { RawKind: (int)SyntaxKind.SuppressNullableWarningExpression })
+				target = target.Parent;
+
+			return target.Parent is InvocationExpressionSyntax call && call.Expression == target;
 		}
 
 		// Where C# reads a name as a type: whatever stands in a type's place, and every part of a type.
@@ -132,6 +138,9 @@ public sealed class RoslynCSharpScanner : ICSharpScanner
 				LocalFunctionStatementSyntax function    => function.ReturnType == name,
 				CatchDeclarationSyntax caught            => caught.Type == name,
 				ForEachStatementSyntax loop              => loop.Type == name,
+				FromClauseSyntax from                    => from.Type == name,
+				JoinClauseSyntax join                    => join.Type == name,
+				ParenthesizedLambdaExpressionSyntax lambda => lambda.ReturnType == name,
 				BinaryExpressionSyntax binary            => binary.Right == name && (binary.IsKind(SyntaxKind.AsExpression) || binary.IsKind(SyntaxKind.IsExpression)),
 				_                                        => false,
 			};

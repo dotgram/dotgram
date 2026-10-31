@@ -157,6 +157,13 @@ public sealed class SuppliedNameTests
 	[InlineData("Start : @string[] = Row* recover ';' => @(parserMessage())\nRow : @string = t: ['a'..'z']+ & ';' => @(t)", "as a method, a type or a variable")]
 	[InlineData("Start : @string[] = Row* recover ';' => @(new System.Collections.Generic.List<parserInput>().Count.ToString())\nRow : @string = t: ['a'..'z']+ & ';' => @(t)", "as a method, a type or a variable")]
 	[InlineData("Start : @string[] = Row* recover ';' => @(parserText + parserText())\nRow : @string = t: ['a'..'z']+ & ';' => @(t)", "as a method, a type or a variable")]
+	[InlineData("Start : @string = 'a' => @(parserText!())", "as a method, a type or a variable")]
+	[InlineData("Start : @string = 'a' => @(((parserText))())", "as a method, a type or a variable")]
+	[InlineData("Start : @string = 'a' & when @(parserText!() != null) => @(\"ok\")", "as a method, a type or a variable")]
+	[InlineData("Start : @string[] = Row* recover ';' => @(((parserText))())\nRow : @string = t: ['a'..'z']+ & ';' => @(t)", "as a method, a type or a variable")]
+	[InlineData("Start : @string = 'a' => @((from parserText x in new[] { 1 } select x).Count().ToString())", "as a method, a type or a variable")]
+	[InlineData("Start : @string = 'a' => @((from x in new[] { 1 } join parserText y in new[] { 1 } on x equals y select x).Count().ToString())", "as a method, a type or a variable")]
+	[InlineData("Start : @string = 'a' => @(((System.Func<int, int>)(parserText (int x) => x))(1).ToString())", "as a method, a type or a variable")]
 	// A method group handed on is not seen as one; in a construction the name is not handed, which says so.
 	[InlineData("Start : @string = 'a' => @(new System.Func<string>(parserMessage)())", "not handed")]
 	public void A_supplied_name_used_as_a_method_a_type_or_a_variable_is_refused(string grammar, string said)
