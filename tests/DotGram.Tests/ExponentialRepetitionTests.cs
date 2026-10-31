@@ -428,7 +428,12 @@ public sealed class ExponentialRepetitionTests
 		Bounded(grammar.ToString());
 	}
 
-	/// <summary>A chain of eight thousand calls that read nothing is followed a bounded depth, not a frame a call.</summary>
+	/// <summary>
+	/// A chain of eight thousand calls that read nothing is followed a bounded depth, not a frame a
+	/// call: the analysis runs on a thread with the smallest stack a process starts with, a
+	/// megabyte. The graph is built on one of its own with room to spare, since the normalizer's own
+	/// walk down such a chain is deeper than a megabyte allows, which is not this analysis.
+	/// </summary>
 	[Fact]
 	public void A_chain_of_calls_thousands_deep_is_followed_a_bounded_depth()
 	{
@@ -439,13 +444,46 @@ public sealed class ExponentialRepetitionTests
 
 		grammar.Append("R = (A8000 & 'a')* & 'b'\nparse R\n");
 
-		Bounded(grammar.ToString());
+		RecognitionGraph? graph = null;
+		LexicalSplit?     split = null;
+
+		OnThread(() => graph = Graph(grammar.ToString(), lexical: false, out split), 256 << 20);
+		OnThread(() => Bounded(graph!, split), 1 << 20);
+	}
+
+	static void OnThread(Action run, int stack)
+	{
+		Exception? failed = null;
+
+		var thread = new System.Threading.Thread(
+			() =>
+			{
+				try
+				{
+					run();
+				}
+				catch (Exception error)
+				{
+					failed = error;
+				}
+			},
+			stack);
+
+		thread.Start();
+		thread.Join();
+
+		if (failed is not null)
+			System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failed).Throw();
 	}
 
 	/// <summary>The analysis of a grammar, held to a time and an allocation that do not grow with the paths through it.</summary>
 	static void Bounded(string grammar)
 	{
-		var graph = Graph(grammar, lexical: false, out var split);
+		Bounded(Graph(grammar, lexical: false, out var split), split);
+	}
+
+	static void Bounded(RecognitionGraph graph, LexicalSplit? split)
+	{
 		var watch = Stopwatch.StartNew();
 		var bytes = GC.GetAllocatedBytesForCurrentThread();
 
