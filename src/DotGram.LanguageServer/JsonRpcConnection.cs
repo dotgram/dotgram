@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using System.Threading;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace DotGram.LanguageServer;
@@ -38,6 +39,12 @@ readonly struct RpcReply
 			return Null;
 
 		return new RpcReply(writer => JsonSerializer.Serialize(writer, value, type), 0, null);
+	}
+
+	/// <summary>A result the caller writes itself.</summary>
+	public static RpcReply Raw(Action<Utf8JsonWriter> result)
+	{
+		return new RpcReply(result, 0, null);
 	}
 
 	public static RpcReply Error(int code, string message)
@@ -77,10 +84,15 @@ sealed class JsonRpcConnection
 {
 	static readonly byte[] HeaderEnd = "\r\n\r\n"u8.ToArray();
 
-	readonly Stream        _input;
-	readonly Stream        _output;
-	readonly SemaphoreSlim _writeGate = new(1, 1);
+	readonly Stream          _input;
+	readonly Stream          _output;
 	readonly Action<string>? _trace;
+
+	// What is sent goes out in the order it was handed in, by one writer: a message serialized
+	// after another is never written before it.
+	readonly Channel<(byte[] Frame, TaskCompletionSource Written)> _outgoing =
+		Channel.CreateUnbounded<(byte[] Frame, TaskCompletionSource Written)>(new UnboundedChannelOptions { SingleReader = true });
+	readonly Task _writer;
 
 	readonly ConcurrentDictionary<string, CancellationTokenSource> _pending = new(StringComparer.Ordinal);
 	readonly ConcurrentDictionary<Task, bool>                      _running = new();
@@ -93,6 +105,7 @@ sealed class JsonRpcConnection
 		_input  = input;
 		_output = output;
 		_trace  = trace;
+		_writer = Task.Run(WriteLoopAsync);
 	}
 
 	/// <summary>Whether <c>shutdown</c> was asked for before <c>exit</c>: the process's exit code says so.</summary>
@@ -100,6 +113,20 @@ sealed class JsonRpcConnection
 
 	/// <summary>Reads and dispatches messages until <c>exit</c> or the end of the input.</summary>
 	public async Task RunAsync(IRpcTarget target, CancellationToken cancellationToken)
+	{
+		try
+		{
+			await ReadLoopAsync(target, cancellationToken).ConfigureAwait(false);
+		}
+		finally
+		{
+			// What was handed in before the end still goes out.
+			_outgoing.Writer.TryComplete();
+			await _writer.ConfigureAwait(false);
+		}
+	}
+
+	async Task ReadLoopAsync(IRpcTarget target, CancellationToken cancellationToken)
 	{
 		var reader = new FrameReader(_input);
 
@@ -195,9 +222,16 @@ sealed class JsonRpcConnection
 		{
 			work = target.Bind(method, parameters);
 		}
-		catch (Exception exception) when (exception is JsonException or ArgumentException or InvalidOperationException)
+		catch (Exception exception) when (exception is JsonException or ArgumentException)
 		{
 			_ = WriteErrorAsync(id, Lsp.InvalidParams, exception.Message);
+			return true;
+		}
+		catch (Exception exception) when (exception is not OutOfMemoryException)
+		{
+			// Whatever a request's parameters do to the server, the server goes on.
+			_ = LogAsync(Lsp.MessageError, $"{method}: {exception}");
+			_ = WriteErrorAsync(id, Lsp.InternalError, exception.Message);
 			return true;
 		}
 
@@ -252,8 +286,24 @@ sealed class JsonRpcConnection
 		await WriteReplyAsync(id, reply).ConfigureAwait(false);
 	}
 
+	/// <summary>
+	/// Every request in flight is cancelled and answered as such, and then <c>shutdown</c> is: a
+	/// request that waits for an analysis would hold the client's shutdown up for as long as that takes.
+	/// </summary>
 	async Task ShutdownAsync(string id)
 	{
+		foreach (var pending in _pending.Values)
+		{
+			try
+			{
+				pending.Cancel();
+			}
+			catch (ObjectDisposedException)
+			{
+				// Answered meanwhile.
+			}
+		}
+
 		while (true)
 		{
 			var running = _running.Keys.Where(static task => !task.IsCompleted).ToArray();
@@ -350,7 +400,7 @@ sealed class JsonRpcConnection
 		});
 	}
 
-	async Task WriteAsync(Action<Utf8JsonWriter> body)
+	Task WriteAsync(Action<Utf8JsonWriter> body)
 	{
 		var buffer = new MemoryStream();
 
@@ -362,29 +412,43 @@ sealed class JsonRpcConnection
 			writer.WriteEndObject();
 		}
 
-		var header = Encoding.ASCII.GetBytes($"Content-Length: {buffer.Length.ToString(CultureInfo.InvariantCulture)}\r\n\r\n");
+		var header  = Encoding.ASCII.GetBytes($"Content-Length: {buffer.Length.ToString(CultureInfo.InvariantCulture)}\r\n\r\n");
+		var frame   = new byte[header.Length + buffer.Length];
+		var written = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-		await _writeGate.WaitAsync().ConfigureAwait(false);
+		header.CopyTo(frame, 0);
+		buffer.GetBuffer().AsSpan(0, (int)buffer.Length).CopyTo(frame.AsSpan(header.Length));
 
-		try
-		{
-			if (_trace is not null)
-				_trace("--> " + Encoding.UTF8.GetString(buffer.GetBuffer(), 0, (int)buffer.Length));
+		if (!_outgoing.Writer.TryWrite((frame, written)))
+			written.TrySetResult();
 
-			await _output.WriteAsync(header).ConfigureAwait(false);
-			await _output.WriteAsync(buffer.GetBuffer().AsMemory(0, (int)buffer.Length)).ConfigureAwait(false);
-			await _output.FlushAsync().ConfigureAwait(false);
-		}
-		catch (IOException)
+		return written.Task;
+	}
+
+	async Task WriteLoopAsync()
+	{
+		await foreach (var (frame, written) in _outgoing.Reader.ReadAllAsync().ConfigureAwait(false))
 		{
-			// The client has gone; the reading loop ends on its own.
-		}
-		catch (ObjectDisposedException)
-		{
-		}
-		finally
-		{
-			_writeGate.Release();
+			try
+			{
+				if (_trace is not null)
+				{
+					var body = Array.IndexOf(frame, (byte)'{');
+
+					_trace("--> " + Encoding.UTF8.GetString(frame, body, frame.Length - body));
+				}
+
+				await _output.WriteAsync(frame).ConfigureAwait(false);
+				await _output.FlushAsync().ConfigureAwait(false);
+			}
+			catch (Exception exception) when (exception is IOException or ObjectDisposedException)
+			{
+				// The client has gone; the reading loop ends on its own.
+			}
+			finally
+			{
+				written.TrySetResult();
+			}
 		}
 	}
 

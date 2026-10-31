@@ -46,6 +46,57 @@ sealed class LineMap
 	{
 	}
 
+	LineMap(int[] starts, SourceText text)
+	{
+		_starts = starts;
+		_text   = text;
+		Length  = text.Length;
+	}
+
+	/// <summary>
+	/// The map of the text after one change, worked out from this one's: the lines before the change
+	/// are kept, those after it moved, and only the changed text read — an edit of a large grammar
+	/// is not a read of all of it.
+	/// </summary>
+	/// <param name="text">The text after the change.</param>
+	/// <param name="start">Where the change starts.</param>
+	/// <param name="end">Where the replaced text ended, in the text before.</param>
+	/// <param name="inserted">How long the inserted text is.</param>
+	public LineMap Apply(SourceText text, int start, int end, int inserted)
+	{
+		// A line starts at p where the character before p breaks the line: a '\n', or a '\r' not
+		// followed by '\n'. That depends on the characters at p - 1 and p, so a start the change
+		// cannot have moved is one before it (p < start) or one after it (p > end, in the old text).
+		var shift  = inserted - (end - start);
+		var result = new List<int>(_starts.Length + 4);
+
+		foreach (var at in _starts)
+		{
+			if (at >= start)
+				break;
+
+			result.Add(at);
+		}
+
+		if (result.Count == 0)
+			result.Add(0);
+
+		for (var at = Math.Max(1, start); at <= start + inserted && at <= text.Length; at++)
+		{
+			var before = text[at - 1];
+
+			if (before == '\n' || before == '\r' && (at == text.Length || text[at] != '\n'))
+				result.Add(at);
+		}
+
+		var first = Array.BinarySearch(_starts, end + 1);
+
+		for (var index = first < 0 ? ~first : first; index < _starts.Length; index++)
+			result.Add(_starts[index] + shift);
+
+		return new LineMap([.. result], text);
+	}
+
 	public int Length { get; }
 
 	public int LineCount => _starts.Length;
