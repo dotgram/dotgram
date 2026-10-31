@@ -183,9 +183,18 @@ sealed class LspClient : IAsyncDisposable
 			parameters.TryGetProperty("version", out var published) && published.GetInt32() == version);
 	}
 
-	public Task OpenAsync(string uri, string text, int version = 1)
+	/// <summary>Opens a document, and returns once the server holds it.</summary>
+	public async Task OpenAsync(string uri, string text, int version = 1)
 	{
-		return NotifyAsync("textDocument/didOpen", new { textDocument = new { uri, languageId = "gram", version, text } });
+		await NotifyAsync("textDocument/didOpen", new { textDocument = new { uri, languageId = "gram", version, text } });
+
+		var deadline = DateTime.UtcNow + Timeout;
+
+		while (Server.Document(uri) is null)
+		{
+			Assert.True(DateTime.UtcNow < deadline, $"{uri} was not opened in {Timeout}.");
+			await Task.Delay(5);
+		}
 	}
 
 	/// <summary>A position as the protocol has it, of an offset in a text.</summary>

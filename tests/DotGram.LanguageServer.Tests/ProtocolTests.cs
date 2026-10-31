@@ -129,58 +129,49 @@ public sealed class ProtocolTests
 	[Fact]
 	public async Task A_running_request_holds_up_neither_an_edit_nor_its_cancellation()
 	{
-		var release  = new ManualResetEventSlim(false);
-		var analyses = 0;
-		var options  = new ServerOptions
+		var asked   = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+		var options = new ServerOptions
 		{
-			CSharp  = false,
-			Analyze = (text, context, quiet, clock) =>
+			CSharp          = false,
+			CSharpQuickInfo = async (_, _, cancellationToken) =>
 			{
-				// The first analysis takes as long as the test says; the rest are the compiler's.
-				if (Interlocked.Increment(ref analyses) == 1)
-					release.Wait(LspClient.Timeout);
-
-				return GramAnalysisSession.Analyze(text, context, quiet, clock);
+				// Quick Info in C# that takes until it is cancelled.
+				asked.TrySetResult();
+				await Task.Delay(Timeout.Infinite, cancellationToken);
+				return null;
 			},
 		};
 
 		await using var client = await LspClient.StartAsync(options);
 
-		const string uri = "untitled:Slow.gram";
-		const string text = "Start = Word\nWord = ['a'..'z']+\nparse Start\n";
+		const string uri  = "untitled:Slow.gram";
+		const string text = "Start : @int = 'a' => @(System.Math.Abs(1))\nparse Start\n";
 
 		await client.OpenAsync(uri, text);
+		await client.DiagnosticsAsync(uri, 1);
 
-		// Waits for the version's analysis, which the test holds back.
-		var references = client.RequestRawAsync("textDocument/references", new
-		{
-			textDocument = new { uri },
-			position     = LspClient.Position(text, 0),
-			context      = new { includeDeclaration = true },
-		}, out var id);
+		var hover = client.RequestRawAsync("textDocument/hover", LspClient.At(uri, text, text.IndexOf("Abs", StringComparison.Ordinal)), out var id);
+
+		await asked.Task.WaitAsync(LspClient.Timeout, TestContext.Current.CancellationToken);
 
 		await client.NotifyAsync("textDocument/didChange", new
 		{
 			textDocument   = new { uri, version = 2 },
-			contentChanges = new[] { new { text = text + "// edited\n" } },
+			contentChanges = new[] { new { range = new { start = LspClient.Position(text, 0), end = LspClient.Position(text, 0) }, text = "// edited\n" } },
 		});
 
 		// Answered while the first request runs: the edit was applied, and requests go on.
-		var hover = await client.RequestRawAsync("textDocument/hover", LspClient.At(uri, text, 0));
+		var symbols = await client.RequestAsync("textDocument/documentSymbol", new { textDocument = new { uri } });
 
-		Assert.True(hover.TryGetProperty("result", out _));
-		Assert.False(references.IsCompleted);
-		Assert.Equal(2, client.Server.Document(uri)!.Current.Number);
+		Assert.Equal("Start", symbols.EnumerateArray().First().GetProperty("name").GetString());
+		Assert.Equal(1, symbols.EnumerateArray().First().GetProperty("range").GetProperty("start").GetProperty("line").GetInt32());
+		Assert.False(hover.IsCompleted);
 
 		await client.NotifyAsync("$/cancelRequest", new { id });
 
-		var cancelled = await references;
+		var cancelled = await hover;
 
 		Assert.Equal(Lsp.RequestCancelled, cancelled.GetProperty("error").GetProperty("code").GetInt32());
-
-		release.Set();
-
-		await client.DiagnosticsAsync(uri, 2);
 	}
 
 	/// <summary><c>shutdown</c> is answered after every request in flight has been.</summary>
