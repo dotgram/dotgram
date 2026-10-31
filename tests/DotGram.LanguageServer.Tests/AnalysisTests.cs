@@ -106,55 +106,100 @@ public sealed class AnalysisTests
 	}
 
 	/// <summary>
-	/// A thousand keystrokes into the T-SQL grammar, as fast as the client sends them, hold a request
-	/// behind them for little: an edit reads only what it changed, not the whole grammar.
+	/// A keystroke into the T-SQL grammar, 469 KB, costs the server about what a keystroke into a grammar
+	/// of one line does: an edit reads what it changed, not the whole text.
 	/// </summary>
+	/// <remarks>
+	/// The server reads a thousand edits that are all in its input before it starts, so that nothing
+	/// it does slows the sender and nothing the sender does slows it; their cost is the run with them
+	/// less the same run without them. The yardstick is the same thousand edits of a one-line grammar,
+	/// measured beside them, so that a busy machine slows both; and the small grammar's thousand edits
+	/// are held to a thousand reads of T-SQL into its lines, measured beside them too, so that a delay
+	/// every edit pays alike does not hide behind the ratio. What an edit of T-SQL still costs more is
+	/// Roslyn's: its <c>WithChanges</c> takes about 50 µs on a text of that size. Measured here: T-SQL
+	/// 1.1-3.4 times the small grammar, whose edits cost 60-300 reads; an edit that read the whole
+	/// grammar, as one did, cost T-SQL over ten times the small one's.
+	/// </remarks>
 	[Fact]
-	public async Task A_burst_of_keystrokes_does_not_hold_a_request_up()
+	public void A_burst_of_keystrokes_costs_what_it_costs_in_a_small_grammar()
 	{
-		var text = File.ReadAllText(TransactSqlPath);
-		const string uri = "untitled:Burst.gram";
-
-		await using var client = await LspClient.StartAsync();
-
-		await client.OpenAsync(uri, text);
-		await client.DiagnosticsAsync(uri, 1);
-
-		// At the end of the first line, typed one space at a time.
-		var at    = text.IndexOfAny(['\r', '\n']);
-		var watch = Stopwatch.StartNew();
-
-		for (var version = 2; version <= 1001; version++)
+		var text  = File.ReadAllText(TransactSqlPath);
+		var large = EditCost(text);
+		var small = EditCost("Start = 'a' // a grammar of one line\nparse Start\n");
+		var read  = Median(() =>
 		{
-			var position = new { line = 0, character = at };
+			var watch = Stopwatch.StartNew();
 
-			await client.NotifyAsync("textDocument/didChange", new
-			{
-				textDocument   = new { uri, version },
-				contentChanges = new[] { new { range = new { start = position, end = position }, text = " " } },
-			});
-
-			at++;
-		}
-
-		text = text.Insert(text.IndexOfAny(['\r', '\n']), new string(' ', 1000));
-
-		var sent = watch.Elapsed;
-
-		await client.RequestAsync("textDocument/hover", LspClient.At(uri, text, 0));
-
-		var answered = watch.Elapsed;
+			_ = new LineMap(Microsoft.CodeAnalysis.Text.SourceText.From(text));
+			return watch.Elapsed;
+		});
 
 		TestContext.Current.TestOutputHelper?.WriteLine(
-			$"1,000 edits sent in {sent.TotalMilliseconds:F0} ms; a request after them answered at {answered.TotalMilliseconds:F0} ms");
+			$"1,000 edits: T-SQL {large.TotalMilliseconds:F0} ms, one line {small.TotalMilliseconds:F0} ms; " +
+			$"one read of T-SQL into lines {read.TotalMilliseconds:F2} ms");
 
-		Assert.Equal(text, client.Server.Document(uri)!.Current.String);
-		// Against what sending them cost the client, on the same machine and at the same time: a shared
-		// runner is several times slower than a quiet machine, and slows both alike. Before an edit read
-		// only what it changed, the server took several times the client's time; now it takes less.
-		Assert.True(
-			answered - sent < sent * 2,
-			$"A request waited {(answered - sent).TotalMilliseconds:F0} ms behind 1,000 edits the client sent in {sent.TotalMilliseconds:F0} ms.");
+		Assert.True(large < small * 6, $"1,000 edits of T-SQL cost {large.TotalMilliseconds:F0} ms, of one line {small.TotalMilliseconds:F0} ms.");
+		Assert.True(small < read * 1000, $"1,000 edits of one line cost {small.TotalMilliseconds:F0} ms, {small / read:F0} reads of T-SQL.");
+	}
+
+	/// <summary>What a thousand single-character edits at the end of the first line cost the server, the opening less.</summary>
+	static TimeSpan EditCost(string text)
+	{
+		var at      = text.IndexOfAny(['\r', '\n']);
+		var edits   = Enumerable.Range(2, 1000).Select(version => (object)new
+		{
+			jsonrpc = "2.0",
+			method  = "textDocument/didChange",
+			@params = new
+			{
+				textDocument   = new { uri = "untitled:Burst.gram", version },
+				contentChanges = new[] { new { range = new { start = new { line = 0, character = at + version - 2 }, end = new { line = 0, character = at + version - 2 } }, text = " " } },
+			},
+		}).ToArray();
+		var opening = new object[]
+		{
+			new { jsonrpc = "2.0", id = 1, method = "initialize", @params = new { processId = 1, capabilities = new { } } },
+			new { jsonrpc = "2.0", method = "initialized", @params = new { } },
+			new { jsonrpc = "2.0", method = "textDocument/didOpen", @params = new { textDocument = new { uri = "untitled:Burst.gram", languageId = "gram", version = 1, text } } },
+		};
+
+		var with    = Input(opening.Concat(edits));
+		var without = Input(opening);
+
+		// Warmed once each, then the medians of five.
+		Run(with);
+		Run(without);
+
+		return Median(() => Run(with)) - Median(() => Run(without));
+	}
+
+	static byte[] Input(IEnumerable<object> messages)
+	{
+		return [.. messages.SelectMany(LspClient.Frame)];
+	}
+
+	/// <summary>How long the server takes to read an input to its end, everything in it handled as it is read.</summary>
+	static TimeSpan Run(byte[] input)
+	{
+		var connection = new JsonRpcConnection(new MemoryStream(input, writable: false), Stream.Null);
+		var server     = new GramLanguageServer(connection, new ServerOptions
+		{
+			CSharp  = false,
+
+			// What is measured is the edits' handling; an analysis started in the background is not
+			// part of it and would slow the runs after it.
+			Analyze = static (_, _, _, _) => new StandaloneAnalysis(GramAnalysisSession.EmptyDocument, []),
+		});
+		var watch      = Stopwatch.StartNew();
+
+		connection.RunAsync(server, TestContext.Current.CancellationToken).GetAwaiter().GetResult();
+
+		return watch.Elapsed;
+	}
+
+	static TimeSpan Median(Func<TimeSpan> measure)
+	{
+		return Enumerable.Range(0, 5).Select(_ => measure()).Order().ElementAt(2);
 	}
 
 	/// <summary>Every grammar of the repository coloured through the protocol exactly as its classifications say, through the legend.</summary>
