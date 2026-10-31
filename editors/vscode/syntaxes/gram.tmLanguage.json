@@ -1,0 +1,156 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": ".Gram",
+  "scopeName": "source.gram",
+  "comment": "The colours a .gram file has before the language server answers. The server's semantic tokens are the truth; the keyword and built-in rule lists here are held to the language core's vocabulary by a test (tests/DotGram.LanguageServer.Tests).",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#embedded"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#characters"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#builtins"
+    },
+    {
+      "include": "#bindings"
+    },
+    {
+      "include": "#transitions"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#punctuation"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.gram",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.gram",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.gram",
+      "begin": "\"",
+      "end": "\"(i)?",
+      "endCaptures": {
+        "1": {
+          "name": "storage.modifier.case-insensitive.gram"
+        }
+      },
+      "patterns": [
+        {
+          "name": "constant.character.escape.gram",
+          "match": "\\\\(?:u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8}|x[0-9A-Fa-f]{1,4}|.)"
+        }
+      ]
+    },
+    "characters": {
+      "name": "string.quoted.single.gram",
+      "begin": "'",
+      "end": "'(i)?",
+      "endCaptures": {
+        "1": {
+          "name": "storage.modifier.case-insensitive.gram"
+        }
+      },
+      "patterns": [
+        {
+          "name": "constant.character.escape.gram",
+          "match": "\\\\(?:u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8}|x[0-9A-Fa-f]{1,4}|.)"
+        }
+      ]
+    },
+    "numbers": {
+      "name": "constant.numeric.gram",
+      "match": "\\b[0-9]+\\b"
+    },
+    "keywords": {
+      "name": "keyword.control.gram",
+      "match": "\\b(?:using|namespace|parse|find|as|with|when|is|not|and|or|switch|case|default|recover|on|fail|public|internal|private|context|state|stream|bytes|yield)\\b"
+    },
+    "builtins": {
+      "name": "support.function.builtin.gram",
+      "match": "\\b(?:any|none|eol|eof|eos|trivia|word|wordboundary)\\b"
+    },
+    "bindings": {
+      "name": "variable.other.binding.gram",
+      "match": "[$#][A-Za-z_][A-Za-z0-9_]*"
+    },
+    "embedded": {
+      "comment": "C# in @( ... ), its parentheses balanced.",
+      "begin": "(@)(\\()",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.control.transition.gram"
+        },
+        "2": {
+          "name": "punctuation.section.embedded.begin.gram"
+        }
+      },
+      "end": "\\)",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.section.embedded.end.gram"
+        }
+      },
+      "contentName": "meta.embedded.expression.cs",
+      "patterns": [
+        {
+          "include": "#parentheses"
+        },
+        {
+          "include": "source.cs"
+        }
+      ]
+    },
+    "parentheses": {
+      "begin": "\\(",
+      "end": "\\)",
+      "patterns": [
+        {
+          "include": "#parentheses"
+        },
+        {
+          "include": "source.cs"
+        }
+      ]
+    },
+    "transitions": {
+      "comment": "@using, and a C# type: @int, @Build.Statement[].",
+      "match": "@",
+      "name": "keyword.control.transition.gram"
+    },
+    "operators": {
+      "name": "keyword.operator.gram",
+      "match": "=>|\\.\\.|\\?=|\\?!|[=|&~?*+\\-!^:<>]"
+    },
+    "punctuation": {
+      "name": "punctuation.separator.gram",
+      "match": "[()\\[\\]{},;.]"
+    }
+  }
+}
