@@ -538,18 +538,32 @@ public static class GramLanguageService
 					break;
 
 				case Decl.Publish publish:
-					var target = tokens.FirstOrDefault(token =>
+					// A rule published by a qualified name, `parse Dialect.Select`, is several tokens:
+					// the name is selected from its first to its last.
+					var segments = publish.RuleName.Split('.');
+					var first    = tokens.FirstOrDefault(token =>
 						token.Kind == TokenKind.Identifier &&
-						token.Value == publish.RuleName &&
+						token.Value == segments[0] &&
 						token.Position >= declaration.At.Position &&
 						token.Position < declaration.At.End);
+					var last     = segments.Length == 1 || first.Length == 0
+						? first
+						: tokens.FirstOrDefault(token =>
+							token.Kind == TokenKind.Identifier &&
+							token.Value == segments[segments.Length - 1] &&
+							token.Position > first.Position &&
+							token.Position < declaration.At.End);
+					var named    = last.Length == 0 ? first : last;
+					var selected = first.Length == 0
+						? (Position: declaration.At.Position, Length: 0)
+						: (first.Position, Length: named.Position + named.Length - first.Position);
 					result.Add(new GramDocumentSymbol(
 						$"{publish.Kind.ToString().ToLowerInvariant()} {publish.RuleName}",
 						GramDocumentSymbolKind.Publication,
 						declaration.At.Position,
 						end - declaration.At.Position,
-						target.Position,
-						target.Length,
+						selected.Position,
+						selected.Length,
 						[]));
 					break;
 			}
