@@ -2,16 +2,16 @@
 
 This folder and `../Grammar/` are where the DotGram language is understood: how a grammar is tokenized, parsed, bound
 and checked, and — for an editor — classified, navigated and described. The source generator compiles them to write
-parsers; the Visual Studio extension compiles them to show the same language in an editor, and a language server for
-other editors is to compile them the same way. Language knowledge belongs here, as functions over a `GramDocument`, a
+parsers; the Visual Studio extension compiles them to show the same language in an editor, and the language server
+for other editors (`src/DotGram.LanguageServer`, which the VS Code extension runs) compiles them the same way. Language knowledge belongs here, as functions over a `GramDocument`, a
 `GrammarModel` or a `RecognitionGraph` returning plain data; an editor adapter maps that data onto its own protocol
 and adds nothing the other editors would then lack.
 
 ## Who compiles it, and why sources rather than an assembly
 
 The file list is `../Language.projitems`; every host imports it and compiles the same sources into its own assembly:
-the Visual Studio extension (net472), the tests in `tests/DotGram.Language.Tests` and `tests/DotGram.Language.Tests.Slow`,
-and the guard below. The generator compiles `Grammar/**` and three Roslyn seams in this folder — the scanner of `@(...)`
+the Visual Studio extension (net472), the language server (net10), the tests in `tests/DotGram.Language.Tests`,
+`tests/DotGram.Language.Tests.Slow` and `tests/DotGram.LanguageServer.Tests`, and the guard below. The generator compiles `Grammar/**` and three Roslyn seams in this folder — the scanner of `@(...)`
 (`RoslynCSharpScanner`), the walk of included grammars (`GramIncludes`) and the reading of a `[Gram]`'s options
 (`GramHostOptions`) — and leaves the rest of the folder out: an analyzer must not carry editor code or Roslyn's
 Workspaces.
