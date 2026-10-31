@@ -114,10 +114,10 @@ public static class ExponentialRepetition
 			var places = new List<Place>();
 			var walked = new HashSet<Node>(NodeIdentity.Instance);
 
-			Collect(body, -1, braced: false, places, walked);
+			Collect(body, -1, braced: false, over, places, walked);
 
 			if (over.Folds.TryGetValue(rule, out var fold))
-				Collect(fold.Loop, -1, braced: false, places, walked);
+				Collect(fold.Loop, -1, braced: false, over, places, walked);
 
 			foreach (var place in places)
 			{
@@ -170,7 +170,7 @@ public static class ExponentialRepetition
 
 	/// <summary>Every unbounded repetition in a body, not entering calls, each with the one around it.</summary>
 	/// <param name="braced">Whether the node stands directly in braces, with nothing after it there.</param>
-	static void Collect(Node node, int parent, bool braced, List<Place> places, HashSet<Node> walked)
+	static void Collect(Node node, int parent, bool braced, RecognitionGraph graph, List<Place> places, HashSet<Node> walked)
 	{
 		if (!walked.Add(node))
 			return;
@@ -182,27 +182,28 @@ public static class ExponentialRepetition
 			{
 				var at = parent;
 
-				// In braces with nothing after it, what it read is committed once it ends.
-				if (!braced)
+				// In braces with nothing after it, what it read is committed once it ends; a
+				// repetition marked `recover` commits each turn it finishes (§8.2).
+				if (!braced && !graph.Recoveries.ContainsKey(node))
 				{
 					places.Add(new Place(node, parent));
 					at = places.Count - 1;
 				}
 
 				foreach (var child in node.Children)
-					Collect(child, at, braced: false, places, walked);
+					Collect(child, at, braced: false, graph, places, walked);
 
 				return;
 			}
 
 			case Node.Atomic(var body):
-				Collect(body, parent, braced: true, places, walked);
+				Collect(body, parent, braced: true, graph, places, walked);
 
 				return;
 
 			case Node.Capture or Node.Marked or Node.Construct or Node.Bind:
 				foreach (var child in node.Children)
-					Collect(child, parent, braced, places, walked);
+					Collect(child, parent, braced, graph, places, walked);
 
 				return;
 
@@ -213,14 +214,15 @@ public static class ExponentialRepetition
 		}
 
 		foreach (var child in node.Children)
-			Collect(child, parent, braced: false, places, walked);
+			Collect(child, parent, braced: false, graph, places, walked);
 	}
 
 	/// <summary>What a letter reads: characters (or kinds), or one opaque thing.</summary>
 	/// <param name="Reads">The characters, or null for an opaque letter.</param>
 	/// <param name="Opaque">The opaque thing's number, -1 for characters.</param>
 	/// <param name="Name">How the witness writes it, for an opaque letter.</param>
-	readonly record struct Letter(FirstSets.First? Reads, int Opaque, string Name);
+	/// <param name="NotAfter">What the character before it may not be, where a look behind it says (§4.6).</param>
+	readonly record struct Letter(FirstSets.First? Reads, int Opaque, string Name, FirstSets.First? NotAfter = null);
 
 	/// <summary>The edges and letters of one fragment of a body, Glushkov's way.</summary>
 	/// <param name="First">The letters it can begin with, each with how many ways.</param>
@@ -465,13 +467,18 @@ public static class ExponentialRepetition
 		{
 			var fragment = Fragment.Nothing;
 
-			FirstSets.First? refused = null;
-			FirstSets.First? wanted  = null;
+			FirstSets.First? refused  = null;
+			FirstSets.First? wanted   = null;
+			FirstSets.First? notAfter = null;
 
 			foreach (var part in parts)
 			{
 				switch (part)
 				{
+					case Node.Behind(var test):
+						notAfter = Joined(notAfter, FirstSets.OfElement(test));
+						continue;
+
 					case Node.Lookahead(false, var body) when OneClass(body) is { } one:
 						refused = refused is null ? one : refused.Or(one);
 						continue;
@@ -487,6 +494,11 @@ public static class ExponentialRepetition
 				var letters = Letters.Count;
 				var edges   = Edges.Count;
 				var next    = Of(part);
+
+				if (notAfter is not null)
+					Behind(next, letters, edges, notAfter);
+
+				notAfter = null;
 
 				if (refused is not null || wanted is not null)
 				{
@@ -585,6 +597,19 @@ public static class ExponentialRepetition
 			var first = FirstSets.Of(body, context.Graph);
 
 			return first.IsKnown ? FirstSets.First.Chars(first.Ranges) : null;
+		}
+
+		/// <summary>The letters an operand begins with, held to what may not stand before them.</summary>
+		void Behind(Fragment next, int letters, int edges, FirstSets.First notAfter)
+		{
+			var returned = new HashSet<int>();
+
+			for (var i = edges; i < Edges.Count; i++)
+				returned.Add(Edges[i].To);
+
+			foreach (var (at, _) in next.First)
+				if (at >= letters && !returned.Contains(at))
+					Letters[at] = Letters[at] with { NotAfter = notAfter };
 		}
 
 		/// <summary>The characters a look asks about, where it is one class: a class, a character, or a choice of them, at most <c>any</c> after it.</summary>
@@ -767,7 +792,7 @@ public static class ExponentialRepetition
 		{
 			foreach (var (one, ways, refused) in from)
 				foreach (var (other, more) in to)
-					if (!Blocked(refused, other))
+					if (!Blocked(refused, other) && !(Letters[other].NotAfter is { } notAfter && Letters[one].Reads is { } reads && notAfter.Covers(reads)))
 						Edges.Add((one, other, Ways(ways * more)));
 		}
 
