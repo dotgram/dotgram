@@ -89,6 +89,43 @@ public sealed class ExponentialRepetitionTests
 		Assert.Equal("R", told.Rule.Name);
 	}
 
+	/// <summary>
+	/// An address's words without the braces the library puts on them: folding white space and
+	/// comments optional on both sides of a word that a phrase repeats.
+	/// </summary>
+	[Fact]
+	public void The_unbraced_address_word_is_told()
+	{
+		var told = Assert.Single(Analyse(Address(braced: false)).Found);
+
+		Assert.Equal("ObsPhrase", told.Rule.Name);
+		Assert.Equal("AtomText {…} AtomText", told.Witness);
+	}
+
+	/// <summary>The same words as the library writes them, sealed: nothing is told.</summary>
+	[Fact]
+	public void The_braced_address_word_is_not_told()
+	{
+		Assert.Empty(Analyse(Address(braced: true)).Found);
+	}
+
+	/// <summary>A copy of the address phrase, its word braced as the library braces it or not.</summary>
+	internal static string Address(bool braced)
+	{
+		var word = braced ? "{ Cfws? & (AtomText | QuotedBody) & Cfws? }" : "Cfws? & (AtomText | QuotedBody) & Cfws?";
+
+		return
+			"Fws        = [' ' | '\\t']+\n" +
+			"Comment    = '(' & { [^ ')']* } & ')'\n" +
+			"Cfws       = { (Fws? & Comment)+ & Fws? } | Fws\n" +
+			"AtomText   = { ['a'..'z' | 'A'..'Z' | '0'..'9' | '!' | '#']+ }\n" +
+			"QuotedBody = '\"' & { [^ '\"']* } & '\"'\n" +
+			$"WordText   = {word}\n" +
+			"ObsPhrase  = WordText & (WordText | { '.' & Cfws? })*\n" +
+			"R          = ObsPhrase & '<' & ['a'..'z']+ & '>'\n" +
+			"parse R\n";
+	}
+
 	/// <summary>Only the innermost of a nest is told: the one around it is ambiguous because of it.</summary>
 	[Fact]
 	public void The_innermost_of_a_nest_is_told()
@@ -254,6 +291,18 @@ public sealed class ExponentialRepetitionTests
 		Assert.True(result.Opaque > 0);
 	}
 
+	/// <summary>
+	/// A false report, pinned: a look of more than one character is taken as reading nothing, so
+	/// the second reading it removes is still seen. The warning there is wrong, and is silenced.
+	/// </summary>
+	[Fact]
+	public void A_look_of_more_than_one_character_is_a_false_report()
+	{
+		var told = Assert.Single(Analyse("R = (?!\"aa\" & 'a' | \"aa\")+ & 'b'\nparse R\n").Found);
+
+		Assert.Equal("'a' 'a'", told.Witness);
+	}
+
 	/// <summary>A call past the inlining budget is opaque and counted, and the repetition is still asked.</summary>
 	[Fact]
 	public void A_call_past_the_inlining_budget_is_opaque()
@@ -278,15 +327,86 @@ public sealed class ExponentialRepetitionTests
 	}
 
 	/// <summary>
+	/// The warning: at the rule, as the author named it, with the repetition and the shortest text
+	/// it reads two ways, and once for a repetition however many nest around it.
+	/// </summary>
+	[Fact]
+	public void The_warning_is_said_at_the_rule_once_a_repetition()
+	{
+		const string grammar = "S = 'x'\nRun = (('a' | 'a' & 'a')+)* & 'b'\nparse Run\n";
+
+		var told = Assert.Single(Compiled(grammar), static one => one.Id == GramCompiler.ExponentialRepetitions);
+
+		Assert.Equal(GramSeverity.Warning, told.Severity);
+		Assert.Equal("Run = (('a' | 'a' & 'a')+)* & 'b'", grammar.Substring(told.Position, told.Length));
+		Assert.Equal(
+			"The repetition '('a' | \"aa\")+' in 'Run' can read 'a' 'a' in two ways, so a refused input is read again " +
+			"for every way of cutting it: exponentially many times (docs/syntax.md §3.3).",
+			told.Message);
+	}
+
+	/// <summary>Two repetitions of one rule are two warnings.</summary>
+	[Fact]
+	public void Each_repetition_is_said_once()
+	{
+		var told = Compiled("Run = ('x'+)* & ',' & ('y'+)+ & 'b'\nparse Run\n")
+			.Where(static one => one.Id == GramCompiler.ExponentialRepetitions)
+			.Select(static one => one.Message)
+			.ToArray();
+
+		Assert.Equal(2, told.Length);
+		Assert.Contains("'x' 'x'", told[0], StringComparison.Ordinal);
+		Assert.Contains("'y' 'y'", told[1], StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// A repetition of an included grammar is that grammar's to be told about; a repetition of the
+	/// author's own over a rule it includes is the author's.
+	/// </summary>
+	[Fact]
+	public void A_repetition_of_an_included_grammar_is_not_said_where_it_is_included()
+	{
+		const string own      = "using L;\nRun = (Word | Word & Word)+ & ';' & Runs\nparse Run\n";
+		const string included = "Word = { ['a'..'z']+ }\nRuns = ('x'+)* & 'b'\n";
+
+		var (joined, map) = GrammarSplice.Join(new GrammarSplice.Part(own, null, null), [new GrammarSplice.Part(included, "L", null)]);
+
+		var told = GramCompiler.Compile(joined, new GramCompilerOptions
+		{
+			CSharpScanner = RoslynCSharpScanner.Instance,
+			Own           = own.Length,
+			Cuts          = GrammarSplice.Cuts(joined, map.Segments.Skip(1).Select(static one => (one.Start, one.Length))),
+		}).Diagnostics.Where(static one => one.Id == GramCompiler.ExponentialRepetitions).ToArray();
+
+		Assert.Contains("in 'Run'", Assert.Single(told).Message, StringComparison.Ordinal);
+	}
+
+	/// <summary>Over kinds the warning is said too, in a rule that gives back.</summary>
+	[Fact]
+	public void The_warning_is_said_over_kinds()
+	{
+		var told = GramCompiler.Compile(
+			Split + "R? = (Token.Id | Token.Id & Token.Id)+ & ';'\nStart = R & eof\nparse Start\n",
+			new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance, Lexical = true }).Diagnostics;
+
+		Assert.Contains("in 'R'", Assert.Single(told, static one => one.Id == GramCompiler.ExponentialRepetitions).Message, StringComparison.Ordinal);
+	}
+
+	static IReadOnlyList<GramDiagnostic> Compiled(string grammar)
+	{
+		return GramCompiler.Compile(grammar, new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance }).Diagnostics;
+	}
+
+	/// <summary>
 	/// Every grammar in the repository, asked: what is told, where, with what witness, and how
 	/// much of each grammar the analysis could not see.
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// A report and not yet a guard: it writes <c>ExponentialRepetitions.txt</c> beside the
-	/// assembly and to the output, and asserts nothing. A hit is either a grammar that a refused
-	/// input can drive exponentially, which is a defect of that grammar, or a shape the analysis
-	/// takes for one, which is a defect of the analysis; each is judged by driving it.
+	/// A report and a guard: it writes <c>ExponentialRepetitions.txt</c> beside the assembly and
+	/// to the output, and holds what is told to <see cref="Triaged"/>. A hit is either a grammar
+	/// that a refused input can drive exponentially, which is a defect of that grammar to mend, or
+	/// one that is told and cannot be, judged by driving it and listed there with why.
 	/// </para>
 	/// <para>
 	/// The grammars are the files and every <c>[Gram]</c> attribute, however its text is written,
@@ -302,6 +422,7 @@ public sealed class ExponentialRepetitionTests
 		var report = new StringBuilder();
 		var hits   = 0;
 		var read   = 0;
+		var found  = new List<string>();
 
 		foreach (var grammar in Grammars(root))
 		{
@@ -350,6 +471,7 @@ public sealed class ExponentialRepetitionTests
 						: 0;
 
 					report.AppendLine($"  HIT {told.Rule.Name} (line {line}): {Shortened(told.Loop.ToString())} reads {told.Witness} in two ways");
+					found.Add($"{name.Split(':')[0]} {told.Rule.Name}");
 				}
 			}
 		}
@@ -361,7 +483,23 @@ public sealed class ExponentialRepetitionTests
 		File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "ExponentialRepetitions.txt"), written);
 		TestContext.Current.SendDiagnosticMessage(written);
 		Console.WriteLine(written);
+
+		Assert.True(read > 300, $"Only {read} grammars were read; the walk over the repository is broken.");
+		Assert.Equal(Triaged.Keys.Order(StringComparer.Ordinal), found.Distinct().Order(StringComparer.Ordinal));
 	}
+
+	/// <summary>The repetitions of the repository that are told, each with why it is not mended.</summary>
+	static readonly Dictionary<string, string> Triaged = new(StringComparer.Ordinal)
+	{
+		// Every argument is a value where nothing else reads it, `Value = any*`: every list is
+		// accepted, and nothing is refused after the two readings of `-o`. The snapshot beside it
+		// was written from this text.
+		["Segmented.gram Args"] = "accepts every input",
+
+		// The lookahead in front of the decimal refuses what `Long` would read, which a look of
+		// more than one character cannot show the analysis; the example silences it, with why.
+		["MetricsLineExample.cs Line"] = "a look of more than one character",
+	};
 
 	static double Milliseconds(long ticks)
 	{
