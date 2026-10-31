@@ -16,6 +16,18 @@
 		<PackageReference Include="xunit.v3" />
 	</ItemGroup>
 
+	<!-- The recording of the playground's answers drives the extension's own classes, which need the
+	     editor's assemblies at run time and a WPF dispatcher for Quick Info. -->
+	<PropertyGroup>
+		<UseWPF>true</UseWPF>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.VisualStudio.SDK" />
+		<PackageReference Include="Microsoft.VisualStudio.LanguageServices" />
+		<PackageReference Include="Moq" />
+	</ItemGroup>
+
 	<ItemGroup>
 		<!-- What the extension is tried against by hand: the grammars of Playground/, which
 		     are compiled here so that Visual Studio has a real compilation behind them. A
