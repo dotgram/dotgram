@@ -1,0 +1,2017 @@
+completion 15:22 applicable=15:22+4
+  and | insert=and | suffix= | sort=and | filter=and | DotGram keyword and: in a 'when' condition: both conditions hold
+  any | insert=any | suffix= | sort=any | filter=any | DotGram built-in rule any: one input item, whatever it is; fails only where there is none left
+  as | insert=as | suffix= | sort=as | filter=as | DotGram keyword as: names the method a 'parse' or 'find' publishes
+  Backtracking | insert=Backtracking | suffix=? | sort=Backtracking | filter=Backtracking | Backtracking? = 'x'?
+  bytes | insert=bytes | suffix= | sort=bytes | filter=bytes | DotGram keyword bytes: a publication option after 'stream': the method reads bytes, from a Stream, a byte[] or a ReadOnlyMemory<byte>
+  case | insert=case | suffix= | sort=case | filter=case | DotGram keyword case: a case of a computed choice: 'case value: Expr;'
+  context | insert=context | suffix= | sort=context | filter=context | DotGram keyword context: 'context : @T' declares the object every publication is handed and the C# code reads as 'context'
+  default | insert=default | suffix= | sort=default | filter=default | DotGram keyword default: the case of a computed choice taken where no other case matches
+  Digits | insert=Digits( | suffix=(n) | sort=Digits | filter=Digits | Digits(n) = ['0'..'9']{n}
+  eof | insert=eof | suffix= | sort=eof | filter=eof | DotGram built-in rule eof: the end of the input: succeeds exactly where 'any' would fail, consuming nothing
+  eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
+  eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
+  Excluded | insert=Excluded | suffix= | sort=Excluded | filter=Excluded | Excluded = ?! 'z' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
+  Fixed | insert=Fixed | suffix= | sort=Fixed | filter=Fixed | Fixed     = Digits(4)\n\nReferenced rule:\nDigits(n) = ['0'..'9']{n}
+  Guarded | insert=Guarded | suffix= | sort=Guarded | filter=Guarded | Guarded  = ?= 'a' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
+  Insensitive | insert=Insensitive | suffix= | sort=Insensitive | filter=Insensitive | Insensitive = "select"i | 'x'i
+  internal | insert=internal | suffix= | sort=internal | filter=internal | DotGram keyword internal: a publication's method is internal: the assembly and its friends
+  is | insert=is | suffix= | sort=is | filter=is | DotGram keyword is: in a 'when' condition: 'Rule is "text"' holds where the rule is bound to that text
+  LazyItem | insert=LazyItem | suffix= : @int | sort=LazyItem | filter=LazyItem | LazyItem : @int = 'x' => @(1)
+  LazyItems | insert=LazyItems | suffix= : @int[] | sort=LazyItems | filter=LazyItems | LazyItems : @int[] = LazyItem*\n\nReferenced rule:\nLazyItem : @int = 'x' => @(1)
+  left | insert=left | suffix= | sort=left | filter=left | left: DotGram capture
+  Marked | insert=Marked | suffix= | sort=Marked | filter=Marked | Marked = 'm' & Row with state @(1)\n\nReferenced rule:\nRow  = ['a'..'z']+
+  namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
+  none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
+  not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  op | insert=op | suffix= | sort=op | filter=op | op: DotGram capture
+  or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
+  parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+  Power | insert=Power | suffix=   : @decimal | sort=Power | filter=Power | Power   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nRecursive reference: Power
+  Primary | insert=Primary | suffix= : @decimal | sort=Primary | filter=Primary | Primary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nRecursive reference: Primary
+  private | insert=private | suffix= | sort=private | filter=private | DotGram keyword private: a publication's method is private to the class the grammar is attached to
+  Product | insert=Product | suffix= : @decimal | sort=Product | filter=Product | Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nRecursive reference: Product
+  public | insert=public | suffix= | sort=public | filter=public | DotGram keyword public: a publication's method is public (the default)
+  recover | insert=recover | suffix= | sort=recover | filter=recover | DotGram keyword recover: a repetition that survives a bad element: 'X* recover Sync' skips to Sync and goes on; '=> @Factory(...)' builds the rejected element
+  right | insert=right | suffix= | sort=right | filter=right | right: DotGram capture
+  Row | insert=Row | suffix= | sort=Row | filter=Row | Row  = ['a'..'z']+
+  Selected | insert=Selected | suffix= | sort=Selected | filter=Selected | Selected = switch @(1) { case 1: Insensitive; default: 'x' }\n\nReferenced rule:\nInsensitive = "select"i | 'x'i
+  Shift | insert=Shift | suffix= | sort=Shift | filter=Shift | Shift = '>' ~ '>'
+  state | insert=state | suffix= | sort=state | filter=state | DotGram keyword state: 'state : @T' declares what holds while an operand is read; 'with state @(...)' sets it and 'parserState' reads it
+  stream | insert=stream | suffix= | sort=stream | filter=stream | DotGram keyword stream: a publication option: the method also reads a TextReader, or with 'bytes' a byte Stream
+  Sum | insert=Sum | suffix=     : @decimal | sort=Sum | filter=Sum | Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nRecursive reference: Sum
+  switch | insert=switch | suffix= | sort=switch | filter=switch | DotGram keyword switch: computed choice: 'switch @(selector) { case value: Expr; default: Expr }' reads the case the C# selector names
+  trivia | insert=trivia | suffix= | sort=trivia | filter=trivia | trivia = [' ' | '\\t']*
+  Unary | insert=Unary | suffix=   : @decimal | sort=Unary | filter=Unary | Unary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nRecursive reference: Unary
+  using | insert=using | suffix= | sort=using | filter=using | DotGram keyword using: imports a grammar namespace, as in 'using Lexical;'; '@using' imports a C# namespace
+  value | insert=value | suffix= | sort=value | filter=value | value: DotGram capture
+  when | insert=when | suffix= | sort=when | filter=when | DotGram keyword when: a guard: the alternative goes on only where the condition holds, as in 'when @IsValid(x)', 'when @(x > 0)' or 'when Version is "2022"'
+  with | insert=with | suffix= | sort=with | filter=with | DotGram keyword with: rebinds names for an expression, a namespace or a publication: 'with (A = B)'; 'with state @(...)' sets the parser state while its operand is read
+  word | insert=word | suffix= | sort=word | filter=word | DotGram built-in rule word: one whole word, whatever it says, as 'wordboundary' defines a word
+  wordboundary | insert=wordboundary | suffix= | sort=wordboundary | filter=wordboundary | DotGram built-in rule wordboundary: what a word is made of; none until the grammar declares 'wordboundary'
+  yield | insert=yield | suffix= | sort=yield | filter=yield | DotGram keyword yield: a publication option: the method returns the elements of a sequence lazily, 'yield : @T' naming their type
+completion 15:30 applicable=15:28+3
+  and | insert=and | suffix= | sort=and | filter=and | DotGram keyword and: in a 'when' condition: both conditions hold
+  any | insert=any | suffix= | sort=any | filter=any | DotGram built-in rule any: one input item, whatever it is; fails only where there is none left
+  as | insert=as | suffix= | sort=as | filter=as | DotGram keyword as: names the method a 'parse' or 'find' publishes
+  Backtracking | insert=Backtracking | suffix=? | sort=Backtracking | filter=Backtracking | Backtracking? = 'x'?
+  bytes | insert=bytes | suffix= | sort=bytes | filter=bytes | DotGram keyword bytes: a publication option after 'stream': the method reads bytes, from a Stream, a byte[] or a ReadOnlyMemory<byte>
+  case | insert=case | suffix= | sort=case | filter=case | DotGram keyword case: a case of a computed choice: 'case value: Expr;'
+  context | insert=context | suffix= | sort=context | filter=context | DotGram keyword context: 'context : @T' declares the object every publication is handed and the C# code reads as 'context'
+  default | insert=default | suffix= | sort=default | filter=default | DotGram keyword default: the case of a computed choice taken where no other case matches
+  Digits | insert=Digits( | suffix=(n) | sort=Digits | filter=Digits | Digits(n) = ['0'..'9']{n}
+  eof | insert=eof | suffix= | sort=eof | filter=eof | DotGram built-in rule eof: the end of the input: succeeds exactly where 'any' would fail, consuming nothing
+  eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
+  eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
+  Excluded | insert=Excluded | suffix= | sort=Excluded | filter=Excluded | Excluded = ?! 'z' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
+  Fixed | insert=Fixed | suffix= | sort=Fixed | filter=Fixed | Fixed     = Digits(4)\n\nReferenced rule:\nDigits(n) = ['0'..'9']{n}
+  Guarded | insert=Guarded | suffix= | sort=Guarded | filter=Guarded | Guarded  = ?= 'a' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
+  Insensitive | insert=Insensitive | suffix= | sort=Insensitive | filter=Insensitive | Insensitive = "select"i | 'x'i
+  internal | insert=internal | suffix= | sort=internal | filter=internal | DotGram keyword internal: a publication's method is internal: the assembly and its friends
+  is | insert=is | suffix= | sort=is | filter=is | DotGram keyword is: in a 'when' condition: 'Rule is "text"' holds where the rule is bound to that text
+  LazyItem | insert=LazyItem | suffix= : @int | sort=LazyItem | filter=LazyItem | LazyItem : @int = 'x' => @(1)
+  LazyItems | insert=LazyItems | suffix= : @int[] | sort=LazyItems | filter=LazyItems | LazyItems : @int[] = LazyItem*\n\nReferenced rule:\nLazyItem : @int = 'x' => @(1)
+  left | insert=left | suffix= | sort=left | filter=left | left: DotGram capture
+  Marked | insert=Marked | suffix= | sort=Marked | filter=Marked | Marked = 'm' & Row with state @(1)\n\nReferenced rule:\nRow  = ['a'..'z']+
+  namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
+  none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
+  not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  op | insert=op | suffix= | sort=op | filter=op | op: DotGram capture
+  or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
+  parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+  Power | insert=Power | suffix=   : @decimal | sort=Power | filter=Power | Power   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nRecursive reference: Power
+  Primary | insert=Primary | suffix= : @decimal | sort=Primary | filter=Primary | Primary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nRecursive reference: Primary
+  private | insert=private | suffix= | sort=private | filter=private | DotGram keyword private: a publication's method is private to the class the grammar is attached to
+  Product | insert=Product | suffix= : @decimal | sort=Product | filter=Product | Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nRecursive reference: Product
+  public | insert=public | suffix= | sort=public | filter=public | DotGram keyword public: a publication's method is public (the default)
+  recover | insert=recover | suffix= | sort=recover | filter=recover | DotGram keyword recover: a repetition that survives a bad element: 'X* recover Sync' skips to Sync and goes on; '=> @Factory(...)' builds the rejected element
+  right | insert=right | suffix= | sort=right | filter=right | right: DotGram capture
+  Row | insert=Row | suffix= | sort=Row | filter=Row | Row  = ['a'..'z']+
+  Selected | insert=Selected | suffix= | sort=Selected | filter=Selected | Selected = switch @(1) { case 1: Insensitive; default: 'x' }\n\nReferenced rule:\nInsensitive = "select"i | 'x'i
+  Shift | insert=Shift | suffix= | sort=Shift | filter=Shift | Shift = '>' ~ '>'
+  state | insert=state | suffix= | sort=state | filter=state | DotGram keyword state: 'state : @T' declares what holds while an operand is read; 'with state @(...)' sets it and 'parserState' reads it
+  stream | insert=stream | suffix= | sort=stream | filter=stream | DotGram keyword stream: a publication option: the method also reads a TextReader, or with 'bytes' a byte Stream
+  Sum | insert=Sum | suffix=     : @decimal | sort=Sum | filter=Sum | Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nRecursive reference: Sum
+  switch | insert=switch | suffix= | sort=switch | filter=switch | DotGram keyword switch: computed choice: 'switch @(selector) { case value: Expr; default: Expr }' reads the case the C# selector names
+  trivia | insert=trivia | suffix= | sort=trivia | filter=trivia | trivia = [' ' | '\\t']*
+  Unary | insert=Unary | suffix=   : @decimal | sort=Unary | filter=Unary | Unary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nRecursive reference: Unary
+  using | insert=using | suffix= | sort=using | filter=using | DotGram keyword using: imports a grammar namespace, as in 'using Lexical;'; '@using' imports a C# namespace
+  value | insert=value | suffix= | sort=value | filter=value | value: DotGram capture
+  when | insert=when | suffix= | sort=when | filter=when | DotGram keyword when: a guard: the alternative goes on only where the condition holds, as in 'when @IsValid(x)', 'when @(x > 0)' or 'when Version is "2022"'
+  with | insert=with | suffix= | sort=with | filter=with | DotGram keyword with: rebinds names for an expression, a namespace or a publication: 'with (A = B)'; 'with state @(...)' sets the parser state while its operand is read
+  word | insert=word | suffix= | sort=word | filter=word | DotGram built-in rule word: one whole word, whatever it says, as 'wordboundary' defines a word
+  wordboundary | insert=wordboundary | suffix= | sort=wordboundary | filter=wordboundary | DotGram built-in rule wordboundary: what a word is made of; none until the grammar declares 'wordboundary'
+  yield | insert=yield | suffix= | sort=yield | filter=yield | DotGram keyword yield: a publication option: the method returns the elements of a sequence lazily, 'yield : @T' naming their type
+completion 15:15 applicable=15:12+7
+completion 15:90 applicable=15:88+4
+  parserText | insert=parserText | suffix= | sort=parserText | filter=parserText | DotGram supplied name parserText: the input the element covers, as a string
+  parserSpan | insert=parserSpan | suffix= | sort=parserSpan | filter=parserSpan | DotGram supplied name parserSpan: the element's extent in the input
+  parserInput | insert=parserInput | suffix= | sort=parserInput | filter=parserInput | DotGram supplied name parserInput: the whole of what was read, as a string
+  parserState | insert=parserState | suffix= | sort=parserState | filter=parserState | DotGram supplied name parserState: the marks 'with state' placed over the construction, outermost first (ReadOnlySpan of the declared state type)
+  parserMarks | insert=parserMarks | suffix= | sort=parserMarks | filter=parserMarks | DotGram supplied name parserMarks: for each mark in parserState, where in the input the reading under it began, outermost first (ReadOnlySpan<int>)
+  left | insert=left | suffix= | sort=left | filter=left | left: DotGram capture
+  op | insert=op | suffix= | sort=op | filter=op | op: DotGram capture
+  right | insert=right | suffix= | sort=right | filter=right | right: DotGram capture
+  value | insert=value | suffix= | sort=value | filter=value | value: DotGram capture
+completion 16:76 applicable=16:76+5
+  parserText | insert=parserText | suffix= | sort=parserText | filter=parserText | DotGram supplied name parserText: the input the element covers, as a string
+  parserSpan | insert=parserSpan | suffix= | sort=parserSpan | filter=parserSpan | DotGram supplied name parserSpan: the element's extent in the input
+  parserInput | insert=parserInput | suffix= | sort=parserInput | filter=parserInput | DotGram supplied name parserInput: the whole of what was read, as a string
+  parserState | insert=parserState | suffix= | sort=parserState | filter=parserState | DotGram supplied name parserState: the marks 'with state' placed over the construction, outermost first (ReadOnlySpan of the declared state type)
+  parserMarks | insert=parserMarks | suffix= | sort=parserMarks | filter=parserMarks | DotGram supplied name parserMarks: for each mark in parserState, where in the input the reading under it began, outermost first (ReadOnlySpan<int>)
+  left | insert=left | suffix= | sort=left | filter=left | left: DotGram capture
+  op | insert=op | suffix= | sort=op | filter=op | op: DotGram capture
+  right | insert=right | suffix= | sort=right | filter=right | right: DotGram capture
+  value | insert=value | suffix= | sort=value | filter=value | value: DotGram capture
+completion 41:20 applicable=41:20+1
+  and | insert=and | suffix= | sort=and | filter=and | DotGram keyword and: in a 'when' condition: both conditions hold
+  any | insert=any | suffix= | sort=any | filter=any | DotGram built-in rule any: one input item, whatever it is; fails only where there is none left
+  as | insert=as | suffix= | sort=as | filter=as | DotGram keyword as: names the method a 'parse' or 'find' publishes
+  Backtracking | insert=Backtracking | suffix=? | sort=Backtracking | filter=Backtracking | Backtracking? = 'x'?
+  bytes | insert=bytes | suffix= | sort=bytes | filter=bytes | DotGram keyword bytes: a publication option after 'stream': the method reads bytes, from a Stream, a byte[] or a ReadOnlyMemory<byte>
+  case | insert=case | suffix= | sort=case | filter=case | DotGram keyword case: a case of a computed choice: 'case value: Expr;'
+  context | insert=context | suffix= | sort=context | filter=context | DotGram keyword context: 'context : @T' declares the object every publication is handed and the C# code reads as 'context'
+  default | insert=default | suffix= | sort=default | filter=default | DotGram keyword default: the case of a computed choice taken where no other case matches
+  Digits | insert=Digits( | suffix=(n) | sort=Digits | filter=Digits | Digits(n) = ['0'..'9']{n}
+  eof | insert=eof | suffix= | sort=eof | filter=eof | DotGram built-in rule eof: the end of the input: succeeds exactly where 'any' would fail, consuming nothing
+  eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
+  eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
+  Excluded | insert=Excluded | suffix= | sort=Excluded | filter=Excluded | Excluded = ?! 'z' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
+  Fixed | insert=Fixed | suffix= | sort=Fixed | filter=Fixed | Fixed     = Digits(4)\n\nReferenced rule:\nDigits(n) = ['0'..'9']{n}
+  Guarded | insert=Guarded | suffix= | sort=Guarded | filter=Guarded | Guarded  = ?= 'a' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
+  Insensitive | insert=Insensitive | suffix= | sort=Insensitive | filter=Insensitive | Insensitive = "select"i | 'x'i
+  internal | insert=internal | suffix= | sort=internal | filter=internal | DotGram keyword internal: a publication's method is internal: the assembly and its friends
+  is | insert=is | suffix= | sort=is | filter=is | DotGram keyword is: in a 'when' condition: 'Rule is "text"' holds where the rule is bound to that text
+  LazyItem | insert=LazyItem | suffix= : @int | sort=LazyItem | filter=LazyItem | LazyItem : @int = 'x' => @(1)
+  LazyItems | insert=LazyItems | suffix= : @int[] | sort=LazyItems | filter=LazyItems | LazyItems : @int[] = LazyItem*\n\nReferenced rule:\nLazyItem : @int = 'x' => @(1)
+  Marked | insert=Marked | suffix= | sort=Marked | filter=Marked | Marked = 'm' & Row with state @(1)\n\nReferenced rule:\nRow  = ['a'..'z']+
+  namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
+  none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
+  not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
+  parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+  Power | insert=Power | suffix=   : @decimal | sort=Power | filter=Power | Power   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nRecursive reference: Power
+  Primary | insert=Primary | suffix= : @decimal | sort=Primary | filter=Primary | Primary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nRecursive reference: Primary
+  private | insert=private | suffix= | sort=private | filter=private | DotGram keyword private: a publication's method is private to the class the grammar is attached to
+  Product | insert=Product | suffix= : @decimal | sort=Product | filter=Product | Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nRecursive reference: Product
+  public | insert=public | suffix= | sort=public | filter=public | DotGram keyword public: a publication's method is public (the default)
+  recover | insert=recover | suffix= | sort=recover | filter=recover | DotGram keyword recover: a repetition that survives a bad element: 'X* recover Sync' skips to Sync and goes on; '=> @Factory(...)' builds the rejected element
+  Row | insert=Row | suffix= | sort=Row | filter=Row | Row  = ['a'..'z']+
+  Selected | insert=Selected | suffix= | sort=Selected | filter=Selected | Selected = switch @(1) { case 1: Insensitive; default: 'x' }\n\nReferenced rule:\nInsensitive = "select"i | 'x'i
+  Shift | insert=Shift | suffix= | sort=Shift | filter=Shift | Shift = '>' ~ '>'
+  state | insert=state | suffix= | sort=state | filter=state | DotGram keyword state: 'state : @T' declares what holds while an operand is read; 'with state @(...)' sets it and 'parserState' reads it
+  stream | insert=stream | suffix= | sort=stream | filter=stream | DotGram keyword stream: a publication option: the method also reads a TextReader, or with 'bytes' a byte Stream
+  Sum | insert=Sum | suffix=     : @decimal | sort=Sum | filter=Sum | Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nRecursive reference: Sum
+  switch | insert=switch | suffix= | sort=switch | filter=switch | DotGram keyword switch: computed choice: 'switch @(selector) { case value: Expr; default: Expr }' reads the case the C# selector names
+  trivia | insert=trivia | suffix= | sort=trivia | filter=trivia | trivia = [' ' | '\\t']*
+  Unary | insert=Unary | suffix=   : @decimal | sort=Unary | filter=Unary | Unary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nRecursive reference: Unary
+  using | insert=using | suffix= | sort=using | filter=using | DotGram keyword using: imports a grammar namespace, as in 'using Lexical;'; '@using' imports a C# namespace
+  when | insert=when | suffix= | sort=when | filter=when | DotGram keyword when: a guard: the alternative goes on only where the condition holds, as in 'when @IsValid(x)', 'when @(x > 0)' or 'when Version is "2022"'
+  with | insert=with | suffix= | sort=with | filter=with | DotGram keyword with: rebinds names for an expression, a namespace or a publication: 'with (A = B)'; 'with state @(...)' sets the parser state while its operand is read
+  word | insert=word | suffix= | sort=word | filter=word | DotGram built-in rule word: one whole word, whatever it says, as 'wordboundary' defines a word
+  wordboundary | insert=wordboundary | suffix= | sort=wordboundary | filter=wordboundary | DotGram built-in rule wordboundary: what a word is made of; none until the grammar declares 'wordboundary'
+  yield | insert=yield | suffix= | sort=yield | filter=yield | DotGram keyword yield: a publication option: the method returns the elements of a sequence lazily, 'yield : @T' naming their type
+completion 81:7 applicable=81:7+3
+  and | insert=and | suffix= | sort=and | filter=and | DotGram keyword and: in a 'when' condition: both conditions hold
+  any | insert=any | suffix= | sort=any | filter=any | DotGram built-in rule any: one input item, whatever it is; fails only where there is none left
+  as | insert=as | suffix= | sort=as | filter=as | DotGram keyword as: names the method a 'parse' or 'find' publishes
+  Backtracking | insert=Backtracking | suffix=? | sort=Backtracking | filter=Backtracking | Backtracking? = 'x'?
+  bytes | insert=bytes | suffix= | sort=bytes | filter=bytes | DotGram keyword bytes: a publication option after 'stream': the method reads bytes, from a Stream, a byte[] or a ReadOnlyMemory<byte>
+  case | insert=case | suffix= | sort=case | filter=case | DotGram keyword case: a case of a computed choice: 'case value: Expr;'
+  context | insert=context | suffix= | sort=context | filter=context | DotGram keyword context: 'context : @T' declares the object every publication is handed and the C# code reads as 'context'
+  default | insert=default | suffix= | sort=default | filter=default | DotGram keyword default: the case of a computed choice taken where no other case matches
+  Digits | insert=Digits( | suffix=(n) | sort=Digits | filter=Digits | Digits(n) = ['0'..'9']{n}
+  eof | insert=eof | suffix= | sort=eof | filter=eof | DotGram built-in rule eof: the end of the input: succeeds exactly where 'any' would fail, consuming nothing
+  eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
+  eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
+  Excluded | insert=Excluded | suffix= | sort=Excluded | filter=Excluded | Excluded = ?! 'z' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
+  Fixed | insert=Fixed | suffix= | sort=Fixed | filter=Fixed | Fixed     = Digits(4)\n\nReferenced rule:\nDigits(n) = ['0'..'9']{n}
+  Guarded | insert=Guarded | suffix= | sort=Guarded | filter=Guarded | Guarded  = ?= 'a' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
+  Insensitive | insert=Insensitive | suffix= | sort=Insensitive | filter=Insensitive | Insensitive = "select"i | 'x'i
+  internal | insert=internal | suffix= | sort=internal | filter=internal | DotGram keyword internal: a publication's method is internal: the assembly and its friends
+  is | insert=is | suffix= | sort=is | filter=is | DotGram keyword is: in a 'when' condition: 'Rule is "text"' holds where the rule is bound to that text
+  LazyItem | insert=LazyItem | suffix= : @int | sort=LazyItem | filter=LazyItem | LazyItem : @int = 'x' => @(1)
+  LazyItems | insert=LazyItems | suffix= : @int[] | sort=LazyItems | filter=LazyItems | LazyItems : @int[] = LazyItem*\n\nReferenced rule:\nLazyItem : @int = 'x' => @(1)
+  Marked | insert=Marked | suffix= | sort=Marked | filter=Marked | Marked = 'm' & Row with state @(1)\n\nReferenced rule:\nRow  = ['a'..'z']+
+  namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
+  none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
+  not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
+  parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+  Power | insert=Power | suffix=   : @decimal | sort=Power | filter=Power | Power   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nRecursive reference: Power
+  Primary | insert=Primary | suffix= : @decimal | sort=Primary | filter=Primary | Primary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nRecursive reference: Primary
+  private | insert=private | suffix= | sort=private | filter=private | DotGram keyword private: a publication's method is private to the class the grammar is attached to
+  Product | insert=Product | suffix= : @decimal | sort=Product | filter=Product | Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nRecursive reference: Product
+  public | insert=public | suffix= | sort=public | filter=public | DotGram keyword public: a publication's method is public (the default)
+  recover | insert=recover | suffix= | sort=recover | filter=recover | DotGram keyword recover: a repetition that survives a bad element: 'X* recover Sync' skips to Sync and goes on; '=> @Factory(...)' builds the rejected element
+  Row | insert=Row | suffix= | sort=Row | filter=Row | Row  = ['a'..'z']+
+  Selected | insert=Selected | suffix= | sort=Selected | filter=Selected | Selected = switch @(1) { case 1: Insensitive; default: 'x' }\n\nReferenced rule:\nInsensitive = "select"i | 'x'i
+  Shift | insert=Shift | suffix= | sort=Shift | filter=Shift | Shift = '>' ~ '>'
+  state | insert=state | suffix= | sort=state | filter=state | DotGram keyword state: 'state : @T' declares what holds while an operand is read; 'with state @(...)' sets it and 'parserState' reads it
+  stream | insert=stream | suffix= | sort=stream | filter=stream | DotGram keyword stream: a publication option: the method also reads a TextReader, or with 'bytes' a byte Stream
+  Sum | insert=Sum | suffix=     : @decimal | sort=Sum | filter=Sum | Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nRecursive reference: Sum
+  switch | insert=switch | suffix= | sort=switch | filter=switch | DotGram keyword switch: computed choice: 'switch @(selector) { case value: Expr; default: Expr }' reads the case the C# selector names
+  trivia | insert=trivia | suffix= | sort=trivia | filter=trivia | trivia = [' ' | '\\t']*
+  Unary | insert=Unary | suffix=   : @decimal | sort=Unary | filter=Unary | Unary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nRecursive reference: Unary
+  using | insert=using | suffix= | sort=using | filter=using | DotGram keyword using: imports a grammar namespace, as in 'using Lexical;'; '@using' imports a C# namespace
+  when | insert=when | suffix= | sort=when | filter=when | DotGram keyword when: a guard: the alternative goes on only where the condition holds, as in 'when @IsValid(x)', 'when @(x > 0)' or 'when Version is "2022"'
+  with | insert=with | suffix= | sort=with | filter=with | DotGram keyword with: rebinds names for an expression, a namespace or a publication: 'with (A = B)'; 'with state @(...)' sets the parser state while its operand is read
+  word | insert=word | suffix= | sort=word | filter=word | DotGram built-in rule word: one whole word, whatever it says, as 'wordboundary' defines a word
+  wordboundary | insert=wordboundary | suffix= | sort=wordboundary | filter=wordboundary | DotGram built-in rule wordboundary: what a word is made of; none until the grammar declares 'wordboundary'
+  yield | insert=yield | suffix= | sort=yield | filter=yield | DotGram keyword yield: a publication option: the method returns the elements of a sequence lazily, 'yield : @T' naming their type
+completion 78:33 applicable=78:33+1
+completion 11:14 applicable=11:14+2
+  and | insert=and | suffix= | sort=and | filter=and | DotGram keyword and: in a 'when' condition: both conditions hold
+  any | insert=any | suffix= | sort=any | filter=any | DotGram built-in rule any: one input item, whatever it is; fails only where there is none left
+  as | insert=as | suffix= | sort=as | filter=as | DotGram keyword as: names the method a 'parse' or 'find' publishes
+  Backtracking | insert=Backtracking | suffix=? | sort=Backtracking | filter=Backtracking | Backtracking? = 'x'?
+  bytes | insert=bytes | suffix= | sort=bytes | filter=bytes | DotGram keyword bytes: a publication option after 'stream': the method reads bytes, from a Stream, a byte[] or a ReadOnlyMemory<byte>
+  case | insert=case | suffix= | sort=case | filter=case | DotGram keyword case: a case of a computed choice: 'case value: Expr;'
+  context | insert=context | suffix= | sort=context | filter=context | DotGram keyword context: 'context : @T' declares the object every publication is handed and the C# code reads as 'context'
+  default | insert=default | suffix= | sort=default | filter=default | DotGram keyword default: the case of a computed choice taken where no other case matches
+  Digits | insert=Digits( | suffix=(n) | sort=Digits | filter=Digits | Digits(n) = ['0'..'9']{n}
+  eof | insert=eof | suffix= | sort=eof | filter=eof | DotGram built-in rule eof: the end of the input: succeeds exactly where 'any' would fail, consuming nothing
+  eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
+  eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
+  Excluded | insert=Excluded | suffix= | sort=Excluded | filter=Excluded | Excluded = ?! 'z' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
+  Fixed | insert=Fixed | suffix= | sort=Fixed | filter=Fixed | Fixed     = Digits(4)\n\nReferenced rule:\nDigits(n) = ['0'..'9']{n}
+  Guarded | insert=Guarded | suffix= | sort=Guarded | filter=Guarded | Guarded  = ?= 'a' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
+  Insensitive | insert=Insensitive | suffix= | sort=Insensitive | filter=Insensitive | Insensitive = "select"i | 'x'i
+  internal | insert=internal | suffix= | sort=internal | filter=internal | DotGram keyword internal: a publication's method is internal: the assembly and its friends
+  is | insert=is | suffix= | sort=is | filter=is | DotGram keyword is: in a 'when' condition: 'Rule is "text"' holds where the rule is bound to that text
+  LazyItem | insert=LazyItem | suffix= : @int | sort=LazyItem | filter=LazyItem | LazyItem : @int = 'x' => @(1)
+  LazyItems | insert=LazyItems | suffix= : @int[] | sort=LazyItems | filter=LazyItems | LazyItems : @int[] = LazyItem*\n\nReferenced rule:\nLazyItem : @int = 'x' => @(1)
+  Marked | insert=Marked | suffix= | sort=Marked | filter=Marked | Marked = 'm' & Row with state @(1)\n\nReferenced rule:\nRow  = ['a'..'z']+
+  namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
+  none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
+  not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
+  parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+  Power | insert=Power | suffix=   : @decimal | sort=Power | filter=Power | Power   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nRecursive reference: Power
+  Primary | insert=Primary | suffix= : @decimal | sort=Primary | filter=Primary | Primary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nRecursive reference: Primary
+  private | insert=private | suffix= | sort=private | filter=private | DotGram keyword private: a publication's method is private to the class the grammar is attached to
+  Product | insert=Product | suffix= : @decimal | sort=Product | filter=Product | Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nRecursive reference: Product
+  public | insert=public | suffix= | sort=public | filter=public | DotGram keyword public: a publication's method is public (the default)
+  recover | insert=recover | suffix= | sort=recover | filter=recover | DotGram keyword recover: a repetition that survives a bad element: 'X* recover Sync' skips to Sync and goes on; '=> @Factory(...)' builds the rejected element
+  Row | insert=Row | suffix= | sort=Row | filter=Row | Row  = ['a'..'z']+
+  Selected | insert=Selected | suffix= | sort=Selected | filter=Selected | Selected = switch @(1) { case 1: Insensitive; default: 'x' }\n\nReferenced rule:\nInsensitive = "select"i | 'x'i
+  Shift | insert=Shift | suffix= | sort=Shift | filter=Shift | Shift = '>' ~ '>'
+  state | insert=state | suffix= | sort=state | filter=state | DotGram keyword state: 'state : @T' declares what holds while an operand is read; 'with state @(...)' sets it and 'parserState' reads it
+  stream | insert=stream | suffix= | sort=stream | filter=stream | DotGram keyword stream: a publication option: the method also reads a TextReader, or with 'bytes' a byte Stream
+  Sum | insert=Sum | suffix=     : @decimal | sort=Sum | filter=Sum | Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nRecursive reference: Sum
+  switch | insert=switch | suffix= | sort=switch | filter=switch | DotGram keyword switch: computed choice: 'switch @(selector) { case value: Expr; default: Expr }' reads the case the C# selector names
+  trivia | insert=trivia | suffix= | sort=trivia | filter=trivia | trivia = [' ' | '\\t']*
+  Unary | insert=Unary | suffix=   : @decimal | sort=Unary | filter=Unary | Unary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nRecursive reference: Unary
+  using | insert=using | suffix= | sort=using | filter=using | DotGram keyword using: imports a grammar namespace, as in 'using Lexical;'; '@using' imports a C# namespace
+  when | insert=when | suffix= | sort=when | filter=when | DotGram keyword when: a guard: the alternative goes on only where the condition holds, as in 'when @IsValid(x)', 'when @(x > 0)' or 'when Version is "2022"'
+  with | insert=with | suffix= | sort=with | filter=with | DotGram keyword with: rebinds names for an expression, a namespace or a publication: 'with (A = B)'; 'with state @(...)' sets the parser state while its operand is read
+  word | insert=word | suffix= | sort=word | filter=word | DotGram built-in rule word: one whole word, whatever it says, as 'wordboundary' defines a word
+  wordboundary | insert=wordboundary | suffix= | sort=wordboundary | filter=wordboundary | DotGram built-in rule wordboundary: what a word is made of; none until the grammar declares 'wordboundary'
+  yield | insert=yield | suffix= | sort=yield | filter=yield | DotGram keyword yield: a publication option: the method returns the elements of a sequence lazily, 'yield : @T' naming their type
+completion 103:34 applicable=103:34+11
+  and | insert=and | suffix= | sort=and | filter=and | DotGram keyword and: in a 'when' condition: both conditions hold
+  any | insert=any | suffix= | sort=any | filter=any | DotGram built-in rule any: one input item, whatever it is; fails only where there is none left
+  as | insert=as | suffix= | sort=as | filter=as | DotGram keyword as: names the method a 'parse' or 'find' publishes
+  Backtracking | insert=Backtracking | suffix=? | sort=Backtracking | filter=Backtracking | Backtracking? = 'x'?
+  bytes | insert=bytes | suffix= | sort=bytes | filter=bytes | DotGram keyword bytes: a publication option after 'stream': the method reads bytes, from a Stream, a byte[] or a ReadOnlyMemory<byte>
+  case | insert=case | suffix= | sort=case | filter=case | DotGram keyword case: a case of a computed choice: 'case value: Expr;'
+  context | insert=context | suffix= | sort=context | filter=context | DotGram keyword context: 'context : @T' declares the object every publication is handed and the C# code reads as 'context'
+  default | insert=default | suffix= | sort=default | filter=default | DotGram keyword default: the case of a computed choice taken where no other case matches
+  Digits | insert=Digits( | suffix=(n) | sort=Digits | filter=Digits | Digits(n) = ['0'..'9']{n}
+  eof | insert=eof | suffix= | sort=eof | filter=eof | DotGram built-in rule eof: the end of the input: succeeds exactly where 'any' would fail, consuming nothing
+  eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
+  eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
+  Excluded | insert=Excluded | suffix= | sort=Excluded | filter=Excluded | Excluded = ?! 'z' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
+  Fixed | insert=Fixed | suffix= | sort=Fixed | filter=Fixed | Fixed     = Digits(4)\n\nReferenced rule:\nDigits(n) = ['0'..'9']{n}
+  Guarded | insert=Guarded | suffix= | sort=Guarded | filter=Guarded | Guarded  = ?= 'a' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
+  Insensitive | insert=Insensitive | suffix= | sort=Insensitive | filter=Insensitive | Insensitive = "select"i | 'x'i
+  internal | insert=internal | suffix= | sort=internal | filter=internal | DotGram keyword internal: a publication's method is internal: the assembly and its friends
+  is | insert=is | suffix= | sort=is | filter=is | DotGram keyword is: in a 'when' condition: 'Rule is "text"' holds where the rule is bound to that text
+  LazyItem | insert=LazyItem | suffix= : @int | sort=LazyItem | filter=LazyItem | LazyItem : @int = 'x' => @(1)
+  LazyItems | insert=LazyItems | suffix= : @int[] | sort=LazyItems | filter=LazyItems | LazyItems : @int[] = LazyItem*\n\nReferenced rule:\nLazyItem : @int = 'x' => @(1)
+  Marked | insert=Marked | suffix= | sort=Marked | filter=Marked | Marked = 'm' & Row with state @(1)\n\nReferenced rule:\nRow  = ['a'..'z']+
+  namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
+  none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
+  not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
+  parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+  Power | insert=Power | suffix=   : @decimal | sort=Power | filter=Power | Power   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nRecursive reference: Power
+  Primary | insert=Primary | suffix= : @decimal | sort=Primary | filter=Primary | Primary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nRecursive reference: Primary
+  private | insert=private | suffix= | sort=private | filter=private | DotGram keyword private: a publication's method is private to the class the grammar is attached to
+  Product | insert=Product | suffix= : @decimal | sort=Product | filter=Product | Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nRecursive reference: Product
+  public | insert=public | suffix= | sort=public | filter=public | DotGram keyword public: a publication's method is public (the default)
+  recover | insert=recover | suffix= | sort=recover | filter=recover | DotGram keyword recover: a repetition that survives a bad element: 'X* recover Sync' skips to Sync and goes on; '=> @Factory(...)' builds the rejected element
+  Row | insert=Row | suffix= | sort=Row | filter=Row | Row  = ['a'..'z']+
+  Selected | insert=Selected | suffix= | sort=Selected | filter=Selected | Selected = switch @(1) { case 1: Insensitive; default: 'x' }\n\nReferenced rule:\nInsensitive = "select"i | 'x'i
+  Shift | insert=Shift | suffix= | sort=Shift | filter=Shift | Shift = '>' ~ '>'
+  state | insert=state | suffix= | sort=state | filter=state | DotGram keyword state: 'state : @T' declares what holds while an operand is read; 'with state @(...)' sets it and 'parserState' reads it
+  stream | insert=stream | suffix= | sort=stream | filter=stream | DotGram keyword stream: a publication option: the method also reads a TextReader, or with 'bytes' a byte Stream
+  Sum | insert=Sum | suffix=     : @decimal | sort=Sum | filter=Sum | Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nRecursive reference: Sum
+  switch | insert=switch | suffix= | sort=switch | filter=switch | DotGram keyword switch: computed choice: 'switch @(selector) { case value: Expr; default: Expr }' reads the case the C# selector names
+  trivia | insert=trivia | suffix= | sort=trivia | filter=trivia | trivia = [' ' | '\\t']*
+  Unary | insert=Unary | suffix=   : @decimal | sort=Unary | filter=Unary | Unary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nRecursive reference: Unary
+  using | insert=using | suffix= | sort=using | filter=using | DotGram keyword using: imports a grammar namespace, as in 'using Lexical;'; '@using' imports a C# namespace
+  when | insert=when | suffix= | sort=when | filter=when | DotGram keyword when: a guard: the alternative goes on only where the condition holds, as in 'when @IsValid(x)', 'when @(x > 0)' or 'when Version is "2022"'
+  with | insert=with | suffix= | sort=with | filter=with | DotGram keyword with: rebinds names for an expression, a namespace or a publication: 'with (A = B)'; 'with state @(...)' sets the parser state while its operand is read
+  word | insert=word | suffix= | sort=word | filter=word | DotGram built-in rule word: one whole word, whatever it says, as 'wordboundary' defines a word
+  wordboundary | insert=wordboundary | suffix= | sort=wordboundary | filter=wordboundary | DotGram built-in rule wordboundary: what a word is made of; none until the grammar declares 'wordboundary'
+  yield | insert=yield | suffix= | sort=yield | filter=yield | DotGram keyword yield: a publication option: the method returns the elements of a sequence lazily, 'yield : @T' naming their type
+completion 110:29 applicable=110:29+1
+  parserText | insert=parserText | suffix= | sort=parserText | filter=parserText | DotGram supplied name parserText: the input the element covers, as a string
+  parserSpan | insert=parserSpan | suffix= | sort=parserSpan | filter=parserSpan | DotGram supplied name parserSpan: the element's extent in the input
+  parserInput | insert=parserInput | suffix= | sort=parserInput | filter=parserInput | DotGram supplied name parserInput: the whole of what was read, as a string
+  parserState | insert=parserState | suffix= | sort=parserState | filter=parserState | DotGram supplied name parserState: the marks 'with state' placed over the construction, outermost first (ReadOnlySpan of the declared state type)
+  parserMarks | insert=parserMarks | suffix= | sort=parserMarks | filter=parserMarks | DotGram supplied name parserMarks: for each mark in parserState, where in the input the reading under it began, outermost first (ReadOnlySpan<int>)
+completion 45:15 applicable=45:15+0
+  and | insert=and | suffix= | sort=and | filter=and | DotGram keyword and: in a 'when' condition: both conditions hold
+  any | insert=any | suffix= | sort=any | filter=any | DotGram built-in rule any: one input item, whatever it is; fails only where there is none left
+  as | insert=as | suffix= | sort=as | filter=as | DotGram keyword as: names the method a 'parse' or 'find' publishes
+  Backtracking | insert=Backtracking | suffix=? | sort=Backtracking | filter=Backtracking | Backtracking? = 'x'?
+  bytes | insert=bytes | suffix= | sort=bytes | filter=bytes | DotGram keyword bytes: a publication option after 'stream': the method reads bytes, from a Stream, a byte[] or a ReadOnlyMemory<byte>
+  case | insert=case | suffix= | sort=case | filter=case | DotGram keyword case: a case of a computed choice: 'case value: Expr;'
+  context | insert=context | suffix= | sort=context | filter=context | DotGram keyword context: 'context : @T' declares the object every publication is handed and the C# code reads as 'context'
+  default | insert=default | suffix= | sort=default | filter=default | DotGram keyword default: the case of a computed choice taken where no other case matches
+  Digits | insert=Digits( | suffix=(n) | sort=Digits | filter=Digits | Digits(n) = ['0'..'9']{n}
+  eof | insert=eof | suffix= | sort=eof | filter=eof | DotGram built-in rule eof: the end of the input: succeeds exactly where 'any' would fail, consuming nothing
+  eol | insert=eol | suffix= | sort=eol | filter=eol | DotGram built-in rule eol: one line ending: "\\r\\n", "\\n" or "\\r"
+  eos | insert=eos | suffix= | sort=eos | filter=eos | DotGram built-in rule eos: the end of a segment; a grammar that names it reads a sequence of segments
+  Excluded | insert=Excluded | suffix= | sort=Excluded | filter=Excluded | Excluded = ?! 'z' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
+  fail | insert=fail | suffix= | sort=fail | filter=fail | DotGram keyword fail: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  find | insert=find | suffix= | sort=find | filter=find | DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
+  Fixed | insert=Fixed | suffix= | sort=Fixed | filter=Fixed | Fixed     = Digits(4)\n\nReferenced rule:\nDigits(n) = ['0'..'9']{n}
+  Guarded | insert=Guarded | suffix= | sort=Guarded | filter=Guarded | Guarded  = ?= 'a' & Row\n\nReferenced rule:\nRow  = ['a'..'z']+
+  Insensitive | insert=Insensitive | suffix= | sort=Insensitive | filter=Insensitive | Insensitive = "select"i | 'x'i
+  internal | insert=internal | suffix= | sort=internal | filter=internal | DotGram keyword internal: a publication's method is internal: the assembly and its friends
+  is | insert=is | suffix= | sort=is | filter=is | DotGram keyword is: in a 'when' condition: 'Rule is "text"' holds where the rule is bound to that text
+  LazyItem | insert=LazyItem | suffix= : @int | sort=LazyItem | filter=LazyItem | LazyItem : @int = 'x' => @(1)
+  LazyItems | insert=LazyItems | suffix= : @int[] | sort=LazyItems | filter=LazyItems | LazyItems : @int[] = LazyItem*\n\nReferenced rule:\nLazyItem : @int = 'x' => @(1)
+  Marked | insert=Marked | suffix= | sort=Marked | filter=Marked | Marked = 'm' & Row with state @(1)\n\nReferenced rule:\nRow  = ['a'..'z']+
+  namespace | insert=namespace | suffix= | sort=namespace | filter=namespace | DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
+  none | insert=none | suffix= | sort=none | filter=none | DotGram built-in rule none: zero input items: always succeeds and consumes nothing
+  not | insert=not | suffix= | sort=not | filter=not | DotGram keyword not: in a 'when' condition: 'Rule is not "text"'
+  on | insert=on | suffix= | sort=on | filter=on | DotGram keyword on: 'on fail "..."' after a rule's type: what a refusal of the rule says
+  or | insert=or | suffix= | sort=or | filter=or | DotGram keyword or: in a 'when' condition: either condition holds
+  parse | insert=parse | suffix= | sort=parse | filter=parse | DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+  Power | insert=Power | suffix=   : @decimal | sort=Power | filter=Power | Power   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nRecursive reference: Power
+  Primary | insert=Primary | suffix= : @decimal | sort=Primary | filter=Primary | Primary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nRecursive reference: Primary
+  private | insert=private | suffix= | sort=private | filter=private | DotGram keyword private: a publication's method is private to the class the grammar is attached to
+  Product | insert=Product | suffix= : @decimal | sort=Product | filter=Product | Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nRecursive reference: Product
+  public | insert=public | suffix= | sort=public | filter=public | DotGram keyword public: a publication's method is public (the default)
+  recover | insert=recover | suffix= | sort=recover | filter=recover | DotGram keyword recover: a repetition that survives a bad element: 'X* recover Sync' skips to Sync and goes on; '=> @Factory(...)' builds the rejected element
+  Row | insert=Row | suffix= | sort=Row | filter=Row | Row  = ['a'..'z']+
+  Selected | insert=Selected | suffix= | sort=Selected | filter=Selected | Selected = switch @(1) { case 1: Insensitive; default: 'x' }\n\nReferenced rule:\nInsensitive = "select"i | 'x'i
+  Shift | insert=Shift | suffix= | sort=Shift | filter=Shift | Shift = '>' ~ '>'
+  state | insert=state | suffix= | sort=state | filter=state | DotGram keyword state: 'state : @T' declares what holds while an operand is read; 'with state @(...)' sets it and 'parserState' reads it
+  stream | insert=stream | suffix= | sort=stream | filter=stream | DotGram keyword stream: a publication option: the method also reads a TextReader, or with 'bytes' a byte Stream
+  Sum | insert=Sum | suffix=     : @decimal | sort=Sum | filter=Sum | Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nRecursive reference: Sum
+  switch | insert=switch | suffix= | sort=switch | filter=switch | DotGram keyword switch: computed choice: 'switch @(selector) { case value: Expr; default: Expr }' reads the case the C# selector names
+  trivia | insert=trivia | suffix= | sort=trivia | filter=trivia | trivia = [' ' | '\\t']*
+  Unary | insert=Unary | suffix=   : @decimal | sort=Unary | filter=Unary | Unary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nRecursive reference: Unary
+  using | insert=using | suffix= | sort=using | filter=using | DotGram keyword using: imports a grammar namespace, as in 'using Lexical;'; '@using' imports a C# namespace
+  when | insert=when | suffix= | sort=when | filter=when | DotGram keyword when: a guard: the alternative goes on only where the condition holds, as in 'when @IsValid(x)', 'when @(x > 0)' or 'when Version is "2022"'
+  with | insert=with | suffix= | sort=with | filter=with | DotGram keyword with: rebinds names for an expression, a namespace or a publication: 'with (A = B)'; 'with state @(...)' sets the parser state while its operand is read
+  word | insert=word | suffix= | sort=word | filter=word | DotGram built-in rule word: one whole word, whatever it says, as 'wordboundary' defines a word
+  wordboundary | insert=wordboundary | suffix= | sort=wordboundary | filter=wordboundary | DotGram built-in rule wordboundary: what a word is made of; none until the grammar declares 'wordboundary'
+  yield | insert=yield | suffix= | sort=yield | filter=yield | DotGram keyword yield: a publication option: the method returns the elements of a sequence lazily, 'yield : @T' naming their type
+quickinfo 1:1 span=1:1+46
+  text GRAM5012: This grammar is carried as Immediate: constructions of Sum, Product, Unary and 3 more can run again for text the parser reads a second time. A construction that can throw or has side effects there behaves differently than on the tape: an exception it throws escapes the parse. Where constructions only throw, set ConstructionsMayThrow = true to have the immediate carrier hold what they throw as the tape would. Set Carrier = GramCarrier.Tape to hold constructions until a parse is accepted, or Carrier = GramCarrier.Immediate once you have checked; a carrier named explicitly silences this, and every reason found later.
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 2:1 span=2:1+2
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 3:1 span=3:1+81
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 4:1 span=4:1+78
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 5:1 span=5:1+87
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 7:1 span=7:1+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 7:2 csharp
+quickinfo 7:8 span=7:8+6
+  icon LocalVariable
+  text DotGram rule or binding: System
+quickinfo 7:14 span=7:14+1
+  icon IntellisenseKeyword
+  text DotGram '.': a qualified name: 'Namespace.Rule' or a C# member
+quickinfo 7:15 span=7:15+13
+  icon LocalVariable
+  text DotGram rule or binding: Globalization
+quickinfo 7:28 span=7:28+1
+  icon IntellisenseKeyword
+  text DotGram ';': ends a 'using', a case of a computed choice, or separates rules
+quickinfo 9:1 span=9:1+6
+  icon Method
+  text trivia = [' ' | '\\t']*
+quickinfo 9:8 span=9:8+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 9:10 span=9:10+1
+  icon IntellisenseKeyword
+  text DotGram '[': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 9:11 span=9:11+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 9:15 span=9:15+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 9:17 span=9:17+4
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 9:21 span=9:21+1
+  icon IntellisenseKeyword
+  text DotGram ']': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 9:22 span=9:22+1
+  icon IntellisenseKeyword
+  text DotGram '*': repetition: zero or more
+quickinfo 11:1 span=11:1+79
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 12:1 span=12:1+83
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 13:1 span=13:1+81
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 14:1 span=14:1+63
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 15:1 span=15:1+3
+  icon Method
+  text Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nRecursive reference: Sum
+quickinfo 15:9 span=15:9+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 15:11 span=15:11+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 15:12 csharp
+quickinfo 15:20 span=15:20+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 15:22 span=15:22+4
+  icon Method
+  text left: DotGram capture
+quickinfo 15:26 span=15:26+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 15:28 span=15:28+3
+  icon Method
+  text Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nRecursive reference: Sum
+quickinfo 15:36 span=15:36+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 15:38 span=15:38+2
+  icon Method
+  text op: DotGram capture
+quickinfo 15:40 span=15:40+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 15:42 span=15:42+1
+  icon IntellisenseKeyword
+  text DotGram '[': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 15:43 span=15:43+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 15:47 span=15:47+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 15:49 span=15:49+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 15:52 span=15:52+1
+  icon IntellisenseKeyword
+  text DotGram ']': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 15:54 span=15:54+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 15:56 span=15:56+5
+  icon Method
+  text right: DotGram capture
+quickinfo 15:61 span=15:61+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 15:63 span=15:63+7
+  icon Method
+  text Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nRecursive reference: Product
+quickinfo 15:71 span=15:71+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 15:74 span=15:74+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 15:75 span=15:75+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 15:76 csharp
+quickinfo 15:79 span=15:79+2
+  icon IntellisenseKeyword
+  text DotGram operator: ==
+quickinfo 15:82 span=15:82+3
+  icon IntellisenseKeyword
+  text DotGram string literal
+quickinfo 15:86 span=15:86+1
+  icon IntellisenseKeyword
+  text DotGram '?': optional: zero or one; after a rule's name, that the rule may give back within its body
+quickinfo 15:88 csharp
+quickinfo 15:93 span=15:93+1
+  icon IntellisenseKeyword
+  text DotGram '+': repetition: one or more
+quickinfo 15:95 csharp
+quickinfo 15:101 span=15:101+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 15:103 csharp
+quickinfo 15:108 span=15:108+1
+  icon IntellisenseKeyword
+  text DotGram '-': a negative number, in a case of a computed choice
+quickinfo 15:110 csharp
+quickinfo 15:115 csharp
+quickinfo 16:20 span=16:20+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 16:22 span=16:22+5
+  icon Method
+  text value: DotGram capture
+quickinfo 16:27 span=16:27+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 16:29 span=16:29+7
+  icon Method
+  text Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nRecursive reference: Product
+quickinfo 16:71 span=16:71+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 16:74 span=16:74+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 16:75 span=16:75+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 16:76 csharp
+quickinfo 16:81 csharp
+quickinfo 18:1 span=18:1+82
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 19:1 span=19:1+71
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 20:1 span=20:1+7
+  icon Method
+  text Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nRecursive reference: Product
+quickinfo 20:9 span=20:9+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 20:11 span=20:11+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 20:12 csharp
+quickinfo 20:20 span=20:20+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 20:22 span=20:22+4
+  icon Method
+  text left: DotGram capture
+quickinfo 20:26 span=20:26+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 20:28 span=20:28+7
+  icon Method
+  text Product : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\r\n                   | value: Unary                                     => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nRecursive reference: Product
+quickinfo 20:36 span=20:36+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 20:38 span=20:38+2
+  icon Method
+  text op: DotGram capture
+quickinfo 20:40 span=20:40+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 20:42 span=20:42+1
+  icon IntellisenseKeyword
+  text DotGram '[': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 20:43 span=20:43+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 20:47 span=20:47+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 20:49 span=20:49+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 20:52 span=20:52+1
+  icon IntellisenseKeyword
+  text DotGram ']': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 20:54 span=20:54+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 20:56 span=20:56+5
+  icon Method
+  text right: DotGram capture
+quickinfo 20:61 span=20:61+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 20:63 span=20:63+5
+  icon Method
+  text Unary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nRecursive reference: Unary
+quickinfo 20:71 span=20:71+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 20:74 span=20:74+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 20:75 span=20:75+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 20:76 csharp
+quickinfo 20:79 span=20:79+2
+  icon IntellisenseKeyword
+  text DotGram operator: ==
+quickinfo 20:82 span=20:82+3
+  icon IntellisenseKeyword
+  text DotGram string literal
+quickinfo 20:86 span=20:86+1
+  icon IntellisenseKeyword
+  text DotGram '?': optional: zero or one; after a rule's name, that the rule may give back within its body
+quickinfo 20:88 csharp
+quickinfo 20:93 span=20:93+1
+  icon IntellisenseKeyword
+  text DotGram '*': repetition: zero or more
+quickinfo 20:95 csharp
+quickinfo 20:101 span=20:101+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 20:103 csharp
+quickinfo 20:108 span=20:108+1
+  icon IntellisenseKeyword
+  text DotGram operator: /
+quickinfo 20:110 csharp
+quickinfo 20:115 csharp
+quickinfo 21:20 span=21:20+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 21:22 span=21:22+5
+  icon Method
+  text value: DotGram capture
+quickinfo 21:27 span=21:27+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 21:29 span=21:29+5
+  icon Method
+  text Unary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nRecursive reference: Unary
+quickinfo 21:71 span=21:71+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 21:74 span=21:74+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 21:75 span=21:75+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 21:76 csharp
+quickinfo 21:81 csharp
+quickinfo 23:1 span=23:1+81
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 24:1 span=24:1+83
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 25:1 span=25:1+5
+  icon Method
+  text Unary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nRecursive reference: Unary
+quickinfo 25:9 span=25:9+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 25:11 span=25:11+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 25:12 csharp
+quickinfo 25:20 span=25:20+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 25:22 span=25:22+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 25:26 span=25:26+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 25:28 span=25:28+7
+  icon Method
+  text operand: DotGram capture
+quickinfo 25:35 span=25:35+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 25:37 span=25:37+5
+  icon Method
+  text Unary   : @decimal = '-' & operand: Unary                             => @(-operand)\r\n                   | value: Power                                     => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nRecursive reference: Unary
+quickinfo 25:71 span=25:71+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 25:74 span=25:74+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 25:75 span=25:75+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 25:76 span=25:76+1
+  icon IntellisenseKeyword
+  text DotGram '-': a negative number, in a case of a computed choice
+quickinfo 25:77 csharp
+quickinfo 25:84 csharp
+quickinfo 26:20 span=26:20+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 26:22 span=26:22+5
+  icon Method
+  text value: DotGram capture
+quickinfo 26:27 span=26:27+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 26:29 span=26:29+5
+  icon Method
+  text Power   : @decimal = value: Primary                                   => @(Raise(value, 1))
+  text Show referenced rules
+  hidden Referenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nRecursive reference: Power
+quickinfo 26:71 span=26:71+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 26:74 span=26:74+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 26:75 span=26:75+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 26:76 csharp
+quickinfo 26:81 csharp
+quickinfo 28:1 span=28:1+76
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 29:1 span=29:1+77
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 30:1 span=30:1+62
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 31:1 span=31:1+7
+  icon Method
+  text Primary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))
+  text Show referenced rules
+  hidden Referenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nRecursive reference: Primary
+quickinfo 31:9 span=31:9+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 31:11 span=31:11+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 31:12 csharp
+quickinfo 31:20 span=31:20+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 31:22 span=31:22+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 31:26 span=31:26+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 31:28 span=31:28+5
+  icon Method
+  text inner: DotGram capture
+quickinfo 31:33 span=31:33+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 31:35 span=31:35+3
+  icon Method
+  text Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nRecursive reference: Sum
+quickinfo 31:39 span=31:39+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 31:41 span=31:41+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 31:71 span=31:71+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 31:74 span=31:74+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 31:75 span=31:75+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 31:76 csharp
+quickinfo 31:81 csharp
+quickinfo 32:20 span=32:20+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 32:22 span=32:22+6
+  icon Method
+  text digits: DotGram capture
+quickinfo 32:28 span=32:28+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 32:30 span=32:30+1
+  icon IntellisenseKeyword
+  text DotGram '[': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 32:31 span=32:31+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 32:34 span=32:34+2
+  icon IntellisenseKeyword
+  text DotGram '..': range: 'a'..'z'
+quickinfo 32:36 span=32:36+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 32:39 span=32:39+1
+  icon IntellisenseKeyword
+  text DotGram ']': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 32:40 span=32:40+1
+  icon IntellisenseKeyword
+  text DotGram '+': repetition: one or more
+quickinfo 32:71 span=32:71+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 32:74 span=32:74+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 32:75 span=32:75+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 32:76 csharp
+quickinfo 32:83 csharp
+quickinfo 32:84 csharp
+quickinfo 32:89 csharp
+quickinfo 32:90 csharp
+quickinfo 32:96 csharp
+quickinfo 32:98 csharp
+quickinfo 32:109 csharp
+quickinfo 32:110 csharp
+quickinfo 32:126 csharp
+quickinfo 32:127 span=32:127+1
+  icon IntellisenseKeyword
+  text DotGram ')': grouping, a rule's parameters or a call's arguments
+quickinfo 34:1 span=34:1+85
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 35:1 span=35:1+78
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 36:1 span=36:1+5
+  icon Method
+  text Power   : @decimal = value: Primary                                   => @(Raise(value, 1))
+  text Show referenced rules
+  hidden Referenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nReferenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nRecursive reference: Power
+quickinfo 36:9 span=36:9+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 36:11 span=36:11+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 36:12 csharp
+quickinfo 36:20 span=36:20+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 36:22 span=36:22+5
+  icon Method
+  text value: DotGram capture
+quickinfo 36:27 span=36:27+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 36:29 span=36:29+7
+  icon Method
+  text Primary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\r\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))
+  text Show referenced rules
+  hidden Referenced rule:\nSum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\n                   | value: Product                                   => @(value)\n\nRecursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nRecursive reference: Primary
+quickinfo 36:71 span=36:71+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 36:74 span=36:74+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 36:75 span=36:75+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 36:76 csharp
+quickinfo 36:81 csharp
+quickinfo 36:82 csharp
+quickinfo 36:87 csharp
+quickinfo 36:89 csharp
+quickinfo 36:90 csharp
+quickinfo 36:91 span=36:91+1
+  icon IntellisenseKeyword
+  text DotGram ')': grouping, a rule's parameters or a call's arguments
+quickinfo 38:1 span=38:1+84
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 39:1 span=39:1+85
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 40:1 span=40:1+6
+  icon Method
+  text Digits(n) = ['0'..'9']{n}
+quickinfo 40:7 span=40:7+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 40:8 span=40:8+1
+  icon Method
+  text n: DotGram rule parameter
+quickinfo 40:9 span=40:9+1
+  icon IntellisenseKeyword
+  text DotGram ')': grouping, a rule's parameters or a call's arguments
+quickinfo 40:11 span=40:11+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 40:13 span=40:13+1
+  icon IntellisenseKeyword
+  text DotGram '[': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 40:14 span=40:14+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 40:17 span=40:17+2
+  icon IntellisenseKeyword
+  text DotGram '..': range: 'a'..'z'
+quickinfo 40:19 span=40:19+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 40:22 span=40:22+1
+  icon IntellisenseKeyword
+  text DotGram ']': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 40:23 span=40:23+1
+  icon IntellisenseKeyword
+  text DotGram '{': an atomic group '{ ... }', a count 'X{2,4}', or a namespace's or computed choice's body
+quickinfo 40:24 span=40:24+1
+  icon Method
+  text n: DotGram rule parameter
+quickinfo 40:25 span=40:25+1
+  icon IntellisenseKeyword
+  text DotGram '}': an atomic group '{ ... }', a count 'X{2,4}', or a namespace's or computed choice's body
+quickinfo 41:1 span=41:1+5
+  icon Method
+  text Fixed     = Digits(4)
+  text Show referenced rules
+  hidden Referenced rule:\nDigits(n) = ['0'..'9']{n}
+quickinfo 41:11 span=41:11+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 41:13 span=41:13+6
+  icon Method
+  text Digits(n) = ['0'..'9']{n}
+quickinfo 41:19 span=41:19+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 41:20 span=41:20+1
+  icon IntellisenseKeyword
+  text DotGram numeric literal
+quickinfo 41:21 span=41:21+1
+  icon IntellisenseKeyword
+  text DotGram ')': grouping, a rule's parameters or a call's arguments
+quickinfo 43:1 span=43:1+81
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 44:1 span=44:1+52
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 45:1 span=45:1+5
+  icon Method
+  text Shift = '>' ~ '>'
+quickinfo 45:7 span=45:7+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 45:9 span=45:9+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 45:13 span=45:13+1
+  icon IntellisenseKeyword
+  text DotGram '~': sequence with no trivia between: 'a ~ b'
+quickinfo 45:15 span=45:15+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 47:1 span=47:1+84
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 48:1 span=48:1+44
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 49:1 span=49:1+11
+  icon Method
+  text Insensitive = "select"i | 'x'i
+quickinfo 49:13 span=49:13+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 49:15 span=49:15+9
+  icon IntellisenseKeyword
+  text DotGram case-insensitive string literal
+quickinfo 49:25 span=49:25+1
+  icon IntellisenseKeyword
+  text DotGram '|': ordered choice: 'a | b'; inside '[ ]' a union of elements
+quickinfo 49:27 span=49:27+4
+  icon IntellisenseKeyword
+  text DotGram case-insensitive character literal
+quickinfo 50:1 span=50:1+79
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 51:1 span=51:1+81
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 52:1 span=52:1+31
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 54:1 span=54:1+85
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 55:1 span=55:1+84
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 56:1 span=56:1+82
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 57:1 span=57:1+12
+  icon Method
+  text Backtracking? = 'x'?
+quickinfo 57:13 span=57:13+1
+  icon Method
+  text DotGram rule backtracking marker: this rule may give back within its body
+quickinfo 57:15 span=57:15+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 57:17 span=57:17+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 57:20 span=57:20+1
+  icon IntellisenseKeyword
+  text DotGram '?': optional: zero or one; after a rule's name, that the rule may give back within its body
+quickinfo 59:1 span=59:1+87
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 60:1 span=60:1+90
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 61:1 span=61:1+92
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 62:1 span=62:1+82
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 63:1 span=63:1+3
+  icon Method
+  text Row  = ['a'..'z']+
+quickinfo 63:6 span=63:6+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 63:8 span=63:8+1
+  icon IntellisenseKeyword
+  text DotGram '[': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 63:9 span=63:9+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 63:12 span=63:12+2
+  icon IntellisenseKeyword
+  text DotGram '..': range: 'a'..'z'
+quickinfo 63:14 span=63:14+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 63:17 span=63:17+1
+  icon IntellisenseKeyword
+  text DotGram ']': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 63:18 span=63:18+1
+  icon IntellisenseKeyword
+  text DotGram '+': repetition: one or more
+quickinfo 65:1 span=65:1+89
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 66:1 span=66:1+88
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 67:1 span=67:1+60
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 68:1 span=68:1+7
+  icon Method
+  text Guarded  = ?= 'a' & Row
+  text Show referenced rules
+  hidden Referenced rule:\nRow  = ['a'..'z']+
+quickinfo 68:10 span=68:10+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 68:12 span=68:12+2
+  icon IntellisenseKeyword
+  text DotGram '?=': positive lookahead: '?=X' matches where X does, consuming nothing
+quickinfo 68:15 span=68:15+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 68:19 span=68:19+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 68:21 span=68:21+3
+  icon Method
+  text Row  = ['a'..'z']+
+quickinfo 69:1 span=69:1+8
+  icon Method
+  text Excluded = ?! 'z' & Row
+  text Show referenced rules
+  hidden Referenced rule:\nRow  = ['a'..'z']+
+quickinfo 69:10 span=69:10+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 69:12 span=69:12+2
+  icon IntellisenseKeyword
+  text DotGram '?!': negative lookahead: '?!X' matches where X does not, consuming nothing
+quickinfo 69:15 span=69:15+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 69:19 span=69:19+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 69:21 span=69:21+3
+  icon Method
+  text Row  = ['a'..'z']+
+quickinfo 71:1 span=71:1+88
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 72:1 span=72:1+86
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 73:1 span=73:1+87
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 74:1 span=74:1+88
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 75:1 span=75:1+81
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 76:1 span=76:1+43
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 77:1 span=77:1+5
+  icon IntellisenseKeyword
+  text DotGram keyword state: 'state : @T' declares what holds while an operand is read; 'with state @(...)' sets it and 'parserState' reads it
+quickinfo 77:7 span=77:7+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 77:9 span=77:9+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 77:10 csharp
+quickinfo 78:1 span=78:1+6
+  icon Method
+  text Marked = 'm' & Row with state @(1)
+  text Show referenced rules
+  hidden Referenced rule:\nRow  = ['a'..'z']+
+quickinfo 78:8 span=78:8+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 78:10 span=78:10+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 78:14 span=78:14+1
+  icon IntellisenseKeyword
+  text DotGram '&': sequence: 'a & b'
+quickinfo 78:16 span=78:16+3
+  icon Method
+  text Row  = ['a'..'z']+
+quickinfo 78:20 span=78:20+4
+  icon IntellisenseKeyword
+  text DotGram keyword with: rebinds names for an expression, a namespace or a publication: 'with (A = B)'; 'with state @(...)' sets the parser state while its operand is read
+quickinfo 78:25 span=78:25+5
+  icon IntellisenseKeyword
+  text DotGram keyword state: 'state : @T' declares what holds while an operand is read; 'with state @(...)' sets it and 'parserState' reads it
+quickinfo 78:31 span=78:31+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 78:32 span=78:32+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 78:33 csharp
+quickinfo 78:34 csharp
+quickinfo 80:1 span=80:1+74
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 81:1 span=81:1+5
+  icon IntellisenseKeyword
+  text DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+quickinfo 81:7 span=81:7+3
+  icon Method
+  text Sum     : @decimal = left: Sum     & op: ['+' | '-'] & right: Product => @(op == "+" ? left + right : left - right)\r\n                   | value: Product                                   => @(value)
+  text Show referenced rules
+  hidden Recursive reference: Sum\n\nReferenced rule:\nProduct : @decimal = left: Product & op: ['*' | '/'] & right: Unary   => @(op == "*" ? left * right : left / right)\n                   | value: Unary                                     => @(value)\n\nRecursive reference: Product\n\nReferenced rule:\nUnary   : @decimal = '-' & operand: Unary                             => @(-operand)\n                   | value: Power                                     => @(value)\n\nRecursive reference: Unary\n\nReferenced rule:\nPower   : @decimal = value: Primary                                   => @(Raise(value, 1))\n\nReferenced rule:\nPrimary : @decimal = '(' & inner: Sum & ')'                           => @(inner)\n                   | digits: ['0'..'9']+                              => @(decimal.Parse(digits, CultureInfo.InvariantCulture))\n\nRecursive reference: Sum
+quickinfo 81:11 span=81:11+2
+  icon IntellisenseKeyword
+  text DotGram keyword as: names the method a 'parse' or 'find' publishes
+quickinfo 81:14 span=81:14+15
+  icon LocalVariable
+  text DotGram rule or binding: ToolingEvaluate
+quickinfo 83:1 span=83:1+84
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 84:1 span=84:1+86
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 85:1 span=85:1+84
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 86:1 span=86:1+85
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 87:1 span=87:1+83
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 88:1 span=88:1+5
+  icon IntellisenseKeyword
+  text DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+quickinfo 88:7 span=88:7+5
+  icon Method
+  text Fixed     = Digits(4)
+  text Show referenced rules
+  hidden Referenced rule:\nDigits(n) = ['0'..'9']{n}
+quickinfo 88:20 span=88:20+2
+  icon IntellisenseKeyword
+  text DotGram keyword as: names the method a 'parse' or 'find' publishes
+quickinfo 88:23 span=88:23+12
+  icon LocalVariable
+  text DotGram rule or binding: ToolingFixed
+quickinfo 89:1 span=89:1+5
+  icon IntellisenseKeyword
+  text DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+quickinfo 89:7 span=89:7+5
+  icon Method
+  text Shift = '>' ~ '>'
+quickinfo 89:20 span=89:20+2
+  icon IntellisenseKeyword
+  text DotGram keyword as: names the method a 'parse' or 'find' publishes
+quickinfo 89:23 span=89:23+12
+  icon LocalVariable
+  text DotGram rule or binding: ToolingShift
+quickinfo 90:1 span=90:1+5
+  icon IntellisenseKeyword
+  text DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+quickinfo 90:7 span=90:7+11
+  icon Method
+  text Insensitive = "select"i | 'x'i
+quickinfo 90:20 span=90:20+2
+  icon IntellisenseKeyword
+  text DotGram keyword as: names the method a 'parse' or 'find' publishes
+quickinfo 90:23 span=90:23+18
+  icon LocalVariable
+  text DotGram rule or binding: ToolingInsensitive
+quickinfo 91:1 span=91:1+5
+  icon IntellisenseKeyword
+  text DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+quickinfo 91:7 span=91:7+12
+  icon Method
+  text Backtracking? = 'x'?
+quickinfo 91:20 span=91:20+2
+  icon IntellisenseKeyword
+  text DotGram keyword as: names the method a 'parse' or 'find' publishes
+quickinfo 91:23 span=91:23+19
+  icon LocalVariable
+  text DotGram rule or binding: ToolingBacktracking
+quickinfo 92:1 span=92:1+5
+  icon IntellisenseKeyword
+  text DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+quickinfo 92:7 span=92:7+7
+  icon Method
+  text Guarded  = ?= 'a' & Row
+  text Show referenced rules
+  hidden Referenced rule:\nRow  = ['a'..'z']+
+quickinfo 92:20 span=92:20+2
+  icon IntellisenseKeyword
+  text DotGram keyword as: names the method a 'parse' or 'find' publishes
+quickinfo 92:23 span=92:23+14
+  icon LocalVariable
+  text DotGram rule or binding: ToolingGuarded
+quickinfo 93:1 span=93:1+5
+  icon IntellisenseKeyword
+  text DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+quickinfo 93:7 span=93:7+8
+  icon Method
+  text Excluded = ?! 'z' & Row
+  text Show referenced rules
+  hidden Referenced rule:\nRow  = ['a'..'z']+
+quickinfo 93:20 span=93:20+2
+  icon IntellisenseKeyword
+  text DotGram keyword as: names the method a 'parse' or 'find' publishes
+quickinfo 93:23 span=93:23+15
+  icon LocalVariable
+  text DotGram rule or binding: ToolingExcluded
+quickinfo 94:1 span=94:1+5
+  icon IntellisenseKeyword
+  text DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+quickinfo 94:7 span=94:7+6
+  icon Method
+  text Marked = 'm' & Row with state @(1)
+  text Show referenced rules
+  hidden Referenced rule:\nRow  = ['a'..'z']+
+quickinfo 94:20 span=94:20+2
+  icon IntellisenseKeyword
+  text DotGram keyword as: names the method a 'parse' or 'find' publishes
+quickinfo 94:23 span=94:23+13
+  icon LocalVariable
+  text DotGram rule or binding: ToolingMarked
+quickinfo 96:1 span=96:1+88
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 97:1 span=97:1+90
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 98:1 span=98:1+71
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 99:1 span=99:1+4
+  icon IntellisenseKeyword
+  text DotGram keyword find: publishes a rule as a search method, which finds where the rule matches in the input
+quickinfo 99:6 span=99:6+3
+  icon Method
+  text Row  = ['a'..'z']+
+quickinfo 99:10 span=99:10+2
+  icon IntellisenseKeyword
+  text DotGram keyword as: names the method a 'parse' or 'find' publishes
+quickinfo 99:13 span=99:13+12
+  icon LocalVariable
+  text DotGram rule or binding: ToolingFound
+quickinfo 101:1 span=101:1+78
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 102:1 span=102:1+76
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 103:1 span=103:1+8
+  icon Method
+  text Selected = switch @(1) { case 1: Insensitive; default: 'x' }
+  text Show referenced rules
+  hidden Referenced rule:\nInsensitive = "select"i | 'x'i
+quickinfo 103:10 span=103:10+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 103:12 span=103:12+6
+  icon IntellisenseKeyword
+  text DotGram keyword switch: computed choice: 'switch @(selector) { case value: Expr; default: Expr }' reads the case the C# selector names
+quickinfo 103:19 span=103:19+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 103:20 span=103:20+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 103:21 csharp
+quickinfo 103:22 csharp
+quickinfo 103:24 span=103:24+1
+  icon IntellisenseKeyword
+  text DotGram '{': an atomic group '{ ... }', a count 'X{2,4}', or a namespace's or computed choice's body
+quickinfo 103:26 span=103:26+4
+  icon IntellisenseKeyword
+  text DotGram keyword case: a case of a computed choice: 'case value: Expr;'
+quickinfo 103:31 span=103:31+1
+  icon IntellisenseKeyword
+  text DotGram numeric literal
+quickinfo 103:32 span=103:32+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 103:34 span=103:34+11
+  icon Method
+  text Insensitive = "select"i | 'x'i
+quickinfo 103:45 span=103:45+1
+  icon IntellisenseKeyword
+  text DotGram ';': ends a 'using', a case of a computed choice, or separates rules
+quickinfo 103:47 span=103:47+7
+  icon IntellisenseKeyword
+  text DotGram keyword default: the case of a computed choice taken where no other case matches
+quickinfo 103:54 span=103:54+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 103:56 span=103:56+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 103:60 span=103:60+1
+  icon IntellisenseKeyword
+  text DotGram '}': an atomic group '{ ... }', a count 'X{2,4}', or a namespace's or computed choice's body
+quickinfo 104:1 span=104:1+5
+  icon IntellisenseKeyword
+  text DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+quickinfo 104:7 span=104:7+8
+  icon Method
+  text Selected = switch @(1) { case 1: Insensitive; default: 'x' }
+  text Show referenced rules
+  hidden Referenced rule:\nInsensitive = "select"i | 'x'i
+quickinfo 104:16 span=104:16+2
+  icon IntellisenseKeyword
+  text DotGram keyword as: names the method a 'parse' or 'find' publishes
+quickinfo 104:19 span=104:19+15
+  icon LocalVariable
+  text DotGram rule or binding: ToolingSelected
+quickinfo 104:35 span=104:35+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 104:37 span=104:37+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 104:38 csharp
+quickinfo 106:1 span=106:1+74
+  icon IntellisenseKeyword
+  text DotGram comment
+quickinfo 107:1 span=107:1+9
+  icon IntellisenseKeyword
+  text DotGram keyword namespace: declares a grammar namespace; 'namespace N with (A = B) { ... }' rebinds names inside it
+quickinfo 107:11 span=107:11+11
+  icon LocalVariable
+  text DotGram rule or binding: LazyExample
+quickinfo 108:1 span=108:1+1
+  icon IntellisenseKeyword
+  text DotGram '{': an atomic group '{ ... }', a count 'X{2,4}', or a namespace's or computed choice's body
+quickinfo 109:2 span=109:2+6
+  icon Method
+  text trivia = none
+quickinfo 109:9 span=109:9+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 109:11 span=109:11+4
+  icon IntellisenseKeyword
+  text DotGram built-in rule none: zero input items: always succeeds and consumes nothing
+quickinfo 110:2 span=110:2+8
+  icon Method
+  text LazyItem : @int = 'x' => @(1)
+quickinfo 110:11 span=110:11+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 110:13 span=110:13+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 110:14 csharp
+quickinfo 110:18 span=110:18+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 110:20 span=110:20+3
+  icon IntellisenseKeyword
+  text DotGram character literal
+quickinfo 110:24 span=110:24+2
+  icon IntellisenseKeyword
+  text DotGram '=>': construction: '=> value' builds the alternative's result
+quickinfo 110:27 span=110:27+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 110:28 span=110:28+1
+  icon IntellisenseKeyword
+  text DotGram '(': grouping, a rule's parameters or a call's arguments
+quickinfo 110:29 csharp
+quickinfo 110:30 csharp
+quickinfo 111:2 span=111:2+9
+  icon Method
+  text LazyItems : @int[] = LazyItem*
+  text Show referenced rules
+  hidden Referenced rule:\nLazyItem : @int = 'x' => @(1)
+quickinfo 111:12 span=111:12+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 111:14 span=111:14+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 111:15 csharp
+quickinfo 111:18 csharp
+quickinfo 111:19 span=111:19+1
+  icon IntellisenseKeyword
+  text DotGram ']': element set: one input item, as in ['a'..'z' | '_']
+quickinfo 111:21 span=111:21+1
+  icon IntellisenseKeyword
+  text DotGram '=': a rule's definition, or a rebinding 'A = B'
+quickinfo 111:23 span=111:23+8
+  icon Method
+  text LazyItem : @int = 'x' => @(1)
+quickinfo 111:31 span=111:31+1
+  icon IntellisenseKeyword
+  text DotGram '*': repetition: zero or more
+quickinfo 112:2 span=112:2+5
+  icon IntellisenseKeyword
+  text DotGram keyword parse: publishes a rule as a parse method: 'parse Rule with (A = B) as Name : @T stream bytes yield', every part after the rule optional
+quickinfo 112:8 span=112:8+9
+  icon Method
+  text LazyItems : @int[] = LazyItem*
+  text Show referenced rules
+  hidden Referenced rule:\nLazyItem : @int = 'x' => @(1)
+quickinfo 112:18 span=112:18+2
+  icon IntellisenseKeyword
+  text DotGram keyword as: names the method a 'parse' or 'find' publishes
+quickinfo 112:21 span=112:21+11
+  icon LocalVariable
+  text DotGram rule or binding: ToolingLazy
+quickinfo 112:33 span=112:33+6
+  icon IntellisenseKeyword
+  text DotGram keyword stream: a publication option: the method also reads a TextReader, or with 'bytes' a byte Stream
+quickinfo 112:40 span=112:40+5
+  icon IntellisenseKeyword
+  text DotGram keyword bytes: a publication option after 'stream': the method reads bytes, from a Stream, a byte[] or a ReadOnlyMemory<byte>
+quickinfo 112:46 span=112:46+5
+  icon IntellisenseKeyword
+  text DotGram keyword yield: a publication option: the method returns the elements of a sequence lazily, 'yield : @T' naming their type
+quickinfo 112:52 span=112:52+1
+  icon IntellisenseKeyword
+  text DotGram ':': a capture 'name: X', a binding '$name: X', or a type ': @T'
+quickinfo 112:54 span=112:54+1
+  icon IntellisenseKeyword
+  text Switch from DotGram grammar to C#
+quickinfo 112:55 csharp
+quickinfo 113:1 span=113:1+1
+  icon IntellisenseKeyword
+  text DotGram '}': an atomic group '{ ... }', a count 'X{2,4}', or a namespace's or computed choice's body
+signature 38:32 applicable=38:31+1 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 40:8 applicable=40:7+1 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 41:20 applicable=41:19+1 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 51:11 applicable=38:31+608 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 55:32 applicable=38:31+834 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 59:60 applicable=38:31+1056 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 60:87 applicable=38:31+1172 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 62:22 applicable=38:31+1293 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 66:25 applicable=38:31+1493 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 67:17 applicable=38:31+1575 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 71:77 applicable=38:31+1749 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 72:70 applicable=38:31+1832 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 73:56 applicable=38:31+1906 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 74:68 applicable=38:31+2007 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 83:81 applicable=38:31+2398 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 85:64 applicable=38:31+2555 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 87:12 applicable=38:31+2676 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 96:37 applicable=38:31+3059 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 96:80 applicable=38:31+3102 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 97:13 applicable=38:31+3125 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+signature 98:18 applicable=38:31+3222 | Digits(n) | = ['0'..'9']{n} | current=n | n@7+1
+definition 7:2 -> csharp using @0
+definition 9:1 -> here 9:1
+navigable 9:1 span=9:1+6 -> 9:1
+references 9:1 name=trivia definition=9:1 at=[9:1] elsewhere=0
+rename 9:1 edits=[9:1+6]
+highlight 9:1 -> [9:1+6 DefinitionHighlightTag]
+definition 15:1 -> here 15:1
+navigable 15:1 span=15:1+3 -> 15:1
+references 15:1 name=Sum definition=15:1 at=[15:1, 15:28, 31:35, 81:7] elsewhere=0
+rename 15:1 edits=[15:1+3, 15:28+3, 31:35+3, 81:7+3]
+highlight 15:1 -> [15:1+3 DefinitionHighlightTag, 15:28+3 ReferenceHighlightTag, 31:35+3 ReferenceHighlightTag, 81:7+3 ReferenceHighlightTag]
+definition 15:12 -> csharp decimal @0
+definition 15:22 -> here 15:22
+navigable 15:22 span=15:22+4 -> 15:22
+references 15:22 name=left definition=15:22 at=[15:22, 15:88, 15:103] elsewhere=0
+rename 15:22 edits=[15:22+4, 15:88+4, 15:103+4]
+highlight 15:22 -> [15:22+4 DefinitionHighlightTag, 15:88+4 ReferenceHighlightTag, 15:103+4 ReferenceHighlightTag]
+definition 15:28 -> here 15:1
+navigable 15:28 span=15:28+3 -> 15:1
+references 15:28 name=Sum definition=15:1 at=[15:1, 15:28, 31:35, 81:7] elsewhere=0
+rename 15:28 edits=[15:1+3, 15:28+3, 31:35+3, 81:7+3]
+highlight 15:28 -> [15:1+3 DefinitionHighlightTag, 15:28+3 ReferenceHighlightTag, 31:35+3 ReferenceHighlightTag, 81:7+3 ReferenceHighlightTag]
+definition 15:38 -> here 15:38
+navigable 15:38 span=15:38+2 -> 15:38
+references 15:38 name=op definition=15:38 at=[15:38, 15:76] elsewhere=0
+rename 15:38 edits=[15:38+2, 15:76+2]
+highlight 15:38 -> [15:38+2 DefinitionHighlightTag, 15:76+2 ReferenceHighlightTag]
+definition 15:56 -> here 15:56
+navigable 15:56 span=15:56+5 -> 15:56
+references 15:56 name=right definition=15:56 at=[15:56, 15:95, 15:110] elsewhere=0
+rename 15:56 edits=[15:56+5, 15:95+5, 15:110+5]
+highlight 15:56 -> [15:56+5 DefinitionHighlightTag, 15:95+5 ReferenceHighlightTag, 15:110+5 ReferenceHighlightTag]
+definition 15:63 -> here 20:1
+navigable 15:63 span=15:63+7 -> 20:1
+references 15:63 name=Product definition=20:1 at=[15:63, 16:29, 20:1, 20:28] elsewhere=0
+rename 15:63 edits=[15:63+7, 16:29+7, 20:1+7, 20:28+7]
+highlight 15:63 -> [15:63+7 ReferenceHighlightTag, 16:29+7 ReferenceHighlightTag, 20:1+7 DefinitionHighlightTag, 20:28+7 ReferenceHighlightTag]
+definition 15:76 -> csharp op == "+" ? left + right : left - right @0
+navigable 15:76 span=15:76+2 -> 15:38
+references 15:76 name=op definition=15:38 at=[15:38, 15:76] elsewhere=0
+rename 15:76 edits=[15:38+2, 15:76+2]
+highlight 15:76 -> [15:38+2 DefinitionHighlightTag, 15:76+2 ReferenceHighlightTag]
+definition 15:88 -> csharp op == "+" ? left + right : left - right @12
+navigable 15:88 span=15:88+4 -> 15:22
+references 15:88 name=left definition=15:22 at=[15:22, 15:88, 15:103] elsewhere=0
+rename 15:88 edits=[15:22+4, 15:88+4, 15:103+4]
+highlight 15:88 -> [15:22+4 DefinitionHighlightTag, 15:88+4 ReferenceHighlightTag, 15:103+4 ReferenceHighlightTag]
+definition 15:95 -> csharp op == "+" ? left + right : left - right @19
+navigable 15:95 span=15:95+5 -> 15:56
+references 15:95 name=right definition=15:56 at=[15:56, 15:95, 15:110] elsewhere=0
+rename 15:95 edits=[15:56+5, 15:95+5, 15:110+5]
+highlight 15:95 -> [15:56+5 DefinitionHighlightTag, 15:95+5 ReferenceHighlightTag, 15:110+5 ReferenceHighlightTag]
+definition 15:103 -> csharp op == "+" ? left + right : left - right @27
+navigable 15:103 span=15:103+4 -> 15:22
+references 15:103 name=left definition=15:22 at=[15:22, 15:88, 15:103] elsewhere=0
+rename 15:103 edits=[15:22+4, 15:88+4, 15:103+4]
+highlight 15:103 -> [15:22+4 DefinitionHighlightTag, 15:88+4 ReferenceHighlightTag, 15:103+4 ReferenceHighlightTag]
+definition 15:110 -> csharp op == "+" ? left + right : left - right @34
+navigable 15:110 span=15:110+5 -> 15:56
+references 15:110 name=right definition=15:56 at=[15:56, 15:95, 15:110] elsewhere=0
+rename 15:110 edits=[15:56+5, 15:95+5, 15:110+5]
+highlight 15:110 -> [15:56+5 DefinitionHighlightTag, 15:95+5 ReferenceHighlightTag, 15:110+5 ReferenceHighlightTag]
+definition 15:115 -> csharp op == "+" ? left + right : left - right @39
+definition 16:22 -> here 16:22
+navigable 16:22 span=16:22+5 -> 16:22
+references 16:22 name=value definition=16:22 at=[16:22, 16:76] elsewhere=0
+rename 16:22 edits=[16:22+5, 16:76+5]
+highlight 16:22 -> [16:22+5 DefinitionHighlightTag, 16:76+5 ReferenceHighlightTag]
+definition 16:29 -> here 20:1
+navigable 16:29 span=16:29+7 -> 20:1
+references 16:29 name=Product definition=20:1 at=[15:63, 16:29, 20:1, 20:28] elsewhere=0
+rename 16:29 edits=[15:63+7, 16:29+7, 20:1+7, 20:28+7]
+highlight 16:29 -> [15:63+7 ReferenceHighlightTag, 16:29+7 ReferenceHighlightTag, 20:1+7 DefinitionHighlightTag, 20:28+7 ReferenceHighlightTag]
+definition 16:76 -> csharp value @0
+navigable 16:76 span=16:76+5 -> 16:22
+references 16:76 name=value definition=16:22 at=[16:22, 16:76] elsewhere=0
+rename 16:76 edits=[16:22+5, 16:76+5]
+highlight 16:76 -> [16:22+5 DefinitionHighlightTag, 16:76+5 ReferenceHighlightTag]
+definition 16:81 -> csharp value @5
+definition 20:1 -> here 20:1
+navigable 20:1 span=20:1+7 -> 20:1
+references 20:1 name=Product definition=20:1 at=[15:63, 16:29, 20:1, 20:28] elsewhere=0
+rename 20:1 edits=[15:63+7, 16:29+7, 20:1+7, 20:28+7]
+highlight 20:1 -> [15:63+7 ReferenceHighlightTag, 16:29+7 ReferenceHighlightTag, 20:1+7 DefinitionHighlightTag, 20:28+7 ReferenceHighlightTag]
+definition 20:12 -> csharp decimal @0
+definition 20:22 -> here 20:22
+navigable 20:22 span=20:22+4 -> 20:22
+references 20:22 name=left definition=20:22 at=[20:22, 20:88, 20:103] elsewhere=0
+rename 20:22 edits=[20:22+4, 20:88+4, 20:103+4]
+highlight 20:22 -> [20:22+4 DefinitionHighlightTag, 20:88+4 ReferenceHighlightTag, 20:103+4 ReferenceHighlightTag]
+definition 20:28 -> here 20:1
+navigable 20:28 span=20:28+7 -> 20:1
+references 20:28 name=Product definition=20:1 at=[15:63, 16:29, 20:1, 20:28] elsewhere=0
+rename 20:28 edits=[15:63+7, 16:29+7, 20:1+7, 20:28+7]
+highlight 20:28 -> [15:63+7 ReferenceHighlightTag, 16:29+7 ReferenceHighlightTag, 20:1+7 DefinitionHighlightTag, 20:28+7 ReferenceHighlightTag]
+definition 20:38 -> here 20:38
+navigable 20:38 span=20:38+2 -> 20:38
+references 20:38 name=op definition=20:38 at=[20:38, 20:76] elsewhere=0
+rename 20:38 edits=[20:38+2, 20:76+2]
+highlight 20:38 -> [20:38+2 DefinitionHighlightTag, 20:76+2 ReferenceHighlightTag]
+definition 20:56 -> here 20:56
+navigable 20:56 span=20:56+5 -> 20:56
+references 20:56 name=right definition=20:56 at=[20:56, 20:95, 20:110] elsewhere=0
+rename 20:56 edits=[20:56+5, 20:95+5, 20:110+5]
+highlight 20:56 -> [20:56+5 DefinitionHighlightTag, 20:95+5 ReferenceHighlightTag, 20:110+5 ReferenceHighlightTag]
+definition 20:63 -> here 25:1
+navigable 20:63 span=20:63+5 -> 25:1
+references 20:63 name=Unary definition=25:1 at=[20:63, 21:29, 25:1, 25:37] elsewhere=0
+rename 20:63 edits=[20:63+5, 21:29+5, 25:1+5, 25:37+5]
+highlight 20:63 -> [20:63+5 ReferenceHighlightTag, 21:29+5 ReferenceHighlightTag, 25:1+5 DefinitionHighlightTag, 25:37+5 ReferenceHighlightTag]
+definition 20:76 -> csharp op == "*" ? left * right : left / right @0
+navigable 20:76 span=20:76+2 -> 20:38
+references 20:76 name=op definition=20:38 at=[20:38, 20:76] elsewhere=0
+rename 20:76 edits=[20:38+2, 20:76+2]
+highlight 20:76 -> [20:38+2 DefinitionHighlightTag, 20:76+2 ReferenceHighlightTag]
+definition 20:88 -> csharp op == "*" ? left * right : left / right @12
+navigable 20:88 span=20:88+4 -> 20:22
+references 20:88 name=left definition=20:22 at=[20:22, 20:88, 20:103] elsewhere=0
+rename 20:88 edits=[20:22+4, 20:88+4, 20:103+4]
+highlight 20:88 -> [20:22+4 DefinitionHighlightTag, 20:88+4 ReferenceHighlightTag, 20:103+4 ReferenceHighlightTag]
+definition 20:95 -> csharp op == "*" ? left * right : left / right @19
+navigable 20:95 span=20:95+5 -> 20:56
+references 20:95 name=right definition=20:56 at=[20:56, 20:95, 20:110] elsewhere=0
+rename 20:95 edits=[20:56+5, 20:95+5, 20:110+5]
+highlight 20:95 -> [20:56+5 DefinitionHighlightTag, 20:95+5 ReferenceHighlightTag, 20:110+5 ReferenceHighlightTag]
+definition 20:103 -> csharp op == "*" ? left * right : left / right @27
+navigable 20:103 span=20:103+4 -> 20:22
+references 20:103 name=left definition=20:22 at=[20:22, 20:88, 20:103] elsewhere=0
+rename 20:103 edits=[20:22+4, 20:88+4, 20:103+4]
+highlight 20:103 -> [20:22+4 DefinitionHighlightTag, 20:88+4 ReferenceHighlightTag, 20:103+4 ReferenceHighlightTag]
+definition 20:110 -> csharp op == "*" ? left * right : left / right @34
+navigable 20:110 span=20:110+5 -> 20:56
+references 20:110 name=right definition=20:56 at=[20:56, 20:95, 20:110] elsewhere=0
+rename 20:110 edits=[20:56+5, 20:95+5, 20:110+5]
+highlight 20:110 -> [20:56+5 DefinitionHighlightTag, 20:95+5 ReferenceHighlightTag, 20:110+5 ReferenceHighlightTag]
+definition 20:115 -> csharp op == "*" ? left * right : left / right @39
+definition 21:22 -> here 21:22
+navigable 21:22 span=21:22+5 -> 21:22
+references 21:22 name=value definition=21:22 at=[21:22, 21:76] elsewhere=0
+rename 21:22 edits=[21:22+5, 21:76+5]
+highlight 21:22 -> [21:22+5 DefinitionHighlightTag, 21:76+5 ReferenceHighlightTag]
+definition 21:29 -> here 25:1
+navigable 21:29 span=21:29+5 -> 25:1
+references 21:29 name=Unary definition=25:1 at=[20:63, 21:29, 25:1, 25:37] elsewhere=0
+rename 21:29 edits=[20:63+5, 21:29+5, 25:1+5, 25:37+5]
+highlight 21:29 -> [20:63+5 ReferenceHighlightTag, 21:29+5 ReferenceHighlightTag, 25:1+5 DefinitionHighlightTag, 25:37+5 ReferenceHighlightTag]
+definition 21:76 -> csharp value @0
+navigable 21:76 span=21:76+5 -> 21:22
+references 21:76 name=value definition=21:22 at=[21:22, 21:76] elsewhere=0
+rename 21:76 edits=[21:22+5, 21:76+5]
+highlight 21:76 -> [21:22+5 DefinitionHighlightTag, 21:76+5 ReferenceHighlightTag]
+definition 21:81 -> csharp value @5
+definition 25:1 -> here 25:1
+navigable 25:1 span=25:1+5 -> 25:1
+references 25:1 name=Unary definition=25:1 at=[20:63, 21:29, 25:1, 25:37] elsewhere=0
+rename 25:1 edits=[20:63+5, 21:29+5, 25:1+5, 25:37+5]
+highlight 25:1 -> [20:63+5 ReferenceHighlightTag, 21:29+5 ReferenceHighlightTag, 25:1+5 DefinitionHighlightTag, 25:37+5 ReferenceHighlightTag]
+definition 25:12 -> csharp decimal @0
+definition 25:28 -> here 25:28
+navigable 25:28 span=25:28+7 -> 25:28
+references 25:28 name=operand definition=25:28 at=[25:28, 25:77] elsewhere=0
+rename 25:28 edits=[25:28+7, 25:77+7]
+highlight 25:28 -> [25:28+7 DefinitionHighlightTag, 25:77+7 ReferenceHighlightTag]
+definition 25:37 -> here 25:1
+navigable 25:37 span=25:37+5 -> 25:1
+references 25:37 name=Unary definition=25:1 at=[20:63, 21:29, 25:1, 25:37] elsewhere=0
+rename 25:37 edits=[20:63+5, 21:29+5, 25:1+5, 25:37+5]
+highlight 25:37 -> [20:63+5 ReferenceHighlightTag, 21:29+5 ReferenceHighlightTag, 25:1+5 DefinitionHighlightTag, 25:37+5 ReferenceHighlightTag]
+definition 25:77 -> csharp -operand @1
+navigable 25:77 span=25:77+7 -> 25:28
+references 25:77 name=operand definition=25:28 at=[25:28, 25:77] elsewhere=0
+rename 25:77 edits=[25:28+7, 25:77+7]
+highlight 25:77 -> [25:28+7 DefinitionHighlightTag, 25:77+7 ReferenceHighlightTag]
+definition 25:84 -> csharp -operand @8
+definition 26:22 -> here 26:22
+navigable 26:22 span=26:22+5 -> 26:22
+references 26:22 name=value definition=26:22 at=[26:22, 26:76] elsewhere=0
+rename 26:22 edits=[26:22+5, 26:76+5]
+highlight 26:22 -> [26:22+5 DefinitionHighlightTag, 26:76+5 ReferenceHighlightTag]
+definition 26:29 -> here 36:1
+navigable 26:29 span=26:29+5 -> 36:1
+references 26:29 name=Power definition=36:1 at=[26:29, 36:1] elsewhere=0
+rename 26:29 edits=[26:29+5, 36:1+5]
+highlight 26:29 -> [26:29+5 ReferenceHighlightTag, 36:1+5 DefinitionHighlightTag]
+definition 26:76 -> csharp value @0
+navigable 26:76 span=26:76+5 -> 26:22
+references 26:76 name=value definition=26:22 at=[26:22, 26:76] elsewhere=0
+rename 26:76 edits=[26:22+5, 26:76+5]
+highlight 26:76 -> [26:22+5 DefinitionHighlightTag, 26:76+5 ReferenceHighlightTag]
+definition 26:81 -> csharp value @5
+definition 31:1 -> here 31:1
+navigable 31:1 span=31:1+7 -> 31:1
+references 31:1 name=Primary definition=31:1 at=[31:1, 36:29] elsewhere=0
+rename 31:1 edits=[31:1+7, 36:29+7]
+highlight 31:1 -> [31:1+7 DefinitionHighlightTag, 36:29+7 ReferenceHighlightTag]
+definition 31:12 -> csharp decimal @0
+definition 31:28 -> here 31:28
+navigable 31:28 span=31:28+5 -> 31:28
+references 31:28 name=inner definition=31:28 at=[31:28, 31:76] elsewhere=0
+rename 31:28 edits=[31:28+5, 31:76+5]
+highlight 31:28 -> [31:28+5 DefinitionHighlightTag, 31:76+5 ReferenceHighlightTag]
+definition 31:35 -> here 15:1
+navigable 31:35 span=31:35+3 -> 15:1
+references 31:35 name=Sum definition=15:1 at=[15:1, 15:28, 31:35, 81:7] elsewhere=0
+rename 31:35 edits=[15:1+3, 15:28+3, 31:35+3, 81:7+3]
+highlight 31:35 -> [15:1+3 DefinitionHighlightTag, 15:28+3 ReferenceHighlightTag, 31:35+3 ReferenceHighlightTag, 81:7+3 ReferenceHighlightTag]
+definition 31:76 -> csharp inner @0
+navigable 31:76 span=31:76+5 -> 31:28
+references 31:76 name=inner definition=31:28 at=[31:28, 31:76] elsewhere=0
+rename 31:76 edits=[31:28+5, 31:76+5]
+highlight 31:76 -> [31:28+5 DefinitionHighlightTag, 31:76+5 ReferenceHighlightTag]
+definition 31:81 -> csharp inner @5
+definition 32:22 -> here 32:22
+navigable 32:22 span=32:22+6 -> 32:22
+references 32:22 name=digits definition=32:22 at=[32:22, 32:90] elsewhere=0
+rename 32:22 edits=[32:22+6, 32:90+6]
+highlight 32:22 -> [32:22+6 DefinitionHighlightTag, 32:90+6 ReferenceHighlightTag]
+definition 32:76 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @0
+definition 32:83 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @7
+definition 32:84 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @8
+definition 32:89 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @13
+definition 32:90 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @14
+navigable 32:90 span=32:90+6 -> 32:22
+references 32:90 name=digits definition=32:22 at=[32:22, 32:90] elsewhere=0
+rename 32:90 edits=[32:22+6, 32:90+6]
+highlight 32:90 -> [32:22+6 DefinitionHighlightTag, 32:90+6 ReferenceHighlightTag]
+definition 32:96 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @20
+definition 32:98 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @22
+definition 32:109 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @33
+definition 32:110 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @34
+definition 32:126 -> csharp decimal.Parse(digits, CultureInfo.InvariantCulture) @50
+definition 36:1 -> here 36:1
+navigable 36:1 span=36:1+5 -> 36:1
+references 36:1 name=Power definition=36:1 at=[26:29, 36:1] elsewhere=0
+rename 36:1 edits=[26:29+5, 36:1+5]
+highlight 36:1 -> [26:29+5 ReferenceHighlightTag, 36:1+5 DefinitionHighlightTag]
+definition 36:12 -> csharp decimal @0
+definition 36:22 -> here 36:22
+navigable 36:22 span=36:22+5 -> 36:22
+references 36:22 name=value definition=36:22 at=[36:22, 36:82] elsewhere=0
+rename 36:22 edits=[36:22+5, 36:82+5]
+highlight 36:22 -> [36:22+5 DefinitionHighlightTag, 36:82+5 ReferenceHighlightTag]
+definition 36:29 -> here 31:1
+navigable 36:29 span=36:29+7 -> 31:1
+references 36:29 name=Primary definition=31:1 at=[31:1, 36:29] elsewhere=0
+rename 36:29 edits=[31:1+7, 36:29+7]
+highlight 36:29 -> [31:1+7 DefinitionHighlightTag, 36:29+7 ReferenceHighlightTag]
+definition 36:76 -> csharp Raise(value, 1) @0
+definition 36:81 -> csharp Raise(value, 1) @5
+definition 36:82 -> csharp Raise(value, 1) @6
+navigable 36:82 span=36:82+5 -> 36:22
+references 36:82 name=value definition=36:22 at=[36:22, 36:82] elsewhere=0
+rename 36:82 edits=[36:22+5, 36:82+5]
+highlight 36:82 -> [36:22+5 DefinitionHighlightTag, 36:82+5 ReferenceHighlightTag]
+definition 36:87 -> csharp Raise(value, 1) @11
+definition 36:89 -> csharp Raise(value, 1) @13
+definition 36:90 -> csharp Raise(value, 1) @14
+definition 40:1 -> here 40:1
+navigable 40:1 span=40:1+6 -> 40:1
+references 40:1 name=Digits definition=40:1 at=[40:1, 41:13] elsewhere=0
+rename 40:1 edits=[40:1+6, 41:13+6]
+highlight 40:1 -> [40:1+6 DefinitionHighlightTag, 41:13+6 ReferenceHighlightTag]
+definition 40:8 -> here 40:8
+navigable 40:8 span=40:8+1 -> 40:8
+references 40:8 name=n definition=40:8 at=[40:8, 40:24] elsewhere=0
+rename 40:8 edits=[40:8+1, 40:24+1]
+highlight 40:8 -> [40:8+1 DefinitionHighlightTag, 40:24+1 ReferenceHighlightTag]
+definition 40:24 -> here 40:8
+navigable 40:24 span=40:24+1 -> 40:8
+references 40:24 name=n definition=40:8 at=[40:8, 40:24] elsewhere=0
+rename 40:24 edits=[40:8+1, 40:24+1]
+highlight 40:24 -> [40:8+1 DefinitionHighlightTag, 40:24+1 ReferenceHighlightTag]
+definition 41:1 -> here 41:1
+navigable 41:1 span=41:1+5 -> 41:1
+references 41:1 name=Fixed definition=41:1 at=[41:1, 88:7] elsewhere=0
+rename 41:1 edits=[41:1+5, 88:7+5]
+highlight 41:1 -> [41:1+5 DefinitionHighlightTag, 88:7+5 ReferenceHighlightTag]
+definition 41:13 -> here 40:1
+navigable 41:13 span=41:13+6 -> 40:1
+references 41:13 name=Digits definition=40:1 at=[40:1, 41:13] elsewhere=0
+rename 41:13 edits=[40:1+6, 41:13+6]
+highlight 41:13 -> [40:1+6 DefinitionHighlightTag, 41:13+6 ReferenceHighlightTag]
+definition 45:1 -> here 45:1
+navigable 45:1 span=45:1+5 -> 45:1
+references 45:1 name=Shift definition=45:1 at=[45:1, 89:7] elsewhere=0
+rename 45:1 edits=[45:1+5, 89:7+5]
+highlight 45:1 -> [45:1+5 DefinitionHighlightTag, 89:7+5 ReferenceHighlightTag]
+definition 49:1 -> here 49:1
+navigable 49:1 span=49:1+11 -> 49:1
+references 49:1 name=Insensitive definition=49:1 at=[49:1, 90:7, 103:34] elsewhere=0
+rename 49:1 edits=[49:1+11, 90:7+11, 103:34+11]
+highlight 49:1 -> [49:1+11 DefinitionHighlightTag, 90:7+11 ReferenceHighlightTag, 103:34+11 ReferenceHighlightTag]
+definition 57:1 -> here 57:1
+navigable 57:1 span=57:1+12 -> 57:1
+references 57:1 name=Backtracking definition=57:1 at=[57:1, 91:7] elsewhere=0
+rename 57:1 edits=[57:1+12, 91:7+12]
+highlight 57:1 -> [57:1+12 DefinitionHighlightTag, 91:7+12 ReferenceHighlightTag]
+definition 63:1 -> here 63:1
+navigable 63:1 span=63:1+3 -> 63:1
+references 63:1 name=Row definition=63:1 at=[63:1, 68:21, 69:21, 78:16, 99:6] elsewhere=0
+rename 63:1 edits=[63:1+3, 68:21+3, 69:21+3, 78:16+3, 99:6+3]
+highlight 63:1 -> [63:1+3 DefinitionHighlightTag, 68:21+3 ReferenceHighlightTag, 69:21+3 ReferenceHighlightTag, 78:16+3 ReferenceHighlightTag, 99:6+3 ReferenceHighlightTag]
+definition 68:1 -> here 68:1
+navigable 68:1 span=68:1+7 -> 68:1
+references 68:1 name=Guarded definition=68:1 at=[68:1, 92:7] elsewhere=0
+rename 68:1 edits=[68:1+7, 92:7+7]
+highlight 68:1 -> [68:1+7 DefinitionHighlightTag, 92:7+7 ReferenceHighlightTag]
+definition 68:21 -> here 63:1
+navigable 68:21 span=68:21+3 -> 63:1
+references 68:21 name=Row definition=63:1 at=[63:1, 68:21, 69:21, 78:16, 99:6] elsewhere=0
+rename 68:21 edits=[63:1+3, 68:21+3, 69:21+3, 78:16+3, 99:6+3]
+highlight 68:21 -> [63:1+3 DefinitionHighlightTag, 68:21+3 ReferenceHighlightTag, 69:21+3 ReferenceHighlightTag, 78:16+3 ReferenceHighlightTag, 99:6+3 ReferenceHighlightTag]
+definition 69:1 -> here 69:1
+navigable 69:1 span=69:1+8 -> 69:1
+references 69:1 name=Excluded definition=69:1 at=[69:1, 93:7] elsewhere=0
+rename 69:1 edits=[69:1+8, 93:7+8]
+highlight 69:1 -> [69:1+8 DefinitionHighlightTag, 93:7+8 ReferenceHighlightTag]
+definition 69:21 -> here 63:1
+navigable 69:21 span=69:21+3 -> 63:1
+references 69:21 name=Row definition=63:1 at=[63:1, 68:21, 69:21, 78:16, 99:6] elsewhere=0
+rename 69:21 edits=[63:1+3, 68:21+3, 69:21+3, 78:16+3, 99:6+3]
+highlight 69:21 -> [63:1+3 DefinitionHighlightTag, 68:21+3 ReferenceHighlightTag, 69:21+3 ReferenceHighlightTag, 78:16+3 ReferenceHighlightTag, 99:6+3 ReferenceHighlightTag]
+definition 77:10 -> csharp int @0
+definition 78:1 -> here 78:1
+navigable 78:1 span=78:1+6 -> 78:1
+references 78:1 name=Marked definition=78:1 at=[78:1, 94:7] elsewhere=0
+rename 78:1 edits=[78:1+6, 94:7+6]
+highlight 78:1 -> [78:1+6 DefinitionHighlightTag, 94:7+6 ReferenceHighlightTag]
+definition 78:16 -> here 63:1
+navigable 78:16 span=78:16+3 -> 63:1
+references 78:16 name=Row definition=63:1 at=[63:1, 68:21, 69:21, 78:16, 99:6] elsewhere=0
+rename 78:16 edits=[63:1+3, 68:21+3, 69:21+3, 78:16+3, 99:6+3]
+highlight 78:16 -> [63:1+3 DefinitionHighlightTag, 68:21+3 ReferenceHighlightTag, 69:21+3 ReferenceHighlightTag, 78:16+3 ReferenceHighlightTag, 99:6+3 ReferenceHighlightTag]
+definition 78:33 -> csharp 1 @0
+definition 78:34 -> csharp 1 @1
+definition 81:7 -> here 15:1
+navigable 81:7 span=81:7+3 -> 15:1
+references 81:7 name=Sum definition=15:1 at=[15:1, 15:28, 31:35, 81:7] elsewhere=0
+rename 81:7 edits=[15:1+3, 15:28+3, 31:35+3, 81:7+3]
+highlight 81:7 -> [15:1+3 DefinitionHighlightTag, 15:28+3 ReferenceHighlightTag, 31:35+3 ReferenceHighlightTag, 81:7+3 ReferenceHighlightTag]
+definition 81:14 -> published ToolingEvaluate
+definition 88:7 -> here 41:1
+navigable 88:7 span=88:7+5 -> 41:1
+references 88:7 name=Fixed definition=41:1 at=[41:1, 88:7] elsewhere=0
+rename 88:7 edits=[41:1+5, 88:7+5]
+highlight 88:7 -> [41:1+5 DefinitionHighlightTag, 88:7+5 ReferenceHighlightTag]
+definition 88:23 -> published ToolingFixed
+definition 89:7 -> here 45:1
+navigable 89:7 span=89:7+5 -> 45:1
+references 89:7 name=Shift definition=45:1 at=[45:1, 89:7] elsewhere=0
+rename 89:7 edits=[45:1+5, 89:7+5]
+highlight 89:7 -> [45:1+5 DefinitionHighlightTag, 89:7+5 ReferenceHighlightTag]
+definition 89:23 -> published ToolingShift
+definition 90:7 -> here 49:1
+navigable 90:7 span=90:7+11 -> 49:1
+references 90:7 name=Insensitive definition=49:1 at=[49:1, 90:7, 103:34] elsewhere=0
+rename 90:7 edits=[49:1+11, 90:7+11, 103:34+11]
+highlight 90:7 -> [49:1+11 DefinitionHighlightTag, 90:7+11 ReferenceHighlightTag, 103:34+11 ReferenceHighlightTag]
+definition 90:23 -> published ToolingInsensitive
+definition 91:7 -> here 57:1
+navigable 91:7 span=91:7+12 -> 57:1
+references 91:7 name=Backtracking definition=57:1 at=[57:1, 91:7] elsewhere=0
+rename 91:7 edits=[57:1+12, 91:7+12]
+highlight 91:7 -> [57:1+12 DefinitionHighlightTag, 91:7+12 ReferenceHighlightTag]
+definition 91:23 -> published ToolingBacktracking
+definition 92:7 -> here 68:1
+navigable 92:7 span=92:7+7 -> 68:1
+references 92:7 name=Guarded definition=68:1 at=[68:1, 92:7] elsewhere=0
+rename 92:7 edits=[68:1+7, 92:7+7]
+highlight 92:7 -> [68:1+7 DefinitionHighlightTag, 92:7+7 ReferenceHighlightTag]
+definition 92:23 -> published ToolingGuarded
+definition 93:7 -> here 69:1
+navigable 93:7 span=93:7+8 -> 69:1
+references 93:7 name=Excluded definition=69:1 at=[69:1, 93:7] elsewhere=0
+rename 93:7 edits=[69:1+8, 93:7+8]
+highlight 93:7 -> [69:1+8 DefinitionHighlightTag, 93:7+8 ReferenceHighlightTag]
+definition 93:23 -> published ToolingExcluded
+definition 94:7 -> here 78:1
+navigable 94:7 span=94:7+6 -> 78:1
+references 94:7 name=Marked definition=78:1 at=[78:1, 94:7] elsewhere=0
+rename 94:7 edits=[78:1+6, 94:7+6]
+highlight 94:7 -> [78:1+6 DefinitionHighlightTag, 94:7+6 ReferenceHighlightTag]
+definition 94:23 -> published ToolingMarked
+definition 99:6 -> here 63:1
+navigable 99:6 span=99:6+3 -> 63:1
+references 99:6 name=Row definition=63:1 at=[63:1, 68:21, 69:21, 78:16, 99:6] elsewhere=0
+rename 99:6 edits=[63:1+3, 68:21+3, 69:21+3, 78:16+3, 99:6+3]
+highlight 99:6 -> [63:1+3 DefinitionHighlightTag, 68:21+3 ReferenceHighlightTag, 69:21+3 ReferenceHighlightTag, 78:16+3 ReferenceHighlightTag, 99:6+3 ReferenceHighlightTag]
+definition 99:13 -> published ToolingFound
+definition 103:1 -> here 103:1
+navigable 103:1 span=103:1+8 -> 103:1
+references 103:1 name=Selected definition=103:1 at=[103:1, 104:7] elsewhere=0
+rename 103:1 edits=[103:1+8, 104:7+8]
+highlight 103:1 -> [103:1+8 DefinitionHighlightTag, 104:7+8 ReferenceHighlightTag]
+definition 103:21 -> csharp 1 @0
+definition 103:22 -> csharp 1 @1
+definition 103:34 -> here 49:1
+navigable 103:34 span=103:34+11 -> 49:1
+references 103:34 name=Insensitive definition=49:1 at=[49:1, 90:7, 103:34] elsewhere=0
+rename 103:34 edits=[49:1+11, 90:7+11, 103:34+11]
+highlight 103:34 -> [49:1+11 DefinitionHighlightTag, 90:7+11 ReferenceHighlightTag, 103:34+11 ReferenceHighlightTag]
+definition 104:7 -> here 103:1
+navigable 104:7 span=104:7+8 -> 103:1
+references 104:7 name=Selected definition=103:1 at=[103:1, 104:7] elsewhere=0
+rename 104:7 edits=[103:1+8, 104:7+8]
+highlight 104:7 -> [103:1+8 DefinitionHighlightTag, 104:7+8 ReferenceHighlightTag]
+definition 104:19 -> published ToolingSelected
+definition 104:38 -> csharp string @0
+definition 109:2 -> here 109:2
+navigable 109:2 span=109:2+6 -> 109:2
+references 109:2 name=trivia definition=109:2 at=[109:2] elsewhere=0
+rename 109:2 edits=[109:2+6]
+highlight 109:2 -> [109:2+6 DefinitionHighlightTag]
+definition 110:2 -> here 110:2
+navigable 110:2 span=110:2+8 -> 110:2
+references 110:2 name=LazyItem definition=110:2 at=[110:2, 111:23] elsewhere=0
+rename 110:2 edits=[110:2+8, 111:23+8]
+highlight 110:2 -> [110:2+8 DefinitionHighlightTag, 111:23+8 ReferenceHighlightTag]
+definition 110:14 -> csharp int @0
+definition 110:29 -> csharp 1 @0
+definition 110:30 -> csharp 1 @1
+definition 111:2 -> here 111:2
+navigable 111:2 span=111:2+9 -> 111:2
+references 111:2 name=LazyItems definition=111:2 at=[111:2, 112:8] elsewhere=0
+rename 111:2 edits=[111:2+9, 112:8+9]
+highlight 111:2 -> [111:2+9 DefinitionHighlightTag, 112:8+9 ReferenceHighlightTag]
+definition 111:15 -> csharp int @0
+definition 111:18 -> csharp int @3
+definition 111:23 -> here 110:2
+navigable 111:23 span=111:23+8 -> 110:2
+references 111:23 name=LazyItem definition=110:2 at=[110:2, 111:23] elsewhere=0
+rename 111:23 edits=[110:2+8, 111:23+8]
+highlight 111:23 -> [110:2+8 DefinitionHighlightTag, 111:23+8 ReferenceHighlightTag]
+definition 112:8 -> here 111:2
+navigable 112:8 span=112:8+9 -> 111:2
+references 112:8 name=LazyItems definition=111:2 at=[111:2, 112:8] elsewhere=0
+rename 112:8 edits=[111:2+9, 112:8+9]
+highlight 112:8 -> [111:2+9 DefinitionHighlightTag, 112:8+9 ReferenceHighlightTag]
+definition 112:21 -> published ToolingLazy
+definition 112:55 -> csharp int @0
