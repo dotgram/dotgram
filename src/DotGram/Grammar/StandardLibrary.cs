@@ -120,6 +120,11 @@ public static class StandardLibrary
 			return null;
 		}
 
+		public IReadOnlyCollection<string>? NamesNotAsValues(string expression)
+		{
+			return null;
+		}
+
 		public string? Renamed(string expression, IReadOnlyDictionary<string, string> names)
 		{
 			return null;

@@ -56,6 +56,17 @@ public interface ICSharpScanner
 	IReadOnlyCollection<string>? FreeNames(string expression);
 
 	/// <summary>
+	/// The names the expression uses as something other than a value: called, written as a type or
+	/// as a type argument, or declared as a parameter, a local or a pattern variable.
+	/// </summary>
+	/// <remarks>
+	/// Syntax only, as <see cref="FreeNames"/> is. A name that is a method group handed on, or a
+	/// static class with a member, cannot be told from a value without a compilation and is not here.
+	/// Null where the scanner cannot parse the expression.
+	/// </remarks>
+	IReadOnlyCollection<string>? NamesNotAsValues(string expression);
+
+	/// <summary>
 	/// The expression with some of its free names spelled otherwise.
 	/// </summary>
 	/// <remarks>

@@ -66,6 +66,79 @@ public sealed class RoslynCSharpScanner : ICSharpScanner
 	}
 
 	/// <summary>
+	/// The names the expression calls, writes as a type or a type argument, or declares.
+	/// </summary>
+	/// <remarks>
+	/// A name after a dot is a member of something else and is left out, as in <see cref="FreeNames"/>.
+	/// What is declared is every parameter, local and pattern variable of the expression, wherever it
+	/// is in scope: a supplied name cannot be one, and its scope does not matter for that.
+	/// </remarks>
+	public IReadOnlyCollection<string>? NamesNotAsValues(string expression)
+	{
+		if (expression is null)
+			return null;
+
+		var parsed = SyntaxFactory.ParseExpression(expression);
+
+		if (parsed.ContainsDiagnostics)
+			return null;
+
+		var names = new HashSet<string>(StringComparer.Ordinal);
+
+		foreach (var node in parsed.DescendantNodesAndSelf())
+		{
+			if (Introduced(node, parsed) is var (identifier, _, _) && identifier.ValueText.Length > 0)
+				names.Add(identifier.ValueText);
+
+			// `name<T>(…)` can only be a method or a type.
+			if (node is GenericNameSyntax generic && !IsMember(generic))
+				names.Add(generic.Identifier.ValueText);
+
+			if (node is IdentifierNameSyntax name && !IsMember(name) && (IsCalled(name) || IsType(name)))
+				names.Add(name.Identifier.ValueText);
+		}
+
+		return names;
+
+		static bool IsMember(SimpleNameSyntax name)
+		{
+			return name.Parent is MemberAccessExpressionSyntax member && member.Name == name ||
+				name.Parent is MemberBindingExpressionSyntax binding && binding.Name == name;
+		}
+
+		static bool IsCalled(IdentifierNameSyntax name)
+		{
+			return name.Parent is InvocationExpressionSyntax call && call.Expression == name;
+		}
+
+		// Where C# reads a name as a type: whatever stands in a type's place, and every part of a type.
+		static bool IsType(IdentifierNameSyntax name)
+		{
+			return name.Parent switch
+			{
+				TypeArgumentListSyntax or ArrayTypeSyntax or NullableTypeSyntax or PointerTypeSyntax or RefTypeSyntax or
+					ScopedTypeSyntax or QualifiedNameSyntax or TupleElementSyntax or TypePatternSyntax or
+					ArrayCreationExpressionSyntax or StackAllocArrayCreationExpressionSyntax => true,
+				ObjectCreationExpressionSyntax creation  => creation.Type == name,
+				CastExpressionSyntax cast                => cast.Type == name,
+				TypeOfExpressionSyntax typeOf            => typeOf.Type == name,
+				DefaultExpressionSyntax fallback         => fallback.Type == name,
+				SizeOfExpressionSyntax size              => size.Type == name,
+				DeclarationExpressionSyntax declaration  => declaration.Type == name,
+				VariableDeclarationSyntax declaration    => declaration.Type == name,
+				DeclarationPatternSyntax pattern         => pattern.Type == name,
+				RecursivePatternSyntax pattern           => pattern.Type == name,
+				ParameterSyntax parameter                => parameter.Type == name,
+				LocalFunctionStatementSyntax function    => function.ReturnType == name,
+				CatchDeclarationSyntax caught            => caught.Type == name,
+				ForEachStatementSyntax loop              => loop.Type == name,
+				BinaryExpressionSyntax binary            => binary.Right == name && (binary.IsKind(SyntaxKind.AsExpression) || binary.IsKind(SyntaxKind.IsExpression)),
+				_                                        => false,
+			};
+		}
+	}
+
+	/// <summary>
 	/// The expression with the free names <paramref name="names"/> maps spelled as it says.
 	/// </summary>
 	/// <remarks>
@@ -139,13 +212,6 @@ public sealed class RoslynCSharpScanner : ICSharpScanner
 				assignment.Parent is InitializerExpressionSyntax)
 				continue;
 
-			// A name the parser supplies is a value, never something called or made: `parserMessage()`
-			// is the host's method of that name, and `new parserMessage()` its type, which the
-			// parser has nothing to give. A bare use stays free, and so does a name with a member
-			// (`parserState.Length`); the host's static class of that name is read as the value.
-			if (name.Identifier.ValueText.StartsWith("parser", StringComparison.Ordinal) && Called(name))
-				continue;
-
 			// `f(name: value)` names a parameter of `f`.
 			if (name.Parent is NameColonSyntax or NameEqualsSyntax)
 				continue;
@@ -168,23 +234,6 @@ public sealed class RoslynCSharpScanner : ICSharpScanner
 		static bool Holds((SyntaxNode Over, SyntaxNode? Except) scope, SyntaxNode name)
 		{
 			return scope.Over.Span.Contains(name.Span) && scope.Except?.Span.Contains(name.Span) != true;
-		}
-
-		// Whether the name is invoked, or stands where a type does.
-		static bool Called(IdentifierNameSyntax name)
-		{
-			return name.Parent switch
-			{
-				InvocationExpressionSyntax call           => call.Expression == name,
-				ObjectCreationExpressionSyntax creation   => creation.Type == name,
-				CastExpressionSyntax cast                 => cast.Type == name,
-				TypeOfExpressionSyntax typeOf             => typeOf.Type == name,
-				DefaultExpressionSyntax fallback          => fallback.Type == name,
-				BinaryExpressionSyntax binary             => binary.Right == name && (binary.IsKind(SyntaxKind.AsExpression) || binary.IsKind(SyntaxKind.IsExpression)),
-				DeclarationExpressionSyntax declaration   => declaration.Type == name,
-				VariableDeclarationSyntax declaration     => declaration.Type == name,
-				_                                         => false,
-			};
 		}
 
 		// Whether the name is the type a declaration is written with, through `ref` or `scoped`.

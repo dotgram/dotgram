@@ -4091,10 +4091,14 @@ A `=>` is handed `parserText`, `parserSpan`, `parserInput` and, where the gramma
 `parserMarks` (§7.8); a `when` only `parserText` and `parserSpan`; a `recover` factory every name in the table but
 the marks. `parserInput` in a `recover` factory is the whole input, as it is in a `=>`, and is refused where
 there is none to hand over (a streamed parse, a buffered form, a grammar that names `eos`). Naming one where it
-is not handed is `GRAM4053`. A name counts only where it stands as a value: `parserMessage()` calls the
-host's method of that name and `new parserText()` makes its type, so neither asks the parser for anything
-and neither is refused. A host type or static class of that name used as `parserText.Member` cannot be told
-from the value and is read as the value; rename it.
+is not handed is `GRAM4053`. **The supplied names are reserved in the C# of a grammar** — `parserText`, `parserPosition`,
+`parserOrdinal`, `parserLine`, `parserColumn`, `parserSpan`, `parserMessage`, `parserExpected`,
+`parserFailurePosition`, `parserFailureLine`, `parserFailureColumn`, `parserInput`, `parserState` and
+`parserMarks`: a host method, type, local, parameter or capture is not to be spelled like one. Calling
+one, writing it as a type or a type argument, or declaring one as a parameter, a local or a pattern
+variable is `GRAM4053`. A method group handed on (`new Func<string>(parserMessage)`) or a static class of
+that name with a member cannot be told from the value without a compilation and is left to the C#
+compiler, which then says so in its own words.
 
 **Where a bad element began is not where it went wrong.** `Flat white     3,20` is
 rejected as a whole line, and `parserLine` and `parserColumn` say where that line begins;

@@ -249,8 +249,16 @@ public sealed partial class GrammarNormalizer
 					continue;
 
 				var isGuard = place == "a 'when'";
+				var misused = Misused(text, scanner);
 
-				foreach (var name in Unhanded(text, handed, isGuard && declaresState, scanner))
+				foreach (var name in misused)
+					Report(
+						SuppliedNameNotHere,
+						$"'{rule.Name}' uses '{name}' in {place} as a method, a type or a variable, and the names the " +
+						"parser supplies are reserved in C# written in a grammar: rename it (docs/syntax.md §8.2).",
+						rule.Declaration.At);
+
+				foreach (var name in Unhanded(text, handed, isGuard && declaresState, scanner).Except(misused))
 					Report(
 						SuppliedNameNotHere,
 						$"'{rule.Name}' names '{name}' in {place}, which is not handed it: {place} is handed " +
@@ -261,12 +269,23 @@ public sealed partial class GrammarNormalizer
 
 		foreach (var recovery in _recoveries.Values)
 			if (recovery.Factory is { } factory)
-				foreach (var name in Unhanded(factory, SuppliedNames.ToRecoveries, flagMarks: true, scanner))
+			{
+				var misused = Misused(factory, scanner);
+
+				foreach (var name in misused)
+					Report(
+						SuppliedNameNotHere,
+						$"A 'recover' factory uses '{name}' as a method, a type or a variable, and the names the " +
+						"parser supplies are reserved in C# written in a grammar: rename it (docs/syntax.md §8.2).",
+						recovery.At);
+
+				foreach (var name in Unhanded(factory, SuppliedNames.ToRecoveries, flagMarks: true, scanner).Except(misused))
 					Report(
 						SuppliedNameNotHere,
 						$"A 'recover' factory names '{name}', which is not handed to it: a rejected element was " +
 						"never read, so no mark stands over it (docs/syntax.md §8.2).",
 						recovery.At);
+			}
 
 		static string Handed(IReadOnlyCollection<string> names, bool withState)
 		{
@@ -274,6 +293,21 @@ public sealed partial class GrammarNormalizer
 
 			return string.Join(", ", shown.Take(shown.Length - 1)) + " and " + shown[^1];
 		}
+	}
+
+	/// <summary>
+	/// The supplied names the C# uses as something that is not a value: called, written as a type, or
+	/// declared. They are reserved there, and a generated parameter of that name would shadow them.
+	/// </summary>
+	/// <remarks>
+	/// A method group handed on (<c>new Func&lt;string&gt;(parserMessage)</c>) or a static class of that name with a
+	/// member cannot be told from a value without a compilation, and is left to the C# compiler.
+	/// </remarks>
+	static IReadOnlyList<string> Misused(string text, ICSharpScanner? scanner)
+	{
+		var other = scanner?.NamesNotAsValues(text);
+
+		return other is null ? [] : [.. SuppliedNames.All.Where(other.Contains)];
 	}
 
 	/// <summary>The supplied names the C# asks for that its position is not handed, in the order they are declared.</summary>

@@ -139,33 +139,56 @@ public sealed class SuppliedNameTests
 	}
 
 	/// <summary>
-	/// A name of the host that happens to be spelled like a supplied one is the host's where it is called or
-	/// made: <c>parserMessage()</c> is its method and <c>new parserText()</c> its type, and neither is
-	/// refused (GRAM4053) nor handed a parameter of that name, which would make the call fail to compile.
+	/// The names the parser supplies are reserved in the C# of a grammar: one called, written as a type or a
+	/// type argument, or declared as a parameter, a local or a pattern variable is a diagnostic of the
+	/// generator's (GRAM4053), where a parameter of that name would shadow the host's member and the file
+	/// would not compile (CS0149, CS0103).
 	/// </summary>
 	[Theory]
-	[InlineData("Start : @string = 'a' => @parserMessage()")]
-	[InlineData("Start : @string = 'a' => @(parserMessage())")]
-	[InlineData("Start : @string = 'a' => @(parserMessage() + new parserText().ToString())")]
-	[InlineData("Start : @string = 'a' & when @(parserMessage() != null) => @(\"ok\")")]
-	[InlineData("Start : @string = 'a' => @(((parserText)new parserText()).ToString() + (typeof(parserText) is null ? \"\" : \"\") + parserMessage())")]
-	[InlineData("Start : @string[] = Row* recover ';' => @(parserMessage())\nRow : @string = t: ['a'..'z']+ & ';' => @(t)")]
-	public void A_host_name_spelled_like_a_supplied_one_is_the_hosts_where_it_is_called_or_made(string grammar)
+	[InlineData("Start : @string = 'a' => @(parserMessage())", "as a method, a type or a variable")]
+	[InlineData("Start : @string = 'a' => @(parserText + parserText())", "as a method, a type or a variable")]
+	[InlineData("Start : @string = 'a' => @parserMessage()", "as a method, a type or a variable")]
+	[InlineData("Start : @string = 'a' & when @(parserText() != null) => @(\"ok\")", "as a method, a type or a variable")]
+	[InlineData("Start : @string = 'a' => @(new parserText().ToString())", "as a method, a type or a variable")]
+	[InlineData("Start : @string = 'a' => @(new System.Collections.Generic.List<parserInput>().Count.ToString())", "as a method, a type or a variable")]
+	[InlineData("Start : @string = 'a' => @(parserText is parserMessage p ? \"\" : \"\")", "as a method, a type or a variable")]
+	[InlineData("Start : @string = 'a' => @(((System.Func<int, int>)(parserSpan => 1))(1).ToString())", "as a method, a type or a variable")]
+	[InlineData("Start : @string = 'a' => @(((parserText)null).ToString())", "as a method, a type or a variable")]
+	[InlineData("Start : @string[] = Row* recover ';' => @(parserMessage())\nRow : @string = t: ['a'..'z']+ & ';' => @(t)", "as a method, a type or a variable")]
+	[InlineData("Start : @string[] = Row* recover ';' => @(new System.Collections.Generic.List<parserInput>().Count.ToString())\nRow : @string = t: ['a'..'z']+ & ';' => @(t)", "as a method, a type or a variable")]
+	[InlineData("Start : @string[] = Row* recover ';' => @(parserText + parserText())\nRow : @string = t: ['a'..'z']+ & ';' => @(t)", "as a method, a type or a variable")]
+	// A method group handed on is not seen as one; in a construction the name is not handed, which says so.
+	[InlineData("Start : @string = 'a' => @(new System.Func<string>(parserMessage)())", "not handed")]
+	public void A_supplied_name_used_as_a_method_a_type_or_a_variable_is_refused(string grammar, string said)
 	{
-		const string members =
-			"public static string parserMessage() { return \"ok\"; }\n" +
-			"public sealed class parserText { public override string ToString() { return \"\"; } }\n";
+		foreach (var (_, direct, carrier) in TieShapes.Renderings)
+		{
+			var result = Compile(grammar + "\nparse Start\n", direct, carrier);
+			var refusal = Assert.Single(result.Diagnostics, static one => one.Id == GrammarNormalizer.SuppliedNameNotHere);
+
+			Assert.Contains(said, refusal.Message, StringComparison.Ordinal);
+		}
+	}
+
+	/// <summary>
+	/// A capture, or a publication, whose name only begins like a supplied one is the author's: it is a value
+	/// (a delegate that is called, here) and is handed to the guard like any capture.
+	/// </summary>
+	[Fact]
+	public void A_capture_that_only_begins_like_a_supplied_name_is_still_a_capture()
+	{
+		const string members = "public static System.Func<bool> Make() { return () => true; }\n";
+		const string grammar =
+			"Callback : @System.Func<bool> = 'a' => @Make()\n" +
+			"Start = parserCallback: Callback & when @(parserCallback())\nparse Start\n";
 
 		foreach (var (name, direct, carrier) in TieShapes.Renderings)
 		{
-			var result = Compile(grammar + "\nparse Start\n", direct, carrier);
+			Assert.DoesNotContain(Compile(grammar, direct, carrier).Diagnostics, static one => one.Id == GrammarNormalizer.SuppliedNameNotHere);
 
-			Assert.DoesNotContain(result.Diagnostics, static one => one.Id == GrammarNormalizer.SuppliedNameNotHere);
+			var parser = TieShapes.Grammar(grammar, direct, carrier, members: members);
 
-			// Built beside the host, as a consumer's build builds it.
-			var parser = TieShapes.Grammar(grammar + "\nparse Start\n", direct, carrier, members: members);
-
-			Assert.True(parser.GetMethod("TryParseStart", [typeof(string)]) is not null, name);
+			Assert.True("accepted" == TieShapes.Ask(parser, "TryParseStart", "a").Said, name);
 		}
 	}
 
