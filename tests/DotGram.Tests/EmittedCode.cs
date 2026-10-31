@@ -66,13 +66,22 @@ static class EmittedCode
 	/// goes through here: it is asserted on, from the list itself, in <c>SpacedLexemeTests</c>,
 	/// and the examples are built by the compiler with warnings as errors.
 	/// </para>
+	/// <para>
+	/// GRAM4052 likewise: a repetition that reads one run two ways is the shape a good many of
+	/// these tests are about — the ties of a refusal reached in two to the n ways, a nested
+	/// repetition that backtracks, a hand-written reference for a rule the library reads with a
+	/// counter — and what it costs a refusal is not their question. It is asserted on in
+	/// <c>ExponentialRepetitionTests</c>, every grammar of the repository is held to a triaged list
+	/// there, and the slow suite drives what it tells.
+	/// </para>
 	/// </remarks>
 	public static void Quiet(IEnumerable<GramDiagnostic> diagnostics)
 	{
 		Assert.DoesNotContain(
 			diagnostics,
 			static one => one.Severity != GramSeverity.Info &&
-				one.Id is not (GramCompiler.CarrierCaution or GramCompiler.CarrierRefused or GrammarNormalizer.SpacedLexeme));
+				one.Id is not (GramCompiler.CarrierCaution or GramCompiler.CarrierRefused or GrammarNormalizer.SpacedLexeme or
+					GramCompiler.ExponentialRepetitions));
 	}
 
 	public static Assembly Compile(

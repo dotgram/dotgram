@@ -47,11 +47,7 @@ public sealed class SnapshotTests
 		{
 			var result = GramCompiler.Compile(text, options);
 
-			// Segmented's arguments are each a value where nothing else reads them, `Value = any*`,
-			// so it accepts every list it is handed: the two readings GRAM4052 finds of `-o` are
-			// there, and no input is ever refused after them. Told and kept, since the file is
-			// what the snapshot beside it was written from.
-			EmittedCode.Quiet(result.Diagnostics.Where(one => !(name == "Segmented" && one.Id == GramCompiler.ExponentialRepetitions)));
+			EmittedCode.Quiet(result.Diagnostics);
 
 			var sources = result.Sources;
 
