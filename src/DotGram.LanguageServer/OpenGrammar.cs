@@ -13,30 +13,33 @@ namespace DotGram.LanguageServer;
 
 /// <summary>One version of an open document's text, as the client numbered it.</summary>
 /// <remarks>
-/// Each version's text is a string of its own. Roslyn's <see cref="SourceText.WithChanges(TextChange[])"/>
-/// would share the unchanged text between versions, but in the Roslyn the server compiles against it
-/// throws on some edits that split a <c>\r\n</c> (<c>CompositeText.RemoveSplitLineBreaksAndEmptySegments</c>),
-/// and a copy of even the largest grammar costs well under a millisecond. What changed is kept beside it,
-/// for carrying the colours of the version before over until this one is analysed.
+/// A version shares the text it did not change with the version before
+/// (<see cref="SourceText.WithChanges(TextChange[])"/>): a keystroke in a large grammar is not a copy of
+/// all of it. The Roslyn the server compiles against throws on some edits next to a split <c>\r\n</c>
+/// (<c>CompositeText.RemoveSplitLineBreaksAndEmptySegments</c>); such an edit makes the text afresh. The
+/// text as one string is made where it is asked for — by an analysis, not by every keystroke. What
+/// changed is kept beside it, for carrying the colours of the version before over until this one is
+/// analysed.
 /// </remarks>
 sealed class GramVersion
 {
 	static long _nextId;
 
+	readonly Lazy<string>  _string;
 	readonly Lazy<LineMap> _lines;
 
 	public GramVersion(int number, SourceText text)
-		: this(number, text.ToString(), null, null)
+		: this(number, text, null, null)
 	{
 	}
 
-	GramVersion(int number, string text, LineMap? lines, (long From, IReadOnlyList<TextChangeRange> Changes)? changed)
+	GramVersion(int number, SourceText text, LineMap? lines, (long From, IReadOnlyList<TextChangeRange> Changes)? changed)
 	{
 		Id      = Interlocked.Increment(ref _nextId);
 		Number  = number;
-		String  = text;
-		Text    = SourceText.From(text);
+		Text    = text;
 		Changed = changed;
+		_string = new Lazy<string>(text.ToString);
 		_lines  = lines is null ? new Lazy<LineMap>(() => new LineMap(Text)) : new Lazy<LineMap>(() => lines);
 	}
 
@@ -47,7 +50,7 @@ sealed class GramVersion
 
 	public SourceText Text { get; }
 
-	public string String { get; }
+	public string String => _string.Value;
 
 	public LineMap Lines => _lines.Value;
 
@@ -60,7 +63,7 @@ sealed class GramVersion
 	/// <summary>The version after the client's changes, applied in order, each to the text the one before left.</summary>
 	public GramVersion Apply(int number, IReadOnlyList<TextDocumentContentChangeEvent> changes)
 	{
-		var text  = String;
+		var text  = Text;
 		var lines = Lines;
 		var made  = new List<TextChangeRange>(changes.Count);
 
@@ -68,8 +71,8 @@ sealed class GramVersion
 		{
 			if (change.Range is not { } range)
 			{
-				text  = change.Text;
-				made.Add(new TextChangeRange(new TextSpan(0, lines.Length), text.Length));
+				made.Add(new TextChangeRange(new TextSpan(0, lines.Length), change.Text.Length));
+				text  = SourceText.From(change.Text);
 				lines = new LineMap(text);
 				continue;
 			}
@@ -77,12 +80,27 @@ sealed class GramVersion
 			var start = lines.Offset(range.Start);
 			var end   = Math.Max(start, lines.Offset(range.End));
 
-			text  = string.Concat(text.AsSpan(0, start), change.Text, text.AsSpan(end));
-			lines = lines.Apply(SourceText.From(text), start, end, change.Text.Length);
+			text  = WithChange(text, start, end, change.Text);
+			lines = lines.Apply(text, start, end, change.Text.Length);
 			made.Add(new TextChangeRange(TextSpan.FromBounds(start, end), change.Text.Length));
 		}
 
 		return new GramVersion(number, text, lines, (Id, made));
+	}
+
+	static SourceText WithChange(SourceText text, int start, int end, string inserted)
+	{
+		try
+		{
+			return text.WithChanges(new TextChange(TextSpan.FromBounds(start, end), inserted));
+		}
+		catch (ArgumentOutOfRangeException)
+		{
+			// Roslyn's own failure next to a split line break: the text is made afresh instead.
+			var whole = text.ToString();
+
+			return SourceText.From(string.Concat(whole.AsSpan(0, start), inserted, whole.AsSpan(end)));
+		}
 	}
 }
 
@@ -417,7 +435,7 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 				continue;
 
 			int? definition = item.DefinitionPosition is { } at && at < from.Text.Length
-				? Map(at, 0, changes)
+				? MapStart(at, changes)
 				: null;
 
 			result.Add(new GramClassifiedSpan(
@@ -435,6 +453,29 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 	}
 
 	/// <summary>Where a span of the old text is in the new one, or null where an edit touched it.</summary>
+	/// <summary>
+	/// Where the start of a token is in the new text: text inserted right at it moves it, as it moves
+	/// the token; a change that replaces its first character drops it, as it drops the token.
+	/// </summary>
+	static int? MapStart(int position, IReadOnlyList<TextChangeRange> changes)
+	{
+		foreach (var change in changes)
+		{
+			if (change.Span.End <= position)
+			{
+				position += change.NewLength - change.Span.Length;
+				continue;
+			}
+
+			if (change.Span.Start > position)
+				continue;
+
+			return null;
+		}
+
+		return position;
+	}
+
 	static int? Map(int position, int length, IReadOnlyList<TextChangeRange> changes)
 	{
 		// The changes in the order they were made, each in the text the one before it left: one

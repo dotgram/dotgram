@@ -67,34 +67,37 @@ sealed class LineMap
 		// A line starts at p where the character before p breaks the line: a '\n', or a '\r' not
 		// followed by '\n'. That depends on the characters at p - 1 and p, so a start the change
 		// cannot have moved is one before it (p < start) or one after it (p > end, in the old text).
-		var shift  = inserted - (end - start);
-		var result = new List<int>(_starts.Length + 4);
+		var shift = inserted - (end - start);
 
-		foreach (var at in _starts)
-		{
-			if (at >= start)
-				break;
+		// Kept: the starts before the change; moved: those after it; read again: those inside it.
+		var kept  = Array.BinarySearch(_starts, start);
+		var moved = Array.BinarySearch(_starts, end + 1);
 
-			result.Add(at);
-		}
+		kept  = kept < 0 ? ~kept : kept;
+		moved = moved < 0 ? ~moved : moved;
 
-		if (result.Count == 0)
-			result.Add(0);
+		var found = new List<int>();
 
 		for (var at = Math.Max(1, start); at <= start + inserted && at <= text.Length; at++)
 		{
 			var before = text[at - 1];
 
 			if (before == '\n' || before == '\r' && (at == text.Length || text[at] != '\n'))
-				result.Add(at);
+				found.Add(at);
 		}
 
-		var first = Array.BinarySearch(_starts, end + 1);
+		var first  = kept == 0 ? 1 : 0;
+		var result = new int[first + kept + found.Count + (_starts.Length - moved)];
 
-		for (var index = first < 0 ? ~first : first; index < _starts.Length; index++)
-			result.Add(_starts[index] + shift);
+		Array.Copy(_starts, result, kept);
+		found.CopyTo(result, first + kept);
 
-		return new LineMap([.. result], text);
+		var target = first + kept + found.Count;
+
+		for (var source = moved; source < _starts.Length; source++)
+			result[target++] = _starts[source] + shift;
+
+		return new LineMap(result, text);
 	}
 
 	public int Length { get; }
