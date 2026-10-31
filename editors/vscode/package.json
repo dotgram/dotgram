@@ -28,6 +28,16 @@
     "parser",
     "peg"
   ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "The language server runs in an untrusted workspace too; which program runs it is a setting of the machine, never of a workspace.",
+      "restrictedConfigurations": [
+        "dotgram.server.path",
+        "dotgram.dotnetPath"
+      ]
+    }
+  },
   "extensionDependencies": [
     "ms-dotnettools.vscode-dotnet-runtime"
   ],
@@ -128,13 +138,13 @@
         "dotgram.server.path": {
           "type": "string",
           "default": "",
-          "scope": "machine-overridable",
+          "scope": "machine",
           "markdownDescription": "The language server to run instead of the one the extension carries: a `DotGram.LanguageServer.dll`, run with .NET, or an executable."
         },
         "dotgram.dotnetPath": {
           "type": "string",
           "default": "",
-          "scope": "machine-overridable",
+          "scope": "machine",
           "markdownDescription": "The `dotnet` executable that runs the language server. Empty: the .NET 10 runtime is acquired through the .NET Install Tool."
         },
         "dotgram.trace.server": {
