@@ -137,9 +137,10 @@ public static class ExponentialRepetition
 			if (woven is Node.Call(var called, _))
 				seams.Add(called);
 
-		var context = new Context(over, kinds ? lexical!.Inventory : null, seams);
+		var context   = new Context(over, kinds ? lexical!.Inventory : null, seams);
+		var unfailing = new Unfailing(over);
 		var found   = new List<Told>();
-		var said    = new HashSet<(string, int, string)>();
+		var said    = new HashSet<(string, int, int)>();
 		var loops   = 0;
 		var skipped = 0;
 
@@ -160,10 +161,10 @@ public static class ExponentialRepetition
 			var places = new List<Place>();
 			var walked = new Dictionary<Node, bool>(NodeIdentity.Instance);
 
-			Collect(body, -1, free: false, over, places, walked);
+			Collect(body, -1, free: false, unfailing, places, walked);
 
 			if (over.Folds.TryGetValue(rule, out var fold))
-				Collect(fold.Loop, -1, free: false, over, places, walked);
+				Collect(fold.Loop, -1, free: false, unfailing, places, walked);
 
 			foreach (var place in places)
 			{
@@ -191,8 +192,10 @@ public static class ExponentialRepetition
 				if (place.Witness is not { } witness || place.Covered)
 					continue;
 
-				// One repetition written once is one finding, however many clones see it.
-				if (said.Add((origin.Name, origin.Declaration?.At.Position ?? -1, place.Loop.ToString())))
+				// One repetition written once is one finding, however many clones see it: a clone of a
+				// rule is walked in the same order, so the place a repetition has among its rule's is
+				// the occurrence, and two written alike in one rule are two.
+				if (said.Add((origin.Name, origin.Declaration?.At.Position ?? -1, places.IndexOf(place))))
 					found.Add(new Told(origin, place.Loop, witness));
 			}
 		}
@@ -231,7 +234,7 @@ public static class ExponentialRepetition
 	/// stands last in them is free; <c>{ (('a' | 'a' &amp; 'a')+)* }</c> reads its run once.
 	/// </param>
 	/// <param name="walked">Every node asked, and whether it was free there: one asked free is asked again where it is not.</param>
-	static void Collect(Node node, int parent, bool free, RecognitionGraph graph, List<Place> places, Dictionary<Node, bool> walked)
+	static void Collect(Node node, int parent, bool free, Unfailing facts, List<Place> places, Dictionary<Node, bool> walked)
 	{
 		if (walked.TryGetValue(node, out var was) && (!was || free))
 			return;
@@ -250,14 +253,14 @@ public static class ExponentialRepetition
 				// than one turn, or as many as the input says, can fail after any reading of the turns
 				// before, and is asked: `{ ('a' | 'a' & 'a'){#q,} }` never succeeds and so never
 				// commits. A repetition marked `recover` commits each turn it finishes (§8.2).
-				if (!committed && !graph.Recoveries.ContainsKey(node))
+				if (!committed && !facts.Graph.Recoveries.ContainsKey(node))
 				{
 					places.Add(new Place(node, parent));
 					at = places.Count - 1;
 				}
 
 				foreach (var child in node.Children)
-					Collect(child, at, committed, graph, places, walked);
+					Collect(child, at, committed, facts, places, walked);
 
 				return;
 			}
@@ -265,18 +268,18 @@ public static class ExponentialRepetition
 			// A turn of a bounded repetition is free where the repetition is and one turn is enough.
 			case Node.Repeat or Node.Counted:
 				foreach (var child in node.Children)
-					Collect(child, parent, free && Fewest(node) is <= 1, graph, places, walked);
+					Collect(child, parent, free && Fewest(node) is <= 1, facts, places, walked);
 
 				return;
 
 			case Node.Atomic(var body):
-				Collect(body, parent, free: true, graph, places, walked);
+				Collect(body, parent, free: true, facts, places, walked);
 
 				return;
 
 			// A look holds or refuses on the first reading of what it looks at.
 			case Node.Lookahead(_, var body):
-				Collect(body, parent, free: true, graph, places, walked);
+				Collect(body, parent, free: true, facts, places, walked);
 
 				return;
 
@@ -290,18 +293,18 @@ public static class ExponentialRepetition
 				for (var i = parts.Count - 1; i >= 0; i--)
 				{
 					frees[i] = rest;
-					rest     = rest && CannotFail(parts[i], graph, []);
+					rest     = rest && facts.Holds(parts[i]);
 				}
 
 				for (var i = 0; i < parts.Count; i++)
-					Collect(parts[i], parent, frees[i], graph, places, walked);
+					Collect(parts[i], parent, frees[i], facts, places, walked);
 
 				return;
 			}
 
 			case Node.Choice or Node.Capture or Node.Marked or Node.Construct or Node.Bind:
 				foreach (var child in node.Children)
-					Collect(child, parent, free, graph, places, walked);
+					Collect(child, parent, free, facts, places, walked);
 
 				return;
 
@@ -312,7 +315,7 @@ public static class ExponentialRepetition
 		}
 
 		foreach (var child in node.Children)
-			Collect(child, parent, free: false, graph, places, walked);
+			Collect(child, parent, free: false, facts, places, walked);
 	}
 
 	/// <summary>The fewest turns a repetition takes, or null where the input says.</summary>
@@ -326,34 +329,79 @@ public static class ExponentialRepetition
 		};
 	}
 
-	/// <summary>Whether a node succeeds wherever it is asked, reading nothing if it must: what follows it cannot fail there.</summary>
-	static bool CannotFail(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
+	/// <summary>How deep a walk of the analysis follows calls before it answers as if it knew nothing more.</summary>
+	const int Deepest = 64;
+
+	/// <summary>
+	/// Whether a node succeeds wherever it is asked, reading nothing if it must: what follows it
+	/// cannot fail there. A rule's answer is kept once known; a rule met again on the path it is
+	/// asked on, or past <see cref="Deepest"/> calls, is taken as one that can fail.
+	/// </summary>
+	sealed class Unfailing(RecognitionGraph graph)
 	{
-		switch (node)
+		readonly Dictionary<RuleSymbol, bool> _known  = [];
+		readonly HashSet<RuleSymbol>          _asking = [];
+
+		/// <summary>How many answers were cut short by the path or the depth, so far.</summary>
+		int _cuts;
+
+		public RecognitionGraph Graph => graph;
+
+		public bool Holds(Node node)
 		{
-			case Node.Empty:
-			case Node.Literal { Text.Length: 0 }:
-			case Node.Repeat { Min: 0 }:
-			case Node.Counted { Min: CountBound.Items(0) }:
-				return true;
+			return Holds(node, 0);
+		}
 
-			case Node.Sequence(var parts):
-				return parts.All(part => CannotFail(part, graph, seen));
+		bool Holds(Node node, int depth)
+		{
+			switch (node)
+			{
+				case Node.Empty:
+				case Node.Literal { Text.Length: 0 }:
+				case Node.Repeat { Min: 0 }:
+				case Node.Counted { Min: CountBound.Items(0) }:
+					return true;
 
-			case Node.Choice { Selection: null } choice:
-				return choice.Nodes.Any(alternative => CannotFail(alternative, graph, seen));
+				case Node.Sequence(var parts):
+					return parts.All(part => Holds(part, depth));
 
-			case Node.Atomic(var body):
-				return CannotFail(body, graph, seen);
+				case Node.Choice { Selection: null } choice:
+					return choice.Nodes.Any(alternative => Holds(alternative, depth));
 
-			case Node.Capture or Node.Marked or Node.Construct or Node.Bind:
-				return node.Children.All(child => CannotFail(child, graph, seen));
+				case Node.Atomic(var body):
+					return Holds(body, depth);
 
-			case Node.Call(var called, _) when seen.Add(called) && graph.Bodies.TryGetValue(called, out var body):
-				return CannotFail(body, graph, seen);
+				case Node.Capture or Node.Marked or Node.Construct or Node.Bind:
+					return node.Children.All(child => Holds(child, depth));
 
-			default:
-				return false;
+				case Node.Call(var called, _) when graph.Bodies.TryGetValue(called, out var body):
+				{
+					if (_known.TryGetValue(called, out var known))
+						return known;
+
+					if (depth >= Deepest || !_asking.Add(called))
+					{
+						_cuts++;
+
+						return false;
+					}
+
+					var cuts  = _cuts;
+					var holds = Holds(body, depth + 1);
+
+					_asking.Remove(called);
+
+					// An answer cut short by the path or the depth is the path's, not the rule's; one
+					// that holds holds whatever was cut.
+					if (holds || _cuts == cuts)
+						_known[called] = holds;
+
+					return holds;
+				}
+
+				default:
+					return false;
+			}
 		}
 	}
 
@@ -395,6 +443,9 @@ public static class ExponentialRepetition
 		readonly Dictionary<Node, int>   _nodes  = new(NodeIdentity.Instance);
 
 		ExecutionPlan? _plan;
+
+		/// <summary>What each rule is as one class, or null where it is not one (<see cref="Automaton.OneClass"/>).</summary>
+		public Dictionary<RuleSymbol, FirstSets.First?> Classes { get; } = [];
 
 		public int Steps { get; private set; }
 
@@ -563,6 +614,9 @@ public static class ExponentialRepetition
 
 		/// <summary>How many calls are being written out, each to be taken back where it does not fit.</summary>
 		int _attempts;
+
+		/// <summary>How many answers of <see cref="OneClass"/> were cut short by the path or the depth, so far.</summary>
+		int _cuts;
 
 		public Context Context => context;
 
@@ -898,6 +952,8 @@ public static class ExponentialRepetition
 		/// <summary>The characters a look asks about, where it is one class: a class, a character, or a choice of them, at most <c>any</c> after it.</summary>
 		FirstSets.First? OneClass(Node body)
 		{
+			Charge(1);
+
 			switch (body)
 			{
 				case Node.Element { References.Count: 0 } element:
@@ -921,13 +977,30 @@ public static class ExponentialRepetition
 					return FirstSets.First.Chars([new CharRange(char.MinValue, char.MaxValue)]);
 
 				// A rule that is one class, called: what it is, unless it is one of those being read.
-				case Node.Call(var called, { Count: 0 }) when !_inlining.Contains(called) && context.Graph.Bodies.TryGetValue(called, out var rule):
+				// Kept once known, for every repetition of the grammar: a rule reached by many paths
+				// is asked once. An answer cut short by the path or the depth is not kept.
+				case Node.Call(var called, { Count: 0 }) when context.Graph.Bodies.TryGetValue(called, out var rule):
 				{
+					if (context.Classes.TryGetValue(called, out var known))
+						return known;
+
+					if (_inlining.Contains(called) || _inlining.Count > Deepest)
+					{
+						_cuts++;
+
+						return null;
+					}
+
+					var cuts = _cuts;
+
 					_inlining.Add(called);
 
 					var one = OneClass(rule);
 
 					_inlining.Remove(called);
+
+					if (one is not null || _cuts == cuts)
+						context.Classes[called] = one;
 
 					return one;
 				}
@@ -957,8 +1030,10 @@ public static class ExponentialRepetition
 			var graph  = context.Graph;
 			var called = call.Rule;
 
+			// Past the calls a walk follows, one letter: a chain of thousands of calls that read
+			// nothing would otherwise be followed one frame each.
 			if (call.Arguments.Count > 0 || !graph.Bodies.TryGetValue(called, out var body) ||
-				graph.Calls.Recurses(called) || _inlining.Contains(called) ||
+				graph.Calls.Recurses(called) || _inlining.Contains(called) || _inlining.Count > Deepest ||
 				context.OverKinds && !called.IsBuiltIn && !called.GivesBack)
 				return Opaqued(called, called.Name, call);
 
@@ -1067,8 +1142,11 @@ public static class ExponentialRepetition
 		}
 
 		/// <summary>The characters a body that is one test reads, or null where some of them are the host's to know.</summary>
-		FirstSets.First? Union(Node body)
+		FirstSets.First? Union(Node body, int depth = 0)
 		{
+			if (depth > Deepest)
+				return null;
+
 			switch (body)
 			{
 				case Node.Element { References.Count: 0 } element:
@@ -1078,10 +1156,10 @@ public static class ExponentialRepetition
 					return FirstSets.First.Chars([new CharRange(literal.Text[0], literal.Text[0])]);
 
 				case Node.Call(var called, _) when context.Graph.Bodies.TryGetValue(called, out var inlined):
-					return Union(inlined);
+					return Union(inlined, depth + 1);
 
 				case Node.Sequence([var only]):
-					return Union(only);
+					return Union(only, depth);
 
 				case Node.Choice(var alternatives):
 				{
@@ -1089,7 +1167,7 @@ public static class ExponentialRepetition
 
 					foreach (var alternative in alternatives)
 					{
-						if (Union(alternative) is not { } one)
+						if (Union(alternative, depth) is not { } one)
 							return null;
 
 						all = all.Or(one);

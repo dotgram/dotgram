@@ -187,6 +187,9 @@ public sealed class ExponentialRepetitionTests
 	[InlineData("R = { (('a' | 'a' & 'a')+)* } & 'b'")]
 	[InlineData("R = (?=(('a' | 'a' & 'a')+)) & 'a'+ & 'b'")]
 
+	// A rule that cannot fail, called twice after the run: neither call can ask for another reading.
+	[InlineData("Tail = 'b'?\nPair = Tail & Tail\nR = { ('a' | 'a' & 'a')+ & Pair } & 'c'")]
+
 	// A braced call that takes the whole run leaves nothing it begins with to a second call.
 	[InlineData("X = { 'a'+ }\nR = (X | X & X)+ & 'b'")]
 
@@ -393,6 +396,68 @@ public sealed class ExponentialRepetitionTests
 			"The repetition '('a' | \"aa\")+' in 'Run' can read 'a' 'a' in two ways, so a refused input is read again " +
 			"for every way of cutting it: exponentially many times (docs/syntax.md §3.3).",
 			told.Message);
+	}
+
+	/// <summary>Two repetitions written alike in one rule are two repetitions, and two warnings.</summary>
+	[Fact]
+	public void Repetitions_written_alike_are_told_each()
+	{
+		const string grammar = "R = ('a' | 'a' & 'a')+ & ',' & ('a' | 'a' & 'a')+ & ';'\nparse R\n";
+
+		var result = Analyse(grammar);
+
+		Assert.Equal(2, result.Loops);
+		Assert.Equal(2, result.Found.Count);
+		Assert.Equal(2, Compiled(grammar).Count(static one => one.Id == GramCompiler.ExponentialRepetitions));
+	}
+
+	/// <summary>
+	/// A look over a rule reached by two to the twenty-four paths through the calls beneath it is
+	/// asked of each rule once, and its work is counted.
+	/// </summary>
+	[Fact]
+	public void A_look_over_a_rule_of_many_paths_is_read_once_a_rule()
+	{
+		var grammar = new StringBuilder("A0 = 'a'\n");
+
+		for (var i = 1; i <= 24; i++)
+			grammar.Append($"A{i} = A{i - 1} | A{i - 1} & any\n");
+
+		grammar.Append("R = (?!A24 & 'x')* & 'b'\nparse R\n");
+
+		Bounded(grammar.ToString());
+	}
+
+	/// <summary>A chain of eight thousand calls that read nothing is followed a bounded depth, not a frame a call.</summary>
+	[Fact]
+	public void A_chain_of_calls_thousands_deep_is_followed_a_bounded_depth()
+	{
+		var grammar = new StringBuilder("A0 = when @(true)\n");
+
+		for (var i = 1; i <= 8000; i++)
+			grammar.Append($"A{i} = when @(true) & A{i - 1}\n");
+
+		grammar.Append("R = (A8000 & 'a')* & 'b'\nparse R\n");
+
+		Bounded(grammar.ToString());
+	}
+
+	/// <summary>The analysis of a grammar, held to a time and an allocation that do not grow with the paths through it.</summary>
+	static void Bounded(string grammar)
+	{
+		var graph = Graph(grammar, lexical: false, out var split);
+		var watch = Stopwatch.StartNew();
+		var bytes = GC.GetAllocatedBytesForCurrentThread();
+
+		var result = ExponentialRepetition.Check(graph, split, out var steps);
+
+		bytes = GC.GetAllocatedBytesForCurrentThread() - bytes;
+
+		TestContext.Current.SendDiagnosticMessage($"{result.Loops} loops, {result.Skipped} skipped, {steps} steps, {bytes} bytes, {watch.Elapsed.TotalMilliseconds:F1} ms");
+
+		Assert.Equal(1, result.Loops);
+		Assert.True(bytes < 16 << 20, $"{bytes} bytes allocated");
+		Assert.True(watch.Elapsed.TotalSeconds < 2, $"{watch.Elapsed.TotalMilliseconds:F0} ms");
 	}
 
 	/// <summary>Two repetitions of one rule are two warnings.</summary>
