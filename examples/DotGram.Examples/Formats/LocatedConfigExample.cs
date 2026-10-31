@@ -80,7 +80,24 @@ public sealed record Entry(string Key, string Value) : ILocated
 
 	Entry : @Entry = key: Identifier & '=' & value: Value => @(new Entry(key, value))
 
-	Value : @string = t: [^ '\r' | '\n']* => @(t)
+	// A value runs to the end of its line, and that is the only way to read it where an entry or
+	// the end of the file comes next. Otherwise it stops where the line ends in a key that the next
+	// line completes, the last such place in it: `a=b=` and `c` is `a` with no value and `b` with
+	// the value `c`. Either is atomic and the second is taken only where the first is not, so that
+	// `a=b=c` is not also the entry `a` with none and then the entry `b`: a file refused late
+	// would be read once for every way each of its lines could be cut.
+	Value : @string = t: { Rest } ~ ?=Next => @(t)
+	                | ?!({ Rest } ~ ?=Next) ~ t: { Rest ~ ?=Dangling ~ ?=(Identifier & '=') } => @(t)
+
+	Rest = [^ '\r' | '\n']*
+
+	Next = trivia & (Identifier & '=' | eof)
+
+	// What is left of a line that the next one finishes: the last letter of a key and the digits
+	// after it (any earlier letter would be an earlier place to stop), perhaps its equals sign,
+	// and nothing else but blanks and a comment. The key is then checked whole, with its equals
+	// sign wherever the trivia puts it, so that a name inside a comment is not taken for one.
+	Dangling = [\p{L} | '_'] ~ [\p{Nd}]* ~ [' ' | '\t']* ~ ('=' ~ [' ' | '\t']*)? ~ ('#' ~ Rest)? ~ ?=(eol | eof)
 
 	// No `=>` and no captures, so this rule is what it matched — as two numbers rather
 	// than as text (§4.1 case 4).

@@ -35,7 +35,7 @@ namespace DotGram.Examples.Formats;
 
 	trivia = none
 
-	Headers : @HttpHeaders = fields: Field* & eol? & eof => @(new HttpHeaders(fields))
+	Headers : @HttpHeaders = { fields: Field* } & eol? & eof => @(new HttpHeaders(fields))
 
 	// A field is its first line plus every folded line under it. The `Name` rule cannot
 	// match a leading space, which is the whole of how a fold is told from a new field.
@@ -51,7 +51,10 @@ namespace DotGram.Examples.Formats;
 	// RFC 7230 says to strip, and the C# side does it in one place.
 	Line : @string = text: [^ '\n' | '\r']* => @(text)
 
-	Space = [' ' | '\t']*
+	// Atomic: the blanks in front of a value are all taken here. Given back, they would be read
+	// again as the value's own first characters, and every field and fold a text refused late
+	// holds would be read once for each place the split could fall.
+	Space = { [' ' | '\t']* }
 
 	parse Headers
 	""")]

@@ -49,10 +49,15 @@ namespace DotGram.Examples.Formats;
 	// The indent is captured rather than counted, because counting is the tree's business.
 	// Tabs are refused outright, as YAML refuses them — a file that mixes them is a file
 	// whose shape depends on somebody's editor.
-	Line : @YamlLine = indent: Indent & key: Key & ':' & Space & value: Rest & (eol | ?=eof)
+	Line : @YamlLine = indent: Indent & key: Key & ':' & Space & value: Rest & (Eol | ?=eof)
 	                     => @(new YamlLine(indent.Length, key, value.TrimEnd()))
 
-	Blank = Space & Comment? & eol
+	Blank = Space & Comment? & Eol
+
+	// One line ending, taken as a unit: `\r\n` is not a `\r` and then a `\n`. `eol` alone lets a
+	// repetition of lines give the `\n` back and read it as a blank line of its own, so a text that
+	// is refused late is read as every way of cutting its line endings in two.
+	Eol = { eol }
 
 	Comment = '#' & [^ '\n' | '\r']*
 
@@ -62,7 +67,10 @@ namespace DotGram.Examples.Formats;
 
 	Rest   : @string = text: [^ '\n' | '\r']* => @(text)
 
-	Space  = ' '*
+	// Atomic, like the line ending: the blanks after the colon are the separator's and none are the
+	// value's, however the rest of the text is read. Given back, they would be read again as the
+	// value's first characters, once for each blank, in every line of a text refused late.
+	Space  = { ' '* }
 
 	parse Doc
 	""")]
