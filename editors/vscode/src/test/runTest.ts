@@ -1,5 +1,5 @@
 // The extension in a real VS Code: downloads one, installs the .NET Install Tool the extension
-// depends on, opens a fixture folder and runs the suite. A manual check (docs/vscode.md), not CI's.
+// depends on, opens a fixture folder and runs the suite (docs/vscode.md).
 
 import * as cp from 'child_process';
 import * as path from 'path';
