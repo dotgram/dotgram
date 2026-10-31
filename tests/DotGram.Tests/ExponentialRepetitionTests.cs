@@ -1,5 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 
 using DotGram.Grammar;
 using DotGram.Grammar.Binding;
@@ -241,6 +246,199 @@ public sealed class ExponentialRepetitionTests
 		ExponentialRepetition.Check(graph, lexical, out var steps);
 
 		Assert.True(steps > 0);
+	}
+
+	/// <summary>
+	/// Every grammar in the repository, asked: what is told, where, with what witness, and how
+	/// much of each grammar the analysis could not see.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A report and not yet a guard: it writes <c>ExponentialRepetitions.txt</c> beside the
+	/// assembly and to the output, and asserts nothing. A hit is either a grammar that a refused
+	/// input can drive exponentially, which is a defect of that grammar, or a shape the analysis
+	/// takes for one, which is a defect of the analysis; each is judged by driving it.
+	/// </para>
+	/// <para>
+	/// The grammars are the files, every raw-string <c>[Gram]</c> attribute, and each read the
+	/// way it is compiled: over kinds where some attribute or snapshot rendering asks for
+	/// <c>Lexical</c>, over characters where some use does not.
+	/// </para>
+	/// </remarks>
+	[Fact]
+	public void Corpus()
+	{
+		var root   = SourceRoot.Directory;
+		var report = new StringBuilder();
+		var hits   = 0;
+		var read   = 0;
+
+		foreach (var (name, text, modes) in Grammars(root))
+		{
+			foreach (var lexical in modes)
+			{
+				RecognitionGraph graph;
+				LexicalSplit?    split;
+				long             built;
+
+				var watch = Stopwatch.StartNew();
+
+				try
+				{
+					graph = Built(name, text, lexical, out split);
+					built = watch.ElapsedTicks;
+				}
+				catch (Exception error)
+				{
+					report.AppendLine($"{name} [{(lexical ? "kinds" : "chars")}]: not read ({error.GetType().Name}: {error.Message.Split('\n')[0]})");
+
+					continue;
+				}
+
+				watch.Restart();
+
+				var result  = ExponentialRepetition.Check(graph, split, out var steps);
+				var checking = watch.ElapsedTicks;
+
+				read++;
+				hits += result.Found.Count;
+
+				var mode = lexical ? split is null ? "kinds asked, read over chars" : "kinds" : "chars";
+
+				report.AppendLine(string.Create(
+					System.Globalization.CultureInfo.InvariantCulture,
+					$"{name} [{mode}]: {result.Loops} loops, {result.Skipped} past the budget, {result.Opaque} opaque letters, " +
+					$"{result.Found.Count} told; {steps} steps, {Milliseconds(checking):F1} ms against {Milliseconds(built):F1} ms to build the graph"));
+
+				foreach (var told in result.Found)
+				{
+					var line = told.Rule.Declaration is { } declaration
+						? 1 + text.Take(Math.Min(declaration.At.Position, text.Length)).Count(static c => c == '\n')
+						: 0;
+
+					report.AppendLine($"  HIT {told.Rule.Name} (line {line}): {Shortened(told.Loop.ToString())} reads {told.Witness} in two ways");
+				}
+			}
+		}
+
+		report.Insert(0, $"{read} grammars read, {hits} hits.\n");
+
+		var written = report.ToString();
+
+		File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "ExponentialRepetitions.txt"), written);
+		TestContext.Current.SendDiagnosticMessage(written);
+		Console.WriteLine(written);
+	}
+
+	static double Milliseconds(long ticks)
+	{
+		return ticks * 1000.0 / Stopwatch.Frequency;
+	}
+
+	static string Shortened(string text)
+	{
+		const int most = 100;
+
+		return text.Length <= most ? text : text.Substring(0, most) + " …";
+	}
+
+	/// <summary>The graph a grammar compiles to; the library itself is read as it is, with nothing spliced onto it.</summary>
+	static RecognitionGraph Built(string name, string text, bool lexical, out LexicalSplit? split)
+	{
+		var parsed = name == "Std.gram"
+			? DotGram.Grammar.Parsing.GramParser.Parse(DotGram.Grammar.Parsing.GramLexer.Tokenize(text, RoslynCSharpScanner.Instance))
+			: GramCompiler.Read(text, RoslynCSharpScanner.Instance);
+
+		var model = GrammarBinder.Bind(parsed.File, null, text.Length);
+		var graph = GrammarNormalizer.Normalize(model, scanner: RoslynCSharpScanner.Instance);
+
+		split = lexical ? LexicalSplit.Of(graph) : null;
+
+		return graph;
+	}
+
+	/// <summary>
+	/// Every grammar in the repository, with the ways it is read: over characters, over kinds, or both.
+	/// </summary>
+	static IEnumerable<(string Name, string Text, bool[] Modes)> Grammars(string root)
+	{
+		var attribute = new Regex(
+			"\\[(?:DotGram\\.)?Gram\\((?:\"\"\"\\r?\\n(?<text>.*?)\\r?\\n\\s*\"\"\"|\"(?<file>[^\"]+\\.gram)\")(?<rest>[^\\]]*)\\]",
+			RegexOptions.Singleline);
+
+		// A file's modes by the attributes that name it: those beside it, where there are any, since
+		// that is its host; a test that writes the name in a string of its own is not.
+		var files  = new Dictionary<string, HashSet<bool>>(StringComparer.Ordinal);
+		var beside = new Dictionary<string, HashSet<bool>>(StringComparer.Ordinal);
+		var inline = new List<(string, string, bool[])>();
+
+		foreach (var path in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
+		{
+			if (Scratch(root, path))
+				continue;
+
+			var source = File.ReadAllText(path);
+
+			foreach (Match match in attribute.Matches(source))
+			{
+				var lexical = Regex.IsMatch(match.Groups["rest"].Value, "Lexical\\s*=\\s*true");
+
+				if (match.Groups["file"].Success)
+				{
+					var file = Path.GetFileName(match.Groups["file"].Value);
+					var near = File.Exists(Path.Combine(Path.GetDirectoryName(path)!, file));
+					var table = near ? beside : files;
+
+					if (!table.TryGetValue(file, out var modes))
+						table[file] = modes = [];
+
+					modes.Add(lexical);
+
+					continue;
+				}
+
+				inline.Add((
+					Path.GetFileName(path) + ":" + (1 + source.Take(match.Index).Count(static c => c == '\n')),
+					string.Join("\n", match.Groups["text"].Value.Split('\n').Select(static one => one.TrimStart('\t'))),
+					[lexical]));
+			}
+		}
+
+		foreach (var path in Directory.EnumerateFiles(root, "*.gram", SearchOption.AllDirectories))
+		{
+			if (Scratch(root, path))
+				continue;
+
+			var name = Path.GetFileName(path);
+			var text = File.ReadAllText(path);
+
+			var modes = beside.TryGetValue(name, out var hosted) ? [.. hosted] :
+				files.TryGetValue(name, out var used) ? [.. used] : new HashSet<bool>();
+
+			if (Path.GetFileName(Path.GetDirectoryName(path)) == "Snapshots")
+				foreach (var (options, _) in SnapshotRenderings.Of(Path.GetFileNameWithoutExtension(path), text, EmittedCode.References))
+					modes.Add(options.Lexical);
+
+			if (modes.Count == 0)
+				modes.Add(false);
+
+			yield return (name, text, [.. modes.OrderBy(static one => one)]);
+		}
+
+		foreach (var one in inline)
+			yield return one;
+	}
+
+	/// <summary>Build output and scratch, judged below the root as <c>ExponentialShapeProbe</c> judges it.</summary>
+	static bool Scratch(string root, string path)
+	{
+		var below = path.Substring(root.Length);
+
+		return
+			below.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
+			below.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
+			below.Contains($"{Path.DirectorySeparatorChar}.work{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
+			below.Contains($"{Path.DirectorySeparatorChar}.build{Path.DirectorySeparatorChar}", StringComparison.Ordinal);
 	}
 
 	internal static ExponentialRepetition.Result Analyse(string grammar, bool lexical = false)
