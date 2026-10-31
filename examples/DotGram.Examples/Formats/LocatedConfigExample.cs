@@ -82,19 +82,20 @@ public sealed record Entry(string Key, string Value) : ILocated
 
 	// A value runs to the end of its line, and that is the only way to read it where an entry or
 	// the end of the file comes next. Otherwise it stops where the line ends in a key that the next
-	// line completes, the last such place in it: `a=b=` and `c` is `a` with no value and `b` with
-	// the value `c`. There are two kinds of such place. A key whose equals sign is on a later
-	// line (`b` in `a=b #c` and `=x`) is taken if the next line starts with one; if not, a key with
-	// its equals sign, whose value is on a later line, is. That is the order of preference even
-	// where the other kind stands later in the line, in a comment: the first kind goes on into
-	// whatever the second would, so nothing is refused that the other order would have read. Each
-	// is atomic and found in one scan, and
-	// each is taken only where the ones before it are not, so that `a=b=c` is not also the entry
-	// `a` with none and then the entry `b`: a file refused late would be read once for every way
-	// each of its lines could be cut.
+	// line completes: `a=b=` and `c` is `a` with no value and `b` with the value `c`. There are two
+	// kinds of such place, a key with its equals sign (whose value is on a later line) and a key
+	// without one (whose equals sign is on a later line), and the later one in the line is tried
+	// first, the other only if that one leads nowhere. Each is atomic and found in one scan, and
+	// each is a place that the next line can finish, so that `a=b=c` is not also the entry `a`
+	// with none and then the entry `b`: a file refused late would be read once for every way each
+	// of its lines could be cut.
 	Value : @string = t: { Rest } ~ ?=Next => @(t)
-	                | ?!({ Rest } ~ ?=Next) ~ t: Scan.Stop2 => @(t)
-	                | ?!({ Rest } ~ ?=Next) ~ (?!Scan.Stop2) ~ t: Scan.Stop1 => @(t)
+	                | ?!({ Rest } ~ ?=Next) ~ t: Cut => @(t)
+
+	Cut = Scan.Stop1 ~ (?!Scan.Later2)
+	    | Scan.Stop2 ~ (?!Scan.Later1)
+	    | Scan.Stop2 ~ ?=Scan.Later1
+	    | Scan.Stop1 ~ ?=Scan.Later2
 
 	Rest = [^ '\r' | '\n']*
 

@@ -216,9 +216,19 @@ public sealed class ExampleRefusalGrowthTests
 	[InlineData("a = b = \n")]
 	[InlineData("a=b #c\n")]
 	[InlineData("a=b =\n")]
+	[InlineData("a=b#c=\n")]
+	[InlineData("a=b#c=\n=\n")]
+	[InlineData("a=b #c\n=d=e#f\n")]
 	public void A_located_config_whose_lines_hold_more_than_one_equals_sign_is_refused_in_step_with_its_length(string piece)
 	{
 		Ladder("located config " + Shown(piece), n => Repeated(piece, n) + "z\n!", static text => Config.Located.TryParseFile(text).IsSuccess);
+	}
+
+	[Fact]
+	public void A_located_config_whose_lines_all_finish_the_one_before_is_refused_in_step_with_its_length()
+	{
+		// Every line holds both kinds of place to stop, a key with and a key without its equals sign.
+		Ladder("located config chain", static n => "a=b#c=\n" + Repeated("=b#c=\n", n) + "z\n!", static text => Config.Located.TryParseFile(text).IsSuccess);
 	}
 
 	[Fact]
