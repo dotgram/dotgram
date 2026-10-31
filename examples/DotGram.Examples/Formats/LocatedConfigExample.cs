@@ -83,21 +83,50 @@ public sealed record Entry(string Key, string Value) : ILocated
 	// A value runs to the end of its line, and that is the only way to read it where an entry or
 	// the end of the file comes next. Otherwise it stops where the line ends in a key that the next
 	// line completes, the last such place in it: `a=b=` and `c` is `a` with no value and `b` with
-	// the value `c`. Either is atomic and the second is taken only where the first is not, so that
-	// `a=b=c` is not also the entry `a` with none and then the entry `b`: a file refused late
-	// would be read once for every way each of its lines could be cut.
+	// the value `c`. There are two kinds of such place. A key whose equals sign is on a later
+	// line (`b` in `a=b #c` and `=x`) is taken if the next line starts with one; if not, a key with
+	// its equals sign, whose value is on a later line, is. That is the order of preference even
+	// where the other kind stands later in the line, in a comment: the first kind goes on into
+	// whatever the second would, so nothing is refused that the other order would have read. Each
+	// is atomic and found in one scan, and
+	// each is taken only where the ones before it are not, so that `a=b=c` is not also the entry
+	// `a` with none and then the entry `b`: a file refused late would be read once for every way
+	// each of its lines could be cut.
 	Value : @string = t: { Rest } ~ ?=Next => @(t)
-	                | ?!({ Rest } ~ ?=Next) ~ t: { Rest ~ ?=Dangling ~ ?=(Identifier & '=') } => @(t)
+	                | ?!({ Rest } ~ ?=Next) ~ t: Scan.Stop2 => @(t)
+	                | ?!({ Rest } ~ ?=Next) ~ (?!Scan.Stop2) ~ t: Scan.Stop1 => @(t)
 
 	Rest = [^ '\r' | '\n']*
 
+	Char = [^ '\r' | '\n']
+
 	Next = trivia & (Identifier & '=' | eof)
 
-	// What is left of a line that the next one finishes: the last letter of a key and the digits
-	// after it (any earlier letter would be an earlier place to stop), perhaps its equals sign,
-	// and nothing else but blanks and a comment. The key is then checked whole, with its equals
-	// sign wherever the trivia puts it, so that a name inside a comment is not taken for one.
-	Dangling = [\p{L} | '_'] ~ [\p{Nd}]* ~ [' ' | '\t']* ~ ('=' ~ [' ' | '\t']*)? ~ ('#' ~ Rest)? ~ ?=(eol | eof)
+	// Up to the last place in the line where a key stands that the next line finishes, with the
+	// equals sign (1) or without it (2).
+	namespace Scan
+	{
+		trivia = none
+
+		Stop1 = { ((?!Last1) & Char)* } & ?=Last1
+		Stop2 = { ((?!Last2) & Char)* } & ?=Last2
+
+		Last1 = Cut1 & ?!Later1
+		Last2 = Cut2 & ?!Later2
+
+		Later1 = Char & { ((?!Cut1) & Char)* } & Cut1
+		Later2 = Char & { ((?!Cut2) & Char)* } & Cut2
+	}
+
+	// What is left of a line at such a place: the last letter of a key and the digits after it (any
+	// earlier letter would be an earlier place), perhaps its equals sign, and nothing else but
+	// blanks and a comment. The key is then checked whole, with its equals sign wherever the
+	// trivia puts it, so that a name inside a comment is not taken for one.
+	Cut1 = ?=Dangling1 ~ ?=(Identifier & '=')
+	Cut2 = ?=Dangling2 ~ ?=(Identifier & '=')
+
+	Dangling1 = [\p{L} | '_'] ~ [\p{Nd}]* ~ [' ' | '\t']* ~ '=' ~ [' ' | '\t']* ~ ('#' ~ Rest)? ~ ?=(eol | eof)
+	Dangling2 = [\p{L} | '_'] ~ [\p{Nd}]* ~ [' ' | '\t']* ~ ('#' ~ Rest)? ~ ?=(eol | eof)
 
 	// No `=>` and no captures, so this rule is what it matched — as two numbers rather
 	// than as text (§4.1 case 4).

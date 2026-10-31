@@ -56,12 +56,19 @@ namespace DotGram.Examples.Languages;
 	trivia = none
 
 	// A statement is read as tokens; what makes it read-only is which tokens are there.
-	Query = Space & First & { Token* } & Space & ';'? & Space & eof
+	Query = Space & First & { Token* } & Unclosed? & Space & ';'? & Space & eof
 
 	// The only two ways a read-only statement may start.
 	First = Select | With
 
 	Token = Space & (String | Comment | Quoted | Bracketed | Word | Symbol) & Space
+
+	// Where the tokens stop at a `/*` with no `*/` after it, the rest is read without looking
+	// for one: there is none to find, and looking again at every later `/*` would read all that
+	// follows it each time.
+	Unclosed = Space & '/' & { Flat* }
+
+	Flat = Space & (String | LineComment | Quoted | Bracketed | Word | FlatSymbol) & Space
 
 	// ── The lexical part, where the bypasses live ────────────────────────────────
 
@@ -92,9 +99,13 @@ namespace DotGram.Examples.Languages;
 	// be cut.
 	Word       = { ?!Writes & ['a'..'z' | 'A'..'Z' | '_' | '$'] & ['a'..'z' | 'A'..'Z' | '0'..'9' | '_' | '$']* }
 
-	Symbol     = ['(' | ')' | ',' | '.' | '*' | '=' | '<' | '>' | '+' | '%' | '|' | ':' | '?' | '@' | '!' | '~' | '^' | '&']
-	           | Minus | Slash
-	           | { ['0'..'9'] & (['0'..'9' | '.' | 'e' | 'E' | '+'] | Minus)* }
+	Symbol     = Plain | Minus | Slash | Number
+
+	FlatSymbol = Plain | Minus | '/' | Number
+
+	Plain      = ['(' | ')' | ',' | '.' | '*' | '=' | '<' | '>' | '+' | '%' | '|' | ':' | '?' | '@' | '!' | '~' | '^' | '&']
+
+	Number     = { ['0'..'9'] & (['0'..'9' | '.' | 'e' | 'E' | '+'] | Minus)* }
 
 	// A minus that starts a line comment, or a slash that starts a block comment that ends, is
 	// that comment and never a symbol. Left to read either way, one comment opener could be
@@ -105,7 +116,7 @@ namespace DotGram.Examples.Languages;
 	// between the two for each comment in it. A block comment that never ends is not one, and is
 	// read as the symbols and words it is made of.
 	Minus      = '-' & ?!'-'
-	Slash      = ?!BlockComment & '/'
+	Slash      = '/' & ?!'*'
 
 	// Anything that could write, or could hide a write behind it. A list of the refused,
 	// which is safe only because everything not lexically a word is refused as well.

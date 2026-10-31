@@ -175,6 +175,7 @@ public sealed class ExampleRefusalGrowthTests
 	[InlineData(" a -- c\n")]
 	[InlineData(" 1--c\n")]
 	[InlineData(" /* c */")]
+	[InlineData(" /* a")]
 	[InlineData(" /* ")]
 	[InlineData(" /* -- \n")]
 	[InlineData(" -- /* \n")]
@@ -229,6 +230,13 @@ public sealed class ExampleRefusalGrowthTests
 	[Fact]
 	public void A_located_config_still_reads_what_it_read()
 	{
+		// A name inside a comment is not always the place to stop: here the key is `b`, whose equals sign is on the next line.
+		var crossing = Config.Located.ParseFile("a=b#c=\n=\n!");
+
+		Assert.Equal(["a", "b"], crossing.Select(static one => one.Key).ToArray());
+		Assert.Equal(["", "!"], crossing.Select(static one => one.Value).ToArray());
+		Assert.Equal([new At(0, 2), new At(2, 8)], crossing.Select(static one => one.Where).ToArray());
+
 		// A name inside a comment is not a place to stop.
 		var commented = Config.Located.ParseFile("a=b=#c\n!");
 
