@@ -5,6 +5,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 using DotGram.Grammar;
 using DotGram.Language;
@@ -53,10 +54,11 @@ sealed class FolderWorkspace
 
 	static readonly StringComparer PathComparer = StringComparer.FromComparison(PathComparison);
 
-	// A link is not followed: a link to a parent folder is a walk without an end.
+	// A link is not followed (the walk skips it by its attributes): a link to a parent folder is a walk
+	// without an end.
 	static readonly EnumerationOptions Enumeration = new()
 	{
-		AttributesToSkip   = FileAttributes.ReparsePoint,
+		AttributesToSkip   = 0,
 		IgnoreInaccessible = true,
 	};
 
@@ -86,6 +88,32 @@ sealed class FolderWorkspace
 
 	/// <summary>Whether grammars are looked for hosts in here; false for no folder, or one past the cap.</summary>
 	public bool Hosts => _folders.Count > 0;
+
+	/// <summary>
+	/// Reads the folders in the background, within a time: past it — an enumeration a network share
+	/// stalls, which no bound inside the walk can see — the folders are given up, said so, and read as
+	/// they stand; what the walk finds later is dropped.
+	/// </summary>
+	public static FolderWorkspace Load(IReadOnlyList<string> folders, Action<string> log, TimeSpan? limit = null)
+	{
+		return Load(cancellationToken => Create(folders, log, cancellationToken), log, limit ?? MaxWalk + TimeSpan.FromSeconds(20));
+	}
+
+	/// <summary>The same with what reads the folders given: a test's hook.</summary>
+	internal static FolderWorkspace Load(Func<CancellationToken, FolderWorkspace> create, Action<string> log, TimeSpan limit)
+	{
+		using var cancellation = new CancellationTokenSource();
+		var reading = Task.Run(() => create(cancellation.Token), CancellationToken.None);
+
+		if (reading.Wait(limit))
+			return reading.Result;
+
+		cancellation.Cancel();
+		_ = reading.ContinueWith(static task => _ = task.Exception, TaskScheduler.Default);
+		log($"DotGram: the workspace took longer than {limit.TotalSeconds:0} s to read: grammars are read as they stand, without their hosts.");
+
+		return Empty();
+	}
 
 	/// <summary>A project with nothing of the user's in it, for Roslyn's answers about the framework's own types.</summary>
 	public static FolderWorkspace Empty()
@@ -361,19 +389,24 @@ sealed class FolderWorkspace
 
 				try
 				{
-					foreach (var child in Directory.EnumerateDirectories(directory, "*", Enumeration))
+					// Every entry is counted, a link that is not followed too.
+					foreach (var entry in new DirectoryInfo(directory).EnumerateFileSystemInfos("*", Enumeration))
 					{
 						if (!Counted())
 							return false;
 
-						if (!SkippedFolder(Path.GetFileName(child)))
-							pending.Push(child);
-					}
+						if ((entry.Attributes & FileAttributes.ReparsePoint) != 0)
+							continue;
 
-					foreach (var file in Directory.EnumerateFiles(directory, "*", Enumeration))
-					{
-						if (!Counted())
-							return false;
+						if (entry is DirectoryInfo)
+						{
+							if (!SkippedFolder(entry.Name))
+								pending.Push(entry.FullName);
+
+							continue;
+						}
+
+						var file = entry.FullName;
 
 						if (file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
 						{

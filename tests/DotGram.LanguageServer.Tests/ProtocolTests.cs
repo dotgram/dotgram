@@ -297,6 +297,11 @@ public sealed class ProtocolTests
 		Assert.Equal(Lsp.ServerNotInitialized, early.GetProperty("error").GetProperty("code").GetInt32());
 		Assert.Null(client.Server.Document("untitled:Early.gram"));
 
+		var shutdown = await client.RequestRawAsync("shutdown", null);
+
+		Assert.Equal(Lsp.ServerNotInitialized, shutdown.GetProperty("error").GetProperty("code").GetInt32());
+		Assert.False(client.Connection.ShutdownRequested);
+
 		await client.InitializeAsync();
 
 		var again = await client.RequestRawAsync("initialize", new { processId = 1, capabilities = new { } });
@@ -344,8 +349,9 @@ public sealed class ProtocolTests
 	}
 
 	/// <summary>
-	/// Edits, requests and a close at once, many times over: nothing locks up, the diagnostics of a
-	/// document come in the order of its versions, and nothing follows the empty list a close sends.
+	/// Edits, requests and a close at once, many times over: nothing locks up, every document is told
+	/// about, its diagnostics come in the order of its versions, and nothing follows the empty list a
+	/// close sends.
 	/// </summary>
 	[Fact]
 	public async Task Edits_requests_and_closes_at_once_neither_lock_up_nor_tell_out_of_order()
@@ -358,6 +364,7 @@ public sealed class ProtocolTests
 			var text = "Start = Word\nWord = ['a'..'z']+\nparse Start\n";
 
 			await client.OpenAsync(uri, text);
+			await client.DiagnosticsAsync(uri, 1);
 
 			var requests = new List<Task<JsonElement>>();
 
@@ -375,6 +382,11 @@ public sealed class ProtocolTests
 				requests.Add(client.RequestRawAsync("textDocument/documentSymbol", new { textDocument = new { uri } }));
 			}
 
+			// Every other round waits for the last version's analysis first, so that some closes come
+			// after a publication and some race one.
+			if (round % 2 == 0)
+				await client.DiagnosticsAsync(uri, 29);
+
 			await client.NotifyAsync("textDocument/didClose", new { textDocument = new { uri } });
 			await Task.WhenAll(requests).WaitAsync(LspClient.Timeout, TestContext.Current.CancellationToken);
 		}
@@ -383,21 +395,202 @@ public sealed class ProtocolTests
 		await Task.Delay(500, TestContext.Current.CancellationToken);
 
 		for (var round = 0; round < 20; round++)
-		{
-			var uri       = $"untitled:Busy{round}.gram";
-			var published = client.Notifications("textDocument/publishDiagnostics")
-				.Where(item => item.GetProperty("uri").GetString() == uri)
-				.ToArray();
-			var versions  = published
-				.Where(static item => item.TryGetProperty("version", out var version) && version.ValueKind == JsonValueKind.Number)
-				.Select(static item => item.GetProperty("version").GetInt32())
-				.ToArray();
+			AssertToldInOrderAndClosed(client, $"untitled:Busy{round}.gram", round % 2 == 0 ? 2 : 1);
+	}
 
-			Assert.Equal(versions.Order(), versions);
-			Assert.True(published.Length > 0, uri);
-			Assert.False(published[^1].TryGetProperty("version", out _));
-			Assert.Equal(0, published[^1].GetProperty("diagnostics").GetArrayLength());
+	/// <summary>
+	/// An analysis that ends after its document was closed tells nothing: the close is made while the
+	/// analysis of the version is held, and the analysis let go after it.
+	/// </summary>
+	[Fact]
+	public async Task An_analysis_that_ends_after_the_close_tells_nothing()
+	{
+		var hold     = new ManualResetEventSlim(true);
+		var analyses = 0;
+		var options  = new ServerOptions
+		{
+			CSharp  = false,
+			Analyze = (text, context, quiet, clock) =>
+			{
+				Interlocked.Increment(ref analyses);
+				hold.Wait(LspClient.Timeout);
+				return GramAnalysisSession.Analyze(text, context, quiet, clock);
+			},
+		};
+
+		await using var client = await LspClient.StartAsync(options);
+
+		const string uri  = "untitled:Held.gram";
+		const string text = "Start = 'a'\nparse Start\n";
+
+		await client.OpenAsync(uri, text);
+		await client.DiagnosticsAsync(uri, 1);
+
+		hold.Reset();
+
+		await client.NotifyAsync("textDocument/didChange", new
+		{
+			textDocument   = new { uri, version = 2 },
+			contentChanges = new[] { new { text = text + "// edited\n" } },
+		});
+
+		// The analysis of version 2 has started and is held.
+		while (Volatile.Read(ref analyses) < 2)
+			await Task.Delay(5, TestContext.Current.CancellationToken);
+
+		await client.NotifyAsync("textDocument/didClose", new { textDocument = new { uri } });
+		await client.WaitForAsync("textDocument/publishDiagnostics", static item =>
+			item.GetProperty("uri").GetString() == uri && !item.TryGetProperty("version", out _));
+
+		hold.Set();
+
+		await Task.Delay(500, TestContext.Current.CancellationToken);
+
+		AssertToldInOrderAndClosed(client, uri, 1);
+		Assert.DoesNotContain(client.Notifications("textDocument/publishDiagnostics"), static item =>
+			item.TryGetProperty("version", out var version) && version.ValueKind == JsonValueKind.Number && version.GetInt32() == 2);
+	}
+
+	/// <summary>
+	/// A request waiting for an analysis lets go of the version it holds when it is cancelled or an
+	/// edit overtakes it, not when the analysis is published: a large grammar's versions would pile up.
+	/// </summary>
+	[Fact]
+	public async Task A_cancelled_or_overtaken_request_holds_no_version()
+	{
+		var hold    = new ManualResetEventSlim(false);
+		var options = new ServerOptions
+		{
+			CSharp  = false,
+			Analyze = (text, context, quiet, clock) =>
+			{
+				hold.Wait(LspClient.Timeout);
+				return GramAnalysisSession.Analyze(text, context, quiet, clock);
+			},
+		};
+
+		await using var client = await LspClient.StartAsync(options);
+
+		const string uri  = "untitled:Waiting.gram";
+		const string text = "Start = 'a'\nparse Start\n";
+
+		await client.OpenAsync(uri, text);
+
+		var document = client.Server.Document(uri)!;
+		var ids      = new List<int>();
+		var asked    = new List<Task<JsonElement>>();
+
+		for (var index = 0; index < 20; index++)
+		{
+			asked.Add(client.RequestRawAsync("textDocument/documentSymbol", new { textDocument = new { uri } }, out var id));
+			ids.Add(id);
 		}
+
+		await WaitUntilAsync(() => document.Waiting == 20);
+
+		foreach (var id in ids)
+			await client.NotifyAsync("$/cancelRequest", new { id });
+
+		foreach (var cancelled in asked)
+			Assert.Equal(Lsp.RequestCancelled, (await cancelled).GetProperty("error").GetProperty("code").GetInt32());
+
+		Assert.Equal(0, document.Waiting);
+
+		// One more, which an edit overtakes: it is answered with what is known, and lets go.
+		var overtaken = client.RequestRawAsync("textDocument/documentSymbol", new { textDocument = new { uri } });
+
+		await WaitUntilAsync(() => document.Waiting == 1);
+		await client.NotifyAsync("textDocument/didChange", new
+		{
+			textDocument   = new { uri, version = 2 },
+			contentChanges = new[] { new { text = text + "// edited\n" } },
+		});
+
+		Assert.True((await overtaken).TryGetProperty("result", out _));
+		Assert.Equal(0, document.Waiting);
+
+		hold.Set();
+	}
+
+	/// <summary>
+	/// Several changes in one notification, as several cursors make them, carry the colours outside
+	/// them over until the new version is analysed: a hover there still answers.
+	/// </summary>
+	[Fact]
+	public async Task Changes_made_at_once_carry_the_colours_over()
+	{
+		var analyses = 0;
+		var hold     = new ManualResetEventSlim(false);
+		var options  = new ServerOptions
+		{
+			CSharp  = false,
+			Analyze = (text, context, quiet, clock) =>
+			{
+				// The first analysis is the compiler's; the next, of the edited version, is held.
+				if (Interlocked.Increment(ref analyses) > 1)
+					hold.Wait(LspClient.Timeout);
+
+				return GramAnalysisSession.Analyze(text, context, quiet, clock);
+			},
+		};
+
+		await using var client = await LspClient.StartAsync(options);
+
+		const string uri  = "untitled:Cursors.gram";
+		var text = "Start = Word\nWord = ['a'..'z']+\nOther = Word\nparse Start\n";
+
+		await client.OpenAsync(uri, text);
+		await client.DiagnosticsAsync(uri, 1);
+
+		// A space at the start of the first and of the second line, the second given in the text the first left.
+		var first  = new { start = LspClient.Position(text, 0), end = LspClient.Position(text, 0) };
+		var edited = " " + text;
+		var second = new { start = LspClient.Position(edited, edited.IndexOf("Word =", StringComparison.Ordinal)), end = LspClient.Position(edited, edited.IndexOf("Word =", StringComparison.Ordinal)) };
+
+		text = edited.Insert(edited.IndexOf("Word =", StringComparison.Ordinal), " ");
+
+		await client.NotifyAsync("textDocument/didChange", new
+		{
+			textDocument   = new { uri, version = 2 },
+			contentChanges = new[] { new { range = first, text = " " }, new { range = second, text = " " } },
+		});
+
+		var hover = await client.RequestAsync("textDocument/hover", LspClient.At(uri, text, text.IndexOf("Other", StringComparison.Ordinal)));
+
+		Assert.Equal(JsonValueKind.Object, hover.ValueKind);
+		Assert.Equal(text.IndexOf("Other", StringComparison.Ordinal), new LineMap(text).Offset(new Position(
+			hover.GetProperty("range").GetProperty("start").GetProperty("line").GetInt32(),
+			hover.GetProperty("range").GetProperty("start").GetProperty("character").GetInt32())));
+
+		hold.Set();
+	}
+
+	static async Task WaitUntilAsync(Func<bool> condition)
+	{
+		var deadline = DateTime.UtcNow + LspClient.Timeout;
+
+		while (!condition())
+		{
+			Assert.True(DateTime.UtcNow < deadline, "The condition did not come true.");
+			await Task.Delay(5, TestContext.Current.CancellationToken);
+		}
+	}
+
+	/// <summary>A document was told about at least so many times, in the order of its versions, and last that it was closed.</summary>
+	static void AssertToldInOrderAndClosed(LspClient client, string uri, int atLeast)
+	{
+		var published = client.Notifications("textDocument/publishDiagnostics")
+			.Where(item => item.GetProperty("uri").GetString() == uri)
+			.ToArray();
+		var versions  = published
+			.Where(static item => item.TryGetProperty("version", out var version) && version.ValueKind == JsonValueKind.Number)
+			.Select(static item => item.GetProperty("version").GetInt32())
+			.ToArray();
+
+		Assert.True(versions.Length >= atLeast, $"{uri} was told about {versions.Length} times.");
+		Assert.Equal(versions.Order(), versions);
+		Assert.False(published[^1].TryGetProperty("version", out _), $"{uri}: something was told after its close.");
+		Assert.Equal(0, published[^1].GetProperty("diagnostics").GetArrayLength());
 	}
 
 	/// <summary>The line map of an edited text, worked out from the one before, is the one read afresh.</summary>
