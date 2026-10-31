@@ -1,0 +1,18 @@
+VisualStudioToolingPlayground.gram|Sum     : @decimal = ^left: Sum
+VisualStudioToolingPlayground.gram|left: Su^m     &
+VisualStudioToolingPlayground.gram|Sum     : @dec^imal
+VisualStudioToolingPlayground.gram|=> @(op == "+" ? le^ft
+VisualStudioToolingPlayground.gram|=> @(^value)
+VisualStudioToolingPlayground.gram|Fixed     = Digits(^4)
+VisualStudioToolingPlayground.gram|parse ^Sum as ToolingEvaluate
+VisualStudioToolingPlayground.gram|with state @(^1)
+VisualStudioToolingPlayground.gram|// Hover Sum ^or
+VisualStudioToolingPlayground.gram|{ case 1: ^Insensitive
+VisualStudioToolingPlayground.gram|LazyItem : @int = 'x' => @(^1)
+VisualStudioToolingPlayground.gram|Shift = '>' ~ ^'>'
+ToolingQuery.gram|Query      = Keyword & ^field
+ToolingQuery.gram|field: (Ident^ifier)
+ToolingQuery.gram|parse ^Query
+RecoveryPlayground.gram|Rows = Row* recover ^eol
+RecoveryPlayground.gram|parse Rows     as ^ToolingRecovering
+RecoveryPlayground.gram|Row  = [^'a'..
