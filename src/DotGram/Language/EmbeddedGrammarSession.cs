@@ -36,8 +36,8 @@ interface IEmbeddedGrammarHost<TVersion> where TVersion : class
 	/// <summary>The document as the solution has it, its text replaced by this version's; null where the solution has no such document.</summary>
 	Document? Document(TVersion version);
 
-	/// <summary>Where the session's <c>Changed</c> event may be raised.</summary>
-	Task BeforeChangedAsync(CancellationToken cancellationToken);
+	/// <summary>Raises the session's <c>Changed</c> event where the editor's own events are raised; see <see cref="IGramAnalysisHost{TVersion}.RaiseAsync"/>.</summary>
+	Task RaiseAsync(Action raise, CancellationToken cancellationToken);
 
 	/// <summary>An exception the session caught and went on after.</summary>
 	void Report(Exception exception);
@@ -513,8 +513,7 @@ sealed class EmbeddedGrammarSession<TVersion> where TVersion : class
 
 	async Task NotifyChangedAsync(TVersion snapshot)
 	{
-		await _host.BeforeChangedAsync(CancellationToken.None).ConfigureAwait(false);
-		GramAnalysisSession.Raise(Changed, snapshot, _host.Report);
+		await _host.RaiseAsync(() => GramAnalysisSession.Raise(Changed, snapshot, _host.Report), CancellationToken.None).ConfigureAwait(false);
 	}
 
 	IReadOnlyList<HostClassification> TranslateClassifications(
