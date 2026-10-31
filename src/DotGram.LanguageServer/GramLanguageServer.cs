@@ -349,7 +349,7 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 	{
 		var text     = version.String;
 		var offset   = version.Lines.Offset(position);
-		var provider = new StandaloneGramCompletionProvider(document.Session.Document(version));
+		var provider = new StandaloneGramCompletionProvider(document.Document(version));
 
 		if (provider.Start(text, offset) is not { } applicable)
 			return RpcReply.Null;
@@ -388,7 +388,7 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 
 	RpcReply SignatureHelp(OpenGrammar document, GramVersion version, Position position)
 	{
-		var help = new StandaloneGramSignatureHelpProvider(document.Session.Document(version))
+		var help = new StandaloneGramSignatureHelpProvider(document.Document(version))
 			.At(version.String, version.Lines.Offset(position));
 
 		return help is null || help.Signatures.Count == 0

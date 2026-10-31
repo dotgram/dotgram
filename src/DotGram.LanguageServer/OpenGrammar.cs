@@ -72,6 +72,7 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 
 	GramVersion          _current;
 	GramVersion?         _lastPublished;
+	bool                 _started;
 	bool                 _closed;
 
 	public OpenGrammar(string uri, string? filePath, GramVersion first, IGrammarServices services)
@@ -105,13 +106,21 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 		}
 	}
 
-	/// <summary>Starts the first analysis, following the grammar's host where it has a file.</summary>
+	/// <summary>
+	/// Starts the first analysis, following the grammar's host where it has a file: once the server
+	/// knows whether the file is in a folder it looks for hosts in. Until then nothing is analysed,
+	/// so that nothing is told about the file before it is known how to read it.
+	/// </summary>
 	public void Start()
 	{
 		if (FilePath is { } path)
 			Session.Follow(path);
 
-		Session.Document(Current);
+		lock (_gate)
+		{
+			_started = true;
+			Session.Document(_current);
+		}
 	}
 
 	public void Edit(int number, IReadOnlyList<TextDocumentContentChangeEvent> changes)
@@ -119,14 +128,19 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 		GramVersion before;
 		GramVersion after;
 
+		bool started;
+
 		lock (_gate)
 		{
 			before   = _current;
 			after    = before.Apply(number, changes);
 			_current = after;
+			started  = _started;
 		}
 
-		Session.Edited(before, after);
+		// Before the start the session has seen no version, and the start analyses the latest.
+		if (started)
+			Session.Edited(before, after);
 	}
 
 	/// <summary>The server's workspace changed: the session looks for the host again where that concerns it.</summary>
@@ -155,7 +169,29 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 	/// <summary>What the providers read of a version: its analysis as far as it is known now.</summary>
 	public GramStandaloneView View(GramVersion version)
 	{
-		return View(version, Session.Document(version));
+		return View(version, Document(version));
+	}
+
+	/// <summary>
+	/// A version's analysis as far as it is known now, its analysis started where it is not; for a
+	/// version an edit has replaced, only what was published of it.
+	/// </summary>
+	/// <remarks>
+	/// The session analyses the one version it was last asked about, so a request that still holds
+	/// an older version must not ask for that one: the newer version's analysis would be dropped
+	/// for an answer the client no longer wants.
+	/// </remarks>
+	public GramDocument Document(GramVersion version)
+	{
+		lock (_gate)
+		{
+			if (version == _current)
+				return _started ? Session.Document(version) : GramAnalysisSession.EmptyDocument;
+
+			return Session.Result is { } result && result.Version == version
+				? result.Document
+				: GramAnalysisSession.EmptyDocument;
+		}
 	}
 
 	public GramStandaloneView View(GramVersion version, GramDocument document)
@@ -185,9 +221,11 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 				return null;
 
 			_waiting.Add((version, done));
-		}
 
-		Session.Document(version);
+			// Under the lock, so that an edit cannot come between: see Document.
+			if (_started)
+				Session.Document(version);
+		}
 
 		using (cancellationToken.Register(static state => ((TaskCompletionSource<GramDocument?>)state!).TrySetCanceled(), done))
 			return await done.Task.ConfigureAwait(false);

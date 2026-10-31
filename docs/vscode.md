@@ -109,6 +109,6 @@ T-SQL grammar's diagnostics, every repository grammar's semantic tokens against 
 playground recordings the Visual Studio extension's answers were recorded in, asked through the protocol, hosts found
 in a folder, and the TextMate grammar's words against the core's vocabulary.
 
-`npm test` in `editors/vscode` runs the extension in a downloaded VS Code against `test-fixture/` and waits for a
-grammar's diagnostics and semantic tokens. It needs a display (`xvfb-run -a npm test` on a Linux machine without one)
-and the network, and is a manual check, not part of CI.
+`npm test` in `editors/vscode`, after a build, runs the packaged extension in a downloaded VS Code against
+`test-fixture/` and waits for a grammar's diagnostics and semantic tokens. It needs the network and a display
+(`xvfb-run -a npm test` on a Linux machine without one); the `vscode` CI job runs it after packaging.
