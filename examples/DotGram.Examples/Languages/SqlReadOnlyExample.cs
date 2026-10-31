@@ -56,7 +56,7 @@ namespace DotGram.Examples.Languages;
 	trivia = none
 
 	// A statement is read as tokens; what makes it read-only is which tokens are there.
-	Query = Space & First & Token* & Space & ';'? & Space & eof
+	Query = Space & First & { Token* } & Space & ';'? & Space & eof
 
 	// The only two ways a read-only statement may start.
 	First = Select | With
@@ -97,11 +97,13 @@ namespace DotGram.Examples.Languages;
 	           | { ['0'..'9'] & (['0'..'9' | '.' | 'e' | 'E' | '+'] | Minus)* }
 
 	// A minus that starts a line comment, or a slash that starts a block comment that ends, is
-	// that comment and never a symbol. Left to read either way, `-- ' ...` could be two symbols
-	// and a string that runs on to a quote on a later line, which hides the rest of the statement
-	// from this check but not from the server that reads it as a comment; and a text refused
-	// late was read as every way of choosing between the two for each comment in it. A block
-	// comment that never ends is not one, and is read as the symbols and words it is made of.
+	// that comment and never a symbol. Left to read either way, one comment opener could be
+	// reread inside another comment (`/* -- */ insert` as a block comment, or as `/*` and a line
+	// comment), and `-- ' ...` could be two symbols and a string that runs on to a quote on a
+	// later line; both hide the rest of the statement from this check but not from the server,
+	// which reads the first reading. A text refused late was also read as every way of choosing
+	// between the two for each comment in it. A block comment that never ends is not one, and is
+	// read as the symbols and words it is made of.
 	Minus      = '-' & ?!'-'
 	Slash      = ?!BlockComment & '/'
 

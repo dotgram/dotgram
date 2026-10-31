@@ -87,15 +87,17 @@ public sealed record Entry(string Key, string Value) : ILocated
 	// `a=b=c` is not also the entry `a` with none and then the entry `b`: a file refused late
 	// would be read once for every way each of its lines could be cut.
 	Value : @string = t: { Rest } ~ ?=Next => @(t)
-	                | ?!({ Rest } ~ ?=Next) ~ t: { Rest ~ ?=Dangling } => @(t)
+	                | ?!({ Rest } ~ ?=Next) ~ t: { Rest ~ ?=Dangling ~ ?=(Identifier & '=') } => @(t)
 
 	Rest = [^ '\r' | '\n']*
 
 	Next = trivia & (Identifier & '=' | eof)
 
-	// What is left of a line that the next one finishes: a key, perhaps with its equals sign,
-	// and nothing else but blanks and a comment.
-	Dangling = Identifier ~ [' ' | '\t']* ~ ('=' ~ [' ' | '\t']*)? ~ ('#' ~ Rest)? ~ ?=(eol | eof)
+	// What is left of a line that the next one finishes: the last letter of a key and the digits
+	// after it (any earlier letter would be an earlier place to stop), perhaps its equals sign,
+	// and nothing else but blanks and a comment. The key is then checked whole, with its equals
+	// sign wherever the trivia puts it, so that a name inside a comment is not taken for one.
+	Dangling = [\p{L} | '_'] ~ [\p{Nd}]* ~ [' ' | '\t']* ~ ('=' ~ [' ' | '\t']*)? ~ ('#' ~ Rest)? ~ ?=(eol | eof)
 
 	// No `=>` and no captures, so this rule is what it matched — as two numbers rather
 	// than as text (§4.1 case 4).

@@ -35,7 +35,7 @@ namespace DotGram.Examples.Formats;
 
 	trivia = none
 
-	Headers : @HttpHeaders = fields: Field* & eol? & eof => @(new HttpHeaders(fields))
+	Headers : @HttpHeaders = { fields: Field* } & eol? & eof => @(new HttpHeaders(fields))
 
 	// A field is its first line plus every folded line under it. The `Name` rule cannot
 	// match a leading space, which is the whole of how a fold is told from a new field.

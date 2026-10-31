@@ -30,7 +30,7 @@ namespace DotGram.Examples.Formats;
 
 	trivia = none
 
-	Doc : @MarkdownBlock[] = Block* & eof
+	Doc : @MarkdownBlock[] = { Block* } & eof
 
 	// Order is the definition here: a paragraph is a line that is none of the others.
 	Block : @MarkdownBlock = block: Heading   => @(block)
