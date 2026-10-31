@@ -51,8 +51,9 @@ is downloaded once. This is what the C# extension does, and one package serves e
 A **self-contained** server would need no runtime from anywhere, at the price of one `.vsix` per platform
 (`vsce package --target`), each about 70-100 MB, six of them built in a CI matrix, and Roslyn's caveats about
 trimming, which a server that loads Roslyn's Features by MEF composition would have to work through. The build
-scripts take the switch already (`build.sh --self-contained linux-x64`, `build.ps1 -SelfContained win-x64`), so
-that a change of mind is a flag and a CI matrix, not a rewrite.
+scripts take the switch already (`build.sh --self-contained linux-x64`, `build.ps1 -SelfContained win-x64`), and
+the extension runs the executable such a build carries instead of acquiring a runtime, so that a change of mind is
+a flag and a CI matrix, not a rewrite.
 
 ## Settings
 
@@ -60,6 +61,9 @@ that a change of mind is a flag and a CI matrix, not a rewrite.
 |---|---|---|
 | `dotgram.server.path` | empty | A server to run instead of the one in the extension: a `DotGram.LanguageServer.dll`, run with `dotnet`, or an executable. |
 | `dotgram.dotnetPath` | empty | The `dotnet` that runs the server; empty asks the .NET Install Tool for .NET 10. |
+
+The two settings that choose a program to run are the machine's: a workspace's `.vscode/settings.json` cannot set
+them, so a folder cloned from somewhere cannot make the extension run a program of its choosing.
 | `dotgram.trace.server` | `off` | `messages` or `verbose`: the protocol traced in the **.Gram** output panel. |
 
 The server itself takes `--version`, and `--log <path>` to append every message it reads and writes to a file.
@@ -74,10 +78,13 @@ an additional file. A host found there gives the grammar its `Lexical` option an
 the build reads them, so a rule from an included grammar is not reported missing and Go to Definition goes into its
 file — or, where only a class's `[GramSource]` carries it, into a read-only copy under the temporary directory, as in
 Visual Studio. The project follows the folder: a `.cs` or `.gram` file created, changed or deleted is read again, and
-the grammars whose host it can change are analysed again.
+the grammars whose host it can change are analysed again. A grammar open in the editor is its editor's text, unsaved
+edits included, for every grammar that includes it, until it is closed.
 
-`bin`, `obj`, `node_modules` and folders whose name starts with a dot are not read. A workspace with more than 2,000
-C# files is not read at all — the server says so once in the output panel — and its grammars, like a `.gram` file
+`bin`, `obj`, `node_modules`, folders whose name starts with a dot, and links (symbolic links, junctions) are not
+read. A workspace with more than 2,000 C# files, more than 200,000 files and folders in all, or one that takes longer
+than ten seconds to look through, is not read at all — the server says so once in the output panel — and its
+grammars, like a `.gram` file
 opened outside any folder, are read as they stand and quiet about what depends on a host: syntax errors are shown,
 a name that may come from an included grammar is not reported.
 

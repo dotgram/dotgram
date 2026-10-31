@@ -12,7 +12,14 @@ async function main(): Promise<void> {
     const executable = await downloadAndUnzipVSCode('stable');
     const [cli, ...args] = resolveCliArgsFromVSCodeExecutablePath(executable);
 
-    cp.spawnSync(cli, [...args, '--install-extension', 'ms-dotnettools.vscode-dotnet-runtime'], { stdio: 'inherit', shell: process.platform === 'win32' });
+    const installed = cp.spawnSync(cli, [...args, '--install-extension', 'ms-dotnettools.vscode-dotnet-runtime'], {
+        stdio: 'inherit',
+        shell: process.platform === 'win32',
+    });
+
+    if (installed.error || installed.status !== 0) {
+        throw new Error(`The .NET Install Tool could not be installed: ${installed.error ?? `exit code ${installed.status}`}`);
+    }
 
     await runTests({
         vscodeExecutablePath: executable,
