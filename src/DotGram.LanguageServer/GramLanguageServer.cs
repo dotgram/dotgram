@@ -61,7 +61,7 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 		_options = options;
 		_store   = new ServerStore(options.Store, this);
 		_load    = Task.Run(FolderWorkspace.Empty);
-		_updates = new WorkspaceUpdates(() => Folder, Report);
+		_updates = new WorkspaceUpdates(() => Folder, Report, FolderWorkspace.PathComparer, FolderWorkspace.Read);
 	}
 
 	public static string Version { get; } =
@@ -133,16 +133,14 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 
 		// Whether the grammar's host is looked for depends on the folders, which are read by now or
 		// soon; a document closed meanwhile is not started.
-		_ = Folder.ContinueWith(
-			folder =>
-			{
-				var follows = path is not null && folder.Result.Hosts && folder.Result.Contains(path);
+		// On the server's scheduler, which knows of it as of every analysis it starts.
+		_options.Scheduler.Run(async () =>
+		{
+			var folder  = await Folder.ConfigureAwait(false);
+			var follows = path is not null && folder.Hosts && folder.Contains(path);
 
-				document.Start(follows ? folder.Result.Workspace : null);
-			},
-			CancellationToken.None,
-			TaskContinuationOptions.None,
-			TaskScheduler.Default);
+			document.Start(follows ? folder : null);
+		});
 	}
 
 	void Change(DidChangeTextDocumentParams parameters)
