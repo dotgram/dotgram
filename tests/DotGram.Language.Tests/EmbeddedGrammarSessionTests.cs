@@ -1,13 +1,10 @@
-using DotGram.VisualStudio;
-using DotGram.Language;
-
 using Microsoft.CodeAnalysis.Text;
 
 using Xunit;
 
-namespace DotGram.VisualStudio.Tests;
+namespace DotGram.Language.Tests;
 
-public sealed class EmbeddedGrammarBufferAnalysisTests
+public sealed class EmbeddedGrammarSessionTests
 {
 	[Fact]
 	public void ProvisionalAnalysisKeepsTranslatedColorsForTemporarilyUnclassifiedText()
@@ -19,7 +16,7 @@ public sealed class EmbeddedGrammarBufferAnalysisTests
 		};
 		var provisional = new[] { Classification(10, 4, GramSyntaxKind.Identifier) };
 
-		var merged = EmbeddedGrammarBufferAnalysis.MergeProvisionalClassifications(previous, provisional);
+		var merged = EmbeddedGrammarSession.MergeProvisionalClassifications(previous, provisional);
 
 		Assert.Collection(
 			merged,
@@ -44,7 +41,7 @@ public sealed class EmbeddedGrammarBufferAnalysisTests
 		int previousDslSiteCount,
 		bool expected)
 	{
-		Assert.Equal(expected, EmbeddedGrammarBufferAnalysis.ShouldPreserveEmbeddedAnalysis(
+		Assert.Equal(expected, EmbeddedGrammarSession.ShouldPreserveEmbeddedAnalysis(
 			hasSyntaxErrors,
 			analysisCount,
 			previousClassificationCount,

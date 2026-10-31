@@ -125,6 +125,7 @@ sealed class EmbeddedGramSignatureHelpSourceProvider : ISignatureHelpSourceProvi
 	}
 }
 
+/// <summary>Visual Studio's signature help source over the shared provider.</summary>
 abstract class GramSignatureHelpSourceBase(ITextBuffer buffer) : ISignatureHelpSource
 {
 	public void AugmentSignatureHelpSession(ISignatureHelpSession session, IList<ISignature> signatures)
@@ -134,55 +135,25 @@ abstract class GramSignatureHelpSourceBase(ITextBuffer buffer) : ISignatureHelpS
 			.TranslateTo(snapshot, PointTrackingMode.Negative)
 			.Position;
 
-		if (!TryFindCall(snapshot, trigger, out var name, out var nameStart, out var openParen, out var argument))
-			return;
-
-		var available = Definitions(snapshot, trigger).ToArray();
-		var definition = (InGrammar(snapshot, nameStart) ? StandardRule(snapshot, name, nameStart) : null) ??
-			available.FirstOrDefault(item => string.Equals(item.Name, name, StringComparison.Ordinal));
-
-		if (definition.Signature is null)
+		if (Provider(snapshot).At(snapshot.GetText(), trigger) is not { } help)
 			return;
 
 		// Inside a proven DotGram grammar the host C# source describes GramAttribute's
 		// constructor, not the rule call under the caret.
 		signatures.Clear();
-		signatures.Add(new GramSignature(
-			snapshot.CreateTrackingSpan(
-				openParen,
-				Math.Max(1, trigger - openParen),
-				SpanTrackingMode.EdgeInclusive),
-			definition.Signature,
-			Documentation(definition.Signature, definition.Description),
-			argument));
+
+		foreach (var signature in help.Signatures)
+			signatures.Add(new GramSignature(
+				snapshot.CreateTrackingSpan(
+					help.ApplicableSpan.Start,
+					help.ApplicableSpan.Length,
+					SpanTrackingMode.EdgeInclusive),
+				signature,
+				help.ActiveParameter));
 	}
 
-	static string Documentation(string signature, string description)
-	{
-		return description.StartsWith(signature, StringComparison.Ordinal)
-			? description.Substring(signature.Length).TrimStart()
-			: description;
-	}
-
-	/// <summary>The grammar a position stands in, and its place there; null outside a grammar.</summary>
-	protected abstract (string Text, int Position)? GrammarAt(ITextSnapshot snapshot, int position);
-
-	/// <summary>Whether a position is in a grammar's own text, and not in C# inside it or outside it.</summary>
-	bool InGrammar(ITextSnapshot snapshot, int position)
-	{
-		return GrammarPosition.InGrammarText(GrammarAt(snapshot, position));
-	}
-
-	/// <summary>The standard library's rule a call written <c>Std.Name(</c> names, which no document declares.</summary>
-	static RuleSignature? StandardRule(ITextSnapshot snapshot, string name, int nameStart)
-	{
-		var start = Math.Max(0, nameStart - StandardLibrary.Name.Length - 2);
-		var text  = snapshot.GetText(start, nameStart + name.Length - start);
-
-		return GramVocabulary.QualifiedStandardRule(text, nameStart - start, name.Length) is { ParameterCount: > 0 } rule
-			? new RuleSignature(name, rule.Signature, rule.Description)
-			: null;
-	}
+	/// <summary>What the analysis knows of the snapshot, as the shared provider reads it.</summary>
+	protected abstract GramSignatureHelpProvider Provider(ITextSnapshot snapshot);
 
 	public ISignature? GetBestMatch(ISignatureHelpSession session)
 	{
@@ -192,70 +163,14 @@ abstract class GramSignatureHelpSourceBase(ITextBuffer buffer) : ISignatureHelpS
 	public void Dispose()
 	{
 	}
-
-	protected abstract IEnumerable<RuleSignature> Definitions(ITextSnapshot snapshot, int position);
-
-	protected readonly struct RuleSignature(string name, string signature, string description)
-	{
-		public string Name { get; } = name;
-		public string Signature { get; } = signature;
-		public string Description { get; } = description;
-	}
-
-	static bool TryFindCall(
-		ITextSnapshot snapshot,
-		int position,
-		out string name,
-		out int nameStart,
-		out int openParen,
-		out int argument)
-	{
-		var depth = 0;
-		argument = 0;
-
-		for (var current = Math.Min(position, snapshot.Length) - 1; current >= 0; current--)
-			switch (snapshot[current])
-			{
-				case ')': depth++; break;
-				case '(' when depth > 0: depth--; break;
-				case ',' when depth == 0: argument++; break;
-				case '(':
-					openParen = current;
-					var end = current;
-					var start = end;
-
-					while (start > 0 && char.IsWhiteSpace(snapshot[start - 1])) start--;
-					end = start;
-					while (start > 0 && (char.IsLetterOrDigit(snapshot[start - 1]) || snapshot[start - 1] == '_')) start--;
-
-					name      = snapshot.GetText(start, end - start);
-					nameStart = start;
-					return name.Length > 0;
-			}
-
-		name      = "";
-		nameStart = 0;
-		openParen = 0;
-		return false;
-	}
 }
 
 sealed class GramSignatureHelpSource(ITextBuffer buffer, GramBufferAnalysis analysis)
 	: GramSignatureHelpSourceBase(buffer)
 {
-	protected override (string Text, int Position)? GrammarAt(ITextSnapshot snapshot, int position)
+	protected override GramSignatureHelpProvider Provider(ITextSnapshot snapshot)
 	{
-		return GrammarPosition.Standalone(snapshot, position);
-	}
-
-	protected override IEnumerable<RuleSignature> Definitions(ITextSnapshot snapshot, int position)
-	{
-		return analysis.Document(snapshot).Classifications
-			.Where(static item => item.DefinitionPosition == item.Position && item.RuleParameterCount > 0)
-			.Select(item => new RuleSignature(
-				snapshot.GetText(item.Position, item.Length),
-				item.RuleSignature!,
-				item.QuickInfo!));
+		return new StandaloneGramSignatureHelpProvider(analysis.Document(snapshot));
 	}
 }
 
@@ -263,27 +178,9 @@ sealed class EmbeddedGramSignatureHelpSource(
 	ITextBuffer buffer,
 	EmbeddedGrammarBufferAnalysis analysis) : GramSignatureHelpSourceBase(buffer)
 {
-	protected override (string Text, int Position)? GrammarAt(ITextSnapshot snapshot, int position)
+	protected override GramSignatureHelpProvider Provider(ITextSnapshot snapshot)
 	{
-		return analysis.TryGet(snapshot, out var classifications, out _)
-			? GrammarPosition.Embedded(snapshot, position, classifications)
-			: null;
-	}
-
-	protected override IEnumerable<RuleSignature> Definitions(ITextSnapshot snapshot, int position)
-	{
-		if (!analysis.TryGet(snapshot, out var classifications, out _))
-			return [];
-
-		return classifications
-			.Where(item =>
-				item.GrammarSpan.Contains(position) &&
-				item.DefinitionSpan == item.Span &&
-				item.RuleParameterCount > 0)
-			.Select(item => new RuleSignature(
-				snapshot.GetText(item.Span.Start, item.Span.Length),
-				item.RuleSignature!,
-				item.QuickInfo!));
+		return new EmbeddedGramSignatureHelpProvider(analysis.View(snapshot));
 	}
 }
 
@@ -293,34 +190,20 @@ sealed class GramSignature : ISignature
 
 	public GramSignature(
 		ITrackingSpan applicableToSpan,
-		string content,
-		string documentation,
-		int argument)
+		Language.GramSignature signature,
+		int activeParameter)
 	{
 		ApplicableToSpan = applicableToSpan;
-		Content = content;
-		Documentation = documentation;
+		Content = signature.Label;
+		Documentation = signature.Documentation;
 
-		var parameters = new List<IParameter>();
-		var open = content.IndexOf('(');
-		var close = content.LastIndexOf(')');
-
-		if (open >= 0 && close > open)
-		{
-			var start = open + 1;
-
-			foreach (var part in content.Substring(start, close - start).Split(','))
-			{
-				var trimmed = part.Trim();
-				var offset = content.IndexOf(trimmed, start, StringComparison.Ordinal);
-
-				parameters.Add(new GramParameter(this, trimmed, new Span(offset, trimmed.Length)));
-				start = offset + trimmed.Length;
-			}
-		}
+		var parameters = signature.Parameters
+			.Select(parameter => (IParameter)new GramParameter(
+				this, parameter.Name, parameter.Documentation, new Span(parameter.Locus.Start, parameter.Locus.Length)))
+			.ToList();
 
 		_parameters = new ReadOnlyCollection<IParameter>(parameters);
-		CurrentParameter = argument < parameters.Count ? parameters[argument] : parameters.LastOrDefault();
+		CurrentParameter = activeParameter >= 0 ? parameters[activeParameter] : null;
 	}
 
 	public ITrackingSpan ApplicableToSpan { get; }
@@ -336,11 +219,11 @@ sealed class GramSignature : ISignature
 	}
 }
 
-sealed class GramParameter(ISignature signature, string name, Span locus) : IParameter
+sealed class GramParameter(ISignature signature, string name, string documentation, Span locus) : IParameter
 {
 	public ISignature Signature { get; } = signature;
 	public string Name { get; } = name;
-	public string Documentation => "DotGram rule parameter";
+	public string Documentation { get; } = documentation;
 	public Span Locus { get; } = locus;
 	public Span PrettyPrintedLocus => Locus;
 }

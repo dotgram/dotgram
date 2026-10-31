@@ -59,7 +59,7 @@ sealed class GramFindReferencesCommandHandler : ICommandHandler<FindReferencesCo
 				var position = args.TextView.Caret.Position.BufferPosition
 					.TranslateTo(args.SubjectBuffer.CurrentSnapshot, PointTrackingMode.Negative).Position;
 				var references = ThreadHelper.JoinableTaskFactory.Run(() =>
-					new RoslynGramCompletion(args.SubjectBuffer, Workspace, Documents)
+					RoslynGramFeatures.For(args.SubjectBuffer, Workspace, Documents).Core
 						.FindReferencesAsync(
 							position,
 							CancellationToken.None,
@@ -91,50 +91,27 @@ sealed class GramFindReferencesCommandHandler : ICommandHandler<FindReferencesCo
 		if (found.Elsewhere.Count == 0)
 			Show(found, document.FilePath, args.TextView.TextSnapshot);
 		else
-			Show(Across(found, document.FilePath, args.TextView.TextSnapshot), Services, Buffers, ContentTypes, "DotGram rule references");
+			Show(
+				GramNavigationProvider.Across(
+					found, document.FilePath, args.TextView.TextSnapshot.GetText(), GramBufferAnalysis.For(args.SubjectBuffer).Store),
+				Services,
+				Buffers,
+				ContentTypes,
+				"DotGram rule references");
 
 		return true;
 	}
 
-	/// <summary>
-	/// The references in this buffer and in the grammars its host includes, as one list over
-	/// several files.
-	/// </summary>
-	static CSharpFindReferences Across(GramFindReferencesTarget found, string filePath, ITextSnapshot snapshot)
-	{
-		var text       = snapshot.GetText();
-		var references = new List<CSharpFindReference>(found.Positions.Length + found.Elsewhere.Count);
-
-		foreach (var position in found.Positions)
-			references.Add(new CSharpFindReference(filePath, text, position, found.Name.Length));
-
-		// A carried grammar whose copy could not be written has nowhere to be listed at.
-		foreach (var reference in found.Elsewhere)
-			if (IncludedGrammarView.PathToOpen(reference.Location.Grammar) is { } path)
-				references.Add(new CSharpFindReference(
-					path,
-					reference.Location.Grammar.Text,
-					reference.Location.Offset,
-					reference.Length));
-
-		return new CSharpFindReferences(found.Name, references);
-	}
-
-	GramFindReferencesTarget? Target(FindReferencesCommandArgs args)
+	GramReferences? Target(FindReferencesCommandArgs args)
 	{
 		var snapshot = args.TextView.TextSnapshot;
 		var position = args.TextView.Caret.Position.BufferPosition
 			.TranslateTo(snapshot, PointTrackingMode.Negative).Position;
 
-		return args.SubjectBuffer.ContentType.IsOfType(GramContentType.Name)
-			? GramFindReferencesTarget.Standalone(snapshot, position, GramBufferAnalysis.For(args.SubjectBuffer))
-			: GramFindReferencesTarget.Embedded(
-				snapshot,
-				position,
-				EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents));
+		return GramFindReferencesTarget.At(args.SubjectBuffer, snapshot, position, Workspace, Documents);
 	}
 
-	void Show(GramFindReferencesTarget found, string filePath, ITextSnapshot snapshot)
+	void Show(GramReferences found, string filePath, ITextSnapshot snapshot)
 	{
 		ThreadHelper.ThrowIfNotOnUIThread();
 		if (Services.GetService(typeof(SVsFindResults)) is not IFindResultsService findResults)

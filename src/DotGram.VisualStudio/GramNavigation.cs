@@ -80,39 +80,30 @@ sealed class GramNavigableSymbolSource(
 	{
 		var snapshot = buffer.CurrentSnapshot;
 		var position = triggerSpan.TranslateTo(snapshot, SpanTrackingMode.EdgeExclusive).Start.Position;
-		if (analysis.ExternalDefinition(snapshot, position) is { } external)
-			return Task.FromResult<INavigableSymbol?>(new IncludedGrammarNavigableSymbol(
-				new SnapshotSpan(snapshot, external.Position, external.Length),
-				services,
-				external.Target));
 
-		// A definition past the end of the buffer is in an included grammar that could not be
-		// placed; there is nowhere in this buffer to go.
-		foreach (var item in analysis.Document(snapshot).Symbols)
-			if (item.Position <= position && position < item.Position + item.Length)
-				return Task.FromResult<INavigableSymbol?>(item.DefinitionPosition >= snapshot.Length
-					? null
-					: Create(
-						view,
-						snapshot,
-						item.Position,
-						item.Length,
-						item.DefinitionPosition));
-
-		return Task.FromResult<INavigableSymbol?>(null);
+		return Task.FromResult(GramNavigationProvider.Navigable(analysis.View(snapshot), position) is { } navigable
+			? Symbol(view, snapshot, services, analysis.Store, navigable)
+			: null);
 	}
 
-	internal static INavigableSymbol Create(
+	/// <summary>The Visual Studio symbol for what the shared provider says a click navigates to.</summary>
+	internal static INavigableSymbol Symbol(
 		ITextView view,
 		ITextSnapshot snapshot,
-		int symbolPosition,
-		int symbolLength,
-		int definitionPosition)
+		IServiceProvider services,
+		IIncludedGrammarStore store,
+		GramNavigable navigable)
 	{
-		return new GramNavigableSymbol(
-			view,
-			new SnapshotSpan(snapshot, symbolPosition, symbolLength),
-			snapshot.CreateTrackingPoint(definitionPosition, PointTrackingMode.Negative));
+		var span = new SnapshotSpan(snapshot, navigable.Span.Start, navigable.Span.Length);
+
+		return navigable.Target switch
+		{
+			GramLocation.InDocument target => new GramNavigableSymbol(
+				view, span, snapshot.CreateTrackingPoint(target.Position, PointTrackingMode.Negative)),
+			GramLocation.InFile target => new FileNavigableSymbol(span, services, target.Path, target.Line, target.Column),
+			GramLocation.InIncludedGrammar target => new IncludedGrammarNavigableSymbol(span, services, store, target),
+			_ => new NonNavigableSymbol(span),
+		};
 	}
 
 	public void Dispose()
@@ -134,45 +125,16 @@ sealed class EmbeddedGramNavigableSymbolSource(
 	{
 		var snapshot = buffer.CurrentSnapshot;
 		var position = triggerSpan.TranslateTo(snapshot, SpanTrackingMode.EdgeExclusive).Start.Position;
-		var grammarFile = await new RoslynGramCompletion(buffer, workspace, documents)
-			.GrammarFileSourceAsync(position, token).ConfigureAwait(false);
-		if (grammarFile is { } file)
-			return new FileNavigableSymbol(
-				new SnapshotSpan(snapshot, position, position < snapshot.Length ? 1 : 0),
-				services,
-				file.FilePath,
-				file.Line,
-				file.Column);
+		var navigable = await GramNavigationProvider.NavigableAsync(
+			snapshot.GetText(),
+			analysis.View(snapshot),
+			position,
+			RoslynGramFeatures.For(buffer, workspace, documents).Core,
+			token).ConfigureAwait(false);
 
-		if (analysis.TryGetDslSymbols(snapshot, out var dslSymbols))
-			foreach (var item in dslSymbols)
-				if (item.Span.Contains(position) && item.DefinitionPath is not null)
-					return new FileNavigableSymbol(
-						new SnapshotSpan(snapshot, item.Span.Start, item.Span.Length),
-						services,
-						item.DefinitionPath,
-						item.DefinitionLine,
-						item.DefinitionColumn);
-
-		if (analysis.TryGetSymbols(snapshot, out var symbols))
-			foreach (var item in symbols)
-				if (item.Span.Contains(position))
-					return GramNavigableSymbolSource.Create(
-						view,
-						snapshot,
-						item.Span.Start,
-						item.Span.Length,
-						item.DefinitionSpan.Start);
-
-		// Returning null here lets the default C# provider treat the containing string
-		// literal as one large navigable symbol. Claim positions inside an embedded
-		// grammar even while its semantic spans are being refreshed after an edit.
-		if (analysis.TryGet(snapshot, out var classifications, out _) &&
-			classifications.Any(item => item.GrammarSpan.Contains(position)))
-			return new NonNavigableSymbol(
-				new SnapshotSpan(snapshot, position, position < snapshot.Length ? 1 : 0));
-
-		return null;
+		return navigable is { } found
+			? GramNavigableSymbolSource.Symbol(view, snapshot, services, TempDirectoryIncludedGrammarStore.Instance, found)
+			: null;
 	}
 
 	public void Dispose()
@@ -228,7 +190,8 @@ sealed class FileNavigableSymbol(
 sealed class IncludedGrammarNavigableSymbol(
 	SnapshotSpan symbolSpan,
 	IServiceProvider services,
-	StandaloneLocation target) : INavigableSymbol
+	IIncludedGrammarStore store,
+	GramLocation.InIncludedGrammar target) : INavigableSymbol
 {
 	static readonly IReadOnlyCollection<INavigableRelationship> Definition =
 		new[] { PredefinedNavigableRelationships.Definition };
@@ -243,7 +206,7 @@ sealed class IncludedGrammarNavigableSymbol(
 		if (relationship != PredefinedNavigableRelationships.Definition)
 			return;
 
-		if (IncludedGrammarView.PathToOpen(target.Grammar) is { } path)
+		if (store.PathToOpen(target.Grammar) is { } path)
 			FileNavigableSymbol.Open(services, path, target.Line, target.Column);
 	}
 }
