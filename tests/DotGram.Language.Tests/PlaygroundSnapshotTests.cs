@@ -211,6 +211,10 @@ public sealed class PlaygroundSnapshotTests
 		var view   = await PlaygroundEmbedded.ViewAsync(text, folder, TestContext.Current.CancellationToken);
 		var actual = await RecordEmbeddedAsync(text, view, markers);
 
+		// A provider that answered nothing at all would match a recording that has nothing of it.
+		foreach (var kind in new[] { "completion", "quickinfo", "signature", "definition", "navigable", "references", "highlight" })
+			Assert.Contains("\n" + kind + " ", actual, StringComparison.Ordinal);
+
 		Assert.True(
 			expected == actual,
 			$"{PlaygroundEmbedded.FileName}: the providers no longer answer as the extension did. First difference:\n{FirstDifference(expected, actual)}");
