@@ -86,7 +86,15 @@ what the generated C# accepts of each supplied name in each place; `EditorDiagno
 every diagnostic number, each with a grammar the editor shows it for or the reason it cannot
 (`EditorDiagnostics.txt`); and, in `tests/DotGram.Language.Tests.Slow`, `EditorCorpusTests` to
 every grammar in the repository, every token of which must be classified, and
-`EditorParityTests` to the compiler's diagnostics for each under the same options.
+`EditorParityTests` to the compiler's diagnostics for each under the same options. What each
+feature answers on the playground grammars — completion, Quick Info, signature help,
+navigation, references, rename — is recorded in `tests/DotGram.Language.Tests/Playground`, and
+`PlaygroundSnapshotTests` holds the shared providers to it on any machine.
+
+A grammar is analysed whole, the compiler included, shortly after typing pauses. How long that
+took is recorded with each analysis but not shown — the extension has no pane for it and logs
+only errors to the activity log; `EditorAnalysisCostTests` in `tests/DotGram.Language.Tests.Slow`
+reports it, phase by phase, for the largest grammars in the repository.
 
 ## Build the VSIX
 
@@ -96,7 +104,8 @@ what is Visual Studio's itself: taggers, completion sources, command handlers an
 map the core's answers onto the editor. What may go where, and why it is sources rather than a
 reference to the generator, is `src/DotGram/Language/README.md`. The core's own tests are in
 `tests/DotGram.Language.Tests` and run on Linux; `tests/DotGram.VisualStudio.Tests` keeps those
-that need a type of the extension's.
+that need a type of the extension's: `PlaygroundAdapterTests` holds the extension's adapters to
+the same recorded answers, on Windows.
 
 From the repository root:
 
