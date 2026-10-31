@@ -52,7 +52,10 @@ namespace DotGram.Examples.Formats;
 	// allowed to end without a terminator is the last, and `Tail` is where it is said.
 	Entries : @IniEntry[] = (Entry | Blank)* & Tail?
 
-	Entry : @IniEntry = Space & key: Key & Space & '=' & value: Value & (Eol | ?=eof)
+	// The blanks around a key are read by `Key` and trimmed from it. Written as `Space & Key & Space`
+	// they could be the key's or the separators' in any proportion, a way for each split of each
+	// line of a text refused late; they are the same language, since a key may hold blanks.
+	Entry : @IniEntry = key: Key & '=' & value: Value & (Eol | ?=eof)
 	                      => @(new IniEntry(key, value.Trim()))
 
 	// Not an entry and not a section: a comment, or nothing at all.
@@ -67,7 +70,7 @@ namespace DotGram.Examples.Formats;
 
 	Comment = [';' | '#'] & [^ '\n' | '\r']*
 
-	Key   : @string = text: [^ '=' | '[' | ']' | '\n' | '\r' | ';' | '#']+ => @(text.Trim())
+	Key   : @string = { text: [^ '=' | '[' | ']' | '\n' | '\r' | ';' | '#']+ } => @(text.Trim())
 	Name  : @string = text: [^ ']' | '\n' | '\r']+                        => @(text)
 
 	// To the end of the line, whatever it holds: INI has no escape, so `a;b` is a value
