@@ -15,27 +15,30 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// A refusal in an example grammar costs about as much as its input is long: doubling the input
-/// does not do much more than double the time.
+/// A refusal in an example grammar costs a power of its input's length, not a factor for every unit
+/// of it: doubling the input does not do much more than multiply the time by a few.
 /// </summary>
 /// <remarks>
 /// <para>
-/// Each input is a run of the unit that used to be readable in two ways, ending in something the
-/// grammar cannot read, so that the whole run is tried every way it can be cut before the refusal.
-/// The units are a line ending that is one <c>"\r\n"</c> or a <c>'\r'</c> and a <c>'\n'</c>, a blank
-/// after a fold that a field's value or the fold itself could take, a <c>--</c> that is a comment or
-/// two symbols, and a value that runs to the end of its line or stops where the next entry could
-/// begin. A reading with two ways per unit doubles for every unit, and no bound on a time can be set
-/// under that: twenty-two lines of the YAML took two seconds and thirty-two would take minutes.
+/// Each input is a run of a unit that the grammar used to be able to read in two ways, ending in
+/// something it cannot read, so that the whole run is tried every way it can be cut before the
+/// refusal. The units are a line ending that is one <c>"\r\n"</c> or a <c>'\r'</c> and a <c>'\n'</c>,
+/// blanks that a value or the separator before it could take, a heading, a bullet or a fence that
+/// is also a paragraph, a word, a number or a string that could end sooner, a <c>--</c> that is a
+/// comment or two symbols, and a value that runs to the end of its line or stops where the next
+/// entry could begin. A reading with two ways per unit doubles for every unit, and no bound on a
+/// time can be set under that: twenty-two lines of the YAML took two seconds and thirty-two would
+/// have taken minutes.
 /// </para>
 /// <para>
-/// <b>What is held is a ratio, never a time.</b> The input doubles from <see cref="First"/> units, each
-/// size is timed over enough repeated refusals to be read off the clock, and the time of a size may not
-/// be more than <see cref="Step"/> times that of the size before it: a linear reading doubles, a
-/// quadratic one quadruples, and a shape that reads every way multiplies by a thousand at the first
-/// step. The ladder stops at the first step over the bound, so that a regression fails in a second
-/// and not after minutes. Over the whole ladder the time may not grow faster than
-/// <see cref="Whole"/> times the growth of a quadratic reading.
+/// <b>What is held is a ratio, never a time.</b> The input doubles from <see cref="First"/> units,
+/// each size is timed over enough repeated refusals to be read off the clock, and the time of a
+/// size may not be more than <see cref="Step"/> times that of the size before it: a linear reading
+/// doubles it, a quadratic one quadruples it, and a shape that reads every way multiplies it by a
+/// hundred at the first step. The ladder stops at the first step over the bound, so that a
+/// regression fails in a second and not after minutes. Over the whole ladder the time may not grow
+/// faster than twice a quadratic reading's. Some rows do grow about quadratically (a failed repetition
+/// gives its turns back one at a time), which this does not mind.
 /// </para>
 /// </remarks>
 [Collection(typeof(Alone))]
@@ -50,49 +53,78 @@ public sealed class ExampleRefusalGrowthTests
 	/// <summary>What one doubling of the input may cost, as a multiple: a linear reading is 2, a quadratic one 4.</summary>
 	const double Step = 8;
 
-	/// <summary>What the whole ladder may cost against a quadratic reading's growth (128 times the size, 16384 times the time).</summary>
-	const double Whole = 1;
+	/// <summary>What the whole ladder may cost, as a multiple of a quadratic reading's growth (128 times the size, 16384 times the time).</summary>
+	const double Whole = 2;
 
 	/// <summary>How long a timing covers, in milliseconds, so that a reading of microseconds is not noise.</summary>
 	const double Sample = 15;
 
-	[Fact]
-	public void YAML_lines_ending_in_CRLF_are_refused_in_step_with_their_length()
+	[Theory]
+	[InlineData("a: b\r\n")]
+	[InlineData("a:  b  c  \r\n")]
+	[InlineData("  a:\r\n")]
+	[InlineData("\r\n")]
+	[InlineData("  # c\r\n")]
+	[InlineData("a: b\n\r")]
+	public void YAML_lines_are_refused_in_step_with_their_length(string piece)
 	{
-		Ladder("yaml", static n => Repeated("a: b\r\n", n) + "!", static text => YamlLite.TryParseDoc(text).IsSuccess);
-		Assert.True(YamlLite.TryParseDoc("a: b\r\n\r\nc: d\r\n").IsSuccess);
+		Ladder("yaml " + Shown(piece), n => Repeated(piece, n) + "!", static text => YamlLite.TryParseDoc(text).IsSuccess);
 	}
 
 	[Fact]
-	public void YAML_blank_lines_ending_in_CRLF_are_refused_in_step_with_their_length()
+	public void YAML_still_reads_what_it_read()
 	{
-		Ladder("yaml blanks", static n => Repeated("\r\n", n) + "!", static text => YamlLite.TryParseDoc(text).IsSuccess);
+		var root = YamlLite.Read("a: b\r\n\r\n  # x\r\n  c:  c  \r\nd: e");
+
+		Assert.Equal("b", root["a"].Value);
+		Assert.Equal("c", root["a"]["c"].Value);
+		Assert.Equal("e", root["d"].Value);
+		Assert.Equal("c", YamlLite.Read("a:\r\n  b:  c  \r\n\r\n").Children["a"]["b"].Value);
+		Assert.False(YamlLite.TryParseDoc("a: b\r\n!").IsSuccess);
+	}
+
+	[Theory]
+	[InlineData("k=v\r\n")]
+	[InlineData("  k  =  v  \r\n")]
+	[InlineData(" k k =\r\n")]
+	[InlineData("; c\r\n\r\n")]
+	[InlineData("[s]\r\n")]
+	[InlineData(" [ s ] \r\nk=v\r\n")]
+	public void INI_lines_are_refused_in_step_with_their_length(string piece)
+	{
+		Ladder("ini " + Shown(piece), n => Repeated(piece, n) + "]", static text => IniParser.TryParseIni(text).IsSuccess);
 	}
 
 	[Fact]
-	public void INI_entries_ending_in_CRLF_are_refused_in_step_with_their_length()
+	public void INI_still_reads_what_it_read()
 	{
-		Ladder("ini entries", static n => Repeated("k=v\r\n", n) + "]", static text => IniParser.TryParseIni(text).IsSuccess);
-		Assert.True(IniParser.TryParseIni("k=v\r\n\r\n[s]\r\na=b\r\n").IsSuccess);
+		var file = IniParser.Read("g = 1\r\n\r\n  ; c\r\n[s]\r\n  k  k = v  \r\n =x\r\nz=1");
+
+		Assert.Equal("1", file[""]["g"]);
+		Assert.Equal("v", file["s"]["k  k"]);
+		Assert.Equal("x", file["s"][""]);
+		Assert.Equal("1", file["s"]["z"]);
+		Assert.False(IniParser.TryParseIni("k=v\r\n]").IsSuccess);
+	}
+
+	[Theory]
+	[InlineData("A: v\r\n \t x\r\n")]
+	[InlineData("A:  v  \r\n")]
+	[InlineData("A:\r\n \t \r\n  \r\n")]
+	[InlineData("A: v\n\tw\n")]
+	public void HTTP_fields_are_refused_in_step_with_their_length(string piece)
+	{
+		Ladder("http " + Shown(piece), n => Repeated(piece, n) + ": x", static text => HttpParser.TryParseHeaders(text).IsSuccess);
 	}
 
 	[Fact]
-	public void INI_sections_ending_in_CRLF_are_refused_in_step_with_their_length()
+	public void HTTP_still_reads_what_it_read()
 	{
-		Ladder("ini sections", static n => Repeated("[s]\r\nk=v\r\n", n) + "]", static text => IniParser.TryParseIni(text).IsSuccess);
-	}
+		var headers = HttpParser.Read("A:  v \r\n \t x\r\nB:\r\n  \r\nC: c");
 
-	[Fact]
-	public void HTTP_fields_with_folded_blanks_are_refused_in_step_with_their_length()
-	{
-		Ladder("http", static n => Repeated("A: v\r\n \t x\r\n", n) + ": x", static text => HttpParser.TryParseHeaders(text).IsSuccess);
-		Assert.True(HttpParser.TryParseHeaders("A: v\r\n \t x\r\nB:  \r\n  \r\n").IsSuccess);
-	}
-
-	[Fact]
-	public void HTTP_folds_of_blanks_are_refused_in_step_with_their_length()
-	{
-		Ladder("http folds", static n => "A: v\r\n" + Repeated(" \t \r\n", n) + ": x", static text => HttpParser.TryParseHeaders(text).IsSuccess);
+		Assert.Equal("v x", headers["A"]);
+		Assert.Equal(" ", headers["B"]);
+		Assert.Equal("c", headers["C"]);
 	}
 
 	[Theory]
@@ -107,7 +139,7 @@ public sealed class ExampleRefusalGrowthTests
 	[InlineData("``` x\r\n\r\ny\r\n```\r\n\r\n")]
 	public void Markdown_blocks_are_refused_in_step_with_their_length(string piece)
 	{
-		Ladder("markdown " + piece.Replace("\r", "\\r").Replace("\n", "\\n"), n => Repeated(piece, n) + "z", static text => MarkdownParser.TryParseDoc(text).IsSuccess);
+		Ladder("markdown " + Shown(piece), n => Repeated(piece, n) + "z", static text => MarkdownParser.TryParseDoc(text).IsSuccess);
 	}
 
 	[Fact]
@@ -143,7 +175,7 @@ public sealed class ExampleRefusalGrowthTests
 	[InlineData(" a/* c */b")]
 	public void A_read_only_query_of_repeated_tokens_is_refused_in_step_with_its_length(string piece)
 	{
-		Ladder("sql " + piece.Replace("\n", "\\n"), n => "select" + Repeated(piece, n) + " insert", static text => SqlReadOnly.IsReadOnly(text));
+		Ladder("sql " + Shown(piece), n => "select" + Repeated(piece, n) + " insert", static text => SqlReadOnly.IsReadOnly(text));
 	}
 
 	[Fact]
@@ -279,6 +311,11 @@ public sealed class ExampleRefusalGrowthTests
 		}
 
 		return least;
+	}
+
+	static string Shown(string piece)
+	{
+		return piece.Replace("\r", "\\r").Replace("\n", "\\n").Replace("\t", "\\t");
 	}
 
 	static string Repeated(string piece, int times)
