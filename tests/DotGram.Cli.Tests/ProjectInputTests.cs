@@ -902,6 +902,56 @@ public sealed class ProjectInputTests
 			Equality.Same(built, scratch.Path("out"));
 	}
 
+	/// <summary>A grammar with a repetition that reads one run of text two ways, which the generator warns about (GRAM4052).</summary>
+	const string CutTwoWays = "Pair = key: Word & '=' & value: Word\n\nWord = ['a'..'z']+\n\nRuns = ('x'+)* & 'b'\n\nparse Pair\nparse Runs\n";
+
+	/// <summary>
+	/// GRAM4052 takes the build's severity as every diagnostic of the generator does: a warning by
+	/// default, an error where the project or a configuration asks for one, and silent where it is
+	/// silenced. The build and the tool say the same, and an error stops the tool.
+	/// </summary>
+	[Theory]
+	[InlineData(false, "", "", "", "warning")]
+	[InlineData(false, "", "error", "", "error")]
+	[InlineData(false, "", "", "<WarningsAsErrors>$(WarningsAsErrors);GRAM4052</WarningsAsErrors>", "error")]
+	[InlineData(false, "", "", AllAsErrors, "error")]
+	[InlineData(false, "", "", "<NoWarn>$(NoWarn);GRAM4052</NoWarn>", "none")]
+	[InlineData(true, "", "", "", "warning")]
+	[InlineData(true, "[*.cs]\ndotnet_diagnostic.GRAM4052.severity = error", "", "", "error")]
+	[InlineData(true, "", "", "<WarningsAsErrors>$(WarningsAsErrors);GRAM4052</WarningsAsErrors>", "error")]
+	public void A_repetition_cut_two_ways_takes_the_severity_of_the_build(bool inline, string editorConfig, string globalSeverity, string settings, string expected)
+	{
+		using var scratch = new Scratch();
+
+		var host = inline
+			? "using DotGram;\n\nnamespace Demo\n{\n\t[Gram(@\"" + CutTwoWays.Replace("\"", "\"\"", StringComparison.Ordinal) + "\")]\n\tpublic static partial class Pairs { }\n}\n"
+			: PlainHost;
+
+		var project = App(
+			scratch,
+			"p",
+			host,
+			items: globalSeverity.Length > 0 ? "<GlobalAnalyzerConfigFiles Include=\"severities.globalconfig\" />" : "",
+			settings: settings,
+			grammar: inline ? Pairs : CutTwoWays);
+
+		if (editorConfig.Length > 0)
+			scratch.Write("p/.editorconfig", "root = true\n\n" + editorConfig + "\n");
+
+		if (globalSeverity.Length > 0)
+			scratch.Write("p/severities.globalconfig", $"is_global = true\n\ndotnet_diagnostic.GRAM4052.severity = {globalSeverity}\n");
+
+		var (_, text, built) = Build.TryGenerated(project);
+		var run              = Tool.Run(scratch.Root, "generate", project, "-o", scratch.Path("out"), "--line-paths", "absolute");
+
+		Assert.True(expected == SeverityOf(text, "GRAM4052"), "the build:\n" + text);
+		Assert.True(expected == SeverityOf(run.Output, "GRAM4052"), run.ToString());
+		Assert.Equal(expected == "error" ? ExitCode.GrammarErrors : ExitCode.Done, run.Exit);
+
+		if (expected != "error")
+			Equality.Same(built, scratch.Path("out"));
+	}
+
 	/// <summary>
 	/// A diagnostic the source silences with <c>#pragma warning disable</c> is not an error, whatever the
 	/// project does with warnings: the build generates, and so does the tool.
