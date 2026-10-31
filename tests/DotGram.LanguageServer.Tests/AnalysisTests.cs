@@ -176,11 +176,18 @@ public sealed class AnalysisTests
 		var with    = Input(opening.Concat(edits));
 		var without = Input(opening);
 
-		// Warmed once each, then the medians of five.
-		Run(with);
-		Run(without);
+		// Warmed once each, outside what is timed: the edits were all applied, as written.
+		Run(with, out var server);
 
-		return Median(() => Run(with)) - Median(() => Run(without));
+		var edited = server.Document("untitled:Burst.gram");
+
+		Assert.NotNull(edited);
+		Assert.Equal(1001, edited.Current.Number);
+		Assert.Equal(text.Insert(at, new string(' ', 1000)), edited.Current.String);
+
+		Run(without, out _);
+
+		return Median(() => Run(with, out _)) - Median(() => Run(without, out _));
 	}
 
 	static byte[] Input(IEnumerable<object> messages)
@@ -189,10 +196,10 @@ public sealed class AnalysisTests
 	}
 
 	/// <summary>How long the server takes to read an input to its end, everything in it handled as it is read.</summary>
-	static TimeSpan Run(byte[] input)
+	static TimeSpan Run(byte[] input, out GramLanguageServer server)
 	{
 		var connection = new JsonRpcConnection(new MemoryStream(input, writable: false), Stream.Null);
-		var server     = new GramLanguageServer(connection, new ServerOptions
+		server         = new GramLanguageServer(connection, new ServerOptions
 		{
 			CSharp  = false,
 

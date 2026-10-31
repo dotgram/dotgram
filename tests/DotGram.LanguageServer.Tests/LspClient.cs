@@ -209,13 +209,22 @@ sealed class LspClient : IAsyncDisposable
 	}
 
 	/// <summary>
-	/// Waits until the server has nothing left to do — the folders read, the workspace's updates applied,
-	/// no analysis or search for a host running or about to — and until everything it sent meanwhile has
-	/// arrived: a barrier, where a test would otherwise wait for a while and hope.
+	/// Waits until the server has nothing left to do — every message sent before handled, the folders
+	/// read, the workspace's updates applied, no analysis or search for a host running or due, no
+	/// document waiting to start — and until everything it sent meanwhile has arrived: a barrier, where
+	/// a test would otherwise wait for a while and hope.
 	/// </summary>
+	/// <remarks>
+	/// A read of a watched file still running is not waited for: it may never end, which is what one
+	/// test is about. Everything else that does work runs on the server's scheduler or inside an update.
+	/// </remarks>
 	public async Task SettleAsync()
 	{
 		var deadline = DateTime.UtcNow + Timeout;
+
+		// The incoming side first: a request is bound after every notification sent before it has been
+		// handled, so what those set going has started by the time it is answered.
+		await FenceAsync();
 
 		while (true)
 		{
@@ -224,14 +233,24 @@ sealed class LspClient : IAsyncDisposable
 			await Server.Folder.WaitAsync(Timeout);
 			await Server.Updates.Drained.WaitAsync(Timeout);
 
+			if (!Scheduler.Idle || !Server.Updates.Drained.IsCompleted)
+			{
+				await Task.Delay(5);
+				continue;
+			}
+
+			// The outgoing side: answered after everything the server told before it. Then once more
+			// nothing may have started meanwhile, or the round goes again.
+			await FenceAsync();
+
 			if (Scheduler.Idle && Server.Updates.Drained.IsCompleted)
-				break;
-
-			await Task.Delay(5);
+				return;
 		}
+	}
 
-		// Answered after everything sent before it: what the server told before settling has arrived.
-		await RequestRawAsync("textDocument/documentSymbol", new { textDocument = new { uri = "untitled:barrier" } });
+	Task FenceAsync()
+	{
+		return RequestRawAsync("textDocument/documentSymbol", new { textDocument = new { uri = "untitled:barrier" } });
 	}
 
 	/// <summary>A message as the protocol frames it.</summary>
