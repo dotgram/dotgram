@@ -52,7 +52,8 @@ sealed class FolderWorkspace
 		? StringComparison.OrdinalIgnoreCase
 		: StringComparison.Ordinal;
 
-	static readonly StringComparer PathComparer = StringComparer.FromComparison(PathComparison);
+	/// <summary>How the file system compares paths: every map of paths to what they are uses it.</summary>
+	internal static readonly StringComparer PathComparer = StringComparer.FromComparison(PathComparison);
 
 	// A link is not followed (the walk skips it by its attributes): a link to a parent folder is a walk
 	// without an end.
@@ -67,20 +68,35 @@ sealed class FolderWorkspace
 
 	static readonly CSharpParseOptions ParseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
 
-	readonly object                   _gate = new();
-	readonly IReadOnlyList<string>    _folders;
-	readonly Dictionary<string, DocumentId> _sources   = new(PathComparer);
-	readonly Dictionary<string, DocumentId> _grammars  = new(PathComparer);
+	readonly object                         _gate = new();
+	readonly IReadOnlyList<string>          _folders;
+	readonly StringComparison               _comparison;
+	readonly Dictionary<string, DocumentId> _sources;
+	readonly Dictionary<string, DocumentId> _grammars;
 
 	// The grammars open in the editor: their text there, not their file's, is what they are, until they close.
-	readonly Dictionary<string, SourceText> _open      = new(PathComparer);
+	readonly Dictionary<string, SourceText> _open;
 
-	FolderWorkspace(AdhocWorkspace workspace, ProjectId project, IReadOnlyList<string> folders)
+	FolderWorkspace(AdhocWorkspace workspace, ProjectId project, IReadOnlyList<string> folders, StringComparer paths)
 	{
-		Workspace = workspace;
-		Project   = project;
-		_folders  = folders;
+		Workspace   = workspace;
+		Project     = project;
+		_folders    = folders;
+		Paths       = paths;
+		_comparison = paths == StringComparer.Ordinal ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
+		_sources    = new(paths);
+		_grammars   = new(paths);
+		_open       = new(paths);
 	}
+
+	/// <summary>How this workspace compares paths: the file system's, or a test's.</summary>
+	public StringComparer Paths { get; }
+
+	/// <summary>
+	/// A change this workspace made to its solution, told synchronously as it is made — not later from
+	/// Roslyn's own event queue — so that what it sets going has begun by the time the change returns.
+	/// </summary>
+	public event Action<WorkspaceChangeEventArgs>? Changed;
 
 	public AdhocWorkspace Workspace { get; }
 
@@ -135,13 +151,15 @@ sealed class FolderWorkspace
 	/// entries than <paramref name="maxEntries"/>, or take longer than <paramref name="maxWalk"/> to walk.
 	/// </summary>
 	/// <param name="read">What reads a file; null where it cannot be read. A test's hook.</param>
+	/// <param name="paths">How paths compare; the file system's where null. A test's hook.</param>
 	public static FolderWorkspace Create(
 		IReadOnlyList<string> folders,
 		Action<string> log,
 		CancellationToken cancellationToken,
 		int maxEntries = MaxEntries,
 		TimeSpan? maxWalk = null,
-		Func<string, string?>? read = null)
+		Func<string, string?>? read = null,
+		StringComparer? paths = null)
 	{
 		read ??= Read;
 
@@ -176,7 +194,7 @@ sealed class FolderWorkspace
 			compilationOptions: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary, nullableContextOptions: NullableContextOptions.Enable),
 			parseOptions: ParseOptions,
 			metadataReferences: Basic.Reference.Assemblies.Net100.References.All));
-		var result   = new FolderWorkspace(workspace, project.Id, folders);
+		var result   = new FolderWorkspace(workspace, project.Id, folders, paths ?? PathComparer);
 		var markers  = GramCompiler.EmitMarkerAttributes();
 		var solution = project.AddDocument(markers.HintName, SourceText.From(markers.Text)).Project.Solution;
 
@@ -221,7 +239,7 @@ sealed class FolderWorkspace
 		{
 			var root = Path.TrimEndingDirectorySeparator(folder) + Path.DirectorySeparatorChar;
 
-			if (path.StartsWith(root, PathComparison))
+			if (path.StartsWith(root, _comparison))
 				return true;
 		}
 
@@ -248,6 +266,8 @@ sealed class FolderWorkspace
 		if (!Watches(path))
 			return;
 
+		WorkspaceChangeEventArgs? change = null;
+
 		lock (_gate)
 		{
 			var solution = Workspace.CurrentSolution;
@@ -258,15 +278,19 @@ sealed class FolderWorkspace
 
 				if (_sources.TryGetValue(path, out var id))
 				{
-					solution = declares
-						? solution.WithDocumentText(id, SourceText.From(text!))
-						: solution.RemoveDocument(id);
-
-					if (!declares)
+					if (declares)
+						change = Apply(solution.WithDocumentText(id, SourceText.From(text!)), WorkspaceChangeKind.DocumentChanged, id);
+					else
+					{
 						_sources.Remove(path);
+						change = Apply(solution.RemoveDocument(id), WorkspaceChangeKind.DocumentRemoved, id);
+					}
 				}
 				else if (declares)
+				{
 					solution = AddSource(solution, path, text!);
+					change   = Apply(solution, WorkspaceChangeKind.DocumentAdded, _sources[path]);
+				}
 			}
 			else if (path.EndsWith(GramIncludes.GramFileExtension, StringComparison.OrdinalIgnoreCase))
 			{
@@ -276,19 +300,40 @@ sealed class FolderWorkspace
 
 				if (_grammars.TryGetValue(path, out var id))
 				{
-					solution = text is null
-						? solution.RemoveAdditionalDocument(id)
-						: solution.WithAdditionalDocumentText(id, SourceText.From(text));
-
-					if (text is null)
+					if (text is not null)
+						change = Apply(solution.WithAdditionalDocumentText(id, SourceText.From(text)), WorkspaceChangeKind.AdditionalDocumentChanged, id);
+					else
+					{
 						_grammars.Remove(path);
+						change = Apply(solution.RemoveAdditionalDocument(id), WorkspaceChangeKind.AdditionalDocumentRemoved, id);
+					}
 				}
 				else if (text is not null)
+				{
 					solution = AddGrammar(solution, path, text);
+					change   = Apply(solution, WorkspaceChangeKind.AdditionalDocumentAdded, _grammars[path]);
+				}
 			}
-
-			Workspace.TryApplyChanges(solution);
 		}
+
+		Tell(change);
+	}
+
+	/// <summary>The solution made the workspace's; the change to tell, or null where it was refused.</summary>
+	WorkspaceChangeEventArgs? Apply(Solution solution, WorkspaceChangeKind kind, DocumentId document)
+	{
+		var before = Workspace.CurrentSolution;
+
+		return Workspace.TryApplyChanges(solution)
+			? new WorkspaceChangeEventArgs(kind, before, Workspace.CurrentSolution, Project, document)
+			: null;
+	}
+
+	/// <summary>Tells a change, outside the lock: what it sets going may ask the workspace again.</summary>
+	void Tell(WorkspaceChangeEventArgs? change)
+	{
+		if (change is not null)
+			Changed?.Invoke(change);
 	}
 
 	/// <summary>A grammar was opened: its text, unsaved edits and all, is what another grammar that includes it is compiled with.</summary>
@@ -297,19 +342,30 @@ sealed class FolderWorkspace
 		if (!Hosts || !Contains(path) || Skipped(path))
 			return;
 
+		WorkspaceChangeEventArgs? change;
+
 		lock (_gate)
 		{
 			_open[path] = text;
 
-			Workspace.TryApplyChanges(_grammars.TryGetValue(path, out var id)
-				? Workspace.CurrentSolution.WithAdditionalDocumentText(id, text)
-				: AddGrammar(Workspace.CurrentSolution, path, text.ToString()));
+			if (_grammars.TryGetValue(path, out var id))
+				change = Apply(Workspace.CurrentSolution.WithAdditionalDocumentText(id, text), WorkspaceChangeKind.AdditionalDocumentChanged, id);
+			else
+			{
+				var solution = AddGrammar(Workspace.CurrentSolution, path, text.ToString());
+
+				change = Apply(solution, WorkspaceChangeKind.AdditionalDocumentAdded, _grammars[path]);
+			}
 		}
+
+		Tell(change);
 	}
 
 	/// <summary>An open grammar was edited.</summary>
 	public void GrammarEdited(string path, SourceText text)
 	{
+		WorkspaceChangeEventArgs? change;
+
 		lock (_gate)
 		{
 			if (!_open.ContainsKey(path) || !_grammars.TryGetValue(path, out var id))
@@ -317,8 +373,10 @@ sealed class FolderWorkspace
 
 			_open[path] = text;
 
-			Workspace.TryApplyChanges(Workspace.CurrentSolution.WithAdditionalDocumentText(id, text));
+			change = Apply(Workspace.CurrentSolution.WithAdditionalDocumentText(id, text), WorkspaceChangeKind.AdditionalDocumentChanged, id);
 		}
+
+		Tell(change);
 	}
 
 	/// <summary>An open grammar was closed: what it is from now on is its file, which the caller reads and hands in.</summary>
@@ -485,7 +543,7 @@ sealed class FolderWorkspace
 	bool Skipped(string path)
 	{
 		foreach (var folder in _folders)
-			if (path.StartsWith(folder, PathComparison))
+			if (path.StartsWith(folder, _comparison))
 				return Path.GetRelativePath(folder, path)
 					.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
 					.SkipLast(1)
