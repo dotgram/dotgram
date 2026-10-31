@@ -9,7 +9,9 @@ Examples	DotGram.Examples.Formats.FixParser.g.cs	0649
 Examples	DotGram.Examples.Formats.FixedWidth.Tape.g.cs	0649
 Examples	DotGram.Examples.Formats.FixedWidth.Tape.g.cs	CS0649 // a table nothing writes still declares the field
 Examples	DotGram.Examples.Formats.FixedWidth.g.cs	0649
+Examples	DotGram.Examples.Formats.IniParser.g.cs	0649
 Examples	DotGram.Examples.Formats.Netstrings.g.cs	0649
+Examples	DotGram.Examples.Formats.YamlLite.g.cs	0649
 Examples	DotGram.Examples.Languages.FilterFile.g.cs	CS0108 // a dialect hides what it inherits, on purpose
 Examples	DotGram.Examples.Languages.Lexemes.g.cs	0649
 Examples	DotGram.Examples.Languages.Scoped.g.cs	CS0649 // a table nothing writes still declares the field
