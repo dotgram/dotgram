@@ -182,6 +182,12 @@ public static class GramCompiler
 		if (lexical is null && !HasErrors(diagnostics))
 			diagnostics.AddRange(TriviaOverlap.Check(graph));
 
+		// A repetition that can read one run of text in two ways: a refused input is read again
+		// for every way the run can be cut. Over characters, and in a grammar cut in two over the
+		// kinds of the rules that give back what they read.
+		if (!HasErrors(diagnostics))
+			diagnostics.AddRange(ExponentialRepetition.Report(graph, lexical));
+
 		// And the one question that has a different answer on the other side of the cut:
 		// over characters an overlap between an optional and what follows it is settled by
 		// backtracking, and over kinds a reading that fits is the one that stands.
@@ -403,6 +409,9 @@ public static class GramCompiler
 
 	/// <summary>The grammar was sound and still could not be cut in two.</summary>
 	public const string NotCut = "GRAM5004";
+
+	/// <summary>A repetition can read one run of text in two ways, so a refused input is read again for every way of cutting it.</summary>
+	public const string ExponentialRepetitions = "GRAM4052";
 
 	/// <summary>The immediate carrier, asked for by name, could not carry a machine of the grammar.</summary>
 	public const string CarrierRefused = "GRAM5007";

@@ -77,6 +77,36 @@ public static class ExponentialRepetition
 		return Check(graph, lexical, out _);
 	}
 
+	/// <summary>
+	/// A warning for every repetition told, at the rule it is written in: the graph's nodes carry
+	/// no place of their own, so the loop is spelled in the message for the author to find.
+	/// </summary>
+	public static IReadOnlyList<GramDiagnostic> Report(RecognitionGraph graph, LexicalSplit? lexical)
+	{
+		var reported = new List<GramDiagnostic>();
+
+		foreach (var told in Check(graph, lexical).Found)
+			reported.Add(new GramDiagnostic(
+				GramCompiler.ExponentialRepetitions,
+				$"The repetition '{Spelled(told.Loop)}' in '{told.Rule.Name}' can read {told.Witness} in two ways, so a " +
+				"refused input is read again for every way of cutting it: exponentially many times (docs/syntax.md §3.3).",
+				told.Rule.Declaration?.At.Position ?? 0,
+				told.Rule.Declaration?.At.Length ?? 0,
+				GramSeverity.Warning));
+
+		return reported;
+	}
+
+	/// <summary>A repetition as the grammar writes it, cut where it is long.</summary>
+	static string Spelled(Node loop)
+	{
+		const int most = 60;
+
+		var written = loop.ToString();
+
+		return written.Length <= most ? written : written.Substring(0, most) + " …";
+	}
+
 	/// <param name="graph">The grammar over characters.</param>
 	/// <param name="lexical">The grammar cut in two, where it is: then its syntax over kinds is asked instead.</param>
 	/// <param name="steps">The letters built and the pairs asked: the work done, for a test to hold to the grammar's size.</param>
@@ -109,6 +139,11 @@ public static class ExponentialRepetition
 
 			// Over kinds a rule not marked `?` answers once: its repetitions are as if braced.
 			if (kinds && !rule.GivesBack)
+				continue;
+
+			// A rule of a grammar spliced on, an included one or the standard library, is that
+			// grammar's to be told about, in its own build: here nobody could mend it.
+			if (Spliced(over.Origin(rule)))
 				continue;
 
 			var places = new List<Place>();
@@ -154,6 +189,16 @@ public static class ExponentialRepetition
 		steps = context.Steps;
 
 		return new Result(found, loops, skipped, context.Opaque);
+	}
+
+	/// <summary>Whether a rule came in with a grammar spliced onto the author's, rather than being written by the author.</summary>
+	static bool Spliced(RuleSymbol rule)
+	{
+		for (var ns = rule.Namespace; ns is not null; ns = ns.Parent)
+			if (ns.IsRoot)
+				return true;
+
+		return false;
 	}
 
 	/// <summary>A repetition found in a rule, and the repetition it is nested in.</summary>
