@@ -53,11 +53,19 @@ static class NavigationMap
 		}
 	}
 
+	/// <summary>
+	/// A place in an included grammar, given as Roslyn counts lines — which also breaks them at U+0085,
+	/// U+2028 and U+2029 — told as the protocol counts them.
+	/// </summary>
 	static Location? Included(IIncludedGrammarStore store, StandaloneIncludedGrammar grammar, int line, int column)
 	{
-		return store.PathToOpen(grammar) is { } path
-			? new Location(FileUri(path), Point(line, column))
-			: null;
+		if (store.PathToOpen(grammar) is not { } path)
+			return null;
+
+		var lines  = grammar.Lines.Lines;
+		var offset = line < lines.Count ? Math.Min(lines[line].Start + column, grammar.Text.Length) : grammar.Text.Length;
+
+		return new Location(FileUri(path), new LineMap(grammar.Lines).Range(offset, 0));
 	}
 
 	/// <summary>What a C# name binds to, or else the first of its declarations, where it is in source.</summary>
@@ -86,13 +94,9 @@ static class NavigationMap
 			if (!location.IsInSource || location.SourceTree?.FilePath is not { Length: > 0 } path)
 				continue;
 
-			var span = location.GetLineSpan();
+			var lines = new LineMap(location.SourceTree.GetText());
 
-			return new Location(
-				FileUri(path),
-				new Range(
-					new Position(span.StartLinePosition.Line, span.StartLinePosition.Character),
-					new Position(span.EndLinePosition.Line, span.EndLinePosition.Character)));
+			return new Location(FileUri(path), lines.Range(location.SourceSpan.Start, location.SourceSpan.Length));
 		}
 
 		return null;
@@ -141,6 +145,6 @@ static class NavigationMap
 
 	public static string FileUri(string path)
 	{
-		return new Uri(System.IO.Path.GetFullPath(path)).AbsoluteUri;
+		return FileUris.ToUri(path);
 	}
 }

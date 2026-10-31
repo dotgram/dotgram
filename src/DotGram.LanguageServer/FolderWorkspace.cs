@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -38,9 +40,25 @@ sealed class FolderWorkspace
 {
 	public const int MaxSourceFiles = 2000;
 
+	/// <summary>How many files and folders the walk looks at, at most, before it gives the folders up.</summary>
+	public const int MaxEntries = 200_000;
+
+	/// <summary>How long the walk takes, at most, before it gives the folders up: the first analysis waits for it.</summary>
+	public static readonly TimeSpan MaxWalk = TimeSpan.FromSeconds(10);
+
+	// The file system's: Hosts.cs and hosts.cs are two files on Linux, and one on Windows and macOS.
 	static readonly StringComparison PathComparison = OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
 		? StringComparison.OrdinalIgnoreCase
 		: StringComparison.Ordinal;
+
+	static readonly StringComparer PathComparer = StringComparer.FromComparison(PathComparison);
+
+	// A link is not followed: a link to a parent folder is a walk without an end.
+	static readonly EnumerationOptions Enumeration = new()
+	{
+		AttributesToSkip   = FileAttributes.ReparsePoint,
+		IgnoreInaccessible = true,
+	};
 
 	static readonly HashSet<string> AttributeNames = AttributeNamesOf(
 		GramIncludes.GramAttribute, GramIncludes.GramIncludeAttribute, GramIncludes.GramSourceAttribute);
@@ -49,8 +67,11 @@ sealed class FolderWorkspace
 
 	readonly object                   _gate = new();
 	readonly IReadOnlyList<string>    _folders;
-	readonly Dictionary<string, DocumentId> _sources   = new(StringComparer.OrdinalIgnoreCase);
-	readonly Dictionary<string, DocumentId> _grammars  = new(StringComparer.OrdinalIgnoreCase);
+	readonly Dictionary<string, DocumentId> _sources   = new(PathComparer);
+	readonly Dictionary<string, DocumentId> _grammars  = new(PathComparer);
+
+	// The grammars open in the editor: their text there, not their file's, is what they are, until they close.
+	readonly Dictionary<string, SourceText> _open      = new(PathComparer);
 
 	FolderWorkspace(AdhocWorkspace workspace, ProjectId project, IReadOnlyList<string> folders)
 	{
@@ -72,18 +93,32 @@ sealed class FolderWorkspace
 		return Create([], static _ => { }, CancellationToken.None);
 	}
 
-	/// <summary>Reads the folders; logs and reads none where they hold more C# files than the cap.</summary>
-	public static FolderWorkspace Create(IReadOnlyList<string> folders, Action<string> log, CancellationToken cancellationToken)
+	/// <summary>
+	/// Reads the folders; logs and reads none where they hold more C# files than the cap, or more
+	/// entries than <paramref name="maxEntries"/>, or take longer than <paramref name="maxWalk"/> to walk.
+	/// </summary>
+	public static FolderWorkspace Create(
+		IReadOnlyList<string> folders,
+		Action<string> log,
+		CancellationToken cancellationToken,
+		int maxEntries = MaxEntries,
+		TimeSpan? maxWalk = null)
 	{
 		var sources  = new List<string>();
 		var grammars = new List<string>();
+		var walk     = new Walk(maxEntries, maxWalk ?? MaxWalk);
 
 		foreach (var folder in folders)
-			Walk(folder, sources, grammars, cancellationToken);
+			if (!walk.Folder(folder, sources, grammars, cancellationToken))
+				break;
 
-		if (sources.Count > MaxSourceFiles)
+		var given = sources.Count > MaxSourceFiles
+			? $"{sources.Count} C# files in the workspace, more than {MaxSourceFiles}"
+			: walk.GivenUp;
+
+		if (given is not null)
 		{
-			log($"DotGram: {sources.Count} C# files in the workspace, more than {MaxSourceFiles}: grammars are read as they stand, without their hosts.");
+			log($"DotGram: {given}: grammars are read as they stand, without their hosts.");
 
 			sources.Clear();
 			grammars.Clear();
@@ -165,6 +200,10 @@ sealed class FolderWorkspace
 			}
 			else if (path.EndsWith(GramIncludes.GramFileExtension, StringComparison.OrdinalIgnoreCase))
 			{
+				// An open grammar is its editor's text, whatever its file now says.
+				if (_open.ContainsKey(path))
+					return;
+
 				if (_grammars.TryGetValue(path, out var id))
 				{
 					solution = text is null
@@ -182,16 +221,46 @@ sealed class FolderWorkspace
 		}
 	}
 
-	/// <summary>An open grammar's text, which is what another grammar that includes it is compiled with.</summary>
+	/// <summary>A grammar was opened: its text, unsaved edits and all, is what another grammar that includes it is compiled with.</summary>
+	public void GrammarOpened(string path, SourceText text)
+	{
+		if (!Hosts || !Contains(path) || Skipped(path))
+			return;
+
+		lock (_gate)
+		{
+			_open[path] = text;
+
+			Workspace.TryApplyChanges(_grammars.TryGetValue(path, out var id)
+				? Workspace.CurrentSolution.WithAdditionalDocumentText(id, text)
+				: AddGrammar(Workspace.CurrentSolution, path, text.ToString()));
+		}
+	}
+
+	/// <summary>An open grammar was edited.</summary>
 	public void GrammarEdited(string path, SourceText text)
 	{
 		lock (_gate)
 		{
-			if (!_grammars.TryGetValue(path, out var id))
+			if (!_open.ContainsKey(path) || !_grammars.TryGetValue(path, out var id))
 				return;
+
+			_open[path] = text;
 
 			Workspace.TryApplyChanges(Workspace.CurrentSolution.WithAdditionalDocumentText(id, text));
 		}
+	}
+
+	/// <summary>An open grammar was closed: it is its file again, or nothing where it has none.</summary>
+	public void GrammarClosed(string path)
+	{
+		lock (_gate)
+		{
+			if (!_open.Remove(path))
+				return;
+		}
+
+		FileChanged(path, deleted: !File.Exists(path));
 	}
 
 	/// <summary>Whether a C# file's syntax names a grammar attribute: a host, an inclusion, or a carried grammar.</summary>
@@ -264,42 +333,77 @@ sealed class FolderWorkspace
 			filePath: path));
 	}
 
-	static void Walk(string folder, List<string> sources, List<string> grammars, CancellationToken cancellationToken)
+	/// <summary>The folders' files, looked at within bounds: links are not followed, and a folder is seen once.</summary>
+	sealed class Walk(int maxEntries, TimeSpan maxTime)
 	{
-		var pending = new Stack<string>();
+		readonly HashSet<string> _seen  = new(PathComparer);
+		readonly Stopwatch       _clock = Stopwatch.StartNew();
+		int                      _entries;
 
-		pending.Push(folder);
+		/// <summary>Why the walk gave the folders up, or null.</summary>
+		public string? GivenUp { get; private set; }
 
-		while (pending.Count > 0)
+		/// <summary>Walks one folder; false where the walk gave up.</summary>
+		public bool Folder(string folder, List<string> sources, List<string> grammars, CancellationToken cancellationToken)
 		{
-			cancellationToken.ThrowIfCancellationRequested();
+			var pending = new Stack<string>();
 
-			var directory = pending.Pop();
+			pending.Push(Path.GetFullPath(folder));
 
-			try
+			while (pending.Count > 0)
 			{
-				foreach (var child in Directory.EnumerateDirectories(directory))
-					if (!SkippedFolder(Path.GetFileName(child)))
-						pending.Push(child);
+				cancellationToken.ThrowIfCancellationRequested();
 
-				foreach (var file in Directory.EnumerateFiles(directory))
+				var directory = pending.Pop();
+
+				if (!_seen.Add(directory))
+					continue;
+
+				try
 				{
-					if (file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+					foreach (var child in Directory.EnumerateDirectories(directory, "*", Enumeration))
 					{
-						sources.Add(file);
+						if (!Counted())
+							return false;
 
-						// One past the cap is enough to know the folder is past it.
-						if (sources.Count > MaxSourceFiles)
-							return;
+						if (!SkippedFolder(Path.GetFileName(child)))
+							pending.Push(child);
 					}
-					else if (file.EndsWith(GramIncludes.GramFileExtension, StringComparison.OrdinalIgnoreCase))
-						grammars.Add(file);
+
+					foreach (var file in Directory.EnumerateFiles(directory, "*", Enumeration))
+					{
+						if (!Counted())
+							return false;
+
+						if (file.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
+						{
+							sources.Add(file);
+
+							// One past the cap is enough to know the folder is past it.
+							if (sources.Count > MaxSourceFiles)
+								return false;
+						}
+						else if (file.EndsWith(GramIncludes.GramFileExtension, StringComparison.OrdinalIgnoreCase))
+							grammars.Add(file);
+					}
+				}
+				catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+				{
+					// A folder that cannot be read holds nothing for this.
 				}
 			}
-			catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
-			{
-				// A folder that cannot be read holds nothing for this.
-			}
+
+			return true;
+		}
+
+		bool Counted()
+		{
+			if (++_entries > maxEntries)
+				GivenUp = $"more than {maxEntries} files and folders in the workspace";
+			else if (_clock.Elapsed > maxTime)
+				GivenUp = $"the workspace took longer than {maxTime.TotalSeconds:0} s to look through";
+
+			return GivenUp is null;
 		}
 	}
 
