@@ -247,7 +247,9 @@ public sealed class DenseValuesTests
 			ClassName = "Grammar", Carrier = CarrierKind.Tape, ValueStorage = storage, Lexical = lexical,
 			CSharpScanner = RoslynCSharpScanner.Instance,
 		});
-		Assert.DoesNotContain(compiled.Diagnostics, one => one.Severity != GramSeverity.Info);
+		// `Retry` reads `a!` by either alternative where the guard does not refuse the first, and
+		// GRAM4052 cannot see a guard: the repetition over it is told, and it is not the question here.
+		Assert.DoesNotContain(compiled.Diagnostics, one => one.Severity != GramSeverity.Info && one.Id != GramCompiler.ExponentialRepetitions);
 		var source = Assert.Single(compiled.Sources).Text;
 		return (EmittedCode.Compile(source, declarationMembers: Members + "\n" + extraMembers), source);
 	}
