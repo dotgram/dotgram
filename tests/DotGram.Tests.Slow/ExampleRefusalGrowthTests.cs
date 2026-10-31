@@ -227,6 +227,22 @@ public sealed class ExampleRefusalGrowthTests
 		Ladder("located config long name", static n => "a=" + new string('b', n * 8) + "!\n!", static text => Config.Located.TryParseFile(text).IsSuccess);
 	}
 
+	/// <summary>
+	/// Where a line holds two valid cuts, a key without its equals sign before a comment and a key with
+	/// one inside it, the earlier is taken (the first entry here is empty and the second takes the `=` of the next line, where the
+	/// old grammar gave `a#` to the first and `=` to the second). The grammar this replaced took the later; the choice is the
+	/// price of reading every line one way, and is held here so that it is made deliberately.
+	/// </summary>
+	[Fact]
+	public void A_located_config_with_two_valid_cuts_takes_the_earlier()
+	{
+		var entries = Config.Located.ParseFile("a=a#a=\n=");
+
+		Assert.Equal(["a", "a"], entries.Select(static one => one.Key).ToArray());
+		Assert.Equal(["", ""], entries.Select(static one => one.Value).ToArray());
+		Assert.Equal([new At(0, 2), new At(2, 6)], entries.Select(static one => one.Where).ToArray());
+	}
+
 	[Fact]
 	public void A_located_config_still_reads_what_it_read()
 	{
