@@ -1,0 +1,13 @@
+# What the .vsix carries is the bundle, the server, and what package.json points at.
+**
+!dist/extension.js
+!server/**
+!syntaxes/**
+!snippets/**
+!images/**
+!language-configuration.json
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE
+server/*.pdb

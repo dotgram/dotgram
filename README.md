@@ -1001,6 +1001,7 @@ a diary. The ones a reader usually wants:
 | [`docs/diagnostics.md`](docs/diagnostics.md) | compiler diagnostics |
 | [`docs/cli.md`](docs/cli.md) | `dotnet dotgram`, the generator run outside the build |
 | [`docs/visual-studio.md`](docs/visual-studio.md) | the Visual Studio extension, and the `StringSyntax` annotations |
+| [`docs/vscode.md`](docs/vscode.md) | the VS Code extension and the language server it runs |
 | [`docs/status.md`](docs/status.md) | implemented features, limitations, and measurements |
 | [`docs/development.md`](docs/development.md) | how this is built, checked and measured |
 

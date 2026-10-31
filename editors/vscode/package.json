@@ -1,0 +1,174 @@
+{
+  "name": "dotgram",
+  "displayName": ".Gram language support",
+  "description": "Colours, diagnostics, completion, Quick Info, navigation, rename, folding and outline for .gram grammars, from the same language core as the DotGram source generator.",
+  "version": "0.3.0",
+  "publisher": "dotgram",
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dotgram/dotgram"
+  },
+  "homepage": "https://github.com/dotgram/dotgram/blob/main/docs/vscode.md",
+  "bugs": {
+    "url": "https://github.com/dotgram/dotgram/issues"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "keywords": [
+    "dotgram",
+    "gram",
+    "grammar",
+    "parser",
+    "peg"
+  ],
+  "extensionDependencies": [
+    "ms-dotnettools.vscode-dotnet-runtime"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "gram",
+        "aliases": [
+          ".Gram",
+          "gram"
+        ],
+        "extensions": [
+          ".gram"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./images/gram-file.png",
+          "dark": "./images/gram-file.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "gram",
+        "scopeName": "source.gram",
+        "path": "./syntaxes/gram.tmLanguage.json",
+        "embeddedLanguages": {
+          "meta.embedded.expression.cs": "csharp"
+        }
+      }
+    ],
+    "snippets": [
+      {
+        "language": "gram",
+        "path": "./snippets/gram.code-snippets"
+      },
+      {
+        "language": "csharp",
+        "path": "./snippets/gram.code-snippets"
+      }
+    ],
+    "semanticTokenTypes": [
+      {
+        "id": "gramInvalid",
+        "superType": "comment",
+        "description": "A token the grammar's lexer does not recognize."
+      },
+      {
+        "id": "gramEmbeddedCode",
+        "superType": "variable",
+        "description": "C# inside a grammar, where it is not classified more closely."
+      },
+      {
+        "id": "gramCaseInsensitive",
+        "superType": "string",
+        "description": "A case-insensitive literal: 'x'i or \"text\"i."
+      },
+      {
+        "id": "gramSpecialSymbol",
+        "superType": "operator",
+        "description": "A symbol of the notation with a meaning of its own, such as a lookahead."
+      },
+      {
+        "id": "gramPunctuation",
+        "superType": "operator",
+        "description": "Brackets, braces, parentheses and separators."
+      }
+    ],
+    "semanticTokenScopes": [
+      {
+        "language": "gram",
+        "scopes": {
+          "gramInvalid": [
+            "invalid.illegal.gram"
+          ],
+          "gramEmbeddedCode": [
+            "meta.embedded.expression.cs"
+          ],
+          "gramCaseInsensitive": [
+            "string.quoted.case-insensitive.gram"
+          ],
+          "gramSpecialSymbol": [
+            "keyword.operator.special.gram"
+          ],
+          "gramPunctuation": [
+            "punctuation.separator.gram"
+          ],
+          "macro": [
+            "keyword.control.transition.gram"
+          ]
+        }
+      }
+    ],
+    "configuration": {
+      "title": ".Gram",
+      "properties": {
+        "dotgram.server.path": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "markdownDescription": "The language server to run instead of the one the extension carries: a `DotGram.LanguageServer.dll`, run with .NET, or an executable."
+        },
+        "dotgram.dotnetPath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine-overridable",
+          "markdownDescription": "The `dotnet` executable that runs the language server. Empty: the .NET 10 runtime is acquired through the .NET Install Tool."
+        },
+        "dotgram.trace.server": {
+          "type": "string",
+          "enum": [
+            "off",
+            "messages",
+            "verbose"
+          ],
+          "default": "off",
+          "description": "Traces the messages between VS Code and the .Gram language server in the output panel."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "npm run check && npm run bundle",
+    "check": "tsc --noEmit -p .",
+    "bundle": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node20 --minify --sourcemap",
+    "compile-tests": "tsc -p . --outDir out",
+    "test": "npm run bundle && npm run compile-tests && node ./out/test/runTest.js",
+    "package": "vsce package --out ../../artifacts/"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^20.17.0",
+    "@types/vscode": "~1.90.0",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^4.1.0",
+    "esbuild": "^0.25.0",
+    "mocha": "^11.8.0",
+    "typescript": "^5.9.0"
+  }
+}
