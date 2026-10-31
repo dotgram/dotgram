@@ -267,6 +267,76 @@ public sealed class HostTests : IDisposable
 		await ResolvedAsync(client.Server.Document(uri)!.Session);
 	}
 
+	/// <summary>
+	/// A workspace whose reading stalls — an enumeration of a network share that does not come back — is
+	/// given up after its time, said so, and read as it stands; what the reading finds later is dropped.
+	/// </summary>
+	[Fact]
+	public void A_reading_that_stalls_is_given_up()
+	{
+		string? said = null;
+
+		var stalled = new ManualResetEventSlim(false);
+		var watch   = System.Diagnostics.Stopwatch.StartNew();
+		var read    = FolderWorkspace.Load(
+			cancellationToken =>
+			{
+				stalled.Wait(LspClient.Timeout);
+				return FolderWorkspace.Create([_folder], static _ => { }, cancellationToken);
+			},
+			message => said = message,
+			TimeSpan.FromMilliseconds(300));
+
+		Assert.False(read.Hosts);
+		Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10), $"The reading was given up after {watch.Elapsed}.");
+		Assert.Contains("took longer than", said, StringComparison.Ordinal);
+
+		stalled.Set();
+	}
+
+	/// <summary>
+	/// Two analyses of one version — before its host was found and after — are told in the order they
+	/// were made: the last diagnostics the client has for the version are the host's.
+	/// </summary>
+	[Fact]
+	public async Task Two_analyses_of_one_version_are_told_in_order()
+	{
+		File.WriteAllText(Path.Combine(_folder, "Base.gram"), Base);
+		File.WriteAllText(Path.Combine(_folder, "Dialect.gram"), Dialect);
+
+		var uri = LspClient.Uri(Path.Combine(_folder, "Dialect.gram"));
+
+		await using var client = await LspClient.StartAsync(null, _folder);
+
+		await client.OpenAsync(uri, Dialect);
+
+		var session = client.Server.Document(uri)!.Session;
+
+		await StateAsync(session, StandaloneGrammarState.NoHost);
+
+		var hosts = Path.Combine(_folder, "Hosts.cs");
+
+		File.WriteAllText(hosts, Hosts);
+		await client.NotifyAsync("workspace/didChangeWatchedFiles", new { changes = new[] { new { uri = LspClient.Uri(hosts), type = Lsp.FileCreated } } });
+
+		var resolved = await ResolvedAsync(session);
+
+		await Task.Delay(300, TestContext.Current.CancellationToken);
+
+		var told = client.Notifications("textDocument/publishDiagnostics")
+			.Where(item => item.GetProperty("uri").GetString() == uri)
+			.ToArray();
+
+		Assert.True(told.Length >= 2, $"The version was told about {told.Length} times.");
+		Assert.True(told.All(static item => item.GetProperty("version").GetInt32() == 1));
+		Assert.Equal(
+			resolved.Document.Diagnostics.Select(static diagnostic => diagnostic.Id),
+			told[^1].GetProperty("diagnostics").EnumerateArray().Select(static diagnostic => diagnostic.GetProperty("code").GetString()));
+		Assert.NotEqual(
+			told[0].GetProperty("diagnostics").GetArrayLength(),
+			told[^1].GetProperty("diagnostics").GetArrayLength());
+	}
+
 	/// <summary>A folder that holds more entries than the walk looks at is given up, and said so.</summary>
 	[Fact]
 	public void A_walk_past_its_bound_gives_the_folders_up()
