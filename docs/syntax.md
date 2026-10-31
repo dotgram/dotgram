@@ -362,6 +362,27 @@ rejected by the compiler.
 A bound may also be the length of a text bound earlier in the rule, `#q` (§3.5.1): `X{#q}`,
 `X{#q,}`, `X{n,#q}`. That count is read when it is reached, in input items, like the others.
 
+**Repetitions that can be cut two ways.** Over characters a repetition and a choice give back
+what they read when something after them fails, and an input is refused only once every
+reading of it has been tried. A repetition that can read the same text in two ways makes that
+exponential: `(X+)*` can end a turn after any `X` of a run, `('a' | 'a' & 'a')+` reads `aa` as
+one turn or two, and `(Cfws? & Word & Cfws?)+` can give the space between two words to either.
+An input that is accepted takes the first reading and costs nothing more; one that repeats
+such a text n times and is then refused is read two to the n times — a URI template's literal
+run took three seconds at twenty-four characters, an address list over a minute at
+twenty-eight. The compiler tells the shape (`GRAM4052`, a warning), at the rule, with the
+repetition and the shortest text it reads two ways. There are two cures. Braces, around the
+repetition or around what it repeats, keep what a turn read — but they can change the language,
+since a reading the rest of the input needed is no longer offered: `{('a' | 'a' & 'a')+} & 'a'`
+refuses `aa`. Writing the repetition so that every text has one reading keeps the language:
+`'a'+`, `X+`, `Cfws? & (Word & Cfws?)+`. Braces where nothing after the repetition can need a
+turn read again; the rewriting where it may. The warning is exact for what it can see and
+blind past a call to a recursive or braced rule, which it reads as one opaque step, so no
+warning is not a proof; and a look of more than one character or a `when` that removes one of
+the readings is not seen to, so a warning there may be wrong — the docs row has the details.
+Raise it to an error, alone of the warnings, with `<WarningsAsErrors>GRAM4052</WarningsAsErrors>`
+or `dotnet_diagnostic.GRAM4052.severity = error` (diagnostics.md).
+
 ### 3.4 Lookahead
 
 ```dotgram

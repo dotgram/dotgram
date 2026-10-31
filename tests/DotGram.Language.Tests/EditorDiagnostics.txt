@@ -434,6 +434,9 @@ trivia = ' '*
 Key = ['a'..'z' | ' ']+
 Start = Key & '=' & 'x' & eof
 parse Start
+=== GRAM4052
+Run = ('a' | 'a' & 'a')+ & 'b'
+parse Run
 === GRAM4053
 A = 'a' & when @(parserInput.Length > 0)
 parse A
