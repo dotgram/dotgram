@@ -96,13 +96,14 @@ namespace DotGram.Examples.Languages;
 	           | Minus | Slash
 	           | { ['0'..'9'] & (['0'..'9' | '.' | 'e' | 'E' | '+'] | Minus)* }
 
-	// A minus that starts a line comment, or a slash that starts a block comment, is that
-	// comment and never a symbol. Left to read either way, `-- ' ...` could be two symbols and
-	// a string that runs on to a quote on a later line, which hides the rest of the statement
+	// A minus that starts a line comment, or a slash that starts a block comment that ends, is
+	// that comment and never a symbol. Left to read either way, `-- ' ...` could be two symbols
+	// and a string that runs on to a quote on a later line, which hides the rest of the statement
 	// from this check but not from the server that reads it as a comment; and a text refused
-	// late was read as every way of choosing between the two for each comment in it.
+	// late was read as every way of choosing between the two for each comment in it. A block
+	// comment that never ends is not one, and is read as the symbols and words it is made of.
 	Minus      = '-' & ?!'-'
-	Slash      = '/' & ?!'*'
+	Slash      = ?!BlockComment & '/'
 
 	// Anything that could write, or could hide a write behind it. A list of the refused,
 	// which is safe only because everything not lexically a word is refused as well.
