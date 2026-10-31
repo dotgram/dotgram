@@ -175,6 +175,9 @@ sealed class GramAnalysisOptions
 	/// </remarks>
 	internal Microsoft.CodeAnalysis.CompilationOptions? Build { get; set; }
 
+	/// <summary>What reads the C# inside <c>@(...)</c>; Roslyn's tokenizer when null.</summary>
+	public ICSharpScanner? CSharpScanner { get; set; }
+
 	/// <summary>What a host's reading says, for a grammar with nothing spliced on.</summary>
 	internal static GramAnalysisOptions Of(GramHostReading host)
 	{
@@ -255,10 +258,11 @@ static class GramLanguageService
 		// in an included grammar, through a `using` or a qualified name, is found by the same
 		// lookup the generator makes, and not by the first rule anywhere that has its name.
 		GrammarModel? model = null;
+		var scanner     = options?.CSharpScanner ?? RoslynCSharpScanner.Instance;
 		var compilation = GramCompiler.Compile(text, CompilerOptions(options, bound => model = bound));
 
 		var tokens = GramLexer.Tokenize(
-			text, RoslynCSharpScanner.Instance, GramCompiler.CutsOf(options?.Own, options?.Cuts), text.Length, null);
+			text, scanner, GramCompiler.CutsOf(options?.Own, options?.Cuts), text.Length, null);
 		var parsed = GramParser.Parse(tokens);
 		var classifications = new List<GramClassifiedSpan>(tokens.Count);
 		var (rules, rulesByPosition) = RuleDefinitions(text, parsed.File.Decls, tokens.Tokens);
@@ -361,7 +365,7 @@ static class GramLanguageService
 	{
 		var result = new GramCompilerOptions
 		{
-			CSharpScanner  = RoslynCSharpScanner.Instance,
+			CSharpScanner  = options?.CSharpScanner ?? RoslynCSharpScanner.Instance,
 			SymbolResolver = UnseenHostSymbolResolver.Instance,
 			Own            = options?.Own,
 			Cuts           = options?.Cuts,
