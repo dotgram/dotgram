@@ -37,9 +37,12 @@ namespace DotGram.Grammar.Model;
 /// Exact for what it models, and that is not the grammar: a look or a <c>when</c> that removes
 /// one of the two readings is taken as reading nothing, which tells too much; an opaque letter
 /// that reads what another letter reads is not seen to overlap it, which tells too little. So
-/// not told is not proved safe. A repetition in braces commits what it read and is not asked;
-/// in a grammar cut in two only the rules marked <c>?</c> are, since every other rule over
-/// kinds answers once, and the lexer reads its terminals without giving anything back.
+/// not told is not proved safe. A repetition where nothing after it, up to the braces or the
+/// look around it, can fail keeps its first reading and is not asked, unless it must take more
+/// turns than one; in a grammar cut in two only the rules marked <c>?</c> are asked, since every
+/// other rule over kinds answers once, and the lexer reads its terminals without giving
+/// anything back. Building an automaton is held to a budget as the product is, and a
+/// repetition past either is counted and not told.
 /// </para>
 /// </remarks>
 public static class ExponentialRepetition
@@ -52,6 +55,14 @@ public static class ExponentialRepetition
 
 	/// <summary>How many pairs one repetition's product may ask about before it is left untold.</summary>
 	const int Budget = 1 << 20;
+
+	/// <summary>
+	/// How much work building one repetition's automaton may take before it is left untold: every
+	/// letter, every edge and every entry of a fragment made or copied counts, so that a nest of
+	/// written-out counts or a run of looks that multiply the ways to read nothing stops early
+	/// rather than after the memory is spent.
+	/// </summary>
+	const int Building = 1 << 16;
 
 	/// <summary>How long a witness is written before it is cut.</summary>
 	const int Widest = 40;
@@ -147,12 +158,12 @@ public static class ExponentialRepetition
 				continue;
 
 			var places = new List<Place>();
-			var walked = new HashSet<Node>(NodeIdentity.Instance);
+			var walked = new Dictionary<Node, bool>(NodeIdentity.Instance);
 
-			Collect(body, -1, braced: false, over, places, walked);
+			Collect(body, -1, free: false, over, places, walked);
 
 			if (over.Folds.TryGetValue(rule, out var fold))
-				Collect(fold.Loop, -1, braced: false, over, places, walked);
+				Collect(fold.Loop, -1, free: false, over, places, walked);
 
 			foreach (var place in places)
 			{
@@ -214,41 +225,83 @@ public static class ExponentialRepetition
 	}
 
 	/// <summary>Every unbounded repetition in a body, not entering calls, each with the one around it.</summary>
-	/// <param name="braced">Whether the node stands directly in braces, with nothing after it there.</param>
-	static void Collect(Node node, int parent, bool braced, RecognitionGraph graph, List<Place> places, HashSet<Node> walked)
+	/// <param name="free">
+	/// Whether nothing after the node, up to what commits it, can fail: then no failure ever comes
+	/// back to ask it for another reading. Braces and looks commit their first reading, so what
+	/// stands last in them is free; <c>{ (('a' | 'a' &amp; 'a')+)* }</c> reads its run once.
+	/// </param>
+	/// <param name="walked">Every node asked, and whether it was free there: one asked free is asked again where it is not.</param>
+	static void Collect(Node node, int parent, bool free, RecognitionGraph graph, List<Place> places, Dictionary<Node, bool> walked)
 	{
-		if (!walked.Add(node))
+		if (walked.TryGetValue(node, out var was) && (!was || free))
 			return;
+
+		walked[node] = free;
 
 		switch (node)
 		{
 			// A count by a length is as unbounded as `*` where it has no upper bound.
 			case Node.Repeat { Max: null } or Node.Counted { Max: null }:
 			{
-				var at = parent;
+				var at        = parent;
+				var committed = free && Fewest(node) is <= 1;
 
-				// In braces with nothing after it, what it read is committed once it ends; a
-				// repetition marked `recover` commits each turn it finishes (§8.2).
-				if (!braced && !graph.Recoveries.ContainsKey(node))
+				// Free, what it reads first is what it keeps; but a repetition that must take more
+				// than one turn, or as many as the input says, can fail after any reading of the turns
+				// before, and is asked: `{ ('a' | 'a' & 'a'){#q,} }` never succeeds and so never
+				// commits. A repetition marked `recover` commits each turn it finishes (§8.2).
+				if (!committed && !graph.Recoveries.ContainsKey(node))
 				{
 					places.Add(new Place(node, parent));
 					at = places.Count - 1;
 				}
 
 				foreach (var child in node.Children)
-					Collect(child, at, braced: false, graph, places, walked);
+					Collect(child, at, committed, graph, places, walked);
 
 				return;
 			}
 
-			case Node.Atomic(var body):
-				Collect(body, parent, braced: true, graph, places, walked);
+			// A turn of a bounded repetition is free where the repetition is and one turn is enough.
+			case Node.Repeat or Node.Counted:
+				foreach (var child in node.Children)
+					Collect(child, parent, free && Fewest(node) is <= 1, graph, places, walked);
 
 				return;
 
-			case Node.Capture or Node.Marked or Node.Construct or Node.Bind:
+			case Node.Atomic(var body):
+				Collect(body, parent, free: true, graph, places, walked);
+
+				return;
+
+			// A look holds or refuses on the first reading of what it looks at.
+			case Node.Lookahead(_, var body):
+				Collect(body, parent, free: true, graph, places, walked);
+
+				return;
+
+			case Node.Sequence(var parts):
+			{
+				// A part is free where the sequence is and nothing after it in the sequence can fail.
+				var rest = free;
+
+				var frees = new bool[parts.Count];
+
+				for (var i = parts.Count - 1; i >= 0; i--)
+				{
+					frees[i] = rest;
+					rest     = rest && CannotFail(parts[i], graph, []);
+				}
+
+				for (var i = 0; i < parts.Count; i++)
+					Collect(parts[i], parent, frees[i], graph, places, walked);
+
+				return;
+			}
+
+			case Node.Choice or Node.Capture or Node.Marked or Node.Construct or Node.Bind:
 				foreach (var child in node.Children)
-					Collect(child, parent, braced, graph, places, walked);
+					Collect(child, parent, free, graph, places, walked);
 
 				return;
 
@@ -259,7 +312,49 @@ public static class ExponentialRepetition
 		}
 
 		foreach (var child in node.Children)
-			Collect(child, parent, braced: false, graph, places, walked);
+			Collect(child, parent, free: false, graph, places, walked);
+	}
+
+	/// <summary>The fewest turns a repetition takes, or null where the input says.</summary>
+	static int? Fewest(Node repetition)
+	{
+		return repetition switch
+		{
+			Node.Repeat repeat                                 => repeat.Min,
+			Node.Counted { Min: CountBound.Items(var fewest) } => fewest,
+			_                                                  => null,
+		};
+	}
+
+	/// <summary>Whether a node succeeds wherever it is asked, reading nothing if it must: what follows it cannot fail there.</summary>
+	static bool CannotFail(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
+	{
+		switch (node)
+		{
+			case Node.Empty:
+			case Node.Literal { Text.Length: 0 }:
+			case Node.Repeat { Min: 0 }:
+			case Node.Counted { Min: CountBound.Items(0) }:
+				return true;
+
+			case Node.Sequence(var parts):
+				return parts.All(part => CannotFail(part, graph, seen));
+
+			case Node.Choice { Selection: null } choice:
+				return choice.Nodes.Any(alternative => CannotFail(alternative, graph, seen));
+
+			case Node.Atomic(var body):
+				return CannotFail(body, graph, seen);
+
+			case Node.Capture or Node.Marked or Node.Construct or Node.Bind:
+				return node.Children.All(child => CannotFail(child, graph, seen));
+
+			case Node.Call(var called, _) when seen.Add(called) && graph.Bodies.TryGetValue(called, out var body):
+				return CannotFail(body, graph, seen);
+
+			default:
+				return false;
+		}
 	}
 
 	/// <summary>What a letter reads: characters (or kinds), or one opaque thing.</summary>
@@ -267,7 +362,8 @@ public static class ExponentialRepetition
 	/// <param name="Opaque">The opaque thing's number, -1 for characters.</param>
 	/// <param name="Name">How the witness writes it, for an opaque letter.</param>
 	/// <param name="NotAfter">What the character before it may not be, where a look behind it says (§4.6).</param>
-	readonly record struct Letter(FirstSets.First? Reads, int Opaque, string Name, FirstSets.First? NotAfter = null);
+	/// <param name="Begins">What an opaque letter that reads something begins with, where that is known.</param>
+	readonly record struct Letter(FirstSets.First? Reads, int Opaque, string Name, FirstSets.First? NotAfter = null, FirstSets.First? Begins = null);
 
 	/// <summary>The edges and letters of one fragment of a body, Glushkov's way.</summary>
 	/// <param name="First">The letters it can begin with, each with how many ways.</param>
@@ -312,9 +408,25 @@ public static class ExponentialRepetition
 
 			var automaton = new Automaton(this, rule);
 			var whole     = loop is Node.Counted(var counted, _, _) ? new Node.Repeat(counted, 0, null) : loop;
-			var fragment  = automaton.Of(whole);
 
-			Opaque += automaton.Opaque;
+			Fragment fragment;
+
+			try
+			{
+				fragment = automaton.Of(whole);
+			}
+			catch (Exhausted)
+			{
+				past = true;
+
+				return null;
+			}
+			finally
+			{
+				Count(automaton.Work);
+
+				Opaque += automaton.Opaque;
+			}
 
 			if (automaton.Letters.Count > Longest)
 			{
@@ -427,6 +539,12 @@ public static class ExponentialRepetition
 		}
 	}
 
+	/// <summary>The automaton of a repetition was past <see cref="Building"/>, or had more letters than <see cref="Longest"/>.</summary>
+	sealed class Exhausted : Exception;
+
+	/// <summary>A call being written out had more letters than <see cref="Positions"/>, and is one letter instead.</summary>
+	sealed class Overlong : Exception;
+
 	/// <summary>The letters and counted edges of one repetition.</summary>
 	sealed class Automaton(Context context, RuleSymbol rule)
 	{
@@ -440,7 +558,21 @@ public static class ExponentialRepetition
 
 		public int Opaque { get; private set; }
 
+		/// <summary>The work done building the automaton (<see cref="Building"/>).</summary>
+		public int Work { get; private set; }
+
+		/// <summary>How many calls are being written out, each to be taken back where it does not fit.</summary>
+		int _attempts;
+
 		public Context Context => context;
+
+		void Charge(int work)
+		{
+			Work += work;
+
+			if (Work > Building)
+				throw new Exhausted();
+		}
 
 		public Fragment Of(Node node)
 		{
@@ -463,13 +595,13 @@ public static class ExponentialRepetition
 
 				// A class that asks the host: what it reads is the host's to know.
 				case Node.Element element:
-					return Opaqued(element.ToString(), element.ToString());
+					return Opaqued(element.ToString(), element.ToString(), element);
 
 				case Node.Sequence(var parts):
 					return Sequence(parts);
 
 				case Node.Choice { Selection: not null } chosen:
-					return Opaqued(chosen, "switch");
+					return Opaqued(chosen, "switch", chosen);
 
 				case Node.Choice(var alternatives):
 				{
@@ -480,6 +612,8 @@ public static class ExponentialRepetition
 					foreach (var alternative in alternatives)
 					{
 						var one = Of(alternative);
+
+						Charge(one.First.Count + one.Last.Count + one.Empty.Count);
 
 						first.AddRange(one.First);
 						last.AddRange(one.Last);
@@ -495,16 +629,16 @@ public static class ExponentialRepetition
 					return Repeated(repeat);
 
 				case Node.Atomic atomic:
-					return Braced(Opaqued(atomic, "{…}"), atomic.Body);
+					return Braced(Opaqued(atomic, "{…}", atomic), atomic.Body);
 
 				case Node.Same same:
-					return Opaqued(same.Binding, same.ToString());
+					return Opaqued(same.Binding, same.ToString(), same);
 
 				case Node.External external:
-					return Opaqued("@" + external.Name, external.ToString());
+					return Opaqued("@" + external.Name, external.ToString(), external);
 
 				case Node.Counted counted:
-					return Opaqued(counted, counted.ToString());
+					return Opaqued(counted, counted.ToString(), counted);
 
 				case Node.Capture(_, var body):    return Of(body);
 				case Node.Marked(var body, _):     return Of(body);
@@ -543,10 +677,19 @@ public static class ExponentialRepetition
 			FirstSets.First? wanted   = null;
 			FirstSets.First? notAfter = null;
 
-			foreach (var part in parts)
+			for (var at = 0; at < parts.Count; at++)
 			{
+				var part = parts[at];
+
 				switch (part)
 				{
+					// The trivia woven between two operands is a seam, GRAM4051's, and reads nothing
+					// here. One the author joined with `~` is no seam, and is read as any call is:
+					// `(trivia ~ 'a')*` over `trivia = 'a'*` is `('a'* & 'a')*`.
+					case Node.Call(var called, _) when context.Seams.Contains(called) &&
+						!(at > 0 && parts[at - 1] is Node.Glue) && !(at + 1 < parts.Count && parts[at + 1] is Node.Glue):
+						continue;
+
 					case Node.Behind(var test):
 						notAfter = Joined(notAfter, FirstSets.OfElement(test));
 						continue;
@@ -582,6 +725,8 @@ public static class ExponentialRepetition
 
 					// Where the operand can read nothing, the look holds what follows it too.
 					var held = Joined(refused, wanted is null ? null : Outside(wanted));
+
+					Charge(next.Empty.Count);
 
 					next = next with { Empty = [.. next.Empty.Select(route => (route.Ways, Joined(route.Refused, held)))] };
 				}
@@ -649,6 +794,8 @@ public static class ExponentialRepetition
 			if (last is not Node.Repeat { Max: null } run || OneClass(run.Body) is not { } taken)
 				return opaque;
 
+			Charge(opaque.Last.Count);
+
 			return opaque with { Last = [.. opaque.Last.Select(end => (end.Letter, end.Ways, Joined(end.Refused, taken)))] };
 		}
 
@@ -670,14 +817,16 @@ public static class ExponentialRepetition
 			if (refused is null)
 				return false;
 
-			return Letters[letter].Reads is { } reads
+			return (Letters[letter].Reads ?? Letters[letter].Begins) is { } reads
 				? refused.Covers(reads)
 				: refused.Covers(FirstSets.First.Chars([new CharRange(char.MinValue, char.MaxValue)]));
 		}
 
 		/// <summary>One more way to read nothing, counted with the others held to the same look.</summary>
-		static void Merge(List<(int Ways, FirstSets.First? Refused)> routes, int ways, FirstSets.First? refused)
+		void Merge(List<(int Ways, FirstSets.First? Refused)> routes, int ways, FirstSets.First? refused)
 		{
+			Charge(routes.Count + 1);
+
 			for (var i = 0; i < routes.Count; i++)
 				if (routes[i].Refused is null ? refused is null : refused is not null && FirstSets.Same(routes[i].Refused!, refused))
 				{
@@ -695,6 +844,8 @@ public static class ExponentialRepetition
 		/// </summary>
 		void Narrowed(Fragment next, int letters, int edges, FirstSets.First? refused, FirstSets.First? wanted)
 		{
+			Charge(Edges.Count - edges + next.First.Count);
+
 			var returned = new HashSet<int>();
 
 			for (var i = edges; i < Edges.Count; i++)
@@ -732,6 +883,8 @@ public static class ExponentialRepetition
 		/// <summary>The letters an operand begins with, held to what may not stand before them.</summary>
 		void Behind(Fragment next, int letters, int edges, FirstSets.First notAfter)
 		{
+			Charge(Edges.Count - edges + next.First.Count);
+
 			var returned = new HashSet<int>();
 
 			for (var i = edges; i < Edges.Count; i++)
@@ -804,19 +957,16 @@ public static class ExponentialRepetition
 			var graph  = context.Graph;
 			var called = call.Rule;
 
-			if (context.Seams.Contains(called))
-				return Fragment.Nothing;
-
 			if (call.Arguments.Count > 0 || !graph.Bodies.TryGetValue(called, out var body) ||
 				graph.Calls.Recurses(called) || _inlining.Contains(called) ||
 				context.OverKinds && !called.IsBuiltIn && !called.GivesBack)
-				return Opaqued(called, called.Name);
+				return Opaqued(called, called.Name, call);
 
 			if (body is Node.Atomic(var braced))
-				return Braced(Opaqued(called, called.Name), braced);
+				return Braced(Opaqued(called, called.Name, call), braced);
 
 			if (Letters.Count >= Positions)
-				return Opaqued(called, called.Name);
+				return Opaqued(called, called.Name, call);
 
 			// Inlined, and taken back if it does not fit.
 			var letters = Letters.Count;
@@ -824,19 +974,28 @@ public static class ExponentialRepetition
 			var opaque  = Opaque;
 
 			_inlining.Add(called);
+			_attempts++;
 
-			var fragment = Of(body);
-
-			_inlining.Remove(called);
-
-			if (Letters.Count <= Positions)
-				return fragment;
+			try
+			{
+				return Of(body);
+			}
+			catch (Overlong)
+			{
+				// Taken back below: the innermost call being written out is the one that does not
+				// fit, and every call begins below the letters a call may reach.
+			}
+			finally
+			{
+				_inlining.Remove(called);
+				_attempts--;
+			}
 
 			Letters.RemoveRange(letters, Letters.Count - letters);
 			Edges.RemoveRange(edges, Edges.Count - edges);
 			Opaque = opaque;
 
-			return Opaqued(called, called.Name);
+			return Opaqued(called, called.Name, call);
 		}
 
 		Fragment Repeated(Node.Repeat repeat)
@@ -849,7 +1008,7 @@ public static class ExponentialRepetition
 			// Too wide to write out, and not a run that may go on: one opaque letter, which is the
 			// side that tells too little. `any{4096}` repeated cuts one way.
 			if (max is > Unrolled)
-				return Opaqued(repeat, repeat.ToString());
+				return Opaqued(repeat, repeat.ToString(), repeat);
 
 			// Written out turn by turn, where it is narrow: `X{2,3}` is `X & X & X?`.
 			if (max is { } most)
@@ -867,6 +1026,8 @@ public static class ExponentialRepetition
 					var one = Turn(body);
 
 					optional = Then(one, optional);
+
+					Charge(optional.Empty.Count);
 
 					var empty = new List<(int, FirstSets.First?)>(optional.Empty);
 
@@ -944,6 +1105,10 @@ public static class ExponentialRepetition
 
 		Fragment Then(Fragment before, Fragment after)
 		{
+			Charge(
+				before.First.Count + after.Last.Count +
+				before.Empty.Count * (after.First.Count + after.Empty.Count) + after.Empty.Count * before.Last.Count);
+
 			Link(before.Last, after.First);
 
 			var first = new List<(int, int)>(before.First);
@@ -968,6 +1133,8 @@ public static class ExponentialRepetition
 
 		void Link(IReadOnlyList<(int Letter, int Ways, FirstSets.First? Refused)> from, IReadOnlyList<(int Letter, int Ways)> to)
 		{
+			Charge(from.Count * to.Count);
+
 			foreach (var (one, ways, refused) in from)
 				foreach (var (other, more) in to)
 					if (!Blocked(refused, other) && !(Letters[other].NotAfter is { } notAfter && Letters[one].Reads is { } reads && notAfter.Covers(reads)))
@@ -976,7 +1143,15 @@ public static class ExponentialRepetition
 
 		Fragment Leaf(Letter letter)
 		{
-			context.Count(1);
+			Charge(1);
+
+			// Past the letters a repetition may have, it is not told; past those a call written out
+			// may add, the call is one letter instead (Called).
+			if (Letters.Count >= Longest)
+				throw new Exhausted();
+
+			if (_attempts > 0 && Letters.Count >= Positions)
+				throw new Overlong();
 
 			// A letter that reads nothing at all can never be read: trimmed here, before the product.
 			if (letter.Reads is { Nothing: true })
@@ -989,11 +1164,15 @@ public static class ExponentialRepetition
 			return new Fragment([(at, 1)], [(at, 1, null)], []);
 		}
 
-		Fragment Opaqued(object key, string name)
+		/// <summary>
+		/// One letter for something read whole: it overlaps only itself, and what it begins with,
+		/// where that is known, holds what a look or a braced run before it lets stand there.
+		/// </summary>
+		Fragment Opaqued(object key, string name, Node node)
 		{
 			Opaque++;
 
-			return Leaf(new Letter(null, context.Numbered(key), name));
+			return Leaf(new Letter(null, context.Numbered(key), name, Begins: Begins(node)));
 		}
 
 		/// <summary>Two ways is all the question needs: one, or more than one.</summary>

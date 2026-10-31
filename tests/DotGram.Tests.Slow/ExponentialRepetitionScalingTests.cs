@@ -44,9 +44,10 @@ public sealed class ExponentialRepetitionScalingTests
 	/// <summary>A shape: the grammar, the text it repeats, a tail it refuses and one it accepts, and the lengths timed.</summary>
 	/// <param name="Read">A text the shape reads, where the run with the accepted tail is not one.</param>
 	/// <param name="Recovers">Whether the shape recovers from what it refuses, and so accepts every ladder.</param>
+	/// <param name="Text">The text of n turns, where it is not the unit n times.</param>
 	public sealed record Shape(
 		string Grammar, string Unit, string Refused, string Accepted, int Small, int Large, string? Cure = null,
-		bool Lexical = false, string Start = "R", string? Read = null, bool Recovers = false)
+		bool Lexical = false, string Start = "R", string? Read = null, bool Recovers = false, Func<int, string>? Text = null)
 	{
 		public override string ToString()
 		{
@@ -89,6 +90,18 @@ public sealed class ExponentialRepetitionScalingTests
 		new Shape(Address(braced: false), "a ", "<", "<b>", 6, 14, Cure: Address(braced: true)),
 		new Shape("X = 'x'\nY = 'x'\nR = ((X | Y) & 'z')* & 'b'", "xz", "!", "b", 6, 14, Cure: "X = 'x'\nY = 'x'\nR = (X & 'z')* & 'b'"),
 
+		// Trivia joined with `~` is no seam: `(a* a)*`.
+		new Shape("trivia = 'a'*\nR = (trivia ~ 'a')* ~ 'b'", "a", "!", "b", 8, 16, Cure: "trivia = 'a'*\nR = 'a'* ~ 'b'"),
+
+		// Braces that never succeed never commit: as many turns as the `q`s, one `a` short.
+		new Shape(
+			"R = $q:{ 'q'+ } ~ ':' ~ { ('a' | 'a' & 'a'){#q,} } ~ 'b'", "", "!", "ab", 16, 24,
+			Cure: "R = $q:{ 'q'+ } ~ ':' ~ { 'a'{#q,} } ~ 'b'",
+			Text: static turns => new string('q', Math.Max(turns, 1)) + ":" + new string('a', Math.Max(turns - 1, 0))),
+
+		// Inside braces, what follows the run can fail and asks for every other reading of it.
+		new Shape("R = { (('a' | 'a' & 'a')+ & 'c')* } & 'b'", "a", "!", "cb", 10, 20, Cure: "R = { ('a'+ & 'c')* } & 'b'"),
+
 		// A turn that never finishes: every reading of the run is tried before the class that
 		// admits nothing refuses each of them.
 		new Shape("R = ((\"xy\" | \"xy\")+ & ['b'..'a'] | 'z')* & eof", "xy", "!", "", 6, 14, Cure: "R = (\"xy\"+ & ['b'..'a'] | 'z')* & eof", Read: "zz"),
@@ -113,6 +126,13 @@ public sealed class ExponentialRepetitionScalingTests
 		new Shape("R = (['a'..'z']+ & ':' & [^ '\\n']* & ('\\n' | ?=eof))* & eof", "a:b\n", "!", "", 200, 400),
 		new Shape("C = ';' & { [^ '\\n']* }\nT = ' '* & C | C\nR = ('[' & ['a'..'z'] & ']' & T?)* & eof", "[a]", "!", "", 200, 400),
 		new Shape("R = 'a'* & 'a'* & 'b'", "a", "!", "b", 200, 400),
+
+		// Nothing after the run inside the braces or the look can fail: its first reading stands.
+		new Shape("R = { (('a' | 'a' & 'a')+)* } & 'b'", "a", "!", "b", 200, 400),
+		new Shape("R = (?=(('a' | 'a' & 'a')+)) & 'a'+ & 'b'", "a", "!", "b", 200, 400),
+
+		// The first braced call takes the whole run.
+		new Shape("X = { 'a'+ }\nR = (X | X & X)+ & 'b'", "a", "!", "b", 200, 400),
 	};
 
 	[Theory]
@@ -211,11 +231,11 @@ public sealed class ExponentialRepetitionScalingTests
 	/// <summary>The bounds of the work: what was measured, and a quarter more.</summary>
 	static class Bounds
 	{
-		// 195,734 steps on 31.10.2026.
-		public const int TransactSql = 245_000;
+		// 558,233 steps on 31.10.2026, building the automata counted.
+		public const int TransactSql = 700_000;
 
-		// 1,331 steps on 31.10.2026.
-		public const int Rfc5322 = 1_700;
+		// 388 steps on 31.10.2026.
+		public const int Rfc5322 = 500;
 	}
 
 	/// <summary>A grammar file's text, or the grammar of the one <c>[Gram]</c> in a C# file.</summary>
@@ -291,7 +311,7 @@ public sealed class ExponentialRepetitionScalingTests
 
 	static string Input(Shape shape, int turns, string tail)
 	{
-		return string.Concat(Enumerable.Repeat(shape.Unit, turns)) + tail;
+		return (shape.Text?.Invoke(turns) ?? string.Concat(Enumerable.Repeat(shape.Unit, turns))) + tail;
 	}
 
 	/// <summary>Whether GRAM4052 is said of a grammar.</summary>
