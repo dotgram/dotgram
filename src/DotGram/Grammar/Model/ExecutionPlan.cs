@@ -74,6 +74,61 @@ public sealed class ExecutionPlan
 	public IReadOnlyCollection<RuleSymbol> CompiledInPlace { get; }
 
 	/// <summary>
+	/// Whether a repetition's body consumes exactly one character, as one test of it, and keeps
+	/// nothing: an element that admits some character, a literal of one character, a rule
+	/// written where it is called that is one, or a choice of them.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A choice of such alternatives is a disjunction and not a choice: whichever one matched,
+	/// the position afterwards is the same and so is the continuation, so there is nothing to
+	/// come back to. The emitter writes such a body as one test of the character, and the
+	/// analysis of repetitions that read a run two ways (<see cref="ExponentialRepetition"/>)
+	/// reads it as one letter, from this same answer: a second reading of the body there would
+	/// drift from what the emitter writes.
+	/// </para>
+	/// <para>
+	/// An element that admits nothing, written as no test at all, is not one: no turn of it is
+	/// ever read.
+	/// </para>
+	/// </remarks>
+	/// <param name="inPlace">Whether a call to the rule is written where it is called, as the caller renders it.</param>
+	public static bool OneCharacter(Node body, RecognitionGraph graph, Func<RuleSymbol, bool> inPlace)
+	{
+		if (graph is null)
+			throw new ArgumentNullException(nameof(graph));
+
+		if (inPlace is null)
+			throw new ArgumentNullException(nameof(inPlace));
+
+		switch (body)
+		{
+			case Node.Element element:
+				return element.IsNegated || element.Ranges.Count > 0 || element.Categories.Count > 0 ||
+					element.References.Any(static reference => reference is CSharpSymbol);
+
+			case Node.Literal { IgnoreCase: false, Text.Length: 1 }:
+				return true;
+
+			case Node.Call(var rule, _) when inPlace(rule):
+				return OneCharacter(graph.Bodies[rule], graph, inPlace);
+
+			case Node.Sequence(var nodes) when nodes.Count == 1:
+				return OneCharacter(nodes[0], graph, inPlace);
+
+			case Node.Choice(var alternatives) { Selection: null }:
+				foreach (var alternative in alternatives)
+					if (!OneCharacter(alternative, graph, inPlace))
+						return false;
+
+				return true;
+
+			default:
+				return false;
+		}
+	}
+
+	/// <summary>
 	/// How large a body may be, in nodes, and still be written where it is called.
 	/// </summary>
 	/// <remarks>
