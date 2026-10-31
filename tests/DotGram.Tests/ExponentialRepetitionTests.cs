@@ -40,6 +40,9 @@ public sealed class ExponentialRepetitionTests
 
 	// A choice of two that can both read nothing is two ways to read nothing, between two letters.
 	[InlineData("R = ('a' & ('b'? | 'c'?) & 'd')* & ';'", "'a' 'd'")]
+
+	// A line end read whole or as two: the shape of four examples' blank lines.
+	[InlineData("R = ([' ']* & eol)* & '!'", "'\\r' '\\n'")]
 	public void A_repetition_that_cuts_two_ways_is_told(string rules, string witness)
 	{
 		var told = Assert.Single(Analyse(rules + "\nparse R\n").Found);
@@ -110,6 +113,16 @@ public sealed class ExponentialRepetitionTests
 	// Alternatives of one character each are one class by the time the graph is built.
 	[InlineData("R = ('x' | 'x')* & 'b'")]
 	[InlineData("R = (['a'..'z'] | ['a'..'f'])* & ';'")]
+
+	// A look in front of a class takes its characters out: the library's quoted run.
+	[InlineData("R = ('\\'' & ?!'\\'' & any)* & eof")]
+	[InlineData("R = (\"''\" & (?!'\\'' & any)*)* & eof")]
+
+	// A look that ends a way lets nothing it refuses follow on that way.
+	[InlineData("R = ('\"' & ['a'..'z']* & ('\"' | eof))* & ';'")]
+
+	// A repetition that recovers commits every turn it finishes.
+	[InlineData("R = ('x' & 'y' | 'x' & 'y')* recover ';' & eof")]
 	public void A_repetition_that_cuts_one_way_is_not_told(string rules)
 	{
 		Assert.Empty(Analyse(rules + "\nparse R\n").Found);
