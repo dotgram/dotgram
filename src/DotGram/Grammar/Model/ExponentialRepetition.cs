@@ -252,6 +252,7 @@ public static class ExponentialRepetition
 	{
 		readonly Dictionary<object, int> _opaque = [];
 		readonly Dictionary<Node, int>   _nodes  = new(NodeIdentity.Instance);
+		readonly ExecutionPlan           _plan   = ExecutionPlan.Of(graph);
 
 		public int Steps { get; private set; }
 
@@ -300,6 +301,25 @@ public static class ExponentialRepetition
 		public HashSet<RuleSymbol> Seams => seams;
 
 		public bool OverKinds => inventory is not null;
+
+		/// <summary>
+		/// Whether a repetition's body is one test of one character, as the emitter writes it: a
+		/// choice of such alternatives is then one letter, since whichever matched, nothing is
+		/// left to come back to (<see cref="ExecutionPlan.OneCharacter"/>).
+		/// </summary>
+		/// <remarks>
+		/// A rule counts as written in place as the emitter writes it where it is most careful,
+		/// so that no rendering keeps a way back this takes for gone.
+		/// </remarks>
+		public bool OneCharacter(Node body)
+		{
+			return ExecutionPlan.OneCharacter(body, graph, InPlace);
+		}
+
+		bool InPlace(RuleSymbol rule)
+		{
+			return _plan.CompiledInPlace.Contains(rule) && rule.OnFail is null && !graph.Says.ContainsKey(rule);
+		}
 
 		/// <summary>The number of an opaque thing, the same for the same thing in every repetition.</summary>
 		public int Numbered(object key)
@@ -727,14 +747,14 @@ public static class ExponentialRepetition
 				var fragment = Fragment.Nothing;
 
 				for (var turn = 0; turn < min; turn++)
-					fragment = Then(fragment, Of(body));
+					fragment = Then(fragment, Turn(body));
 
 				// The optional turns nest, each one only after the one before: `(X & X?)?`.
 				var optional = Fragment.Nothing;
 
 				for (var turn = min; turn < most; turn++)
 				{
-					var one = Of(body);
+					var one = Turn(body);
 
 					optional = Then(one, optional);
 
@@ -750,7 +770,7 @@ public static class ExponentialRepetition
 
 			// An unbounded repetition: the end of a turn leads back to its beginning. A turn that
 			// reads nothing ends it, so an empty turn is not another way round.
-			var turns = Of(body);
+			var turns = Turn(body);
 
 			Link(turns.Last, turns.First);
 
@@ -762,6 +782,54 @@ public static class ExponentialRepetition
 			Merge(none, 1, null);
 
 			return turns with { Empty = none };
+		}
+
+		/// <summary>
+		/// One turn of a repetition: a body the emitter writes as one test of a character is one
+		/// letter, however many alternatives it has.
+		/// </summary>
+		Fragment Turn(Node body)
+		{
+			return context.OneCharacter(body) && Union(body) is { } reads
+				? Leaf(new Letter(reads, -1, ""))
+				: Of(body);
+		}
+
+		/// <summary>The characters a body that is one test reads, or null where some of them are the host's to know.</summary>
+		FirstSets.First? Union(Node body)
+		{
+			switch (body)
+			{
+				case Node.Element { References.Count: 0 } element:
+					return FirstSets.OfElement(element);
+
+				case Node.Literal { Text.Length: 1 } literal:
+					return FirstSets.First.Chars([new CharRange(literal.Text[0], literal.Text[0])]);
+
+				case Node.Call(var called, _) when context.Graph.Bodies.TryGetValue(called, out var inlined):
+					return Union(inlined);
+
+				case Node.Sequence([var only]):
+					return Union(only);
+
+				case Node.Choice(var alternatives):
+				{
+					var all = FirstSets.First.None;
+
+					foreach (var alternative in alternatives)
+					{
+						if (Union(alternative) is not { } one)
+							return null;
+
+						all = all.Or(one);
+					}
+
+					return all;
+				}
+
+				default:
+					return null;
+			}
 		}
 
 		Fragment Then(Fragment before, Fragment after)
@@ -1150,7 +1218,9 @@ public static class ExponentialRepetition
 
 				foreach (var (to, both) in _edges[at])
 				{
-					var inside = _exponential[_component[to]] && _component[to] == _component[at];
+					// Two readings part on the way into the exponential part as well as inside it:
+					// `((X | Y) & 'z')*` reads `'x' 'z'` two ways on its first turn.
+					var inside = _exponential[_component[to]];
 					var parted = apart || inside && (both || _pairs[to].One != _pairs[to].Other);
 					var next   = to + (parted ? count : 0);
 

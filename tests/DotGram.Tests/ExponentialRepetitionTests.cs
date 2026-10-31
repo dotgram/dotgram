@@ -41,6 +41,9 @@ public sealed class ExponentialRepetitionTests
 	// A choice of two that can both read nothing is two ways to read nothing, between two letters.
 	[InlineData("R = ('a' & ('b'? | 'c'?) & 'd')* & ';'", "'a' 'd'")]
 
+	// One character read by either of two rules is two readings where it is not the whole turn.
+	[InlineData("X = 'x'\nY = 'x'\nR = ((X | Y) & 'z')* & 'b'", "'x' 'z'")]
+
 	// A line end read whole or as two: the shape of four examples' blank lines.
 	[InlineData("R = ([' ']* & eol)* & '!'", "'\\r' '\\n'")]
 	public void A_repetition_that_cuts_two_ways_is_told(string rules, string witness)
@@ -123,6 +126,11 @@ public sealed class ExponentialRepetitionTests
 
 	// A repetition that recovers commits every turn it finishes.
 	[InlineData("R = ('x' & 'y' | 'x' & 'y')* recover ';' & eof")]
+
+	// A turn of one character, whichever alternative reads it, is one test in the parser: the
+	// emitter leaves nothing to come back to, and the analysis asks it the same question.
+	[InlineData("X = 'x'\nY = 'x'\nR = (X | Y)* & 'b'")]
+	[InlineData("X = 'x'\nY = ['x'..'y']\nR = (X | Y)+ & 'b'")]
 	public void A_repetition_that_cuts_one_way_is_not_told(string rules)
 	{
 		Assert.Empty(Analyse(rules + "\nparse R\n").Found);
