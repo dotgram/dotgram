@@ -202,6 +202,11 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 
 	void Published(OpenGrammar document, GramAnalysisResult<GramVersion> result, bool republished)
 	{
+		// An analysis that ends after its document was closed tells nothing: the client was told the
+		// document has no diagnostics now.
+		if (Document(document.Uri) != document)
+			return;
+
 		var lines = result.Version.Lines;
 
 		_ = _rpc.NotifyAsync(
