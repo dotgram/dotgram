@@ -47,6 +47,16 @@ public sealed class ExponentialRepetitionTests
 	// One character read by either of two rules is two readings where it is not the whole turn.
 	[InlineData("X = 'x'\nY = 'x'\nR = ((X | Y) & 'z')* & 'b'", "'x' 'z'")]
 
+	// Trivia the author joined with `~` is no seam, and is read as any call is.
+	[InlineData("trivia = 'a'*\nR = (trivia ~ 'a')* ~ 'b'", "'a' 'a'")]
+
+	// Braces that never succeed never commit: a count the input sets can fail after any reading.
+	[InlineData("R = $q:{ 'q'+ } ~ ':' ~ { ('a' | 'a' & 'a'){#q,} } ~ 'b'", "'a' 'a'")]
+
+	// What follows a repetition inside braces or a look can fail, and asks for another reading.
+	[InlineData("R = { (('a' | 'a' & 'a')+ & 'c')* } & 'b'", "'a' 'a'")]
+	[InlineData("R = (?=(('a' | 'a' & 'a')+ & 'c')) & 'a'+ & 'b'", "'a' 'a'")]
+
 	// A line end read whole or as two: the shape of four examples' blank lines.
 	[InlineData("R = ([' ']* & eol)* & '!'", "'\\r' '\\n'")]
 	public void A_repetition_that_cuts_two_ways_is_told(string rules, string witness)
@@ -171,6 +181,14 @@ public sealed class ExponentialRepetitionTests
 
 	// A repetition that recovers commits every turn it finishes.
 	[InlineData("R = ('x' & 'y' | 'x' & 'y')* recover ';' & eof")]
+
+	// Nothing after a repetition inside braces or a look can fail, so its first reading stands,
+	// through the repetition around it.
+	[InlineData("R = { (('a' | 'a' & 'a')+)* } & 'b'")]
+	[InlineData("R = (?=(('a' | 'a' & 'a')+)) & 'a'+ & 'b'")]
+
+	// A braced call that takes the whole run leaves nothing it begins with to a second call.
+	[InlineData("X = { 'a'+ }\nR = (X | X & X)+ & 'b'")]
 
 	// A turn of one character, whichever alternative reads it, is one test in the parser: the
 	// emitter leaves nothing to come back to, and the analysis asks it the same question.
@@ -315,6 +333,38 @@ public sealed class ExponentialRepetitionTests
 		Assert.True(result.Opaque > 0);
 	}
 
+	/// <summary>
+	/// The work of building a repetition's automaton is bounded while it is built, not after, and
+	/// counted: a nest of written-out counts is given up once it has more letters than a repetition
+	/// may, and a run of looks whose ways to read nothing multiply, two at every look, once its
+	/// entries are past the budget — each turn of it is read in two to the sixteen ways, and it is
+	/// not told: past the budget is not proof.
+	/// </summary>
+	[Theory]
+	[InlineData("R = ((((((('a'){8}){8}){8}){8}){8}){8})* & 'b'\nparse R\n", 1_000)]
+	[InlineData(null, 1 << 16)]
+	public void The_work_of_building_a_repetition_is_bounded_and_counted(string? grammar, int least)
+	{
+		grammar ??= "R = ('x' & " +
+			string.Join(" & ", Enumerable.Range(0, 16).Select(static i => $"(?!'{(char)('a' + i)}' | ?!'{(char)('A' + i)}')")) +
+			" & 'y')* & 'z'\nparse R\n";
+
+		var graph = Graph(grammar, lexical: false, out var split);
+		var watch = Stopwatch.StartNew();
+		var bytes = GC.GetAllocatedBytesForCurrentThread();
+
+		var result = ExponentialRepetition.Check(graph, split, out var steps);
+
+		bytes = GC.GetAllocatedBytesForCurrentThread() - bytes;
+
+		Assert.Equal(1, result.Skipped);
+		Assert.Empty(result.Found);
+		Assert.True(bytes < 16 << 20, $"{bytes} bytes allocated");
+		Assert.True(watch.Elapsed.TotalSeconds < 2, $"{watch.Elapsed.TotalMilliseconds:F0} ms");
+		Assert.True(steps >= least, $"{steps} steps: the work done is counted");
+		TestContext.Current.SendDiagnosticMessage($"{steps} steps, {bytes} bytes, {watch.Elapsed.TotalMilliseconds:F1} ms");
+	}
+
 	/// <summary>The work done grows with the grammar, and is counted for a test to hold it to.</summary>
 	[Fact]
 	public void The_work_is_counted()
@@ -367,7 +417,7 @@ public sealed class ExponentialRepetitionTests
 	public void A_repetition_of_an_included_grammar_is_not_said_where_it_is_included()
 	{
 		const string own      = "using L;\nRun = (Word | Word & Word)+ & ';' & Runs\nparse Run\n";
-		const string included = "Word = { ['a'..'z']+ }\nRuns = ('x'+)* & 'b'\n";
+		const string included = "Word = ['a'..'z']\nRuns = ('x'+)* & 'b'\n";
 
 		var (joined, map) = GrammarSplice.Join(new GrammarSplice.Part(own, null, null), [new GrammarSplice.Part(included, "L", null)]);
 
@@ -471,7 +521,7 @@ public sealed class ExponentialRepetitionTests
 						: 0;
 
 					report.AppendLine($"  HIT {told.Rule.Name} (line {line}): {Shortened(told.Loop.ToString())} reads {told.Witness} in two ways");
-					found.Add($"{name.Split(':')[0]} {told.Rule.Name}");
+					found.Add($"{name.Split(':')[0]} [{mode}] {told.Rule.Name}: {told.Loop}");
 				}
 			}
 		}
@@ -485,21 +535,23 @@ public sealed class ExponentialRepetitionTests
 		Console.WriteLine(written);
 
 		Assert.True(read > 300, $"Only {read} grammars were read; the walk over the repository is broken.");
-		Assert.Equal(Triaged.Keys.Order(StringComparer.Ordinal), found.Distinct().Order(StringComparer.Ordinal));
+		// Each repetition told, as often as it is told: a second one in a rule already listed is a
+		// new hit, and so is the same one read a second way.
+		Assert.Equal(Triaged.Select(static one => one.Repetition).Order(StringComparer.Ordinal), found.Order(StringComparer.Ordinal));
 	}
 
 	/// <summary>The repetitions of the repository that are told, each with why it is not mended.</summary>
-	static readonly Dictionary<string, string> Triaged = new(StringComparer.Ordinal)
-	{
+	static readonly (string Repetition, string Why)[] Triaged =
+	[
 		// Every argument is a value where nothing else reads it, `Value = any*`: every list is
 		// accepted, and nothing is refused after the two readings of `-o`. The snapshot beside it
 		// was written from this text.
-		["Segmented.gram Args"] = "accepts every input",
+		("Segmented.gram [chars] Args: items: Arg*", "accepts every input"),
 
 		// The lookahead in front of the decimal refuses what `Long` would read, which a look of
 		// more than one character cannot show the analysis; the example silences it, with why.
-		["MetricsLineExample.cs Line"] = "a look of more than one character",
-	};
+		("MetricsLineExample.cs [chars] Line: (trivia & item0: Reading)+", "a look of more than one character"),
+	];
 
 	static double Milliseconds(long ticks)
 	{
