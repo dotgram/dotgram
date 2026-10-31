@@ -2,13 +2,12 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-using DotGram.VisualStudio;
 
 using Microsoft.CodeAnalysis;
 
 using Xunit;
 
-namespace DotGram.VisualStudio.Tests;
+namespace DotGram.Language.Tests;
 
 public sealed class RoslynGramCompletionTests
 {
