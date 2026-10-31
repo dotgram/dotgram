@@ -18,6 +18,9 @@ public sealed class UriTests
 		Assert.Equal(@"\\server\share\a.gram", FileUris.ToPath("file://server/share/a.gram"), ignoreCase: true);
 		Assert.Equal("file:///c%3A/Users/a%20b.gram", FileUris.ToUri(@"C:\Users\a b.gram"));
 		Assert.Equal("file://server/share/a.gram", FileUris.ToUri(@"\\server\share\a.gram"));
+
+		foreach (var path in new[] { @"\\localhost\share\a.gram", @"\\server\share\dir\a b.gram", @"C:\a.gram" })
+			Assert.Equal(path, FileUris.ToPath(FileUris.ToUri(path)), ignoreCase: true);
 	}
 
 	[Fact]
