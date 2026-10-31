@@ -80,7 +80,10 @@ public sealed record Entry(string Key, string Value) : ILocated
 
 	Entry : @Entry = key: Identifier & '=' & value: Value => @(new Entry(key, value))
 
-	Value : @string = t: [^ '\r' | '\n']* => @(t)
+	// Atomic: a value runs to the end of its line. Given back, `a=b=c` would be the entry `a`
+	// with the value `b=c` or `a` with none and then the entry `b`, and a file refused late
+	// would be read once for every way each such line could be cut.
+	Value : @string = { t: [^ '\r' | '\n']* } => @(t)
 
 	// No `=>` and no captures, so this rule is what it matched — as two numbers rather
 	// than as text (§4.1 case 4).
