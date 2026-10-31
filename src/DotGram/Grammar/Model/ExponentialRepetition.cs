@@ -56,7 +56,7 @@ public static class ExponentialRepetition
 	/// <summary>How long a witness is written before it is cut.</summary>
 	const int Widest = 40;
 
-	/// <summary>The widest bounded repetition written out turn by turn; a wider one is taken as unbounded.</summary>
+	/// <summary>The widest bounded repetition written out turn by turn; a wider one is an opaque letter.</summary>
 	const int Unrolled = 8;
 
 	/// <summary>A repetition that can read <paramref name="Witness"/> in two ways.</summary>
@@ -224,13 +224,25 @@ public static class ExponentialRepetition
 
 	/// <summary>The edges and letters of one fragment of a body, Glushkov's way.</summary>
 	/// <param name="First">The letters it can begin with, each with how many ways.</param>
-	/// <param name="Last">The letters it can end with, each with how many ways.</param>
-	/// <param name="Empty">How many ways it can read nothing, at most two.</param>
-	readonly record struct Fragment(IReadOnlyList<(int Letter, int Ways)> First, IReadOnlyList<(int Letter, int Ways)> Last, int Empty)
+	/// <param name="Last">
+	/// The letters it can end with, each with how many ways, and what a look after the letter
+	/// refuses to let follow it on that way: <c>'a' &amp; eof</c> ends with an <c>'a'</c> nothing follows.
+	/// </param>
+	/// <param name="Empty">The ways it can read nothing, each with what a look on that way refuses to let follow.</param>
+	readonly record struct Fragment(
+		IReadOnlyList<(int Letter, int Ways)>                            First,
+		IReadOnlyList<(int Letter, int Ways, FirstSets.First? Refused)> Last,
+		IReadOnlyList<(int Ways, FirstSets.First? Refused)>             Empty)
 	{
-		public static readonly Fragment Nothing = new([], [], 1);
+		public static readonly Fragment Nothing = new([], [], [(1, null)]);
 
-		public static readonly Fragment Never = new([], [], 0);
+		public static readonly Fragment Never = new([], [], []);
+
+		/// <summary>Nothing read, and what follows is held to a look.</summary>
+		public static Fragment Look(FirstSets.First? refused)
+		{
+			return new Fragment([], [], [(1, refused)]);
+		}
 	}
 
 	/// <summary>What is shared by every repetition of a grammar: the graph, and the counts.</summary>
@@ -319,16 +331,24 @@ public static class ExponentialRepetition
 					: $"[{ranges.Sum(static range => range.To - range.From + 1)} kinds]";
 
 			if (ranges.Count == 1 && ranges[0].IsSingle)
-				return CharRange.Quote(ranges[0].From);
+				return Quoted(ranges[0].From);
 
 			if (ranges.Count == 1 && ranges[0].From == char.MinValue && ranges[0].To == char.MaxValue)
 				return "any";
 
 			const int most = 3;
 
-			var spelled = string.Join(" | ", ranges.Take(most).Select(static range => range.ToString()));
+			var spelled = string.Join(" | ", ranges.Take(most).Select(static range => range.IsSingle ? Quoted(range.From) : $"{Quoted(range.From)}..{Quoted(range.To)}"));
 
 			return ranges.Count > most ? $"[{spelled} | …]" : $"[{spelled}]";
+		}
+
+		/// <summary>A character as a grammar writes it, with what does not print written by its number.</summary>
+		static string Quoted(char value)
+		{
+			return value is < ' ' and not ('\n' or '\r' or '\t') || value is >= '\u007f' and < '\u00a0' || char.IsSurrogate(value) || value >= '\ufff0'
+				? $"'\\u{(int)value:X4}'"
+				: CharRange.Quote(value);
 		}
 
 		static string Kind(TerminalInventory.Kind kind)
@@ -376,14 +396,7 @@ public static class ExponentialRepetition
 					return Opaqued(element.ToString(), element.ToString());
 
 				case Node.Sequence(var parts):
-				{
-					var fragment = Fragment.Nothing;
-
-					foreach (var part in parts)
-						fragment = Then(fragment, Of(part));
-
-					return fragment;
-				}
+					return Sequence(parts);
 
 				case Node.Choice { Selection: not null } chosen:
 					return Opaqued(chosen, "switch");
@@ -391,8 +404,8 @@ public static class ExponentialRepetition
 				case Node.Choice(var alternatives):
 				{
 					var first = new List<(int, int)>();
-					var last  = new List<(int, int)>();
-					var empty = 0;
+					var last  = new List<(int, int, FirstSets.First?)>();
+					var empty = new List<(int, FirstSets.First?)>();
 
 					foreach (var alternative in alternatives)
 					{
@@ -400,14 +413,16 @@ public static class ExponentialRepetition
 
 						first.AddRange(one.First);
 						last.AddRange(one.Last);
-						empty = Ways(empty + one.Empty);
+
+						foreach (var (ways, refused) in one.Empty)
+							Merge(empty, ways, refused);
 					}
 
 					return new Fragment(first, last, empty);
 				}
 
-				case Node.Repeat(var body, var min, var max):
-					return Repeated(body, min, max);
+				case Node.Repeat repeat:
+					return Repeated(repeat);
 
 				case Node.Atomic atomic:
 					return Opaqued(atomic, "{…}");
@@ -429,9 +444,203 @@ public static class ExponentialRepetition
 				case Node.Call call:
 					return Called(call);
 
-				// Looks, guards, readings, glue and `none` read nothing.
+				// A look that is one class holds what may follow it; any other is taken as reading nothing.
+				case Node.Lookahead(false, var body) when OneClass(body) is { } one:
+					return Fragment.Look(one);
+
+				case Node.Lookahead(true, var body) when Begins(body) is { } one:
+					return Fragment.Look(Outside(one));
+
+				// Guards, readings, glue and `none` read nothing.
 				default:
 					return Fragment.Nothing;
+			}
+		}
+
+		/// <summary>
+		/// A sequence, where a look in front of an operand that is one class takes its characters
+		/// out of what the operand begins with: <c>?!'\'' &amp; any</c> reads no quote.
+		/// </summary>
+		Fragment Sequence(IReadOnlyList<Node> parts)
+		{
+			var fragment = Fragment.Nothing;
+
+			FirstSets.First? refused = null;
+			FirstSets.First? wanted  = null;
+
+			foreach (var part in parts)
+			{
+				switch (part)
+				{
+					case Node.Lookahead(false, var body) when OneClass(body) is { } one:
+						refused = refused is null ? one : refused.Or(one);
+						continue;
+
+					case Node.Lookahead(true, var body) when Begins(body) is { } one:
+						wanted = wanted is null ? one : wanted.And(one);
+						continue;
+
+					case Node.Lookahead or Node.Glue or Node.Guard or Node.Condition or Node.Empty or Node.Reading or Node.Behind:
+						continue;
+				}
+
+				var letters = Letters.Count;
+				var edges   = Edges.Count;
+				var next    = Of(part);
+
+				if (refused is not null || wanted is not null)
+				{
+					Narrowed(next, letters, edges, refused, wanted);
+
+					// Where the operand can read nothing, the look holds what follows it too.
+					var held = Joined(refused, wanted is null ? null : Outside(wanted));
+
+					next = next with { Empty = [.. next.Empty.Select(route => (route.Ways, Joined(route.Refused, held)))] };
+				}
+
+				refused = null;
+				wanted  = null;
+
+				fragment = Then(fragment, next);
+			}
+
+			if (refused is not null || wanted is not null)
+				fragment = Then(fragment, Fragment.Look(Joined(refused, wanted is null ? null : Outside(wanted))));
+
+			return fragment;
+		}
+
+		/// <summary>Every character a set does not hold.</summary>
+		static FirstSets.First Outside(FirstSets.First set)
+		{
+			return FirstSets.First.Chars(FirstSets.Complement(set.Ranges));
+		}
+
+		/// <summary>What two looks at one place refuse together.</summary>
+		static FirstSets.First? Joined(FirstSets.First? one, FirstSets.First? other)
+		{
+			return one is null ? other : other is null ? one : one.Or(other);
+		}
+
+		/// <summary>Whether a look refuses every character a letter reads, so that it cannot follow.</summary>
+		bool Blocked(FirstSets.First? refused, int letter)
+		{
+			if (refused is null)
+				return false;
+
+			return Letters[letter].Reads is { } reads
+				? refused.Covers(reads)
+				: refused.Covers(FirstSets.First.Chars([new CharRange(char.MinValue, char.MaxValue)]));
+		}
+
+		/// <summary>One more way to read nothing, counted with the others held to the same look.</summary>
+		static void Merge(List<(int Ways, FirstSets.First? Refused)> routes, int ways, FirstSets.First? refused)
+		{
+			for (var i = 0; i < routes.Count; i++)
+				if (routes[i].Refused is null ? refused is null : refused is not null && FirstSets.Same(routes[i].Refused!, refused))
+				{
+					routes[i] = (Ways(routes[i].Ways + ways), refused);
+
+					return;
+				}
+
+			routes.Add((ways, refused));
+		}
+
+		/// <summary>
+		/// The letters an operand begins with, narrowed to what the looks in front of it let
+		/// through; only those the operand itself never comes back to, where the look still holds.
+		/// </summary>
+		void Narrowed(Fragment next, int letters, int edges, FirstSets.First? refused, FirstSets.First? wanted)
+		{
+			var returned = new HashSet<int>();
+
+			for (var i = edges; i < Edges.Count; i++)
+				returned.Add(Edges[i].To);
+
+			foreach (var (at, _) in next.First)
+			{
+				if (at < letters || returned.Contains(at) || Letters[at].Reads is not { } reads)
+					continue;
+
+				if (refused is not null)
+					reads = reads.And(Outside(refused));
+
+				if (wanted is not null)
+					reads = reads.And(wanted);
+
+				Letters[at] = Letters[at] with { Reads = reads };
+			}
+		}
+
+		/// <summary>
+		/// The characters a positive look's body must begin with, where they are known and it
+		/// cannot read nothing: what may stand next is one of them.
+		/// </summary>
+		FirstSets.First? Begins(Node body)
+		{
+			if (FirstSets.Nullable(body, context.Graph))
+				return null;
+
+			var first = FirstSets.Of(body, context.Graph);
+
+			return first.IsKnown ? FirstSets.First.Chars(first.Ranges) : null;
+		}
+
+		/// <summary>The characters a look asks about, where it is one class: a class, a character, or a choice of them, at most <c>any</c> after it.</summary>
+		FirstSets.First? OneClass(Node body)
+		{
+			switch (body)
+			{
+				case Node.Element { References.Count: 0 } element:
+					return FirstSets.OfElement(element);
+
+				case Node.Literal { Text.Length: 1 } literal:
+					return literal.IgnoreCase
+						? FirstSets.First.Chars(CaseFold.Ranges(literal.Text[0]))
+						: FirstSets.First.Chars([new CharRange(literal.Text[0], literal.Text[0])]);
+
+				case Node.Sequence(var parts):
+				{
+					var reading = parts.Where(static part => part is not Node.Glue).ToArray();
+
+					return reading.Length == 1 ? OneClass(reading[0]) :
+						reading.Length == 2 && reading[1] is Node.Call({ IsBuiltIn: true, Name: "any" }, _) ? OneClass(reading[0]) :
+						null;
+				}
+
+				case Node.Call({ IsBuiltIn: true, Name: "any" }, _):
+					return FirstSets.First.Chars([new CharRange(char.MinValue, char.MaxValue)]);
+
+				// A rule that is one class, called: what it is, unless it is one of those being read.
+				case Node.Call(var called, { Count: 0 }) when !_inlining.Contains(called) && context.Graph.Bodies.TryGetValue(called, out var rule):
+				{
+					_inlining.Add(called);
+
+					var one = OneClass(rule);
+
+					_inlining.Remove(called);
+
+					return one;
+				}
+
+				case Node.Choice { Selection: null } choice:
+				{
+					var all = FirstSets.First.None;
+
+					foreach (var alternative in choice.Nodes)
+					{
+						if (OneClass(alternative) is not { } one)
+							return null;
+
+						all = all.Or(one);
+					}
+
+					return all;
+				}
+
+				default:
+					return null;
 			}
 		}
 
@@ -475,13 +684,20 @@ public static class ExponentialRepetition
 			return Opaqued(called, called.Name);
 		}
 
-		Fragment Repeated(Node body, int min, int? max)
+		Fragment Repeated(Node.Repeat repeat)
 		{
+			var (body, min, max) = (repeat.Body, repeat.Min, repeat.Max);
+
 			if (max == 0)
 				return Fragment.Nothing;
 
+			// Too wide to write out, and not a run that may go on: one opaque letter, which is the
+			// side that tells too little. `any{4096}` repeated cuts one way.
+			if (max is > Unrolled)
+				return Opaqued(repeat, repeat.ToString());
+
 			// Written out turn by turn, where it is narrow: `X{2,3}` is `X & X & X?`.
-			if (max is { } most && most <= Unrolled)
+			if (max is { } most)
 			{
 				var fragment = Fragment.Nothing;
 
@@ -496,7 +712,12 @@ public static class ExponentialRepetition
 					var one = Of(body);
 
 					optional = Then(one, optional);
-					optional = optional with { Empty = Ways(optional.Empty + 1) };
+
+					var empty = new List<(int, FirstSets.First?)>(optional.Empty);
+
+					Merge(empty, 1, null);
+
+					optional = optional with { Empty = empty };
 				}
 
 				return Then(fragment, optional);
@@ -508,7 +729,14 @@ public static class ExponentialRepetition
 
 			Link(turns.Last, turns.First);
 
-			return turns with { Empty = min == 0 ? Ways(turns.Empty + 1) : turns.Empty };
+			if (min > 0)
+				return turns;
+
+			var none = new List<(int, FirstSets.First?)>(turns.Empty);
+
+			Merge(none, 1, null);
+
+			return turns with { Empty = none };
 		}
 
 		Fragment Then(Fragment before, Fragment after)
@@ -516,24 +744,31 @@ public static class ExponentialRepetition
 			Link(before.Last, after.First);
 
 			var first = new List<(int, int)>(before.First);
-			var last  = new List<(int, int)>(after.Last);
+			var last  = new List<(int, int, FirstSets.First?)>(after.Last);
+			var empty = new List<(int, FirstSets.First?)>();
 
-			if (before.Empty > 0)
-				foreach (var (letter, ways) in after.First)
-					first.Add((letter, Ways(ways * before.Empty)));
+			foreach (var (ways, refused) in before.Empty)
+				foreach (var (letter, more) in after.First)
+					if (!Blocked(refused, letter))
+						first.Add((letter, Ways(ways * more)));
 
-			if (after.Empty > 0)
-				foreach (var (letter, ways) in before.Last)
-					last.Add((letter, Ways(ways * after.Empty)));
+			foreach (var (ways, refused) in after.Empty)
+				foreach (var (letter, more, held) in before.Last)
+					last.Add((letter, Ways(ways * more), Joined(held, refused)));
 
-			return new Fragment(first, last, Ways(before.Empty * after.Empty));
+			foreach (var (ways, refused) in before.Empty)
+				foreach (var (more, held) in after.Empty)
+					Merge(empty, Ways(ways * more), Joined(refused, held));
+
+			return new Fragment(first, last, empty);
 		}
 
-		void Link(IReadOnlyList<(int Letter, int Ways)> from, IReadOnlyList<(int Letter, int Ways)> to)
+		void Link(IReadOnlyList<(int Letter, int Ways, FirstSets.First? Refused)> from, IReadOnlyList<(int Letter, int Ways)> to)
 		{
-			foreach (var (one, ways) in from)
+			foreach (var (one, ways, refused) in from)
 				foreach (var (other, more) in to)
-					Edges.Add((one, other, Ways(ways * more)));
+					if (!Blocked(refused, other))
+						Edges.Add((one, other, Ways(ways * more)));
 		}
 
 		Fragment Leaf(Letter letter)
@@ -548,7 +783,7 @@ public static class ExponentialRepetition
 
 			var at = Letters.Count - 1;
 
-			return new Fragment([(at, 1)], [(at, 1)], 0);
+			return new Fragment([(at, 1)], [(at, 1, null)], []);
 		}
 
 		Fragment Opaqued(object key, string name)
@@ -602,10 +837,10 @@ public static class ExponentialRepetition
 			foreach (var (letter, count) in loop.First)
 				Add(ways, 0, letter, count);
 
-			foreach (var (letter, _) in loop.Last)
+			foreach (var (letter, _, _) in loop.Last)
 				_final[letter] = true;
 
-			if (loop.Empty > 0)
+			if (loop.Empty.Count > 0)
 				_final[0] = true;
 
 			var useful = Useful(ways);
@@ -643,6 +878,10 @@ public static class ExponentialRepetition
 			{
 				var from = (int)(key / _count);
 				var to   = (int)(key % _count);
+
+				// A letter a look narrowed to nothing is never read, and nothing is reached past it.
+				if (_automaton.Letters[from].Reads is { Nothing: true } || _automaton.Letters[to].Reads is { Nothing: true })
+					continue;
 
 				forward[from].Add(to);
 				backward[to].Add(from);
