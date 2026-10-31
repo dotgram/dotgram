@@ -2,6 +2,8 @@ using System;
 using System.ComponentModel.Composition;
 using System.Threading;
 
+using DotGram.Language;
+
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Editor;
 using Microsoft.VisualStudio.LanguageServices;
@@ -48,16 +50,8 @@ sealed class GramRenameViewListener : IWpfTextViewCreationListener
 		if (adapter is null)
 			return;
 
-		Func<ITextSnapshot, int, GramFindReferencesTarget?> target =
-			view.TextBuffer.ContentType.IsOfType(GramContentType.Name)
-				? (snapshot, position) => GramFindReferencesTarget.Standalone(
-					snapshot,
-					position,
-					GramBufferAnalysis.For(view.TextBuffer))
-				: (snapshot, position) => GramFindReferencesTarget.Embedded(
-					snapshot,
-					position,
-					EmbeddedGrammarBufferAnalysis.For(view.TextBuffer, Workspace, Documents));
+		Func<ITextSnapshot, int, GramReferences?> target = (snapshot, position) =>
+			GramFindReferencesTarget.At(view.TextBuffer, snapshot, position, Workspace, Documents);
 		Func<bool>? findReferences = view.TextBuffer.ContentType.IsOfType("CSharp")
 			? () => FindReferences.Find(view)
 			: null;
@@ -94,7 +88,7 @@ sealed class GramCSharpFindReferencesService
 			var position = view.Caret.Position.BufferPosition
 				.TranslateTo(snapshot, PointTrackingMode.Negative).Position;
 			var references = ThreadHelper.JoinableTaskFactory.Run(() =>
-				new RoslynGramCompletion(view.TextBuffer, Workspace, Documents).FindReferencesAsync(
+				RoslynGramFeatures.For(view.TextBuffer, Workspace, Documents).Core.FindReferencesAsync(
 					position,
 					CancellationToken.None,
 					message => ActivityLog.LogError("DotGram.VisualStudio", message)));
@@ -117,7 +111,7 @@ sealed class GramCSharpFindReferencesService
 
 sealed class GramRenameCommandFilter(
 	IWpfTextView view,
-	Func<ITextSnapshot, int, GramFindReferencesTarget?> target,
+	Func<ITextSnapshot, int, GramReferences?> target,
 	Func<bool>? findReferences) : IOleCommandTarget
 {
 	public IOleCommandTarget Next { get; set; } = null!;
@@ -185,7 +179,7 @@ sealed class GramRenameCommandFilter(
 		return true;
 	}
 
-	GramFindReferencesTarget? Target()
+	GramReferences? Target()
 	{
 		var snapshot = view.TextSnapshot;
 		var position = view.Caret.Position.BufferPosition

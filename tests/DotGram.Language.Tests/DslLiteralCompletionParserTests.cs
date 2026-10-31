@@ -1,10 +1,8 @@
 using System.Linq;
 
-using DotGram.VisualStudio;
-
 using Xunit;
 
-namespace DotGram.VisualStudio.Tests;
+namespace DotGram.Language.Tests;
 
 public sealed class DslLiteralCompletionParserTests
 {

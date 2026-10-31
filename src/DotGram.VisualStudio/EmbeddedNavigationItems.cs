@@ -7,19 +7,6 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace DotGram.VisualStudio;
 
-/// <summary>
-/// One grammar of a C# document and what in it can be navigated to, as the analysis of that
-/// grammar gave it: the symbols stay with the grammar they came from.
-/// </summary>
-/// <param name="Name">What the user knows the grammar by (<see cref="EmbeddedGrammar.Name"/>); null where nothing names it.</param>
-/// <param name="Span">The string the grammar is written in.</param>
-/// <param name="HostSpan">The declaration the grammar belongs to (<see cref="EmbeddedGrammar.HostSpan"/>).</param>
-sealed record EmbeddedGrammarOutline(
-	string?                           Name,
-	TextSpan                          Span,
-	TextSpan                          HostSpan,
-	IReadOnlyList<HostDocumentSymbol> Symbols);
-
 /// <summary>An entry of the right-hand list: a rule or another symbol of one grammar.</summary>
 sealed record EmbeddedNavigationItem(
 	string Display,
@@ -104,48 +91,6 @@ static class EmbeddedNavigationItems
 		{
 			counts[key] = counts.TryGetValue(key, out var count) ? count + 1 : 1;
 		}
-	}
-
-	/// <summary>
-	/// The outlines moved onto a later snapshot of the document: every position in them, the
-	/// symbols' and their children's too, put through <paramref name="translate"/>.
-	/// </summary>
-	public static IReadOnlyList<EmbeddedGrammarOutline> Translate(
-		IReadOnlyList<EmbeddedGrammarOutline> outlines,
-		Func<TextSpan, TextSpan>              translate)
-	{
-		var result = new EmbeddedGrammarOutline[outlines.Count];
-
-		for (var index = 0; index < outlines.Count; index++)
-		{
-			var outline = outlines[index];
-			result[index] = new EmbeddedGrammarOutline(
-				outline.Name,
-				translate(outline.Span),
-				translate(outline.HostSpan),
-				Translate(outline.Symbols, translate));
-		}
-
-		return result;
-	}
-
-	static IReadOnlyList<HostDocumentSymbol> Translate(IReadOnlyList<HostDocumentSymbol> symbols, Func<TextSpan, TextSpan> translate)
-	{
-		var result = new HostDocumentSymbol[symbols.Count];
-
-		for (var index = 0; index < symbols.Count; index++)
-		{
-			var symbol = symbols[index];
-			result[index] = new HostDocumentSymbol(
-				symbol.Name,
-				symbol.Kind,
-				translate(symbol.Span),
-				translate(symbol.SelectionSpan),
-				translate(symbol.GrammarSpan),
-				Translate(symbol.Children, translate));
-		}
-
-		return result;
 	}
 
 	/// <summary>A grammar's symbols, nested ones beside their parents, sorted by name.</summary>

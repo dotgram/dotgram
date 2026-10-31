@@ -137,7 +137,7 @@ public sealed class EmbeddedNavigationItemsTests
 	{
 		const int inserted = 1000;
 
-		var moved    = EmbeddedNavigationItems.Translate(Outlines, span => new TextSpan(span.Start + inserted, span.Length));
+		var moved    = EmbeddedGrammarOutline.Translate(Outlines, span => new TextSpan(span.Start + inserted, span.Length));
 		var grammars = EmbeddedNavigationItems.Grammars(moved, Locate);
 		var alpha    = grammars[EmbeddedNavigationItems.GrammarAt(grammars, 25 + inserted)];
 		var inner    = alpha.Symbols[EmbeddedNavigationItems.SymbolAt(alpha.Symbols, 35 + inserted)];
