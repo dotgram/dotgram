@@ -68,7 +68,9 @@ namespace DotGram.Examples.Formats;
 
 	Tail  = Space & Comment | Comment
 
-	Comment = [';' | '#'] & [^ '\n' | '\r']*
+	// Atomic: a comment runs to the end of its line. Given back, `;[s]` would be a comment and then
+	// a section header, and a text refused late would be read once for every such line.
+	Comment = [';' | '#'] & { [^ '\n' | '\r']* }
 
 	Key   : @string = { text: [^ '=' | '[' | ']' | '\n' | '\r' | ';' | '#']+ } => @(text.Trim())
 	Name  : @string = text: [^ ']' | '\n' | '\r']+                        => @(text)
