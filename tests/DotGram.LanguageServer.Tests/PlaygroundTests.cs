@@ -22,6 +22,12 @@ namespace DotGram.LanguageServer.Tests;
 /// not show is the server's mapping losing or changing something.
 /// </para>
 /// <para>
+/// The grammars are opened unsaved, so they are read as they stand, with no host looked for and
+/// nothing kept quiet — as the recording read them. So nothing here covers a host's options, an
+/// included grammar, Roslyn's answers in C#, the kinds of completion items or the edit range an item
+/// carries; <c>HostTests</c> and <c>ProtocolTests</c> do.
+/// </para>
+/// <para>
 /// What the protocol does not carry is left out of the comparison, on both sides and nowhere else:
 /// the span Visual Studio tracks a signature help session by, which a client works out itself; the
 /// picture beside a Quick Info, beyond a rule's definition being a block of grammar; Ctrl+click,

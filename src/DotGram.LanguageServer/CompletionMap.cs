@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json.Nodes;
 
 using DotGram.Language;
 
@@ -37,9 +38,13 @@ static class CompletionMap
 			data);
 	}
 
-	/// <summary>The item with its description, as the client shows it beside the list.</summary>
-	public static CompletionItem Resolve(CompletionItem item, GramCompletionItem source)
+	/// <summary>The item with its description, as the client shows it beside the list; the rest of it as the client sent it.</summary>
+	public static void Resolve(JsonObject item, GramCompletionItem source)
 	{
-		return item with { Documentation = MarkupContent.PlainText(source.Description) };
+		item["documentation"] = new JsonObject
+		{
+			["kind"]  = "plaintext",
+			["value"] = source.Description,
+		};
 	}
 }

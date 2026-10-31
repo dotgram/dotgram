@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
 using System.Threading;
 using System.Threading.Tasks;
@@ -51,6 +52,7 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 	Task<FolderWorkspace>                    _load;
 	Task                                     _changes;
 	bool                                     _refreshSemanticTokens;
+	bool                                     _initialized;
 	int                                      _completionList;
 
 	public GramLanguageServer(JsonRpcConnection rpc, ServerOptions options)
@@ -80,6 +82,10 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 
 	public void Notify(string method, JsonElement? parameters)
 	{
+		// Before initialize the protocol has the server drop every notification but exit.
+		if (!Volatile.Read(ref _initialized))
+			return;
+
 		switch (method)
 		{
 			case "textDocument/didOpen":
@@ -111,23 +117,28 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 	void Open(DidOpenTextDocumentParams parameters)
 	{
 		var item     = parameters.TextDocument;
-		var path     = LocalPath(item.Uri);
+		var path     = FileUris.ToPath(item.Uri);
 		var document = new OpenGrammar(item.Uri, path, new GramVersion(item.Version, Microsoft.CodeAnalysis.Text.SourceText.From(item.Text)), this);
 
 		document.Published += Published;
 		ImmutableInterlocked.Update(ref _documents, static (documents, pair) => documents.SetItem(pair.Uri, pair.Document), (item.Uri, Document: document));
 
-		// Whether the grammar's host is looked for depends on the folders, which are read by now or soon.
+		// What an included grammar is compiled with is its open text, not its file's.
+		if (path is not null)
+		{
+			var text = document.Current.Text;
+
+			Chain(folder => folder.GrammarOpened(path, text));
+		}
+
+		// Whether the grammar's host is looked for depends on the folders, which are read by now or
+		// soon; a document closed meanwhile is not started.
 		_ = Folder.ContinueWith(
 			folder =>
 			{
-				if (Document(item.Uri) != document)
-					return;
+				var follows = path is not null && folder.Result.Hosts && folder.Result.Contains(path);
 
-				if (path is not null && folder.Result.Hosts && folder.Result.Contains(path))
-					folder.Result.Workspace.WorkspaceChanged += document.WorkspaceChanged;
-
-				document.Start();
+				document.Start(follows ? folder.Result.Workspace : null);
 			},
 			CancellationToken.None,
 			TaskContinuationOptions.None,
@@ -157,24 +168,20 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 			return;
 
 		ImmutableInterlocked.TryRemove(ref _documents, uri, out _);
-		document.Close();
-
-		if (Loaded is { } loaded)
-			loaded.Workspace.WorkspaceChanged -= document.WorkspaceChanged;
-
-		_ = _rpc.NotifyAsync(
+		document.Close(() => _ = _rpc.NotifyAsync(
 			"textDocument/publishDiagnostics",
 			new PublishDiagnosticsParams(uri, null, []),
-			LspJson.Default.PublishDiagnosticsParams);
+			LspJson.Default.PublishDiagnosticsParams));
 
-		if (document.FilePath is { } path && File.Exists(path))
-			Chain(folder => folder.FileChanged(path, deleted: false));
+		// The file is the grammar again, for what includes it.
+		if (document.FilePath is { } path)
+			Chain(folder => folder.GrammarClosed(path));
 	}
 
 	void WatchedFiles(DidChangeWatchedFilesParams parameters)
 	{
 		foreach (var change in parameters.Changes)
-			if (LocalPath(change.Uri) is { } path)
+			if (FileUris.ToPath(change.Uri) is { } path)
 				Chain(folder => folder.FileChanged(path, change.Type == Lsp.FileDeleted));
 	}
 
@@ -202,11 +209,6 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 
 	void Published(OpenGrammar document, GramAnalysisResult<GramVersion> result, bool republished)
 	{
-		// An analysis that ends after its document was closed tells nothing: the client was told the
-		// document has no diagnostics now.
-		if (Document(document.Uri) != document)
-			return;
-
 		var lines = result.Version.Lines;
 
 		_ = _rpc.NotifyAsync(
@@ -224,11 +226,19 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 
 	public Func<CancellationToken, Task<RpcReply>>? Bind(string method, JsonElement? parameters)
 	{
+		if (method != "initialize" && !Volatile.Read(ref _initialized))
+			return static _ => Task.FromResult(RpcReply.Error(Lsp.ServerNotInitialized, "The server is not initialized."));
+
 		switch (method)
 		{
 			case "initialize":
+				if (Volatile.Read(ref _initialized))
+					return static _ => Task.FromResult(RpcReply.Error(Lsp.InvalidRequest, "The server is initialized already."));
+
 				// On this thread, so that the folders are being read before the first document opens.
 				var initialized = Initialize(Read(parameters, LspJson.Default.InitializeParams));
+
+				Volatile.Write(ref _initialized, true);
 				return _ => Task.FromResult(initialized);
 
 			case "textDocument/semanticTokens/full":
@@ -239,7 +249,11 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 				return On(completion.TextDocument, (document, version, token) => CompletionAsync(document, version, completion.Position, token));
 
 			case "completionItem/resolve":
-				var item = Read(parameters, LspJson.Default.CompletionItem);
+				// Kept as it came, every field the client filled in — a text edit made of the list's
+				// default range among them — with the description added.
+				var item = parameters is { ValueKind: JsonValueKind.Object } value && JsonNode.Parse(value.GetRawText()) is JsonObject parsed
+					? parsed
+					: throw new ArgumentException("A completion item is an object.");
 				return _ => Task.FromResult(Resolve(item));
 
 			case "textDocument/hover":
@@ -300,7 +314,7 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 		Volatile.Write(ref _refreshSemanticTokens, Flag(parameters.Capabilities, "workspace", "semanticTokens", "refreshSupport"));
 
 		var folders = (parameters.WorkspaceFolders?.Select(static folder => folder.Uri) ?? [parameters.RootUri])
-			.Select(LocalPath)
+			.Select(FileUris.ToPath)
 			.OfType<string>()
 			.ToArray();
 
@@ -372,14 +386,17 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 		return RpcReply.Ok(CompletionMap.Map(applicable, items, list, version.Lines), LspJson.Default.CompletionList);
 	}
 
-	RpcReply Resolve(CompletionItem item)
+	RpcReply Resolve(JsonObject item)
 	{
-		if (item.Data is { } data &&
-			_completions.TryGetValue(data.List, out var items) &&
-			data.Index >= 0 && data.Index < items.Count)
-			return RpcReply.Ok(CompletionMap.Resolve(item, items[data.Index]), LspJson.Default.CompletionItem);
+		if (item["data"] is JsonObject data &&
+			data["list"]?.GetValueKind() == JsonValueKind.Number &&
+			data["index"]?.GetValueKind() == JsonValueKind.Number &&
+			_completions.TryGetValue(data["list"]!.GetValue<int>(), out var items) &&
+			data["index"]!.GetValue<int>() is var index and >= 0 &&
+			index < items.Count)
+			CompletionMap.Resolve(item, items[index]);
 
-		return RpcReply.Ok(item, LspJson.Default.CompletionItem);
+		return RpcReply.Raw(writer => item.WriteTo(writer));
 	}
 
 	async Task<RpcReply> HoverAsync(OpenGrammar document, GramVersion version, Position position, CancellationToken cancellationToken)
@@ -560,14 +577,6 @@ sealed class GramLanguageServer : IRpcTarget, IGrammarServices
 				return false;
 
 		return value.ValueKind == JsonValueKind.True;
-	}
-
-	/// <summary>The local path of a <c>file:</c> URI; null for any other scheme, such as an unsaved document's.</summary>
-	public static string? LocalPath(string? uri)
-	{
-		return uri is not null && Uri.TryCreate(uri, UriKind.Absolute, out var parsed) && parsed.IsFile
-			? Path.GetFullPath(parsed.LocalPath)
-			: null;
 	}
 
 	/// <summary>
