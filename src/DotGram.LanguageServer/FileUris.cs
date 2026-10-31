@@ -40,7 +40,8 @@ static class FileUris
 
 		var path = Uri.UnescapeDataString(rest);
 
-		if (authority.Equals("localhost", StringComparison.OrdinalIgnoreCase))
+		// On Windows a host, localhost too, is a UNC share's, \\localhost\share; elsewhere localhost is this machine.
+		if (!OperatingSystem.IsWindows() && authority.Equals("localhost", StringComparison.OrdinalIgnoreCase))
 			authority = "";
 
 		try
