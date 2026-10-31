@@ -48,6 +48,7 @@ construction.
 | [`guide/language/`](guide/language/README.md) | The `.Gram` language, a page a topic: every feature with a grammar that uses it, the cases worth knowing and the forms refused with their diagnostics. |
 | [`cli.md`](cli.md) | `dotnet dotgram`: the generator run outside the build, every command, option and exit code, and what the files it writes promise. |
 | [`visual-studio.md`](visual-studio.md) | The Visual Studio extension, and the `StringSyntax` annotations. |
+| [`vscode.md`](vscode.md) | The VS Code extension and the language server it runs: building, installing, settings, what it reads without a build. |
 | [`compatibility.md`](compatibility.md) | What a project on an older target framework or C# version needs, and what costs more below C# 11. |
 
 Every example of a guide is compiled and run by a test, its output held to the page's, so a

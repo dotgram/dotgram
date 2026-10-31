@@ -323,3 +323,35 @@ jobs:
         with:
           name: vsix
           path: ${{ env.VSIX }}
+
+  # The VS Code extension: the language server published into it framework-dependent, the client
+  # bundled, the whole packaged as a .vsix and kept as an artifact (docs/vscode.md). Nothing is
+  # published to the Marketplace. The server's tests run in `build` with the solution, and here
+  # again beside the package they ship in.
+  vscode:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: editors/vscode/package-lock.json
+
+      - name: Package the extension
+        run: editors/vscode/build.sh
+
+      - name: Test the language server
+        run: dotnet test --project tests/DotGram.LanguageServer.Tests/DotGram.LanguageServer.Tests.csproj --configuration Release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vscode-vsix
+          path: artifacts/*.vsix
+          if-no-files-found: error

@@ -1,0 +1,4 @@
+// A grammar with a rule it never defines: the server says so.
+Start = Word & Missing
+Word  = ['a'..'z']+
+parse Start
