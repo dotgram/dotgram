@@ -412,46 +412,126 @@ public sealed class ExponentialRepetitionTests
 	}
 
 	/// <summary>
-	/// A look over a rule reached by two to the twenty-four paths through the calls beneath it is
-	/// asked of each rule once, and its work is counted.
+	/// Grammars of deep and wide call graphs, each asked on a thread with the smallest stack a
+	/// process starts with, a megabyte, and held to a time and an allocation: the walks that follow
+	/// calls go a bounded depth with a stack of their own, ask each rule once, and charge every step.
+	/// Each is asked with what it should find, so a check that gave up early would not pass: a shape
+	/// that reads its run two ways is told through the same walks.
 	/// </summary>
-	[Fact]
-	public void A_look_over_a_rule_of_many_paths_is_read_once_a_rule()
+	/// <param name="shape">Which grammar (<see cref="Deep"/>).</param>
+	[Theory]
+	[InlineData("look over a diamond", 1, 0, 0)]
+	[InlineData("look over a diamond, then a run read two ways", 1, 1, 0)]
+	[InlineData("chain of guards", 1, 0, 0)]
+	[InlineData("chain of guards, then a run read two ways", 2, 1, 0)]
+	[InlineData("chain of aliases repeated", 1, 0, 0)]
+	[InlineData("diamond of aliases repeated", 1, 0, 0)]
+	[InlineData("braces before a diamond under aliases", 1, 1, 0)]
+	public void A_deep_or_wide_call_graph_is_asked_in_bounded_work(string shape, int loops, int told, int skipped)
 	{
-		var grammar = new StringBuilder("A0 = 'a'\n");
+		var (graph, split) = Built(Deep(shape));
 
-		for (var i = 1; i <= 24; i++)
-			grammar.Append($"A{i} = A{i - 1} | A{i - 1} & any\n");
+		ExponentialRepetition.Result? result = null;
 
-		grammar.Append("R = (?!A24 & 'x')* & 'b'\nparse R\n");
+		var steps = 0;
+		var bytes = 0L;
+		var watch = Stopwatch.StartNew();
 
-		Bounded(grammar.ToString());
+		OnThread(
+			() =>
+			{
+				bytes  = GC.GetAllocatedBytesForCurrentThread();
+				result = ExponentialRepetition.Check(graph, split, out steps);
+				bytes  = GC.GetAllocatedBytesForCurrentThread() - bytes;
+			},
+			1 << 20);
+
+		TestContext.Current.SendDiagnosticMessage(
+			$"{shape}: {result!.Loops} loops, {result.Skipped} skipped, {result.Found.Count} told, {steps} steps, {bytes} bytes, {watch.Elapsed.TotalMilliseconds:F1} ms");
+
+		Assert.Equal(loops, result.Loops);
+		Assert.Equal(told, result.Found.Count);
+		Assert.Equal(skipped, result.Skipped);
+		Assert.True(steps > 0, "No work was counted.");
+		Assert.True(steps <= 1 << 20, $"{steps} steps");
+		Assert.True(bytes < 32 << 20, $"{bytes} bytes allocated");
+		Assert.True(watch.Elapsed.TotalSeconds < 5, $"{watch.Elapsed.TotalMilliseconds:F0} ms");
 	}
 
-	/// <summary>
-	/// A chain of eight thousand calls that read nothing is followed a bounded depth, not a frame a
-	/// call: the analysis runs on a thread with the smallest stack a process starts with, a
-	/// megabyte. The graph is built on one of its own with room to spare, since the normalizer's own
-	/// walk down such a chain is deeper than a megabyte allows, which is not this analysis.
-	/// </summary>
-	[Fact]
-	public void A_chain_of_calls_thousands_deep_is_followed_a_bounded_depth()
+	/// <summary>The grammars of <see cref="A_deep_or_wide_call_graph_is_asked_in_bounded_work"/>.</summary>
+	static string Deep(string shape)
 	{
-		var grammar = new StringBuilder("A0 = when @(true)\n");
+		var grammar = new StringBuilder();
 
-		for (var i = 1; i <= 8000; i++)
-			grammar.Append($"A{i} = when @(true) & A{i - 1}\n");
+		void Rules(int from, int to, string body)
+		{
+			for (var i = from; i <= to; i++)
+				grammar.Append($"A{i} = {body.Replace("@", $"A{i - 1}", StringComparison.Ordinal)}\n");
+		}
 
-		grammar.Append("R = (A8000 & 'a')* & 'b'\nparse R\n");
+		switch (shape)
+		{
+			case "look over a diamond":
+				grammar.Append("A0 = 'a'\n");
+				Rules(1, 24, "@ | @ & any");
+				grammar.Append("R = (?!A24 & 'x')* & 'b'\n");
+				break;
 
+			case "look over a diamond, then a run read two ways":
+				grammar.Append("A0 = 'a'\n");
+				Rules(1, 24, "@ | @ & any");
+				grammar.Append("R = (?!A24 & 'x') & ('c' | 'c' & 'c')+ & 'b'\n");
+				break;
+
+			case "chain of guards":
+				grammar.Append("A0 = when @(true)\n");
+				Rules(1, 8000, "when @(true) & @");
+				grammar.Append("R = (A8000 & 'a')* & 'b'\n");
+				break;
+
+			case "chain of guards, then a run read two ways":
+				grammar.Append("A0 = when @(true)\n");
+				Rules(1, 8000, "when @(true) & @");
+				grammar.Append("R = (A8000 & ('a' | 'a' & 'a')+)* & 'b'\n");
+				break;
+
+			case "chain of aliases repeated":
+				grammar.Append("A0 = 'a'\n");
+				Rules(1, 8000, "@");
+				grammar.Append("R = A8000* & 'b'\n");
+				break;
+
+			case "diamond of aliases repeated":
+				grammar.Append("A0 = 'a'\n");
+				Rules(1, 18, "@ | @");
+				grammar.Append("R = A18* & 'b'\n");
+				break;
+
+			// Every path down the diamond meets the depth before it meets a rule that cannot fail:
+			// asked of each rule once, from the bottom, whatever the depth.
+			case "braces before a diamond under aliases":
+				grammar.Append("A0 = 'a'\n");
+				Rules(1, 47, "@");
+				Rules(48, 65, "@ | @ & any");
+				grammar.Append("R = { ('x' | 'x' & 'x')+ & A65 } & 'b'\n");
+				break;
+		}
+
+		return grammar.Append("parse R\n").ToString();
+	}
+
+	/// <summary>The graph of a grammar, built on a thread with room for the normalizer's own walks down a deep chain.</summary>
+	static (RecognitionGraph Graph, LexicalSplit? Split) Built(string grammar)
+	{
 		RecognitionGraph? graph = null;
 		LexicalSplit?     split = null;
 
-		OnThread(() => graph = Graph(grammar.ToString(), lexical: false, out split), 256 << 20);
-		OnThread(() => Bounded(graph!, split), 1 << 20);
+		OnThread(() => graph = Graph(grammar, lexical: false, out split), 256 << 20);
+
+		return (graph!, split);
 	}
 
-	static void OnThread(Action run, int stack)
+	internal static void OnThread(Action run, int stack)
 	{
 		Exception? failed = null;
 
@@ -476,26 +556,43 @@ public sealed class ExponentialRepetitionTests
 			System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failed).Throw();
 	}
 
-	/// <summary>The analysis of a grammar, held to a time and an allocation that do not grow with the paths through it.</summary>
-	static void Bounded(string grammar)
+	/// <summary>
+	/// Calls are written out sixty-four deep and no deeper: past that a call is one opaque step,
+	/// and a run it reads two ways is not seen. Pinned on both sides of the depth.
+	/// </summary>
+	[Theory]
+	[InlineData(60, 1)]
+	[InlineData(65, 0)]
+	public void Calls_past_the_depth_are_one_step(int depth, int told)
 	{
-		Bounded(Graph(grammar, lexical: false, out var split), split);
+		var grammar = new StringBuilder("A0 = 'a' | 'a' & 'a'\n");
+
+		for (var i = 1; i <= depth; i++)
+			grammar.Append($"A{i} = when @(true) & A{i - 1}\n");
+
+		grammar.Append($"R = A{depth}+ & 'b'\nparse R\n");
+
+		Assert.Equal(told, Analyse(grammar.ToString()).Found.Count);
 	}
 
-	static void Bounded(RecognitionGraph graph, LexicalSplit? split)
+	/// <summary>
+	/// A repetition in a rule lifted out of a marked one is an occurrence of its own; a clone of
+	/// the rule it stands in is not.
+	/// </summary>
+	[Theory]
+	[InlineData("R = ((('a' | \"aa\")+ & ',')* recover ',' & (('x' | \"xx\")+ & ';')* recover ';' & '\\n')* recover '\\n'\nparse R\n", 2)]
+	[InlineData(
+		"X = 'x'\nY = 'y'\nQ = ((('a' | \"aa\")+ & X)* recover ',' & '\\n')* recover '\\n'\nparse Q\nparse Q with (X = Y) as Q2\n", 1)]
+	public void Each_occurrence_is_told_once(string grammar, int told)
 	{
-		var watch = Stopwatch.StartNew();
-		var bytes = GC.GetAllocatedBytesForCurrentThread();
+		var graph = Graph(grammar, lexical: false, out var split);
+		var found = ExponentialRepetition.Check(graph, split).Found;
 
-		var result = ExponentialRepetition.Check(graph, split, out var steps);
-
-		bytes = GC.GetAllocatedBytesForCurrentThread() - bytes;
-
-		TestContext.Current.SendDiagnosticMessage($"{result.Loops} loops, {result.Skipped} skipped, {steps} steps, {bytes} bytes, {watch.Elapsed.TotalMilliseconds:F1} ms");
-
-		Assert.Equal(1, result.Loops);
-		Assert.True(bytes < 16 << 20, $"{bytes} bytes allocated");
-		Assert.True(watch.Elapsed.TotalSeconds < 2, $"{watch.Elapsed.TotalMilliseconds:F0} ms");
+		Assert.True(
+			told == found.Count,
+			string.Join("; ", found.Select(static one => $"{one.Rule.Name}: {one.Loop}")) + " | " +
+			string.Join("; ", graph.Rules.Where(one => graph.Bodies.ContainsKey(one)).Select(one =>
+				$"{one.Name}{(graph.Lifted.TryGetValue(one, out var lift) ? $" <- {lift.Parent.Name}/{lift.Origin.Name}" : "")}")));
 	}
 
 	/// <summary>Two repetitions of one rule are two warnings.</summary>

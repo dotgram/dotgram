@@ -138,9 +138,10 @@ public static class ExponentialRepetition
 				seams.Add(called);
 
 		var context   = new Context(over, kinds ? lexical!.Inventory : null, seams);
-		var unfailing = new Unfailing(over);
+		var unfailing = new Unfailing(over, context);
+		var lifts     = new Lifts(over);
 		var found   = new List<Told>();
-		var said    = new HashSet<(string, int, int)>();
+		var said    = new HashSet<(object, string, int)>();
 		var loops   = 0;
 		var skipped = 0;
 
@@ -194,8 +195,11 @@ public static class ExponentialRepetition
 
 				// One repetition written once is one finding, however many clones see it: a clone of a
 				// rule is walked in the same order, so the place a repetition has among its rule's is
-				// the occurrence, and two written alike in one rule are two.
-				if (said.Add((origin.Name, origin.Declaration?.At.Position ?? -1, places.IndexOf(place))))
+				// the occurrence, and two written alike in one rule are two. A rule lifted out of a
+				// marked repetition is a part of its origin of its own, known by where it was lifted
+				// among the parts its parent gave, which a clone gives in the same order.
+				// A clone made by a rebinding carries the declaration it was made from.
+				if (said.Add(((object?)origin.Declaration ?? origin, lifts.Path(rule), places.IndexOf(place))))
 					found.Add(new Told(origin, place.Loop, witness));
 			}
 		}
@@ -203,6 +207,45 @@ public static class ExponentialRepetition
 		steps = context.Steps;
 
 		return new Result(found, loops, skipped, context.Opaque);
+	}
+
+	/// <summary>Where each rule lifted out of a marked repetition stands among the parts its parent gave, and its parent among its own.</summary>
+	sealed class Lifts
+	{
+		readonly RecognitionGraph                          _graph;
+		readonly Dictionary<RuleSymbol, int>               _index = [];
+		readonly Dictionary<RuleSymbol, string>            _paths = [];
+
+		public Lifts(RecognitionGraph graph)
+		{
+			_graph = graph;
+
+			var given = new Dictionary<RuleSymbol, int>();
+
+			foreach (var rule in graph.Rules)
+				if (graph.Lifted.TryGetValue(rule, out var lift))
+				{
+					given.TryGetValue(lift.Parent, out var count);
+					given[lift.Parent] = count + 1;
+					_index[rule]       = count;
+				}
+		}
+
+		/// <summary>The indices from the rule the author wrote down to this one, empty for that rule.</summary>
+		public string Path(RuleSymbol rule)
+		{
+			if (_paths.TryGetValue(rule, out var known))
+				return known;
+
+			var steps = new List<int>();
+
+			for (var at = rule; _graph.Lifted.TryGetValue(at, out var lift) && steps.Count <= _graph.Rules.Count; at = lift.Parent)
+				steps.Add(_index[at]);
+
+			steps.Reverse();
+
+			return _paths[rule] = string.Join("/", steps);
+		}
 	}
 
 	/// <summary>Whether a rule came in with a grammar spliced onto the author's, rather than being written by the author.</summary>
@@ -334,26 +377,85 @@ public static class ExponentialRepetition
 
 	/// <summary>
 	/// Whether a node succeeds wherever it is asked, reading nothing if it must: what follows it
-	/// cannot fail there. A rule's answer is kept once known; a rule met again on the path it is
-	/// asked on, or past <see cref="Deepest"/> calls, is taken as one that can fail.
+	/// cannot fail there.
 	/// </summary>
-	sealed class Unfailing(RecognitionGraph graph)
+	/// <remarks>
+	/// What every rule is, worked out once for the grammar and without following a call: the
+	/// rules that cannot fail are the least set closed under their bodies, found from a work list
+	/// that asks a rule again only when a rule it calls was found to be one. So a chain or a
+	/// diamond of calls of any depth costs its size, once, and every body asked is counted.
+	/// </remarks>
+	sealed class Unfailing(RecognitionGraph graph, Context context)
 	{
-		readonly Dictionary<RuleSymbol, bool> _known  = [];
-		readonly HashSet<RuleSymbol>          _asking = [];
-
-		/// <summary>How many answers were cut short by the path or the depth, so far.</summary>
-		int _cuts;
+		HashSet<RuleSymbol>? _holding;
 
 		public RecognitionGraph Graph => graph;
 
 		public bool Holds(Node node)
 		{
-			return Holds(node, 0);
+			_holding ??= Settled();
+
+			return Local(node, _holding);
 		}
 
-		bool Holds(Node node, int depth)
+		HashSet<RuleSymbol> Settled()
 		{
+			var holding = new HashSet<RuleSymbol>();
+			var callers = new Dictionary<RuleSymbol, List<RuleSymbol>>();
+			var pending = new Queue<RuleSymbol>();
+
+			foreach (var rule in graph.Rules)
+			{
+				if (!graph.Bodies.TryGetValue(rule, out var body))
+					continue;
+
+				pending.Enqueue(rule);
+
+				var nodes = new Stack<Node>();
+
+				nodes.Push(body);
+
+				while (nodes.Count > 0)
+				{
+					var node = nodes.Pop();
+
+					context.Count(1);
+
+					if (node is Node.Call(var called, _))
+					{
+						if (!callers.TryGetValue(called, out var calling))
+							callers[called] = calling = [];
+
+						calling.Add(rule);
+					}
+
+					foreach (var child in node.Children)
+						nodes.Push(child);
+				}
+			}
+
+			while (pending.Count > 0)
+			{
+				var rule = pending.Dequeue();
+
+				if (holding.Contains(rule) || !Local(graph.Bodies[rule], holding))
+					continue;
+
+				holding.Add(rule);
+
+				if (callers.TryGetValue(rule, out var calling))
+					foreach (var caller in calling)
+						pending.Enqueue(caller);
+			}
+
+			return holding;
+		}
+
+		/// <summary>Whether a body cannot fail, given the rules known so far that cannot; a call is not followed.</summary>
+		bool Local(Node node, HashSet<RuleSymbol> holding)
+		{
+			context.Count(1);
+
 			switch (node)
 			{
 				case Node.Empty:
@@ -363,41 +465,19 @@ public static class ExponentialRepetition
 					return true;
 
 				case Node.Sequence(var parts):
-					return parts.All(part => Holds(part, depth));
+					return parts.All(part => Local(part, holding));
 
 				case Node.Choice { Selection: null } choice:
-					return choice.Nodes.Any(alternative => Holds(alternative, depth));
+					return choice.Nodes.Any(alternative => Local(alternative, holding));
 
 				case Node.Atomic(var body):
-					return Holds(body, depth);
+					return Local(body, holding);
 
 				case Node.Capture or Node.Marked or Node.Construct or Node.Bind:
-					return node.Children.All(child => Holds(child, depth));
+					return node.Children.All(child => Local(child, holding));
 
-				case Node.Call(var called, _) when graph.Bodies.TryGetValue(called, out var body):
-				{
-					if (_known.TryGetValue(called, out var known))
-						return known;
-
-					if (depth >= Deepest || !_asking.Add(called))
-					{
-						_cuts++;
-
-						return false;
-					}
-
-					var cuts  = _cuts;
-					var holds = Holds(body, depth + 1);
-
-					_asking.Remove(called);
-
-					// An answer cut short by the path or the depth is the path's, not the rule's; one
-					// that holds holds whatever was cut.
-					if (holds || _cuts == cuts)
-						_known[called] = holds;
-
-					return holds;
-				}
+				case Node.Call(var called, _):
+					return holding.Contains(called);
 
 				default:
 					return false;
@@ -520,9 +600,10 @@ public static class ExponentialRepetition
 		/// A rule counts as written in place as the emitter writes it where it is most careful,
 		/// so that no rendering keeps a way back this takes for gone.
 		/// </remarks>
-		public bool OneCharacter(Node body)
+		/// <param name="step">Told of every node the walk visits: the repetition's budget.</param>
+		public bool OneCharacter(Node body, Func<bool> step)
 		{
-			return ExecutionPlan.OneCharacter(body, graph, InPlace);
+			return ExecutionPlan.OneCharacter(body, graph, InPlace, step);
 		}
 
 		bool InPlace(RuleSymbol rule)
@@ -1136,49 +1217,67 @@ public static class ExponentialRepetition
 		/// </summary>
 		Fragment Turn(Node body)
 		{
-			return context.OneCharacter(body) && Union(body) is { } reads
+			return context.OneCharacter(body, Step) && Union(body) is { } reads
 				? Leaf(new Letter(reads, -1, ""))
 				: Of(body);
 		}
 
-		/// <summary>The characters a body that is one test reads, or null where some of them are the host's to know.</summary>
-		FirstSets.First? Union(Node body, int depth = 0)
+		/// <summary>One node of a walk visited, charged to the budget.</summary>
+		bool Step()
 		{
-			if (depth > Deepest)
-				return null;
+			Charge(1);
 
-			switch (body)
+			return true;
+		}
+
+		/// <summary>
+		/// The characters a body that is one test reads, or null where some of them are the host's
+		/// to know: walked with a stack of its own, each rule's body once, every node charged.
+		/// </summary>
+		FirstSets.First? Union(Node body)
+		{
+			var all     = FirstSets.First.None;
+			var pending = new Stack<Node>();
+			var entered = new HashSet<RuleSymbol>();
+
+			pending.Push(body);
+
+			while (pending.Count > 0)
 			{
-				case Node.Element { References.Count: 0 } element:
-					return FirstSets.OfElement(element);
+				Charge(1);
 
-				case Node.Literal { Text.Length: 1 } literal:
-					return FirstSets.First.Chars([new CharRange(literal.Text[0], literal.Text[0])]);
-
-				case Node.Call(var called, _) when context.Graph.Bodies.TryGetValue(called, out var inlined):
-					return Union(inlined, depth + 1);
-
-				case Node.Sequence([var only]):
-					return Union(only, depth);
-
-				case Node.Choice(var alternatives):
+				switch (pending.Pop())
 				{
-					var all = FirstSets.First.None;
+					case Node.Element { References.Count: 0 } element:
+						all = all.Or(FirstSets.OfElement(element));
+						break;
 
-					foreach (var alternative in alternatives)
-					{
-						if (Union(alternative, depth) is not { } one)
-							return null;
+					case Node.Literal { Text.Length: 1 } literal:
+						all = all.Or(FirstSets.First.Chars([new CharRange(literal.Text[0], literal.Text[0])]));
+						break;
 
-						all = all.Or(one);
-					}
+					case Node.Call(var called, _) when context.Graph.Bodies.TryGetValue(called, out var inlined):
+						if (entered.Add(called))
+							pending.Push(inlined);
 
-					return all;
+						break;
+
+					case Node.Sequence([var only]):
+						pending.Push(only);
+						break;
+
+					case Node.Choice(var alternatives):
+						foreach (var alternative in alternatives)
+							pending.Push(alternative);
+
+						break;
+
+					default:
+						return null;
 				}
-
-				default:
-					return null;
 			}
+
+			return all;
 		}
 
 		Fragment Then(Fragment before, Fragment after)

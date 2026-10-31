@@ -228,14 +228,121 @@ public sealed class ExponentialRepetitionScalingTests
 		Assert.True(steps <= bound, $"{path}: {steps} steps, over the bound of {bound}.");
 	}
 
+	/// <summary>
+	/// Random chains and diamonds of calls, up to ten thousand deep and one or two calls a rule,
+	/// under every kind of repetition the analysis walks calls from: each is asked on a thread of a
+	/// megabyte, within a fixed allocation and a time that its counted steps account for, so that a
+	/// walk that did work it did not count would show as time. A repetition past the budget is
+	/// skipped and counted. The graph is built on a thread of its own with room for the normalizer;
+	/// the graph's own first sets, which every stage shares, are not counted.
+	/// </summary>
+	[Theory]
+	[InlineData(1)]
+	[InlineData(2)]
+	[InlineData(3)]
+	[InlineData(4)]
+	[InlineData(5)]
+	[InlineData(6)]
+	[InlineData(7)]
+	[InlineData(8)]
+	[InlineData(9)]
+	[InlineData(10)]
+	public void A_random_call_graph_of_any_depth_is_asked_within_bounds(int seed)
+	{
+		var random  = new Random(seed);
+		var depth   = seed <= 2 ? 10_000 : random.Next(1, 10_001);
+		var grammar = new System.Text.StringBuilder(random.Next(2) == 0 ? "A0 = 'a'\n" : "A0 = 'a' | 'a' & 'a'\n");
+
+		string[] shapes = ["@", "@ | @", "@ | @ & any", "when @(true) & @", "@ & 'b'?"];
+		string[] roots  =
+		[
+			"R = A# & 'z'", "R = A#* & 'z'", "R = (A# & 'a')* & 'z'", "R = (?!A# & 'x')* & 'z'",
+			"R = { ('x' | 'x' & 'x')+ & A# } & 'z'", "R = (A# | 'a')+ & 'z'",
+		];
+
+		for (var i = 1; i <= depth; i++)
+			grammar.Append($"A{i} = {shapes[random.Next(shapes.Length)].Replace("@", $"A{i - 1}", StringComparison.Ordinal)}\n");
+
+		var root = roots[random.Next(roots.Length)].Replace("#", depth.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal);
+
+		grammar.Append(root).Append("\nparse R\n");
+
+		var text = grammar.ToString();
+
+		RecognitionGraph? graph = null;
+
+		OnThread(
+			() =>
+			{
+				var parsed = GramCompiler.Read(text, RoslynCSharpScanner.Instance);
+
+				Assert.DoesNotContain(parsed.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+				graph = GrammarNormalizer.Normalize(GrammarBinder.Bind(parsed.File, null, text.Length), scanner: RoslynCSharpScanner.Instance);
+			},
+			1 << 30);
+
+		ExponentialRepetition.Result? result = null;
+
+		var steps = 0;
+		var bytes = 0L;
+		var watch = Stopwatch.StartNew();
+
+		OnThread(
+			() =>
+			{
+				bytes  = GC.GetAllocatedBytesForCurrentThread();
+				result = ExponentialRepetition.Check(graph!, null, out steps);
+				bytes  = GC.GetAllocatedBytesForCurrentThread() - bytes;
+			},
+			1 << 20);
+
+		Said($"seed {seed}, depth {depth}, {root}: {result!.Loops} loops, {result.Skipped} skipped, {result.Found.Count} told, {steps} steps, {bytes} bytes, {watch.Elapsed.TotalMilliseconds:F1} ms");
+
+		Assert.True(result.Skipped <= result.Loops);
+		Assert.True(result.Loops == 0 || steps > 0, "Repetitions were asked and no work was counted.");
+		Assert.True(bytes < 64 << 20, $"{bytes} bytes allocated");
+
+		// Half a second, and twenty microseconds a step: what an uncounted walk down ten thousand
+		// rules, or every path of a diamond, would overrun.
+		Assert.True(
+			watch.Elapsed.TotalMilliseconds <= 500 + steps * 0.02,
+			$"{watch.Elapsed.TotalMilliseconds:F0} ms for {steps} steps");
+	}
+
+	static void OnThread(Action run, int stack)
+	{
+		Exception? failed = null;
+
+		var thread = new System.Threading.Thread(
+			() =>
+			{
+				try
+				{
+					run();
+				}
+				catch (Exception error)
+				{
+					failed = error;
+				}
+			},
+			stack);
+
+		thread.Start();
+		thread.Join();
+
+		if (failed is not null)
+			System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failed).Throw();
+	}
+
 	/// <summary>The bounds of the work: what was measured, and a quarter more.</summary>
 	static class Bounds
 	{
-		// 558,233 steps on 31.10.2026, building the automata counted.
-		public const int TransactSql = 700_000;
+		// 768,397 steps on 31.10.2026, building the automata and what can fail counted.
+		public const int TransactSql = 960_000;
 
-		// 388 steps on 31.10.2026.
-		public const int Rfc5322 = 500;
+		// 2,041 steps on 31.10.2026.
+		public const int Rfc5322 = 2_600;
 	}
 
 	/// <summary>A grammar file's text, or the grammar of the one <c>[Gram]</c> in a C# file.</summary>

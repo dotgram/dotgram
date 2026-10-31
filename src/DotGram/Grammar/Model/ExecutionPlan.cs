@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 using DotGram.Grammar.Binding;
 
@@ -91,9 +92,18 @@ public sealed class ExecutionPlan
 	/// An element that admits nothing, written as no test at all, is not one: no turn of it is
 	/// ever read.
 	/// </para>
+	/// <para>
+	/// Walked with a stack of its own and each rule's body once, so a chain or a diamond of calls
+	/// written in place costs its size and never the depth of the thread's stack: the answer is
+	/// whether every character test reached is one, which asking a rule twice does not change.
+	/// </para>
 	/// </remarks>
 	/// <param name="inPlace">Whether a call to the rule is written where it is called, as the caller renders it.</param>
-	public static bool OneCharacter(Node body, RecognitionGraph graph, Func<RuleSymbol, bool> inPlace)
+	/// <param name="step">
+	/// Told of every node visited, for a caller that holds the walk to a budget; where it answers
+	/// false the walk stops and the body is not one. Null for no budget.
+	/// </param>
+	public static bool OneCharacter(Node body, RecognitionGraph graph, Func<RuleSymbol, bool> inPlace, Func<bool>? step = null)
 	{
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
@@ -101,31 +111,51 @@ public sealed class ExecutionPlan
 		if (inPlace is null)
 			throw new ArgumentNullException(nameof(inPlace));
 
-		switch (body)
+		var pending = new Stack<Node>();
+		var entered = new HashSet<RuleSymbol>();
+
+		pending.Push(body);
+
+		while (pending.Count > 0)
 		{
-			case Node.Element element:
-				return element.IsNegated || element.Ranges.Count > 0 || element.Categories.Count > 0 ||
-					element.References.Any(static reference => reference is CSharpSymbol);
+			if (step is not null && !step())
+				return false;
 
-			case Node.Literal { IgnoreCase: false, Text.Length: 1 }:
-				return true;
-
-			case Node.Call(var rule, _) when inPlace(rule):
-				return OneCharacter(graph.Bodies[rule], graph, inPlace);
-
-			case Node.Sequence(var nodes) when nodes.Count == 1:
-				return OneCharacter(nodes[0], graph, inPlace);
-
-			case Node.Choice(var alternatives) { Selection: null }:
-				foreach (var alternative in alternatives)
-					if (!OneCharacter(alternative, graph, inPlace))
+			switch (pending.Pop())
+			{
+				case Node.Element element:
+					if (!(element.IsNegated || element.Ranges.Count > 0 || element.Categories.Count > 0 ||
+						element.References.Any(static reference => reference is CSharpSymbol)))
 						return false;
 
-				return true;
+					break;
 
-			default:
-				return false;
+				case Node.Literal { IgnoreCase: false, Text.Length: 1 }:
+					break;
+
+				case Node.Call(var rule, _) when inPlace(rule):
+					if (entered.Add(rule))
+						pending.Push(graph.Bodies[rule]);
+
+					break;
+
+				case Node.Sequence(var nodes) when nodes.Count == 1:
+					pending.Push(nodes[0]);
+
+					break;
+
+				case Node.Choice(var alternatives) { Selection: null }:
+					foreach (var alternative in alternatives)
+						pending.Push(alternative);
+
+					break;
+
+				default:
+					return false;
+			}
 		}
+
+		return true;
 	}
 
 	/// <summary>
