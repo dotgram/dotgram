@@ -42,6 +42,10 @@ namespace DotGram.Examples.Formats;
 /// <summary>One measurement: what it is called, and what it read as.</summary>
 public sealed record Reading(string Key, object Value);
 
+// GRAM4052 takes the lookahead in `Value` for reading nothing, and so takes a number for one that
+// `Decimal` and `Long` could both read: a look of more than one character is not asked what it
+// refuses. It refuses it here, so a line is read one way, and the warning is silenced for it.
+#pragma warning disable GRAM4052
 [Gram("""
 	@using DotGram.Examples.Formats;
 
@@ -62,6 +66,7 @@ public sealed record Reading(string Key, object Value);
 
 	parse Line
 	""")]
+#pragma warning restore GRAM4052
 public static partial class MetricsLine
 {
 	/// <summary>What the quotes were around, with a doubled quote read as one.</summary>

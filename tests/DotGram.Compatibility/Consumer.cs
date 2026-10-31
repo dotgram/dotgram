@@ -92,7 +92,7 @@ namespace DotGram.Compatibility
 		"Entry  : @Entry   = key: Key & '=' & value: Rest & when @(key.Length > 0)\n" +
 		"\n" +
 		"Key    : @string  = text: ['a'..'z' | 'A'..'Z' | '0'..'9' | '_']+ => @(text)\n" +
-		"Rest   : @string  = text: [^ '\\n' | '\\r']* => @(text)\n" +
+		"Rest   : @string  = text: { [^ '\\n' | '\\r']* } => @(text)\n" +
 		"Where  : @SourceSpan = ['a'..'z']+\n" +
 		// Recursion, so that the generated file carries the stack probe. It asks the
 		// runtime whether there is stack left for another level, and the method it used
