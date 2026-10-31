@@ -23,7 +23,11 @@ namespace DotGram.LanguageServer;
 /// the other updates nor the texts behind them.
 /// </para>
 /// </remarks>
-sealed class WorkspaceUpdates(Func<Task<FolderWorkspace>> folder, Action<Exception> report)
+/// <param name="folder">The workspace, once read.</param>
+/// <param name="report">Told what an update threw.</param>
+/// <param name="paths">How the file system compares paths: <c>Base.gram</c> and <c>base.gram</c> are one file on Windows and macOS.</param>
+/// <param name="read">What reads a file; null where it cannot be read.</param>
+sealed class WorkspaceUpdates(Func<Task<FolderWorkspace>> folder, Action<Exception> report, StringComparer paths, Func<string, string?> read)
 {
 	enum Kind
 	{
@@ -33,13 +37,17 @@ sealed class WorkspaceUpdates(Func<Task<FolderWorkspace>> folder, Action<Excepti
 	}
 
 	readonly object                                                  _gate     = new();
-	readonly Dictionary<string, (Kind Kind, SourceText? Text)>       _grammars = new(StringComparer.Ordinal);
-	readonly Dictionary<string, long>                                _asked    = new(StringComparer.Ordinal);
-	readonly Dictionary<string, string?>                             _read     = new(StringComparer.Ordinal);
+	readonly Dictionary<string, (Kind Kind, SourceText? Text)>       _grammars = new(paths);
+	readonly Dictionary<string, long>                                _asked    = new(paths);
+	readonly Dictionary<string, string?>                             _read     = new(paths);
 	readonly List<string>                                            _order    = [];
 	long                                                             _reads;
+	int                                                              _reading;
 	bool                                                             _draining;
 	Task                                                             _drained  = Task.CompletedTask;
+
+	/// <summary>How many watched files are being read now.</summary>
+	public int Reading => Volatile.Read(ref _reading);
 
 	/// <summary>Completes once every update asked for so far has been applied, or is a read still running; a test's barrier.</summary>
 	public Task Drained
@@ -79,26 +87,54 @@ sealed class WorkspaceUpdates(Func<Task<FolderWorkspace>> folder, Action<Excepti
 	/// <summary>A watched file changed: it is read off the queue, and the read applied in order once it is done.</summary>
 	public void FileChanged(string path, bool deleted)
 	{
-		long read;
+		long generation;
 
 		lock (_gate)
-			read = _asked[path] = ++_reads;
+			generation = _asked[path] = ++_reads;
 
-		if (deleted)
+		// Off the queue: whether the file concerns the workspace is known once the folders are read, and
+		// a file it ignores — under obj, bin or node_modules — is not read at all.
+		Interlocked.Increment(ref _reading);
+
+		_ = Task.Run(async () =>
 		{
-			Read(path, read, null);
-			return;
-		}
+			try
+			{
+				var workspace = await folder().ConfigureAwait(false);
 
-		_ = Task.Run(() => Read(path, read, FolderWorkspace.Read(path)));
+				if (!workspace.Watches(path))
+				{
+					Forget(path, generation);
+					return;
+				}
+
+				Read(path, generation, deleted ? null : read(path));
+			}
+			catch (Exception exception) when (exception is not OutOfMemoryException)
+			{
+				report(exception);
+			}
+			finally
+			{
+				Interlocked.Decrement(ref _reading);
+			}
+		});
 	}
 
-	void Read(string path, long read, string? text)
+	void Forget(string path, long generation)
+	{
+		lock (_gate)
+			if (_asked.TryGetValue(path, out var asked) && asked == generation)
+				_asked.Remove(path);
+	}
+
+	void Read(string path, long generation, string? text)
 	{
 		lock (_gate)
 		{
-			// A read asked for later replaces this one, which is dropped with its text.
-			if (!_asked.TryGetValue(path, out var asked) || asked != read)
+			// A read asked for later — of this path, however its case is written — replaces this one,
+			// which is dropped with its text.
+			if (!_asked.TryGetValue(path, out var asked) || asked != generation)
 				return;
 
 			_asked.Remove(path);
