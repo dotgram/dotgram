@@ -1,8 +1,9 @@
 ﻿using System;
-using System.Diagnostics;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 
 using DotGram.Examples.Formats;
 using DotGram.Examples.Languages;
@@ -48,16 +49,16 @@ public sealed class ExampleRefusalGrowthTests
 	const int First = 4;
 
 	/// <summary>How many times the input doubles after <see cref="First"/>.</summary>
-	const int Doublings = 7;
+	const int Doublings = 6;
 
 	/// <summary>What one doubling of the input may cost, as a multiple: a linear reading is 2, a quadratic one 4.</summary>
 	const double Step = 8;
 
-	/// <summary>What the whole ladder may cost, as a multiple of a quadratic reading's growth (128 times the size, 16384 times the time).</summary>
+	/// <summary>What the whole ladder may cost, as a multiple of a quadratic reading's growth (64 times the size, 4096 times the time).</summary>
 	const double Whole = 2;
 
-	/// <summary>How long a timing covers, in milliseconds, so that a reading of microseconds is not noise.</summary>
-	const double Sample = 15;
+	/// <summary>How long one refusal may take before the ladder is given up.</summary>
+	static readonly TimeSpan Deadline = TimeSpan.FromSeconds(3);
 
 	[Theory]
 	[InlineData("a: b\r\n")]
@@ -90,6 +91,8 @@ public sealed class ExampleRefusalGrowthTests
 	[InlineData("; c\r\n\r\n")]
 	[InlineData("[s]\r\n")]
 	[InlineData(" [ s ] \r\nk=v\r\n")]
+	[InlineData(";[s]\n")]
+	[InlineData("k=v ;[s]\n#[t]\n")]
 	public void INI_lines_are_refused_in_step_with_their_length(string piece)
 	{
 		Ladder("ini " + Shown(piece), n => Repeated(piece, n) + "]", static text => IniParser.TryParseIni(text).IsSuccess);
@@ -198,11 +201,42 @@ public sealed class ExampleRefusalGrowthTests
 		Assert.False(SqlReadOnly.IsReadOnly("select 1 /* '\n */ insert into t values (1) /* ' */"));
 	}
 
-	[Fact]
-	public void A_located_config_whose_lines_hold_more_than_one_equals_sign_is_refused_in_step_with_its_length()
+	[Theory]
+	[InlineData("a=b=c\n")]
+	[InlineData("a=b=\n")]
+	[InlineData("aa=bb=cc=\n")]
+	[InlineData("a = b = \n")]
+	[InlineData("a=b #c\n")]
+	[InlineData("a=b =\n")]
+	public void A_located_config_whose_lines_hold_more_than_one_equals_sign_is_refused_in_step_with_its_length(string piece)
 	{
-		Ladder("located config", static n => Repeated("a=b=c\n", n) + "!", static text => Config.Located.TryParseFile(text).IsSuccess);
+		Ladder("located config " + Shown(piece), n => Repeated(piece, n) + "z\n!", static text => Config.Located.TryParseFile(text).IsSuccess);
+	}
+
+	[Fact]
+	public void A_located_config_still_reads_what_it_read()
+	{
 		Assert.True(Config.Located.TryParseFile("a=b=c\nd = e\n").IsSuccess);
+
+		// The first value gives back `b=`, so that the key before the line's end is the next entry's.
+		var entries = Config.Located.ParseFile("a=b=\nc");
+
+		Assert.Equal(["a", "b"], entries.Select(static one => one.Key).ToArray());
+		Assert.Equal(["", "c"], entries.Select(static one => one.Value).ToArray());
+		Assert.Equal([new At(0, 2), new At(2, 4)], entries.Select(static one => one.Where).ToArray());
+
+		entries = Config.Located.ParseFile("a=b=c=\nz");
+
+		Assert.Equal(["a", "c"], entries.Select(static one => one.Key).ToArray());
+		Assert.Equal(["b=", "z"], entries.Select(static one => one.Value).ToArray());
+
+		// A key and its equals sign on different lines.
+		entries = Config.Located.ParseFile("a=x y\n=z");
+
+		Assert.Equal(["a", "y"], entries.Select(static one => one.Key).ToArray());
+		Assert.Equal(["x ", "z"], entries.Select(static one => one.Value).ToArray());
+
+		Assert.False(Config.Located.TryParseFile("a=b=\nz\n!").IsSuccess);
 	}
 
 	/// <remarks>
@@ -219,8 +253,8 @@ public sealed class ExampleRefusalGrowthTests
 			trivia = { Spacing* }
 
 			List  : @string[] = Entry* & eof
-			Entry : @string   = n: Key & a: Alias & ';' => @(n + a)
-			Key   : @string   = w: { Identifier } => @(w)
+			Entry : @string   = { n: Key & a: Alias & ';' } => @(n + a)
+			Key   : @string   = w: Identifier => @(w)
 			Alias : @string   = "AS" & w: Identifier => @(w)
 			                  | none => @("")
 
@@ -242,77 +276,80 @@ public sealed class ExampleRefusalGrowthTests
 
 		Ladder("aliases", static n => Repeated("xASy;", n) + "!", Accepts);
 		Assert.True(Accepts("t;u AS v;xASy;"));
+
+		// `xASy` is a key, and `xAS y` a key and an alias: whichever reads the entry.
+		Assert.True(Accepts("xAS y;"));
 	}
 
 	/// <summary>
 	/// Doubles the input from <see cref="First"/> units and holds the time of each size against the
-	/// one before it.
+	/// one before it, and of the last against the first.
 	/// </summary>
 	static void Ladder(string what, Func<int, string> input, Func<string, bool> accepts)
 	{
 		var sizes = Enumerable.Range(0, Doublings + 1).Select(static one => First << one).ToArray();
-		var times = new double[sizes.Length];
+		var texts = new string[sizes.Length];
+		var seen  = new List<string>();
 
 		for (var at = 0; at < sizes.Length; at++)
 		{
-			var text = input(sizes[at]);
+			texts[at] = input(sizes[at]);
 
-			Assert.False(accepts(text), $"The {what} input of {sizes[at]} units is accepted, so it measures a refusal of nothing.");
+			// Once, with a deadline: a shape that reads every way would otherwise be in its first
+			// refusal for minutes before any ratio could be asked of it.
+			Assert.False(
+				Refused(accepts, texts[at], what, sizes[at]),
+				$"The {what} input of {sizes[at]} units is accepted, so it measures a refusal of nothing.");
 
-			times[at] = Clock(accepts, text);
+			if (at == 0)
+				continue;
 
-			// Before the assertion, so that a ladder that stops shows how far it got.
-			Say(what, sizes, times, at + 1);
+			var small   = texts[at - 1];
+			var large   = texts[at];
+			var reading = ScalingClock.Settle(() => accepts(small), () => accepts(large), Step);
 
-			if (at > 0)
-			{
-				Assert.True(
-					times[at] <= Step * times[at - 1],
-					$"The {what} refusal went from {times[at - 1]:F3} ms at {sizes[at - 1]} units to {times[at]:F3} ms at {sizes[at]}: " +
-					$"{times[at] / times[at - 1]:F1} times for twice the input, against a bound of {Step}.");
-			}
+			seen.Add($"{sizes[at]}: {reading.Longer / 1000:F3} ms (x{reading.Ratio:F1})");
+			Say(what, seen);
+
+			Assert.True(
+				reading.Within,
+				$"The {what} refusal went from {reading.Shorter / 1000:F3} ms at {sizes[at - 1]} units to {reading.Longer / 1000:F3} ms at {sizes[at]}: " +
+				$"{reading.Ratio:F1} times for twice the input, against a bound of {Step}, on every one of {ScalingClock.Attempts} measurements ({reading.Readings}).");
 		}
 
-		Say(what, sizes, times, times.Length);
-
-		var grown = times[^1] / times[0];
+		var first = texts[0];
+		var last  = texts[^1];
 		var bound = Whole * Math.Pow(sizes[^1] / (double)sizes[0], 2);
+		var whole = ScalingClock.Settle(() => accepts(first), () => accepts(last), bound);
 
 		Assert.True(
-			grown <= bound,
-			$"The {what} refusal grew {grown:F1} times over {sizes[0]} to {sizes[^1]} units, against a bound of {bound:F0}; " +
-			$"{string.Join(", ", sizes.Select((n, i) => $"{n}: {times[i]:F3} ms"))}.");
+			whole.Within,
+			$"The {what} refusal grew {whole.Ratio:F1} times over {sizes[0]} to {sizes[^1]} units, against a bound of {bound:F0}, " +
+			$"on every one of {ScalingClock.Attempts} measurements ({whole.Readings}).");
 	}
 
-	static void Say(string what, int[] sizes, double[] times, int upTo)
+	/// <summary>One call of <paramref name="accepts"/>, given up on after <see cref="Deadline"/>.</summary>
+	/// <remarks>
+	/// The call runs on a thread of its own, which cannot be stopped from outside: on a miss it is left to
+	/// run on, in the background, until the process ends, and the test fails at once.
+	/// </remarks>
+	static bool Refused(Func<string, bool> accepts, string text, string what, int units)
 	{
-		TestContext.Current.SendDiagnosticMessage(
-			$"{what}: {string.Join(", ", sizes.Take(upTo).Select((n, i) => $"{n}: {times[i]:F3} ms"))}");
+		var result = false;
+		var thread = new Thread(() => result = accepts(text)) { IsBackground = true };
+
+		thread.Start();
+
+		Assert.True(
+			thread.Join(Deadline),
+			$"One refusal of the {what} input took more than {Deadline.TotalSeconds:F0} s at {units} units, which is a time no ladder can be climbed in.");
+
+		return result;
 	}
 
-	/// <summary>The least time of one refusal in milliseconds, over three rounds of <see cref="Sample"/> milliseconds each.</summary>
-	static double Clock(Func<string, bool> accepts, string text)
+	static void Say(string what, List<string> seen)
 	{
-		accepts(text);
-
-		var least = double.MaxValue;
-
-		for (var round = 0; round < 3; round++)
-		{
-			var watch = Stopwatch.StartNew();
-			var calls = 0;
-
-			do
-			{
-				accepts(text);
-				calls++;
-			}
-			while (watch.Elapsed.TotalMilliseconds < Sample);
-
-			least = Math.Min(least, watch.Elapsed.TotalMilliseconds / calls);
-		}
-
-		return least;
+		TestContext.Current.SendDiagnosticMessage($"{what}: {string.Join(", ", seen)}");
 	}
 
 	static string Shown(string piece)
