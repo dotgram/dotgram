@@ -43,13 +43,13 @@ sealed record MarkupContent(string Kind, string Value)
 sealed record WorkspaceFolder(string Uri, string Name);
 
 sealed record InitializeParams(
-	int? ProcessId,
-	string? RootUri,
-	string? RootPath,
-	IReadOnlyList<WorkspaceFolder>? WorkspaceFolders,
-	JsonElement? Capabilities,
-	JsonElement? InitializationOptions,
-	string? Trace);
+	int? ProcessId = null,
+	string? RootUri = null,
+	string? RootPath = null,
+	IReadOnlyList<WorkspaceFolder>? WorkspaceFolders = null,
+	JsonElement? Capabilities = null,
+	JsonElement? InitializationOptions = null,
+	string? Trace = null);
 
 sealed record ServerInfo(string Name, string Version);
 
@@ -89,7 +89,7 @@ sealed record CancelParams(JsonElement Id);
 
 sealed record DidOpenTextDocumentParams(TextDocumentItem TextDocument);
 
-sealed record TextDocumentContentChangeEvent(Range? Range, int? RangeLength, string Text);
+sealed record TextDocumentContentChangeEvent(string Text, Range? Range = null, int? RangeLength = null);
 
 sealed record DidChangeTextDocumentParams(
 	VersionedTextDocumentIdentifier TextDocument,
@@ -115,9 +115,9 @@ sealed record SemanticTokensParams(TextDocumentIdentifier TextDocument);
 
 sealed record SemanticTokens(IReadOnlyList<int> Data);
 
-sealed record CompletionContext(int TriggerKind, string? TriggerCharacter);
+sealed record CompletionContext(int TriggerKind, string? TriggerCharacter = null);
 
-sealed record CompletionParams(TextDocumentIdentifier TextDocument, Position Position, CompletionContext? Context);
+sealed record CompletionParams(TextDocumentIdentifier TextDocument, Position Position, CompletionContext? Context = null);
 
 sealed record CompletionItemLabelDetails(string? Detail);
 
@@ -138,9 +138,9 @@ sealed record CompletionList(bool IsIncomplete, CompletionItemDefaults ItemDefau
 
 sealed record Hover(MarkupContent Contents, Range Range);
 
-sealed record SignatureHelpContext(int TriggerKind, string? TriggerCharacter, bool IsRetrigger);
+sealed record SignatureHelpContext(int TriggerKind, string? TriggerCharacter = null, bool IsRetrigger = false);
 
-sealed record SignatureHelpParams(TextDocumentIdentifier TextDocument, Position Position, SignatureHelpContext? Context);
+sealed record SignatureHelpParams(TextDocumentIdentifier TextDocument, Position Position, SignatureHelpContext? Context = null);
 
 sealed record ParameterInformation(IReadOnlyList<int> Label, MarkupContent? Documentation);
 
@@ -150,7 +150,7 @@ sealed record SignatureHelp(IReadOnlyList<SignatureInformation> Signatures, int 
 
 sealed record ReferenceContext(bool IncludeDeclaration);
 
-sealed record ReferenceParams(TextDocumentIdentifier TextDocument, Position Position, ReferenceContext? Context);
+sealed record ReferenceParams(TextDocumentIdentifier TextDocument, Position Position, ReferenceContext? Context = null);
 
 sealed record DocumentHighlight(Range Range, int Kind);
 
@@ -207,9 +207,14 @@ static class Lsp
 }
 
 /// <summary>Every type the server reads or writes, serialized by generated code rather than by reflection.</summary>
+// What a client must send, it must: a parameter of a record's constructor is required unless it has a
+// default, and null only where its type says so, so a request without its text document, its position or
+// a rename's new name is refused as invalid rather than answered with nulls.
 [JsonSourceGenerationOptions(
-	PropertyNamingPolicy   = JsonKnownNamingPolicy.CamelCase,
-	DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+	PropertyNamingPolicy                 = JsonKnownNamingPolicy.CamelCase,
+	DefaultIgnoreCondition               = JsonIgnoreCondition.WhenWritingNull,
+	RespectNullableAnnotations           = true,
+	RespectRequiredConstructorParameters = true)]
 [JsonSerializable(typeof(InitializeParams))]
 [JsonSerializable(typeof(InitializeResult))]
 [JsonSerializable(typeof(SetTraceParams))]

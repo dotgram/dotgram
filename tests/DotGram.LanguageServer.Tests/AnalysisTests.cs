@@ -105,6 +105,53 @@ public sealed class AnalysisTests
 		Assert.True(elapsed <= bound, $"An edit took {elapsed.TotalMilliseconds:F0} ms to be told about; the analysis took {analysis.TotalMilliseconds:F0} ms.");
 	}
 
+	/// <summary>
+	/// A thousand keystrokes into the T-SQL grammar, as fast as the client sends them, hold a request
+	/// behind them for little: an edit reads only what it changed, not the whole grammar.
+	/// </summary>
+	[Fact]
+	public async Task A_burst_of_keystrokes_does_not_hold_a_request_up()
+	{
+		var text = File.ReadAllText(TransactSqlPath);
+		const string uri = "untitled:Burst.gram";
+
+		await using var client = await LspClient.StartAsync();
+
+		await client.OpenAsync(uri, text);
+		await client.DiagnosticsAsync(uri, 1);
+
+		// At the end of the first line, typed one space at a time.
+		var at    = text.IndexOfAny(['\r', '\n']);
+		var watch = Stopwatch.StartNew();
+
+		for (var version = 2; version <= 1001; version++)
+		{
+			var position = new { line = 0, character = at };
+
+			await client.NotifyAsync("textDocument/didChange", new
+			{
+				textDocument   = new { uri, version },
+				contentChanges = new[] { new { range = new { start = position, end = position }, text = " " } },
+			});
+
+			at++;
+		}
+
+		text = text.Insert(text.IndexOfAny(['\r', '\n']), new string(' ', 1000));
+
+		var sent = watch.Elapsed;
+
+		await client.RequestAsync("textDocument/hover", LspClient.At(uri, text, 0));
+
+		var answered = watch.Elapsed;
+
+		TestContext.Current.TestOutputHelper?.WriteLine(
+			$"1,000 edits sent in {sent.TotalMilliseconds:F0} ms; a request after them answered at {answered.TotalMilliseconds:F0} ms");
+
+		Assert.Equal(text, client.Server.Document(uri)!.Current.String);
+		Assert.True(answered - sent < TimeSpan.FromSeconds(6), $"A request waited {(answered - sent).TotalMilliseconds:F0} ms behind 1,000 edits.");
+	}
+
 	/// <summary>Every grammar of the repository coloured through the protocol exactly as its classifications say, through the legend.</summary>
 	[Fact]
 	public async Task The_semantic_tokens_are_the_classifications_of_every_grammar()

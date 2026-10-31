@@ -12,50 +12,75 @@ using Microsoft.CodeAnalysis.Text;
 namespace DotGram.LanguageServer;
 
 /// <summary>One version of an open document's text, as the client numbered it.</summary>
+/// <remarks>
+/// Each version's text is a string of its own. Roslyn's <see cref="SourceText.WithChanges(TextChange[])"/>
+/// would share the unchanged text between versions, but in the Roslyn the server compiles against it
+/// throws on some edits that split a <c>\r\n</c> (<c>CompositeText.RemoveSplitLineBreaksAndEmptySegments</c>),
+/// and a copy of even the largest grammar costs well under a millisecond. What changed is kept beside it,
+/// for carrying the colours of the version before over until this one is analysed.
+/// </remarks>
 sealed class GramVersion
 {
-	readonly Lazy<string>  _string;
+	static long _nextId;
+
 	readonly Lazy<LineMap> _lines;
 
 	public GramVersion(int number, SourceText text)
+		: this(number, text.ToString(), null, null)
 	{
-		Number  = number;
-		Text    = text;
-		_string = new Lazy<string>(text.ToString);
-		_lines  = new Lazy<LineMap>(() => new LineMap(text));
 	}
+
+	GramVersion(int number, string text, LineMap? lines, (long From, TextChangeRange Change)? changed)
+	{
+		Id      = Interlocked.Increment(ref _nextId);
+		Number  = number;
+		String  = text;
+		Text    = SourceText.From(text);
+		Changed = changed;
+		_lines  = lines is null ? new Lazy<LineMap>(() => new LineMap(Text)) : new Lazy<LineMap>(() => lines);
+	}
+
+	/// <summary>Which version this is, among every version of every document.</summary>
+	public long Id { get; }
 
 	public int Number { get; }
 
 	public SourceText Text { get; }
 
-	public string String => _string.Value;
+	public string String { get; }
 
 	public LineMap Lines => _lines.Value;
+
+	/// <summary>The version this one was made from, and the one change that made it; null where it was made otherwise.</summary>
+	public (long From, TextChangeRange Change)? Changed { get; }
 
 	/// <summary>The version after the client's changes, applied in order, each to the text the one before left.</summary>
 	public GramVersion Apply(int number, IReadOnlyList<TextDocumentContentChangeEvent> changes)
 	{
-		var text  = Text;
+		var text  = String;
 		var lines = Lines;
+		TextChangeRange? only = null;
 
 		foreach (var change in changes)
 		{
 			if (change.Range is not { } range)
 			{
-				text  = SourceText.From(change.Text);
+				text  = change.Text;
 				lines = new LineMap(text);
+				only  = new TextChangeRange(new TextSpan(0, String.Length), text.Length);
 				continue;
 			}
 
 			var start = lines.Offset(range.Start);
 			var end   = Math.Max(start, lines.Offset(range.End));
 
-			text  = text.WithChanges(new TextChange(TextSpan.FromBounds(start, end), change.Text));
-			lines = new LineMap(text);
+			text  = string.Concat(text.AsSpan(0, start), change.Text, text.AsSpan(end));
+			lines = lines.Apply(SourceText.From(text), start, end, change.Text.Length);
+			only  = new TextChangeRange(TextSpan.FromBounds(start, end), change.Text.Length);
 		}
 
-		return new GramVersion(number, text);
+		// Several changes at once are not carried over: their ranges would have to be composed.
+		return new GramVersion(number, text, lines, changes.Count == 1 && only is { } single ? (Id, single) : null);
 	}
 }
 
@@ -70,8 +95,11 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 
 	readonly List<(GramVersion Version, TaskCompletionSource<GramDocument?> Done)> _waiting = [];
 
+	// Read without the lock: the session asks for the current version while it holds its own, and
+	// this document asks the session while it holds this one; one order of the two locks only.
 	GramVersion          _current;
 	GramVersion?         _lastPublished;
+	Workspace?           _workspace;
 	bool                 _started;
 	bool                 _closed;
 
@@ -94,32 +122,41 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 
 	public GramAnalysisSession<GramVersion> Session { get; }
 
-	/// <summary>A version's analysis was published: the server tells the client.</summary>
+	/// <summary>
+	/// A version's analysis was published and is still the document's: the server tells the client,
+	/// at once and without waiting, since it is told under the document's lock.
+	/// </summary>
 	public event Action<OpenGrammar, GramAnalysisResult<GramVersion>, bool>? Published;
 
-	public GramVersion Current
-	{
-		get
-		{
-			lock (_gate)
-				return _current;
-		}
-	}
+	public GramVersion Current => Volatile.Read(ref _current);
 
 	/// <summary>
 	/// Starts the first analysis, following the grammar's host where it has a file: once the server
 	/// knows whether the file is in a folder it looks for hosts in. Until then nothing is analysed,
 	/// so that nothing is told about the file before it is known how to read it.
 	/// </summary>
-	public void Start()
+	/// <param name="workspace">The workspace whose changes can change the grammar's host; null where none is followed.</param>
+	/// <returns>False where the document was closed first.</returns>
+	public bool Start(Workspace? workspace)
 	{
-		if (FilePath is { } path)
-			Session.Follow(path);
-
 		lock (_gate)
 		{
+			if (_closed || _started)
+				return false;
+
+			if (FilePath is { } path)
+				Session.Follow(path);
+
+			if (workspace is not null)
+			{
+				_workspace = workspace;
+				workspace.WorkspaceChanged += WorkspaceChanged;
+			}
+
 			_started = true;
 			Session.Document(_current);
+
+			return true;
 		}
 	}
 
@@ -132,10 +169,11 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 
 		lock (_gate)
 		{
-			before   = _current;
-			after    = before.Apply(number, changes);
-			_current = after;
-			started  = _started;
+			before  = _current;
+			after   = before.Apply(number, changes);
+			started = _started;
+
+			Volatile.Write(ref _current, after);
 		}
 
 		// Before the start the session has seen no version, and the start analyses the latest.
@@ -144,21 +182,34 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 	}
 
 	/// <summary>The server's workspace changed: the session looks for the host again where that concerns it.</summary>
-	public void WorkspaceChanged(object? sender, WorkspaceChangeEventArgs change)
+	void WorkspaceChanged(object? sender, WorkspaceChangeEventArgs change)
 	{
 		Session.WorkspaceChanged(change);
 	}
 
-	public void Close()
+	/// <summary>The document is closed: nothing more is analysed, published or followed.</summary>
+	/// <param name="closed">Told under the lock a publication takes, so that nothing published of the document comes after it.</param>
+	public void Close(Action closed)
 	{
 		List<(GramVersion Version, TaskCompletionSource<GramDocument?> Done)> waiting;
+		Workspace? workspace;
 
 		lock (_gate)
 		{
-			_closed = true;
-			waiting = [.. _waiting];
+			if (_closed)
+				return;
+
+			_closed    = true;
+			workspace  = _workspace;
+			_workspace = null;
+			waiting    = [.. _waiting];
 			_waiting.Clear();
+
+			closed();
 		}
+
+		if (workspace is not null)
+			workspace.WorkspaceChanged -= WorkspaceChanged;
 
 		Session.Close();
 
@@ -238,12 +289,17 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 
 		List<TaskCompletionSource<GramDocument?>> answered = [];
 		List<TaskCompletionSource<GramDocument?>> overtaken = [];
-		bool republished;
 
 		lock (_gate)
 		{
-			republished    = _lastPublished == version;
-			_lastPublished = version;
+			// Told to the client under the lock an edit and a close take, and only while the version
+			// is the document's: no publication of an older version, or of a closed document, can
+			// follow a newer one.
+			if (!_closed && version == _current)
+			{
+				Published?.Invoke(this, result, _lastPublished == version);
+				_lastPublished = version;
+			}
 
 			for (var index = _waiting.Count - 1; index >= 0; index--)
 			{
@@ -265,8 +321,6 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 
 		foreach (var done in overtaken)
 			done.TrySetResult(null);
-
-		Published?.Invoke(this, result, republished);
 	}
 
 	IGramScheduler IGramAnalysisHost<GramVersion>.Scheduler => _services.Scheduler;
@@ -314,10 +368,10 @@ sealed class OpenGrammar : IGramAnalysisHost<GramVersion>
 	/// </summary>
 	internal static GramDocument Translate(GramDocument document, GramVersion from, GramVersion to)
 	{
-		var changes = to.Text.GetChangeRanges(from.Text);
+		if (to.Changed is not { } changed || changed.From != from.Id)
+			return GramAnalysisSession.EmptyDocument;
 
-		if (changes.Count == 0)
-			return document;
+		var changes = new[] { changed.Change };
 
 		var result = new List<GramClassifiedSpan>(document.Classifications.Count);
 

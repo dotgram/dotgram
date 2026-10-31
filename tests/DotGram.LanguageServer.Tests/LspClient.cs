@@ -84,9 +84,39 @@ sealed class LspClient : IAsyncDisposable
 		return result;
 	}
 
+	/// <summary>
+	/// A path as VS Code writes it as a URI, written here independently of the server: on Windows the
+	/// drive letter lower-cased and its colon escaped, <c>file:///c%3A/Users/a.gram</c>, and every
+	/// character but the unreserved ones and the slashes escaped.
+	/// </summary>
 	public static string Uri(string path)
 	{
-		return new Uri(Path.GetFullPath(path)).AbsoluteUri;
+		var full   = Path.GetFullPath(path).Replace('\\', '/');
+		var result = new StringBuilder("file://");
+		var at     = 0;
+
+		if (full.StartsWith("//", StringComparison.Ordinal))
+		{
+			var slash = full.IndexOf('/', 2);
+
+			result.Append(full, 2, slash - 2);
+			at = slash;
+		}
+		else if (full.Length >= 2 && char.IsAsciiLetter(full[0]) && full[1] == ':')
+		{
+			result.Append('/').Append(char.ToLowerInvariant(full[0])).Append("%3A");
+			at = 2;
+		}
+
+		foreach (var character in Encoding.UTF8.GetBytes(full.Substring(at)))
+		{
+			if (char.IsAsciiLetterOrDigit((char)character) || character is (byte)'-' or (byte)'.' or (byte)'_' or (byte)'~' or (byte)'/')
+				result.Append((char)character);
+			else
+				result.Append('%').Append(character.ToString("X2", CultureInfo.InvariantCulture));
+		}
+
+		return result.ToString();
 	}
 
 	/// <summary>A request's result; an error fails the test.</summary>
@@ -184,9 +214,12 @@ sealed class LspClient : IAsyncDisposable
 	}
 
 	/// <summary>Opens a document, and returns once the server holds it.</summary>
-	public async Task OpenAsync(string uri, string text, int version = 1)
+	public async Task OpenAsync(string uri, string text, int version = 1, bool waitForServer = true)
 	{
 		await NotifyAsync("textDocument/didOpen", new { textDocument = new { uri, languageId = "gram", version, text } });
+
+		if (!waitForServer)
+			return;
 
 		var deadline = DateTime.UtcNow + Timeout;
 

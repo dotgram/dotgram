@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -114,7 +115,7 @@ public sealed class HostTests : IDisposable
 
 		Assert.Equal(LspClient.Uri(Path.Combine(_folder, "Base.gram")), word.EnumerateArray().Single().GetProperty("uri").GetString());
 
-		var copy = GramLanguageServer.LocalPath(letter.EnumerateArray().Single().GetProperty("uri").GetString())!;
+		var copy = FileUris.ToPath(letter.EnumerateArray().Single().GetProperty("uri").GetString())!;
 
 		Assert.Equal("Letter = ['a'..'z']\n", File.ReadAllText(copy));
 		Assert.True(TempDirectoryIncludedGrammarStore.Instance.IsCopy(copy));
@@ -182,6 +183,178 @@ public sealed class HostTests : IDisposable
 
 		Assert.Equal(1, log.GetProperty("message").GetString()!.Count(static character => character == '\n') + 1);
 		Assert.True(client.Server.Document(uri)!.Session.Store.IsCopy(path));
+	}
+
+	/// <summary>
+	/// An included grammar open in the editor is its editor's text for the grammars that include it,
+	/// unsaved edits and all, and a change to its file on disk does not take that back.
+	/// </summary>
+	[Fact]
+	public async Task An_open_included_grammar_is_its_editors_text()
+	{
+		const string extended = Base + "Extra = 'x'\n";
+		const string uses     = "trivia = [' ']*\nStart = B.Word & B.Extra & C.Letter\nparse Start\n";
+
+		File.WriteAllText(Path.Combine(_folder, "Hosts.cs"), Hosts);
+		File.WriteAllText(Path.Combine(_folder, "Base.gram"), Base);
+		File.WriteAllText(Path.Combine(_folder, "Dialect.gram"), uses);
+
+		var basePath = Path.Combine(_folder, "Base.gram");
+		var baseUri  = LspClient.Uri(basePath);
+		var uri      = LspClient.Uri(Path.Combine(_folder, "Dialect.gram"));
+
+		await using var client = await LspClient.StartAsync(null, _folder);
+
+		// Opened already edited: B.Extra is in the editor and not on disk.
+		await client.OpenAsync(baseUri, extended);
+		await client.OpenAsync(uri, uses);
+
+		await ResolvedAsync(client.Server.Document(uri)!.Session);
+		await NoErrorsAsync(client, uri);
+
+		// The file changes on disk, back to what it was; the editor's text stays what B is.
+		File.WriteAllText(basePath, Base);
+		await client.NotifyAsync("workspace/didChangeWatchedFiles", new { changes = new[] { new { uri = baseUri, type = Lsp.FileChanged } } });
+		await client.NotifyAsync("textDocument/didChange", new
+		{
+			textDocument   = new { uri, version = 2 },
+			contentChanges = new[] { new { text = uses + "// edited\n" } },
+		});
+
+		await client.DiagnosticsAsync(uri, 2);
+		await NoErrorsAsync(client, uri);
+	}
+
+	static async Task NoErrorsAsync(LspClient client, string uri)
+	{
+		var session = client.Server.Document(uri)!.Session;
+		var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+
+		// The host's resolution and the analyses it starts settle; then the last published is the truth.
+		while (DateTime.UtcNow < deadline &&
+			session.Result?.Document.Diagnostics.Any(static diagnostic => diagnostic.Severity == DotGram.Grammar.GramSeverity.Error) != false)
+			await Task.Delay(50, TestContext.Current.CancellationToken);
+
+		Assert.DoesNotContain(
+			session.Result!.Document.Diagnostics,
+			static diagnostic => diagnostic.Severity == DotGram.Grammar.GramSeverity.Error);
+	}
+
+	/// <summary>Links back up the folder are not followed: the walk ends, and the grammar is told about.</summary>
+	[Fact]
+	public async Task A_link_to_a_parent_folder_is_not_followed()
+	{
+		File.WriteAllText(Path.Combine(_folder, "Hosts.cs"), Hosts);
+		File.WriteAllText(Path.Combine(_folder, "Base.gram"), Base);
+		File.WriteAllText(Path.Combine(_folder, "Dialect.gram"), Dialect);
+
+		try
+		{
+			// Two, so that a walk that follows them meets every path through both: 2^n folders n deep.
+			Directory.CreateSymbolicLink(Path.Combine(_folder, "loop"), _folder);
+			Directory.CreateSymbolicLink(Path.Combine(_folder, "again"), _folder);
+		}
+		catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+		{
+			Assert.Skip("This machine does not let a test make a link: " + exception.Message);
+		}
+
+		var uri = LspClient.Uri(Path.Combine(_folder, "Dialect.gram"));
+
+		await using var client = await LspClient.StartAsync(null, _folder);
+
+		await client.OpenAsync(uri, Dialect);
+		await ResolvedAsync(client.Server.Document(uri)!.Session);
+	}
+
+	/// <summary>A folder that holds more entries than the walk looks at is given up, and said so.</summary>
+	[Fact]
+	public void A_walk_past_its_bound_gives_the_folders_up()
+	{
+		for (var index = 0; index < 10; index++)
+			File.WriteAllText(Path.Combine(_folder, $"File{index}.txt"), "");
+
+		string? said = null;
+
+		var workspace = FolderWorkspace.Create([_folder], message => said = message, TestContext.Current.CancellationToken, maxEntries: 5);
+
+		Assert.False(workspace.Hosts);
+		Assert.Contains("more than 5 files and folders", said, StringComparison.Ordinal);
+	}
+
+	/// <summary>Two C# files whose names differ in case are two files where the file system says so.</summary>
+	[Fact]
+	public async Task Files_whose_names_differ_in_case_are_two_on_a_case_sensitive_system()
+	{
+		Assert.SkipWhen(OperatingSystem.IsWindows() || OperatingSystem.IsMacOS(), "The file system ignores case.");
+
+		var upper = Path.Combine(_folder, "Hosts.cs");
+		var lower = Path.Combine(_folder, "hosts.cs");
+
+		File.WriteAllText(upper, Hosts);
+
+		var workspace = FolderWorkspace.Create([_folder], static _ => { }, TestContext.Current.CancellationToken);
+
+		File.WriteAllText(lower, "[DotGram.Gram(\"Other.gram\")] partial class Other;");
+		workspace.FileChanged(lower, deleted: false);
+
+		var documents = workspace.Workspace.CurrentSolution.GetProject(workspace.Project)!.Documents
+			.Where(static document => document.FilePath is not null)
+			.ToDictionary(static document => document.FilePath!, StringComparer.Ordinal);
+
+		Assert.Equal(Hosts, (await documents[upper].GetTextAsync(TestContext.Current.CancellationToken)).ToString());
+		Assert.True(documents.ContainsKey(lower));
+	}
+
+	/// <summary>
+	/// Go To Definition into an included grammar lands where the protocol counts the line: a U+2028
+	/// in a comment there breaks a line for Roslyn and not for the client.
+	/// </summary>
+	[Fact]
+	public async Task A_definition_in_an_included_grammar_is_on_the_clients_line()
+	{
+		const string withSeparator = "// one\u2028two\nWord = ['a'..'z']+\n";
+
+		File.WriteAllText(Path.Combine(_folder, "Hosts.cs"), Hosts);
+		File.WriteAllText(Path.Combine(_folder, "Base.gram"), withSeparator);
+		File.WriteAllText(Path.Combine(_folder, "Dialect.gram"), Dialect);
+
+		var uri = LspClient.Uri(Path.Combine(_folder, "Dialect.gram"));
+
+		await using var client = await LspClient.StartAsync(null, _folder);
+
+		await client.OpenAsync(uri, Dialect);
+		await ResolvedAsync(client.Server.Document(uri)!.Session);
+
+		var definition = await client.RequestAsync("textDocument/definition", LspClient.At(uri, Dialect, Dialect.IndexOf("Word", StringComparison.Ordinal)));
+		var start      = definition.EnumerateArray().Single().GetProperty("range").GetProperty("start");
+
+		Assert.Equal(1, start.GetProperty("line").GetInt32());
+		Assert.Equal(0, start.GetProperty("character").GetInt32());
+	}
+
+	/// <summary>
+	/// A grammar closed before the server started it — the folders were still being read — is never
+	/// started: nothing is analysed, followed or told of it.
+	/// </summary>
+	[Fact]
+	public async Task A_grammar_closed_before_it_starts_is_never_started()
+	{
+		await using var client = await LspClient.StartAsync();
+
+		var workspace = new Microsoft.CodeAnalysis.AdhocWorkspace();
+		var document  = new OpenGrammar(
+			"untitled:Closed.gram", null, new GramVersion(1, Microsoft.CodeAnalysis.Text.SourceText.From(Dialect)), client.Server);
+		var told      = 0;
+
+		document.Close(() => told++);
+
+		Assert.False(document.Start(workspace));
+		Assert.Equal(1, told);
+
+		await Task.Delay(300, TestContext.Current.CancellationToken);
+
+		Assert.Null(document.Session.Result);
 	}
 
 	[Fact]
