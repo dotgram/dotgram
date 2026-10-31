@@ -3132,7 +3132,7 @@ What a sink is told, all of it as numbers so that nothing is allocated per event
 | Method | When |
 | --- | --- |
 | `Begin(GramRead read)` | a reading begins: a `TryParse` that refuses reads quietly first and again recording, and a `find` reads at every start |
-| `End(read, end, position, expected, expectedMore)` | the reading ends where `end` says, or -1 where it refused, with the furthest refusal it recorded: the sets `Match.Error` is worded from |
+| `End(read, end, position, expected, expectedMore)` | the reading ends where `end` says, or -1 where it refused, with the furthest refusal it recorded: the sets `Match.Error` is worded from. When more than 16384 sets tied there, the list holds the first 16384 and ends with a set holding only `GramTrace.TruncatedTies`, which is no thing wanted: the message names the sets before it and says "among others" |
 | `Enter(rule, position)` / `Exit(rule, position, end)` | a rule is entered, and leaves at `end`, fails (-1), or is left by an exception (`GramTrace.Thrown`, -2) |
 | `Retracted(rule, position)` | on the engine, a rule that returned has what it read taken back: the engine went back to a way it left open before the rule ended, or inside it — then an `Enter` at the same position follows, the rule read on from inside |
 | `Remembered(rule, position)` | a rule entered where it already failed in this reading fails at once without being read (a reading over tokens remembers) |

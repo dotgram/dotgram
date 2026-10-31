@@ -1605,6 +1605,30 @@ namespace DotGram.Snapshots
 							if (expected[i].Length > 0 && expected[i][0] == '\u0000')
 								return expected[i].Substring(1);
 
+						// A list cut at the cap ends with a mark no grammar can write (Truncated_DotGram);
+						// it is not a thing wanted, and the message says there were more.
+						var cut = false;
+
+						for (var i = 0; i < expected.Length; i++)
+							if (expected[i] == "\u0001")
+							{
+								cut = true;
+								break;
+							}
+
+						if (cut)
+						{
+							var named = new string[expected.Length];
+							var count = 0;
+
+							for (var i = 0; i < expected.Length; i++)
+								if (expected[i] != "\u0001")
+									named[count++] = expected[i];
+
+							expected = new string[count];
+							global::System.Array.Copy(named, expected, count);
+						}
+
 						// Two sites may ask for the same thing — a literal written in two rules,
 						// or the `<` that opens a type argument list in more than one — and a
 						// reader is owed one mention of it rather than one per site. Copied
@@ -1639,12 +1663,17 @@ namespace DotGram.Snapshots
 							}
 						}
 
+						if (expected.Length == 0)
+							return "Expected many alternatives.";
+
+						var among = cut ? ", among others." : ".";
+
 						if (expected.Length == 1)
-							return "Expected " + expected[0] + ".";
+							return "Expected " + expected[0] + among;
 
 						return "Expected " +
 							string.Join(", ", expected, 0, expected.Length - 1) +
-							" or " + expected[expected.Length - 1] + ".";
+							" or " + expected[expected.Length - 1] + among;
 					}
 				}
 
@@ -1726,6 +1755,23 @@ namespace DotGram.Snapshots
 				return ties;
 			}
 
+			private const int TieCap_DotGram = 16384;
+
+			private static readonly string[] Truncated_DotGram = new string[] { "\u0001" };
+
+			private static void Tie_DotGram(ref Failure failure, string[] expected)
+			{
+				var more = failure.ExpectedMore;
+
+				if (more == null)
+					failure.ExpectedMore = more = Ties_DotGram();
+
+				if (more.Count < TieCap_DotGram)
+					more.Add(expected);
+				else if (more.Count == TieCap_DotGram)
+					more.Add(Truncated_DotGram);
+			}
+
 			private static string[][]? Tied_DotGram(global::System.Collections.Generic.List<string[]>? ties)
 			{
 				return ties == null || ties.Count == 0 ? null : ties.ToArray();
@@ -1777,6 +1823,14 @@ namespace DotGram.Snapshots
 				/// failed, abandoned.
 				/// </summary>
 				public const int Thrown = -2;
+
+				/// <summary>
+				/// The item that ends the sets handed to <see cref="End"/> when more of them tied at the
+				/// furthest position than the parser keeps: the last set of the list is then one holding
+				/// only this item, and the sets before it are the first ones recorded. A message made from
+				/// the sets names them and says "among others".
+				/// </summary>
+				public const string TruncatedTies = "\u0001";
 
 				/// <summary>
 				/// A reading begins. A call may read more than once: a <c>TryParse</c> that refuses
@@ -2991,19 +3045,25 @@ namespace DotGram.Snapshots
 
 				static string Wanted_DotGram(global::System.Collections.Generic.IReadOnlyList<string> expected)
 				{
+					var named = new global::System.Collections.Generic.List<string>();
+
+					// The mark a cut list ends with (GramTrace.TruncatedTies) is not a thing wanted.
+					for (var i = 0; i < expected.Count; i++)
+						if (expected[i] != GramTrace.TruncatedTies)
+							named.Add(expected[i].Length > 0 && expected[i][0] == '\u0000' ? expected[i].Substring(1) : expected[i]);
+
+					var cut  = named.Count < expected.Count;
 					var text = new global::System.Text.StringBuilder();
 
-					for (var i = 0; i < expected.Count; i++)
+					for (var i = 0; i < named.Count; i++)
 					{
 						if (i > 0)
-							text.Append(i == expected.Count - 1 ? " or " : ", ");
+							text.Append(i == named.Count - 1 ? " or " : ", ");
 
-						var one = expected[i];
-
-						text.Append(one.Length > 0 && one[0] == '\u0000' ? one.Substring(1) : one);
+						text.Append(named[i]);
 					}
 
-					return text.ToString();
+					return cut ? (text.Length == 0 ? "many alternatives" : text + ", among others") : text.ToString();
 				}
 			}
 
@@ -3317,18 +3377,30 @@ namespace DotGram.Snapshots
 				static string Wanted(string[] expected)
 				{
 					var text = new global::System.Text.StringBuilder();
+					var cut  = false;
+					var any  = false;
 
+					// The mark a cut list ends with (GramTrace.TruncatedTies) is not a thing wanted.
 					for (var i = 0; i < expected.Length; i++)
 					{
-						if (i > 0)
+						if (expected[i] == GramTrace.TruncatedTies)
+						{
+							cut = true;
+
+							continue;
+						}
+
+						if (any)
 							text.Append(", ");
+
+						any = true;
 
 						var one = expected[i];
 
 						text.Append(one.Length > 0 && one[0] == '\u0000' ? one.Substring(1) : one);
 					}
 
-					return text.ToString();
+					return cut ? (!any ? "many alternatives" : text + ", among others") : text.ToString();
 				}
 			}
 
@@ -4048,12 +4120,10 @@ namespace DotGram.Snapshots
 					// several times is a list that grew on a parse that went on to succeed.
 					var more = failure.ExpectedMore;
 
-					if (more == null)
-						failure.ExpectedMore = more = Ties_DotGram();
-					else if (more.Count > 0 && ReferenceEquals(more[more.Count - 1], expected))
+					if (more != null && more.Count > 0 && ReferenceEquals(more[more.Count - 1], expected))
 						return;
 
-					more.Add(expected);
+					Tie_DotGram(ref failure, expected);
 				}
 			}
 

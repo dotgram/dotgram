@@ -712,6 +712,30 @@ public static partial class CSharpEmitter
 						if (expected[i].Length > 0 && expected[i][0] == '\u0000')
 							return expected[i].Substring(1);
 
+					// A list cut at the cap ends with a mark no grammar can write (Truncated_DotGram);
+					// it is not a thing wanted, and the message says there were more.
+					var cut = false;
+
+					for (var i = 0; i < expected.Length; i++)
+						if (expected[i] == "\u0001")
+						{
+							cut = true;
+							break;
+						}
+
+					if (cut)
+					{
+						var named = new string[expected.Length];
+						var count = 0;
+
+						for (var i = 0; i < expected.Length; i++)
+							if (expected[i] != "\u0001")
+								named[count++] = expected[i];
+
+						expected = new string[count];
+						global::System.Array.Copy(named, expected, count);
+					}
+
 					// Two sites may ask for the same thing — a literal written in two rules,
 					// or the `<` that opens a type argument list in more than one — and a
 					// reader is owed one mention of it rather than one per site. Copied
@@ -746,12 +770,17 @@ public static partial class CSharpEmitter
 						}
 					}
 
+					if (expected.Length == 0)
+						return "Expected many alternatives.";
+
+					var among = cut ? ", among others." : ".";
+
 					if (expected.Length == 1)
-						return "Expected " + expected[0] + ".";
+						return "Expected " + expected[0] + among;
 
 					return "Expected " +
 						string.Join(", ", expected, 0, expected.Length - 1) +
-						" or " + expected[expected.Length - 1] + ".";
+						" or " + expected[expected.Length - 1] + among;
 				}
 			}
 
@@ -1281,6 +1310,44 @@ public static partial class CSharpEmitter
 			_spareTies = null;
 
 			return ties;
+		}
+
+		/// <summary>
+		/// How many sets are kept for the furthest position when they tie. A grammar that reaches one place by
+		/// as many ways as it has of splitting its input says the same sets once for each, two to the n of them,
+		/// and a list that kept them all was gigabytes on forty characters. Past this many the message names the
+		/// first ones and says so (<c>Truncated_DotGram</c>).
+		/// </summary>
+		/// <remarks>
+		/// Measured: over the generator's own tests and the shipped grammars' refusal corpora no refusal tied
+		/// more than 4095 sets at one place (a delimiter-recovery test); four times that is 16380, rounded up
+		/// to the ceiling of 16384, so that the message of no ordinary refusal is cut. A list of this length is
+		/// 128 KB.
+		/// </remarks>
+		private const int TieCap_DotGram = 16384;
+
+		/// <summary>
+		/// The mark the list ends with once it is cut: one item no grammar can write, which every message skips
+		/// and answers for with ", among others". A set of its own, shared by every list.
+		/// </summary>
+		private static readonly string[] Truncated_DotGram = new string[] { "\u0001" };
+
+		/// <summary>
+		/// Records a set that tied for the furthest position: kept while the list holds fewer than the cap, then
+		/// once the mark of the cut, then not at all. By the length of the list and not by a flag, so that a
+		/// tail given back (a call's sets, a replayed reading's) reopens the list as it was.
+		/// </summary>
+		private static void Tie_DotGram(ref Failure failure, string[] expected)
+		{
+			var more = failure.ExpectedMore;
+
+			if (more == null)
+				failure.ExpectedMore = more = Ties_DotGram();
+
+			if (more.Count < TieCap_DotGram)
+				more.Add(expected);
+			else if (more.Count == TieCap_DotGram)
+				more.Add(Truncated_DotGram);
 		}
 		// <tied>
 
@@ -2490,7 +2557,7 @@ text.Append("\tinternal static void Return(DirectValues_DotGram values)\n\t{\n")
 			if (stood == at)
 			{
 				if (more == null || more.Count <= tied)
-					return null;
+					return more != null && more.Count > TieCap_DotGram ? Truncated_DotGram : null;
 
 				return more.Count - tied == 1
 					? more[tied]
@@ -2543,7 +2610,16 @@ text.Append("\tinternal static void Return(DirectValues_DotGram values)\n\t{\n")
 				if (expected[i].Length > 0 && expected[i][0] == '\u0000')
 					return expected[i];
 
-			if (expected.Length == 1)
+			var cut = false;
+
+			for (var i = 0; i < expected.Length; i++)
+				if (expected[i] == "\u0001")
+				{
+					cut = true;
+					break;
+				}
+
+			if (expected.Length == 1 && !cut)
 				return expected[0];
 
 			var unique = new string[expected.Length];
@@ -2551,6 +2627,9 @@ text.Append("\tinternal static void Return(DirectValues_DotGram values)\n\t{\n")
 
 			for (var i = 0; i < expected.Length; i++)
 			{
+				if (expected[i] == "\u0001")
+					continue;
+
 				var seen = false;
 
 				for (var j = 0; j < kept; j++)
@@ -2564,10 +2643,14 @@ text.Append("\tinternal static void Return(DirectValues_DotGram values)\n\t{\n")
 					unique[kept++] = expected[i];
 			}
 
-			if (kept == 1)
-				return unique[0];
+			if (kept == 0)
+				return "many alternatives";
 
-			return string.Join(", ", unique, 0, kept - 1) + " or " + unique[kept - 1];
+			var wanted = kept == 1
+				? unique[0]
+				: string.Join(", ", unique, 0, kept - 1) + " or " + unique[kept - 1];
+
+			return cut ? wanted + ", among others" : wanted;
 		}
 		""";
 
@@ -3462,12 +3545,10 @@ public static partial class CSharpEmitter
 				// several times is a list that grew on a parse that went on to succeed.
 				var more = failure.ExpectedMore;
 
-				if (more == null)
-					failure.ExpectedMore = more = Ties_DotGram();
-				else if (more.Count > 0 && ReferenceEquals(more[more.Count - 1], expected))
+				if (more != null && more.Count > 0 && ReferenceEquals(more[more.Count - 1], expected))
 					return;
 
-				more.Add(expected);
+				Tie_DotGram(ref failure, expected);
 			}
 			// </noturn>
 			// <turn>
@@ -3482,12 +3563,10 @@ public static partial class CSharpEmitter
 				if (turn < 0 && ReferenceEquals(expected, failure.Expected))
 					return;
 
-				if (more == null)
-					failure.ExpectedMore = more = Ties_DotGram();
-				else if (more.Count > (turn < 0 ? 0 : turn) && ReferenceEquals(more[more.Count - 1], expected))
+				if (more != null && more.Count > (turn < 0 ? 0 : turn) && ReferenceEquals(more[more.Count - 1], expected))
 					return;
 
-				more.Add(expected);
+				Tie_DotGram(ref failure, expected);
 			}
 			// </turn>
 		}

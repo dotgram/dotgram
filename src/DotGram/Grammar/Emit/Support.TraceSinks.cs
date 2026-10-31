@@ -602,19 +602,25 @@ public static partial class CSharpEmitter
 
 			static string Wanted_DotGram(global::System.Collections.Generic.IReadOnlyList<string> expected)
 			{
+				var named = new global::System.Collections.Generic.List<string>();
+
+				// The mark a cut list ends with (GramTrace.TruncatedTies) is not a thing wanted.
+				for (var i = 0; i < expected.Count; i++)
+					if (expected[i] != GramTrace.TruncatedTies)
+						named.Add(expected[i].Length > 0 && expected[i][0] == '\u0000' ? expected[i].Substring(1) : expected[i]);
+
+				var cut  = named.Count < expected.Count;
 				var text = new global::System.Text.StringBuilder();
 
-				for (var i = 0; i < expected.Count; i++)
+				for (var i = 0; i < named.Count; i++)
 				{
 					if (i > 0)
-						text.Append(i == expected.Count - 1 ? " or " : ", ");
+						text.Append(i == named.Count - 1 ? " or " : ", ");
 
-					var one = expected[i];
-
-					text.Append(one.Length > 0 && one[0] == '\u0000' ? one.Substring(1) : one);
+					text.Append(named[i]);
 				}
 
-				return text.ToString();
+				return cut ? (text.Length == 0 ? "many alternatives" : text + ", among others") : text.ToString();
 			}
 		}
 
@@ -930,18 +936,30 @@ public static partial class CSharpEmitter
 			static string Wanted(string[] expected)
 			{
 				var text = new global::System.Text.StringBuilder();
+				var cut  = false;
+				var any  = false;
 
+				// The mark a cut list ends with (GramTrace.TruncatedTies) is not a thing wanted.
 				for (var i = 0; i < expected.Length; i++)
 				{
-					if (i > 0)
+					if (expected[i] == GramTrace.TruncatedTies)
+					{
+						cut = true;
+
+						continue;
+					}
+
+					if (any)
 						text.Append(", ");
+
+					any = true;
 
 					var one = expected[i];
 
 					text.Append(one.Length > 0 && one[0] == '\u0000' ? one.Substring(1) : one);
 				}
 
-				return text.ToString();
+				return cut ? (!any ? "many alternatives" : text + ", among others") : text.ToString();
 			}
 		}
 

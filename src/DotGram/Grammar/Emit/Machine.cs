@@ -2690,8 +2690,7 @@ sealed partial class Machine
 				file.Line($"else if ({recording} && p == failure.Position && expected != null)");
 				using (file.Block(""))
 				{
-					file.Line(
-						"(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);");
+					file.Line("Tie_DotGram(ref failure, expected);");
 				}
 				if (_recoveries.Count > 0)
 				{
@@ -2750,7 +2749,7 @@ sealed partial class Machine
 								}
 
 								file.Line("else");
-								file.Then("(failure.ExpectedMore ??= Ties_DotGram()).Add(said);");
+								file.Then("Tie_DotGram(ref failure, said);");
 							}
 
 							file.Line("open = entry.CallIndex;");
@@ -7028,7 +7027,7 @@ sealed partial class Machine
 					}
 
 					atTest.Line(KeepsDoors ? "else if (!failure.Quiet && p == failure.Position)" : "else if (p == failure.Position)");
-					atTest.Then($"(failure.ExpectedMore ??= Ties_DotGram()).Add({said});");
+					atTest.Then($"Tie_DotGram(ref failure, {said});");
 
 					if (Tracing is not null)
 						atTest.Line($"failure.Trace?.Refused(p, {said});");

@@ -543,7 +543,7 @@ namespace DotGram.Snapshots
 				}
 				else if (lookahead < 0 && p == failure.Position && expected != null)
 				{
-					(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
+					Tie_DotGram(ref failure, expected);
 				}
 
 				while (entries.Count > 0)
@@ -927,6 +927,23 @@ namespace DotGram.Snapshots
 			_spareTies = null;
 
 			return ties;
+		}
+
+		private const int TieCap_DotGram = 16384;
+
+		private static readonly string[] Truncated_DotGram = new string[] { "\u0001" };
+
+		private static void Tie_DotGram(ref Failure failure, string[] expected)
+		{
+			var more = failure.ExpectedMore;
+
+			if (more == null)
+				failure.ExpectedMore = more = Ties_DotGram();
+
+			if (more.Count < TieCap_DotGram)
+				more.Add(expected);
+			else if (more.Count == TieCap_DotGram)
+				more.Add(Truncated_DotGram);
 		}
 
 		private static string[][]? Handed_DotGram(global::System.Collections.Generic.List<string[]>? ties)

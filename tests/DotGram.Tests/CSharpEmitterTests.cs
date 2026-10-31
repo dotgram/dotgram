@@ -2018,7 +2018,7 @@ public sealed class CSharpEmitterTests
 
 		// A tie takes the thread's list of arrays, and only on the tie itself; the list is
 		// allocated once a thread and handed back with the refusal (Support.cs, TiesSupport).
-		Assert.Contains("(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);", source);
+		Assert.Contains("Tie_DotGram(ref failure, expected);", source);
 		Assert.Contains("_spareTies", source);
 	}
 

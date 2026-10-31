@@ -1126,7 +1126,7 @@ namespace DotGram.Snapshots
 							}
 						}
 						else if (!failure.Quiet && p == failure.Position)
-							(failure.ExpectedMore ??= Ties_DotGram()).Add(ExpectedSet_DotGram(26));
+							Tie_DotGram(ref failure, ExpectedSet_DotGram(26));
 					}
 				}
 
@@ -1242,7 +1242,7 @@ namespace DotGram.Snapshots
 							}
 						}
 						else if (!failure.Quiet && p == failure.Position)
-							(failure.ExpectedMore ??= Ties_DotGram()).Add(ExpectedSet_DotGram(26));
+							Tie_DotGram(ref failure, ExpectedSet_DotGram(26));
 					}
 				}
 
@@ -1424,7 +1424,7 @@ namespace DotGram.Snapshots
 							}
 						}
 						else if (!failure.Quiet && p == failure.Position)
-							(failure.ExpectedMore ??= Ties_DotGram()).Add(ExpectedSet_DotGram(26));
+							Tie_DotGram(ref failure, ExpectedSet_DotGram(26));
 					}
 				}
 
@@ -1606,7 +1606,7 @@ namespace DotGram.Snapshots
 							}
 						}
 						else if (!failure.Quiet && p == failure.Position)
-							(failure.ExpectedMore ??= Ties_DotGram()).Add(ExpectedSet_DotGram(26));
+							Tie_DotGram(ref failure, ExpectedSet_DotGram(26));
 					}
 				}
 
@@ -1765,7 +1765,7 @@ namespace DotGram.Snapshots
 							}
 						}
 						else if (!failure.Quiet && p == failure.Position)
-							(failure.ExpectedMore ??= Ties_DotGram()).Add(ExpectedSet_DotGram(26));
+							Tie_DotGram(ref failure, ExpectedSet_DotGram(26));
 					}
 				}
 
@@ -1898,7 +1898,7 @@ namespace DotGram.Snapshots
 							}
 						}
 						else if (!failure.Quiet && p == failure.Position)
-							(failure.ExpectedMore ??= Ties_DotGram()).Add(ExpectedSet_DotGram(26));
+							Tie_DotGram(ref failure, ExpectedSet_DotGram(26));
 					}
 				}
 
@@ -2022,7 +2022,7 @@ namespace DotGram.Snapshots
 							}
 						}
 						else if (!failure.Quiet && p == failure.Position)
-							(failure.ExpectedMore ??= Ties_DotGram()).Add(ExpectedSet_DotGram(26));
+							Tie_DotGram(ref failure, ExpectedSet_DotGram(26));
 					}
 				}
 
@@ -3484,7 +3484,7 @@ namespace DotGram.Snapshots
 				}
 				else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
 				{
-					(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
+					Tie_DotGram(ref failure, expected);
 				}
 
 				while (entries.Count > 0)
@@ -4241,6 +4241,30 @@ namespace DotGram.Snapshots
 						if (expected[i].Length > 0 && expected[i][0] == '\u0000')
 							return expected[i].Substring(1);
 
+					// A list cut at the cap ends with a mark no grammar can write (Truncated_DotGram);
+					// it is not a thing wanted, and the message says there were more.
+					var cut = false;
+
+					for (var i = 0; i < expected.Length; i++)
+						if (expected[i] == "\u0001")
+						{
+							cut = true;
+							break;
+						}
+
+					if (cut)
+					{
+						var named = new string[expected.Length];
+						var count = 0;
+
+						for (var i = 0; i < expected.Length; i++)
+							if (expected[i] != "\u0001")
+								named[count++] = expected[i];
+
+						expected = new string[count];
+						global::System.Array.Copy(named, expected, count);
+					}
+
 					// Two sites may ask for the same thing — a literal written in two rules,
 					// or the `<` that opens a type argument list in more than one — and a
 					// reader is owed one mention of it rather than one per site. Copied
@@ -4275,12 +4299,17 @@ namespace DotGram.Snapshots
 						}
 					}
 
+					if (expected.Length == 0)
+						return "Expected many alternatives.";
+
+					var among = cut ? ", among others." : ".";
+
 					if (expected.Length == 1)
-						return "Expected " + expected[0] + ".";
+						return "Expected " + expected[0] + among;
 
 					return "Expected " +
 						string.Join(", ", expected, 0, expected.Length - 1) +
-						" or " + expected[expected.Length - 1] + ".";
+						" or " + expected[expected.Length - 1] + among;
 				}
 			}
 
@@ -4347,6 +4376,23 @@ namespace DotGram.Snapshots
 			_spareTies = null;
 
 			return ties;
+		}
+
+		private const int TieCap_DotGram = 16384;
+
+		private static readonly string[] Truncated_DotGram = new string[] { "\u0001" };
+
+		private static void Tie_DotGram(ref Failure failure, string[] expected)
+		{
+			var more = failure.ExpectedMore;
+
+			if (more == null)
+				failure.ExpectedMore = more = Ties_DotGram();
+
+			if (more.Count < TieCap_DotGram)
+				more.Add(expected);
+			else if (more.Count == TieCap_DotGram)
+				more.Add(Truncated_DotGram);
 		}
 
 		private static string[][]? Handed_DotGram(global::System.Collections.Generic.List<string[]>? ties)

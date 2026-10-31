@@ -77,6 +77,14 @@ public static partial class CSharpEmitter
 			public const int Thrown = -2;
 
 			/// <summary>
+			/// The item that ends the sets handed to <see cref="End"/> when more of them tied at the
+			/// furthest position than the parser keeps: the last set of the list is then one holding
+			/// only this item, and the sets before it are the first ones recorded. A message made from
+			/// the sets names them and says "among others".
+			/// </summary>
+			public const string TruncatedTies = "\u0001";
+
+			/// <summary>
 			/// A reading begins. A call may read more than once: a <c>TryParse</c> that refuses
 			/// reads quietly first and again recording, and a <c>find</c> reads at every start.
 			/// </summary>

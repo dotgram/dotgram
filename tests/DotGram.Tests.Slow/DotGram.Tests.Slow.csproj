@@ -49,6 +49,7 @@
 		<Compile Include="..\DotGram.Tests\GeneratedNameRule.cs" Link="Shared\GeneratedNameRule.cs" />
 		<Compile Include="..\DotGram.Tests\CarrierShapes.cs" Link="Shared\CarrierShapes.cs" />
 		<Compile Include="..\DotGram.Tests\RefusalCorpus.cs" Link="Shared\RefusalCorpus.cs" />
+		<Compile Include="..\DotGram.Tests\TieShapes.cs" Link="Shared\TieShapes.cs" />
 		<Compile Include="..\DotGram.Tests\BufferedInputTests.Input.cs" Link="Shared\BufferedInputTests.Input.cs" />
 		<Compile Include="..\DotGram.Tests\CaseFoldAttackTests.Fuzz.cs" Link="Shared\CaseFoldAttackTests.Fuzz.cs" />
 		<Compile Include="..\DotGram.Tests\ReferenceInterpreter.cs" Link="Shared\ReferenceInterpreter.cs" />

@@ -242,7 +242,7 @@ sealed partial class Machine
 					}
 
 					helper.Line("else if (p == failure.Position)");
-					helper.Then("(failure.ExpectedMore ??= Ties_DotGram()).Add(said);");
+					helper.Then("Tie_DotGram(ref failure, said);");
 
 					if (Tracing is not null)
 						helper.Line("failure.Trace?.Refused(p, said);");

@@ -1387,7 +1387,7 @@ namespace DotGram.Snapshots
 				}
 				else if (lookahead < 0 && !failure.Quiet && p == failure.Position && expected != null)
 				{
-					(failure.ExpectedMore ??= Ties_DotGram()).Add(expected);
+					Tie_DotGram(ref failure, expected);
 				}
 
 				Unwind:
