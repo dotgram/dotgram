@@ -80,18 +80,12 @@ public sealed record Entry(string Key, string Value) : ILocated
 
 	Entry : @Entry = key: Identifier & '=' & value: Value => @(new Entry(key, value))
 
-	// A value runs to the end of its line, and that is the only way to read it where an entry or
-	// the end of the file comes next. Otherwise it stops where the line ends in a key that the next
-	// line completes, the last such place in it: `a=b=` and `c` is `a` with no value and `b` with
-	// the value `c`. There are two kinds of such place. A key whose equals sign is on a later
-	// line (`b` in `a=b #c` and `=x`) is taken if the next line starts with one; if not, a key with
-	// its equals sign, whose value is on a later line, is. That is the order of preference even
-	// where the other kind stands later in the line, in a comment: the first kind goes on into
-	// whatever the second would, so nothing is refused that the other order would have read. Each
-	// is atomic and found in one scan, and
-	// each is taken only where the ones before it are not, so that `a=b=c` is not also the entry
-	// `a` with none and then the entry `b`: a file refused late would be read once for every way
-	// each of its lines could be cut.
+	// A value runs to the end of its line when an entry or the end of the file comes next. If not,
+	// it stops at the last key that the next line finishes: `a=b=` and `c` is `a` with no value,
+	// and `b` with the value `c`. A key whose equals sign is on the next line is taken before one
+	// that has its own, even if that one stands later, in a comment: `a=a#a=` and `=` is `a` with
+	// no value and then `a` whose equals sign is the second line's. Each choice is atomic, so
+	// that a refused file is not read again for every way its lines could be cut.
 	Value : @string = t: { Rest } ~ ?=Next => @(t)
 	                | ?!({ Rest } ~ ?=Next) ~ t: Scan.Stop2 => @(t)
 	                | ?!({ Rest } ~ ?=Next) ~ (?!Scan.Stop2) ~ t: Scan.Stop1 => @(t)
