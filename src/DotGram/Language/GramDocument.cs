@@ -540,23 +540,7 @@ public static class GramLanguageService
 				case Decl.Publish publish:
 					// A rule published by a qualified name, `parse Dialect.Select`, is several tokens:
 					// the name is selected from its first to its last.
-					var segments = publish.RuleName.Split('.');
-					var first    = tokens.FirstOrDefault(token =>
-						token.Kind == TokenKind.Identifier &&
-						token.Value == segments[0] &&
-						token.Position >= declaration.At.Position &&
-						token.Position < declaration.At.End);
-					var last     = segments.Length == 1 || first.Length == 0
-						? first
-						: tokens.FirstOrDefault(token =>
-							token.Kind == TokenKind.Identifier &&
-							token.Value == segments[segments.Length - 1] &&
-							token.Position > first.Position &&
-							token.Position < declaration.At.End);
-					var named    = last.Length == 0 ? first : last;
-					var selected = first.Length == 0
-						? (Position: declaration.At.Position, Length: 0)
-						: (first.Position, Length: named.Position + named.Length - first.Position);
+					var selected = QualifiedName(tokens, publish.RuleName, declaration.At) ?? (declaration.At.Position, 0);
 					result.Add(new GramDocumentSymbol(
 						$"{publish.Kind.ToString().ToLowerInvariant()} {publish.RuleName}",
 						GramDocumentSymbolKind.Publication,
@@ -570,6 +554,47 @@ public static class GramLanguageService
 		}
 
 		return result;
+	}
+
+	/// <summary>
+	/// Where a name, qualified or not, is written in a declaration: its segments as identifier tokens
+	/// in sequence, each but the last followed by a dot. The first such run, or null where there is none.
+	/// </summary>
+	static (int Position, int Length)? QualifiedName(IReadOnlyList<Token> tokens, string name, Location at)
+	{
+		var segments = name.Split('.');
+
+		for (var start = 0; start < tokens.Count; start++)
+		{
+			if (tokens[start].Position < at.Position || tokens[start].Position >= at.End)
+				continue;
+
+			var index = start;
+			var found = true;
+
+			for (var segment = 0; segment < segments.Length && found; segment++)
+			{
+				if (segment > 0)
+					found = index < tokens.Count && tokens[index++].Kind == TokenKind.Dot;
+
+				found = found &&
+					index < tokens.Count &&
+					tokens[index].Kind == TokenKind.Identifier &&
+					tokens[index].Value == segments[segment] &&
+					tokens[index].Position < at.End;
+
+				index++;
+			}
+
+			if (found)
+			{
+				var last = tokens[index - 1];
+
+				return (tokens[start].Position, last.Position + last.Length - tokens[start].Position);
+			}
+		}
+
+		return null;
 	}
 
 	static (IReadOnlyList<GramBracePair> Braces, IReadOnlyList<GramFoldingRange> FoldingRanges) Structure(

@@ -322,15 +322,24 @@ public sealed class GramLanguageServiceTests
 			"Select = 'a'\n" +
 			"}\n" +
 			"internal parse Dialect.Select as ParseSelect\n" +
-			"parse Dialect.Select\n";
+			"parse Dialect.Select\n" +
+			"namespace N\n" +
+			"{\n" +
+			"namespace Item\n" +
+			"{\n" +
+			"Item = 'b'\n" +
+			"}\n" +
+			"}\n" +
+			"parse N.Item.Item as ParseItem\n";
 
 		var document     = GramLanguageService.Analyze(source);
 		var publications = document.DocumentSymbols.Where(static symbol => symbol.Kind == GramDocumentSymbolKind.Publication).ToArray();
 
-		Assert.Equal(2, publications.Length);
+		Assert.Equal(
+			["Dialect.Select", "Dialect.Select", "N.Item.Item"],
+			publications.Select(symbol => source.Substring(symbol.SelectionPosition, symbol.SelectionLength)));
 		Assert.All(publications, symbol =>
 		{
-			Assert.Equal("Dialect.Select", source.Substring(symbol.SelectionPosition, symbol.SelectionLength));
 			Assert.True(symbol.Position <= symbol.SelectionPosition &&
 				symbol.SelectionPosition + symbol.SelectionLength <= symbol.Position + symbol.Length);
 		});
