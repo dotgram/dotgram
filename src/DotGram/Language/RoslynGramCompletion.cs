@@ -66,25 +66,31 @@ sealed class RoslynGramCompletion(Workspace workspace, Func<string?> filePath)
 				absolutePosition,
 				workspace,
 				cancellationToken).ConfigureAwait(false);
-		var targets = new List<ISymbol>();
-
-		if (symbol is not null)
-			targets.Add(symbol);
-
 		var name = IdentifierAt(expression, position);
-		if (name.Length == 0)
-			return new RoslynDefinitionTargets(project, targets);
 
+		return new RoslynDefinitionTargets(
+			project,
+			symbol,
+			name.Length == 0 ? null : token => DeclarationsAsync(project, name, token));
+	}
+
+	/// <summary>
+	/// Every declaration of a name, the grammar's host's own first and those in source before those in
+	/// metadata: where a name is looked for when what it binds to cannot be gone to. A search of the
+	/// whole project, and asked for only then.
+	/// </summary>
+	async Task<IReadOnlyList<ISymbol>> DeclarationsAsync(Project project, string name, CancellationToken cancellationToken)
+	{
 		var declarations = await SymbolFinder.FindDeclarationsAsync(
 			project, name, ignoreCase: false, cancellationToken).ConfigureAwait(false);
 		var hostType = await HostTypeAsync(project, cancellationToken).ConfigureAwait(false);
-		targets.AddRange(declarations
+
+		return declarations
 			.Where(candidate => candidate.Name == name)
 			.OrderByDescending(candidate => hostType is not null && SymbolEqualityComparer.Default.Equals(
 				candidate.ContainingType, hostType))
-			.ThenByDescending(static candidate => candidate.Locations.Any(static location => location.IsInSource)));
-
-		return new RoslynDefinitionTargets(project, targets);
+			.ThenByDescending(static candidate => candidate.Locations.Any(static location => location.IsInSource))
+			.ToArray();
 	}
 
 	internal static async Task<ISymbol?> QualifiedMemberAsync(
@@ -577,8 +583,17 @@ readonly record struct CSharpFindReference(string FilePath, string Text, int Pos
 
 sealed record CSharpFindReferences(string Name, IReadOnlyList<CSharpFindReference> References);
 
-/// <summary>The project a C# name was looked up in, and what it may be defined as, in the order to try.</summary>
-sealed record RoslynDefinitionTargets(Project Project, IReadOnlyList<ISymbol> Symbols);
+/// <summary>
+/// The project a C# name was looked up in, what the name binds to, and where else it may be defined:
+/// the bound symbol is tried first, and the declarations searched for only if it cannot be gone to.
+/// </summary>
+/// <param name="Project">The project the name was looked up in.</param>
+/// <param name="Bound">What the name binds to, or null.</param>
+/// <param name="DeclarationsAsync">Every declaration of the name, in the order to try; null for a position with no name.</param>
+sealed record RoslynDefinitionTargets(
+	Project Project,
+	ISymbol? Bound,
+	Func<CancellationToken, Task<IReadOnlyList<ISymbol>>>? DeclarationsAsync);
 
 /// <summary>What Roslyn's Quick Info says: paragraphs of runs, each run tagged as Roslyn tags it (<c>Keyword</c>, <c>Class</c>, ...).</summary>
 sealed class RoslynGramQuickInfo(IReadOnlyList<IReadOnlyList<RoslynTaggedRun>> sections)

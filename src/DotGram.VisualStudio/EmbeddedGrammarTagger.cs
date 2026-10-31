@@ -237,9 +237,12 @@ sealed class EmbeddedGrammarBufferAnalysis : IEmbeddedGrammarHost<ITextSnapshot>
 		_workspace = workspace;
 		_documents = documents;
 
+		// The session before the events that feed it: a solution change may arrive on another
+		// thread the moment the handler is attached.
+		_session = new EmbeddedGrammarSession<ITextSnapshot>(this);
+
 		_buffer.Changed += BufferChanged;
 		_workspace.WorkspaceChanged += WorkspaceChanged;
-		_session = new EmbeddedGrammarSession<ITextSnapshot>(this);
 	}
 
 	public event Action<ITextSnapshot>? Changed
@@ -358,9 +361,10 @@ sealed class EmbeddedGrammarBufferAnalysis : IEmbeddedGrammarHost<ITextSnapshot>
 			: null;
 	}
 
-	async Task IEmbeddedGrammarHost<ITextSnapshot>.BeforeChangedAsync(CancellationToken cancellationToken)
+	async Task IEmbeddedGrammarHost<ITextSnapshot>.RaiseAsync(Action raise, CancellationToken cancellationToken)
 	{
 		await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+		raise();
 	}
 
 	void IEmbeddedGrammarHost<ITextSnapshot>.Report(Exception exception)

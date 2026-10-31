@@ -83,7 +83,7 @@ abstract class GramCompletionSourceBase(ITextBuffer buffer, RoslynGramFeatures r
 		var snapshot = triggerLocation.Snapshot;
 
 		if (snapshot.TextBuffer != buffer ||
-			Provider(snapshot).Start(snapshot.GetText(), triggerLocation.Position) is not { } span)
+			Provider(snapshot).Start(snapshot.Length, index => snapshot[index], triggerLocation.Position) is not { } span)
 			return CompletionStartData.DoesNotParticipateInCompletion;
 
 		return new CompletionStartData(
@@ -210,8 +210,6 @@ sealed class RoslynGramFeatures(RoslynGramCompletion core, VisualStudioWorkspace
 			return [];
 
 		return completions.ItemsList
-			.GroupBy(static item => item.DisplayText, StringComparer.Ordinal)
-			.Select(group => group.First())
 			.Select(static item => new GramCompletionItem(
 				item.DisplayText,
 				RoslynGramCompletion.CSharpDescription,
@@ -252,13 +250,20 @@ sealed class RoslynGramFeatures(RoslynGramCompletion core, VisualStudioWorkspace
 				.ToArray());
 	}
 
-	/// <summary>Opens the first of the symbols Visual Studio can navigate to.</summary>
+	/// <summary>Opens what the name binds to, or else the first of its declarations Visual Studio can navigate to.</summary>
 	public async Task<bool> NavigateAsync(RoslynDefinitionTargets? targets, CancellationToken cancellationToken)
 	{
 		if (targets is null)
 			return false;
 
-		foreach (var symbol in targets.Symbols)
+		if (targets.Bound is { } bound && await RoslynSymbolNavigation.NavigateAsync(
+			Workspace, bound, targets.Project, cancellationToken).ConfigureAwait(false))
+			return true;
+
+		if (targets.DeclarationsAsync is null)
+			return false;
+
+		foreach (var symbol in await targets.DeclarationsAsync(cancellationToken).ConfigureAwait(false))
 			if (await RoslynSymbolNavigation.NavigateAsync(
 				Workspace, symbol, targets.Project, cancellationToken).ConfigureAwait(false))
 				return true;

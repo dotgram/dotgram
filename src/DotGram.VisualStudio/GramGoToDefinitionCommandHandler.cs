@@ -56,7 +56,7 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 				GramBufferAnalysis.For(args.SubjectBuffer).View(snapshot), position, roslyn.Core, CancellationToken.None))
 			: ThreadHelper.JoinableTaskFactory.Run(() => GramNavigationProvider.DefinitionAsync(
 				snapshot.GetText(),
-				EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents).View(snapshot),
+				() => EmbeddedGrammarBufferAnalysis.For(args.SubjectBuffer, Workspace, Documents).View(snapshot),
 				position,
 				roslyn.Core,
 				CancellationToken.None));

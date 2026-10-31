@@ -313,7 +313,8 @@ sealed class GramBufferAnalysis : IGramAnalysisHost<ITextSnapshot>
 	public GramStandaloneView View(ITextSnapshot snapshot)
 	{
 		return new GramStandaloneView(
-			snapshot.GetText(),
+			snapshot.GetText,
+			snapshot.Length,
 			Document(snapshot),
 			position => _session.ExternalDefinition(snapshot, position),
 			(name, definitionPosition) => _session.IncludedReferences(snapshot, name, definitionPosition));
@@ -408,9 +409,10 @@ sealed class GramBufferAnalysis : IGramAnalysisHost<ITextSnapshot>
 		return false;
 	}
 
-	async Task IGramAnalysisHost<ITextSnapshot>.BeforeChangedAsync(CancellationToken cancellationToken)
+	async Task IGramAnalysisHost<ITextSnapshot>.RaiseAsync(Action raise, CancellationToken cancellationToken)
 	{
 		await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
+		raise();
 	}
 
 	void IGramAnalysisHost<ITextSnapshot>.Report(Exception exception)

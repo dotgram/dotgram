@@ -42,10 +42,19 @@ abstract class GramCompletionProvider
 	/// <summary>Where completion at the position would replace text, or null where it offers nothing.</summary>
 	public TextSpan? Start(string text, int position)
 	{
-		if (!IsApplicable(text, position))
+		return Start(text.Length, index => text[index], position);
+	}
+
+	/// <summary>
+	/// Where completion at the position would replace text, read character by character: asked on
+	/// every keystroke, of every C# document too, where a copy of the whole text would be most of the cost.
+	/// </summary>
+	public TextSpan? Start(int length, Func<int, char> at, int position)
+	{
+		if (!IsApplicable(position))
 			return null;
 
-		return WordSpan(text, position);
+		return WordSpan(length, at, position);
 	}
 
 	/// <summary>The items at a position.</summary>
@@ -71,9 +80,14 @@ abstract class GramCompletionProvider
 		if (GramCSharpCompletionContext.TryGetPrefix(text, position, out var prefix) &&
 			(grammar is not { } lexed || GramVocabulary.InCSharp(lexed.Text, lexed.Position)))
 		{
-			var csharpItems = csharp is null
+			// Roslyn may offer one name more than once, an overload or a member and a type of it; the
+			// list shows it once, as Roslyn first offered it.
+			IReadOnlyList<GramCompletionItem> csharpItems = csharp is null
 				? []
-				: await csharp(prefix, cancellationToken).ConfigureAwait(false);
+				: (await csharp(prefix, cancellationToken).ConfigureAwait(false))
+					.GroupBy(static item => item.Label, StringComparer.Ordinal)
+					.Select(static group => group.First())
+					.ToArray();
 			var csharpNames = new HashSet<string>(csharpItems.Select(static item => item.Label), StringComparer.Ordinal);
 
 			// What the parser supplies, and the captures and parameters in scope, are no part of
@@ -157,7 +171,7 @@ abstract class GramCompletionProvider
 	/// <summary>The grammar the position stands in, and the position's place in it; null outside a grammar.</summary>
 	protected abstract (string Text, int Position)? GrammarAt(string text, int position);
 
-	protected abstract bool IsApplicable(string text, int position);
+	protected abstract bool IsApplicable(int position);
 
 	protected abstract IReadOnlyDictionary<string, RuleCompletion> Definitions(string text, int position);
 
@@ -198,13 +212,13 @@ abstract class GramCompletionProvider
 			isLocal: true);
 	}
 
-	static TextSpan WordSpan(string text, int position)
+	static TextSpan WordSpan(int length, Func<int, char> at, int position)
 	{
 		var start = position;
 		var end   = position;
 
-		while (start > 0 && IsNameCharacter(text[start - 1])) start--;
-		while (end < text.Length && IsNameCharacter(text[end])) end++;
+		while (start > 0 && IsNameCharacter(at(start - 1))) start--;
+		while (end < length && IsNameCharacter(at(end))) end++;
 
 		return new TextSpan(start, end - start);
 	}
@@ -218,7 +232,7 @@ abstract class GramCompletionProvider
 /// <summary>Completion in a standalone <c>.gram</c> document.</summary>
 sealed class StandaloneGramCompletionProvider(GramDocument document) : GramCompletionProvider
 {
-	protected override bool IsApplicable(string text, int position)
+	protected override bool IsApplicable(int position)
 	{
 		return true;
 	}
@@ -259,7 +273,7 @@ sealed class StandaloneGramCompletionProvider(GramDocument document) : GramCompl
 /// <summary>Completion in the grammars and DSL literals of a C# document.</summary>
 sealed class EmbeddedGramCompletionProvider(EmbeddedGrammarView view) : GramCompletionProvider
 {
-	protected override bool IsApplicable(string text, int position)
+	protected override bool IsApplicable(int position)
 	{
 		return view.Current && view.Classifications.Any(item => item.GrammarSpan.Contains(position)) ||
 			view.TryGetDslCompletions(position, out var expected) &&

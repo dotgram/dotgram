@@ -104,13 +104,12 @@ static class GramQuickInfoProvider
 		Func<string, int, CancellationToken, Task<RoslynGramQuickInfo?>>? csharp,
 		CancellationToken cancellationToken)
 	{
-		var text        = view.Text;
 		var item        = await StandaloneItemAsync(view, position, csharp, cancellationToken).ConfigureAwait(false);
 		var diagnostics = GramDiagnosticText.At(
 			view.Document.Diagnostics.Select(static diagnostic =>
 				(diagnostic.Position, diagnostic.Length, diagnostic)),
 			position,
-			text.Length);
+			view.Length);
 
 		return new GramQuickInfoAnswer(item, diagnostics);
 	}
