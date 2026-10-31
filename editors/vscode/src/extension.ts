@@ -1,6 +1,7 @@
 // The .Gram extension: starts the DotGram language server and hands it every .gram document. What
 // the language means is the server's; this file only finds a runtime and the server and connects them.
 
+import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -25,13 +26,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         debug: { ...server, transport: TransportKind.stdio },
     };
 
+    // The server looks for a grammar's host in the folder's C#, and for what it includes in the
+    // folder's grammars.
+    const watcher = vscode.workspace.createFileSystemWatcher('**/*.{cs,gram}');
+    context.subscriptions.push(watcher);
+
     const clientOptions: LanguageClientOptions = {
         documentSelector: [{ language: 'gram' }],
         outputChannel: output,
         synchronize: {
-            // The server looks for a grammar's host in the folder's C#, and for what it includes in
-            // the folder's grammars.
-            fileEvents: vscode.workspace.createFileSystemWatcher('**/*.{cs,gram}'),
+            fileEvents: watcher,
         },
     };
 
@@ -53,13 +57,29 @@ export async function deactivate(): Promise<void> {
     }
 }
 
-/** How to start the server: a DLL with the dotnet that runs it, or an executable of the user's. */
+/**
+ * How to start the server: an executable of the user's, the extension's own self-contained one where it
+ * carries one, or a DLL with the dotnet that runs it.
+ */
 async function serverCommand(
     context: vscode.ExtensionContext,
     output: vscode.OutputChannel,
 ): Promise<{ command: string; args: string[] } | undefined> {
     const configuration = vscode.workspace.getConfiguration('dotgram');
     const configured = configuration.get<string>('server.path')?.trim();
+    const bundled = context.asAbsolutePath(
+        path.join('server', process.platform === 'win32' ? 'DotGram.LanguageServer.exe' : 'DotGram.LanguageServer'),
+    );
+
+    // A self-contained build carries its runtime and an executable; a framework-dependent one only the DLL.
+    if (!configured && fs.existsSync(bundled)) {
+        if (process.platform !== 'win32') {
+            fs.chmodSync(bundled, 0o755);
+        }
+
+        return { command: bundled, args: [] };
+    }
+
     const server = configured || context.asAbsolutePath(path.join('server', 'DotGram.LanguageServer.dll'));
 
     if (!server.toLowerCase().endsWith('.dll')) {
