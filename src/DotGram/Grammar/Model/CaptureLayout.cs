@@ -412,6 +412,13 @@ public sealed record Recovery(Node Sync, string? Factory)
 {
 	public bool YieldStep { get; init; }
 
+	/// <summary>
+	/// The scanner that reads the factory's C#, so that what it asks for is what the C# names:
+	/// not a spelling inside a string or a comment, and an identifier written with an <c>@</c>
+	/// or a Unicode escape is the name it spells. Null where the grammar has none.
+	/// </summary>
+	public ICSharpScanner? Scanner { get; init; }
+
 	/// <summary>Where the grammar wrote the <c>recover</c>, for what is said about it.</summary>
 	public Parsing.Location At { get; init; }
 
@@ -450,9 +457,10 @@ public sealed record Recovery(Node Sync, string? Factory)
 				return [];
 
 			var asked = new List<string>();
+			var free  = Scanner?.FreeNames(factory);
 
 			foreach (var name in Supplied)
-				if (Mentions(factory, name))
+				if (free is not null ? free.Contains(name) : Mentions(factory, name))
 					asked.Add(name);
 
 			return asked;

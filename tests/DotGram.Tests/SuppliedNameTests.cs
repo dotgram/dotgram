@@ -138,6 +138,78 @@ public sealed class SuppliedNameTests
 		}
 	}
 
+	/// <summary>
+	/// A name of the host that happens to be spelled like a supplied one is the host's where it is called or
+	/// made: <c>parserMessage()</c> is its method and <c>new parserText()</c> its type, and neither is
+	/// refused (GRAM4053) nor handed a parameter of that name, which would make the call fail to compile.
+	/// </summary>
+	[Theory]
+	[InlineData("Start : @string = 'a' => @parserMessage()")]
+	[InlineData("Start : @string = 'a' => @(parserMessage())")]
+	[InlineData("Start : @string = 'a' => @(parserMessage() + new parserText().ToString())")]
+	[InlineData("Start : @string = 'a' & when @(parserMessage() != null) => @(\"ok\")")]
+	[InlineData("Start : @string = 'a' => @(((parserText)new parserText()).ToString() + (typeof(parserText) is null ? \"\" : \"\") + parserMessage())")]
+	[InlineData("Start : @string[] = Row* recover ';' => @(parserMessage())\nRow : @string = t: ['a'..'z']+ & ';' => @(t)")]
+	public void A_host_name_spelled_like_a_supplied_one_is_the_hosts_where_it_is_called_or_made(string grammar)
+	{
+		const string members =
+			"public static string parserMessage() { return \"ok\"; }\n" +
+			"public sealed class parserText { public override string ToString() { return \"\"; } }\n";
+
+		foreach (var (name, direct, carrier) in TieShapes.Renderings)
+		{
+			var result = Compile(grammar + "\nparse Start\n", direct, carrier);
+
+			Assert.DoesNotContain(result.Diagnostics, static one => one.Id == GrammarNormalizer.SuppliedNameNotHere);
+
+			// Built beside the host, as a consumer's build builds it.
+			var parser = TieShapes.Grammar(grammar + "\nparse Start\n", direct, carrier, members: members);
+
+			Assert.True(parser.GetMethod("TryParseStart", [typeof(string)]) is not null, name);
+		}
+	}
+
+	/// <summary>
+	/// A name written with an <c>@</c> or a Unicode escape is the name it spells, for the factory's parameters
+	/// as for the check that it is handed: the generated file declares it.
+	/// </summary>
+	[Theory]
+	[InlineData("@parserInput")]
+	[InlineData("parserInpu\\u0074")]
+	[InlineData("@parserInpu\\u0074")]
+	[InlineData("par\\u0073erInput")]
+	public void A_recovery_factory_may_spell_a_supplied_name_otherwise(string spelled)
+	{
+		foreach (var (name, direct, carrier) in TieShapes.Renderings)
+		{
+			var parser = TieShapes.Grammar(Rows.Replace("FACTORY", spelled, StringComparison.Ordinal), direct, carrier);
+
+			Assert.Equal(name + "[ab|ab;1;cd;|cd]", name + TieShapes.Ask(parser, "TryParseStart", "ab;1;cd;").Said);
+		}
+	}
+
+	/// <summary>
+	/// A factory that does not ask for the input is not charged for it: a string or a comment that spells the
+	/// name leaves the parameter unwritten and the reader form unrefused.
+	/// </summary>
+	[Theory]
+	[InlineData("\"parserInputTag\"")]
+	[InlineData("parserText /* parserInput */")]
+	[InlineData("parserText + \"parserInput\"")]
+	[InlineData("parserText + nameof(Tag.parserInput)")]
+	public void A_recovery_factory_that_does_not_ask_for_the_input_is_not_charged_for_it(string factory)
+	{
+		var grammar = Rows.Replace("FACTORY", factory, StringComparison.Ordinal);
+
+		foreach (var (name, direct, carrier) in TieShapes.Renderings)
+		{
+			var result = Compile(grammar, direct, carrier);
+
+			Assert.DoesNotContain(result.Diagnostics, static one => one.Id == GramCompiler.BufferedUnsupported || one.Id == "GRAM5001");
+			Assert.DoesNotContain("string parserInput", result.Sources[0].Text, StringComparison.Ordinal);
+		}
+	}
+
 	static GramCompilation Compile(string grammar, bool direct, CarrierKind carrier)
 	{
 		return GramCompiler.Compile(grammar, new GramCompilerOptions

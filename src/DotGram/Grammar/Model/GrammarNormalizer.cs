@@ -368,7 +368,7 @@ public sealed partial class GrammarNormalizer
 			Context    = (normalizer._context ?? model.Context)?.Name,
 			State      = (normalizer._state ?? model.State)?.Name,
 			ContextRewinds = normalizer._rewinds,
-			FreeNames  = FreeNames(normalizer._bodies.Values, scanner),
+			FreeNames  = FreeNames(normalizer._bodies.Values, normalizer._recoveries.Values, scanner),
 			WhenSound  = normalizer._whenSound,
 			Located    = located,
 			Segmented  = normalizer._segmented,
@@ -599,7 +599,7 @@ public sealed partial class GrammarNormalizer
 	/// </para>
 	/// </remarks>
 	static IReadOnlyDictionary<string, IReadOnlyCollection<string>> FreeNames(
-		IEnumerable<Node> bodies, ICSharpScanner? scanner)
+		IEnumerable<Node> bodies, IEnumerable<Recovery> recoveries, ICSharpScanner? scanner)
 	{
 		var names = new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
 
@@ -620,6 +620,11 @@ public sealed partial class GrammarNormalizer
 				if (text is not null && !names.ContainsKey(text) && scanner.FreeNames(text) is { } free)
 					names[text] = free;
 			}
+
+		// A recovery's factory is no node of a body, and is asked for the same names.
+		foreach (var recovery in recoveries)
+			if (recovery.Factory is { } factory && !names.ContainsKey(factory) && scanner.FreeNames(factory) is { } asked)
+				names[factory] = asked;
 
 		return names;
 	}

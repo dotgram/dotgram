@@ -139,6 +139,13 @@ public sealed class RoslynCSharpScanner : ICSharpScanner
 				assignment.Parent is InitializerExpressionSyntax)
 				continue;
 
+			// A name the parser supplies is a value, never something called or made: `parserMessage()`
+			// is the host's method of that name, and `new parserMessage()` its type, which the
+			// parser has nothing to give. A bare use stays free, and so does a name with a member
+			// (`parserState.Length`); the host's static class of that name is read as the value.
+			if (name.Identifier.ValueText.StartsWith("parser", StringComparison.Ordinal) && Called(name))
+				continue;
+
 			// `f(name: value)` names a parameter of `f`.
 			if (name.Parent is NameColonSyntax or NameEqualsSyntax)
 				continue;
@@ -161,6 +168,23 @@ public sealed class RoslynCSharpScanner : ICSharpScanner
 		static bool Holds((SyntaxNode Over, SyntaxNode? Except) scope, SyntaxNode name)
 		{
 			return scope.Over.Span.Contains(name.Span) && scope.Except?.Span.Contains(name.Span) != true;
+		}
+
+		// Whether the name is invoked, or stands where a type does.
+		static bool Called(IdentifierNameSyntax name)
+		{
+			return name.Parent switch
+			{
+				InvocationExpressionSyntax call           => call.Expression == name,
+				ObjectCreationExpressionSyntax creation   => creation.Type == name,
+				CastExpressionSyntax cast                 => cast.Type == name,
+				TypeOfExpressionSyntax typeOf             => typeOf.Type == name,
+				DefaultExpressionSyntax fallback          => fallback.Type == name,
+				BinaryExpressionSyntax binary             => binary.Right == name && (binary.IsKind(SyntaxKind.AsExpression) || binary.IsKind(SyntaxKind.IsExpression)),
+				DeclarationExpressionSyntax declaration   => declaration.Type == name,
+				VariableDeclarationSyntax declaration     => declaration.Type == name,
+				_                                         => false,
+			};
 		}
 
 		// Whether the name is the type a declaration is written with, through `ref` or `scoped`.

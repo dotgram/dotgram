@@ -290,9 +290,9 @@ public static class Retention
 		foreach (var owner in Reachable(graph, root))
 			foreach (var node in NodeWalk.Reading(graph.Bodies[owner], graph))
 				if (node is Node.Construct { How: Construction.Expression { Text: var built } } &&
-					built.Contains("parserInput") ||
+					NamesInput(graph, built) ||
 					node is Node.Repeat && graph.Recoveries.TryGetValue(node, out var recovery) &&
-					recovery.Factory?.Contains("parserInput", StringComparison.Ordinal) == true)
+					recovery.Factory is { } rejected && NamesInput(graph, rejected))
 				{
 					return $"'{owner.Name}' builds its value with 'parserInput' (docs/syntax.md §8.2), " +
 						"which is the whole of what was read. A streamed parse reads through a window " +
@@ -300,6 +300,17 @@ public static class Retention
 				}
 
 		return null;
+	}
+
+	/// <summary>
+	/// Whether the C# names <c>parserInput</c>: what the scanner found free in it where the graph has
+	/// its answer, and the spelling where it has none.
+	/// </summary>
+	static bool NamesInput(RecognitionGraph graph, string text)
+	{
+		return graph.FreeNames.TryGetValue(text, out var free)
+			? free.Contains("parserInput")
+			: text.Contains("parserInput", StringComparison.Ordinal);
 	}
 
 	/// <summary>
