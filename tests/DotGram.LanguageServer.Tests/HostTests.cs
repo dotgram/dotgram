@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -431,6 +432,101 @@ public sealed class HostTests : IDisposable
 		return texts;
 	}
 
+	/// <summary>
+	/// Where the file system ignores case, two spellings of one file are one file to the updates too: a
+	/// read of <c>Base.gram</c> that ends after a later read of <c>base.gram</c> does not overwrite it.
+	/// The file system's comparer is the test's here, case-insensitive on any machine.
+	/// </summary>
+	[Fact]
+	public async Task Two_spellings_of_one_file_are_one_file_to_the_updates()
+	{
+		File.WriteAllText(Path.Combine(_folder, "Base.gram"), Base);
+
+		var upper     = Path.Combine(_folder, "Base.gram");
+		var lower     = Path.Combine(_folder, "base.gram");
+		var workspace = FolderWorkspace.Create([_folder], static _ => { }, TestContext.Current.CancellationToken, paths: StringComparer.OrdinalIgnoreCase);
+		var older     = new ManualResetEventSlim(false);
+		var reading   = new ManualResetEventSlim(false);
+		var updates   = new WorkspaceUpdates(
+			() => Task.FromResult(workspace),
+			static exception => Assert.Fail(exception.ToString()),
+			StringComparer.OrdinalIgnoreCase,
+			path =>
+			{
+				if (path != upper)
+					return "Word = 'newer'\n";
+
+				// The older read, held until the newer one is applied.
+				reading.Set();
+				older.Wait(LspClient.Timeout);
+				return "Word = 'older'\n";
+			});
+
+		updates.FileChanged(upper, deleted: false);
+		reading.Wait(LspClient.Timeout, TestContext.Current.CancellationToken);
+		updates.FileChanged(lower, deleted: false);
+
+		await WaitUntilAsync(async () => await GrammarTextAsync(workspace, upper) == "Word = 'newer'\n");
+
+		older.Set();
+
+		// The older read has ended, and was dropped: what is applied stays the newer text.
+		await WaitUntilAsync(() => Task.FromResult(updates.Reading == 0));
+		await updates.Drained;
+
+		Assert.Equal("Word = 'newer'\n", await GrammarTextAsync(workspace, upper));
+	}
+
+	/// <summary>A watched file in a folder the walk skips is not read at all, not even off the queue.</summary>
+	[Fact]
+	public async Task A_watched_file_the_workspace_ignores_is_not_read()
+	{
+		Directory.CreateDirectory(Path.Combine(_folder, "obj"));
+		File.WriteAllText(Path.Combine(_folder, "obj", "Generated.cs"), Hosts);
+		File.WriteAllText(Path.Combine(_folder, "Hosts.cs"), Hosts);
+
+		var workspace = FolderWorkspace.Create([_folder], static _ => { }, TestContext.Current.CancellationToken);
+		var read      = new List<string>();
+		var updates   = new WorkspaceUpdates(
+			() => Task.FromResult(workspace),
+			static exception => Assert.Fail(exception.ToString()),
+			FolderWorkspace.PathComparer,
+			path =>
+			{
+				lock (read)
+					read.Add(path);
+
+				return File.ReadAllText(path);
+			});
+
+		updates.FileChanged(Path.Combine(_folder, "obj", "Generated.cs"), deleted: false);
+		updates.FileChanged(Path.Combine(_folder, "Hosts.cs"), deleted: false);
+
+		await WaitUntilAsync(() => Task.FromResult(updates.Reading == 0));
+		await updates.Drained;
+
+		Assert.Equal([Path.Combine(_folder, "Hosts.cs")], read);
+	}
+
+	static async Task<string?> GrammarTextAsync(FolderWorkspace workspace, string path)
+	{
+		var document = workspace.Workspace.CurrentSolution.GetProject(workspace.Project)!.AdditionalDocuments
+			.SingleOrDefault(item => string.Equals(item.FilePath, path, StringComparison.OrdinalIgnoreCase));
+
+		return document is null ? null : (await document.GetTextAsync(TestContext.Current.CancellationToken)).ToString();
+	}
+
+	static async Task WaitUntilAsync(Func<Task<bool>> condition)
+	{
+		var deadline = DateTime.UtcNow + LspClient.Timeout;
+
+		while (!await condition())
+		{
+			Assert.True(DateTime.UtcNow < deadline, "The condition did not come true.");
+			await Task.Delay(5, TestContext.Current.CancellationToken);
+		}
+	}
+
 	/// <summary>A folder that holds more entries than the walk looks at is given up, and said so.</summary>
 	[Fact]
 	public void A_walk_past_its_bound_gives_the_folders_up()
@@ -506,7 +602,7 @@ public sealed class HostTests : IDisposable
 	{
 		await using var client = await LspClient.StartAsync();
 
-		var workspace = new Microsoft.CodeAnalysis.AdhocWorkspace();
+		var workspace = FolderWorkspace.Empty();
 		var document  = new OpenGrammar(
 			"untitled:Closed.gram", null, new GramVersion(1, Microsoft.CodeAnalysis.Text.SourceText.From(Dialect)), client.Server);
 		var told      = 0;
