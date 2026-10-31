@@ -167,7 +167,9 @@ public sealed class AdaptiveValuesTests
 			ClassName = "Grammar", Carrier = CarrierKind.Tape, Lexical = lexical, ValueStorage = storage,
 			CSharpScanner = RoslynCSharpScanner.Instance,
 		});
-		Assert.DoesNotContain(compiled.Diagnostics, one => one.Severity != GramSeverity.Info);
+		// `Retry` reads `a!` by either alternative where the guard does not refuse the first, and
+		// GRAM4052 cannot see a guard: the repetition over it is told, and it is not the question here.
+		Assert.DoesNotContain(compiled.Diagnostics, one => one.Severity != GramSeverity.Info && one.Id != GramCompiler.ExponentialRepetitions);
 		var source = Assert.Single(compiled.Sources).Text;
 		return (EmittedCode.Compile(source, declarationMembers: Members + "\n" +
 			string.Join("\n", Enumerable.Range(0, 24).Select(i => "public sealed class SpareValue" + i + " {}"))), source);
