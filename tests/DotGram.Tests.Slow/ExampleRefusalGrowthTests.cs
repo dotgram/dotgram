@@ -1,0 +1,293 @@
+﻿using System;
+using System.Diagnostics;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+
+using DotGram.Examples.Formats;
+using DotGram.Examples.Languages;
+using DotGram.Generation;
+using DotGram.Grammar;
+using DotGram.Language;
+
+using Xunit;
+
+namespace DotGram.Tests;
+
+/// <summary>
+/// A refusal in an example grammar costs about as much as its input is long: doubling the input
+/// does not do much more than double the time.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Each input is a run of the unit that used to be readable in two ways, ending in something the
+/// grammar cannot read, so that the whole run is tried every way it can be cut before the refusal.
+/// The units are a line ending that is one <c>"\r\n"</c> or a <c>'\r'</c> and a <c>'\n'</c>, a blank
+/// after a fold that a field's value or the fold itself could take, a <c>--</c> that is a comment or
+/// two symbols, and a value that runs to the end of its line or stops where the next entry could
+/// begin. A reading with two ways per unit doubles for every unit, and no bound on a time can be set
+/// under that: twenty-two lines of the YAML took two seconds and thirty-two would take minutes.
+/// </para>
+/// <para>
+/// <b>What is held is a ratio, never a time.</b> The input doubles from <see cref="First"/> units, each
+/// size is timed over enough repeated refusals to be read off the clock, and the time of a size may not
+/// be more than <see cref="Step"/> times that of the size before it: a linear reading doubles, a
+/// quadratic one quadruples, and a shape that reads every way multiplies by a thousand at the first
+/// step. The ladder stops at the first step over the bound, so that a regression fails in a second
+/// and not after minutes. Over the whole ladder the time may not grow faster than
+/// <see cref="Whole"/> times the growth of a quadratic reading.
+/// </para>
+/// </remarks>
+[Collection(typeof(Alone))]
+public sealed class ExampleRefusalGrowthTests
+{
+	/// <summary>The size the ladder starts at, in units.</summary>
+	const int First = 4;
+
+	/// <summary>How many times the input doubles after <see cref="First"/>.</summary>
+	const int Doublings = 7;
+
+	/// <summary>What one doubling of the input may cost, as a multiple: a linear reading is 2, a quadratic one 4.</summary>
+	const double Step = 8;
+
+	/// <summary>What the whole ladder may cost against a quadratic reading's growth (128 times the size, 16384 times the time).</summary>
+	const double Whole = 1;
+
+	/// <summary>How long a timing covers, in milliseconds, so that a reading of microseconds is not noise.</summary>
+	const double Sample = 15;
+
+	[Fact]
+	public void YAML_lines_ending_in_CRLF_are_refused_in_step_with_their_length()
+	{
+		Ladder("yaml", static n => Repeated("a: b\r\n", n) + "!", static text => YamlLite.TryParseDoc(text).IsSuccess);
+		Assert.True(YamlLite.TryParseDoc("a: b\r\n\r\nc: d\r\n").IsSuccess);
+	}
+
+	[Fact]
+	public void YAML_blank_lines_ending_in_CRLF_are_refused_in_step_with_their_length()
+	{
+		Ladder("yaml blanks", static n => Repeated("\r\n", n) + "!", static text => YamlLite.TryParseDoc(text).IsSuccess);
+	}
+
+	[Fact]
+	public void INI_entries_ending_in_CRLF_are_refused_in_step_with_their_length()
+	{
+		Ladder("ini entries", static n => Repeated("k=v\r\n", n) + "]", static text => IniParser.TryParseIni(text).IsSuccess);
+		Assert.True(IniParser.TryParseIni("k=v\r\n\r\n[s]\r\na=b\r\n").IsSuccess);
+	}
+
+	[Fact]
+	public void INI_sections_ending_in_CRLF_are_refused_in_step_with_their_length()
+	{
+		Ladder("ini sections", static n => Repeated("[s]\r\nk=v\r\n", n) + "]", static text => IniParser.TryParseIni(text).IsSuccess);
+	}
+
+	[Fact]
+	public void HTTP_fields_with_folded_blanks_are_refused_in_step_with_their_length()
+	{
+		Ladder("http", static n => Repeated("A: v\r\n \t x\r\n", n) + ": x", static text => HttpParser.TryParseHeaders(text).IsSuccess);
+		Assert.True(HttpParser.TryParseHeaders("A: v\r\n \t x\r\nB:  \r\n  \r\n").IsSuccess);
+	}
+
+	[Fact]
+	public void HTTP_folds_of_blanks_are_refused_in_step_with_their_length()
+	{
+		Ladder("http folds", static n => "A: v\r\n" + Repeated(" \t \r\n", n) + ": x", static text => HttpParser.TryParseHeaders(text).IsSuccess);
+	}
+
+	[Theory]
+	[InlineData("a\r\n")]
+	[InlineData("a\n")]
+	[InlineData("\r\n")]
+	[InlineData("a\r\n\r\n")]
+	[InlineData("# h\r\n")]
+	[InlineData("- b\r\n")]
+	[InlineData("- b\r\n- c\r\n\r\n")]
+	[InlineData("```\r\nx\r\n```\r\n")]
+	[InlineData("``` x\r\n\r\ny\r\n```\r\n\r\n")]
+	public void Markdown_blocks_are_refused_in_step_with_their_length(string piece)
+	{
+		Ladder("markdown " + piece.Replace("\r", "\\r").Replace("\n", "\\n"), n => Repeated(piece, n) + "z", static text => MarkdownParser.TryParseDoc(text).IsSuccess);
+	}
+
+	[Fact]
+	public void Markdown_code_lines_ending_in_CRLF_are_refused_in_step_with_their_length()
+	{
+		Ladder("markdown code", static n => "```\r\n" + Repeated("x\r\n", n) + "y", static text => MarkdownParser.TryParseDoc(text).IsSuccess);
+	}
+
+	[Fact]
+	public void Markdown_still_reads_what_it_read()
+	{
+		var blocks = MarkdownParser.Read("# h\r\n\r\n- a\r\n- b\r\ntext\n```\r\nx\r\n```\r\n");
+
+		Assert.Equal(
+			[typeof(MarkdownHeading), typeof(MarkdownBlank), typeof(MarkdownList), typeof(MarkdownParagraph), typeof(MarkdownCode)],
+			blocks.Select(static one => one.GetType()).ToArray());
+
+		// A fence that never closes is read as the lines it is.
+		Assert.Equal(2, MarkdownParser.Read("```\r\nx\r\n").Count);
+		Assert.False(MarkdownParser.TryParseDoc("a").IsSuccess);
+	}
+
+	[Theory]
+	[InlineData(" abc")]
+	[InlineData(" 12e-3")]
+	[InlineData(" 'it''s'")]
+	[InlineData(" \"q\" [b]")]
+	[InlineData(" ( ) a.b,\t- /")]
+	[InlineData(" -- c\n")]
+	[InlineData(" a -- c\n")]
+	[InlineData(" 1--c\n")]
+	[InlineData(" /* c */")]
+	[InlineData(" a/* c */b")]
+	public void A_read_only_query_of_repeated_tokens_is_refused_in_step_with_its_length(string piece)
+	{
+		Ladder("sql " + piece.Replace("\n", "\\n"), n => "select" + Repeated(piece, n) + " insert", static text => SqlReadOnly.IsReadOnly(text));
+	}
+
+	[Fact]
+	public void A_read_only_query_still_reads_what_it_read()
+	{
+		Assert.True(SqlReadOnly.IsReadOnly("select a -- c\n from t"));
+		Assert.True(SqlReadOnly.IsReadOnly("select a /* c */ from t where 1e-3 < 'it''s' and b.c = \"q\" or [b] = 2 - 1 / 3"));
+		Assert.True(SqlReadOnly.IsReadOnly("select 1end"));
+		Assert.False(SqlReadOnly.IsReadOnly("select a -- c\n insert into t values (1)"));
+	}
+
+	[Fact]
+	public void A_minus_or_slash_that_starts_a_comment_is_not_a_symbol()
+	{
+		// Read as two symbols and a string, this would hide the insert from the check, and the server
+		// reads the first line as a comment.
+		Assert.False(SqlReadOnly.IsReadOnly("select 1 -- '\n insert into t values (1) --'"));
+		Assert.False(SqlReadOnly.IsReadOnly("select 1 /* '\n */ insert into t values (1) /* ' */"));
+	}
+
+	[Fact]
+	public void A_located_config_whose_lines_hold_more_than_one_equals_sign_is_refused_in_step_with_its_length()
+	{
+		Ladder("located config", static n => Repeated("a=b=c\n", n) + "!", static text => Config.Located.TryParseFile(text).IsSuccess);
+		Assert.True(Config.Located.TryParseFile("a=b=c\nd = e\n").IsSuccess);
+	}
+
+	/// <remarks>
+	/// The grammar of <c>LocatedNullTests</c>, read over characters: <c>xASy</c> was one key, or a key
+	/// and the alias word <c>AS</c> before another.
+	/// </remarks>
+	[Fact]
+	public void A_list_of_keys_and_aliases_read_over_characters_is_refused_in_step_with_its_length()
+	{
+		var result = GramCompiler.Compile(
+			"""
+			using Std;
+
+			trivia = { Spacing* }
+
+			List  : @string[] = Entry* & eof
+			Entry : @string   = n: Key & a: Alias & ';' => @(n + a)
+			Key   : @string   = w: { Identifier } => @(w)
+			Alias : @string   = "AS" & w: Identifier => @(w)
+			                  | none => @("")
+
+			parse List
+			""",
+			new GramCompilerOptions { ClassName = "Aliases", CSharpScanner = RoslynCSharpScanner.Instance });
+
+		Assert.DoesNotContain(result.Diagnostics, static one => one.Severity == GramSeverity.Error);
+
+		var parser = EmittedCode.Compile(result.Sources[0].Text, "Aliases", sourceParts: result.Sources.Skip(1).Select(static one => one.Text)).GetType("Aliases")!;
+		var parse  = parser.GetMethod("TryParseList", [typeof(string)])!;
+
+		bool Accepts(string text)
+		{
+			var match = parse.Invoke(null, [text])!;
+
+			return (bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!;
+		}
+
+		Ladder("aliases", static n => Repeated("xASy;", n) + "!", Accepts);
+		Assert.True(Accepts("t;u AS v;xASy;"));
+	}
+
+	/// <summary>
+	/// Doubles the input from <see cref="First"/> units and holds the time of each size against the
+	/// one before it.
+	/// </summary>
+	static void Ladder(string what, Func<int, string> input, Func<string, bool> accepts)
+	{
+		var sizes = Enumerable.Range(0, Doublings + 1).Select(static one => First << one).ToArray();
+		var times = new double[sizes.Length];
+
+		for (var at = 0; at < sizes.Length; at++)
+		{
+			var text = input(sizes[at]);
+
+			Assert.False(accepts(text), $"The {what} input of {sizes[at]} units is accepted, so it measures a refusal of nothing.");
+
+			times[at] = Clock(accepts, text);
+
+			// Before the assertion, so that a ladder that stops shows how far it got.
+			Say(what, sizes, times, at + 1);
+
+			if (at > 0)
+			{
+				Assert.True(
+					times[at] <= Step * times[at - 1],
+					$"The {what} refusal went from {times[at - 1]:F3} ms at {sizes[at - 1]} units to {times[at]:F3} ms at {sizes[at]}: " +
+					$"{times[at] / times[at - 1]:F1} times for twice the input, against a bound of {Step}.");
+			}
+		}
+
+		Say(what, sizes, times, times.Length);
+
+		var grown = times[^1] / times[0];
+		var bound = Whole * Math.Pow(sizes[^1] / (double)sizes[0], 2);
+
+		Assert.True(
+			grown <= bound,
+			$"The {what} refusal grew {grown:F1} times over {sizes[0]} to {sizes[^1]} units, against a bound of {bound:F0}; " +
+			$"{string.Join(", ", sizes.Select((n, i) => $"{n}: {times[i]:F3} ms"))}.");
+	}
+
+	static void Say(string what, int[] sizes, double[] times, int upTo)
+	{
+		TestContext.Current.SendDiagnosticMessage(
+			$"{what}: {string.Join(", ", sizes.Take(upTo).Select((n, i) => $"{n}: {times[i]:F3} ms"))}");
+	}
+
+	/// <summary>The least time of one refusal in milliseconds, over three rounds of <see cref="Sample"/> milliseconds each.</summary>
+	static double Clock(Func<string, bool> accepts, string text)
+	{
+		accepts(text);
+
+		var least = double.MaxValue;
+
+		for (var round = 0; round < 3; round++)
+		{
+			var watch = Stopwatch.StartNew();
+			var calls = 0;
+
+			do
+			{
+				accepts(text);
+				calls++;
+			}
+			while (watch.Elapsed.TotalMilliseconds < Sample);
+
+			least = Math.Min(least, watch.Elapsed.TotalMilliseconds / calls);
+		}
+
+		return least;
+	}
+
+	static string Repeated(string piece, int times)
+	{
+		var built = new StringBuilder(piece.Length * times);
+
+		for (var at = 0; at < times; at++)
+			built.Append(piece);
+
+		return built.ToString();
+	}
+}
