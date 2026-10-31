@@ -290,7 +290,9 @@ public static class Retention
 		foreach (var owner in Reachable(graph, root))
 			foreach (var node in NodeWalk.Reading(graph.Bodies[owner], graph))
 				if (node is Node.Construct { How: Construction.Expression { Text: var built } } &&
-					built.Contains("parserInput"))
+					built.Contains("parserInput") ||
+					node is Node.Repeat && graph.Recoveries.TryGetValue(node, out var recovery) &&
+					recovery.Factory?.Contains("parserInput", StringComparison.Ordinal) == true)
 				{
 					return $"'{owner.Name}' builds its value with 'parserInput' (docs/syntax.md §8.2), " +
 						"which is the whole of what was read. A streamed parse reads through a window " +

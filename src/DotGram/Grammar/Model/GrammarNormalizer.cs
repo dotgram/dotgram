@@ -124,6 +124,9 @@ public sealed partial class GrammarNormalizer
 	/// <summary>A mark placed, or the marks asked for, in a grammar that declares no <c>state</c>.</summary>
 	public const string MarkWithoutState = "GRAM4029";
 
+	/// <summary>A supplied name in C# that is not handed it: the input to a <c>when</c>, a mark to a <c>when</c>, a rejected element's to a <c>=&gt;</c>.</summary>
+	public const string SuppliedNameNotHere = "GRAM4052";
+
 	/// <summary>A mark whose value names a capture of its own alternative.</summary>
 	public const string MarkNamesCapture = "GRAM4030";
 
@@ -329,6 +332,7 @@ public sealed partial class GrammarNormalizer
 		// After pruning, because a rule nothing reaches is never emitted, and a mark in one
 		// breaks nothing.
 		normalizer.CheckMarksHaveState(scanner);
+		normalizer.CheckSuppliedNamesAreHandedOver(scanner);
 
 		var located = Locating(normalizer, resolver, locationType, Imports(model.Root));
 

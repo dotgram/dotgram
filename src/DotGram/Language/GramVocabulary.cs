@@ -259,26 +259,16 @@ public static class GramVocabulary
 	/// EditorVocabularyTests compiles every name in every place and holds these lists to what the
 	/// generated C# accepts.
 	/// </remarks>
-	public static IReadOnlyCollection<string> SuppliedToConstructions { get; } = new HashSet<string>(StringComparer.Ordinal)
-	{
-		"parserText", "parserSpan", "parserInput",
-	};
+	public static IReadOnlyCollection<string> SuppliedToConstructions { get; } = Grammar.Binding.SuppliedNames.ToConstructions;
 
 	/// <summary>The supplied names a <c>when</c> is handed.</summary>
-	public static IReadOnlyCollection<string> SuppliedToGuards { get; } = new HashSet<string>(StringComparer.Ordinal)
-	{
-		"parserText", "parserSpan",
-	};
+	public static IReadOnlyCollection<string> SuppliedToGuards { get; } = Grammar.Binding.SuppliedNames.ToGuards;
 
 	/// <summary>The supplied names only a grammar that declares <c>state : @T</c> hands over.</summary>
-	public static IReadOnlyCollection<string> SuppliedWithState { get; } = new HashSet<string>(StringComparer.Ordinal)
-	{
-		"parserState", "parserMarks",
-	};
+	public static IReadOnlyCollection<string> SuppliedWithState { get; } = Grammar.Binding.SuppliedNames.WithState;
 
 	/// <summary>The supplied names a recovery's factory, <c>recover Sync =&gt; …</c>, is handed.</summary>
-	public static IReadOnlyCollection<string> SuppliedToRecoveries { get; } =
-		new HashSet<string>(Grammar.Binding.SuppliedNames.All.Except(["parserState", "parserMarks", "parserInput"]), StringComparer.Ordinal);
+	public static IReadOnlyCollection<string> SuppliedToRecoveries { get; } = Grammar.Binding.SuppliedNames.ToRecoveries;
 
 	/// <summary>
 	/// The supplied names the C# at <paramref name="position"/> of a grammar may name: a

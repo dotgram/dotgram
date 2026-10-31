@@ -25,11 +25,6 @@ public sealed class EditorSuppliedNamesTests
 			foreach (var place in new[] { "construction", "guard", "recovery" })
 				foreach (var state in new[] { false, true })
 				{
-					// A recovery's factory is handed `default` for a state, which compiles and says
-					// nothing; whether it is offered there is the editor's decision, not the compiler's.
-					if (place == "recovery" && GramVocabulary.SuppliedWithState.Contains(name))
-						continue;
-
 					data.Add(name, place, state);
 				}
 

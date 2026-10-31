@@ -287,4 +287,39 @@ public sealed class RefusalTiesTests
 			Assert.Equal("many alternatives, among others", (string?)format.Invoke(null, [argument]));
 		}
 	}
+
+	/// <summary>
+	/// A refusal whose furthest set the reading itself named nothing for, but whose list of ties was cut,
+	/// is worded by the log as the match words it: others were left out, and the log says so.
+	/// </summary>
+	[Fact]
+	public void A_trace_log_says_among_others_where_the_refusal_named_nothing_itself()
+	{
+		const string grammar = "R0 = \"aaaaaaaaaaaaaaaa\" & when @(false) | ('a'+)* & 'b'\nparse R0\n";
+
+		var parser  = TieShapes.Grammar(grammar, direct: false, CarrierKind.Auto, trace: true);
+		var tracing = parser.GetMethod("Tracing")!;
+		var input   = new string('a', 16) + "c";
+
+		Assert.Equal("Expected 'a' or 'b', among others.", TieShapes.Ask(parser, "TryParseR0", input).Said);
+
+		var writer = new System.IO.StringWriter();
+		var log    = Activator.CreateInstance(parser.GetNestedType("GramTraceLog")!, writer, 10_000_000)!;
+
+		using (var scope = (IDisposable)tracing.Invoke(null, [log])!)
+			TieShapes.Ask(parser, "TryParseR0", input);
+
+		var last = writer.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries).Last(static line => line.Contains("refused, the furthest refusal", StringComparison.Ordinal)).TrimEnd('\r');
+
+		Assert.EndsWith("among others", last, StringComparison.Ordinal);
+
+		// Not cut: the same shape's log says only where.
+		writer = new System.IO.StringWriter();
+		log    = Activator.CreateInstance(parser.GetNestedType("GramTraceLog")!, writer, 10_000_000)!;
+
+		using (var scope = (IDisposable)tracing.Invoke(null, [log])!)
+			TieShapes.Ask(parser, "TryParseR0", "aaac");
+
+		Assert.DoesNotContain("among others", writer.ToString(), StringComparison.Ordinal);
+	}
 }

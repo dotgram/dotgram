@@ -706,7 +706,9 @@ public static partial class CSharpEmitter
 					Write(end >= 0
 						? "read to " + Where(read, end)
 						: "refused, the furthest refusal at " + Where(read, position) +
-							(expected != null ? ": " + Wanted(expected) + (Cut(expectedMore) ? ", among others" : "") : ""));
+							(expected != null ? ": " + Wanted(expected) + (Cut(expectedMore) ? ", among others" : "")
+								// A cut list says there were others even where this refusal named nothing itself.
+								: Cut(expectedMore) ? ": " + Wanted(new[] { GramTrace.TruncatedTies }) : ""));
 
 				if (_reads.Count > 0)
 					return;

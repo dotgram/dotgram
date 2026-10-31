@@ -217,6 +217,85 @@ public sealed partial class GrammarNormalizer
 		}
 	}
 
+	/// <summary>
+	/// A supplied name written where the parser does not hand it over: the input or the marks in a
+	/// <c>when</c>, a rejected element's message in a <c>=&gt;</c> that reads no rejection.
+	/// </summary>
+	/// <remarks>
+	/// Each position is handed a fixed set (<see cref="SuppliedNames"/>); a name outside it was left
+	/// to the C# compiler, which says CS0103 about code the author did not write. The marks are left
+	/// out where the grammar declares no <c>state</c>, which <see cref="CheckMarksHaveState"/> says.
+	/// A recovery's factory is handed every name but the marks, which a rejected element has none of.
+	/// </remarks>
+	void CheckSuppliedNamesAreHandedOver(ICSharpScanner? scanner)
+	{
+		var declaresState = _state is not null || _model.State is not null;
+
+		foreach (var rule in _rules)
+		{
+			if (rule.Declaration is null || !_bodies.TryGetValue(rule, out var body))
+				continue;
+
+			foreach (var node in NodeWalk.Reading(body, _recoveries))
+			{
+				var (text, handed, place) = node switch
+				{
+					Node.Guard(var guard, _)                                     => (guard, SuppliedNames.ToGuards, "a 'when'"),
+					Node.Construct(_, Construction.Expression(var built, _))     => (built, SuppliedNames.ToConstructions, "a '=>'"),
+					_                                                            => (null, null, null),
+				};
+
+				if (text is null || handed is null)
+					continue;
+
+				var isGuard = place == "a 'when'";
+
+				foreach (var name in Unhanded(text, handed, isGuard && declaresState, scanner))
+					Report(
+						SuppliedNameNotHere,
+						$"'{rule.Name}' names '{name}' in {place}, which is not handed it: {place} is handed " +
+						$"{Handed(handed, !isGuard && declaresState)} (docs/syntax.md §8.2).",
+						rule.Declaration.At);
+			}
+		}
+
+		foreach (var recovery in _recoveries.Values)
+			if (recovery.Factory is { } factory)
+				foreach (var name in Unhanded(factory, SuppliedNames.ToRecoveries, flagMarks: true, scanner))
+					Report(
+						SuppliedNameNotHere,
+						$"A 'recover' factory names '{name}', which is not handed to it: a rejected element was " +
+						"never read, so no mark stands over it (docs/syntax.md §8.2).",
+						recovery.At);
+
+		static string Handed(IReadOnlyCollection<string> names, bool withState)
+		{
+			var shown = names.Concat(withState ? SuppliedNames.WithState : []).Select(static name => $"'{name}'").ToArray();
+
+			return string.Join(", ", shown.Take(shown.Length - 1)) + " and " + shown[^1];
+		}
+	}
+
+	/// <summary>The supplied names the C# asks for that its position is not handed, in the order they are declared.</summary>
+	/// <param name="flagMarks">
+	/// Whether the marks count among them. They do for a <c>when</c> of a grammar that declares a <c>state</c>;
+	/// a construction is handed them where it declares one, and without one says so in its own words
+	/// (<see cref="CheckMarksHaveState"/>).
+	/// </param>
+	static IEnumerable<string> Unhanded(string text, IReadOnlyCollection<string> handed, bool flagMarks, ICSharpScanner? scanner)
+	{
+		var free = scanner?.FreeNames(text);
+
+		foreach (var name in SuppliedNames.All)
+		{
+			if (handed.Contains(name) || SuppliedNames.WithState.Contains(name) && !flagMarks)
+				continue;
+
+			if (free is not null ? free.Contains(name) : text.Contains(name, StringComparison.Ordinal))
+				yield return name;
+		}
+	}
+
 	/// <summary>How a guard or a construction asks for the marks, or null where it does not.</summary>
 	static string? AsksForMarks(string text, ICSharpScanner? scanner)
 	{

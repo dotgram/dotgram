@@ -731,6 +731,13 @@ sealed partial class Machine
 						UsesInput = true;
 					}
 
+					// A recovery's factory is handed it as a construction is, and is no construction of the body.
+					if (node is Node.Repeat && graph.Recoveries.TryGetValue(node, out var recovery) &&
+						recovery.Factory is { } rejected && CSharpEmitter.Uses(graph, rejected, "parserInput"))
+					{
+						UsesInput = true;
+					}
+
 					// The same, and for the same reason: the flat rendering builds a
 					// factory's arguments out of its members alone, and this is not one —
 					// it comes off the arena the flat rendering exists not to have.
