@@ -413,12 +413,10 @@ public sealed class ExponentialRepetitionTests
 
 	/// <summary>
 	/// Grammars of deep and wide call graphs, each asked on a thread with the smallest stack a
-	/// process starts with, a megabyte, and held to a time and an allocation: the walks that follow
-	/// calls go a bounded depth with a stack of their own, ask each rule once, and charge every step.
-	/// Each is asked with what it should find, so a check that gave up early would not pass: a shape
-	/// that reads its run two ways is told through the same walks.
+	/// process starts with, a megabyte (<see cref="DeepCallGraphs"/>), at depths past every limit
+	/// the walks have: the chains are three hundred calls, past the sixty-four a call is written out
+	/// to; the slow suite asks them eight thousand deep.
 	/// </summary>
-	/// <param name="shape">Which grammar (<see cref="Deep"/>).</param>
 	[Theory]
 	[InlineData("look over a diamond", 1, 0, 0)]
 	[InlineData("look over a diamond, then a run read two ways", 1, 1, 0)]
@@ -429,131 +427,12 @@ public sealed class ExponentialRepetitionTests
 	[InlineData("braces before a diamond under aliases", 1, 1, 0)]
 	public void A_deep_or_wide_call_graph_is_asked_in_bounded_work(string shape, int loops, int told, int skipped)
 	{
-		var (graph, split) = Built(Deep(shape));
-
-		ExponentialRepetition.Result? result = null;
-
-		var steps = 0;
-		var bytes = 0L;
-		var watch = Stopwatch.StartNew();
-
-		OnThread(
-			() =>
-			{
-				bytes  = GC.GetAllocatedBytesForCurrentThread();
-				result = ExponentialRepetition.Check(graph, split, out steps);
-				bytes  = GC.GetAllocatedBytesForCurrentThread() - bytes;
-			},
-			1 << 20);
-
-		TestContext.Current.SendDiagnosticMessage(
-			$"{shape}: {result!.Loops} loops, {result.Skipped} skipped, {result.Found.Count} told, {steps} steps, {bytes} bytes, {watch.Elapsed.TotalMilliseconds:F1} ms");
-
-		Assert.Equal(loops, result.Loops);
-		Assert.Equal(told, result.Found.Count);
-		Assert.Equal(skipped, result.Skipped);
-		Assert.True(steps > 0, "No work was counted.");
-		Assert.True(steps <= 1 << 20, $"{steps} steps");
-		Assert.True(bytes < 32 << 20, $"{bytes} bytes allocated");
-		Assert.True(watch.Elapsed.TotalSeconds < 5, $"{watch.Elapsed.TotalMilliseconds:F0} ms");
-	}
-
-	/// <summary>The grammars of <see cref="A_deep_or_wide_call_graph_is_asked_in_bounded_work"/>.</summary>
-	static string Deep(string shape)
-	{
-		var grammar = new StringBuilder();
-
-		void Rules(int from, int to, string body)
-		{
-			for (var i = from; i <= to; i++)
-				grammar.Append($"A{i} = {body.Replace("@", $"A{i - 1}", StringComparison.Ordinal)}\n");
-		}
-
-		switch (shape)
-		{
-			case "look over a diamond":
-				grammar.Append("A0 = 'a'\n");
-				Rules(1, 24, "@ | @ & any");
-				grammar.Append("R = (?!A24 & 'x')* & 'b'\n");
-				break;
-
-			case "look over a diamond, then a run read two ways":
-				grammar.Append("A0 = 'a'\n");
-				Rules(1, 24, "@ | @ & any");
-				grammar.Append("R = (?!A24 & 'x') & ('c' | 'c' & 'c')+ & 'b'\n");
-				break;
-
-			case "chain of guards":
-				grammar.Append("A0 = when @(true)\n");
-				Rules(1, 8000, "when @(true) & @");
-				grammar.Append("R = (A8000 & 'a')* & 'b'\n");
-				break;
-
-			case "chain of guards, then a run read two ways":
-				grammar.Append("A0 = when @(true)\n");
-				Rules(1, 8000, "when @(true) & @");
-				grammar.Append("R = (A8000 & ('a' | 'a' & 'a')+)* & 'b'\n");
-				break;
-
-			case "chain of aliases repeated":
-				grammar.Append("A0 = 'a'\n");
-				Rules(1, 8000, "@");
-				grammar.Append("R = A8000* & 'b'\n");
-				break;
-
-			case "diamond of aliases repeated":
-				grammar.Append("A0 = 'a'\n");
-				Rules(1, 18, "@ | @");
-				grammar.Append("R = A18* & 'b'\n");
-				break;
-
-			// Every path down the diamond meets the depth before it meets a rule that cannot fail:
-			// asked of each rule once, from the bottom, whatever the depth.
-			case "braces before a diamond under aliases":
-				grammar.Append("A0 = 'a'\n");
-				Rules(1, 47, "@");
-				Rules(48, 65, "@ | @ & any");
-				grammar.Append("R = { ('x' | 'x' & 'x')+ & A65 } & 'b'\n");
-				break;
-		}
-
-		return grammar.Append("parse R\n").ToString();
-	}
-
-	/// <summary>The graph of a grammar, built on a thread with room for the normalizer's own walks down a deep chain.</summary>
-	static (RecognitionGraph Graph, LexicalSplit? Split) Built(string grammar)
-	{
-		RecognitionGraph? graph = null;
-		LexicalSplit?     split = null;
-
-		OnThread(() => graph = Graph(grammar, lexical: false, out split), 256 << 20);
-
-		return (graph!, split);
+		DeepCallGraphs.Ask(shape, 300, loops, told, skipped);
 	}
 
 	internal static void OnThread(Action run, int stack)
 	{
-		Exception? failed = null;
-
-		var thread = new System.Threading.Thread(
-			() =>
-			{
-				try
-				{
-					run();
-				}
-				catch (Exception error)
-				{
-					failed = error;
-				}
-			},
-			stack);
-
-		thread.Start();
-		thread.Join();
-
-		if (failed is not null)
-			System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failed).Throw();
+		DeepCallGraphs.OnThread(run, stack);
 	}
 
 	/// <summary>
@@ -674,56 +553,74 @@ public sealed class ExponentialRepetitionTests
 		var read   = 0;
 		var found  = new List<string>();
 
-		foreach (var grammar in Grammars(root))
+		// Each grammar and way of reading it on its own, in parallel, and the report put together in
+		// the order they were found: what each says does not depend on the others.
+		var jobs  = Grammars(root).SelectMany(static grammar => grammar.Modes.Select(lexical => (Grammar: grammar, Lexical: lexical))).ToArray();
+		var parts = new (string Report, int Hits, bool Read, List<string> Found)[jobs.Length];
+
+		// The longest first, so that the largest grammar is not the last one begun.
+		var order = Enumerable.Range(0, jobs.Length).OrderByDescending(at => jobs[at].Grammar.Text.Length).ToArray();
+
+		System.Threading.Tasks.Parallel.ForEach(
+			System.Collections.Concurrent.Partitioner.Create(order, System.Collections.Concurrent.EnumerablePartitionerOptions.NoBuffering),
+			at =>
 		{
-			var (name, text) = (grammar.Name, grammar.Text);
+			var (grammar, lexical) = jobs[at];
+			var (name, text)       = (grammar.Name, grammar.Text);
+			var part               = new StringBuilder();
+			var told               = new List<string>();
 
-			foreach (var lexical in grammar.Modes)
+			RecognitionGraph graph;
+			LexicalSplit?    split;
+			long             built;
+
+			var watch = Stopwatch.StartNew();
+
+			try
 			{
-				RecognitionGraph graph;
-				LexicalSplit?    split;
-				long             built;
-
-				var watch = Stopwatch.StartNew();
-
-				try
-				{
-					graph = Built(grammar, lexical, out split);
-					built = watch.ElapsedTicks;
-				}
-				catch (Exception error)
-				{
-					report.AppendLine($"{name} [{(lexical ? "kinds" : "chars")}]: not read ({error.GetType().Name}: {error.Message.Split('\n')[0]})");
-
-					continue;
-				}
-
-				watch.Restart();
-
-				var result  = ExponentialRepetition.Check(graph, split, out var steps);
-				var checking = watch.ElapsedTicks;
-
-				read++;
-				hits += result.Found.Count;
-
-				var mode = (lexical ? split is null ? "kinds asked, read over chars" : "kinds" : "chars") +
-					(grammar.Included.Count == 0 ? "" : ", with " + string.Join(", ", grammar.Included.Select(static one => one.Name)));
-
-				report.AppendLine(string.Create(
-					System.Globalization.CultureInfo.InvariantCulture,
-					$"{name} [{mode}]: {result.Loops} loops, {result.Skipped} past the budget, {result.Opaque} opaque letters, " +
-					$"{result.Found.Count} told; {steps} steps, {Milliseconds(checking):F1} ms against {Milliseconds(built):F1} ms to build the graph"));
-
-				foreach (var told in result.Found)
-				{
-					var line = told.Rule.Declaration is { } declaration
-						? 1 + text.Take(Math.Min(declaration.At.Position, text.Length)).Count(static c => c == '\n')
-						: 0;
-
-					report.AppendLine($"  HIT {told.Rule.Name} (line {line}): {Shortened(told.Loop.ToString())} reads {told.Witness} in two ways");
-					found.Add($"{name.Split(':')[0]} [{mode}] {told.Rule.Name}: {told.Loop}");
-				}
+				graph = Built(grammar, lexical, out split);
+				built = watch.ElapsedTicks;
 			}
+			catch (Exception error)
+			{
+				part.AppendLine($"{name} [{(lexical ? "kinds" : "chars")}]: not read ({error.GetType().Name}: {error.Message.Split('\n')[0]})");
+				parts[at] = (part.ToString(), 0, false, told);
+
+				return;
+			}
+
+			watch.Restart();
+
+			var result   = ExponentialRepetition.Check(graph, split, out var steps);
+			var checking = watch.ElapsedTicks;
+
+			var mode = (lexical ? split is null ? "kinds asked, read over chars" : "kinds" : "chars") +
+				(grammar.Included.Count == 0 ? "" : ", with " + string.Join(", ", grammar.Included.Select(static one => one.Name)));
+
+			part.AppendLine(string.Create(
+				System.Globalization.CultureInfo.InvariantCulture,
+				$"{name} [{mode}]: {result.Loops} loops, {result.Skipped} past the budget, {result.Opaque} opaque letters, " +
+				$"{result.Found.Count} told; {steps} steps, {Milliseconds(checking):F1} ms against {Milliseconds(built):F1} ms to build the graph"));
+
+			foreach (var one in result.Found)
+			{
+				var line = one.Rule.Declaration is { } declaration
+					? 1 + text.Take(Math.Min(declaration.At.Position, text.Length)).Count(static c => c == '\n')
+					: 0;
+
+				part.AppendLine($"  HIT {one.Rule.Name} (line {line}): {Shortened(one.Loop.ToString())} reads {one.Witness} in two ways");
+				told.Add($"{name.Split(':')[0]} [{mode}] {one.Rule.Name}: {one.Loop}");
+			}
+
+			parts[at] = (part.ToString(), result.Found.Count, true, told);
+		});
+
+		foreach (var part in parts)
+		{
+			report.Append(part.Report);
+			hits += part.Hits;
+			read += part.Read ? 1 : 0;
+			found.AddRange(part.Found);
 		}
 
 		report.Insert(0, $"{read} grammars read, {hits} hits.\n");
@@ -829,18 +726,27 @@ public sealed class ExponentialRepetitionTests
 	{
 		var hosts = new List<Host>();
 
-		foreach (var path in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
+		// Each file read on its own, in parallel, and its hosts put together in the order of the files.
+		var sources = Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
+			.Where(path => !Scratch(root, path))
+			.OrderBy(static path => path, StringComparer.Ordinal)
+			.ToArray();
+		var found   = new List<Host>[sources.Length];
+
+		System.Threading.Tasks.Parallel.For(0, sources.Length, at =>
 		{
-			if (Scratch(root, path))
-				continue;
-
+			var path   = sources[at];
 			var source = File.ReadAllText(path);
+			var mine   = new List<Host>();
 
-			if (!source.Contains("Gram", StringComparison.Ordinal))
-				continue;
+			if (source.Contains("Gram", StringComparison.Ordinal))
+				Hosts(CSharpSyntaxTree.ParseText(source).GetRoot(), Path.GetFileName(path), Path.GetDirectoryName(path)!, 0, path, mine, 0);
 
-			Hosts(CSharpSyntaxTree.ParseText(source).GetRoot(), Path.GetFileName(path), Path.GetDirectoryName(path)!, 0, path, hosts, 0);
-		}
+			found[at] = mine;
+		});
+
+		foreach (var mine in found)
+			hosts.AddRange(mine);
 
 		var files = new Dictionary<string, List<string>>(StringComparer.Ordinal);
 

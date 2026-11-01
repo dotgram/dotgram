@@ -228,6 +228,16 @@ public sealed class ExponentialRepetitionScalingTests
 		Assert.True(steps <= bound, $"{path}: {steps} steps, over the bound of {bound}.");
 	}
 
+	/// <summary>The chains of the fast suite's deep call graphs, eight thousand calls long (<see cref="DeepCallGraphs"/>).</summary>
+	[Theory]
+	[InlineData("chain of guards", 1, 0, 0)]
+	[InlineData("chain of guards, then a run read two ways", 2, 1, 0)]
+	[InlineData("chain of aliases repeated", 1, 0, 0)]
+	public void A_chain_thousands_of_calls_deep_is_asked_in_bounded_work(string shape, int loops, int told, int skipped)
+	{
+		DeepCallGraphs.Ask(shape, 8000, loops, told, skipped);
+	}
+
 	/// <summary>
 	/// Random chains and diamonds of calls, up to ten thousand deep and one or two calls a rule,
 	/// under every kind of repetition the analysis walks calls from: each is asked on a thread of a
