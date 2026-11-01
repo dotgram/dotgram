@@ -46,6 +46,16 @@ static class DeepChains
 			// Calls at the start: what a rule begins with is what the next one down begins with.
 			["leading"] = static depth => Chain(depth, "A0 = 'x'", static i => $"A{i} = A{i - 1} & 'y'", $"parse A{depth}"),
 
+			// The same under a repetition: what a turn begins with, and whether it runs code before
+			// its first item, asked down the whole chain.
+			["leading, repeated"] = static depth => Chain(
+				depth, "A0 = 'x'", static i => $"A{i} = A{i - 1} & 'y'", $"R = A{depth}* & 'x'\nparse R"),
+
+			// Rules that only forward, under a repetition: collapsed, and judged for exponential
+			// readings through every alias.
+			["aliases, repeated"] = static depth => Chain(
+				depth, "A0 = 'a'", static i => $"A{i} = A{i - 1}", $"R = A{depth}* & 'b'\nparse R"),
+
 			// A choice: each alternative's first set, and a forwarder at every level.
 			["choice"] = static depth => Chain(depth, "A0 = 'x'", static i => $"A{i} = A{i - 1} | 'y'", $"parse A{depth}"),
 
@@ -57,6 +67,12 @@ static class DeepChains
 			["guard"] = static depth => Chain(
 				depth, "A0 = when @(true)", static i => $"A{i} = when @(true) & A{i - 1}",
 				$"R = (A{depth} & 'a')* & 'b'\nparse R"),
+
+			// The guards again, then a run read two ways inside the repetition: told (GRAM4052), and
+			// asked down the whole chain to be told.
+			["guards, then a run"] = static depth => Chain(
+				depth, "A0 = when @(true)", static i => $"A{i} = when @(true) & A{i - 1}",
+				$"R = (A{depth} & ('a' | 'a' & 'a')+)* & 'b'\nparse R"),
 
 			// Values: the type of each rule is the type of the one below, and the publication at
 			// the top is the end of a chain of inferred types.
@@ -80,6 +96,20 @@ static class DeepChains
 	public static TheoryData<string> Names()
 	{
 		return new TheoryData<string>(Shapes.Keys);
+	}
+
+	/// <summary>The names of <see cref="Shapes"/>, each read by methods and by the engine.</summary>
+	public static TheoryData<string, bool> NamesAndReadings()
+	{
+		var data = new TheoryData<string, bool>();
+
+		foreach (var name in Shapes.Keys)
+		{
+			data.Add(name, true);
+			data.Add(name, false);
+		}
+
+		return data;
 	}
 
 	static string Chain(int depth, string first, Func<int, string> level, string tail)

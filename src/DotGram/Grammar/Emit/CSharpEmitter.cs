@@ -197,10 +197,9 @@ public static partial class CSharpEmitter
 	{
 		statics ??= [];
 
-		// The masks of categories this file tests, as the tests are written (CategoryTests).
-		_categoryMasks = new SortedSet<int>();
-		_hostCalls     = new SortedDictionary<string, string>(StringComparer.Ordinal);
-		_hostCallKeys  = new Dictionary<string, string>(StringComparer.Ordinal);
+		// What this file gathers as it is written: the masks of categories it tests (CategoryTests)
+		// and the methods that call the author's (HostCall).
+		Ambient.Current.Emission = new EmissionScope();
 
 		// A grammar left to choose is compiled exactly as one that asks for the immediate carrier:
 		// every machine that carrier does not refuse is carried by it, and a refused one is on the
@@ -1232,9 +1231,10 @@ public static partial class CSharpEmitter
 
 		// The bits of every mask of categories something wrote a test of, known like the sets below
 		// only once everything is written, the parts of a divided file included.
-		var categoryMasks = _categoryMasks;
+		var emission      = Ambient.Current.Emission!;
+		var categoryMasks = emission.CategoryMasks;
 
-		_categoryMasks = null;
+		Ambient.Current.Emission = null;
 
 		if (CategoryTests(categoryMasks) is { Length: > 0 } categoryTests)
 		{
@@ -1244,10 +1244,7 @@ public static partial class CSharpEmitter
 
 		// The methods of the author's that the generated readers call, each through a method of its
 		// own whose parameters carry names the author cannot have used (HostCall).
-		var hostCalls = _hostCalls;
-
-		_hostCalls    = null;
-		_hostCallKeys = null;
+		var hostCalls = emission.HostCalls;
 
 		if (hostCalls is { Count: > 0 })
 			foreach (var declaration in hostCalls.Values)
@@ -6396,7 +6393,7 @@ file.Line("return spare;");
 		if (categories.Count > 0)
 		{
 			tests.Add($"{CategoryTest(mask)}(c)");
-			_categoryMasks?.Add(mask);
+			Ambient.Current.Emission?.CategoryMasks.Add(mask);
 		}
 
 		// §7.1's element predicate: `bool M(char c)` asks the same question about one item
@@ -6458,27 +6455,6 @@ file.Line("return spare;");
 	}
 
 	/// <summary>
-	/// The masks of categories the file being emitted has a test of, recorded by <see cref="Test"/>
-	/// as it writes each; null outside <see cref="Emit"/>.
-	/// </summary>
-	/// <remarks>
-	/// Recorded rather than found again in the text written: a grammar's own C# is in that text too,
-	/// and a string in a construction that happens to spell a test's name is not a test. One per
-	/// thread, because <see cref="Test"/> is asked from every part of the emitter and the generator
-	/// may emit two files at once on two threads; one file is emitted on one thread from start to end.
-	/// </remarks>
-	[ThreadStatic]
-	static SortedSet<int>? _categoryMasks;
-
-	/// <summary>The methods that call the author's, by their names, as <see cref="HostCall"/> writes them.</summary>
-	[ThreadStatic]
-	static SortedDictionary<string, string>? _hostCalls;
-
-	/// <summary>The name of the method <see cref="HostCall"/> wrote, by the call it stands for.</summary>
-	[ThreadStatic]
-	static Dictionary<string, string>? _hostCallKeys;
-
-	/// <summary>
 	/// The name of a method of the generated class that calls the author's <paramref name="method"/> with
 	/// parameters of these types, and whose own parameters cannot hide it.
 	/// </summary>
@@ -6506,8 +6482,11 @@ file.Line("return spare;");
 
 	internal static string HostCall(string method, params (string Type, string Mode)[] parameters)
 	{
-		if (_hostCalls is not { } calls || _hostCallKeys is not { } keys)
+		if (Ambient.Current.Emission is not { } scope)
 			return method;
+
+		var calls = scope.HostCalls;
+		var keys  = scope.HostCallKeys;
 
 		var key = method + "(" + string.Join(", ", parameters.Select(static one => one.Mode + " " + one.Type)) + ")";
 

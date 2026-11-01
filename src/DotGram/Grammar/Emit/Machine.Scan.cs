@@ -344,6 +344,10 @@ sealed partial class Machine
 
 	bool Infallible(Node node, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Infallible(node, seen));
+
 		return node switch
 		{
 			Node.Empty => true,
@@ -637,6 +641,10 @@ sealed partial class Machine
 	/// </remarks>
 	bool Scannable(Node node, FirstSets.First after, HashSet<RuleSymbol>? seen = null)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Scannable(node, after, seen));
+
 		switch (node)
 		{
 			case Node.Empty:
@@ -818,6 +826,10 @@ sealed partial class Machine
 	/// </summary>
 	static char[]? Except(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Except(node, graph, seen));
+
 		switch (node)
 		{
 			case Node.Element { IsNegated: true, Categories.Count: 0, References.Count: 0 } element when !ReadsFewOneByOne.Value:
@@ -858,6 +870,10 @@ sealed partial class Machine
 	/// </remarks>
 	static bool Anything(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Anything(node, graph, seen));
+
 		return node switch
 		{
 			Node.Element element => string.Equals(
@@ -916,6 +932,10 @@ sealed partial class Machine
 	/// </summary>
 	Node? PastLiteral(Node node)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => PastLiteral(node));
+
 		switch (node)
 		{
 			case Node.Sequence(var parts) when parts.Count > 1 && parts[0] is Node.Literal { IgnoreCase: false }:
@@ -956,6 +976,10 @@ sealed partial class Machine
 
 	string? LeadingLiteral(Node node)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => LeadingLiteral(node));
+
 		return node switch
 		{
 			Node.Literal(var text) { IgnoreCase: false } => text,

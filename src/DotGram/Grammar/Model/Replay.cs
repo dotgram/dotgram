@@ -436,6 +436,10 @@ public static class Replay
 
 	static bool CanFail(Node node, RecognitionGraph graph, HashSet<RuleSymbol>? asked)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => CanFail(node, graph, asked));
+
 		switch (node)
 		{
 			case Node.Empty:

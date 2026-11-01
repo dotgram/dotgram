@@ -41,27 +41,30 @@ public sealed class GramParser
 	/// <summary>A length <c>#q</c> standing anywhere but inside count braces.</summary>
 	public const string LengthOutsideCount   = "GRAM2010";
 
-	/// <summary>An expression nested more than <see cref="MaxNesting"/> operands deep (GRAM2011).</summary>
+	/// <summary>Something nested more than <see cref="MaxNesting"/> levels deep (GRAM2011).</summary>
 	public const string NestedTooDeep        = "GRAM2011";
 
 	/// <summary>
-	/// The deepest one operand may stand inside others in a rule: groups, braces, lookaheads,
-	/// captures and bindings, one level each.
+	/// The deepest the parser goes into what nests: an operand inside another (a group, braces, a
+	/// lookahead, a capture, a binding, a call's arguments, a rebinding, a switch), a condition's
+	/// parentheses, a C# type's arguments, a namespace inside another — one level each, so a group
+	/// is two, itself and what it holds.
 	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// Every stage after this one takes a rule apart by recursion over its tree — the binder, the
-	/// lowering and its checks, the compilation of the machine — and some of those frames are
-	/// kilobytes. A chain of rules is walked with stacks of their own, because its length is not
-	/// bounded by anything; the nesting of one rule is, here, so that the recursion over it is
-	/// bounded by a number and not by whatever stack the host happened to give the generator.
+	/// The parser is recursive descent, and every stage after it takes a rule apart by recursion over
+	/// its tree — the binder, the lowering and its checks — so how deep one rule may nest is bounded
+	/// here, by a number and not by whatever stack the host happened to give the generator. A chain
+	/// of rules calling each other is another matter and is not bounded: the walks that follow calls
+	/// keep stacks of their own, or carry on on another (DeepStack).
 	/// </para>
 	/// <para>
-	/// Far above anything written by hand: no grammar in this repository nests deeper than 5.
-	/// A rule nested deeper is better written as rules calling each other.
+	/// Far above anything written by hand: sixty-three groups inside each other are read, and no
+	/// grammar in this repository goes past a dozen levels. A rule nested deeper is better written
+	/// as rules calling each other.
 	/// </para>
 	/// </remarks>
-	public const int MaxNesting = 64;
+	public const int MaxNesting = 128;
 
 	/// <summary>How deep the operand being read stands (<see cref="MaxNesting"/>).</summary>
 	int _nesting;
@@ -450,6 +453,39 @@ public sealed class GramParser
 	/// </remarks>
 	Decl ParseNamespace()
 	{
+		if (PastNesting())
+		{
+			var at = Current.Position;
+
+			// The whole namespace, its header and its block.
+			while (!AtEnd && !At(TokenKind.OpenBrace))
+				Take();
+
+			for (var open = 0; !AtEnd;)
+			{
+				var kind = Take().Kind;
+
+				if (kind == TokenKind.OpenBrace)
+					open++;
+				else if (kind == TokenKind.CloseBrace && --open == 0)
+					break;
+			}
+
+			return new Decl.Namespace("", [], [], []) { At = From(at) };
+		}
+
+		try
+		{
+			return ParseNamespaceWithin();
+		}
+		finally
+		{
+			_nesting--;
+		}
+	}
+
+	Decl ParseNamespaceWithin()
+	{
 		var start = Current.Position;
 
 		Take();                                     // `namespace`
@@ -748,6 +784,32 @@ public sealed class GramParser
 	/// </param>
 	TypeRef ParseType(bool withinCSharp = false)
 	{
+		if (PastNesting())
+		{
+			var at = Current.Position;
+
+			// What is too deep is the rest of this argument: up to the comma or the close that ends it.
+			for (var open = 0; !AtEnd; Take())
+				if (At(TokenKind.Less))
+					open++;
+				else if (At(TokenKind.Greater) && open-- == 0 || At(TokenKind.Comma) && open == 0)
+					break;
+
+			return new TypeRef(true, "", false, From(at));
+		}
+
+		try
+		{
+			return ParseTypeWithin(withinCSharp);
+		}
+		finally
+		{
+			_nesting--;
+		}
+	}
+
+	TypeRef ParseTypeWithin(bool withinCSharp)
+	{
 		var start     = Current.Position;
 		var isCSharp  = TakeIf(TokenKind.At) || withinCSharp;
 		var name      = ExpectQualifiedName();
@@ -794,15 +856,25 @@ public sealed class GramParser
 
 	Expr ParseBody()
 	{
-		var start        = Current.Position;
-		var alternatives = new List<Expr> { ParseAlternative() };
+		if (PastNesting())
+			return TooDeep();
 
-		while (!_panic && TakeIf(TokenKind.Bar))
-			alternatives.Add(ParseAlternative());
+		try
+		{
+			var start        = Current.Position;
+			var alternatives = new List<Expr> { ParseAlternative() };
 
-		return alternatives.Count == 1
-			? alternatives[0]
-			: new Expr.Choice(alternatives) { At = From(start) };
+			while (!_panic && TakeIf(TokenKind.Bar))
+				alternatives.Add(ParseAlternative());
+
+			return alternatives.Count == 1
+				? alternatives[0]
+				: new Expr.Choice(alternatives) { At = From(start) };
+		}
+		finally
+		{
+			_nesting--;
+		}
 	}
 
 	Expr ParseAlternative()
@@ -984,13 +1056,31 @@ public sealed class GramParser
 	/// <summary>One `A is B`, one `@(…)`, or a bracketed test.</summary>
 	Test ParseOneTest()
 	{
-		if (TakeIf(TokenKind.OpenParen))
+		if (At(TokenKind.OpenParen))
 		{
-			var inside = ParseAnyTest();
+			var start = Current.Position;
 
-			Expect(TokenKind.CloseParen);
+			if (PastNesting())
+			{
+				SkipNested();
 
-			return inside;
+				return new Test.Runs(new Expr.Reference(false, "", []) { At = From(start) });
+			}
+
+			try
+			{
+				Take();
+
+				var inside = ParseAnyTest();
+
+				Expect(TokenKind.CloseParen);
+
+				return inside;
+			}
+			finally
+			{
+				_nesting--;
+			}
 		}
 
 		var left = ParseValue();
@@ -1211,10 +1301,8 @@ public sealed class GramParser
 	/// </remarks>
 	Expr ParsePrefixed()
 	{
-		if (_nesting >= MaxNesting)
+		if (PastNesting())
 			return TooDeep();
-
-		_nesting++;
 
 		try
 		{
@@ -1233,8 +1321,8 @@ public sealed class GramParser
 	}
 
 	/// <summary>
-	/// An operand past <see cref="MaxNesting"/>: said once, where it begins, and read past
-	/// without being looked into.
+	/// An operand past <see cref="MaxNesting"/>: said once, where it begins (<see cref="PastNesting"/>),
+	/// and read past without being looked into.
 	/// </summary>
 	/// <remarks>
 	/// What is read past is the operand and everything nested in it, up to where the operand
@@ -1248,11 +1336,39 @@ public sealed class GramParser
 	{
 		var start = Current.Position;
 
+		SkipNested();
+
+		return new Expr.Reference(false, "", []) { At = From(start) };
+	}
+
+	/// <summary>
+	/// Whether one level further in is past <see cref="MaxNesting"/>: if it is, it is said here, where
+	/// it begins, and the caller reads past it; if not, the level is entered, and the caller leaves it
+	/// in a <c>finally</c>.
+	/// </summary>
+	bool PastNesting()
+	{
+		if (_nesting < MaxNesting)
+		{
+			_nesting++;
+
+			return false;
+		}
+
 		Report(
 			NestedTooDeep,
-			$"An operand stands more than {MaxNesting} levels deep inside others in one rule, past what the " +
-			"generator reads. Name the inner part as a rule of its own and call it.");
+			$"This stands more than {MaxNesting} levels deep inside groups, conditions, types or namespaces, " +
+			"past what the generator reads. Name the inner part as a rule of its own and call it.");
 
+		return true;
+	}
+
+	/// <summary>
+	/// Reads past what is too deep: up to where what it stands in goes on — the close that balances
+	/// an open of its own, or a connector, a close or a new rule at its own level.
+	/// </summary>
+	void SkipNested()
+	{
 		var open = 0;
 
 		while (!At(TokenKind.EndOfFile))
@@ -1275,8 +1391,6 @@ public sealed class GramParser
 
 			Take();
 		}
-
-		return new Expr.Reference(false, "", []) { At = From(start) };
 	}
 
 	Expr ParseCaptured()
@@ -1461,24 +1575,39 @@ public sealed class GramParser
 		if (!At(TokenKind.OpenParen))
 			return reference;
 
-		Take();
-
-		var arguments = new List<Expr>();
-
-		while (!AtEnd && !At(TokenKind.CloseParen))
+		// The arguments are a level further in, as a group's contents are.
+		if (PastNesting())
 		{
-			// §4.2: an argument is a piece of grammar or a value. A number is only ever the
-			// second — there is no position in a recognition expression where a bare one
-			// means anything — so it is read here and nowhere else.
-			arguments.Add(At(TokenKind.Integer) ? ParseNumber() : ParseAlternative());
+			SkipNested();
 
-			if (!TakeIf(TokenKind.Comma))
-				break;
+			return reference;
 		}
 
-		Expect(TokenKind.CloseParen);
+		try
+		{
+			Take();
 
-		return new Expr.Call(reference, arguments) { At = From(start) };
+			var arguments = new List<Expr>();
+
+			while (!AtEnd && !At(TokenKind.CloseParen))
+			{
+				// §4.2: an argument is a piece of grammar or a value. A number is only ever the
+				// second — there is no position in a recognition expression where a bare one
+				// means anything — so it is read here and nowhere else.
+				arguments.Add(At(TokenKind.Integer) ? ParseNumber() : ParseAlternative());
+
+				if (!TakeIf(TokenKind.Comma))
+					break;
+			}
+
+			Expect(TokenKind.CloseParen);
+
+			return new Expr.Call(reference, arguments) { At = From(start) };
+		}
+		finally
+		{
+			_nesting--;
+		}
 	}
 
 	Expr.Reference ParseReference()

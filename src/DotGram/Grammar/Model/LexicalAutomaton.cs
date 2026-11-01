@@ -226,6 +226,10 @@ public sealed class LexicalAutomaton
 		/// <summary>Every set a pattern tests, so the partition can be taken over them.</summary>
 		bool Gather(Node node, HashSet<RuleSymbol> inside)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Gather(node, inside));
+
 			switch (node)
 			{
 				// A pattern weaves no trivia, so `~` inside one asks about a gap that could
@@ -412,6 +416,10 @@ public sealed class LexicalAutomaton
 
 		(int From, int To)? Build(Node node, HashSet<RuleSymbol> inside)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Build(node, inside));
+
 			switch (node)
 			{
 				case Node.Empty or Node.Guard or Node.Glue:
@@ -767,6 +775,10 @@ public sealed class LexicalAutomaton
 		/// <summary>What one turn of an "until" consumes, or null where it consumes no one item.</summary>
 		FirstSets.First? Consumed(Node node, HashSet<RuleSymbol> inside)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Consumed(node, inside));
+
 			switch (node)
 			{
 				case Node.Element element:

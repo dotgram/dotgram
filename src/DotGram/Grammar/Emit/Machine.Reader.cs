@@ -195,6 +195,10 @@ sealed partial class Machine
 	/// </remarks>
 	internal bool OnlyRecognizes(Node node)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => OnlyRecognizes(node));
+
 		switch (node)
 		{
 			case Node.Empty or Node.Element or Node.Literal or Node.Glue:

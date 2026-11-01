@@ -6241,6 +6241,10 @@ sealed partial class Machine
 
 		int Entered(Node at, int to, FollowSets.Continuation after)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Entered(at, to, after));
+
 			return at switch
 			{
 				// The terminal itself contributes no state: the dispatch steps over it.
@@ -6283,6 +6287,10 @@ sealed partial class Machine
 	/// </remarks>
 	bool BeginsWith(Node node, string test)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => BeginsWith(node, test));
+
 		return node switch
 		{
 			Node.Element element => CSharpEmitter.Test(element) == $"({test})",
@@ -7239,6 +7247,10 @@ sealed partial class Machine
 	/// </remarks>
 	string? EntryTest(Node node, HashSet<RuleSymbol>? seen = null)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => EntryTest(node, seen));
+
 		switch (node)
 		{
 			case Node.Literal(var text) { IgnoreCase: false } when text.Length > 0:
@@ -7882,6 +7894,10 @@ sealed partial class Machine
 
 		bool Reaches(Node inside)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Reaches(inside));
+
 			foreach (var one in NodeWalk.Descendants(inside))
 			{
 				if (one is Node.Literal { Text.Length: > 1 })
@@ -8932,6 +8948,10 @@ sealed partial class Machine
 
 		bool Leads(Node node, HashSet<RuleSymbol> seen)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Leads(node, seen));
+
 			switch (node)
 			{
 				case Node.Guard or Node.Condition or Node.External or Node.Marked:
@@ -9003,6 +9023,10 @@ sealed partial class Machine
 
 		bool Looks(Node node, HashSet<RuleSymbol> seen)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Looks(node, seen));
+
 			switch (node)
 			{
 				case Node.Element or Node.Literal or Node.Empty or Node.Glue:

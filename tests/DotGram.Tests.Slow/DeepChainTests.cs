@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 
 using DotGram.Generation;
 using DotGram.Grammar;
@@ -21,12 +22,12 @@ public sealed class DeepChainTests
 {
 	/// <summary>The whole compile, as the generator runs it with no host around it.</summary>
 	[Theory]
-	[MemberData(nameof(DeepChains.Names), MemberType = typeof(DeepChains))]
-	public void A_long_chain_of_calls_compiles_on_a_small_stack(string shape)
+	[MemberData(nameof(DeepChains.NamesAndReadings), MemberType = typeof(DeepChains))]
+	public void A_long_chain_of_calls_compiles_on_a_small_stack(string shape, bool direct)
 	{
 		var grammar  = DeepChains.Shapes[shape](DeepChains.Depth);
 		var compiled = DeepChains.OnSmallStack(() => GramCompiler.Compile(
-			grammar, new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance }));
+			grammar, new GramCompilerOptions { CSharpScanner = RoslynCSharpScanner.Instance, Direct = direct }));
 
 		Assert.False(
 			compiled.HasErrors,
@@ -42,14 +43,33 @@ public sealed class DeepChainTests
 	[Fact]
 	public void A_rule_nested_past_the_bound_is_refused_once_rather_than_overflowing()
 	{
-		var compiled = DeepChains.OnSmallStack(() => GramCompiler.Compile(DeepChains.Nested(DeepChains.Depth)));
+		foreach (var grammar in new[]
+		{
+			DeepChains.Nested(DeepChains.Depth),
 
-		var error = Assert.Single(compiled.Diagnostics, static d => d.Severity == GramSeverity.Error);
+			// A condition's parentheses, inside each other.
+			"A = when " + new string('(', DeepChains.Depth) + "'x' is 'x'" + new string(')', DeepChains.Depth) + " & 'x'\nparse A\n",
 
-		Assert.Equal(GramParser.NestedTooDeep, error.Id);
+			// A call's arguments.
+			"P(x) = x\nA = " + string.Concat(Enumerable.Repeat("P(", DeepChains.Depth)) + "'x'" +
+				new string(')', DeepChains.Depth) + "\nparse A\n",
 
-		// And the bound is the bound: one level less is a grammar like any other.
-		Assert.False(GramCompiler.Compile(DeepChains.Nested(GramParser.MaxNesting - 1)).HasErrors);
+			// Namespaces.
+			string.Concat(Enumerable.Repeat("namespace N {\n", DeepChains.Depth)) + "A = 'x'\n" +
+				new string('}', DeepChains.Depth) + "\nB = 'x'\nparse B\n",
+		})
+		{
+			var compiled = DeepChains.OnSmallStack(() => GramCompiler.Compile(grammar));
+
+			var error = Assert.Single(compiled.Diagnostics, static d => d.Severity == GramSeverity.Error);
+
+			Assert.Equal(GramParser.NestedTooDeep, error.Id);
+		}
+
+		// And the bound is the bound: sixty-three groups inside each other are a grammar like any
+		// other, on the small stack too.
+		Assert.False(DeepChains.OnSmallStack(() => GramCompiler.Compile(DeepChains.Nested(63))).HasErrors);
+		Assert.True(DeepChains.OnSmallStack(() => GramCompiler.Compile(DeepChains.Nested(64))).HasErrors);
 	}
 
 	/// <summary>
@@ -60,7 +80,9 @@ public sealed class DeepChainTests
 	public void A_long_chain_of_calls_in_a_host_class_compiles_on_a_small_stack()
 	{
 		var grammar = DeepChains.Shapes["guard"](DeepChains.Depth);
-		var source  = "using DotGram;\n\n[Gram(\"\"\"\n" + grammar + "\"\"\")]\npublic static partial class Deep;\n";
+		var source  = "using DotGram;\n\n[Gram(\"\"\"\n" + grammar + "\"\"\")]\npublic static partial class Deep;\n\n" +
+			// The parser has to be there to be called: a run that wrote only the support would pass otherwise.
+			"static class Use { static void Call() { Deep.ParseR(\"b\"); } }\n";
 
 		var parseOptions = CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview);
 		var compilation  = CSharpCompilation.Create(
@@ -77,7 +99,9 @@ public sealed class DeepChainTests
 		});
 
 		Assert.Empty(run.Result.Diagnostics.Where(static d => d.Severity == DiagnosticSeverity.Error));
-		Assert.NotEmpty(run.Result.Results.SelectMany(static r => r.GeneratedSources));
+		Assert.Contains(
+			run.Result.Results.SelectMany(static r => r.GeneratedSources),
+			static s => s.SourceText.ToString().Contains("partial class Deep", StringComparison.Ordinal));
 
 		var errors = DeepChains.OnSmallStack(() =>
 			run.Output.GetDiagnostics(TestContext.Current.CancellationToken)

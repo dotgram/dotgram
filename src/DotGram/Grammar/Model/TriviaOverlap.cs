@@ -160,6 +160,10 @@ public static class TriviaOverlap
 		/// <summary>Whether a trivia commits what it read: braced, or a rule that forwards to a braced one.</summary>
 		static bool Atomic(Node body, RecognitionGraph graph, HashSet<RuleSymbol> seen)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Atomic(body, graph, seen));
+
 			return body switch
 			{
 				Node.Atomic => true,
@@ -396,6 +400,10 @@ public static class TriviaOverlap
 		/// <summary>The characters an element at one edge of a node reads, those a look in front refuses taken out.</summary>
 		FirstSets.First Edge(Node node, bool head, RuleSymbol owner, FirstSets.First? refused, Witness? witness)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Edge(node, head, owner, refused, witness));
+
 			Steps++;
 
 			switch (node)

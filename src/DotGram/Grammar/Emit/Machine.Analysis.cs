@@ -74,6 +74,10 @@ sealed partial class Machine
 	/// </remarks>
 	bool Silent(Node node, FollowSets.Continuation following)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Silent(node, following));
+
 		// Over kinds the node is compiled inside braces (`Stands`), and asked about there.
 		if (Stands(node))
 		{
@@ -984,6 +988,10 @@ sealed partial class Machine
 
 	bool WantsToken(Node node)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => WantsToken(node));
+
 		// Whatever cannot match nothing, recognizers answering nothing or not, reads a character.
 		if (!FirstSets.Nullable(node, _graph) && !FirstSets.StandsStill(node, _graph))
 			return true;
@@ -1092,6 +1100,10 @@ sealed partial class Machine
 	/// <summary>The test <see cref="RunTest"/> writes, or null where the body is not one character.</summary>
 	string? WrittenTest(Node body)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => WrittenTest(body));
+
 		switch (body)
 		{
 			case Node.Element element:

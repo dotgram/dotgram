@@ -427,6 +427,19 @@ public static class FollowSets
 
 		void Reach(Node contents)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Reach(contents);
+
+					return true;
+				});
+
+				return;
+			}
+
 			foreach (var node in NodeWalk.Descendants(contents))
 			{
 				if (node is not Node.Call(var called, _) || !visited.Add(called))

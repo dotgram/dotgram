@@ -605,6 +605,10 @@ public sealed partial class GrammarNormalizer
 	/// <summary>Every string a node accepts, or null where they are not a listable set.</summary>
 	List<Spelling>? Spellings(Node node, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Spellings(node, seen));
+
 		switch (node)
 		{
 			case Node.Empty:

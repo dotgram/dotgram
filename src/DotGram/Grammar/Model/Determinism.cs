@@ -287,6 +287,10 @@ public static class Determinism
 	/// <summary>Whether a node may begin with something that consumes nothing but can refuse.</summary>
 	static bool LeadsStill(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => LeadsStill(node, graph, seen));
+
 		switch (node)
 		{
 			case Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading:
