@@ -71,6 +71,10 @@ public sealed class ParserLadderTests
 	[MemberData(nameof(Shapes))]
 	public void Nested_whens_are_read_in_time_that_does_not_double_with_each_level(string shape)
 	{
+		// Once untimed: the first reading loads and compiles the lexer, the parser and Roslyn's
+		// scanner of C#, which on a loaded machine is a second on its own.
+		GramCompiler.Read(Grammar(shape, 1), RoslynCSharpScanner.Instance);
+
 		for (var depth = 1; depth <= 40; depth++)
 		{
 			var grammar = Grammar(shape, depth);
