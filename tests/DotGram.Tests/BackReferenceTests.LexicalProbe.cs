@@ -330,7 +330,7 @@ public sealed class LexicalBindingProbe
 	/// a value after a negative lookahead on a reference gave its turn back. The reader reads it.
 	/// Reproduces on main (920531d4) the same.
 	/// </summary>
-	[Fact(Skip = "Not this change's: the engine over characters throws in Materialize_DotGram here on main too; filed with the generator's own defects.")]
+	[Fact]
 	public void The_engine_materializes_after_a_negative_lookahead_on_a_reference()
 	{
 		const string grammar =
