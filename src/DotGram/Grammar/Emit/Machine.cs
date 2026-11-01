@@ -3146,6 +3146,12 @@ sealed partial class Machine
 	/// </param>
 	int Compile(Node node, int next, FollowSets.Continuation following)
 	{
+		// The deepest recursion the generator has, a frame of kilobytes per level of a rule and of
+		// what is compiled into it in place: where the stack runs low, the rest of it is compiled
+		// on a stack of its own (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Compile(node, next, following));
+
 		// The seam is known by its nodes, not by the rule being compiled: the trivia is woven into
 		// a publication's reading and inlined into the rules that call it, where its refusals are
 		// recorded only where the input ran out (EmitTerminalFailure), and a rule read in place of a

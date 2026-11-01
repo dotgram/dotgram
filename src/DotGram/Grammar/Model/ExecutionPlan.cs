@@ -198,28 +198,26 @@ public sealed class ExecutionPlan
 	}
 
 	/// <summary>
-	/// How large a rule may be, in nodes, once every rule it calls in place is written into it
-	/// in turn, and how deep that writing may nest.
+	/// How deep, in nodes, a rule may nest once every rule it calls in place is written into it,
+	/// and each of those in turn.
 	/// </summary>
 	/// <remarks>
 	/// <para>
 	/// <see cref="Copied"/> bounds a body, and the expansion is compositional: each rule of a
 	/// chain is small, and the chain written into its top is as long as the author made it. The
-	/// generated method grows with the chain, the walks that compile and judge an expansion go
-	/// as deep as it does, and on a chain of a few thousand the generator ran out of stack.
+	/// walks that compile and judge an expansion are recursion over it, a frame of kilobytes per
+	/// level, and a chain of a few hundred took the generator's stack.
 	/// </para>
 	/// <para>
-	/// Far above anything the grammars of this repository expand to, so nothing they generate
-	/// moves; a rule past either bound keeps its boundary, and its callers start counting again
-	/// from the call.
+	/// A depth and not a size: the size of what is written in place is the trade the remarks on
+	/// <see cref="CompiledInPlace"/> make, and the grammars here expand to thousands of nodes, but
+	/// never deeper than 36. Far above that, so nothing they generate moves; a rule past it keeps
+	/// its boundary, and its callers count again from the call.
 	/// </para>
 	/// </remarks>
-	const int Expanded = 1024;
-
-	/// <inheritdoc cref="Expanded"/>
 	const int Nested = 64;
 
-	/// <summary>Takes out of <paramref name="inPlace"/> each rule whose expansion passes <see cref="Expanded"/> or <see cref="Nested"/>.</summary>
+	/// <summary>Takes out of <paramref name="inPlace"/> each rule whose expansion nests past <see cref="Nested"/>.</summary>
 	/// <remarks>
 	/// Callees first — the order the call graph's components come out in — so that a rule is
 	/// measured with what it calls already settled; a rule in place is outside every cycle, so
@@ -230,7 +228,7 @@ public sealed class ExecutionPlan
 		if (inPlace.Count == 0)
 			return;
 
-		var measured = new Dictionary<RuleSymbol, (int Size, int Depth)>();
+		var measured = new Dictionary<RuleSymbol, int>();
 		var pending  = new Stack<(Node Node, int Depth)>();
 
 		foreach (var component in graph.Calls.Components)
@@ -239,7 +237,6 @@ public sealed class ExecutionPlan
 				if (!inPlace.Contains(rule))
 					continue;
 
-				var size  = 0;
 				var depth = 0;
 
 				pending.Push((graph.Bodies[rule], 1));
@@ -248,61 +245,19 @@ public sealed class ExecutionPlan
 				{
 					var (node, at) = pending.Pop();
 
-					size++;
 					depth = Math.Max(depth, at);
 
-					if (node is Node.Call(var called, _) && measured.TryGetValue(called, out var callee))
-					{
-						size += callee.Size;
-						depth = Math.Max(depth, at + callee.Depth);
-					}
+					if (node is Node.Call(var called, _) && measured.TryGetValue(called, out var below))
+						depth = Math.Max(depth, at + below);
 
 					foreach (var child in node.Children)
 						pending.Push((child, at + 1));
 				}
 
-				PlanProbe.Note(size, depth);
-
-				if (size > Expanded || depth > Nested)
+				if (depth > Nested)
 					inPlace.Remove(rule);
 				else
-					measured[rule] = (size, depth);
+					measured[rule] = depth;
 			}
-	}
-}
-
-#pragma warning disable RS1035 // temporary probe
-static class PlanProbe
-{
-	static int _size;
-	static int _depth;
-
-	static int _flat;
-
-	public static void NoteFlat(int depth)
-	{
-		if (depth <= _flat)
-			return;
-
-		_flat = depth;
-
-		var path = Environment.GetEnvironmentVariable("DOTGRAM_FLAT_PROBE");
-
-		if (path is not null)
-			System.IO.File.AppendAllText(path, _flat + "\n");
-	}
-
-	public static void Note(int size, int depth)
-	{
-		if (size <= _size && depth <= _depth)
-			return;
-
-		_size  = Math.Max(_size, size);
-		_depth = Math.Max(_depth, depth);
-
-		var path = Environment.GetEnvironmentVariable("DOTGRAM_PLAN_PROBE");
-
-		if (path is not null)
-			System.IO.File.AppendAllText(path, _size + " " + _depth + "\n");
 	}
 }

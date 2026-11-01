@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -100,9 +100,22 @@ internal static class DslRecognitionTrace
 			return new DslRecognitionResult(DslRecognitionStatus.Unsupported, 0, [], []);
 
 		var matcher = new Matcher(graph, input, contract);
-		var candidates = graph.Trivia.TryGetValue(publication.Rule, out var trivia)
-			? matcher.Whole(publication.Rule, trivia).ToArray()
-			: matcher.Rule(publication.Rule, 0).ToArray();
+		Match[] candidates;
+
+		// The interpreter is recursion over the grammar and the text at once, a frame per rule
+		// entered and per node read, and both are as deep as the language and the site make them.
+		// Where the stack the editor gave it runs short, the site is one this cannot read rather
+		// than one that takes the editor down: an overflow cannot be caught.
+		try
+		{
+			candidates = graph.Trivia.TryGetValue(publication.Rule, out var trivia)
+				? matcher.Whole(publication.Rule, trivia).ToArray()
+				: matcher.Rule(publication.Rule, 0).ToArray();
+		}
+		catch (InsufficientExecutionStackException)
+		{
+			return new DslRecognitionResult(DslRecognitionStatus.Unsupported, 0, [], []);
+		}
 		var matches = candidates.Where(match => match.End == input.Length).ToArray();
 
 		foreach (var candidate in candidates)
@@ -218,6 +231,9 @@ internal static class DslRecognitionTrace
 
 		IEnumerable<Match> MatchNode(Node node, int position, RuleSymbol owner)
 		{
+			// Recognize turns this into a site that cannot be read.
+			System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
+
 			switch (node)
 			{
 				case Node.Empty:

@@ -70,6 +70,12 @@ static class DeepChains
 				$"R : @string = t:A{depth} => @(t)\nparse R"),
 		};
 
+	/// <summary>One rule nested <paramref name="depth"/> groups deep, which is not a chain and is refused (GRAM2011).</summary>
+	public static string Nested(int depth)
+	{
+		return "A = " + new string('(', depth) + "'x'" + new string(')', depth) + "\nparse A\n";
+	}
+
 	/// <summary>The names of <see cref="Shapes"/>, for a theory.</summary>
 	public static TheoryData<string> Names()
 	{

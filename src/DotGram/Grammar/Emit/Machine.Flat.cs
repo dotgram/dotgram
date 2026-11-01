@@ -295,8 +295,9 @@ sealed partial class Machine
 	/// <remarks>
 	/// A flat-valued capture of another such rule is that rule's body compiled in place, and so is
 	/// any it captures in turn: a chain of them is one method as deep as the chain, and the walks
-	/// that judge and compile it go as deep. Far above any grammar in this repository; a rule
-	/// past it is built by the machine, as one that is not flat-valued is.
+	/// that judge and compile it go as deep. Far above any grammar or test in this repository,
+	/// the deepest of which is 18; a rule past it is built by the machine, as one that is not
+	/// flat-valued is.
 	/// </remarks>
 	const int FlatNested = 64;
 
@@ -325,8 +326,6 @@ sealed partial class Machine
 			foreach (var child in node.Children)
 				pending.Push((child, depth + 1));
 		}
-
-		PlanProbe.NoteFlat(deepest);
 
 		if (deepest > FlatNested)
 			return false;

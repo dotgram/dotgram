@@ -598,7 +598,8 @@ public static class Determinism
 	static bool Of(
 		Node node, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam)
 	{
-		var open = new Stack<Question>();
+		var open  = new Stack<Question>();
+		var cache = graph.Continuations;
 
 		open.Push(new Question(QuestionKind.Node, node, following));
 
@@ -611,6 +612,13 @@ public static class Determinism
 				// Out of a rule: taken off the path, as the recursion did on its way back up.
 				case QuestionKind.Leave:
 					asked[question.Rule!].RemoveAt(asked[question.Rule!].Count - 1);
+
+					continue;
+
+				// Everything under a rule outside every cycle answered yes, which is its answer
+				// wherever it is called from (ContinuationCache.Determinate).
+				case QuestionKind.Settled:
+					cache!.Determinate[question.Key] = true;
 
 					continue;
 
@@ -676,7 +684,7 @@ public static class Determinism
 				// How many turns it takes is decided only while reading, so it may take them more
 				// than one way.
 				case Node.Counted:
-					return false;
+					return Refused();
 
 				case Node.Sequence(var parts):
 					if (parts.Count > 0)
@@ -687,7 +695,7 @@ public static class Determinism
 				// Each alternative under the same continuation, the last asked first.
 				case Node.Choice(var options):
 					if (!Distinguishable(options, graph))
-						return false;
+						return Refused();
 
 					foreach (var option in options)
 						open.Push(question with { Node = option });
@@ -696,30 +704,66 @@ public static class Determinism
 
 				case Node.Repeat(var body, _, _):
 					if (!Turns(body, question.Following, graph, seam, out var within))
-						return false;
+						return Refused();
 
 					open.Push(new Question(QuestionKind.Node, body, within));
 
 					break;
 
 				case Node.Call(var rule, _):
+				{
+					if (!graph.Bodies.TryGetValue(rule, out var called))
+						return Refused();
+
+					// Asked once for a rule outside every cycle: without this a chain of loops, each
+					// around a call of the next, asks every rule below each one again.
+					var key = default(ContinuationCache.Key);
+					var kept = cache is not null && !graph.Recursive.Contains(rule);
+
+					if (kept)
+					{
+						key = cache!.Of(called, question.Following, seam);
+
+						if (cache.Determinate.TryGetValue(key, out var known))
+						{
+							if (!known)
+								return Refused();
+
+							break;
+						}
+					}
+
 					if (Entered(rule, question.Following))
 						break;
 
-					if (!graph.Bodies.TryGetValue(rule, out var called))
-						return false;
-
 					open.Push(new Question(QuestionKind.Leave, null, question.Following, Rule: rule));
+
+					if (kept)
+						open.Push(new Question(QuestionKind.Settled, null, question.Following, Key: key));
+
 					open.Push(question with { Node = called });
 
 					break;
+				}
 
 				default:
-					return false;
+					return Refused();
 			}
 		}
 
 		return true;
+
+		// No: and no to every rule outside a cycle the walk is still inside, the question that
+		// said no being one of theirs.
+		bool Refused()
+		{
+			if (cache is not null)
+				foreach (var pending in open)
+					if (pending.Kind == QuestionKind.Settled)
+						cache.Determinate[pending.Key] = false;
+
+			return false;
+		}
 
 		// Whether a call is to something determinate, guarded against calling round.
 		//
@@ -775,6 +819,9 @@ public static class Determinism
 
 		/// <summary>The walk is out of <see cref="Question.Rule"/>.</summary>
 		Leave,
+
+		/// <summary>Everything under a rule outside every cycle answered yes, kept under <see cref="Question.Key"/>.</summary>
+		Settled,
 	}
 
 	/// <summary>One question <see cref="Of(Node, Asked, FollowSets.Continuation, RecognitionGraph, RuleSymbol?)"/> has still to ask.</summary>
@@ -784,7 +831,8 @@ public static class Determinism
 		FollowSets.Continuation Following,
 		IReadOnlyList<Node>? Parts = null,
 		int At = 0,
-		RuleSymbol? Rule = null);
+		RuleSymbol? Rule = null,
+		ContinuationCache.Key Key = default);
 
 	/// <summary>Whether one character tells every alternative from every other.</summary>
 	/// <remarks>

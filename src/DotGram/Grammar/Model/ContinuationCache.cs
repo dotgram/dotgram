@@ -77,6 +77,14 @@ sealed class ContinuationCache
 	internal readonly Dictionary<Key, bool> Possessive = new(new Keys());
 	internal readonly Dictionary<Key, bool> NeverGivesBack = new(new Keys());
 
+	/// <summary>
+	/// Whether the body of a rule outside every cycle has one match under a continuation, keyed by
+	/// that body (<c>Determinism.Of</c>). Only such a rule: what is assumed of a rule met again on
+	/// the way down cannot touch one that reaches no rule above it, so its answer is the same on
+	/// every path to it.
+	/// </summary>
+	internal readonly Dictionary<Key, bool> Determinate = new(new Keys());
+
 	int Identify(FirstSets.First first)
 	{
 		if (_identities.TryGetValue(first, out var id))

@@ -53,39 +53,38 @@ sealed partial class Machine
 
 		_scanners[rule] = name;
 
-		if (name is not null)
-			ScanProbe.Note(_probeCount, _probeDepth);
-
 		return name;
 	}
 
 	readonly Dictionary<RuleSymbol, string?> _scanners = [];
 
-	int _probeCount;
-	int _probeDepth;
-
 	/// <summary>
 	/// The most nodes a scanner is written from, counting the body of every rule it calls at
-	/// every call, since a scanner writes each callee out in place.
+	/// every call, since a scanner writes each callee out in place; and how deep they may nest.
 	/// </summary>
 	/// <remarks>
-	/// Far above any scanner a grammar in this repository asks for. What it bounds is a chain:
-	/// <c>A1 = 'x' &amp; A0</c>, <c>A2 = 'x' &amp; A1</c>, … — each rule's scanner is the whole
-	/// chain below it written out again, so the generated file grows with the square of the
-	/// chain and the walks that judge and write a scanner, which follow its calls, go as deep
-	/// as the chain. A rule past the budget is read by the machine, where a call stays a call.
+	/// <para>
+	/// What these bound is a chain: <c>A1 = 'x' &amp; A0</c>, <c>A2 = 'x' &amp; A1</c>, … — each
+	/// rule's scanner is the whole chain below it written out again, so the generated file grew
+	/// with the square of the chain, and the walks that judge and write a scanner, which follow
+	/// its calls, went as deep as the chain, a frame of kilobytes a level. A rule past either is
+	/// read by the machine, where a call stays a call.
+	/// </para>
+	/// <para>
+	/// Far above any scanner the grammars and tests of this repository ask for, the largest of
+	/// which is 188 nodes and 61 deep, so nothing they generate moves.
+	/// </para>
 	/// </remarks>
 	const int ScanBudget = 512;
 
 	/// <inheritdoc cref="ScanBudget"/>
-	const int ScanNested = 32;
+	const int ScanNested = 96;
 
 	/// <summary>Whether a scanner of <paramref name="body"/> stays within <see cref="ScanBudget"/> and <see cref="ScanNested"/>.</summary>
 	bool ScanFits(Node body)
 	{
 		var pending = new Stack<(Node Node, int Depth)>();
 		var count   = 0;
-		var deepest = 0;
 
 		pending.Push((body, 1));
 
@@ -96,8 +95,6 @@ sealed partial class Machine
 			if (++count > ScanBudget || depth > ScanNested)
 				return false;
 
-			deepest = Math.Max(deepest, depth);
-
 			// Read with a counter, not written out (NestedPair); and a rule that reaches itself is
 			// no scanner anyway, which the budget says as soon as it has run round enough times.
 			if (node is Node.Call(var called, _) && !NestedPair.Is(called) && _graph.Bodies.TryGetValue(called, out var calledBody))
@@ -106,9 +103,6 @@ sealed partial class Machine
 			foreach (var child in node.Children)
 				pending.Push((child, depth + 1));
 		}
-
-		_probeCount = count;
-		_probeDepth = deepest;
 
 		return true;
 	}
@@ -1306,6 +1300,20 @@ sealed partial class Machine
 		/// </param>
 		void Emit(Writer code, Node node, string fail, bool loaded = false)
 		{
+			// A frame of kilobytes for every level of the scanner and of what it writes out in place;
+			// where the stack runs low the rest is written on a stack of its own (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Emit(code, node, fail, loaded);
+
+					return true;
+				});
+
+				return;
+			}
+
 			switch (node)
 			{
 				case Node.Empty:
@@ -2274,27 +2282,5 @@ sealed partial class Machine
 
 			return true;
 		}
-	}
-}
-
-#pragma warning disable RS1035 // temporary probe
-static class ScanProbe
-{
-	static int _max;
-	static int _deepest;
-
-	public static void Note(int count, int depth)
-	{
-		if (count <= _max && depth <= _deepest)
-			return;
-
-		_max = Math.Max(_max, count);
-		_deepest = Math.Max(_deepest, depth);
-		count = _max * 1000 + _deepest;
-
-		var path = System.Environment.GetEnvironmentVariable("DOTGRAM_SCAN_PROBE");
-
-		if (path is not null)
-			System.IO.File.AppendAllText(path, count + "\n");
 	}
 }

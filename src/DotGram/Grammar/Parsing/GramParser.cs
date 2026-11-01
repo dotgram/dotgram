@@ -41,6 +41,31 @@ public sealed class GramParser
 	/// <summary>A length <c>#q</c> standing anywhere but inside count braces.</summary>
 	public const string LengthOutsideCount   = "GRAM2010";
 
+	/// <summary>An expression nested more than <see cref="MaxNesting"/> operands deep (GRAM2011).</summary>
+	public const string NestedTooDeep        = "GRAM2011";
+
+	/// <summary>
+	/// The deepest one operand may stand inside others in a rule: groups, braces, lookaheads,
+	/// captures and bindings, one level each.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Every stage after this one takes a rule apart by recursion over its tree — the binder, the
+	/// lowering and its checks, the compilation of the machine — and some of those frames are
+	/// kilobytes. A chain of rules is walked with stacks of their own, because its length is not
+	/// bounded by anything; the nesting of one rule is, here, so that the recursion over it is
+	/// bounded by a number and not by whatever stack the host happened to give the generator.
+	/// </para>
+	/// <para>
+	/// Far above anything written by hand: no grammar in this repository nests deeper than 5.
+	/// A rule nested deeper is better written as rules calling each other.
+	/// </para>
+	/// </remarks>
+	public const int MaxNesting = 64;
+
+	/// <summary>How deep the operand being read stands (<see cref="MaxNesting"/>).</summary>
+	int _nesting;
+
 	readonly TokenList            _tokens;
 	readonly List<GramDiagnostic> _diagnostics = [];
 
@@ -1180,15 +1205,78 @@ public sealed class GramParser
 		return (count, null, null);
 	}
 
+	/// <remarks>
+	/// Every operand is read through here, a group's contents one level further in than the
+	/// group, so this is where its depth is counted (<see cref="MaxNesting"/>).
+	/// </remarks>
 	Expr ParsePrefixed()
 	{
-		if (!At(TokenKind.PositiveLookahead) && !At(TokenKind.NegativeLookahead))
-			return ParseCaptured();
+		if (_nesting >= MaxNesting)
+			return TooDeep();
 
-		var start      = Current.Position;
-		var isPositive = Take().Kind == TokenKind.PositiveLookahead;
+		_nesting++;
 
-		return new Expr.Lookahead(isPositive, ParseCaptured()) { At = From(start) };
+		try
+		{
+			if (!At(TokenKind.PositiveLookahead) && !At(TokenKind.NegativeLookahead))
+				return ParseCaptured();
+
+			var start      = Current.Position;
+			var isPositive = Take().Kind == TokenKind.PositiveLookahead;
+
+			return new Expr.Lookahead(isPositive, ParseCaptured()) { At = From(start) };
+		}
+		finally
+		{
+			_nesting--;
+		}
+	}
+
+	/// <summary>
+	/// An operand past <see cref="MaxNesting"/>: said once, where it begins, and read past
+	/// without being looked into.
+	/// </summary>
+	/// <remarks>
+	/// What is read past is the operand and everything nested in it, up to where the operand
+	/// it stands in goes on: the close that balances an open of its own, or a connector, a
+	/// close or the end of the rule at its own level. The rule is broken, so what the later
+	/// stages would say about it is dropped (GramCompiler), and the operands it stands in
+	/// close as they were written, with no message for each of them; nor is the reading of
+	/// the rule abandoned, so what stands after the operand is read as written.
+	/// </remarks>
+	Expr TooDeep()
+	{
+		var start = Current.Position;
+
+		Report(
+			NestedTooDeep,
+			$"An operand stands more than {MaxNesting} levels deep inside others in one rule, past what the " +
+			"generator reads. Name the inner part as a rule of its own and call it.");
+
+		var open = 0;
+
+		while (!At(TokenKind.EndOfFile))
+		{
+			var kind = Current.Kind;
+
+			if (kind is TokenKind.OpenParen or TokenKind.OpenBrace or TokenKind.OpenBracket)
+				open++;
+			else if (kind is TokenKind.CloseParen or TokenKind.CloseBrace or TokenKind.CloseBracket)
+			{
+				if (open == 0)
+					break;
+
+				open--;
+			}
+			else if (open == 0 && kind is TokenKind.Ampersand or TokenKind.Bar or TokenKind.Tilde)
+				break;
+			else if (open == 0 && StartsRule())
+				break;
+
+			Take();
+		}
+
+		return new Expr.Reference(false, "", []) { At = From(start) };
 	}
 
 	Expr ParseCaptured()

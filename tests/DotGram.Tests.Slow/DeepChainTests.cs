@@ -2,6 +2,7 @@
 
 using DotGram.Generation;
 using DotGram.Grammar;
+using DotGram.Grammar.Parsing;
 using DotGram.Language;
 
 using Microsoft.CodeAnalysis;
@@ -32,6 +33,23 @@ public sealed class DeepChainTests
 			string.Join("\n", compiled.Diagnostics.Where(static d => d.Severity == GramSeverity.Error).Take(5)));
 
 		Assert.NotEmpty(compiled.Sources);
+	}
+
+	/// <summary>
+	/// What one rule nests is not walked with a stack of its own: it is bounded where it is read,
+	/// and a rule nested past the bound is told so once, on any stack, with nothing else said.
+	/// </summary>
+	[Fact]
+	public void A_rule_nested_past_the_bound_is_refused_once_rather_than_overflowing()
+	{
+		var compiled = DeepChains.OnSmallStack(() => GramCompiler.Compile(DeepChains.Nested(DeepChains.Depth)));
+
+		var error = Assert.Single(compiled.Diagnostics, static d => d.Severity == GramSeverity.Error);
+
+		Assert.Equal(GramParser.NestedTooDeep, error.Id);
+
+		// And the bound is the bound: one level less is a grammar like any other.
+		Assert.False(GramCompiler.Compile(DeepChains.Nested(GramParser.MaxNesting - 1)).HasErrors);
 	}
 
 	/// <summary>

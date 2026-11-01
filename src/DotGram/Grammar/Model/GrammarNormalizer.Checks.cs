@@ -262,6 +262,9 @@ public sealed partial class GrammarNormalizer
 	{
 		var doors = Doors.ByRule(_rules, _bodies);
 
+		// Over the bodies as the checks find them.
+		_leftCalls = null;
+
 		foreach (var rule in _rules)
 		{
 			// A Std.Nested refused for its arguments (GRAM4037) has said what is wrong with it;
@@ -926,7 +929,7 @@ public sealed partial class GrammarNormalizer
 		// rewrite cannot take: a rule reaching itself through another one. A rule whose leading
 		// self-call is bound was refused for that already, and is not one that reaches itself
 		// through another rule.
-		if (!_boundHeads.Contains(start) && Reaches(_bodies[start], start, []))
+		if (!_boundHeads.Contains(start) && (_leftCalls ??= new CallGraph(_bodies.Keys, LeftCalls)).Recurses(start))
 			Report(
 				LeftRecursion,
 				$"'{start.Name}' reaches itself on the left through another rule, which is not " +
@@ -937,29 +940,29 @@ public sealed partial class GrammarNormalizer
 				start.Declaration!.At);
 	}
 
-	/// <summary>Whether reading <paramref name="node"/> can reach <paramref name="target"/> before it consumes anything.</summary>
+	/// <summary>Which rule calls which before consuming anything, for <see cref="CheckLeftRecursion"/>.</summary>
 	/// <remarks>
-	/// With a stack of its own: a chain of rules each calling the next leftmost is as long as
-	/// the author writes it, and a frame per rule put the limit on the thread. The answer is
-	/// whether any leftmost path leads there, which the order the paths are tried in does not
-	/// change.
+	/// A rule reaches itself on the left exactly when it stands in a cycle of this graph, which
+	/// its components say for every rule at once. Asked by walking down from each rule instead,
+	/// as it was, a chain of rules each calling the next on the left was walked again from every
+	/// rule in it, and by recursion a frame per rule.
 	/// </remarks>
-	bool Reaches(Node node, RuleSymbol target, HashSet<RuleSymbol> seen)
+	CallGraph? _leftCalls;
+
+	/// <summary>The rules a rule's body calls before it has to consume: what leads it.</summary>
+	IEnumerable<RuleSymbol> LeftCalls(RuleSymbol rule)
 	{
+		var called  = new List<RuleSymbol>();
 		var pending = new Stack<Node>();
 
-		pending.Push(node);
+		pending.Push(_bodies[rule]);
 
 		while (pending.Count > 0)
 		{
 			switch (pending.Pop())
 			{
-				case Node.Call(var rule, _) when ReferenceEquals(rule, target):
-					return true;
-
-				case Node.Call(var rule, _):
-					if (seen.Add(rule) && _bodies.TryGetValue(rule, out var body))
-						pending.Push(body);
+				case Node.Call(var callee, _):
+					called.Add(callee);
 
 					break;
 
@@ -992,11 +995,11 @@ public sealed partial class GrammarNormalizer
 			}
 		}
 
-		return false;
+		return called;
 	}
 
 	/// <summary>Whether a node reads a Std.Nested refused for its arguments, itself or through what it calls.</summary>
-	/// <remarks>With a stack of its own, for the reason <see cref="Reaches(Node, RuleSymbol, HashSet{RuleSymbol})"/> gives.</remarks>
+	/// <remarks>With a stack of its own: a chain of calls is as long as the grammar makes it, and a frame per rule of it put the limit on the thread.</remarks>
 	bool ReachesRefusedPair(Node node, HashSet<RuleSymbol> seen)
 	{
 		var pending = new Stack<Node>();
