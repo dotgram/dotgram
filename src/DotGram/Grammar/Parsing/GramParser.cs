@@ -992,16 +992,33 @@ public sealed class GramParser
 
 	/// <summary>Whether what follows `when` is a condition rather than a C# guard.</summary>
 	/// <remarks>
+	/// <para>
 	/// One token of lookahead past the operand, which is what tells `when Version is "Old"`
 	/// from `when @(qty > 0)`: only a condition has `is` after its first operand, and a C#
 	/// guard is written with an `@` that a condition never has. The operand is read to be looked
-	/// at and then read again for real, so whatever the first reading reports is dropped: it
-	/// would be said twice.
+	/// at and then read again for real, so whatever the first reading leaves is undone: what it
+	/// reports would be said twice, and a rule it lifts out of a rebinding would be declared twice.
+	/// </para>
+	/// <para>
+	/// <b>Asked once for each place.</b> The operand may hold another `when` — in a call's
+	/// arguments, `when P(when Q(…))` — which is looked at when the outer one is and again when it
+	/// is read for real; and so on down, so that every level doubled the reading of everything
+	/// inside it: twenty-six levels took half a minute. The answer depends on nothing but where it
+	/// is asked and how deep (MaxNesting), so it is kept, and each level is read a bounded number
+	/// of times.
+	/// </para>
 	/// </remarks>
 	bool StartsCondition()
 	{
+		var key = (_index, _nesting, _panic);
+
+		if (_conditions.TryGetValue(key, out var known))
+			return known;
+
 		var at       = _index;
 		var reported = _diagnostics.Count;
+		var lifted   = _lifted.Count;
+		var named    = _substitutions;
 		var found    = false;
 
 		try
@@ -1016,12 +1033,17 @@ public sealed class GramParser
 		}
 
 		_diagnostics.RemoveRange(reported, _diagnostics.Count - reported);
+		_lifted.RemoveRange(lifted, _lifted.Count - lifted);
 
-		_index = at;
-		_panic = false;
+		_substitutions = named;
+		_index         = at;
+		_panic         = false;
 
-		return found;
+		return _conditions[key] = found;
 	}
+
+	/// <summary>What <see cref="StartsCondition"/> answered, by where it was asked.</summary>
+	readonly Dictionary<(int Index, int Nesting, bool Panic), bool> _conditions = [];
 
 	/// <summary>`or` between tests, which binds loosest.</summary>
 	Test ParseAnyTest()
