@@ -305,6 +305,19 @@ public sealed partial class GrammarNormalizer
 
 			void Resolve(RuleSymbol at, HashSet<RuleSymbol> path)
 			{
+				// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+				if (DeepStack.Low)
+				{
+					DeepStack.Run(() =>
+					{
+						Resolve(at, path);
+
+						return true;
+					});
+
+					return;
+				}
+
 				if (!path.Add(at))
 				{
 					ring = true;

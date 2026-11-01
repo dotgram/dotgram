@@ -394,6 +394,10 @@ public static class Retention
 	static bool EndsTwice(
 		Node node, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam, HashSet<RuleSymbol> entered)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => EndsTwice(node, following, graph, seam, entered));
+
 		if (Determinism.Of(node, following, graph, seam))
 			return false;
 

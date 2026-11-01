@@ -1120,6 +1120,10 @@ public static class FirstSets
 		RuleSymbol rule, First token, RecognitionGraph graph,
 		IReadOnlyDictionary<RuleSymbol, FollowSets.Continuation> follow, HashSet<RuleSymbol> climbing)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => AfterCalls(rule, token, graph, follow, climbing));
+
 		if (!climbing.Add(rule))
 			return null;
 

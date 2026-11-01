@@ -630,6 +630,19 @@ public sealed partial class GrammarNormalizer
 
 		void Visit(RuleSymbol rule)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Visit(rule);
+
+					return true;
+				});
+
+				return;
+			}
+
 			if (!byKey.TryGetValue(rule, out var group) || !visited.Add(rule))
 				return;
 

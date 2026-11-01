@@ -2033,6 +2033,10 @@ public sealed partial class GrammarNormalizer
 	bool Follows(
 		RuleSymbol replaced, bool top, HashSet<RuleSymbol> asked, IReadOnlyCollection<RuleSymbol> readers, string actual)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Follows(replaced, top, asked, readers, actual));
+
 		if (!asked.Add(replaced))
 			return true;
 
