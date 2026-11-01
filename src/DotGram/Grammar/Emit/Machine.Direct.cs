@@ -627,10 +627,17 @@ sealed partial class Machine
 	readonly Dictionary<RuleSymbol, HashSet<int>> _directRepeated = [];
 
 	/// <summary>The rules a group of publications reaches, in a stable order.</summary>
+	/// <remarks>
+	/// Each rule in the order a depth-first walk first enters it, a callee entered where its call
+	/// is met. The walk keeps its own stack of the rules it is inside, one frame per rule: a chain
+	/// of calls is as long as the grammar makes it, and a C# frame per rule put the limit on the
+	/// thread.
+	/// </remarks>
 	List<RuleSymbol> DirectRules(IReadOnlyList<Publication> publications)
 	{
-		var seen  = new HashSet<RuleSymbol>();
-		var order = new List<RuleSymbol>();
+		var seen   = new HashSet<RuleSymbol>();
+		var order  = new List<RuleSymbol>();
+		var inside = new Stack<BodiesWalk>();
 
 		void Reach(RuleSymbol rule)
 		{
@@ -644,20 +651,33 @@ sealed partial class Machine
 			if (_graph.Trivia.TryGetValue(rule, out var seam))
 				bodies.Add(seam);
 
-			for (var at = 0; at < bodies.Count; at++)
-				foreach (var node in NodeWalk.Descendants(bodies[at]))
-				{
-					if (node is Node.Call(var called, _))
-						Reach(called);
-
-					// A repetition's synchronization is read by its rule (DirectReachable).
-					if (_graph.Recoveries.TryGetValue(node, out var recovery))
-						bodies.Add(recovery.Sync);
-				}
+			inside.Push(new BodiesWalk(bodies));
 		}
 
 		foreach (var publication in publications)
+		{
 			Reach(publication.Rule);
+
+			while (inside.Count > 0)
+			{
+				var walk = inside.Peek();
+
+				if (!walk.Next(out var node))
+				{
+					inside.Pop();
+
+					continue;
+				}
+
+				// A repetition's synchronization is read by its rule (DirectReachable). Asked before
+				// the callee is entered, which changes nothing: it only lengthens this rule's list.
+				if (_graph.Recoveries.TryGetValue(node, out var recovery))
+					walk.Bodies.Add(recovery.Sync);
+
+				if (node is Node.Call(var called, _))
+					Reach(called);
+			}
+		}
 
 		return order;
 	}
@@ -686,23 +706,40 @@ sealed partial class Machine
 		var done  = new HashSet<RuleSymbol>();
 		var above = new HashSet<RuleSymbol>();
 
+		// Depth first, with a stack of its own rather than a C# frame per rule entered: a chain
+		// of calls is as long as the grammar makes it. Each frame is a rule still being entered
+		// and where its reading has got to; the order is the recursion's.
+		var entered = new Stack<(RuleSymbol Rule, IEnumerator<Node>? Reading)>();
+
 		void Visit(RuleSymbol rule)
 		{
 			if (!above.Add(rule))
 				return;
 
-			if (!done.Contains(rule))
-				foreach (var node in NodeWalk.Reading(_graph.Bodies[rule], _graph))
-					if (node is Node.Call(var called, _))
+			entered.Push((rule, done.Contains(rule) ? null : NodeWalk.Reading(_graph.Bodies[rule], _graph).GetEnumerator()));
+
+			while (entered.Count > 0)
+			{
+				var (at, reading) = entered.Peek();
+
+				if (reading is not null && reading.MoveNext())
+				{
+					if (reading.Current is Node.Call(var called, _))
 					{
 						if (above.Contains(called))
-							_backEdges.Add((rule, called));
-						else
-							Visit(called);
+							_backEdges.Add((at, called));
+						else if (above.Add(called))
+							entered.Push((called, done.Contains(called) ? null : NodeWalk.Reading(_graph.Bodies[called], _graph).GetEnumerator()));
 					}
 
-			done.Add(rule);
-			above.Remove(rule);
+					continue;
+				}
+
+				reading?.Dispose();
+				entered.Pop();
+				done.Add(at);
+				above.Remove(at);
+			}
 		}
 
 		// The trivia read at the two ends of a publication is a root of its own (DirectRules): woven

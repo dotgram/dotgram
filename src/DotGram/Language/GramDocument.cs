@@ -1185,38 +1185,70 @@ public static class GramLanguageService
 		}
 	}
 
+	/// <summary>The most rules the quick info of one rule writes out beneath it.</summary>
+	/// <remarks>
+	/// Every rule's quick info is worked out with the document, so what it costs is paid for
+	/// every rule at once: a rule that reaches a thousand others below it is a thousand
+	/// definitions, and a grammar that is a chain of a thousand rules is half a million. Past
+	/// this many the rest are left out, and a line says so.
+	/// </remarks>
+	const int ExpandedRules = 256;
+
+	/// <summary>A rule's definition, and the definitions of the rules it reaches, depth first.</summary>
+	/// <remarks>
+	/// Depth first with a stack of its own, the frames being the rules on the path down and how
+	/// far through each one's references the walk has got: a chain of references is as long as
+	/// the grammar makes it, and a C# frame per rule of it put the limit on the thread.
+	/// </remarks>
 	static string Expand(RuleInfo start, IReadOnlyDictionary<string, RuleInfo> rules)
 	{
 		var text    = new StringBuilder(start.Definition);
 		var emitted = new HashSet<string>(StringComparer.Ordinal) { start.Name };
 		var stack   = new HashSet<string>(StringComparer.Ordinal) { start.Name };
+		var path    = new Stack<(RuleInfo Rule, int Next)>();
+		var written = 0;
 
-		AppendDependencies(start);
+		path.Push((start, 0));
+
+		while (path.Count > 0)
+		{
+			var (rule, next) = path.Pop();
+
+			if (next == rule.References.Count)
+			{
+				stack.Remove(rule.Name);
+
+				continue;
+			}
+
+			path.Push((rule, next + 1));
+
+			var reference = rule.References[next];
+
+			if (!rules.TryGetValue(reference, out var dependency))
+				continue;
+
+			if (stack.Contains(reference))
+			{
+				text.Append("\n\nRecursive reference: ").Append(reference);
+				continue;
+			}
+
+			if (!emitted.Add(reference))
+				continue;
+
+			if (++written > ExpandedRules)
+			{
+				text.Append("\n\nReferenced rules past these ").Append(ExpandedRules).Append(" are not shown.");
+				break;
+			}
+
+			text.Append("\n\nReferenced rule:\n").Append(dependency.Definition);
+			stack.Add(reference);
+			path.Push((dependency, 0));
+		}
 
 		return text.ToString();
-
-		void AppendDependencies(RuleInfo rule)
-		{
-			foreach (var reference in rule.References)
-			{
-				if (!rules.TryGetValue(reference, out var dependency))
-					continue;
-
-				if (stack.Contains(reference))
-				{
-					text.Append("\n\nRecursive reference: ").Append(reference);
-					continue;
-				}
-
-				if (!emitted.Add(reference))
-					continue;
-
-				text.Append("\n\nReferenced rule:\n").Append(dependency.Definition);
-				stack.Add(reference);
-				AppendDependencies(dependency);
-				stack.Remove(reference);
-			}
-		}
 	}
 
 	static IReadOnlyList<string> References(Expr expression)

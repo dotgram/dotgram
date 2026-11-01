@@ -937,63 +937,98 @@ public sealed partial class GrammarNormalizer
 				start.Declaration!.At);
 	}
 
+	/// <summary>Whether reading <paramref name="node"/> can reach <paramref name="target"/> before it consumes anything.</summary>
+	/// <remarks>
+	/// With a stack of its own: a chain of rules each calling the next leftmost is as long as
+	/// the author writes it, and a frame per rule put the limit on the thread. The answer is
+	/// whether any leftmost path leads there, which the order the paths are tried in does not
+	/// change.
+	/// </remarks>
 	bool Reaches(Node node, RuleSymbol target, HashSet<RuleSymbol> seen)
 	{
-		switch (node)
+		var pending = new Stack<Node>();
+
+		pending.Push(node);
+
+		while (pending.Count > 0)
 		{
-			case Node.Call(var rule, _) when ReferenceEquals(rule, target):
-				return true;
+			switch (pending.Pop())
+			{
+				case Node.Call(var rule, _) when ReferenceEquals(rule, target):
+					return true;
 
-			case Node.Call(var rule, _):
-				return seen.Add(rule) &&
-					_bodies.TryGetValue(rule, out var body) &&
-					Reaches(body, target, seen);
+				case Node.Call(var rule, _):
+					if (seen.Add(rule) && _bodies.TryGetValue(rule, out var body))
+						pending.Push(body);
 
-			case Node.Sequence(var nodes):
+					break;
 
-				foreach (var child in nodes)
-				{
-					if (Reaches(child, target, seen))
-						return true;
+				// What leads the sequence: each part up to the first that has to consume.
+				case Node.Sequence(var nodes):
+					foreach (var child in nodes)
+					{
+						pending.Push(child);
 
-					if (!IsNullable(child))
-						return false;
-				}
+						if (!IsNullable(child))
+							break;
+					}
 
-				return false;
+					break;
 
-			case Node.Choice   (var nodes):          return nodes.Any(child => Reaches(child, target, seen));
-			case Node.Capture  (_, var captured):    return Reaches(captured, target, seen);
-			case Node.Bind     (_, var bound, _):    return Reaches(bound, target, seen);
-			case Node.Counted  (var counted, _, _):  return Reaches(counted, target, seen);
-			case Node.Construct(var built, _):       return Reaches(built, target, seen);
-			case Node.Atomic   (var atomic):         return Reaches(atomic, target, seen);
-			case Node.Marked   (var marked, _):      return Reaches(marked, target, seen);
-			case Node.Repeat   (var repeated, _, _): return Reaches(repeated, target, seen);
-			case Node.Lookahead(_, var ahead):       return Reaches(ahead, target, seen);
+				case Node.Choice(var nodes):
+					foreach (var child in nodes)
+						pending.Push(child);
 
-			default: return false;
+					break;
+
+				case Node.Capture  (_, var captured):    pending.Push(captured); break;
+				case Node.Bind     (_, var bound, _):    pending.Push(bound);    break;
+				case Node.Counted  (var counted, _, _):  pending.Push(counted);  break;
+				case Node.Construct(var built, _):       pending.Push(built);    break;
+				case Node.Atomic   (var atomic):         pending.Push(atomic);   break;
+				case Node.Marked   (var marked, _):      pending.Push(marked);   break;
+				case Node.Repeat   (var repeated, _, _): pending.Push(repeated); break;
+				case Node.Lookahead(_, var ahead):       pending.Push(ahead);    break;
+			}
 		}
+
+		return false;
+	}
+
+	/// <summary>Whether a node reads a Std.Nested refused for its arguments, itself or through what it calls.</summary>
+	/// <remarks>With a stack of its own, for the reason <see cref="Reaches(Node, RuleSymbol, HashSet{RuleSymbol})"/> gives.</remarks>
+	bool ReachesRefusedPair(Node node, HashSet<RuleSymbol> seen)
+	{
+		var pending = new Stack<Node>();
+
+		pending.Push(node);
+
+		while (pending.Count > 0)
+		{
+			var at = pending.Pop();
+
+			if (at is Node.Call(var called, _))
+			{
+				if (_refusedPairs.Contains(called))
+					return true;
+
+				if (seen.Add(called) && _bodies.TryGetValue(called, out var body))
+					pending.Push(body);
+
+				continue;
+			}
+
+			foreach (var child in at.Children)
+				pending.Push(child);
+		}
+
+		return false;
 	}
 
 	/// <summary>
 	/// `trivia` has to accept empty input. That single condition is what lets it be
 	/// inserted everywhere without doubling (§4.5), so it is worth a message of its own.
 	/// </summary>
-	/// <summary>Whether a node reads a Std.Nested refused for its arguments, itself or through what it calls.</summary>
-	bool ReachesRefusedPair(Node node, HashSet<RuleSymbol> seen)
-	{
-		if (node is Node.Call(var called, _))
-			return _refusedPairs.Contains(called) ||
-				seen.Add(called) && _bodies.TryGetValue(called, out var body) && ReachesRefusedPair(body, seen);
-
-		foreach (var child in node.Children)
-			if (ReachesRefusedPair(child, seen))
-				return true;
-
-		return false;
-	}
-
 	void CheckTrivia()
 	{
 		foreach (var trivia in _model.Trivia.Values.Distinct())

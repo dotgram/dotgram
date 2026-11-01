@@ -20,4 +20,9 @@
 
 	<Import Project="..\..\src\DotGram\Language.projitems" />
 
+	<!-- The chains of calls the generator is held to in DotGram.Tests.Slow, read here by the editor. -->
+	<ItemGroup>
+		<Compile Include="..\DotGram.Tests.Slow\DeepChains.cs" Link="Shared\DeepChains.cs" />
+	</ItemGroup>
+
 </Project>

@@ -234,25 +234,107 @@ sealed partial class Machine
 	/// local — over captures that are spans of the input or sites of further such rules.
 	/// </summary>
 	/// <remarks>
+	/// <para>
 	/// Memoized, and seeded false before computing: rules in a call cycle are already
 	/// refused by <see cref="RecognitionGraph.Recursive"/>, so the seed only ever answers
 	/// a query the exclusion makes unreachable, and it answers it safely.
+	/// </para>
+	/// <para>
+	/// What a rule calls is settled before the rule, callees first, by a walk with a stack of
+	/// its own: the answer for a rule asks the answer for each rule it captures from, and asked
+	/// as it is met, a chain of such rules was a C# frame per rule. Settled first, each of
+	/// those questions finds its answer kept. The answers do not depend on the order they are
+	/// worked out in, since each is a function of the rule and of its callees' answers.
+	/// </para>
 	/// </remarks>
 	bool FlatValued(RuleSymbol rule)
 	{
 		if (_flatValued.TryGetValue(rule, out var known))
 			return known;
 
-		_flatValued[rule] = false;
+		var opened  = new HashSet<RuleSymbol>();
+		var pending = new Stack<(RuleSymbol Rule, bool Opened)>();
 
-		var answer = ComputeFlatValued(rule);
+		pending.Push((rule, false));
 
-		_flatValued[rule] = answer;
+		while (pending.Count > 0)
+		{
+			var (at, ready) = pending.Pop();
 
-		return answer;
+			if (_flatValued.ContainsKey(at))
+				continue;
+
+			if (!ready)
+			{
+				// Met again inside a cycle: it is settled where it was first opened.
+				if (!opened.Add(at))
+					continue;
+
+				pending.Push((at, true));
+
+				foreach (var called in _graph.Calls.Calls(at))
+					if (!_flatValued.ContainsKey(called))
+						pending.Push((called, false));
+
+				continue;
+			}
+
+			_flatValued[at] = false;
+			_flatValued[at] = ComputeFlatValued(at) && FlatFits(at);
+		}
+
+		return _flatValued[rule];
 	}
 
 	readonly Dictionary<RuleSymbol, bool> _flatValued = [];
+
+	/// <summary>
+	/// How deep, in nodes, a flat-valued rule may be once the rules it builds from are written
+	/// into it, each where it is captured.
+	/// </summary>
+	/// <remarks>
+	/// A flat-valued capture of another such rule is that rule's body compiled in place, and so is
+	/// any it captures in turn: a chain of them is one method as deep as the chain, and the walks
+	/// that judge and compile it go as deep. Far above any grammar in this repository; a rule
+	/// past it is built by the machine, as one that is not flat-valued is.
+	/// </remarks>
+	const int FlatNested = 64;
+
+	readonly Dictionary<RuleSymbol, int> _flatDepths = [];
+
+	/// <summary>
+	/// Whether a rule otherwise flat-valued stays within <see cref="FlatNested"/>, its callees'
+	/// depths already worked out (<see cref="FlatValued"/>).
+	/// </summary>
+	bool FlatFits(RuleSymbol rule)
+	{
+		var pending = new Stack<(Node Node, int Depth)>();
+		var deepest = 0;
+
+		pending.Push((_graph.Bodies[rule], 1));
+
+		while (pending.Count > 0)
+		{
+			var (node, depth) = pending.Pop();
+
+			deepest = Math.Max(deepest, depth);
+
+			if (node is Node.Capture && SiteCallee(node) is { } called && _flatDepths.TryGetValue(called, out var below))
+				deepest = Math.Max(deepest, depth + below);
+
+			foreach (var child in node.Children)
+				pending.Push((child, depth + 1));
+		}
+
+		PlanProbe.NoteFlat(deepest);
+
+		if (deepest > FlatNested)
+			return false;
+
+		_flatDepths[rule] = deepest;
+
+		return true;
+	}
 
 	bool ComputeFlatValued(RuleSymbol rule)
 	{

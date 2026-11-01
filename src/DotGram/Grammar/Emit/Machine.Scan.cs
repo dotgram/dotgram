@@ -43,7 +43,7 @@ sealed partial class Machine
 		// scan, that rule's refusal is the scanned rule's, named by it, where §7.5 says the sentence
 		// of the rule that was entered and read nothing.
 		var name =
-			_graph.Bodies.TryGetValue(rule, out var body) && !ReachesSaying(rule) && Scans(rule, body)
+			_graph.Bodies.TryGetValue(rule, out var body) && ScanFits(body) && !ReachesSaying(rule) && Scans(rule, body)
 				// Tagged like every other name this machine emits: a grammar with two
 				// publications has two machines in one class, and both may reach the same
 				// scanner — `trivia` does, in every spaced grammar with more than one
@@ -53,10 +53,65 @@ sealed partial class Machine
 
 		_scanners[rule] = name;
 
+		if (name is not null)
+			ScanProbe.Note(_probeCount, _probeDepth);
+
 		return name;
 	}
 
 	readonly Dictionary<RuleSymbol, string?> _scanners = [];
+
+	int _probeCount;
+	int _probeDepth;
+
+	/// <summary>
+	/// The most nodes a scanner is written from, counting the body of every rule it calls at
+	/// every call, since a scanner writes each callee out in place.
+	/// </summary>
+	/// <remarks>
+	/// Far above any scanner a grammar in this repository asks for. What it bounds is a chain:
+	/// <c>A1 = 'x' &amp; A0</c>, <c>A2 = 'x' &amp; A1</c>, … — each rule's scanner is the whole
+	/// chain below it written out again, so the generated file grows with the square of the
+	/// chain and the walks that judge and write a scanner, which follow its calls, go as deep
+	/// as the chain. A rule past the budget is read by the machine, where a call stays a call.
+	/// </remarks>
+	const int ScanBudget = 512;
+
+	/// <inheritdoc cref="ScanBudget"/>
+	const int ScanNested = 32;
+
+	/// <summary>Whether a scanner of <paramref name="body"/> stays within <see cref="ScanBudget"/> and <see cref="ScanNested"/>.</summary>
+	bool ScanFits(Node body)
+	{
+		var pending = new Stack<(Node Node, int Depth)>();
+		var count   = 0;
+		var deepest = 0;
+
+		pending.Push((body, 1));
+
+		while (pending.Count > 0)
+		{
+			var (node, depth) = pending.Pop();
+
+			if (++count > ScanBudget || depth > ScanNested)
+				return false;
+
+			deepest = Math.Max(deepest, depth);
+
+			// Read with a counter, not written out (NestedPair); and a rule that reaches itself is
+			// no scanner anyway, which the budget says as soon as it has run round enough times.
+			if (node is Node.Call(var called, _) && !NestedPair.Is(called) && _graph.Bodies.TryGetValue(called, out var calledBody))
+				pending.Push((calledBody, depth + 1));
+
+			foreach (var child in node.Children)
+				pending.Push((child, depth + 1));
+		}
+
+		_probeCount = count;
+		_probeDepth = deepest;
+
+		return true;
+	}
 
 	bool? _anySays;
 
@@ -2004,17 +2059,26 @@ sealed partial class Machine
 			for (var i = 0; i < lines.Count; i++)
 				lines[i] = lines[i].TrimEnd('\r');
 
+			// The line each label is first written on. Threading rewrites the jumps and never a
+			// label, so it stays true while they are threaded; looked up rather than searched for,
+			// since a scanner holds a label and a jump for every part, and searching the lines for
+			// every jump made a large scanner quadratic in its length.
+			var labelled = new Dictionary<string, int>(StringComparer.Ordinal);
+
+			for (var i = 0; i < lines.Count; i++)
+				if (IsLabel(lines[i], out var name, out _) && !labelled.ContainsKey(name))
+					labelled[name] = i;
+
 			// Where each label resolves: past empty statements and other labels, and
 			// through an unconditional jump, to the label whose block does something.
-			string Resolve(string label, HashSet<string> walked)
+			// A loop rather than a call per jump, so a long run of jumps is not a deep stack.
+			string Resolve(string label)
 			{
-				if (!walked.Add(label))
-					return label;
+				var walked = new HashSet<string>(StringComparer.Ordinal);
 
-				for (var i = 0; i < lines.Count; i++)
+				while (walked.Add(label) && labelled.TryGetValue(label, out var i))
 				{
-					if (!IsLabel(lines[i], out var name, out var rest) || name != label)
-						continue;
+					IsLabel(lines[i], out _, out var rest);
 
 					var first = rest.Trim();
 
@@ -2028,10 +2092,11 @@ sealed partial class Machine
 							: lines[j].Trim();
 					}
 
-					return first.StartsWith("goto ", StringComparison.Ordinal) &&
-						first.EndsWith(";", StringComparison.Ordinal)
-							? Resolve(first["goto ".Length..^1].Trim(), walked)
-							: label;
+					if (!first.StartsWith("goto ", StringComparison.Ordinal) ||
+						!first.EndsWith(";", StringComparison.Ordinal))
+						return label;
+
+					label = first["goto ".Length..^1].Trim();
 				}
 
 				return label;
@@ -2047,7 +2112,7 @@ sealed partial class Machine
 					continue;
 
 				var target   = trimmed["goto ".Length..^1].Trim();
-				var resolved = Resolve(target, []);
+				var resolved = Resolve(target);
 
 				if (resolved != target)
 					lines[i] = lines[i].Replace($"goto {target};", $"goto {resolved};");
@@ -2209,5 +2274,27 @@ sealed partial class Machine
 
 			return true;
 		}
+	}
+}
+
+#pragma warning disable RS1035 // temporary probe
+static class ScanProbe
+{
+	static int _max;
+	static int _deepest;
+
+	public static void Note(int count, int depth)
+	{
+		if (count <= _max && depth <= _deepest)
+			return;
+
+		_max = Math.Max(_max, count);
+		_deepest = Math.Max(_deepest, depth);
+		count = _max * 1000 + _deepest;
+
+		var path = System.Environment.GetEnvironmentVariable("DOTGRAM_SCAN_PROBE");
+
+		if (path is not null)
+			System.IO.File.AppendAllText(path, count + "\n");
 	}
 }
