@@ -1023,6 +1023,7 @@ public sealed class GramParser
 		var reported = _diagnostics.Count;
 		var lifted   = _lifted.Count;
 		var named    = _substitutions;
+		var told     = _toldDeep;
 		var found    = false;
 
 		try
@@ -1040,6 +1041,7 @@ public sealed class GramParser
 		_lifted.RemoveRange(lifted, _lifted.Count - lifted);
 
 		_substitutions = named;
+		_toldDeep      = told;
 		_index         = at;
 		_panic         = false;
 
@@ -1443,7 +1445,7 @@ public sealed class GramParser
 			}
 			else if (open == 0 && kind is TokenKind.Ampersand or TokenKind.Bar or TokenKind.Tilde)
 				break;
-			else if (open == 0 && StartsRule())
+			else if (open == 0 && StartsDeclaration())
 				break;
 
 			Take();
@@ -1781,11 +1783,20 @@ public sealed class GramParser
 
 		while (!AtEnd && !At(TokenKind.CloseBrace))
 		{
-			if (StartsRule() || AtUsing() || AtKeyword("namespace") || AtPublication())
+			if (StartsDeclaration())
 				return;
 
 			Take();
 		}
+	}
+
+	/// <summary>
+	/// Whether a declaration begins here — a rule, a `using`, a namespace, a publication with or
+	/// without its access — where reading past a broken one may stop.
+	/// </summary>
+	bool StartsDeclaration()
+	{
+		return StartsRule() || AtUsing() || AtKeyword("namespace") || AtPublication() || AtAccess();
 	}
 }
 
