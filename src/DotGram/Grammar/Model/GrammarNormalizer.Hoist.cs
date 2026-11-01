@@ -314,6 +314,10 @@ public sealed partial class GrammarNormalizer
 		/// </summary>
 		bool PureText(Node node)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => PureText(node));
+
 			return node switch
 			{
 				Node.Call(var rule, var arguments) => arguments.Count == 0 && PureRule(rule),

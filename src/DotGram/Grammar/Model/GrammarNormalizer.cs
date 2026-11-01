@@ -1120,6 +1120,10 @@ public sealed partial class GrammarNormalizer
 		// what stands before it may be read last instead.
 		bool Into(Node one)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Into(one));
+
 			switch (one)
 			{
 				case Node.Construct(var built, _):

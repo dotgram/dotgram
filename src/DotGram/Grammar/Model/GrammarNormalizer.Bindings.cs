@@ -826,6 +826,10 @@ public sealed partial class GrammarNormalizer
 	/// </remarks>
 	static Node.Bind? BoundHead(Node node, RuleSymbol rule, Node.Bind? found = null)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => BoundHead(node, rule, found));
+
 		switch (node)
 		{
 			case Node.Construct(var built, _)       : return BoundHead(built, rule, found);

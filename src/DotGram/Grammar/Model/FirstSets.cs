@@ -1193,6 +1193,19 @@ public static class FirstSets
 
 		void Visit(Node node)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Visit(node);
+
+					return true;
+				});
+
+				return;
+			}
+
 			switch (node)
 			{
 				case Node.Call(var called, var arguments):
@@ -2665,6 +2678,10 @@ public static class FirstSets
 
 	static bool LedByRecovery(Node node, RecognitionGraph graph, Func<RuleSymbol, bool> rule)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => LedByRecovery(node, graph, rule));
+
 		switch (node)
 		{
 			case Node.Repeat when graph.Recoveries.ContainsKey(node):

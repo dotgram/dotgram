@@ -69,6 +69,9 @@ public sealed class GramParser
 	/// <summary>How deep the operand being read stands (<see cref="MaxNesting"/>).</summary>
 	int _nesting;
 
+	/// <summary>Whether the rule being read was told it went past <see cref="MaxNesting"/> (GRAM2011).</summary>
+	bool _toldDeep;
+
 	readonly TokenList            _tokens;
 	readonly List<GramDiagnostic> _diagnostics = [];
 
@@ -668,7 +671,8 @@ public sealed class GramParser
 
 	Decl ParseRule()
 	{
-		_panic = false;
+		_panic    = false;
+		_toldDeep = false;
 
 		var start      = Current.Position;
 		var name       = ExpectName();
@@ -1048,31 +1052,32 @@ public sealed class GramParser
 	/// <summary>`or` between tests, which binds loosest.</summary>
 	Test ParseAnyTest()
 	{
-		var test = ParseAllTest();
+		var tests = new List<Test> { ParseAllTest() };
 
 		while (!_panic && AtKeyword("or"))
 		{
 			Take();
 
-			test = new Test.Any(test, ParseAllTest());
+			tests.Add(ParseAllTest());
 		}
 
-		return test;
+		// A list and not a tree of pairs: a chain of a thousand is as deep as one of two.
+		return tests.Count == 1 ? tests[0] : new Test.Any(tests);
 	}
 
 	/// <summary>`and` between tests, which binds tighter than `or` and looser than `is`.</summary>
 	Test ParseAllTest()
 	{
-		var test = ParseOneTest();
+		var tests = new List<Test> { ParseOneTest() };
 
 		while (!_panic && AtKeyword("and"))
 		{
 			Take();
 
-			test = new Test.All(test, ParseOneTest());
+			tests.Add(ParseOneTest());
 		}
 
-		return test;
+		return tests.Count == 1 ? tests[0] : new Test.All(tests);
 	}
 
 	/// <summary>One `A is B`, one `@(…)`, or a bracketed test.</summary>
@@ -1232,12 +1237,36 @@ public sealed class GramParser
 		// One token apart, and unambiguously: a rebinding is always parenthesized, so `(`
 		// after `with` can only be one and the word `state` can only be the other. A rule
 		// named `state` is still rebindable — that is written `with (state = other)`.
-		while (TakeIfKeyword("with"))
-			operand = TakeIfKeyword("state")
-				? new Expr.Marked(operand, ParseValue()) { At = From(start) }
-				: new Expr.With(operand, ParseRebindings()) { At = From(start) };
+		//
+		// Each one wraps the operand once more, so each is a level deeper (MaxNesting): a long
+		// chain of them is a tree as deep as it is long, and every stage after this one walks it
+		// by recursion.
+		var levels = 0;
 
-		return operand;
+		try
+		{
+			while (TakeIfKeyword("with"))
+			{
+				if (PastNesting())
+				{
+					SkipNested();
+
+					break;
+				}
+
+				levels++;
+
+				operand = TakeIfKeyword("state")
+					? new Expr.Marked(operand, ParseValue()) { At = From(start) }
+					: new Expr.With(operand, ParseRebindings()) { At = From(start) };
+			}
+
+			return operand;
+		}
+		finally
+		{
+			_nesting -= levels;
+		}
 	}
 
 	/// <summary>
@@ -1376,6 +1405,12 @@ public sealed class GramParser
 
 			return false;
 		}
+
+		// Once a rule: what is read past is read past, and the levels it left are not each told.
+		if (_toldDeep)
+			return true;
+
+		_toldDeep = true;
 
 		Report(
 			NestedTooDeep,

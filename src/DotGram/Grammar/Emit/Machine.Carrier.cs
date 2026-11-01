@@ -443,6 +443,19 @@ sealed partial class Machine
 
 		void Count(Node node, bool committed)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Count(node, committed);
+
+					return true;
+				});
+
+				return;
+			}
+
 			if (node is Node.Call(var called, _) && ReferenceEquals(called, rule))
 			{
 				if (committed)
@@ -473,6 +486,10 @@ sealed partial class Machine
 	/// <summary>Whether every way into a node reads the seam first: what a rewrite could take out in front of it.</summary>
 	bool LeadsWithSeam(Node node)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => LeadsWithSeam(node));
+
 		return node switch
 		{
 			Node.Capture(_, var body) => LeadsWithSeam(body),
@@ -702,6 +719,19 @@ sealed partial class Machine
 
 		void OpenCalls(Node node, RuleSymbol owner, bool committed)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					OpenCalls(node, owner, committed);
+
+					return true;
+				});
+
+				return;
+			}
+
 			if (!committed && node is Node.Call(var callee, _))
 			{
 				called.Add(callee);

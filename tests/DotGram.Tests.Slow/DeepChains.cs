@@ -74,6 +74,19 @@ static class DeepChains
 				depth, "A0 = when @(true)", static i => $"A{i} = when @(true) & A{i - 1}",
 				$"R = (A{depth} & ('a' | 'a' & 'a')+)* & 'b'\nparse R"),
 
+			// Aliases under a seam: each rule is judged for whether it is one item, through the
+			// rule it forwards to, for the seams a lexeme leaves out.
+			["aliases, spaced"] = static depth => Chain(
+				depth, "trivia = { ' '* }\nA0 = ['x']", static i => $"A{i} = A{i - 1}", $"R = A{depth} & 'z'\nparse R"),
+
+			// Every kind of walk at once, over chains with a seam: guards down one chain, a condition
+			// on the whole of another (aliases, which the condition can answer), a rebinding of what
+			// the first one's bottom calls, and a recovering repetition over that.
+			["everything"] = static depth => Chain(
+				depth, "trivia = { ' '* }\nB = 'b'\nA0 = ['x'] & B\nL0 = 'x'",
+				static i => $"A{i} = when @(true) & A{i - 1}\nL{i} = L{i - 1}",
+				$"R = when L{depth} is 'x' & (A{depth} with (B = 'c'))* recover ';' & 'z'\nparse R"),
+
 			// Values: the type of each rule is the type of the one below, and the publication at
 			// the top is the end of a chain of inferred types.
 			["values"] = static depth => Chain(

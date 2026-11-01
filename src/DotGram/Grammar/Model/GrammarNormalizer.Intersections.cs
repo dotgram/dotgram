@@ -412,32 +412,44 @@ public sealed partial class GrammarNormalizer
 				return met is null || met != negated ? new Residue(null, at) : null;
 			}
 
-			case Test.All(var left, var right):
+			// Folded from the left, a pair at a time, as the pairs were folded when a chain was a
+			// tree of them: the same questions in the same order, and the C# bracketed the same.
+			case Test.All(var items):
 			{
-				if (Folded(left, at) is not { } ours || Folded(right, at) is not { } theirs)
+				if (Folded(items[0], at) is not { } ours)
 					return null;
 
-				return new Residue(Joined(ours.Text, theirs.Text, "&&"), Where(ours, theirs, at));
+				for (var next = 1; next < items.Count; next++)
+				{
+					if (Folded(items[next], at) is not { } theirs)
+						return null;
+
+					ours = new Residue(Joined(ours.Text, theirs.Text, "&&"), Where(ours, theirs, at));
+				}
+
+				return ours;
 			}
 
-			case Test.Any(var left, var right):
+			case Test.Any(var items):
 			{
-				var ours   = Folded(left, at);
-				var theirs = Folded(right, at);
+				var ours = Folded(items[0], at);
 
-				// One half true outright and the other is not asked — not even at run time,
-				// since nothing it could answer would change the reading.
-				if (ours is { Text: null } || theirs is { Text: null })
-					return new Residue(null, at);
+				for (var next = 1; next < items.Count; next++)
+				{
+					var theirs = Folded(items[next], at);
 
-				if (ours is null)
-					return theirs;
+					// One half true outright and the other is not asked — not even at run time,
+					// since nothing it could answer would change the reading.
+					if (ours is { Text: null } || theirs is { Text: null })
+						ours = new Residue(null, at);
+					else if (ours is null)
+						ours = theirs;
+					else if (theirs is not null)
+						ours = new Residue(
+							Joined(ours.Value.Text, theirs.Value.Text, "||"), Where(ours.Value, theirs.Value, at));
+				}
 
-				if (theirs is null)
-					return ours;
-
-				return new Residue(
-					Joined(ours.Value.Text, theirs.Value.Text, "||"), Where(ours.Value, theirs.Value, at));
+				return ours;
 			}
 
 			default:

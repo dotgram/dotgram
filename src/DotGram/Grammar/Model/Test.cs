@@ -41,19 +41,59 @@ public abstract record Test
 		}
 	}
 
-	public sealed record All(Test Left, Test Right) : Test
+	/// <summary>Tests joined by <c>and</c>, in the order written: a list, so a long chain is not a deep tree.</summary>
+	public sealed record All(IReadOnlyList<Test> Items) : Test
 	{
+		/// <summary>Equal where the tests are, in order: a list compares by reference, and a test by what it says.</summary>
+		public bool Equals(All? other)
+		{
+			return other is not null && Items.SequenceEqual(other.Items);
+		}
+
+		public override int GetHashCode()
+		{
+			var hash = 17;
+
+			foreach (var item in Items)
+				hash = unchecked(hash * 31 + item.GetHashCode());
+
+			return hash;
+		}
+
 		public override string ToString()
 		{
-			return $"{Left} and {Right}";
+			return string.Join(" and ", Items);
 		}
 	}
 
-	public sealed record Any(Test Left, Test Right) : Test
+	/// <summary>Tests joined by <c>or</c>, in the order written, as <see cref="All"/>.</summary>
+	public sealed record Any(IReadOnlyList<Test> Items) : Test
 	{
+		/// <summary>Equal where the tests are, in order: a list compares by reference, and a test by what it says.</summary>
+		public bool Equals(Any? other)
+		{
+			return other is not null && Items.SequenceEqual(other.Items);
+		}
+
+		public override int GetHashCode()
+		{
+			var hash = 17;
+
+			foreach (var item in Items)
+				hash = unchecked(hash * 31 + item.GetHashCode());
+
+			return hash;
+		}
+
+		/// <remarks>Bracketed as each pair was when they were pairs, the first two innermost.</remarks>
 		public override string ToString()
 		{
-			return $"({Left} or {Right})";
+			var text = Items[0].ToString();
+
+			for (var at = 1; at < Items.Count; at++)
+				text = $"({text} or {Items[at]})";
+
+			return text;
 		}
 	}
 
@@ -64,8 +104,8 @@ public abstract record Test
 		{
 			Meets(var left, var right, _) => [left, right],
 			Runs => [],
-			All(var left, var right) => [.. Operands(left), .. Operands(right)],
-			Any(var left, var right) => [.. Operands(left), .. Operands(right)],
+			All(var items) => [.. items.SelectMany(Operands)],
+			Any(var items) => [.. items.SelectMany(Operands)],
 			_ => [],
 		};
 	}
@@ -77,8 +117,8 @@ public abstract record Test
 		{
 			Meets(var left, var right, var negated) => new Meets(onto(left), onto(right), negated),
 			Runs => test,
-			All(var left, var right) => new All(Mapped(left, onto), Mapped(right, onto)),
-			Any(var left, var right) => new Any(Mapped(left, onto), Mapped(right, onto)),
+			All(var items) => new All([.. items.Select(one => Mapped(one, onto))]),
+			Any(var items) => new Any([.. items.Select(one => Mapped(one, onto))]),
 			_ => test,
 		};
 	}

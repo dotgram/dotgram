@@ -68,6 +68,10 @@ public static class Doors
 	/// <remarks>A callee nothing knows about is assumed to leave one.</remarks>
 	public static bool LeavesOne(Node node, IReadOnlyDictionary<RuleSymbol, bool> doors)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => LeavesOne(node, doors));
+
 		return node switch
 		{
 			Node.Repeat => true,

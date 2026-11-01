@@ -1227,6 +1227,10 @@ public static class Retention
 	/// </remarks>
 	static bool Consumes(Node node, ICollection<RuleSymbol> consuming)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Consumes(node, consuming));
+
 		return node switch
 		{
 			Node.Empty or Node.Guard or Node.Lookahead => false,

@@ -445,6 +445,10 @@ sealed partial class Machine
 	/// </remarks>
 	bool Extent(Node node)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Extent(node));
+
 		return node switch
 		{
 			Node.Empty or Node.Literal or Node.Element or Node.Behind or Node.Glue => true,

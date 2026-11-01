@@ -152,6 +152,19 @@ public sealed partial class GrammarNormalizer
 
 		void Follow(Node from)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Follow(from);
+
+					return true;
+				});
+
+				return;
+			}
+
 			foreach (var node in NodeWalk.Descendants(from))
 			{
 				if (node is Node.Call(var called, _))
@@ -391,6 +404,10 @@ public sealed partial class GrammarNormalizer
 	/// </remarks>
 	static bool SameShape(Node one, Node other)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => SameShape(one, other));
+
 		return (one, other) switch
 		{
 			(Node.Capture(_, var a), Node.Capture(_, var b)) => SameShape(a, b),

@@ -654,6 +654,10 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	HashSet<RuleSymbol> DirectCalls(Node root)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => DirectCalls(root));
+
 		var seed = new HashSet<RuleSymbol>();
 
 		foreach (var node in NodeWalk.Descendants(root))

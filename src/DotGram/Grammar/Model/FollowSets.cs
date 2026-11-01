@@ -573,6 +573,19 @@ public static class FollowSets
 
 		void Contribute(Node node, Continuation after, RuleSymbol? seam)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Contribute(node, after, seam);
+
+					return true;
+				});
+
+				return;
+			}
+
 			switch (node)
 			{
 				case Node.Call(var called, _):
@@ -723,6 +736,10 @@ public static class FollowSets
 	/// </remarks>
 	static Lead LeadOf(Node node, Continuation after, RecognitionGraph graph)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => LeadOf(node, after, graph));
+
 		if (AtEnd(node, graph))
 			return Lead.Ending;
 

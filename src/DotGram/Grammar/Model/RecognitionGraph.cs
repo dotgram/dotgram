@@ -751,6 +751,19 @@ public sealed class RecognitionGraph(
 
 		void Write(Node node, int depth)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Write(node, depth);
+
+					return true;
+				});
+
+				return;
+			}
+
 			text.Append(' ', depth * 2).Append(node.GetType().Name);
 
 			switch (node)
@@ -1142,6 +1155,19 @@ public sealed class RecognitionGraph(
 		// reaches - the rules a machine is made of, whether any of them looks behind - asks it.
 		void Walk(Node body)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Walk(body);
+
+					return true;
+				});
+
+				return;
+			}
+
 			foreach (var node in NodeWalk.Descendants(body))
 			{
 				if (node is Node.Call(var called, _))

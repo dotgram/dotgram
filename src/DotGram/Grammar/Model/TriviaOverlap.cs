@@ -363,6 +363,10 @@ public static class TriviaOverlap
 		/// <summary>The characters a look refuses, where it is a class and at most <c>any</c> after it.</summary>
 		static FirstSets.First? OneClass(Node body)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => OneClass(body));
+
 			switch (body)
 			{
 				case Node.Element { References.Count: 0 } element:

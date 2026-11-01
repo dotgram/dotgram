@@ -54,6 +54,9 @@ public sealed class DeepChainTests
 			"P(x) = x\nA = " + string.Concat(Enumerable.Repeat("P(", DeepChains.Depth)) + "'x'" +
 				new string(')', DeepChains.Depth) + "\nparse A\n",
 
+			// Rebindings one after another, each wrapping the operand once more.
+			"B = 'b'\nC = 'c'\nA = B" + string.Concat(Enumerable.Repeat(" with (B = C)", DeepChains.Depth)) + "\nparse A\n",
+
 			// Namespaces.
 			string.Concat(Enumerable.Repeat("namespace N {\n", DeepChains.Depth)) + "A = 'x'\n" +
 				new string('}', DeepChains.Depth) + "\nB = 'x'\nparse B\n",
@@ -64,6 +67,19 @@ public sealed class DeepChainTests
 			var error = Assert.Single(compiled.Diagnostics, static d => d.Severity == GramSeverity.Error);
 
 			Assert.Equal(GramParser.NestedTooDeep, error.Id);
+		}
+
+		// A chain of conditions is a list and not a tree: read, however long, and with nothing to say.
+		foreach (var joined in new[] { "and", "or" })
+		{
+			var chain = "A = when 'x' is 'x'" + string.Concat(Enumerable.Repeat($" {joined} 'x' is 'x'", DeepChains.Depth)) +
+				" & 'x'\nparse A\n";
+
+			var compiled = DeepChains.OnSmallStack(() => GramCompiler.Compile(chain));
+
+			Assert.False(
+				compiled.HasErrors,
+				string.Join("\n", compiled.Diagnostics.Where(static d => d.Severity == GramSeverity.Error).Take(5)));
 		}
 
 		// And the bound is the bound: sixty-three groups inside each other are a grammar like any

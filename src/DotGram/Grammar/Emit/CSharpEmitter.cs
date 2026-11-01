@@ -5397,6 +5397,10 @@ file.Line("return spare;");
 		// A capture, a repetition or a look around what the machine can say.
 		string Shown(Node node)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Shown(node));
+
 			return node switch
 			{
 				Node.Capture(_, var body) => Shown(body),

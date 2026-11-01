@@ -123,6 +123,10 @@ public sealed partial class GrammarNormalizer
 	/// <summary>What a node is, as an operand: the items it tests are all single ones.</summary>
 	ItemKind Operand(Node node, Node seam, Spacing found)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Operand(node, seam, found));
+
 		switch (node)
 		{
 			case Node.Element:
@@ -260,6 +264,10 @@ public sealed partial class GrammarNormalizer
 	/// <summary>Whether a node is exactly one input item, drawn from a set or a few spellings.</summary>
 	bool OneItem(Node node, Spacing found, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => OneItem(node, found, seen));
+
 		switch (node)
 		{
 			case Node.Element:

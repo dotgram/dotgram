@@ -81,6 +81,10 @@ public sealed partial class GrammarNormalizer
 
 	Node Lower(Expr expression, GrammarNamespace ns)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Lower(expression, ns));
+
 		return expression switch
 		{
 			Expr.Literal(_, var value) { IgnoreCase: var ignoreCase } => Bounded(Segmented(value, expression), ns, ignoreCase),
@@ -171,8 +175,8 @@ public sealed partial class GrammarNormalizer
 			Parsing.Test.Meets(var left, var right, var negated) =>
 				new Test.Meets(Condition(left, ns), Condition(right, ns), negated),
 			Parsing.Test.Runs(var value) => new Test.Runs(Substituted(Text(value)), StartOf(value)),
-			Parsing.Test.All(var left, var right) => new Test.All(Lowered(left, ns), Lowered(right, ns)),
-			Parsing.Test.Any(var left, var right) => new Test.Any(Lowered(left, ns), Lowered(right, ns)),
+			Parsing.Test.All(var items) => new Test.All([.. items.Select(one => Lowered(one, ns))]),
+			Parsing.Test.Any(var items) => new Test.Any([.. items.Select(one => Lowered(one, ns))]),
 			_ => throw new InvalidOperationException($"Unhandled test kind: {test.GetType().Name}"),
 		};
 	}
@@ -945,6 +949,19 @@ public sealed partial class GrammarNormalizer
 
 		void Visit(Node one)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Visit(one);
+
+					return true;
+				});
+
+				return;
+			}
+
 			if (one is Node.Call(var called, _))
 				sites.Append('|').Append(NamespacePath(called.Namespace));
 
@@ -1273,6 +1290,10 @@ public sealed partial class GrammarNormalizer
 	/// </remarks>
 	static string Text(Expr value)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Text(value));
+
 		return value switch
 		{
 			Expr.CSharp(var text) => $"({text})",
@@ -1681,6 +1702,10 @@ public sealed partial class GrammarNormalizer
 	/// </remarks>
 	Node.Element? ElementOf(Node node, HashSet<RuleSymbol>? seen = null)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => ElementOf(node, seen));
+
 		return node switch
 		{
 			Node.Element element => element,
@@ -1779,6 +1804,10 @@ public sealed partial class GrammarNormalizer
 
 	bool MatchesNothing(Node node, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => MatchesNothing(node, seen));
+
 		return node switch
 		{
 			Node.Empty => true,

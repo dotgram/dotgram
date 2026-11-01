@@ -651,6 +651,10 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	bool ReachesEndOfSegment(Node node, HashSet<RuleSymbol> reaching)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => ReachesEndOfSegment(node, reaching));
+
 		switch (node)
 		{
 			case Node.Lookahead:

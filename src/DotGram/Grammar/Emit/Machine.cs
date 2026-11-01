@@ -8754,6 +8754,19 @@ sealed partial class Machine
 	/// <summary>Adds what can begin <paramref name="node"/> to <paramref name="items"/>, each once.</summary>
 	void Lead(Node node, List<string> items)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+		{
+			DeepStack.Run(() =>
+			{
+				Lead(node, items);
+
+				return true;
+			});
+
+			return;
+		}
+
 		switch (node)
 		{
 			case Node.Literal or Node.Element when _graph.Segmented && Unjoined(node) is { } spoken:

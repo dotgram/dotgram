@@ -39,24 +39,32 @@ public sealed class ParserLadderTests
 	{
 		return shape switch
 		{
-			// Guards whose operand is a call whose argument holds the next `when`.
-			"arguments"  => "P(x) = x\nA = " + string.Concat(Enumerable.Repeat("when P(", depth)) + "'x' is 'x'" +
-				new string(')', depth) + " & 'x'\nparse A\n",
+			// A condition on a call whose argument is the next condition: `when P(…) is 'x'`.
+			"arguments"  => "P(x) = x\nA = " + Nested(depth, "'x'", static inner => $"when P({inner}) is 'x'") + " & 'x'\nparse A\n",
 
-			// The same with a C# guard at the bottom.
-			"guards"     => "P(x) = x\nA = " + string.Concat(Enumerable.Repeat("when P(", depth)) + "@(true)" +
-				new string(')', depth) + " & 'x'\nparse A\n",
+			// The same with a C# guard among the conditions at every level.
+			"guards"     => "P(x) = x\nA = " + Nested(depth, "'x'", static inner => $"when P({inner}) is 'x' and @(true)") +
+				" & 'x'\nparse A\n",
 
-			// Inside a condition's parentheses.
-			"conditions" => "A = " + string.Concat(Enumerable.Repeat("when (", depth)) + "'x' is 'x'" +
-				new string(')', depth) + " & 'x'\nparse A\n",
+			// One condition, its parentheses inside each other.
+			"conditions" => "A = when " + new string('(', depth) + "'x' is 'x'" + new string(')', depth) + " & 'x'\nparse A\n",
 
-			// Inside groups.
+			// Conditions inside groups.
 			"groups"     => "X = 'x'\nA = " + string.Concat(Enumerable.Repeat("(when X is X & ", depth)) + "'x'" +
 				new string(')', depth) + "\nparse A\n",
 
 			_ => throw new ArgumentOutOfRangeException(nameof(shape)),
 		};
+	}
+
+	static string Nested(int depth, string bottom, Func<string, string> level)
+	{
+		var text = bottom;
+
+		for (var at = 0; at < depth; at++)
+			text = level(text);
+
+		return text;
 	}
 
 	[Theory]
@@ -68,12 +76,18 @@ public sealed class ParserLadderTests
 			var grammar = Grammar(shape, depth);
 			var watch   = Stopwatch.StartNew();
 
-			GramCompiler.Read(grammar, RoslynCSharpScanner.Instance);
+			var parsed  = GramCompiler.Read(grammar, RoslynCSharpScanner.Instance);
+			var elapsed = watch.Elapsed;
+
+			// A grammar that reads: one recovered from would be timed on the recovery.
+			Assert.True(
+				parsed.Diagnostics.Count == 0,
+				$"{shape} at {depth} levels: {string.Join("; ", parsed.Diagnostics)}");
 
 			// Measured: under two milliseconds at forty once kept; doubling, past a second at twenty-one.
 			Assert.True(
-				watch.Elapsed.TotalSeconds < 1,
-				$"{shape} at {depth} levels took {watch.Elapsed.TotalMilliseconds:F0} ms.");
+				elapsed.TotalSeconds < 1,
+				$"{shape} at {depth} levels took {elapsed.TotalMilliseconds:F0} ms.");
 		}
 	}
 
