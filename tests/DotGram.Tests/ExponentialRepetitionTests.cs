@@ -436,6 +436,51 @@ public sealed class ExponentialRepetitionTests
 	}
 
 	/// <summary>
+	/// A clone keeps the numbers its rule's repetitions are written with, though a rebinding makes
+	/// one of them free there: each repetition told is told once, with its own witness.
+	/// </summary>
+	[Fact]
+	public void A_clone_keeps_the_occurrences_of_its_rule()
+	{
+		var found = Analyse(
+			"X = 'x'\nE = none\nY = 'b' | \"bb\"\nOne = 'b'\nZ = 'c'\nTwo = 'c' | \"cc\"\n" +
+			"Q = { 'a'+ & X } & Y+ & ',' & Z+ & '!'\nparse Q\nparse Q with (X = E, Y = One, Z = Two) as Q2\n").Found;
+
+		Assert.Equal(["'b' 'b'", "'c' 'c'"], found.Select(static one => one.Witness).Order(StringComparer.Ordinal));
+	}
+
+	/// <summary>A witness is a text the repetition can read: as many turns as it must take.</summary>
+	[Theory]
+	[InlineData("R = (\"xy\" | \"xy\"){2,} & 'b'", "'x' 'y' 'x' 'y'")]
+	[InlineData("R = (\"xy\" | \"xy\"){3,} & 'b'", "'x' 'y' 'x' 'y' 'x' 'y'")]
+	[InlineData("R = (\"xy\" | \"xy\"){1,} & 'b'", "'x' 'y'")]
+	public void A_witness_takes_the_turns_the_repetition_must(string grammar, string witness)
+	{
+		Assert.Equal(witness, Assert.Single(Analyse(grammar + "\nparse R\n").Found).Witness);
+	}
+
+	/// <summary>
+	/// A run of looks over a chain of aliases is charged for every alias it looks through and every
+	/// operand it passes over.
+	/// </summary>
+	[Fact]
+	public void Looks_through_aliases_are_charged()
+	{
+		var grammar = new StringBuilder("A0 = 'a'\n");
+
+		for (var i = 1; i <= 400; i++)
+			grammar.Append($"A{i} = A{i - 1}\n");
+
+		grammar.Append("R = (").Append(string.Concat(Enumerable.Repeat("?=A400 & ", 200))).Append("'a')* & 'b'\nparse R\n");
+
+		var graph  = Graph(grammar.ToString(), lexical: false, out var split);
+		var result = ExponentialRepetition.Check(graph, split, out var steps);
+
+		Assert.Equal(1, result.Loops);
+		Assert.True(steps >= 200 * 400 || result.Skipped == 1, $"{steps} steps, {result.Skipped} skipped");
+	}
+
+	/// <summary>
 	/// Calls are written out sixty-four deep and no deeper: past that a call is one opaque step,
 	/// and a run it reads two ways is not seen. Pinned on both sides of the depth.
 	/// </summary>

@@ -275,7 +275,9 @@ public sealed class ExponentialRepetitionScalingTests
 
 		var root = roots[random.Next(roots.Length)].Replace("#", depth.ToString(System.Globalization.CultureInfo.InvariantCulture), StringComparison.Ordinal);
 
-		grammar.Append(root).Append("\nparse R\n");
+		// And one repetition known to be told, beside the random ones, so that a check that asked
+		// nothing would not pass.
+		grammar.Append(root).Append(" | P\nP = ('p' | 'p' & 'p')+ & 'q'\nparse R\n");
 
 		var text = grammar.ToString();
 
@@ -309,8 +311,12 @@ public sealed class ExponentialRepetitionScalingTests
 
 		Said($"seed {seed}, depth {depth}, {root}: {result!.Loops} loops, {result.Skipped} skipped, {result.Found.Count} told, {steps} steps, {bytes} bytes, {watch.Elapsed.TotalMilliseconds:F1} ms");
 
-		Assert.True(result.Skipped <= result.Loops);
-		Assert.True(result.Loops == 0 || steps > 0, "Repetitions were asked and no work was counted.");
+		var planted = Assert.Single(result.Found, static one => one.Rule.Name == "P");
+
+		Assert.Equal("'p' 'p'", planted.Witness);
+		Assert.True(result.Loops >= 1, "No repetition was asked.");
+		Assert.True(result.Skipped < result.Loops, "Every repetition was skipped.");
+		Assert.True(steps > 0, "No work was counted.");
 		Assert.True(bytes < 64 << 20, $"{bytes} bytes allocated");
 
 		// Half a second, and twenty microseconds a step: what an uncounted walk down ten thousand

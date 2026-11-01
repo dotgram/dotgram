@@ -162,6 +162,11 @@ public static class ExponentialRepetition
 			var places = new List<Place>();
 			var walked = new Dictionary<Node, bool>(NodeIdentity.Instance);
 
+			// Every unbounded repetition numbered as it is written, before any is passed over: a
+			// rebinding can make one repetition free in a clone and not in its rule, and the others
+			// keep their numbers.
+			var occurrences = Occurrences(body, over.Folds.TryGetValue(rule, out var folded) ? folded.Loop : null);
+
 			Collect(body, -1, free: false, unfailing, places, walked);
 
 			if (over.Folds.TryGetValue(rule, out var fold))
@@ -199,7 +204,7 @@ public static class ExponentialRepetition
 				// marked repetition is a part of its origin of its own, known by where it was lifted
 				// among the parts its parent gave, which a clone gives in the same order.
 				// A clone made by a rebinding carries the declaration it was made from.
-				if (said.Add(((object?)origin.Declaration ?? origin, lifts.Path(rule), places.IndexOf(place))))
+				if (said.Add(((object?)origin.Declaration ?? origin, lifts.Path(rule), occurrences[place.Loop])))
 					found.Add(new Told(origin, place.Loop, witness));
 			}
 		}
@@ -256,6 +261,34 @@ public static class ExponentialRepetition
 				return true;
 
 		return false;
+	}
+
+	/// <summary>Every unbounded repetition of a body and its fold, not entering calls, numbered in the order it is written.</summary>
+	static Dictionary<Node, int> Occurrences(Node body, Node? fold)
+	{
+		var numbers = new Dictionary<Node, int>(NodeIdentity.Instance);
+		var pending = new Stack<Node>();
+
+		if (fold is not null)
+			pending.Push(fold);
+
+		pending.Push(body);
+
+		while (pending.Count > 0)
+		{
+			var node = pending.Pop();
+
+			if (node is Node.Repeat { Max: null } or Node.Counted { Max: null } && !numbers.ContainsKey(node))
+				numbers[node] = numbers.Count;
+
+			if (node is Node.Call or Node.Condition)
+				continue;
+
+			foreach (var child in node.Children.Reverse())
+				pending.Push(child);
+		}
+
+		return numbers;
 	}
 
 	/// <summary>A repetition found in a rule, and the repetition it is nested in.</summary>
@@ -538,7 +571,7 @@ public static class ExponentialRepetition
 			past = false;
 
 			var automaton = new Automaton(this, rule);
-			var whole     = loop is Node.Counted(var counted, _, _) ? new Node.Repeat(counted, 0, null) : loop;
+			var whole     = Whole(loop);
 
 			Fragment fragment;
 
@@ -576,6 +609,35 @@ public static class ExponentialRepetition
 			}
 
 			return product.Witness();
+		}
+
+		/// <summary>
+		/// The repetition as its automaton is built: the turns it must take written out ahead of
+		/// the run, so that a witness is a text it can read — <c>X{2,}</c> is <c>X &amp; X+</c>. A count
+		/// the input sets, or a minimum too wide to write out, is asked from no turns at all, and its
+		/// witness is a text a run of it holds.
+		/// </summary>
+		static Node Whole(Node loop)
+		{
+			var (body, fewest) = loop switch
+			{
+				Node.Repeat repeat                                           => (repeat.Body, repeat.Min),
+				Node.Counted { Body: var counted, Min: CountBound.Items(var n) } => (counted, n),
+				Node.Counted counted                                         => (counted.Body, 0),
+				_                                                            => (loop, 1),
+			};
+
+			if (fewest is <= 1 or > Unrolled)
+				return loop is Node.Repeat { Min: <= 1 } ? loop : new Node.Repeat(body, fewest == 1 ? 1 : 0, null);
+
+			var parts = new List<Node>();
+
+			for (var turn = 1; turn < fewest; turn++)
+				parts.Add(body);
+
+			parts.Add(new Node.Repeat(body, 1, null));
+
+			return new Node.Sequence(parts);
 		}
 
 		public int Count(int steps)
@@ -816,6 +878,9 @@ public static class ExponentialRepetition
 			{
 				var part = parts[at];
 
+				// Every operand charged, those that read nothing and are passed over too.
+				Charge(1);
+
 				switch (part)
 				{
 					// The trivia woven between two operands is a seam, GRAM4051's, and reads nothing
@@ -884,7 +949,11 @@ public static class ExponentialRepetition
 			var seen = new HashSet<RuleSymbol>();
 
 			while (node is Node.Call(var called, { Count: 0 }) && seen.Add(called) && context.Graph.Bodies.TryGetValue(called, out var body))
+			{
+				Charge(1);
+
 				node = body;
+			}
 
 			return node;
 		}
