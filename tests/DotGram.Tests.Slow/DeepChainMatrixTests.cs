@@ -43,7 +43,12 @@ public sealed class DeepChainMatrixTests
 	const int StackBytes = 512 * 1024;
 
 	/// <summary>A way one rule refers to the one below: the bottom rule, a level, and what publishes the top.</summary>
-	sealed record Kind(string Name, string Bottom, Func<int, string> Level, Func<int, string> Top);
+	/// <remarks>
+	/// <paramref name="Depth"/> where a kind costs time that grows faster than the chain — a chain of
+	/// rebindings, each specializing what is below it, and the readers a rebinding has to check — so
+	/// that it is asked on a shorter chain and a smaller stack, which asks the same question.
+	/// </remarks>
+	sealed record Kind(string Name, string Bottom, Func<int, string> Level, Func<int, string> Top, int Depth = DeepChainMatrixTests.Depth, int Stack = StackBytes);
 
 	static readonly Kind[] Kinds =
 	[
@@ -53,9 +58,10 @@ public sealed class DeepChainMatrixTests
 			static n => $"R : @int = v:A{n} => @(v)"),
 		new("transparent", "A0 : @int = 'b' => @(1)", static i => $"A{i} : A{i - 1} = v:A{i - 1} => @(v)",
 			static n => $"R : A{n} = v:A{n} => @(v)"),
-		new("with", "B = 'b'\nC = 'c'\nA0 = B", static i => $"A{i} = A{i - 1} with (B = C)", static n => $"R = A{n} & 'z'"),
+		new("with", "B = 'b'\nC = 'c'\nA0 = B", static i => $"A{i} = A{i - 1} with (B = C)", static n => $"R = A{n} & 'z'",
+			1500, 256 * 1024),
 		new("reader", "B : @int = 'b' => @(1)\nD : @string = 'd' => @(\"d\")\nA0 : B = when @(true) & B",
-			static i => $"A{i} : A{i - 1} = when @(true) & A{i - 1}", static n => $"R : A{n} = A{n}"),
+			static i => $"A{i} : A{i - 1} = when @(true) & A{i - 1}", static n => $"R : A{n} = A{n}", 1500, 256 * 1024),
 		new("guard", "A0 = when @(true)", static i => $"A{i} = when @(true) & A{i - 1}", static n => $"R = A{n} & 'z'"),
 		new("guard after", "A0 = \"a\" | \"ab\"", static i => $"A{i} = A{i - 1} & when @(true)",
 			static n => $"Row : @string = 'r' => @(\"r\")\nR : @string[] = A{n} & 'b' & Row*"),
@@ -100,8 +106,9 @@ public sealed class DeepChainMatrixTests
 
 		Parallel.ForEach(cases, new ParallelOptions { MaxDegreeOfParallelism = 6 }, one =>
 		{
-			var grammar = Grammar(Kinds.Single(k => k.Name == kind), descending, one.Trivia, one.Top, Depth);
-			var errors  = OnSmallStack(() => GramCompiler.Compile(grammar, new GramCompilerOptions
+			var shape   = Kinds.Single(k => k.Name == kind);
+			var grammar = Grammar(shape, descending, one.Trivia, one.Top, shape.Depth);
+			var errors  = OnSmallStack(shape.Stack, () => GramCompiler.Compile(grammar, new GramCompilerOptions
 			{
 				CSharpScanner = RoslynCSharpScanner.Instance,
 				Lexical       = one.Lexical,
@@ -142,7 +149,7 @@ public sealed class DeepChainMatrixTests
 
 		published = top switch
 		{
-			"repeated" => published.Replace($"A{depth} & ", $"(A{depth})* & ", StringComparison.Ordinal),
+			"repeated" => published.Replace($"A{depth} & ", $"(A{depth} & 'q')* & ", StringComparison.Ordinal),
 			"looked"   => published.Replace($"R = A{depth}", $"R = (?!A{depth} & 'q') & A{depth}", StringComparison.Ordinal),
 			_          => published,
 		};
@@ -152,7 +159,7 @@ public sealed class DeepChainMatrixTests
 		return text.Append(kind.Name == "reader" ? "parse R with (B = D)\n" : "parse R\n").ToString();
 	}
 
-	static T OnSmallStack<T>(Func<T> work)
+	static T OnSmallStack<T>(int stack, Func<T> work)
 	{
 		var result = default(T);
 		var thrown = default(Exception);
@@ -169,7 +176,7 @@ public sealed class DeepChainMatrixTests
 					thrown = caught;
 				}
 			},
-			StackBytes);
+			stack);
 
 		thread.Start();
 		thread.Join();
