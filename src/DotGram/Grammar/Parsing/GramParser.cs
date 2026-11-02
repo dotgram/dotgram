@@ -313,7 +313,22 @@ public sealed class GramParser
 		if (KindAt(head) == TokenKind.Question)
 			head++;
 
-		return KindAt(head) is TokenKind.Equals || StartsParameterizedRule(head) || StartsTypedRule(head);
+		return EqualsAt(head) || StartsParameterizedRule(head) || StartsTypedRule(head);
+	}
+
+	/// <summary>
+	/// Whether the `=` of a rule's head stands at <paramref name="at"/>, or after an <c>on fail "…"</c>
+	/// that stands there (<see cref="ParseOnFail"/>): the one clause a head may have between its type
+	/// and its body.
+	/// </summary>
+	bool EqualsAt(int at)
+	{
+		if (KindAt(at) == TokenKind.Identifier && _tokens[at].Value == "on" &&
+			KindAt(at + 1) == TokenKind.Identifier && _tokens[at + 1].Value == "fail" &&
+			KindAt(at + 2) == TokenKind.String)
+			at += 3;
+
+		return KindAt(at) == TokenKind.Equals;
 	}
 
 	TokenKind KindAt(int at)
@@ -348,8 +363,7 @@ public sealed class GramParser
 			at++;
 		}
 
-		return at < _tokens.Count &&
-			(_tokens[at].Kind is TokenKind.Equals or TokenKind.Colon);
+		return at < _tokens.Count && (EqualsAt(at) || _tokens[at].Kind is TokenKind.Colon);
 	}
 
 	/// <summary>
@@ -407,7 +421,7 @@ public sealed class GramParser
 		if (KindAt(at) == TokenKind.OpenBracket && KindAt(at + 1) == TokenKind.CloseBracket)
 			at += 2;
 
-		return KindAt(at) == TokenKind.Equals;
+		return EqualsAt(at);
 	}
 
 	/// <summary>
@@ -1796,7 +1810,8 @@ public sealed class GramParser
 	/// </summary>
 	bool StartsDeclaration()
 	{
-		return StartsRule() || AtUsing() || AtKeyword("namespace") || AtPublication() || AtAccess();
+		return StartsRule() || AtUsing() || AtKeyword("namespace") || AtPublication() || AtAccess() ||
+			(AtKeyword("context") || AtKeyword("state")) && Next.Kind == TokenKind.Colon;
 	}
 }
 

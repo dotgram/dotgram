@@ -1090,7 +1090,7 @@ sealed partial class Machine
 	string? RunTest(Node body)
 	{
 		var test = WrittenTest(body);
-		var one  = ExecutionPlan.OneCharacter(body, _graph, CanInline);
+		var one  = ExecutionPlan.OneCharacter(body, _graph, MeantInPlace);
 
 		System.Diagnostics.Debug.Assert(one == (test is not null), "The test written and the plan's answer disagree.");
 
@@ -1121,6 +1121,13 @@ sealed partial class Machine
 			case Node.Call(var rule, _) when CanInline(rule):
 				return WrittenTest(_graph.Bodies[rule]);
 
+			// One the plan meant to write in place and the machine calls instead, its expansion past
+			// what the machine writes (ExecutionPlan.WrittenInPlace): still one character, as the
+			// analyses take it to be (GRAM4052), so still one test — written from its distinct tests,
+			// each rule asked once, and not from the expansion, which is what was too large.
+			case Node.Call(var rule, _) when MeantInPlace(rule):
+				return CappedTest(rule);
+
 			case Node.Sequence(var nodes) when nodes.Count == 1:
 				return WrittenTest(nodes[0]);
 
@@ -1144,4 +1151,103 @@ sealed partial class Machine
 				return null;
 		}
 	}
+
+	/// <summary>
+	/// Whether the plan meant a call to <paramref name="rule"/> to be written in place, whether or not
+	/// the machine writes it there: <see cref="CanInline"/> before the ceiling on the size of what is
+	/// written (<see cref="ExecutionPlan.WrittenInPlace"/>), as the analyses read it.
+	/// </summary>
+	bool MeantInPlace(RuleSymbol rule)
+	{
+		return _plan.CompiledInPlace.Contains(rule) && (_lowering || SaysOf(rule) is null);
+	}
+
+	/// <summary>
+	/// The test of one character a rule meant in place reads, from the distinct tests it reaches; null
+	/// where it reads anything else.
+	/// </summary>
+	/// <remarks>
+	/// A disjunction, so a test reached twice is the same test, and a rule reached twice is the same
+	/// rule: walked with a stack of its own and each rule once, so a diamond of choices costs its size
+	/// and not the number of its paths.
+	/// </remarks>
+	string? CappedTest(RuleSymbol rule)
+	{
+		if (_cappedTests.TryGetValue(rule, out var known))
+			return known;
+
+		var tests   = new List<string>();
+		var seen    = new HashSet<string>(StringComparer.Ordinal);
+		var entered = new HashSet<RuleSymbol> { rule };
+		var pending = new Stack<Node>();
+		var one     = true;
+
+		pending.Push(_graph.Bodies[rule]);
+
+		while (one && pending.Count > 0)
+		{
+			switch (pending.Pop())
+			{
+				case Node.Element element:
+				{
+					var test = CSharpEmitter.Test(element, Tabulate);
+
+					if (test == "false")
+						one = false;
+					else if (seen.Add(test))
+						tests.Add(test);
+
+					break;
+				}
+
+				case Node.Literal(var value) { IgnoreCase: false } when value.Length == 1:
+				{
+					var test = $"c == {CSharpEmitter.Char(value[0])}";
+
+					if (seen.Add(test))
+						tests.Add(test);
+
+					break;
+				}
+
+				case Node.Call(var called, _) when MeantInPlace(called):
+					if (entered.Add(called))
+						pending.Push(_graph.Bodies[called]);
+
+					break;
+
+				case Node.Sequence(var nodes) when nodes.Count == 1:
+					pending.Push(nodes[0]);
+
+					break;
+
+				case Node.Choice(var alternatives) { Selection: null }:
+					for (var i = alternatives.Count - 1; i >= 0; i--)
+						pending.Push(alternatives[i]);
+
+					break;
+
+				default:
+					one = false;
+
+					break;
+			}
+		}
+
+		string? written = null;
+
+		if (one)
+		{
+			for (var i = 0; i < tests.Count; i++)
+				tests[i] = tests[i] == "true" ? "true" : $"({tests[i]})";
+
+			written = tests.Contains("true") ? "true" : string.Join(" || ", tests);
+		}
+
+		_cappedTests[rule] = written;
+
+		return written;
+	}
+
+	readonly Dictionary<RuleSymbol, string?> _cappedTests = [];
 }

@@ -48,30 +48,40 @@ public sealed class DeepChainMatrixTests
 	/// rebindings, each specializing what is below it, and the readers a rebinding has to check — so
 	/// that it is asked on a shorter chain and a smaller stack, which asks the same question.
 	/// </remarks>
-	sealed record Kind(string Name, string Bottom, Func<int, string> Level, Func<int, string> Top, int Depth = DeepChainMatrixTests.Depth, int Stack = StackBytes);
+	/// <param name="Head">The publication's head, <c>R = </c> or a typed one; <c>TOP</c> in it is the top of the chain.</param>
+	/// <param name="Use">What the publication reads of the top of the chain, given its name; the wrappers go in front.</param>
+	/// <param name="Chain">The letter the chain's rules are named with.</param>
+	/// <param name="Extra">Rules the publication reads besides the chain.</param>
+	/// <param name="Lexical">Whether the kind may be cut in two at all: a grammar that names <c>eos</c> may not (GRAM4049).</param>
+	sealed record Kind(
+		string Name, string Bottom, Func<int, string> Level, string Head, Func<string, string> Use, string Chain = "A",
+		string Extra = "", bool Lexical = true, int Depth = DeepChainMatrixTests.Depth, int Stack = StackBytes);
 
 	static readonly Kind[] Kinds =
 	[
-		new("call", "A0 = 'x'", static i => $"A{i} = 'x' & A{i - 1}", static n => $"R = A{n} & 'z'"),
-		new("alias", "A0 = 'x'", static i => $"A{i} = A{i - 1}", static n => $"R = A{n} & 'z'"),
+		new("call", "A0 = 'x'", static i => $"A{i} = 'x' & A{i - 1}", "R = ", static x => $"{x} & 'z'"),
+		new("alias", "A0 = 'x'", static i => $"A{i} = A{i - 1}", "R = ", static x => $"{x} & 'z'"),
 		new("forwarder", "A0 : @int = 'b' => @(1)", static i => $"A{i} : @int = v:A{i - 1} => @(v)",
-			static n => $"R : @int = v:A{n} => @(v)"),
+			"R : @int = ", static x => $"v:{x} => @(v)"),
 		new("transparent", "A0 : @int = 'b' => @(1)", static i => $"A{i} : A{i - 1} = v:A{i - 1} => @(v)",
-			static n => $"R : A{n} = v:A{n} => @(v)"),
-		new("with", "B = 'b'\nC = 'c'\nA0 = B", static i => $"A{i} = A{i - 1} with (B = C)", static n => $"R = A{n} & 'z'",
-			1500, 256 * 1024),
+			"R : @int = ", static x => $"v:{x} => @(v)"),
+		new("with", "B = 'b'\nC = 'c'\nA0 = B", static i => $"A{i} = A{i - 1} with (B = C)", "R = ", static x => $"{x} & 'z'",
+			Depth: 1500, Stack: 256 * 1024),
 		new("reader", "B : @int = 'b' => @(1)\nD : @string = 'd' => @(\"d\")\nA0 : B = when @(true) & B",
-			static i => $"A{i} : A{i - 1} = when @(true) & A{i - 1}", static n => $"R : A{n} = A{n}", 1500, 256 * 1024),
-		new("guard", "A0 = when @(true)", static i => $"A{i} = when @(true) & A{i - 1}", static n => $"R = A{n} & 'z'"),
+			static i => $"A{i} : A{i - 1} = when @(true) & A{i - 1}", "R : TOP = ", static x => x,
+			Depth: 1500, Stack: 256 * 1024),
+		new("guard", "A0 = when @(true)", static i => $"A{i} = when @(true) & A{i - 1}", "R = ", static x => $"{x} & 'z'"),
 		new("guard after", "A0 = \"a\" | \"ab\"", static i => $"A{i} = A{i - 1} & when @(true)",
-			static n => $"Row : @string = 'r' => @(\"r\")\nR : @string[] = A{n} & 'b' & Row*"),
-		new("lookahead", "A0 = 'x'", static i => $"A{i} = (?!'q' & A{i - 1}) & 'x'", static n => $"R = A{n} & 'z'"),
-		new("condition", "L0 = 'x'", static i => $"L{i} = L{i - 1}", static n => $"R = when L{n} is 'x' & 'z'"),
+			"R : @string[] = ", static x => $"{x} & 'b' & Row*", Extra: "Row : @string = 'r' => @(\"r\")\n"),
+		new("lookahead", "A0 = 'x'", static i => $"A{i} = (?!'q' & A{i - 1}) & 'x'", "R = ", static x => $"{x} & 'z'"),
+		new("condition", "L0 = 'x'", static i => $"L{i} = L{i - 1}", "R = ", static x => $"when {x} is 'x' & 'z'", Chain: "L"),
 		new("values", "A0 : @int = 'x' => @(0)", static i => $"A{i} : @int = 'x' & v:A{i - 1} => @(v + 1)",
-			static n => $"R : @int = v:A{n} => @(v)"),
+			"R : @int = ", static x => $"v:{x} => @(v)"),
 		new("negative look over values",
 			"Word : @string = 'a' => @(\"a\")\nA0 : @string[] = (?!('a' & 'b') & Word)* & when @(true)",
-			static i => $"A{i} : A{i - 1} = A{i - 1} & when @(true)", static n => $"R : A{n} = A{n} & 'a' & 'b'"),
+			static i => $"A{i} : A{i - 1} = A{i - 1} & when @(true)", "R : @string[] = ", static x => $"{x} & 'a' & 'b'"),
+		new("segment", "A0 = 'x'", static i => $"A{i} = 'x' & A{i - 1}", "R : @int = ", static x => $"{x} & eos => @(1)",
+			Lexical: false),
 	];
 
 	/// <summary>How the top of the chain is published: as written, under a repetition, behind a negative look.</summary>
@@ -104,10 +114,19 @@ public sealed class DeepChainMatrixTests
 
 		var failures = new System.Collections.Concurrent.ConcurrentBag<string>();
 
-		Parallel.ForEach(cases, new ParallelOptions { MaxDegreeOfParallelism = 6 }, one =>
+		Parallel.ForEach(cases, new ParallelOptions { MaxDegreeOfParallelism = 4 }, one =>
 		{
-			var shape   = Kinds.Single(k => k.Name == kind);
+			var shape = Kinds.Single(k => k.Name == kind);
+
+			if (one.Lexical && !shape.Lexical)
+				return;
+
 			var grammar = Grammar(shape, descending, one.Trivia, one.Top, shape.Depth);
+			var name    = $"{shape.Chain}{shape.Depth}";
+
+			// Each wrapper is in the text it names, so that no two cases are one grammar.
+			if (!grammar.Contains(Head(shape, name) + Wrapper(one.Top, name) + shape.Use(name), StringComparison.Ordinal))
+				failures.Add($"{kind}, {one.Top}: the publication was not built as named");
 			var errors  = OnSmallStack(shape.Stack, () => GramCompiler.Compile(grammar, new GramCompilerOptions
 			{
 				CSharpScanner = RoslynCSharpScanner.Instance,
@@ -145,18 +164,27 @@ public sealed class DeepChainMatrixTests
 			levels.ForEach(level => text.Append(level).Append('\n'));
 		}
 
-		var published = kind.Top(depth);
+		var name = $"{kind.Chain}{depth}";
 
-		published = top switch
-		{
-			"repeated" => published.Replace($"A{depth} & ", $"(A{depth} & 'q')* & ", StringComparison.Ordinal),
-			"looked"   => published.Replace($"R = A{depth}", $"R = (?!A{depth} & 'q') & A{depth}", StringComparison.Ordinal),
-			_          => published,
-		};
-
-		text.Append(published).Append('\n');
+		text.Append(kind.Extra).Append(Head(kind, name)).Append(Wrapper(top, name)).Append(kind.Use(name)).Append('\n');
 
 		return text.Append(kind.Name == "reader" ? "parse R with (B = D)\n" : "parse R\n").ToString();
+	}
+
+	static string Head(Kind kind, string name)
+	{
+		return kind.Head.Replace("TOP", name, StringComparison.Ordinal);
+	}
+
+	/// <summary>What stands in front of what the publication reads: nothing, a repetition of the top, or a look at it.</summary>
+	static string Wrapper(string top, string name)
+	{
+		return top switch
+		{
+			"repeated" => $"({name} & 'q')* & ",
+			"looked"   => $"(?!{name} & 'q') & ",
+			_          => "",
+		};
 	}
 
 	static T OnSmallStack<T>(int stack, Func<T> work)
