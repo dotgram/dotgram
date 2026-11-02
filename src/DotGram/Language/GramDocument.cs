@@ -180,11 +180,21 @@ public static class GramLanguageService
 	/// </summary>
 	/// <param name="text">The document, with whatever its host includes already spliced on after it.</param>
 	/// <param name="options">What the host's attribute says, or null for a grammar with no host.</param>
+	/// <remarks>
+	/// The analysis runs on a stack of its own (<see cref="DeepStack.Entry{T}"/>), so that how deep a
+	/// grammar's rules call one another is not the editor's thread's to bound.
+	/// </remarks>
 	public static GramDocument Analyze(string text, GramAnalysisOptions? options)
 	{
 		if (text is null)
 			throw new ArgumentNullException(nameof(text));
 
+		return DeepStack.Entry(() => AnalyzeHere(text, options));
+	}
+
+	/// <summary><see cref="Analyze(string, GramAnalysisOptions?)"/> on whichever thread it is called on.</summary>
+	static GramDocument AnalyzeHere(string text, GramAnalysisOptions? options)
+	{
 		// Compiled first, because where a name resolves is the binder's to say: a rule named
 		// in an included grammar, through a `using` or a qualified name, is found by the same
 		// lookup the generator makes, and not by the first rule anywhere that has its name.

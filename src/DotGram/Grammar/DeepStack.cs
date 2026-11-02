@@ -103,4 +103,108 @@ static class DeepStack
 
 		return result!;
 	}
+
+	/// <summary>
+	/// The stack a host's entry runs the generator's own work on (<see cref="Entry{T}"/>): a quarter of
+	/// a gigabyte in a 64-bit process, sixteen megabytes in a 32-bit one, reserved and committed only
+	/// as it is used.
+	/// </summary>
+	static int EntrySize => IntPtr.Size == 8 ? 256 * 1024 * 1024 : 16 * 1024 * 1024;
+
+	/// <summary>
+	/// For the tests: where a test has put a box here, every entry that moves its work to a stack of
+	/// its own counts itself in it, so that the test sees its own request moved and nobody else's.
+	/// </summary>
+	internal static readonly AsyncLocal<StrongBox<int>?> Moved = new();
+
+	/// <summary>
+	/// For the tests: an entry runs its work where it was asked, so that a test which calls the
+	/// generator on a small stack has the walks themselves to rely on, and finds one that does not check.
+	/// </summary>
+	internal static readonly AsyncLocal<bool> Here = new();
+
+	/// <summary>Whether this thread is the one an entry started.</summary>
+	[ThreadStatic]
+	static bool _entered;
+
+	/// <summary>
+	/// Runs a host's whole request — a grammar compiled for the generator, a document analyzed for the
+	/// editor — on a thread with a stack of <see cref="EntrySize"/>, and hands back what it answered.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A net under the walks, not a replacement for them: every walk the grammar can make as deep as it
+	/// likes checks the stack and moves on its own (<see cref="Low"/>), and the tests call the core on
+	/// small stacks so that one which does not is found. What this buys is the host's stack not mattering
+	/// — Visual Studio's threads are a megabyte — and a walk nobody has found yet having room to finish.
+	/// </para>
+	/// <para>
+	/// Only the generator's own work goes here: whatever the host hands it, Roslyn's context included,
+	/// is used on the caller's thread before and after. The cultures go along, so that nothing differs
+	/// by which thread did the work; the thread is a background one, so that it never holds a process
+	/// open. Where the thread cannot be had, the work runs where it was asked.
+	/// </para>
+	/// </remarks>
+	public static T Entry<T>(Func<T> work)
+	{
+		if (work is null)
+			throw new ArgumentNullException(nameof(work));
+
+		if (_entered || Here.Value)
+			return work();
+
+		var result  = default(T);
+		var thrown  = default(ExceptionDispatchInfo);
+		var ambient = Ambient.Current;
+
+#pragma warning disable RS1035 // Read only to hand the same cultures to the thread the work moves to; nothing here formats by them.
+		var culture   = System.Globalization.CultureInfo.CurrentCulture;
+		var uiCulture = System.Globalization.CultureInfo.CurrentUICulture;
+#pragma warning restore RS1035
+
+		Thread thread;
+
+		try
+		{
+			thread = new Thread(
+				() =>
+				{
+#pragma warning disable RS1035 // The caller's cultures, set on the thread that does the caller's work.
+					System.Globalization.CultureInfo.CurrentCulture   = culture;
+					System.Globalization.CultureInfo.CurrentUICulture = uiCulture;
+#pragma warning restore RS1035
+
+					_entered = true;
+					Ambient.Adopt(ambient);
+
+					try
+					{
+						result = work();
+					}
+					catch (Exception caught)
+					{
+						thrown = ExceptionDispatchInfo.Capture(caught);
+					}
+				},
+				EntrySize)
+			{
+				IsBackground = true,
+			};
+
+			thread.Start();
+		}
+		catch (Exception unavailable) when (unavailable is OutOfMemoryException or ThreadStartException)
+		{
+			return work();
+		}
+
+		if (Moved.Value is { } moved)
+			Interlocked.Increment(ref moved.Value);
+
+		thread.Join();
+
+		thrown?.Throw();
+
+		return result!;
+	}
 }

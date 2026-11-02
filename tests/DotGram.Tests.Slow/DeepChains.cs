@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 
@@ -137,6 +138,12 @@ static class DeepChains
 		return text.Append(tail).Append('\n').ToString();
 	}
 
+	/// <summary>The generator's switch that keeps a host's entry from moving the work to a big stack.</summary>
+	static readonly AsyncLocal<bool> Here = (AsyncLocal<bool>)typeof(DotGram.Grammar.GramCompiler).Assembly
+		.GetType("DotGram.Grammar.DeepStack", throwOnError: true)!
+		.GetField("Here", BindingFlags.NonPublic | BindingFlags.Static)!
+		.GetValue(null)!;
+
 	/// <summary>Runs <paramref name="work"/> on a thread of <see cref="StackBytes"/> and hands back what it answered.</summary>
 	public static T OnSmallStack<T>(Func<T> work)
 	{
@@ -146,6 +153,10 @@ static class DeepChains
 		var thread = new Thread(
 			() =>
 			{
+				// The host's entries would move the work to a big stack of their own; here it stays
+				// on this small one, so that a walk which does not check the stack fails the test.
+				Here.Value = true;
+
 				try
 				{
 					result = work();

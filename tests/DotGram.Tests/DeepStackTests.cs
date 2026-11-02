@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 using DotGram.Grammar;
@@ -115,5 +117,74 @@ public sealed class DeepStackTests
 		{
 			always.Value = false;
 		}
+	}
+
+	/// <summary>
+	/// A grammar the generator compiles for the build is compiled on a stack of its own, and what it
+	/// wrote comes back to Roslyn all the same.
+	/// </summary>
+	[Fact]
+	public void The_generator_compiles_a_grammar_on_a_stack_of_its_own()
+	{
+		var moved = Hook<StrongBox<int>?>("Moved");
+
+		moved.Value = new StrongBox<int>();
+
+		try
+		{
+			var result = GeneratorDriverTests.RunGenerator("[DotGram.Gram(\"Start = 'x'\\nparse Start\")]\npartial class Host;\n");
+
+			Assert.Contains(result.Results.Single().GeneratedSources, static one => one.HintName.StartsWith("Host", StringComparison.Ordinal));
+			Assert.Equal(1, moved.Value.Value);
+		}
+		finally
+		{
+			moved.Value = null;
+		}
+	}
+
+	/// <summary>
+	/// The entry's thread does the caller's work as the caller would: in the caller's cultures, a
+	/// background thread, and what it throws thrown to the caller.
+	/// </summary>
+	[Fact]
+	public void An_entry_moves_the_work_with_the_callers_cultures_and_brings_back_what_it_threw()
+	{
+		var entry = typeof(GramCompiler).Assembly.GetType("DotGram.Grammar.DeepStack", throwOnError: true)!
+			.GetMethod("Entry", BindingFlags.Public | BindingFlags.Static)!;
+
+		var culture   = CultureInfo.CurrentCulture;
+		var uiCulture = CultureInfo.CurrentUICulture;
+
+		CultureInfo.CurrentCulture   = CultureInfo.GetCultureInfo("tr-TR");
+		CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("de-DE");
+
+		try
+		{
+			var caller = Environment.CurrentManagedThreadId;
+
+			var seen = (string)entry.MakeGenericMethod(typeof(string)).Invoke(null, [new Func<string>(static () =>
+				$"{CultureInfo.CurrentCulture.Name} {CultureInfo.CurrentUICulture.Name} " +
+				$"{Thread.CurrentThread.IsBackground} {Environment.CurrentManagedThreadId}")])!;
+
+			Assert.StartsWith("tr-TR de-DE True ", seen, StringComparison.Ordinal);
+			Assert.NotEqual(caller.ToString(CultureInfo.InvariantCulture), seen.Split(' ')[3]);
+
+			var thrown = Assert.Throws<TargetInvocationException>(() => entry.MakeGenericMethod(typeof(int)).Invoke(
+				null, [new Func<int>(static () => throw new InvalidOperationException("from the entry"))]));
+
+			Assert.Equal("from the entry", Assert.IsType<InvalidOperationException>(thrown.InnerException).Message);
+		}
+		finally
+		{
+			CultureInfo.CurrentCulture   = culture;
+			CultureInfo.CurrentUICulture = uiCulture;
+		}
+	}
+
+	static AsyncLocal<T> Hook<T>(string name)
+	{
+		return (AsyncLocal<T>)typeof(GramCompiler).Assembly.GetType("DotGram.Grammar.DeepStack", throwOnError: true)!
+			.GetField(name, BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
 	}
 }
