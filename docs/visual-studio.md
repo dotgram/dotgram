@@ -146,18 +146,19 @@ generated parsers are unknown names, and the grammar string loses its colouring 
 the command line, and the Error List of that build, are clean. Rebuild changes nothing; closing and
 reopening the solution changes nothing.
 
-What happened: Visual Studio does not run the generator from `.build/bin/DotGram/…/DotGram.dll`
-itself. Roslyn copies every analyzer to a shadow directory under `%TEMP%\Roslyn\AnalyzerPathResolver`,
-and keeps the copy in a cache there, named by the original path, the assembly's MVID and its size.
-When a build rewrote the generator in place, the editor could read it while it was being written,
-and a torn copy that already carried its MVID went into that cache. Builds here are deterministic, so
-every later build of the same sources produces the same MVID and the same size, the cache answers
-with the torn copy, and the generator fails to load — for as long as the sources of the generator do
-not change, whatever is done to the output.
+What is behind it: Visual Studio does not run the generator from `.build/bin/DotGram/…/DotGram.dll`
+itself. Roslyn copies every analyzer to a shadow directory under `%TEMP%\Roslyn\AnalyzerPathResolver`
+and keeps the copy in a cache there, filed by the original path, the assembly's MVID and its size. The
+editor reacts to a change of the file at once, so when a build rewrites the generator in place it can
+take a half-written copy, and the generator fails to load for that session. Builds here are
+deterministic, so a later build of the same sources has the same MVID and size, and the cache can keep
+serving a copy it took earlier under that unchanged key — whatever is done to the output, Rebuild
+included; deleting the cache recovers.
 
-Since 0.3.0 the generator's own build places `DotGram.dll` by a rename rather than a copy, so the
-editor sees either the previous file or the whole new one and nothing is torn
-(`PlaceGeneratorByRename` in `src/DotGram/DotGram.csproj`). A cache poisoned earlier is not repaired
-by that: close every Visual Studio, delete `%TEMP%\Roslyn\AnalyzerPathResolver`, and open the
-solution again. The directory is only a cache; Roslyn recreates it. The same recovery applies to any
-analyzer or generator whose output is rewritten in place while the editor has the solution open.
+Since 0.3.0 the generator's own build puts `DotGram.dll` in place by an atomic replace rather than a
+copy, so the editor sees either the previous file or the whole new one (`PlaceGeneratorByRename` in
+`src/DotGram/DotGram.csproj`). A cache filled earlier is not repaired by that: close every Visual
+Studio, delete `%TEMP%\Roslyn\AnalyzerPathResolver`, and open the solution again. If the folder will
+not delete, end the `ServiceHub*` and `DevHub` processes first — they can outlive the Visual Studio
+that started them. The directory is only a cache; Roslyn recreates it. The same recovery applies to
+any analyzer or generator whose output is rewritten in place while the editor has the solution open.

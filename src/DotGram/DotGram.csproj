@@ -210,21 +210,64 @@ Changed in the examples: a repetition of values in the located config example (F
 		</ItemGroup>
 	</Target>
 
-	<!-- The assembly reaches the output directory by a rename, not by the SDK's copy. Visual Studio
-	     loads the generator from that path and watches it: the moment the file changes, Roslyn copies
-	     it again and reloads it. The SDK copies in place, so the editor can read the file while it is
-	     half written. A torn read loses the generator for the session — [Gram] is CS0246, the
-	     analyzer node under Dependencies is empty — and when the torn copy still carries its MVID,
-	     Roslyn keeps it in its analyzer cache (%TEMP%\Roslyn\AnalyzerPathResolver), where it is
-	     matched by path, MVID and size and so stays in use for every later build of the same sources,
-	     Rebuild included. A rename is atomic: the editor sees the old file or the whole new one. -->
+	<!-- The assembly reaches the output directory by an atomic replace, not by the SDK's copy. Visual Studio
+	     loads the generator from that path and watches it: the moment the file changes, Roslyn copies it
+	     again and reloads it. The SDK copies in place, so the editor can take a half-written copy — the
+	     generator is then lost for the session: [Gram] is CS0246, the analyzer node under Dependencies is
+	     empty — and Roslyn's analyzer cache (%TEMP%\Roslyn\AnalyzerPathResolver), which files its copies by
+	     path, MVID and size, can keep serving such a copy for every later build of the same sources, since a
+	     deterministic build changes neither. Replacing the file in one step gives the editor either the old
+	     file or the whole new one. -->
 	<PropertyGroup>
 		<CopyBuildOutputToOutputDirectory>false</CopyBuildOutputToOutputDirectory>
 	</PropertyGroup>
 
-	<Target Name="PlaceGeneratorByRename" AfterTargets="CopyFilesToOutputDirectory" DependsOnTargets="_PlaceGeneratorByRenameCore">
+	<!-- File.Replace is one rename on every platform (ReplaceFile on Windows, rename(2) elsewhere) and exists
+	     on .NET Framework as well as .NET, so it serves Visual Studio's MSBuild and `dotnet build` alike; a
+	     destination that does not exist yet is moved into place. The retries are the ones the SDK's Copy has:
+	     another process may hold the destination for a moment (the editor copying it, a virus scanner). -->
+	<UsingTask TaskName="_DotGramReplaceFile" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+		<ParameterGroup>
+			<Source ParameterType="System.String" Required="true" />
+			<Destination ParameterType="System.String" Required="true" />
+			<Retries ParameterType="System.Int32" />
+			<RetryDelayMilliseconds ParameterType="System.Int32" />
+		</ParameterGroup>
+		<Task>
+			<Using Namespace="System" />
+			<Using Namespace="System.IO" />
+			<Using Namespace="System.Threading" />
+			<Code Type="Fragment" Language="cs"><![CDATA[
+				for (var attempt = 0; ; attempt++)
+				{
+					try
+					{
+						if (File.Exists(Destination))
+						{
+							File.Replace(Source, Destination, null, true);
+						}
+						else
+						{
+							File.Move(Source, Destination);
+						}
+						break;
+					}
+					catch (Exception e) when ((e is IOException || e is UnauthorizedAccessException) && attempt < Retries)
+					{
+						Log.LogMessage(MessageImportance.Normal, "Could not replace \"{0}\" ({1}); retrying in {2} ms, attempt {3} of {4}.",
+							Destination, e.Message, RetryDelayMilliseconds, attempt + 1, Retries);
+						Thread.Sleep(RetryDelayMilliseconds);
+					}
+				}
+			]]></Code>
+		</Task>
+	</UsingTask>
+
+	<Target Name="PlaceGeneratorByRename" AfterTargets="CopyFilesToOutputDirectory" DependsOnTargets="_PlaceGeneratorByRenameCore"
+	        Condition="'$(SkipCopyBuildProduct)' != 'true'">
 		<!-- What the SDK's copy would have declared: the reference assembly, which has its own change
-		     check, and the outputs IncrementalClean must not take for stale. -->
+		     check, and the outputs IncrementalClean must not take for stale — the staging file among
+		     them, so that a clean removes one a failed build left behind. -->
 		<CopyRefAssembly SourcePath="@(IntermediateRefAssembly)" DestinationPath="$(TargetRefPath)"
 		                 Condition="'$(ProduceReferenceAssembly)' == 'true'">
 			<Output TaskParameter="DestinationPath" ItemName="ReferenceAssembly" />
@@ -233,13 +276,16 @@ Changed in the examples: a repetition of values in the located config example (F
 		<ItemGroup>
 			<MainAssembly Include="$(TargetPath)" />
 			<FileWrites Include="$(TargetPath)" />
+			<FileWrites Include="$(TargetPath).staging" />
 		</ItemGroup>
 	</Target>
 
-	<Target Name="_PlaceGeneratorByRenameCore" Inputs="@(IntermediateAssembly)" Outputs="$(TargetPath)">
+	<Target Name="_PlaceGeneratorByRenameCore" Inputs="@(IntermediateAssembly)" Outputs="$(TargetPath)"
+	        Condition="'$(SkipCopyBuildProduct)' != 'true'">
 		<Copy SourceFiles="@(IntermediateAssembly)" DestinationFiles="$(TargetPath).staging"
 		      Retries="$(CopyRetryCount)" RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)" />
-		<Move SourceFiles="$(TargetPath).staging" DestinationFiles="$(TargetPath)" OverwriteReadOnlyFiles="$(OverwriteReadOnlyFiles)" />
+		<_DotGramReplaceFile Source="$(TargetPath).staging" Destination="$(TargetPath)"
+		                     Retries="$(CopyRetryCount)" RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)" />
 		<Message Importance="High" Text="$(MSBuildProjectName) -&gt; $(TargetPath)" />
 	</Target>
 
