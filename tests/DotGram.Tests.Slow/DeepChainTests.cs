@@ -95,7 +95,8 @@ public sealed class DeepChainTests
 	/// </summary>
 	public static TheoryData<string> Found()
 	{
-		return new TheoryData<string>("forwarders", "transparent", "rebindings", "readers", "ends twice", "look cut in two");
+		return new TheoryData<string>(
+			"forwarders", "transparent", "rebindings", "readers", "ends twice", "look cut in two", "segment");
 	}
 
 	static string Descending(int depth, Func<int, string> level, string bottom, string tail)
@@ -149,6 +150,10 @@ public sealed class DeepChainTests
 				static i => $"A{i} : A{i - 1} = A{i - 1} & when @(true)",
 				$"R : A{DeepChains.Depth} = A{DeepChains.Depth} & 'a' & 'b'\nparse R\n"), true),
 
+			"segment" => (Descending(
+				DeepChains.Depth, static i => $"A{i} = 'x' & A{i - 1}", "A0 = 'x'",
+				$"R : @int = A{DeepChains.Depth} & eos => @(1)\nparse R\n"), false),
+
 			_ => throw new ArgumentOutOfRangeException(nameof(shape)),
 		};
 
@@ -174,16 +179,55 @@ public sealed class DeepChainTests
 		Assert.Single(parsed.Diagnostics, static d => d.Id == GramParser.NestedTooDeep);
 	}
 
-	/// <summary>Reading past a chain of rebindings too long stops at the next declaration, a publication too.</summary>
-	[Fact]
-	public void Reading_past_a_rule_too_deep_stops_at_the_publication_after_it()
+	/// <summary>Reading past a chain of rebindings too long stops at the next declaration, whatever form it takes.</summary>
+	[Theory]
+	[InlineData("parse Missing", typeof(Decl.Publish))]
+	[InlineData("internal parse Missing", typeof(Decl.Publish))]
+	[InlineData("context : @Ctx", typeof(Decl.Context))]
+	[InlineData("state : @St", typeof(Decl.State))]
+	[InlineData("D = 'd'", typeof(Decl.Rule))]
+	[InlineData("D on fail \"Expected d.\" = 'd'", typeof(Decl.Rule))]
+	[InlineData("D : @int on fail \"Expected d.\" = 'd' => @(1)", typeof(Decl.Rule))]
+	[InlineData("P(x) on fail \"Expected p.\" = x", typeof(Decl.Rule))]
+	public void Reading_past_a_rule_too_deep_stops_at_the_declaration_after_it(string declaration, Type kind)
 	{
-		var grammar = "B = 'b'\nC = 'c'\nA = B" + string.Concat(Enumerable.Repeat(" with (B = C)", 130)) + "\nparse Missing\n";
+		var grammar = "B = 'b'\nC = 'c'\nA = B" + string.Concat(Enumerable.Repeat(" with (B = C)", 130)) + "\n" + declaration + "\n";
 
-		var parsed = GramCompiler.Read(grammar);
+		var parsed = GramCompiler.Read(grammar, RoslynCSharpScanner.Instance);
 
 		Assert.Single(parsed.Diagnostics, static d => d.Id == GramParser.NestedTooDeep);
-		Assert.Contains(parsed.File.Decls, static d => d is Decl.Publish);
+		Assert.Contains(parsed.File.Decls, d => d.GetType() == kind && (d is not Decl.Rule rule || rule.Name is "D" or "P"));
+	}
+
+	/// <summary>
+	/// A diamond of one-character choices deeper than what is written in place is still read as one
+	/// character: what the machine calls rather than writes is one test, as the analysis that tells
+	/// exponential repetitions takes it to be, and a refused input is refused at once.
+	/// </summary>
+	[Fact]
+	public void A_diamond_of_one_character_choices_past_the_ceiling_is_read_as_one_character()
+	{
+		const int depth = 22;
+
+		var grammar = new System.Text.StringBuilder("A0 = 'a' | 'a'\n");
+
+		for (var i = 1; i <= depth; i++)
+			grammar.Append($"A{i} = A{i - 1} | A{i - 1}\n");
+
+		grammar.Append($"R = A{depth}* & 'z'\nparse R\n");
+
+		var compiled = GramCompiler.Compile(grammar.ToString(), new GramCompilerOptions { Direct = false });
+
+		Assert.False(compiled.HasErrors, string.Join("\n", compiled.Diagnostics));
+
+		var assembly = EmittedCode.Compile(Assert.Single(compiled.Sources).Text);
+		var watch    = System.Diagnostics.Stopwatch.StartNew();
+
+		Assert.False(EmittedCode.Match(assembly, "Grammar", "TryParseR", new string('a', 20)).IsSuccess);
+		Assert.True(EmittedCode.Match(assembly, "Grammar", "TryParseR", new string('a', 20) + "z").IsSuccess);
+
+		// Two to the twenty-two ways of reading each character, had the choices been kept.
+		Assert.True(watch.Elapsed.TotalSeconds < 5, $"{watch.Elapsed.TotalMilliseconds:F0} ms");
 	}
 
 	/// <summary>
