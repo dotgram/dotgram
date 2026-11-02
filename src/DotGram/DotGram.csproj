@@ -210,4 +210,37 @@ Changed in the examples: a repetition of values in the located config example (F
 		</ItemGroup>
 	</Target>
 
+	<!-- The assembly reaches the output directory by a rename, not by the SDK's copy. Visual Studio
+	     loads the generator from that path and watches it: the moment the file changes, Roslyn copies
+	     it again and reloads it. The SDK copies in place, so the editor can read the file while it is
+	     half written. A torn read loses the generator for the session — [Gram] is CS0246, the
+	     analyzer node under Dependencies is empty — and when the torn copy still carries its MVID,
+	     Roslyn keeps it in its analyzer cache (%TEMP%\Roslyn\AnalyzerPathResolver), where it is
+	     matched by path, MVID and size and so stays in use for every later build of the same sources,
+	     Rebuild included. A rename is atomic: the editor sees the old file or the whole new one. -->
+	<PropertyGroup>
+		<CopyBuildOutputToOutputDirectory>false</CopyBuildOutputToOutputDirectory>
+	</PropertyGroup>
+
+	<Target Name="PlaceGeneratorByRename" AfterTargets="CopyFilesToOutputDirectory" DependsOnTargets="_PlaceGeneratorByRenameCore">
+		<!-- What the SDK's copy would have declared: the reference assembly, which has its own change
+		     check, and the outputs IncrementalClean must not take for stale. -->
+		<CopyRefAssembly SourcePath="@(IntermediateRefAssembly)" DestinationPath="$(TargetRefPath)"
+		                 Condition="'$(ProduceReferenceAssembly)' == 'true'">
+			<Output TaskParameter="DestinationPath" ItemName="ReferenceAssembly" />
+			<Output TaskParameter="DestinationPath" ItemName="FileWrites" />
+		</CopyRefAssembly>
+		<ItemGroup>
+			<MainAssembly Include="$(TargetPath)" />
+			<FileWrites Include="$(TargetPath)" />
+		</ItemGroup>
+	</Target>
+
+	<Target Name="_PlaceGeneratorByRenameCore" Inputs="@(IntermediateAssembly)" Outputs="$(TargetPath)">
+		<Copy SourceFiles="@(IntermediateAssembly)" DestinationFiles="$(TargetPath).staging"
+		      Retries="$(CopyRetryCount)" RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)" />
+		<Move SourceFiles="$(TargetPath).staging" DestinationFiles="$(TargetPath)" OverwriteReadOnlyFiles="$(OverwriteReadOnlyFiles)" />
+		<Message Importance="High" Text="$(MSBuildProjectName) -&gt; $(TargetPath)" />
+	</Target>
+
 </Project>

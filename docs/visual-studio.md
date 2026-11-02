@@ -137,3 +137,27 @@ Open the files in `tests/DotGram.VisualStudio.Tests/Playground/`:
 the DSL those `StringSyntax` checks are written in. They are compiled by that project, so
 the editor has a real compilation behind them, which is half of what is being checked. The
 comments beside each grammar rule describe the manual checks and their expected results.
+
+## When the generator disappears from the editor
+
+The sign: in Solution Explorer, Dependencies → Analyzers → DotGram of a project that references the
+generator is empty, `[Gram]` is underlined with CS0246 (`GramAttribute` could not be found), the
+generated parsers are unknown names, and the grammar string loses its colouring — while a build from
+the command line, and the Error List of that build, are clean. Rebuild changes nothing; closing and
+reopening the solution changes nothing.
+
+What happened: Visual Studio does not run the generator from `.build/bin/DotGram/…/DotGram.dll`
+itself. Roslyn copies every analyzer to a shadow directory under `%TEMP%\Roslyn\AnalyzerPathResolver`,
+and keeps the copy in a cache there, named by the original path, the assembly's MVID and its size.
+When a build rewrote the generator in place, the editor could read it while it was being written,
+and a torn copy that already carried its MVID went into that cache. Builds here are deterministic, so
+every later build of the same sources produces the same MVID and the same size, the cache answers
+with the torn copy, and the generator fails to load — for as long as the sources of the generator do
+not change, whatever is done to the output.
+
+Since 0.3.0 the generator's own build places `DotGram.dll` by a rename rather than a copy, so the
+editor sees either the previous file or the whole new one and nothing is torn
+(`PlaceGeneratorByRename` in `src/DotGram/DotGram.csproj`). A cache poisoned earlier is not repaired
+by that: close every Visual Studio, delete `%TEMP%\Roslyn\AnalyzerPathResolver`, and open the
+solution again. The directory is only a cache; Roslyn recreates it. The same recovery applies to any
+analyzer or generator whose output is rewritten in place while the editor has the solution open.
