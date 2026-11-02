@@ -4815,7 +4815,7 @@ sealed partial class Machine
 	/// </remarks>
 	bool CanInline(RuleSymbol rule)
 	{
-		return _plan.CompiledInPlace.Contains(rule) && (_lowering || SaysOf(rule) is null);
+		return _plan.WrittenInPlace.Contains(rule) && (_lowering || SaysOf(rule) is null);
 	}
 
 	readonly ExecutionPlan _plan;
