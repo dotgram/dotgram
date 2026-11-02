@@ -68,7 +68,7 @@ public sealed class DeepChainMatrixTests
 		new("with", "B = 'b'\nC = 'c'\nA0 = B", static i => $"A{i} = A{i - 1} with (B = C)", "R = ", static x => $"{x} & 'z'",
 			Depth: 1500, Stack: 256 * 1024),
 		new("reader", "B : @int = 'b' => @(1)\nD : @string = 'd' => @(\"d\")\nA0 : B = when @(true) & B",
-			static i => $"A{i} : A{i - 1} = when @(true) & A{i - 1}", "R : TOP = ", static x => x,
+			static i => $"A{i} : A{i - 1} = when @(true) & A{i - 1}", "R : TOP = ", static x => $"v:{x} => @(v)",
 			Depth: 1500, Stack: 256 * 1024),
 		new("guard", "A0 = when @(true)", static i => $"A{i} = when @(true) & A{i - 1}", "R = ", static x => $"{x} & 'z'"),
 		new("guard after", "A0 = \"a\" | \"ab\"", static i => $"A{i} = A{i - 1} & when @(true)",
@@ -79,7 +79,7 @@ public sealed class DeepChainMatrixTests
 			"R : @int = ", static x => $"v:{x} => @(v)"),
 		new("negative look over values",
 			"Word : @string = 'a' => @(\"a\")\nA0 : @string[] = (?!('a' & 'b') & Word)* & when @(true)",
-			static i => $"A{i} : A{i - 1} = A{i - 1} & when @(true)", "R : @string[] = ", static x => $"{x} & 'a' & 'b'"),
+			static i => $"A{i} : A{i - 1} = A{i - 1} & when @(true)", "R : @string[] = ", static x => $"v:{x} & 'a' & 'b' => @(v)"),
 		new("segment", "A0 = 'x'", static i => $"A{i} = 'x' & A{i - 1}", "R : @int = ", static x => $"{x} & eos => @(1)",
 			Lexical: false),
 	];
@@ -138,7 +138,7 @@ public sealed class DeepChainMatrixTests
 				failures.Add($"{kind}, {(descending ? "descending" : "ascending")}, trivia {one.Trivia}, lexical {one.Lexical}, {one.Top}: {errors[0]}");
 		});
 
-		Assert.Empty(failures);
+		Assert.True(failures.IsEmpty, string.Join("\n", failures.Order(StringComparer.Ordinal)));
 	}
 
 	/// <summary>The grammar of one case, <paramref name="depth"/> rules long.</summary>
