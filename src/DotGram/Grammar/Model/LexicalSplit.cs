@@ -415,6 +415,10 @@ public sealed class LexicalSplit
 
 		Node Rewrite(Node node, RuleSymbol owner, List<string> blocked)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Rewrite(node, owner, blocked));
+
 			var into = Rewritten(node, owner, blocked);
 
 			_became[node] = into;

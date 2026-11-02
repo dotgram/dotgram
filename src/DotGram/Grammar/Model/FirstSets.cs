@@ -2519,6 +2519,10 @@ public static class FirstSets
 		Node node, Func<RuleSymbol, bool> rule, RecognitionGraph? graph, Func<TextBinding, IEnumerable<Node>>? bound,
 		bool hosts = false)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Nullable(node, rule, graph, bound, hosts));
+
 		return node switch
 		{
 			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading => true,

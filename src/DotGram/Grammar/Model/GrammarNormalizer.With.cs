@@ -696,6 +696,10 @@ public sealed partial class GrammarNormalizer
 			Dictionary<RuleSymbol, RuleSymbol> CloneMap,
 			string Name)> rewrites)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => SpliceWithSites(node, rewrites));
+
 		Node rebuilt = node switch
 		{
 			Node.Empty                                                              => new Node.Empty(),

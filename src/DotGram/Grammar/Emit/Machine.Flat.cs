@@ -414,6 +414,10 @@ sealed partial class Machine
 	/// </summary>
 	bool CapturesAreExtents(Node node, bool repeated)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => CapturesAreExtents(node, repeated));
+
 		return node switch
 		{
 			Node.Capture(_, var captured) => !repeated &&

@@ -1505,6 +1505,10 @@ public sealed partial class GrammarNormalizer
 		Dictionary<RuleSymbol, RuleSymbol> cloneMap,
 		string siteName)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => CloneAndRewrite(node, targets, cloneMap, siteName));
+
 		var clone = node switch
 		{
 			Node.Empty                                                              => new Node.Empty    (),

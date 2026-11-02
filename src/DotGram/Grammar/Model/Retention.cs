@@ -1119,6 +1119,10 @@ public static class Retention
 		ICollection<RuleSymbol>                     consuming,
 		RecognitionGraph?                           graph = null)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Extent(node, rules, consuming, graph));
+
 		var segmented = graph is { Segmented: true };
 
 		switch (node)

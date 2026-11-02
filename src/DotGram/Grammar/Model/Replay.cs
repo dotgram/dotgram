@@ -159,6 +159,19 @@ public static class Replay
 		Node node, Because taken, bool elsewhere, FollowSets.Continuation after, RuleSymbol? seam,
 		RecognitionGraph graph, Dictionary<RuleSymbol, Because> found, Where where)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+		{
+			DeepStack.Run(() =>
+			{
+				Walk(node, taken, elsewhere, after, seam, graph, found, where);
+
+				return true;
+			});
+
+			return;
+		}
+
 		switch (node)
 		{
 			case Node.Call(var called, var arguments):

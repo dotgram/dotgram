@@ -691,6 +691,10 @@ public static class FollowSets
 	public static Continuation Precedes(
 		Node node, Continuation after, RecognitionGraph graph, RuleSymbol? seam)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Precedes(node, after, graph, seam));
+
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
 
