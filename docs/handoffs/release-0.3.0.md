@@ -78,7 +78,9 @@ Each package's notes list them with what to write instead. The ones most project
 
 - Over tokens (`Lexical = true`), a reading from a position counts trivia before trailing empty
   operands differently: `'a' & 'b'*` on `"a "` has length 2 over characters and 1 over tokens
-  ([#5](https://github.com/dotgram/dotgram/issues/5)).
+  ([#5](https://github.com/dotgram/dotgram/issues/5)). With trivia at the end of the input the
+  length differs too: `"ab  "` reads 4 over characters and 2 over tokens, the token form being the
+  specified one.
 - A published lexical rule that can be empty is refused the empty input over tokens, with no
   diagnostic: with `namespace Lex { trivia = { ' '* } Name = ['a'..'y']+ Opt = 'z'* }`,
   `Start = Lex.Name & Lex.Opt` and `parse Lex.Opt`, `TryParseOpt("")` accepts over characters and
@@ -100,8 +102,9 @@ Each package's notes list them with what to write instead. The ones most project
   start, so a refused text can cost the square of its length. Bound the size of untrusted input.
 - A `PerCall` located class has no forms over a buffered input (`TextReader`, `Stream`, bytes); a
   grammar that needs them located names a second reading without `PerCall`.
-- Over tokens, a window that holds no token (empty, or trivia alone) is refused, where over
-  characters an empty repetition reads it.
+- Over tokens, a window that holds no token (empty, or trivia alone), or a reading from a position
+  where only trivia is left (`TryParseRoot("ab  ", 2)`), answers Starved, where over characters an
+  empty repetition reads it. The whole input of trivia alone is read on both.
 - By default a parse read from a position or a window can refuse, or cut short, the rule's first
   reading in a few shapes (an optional or a repetition before a negative lookahead, a quoted string
   with doubled quotes; docs/syntax.md §6.8). The whole forms are right. The experimental build

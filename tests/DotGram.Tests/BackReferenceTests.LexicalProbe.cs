@@ -348,13 +348,16 @@ public sealed class LexicalBindingProbe
 	}
 
 	/// <summary>
-	/// Not this change's: a window that holds no token — empty, or trivia alone — is refused over
-	/// kinds, where over characters an empty repetition reads it. No binding anywhere; on main too.
+	/// A window that holds nothing but trivia keeps the behaviour the specification gives it: over
+	/// tokens there is nothing left to read, so the answer is Starved, while over characters an
+	/// empty repetition reads the empty span. The same holds for a reading from a position where
+	/// only trivia is left; the whole input of trivia alone is read on both forms.
 	/// </summary>
-	[Theory(Skip = "Not this change's: a window with no token in it is refused over kinds on main too, with no binding anywhere.")]
-	[InlineData("", 0, 0)]
-	[InlineData("ab  ab", 2, 2)]
-	public void A_window_with_no_token_in_it_reads_as_over_characters(string input, int at, int length)
+	[Theory]
+	[InlineData("",       0, 0, "Success", "Starved")]
+	[InlineData("ab  ab", 2, 2, "Success", "Starved")]
+	[InlineData("ab  ",   2, 2, "Success", "Starved")]
+	public void A_window_holding_only_trivia_is_starved_over_tokens_and_read_over_characters(string input, int at, int length, string overCharacters, string overTokens)
 	{
 		const string grammar =
 			"""
@@ -369,14 +372,52 @@ public sealed class LexicalBindingProbe
 			parse Root
 			""";
 
-		string Window(Assembly assembly)
+		static string Window(Assembly assembly, string input, int at, int length)
 		{
 			var match = assembly.GetType("Grammar")!.GetMethod("TryParseRoot", [typeof(string), typeof(int), typeof(int)])!.Invoke(null, [input, at, length])!;
 
-			return ((bool)match.GetType().GetProperty("IsSuccess")!.GetValue(match)!).ToString();
+			return match.GetType().GetProperty("Outcome")!.GetValue(match)!.ToString()!;
 		}
 
-		Assert.Equal(Window(Build(grammar, lexical: false, direct: true).Assembly!), Window(Build(grammar, lexical: true, direct: true).Assembly!));
+		Assert.Equal(overCharacters, Window(Build(grammar, lexical: false, direct: true).Assembly!, input, at, length));
+		Assert.Equal(overTokens,     Window(Build(grammar, lexical: true,  direct: true).Assembly!, input, at, length));
+	}
+
+	/// <summary>
+	/// Reading from a position where only trivia is left follows the same rule as a window of
+	/// trivia: over tokens the answer is Starved, over characters the empty repetition succeeds.
+	/// The whole input of trivia alone is read on both forms.
+	/// </summary>
+	[Theory]
+	[InlineData("ab  ", 2, "Success", "Starved")]
+	[InlineData("  ",   0, "Success", "Starved")]
+	[InlineData("  ",  -1, "Success", "Success")]
+	public void A_reading_with_only_trivia_left_is_starved_over_tokens_and_whole_trivia_input_is_read(string input, int at, string overCharacters, string overTokens)
+	{
+		const string grammar =
+			"""
+			trivia = { ' '* }
+			namespace Lexical
+			{
+				trivia = none
+				W = ['a'..'b']+
+			}
+			Item : @string = w: Lexical.W => @(w)
+			Root : @string = items: Item* => @(string.Join("|", items))
+			parse Root
+			""";
+
+		// A position of -1 stands for the form that takes the whole input.
+		static string Read(Assembly assembly, string input, int at)
+		{
+			var method = at < 0 ? assembly.GetType("Grammar")!.GetMethod("TryParseRoot", [typeof(string)])! : assembly.GetType("Grammar")!.GetMethod("TryParseRoot", [typeof(string), typeof(int)])!;
+			var match  = method.Invoke(null, at < 0 ? [input] : [input, at])!;
+
+			return match.GetType().GetProperty("Outcome")!.GetValue(match)!.ToString()!;
+		}
+
+		Assert.Equal(overCharacters, Read(Build(grammar, lexical: false, direct: true).Assembly!, input, at));
+		Assert.Equal(overTokens,     Read(Build(grammar, lexical: true,  direct: true).Assembly!, input, at));
 	}
 
 	/// <summary>
