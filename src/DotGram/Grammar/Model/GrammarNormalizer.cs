@@ -771,6 +771,10 @@ public sealed partial class GrammarNormalizer
 	/// </remarks>
 	void RewriteLeftRecursion()
 	{
+		// The forwarders are worked out once and kept while no body changes, rather than for every
+		// rule: worked out per rule, a chain of forwarders was resolved once for each rule of it.
+		_forwarders = null;
+
 		foreach (var rule in _rules)
 		{
 			// An indirect recursion whose intermediaries only forward is made direct
@@ -800,7 +804,11 @@ public sealed partial class GrammarNormalizer
 			// A rule that states its own strengths is climbed rather than folded: the same
 			// loop over the same tails, entered on a comparison instead of unconditionally.
 			if (RewriteBindingPowers(rule, alternatives))
+			{
+				_forwarders = null;
+
 				continue;
+			}
 
 			var ambiguous = false;
 
@@ -849,10 +857,16 @@ public sealed partial class GrammarNormalizer
 
 			_bodies[rule] = new Node.Sequence(
 				[bases.Count == 1 ? bases[0] : new Node.Choice(bases), loop]);
+			_forwarders   = null;
 
 			_folds[rule] = new Fold(loop, accumulators);
 		}
+
+		_forwarders = null;
 	}
+
+	/// <summary>The forwarders as the bodies stand, while <see cref="RewriteLeftRecursion"/> leaves them standing.</summary>
+	Dictionary<RuleSymbol, IReadOnlyList<RuleSymbol>>? _forwarders;
 
 	/// <summary>
 	/// <c>E &lt;&lt; 1 | E &gt;&gt; 3 | …</c> — one rule holding a whole expression
@@ -1120,6 +1134,10 @@ public sealed partial class GrammarNormalizer
 		// what stands before it may be read last instead.
 		bool Into(Node one)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Into(one));
+
 			switch (one)
 			{
 				case Node.Construct(var built, _):

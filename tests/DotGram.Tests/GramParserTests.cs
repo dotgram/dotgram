@@ -383,6 +383,25 @@ public sealed class GramParserTests
 		Assert.NotEmpty(result.Diagnostics);
 	}
 
+	/// <summary>
+	/// A binding named <c>state</c> or <c>context</c> inside a broken rule is stepped over by recovery,
+	/// not read as the declaration of a host type, which is always one (<c>@…</c>).
+	/// </summary>
+	[Theory]
+	[InlineData("state")]
+	[InlineData("context")]
+	public void Recovery_steps_over_a_binding_named_like_a_declaration(string name)
+	{
+		var result = GramParser.Parse(GramLexer.Tokenize($"A = 'a' & ( ] & {name}: B & 'c'\nB = 'b'\nparse A\n"));
+		var plain  = GramParser.Parse(GramLexer.Tokenize("A = 'a' & ( ] & other: B & 'c'\nB = 'b'\nparse A\n"));
+
+		Assert.DoesNotContain(result.File.Decls, static d => d is Decl.State or Decl.Context);
+		Assert.Equal(["A", "B"], result.File.Decls.OfType<Decl.Rule>().Select(static r => r.Name));
+
+		// What the broken rule costs, and nothing more: the same as for a binding of any other name.
+		Assert.Equal(plain.Diagnostics.Select(static d => d.Id), result.Diagnostics.Select(static d => d.Id));
+	}
+
 	[Theory]
 	[InlineData("A = ",              GramParser.ExpectedExpression)]
 	[InlineData("A B",               GramParser.ExpectedToken)]

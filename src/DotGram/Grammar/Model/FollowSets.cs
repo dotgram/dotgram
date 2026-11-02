@@ -427,6 +427,19 @@ public static class FollowSets
 
 		void Reach(Node contents)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Reach(contents);
+
+					return true;
+				});
+
+				return;
+			}
+
 			foreach (var node in NodeWalk.Descendants(contents))
 			{
 				if (node is not Node.Call(var called, _) || !visited.Add(called))
@@ -560,6 +573,19 @@ public static class FollowSets
 
 		void Contribute(Node node, Continuation after, RuleSymbol? seam)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Contribute(node, after, seam);
+
+					return true;
+				});
+
+				return;
+			}
+
 			switch (node)
 			{
 				case Node.Call(var called, _):
@@ -665,6 +691,10 @@ public static class FollowSets
 	public static Continuation Precedes(
 		Node node, Continuation after, RecognitionGraph graph, RuleSymbol? seam)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Precedes(node, after, graph, seam));
+
 		if (graph is null)
 			throw new ArgumentNullException(nameof(graph));
 
@@ -710,6 +740,10 @@ public static class FollowSets
 	/// </remarks>
 	static Lead LeadOf(Node node, Continuation after, RecognitionGraph graph)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => LeadOf(node, after, graph));
+
 		if (AtEnd(node, graph))
 			return Lead.Ending;
 

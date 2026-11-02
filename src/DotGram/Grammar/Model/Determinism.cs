@@ -287,6 +287,10 @@ public static class Determinism
 	/// <summary>Whether a node may begin with something that consumes nothing but can refuse.</summary>
 	static bool LeadsStill(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => LeadsStill(node, graph, seen));
+
 		switch (node)
 		{
 			case Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading:
@@ -523,12 +527,29 @@ public static class Determinism
 	static bool Possessive(
 		Node body, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam)
 	{
-		return following.Plain.IsKnown &&
-		!FirstSets.Nullable(body, graph) &&
-		!FirstSets.LedByRecovery(body, graph) &&
-		!Decides(body, graph, seam).Overlaps(Against(body, following, seam)) &&
-		Of(body, asked, following.Or(new FollowSets.Continuation(
-			FirstSets.Of(body, graph), FirstSets.Of(body, graph))), graph, seam);
+		return Turns(body, following, graph, seam, out var within) && Of(body, asked, within, graph, seam);
+	}
+
+	/// <summary>
+	/// What <see cref="Possessive(Node, Asked, FollowSets.Continuation, RecognitionGraph, RuleSymbol?)"/>
+	/// asks of a turn before it asks whether the turn matches one way, and the continuation that
+	/// question is asked under: what follows the repetition, or another turn.
+	/// </summary>
+	static bool Turns(
+		Node body, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam,
+		out FollowSets.Continuation within)
+	{
+		within = default;
+
+		if (!following.Plain.IsKnown ||
+			FirstSets.Nullable(body, graph) ||
+			FirstSets.LedByRecovery(body, graph) ||
+			Decides(body, graph, seam).Overlaps(Against(body, following, seam)))
+			return false;
+
+		within = following.Or(new FollowSets.Continuation(FirstSets.Of(body, graph), FirstSets.Of(body, graph)));
+
+		return true;
 	}
 
 	/// <summary>
@@ -566,102 +587,256 @@ public static class Determinism
 			: null;
 	}
 
-	static bool Of(
-		Node node, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam)
-	{
-		return node switch
-		{
-			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading => true,
-			Node.Literal or Node.Element or Node.External => true,
-			Node.Capture(_, var body) => Of(body, asked, following, graph, seam),
-			Node.Construct(var body, _) => Of(body, asked, following, graph, seam),
-			// An atomic group commits its first reading and never gives one back, which is
-			// what "at most one match" says. Looking inside asked a harder question than the
-			// braces already answer, and answered it badly wherever the body was a choice or
-			// a star — which is every trivia written the way §4.5 recommends, and so nearly
-			// every grammar.
-			Node.Atomic => true,
-			Node.Marked(var body, _) => Of(body, asked, following, graph, seam),
-			Node.Bind(_, var body, _) => Of(body, asked, following, graph, seam),
-			// The text it reads is one text, matched one way.
-			Node.Same => true,
-			// How many turns it takes is decided only while reading, so it may take them more
-			// than one way.
-			Node.Counted => false,
-			Node.Sequence(var parts) => All(parts, asked, following, graph, seam),
-			Node.Choice(var options) => Distinguishable(options, graph) &&
-											 All(options, asked, following, graph, seam, sequence: false),
-			Node.Repeat(var body, _, _) => Possessive(body, asked, following, graph, seam),
-			Node.Call(var rule, _) => Of(rule, asked, following, graph, seam),
-			_ => false,
-		};
-	}
-
-	/// <summary>Whether a call is to something determinate, guarded against calling round.</summary>
+	/// <summary>Whether this node has at most one match, given what follows it, inside the rules <paramref name="asked"/> holds.</summary>
 	/// <remarks>
 	/// <para>
-	/// Met again on the way down, followed by the same thing: the question is the one already
-	/// being answered, so it is assumed answered yes and the walk goes on. If the rest agrees
-	/// the assumption held; if anything says no this says no with it, and the assumption goes
-	/// with the path that made it. Assuming yes and checking is how "never more than one" is
-	/// proved of a cycle at all.
-	/// </para>
-	/// <para>
-	/// Followed by something else, it is a different question about the same rule, and it is
-	/// asked. It used to be refused instead, and that refusal is what a real grammar runs
-	/// into: a reference whose type arguments are optional reaches itself through them under
-	/// a continuation of their own — <c>Reference</c>, <c>TypeArgs</c>, <c>Type</c>,
-	/// <c>Reference</c> — so the one question that mattered was the one being declined.
-	/// </para>
-	/// <para>
-	/// It terminates for the reason the same-question case does: a pair is put on the path
-	/// before it is walked and taken off after, so no pair is entered twice on one path, and
-	/// there are finitely many — a continuation is a union of the grammar's own first sets
-	/// and there are finitely many of those.
+	/// Every question this asks is a conjunction — a node has one match when each of its parts
+	/// has, under the continuation each part is followed by — so the walk is a list of questions
+	/// still open, any one of which answering no answers the whole. Held on a stack of its own
+	/// rather than as a C# frame per rule and per node: a chain of calls is as long as the
+	/// grammar makes it. The questions are asked in the order the recursion asked them, and the
+	/// path of rules the walk is inside (<see cref="Asked"/>) is put down and taken up at the same
+	/// points, so what is assumed of a rule met again on the way down is what it was.
 	/// </para>
 	/// </remarks>
 	static bool Of(
-		RuleSymbol rule, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam)
+		Node node, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam)
 	{
-		if (asked.TryGetValue(rule, out var already))
+		var open  = new Stack<Question>();
+		var cache = graph.Continuations;
+
+		open.Push(new Question(QuestionKind.Node, node, following));
+
+		while (open.Count > 0)
 		{
-			foreach (var seen in already)
-				if (FirstSets.Same(seen.Plain, following.Plain) &&
-					FirstSets.Same(seen.AfterSeam, following.AfterSeam))
-					return true;
-		}
-		else
-		{
-			asked[rule] = already = [];
-		}
+			var question = open.Pop();
 
-		already.Add(following);
+			switch (question.Kind)
+			{
+				// Out of a rule: taken off the path, as the recursion did on its way back up.
+				case QuestionKind.Leave:
+					asked[question.Rule!].RemoveAt(asked[question.Rule!].Count - 1);
 
-		var settled = graph.Bodies.TryGetValue(rule, out var body) &&
-			Of(body, asked, following, graph, seam);
+					continue;
 
-		already.RemoveAt(already.Count - 1);
+				// Everything under a rule outside every cycle answered yes, which is its answer
+				// wherever it is called from (ContinuationCache.Determinate).
+				case QuestionKind.Settled:
+					cache!.Determinate[question.Key] = true;
 
-		return settled;
-	}
+					continue;
 
-	static bool All(
-		IReadOnlyList<Node> nodes, Asked asked, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam,
-		bool sequence = true)
-	{
-		var after = following;
+				// The part at `At` of a sequence, followed by what follows it; the parts are asked
+				// right to left, each under what the parts after it begin with.
+				case QuestionKind.Part:
+					open.Push(question with { Kind = QuestionKind.Passed });
+					open.Push(new Question(QuestionKind.Node, question.Parts![question.At], question.Following));
 
-		for (var at = nodes.Count - 1; at >= 0; at--)
-		{
-			if (!Of(nodes[at], asked, after, graph, seam))
-				return false;
+					continue;
 
-			if (sequence)
-				after = FollowSets.Precedes(nodes[at], after, graph, seam);
+				// That part answered yes: the one before it, under what the two of them begin with.
+				case QuestionKind.Passed:
+					if (question.At > 0)
+						open.Push(question with
+						{
+							Kind      = QuestionKind.Part,
+							At        = question.At - 1,
+							Following = FollowSets.Precedes(question.Parts![question.At], question.Following, graph, seam),
+						});
+
+					continue;
+			}
+
+			switch (question.Node)
+			{
+				case Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading:
+				case Node.Literal or Node.Element or Node.External:
+					break;
+
+				case Node.Capture(_, var body):
+					open.Push(question with { Node = body });
+
+					break;
+
+				case Node.Construct(var body, _):
+					open.Push(question with { Node = body });
+
+					break;
+
+				// An atomic group commits its first reading and never gives one back, which is
+				// what "at most one match" says. Looking inside asked a harder question than the
+				// braces already answer, and answered it badly wherever the body was a choice or
+				// a star — which is every trivia written the way §4.5 recommends, and so nearly
+				// every grammar.
+				case Node.Atomic:
+					break;
+
+				case Node.Marked(var body, _):
+					open.Push(question with { Node = body });
+
+					break;
+
+				case Node.Bind(_, var body, _):
+					open.Push(question with { Node = body });
+
+					break;
+
+				// The text it reads is one text, matched one way.
+				case Node.Same:
+					break;
+
+				// How many turns it takes is decided only while reading, so it may take them more
+				// than one way.
+				case Node.Counted:
+					return Refused();
+
+				case Node.Sequence(var parts):
+					if (parts.Count > 0)
+						open.Push(new Question(QuestionKind.Part, null, question.Following, parts, parts.Count - 1));
+
+					break;
+
+				// Each alternative under the same continuation, the last asked first.
+				case Node.Choice(var options):
+					if (!Distinguishable(options, graph))
+						return Refused();
+
+					foreach (var option in options)
+						open.Push(question with { Node = option });
+
+					break;
+
+				case Node.Repeat(var body, _, _):
+					if (!Turns(body, question.Following, graph, seam, out var within))
+						return Refused();
+
+					open.Push(new Question(QuestionKind.Node, body, within));
+
+					break;
+
+				case Node.Call(var rule, _):
+				{
+					if (!graph.Bodies.TryGetValue(rule, out var called))
+						return Refused();
+
+					// Asked once for a rule outside every cycle: without this a chain of loops, each
+					// around a call of the next, asks every rule below each one again.
+					var key = default(ContinuationCache.Key);
+					var kept = cache is not null && !graph.Recursive.Contains(rule);
+
+					if (kept)
+					{
+						key = cache!.Of(called, question.Following, seam);
+
+						if (cache.Determinate.TryGetValue(key, out var known))
+						{
+							if (!known)
+								return Refused();
+
+							break;
+						}
+					}
+
+					if (Entered(rule, question.Following))
+						break;
+
+					open.Push(new Question(QuestionKind.Leave, null, question.Following, Rule: rule));
+
+					if (kept)
+						open.Push(new Question(QuestionKind.Settled, null, question.Following, Key: key));
+
+					open.Push(question with { Node = called });
+
+					break;
+				}
+
+				default:
+					return Refused();
+			}
 		}
 
 		return true;
+
+		// No: and no to every rule outside a cycle the walk is still inside, the question that
+		// said no being one of theirs.
+		bool Refused()
+		{
+			if (cache is not null)
+				foreach (var pending in open)
+					if (pending.Kind == QuestionKind.Settled)
+						cache.Determinate[pending.Key] = false;
+
+			return false;
+		}
+
+		// Whether a call is to something determinate, guarded against calling round.
+		//
+		// Met again on the way down, followed by the same thing: the question is the one already
+		// being answered, so it is assumed answered yes and the walk goes on. If the rest agrees
+		// the assumption held; if anything says no this says no with it, and the assumption goes
+		// with the path that made it. Assuming yes and checking is how "never more than one" is
+		// proved of a cycle at all.
+		//
+		// Followed by something else, it is a different question about the same rule, and it is
+		// asked. It used to be refused instead, and that refusal is what a real grammar runs
+		// into: a reference whose type arguments are optional reaches itself through them under
+		// a continuation of their own — `Reference`, `TypeArgs`, `Type`, `Reference` — so the one
+		// question that mattered was the one being declined.
+		//
+		// It terminates for the reason the same-question case does: a pair is put on the path
+		// before it is walked and taken off after, so no pair is entered twice on one path, and
+		// there are finitely many — a continuation is a union of the grammar's own first sets
+		// and there are finitely many of those.
+		//
+		// True where the question is already being answered; otherwise the pair goes on the path,
+		// and the Leave the caller pushes takes it off.
+		bool Entered(RuleSymbol rule, FollowSets.Continuation after)
+		{
+			if (asked.TryGetValue(rule, out var already))
+			{
+				foreach (var seen in already)
+					if (FirstSets.Same(seen.Plain, after.Plain) &&
+						FirstSets.Same(seen.AfterSeam, after.AfterSeam))
+						return true;
+			}
+			else
+			{
+				asked[rule] = already = [];
+			}
+
+			already.Add(after);
+
+			return false;
+		}
 	}
+
+	enum QuestionKind
+	{
+		/// <summary>Whether <see cref="Question.Node"/> has one match.</summary>
+		Node,
+
+		/// <summary>Whether the part at <see cref="Question.At"/> of <see cref="Question.Parts"/> has, and then those before it.</summary>
+		Part,
+
+		/// <summary>The part at <see cref="Question.At"/> answered yes; the one before it is next.</summary>
+		Passed,
+
+		/// <summary>The walk is out of <see cref="Question.Rule"/>.</summary>
+		Leave,
+
+		/// <summary>Everything under a rule outside every cycle answered yes, kept under <see cref="Question.Key"/>.</summary>
+		Settled,
+	}
+
+	/// <summary>One question <see cref="Of(Node, Asked, FollowSets.Continuation, RecognitionGraph, RuleSymbol?)"/> has still to ask.</summary>
+	readonly record struct Question(
+		QuestionKind Kind,
+		Node? Node,
+		FollowSets.Continuation Following,
+		IReadOnlyList<Node>? Parts = null,
+		int At = 0,
+		RuleSymbol? Rule = null,
+		ContinuationCache.Key Key = default);
 
 	/// <summary>Whether one character tells every alternative from every other.</summary>
 	/// <remarks>

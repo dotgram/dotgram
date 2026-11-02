@@ -195,6 +195,10 @@ sealed partial class Machine
 	/// </remarks>
 	internal bool OnlyRecognizes(Node node)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => OnlyRecognizes(node));
+
 		switch (node)
 		{
 			case Node.Empty or Node.Element or Node.Literal or Node.Glue:
@@ -2402,6 +2406,19 @@ sealed partial class Machine
 		/// </remarks>
 		void Emit(Writer code, Node node, FollowSets.Continuation following, bool loaded = false)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Emit(code, node, following, loaded);
+
+					return true;
+				});
+
+				return;
+			}
+
 			List<int> frames = machine.Tracing is null ? [] : Unopened(node);
 
 			foreach (var rule in frames)

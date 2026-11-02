@@ -394,6 +394,10 @@ public static class Retention
 	static bool EndsTwice(
 		Node node, FollowSets.Continuation following, RecognitionGraph graph, RuleSymbol? seam, HashSet<RuleSymbol> entered)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => EndsTwice(node, following, graph, seam, entered));
+
 		if (Determinism.Of(node, following, graph, seam))
 			return false;
 
@@ -1115,6 +1119,10 @@ public static class Retention
 		ICollection<RuleSymbol>                     consuming,
 		RecognitionGraph?                           graph = null)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Extent(node, rules, consuming, graph));
+
 		var segmented = graph is { Segmented: true };
 
 		switch (node)
@@ -1227,6 +1235,10 @@ public static class Retention
 	/// </remarks>
 	static bool Consumes(Node node, ICollection<RuleSymbol> consuming)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Consumes(node, consuming));
+
 		return node switch
 		{
 			Node.Empty or Node.Guard or Node.Lookahead => false,

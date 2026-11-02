@@ -87,6 +87,10 @@ public sealed partial class GrammarNormalizer
 
 	bool Nullable(Node node, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Nullable(node, seen));
+
 		return node switch
 		{
 			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading => true,

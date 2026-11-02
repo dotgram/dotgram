@@ -43,6 +43,10 @@ sealed partial class Machine
 	/// </remarks>
 	char[]? ExceptFew(Node node)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => ExceptFew(node));
+
 		switch (node)
 		{
 			case Node.Element { IsNegated: true, Categories.Count: 0, References.Count: 0 } element when !ReadsFewOneByOne.Value:
@@ -507,6 +511,10 @@ sealed partial class Machine
 	/// </summary>
 	IReadOnlyList<CharRange>? OneCharacter(Node node)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => OneCharacter(node));
+
 		switch (node)
 		{
 			case Node.Element { Categories.Count: 0, References.Count: 0 } element:
@@ -579,6 +587,10 @@ sealed partial class Machine
 	/// </summary>
 	bool ReadsAnything(Node node)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => ReadsAnything(node));
+
 		return node switch
 		{
 			Node.Element element =>
@@ -643,6 +655,10 @@ sealed partial class Machine
 	/// </summary>
 	bool LooksBeforeItsFirstItem(Node node, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => LooksBeforeItsFirstItem(node, seen));
+
 		switch (node)
 		{
 			case Node.Lookahead or Node.Behind:

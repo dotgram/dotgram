@@ -177,3 +177,46 @@ static class NodeWalk
 		return set;
 	}
 }
+
+/// <summary>
+/// One frame of a depth-first walk that a pass keeps on a stack of its own: the bodies of one
+/// rule, each in <see cref="NodeWalk.Descendants"/> order, with more bodies added while it runs.
+/// </summary>
+/// <remarks>
+/// For the passes that enter a callee where its call is met and come back to the caller after
+/// it. Written as recursion, those take a C# frame per rule of a chain of calls, and a chain is
+/// as long as the grammar makes it; held as one of these per rule on a <see cref="Stack{T}"/>,
+/// they visit what the recursion visited, in the same order.
+/// </remarks>
+sealed class BodiesWalk(List<Node> bodies)
+{
+	IEnumerator<Node>? _walk;
+	int                _at;
+
+	/// <summary>The bodies walked, in order; a body added is walked after the ones before it.</summary>
+	public List<Node> Bodies { get; } = bodies;
+
+	/// <summary>The next node, or false when every body has been walked.</summary>
+	public bool Next(out Node node)
+	{
+		while (_at < Bodies.Count)
+		{
+			_walk ??= NodeWalk.Descendants(Bodies[_at]).GetEnumerator();
+
+			if (_walk.MoveNext())
+			{
+				node = _walk.Current;
+
+				return true;
+			}
+
+			_walk.Dispose();
+			_walk = null;
+			_at++;
+		}
+
+		node = null!;
+
+		return false;
+	}
+}

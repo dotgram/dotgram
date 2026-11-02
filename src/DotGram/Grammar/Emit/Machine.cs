@@ -3146,6 +3146,12 @@ sealed partial class Machine
 	/// </param>
 	int Compile(Node node, int next, FollowSets.Continuation following)
 	{
+		// The deepest recursion the generator has, a frame of kilobytes per level of a rule and of
+		// what is compiled into it in place: where the stack runs low, the rest of it is compiled
+		// on a stack of its own (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Compile(node, next, following));
+
 		// The seam is known by its nodes, not by the rule being compiled: the trivia is woven into
 		// a publication's reading and inlined into the rules that call it, where its refusals are
 		// recorded only where the input ran out (EmitTerminalFailure), and a rule read in place of a
@@ -4809,7 +4815,7 @@ sealed partial class Machine
 	/// </remarks>
 	bool CanInline(RuleSymbol rule)
 	{
-		return _plan.CompiledInPlace.Contains(rule) && (_lowering || SaysOf(rule) is null);
+		return _plan.WrittenInPlace.Contains(rule) && (_lowering || SaysOf(rule) is null);
 	}
 
 	readonly ExecutionPlan _plan;
@@ -6235,6 +6241,10 @@ sealed partial class Machine
 
 		int Entered(Node at, int to, FollowSets.Continuation after)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Entered(at, to, after));
+
 			return at switch
 			{
 				// The terminal itself contributes no state: the dispatch steps over it.
@@ -6277,6 +6287,10 @@ sealed partial class Machine
 	/// </remarks>
 	bool BeginsWith(Node node, string test)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => BeginsWith(node, test));
+
 		return node switch
 		{
 			Node.Element element => CSharpEmitter.Test(element) == $"({test})",
@@ -7233,6 +7247,10 @@ sealed partial class Machine
 	/// </remarks>
 	string? EntryTest(Node node, HashSet<RuleSymbol>? seen = null)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => EntryTest(node, seen));
+
 		switch (node)
 		{
 			case Node.Literal(var text) { IgnoreCase: false } when text.Length > 0:
@@ -7876,6 +7894,10 @@ sealed partial class Machine
 
 		bool Reaches(Node inside)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Reaches(inside));
+
 			foreach (var one in NodeWalk.Descendants(inside))
 			{
 				if (one is Node.Literal { Text.Length: > 1 })
@@ -8732,6 +8754,19 @@ sealed partial class Machine
 	/// <summary>Adds what can begin <paramref name="node"/> to <paramref name="items"/>, each once.</summary>
 	void Lead(Node node, List<string> items)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+		{
+			DeepStack.Run(() =>
+			{
+				Lead(node, items);
+
+				return true;
+			});
+
+			return;
+		}
+
 		switch (node)
 		{
 			case Node.Literal or Node.Element when _graph.Segmented && Unjoined(node) is { } spoken:
@@ -8926,6 +8961,10 @@ sealed partial class Machine
 
 		bool Leads(Node node, HashSet<RuleSymbol> seen)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Leads(node, seen));
+
 			switch (node)
 			{
 				case Node.Guard or Node.Condition or Node.External or Node.Marked:
@@ -8997,6 +9036,10 @@ sealed partial class Machine
 
 		bool Looks(Node node, HashSet<RuleSymbol> seen)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Looks(node, seen));
+
 			switch (node)
 			{
 				case Node.Element or Node.Literal or Node.Empty or Node.Glue:

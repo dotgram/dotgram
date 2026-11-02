@@ -704,7 +704,7 @@ public static class FirstSets
 
 		var taken = First.None;
 
-		_budget = Budget;
+		Ambient.Current.FirstSetsBudget = Budget;
 
 		foreach (var turn in turns)
 		{
@@ -718,7 +718,7 @@ public static class FirstSets
 
 		// A question too large to answer is left unasked, where it was before the check was
 		// written: this adds warnings, and it may not cost a build its time to find them.
-		return _budget < 0 ? First.None : taken;
+		return Ambient.Current.FirstSetsBudget < 0 ? First.None : taken;
 	}
 
 	/// <summary>How many prefixes one turn's question may look at, and how many are left.</summary>
@@ -737,7 +737,7 @@ public static class FirstSets
 	/// </remarks>
 	const int Budget = 2048;
 
-	[ThreadStatic] static int _budget;
+	// The budget is Ambient.FirstSetsBudget: per thread, and carried with a walk that moves (DeepStack).
 
 	/// <summary>
 	/// What is known of a prefix, and anything after it: a way on this cannot follow is taken
@@ -773,6 +773,10 @@ public static class FirstSets
 	/// </summary>
 	static List<First[]>? Shapes(Node node, int most, RecognitionGraph graph, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Shapes(node, most, graph, seen));
+
 		switch (node)
 		{
 			case Node.Empty:
@@ -900,7 +904,7 @@ public static class FirstSets
 	{
 		var found = new List<First[]?>();
 
-		if (--_budget < 0)
+		if (--Ambient.Current.FirstSetsBudget < 0)
 			return found;
 
 		foreach (var (shape, open) in Prefixes(parts, from, length, graph, []))
@@ -942,7 +946,7 @@ public static class FirstSets
 				foreach (var rest in Continued(continuation, 0, length - shape.Length, graph, caller, follow, climbing))
 					found.Add(rest is null ? Unknown(shape, length) : [.. shape, .. rest]);
 
-				if (_budget < 0)
+				if (Ambient.Current.FirstSetsBudget < 0)
 					return found;
 			}
 
@@ -991,9 +995,13 @@ public static class FirstSets
 	/// <summary>Readings of one node cut at <paramref name="length"/> tokens, as <see cref="Prefixes"/> says them.</summary>
 	static List<(First[]? Shape, bool Open)> Prefix(Node node, int length, RecognitionGraph graph, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Prefix(node, length, graph, seen));
+
 		// Every step spends the question's budget: a choice of a hundred alternatives each
 		// calling a rule is where following every way on stops being cheap.
-		if (--_budget < 0)
+		if (--Ambient.Current.FirstSetsBudget < 0)
 			return [(null, false)];
 
 		switch (node)
@@ -1112,6 +1120,10 @@ public static class FirstSets
 		RuleSymbol rule, First token, RecognitionGraph graph,
 		IReadOnlyDictionary<RuleSymbol, FollowSets.Continuation> follow, HashSet<RuleSymbol> climbing)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => AfterCalls(rule, token, graph, follow, climbing));
+
 		if (!climbing.Add(rule))
 			return null;
 
@@ -1185,6 +1197,19 @@ public static class FirstSets
 
 		void Visit(Node node)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Visit(node);
+
+					return true;
+				});
+
+				return;
+			}
+
 			switch (node)
 			{
 				case Node.Call(var called, var arguments):
@@ -1283,6 +1308,10 @@ public static class FirstSets
 	/// </remarks>
 	static First? Looked(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Looked(node, graph, seen));
+
 		switch (node)
 		{
 			case Node.Lookahead(true, var ahead):
@@ -1430,6 +1459,10 @@ public static class FirstSets
 	/// </remarks>
 	static (First? Next, bool Done) Second(Node node, First first, RecognitionGraph graph, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Second(node, first, graph, seen));
+
 		switch (node)
 		{
 			case Node.Literal(var text):
@@ -1553,6 +1586,10 @@ public static class FirstSets
 	/// </remarks>
 	static First Only(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Only(node, graph, seen));
+
 		switch (node)
 		{
 			case Node.Literal(var text):
@@ -1718,6 +1755,10 @@ public static class FirstSets
 	/// </remarks>
 	static bool OneCharacter(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => OneCharacter(node, graph, seen));
+
 		return node switch
 		{
 			Node.Literal(var text) => text.Length == 1,
@@ -2318,6 +2359,10 @@ public static class FirstSets
 	/// <summary>Whether a node matches exactly where its first set admits the character in hand.</summary>
 	static bool Decided(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Decided(node, graph, seen));
+
 		return node switch
 		{
 			Node.Literal { IgnoreCase: false } literal => literal.Text.Length == 1,
@@ -2359,6 +2404,10 @@ public static class FirstSets
 
 	static bool Unfailing(Node node, RecognitionGraph graph, Dictionary<RuleSymbol, bool> rules)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Unfailing(node, graph, rules));
+
 		switch (node)
 		{
 			case Node.Empty:
@@ -2470,6 +2519,10 @@ public static class FirstSets
 		Node node, Func<RuleSymbol, bool> rule, RecognitionGraph? graph, Func<TextBinding, IEnumerable<Node>>? bound,
 		bool hosts = false)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Nullable(node, rule, graph, bound, hosts));
+
 		return node switch
 		{
 			Node.Empty or Node.Guard or Node.Lookahead or Node.Behind or Node.Glue or Node.Reading => true,
@@ -2633,6 +2686,10 @@ public static class FirstSets
 
 	static bool LedByRecovery(Node node, RecognitionGraph graph, Func<RuleSymbol, bool> rule)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => LedByRecovery(node, graph, rule));
+
 		switch (node)
 		{
 			case Node.Repeat when graph.Recoveries.ContainsKey(node):
@@ -2722,7 +2779,7 @@ public static class FirstSets
 		if (bodies is null)
 			return true;
 
-		var inside = _insideBindings ??= new HashSet<TextBinding>();
+		var inside = Ambient.Current.InsideBindings ??= new HashSet<TextBinding>();
 
 		if (!inside.Add(binding))
 			return false;
@@ -2751,9 +2808,6 @@ public static class FirstSets
 			inside.Remove(binding);
 		}
 	}
-
-	[ThreadStatic]
-	static HashSet<TextBinding>? _insideBindings;
 
 	/// <summary>The bodies each binding of a graph is bound to, gathered at the first reference asked about.</summary>
 	/// <remarks>

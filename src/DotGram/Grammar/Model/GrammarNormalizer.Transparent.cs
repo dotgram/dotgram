@@ -134,6 +134,19 @@ public sealed partial class GrammarNormalizer
 
 			void Resolve(RuleSymbol at, HashSet<RuleSymbol> path)
 			{
+				// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+				if (DeepStack.Low)
+				{
+					DeepStack.Run(() =>
+					{
+						Resolve(at, path);
+
+						return true;
+					});
+
+					return;
+				}
+
 				if (!path.Add(at))
 				{
 					ring = true;
@@ -355,6 +368,10 @@ public sealed partial class GrammarNormalizer
 
 		IReadOnlyList<Node>? Rebuilt(IReadOnlyList<Node> nodes)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Rebuilt(nodes));
+
 			List<Node>? rebuilt = null;
 
 			for (var i = 0; i < nodes.Count; i++)

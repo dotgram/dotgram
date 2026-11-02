@@ -124,6 +124,10 @@ static class Language
 
 	static HashSet<int> Ends(RecognitionGraph graph, Node node, string text, int at)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Ends(graph, node, text, at));
+
 		switch (node)
 		{
 			case Node.Empty or Node.Guard or Node.Behind or Node.Lookahead or Node.Glue or Node.Reading:

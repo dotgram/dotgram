@@ -43,7 +43,7 @@ sealed partial class Machine
 		// scan, that rule's refusal is the scanned rule's, named by it, where §7.5 says the sentence
 		// of the rule that was entered and read nothing.
 		var name =
-			_graph.Bodies.TryGetValue(rule, out var body) && !ReachesSaying(rule) && Scans(rule, body)
+			_graph.Bodies.TryGetValue(rule, out var body) && ScanFits(body) && !ReachesSaying(rule) && Scans(rule, body)
 				// Tagged like every other name this machine emits: a grammar with two
 				// publications has two machines in one class, and both may reach the same
 				// scanner — `trivia` does, in every spaced grammar with more than one
@@ -57,6 +57,55 @@ sealed partial class Machine
 	}
 
 	readonly Dictionary<RuleSymbol, string?> _scanners = [];
+
+	/// <summary>
+	/// The most nodes a scanner is written from, counting the body of every rule it calls at
+	/// every call, since a scanner writes each callee out in place; and how deep they may nest.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// What these bound is a chain: <c>A1 = 'x' &amp; A0</c>, <c>A2 = 'x' &amp; A1</c>, … — each
+	/// rule's scanner is the whole chain below it written out again, so the generated file grew
+	/// with the square of the chain, and the walks that judge and write a scanner, which follow
+	/// its calls, went as deep as the chain, a frame of kilobytes a level. A rule past either is
+	/// read by the machine, where a call stays a call.
+	/// </para>
+	/// <para>
+	/// Far above any scanner the grammars and tests of this repository ask for, the largest of
+	/// which is 188 nodes and 61 deep, so nothing they generate moves.
+	/// </para>
+	/// </remarks>
+	const int ScanBudget = 512;
+
+	/// <inheritdoc cref="ScanBudget"/>
+	const int ScanNested = 96;
+
+	/// <summary>Whether a scanner of <paramref name="body"/> stays within <see cref="ScanBudget"/> and <see cref="ScanNested"/>.</summary>
+	bool ScanFits(Node body)
+	{
+		var pending = new Stack<(Node Node, int Depth)>();
+		var count   = 0;
+
+		pending.Push((body, 1));
+
+		while (pending.Count > 0)
+		{
+			var (node, depth) = pending.Pop();
+
+			if (++count > ScanBudget || depth > ScanNested)
+				return false;
+
+			// Read with a counter, not written out (NestedPair); and a rule that reaches itself is
+			// no scanner anyway, which the budget says as soon as it has run round enough times.
+			if (node is Node.Call(var called, _) && !NestedPair.Is(called) && _graph.Bodies.TryGetValue(called, out var calledBody))
+				pending.Push((calledBody, depth + 1));
+
+			foreach (var child in node.Children)
+				pending.Push((child, depth + 1));
+		}
+
+		return true;
+	}
 
 	bool? _anySays;
 
@@ -295,6 +344,10 @@ sealed partial class Machine
 
 	bool Infallible(Node node, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Infallible(node, seen));
+
 		return node switch
 		{
 			Node.Empty => true,
@@ -588,6 +641,10 @@ sealed partial class Machine
 	/// </remarks>
 	bool Scannable(Node node, FirstSets.First after, HashSet<RuleSymbol>? seen = null)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Scannable(node, after, seen));
+
 		switch (node)
 		{
 			case Node.Empty:
@@ -769,6 +826,10 @@ sealed partial class Machine
 	/// </summary>
 	static char[]? Except(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Except(node, graph, seen));
+
 		switch (node)
 		{
 			case Node.Element { IsNegated: true, Categories.Count: 0, References.Count: 0 } element when !ReadsFewOneByOne.Value:
@@ -809,6 +870,10 @@ sealed partial class Machine
 	/// </remarks>
 	static bool Anything(Node node, RecognitionGraph graph, HashSet<RuleSymbol> seen)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => Anything(node, graph, seen));
+
 		return node switch
 		{
 			Node.Element element => string.Equals(
@@ -867,6 +932,10 @@ sealed partial class Machine
 	/// </summary>
 	Node? PastLiteral(Node node)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => PastLiteral(node));
+
 		switch (node)
 		{
 			case Node.Sequence(var parts) when parts.Count > 1 && parts[0] is Node.Literal { IgnoreCase: false }:
@@ -907,6 +976,10 @@ sealed partial class Machine
 
 	string? LeadingLiteral(Node node)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => LeadingLiteral(node));
+
 		return node switch
 		{
 			Node.Literal(var text) { IgnoreCase: false } => text,
@@ -1251,6 +1324,20 @@ sealed partial class Machine
 		/// </param>
 		void Emit(Writer code, Node node, string fail, bool loaded = false)
 		{
+			// A frame of kilobytes for every level of the scanner and of what it writes out in place;
+			// where the stack runs low the rest is written on a stack of its own (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Emit(code, node, fail, loaded);
+
+					return true;
+				});
+
+				return;
+			}
+
 			switch (node)
 			{
 				case Node.Empty:
@@ -2004,17 +2091,26 @@ sealed partial class Machine
 			for (var i = 0; i < lines.Count; i++)
 				lines[i] = lines[i].TrimEnd('\r');
 
+			// The line each label is first written on. Threading rewrites the jumps and never a
+			// label, so it stays true while they are threaded; looked up rather than searched for,
+			// since a scanner holds a label and a jump for every part, and searching the lines for
+			// every jump made a large scanner quadratic in its length.
+			var labelled = new Dictionary<string, int>(StringComparer.Ordinal);
+
+			for (var i = 0; i < lines.Count; i++)
+				if (IsLabel(lines[i], out var name, out _) && !labelled.ContainsKey(name))
+					labelled[name] = i;
+
 			// Where each label resolves: past empty statements and other labels, and
 			// through an unconditional jump, to the label whose block does something.
-			string Resolve(string label, HashSet<string> walked)
+			// A loop rather than a call per jump, so a long run of jumps is not a deep stack.
+			string Resolve(string label)
 			{
-				if (!walked.Add(label))
-					return label;
+				var walked = new HashSet<string>(StringComparer.Ordinal);
 
-				for (var i = 0; i < lines.Count; i++)
+				while (walked.Add(label) && labelled.TryGetValue(label, out var i))
 				{
-					if (!IsLabel(lines[i], out var name, out var rest) || name != label)
-						continue;
+					IsLabel(lines[i], out _, out var rest);
 
 					var first = rest.Trim();
 
@@ -2028,10 +2124,11 @@ sealed partial class Machine
 							: lines[j].Trim();
 					}
 
-					return first.StartsWith("goto ", StringComparison.Ordinal) &&
-						first.EndsWith(";", StringComparison.Ordinal)
-							? Resolve(first["goto ".Length..^1].Trim(), walked)
-							: label;
+					if (!first.StartsWith("goto ", StringComparison.Ordinal) ||
+						!first.EndsWith(";", StringComparison.Ordinal))
+						return label;
+
+					label = first["goto ".Length..^1].Trim();
 				}
 
 				return label;
@@ -2047,7 +2144,7 @@ sealed partial class Machine
 					continue;
 
 				var target   = trimmed["goto ".Length..^1].Trim();
-				var resolved = Resolve(target, []);
+				var resolved = Resolve(target);
 
 				if (resolved != target)
 					lines[i] = lines[i].Replace($"goto {target};", $"goto {resolved};");

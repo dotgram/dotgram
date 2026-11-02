@@ -268,6 +268,19 @@ public static class Commit
 		/// </summary>
 		void Walk(Node node, Replay.Because taken, bool elsewhere, FollowSets.Continuation after, Point? inner, bool lost)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Walk(node, taken, elsewhere, after, inner, lost);
+
+					return true;
+				});
+
+				return;
+			}
+
 			switch (node)
 			{
 				case Node.Call(var callee, var arguments):

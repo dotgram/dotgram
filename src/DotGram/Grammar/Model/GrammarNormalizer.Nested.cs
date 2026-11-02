@@ -366,6 +366,19 @@ public sealed partial class GrammarNormalizer
 		// The rule's body and the bodies already lifted out of it: the one value they build.
 		void Region(Node body)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Region(body);
+
+					return true;
+				});
+
+				return;
+			}
+
 			bodies.Add(body);
 
 			foreach (var node in NodeWalk.Descendants(body))

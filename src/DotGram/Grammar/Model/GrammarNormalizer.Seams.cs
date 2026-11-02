@@ -314,6 +314,10 @@ public sealed partial class GrammarNormalizer
 
 		bool Reads(Node body, HashSet<RuleSymbol> seen)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Reads(body, seen));
+
 			foreach (var node in NodeWalk.Descendants(body))
 			{
 				switch (node)

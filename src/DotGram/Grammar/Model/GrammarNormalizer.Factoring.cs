@@ -190,6 +190,10 @@ public sealed partial class GrammarNormalizer
 		// A token rule commits its answer unless explicitly marked as giving back.
 		static bool Shareable(Node one, Node other)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Shareable(one, other));
+
 			return (one, other) switch
 			{
 				(Node.Capture(var a, var x), Node.Capture(var b, var y)) =>

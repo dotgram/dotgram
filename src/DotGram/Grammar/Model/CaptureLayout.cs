@@ -178,6 +178,19 @@ public sealed class CaptureLayout
 	/// </param>
 	void Walk(Node node, Func<RuleSymbol, bool> buildsValue, bool repeated, bool inFold)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+		{
+			DeepStack.Run(() =>
+			{
+				Walk(node, buildsValue, repeated, inFold);
+
+				return true;
+			});
+
+			return;
+		}
+
 		switch (node)
 		{
 			case Node.Capture(var name, var captured):

@@ -710,6 +710,19 @@ public sealed class TerminalInventory
 
 		public void Walk(Node node, RuleSymbol owner)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Walk(node, owner);
+
+					return true;
+				});
+
+				return;
+			}
+
 			switch (node)
 			{
 				case Node.Literal(var text) literal:
@@ -1582,6 +1595,10 @@ public sealed class TerminalInventory
 		/// <summary>The element a boundary's lookahead comes down to, negated or not.</summary>
 		Node.Element? Element(Node node, HashSet<RuleSymbol> seen)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Element(node, seen));
+
 			return node switch
 			{
 				Node.Element element => element,
@@ -1669,6 +1686,10 @@ public sealed class TerminalInventory
 		/// <summary>A body reduced to the one element it is, through however many calls.</summary>
 		Node.Element? Resolve(Node node, HashSet<RuleSymbol> seen)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Resolve(node, seen));
+
 			return node switch
 			{
 				Node.Element element => element.IsNegated ? null : element,
@@ -1685,6 +1706,10 @@ public sealed class TerminalInventory
 		/// <summary>Whether everything a body can hold is inside the boundary.</summary>
 		bool Within(Node node, Node.Element boundary, HashSet<RuleSymbol> seen)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Within(node, boundary, seen));
+
 			switch (node)
 			{
 				case Node.Element element:
@@ -1866,6 +1891,10 @@ public sealed class TerminalInventory
 		/// </summary>
 		bool HandsOn(Node node, HashSet<RuleSymbol> inside)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => HandsOn(node, inside));
+
 			bool Begins(string delimiter, Node item)
 			{
 				return FirstSets.Of(item, graph).Covers(FirstSets.First.Chars([new CharRange(delimiter[0], delimiter[0])]));
@@ -1924,6 +1953,10 @@ public sealed class TerminalInventory
 
 		bool ReadsAsWritten(Node node, Node scope, HashSet<RuleSymbol> inside)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => ReadsAsWritten(node, scope, inside));
+
 			switch (node)
 			{
 				case Node.Guard:
@@ -1979,6 +2012,10 @@ public sealed class TerminalInventory
 		/// <param name="scope">The terminal's body, which a run's follow is asked under.</param>
 		bool Proven(Node node, Node scope, HashSet<RuleSymbol> inside)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Proven(node, scope, inside));
+
 			switch (node)
 			{
 				case Node.Empty or Node.Literal or Node.Element:
@@ -2132,6 +2169,10 @@ public sealed class TerminalInventory
 		/// </summary>
 		bool Commits(Node node, Node scope, HashSet<RuleSymbol> inside)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Commits(node, scope, inside));
+
 			switch (node)
 			{
 				case Node.Guard:
@@ -2191,6 +2232,10 @@ public sealed class TerminalInventory
 		/// </remarks>
 		Node Beginning(Node node, HashSet<RuleSymbol> inside)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Beginning(node, inside));
+
 			if (Regular(node))
 				return node;
 
@@ -2479,16 +2524,35 @@ public sealed class TerminalInventory
 		}
 
 		/// <summary>Every ordered choice a node holds, the rules it calls included.</summary>
+		/// <remarks>
+		/// A called rule's choices where the call is met, as a recursion would give them, from a stack
+		/// of walks of its own: a chain of calls is as deep as the grammar makes it.
+		/// </remarks>
 		IEnumerable<Node.Choice> Choices(Node node, HashSet<RuleSymbol> inside)
 		{
-			foreach (var each in NodeWalk.Descendants(node))
+			var walks = new Stack<IEnumerator<Node>>();
+
+			walks.Push(NodeWalk.Descendants(node).GetEnumerator());
+
+			while (walks.Count > 0)
 			{
+				var walk = walks.Peek();
+
+				if (!walk.MoveNext())
+				{
+					walk.Dispose();
+					walks.Pop();
+
+					continue;
+				}
+
+				var each = walk.Current;
+
 				if (each is Node.Choice { Selection: null } choice)
 					yield return choice;
 
 				if (each is Node.Call(var called, _) && inside.Add(called) && graph.Bodies.TryGetValue(called, out var body))
-					foreach (var inner in Choices(body, inside))
-						yield return inner;
+					walks.Push(NodeWalk.Descendants(body).GetEnumerator());
 			}
 		}
 
@@ -2594,6 +2658,10 @@ public sealed class TerminalInventory
 		/// </remarks>
 		bool Exact(Node node, Node scope, HashSet<RuleSymbol> inside)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Exact(node, scope, inside));
+
 			switch (node)
 			{
 				case Node.Guard or Node.Glue or Node.Bind or Node.Same or Node.Counted:
@@ -2672,6 +2740,10 @@ public sealed class TerminalInventory
 		/// <summary>Whether the node reads one character: a class, a one-character literal, or a rule that is one.</summary>
 		bool Single(Node node, HashSet<RuleSymbol> inside)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Single(node, inside));
+
 			switch (node)
 			{
 				case Node.Element:                           return true;
@@ -2686,6 +2758,10 @@ public sealed class TerminalInventory
 		/// <summary>Whether anything under the node, the rules it calls included, is a repetition — the one shape that gives back.</summary>
 		bool GivesBack(Node node, HashSet<RuleSymbol> inside)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => GivesBack(node, inside));
+
 			foreach (var each in NodeWalk.Descendants(node))
 			{
 				if (each is Node.Repeat or Node.Counted)
@@ -2708,6 +2784,10 @@ public sealed class TerminalInventory
 		/// </summary>
 		FirstSets.First? Follow(Node scope, Node target, FirstSets.First first, FirstSets.First follow, HashSet<RuleSymbol> inside)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Follow(scope, target, first, follow, inside));
+
 			if (ReferenceEquals(scope, target))
 				return follow;
 
@@ -2796,6 +2876,10 @@ public sealed class TerminalInventory
 		/// <summary>Whether the target stands under the node, the rules it calls included.</summary>
 		bool Holds(Node node, Node target, HashSet<RuleSymbol> inside)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Holds(node, target, inside));
+
 			foreach (var each in NodeWalk.Descendants(node))
 			{
 				if (ReferenceEquals(each, target))
@@ -2815,6 +2899,10 @@ public sealed class TerminalInventory
 		/// </summary>
 		(FirstSets.First First, bool Nullable) FirstWithout(Node node, Node target, HashSet<RuleSymbol> inside)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => FirstWithout(node, target, inside));
+
 			if (ReferenceEquals(node, target))
 				return (FirstSets.First.None, FirstSets.Nullable(node, graph));
 
@@ -2888,6 +2976,10 @@ public sealed class TerminalInventory
 		/// </summary>
 		Node Necessary(Node node, HashSet<RuleSymbol> inside)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Necessary(node, inside));
+
 			switch (node)
 			{
 				case Node.Sequence(var parts):
@@ -3261,6 +3353,10 @@ public sealed class TerminalInventory
 		/// </remarks>
 		Node Over(Node node, HashSet<RuleSymbol> inside)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Over(node, inside));
+
 			if (Regular(node))
 				return node;
 

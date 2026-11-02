@@ -630,6 +630,19 @@ public sealed partial class GrammarNormalizer
 
 		void Visit(RuleSymbol rule)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+			{
+				DeepStack.Run(() =>
+				{
+					Visit(rule);
+
+					return true;
+				});
+
+				return;
+			}
+
 			if (!byKey.TryGetValue(rule, out var group) || !visited.Add(rule))
 				return;
 
@@ -654,6 +667,10 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	HashSet<RuleSymbol> DirectCalls(Node root)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => DirectCalls(root));
+
 		var seed = new HashSet<RuleSymbol>();
 
 		foreach (var node in NodeWalk.Descendants(root))
@@ -679,6 +696,10 @@ public sealed partial class GrammarNormalizer
 			Dictionary<RuleSymbol, RuleSymbol> CloneMap,
 			string Name)> rewrites)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => SpliceWithSites(node, rewrites));
+
 		Node rebuilt = node switch
 		{
 			Node.Empty                                                              => new Node.Empty(),

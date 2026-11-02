@@ -36,6 +36,10 @@ public sealed partial class GrammarNormalizer
 
 			Node Visit(Node node, bool alternative)
 			{
+				// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+				if (DeepStack.Low)
+					return DeepStack.Run(() => Visit(node, alternative));
+
 				if (!alternative && ValueAlternatives(node).Any(part => part is Node.Construct && !offered.Contains(part)))
 				{
 					// Read before the group moves: `_bodies[owner]` is the body as it was until

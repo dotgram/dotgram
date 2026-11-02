@@ -256,6 +256,10 @@ sealed partial class Machine
 
 		static RuleSymbol? Called(Node node)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Called(node));
+
 			return node switch
 			{
 				Node.Call(var rule, _) => rule,
@@ -340,6 +344,10 @@ sealed partial class Machine
 
 		bool Strays(Node node, bool kept)
 		{
+			// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+			if (DeepStack.Low)
+				return DeepStack.Run(() => Strays(node, kept));
+
 			switch (node)
 			{
 				case Node.Call(var called, _):

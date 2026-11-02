@@ -1084,7 +1084,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 		var marked = CSharpEmitter.CanMark(text);
 
 		var timer = reporting != Reporting.None ? Stopwatch.StartNew() : null;
-		var result = GramCompiler.Compile(text, new GramCompilerOptions
+		// The compile alone runs on a stack of its own (DeepStack.Entry): what it reads was gathered
+		// before, and what it answers is reported to Roslyn after, on this thread.
+		var result = DeepStack.Entry(() => GramCompiler.Compile(text, new GramCompilerOptions
 		{
 			FileName       = grammar.Path ?? host.SimpleName + GramFileExtension,
 			ClassName      = host.ClassName,
@@ -1148,7 +1150,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// Experimental and off unless the build asks (DotGramPositionalFollow).
 			PositionalFollow = positional != Positional.Off,
 			PositionalFollowSplit = positional == Positional.Split,
-		});
+		}));
 
 		timer?.Stop();
 

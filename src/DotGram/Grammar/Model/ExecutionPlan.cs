@@ -36,10 +36,22 @@ namespace DotGram.Grammar.Model;
 /// </remarks>
 public sealed class ExecutionPlan
 {
-	ExecutionPlan(IReadOnlyCollection<RuleSymbol> compiledInPlace)
+	ExecutionPlan(IReadOnlyCollection<RuleSymbol> compiledInPlace, IReadOnlyCollection<RuleSymbol> writtenInPlace)
 	{
 		CompiledInPlace = compiledInPlace;
+		WrittenInPlace  = writtenInPlace;
 	}
+
+	/// <summary>
+	/// The rules of <see cref="CompiledInPlace"/> the machine writes where they are called: those whose
+	/// expansion stays within <see cref="Expanded"/> nodes.
+	/// </summary>
+	/// <remarks>
+	/// Apart from <see cref="CompiledInPlace"/>, which the analyses read as what the grammar means to
+	/// write in place, because the ceiling is the machine's: what it cannot write it calls, and the
+	/// questions asked of a rule written in place are the same either way.
+	/// </remarks>
+	public IReadOnlyCollection<RuleSymbol> WrittenInPlace { get; }
 
 	/// <summary>
 	/// The rules whose bodies are written where they are called, rather than once in a block
@@ -192,6 +204,127 @@ public sealed class ExecutionPlan
 				inPlace.Add(rule);
 			}
 
-		return new ExecutionPlan(inPlace);
+		Bound(graph, inPlace);
+
+		return new ExecutionPlan(inPlace, Small(graph, inPlace));
+	}
+
+	/// <summary>
+	/// How deep, in nodes, a rule may nest once every rule it calls in place is written into it,
+	/// and each of those in turn.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// <see cref="Copied"/> bounds a body, and the expansion is compositional: each rule of a
+	/// chain is small, and the chain written into its top is as long as the author made it. The
+	/// walks that compile and judge an expansion are recursion over it, a frame of kilobytes per
+	/// level, and a chain of a few hundred took the generator's stack.
+	/// </para>
+	/// <para>
+	/// A depth and not a size: the size of what is written in place is the trade the remarks on
+	/// <see cref="CompiledInPlace"/> make, and the grammars here expand to thousands of nodes, but
+	/// never deeper than 36. Far above that, so nothing they generate moves; a rule past it keeps
+	/// its boundary, and its callers count again from the call.
+	/// </para>
+	/// </remarks>
+	const int Nested = 64;
+
+	/// <summary>How many nodes a rule may come to once what it calls in place is written into it.</summary>
+	/// <remarks>
+	/// Not the trade <see cref="CompiledInPlace"/> makes, which this leaves to it, but a ceiling on what
+	/// that trade can come to: a rule that calls in place a rule that calls the one below it twice —
+	/// once inside a lookahead and once after it — doubles at every level, and sixty-four levels of
+	/// that written out was a method no machine could hold. Far above the grammars here, the largest
+	/// of which comes to under nine thousand.
+	/// </remarks>
+	const int Expanded = 1 << 16;
+
+	/// <summary>Takes out of <paramref name="inPlace"/> each rule whose expansion nests past <see cref="Nested"/>.</summary>
+	/// <remarks>
+	/// Callees first — the order the call graph's components come out in — so that a rule is
+	/// measured with what it calls already settled; a rule in place is outside every cycle, so
+	/// its component is itself. Each body is walked once, with a stack of its own.
+	/// </remarks>
+	static void Bound(RecognitionGraph graph, HashSet<RuleSymbol> inPlace)
+	{
+		if (inPlace.Count == 0)
+			return;
+
+		var measured = new Dictionary<RuleSymbol, int>();
+		var pending  = new Stack<(Node Node, int Depth)>();
+
+		foreach (var component in graph.Calls.Components)
+			foreach (var rule in component)
+			{
+				if (!inPlace.Contains(rule))
+					continue;
+
+				var depth = 0;
+
+				pending.Push((graph.Bodies[rule], 1));
+
+				while (pending.Count > 0)
+				{
+					var (node, at) = pending.Pop();
+
+					depth = Math.Max(depth, at);
+
+					if (node is Node.Call(var called, _) && measured.TryGetValue(called, out var below))
+						depth = Math.Max(depth, at + below);
+
+					foreach (var child in node.Children)
+						pending.Push((child, at + 1));
+				}
+
+				if (depth > Nested)
+					inPlace.Remove(rule);
+				else
+					measured[rule] = depth;
+			}
+	}
+
+	/// <summary>The rules of <paramref name="inPlace"/> whose expansion comes to at most <see cref="Expanded"/> nodes, as written by the machine.</summary>
+	/// <remarks>Callees first, as <see cref="Bound"/> is, so that a rule is measured by what is written into it.</remarks>
+	static HashSet<RuleSymbol> Small(RecognitionGraph graph, HashSet<RuleSymbol> inPlace)
+	{
+		var small    = new HashSet<RuleSymbol>();
+		var measured = new Dictionary<RuleSymbol, int>();
+		var pending  = new Stack<Node>();
+
+		if (inPlace.Count == 0)
+			return small;
+
+		foreach (var component in graph.Calls.Components)
+			foreach (var rule in component)
+			{
+				if (!inPlace.Contains(rule))
+					continue;
+
+				var size = 0;
+
+				pending.Push(graph.Bodies[rule]);
+
+				while (pending.Count > 0)
+				{
+					var node = pending.Pop();
+
+					// Saturating: what is past the ceiling is past it however far.
+					size = Math.Min(size + 1, Expanded + 1);
+
+					if (node is Node.Call(var called, _) && measured.TryGetValue(called, out var below))
+						size = Math.Min(size + below, Expanded + 1);
+
+					foreach (var child in node.Children)
+						pending.Push(child);
+				}
+
+				if (size > Expanded)
+					continue;
+
+				small.Add(rule);
+				measured[rule] = size;
+			}
+
+		return small;
 	}
 }

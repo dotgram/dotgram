@@ -60,7 +60,7 @@ public sealed partial class GrammarNormalizer
 	/// </remarks>
 	IReadOnlyList<Node> Unfolded(RuleSymbol rule, IReadOnlyList<Node> alternatives)
 	{
-		var forwards = Forwarders();
+		var forwards = _forwarders ??= Forwarders();
 
 		if (forwards.Count == 0)
 			return alternatives;
@@ -81,6 +81,7 @@ public sealed partial class GrammarNormalizer
 			return alternatives;
 
 		_bodies[rule] = unfolded.Count == 1 ? unfolded[0] : new Node.Choice(unfolded);
+		_forwarders   = null;
 
 		return unfolded;
 	}
@@ -305,6 +306,19 @@ public sealed partial class GrammarNormalizer
 
 			void Resolve(RuleSymbol at, HashSet<RuleSymbol> path)
 			{
+				// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+				if (DeepStack.Low)
+				{
+					DeepStack.Run(() =>
+					{
+						Resolve(at, path);
+
+						return true;
+					});
+
+					return;
+				}
+
 				if (!path.Add(at))
 				{
 					ring = true;

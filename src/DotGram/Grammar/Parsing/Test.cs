@@ -29,8 +29,48 @@ public abstract record Test
 	/// <summary>A C# guard standing among the conditions, asked while the parser runs.</summary>
 	public sealed record Runs(Expr Value) : Test;
 
-	public sealed record All(Test Left, Test Right) : Test;
-	public sealed record Any(Test Left, Test Right) : Test;
+	/// <summary>
+	/// Tests joined by <c>and</c>, in the order written: a list and not a pair, so that a long
+	/// chain of them is as deep as one, whatever its length.
+	/// </summary>
+	public sealed record All(IReadOnlyList<Test> Items) : Test
+	{
+		/// <summary>Equal where the tests are, in order: a list compares by reference, and a test by what it says.</summary>
+		public bool Equals(All? other)
+		{
+			return other is not null && Items.SequenceEqual(other.Items);
+		}
+
+		public override int GetHashCode()
+		{
+			var hash = 17;
+
+			foreach (var item in Items)
+				hash = unchecked(hash * 31 + item.GetHashCode());
+
+			return hash;
+		}
+	}
+
+	/// <summary>Tests joined by <c>or</c>, in the order written, as <see cref="All"/>.</summary>
+	public sealed record Any(IReadOnlyList<Test> Items) : Test
+	{
+		/// <summary>Equal where the tests are, in order: a list compares by reference, and a test by what it says.</summary>
+		public bool Equals(Any? other)
+		{
+			return other is not null && Items.SequenceEqual(other.Items);
+		}
+
+		public override int GetHashCode()
+		{
+			var hash = 17;
+
+			foreach (var item in Items)
+				hash = unchecked(hash * 31 + item.GetHashCode());
+
+			return hash;
+		}
+	}
 
 	/// <summary>Every C# guard under a test, which resolves as C# and not as a rule.</summary>
 	public static IReadOnlyList<Expr> Guards(Test test)
@@ -38,8 +78,8 @@ public abstract record Test
 		return test switch
 		{
 			Runs(var value) => [value],
-			All(var left, var right) => [.. Guards(left), .. Guards(right)],
-			Any(var left, var right) => [.. Guards(left), .. Guards(right)],
+			All(var items) => [.. items.SelectMany(Guards)],
+			Any(var items) => [.. items.SelectMany(Guards)],
 			_ => [],
 		};
 	}
@@ -51,8 +91,8 @@ public abstract record Test
 		{
 			Meets(var left, var right, _) => [left, right],
 			Runs => [],
-			All(var left, var right) => [.. Operands(left), .. Operands(right)],
-			Any(var left, var right) => [.. Operands(left), .. Operands(right)],
+			All(var items) => [.. items.SelectMany(Operands)],
+			Any(var items) => [.. items.SelectMany(Operands)],
 			_ => [],
 		};
 	}

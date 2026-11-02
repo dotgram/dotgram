@@ -442,6 +442,19 @@ public sealed partial class GrammarNormalizer
 	void CheckSuppliedText(
 		Node node, bool before, RuleSymbol rule, Location at, HashSet<RuleSymbol> reaching, HashSet<(RuleSymbol, bool)> inPlace)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+		{
+			DeepStack.Run(() =>
+			{
+				CheckSuppliedText(node, before, rule, at, reaching, inPlace);
+
+				return true;
+			});
+
+			return;
+		}
+
 		switch (node)
 		{
 			case Node.Guard(var condition, _):
@@ -651,6 +664,10 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	bool ReachesEndOfSegment(Node node, HashSet<RuleSymbol> reaching)
 	{
+		// Follows calls, so a chain of them is as deep as the grammar makes it (DeepStack).
+		if (DeepStack.Low)
+			return DeepStack.Run(() => ReachesEndOfSegment(node, reaching));
+
 		switch (node)
 		{
 			case Node.Lookahead:
