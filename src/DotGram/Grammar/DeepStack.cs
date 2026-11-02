@@ -150,7 +150,10 @@ static class DeepStack
 		if (work is null)
 			throw new ArgumentNullException(nameof(work));
 
-		if (_entered || Here.Value)
+		// A single-threaded apartment is a UI thread, Visual Studio's above all, and joining a thread
+		// there pumps its messages: the host's own callbacks would run inside the wait and could come
+		// back in here. Such a thread keeps the work and relies on the walks' own checks.
+		if (_entered || Here.Value || Thread.CurrentThread.GetApartmentState() == ApartmentState.STA)
 			return work();
 
 		var result  = default(T);

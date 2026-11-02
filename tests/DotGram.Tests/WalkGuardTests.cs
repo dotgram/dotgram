@@ -29,9 +29,11 @@ namespace DotGram.Tests;
 /// A recursion none of whose members mentions a call — <c>Node.Call</c>, <c>Expr.Reference</c>,
 /// <c>Expr.Call</c> — nor a rule's body (<c>Bodies</c>, <c>BodyOf</c>, <c>Expanded</c>, what was
 /// lifted) walks one rule's own tree, and so is as deep as that tree, which the parser bounds
-/// (<c>GramParser.MaxNesting</c>). Every other one either checks the stack in one of its members or
-/// is in <see cref="Bounded"/> with the reason it is bounded all the same. A new recursion that
-/// meets a call fails here until it does one or the other; an entry that no longer names a
+/// (<c>GramParser.MaxNesting</c>). A member that checks — <c>if (DeepStack.Low)</c> with a move to a
+/// fresh stack under it — breaks every cycle through it, so the members that check are taken out
+/// and the recursions found again in what is left; each of those that meets a call is in
+/// <see cref="Bounded"/> with the reason it is bounded all the same. A new recursion that meets a
+/// call fails here until it checks or is listed; an entry that no longer names a
 /// recursion fails too, so the list does not outlive what it excuses.
 /// </para>
 /// </remarks>
@@ -58,6 +60,17 @@ public sealed class WalkGuardTests
 		["Retention.IsTerminator"] = "at most sixteen levels",
 		["SeamSplits.Walk"] = "one rule's tree; a call ends the walk",
 		["Dump.Write"] = "prints one tree, for a reader",
+		["FirstSets.Following | FirstSets.Inner | FirstSets.Of"] =
+			"one node's tree; a call is read off the rules' settled first sets, not entered",
+		["GrammarNormalizer.BoundaryFor | GrammarNormalizer.CallTo"] =
+			"a call to the built-in word asks for its boundary, a declared rule, whose call registers nothing: two levels",
+		["GrammarNormalizer.Inline | GrammarNormalizer.Rebuild"] =
+			"one rule's tree; a call to a forwarding rule is replaced by its sources, not entered",
+		["GrammarNormalizer.ReachableFromSeed | GrammarNormalizer.Rebound | GrammarNormalizer.UnderHeader"] =
+			"one level: a header's own reach is asked with composing on headers switched off, so it does not ask again",
+		["Machine.CompileUnguarded"] = "one level: a node read as if braced is compiled once more inside an atomic group, which is not",
+		["Machine.FlatFits | Machine.FlatValued | Machine.SiteCallee"] =
+			"one level: the callees are settled first by a walk with a stack of its own, so a callee's answer is found kept",
 	};
 
 	/// <summary>The parser's own recursion, named by a member every version of it has; bounded by <c>GramParser.MaxNesting</c>.</summary>
@@ -69,14 +82,14 @@ public sealed class WalkGuardTests
 	[Fact]
 	public void Every_recursion_that_meets_a_call_checks_the_stack_or_says_why_it_need_not()
 	{
-		var (recursions, guarded, meets) = Recursions();
+		var (recursions, meets) = Recursions();
 
 		var unexcused = new List<string>();
 		var excused   = new HashSet<string>(StringComparer.Ordinal);
 
 		foreach (var members in recursions)
 		{
-			if (members.Any(guarded.Contains) || !members.Any(meets.Contains))
+			if (!members.Any(meets.Contains))
 				continue;
 
 			var key = string.Join(" | ", members.Select(Name).Distinct().OrderBy(static one => one, StringComparer.Ordinal));
@@ -108,8 +121,16 @@ public sealed class WalkGuardTests
 		return $"{symbol.ContainingType?.Name}.{symbol.Name}";
 	}
 
-	/// <summary>The recursions of the grammar half, which of its members check the stack, and which meet a call.</summary>
-	static (List<List<ISymbol>> Recursions, HashSet<ISymbol> Guarded, HashSet<ISymbol> Meets) Recursions()
+	/// <summary>
+	/// The recursions of the grammar half that are left once the members which check the stack are
+	/// taken out, and which members meet a call.
+	/// </summary>
+	/// <remarks>
+	/// A member that checks breaks every cycle through it: each time round, the stack is looked at
+	/// there. What is left are the cycles that go round without passing one; a group of members of
+	/// which one checks is not excused as a whole, since a cycle among the others never reaches it.
+	/// </remarks>
+	static (List<List<ISymbol>> Recursions, HashSet<ISymbol> Meets) Recursions()
 	{
 		var root  = Path.Combine(SourceRoot.Directory, "src", "DotGram", "Grammar");
 		var parse = new CSharpParseOptions(LanguageVersion.Preview);
@@ -171,7 +192,7 @@ public sealed class WalkGuardTests
 						}
 					}
 
-					if (node is MemberAccessExpressionSyntax access && access.ToString() == "DeepStack.Low")
+					if (Checks(node))
 						guarded.Add(member);
 				}
 
@@ -180,7 +201,25 @@ public sealed class WalkGuardTests
 			}
 		}
 
-		return (Components(calls), guarded, meets);
+		foreach (var member in guarded)
+			calls.Remove(member);
+
+		return (Components(calls), meets);
+	}
+
+	/// <summary>
+	/// Whether <paramref name="node"/> is a check of the stack that acts on what it finds:
+	/// <c>if (DeepStack.Low)</c> with a move to a fresh stack (<c>DeepStack.Run</c>) under it. A
+	/// mention of <c>DeepStack.Low</c> that does nothing with it is not one.
+	/// </summary>
+	static bool Checks(SyntaxNode node)
+	{
+		return node is IfStatementSyntax
+		{
+			Condition: MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax { Identifier.Text: "DeepStack" }, Name.Identifier.Text: "Low" },
+		} check
+			&& check.Statement.DescendantNodes().OfType<InvocationExpressionSyntax>().Any(static call =>
+				call.Expression is MemberAccessExpressionSyntax { Expression: IdentifierNameSyntax { Identifier.Text: "DeepStack" }, Name.Identifier.Text: "Run" });
 	}
 
 	/// <summary>A member's own text, without the local functions declared in it.</summary>

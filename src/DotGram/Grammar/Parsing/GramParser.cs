@@ -104,6 +104,7 @@ public sealed class GramParser
 
 	Token Current => _tokens[_index];
 	Token Next    => _index + 1 < _tokens.Count ? _tokens[_index + 1] : _tokens[_tokens.Count - 1];
+	Token AfterNext => _index + 2 < _tokens.Count ? _tokens[_index + 2] : _tokens[_tokens.Count - 1];
 
 	bool AtEnd => Current.Kind == TokenKind.EndOfFile;
 
@@ -1810,8 +1811,10 @@ public sealed class GramParser
 	/// </summary>
 	bool StartsDeclaration()
 	{
+		// `context : @T` and `state : @T` name a host type; `state: B` without the `@` is a binding
+		// inside a broken rule, which recovery has to step over rather than stop at.
 		return StartsRule() || AtUsing() || AtKeyword("namespace") || AtPublication() || AtAccess() ||
-			(AtKeyword("context") || AtKeyword("state")) && Next.Kind == TokenKind.Colon;
+			(AtKeyword("context") || AtKeyword("state")) && Next.Kind == TokenKind.Colon && AfterNext.Kind == TokenKind.At;
 	}
 }
 

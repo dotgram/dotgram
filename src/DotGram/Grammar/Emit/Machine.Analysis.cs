@@ -1173,7 +1173,7 @@ sealed partial class Machine
 	/// </remarks>
 	string? CappedTest(RuleSymbol rule)
 	{
-		if (_cappedTests.TryGetValue(rule, out var known))
+		if (_cappedTests.TryGetValue((rule, _lowering), out var known))
 			return known;
 
 		var tests   = new List<string>();
@@ -1244,10 +1244,14 @@ sealed partial class Machine
 			written = tests.Contains("true") ? "true" : string.Join(" || ", tests);
 		}
 
-		_cappedTests[rule] = written;
+		_cappedTests[(rule, _lowering)] = written;
 
 		return written;
 	}
 
-	readonly Dictionary<RuleSymbol, string?> _cappedTests = [];
+	/// <summary>
+	/// <see cref="CappedTest"/> by rule and by whether the machine is lowering: which calls are meant in
+	/// place (<see cref="MeantInPlace"/>) differs between the two, and so may the test.
+	/// </summary>
+	readonly Dictionary<(RuleSymbol Rule, bool Lowering), string?> _cappedTests = [];
 }

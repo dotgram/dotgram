@@ -182,6 +182,39 @@ public sealed class DeepStackTests
 		}
 	}
 
+	/// <summary>
+	/// On a UI thread — a single-threaded apartment, where waiting for another thread pumps messages
+	/// the host's callbacks could re-enter through — an entry does its work where it was asked.
+	/// </summary>
+	[Fact]
+	public void An_entry_on_a_single_threaded_apartment_stays_on_it()
+	{
+		if (!OperatingSystem.IsWindows())
+		{
+			Assert.Skip("Apartments are Windows'.");
+
+			return;
+		}
+
+		var entry = typeof(GramCompiler).Assembly.GetType("DotGram.Grammar.DeepStack", throwOnError: true)!
+			.GetMethod("Entry", BindingFlags.Public | BindingFlags.Static)!.MakeGenericMethod(typeof(int));
+
+		var caller = 0;
+		var worker = 0;
+
+		var thread = new Thread(() =>
+		{
+			caller = Environment.CurrentManagedThreadId;
+			worker = (int)entry.Invoke(null, [new Func<int>(static () => Environment.CurrentManagedThreadId)])!;
+		});
+
+		thread.SetApartmentState(ApartmentState.STA);
+		thread.Start();
+		thread.Join();
+
+		Assert.Equal(caller, worker);
+	}
+
 	static AsyncLocal<T> Hook<T>(string name)
 	{
 		return (AsyncLocal<T>)typeof(GramCompiler).Assembly.GetType("DotGram.Grammar.DeepStack", throwOnError: true)!
