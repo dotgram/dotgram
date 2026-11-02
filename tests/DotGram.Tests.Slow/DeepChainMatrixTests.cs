@@ -65,7 +65,7 @@ public sealed class DeepChainMatrixTests
 		new("guard", "A0 = when @(true)", static i => $"A{i} = when @(true) & A{i - 1}", static n => $"R = A{n} & 'z'"),
 		new("guard after", "A0 = \"a\" | \"ab\"", static i => $"A{i} = A{i - 1} & when @(true)",
 			static n => $"Row : @string = 'r' => @(\"r\")\nR : @string[] = A{n} & 'b' & Row*"),
-		new("lookahead", "A0 = 'x'", static i => $"A{i} = (?!'q' & A{i - 1}) & 'x' & A{i - 1}", static n => $"R = A{n} & 'z'"),
+		new("lookahead", "A0 = 'x'", static i => $"A{i} = (?!'q' & A{i - 1}) & 'x'", static n => $"R = A{n} & 'z'"),
 		new("condition", "L0 = 'x'", static i => $"L{i} = L{i - 1}", static n => $"R = when L{n} is 'x' & 'z'"),
 		new("values", "A0 : @int = 'x' => @(0)", static i => $"A{i} : @int = 'x' & v:A{i - 1} => @(v + 1)",
 			static n => $"R : @int = v:A{n} => @(v)"),

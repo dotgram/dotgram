@@ -217,7 +217,20 @@ public sealed class ExecutionPlan
 	/// </remarks>
 	const int Nested = 64;
 
-	/// <summary>Takes out of <paramref name="inPlace"/> each rule whose expansion nests past <see cref="Nested"/>.</summary>
+	/// <summary>How many nodes a rule may come to once what it calls in place is written into it.</summary>
+	/// <remarks>
+	/// Not the trade <see cref="CompiledInPlace"/> makes, which this leaves to it, but a ceiling on what
+	/// that trade can come to: a rule that calls in place a rule that calls the one below it twice —
+	/// once inside a lookahead and once after it — doubles at every level, and sixty-four levels of
+	/// that written out was a method no machine could hold. Far above the grammars here, the largest
+	/// of which comes to under nine thousand.
+	/// </remarks>
+	const int Expanded = 1 << 16;
+
+	/// <summary>
+	/// Takes out of <paramref name="inPlace"/> each rule whose expansion nests past <see cref="Nested"/>
+	/// or comes to more than <see cref="Expanded"/> nodes.
+	/// </summary>
 	/// <remarks>
 	/// Callees first — the order the call graph's components come out in — so that a rule is
 	/// measured with what it calls already settled; a rule in place is outside every cycle, so
@@ -228,7 +241,7 @@ public sealed class ExecutionPlan
 		if (inPlace.Count == 0)
 			return;
 
-		var measured = new Dictionary<RuleSymbol, int>();
+		var measured = new Dictionary<RuleSymbol, (int Depth, int Size)>();
 		var pending  = new Stack<(Node Node, int Depth)>();
 
 		foreach (var component in graph.Calls.Components)
@@ -238,6 +251,7 @@ public sealed class ExecutionPlan
 					continue;
 
 				var depth = 0;
+				var size  = 0;
 
 				pending.Push((graph.Bodies[rule], 1));
 
@@ -247,17 +261,25 @@ public sealed class ExecutionPlan
 
 					depth = Math.Max(depth, at);
 
+					// Saturating: what is past the ceiling is past it however far.
+					size = Math.Min(size + 1, Expanded + 1);
+
 					if (node is Node.Call(var called, _) && measured.TryGetValue(called, out var below))
-						depth = Math.Max(depth, at + below);
+					{
+						depth = Math.Max(depth, at + below.Depth);
+						size  = Math.Min(size + below.Size, Expanded + 1);
+					}
 
 					foreach (var child in node.Children)
 						pending.Push((child, at + 1));
 				}
 
-				if (depth > Nested)
+				pending.Clear();
+
+				if (depth > Nested || size > Expanded)
 					inPlace.Remove(rule);
 				else
-					measured[rule] = depth;
+					measured[rule] = (depth, size);
 			}
 	}
 }
