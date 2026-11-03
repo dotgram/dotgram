@@ -315,7 +315,7 @@ sealed class GramDropdownClient : IVsDropdownBarClient, IDisposable
 {
 	readonly IWpfTextView _view;
 	readonly GramBufferAnalysis _analysis;
-	readonly List<Item> _items = [];
+	readonly List<GramDropdownItem> _items = [];
 	IVsDropdownBar? _dropdown;
 
 	public GramDropdownClient(IWpfTextView view)
@@ -400,8 +400,11 @@ sealed class GramDropdownClient : IVsDropdownBarClient, IDisposable
 			return;
 
 		Refresh(snapshot);
-		_dropdown?.RefreshCombo(0, 0);
-		SelectAtCaret();
+
+		// RefreshCombo shows the entry it is given as the selection. Given 0, it showed the first
+		// declaration in the list, which is sorted by name, for a caret outside every declaration,
+		// and a SetCurrentSelection(-1) after it did not take that back.
+		_dropdown?.RefreshCombo(0, GramDropdownItems.SelectionAt(_items, _view.Caret.Position.BufferPosition.Position));
 	}
 
 	void CaretChanged(object sender, CaretPositionChangedEventArgs args)
@@ -424,7 +427,7 @@ sealed class GramDropdownClient : IVsDropdownBarClient, IDisposable
 	{
 		foreach (var symbol in symbols)
 		{
-			_items.Add(new Item(
+			_items.Add(new GramDropdownItem(
 				symbol.Name.TrimStart(' ', '\t'),
 				symbol.Position,
 				symbol.Length,
@@ -438,21 +441,7 @@ sealed class GramDropdownClient : IVsDropdownBarClient, IDisposable
 		if (_dropdown is null)
 			return;
 
-		var position = _view.Caret.Position.BufferPosition.Position;
-		var selected = -1;
-		var selectedLength = int.MaxValue;
-		for (var index = 0; index < _items.Count; index++)
-		{
-			var item = _items[index];
-			if (item.Position <= position && position < item.Position + item.Length &&
-				item.Length < selectedLength)
-			{
-				selected = index;
-				selectedLength = item.Length;
-			}
-		}
-
-		_dropdown.SetCurrentSelection(0, selected);
+		_dropdown.SetCurrentSelection(0, GramDropdownItems.SelectionAt(_items, _view.Caret.Position.BufferPosition.Position));
 	}
 
 	bool Valid(int index)
@@ -466,6 +455,36 @@ sealed class GramDropdownClient : IVsDropdownBarClient, IDisposable
 		_view.Caret.PositionChanged -= CaretChanged;
 		_dropdown = null;
 	}
-
-	readonly record struct Item(string Display, int Position, int Length, int SelectionPosition);
 }
+
+/// <summary>
+/// The dropdown's entries, apart from the dropdown: nothing here is a Visual Studio type, so that
+/// the choice of entry can be tested without one.
+/// </summary>
+static class GramDropdownItems
+{
+	/// <summary>
+	/// The index of the innermost item whose span holds <paramref name="position"/>, or -1 where
+	/// none does: before the first declaration, between two, or after the last.
+	/// </summary>
+	public static int SelectionAt(IReadOnlyList<GramDropdownItem> items, int position)
+	{
+		var selected       = -1;
+		var selectedLength = int.MaxValue;
+
+		for (var index = 0; index < items.Count; index++)
+		{
+			var item = items[index];
+			if (item.Position <= position && position < item.Position + item.Length &&
+				item.Length < selectedLength)
+			{
+				selected       = index;
+				selectedLength = item.Length;
+			}
+		}
+
+		return selected;
+	}
+}
+
+readonly record struct GramDropdownItem(string Display, int Position, int Length, int SelectionPosition);
