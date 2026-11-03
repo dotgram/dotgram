@@ -53,7 +53,8 @@ The guards hold the dependency line. They cannot see a feature re-implemented in
 exists here; that is held by the tests — the words the editor describes are the words the parser takes
 (`EditorVocabularyTests`), every diagnostic the generator can report is shown or listed with the reason it cannot be
 (`EditorDiagnosticsTests`), every grammar in the repository classifies without an unrecognized token
-(`EditorCorpusTests`) and with the compiler's diagnostics under equal options (`EditorParityTests`) — and by review
+(`EditorCorpusTests`) and with the compiler's diagnostics under the options the generator compiles it with, and in a C#
+file as Roslyn shows them there (`EditorParityTests`) — and by review
 against the rule above. A list written by hand from a table that exists elsewhere, a reading of `[Gram]` that is not
 `GramHostOptions.Read`, and a tooling attribute's name spelled anywhere but `GramMetadataNames` are the defects they
 exist to catch.
@@ -71,7 +72,11 @@ The generated parser is the truth about what a grammar accepts. `DslRecognitionT
 a user's DSL text without running the user's code; it is held to generated parsers by a parity test and may answer
 "unsupported". Diagnostics about a project rather than a grammar — a host that is not partial, a grammar file that is
 not an additional file — are the generator shell's, and an editor shows them only through the build. The editor reads
-of a grammar's host only what changes the analysis it shows (`Lexical`, and the grammars it includes), and it resolves
-no C# type a grammar names; diagnostics that depend on the rest are the build's. Analysis in an editor runs the whole
+of a grammar's host only what changes the analysis it shows (the attribute's options, read by `GramHostOptions`, and
+the grammars it includes), and it resolves no C# type a grammar names; diagnostics that depend on the rest are the
+build's, so a no from its resolver is not taken as an error of the grammar (`GramCompilerOptions.HostUnseen`): a
+constructor the captures fill, or a recognizer that takes the input view, is the build's to find or miss. What the
+editor shows in a C# file has been through what the build applies there, the file's `#pragma warning` and the
+project's severities (`GramBuildSeverity`). Analysis in an editor runs the whole
 compiler, emission included, so that the warnings computed over the generated text are the build's; if that ever
 becomes too slow for a keystroke, the fast tier that replaces it must say which diagnostics it does not promise.

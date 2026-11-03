@@ -106,7 +106,7 @@ public static class EmbeddedGrammarService
 	public static IReadOnlyList<EmbeddedGrammarAnalysis> AnalyzeSyntactic(
 		SyntaxNode root, CancellationToken cancellationToken = default)
 	{
-		return Analyze(EmbeddedGrammarFinder.FindSyntactic(root, cancellationToken), cancellationToken);
+		return Analyze(EmbeddedGrammarFinder.FindSyntactic(root, cancellationToken), null, cancellationToken);
 	}
 
 	public static IReadOnlyList<EmbeddedGrammarAnalysis> Analyze(
@@ -115,11 +115,16 @@ public static class EmbeddedGrammarService
 		CancellationToken cancellationToken = default,
 		Func<string, string?>? includedFile = null)
 	{
-		return Analyze(EmbeddedGrammarFinder.Find(model, root, cancellationToken, includedFile), cancellationToken);
+		return Analyze(
+			EmbeddedGrammarFinder.Find(model, root, cancellationToken, includedFile), model.Compilation.Options, cancellationToken);
 	}
 
+	/// <param name="options">
+	/// The compilation's options, which say what the build makes of a diagnostic beside the C# file's
+	/// <c>#pragma</c>s; null where there is no compilation, and only the <c>#pragma</c>s are read.
+	/// </param>
 	static IReadOnlyList<EmbeddedGrammarAnalysis> Analyze(
-		IReadOnlyList<EmbeddedGrammar> grammars, CancellationToken cancellationToken)
+		IReadOnlyList<EmbeddedGrammar> grammars, CompilationOptions? options, CancellationToken cancellationToken)
 	{
 		var analyses = new List<EmbeddedGrammarAnalysis>();
 
@@ -166,10 +171,19 @@ public static class EmbeddedGrammarService
 					continue;
 
 				var exact = grammar.SourceMap.TryMap(diagnostic.Position, diagnostic.Length, out var span);
+				var place = exact ? span : grammar.Token.Span;
+
+				// What the build shows of it, which the C# file and the project have their say in.
+				var shown = grammar.Token.SyntaxTree is { } tree
+					? GramBuildSeverity.Of(diagnostic, tree, place.Start, options, cancellationToken)
+					: diagnostic.Severity;
+
+				if (shown is not { } severity)
+					continue;
 
 				diagnostics.Add(new HostDiagnostic(
-					diagnostic,
-					exact ? span : grammar.Token.Span,
+					severity == diagnostic.Severity ? diagnostic : diagnostic with { Severity = severity },
+					place,
 					exact));
 			}
 

@@ -105,6 +105,23 @@ public sealed class GramCompilerOptions
 	public ISymbolResolver SymbolResolver { get; set; } = PermissiveSymbolResolver.Instance;
 
 	/// <summary>
+	/// Whether the <see cref="SymbolResolver"/> cannot see the host's C#, so that what it says no
+	/// to is not known to be missing: an editor's analysis, which resolves no C# type and leaves
+	/// what depends on one to the build. Off for generation.
+	/// </summary>
+	/// <remarks>
+	/// The permissive resolver says no where a yes would have the generated code call something
+	/// that may not be there, and some of those noes are errors of the grammar: no constructor
+	/// that the captures fill (GRAM4008), a recognizer of the host that reads a span rather than
+	/// the buffered input (GRAM4026). Against the host the generator finds the constructor or
+	/// the input view, and an editor that said otherwise would mark correct grammars wrong.
+	/// With this on, such a rule is taken to be built by a constructor of its captures, and a
+	/// buffered form that only the recognizer's shape would refuse is left out without a word;
+	/// neither produces anything anybody compiles.
+	/// </remarks>
+	public bool HostUnseen { get; set; }
+
+	/// <summary>
 	/// Finds where an inline <c>@(...)</c> expression ends. Null means the grammar may
 	/// not use one — a diagnostic, not a crash.
 	/// </summary>

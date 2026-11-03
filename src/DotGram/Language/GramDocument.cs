@@ -150,6 +150,29 @@ public sealed class GramAnalysisOptions
 
 	/// <summary>Whether the host asks for the grammar to be read as tokens: <c>[Gram(Lexical = true)]</c>.</summary>
 	public bool Lexical { get; set; }
+
+	/// <summary>
+	/// Everything else the host's reading says, as <see cref="GramHostOptions.Read"/> read it, or
+	/// null where there is no host. <see cref="Lexical"/> is not taken from here.
+	/// </summary>
+	/// <remarks>
+	/// The carrier, the buffered and byte forms and the rest decide diagnostics of their own: a
+	/// carrier named in the attribute silences what the generator says about the one it would
+	/// choose, and a buffered form is refused for what it cannot read. Analysed without them, a
+	/// grammar is shown what the build does not report. A location type is the one option left
+	/// out: what it changes rests on which C# types implement it, which the editor does not resolve.
+	/// </remarks>
+	internal GramHostOptions? Host { get; set; }
+
+	/// <summary>What a host's reading says, for a grammar with nothing spliced on.</summary>
+	internal static GramAnalysisOptions Of(GramHostOptions host)
+	{
+		return new GramAnalysisOptions
+		{
+			Lexical = host.Lexical,
+			Host    = host,
+		};
+	}
 }
 
 /// <summary>
@@ -199,14 +222,7 @@ public static class GramLanguageService
 		// in an included grammar, through a `using` or a qualified name, is found by the same
 		// lookup the generator makes, and not by the first rule anywhere that has its name.
 		GrammarModel? model = null;
-		var compilation = GramCompiler.Compile(text, new GramCompilerOptions
-		{
-			CSharpScanner = RoslynCSharpScanner.Instance,
-			Own           = options?.Own,
-			Cuts          = options?.Cuts,
-			Lexical       = options?.Lexical ?? false,
-			Bound         = bound => model = bound,
-		});
+		var compilation = GramCompiler.Compile(text, CompilerOptions(options, bound => model = bound));
 
 		var tokens = GramLexer.Tokenize(
 			text, RoslynCSharpScanner.Instance, GramCompiler.CutsOf(options?.Own, options?.Cuts), text.Length, null);
@@ -286,6 +302,46 @@ public static class GramLanguageService
 			foldingRanges,
 			documentSymbols,
 			publishedApis);
+	}
+
+	/// <summary>
+	/// What the generator's compiler is handed for a grammar the editor analyses: the host's
+	/// options as the generator passes them, less what needs the host's C# to mean anything.
+	/// </summary>
+	/// <remarks>
+	/// The editor resolves no C# type a grammar names, so its resolver's noes are not known to be
+	/// true, and what only they would report is left to the build (<see cref="GramCompilerOptions.HostUnseen"/>).
+	/// </remarks>
+	internal static GramCompilerOptions CompilerOptions(GramAnalysisOptions? options, Action<GrammarModel>? bound = null)
+	{
+		var result = new GramCompilerOptions
+		{
+			CSharpScanner = RoslynCSharpScanner.Instance,
+			Own           = options?.Own,
+			Cuts          = options?.Cuts,
+			Lexical       = options?.Lexical ?? false,
+			HostUnseen    = true,
+			Bound         = bound,
+		};
+
+		if (options?.Host is { } host)
+		{
+			// Nought is what the attribute holds when nobody set it: the measured default, as the
+			// generator reads it.
+			result.PartSize              = host.PartSize == 0 ? null : host.PartSize;
+			result.Portable              = host.Portable;
+			result.Carrier               = (CarrierKind)host.Carrier;
+			result.Stacks                = host.Stacks;
+			result.ConstructionsMayThrow = host.ConstructionsMayThrow;
+			result.SpanCaptures          = host.SpanCaptures;
+			result.BufferedBytes         = host.BufferedBytes;
+			result.BufferedInput         = host.BufferedInput;
+			result.MaxRetained           = host.MaxRetained;
+			result.BufferSize            = host.BufferSize;
+			result.Trace                 = host.Trace;
+		}
+
+		return result;
 	}
 
 	static HashSet<int> ConditionKeywordPositions(

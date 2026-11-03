@@ -190,7 +190,7 @@ public sealed class EditorCorpusTests
 		return Path.GetRelativePath(Root, file).Replace('\\', '/');
 	}
 
-	static string Root =>
+	internal static string Root =>
 		Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(ThisFile)!)!)!;
 
 	static string ThisFile { get; } = FilePath();

@@ -469,7 +469,7 @@ sealed class GramBufferAnalysis
 	/// name from an included grammar is not missing, it has not been looked up yet.
 	/// </summary>
 	/// <remarks>
-	/// Compiled as the generator compiles it: with the host's <c>Lexical</c>, and with the
+	/// Compiled as the generator compiles it: with the host's options, and with the
 	/// own text's length where something is included, so that a <c>parse</c> in an included
 	/// grammar is that grammar's and not this one's.
 	/// </remarks>
@@ -488,6 +488,7 @@ sealed class GramBufferAnalysis
 					: GrammarSplice.Cuts(
 						own + tail, known.Included.Select(item => (own.Length + item.Start, item.Text.Length))),
 				Lexical = known.Lexical,
+				Host    = known.Host,
 			}
 			: null;
 		var whole   = GramLanguageService.Analyze(own + tail, options);

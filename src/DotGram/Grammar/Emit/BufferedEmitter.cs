@@ -128,7 +128,7 @@ public static partial class CSharpEmitter
 		bool requested, bool byteRequested, bool overKinds, ICollection<GramDiagnostic>? diagnostics, int? partSize, bool spanCaptures, bool prefixTables,
 		Dictionary<string, int>? expectedTables,
 		CarrierKind carrier, Replay.Report? replay, bool reporting, bool directAllowed, bool countRules, bool constructionsMayThrow,
-		TraceTables? tracing, ExpectedSets expectedSets)
+		TraceTables? tracing, ExpectedSets expectedSets, bool hostUnseen)
 	{
 		// A buffered machine chooses its carrier as the file's machines do, by the same gates:
 		// made without them it read on the tape whatever those said.
@@ -147,9 +147,14 @@ public static partial class CSharpEmitter
 			var rules = Reaches(graph, publication.Rule);
 			// A recovery's synchronization is read as the body is, and a recognizer of the host there
 			// wants the whole input as much: the walk that reads both (`recover @M`).
+			var external = rules.Any(rule => NodeWalk.Reading(graph.Bodies[rule], graph).Any(node => node is Node.External { UsesInputView: false }));
 			var why = overKinds ? "token-kind input is not supported by this form yet" :
-				rules.Any(rule => NodeWalk.Reading(graph.Bodies[rule], graph).Any(node => node is Node.External { UsesInputView: false }))
-					? "external recognizers require contiguous input" : null;
+				external ? "external recognizers require contiguous input" : null;
+
+			// A recognizer said to read a span may read the input view, for all a resolver that cannot
+			// see the host knows (GramCompilerOptions.HostUnseen): not refused, and not built either.
+			if (external && !overKinds && hostUnseen)
+				continue;
 			if (why is null && bytes) why = ByteRefusal(graph, rules);
 			// Named after the publication, which no other has the name of, and told from a group's machine
 			// by its variant.

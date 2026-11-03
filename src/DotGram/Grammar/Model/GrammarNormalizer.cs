@@ -156,6 +156,9 @@ public sealed partial class GrammarNormalizer
 	/// </summary>
 	ICSharpScanner? _scanner;
 
+	/// <summary>Whether the resolver cannot see the host's C#: see <see cref="GramCompilerOptions.HostUnseen"/>.</summary>
+	bool _hostUnseen;
+
 	GrammarNormalizer(GrammarModel model, ISymbolResolver resolver)
 	{
 		_model    = model;
@@ -189,7 +192,7 @@ public sealed partial class GrammarNormalizer
 	public static RecognitionGraph Normalize(
 		GrammarModel model, ISymbolResolver? resolver = null, ICSharpScanner? scanner = null,
 		string? locationType = null, bool positionalFollow = false, bool positionalSplit = false,
-		bool collapse = true)
+		bool collapse = true, bool hostUnseen = false)
 	{
 		if (model is null)
 			throw new ArgumentNullException(nameof(model));
@@ -198,6 +201,7 @@ public sealed partial class GrammarNormalizer
 		{
 			_scanner    = scanner,
 			_segmented  = NamesEndOfSegment(model),
+			_hostUnseen = hostUnseen,
 		};
 
 		normalizer.Collect(model.Root);

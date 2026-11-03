@@ -193,7 +193,7 @@ public static partial class CSharpEmitter
 		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = true, ICollection<string>? sourceParts = null, int sourceFileSize = 0,
 		int maxRetained = int.MaxValue, int bufferSize = 4096, ICollection<string>? carriers = null,
 		bool countRules = false, bool memoise = false, bool trace = false, bool utf8Literals = false, bool checks = false, bool steps = false,
-		bool constructionsMayThrow = false)
+		bool constructionsMayThrow = false, bool hostUnseen = false)
 	{
 		statics ??= [];
 
@@ -408,7 +408,7 @@ public static partial class CSharpEmitter
 
 		AddBufferedMachines(
 			graph, results, lines, machines, bufferedInput, bufferedBytes, overKinds, diagnostics, partSize, spanCaptures, prefixTables, expectedTables,
-			carrier, replay, carriers is not null, directAllowed, countRules, constructionsMayThrow, tracing, expectedSets);
+			carrier, replay, carriers is not null, directAllowed, countRules, constructionsMayThrow, tracing, expectedSets, hostUnseen);
 
 		// A second machine over the characters, for the terminals whose value the lexer
 		// cannot carry — see `LexicalSplit.Valued`. It parses one token's text and builds

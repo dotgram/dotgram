@@ -51,7 +51,7 @@ propagated through variables, and later assignments to an annotated field are ig
 
 A standalone `.gram` file whose class writes `[GramInclude(typeof(…))]`, or derives from a class
 with a grammar, is read the way the generator compiles it: the included grammars are spliced on
-after it, and the host's `Lexical` applies. The included grammars are found through the project,
+after it, and the options of the host's attribute apply. The included grammars are found through the project,
 so the editor follows the project as it changes: when the host's declaration, an included
 `.gram` file (open and being edited, or saved), the project's references or the solution change,
 the host is looked for again and the grammar is analysed again if what it is compiled with

@@ -20,9 +20,11 @@
 
 	<Import Project="..\..\src\DotGram\Language.projitems" />
 
-	<!-- The chains of calls the generator is held to in DotGram.Tests.Slow, read here by the editor. -->
+	<!-- The chains of calls the generator is held to in DotGram.Tests.Slow, read here by the editor;
+	     and what Roslyn shows of a diagnostic in a C# file, which the corpus is held to here too. -->
 	<ItemGroup>
 		<Compile Include="..\DotGram.Tests.Slow\DeepChains.cs" Link="Shared\DeepChains.cs" />
+		<Compile Include="..\DotGram.Language.Tests\RoslynReport.cs" Link="Shared\RoslynReport.cs" />
 	</ItemGroup>
 
 </Project>

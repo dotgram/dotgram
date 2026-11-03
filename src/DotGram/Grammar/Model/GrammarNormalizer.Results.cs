@@ -338,6 +338,11 @@ public sealed partial class GrammarNormalizer
 			var written = tied || chosen is { Count: > 0 } ? null : Settable(type, members);
 
 
+			// Where the resolver cannot see the host, its no is not a missing constructor: the rule is
+			// taken to be built by one of its captures, which the build asks the host about.
+			if (!tied && chosen is null or { Count: 0 } && written is null && _hostUnseen)
+				chosen = [.. members.Select(static member => member.Name)];
+
 			if (tied || (chosen is null or { Count: 0 } && written is null))
 				continue;
 

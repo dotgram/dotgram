@@ -26,15 +26,18 @@ readonly record struct StandaloneIncludedGrammar(string Name, string Text, strin
 }
 
 /// <summary>What a standalone grammar is compiled with: what its host includes, and how it reads it.</summary>
+/// <param name="Host">What the host's reading asks of the compilation beside <c>Lexical</c>, or null where nothing is known.</param>
 readonly record struct StandaloneGrammarContext(
 	string AnalysisTail,
 	IReadOnlyList<StandaloneIncludedGrammar> Included,
-	bool Lexical = false)
+	bool Lexical = false,
+	GramHostOptions? Host = null)
 {
 	/// <summary>Whether compiling with the other would say the same: the texts and the options.</summary>
 	public bool SameAs(StandaloneGrammarContext other)
 	{
 		return Lexical == other.Lexical &&
+			Equals(Host, other.Host) &&
 			AnalysisTail == other.AnalysisTail &&
 			Included.Select(static item => (item.Name, item.FilePath))
 				.SequenceEqual(other.Included.Select(static item => (item.Name, item.FilePath)));
@@ -195,12 +198,12 @@ static class StandaloneGrammarInheritance
 		// The reading that names this file, and what it does not say it takes from the
 		// class's own, as the generator reads a suffixed one.
 		var primary = GramIncludes.Primary(host);
-		var lexical = GramHostOptions.Read(
-			reading!, host, primary is null ? null : GramHostOptions.Read(primary, host, first: null)).Lexical;
+		var options = GramHostOptions.Read(
+			reading!, host, primary is null ? null : GramHostOptions.Read(primary, host, first: null));
 
 		return new StandaloneGrammarResolution(
 			StandaloneGrammarState.Resolved,
-			new StandaloneGrammarContext(tail, included, lexical),
+			new StandaloneGrammarContext(tail, included, options.Lexical, options),
 			projects,
 			documents);
 	}

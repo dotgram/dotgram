@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 using DotGram.Grammar;
 using DotGram.Grammar.Emit;
@@ -10,6 +12,7 @@ using DotGram.Grammar.Parsing;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 
 using Xunit;
 
@@ -17,17 +20,34 @@ namespace DotGram.Language.Tests;
 
 /// <summary>
 /// Every grammar in the repository is shown by the editor with exactly the diagnostics the
-/// generator's compiler reports for it, given the same options: the same numbers, messages,
-/// severities and places, the compiler's places narrowed as the editor narrows them.
+/// generator's compiler reports for it, compiled as the generator compiles it: the same numbers,
+/// messages, severities and places, the compiler's places narrowed as the editor narrows them;
+/// and a grammar in a <c>[Gram]</c> is shown in its C# file what Roslyn shows of those there.
 /// </summary>
 /// <remarks>
 /// <para>
-/// The same options are what the editor reads of the grammar's host, read by the reader the
-/// generator reads them by (<see cref="GramHostOptions"/>), and the same resolver and scanner:
-/// the permissive resolver, which the editor has, and Roslyn's scanner of <c>@(…)</c>. What
-/// the editor does not take from the host — the carrier, the part size, a location type — and
-/// the resolver it does not have are differences of input, not of analysis, and are left out
-/// on both sides; this holds the analysis.
+/// The compiler is handed the host's options as the generator hands them over (<see cref="Compiled"/>),
+/// read by the reader the generator reads them by (<see cref="GramHostOptions"/>), and the editor
+/// what it reads of the host itself; an option the editor left out was a grammar shown what its
+/// build does not report — a carrier named in the attribute, which silences what the generator
+/// says of the one it would choose. Left out on both sides are only what needs the host's C# to
+/// mean anything: a location type, which locates the rules whose types implement it, and the class
+/// and namespace the parser goes into.
+/// </para>
+/// <para>
+/// The resolver is the one input this cannot hold. The generator asks the host's compilation; the
+/// editor resolves no C# type, and leaves what only a no from its resolver would report to the
+/// build (<see cref="GramCompilerOptions.HostUnseen"/>). The compiler is run the same way here,
+/// so what the host's C# would answer — a constructor the captures fill, a recognizer that takes
+/// the input view — is not compared, and a divergence there is not caught here; what the
+/// generator asks a compilation is DotGram.Tests' to hold.
+/// </para>
+/// <para>
+/// A grammar in an attribute is compared once more in its C# file, through the extension's own
+/// entry point (<see cref="EmbeddedGrammarService"/>): the compiler's diagnostics placed in the
+/// file and handed to Roslyn, which applies the file's <c>#pragma warning</c> and the project's
+/// options to them as it does to the generator's (<see cref="RoslynReport"/>). Compared as text
+/// alone, a grammar under <c>#pragma warning disable</c> was shown a warning its build had silenced.
 /// </para>
 /// <para>
 /// The grammars are <see cref="EditorCorpusTests"/>' own: every <c>.gram</c> file and every
@@ -53,19 +73,122 @@ public sealed class EditorParityTests
 	public void The_editor_shows_the_diagnostics_the_compiler_reports(string name)
 	{
 		var grammar  = Corpus().Single(one => one.Name == name);
-		var lexical  = grammar.Options?.Lexical ?? false;
-		var compiled = GramCompiler.Compile(grammar.Text, new GramCompilerOptions
-		{
-			CSharpScanner = RoslynCSharpScanner.Instance,
-			Lexical       = lexical,
-		});
-		var analysed = GramLanguageService.Analyze(grammar.Text, new GramAnalysisOptions { Lexical = lexical });
+		var compiled = GramCompiler.Compile(grammar.Text, Compiled(grammar.Options, null, null));
+		var analysed = GramLanguageService.Analyze(
+			grammar.Text, grammar.Options is { } options ? GramAnalysisOptions.Of(options) : null);
 		var tokens   = GramLexer.Tokenize(grammar.Text, RoslynCSharpScanner.Instance).Tokens;
 
 		// Only the compiler's side is narrowed here: the editor's must come narrowed already.
 		Assert.Equal(
 			GramLanguageService.NormalizeDiagnostics(compiled.Diagnostics, tokens).Select(Shown),
 			analysed.Diagnostics.Select(Shown));
+	}
+
+	public static TheoryData<string> Hosts()
+	{
+		var data = new TheoryData<string>();
+
+		foreach (var file in EditorCorpusTests.Files("*.cs"))
+			if (File.ReadAllText(file).Contains("Gram", StringComparison.Ordinal))
+				data.Add(EditorCorpusTests.Relative(file));
+
+		return data;
+	}
+
+	[Theory]
+	[MemberData(nameof(Hosts))]
+	public async Task The_editor_shows_in_the_C_sharp_file_what_the_build_reports(string file)
+	{
+		var cancellation = TestContext.Current.CancellationToken;
+		var (tree, compilation) = Host(Path.Combine(EditorCorpusTests.Root, file), cancellation);
+		var model    = compilation.GetSemanticModel(tree);
+		var root     = await tree.GetRootAsync(cancellation);
+		var reported = new List<(GramDiagnostic Diagnostic, SyntaxTree Tree, TextSpan Span)>();
+
+		foreach (var grammar in EmbeddedGrammarFinder.Find(model, root, cancellation))
+		{
+			var attribute = grammar.Token.Parent?.FirstAncestorOrSelf<AttributeSyntax>();
+			var options   = attribute is null ? null : Options(model, attribute);
+			var compiled  = GramCompiler.Compile(grammar.AnalysisText, Compiled(options, grammar.Options?.Own, grammar.Options?.Cuts));
+			var tokens    = GramLexer.Tokenize(
+				grammar.AnalysisText,
+				RoslynCSharpScanner.Instance,
+				GramCompiler.CutsOf(grammar.Options?.Own, grammar.Options?.Cuts),
+				grammar.AnalysisText.Length,
+				null).Tokens;
+
+			// Placed as the generator places a diagnostic in the literal: where the literal holds
+			// its place, and over the whole literal where it does not.
+			foreach (var diagnostic in GramLanguageService.NormalizeDiagnostics(compiled.Diagnostics, tokens))
+				if (diagnostic.Position <= grammar.Text.Length)
+					reported.Add((
+						diagnostic,
+						tree,
+						grammar.SourceMap.TryMap(diagnostic.Position, diagnostic.Length, out var span) ? span : grammar.Token.Span));
+		}
+
+		var built = await RoslynReport.Shown(compilation, reported, cancellation);
+		var shown = EmbeddedGrammarService.Analyze(model, root, cancellation)
+			.SelectMany(static analysis => analysis.Diagnostics)
+			.Select(static one => (one.Diagnostic.Id, one.Diagnostic.Message, one.Diagnostic.Severity, one.Span));
+
+		Assert.Equal(Ordered(built), Ordered(shown));
+	}
+
+	static IEnumerable<(string Id, string Message, GramSeverity Severity, TextSpan Span)> Ordered(
+		IEnumerable<(string Id, string Message, GramSeverity Severity, TextSpan Span)> diagnostics)
+	{
+		return diagnostics.OrderBy(static one => one.Span.Start).ThenBy(static one => one.Id, StringComparer.Ordinal)
+			.ThenBy(static one => one.Message, StringComparer.Ordinal);
+	}
+
+	/// <summary>
+	/// The compiler's options as the generator hands them over for a host's reading
+	/// (GramGenerator.Compile), less what needs the host's C# (see the remarks above).
+	/// </summary>
+	static GramCompilerOptions Compiled(GramHostOptions? host, int? own, IReadOnlyList<int>? cuts)
+	{
+		var options = new GramCompilerOptions
+		{
+			CSharpScanner = RoslynCSharpScanner.Instance,
+			HostUnseen    = true,
+			Own           = own,
+			Cuts          = cuts,
+		};
+
+		if (host is null)
+			return options;
+
+		options.PartSize              = host.PartSize == 0 ? null : host.PartSize;
+		options.Lexical               = host.Lexical;
+		options.Portable              = host.Portable;
+		options.Carrier               = (CarrierKind)host.Carrier;
+		options.ConstructionsMayThrow = host.ConstructionsMayThrow;
+		options.BufferedInput         = host.BufferedInput;
+		options.BufferedBytes         = host.BufferedBytes;
+		options.SpanCaptures          = host.SpanCaptures;
+		options.MaxRetained           = host.MaxRetained;
+		options.BufferSize            = host.BufferSize;
+		options.Stacks                = host.Stacks;
+		options.Trace                 = host.Trace;
+
+		return options;
+	}
+
+	/// <summary>A C# file compiled alone, with the generator's attributes beside it.</summary>
+	static (SyntaxTree Tree, CSharpCompilation Compilation) Host(string path, CancellationToken cancellation)
+	{
+		var tree = CSharpSyntaxTree.ParseText(File.ReadAllText(path), path: path, cancellationToken: cancellation);
+
+		return (tree, CSharpCompilation.Create(
+			"Parity",
+			[
+				tree,
+				CSharpSyntaxTree.ParseText(SupportEmitter.Attributes, cancellationToken: cancellation),
+				CSharpSyntaxTree.ParseText(SupportEmitter.EmbeddedAttribute, cancellationToken: cancellation),
+			],
+			[MetadataReference.CreateFromFile(typeof(object).Assembly.Location)],
+			new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)));
 	}
 
 	/// <summary>

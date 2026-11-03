@@ -73,7 +73,7 @@ public static class EmbeddedGrammarFinder
 			if (IsFile(own))
 				continue;
 
-			var (included, lexical) = Host(model, attribute, includedFile, cancellationToken);
+			var (included, host) = Host(model, attribute, includedFile, cancellationToken);
 			var (analysisText, joinedMap) = included.Count == 0
 				? (own, null)
 				: GrammarSplice.Join(new GrammarSplice.Part(own, null, null), included);
@@ -83,7 +83,8 @@ public static class EmbeddedGrammarFinder
 				Cuts    = joinedMap is null
 					? null
 					: GrammarSplice.Cuts(analysisText, joinedMap.Segments.Skip(1).Select(static one => (one.Start, one.Length))),
-				Lexical = lexical,
+				Lexical = host?.Lexical ?? false,
+				Host    = host,
 			};
 
 			grammars.Add(new EmbeddedGrammar(own, literal.Token, map!, analysisText, options));
@@ -168,9 +169,9 @@ public static class EmbeddedGrammarFinder
 
 	/// <summary>
 	/// What the class an attribute is written on includes, read the way a standalone grammar's
-	/// host is read, and whether the attribute asks for the grammar to be read as tokens.
+	/// host is read, and what the attribute asks of the compilation; null where it is on no class.
 	/// </summary>
-	static (IReadOnlyList<GrammarSplice.Part> Included, bool Lexical) Host(
+	static (IReadOnlyList<GrammarSplice.Part> Included, GramHostOptions? Options) Host(
 		SemanticModel model,
 		AttributeSyntax attribute,
 		Func<string, string?>? includedFile,
@@ -178,7 +179,7 @@ public static class EmbeddedGrammarFinder
 	{
 		if (attribute.Parent?.Parent is not TypeDeclarationSyntax declaration ||
 			model.GetDeclaredSymbol(declaration, cancellationToken) is not INamedTypeSymbol type)
-			return (Array.Empty<GrammarSplice.Part>(), false);
+			return (Array.Empty<GrammarSplice.Part>(), null);
 
 		var included = new List<GrammarSplice.Part>();
 
@@ -201,14 +202,14 @@ public static class EmbeddedGrammarFinder
 		var reading = type.GetAttributes()
 			.FirstOrDefault(candidate => candidate.ApplicationSyntaxReference?.Span == attribute.Span);
 		var firstReading = GramIncludes.Grams(type).FirstOrDefault();
-		var lexical = reading is not null && GramHostOptions.Read(
+		var options = reading is null ? null : GramHostOptions.Read(
 			reading,
 			type,
 			firstReading is null || ReferenceEquals(firstReading, reading)
 				? null
-				: GramHostOptions.Read(firstReading, type, first: null)).Lexical;
+				: GramHostOptions.Read(firstReading, type, first: null));
 
-		return (included, lexical);
+		return (included, options);
 	}
 
 	static bool IsFile(string source)
