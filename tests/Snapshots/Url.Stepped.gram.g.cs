@@ -301,6 +301,7 @@ namespace DotGram.Snapshots
 			/// <summary>What the rule <c>Url</c> recognized.</summary>
 			public sealed class Url
 			{
+				/// <summary>Builds what the rule <c>Url</c> recognized from its captures.</summary>
 				public Url(string scheme, global::DotGram.Snapshots.Url.Stepped.Authority authority, string path, string? query, string? fragment)
 				{
 					Scheme = scheme;
@@ -329,6 +330,7 @@ namespace DotGram.Snapshots
 			/// <summary>What the rule <c>Authority</c> recognized.</summary>
 			public sealed class Authority
 			{
+				/// <summary>Builds what the rule <c>Authority</c> recognized from its captures.</summary>
 				public Authority(string? user, string host, string? port)
 				{
 					User = user;

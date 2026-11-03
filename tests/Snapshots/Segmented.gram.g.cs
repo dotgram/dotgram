@@ -67,6 +67,7 @@ namespace DotGram.Snapshots
 		/// <summary>What the rule <c>Args</c> recognized.</summary>
 		public sealed class Args
 		{
+			/// <summary>Builds what the rule <c>Args</c> recognized from its captures.</summary>
 			public Args(global::DotGram.Snapshots.Segmented.Arg[] items)
 			{
 				Items = items;
@@ -79,6 +80,7 @@ namespace DotGram.Snapshots
 		/// <summary>What the rule <c>Arg</c> recognized.</summary>
 		public sealed class Arg
 		{
+			/// <summary>Builds what the rule <c>Arg</c> recognized from its captures.</summary>
 			public Arg(string? output, string? comment, string? quoted, string? plain)
 			{
 				Output = output;
