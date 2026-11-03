@@ -1577,9 +1577,9 @@ at the start of every token before the automaton; that works and is `GRAM5011`, 
 `Std.Nested(open, close)`, as the terminal or its last operand, is begun by its `open`, and
 its rest is read by its counter rather than by a machine over characters.
 
-**A window that holds no token is refused over kinds.** A window, or a position, whose text is
-empty or trivia alone gives the syntactic half no token to read, and it refuses there, where
-over characters an empty repetition reads it.
+**A window that holds no token is Starved over kinds.** A window, or a position, whose text is
+empty or trivia alone gives the syntactic half no token to read, and it answers `Starved` there,
+which is what docs/syntax.md §6.3 specifies; over characters an empty repetition reads it.
 
 ## Carriers
 

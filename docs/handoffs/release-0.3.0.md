@@ -104,7 +104,8 @@ Each package's notes list them with what to write instead. The ones most project
   grammar that needs them located names a second reading without `PerCall`.
 - Over tokens, a window that holds no token (empty, or trivia alone), or a reading from a position
   where only trivia is left (`TryParseRoot("ab  ", 2)`), answers Starved, where over characters an
-  empty repetition reads it. The whole input of trivia alone is read on both.
+  empty repetition reads it; the token form's Starved is the specified one (docs/syntax.md §6.3). The
+  whole input of trivia alone is read on both.
 - By default a parse read from a position or a window can refuse, or cut short, the rule's first
   reading in a few shapes (an optional or a repetition before a negative lookahead, a quoted string
   with doubled quotes; docs/syntax.md §6.8). The whole forms are right. The experimental build
