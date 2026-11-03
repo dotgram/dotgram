@@ -58,10 +58,11 @@ public sealed class ResolutionScope
 	/// <summary>The namespaces every text may name without writing a `using` for them.</summary>
 	/// <remarks>
 	/// <para>
-	/// The set a new project gets from the template, decided by Igor on 2026-09-26. They stand
-	/// as if the text had written them before its own `using`s, and are PEERS of them, which is
-	/// what C# does with a global using: a name two of them both give is ambiguous where it is
-	/// used, whichever of the two the text wrote (CS0104, checked against Roslyn).
+	/// The five namespaces C#'s classic class-file template writes at the top of a new file, so
+	/// that a text reads with the names a C# file starts with. They stand as if the text had
+	/// written them before its own `using`s, and are PEERS of them, which is what C# does with a
+	/// global using: a name two of them both give is ambiguous where it is used,
+	/// whichever of the two the text wrote (CS0104, checked against Roslyn).
 	/// </para>
 	/// <para>
 	/// They are recorded without being looked for. A namespace here that the scope's assemblies
@@ -214,7 +215,10 @@ public sealed class ResolutionScope
 		return _around.GetOrAdd(caller, static one => Deferred(one, () => Closure(one, null), true));
 	}
 
-	/// <summary>The same, and those assemblies too, as further references of it.</summary>
+	/// <summary>
+	/// The scope of an assembly and what it references, with those further assemblies as more
+	/// references of it.
+	/// </summary>
 	public static ResolutionScope Of(Assembly caller, params Assembly[] assemblies)
 	{
 		if (caller is null)
@@ -233,7 +237,10 @@ public sealed class ResolutionScope
 			: Deferred(Caller, () => Closure(Caller, Joined(Assemblies, more)), SeesInternals);
 	}
 
-	/// <summary>The same scope with the namespaces every text gets left out.</summary>
+	/// <summary>
+	/// This scope with <see cref="DefaultImports"/> left out, so that a text names only the
+	/// namespaces its own `using`s give; this one is unchanged.
+	/// </summary>
 	/// <remarks>
 	/// <para>
 	/// Where it looks is unchanged, so the closure is shared and never walked twice; what changes
@@ -253,7 +260,10 @@ public sealed class ResolutionScope
 		return Shaped(SeesInternals, false);
 	}
 
-	/// <summary>The same scope with the caller's internals hidden, as another assembly would see it.</summary>
+	/// <summary>
+	/// This scope with the caller's internal types and members hidden, as another assembly would
+	/// see them; this one is unchanged.
+	/// </summary>
 	public ResolutionScope WithoutInternals()
 	{
 		// The same closure, so the same Lazy: two scopes that differ in what they may SEE of the
