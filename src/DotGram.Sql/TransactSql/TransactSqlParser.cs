@@ -6,8 +6,11 @@ using DotGram.Sql.Standard;
 namespace DotGram.Sql.TransactSql;
 
 /// <summary>
-/// A first slice of Microsoft's T-SQL, written as a grammar that stands on its own: it includes no
-/// other grammar, and the rules it shares in shape with ISO/IEC 9075:1992 are restated in it.
+/// SQL Server's T-SQL, as the engine reads it: a batch, a script of batches, or one statement or
+/// expression, and a batch or a script also at a named compatibility level from 100 to 170
+/// (<c>ParseSql130</c>, <c>ParseScript130</c>, ...). Written as a grammar that stands on its own: it
+/// includes no other grammar, and the rules it shares in shape with ISO/IEC 9075:1992 are restated
+/// in it.
 /// </summary>
 /// <remarks>
 /// <para>
