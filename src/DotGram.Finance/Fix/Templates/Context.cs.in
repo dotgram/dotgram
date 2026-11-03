@@ -171,9 +171,18 @@ public sealed record @@Context@@ : FixContext
 		return With(merged ?? new FixDictionary());
 	}
 
-	/// <inheritdoc cref="Load(string)"/>
-	/// <param name="fileName">The path of the dictionary's file.</param>
+	/// <summary>
+	/// This context with the dictionary in a file loaded over its schema:
+	/// <c>With(FixDictionary.LoadFile(fileName))</c>.
+	/// </summary>
+	/// <param name="fileName">The path of a FIX data dictionary's file, or of a fragment of one.</param>
+	/// <returns>A new context, reading as this one does; this one is unchanged.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="fileName"/> is null.</exception>
+	/// <exception cref="FileNotFoundException">There is no file at <paramref name="fileName"/>.</exception>
+	/// <exception cref="UnauthorizedAccessException">The file may not be read by the caller.</exception>
+	/// <exception cref="IOException">The file could not be opened or read.</exception>
+	/// <exception cref="FormatException">The file is not a dictionary this package can read, or it names what the model does not have.</exception>
+	/// <remarks>See <see cref="With(FixDictionary)"/>, which this is the short form of.</remarks>
 	public @@Context@@ LoadFile(string fileName)
 	{
 		if (fileName == null) throw new ArgumentNullException(nameof(fileName));
