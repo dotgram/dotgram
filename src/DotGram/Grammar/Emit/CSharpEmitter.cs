@@ -3838,6 +3838,8 @@ file.Line("return spare;");
 		{
 			var parameters = members.Select(member => $"{Type(member)} {ResultTypes.ParameterOf(member)}");
 
+			file.Line($"/// <summary>Builds what the rule <c>{rule.Name}</c> recognized from its captures.</summary>");
+
 			using (file.Block($"public {name}({string.Join(", ", parameters)})"))
 				foreach (var member in members)
 					file.Line($"{ResultTypes.PropertyOf(member, name)} = {ResultTypes.ParameterOf(member)};");

@@ -384,6 +384,7 @@ namespace DotGram.Snapshots
 		/// <summary>What the rule <c>Feed</c> recognized.</summary>
 		public sealed class FeedValue
 		{
+			/// <summary>Builds what the rule <c>Feed</c> recognized from its captures.</summary>
 			public FeedValue(global::DotGram.Snapshots.Feed.Header header, global::DotGram.Snapshots.Feed.Row[] rows, global::DotGram.Snapshots.Feed.Trailer trailer)
 			{
 				Header = header;
@@ -404,6 +405,7 @@ namespace DotGram.Snapshots
 		/// <summary>What the rule <c>Header</c> recognized.</summary>
 		public sealed class Header
 		{
+			/// <summary>Builds what the rule <c>Header</c> recognized from its captures.</summary>
 			public Header(string date)
 			{
 				Date = date;
@@ -416,6 +418,7 @@ namespace DotGram.Snapshots
 		/// <summary>What the rule <c>Row</c> recognized.</summary>
 		public sealed class Row
 		{
+			/// <summary>Builds what the rule <c>Row</c> recognized from its captures.</summary>
 			public Row(string name, string amount)
 			{
 				Name = name;
@@ -432,6 +435,7 @@ namespace DotGram.Snapshots
 		/// <summary>What the rule <c>Trailer</c> recognized.</summary>
 		public sealed class Trailer
 		{
+			/// <summary>Builds what the rule <c>Trailer</c> recognized from its captures.</summary>
 			public Trailer(string count)
 			{
 				Count = count;
