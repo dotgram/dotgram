@@ -52,7 +52,16 @@ public sealed record Identifier(string Text, IdentifierStyle Style = IdentifierS
 // whose text is the string's content with its doubled quotes undone.
 public enum IdentifierStyle { Regular, Delimited, UnicodeDelimited, Bracketed, String, NationalString }
 
-/// <summary>BNF: top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families.</summary>
+/// <summary>
+/// A statement: one of the records nested in this one, such as <see cref="Select"/>, <see cref="Insert"/>,
+/// <see cref="Update"/>, <see cref="Delete"/>, <see cref="Merge"/> or <see cref="CreateTable"/>. What
+/// <c>ParseStatement</c> returns, and what a <see cref="Batch"/> holds.
+/// </summary>
+/// <remarks>
+/// BNF: the top-level SQL statement containers and the executable, schema, data, control, transaction,
+/// session and dynamic statement families. Switch on the nested type, or walk the tree with
+/// <c>SqlWalker</c>.
+/// </remarks>
 public abstract partial record Statement : ISqlNode
 {
 	SqlLocation _location;
@@ -74,59 +83,112 @@ public abstract partial record Statement : ISqlNode
 	/// </remarks>
 	public sealed partial record Select : Statement
 	{
+		/// <summary>The query: its clauses, its set operations and its ORDER BY.</summary>
 		public required Query Query { get; init; }
 
 		/// <summary>T-SQL: Query Hints. The statement's <c>OPTION (…)</c>, which a subquery may not write.</summary>
 		public SqlList<QueryHint> Hints { get; init; } = [];
 	}
 
-	// BNF: <insert statement>
+	/// <summary>
+	/// BNF: <c>&lt;insert statement&gt;</c>. <c>INSERT INTO t (a, b) …</c>: the table, the columns named, and
+	/// the rows, from <c>VALUES</c>, a query or <c>DEFAULT VALUES</c>.
+	/// </summary>
 	public sealed partial record Insert : Statement
 	{
 		/// <summary>T-SQL: TOP. <c>INSERT TOP (n) INTO t …</c>.</summary>
 		public TopClause? Top { get; init; }
+
+		/// <summary>The table the rows go into.</summary>
 		public required TableSource Target { get; init; }
+
+		/// <summary>The columns named after the table, in order; empty where none were.</summary>
 		public SqlList<Identifier> Columns { get; init; } = [];
+
+		/// <summary><c>OVERRIDING USER VALUE</c> or <c>OVERRIDING SYSTEM VALUE</c>; null where neither was written.</summary>
 		public OverrideKind? Override { get; init; }
+
+		/// <summary>Where the rows come from: a query, a <c>VALUES</c> list, or <c>DEFAULT VALUES</c>, the default.</summary>
 		public InsertSource SourceValue { get; init; } = new InsertSource.DefaultValues();
 	}
 
-	// BNF: <update statement: searched>, <update statement: positioned>, dynamic/preparable positioned update
+	/// <summary>
+	/// BNF: <c>&lt;update statement: searched&gt;</c>, <c>&lt;update statement: positioned&gt;</c>, and the
+	/// dynamic and preparable positioned updates. <c>UPDATE t SET a = 1 WHERE …</c>, or
+	/// <c>… WHERE CURRENT OF c</c>.
+	/// </summary>
 	public sealed partial record Update : Statement
 	{
 		/// <summary>T-SQL: TOP. <c>UPDATE TOP (n) t SET …</c>.</summary>
 		public TopClause? Top { get; init; }
-		// Null in a preparable positioned statement, which may leave its table out.
+
+		/// <summary>The table updated; null in a preparable positioned statement, which may leave its table out.</summary>
 		public TableSource? Target { get; init; }
+
+		/// <summary><c>FOR PORTION OF p FROM x TO y</c>: the part of an application-time period updated.</summary>
 		public PeriodPortion? Portion { get; init; }
+
+		/// <summary>The name the table is given after it (<c>UPDATE t AS u SET …</c>).</summary>
 		public Alias? Alias { get; init; }
+
+		/// <summary>The <c>SET</c> list, in order.</summary>
 		public SqlList<Assignment> Assignments { get; init; } = [];
+
+		/// <summary>The <c>WHERE</c> condition of a searched update; null where none was written.</summary>
 		public Expression? Where { get; init; }
+
+		/// <summary>The cursor of <c>WHERE CURRENT OF c</c>, in a positioned update.</summary>
 		public CursorReference? CurrentOf { get; init; }
 	}
 
-	// BNF: <delete statement: searched>, <delete statement: positioned>, dynamic/preparable positioned delete
+	/// <summary>
+	/// BNF: <c>&lt;delete statement: searched&gt;</c>, <c>&lt;delete statement: positioned&gt;</c>, and the
+	/// dynamic and preparable positioned deletes. <c>DELETE FROM t WHERE …</c>, or
+	/// <c>… WHERE CURRENT OF c</c>.
+	/// </summary>
 	public sealed partial record Delete : Statement
 	{
 		/// <summary>T-SQL: TOP. <c>DELETE TOP (n) FROM t …</c>.</summary>
 		public TopClause? Top { get; init; }
-		// Null in a preparable positioned statement, which may leave its table out.
+
+		/// <summary>The table rows are deleted from; null in a preparable positioned statement, which may leave its table out.</summary>
 		public TableSource? Target { get; init; }
+
+		/// <summary><c>FOR PORTION OF p FROM x TO y</c>: the part of an application-time period deleted.</summary>
 		public PeriodPortion? Portion { get; init; }
+
+		/// <summary>The name the table is given after it (<c>DELETE FROM t AS u …</c>).</summary>
 		public Alias? Alias { get; init; }
+
+		/// <summary>The <c>WHERE</c> condition of a searched delete; null where none was written.</summary>
 		public Expression? Where { get; init; }
+
+		/// <summary>The cursor of <c>WHERE CURRENT OF c</c>, in a positioned delete.</summary>
 		public CursorReference? CurrentOf { get; init; }
 	}
 
-	// BNF: <merge statement>
+	/// <summary>
+	/// BNF: <c>&lt;merge statement&gt;</c>. <c>MERGE INTO t USING s ON … WHEN MATCHED THEN …</c>: a table
+	/// changed row by row from another, as each row matches or does not.
+	/// </summary>
 	public sealed partial record Merge : Statement
 	{
 		/// <summary>T-SQL: TOP. <c>MERGE TOP (n) INTO t …</c>.</summary>
 		public TopClause? Top { get; init; }
+
+		/// <summary>The table changed.</summary>
 		public required TableSource Target { get; init; }
+
+		/// <summary>The name the target is given after it.</summary>
 		public Alias? Alias { get; init; }
+
+		/// <summary>The table source of <c>USING</c>, which the rows come from.</summary>
 		public required TableSource SourceTable { get; init; }
+
+		/// <summary>The <c>ON</c> condition, which says whether a source row matches a target row.</summary>
 		public required Expression On { get; init; }
+
+		/// <summary>The <c>WHEN … THEN …</c> clauses, in the order written.</summary>
 		public SqlList<MergeClause> Clauses { get; init; } = [];
 	}
 
@@ -149,13 +211,25 @@ public abstract partial record Statement : ISqlNode
 		public SqlList<Statement> Elements { get; init; } = [];
 	}
 
-	// BNF: <table definition>
+	/// <summary>
+	/// BNF: <c>&lt;table definition&gt;</c>. <c>CREATE TABLE t (…)</c>: the table's name, and its columns
+	/// and constraints, or the query it is made of.
+	/// </summary>
 	public sealed partial record CreateTable : Statement
 	{
+		/// <summary><c>GLOBAL TEMPORARY</c> or <c>LOCAL TEMPORARY</c>; null for a persistent table.</summary>
 		public TableScope? Scope { get; init; }
+
+		/// <summary>The table's name, as written.</summary>
 		public required QualifiedName Name { get; init; }
+
+		/// <summary>What the table is made of: its column and constraint definitions, a structured type it is of, or a query.</summary>
 		public required TableContents Contents { get; init; }
+
+		/// <summary>The standard's <c>WITH SYSTEM VERSIONING</c> was written.</summary>
 		public bool SystemVersioning { get; init; }
+
+		/// <summary>A temporary table's <c>ON COMMIT PRESERVE ROWS</c> or <c>ON COMMIT DELETE ROWS</c>.</summary>
 		public TableCommitAction? OnCommit { get; init; }
 	}
 
@@ -426,6 +500,8 @@ public abstract partial record Query : ISqlNode
 	{
 		/// <summary>T-SQL: TOP. Of this operand alone, not of the whole result.</summary>
 		public TopClause? Top { get; init; }
+
+		/// <summary><c>DISTINCT</c> or <c>ALL</c> after <c>SELECT</c>; null where neither was written.</summary>
 		public SetQuantifier? Quantifier { get; init; }
 
 		/// <summary>
@@ -451,10 +527,20 @@ public abstract partial record Query : ISqlNode
 		/// rows.
 		/// </summary>
 		public IntoClause? Into { get; init; }
+
+		/// <summary>The <c>FROM</c> clause; null where none was written (<c>SELECT 1</c>).</summary>
 		public FromClause? From { get; init; }
+
+		/// <summary>The <c>WHERE</c> condition; null where none was written.</summary>
 		public Expression? Where { get; init; }
+
+		/// <summary>The <c>GROUP BY</c> clause; null where none was written.</summary>
 		public GroupByClause? GroupBy { get; init; }
+
+		/// <summary>The <c>HAVING</c> condition; null where none was written.</summary>
 		public Expression? Having { get; init; }
+
+		/// <summary>The <c>WINDOW</c> clause, the windows named for this operand's <c>OVER</c>s.</summary>
 		public WindowClause? Window { get; init; }
 	}
 
@@ -700,7 +786,15 @@ public sealed record SortItem(Expression Key, SortDirection? Direction = null, N
 public enum SortDirection { Asc, Desc }
 public enum NullOrdering { First, Last }
 
-/// <summary>BNF: <c>&lt;table reference&gt;</c>, <c>&lt;table factor&gt;</c>, <c>&lt;table primary&gt;</c>, <c>&lt;joined table&gt;</c>, derived/collection/function/JSON tables.</summary>
+/// <summary>
+/// A table source: what a <c>FROM</c> lists and a statement changes. One of the records nested in this
+/// one — a table by name (<see cref="Named"/>), a derived table (<see cref="Subquery"/>), a
+/// <see cref="Join"/> of two others, a table-valued function, and the rest.
+/// </summary>
+/// <remarks>
+/// BNF: <c>&lt;table reference&gt;</c>, <c>&lt;table factor&gt;</c>, <c>&lt;table primary&gt;</c>,
+/// <c>&lt;joined table&gt;</c>, and the derived, collection, function and JSON tables.
+/// </remarks>
 public abstract partial record TableSource : ISqlNode
 {
 	SqlLocation _location;
@@ -710,33 +804,65 @@ public abstract partial record TableSource : ISqlNode
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 
-	// BNF: <table factor>'s <sample clause>, which may follow any <table primary>.
+	/// <summary>
+	/// BNF: <c>&lt;table factor&gt;</c>'s <c>&lt;sample clause&gt;</c>, <c>TABLESAMPLE …</c>, which may follow
+	/// any table primary.
+	/// </summary>
 	public SampleClause? Sample { get; init; }
+
+	/// <summary>A table or view by its name: <c>dbo.t AS x</c>.</summary>
+	/// <param name="Name">The name, as written.</param>
 	public sealed partial record Named(QualifiedName Name) : TableSource
 	{
+		/// <summary><c>FOR SYSTEM_TIME …</c>: the rows of a system-versioned table at a time or over a span.</summary>
 		public SystemTimeSpecification? SystemTime { get; init; }
+
+		/// <summary>The name the table is given after it.</summary>
 		public Alias? Alias { get; init; }
+
+		/// <summary>The standard's <c>ONLY (t)</c>: the table without its subtables.</summary>
 		public bool Only { get; init; }
 	}
 
+	/// <summary>A derived table: a query in brackets, <c>(SELECT …) AS d</c>.</summary>
+	/// <param name="Query">The query inside the brackets.</param>
 	public sealed partial record Subquery(Query Query) : TableSource
 	{
+		/// <summary><c>LATERAL</c> was written: the query may name the table sources before it.</summary>
 		public bool Lateral { get; init; }
+
+		/// <summary>The name the derived table is given, and its columns' names where they are listed.</summary>
 		public Alias? Alias { get; init; }
 	}
 
+	/// <summary>
+	/// Two table sources joined: <c>t JOIN u ON …</c>, <c>t CROSS JOIN u</c>, <c>t CROSS APPLY f(t.a)</c>.
+	/// </summary>
 	public sealed partial record Join : TableSource
 	{
+		/// <summary>The table source before the join's words.</summary>
 		public required TableSource Left { get; init; }
+
+		/// <summary>The table source after them.</summary>
 		public required TableSource Right { get; init; }
-		// BNF: <join type>; null where a bare `JOIN` was written, which is not the same text as `INNER JOIN`.
+
+		/// <summary>
+		/// BNF: <c>&lt;join type&gt;</c>. Null where a bare <c>JOIN</c> was written, which is not the same
+		/// text as <c>INNER JOIN</c>.
+		/// </summary>
 		public JoinKind? Kind { get; init; }
+
+		/// <summary><c>NATURAL</c> was written.</summary>
 		public bool Natural { get; init; }
+
+		/// <summary><c>OUTER</c> was written after <c>LEFT</c>, <c>RIGHT</c> or <c>FULL</c>.</summary>
 		public bool OuterKeyword { get; init; }
 
 		// BNF: <partitioned join table>'s <join column list> on either side, `t PARTITION BY (a) LEFT JOIN u`.
 		public SqlList<Expression>? LeftPartition { get; init; }
 		public SqlList<Expression>? RightPartition { get; init; }
+
+		/// <summary>The <c>ON</c> condition or the <c>USING</c> columns; null for a join that takes neither.</summary>
 		public JoinSpecification? Specification { get; init; }
 
 		// T-SQL: Join hints (Transact-SQL). How the engine is told to perform the join.
@@ -789,7 +915,16 @@ public sealed partial record SampleClause(SampleMethod Method, Expression Percen
 public enum SampleMethod { Bernoulli, System }
 public enum ResultOption { Final, New, Old }
 
-/// <summary>BNF: <c>&lt;value expression&gt;</c> and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars.</summary>
+/// <summary>
+/// A value or a condition: one of the records nested in this one — a column or variable by name
+/// (<see cref="Reference"/>), a literal, an operator over others (<see cref="Unary"/>,
+/// <see cref="Binary"/>), a function call, a subquery, a predicate. What <c>ParseExpression</c> and
+/// <c>ParseSearchCondition</c> return.
+/// </summary>
+/// <remarks>
+/// BNF: <c>&lt;value expression&gt;</c> and its numeric, string, datetime, interval, boolean, predicate and
+/// value-primary subgrammars. A search condition is an expression too: <c>WHERE</c> holds one.
+/// </remarks>
 public abstract partial record Expression : ISqlNode, ISqlLocatable
 {
 	SqlLocation _location;
@@ -809,6 +944,8 @@ public abstract partial record Expression : ISqlNode, ISqlLocatable
 	/// <summary>Where a reading said the value was written, whether the reading published locations or not.</summary>
 	internal SqlSpan Read => _location.Read;
 
+	/// <summary>A name standing for a value: a column, <c>a</c> or <c>t.a</c>.</summary>
+	/// <param name="Name">The name, as written, with every part.</param>
 	public sealed record Reference(QualifiedName Name) : Expression;
 
 	// BNF: <host parameter specification>, <embedded variable specification>, <dynamic parameter specification>.
@@ -822,7 +959,18 @@ public abstract partial record Expression : ISqlNode, ISqlLocatable
 	// BNF: <general value specification>'s key words, <datetime value function>. Precision is `CURRENT_TIME (3)`'s.
 	public sealed record Current(CurrentValue Kind, QualifiedName? TypeName = null, Expression? Precision = null) : Expression;
 
+	/// <summary>An operator before its operand: <c>-x</c>, <c>NOT p</c>.</summary>
+	/// <param name="Operator">The operator.</param>
+	/// <param name="Operand">What it applies to.</param>
 	public sealed record Unary(UnaryOperator Operator, Expression Operand) : Expression;
+
+	/// <summary>
+	/// An operator between two operands: <c>a + b</c>, <c>a || b</c>, <c>p AND q</c>. The grouping is the
+	/// tree's: <c>a - b - c</c> is a <c>Binary</c> whose left operand is <c>a - b</c>.
+	/// </summary>
+	/// <param name="Left">The operand before the operator.</param>
+	/// <param name="Operator">The operator.</param>
+	/// <param name="Right">The operand after it.</param>
 	public sealed record Binary(Expression Left, BinaryOperator Operator, Expression Right) : Expression;
 
 	// BNF: <multiset value expression>, <multiset term> — `MULTISET UNION ALL`, which carries a quantifier.

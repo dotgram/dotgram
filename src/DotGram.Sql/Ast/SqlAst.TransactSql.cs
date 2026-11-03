@@ -30,6 +30,8 @@ namespace DotGram.Sql.Ast;
 /// so two readings of one script give equal batches.
 /// </para>
 /// </remarks>
+/// <param name="Statements">The batch's statements, in order.</param>
+/// <param name="Go">The <c>GO</c> line that ended the batch, as written; null where nothing did.</param>
 public sealed record Batch(SqlList<Statement> Statements, string? Go = null)
 {
 	/// <summary>Where the batch was read from, held where the record's equality does not look.</summary>
