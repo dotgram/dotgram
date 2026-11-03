@@ -6,8 +6,20 @@ namespace DotGram.Finance.Fix.Fix44;
 // Derived from the FIX Protocol specification (FIX Unified Repository, 2010 edition), Copyright FIX Protocol Limited, https://www.fixtrading.org.
 
 /// <summary>
-/// Reads an ordered, flat list of FIX fields using computed dispatch without message validation.
+/// Reads FIX fields and messages from a string, octets, a reader or a stream.
 /// </summary>
+/// <remarks>
+/// <para>
+/// The name of a method says what comes back and where the input is. <c>Parse</c> takes a buffer
+/// whole; <c>Read</c> consumes a reader or a stream and leaves it open; the plural says how many
+/// come back. So <c>ParseFields</c> and <c>ReadFields</c>, <c>ParseMessage</c> and
+/// <c>ReadMessage</c>, <c>ParseMessages</c> and <c>ReadMessages</c>; <c>BuildMessage</c> makes a
+/// message of fields already read.
+/// </para>
+/// <para>
+/// Reading does not hold a message to a schema: that is asked of the message once it is read.
+/// </para>
+/// </remarks>
 public static partial class FixParser
 {
 	#region ParseFields

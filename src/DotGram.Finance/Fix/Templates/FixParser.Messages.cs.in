@@ -6,28 +6,8 @@ using System.Runtime.InteropServices;
 
 namespace DotGram.Finance.Fix.@@Ns@@;
 
-/// <summary>
-/// The message half of the package's one door: the same input read as messages rather than as a
-/// flat list of fields.
-/// </summary>
-/// <remarks>
-/// <para>
-/// One class, and the name says what comes back rather than which class it came from. The verb
-/// says where the input is and what happens to it — <c>Parse</c> takes a buffer whole,
-/// <c>Read</c> consumes a reader or a stream and leaves it open — and the plural says how many
-/// come back. So <c>ParseFields</c> and <c>ReadFields</c>, <c>ParseMessage</c> and
-/// <c>ReadMessage</c>, <c>ParseMessages</c> and <c>ReadMessages</c>.
-/// </para>
-/// <para>
-/// The names are not decoration: with one door, <c>Parse(reader)</c> would have to answer both a
-/// field sequence and a message, which is one signature with two return types and no program at
-/// all. What the scheme buys beside that is a reader who can see the whole surface at once.
-/// </para>
-/// <para>
-/// Reading is one act and holding a message to a schema is another: what holds a message to the
-/// schema is asked of the message, not of an entry point here.
-/// </para>
-/// </remarks>
+// The messages: the same input read as messages rather than as a flat list of fields. The type's
+// documentation is in FixParser.cs.
 public static partial class FixParser
 {
 	/// <summary>
@@ -37,11 +17,6 @@ public static partial class FixParser
 	/// <param name="context">Null reads wire framing with the standard length/data dictionary.</param>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
 	/// <exception cref="FormatException">The input is not a message under <paramref name="context"/>.</exception>
-	/// <remarks>
-	/// The context are one optional argument rather than a second method, which is the shape
-	/// <c>FixParser</c> beside it already uses. A pair of methods where one passes a default is ten
-	/// pairs across this class, and the tenth has to be written twice by whoever adds a setting.
-	/// </remarks>
 	public static FixMessage ParseMessage(string input, @@Context@@? context = null)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
