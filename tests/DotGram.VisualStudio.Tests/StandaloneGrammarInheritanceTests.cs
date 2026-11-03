@@ -100,6 +100,9 @@ public sealed class StandaloneGrammarInheritanceTests
 		Assert.Contains("namespace Sql92\n{\nWord = ['a'..'z']+", context.AnalysisTail, StringComparison.Ordinal);
 		Assert.True(context.Lexical);
 
+		// What the build makes of the grammar's diagnostics is its project's to say.
+		Assert.Equal(project.CompilationOptions, context.Build);
+
 		var included = Assert.Single(context.Included);
 		Assert.Equal("Sql92", included.Name);
 		Assert.Equal(StandardPath, included.FilePath);

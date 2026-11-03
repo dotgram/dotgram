@@ -27,17 +27,20 @@ readonly record struct StandaloneIncludedGrammar(string Name, string Text, strin
 
 /// <summary>What a standalone grammar is compiled with: what its host includes, and how it reads it.</summary>
 /// <param name="Host">What the host's reading asks of the compilation beside <c>Lexical</c>, or null where nothing is known.</param>
+/// <param name="Build">The options of the project that compiles the grammar, which say what its build shows of a diagnostic.</param>
 readonly record struct StandaloneGrammarContext(
 	string AnalysisTail,
 	IReadOnlyList<StandaloneIncludedGrammar> Included,
 	bool Lexical = false,
-	GramHostOptions? Host = null)
+	GramHostReading? Host = null,
+	CompilationOptions? Build = null)
 {
 	/// <summary>Whether compiling with the other would say the same: the texts and the options.</summary>
 	public bool SameAs(StandaloneGrammarContext other)
 	{
 		return Lexical == other.Lexical &&
 			Equals(Host, other.Host) &&
+			Equals(Build, other.Build) &&
 			AnalysisTail == other.AnalysisTail &&
 			Included.Select(static item => (item.Name, item.FilePath))
 				.SequenceEqual(other.Included.Select(static item => (item.Name, item.FilePath)));
@@ -203,7 +206,7 @@ static class StandaloneGrammarInheritance
 
 		return new StandaloneGrammarResolution(
 			StandaloneGrammarState.Resolved,
-			new StandaloneGrammarContext(tail, included, options.Lexical, options),
+			new StandaloneGrammarContext(tail, included, options.Lexical, GramHostReading.Of(options, host), project.CompilationOptions),
 			projects,
 			documents);
 	}

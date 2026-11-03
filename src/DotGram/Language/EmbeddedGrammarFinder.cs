@@ -83,7 +83,7 @@ public static class EmbeddedGrammarFinder
 				Cuts    = joinedMap is null
 					? null
 					: GrammarSplice.Cuts(analysisText, joinedMap.Segments.Skip(1).Select(static one => (one.Start, one.Length))),
-				Lexical = host?.Lexical ?? false,
+				Lexical = host?.Options.Lexical ?? false,
 				Host    = host,
 			};
 
@@ -171,7 +171,7 @@ public static class EmbeddedGrammarFinder
 	/// What the class an attribute is written on includes, read the way a standalone grammar's
 	/// host is read, and what the attribute asks of the compilation; null where it is on no class.
 	/// </summary>
-	static (IReadOnlyList<GrammarSplice.Part> Included, GramHostOptions? Options) Host(
+	static (IReadOnlyList<GrammarSplice.Part> Included, GramHostReading? Reading) Host(
 		SemanticModel model,
 		AttributeSyntax attribute,
 		Func<string, string?>? includedFile,
@@ -209,7 +209,7 @@ public static class EmbeddedGrammarFinder
 				? null
 				: GramHostOptions.Read(firstReading, type, first: null));
 
-		return (included, options);
+		return (included, options is null ? null : GramHostReading.Of(options, type));
 	}
 
 	static bool IsFile(string source)

@@ -489,6 +489,7 @@ sealed class GramBufferAnalysis
 						own + tail, known.Included.Select(item => (own.Length + item.Start, item.Text.Length))),
 				Lexical = known.Lexical,
 				Host    = known.Host,
+				Build   = known.Build,
 			}
 			: null;
 		var whole   = GramLanguageService.Analyze(own + tail, options);

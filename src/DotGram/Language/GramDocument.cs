@@ -152,26 +152,59 @@ public sealed class GramAnalysisOptions
 	public bool Lexical { get; set; }
 
 	/// <summary>
-	/// Everything else the host's reading says, as <see cref="GramHostOptions.Read"/> read it, or
-	/// null where there is no host. <see cref="Lexical"/> is not taken from here.
+	/// What the host's reading says beside <see cref="Lexical"/>, and which class it is, or null
+	/// where there is no host.
 	/// </summary>
 	/// <remarks>
 	/// The carrier, the buffered and byte forms and the rest decide diagnostics of their own: a
 	/// carrier named in the attribute silences what the generator says about the one it would
 	/// choose, and a buffered form is refused for what it cannot read. Analysed without them, a
-	/// grammar is shown what the build does not report. A location type is the one option left
-	/// out: what it changes rests on which C# types implement it, which the editor does not resolve.
+	/// grammar is shown what the build does not report.
 	/// </remarks>
-	internal GramHostOptions? Host { get; set; }
+	internal GramHostReading? Host { get; set; }
+
+	/// <summary>
+	/// The options of the project that compiles a grammar which is a file of its own, or null.
+	/// </summary>
+	/// <remarks>
+	/// What the build makes of the diagnostics of a <c>.gram</c> file: <c>NoWarn</c>,
+	/// <c>WarningsAsErrors</c>, <c>TreatWarningsAsErrors</c> and a global analyzer configuration
+	/// apply to them as to any (<see cref="GramBuildSeverity"/>); a <c>#pragma</c> and an
+	/// <c>.editorconfig</c> section are a C# file's and do not. A grammar in a <c>[Gram]</c> is
+	/// given its file's by <see cref="EmbeddedGrammarService"/> instead, and leaves this null.
+	/// </remarks>
+	internal Microsoft.CodeAnalysis.CompilationOptions? Build { get; set; }
 
 	/// <summary>What a host's reading says, for a grammar with nothing spliced on.</summary>
-	internal static GramAnalysisOptions Of(GramHostOptions host)
+	internal static GramAnalysisOptions Of(GramHostReading host)
 	{
 		return new GramAnalysisOptions
 		{
-			Lexical = host.Lexical,
+			Lexical = host.Options.Lexical,
 			Host    = host,
 		};
+	}
+}
+
+/// <summary>A reading of a grammar's host: its options, and the class the parser goes into.</summary>
+/// <param name="ClassName">The class as the generator names it: the enclosing classes and type parameters with it.</param>
+/// <param name="Namespace">Its namespace, or null for the global one.</param>
+sealed record GramHostReading(GramHostOptions Options, string ClassName, string? Namespace)
+{
+	/// <summary>A reading of this class.</summary>
+	public static GramHostReading Of(GramHostOptions options, Microsoft.CodeAnalysis.INamedTypeSymbol type)
+	{
+		var names = new List<string>();
+
+		for (var at = type; at is not null; at = at.ContainingType)
+			names.Insert(0, at.TypeParameters.Length == 0
+				? at.Name
+				: at.Name + "<" + string.Join(", ", at.TypeParameters.Select(static parameter => parameter.Name)) + ">");
+
+		return new GramHostReading(
+			options,
+			string.Join(".", names),
+			type.ContainingNamespace is { IsGlobalNamespace: false } space ? space.ToDisplayString() : null);
 	}
 }
 
@@ -296,7 +329,7 @@ public static class GramLanguageService
 
 		return new GramDocument(
 			classifications,
-			NormalizeDiagnostics(compilation.Diagnostics, tokens.Tokens),
+			Built(NormalizeDiagnostics(compilation.Diagnostics, tokens.Tokens), options?.Build),
 			symbols,
 			braces,
 			foldingRanges,
@@ -306,40 +339,60 @@ public static class GramLanguageService
 
 	/// <summary>
 	/// What the generator's compiler is handed for a grammar the editor analyses: the host's
-	/// options as the generator passes them, less what needs the host's C# to mean anything.
+	/// options as the generator passes them (<see cref="GramHostOptions.ApplyTo"/>), less what
+	/// needs the host's C# or its build to mean anything.
 	/// </summary>
 	/// <remarks>
+	/// <para>
 	/// The editor resolves no C# type a grammar names, so its resolver's noes are not known to be
-	/// true, and what only they would report is left to the build (<see cref="GramCompilerOptions.HostUnseen"/>).
+	/// true, and what only they would report is left to the build (<see cref="UnseenHostSymbolResolver"/>).
+	/// </para>
+	/// <para>
+	/// Left out: the location type, which locates the rules whose types implement it; what only
+	/// shapes the emitted text (the support shared between readings, the static imports, a
+	/// suffix class the host declares, the language descriptor); and the switches a build sets
+	/// for a whole project — <c>DotGramTrace</c>, <c>DotGramPositionalFollow</c> and the
+	/// repository's own <c>DOTGRAM_*</c> symbols — which the editor's analysis, handed a semantic
+	/// model, has no project to read from. A trace build changes only which names the generated
+	/// class reserves.
+	/// </para>
 	/// </remarks>
 	internal static GramCompilerOptions CompilerOptions(GramAnalysisOptions? options, Action<GrammarModel>? bound = null)
 	{
 		var result = new GramCompilerOptions
 		{
-			CSharpScanner = RoslynCSharpScanner.Instance,
-			Own           = options?.Own,
-			Cuts          = options?.Cuts,
-			Lexical       = options?.Lexical ?? false,
-			HostUnseen    = true,
-			Bound         = bound,
+			CSharpScanner  = RoslynCSharpScanner.Instance,
+			SymbolResolver = UnseenHostSymbolResolver.Instance,
+			Own            = options?.Own,
+			Cuts           = options?.Cuts,
+			Bound          = bound,
 		};
 
 		if (options?.Host is { } host)
 		{
-			// Nought is what the attribute holds when nobody set it: the measured default, as the
-			// generator reads it.
-			result.PartSize              = host.PartSize == 0 ? null : host.PartSize;
-			result.Portable              = host.Portable;
-			result.Carrier               = (CarrierKind)host.Carrier;
-			result.Stacks                = host.Stacks;
-			result.ConstructionsMayThrow = host.ConstructionsMayThrow;
-			result.SpanCaptures          = host.SpanCaptures;
-			result.BufferedBytes         = host.BufferedBytes;
-			result.BufferedInput         = host.BufferedInput;
-			result.MaxRetained           = host.MaxRetained;
-			result.BufferSize            = host.BufferSize;
-			result.Trace                 = host.Trace;
+			host.Options.ApplyTo(result);
+			result.ClassName = host.ClassName;
+			result.Namespace = host.Namespace;
 		}
+
+		result.Lexical = options?.Lexical ?? false;
+
+		return result;
+	}
+
+	/// <summary>What the build shows of a grammar file's diagnostics, under its project's options.</summary>
+	static IReadOnlyList<GramDiagnostic> Built(
+		IReadOnlyList<GramDiagnostic> diagnostics, Microsoft.CodeAnalysis.CompilationOptions? options)
+	{
+		if (options is null)
+			return diagnostics;
+
+		var build  = new GramBuildSeverity(null, options);
+		var result = new List<GramDiagnostic>(diagnostics.Count);
+
+		foreach (var diagnostic in diagnostics)
+			if (build.Of(diagnostic, diagnostic.Position) is { } severity)
+				result.Add(severity == diagnostic.Severity ? diagnostic : diagnostic with { Severity = severity });
 
 		return result;
 	}

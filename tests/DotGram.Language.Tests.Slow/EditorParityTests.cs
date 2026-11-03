@@ -30,14 +30,13 @@ namespace DotGram.Language.Tests;
 /// read by the reader the generator reads them by (<see cref="GramHostOptions"/>), and the editor
 /// what it reads of the host itself; an option the editor left out was a grammar shown what its
 /// build does not report — a carrier named in the attribute, which silences what the generator
-/// says of the one it would choose. Left out on both sides are only what needs the host's C# to
-/// mean anything: a location type, which locates the rules whose types implement it, and the class
-/// and namespace the parser goes into.
+/// says of the one it would choose. Left out on both sides is only what needs the host's C# to
+/// mean anything: a location type, which locates the rules whose types implement it.
 /// </para>
 /// <para>
 /// The resolver is the one input this cannot hold. The generator asks the host's compilation; the
 /// editor resolves no C# type, and leaves what only a no from its resolver would report to the
-/// build (<see cref="GramCompilerOptions.HostUnseen"/>). The compiler is run the same way here,
+/// build (<see cref="UnseenHostSymbolResolver"/>). The compiler is run the same way here,
 /// so what the host's C# would answer — a constructor the captures fill, a recognizer that takes
 /// the input view — is not compared, and a divergence there is not caught here; what the
 /// generator asks a compilation is DotGram.Tests' to hold.
@@ -103,7 +102,7 @@ public sealed class EditorParityTests
 		var (tree, compilation) = Host(Path.Combine(EditorCorpusTests.Root, file), cancellation);
 		var model    = compilation.GetSemanticModel(tree);
 		var root     = await tree.GetRootAsync(cancellation);
-		var reported = new List<(GramDiagnostic Diagnostic, SyntaxTree Tree, TextSpan Span)>();
+		var reported = new List<(GramDiagnostic Diagnostic, SyntaxTree? Tree, TextSpan Span)>();
 
 		foreach (var grammar in EmbeddedGrammarFinder.Find(model, root, cancellation))
 		{
@@ -143,34 +142,26 @@ public sealed class EditorParityTests
 	}
 
 	/// <summary>
-	/// The compiler's options as the generator hands them over for a host's reading
-	/// (GramGenerator.Compile), less what needs the host's C# (see the remarks above).
+	/// The compiler's options as the generator hands them over for a host's reading, by the one
+	/// mapping both use (<see cref="GramHostOptions.ApplyTo"/>), with the class it compiles into;
+	/// less what needs the host's C# (see the remarks above).
 	/// </summary>
-	static GramCompilerOptions Compiled(GramHostOptions? host, int? own, IReadOnlyList<int>? cuts)
+	static GramCompilerOptions Compiled(GramHostReading? host, int? own, IReadOnlyList<int>? cuts)
 	{
 		var options = new GramCompilerOptions
 		{
-			CSharpScanner = RoslynCSharpScanner.Instance,
-			HostUnseen    = true,
-			Own           = own,
-			Cuts          = cuts,
+			CSharpScanner  = RoslynCSharpScanner.Instance,
+			SymbolResolver = UnseenHostSymbolResolver.Instance,
+			Own            = own,
+			Cuts           = cuts,
 		};
 
 		if (host is null)
 			return options;
 
-		options.PartSize              = host.PartSize == 0 ? null : host.PartSize;
-		options.Lexical               = host.Lexical;
-		options.Portable              = host.Portable;
-		options.Carrier               = (CarrierKind)host.Carrier;
-		options.ConstructionsMayThrow = host.ConstructionsMayThrow;
-		options.BufferedInput         = host.BufferedInput;
-		options.BufferedBytes         = host.BufferedBytes;
-		options.SpanCaptures          = host.SpanCaptures;
-		options.MaxRetained           = host.MaxRetained;
-		options.BufferSize            = host.BufferSize;
-		options.Stacks                = host.Stacks;
-		options.Trace                 = host.Trace;
+		host.Options.ApplyTo(options);
+		options.ClassName = host.ClassName;
+		options.Namespace = host.Namespace;
 
 		return options;
 	}
@@ -221,7 +212,7 @@ public sealed class EditorParityTests
 		var corpus = Corpus();
 
 		Assert.Equal(EditorCorpusTests.Grammars().Count, corpus.Count);
-		Assert.Contains(corpus, static grammar => grammar.Options is { Lexical: true });
+		Assert.Contains(corpus, static grammar => grammar.Options is { Options.Lexical: true });
 		Assert.Contains(corpus, static grammar => grammar.Name.EndsWith(".gram", StringComparison.Ordinal) && grammar.Options is not null);
 	}
 
@@ -230,7 +221,7 @@ public sealed class EditorParityTests
 		return (diagnostic.Id, diagnostic.Message, diagnostic.Severity, diagnostic.Position, diagnostic.Length);
 	}
 
-	sealed record Grammar(string Name, string Text, GramHostOptions? Options);
+	sealed record Grammar(string Name, string Text, GramHostReading? Options);
 
 	static IReadOnlyList<Grammar> Corpus()
 	{
@@ -242,7 +233,7 @@ public sealed class EditorParityTests
 	static IReadOnlyList<Grammar> Read()
 	{
 		var attributes = new List<Grammar>();
-		var files      = new List<(string Path, GramHostOptions Options)>();
+		var files      = new List<(string Path, GramHostReading Options)>();
 		var support    = new[]
 		{
 			CSharpSyntaxTree.ParseText(SupportEmitter.Attributes),
@@ -310,7 +301,7 @@ public sealed class EditorParityTests
 	}
 
 	/// <summary>What the reading an attribute is says, as the generator and the editor read it.</summary>
-	static GramHostOptions? Options(SemanticModel model, AttributeSyntax attribute)
+	static GramHostReading? Options(SemanticModel model, AttributeSyntax attribute)
 	{
 		if (attribute.Parent?.Parent is not TypeDeclarationSyntax declaration ||
 			model.GetDeclaredSymbol(declaration) is not INamedTypeSymbol type)
@@ -325,6 +316,8 @@ public sealed class EditorParityTests
 
 		var primary = GramIncludes.Primary(type);
 
-		return GramHostOptions.Read(reading, type, primary is null || primary == reading ? null : GramHostOptions.Read(primary, type, first: null));
+		return GramHostReading.Of(
+			GramHostOptions.Read(reading, type, primary is null || primary == reading ? null : GramHostOptions.Read(primary, type, first: null)),
+			type);
 	}
 }

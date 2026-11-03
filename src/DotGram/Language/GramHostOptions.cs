@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Linq;
 
+using DotGram.Grammar;
+
 using Microsoft.CodeAnalysis;
 
 namespace DotGram.Language;
@@ -100,6 +102,44 @@ sealed record GramHostOptions(
 			BufferSize:            Named(attribute, nameof(BufferSize)) as int? ?? first?.BufferSize ?? 4096,
 			PerCall:               Named(attribute, nameof(PerCall)) as bool? ?? false,
 			Trace:                 Named(attribute, nameof(Trace)) as bool? ?? first?.Trace ?? false);
+	}
+
+	/// <summary>
+	/// Hands this reading's options to a compilation: the one mapping of them, which the generator
+	/// compiles with and the editor analyses with.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Not the location type, which the generator gives the reading whose class holds the per-call
+	/// facade and the editor gives none: what it changes rests on which C# types implement it.
+	/// Not <see cref="IncludedAs"/> or <see cref="PerCall"/>, which say which reading this is and
+	/// not how it compiles.
+	/// </para>
+	/// <para>
+	/// <see cref="Trace"/> is this reading's; a build that asks for traces everywhere
+	/// (<c>DotGramTrace</c>) adds that to it.
+	/// </para>
+	/// </remarks>
+	public void ApplyTo(GramCompilerOptions options)
+	{
+		if (options is null)
+			throw new ArgumentNullException(nameof(options));
+
+		// Nought is what the attribute holds when nobody set it, and what somebody setting it to
+		// nought means: take the measured default either way.
+		options.PartSize              = PartSize == 0 ? null : PartSize;
+		options.Lexical               = Lexical;
+		options.Portable              = Portable;
+		options.Carrier               = (CarrierKind)Carrier;
+		options.Stacks                = Stacks;
+		options.Suffix                = Suffix;
+		options.ConstructionsMayThrow = ConstructionsMayThrow;
+		options.SpanCaptures          = SpanCaptures;
+		options.BufferedBytes         = BufferedBytes;
+		options.BufferedInput         = BufferedInput;
+		options.MaxRetained           = MaxRetained;
+		options.BufferSize            = BufferSize;
+		options.Trace                 = Trace;
 	}
 
 	/// <summary>Whether anything outside this assembly could name the class.</summary>

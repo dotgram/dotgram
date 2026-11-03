@@ -23,10 +23,17 @@ namespace DotGram.Language.Tests;
 /// </remarks>
 static class RoslynReport
 {
+	/// <summary>The file a diagnostic with no syntax tree is placed in: a grammar that is a file of its own.</summary>
+	public const string GrammarFile = "/grammar.gram";
+
 	/// <summary>Each diagnostic Roslyn shows, with the severity it shows it at.</summary>
+	/// <param name="reported">
+	/// Each diagnostic and where it is placed: in a C# file of the compilation, or, with no tree, in
+	/// <see cref="GrammarFile"/>, as a grammar file's diagnostics are.
+	/// </param>
 	public static async Task<IReadOnlyList<(string Id, string Message, GramSeverity Severity, TextSpan Span)>> Shown(
 		Compilation compilation,
-		IReadOnlyList<(GramDiagnostic Diagnostic, SyntaxTree Tree, TextSpan Span)> reported,
+		IReadOnlyList<(GramDiagnostic Diagnostic, SyntaxTree? Tree, TextSpan Span)> reported,
 		CancellationToken cancellationToken)
 	{
 		if (reported.Count == 0)
@@ -61,7 +68,7 @@ static class RoslynReport
 #pragma warning disable RS1017, RS1036, RS1038, RS1041, RS2008
 	/// <summary>Reports the diagnostics it is made with, each where it is placed, with its own severity.</summary>
 	[DiagnosticAnalyzer(LanguageNames.CSharp)]
-	sealed class Reporter(IReadOnlyList<(GramDiagnostic Diagnostic, SyntaxTree Tree, TextSpan Span)> reported) : DiagnosticAnalyzer
+	sealed class Reporter(IReadOnlyList<(GramDiagnostic Diagnostic, SyntaxTree? Tree, TextSpan Span)> reported) : DiagnosticAnalyzer
 	{
 		readonly Dictionary<(string Id, GramSeverity Severity), DiagnosticDescriptor> _descriptors = reported
 			.Select(static one => (one.Diagnostic.Id, one.Diagnostic.Severity))
@@ -77,7 +84,8 @@ static class RoslynReport
 					GramSeverity.Warning => DiagnosticSeverity.Warning,
 					_                    => DiagnosticSeverity.Info,
 				},
-				isEnabledByDefault: true));
+				isEnabledByDefault: true,
+				customTags: WellKnownDiagnosticTags.CompilationEnd));
 
 		public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [.. _descriptors.Values];
 
@@ -85,14 +93,17 @@ static class RoslynReport
 		{
 			context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
 			context.EnableConcurrentExecution();
-			context.RegisterSyntaxTreeAction(tree =>
+			context.RegisterCompilationAction(compilation =>
 			{
 				foreach (var (diagnostic, place, span) in reported)
-					if (place == tree.Tree)
-						tree.ReportDiagnostic(Diagnostic.Create(
-							_descriptors[(diagnostic.Id, diagnostic.Severity)],
-							Location.Create(place, span),
-							diagnostic.Message));
+				{
+					var location = place is null
+						? Location.Create(GrammarFile, span, new LinePositionSpan(new LinePosition(0, span.Start), new LinePosition(0, span.End)))
+						: Location.Create(place, span);
+
+					compilation.ReportDiagnostic(Diagnostic.Create(
+						_descriptors[(diagnostic.Id, diagnostic.Severity)], location, diagnostic.Message));
+				}
 			});
 		}
 	}

@@ -74,9 +74,9 @@ a user's DSL text without running the user's code; it is held to generated parse
 not an additional file — are the generator shell's, and an editor shows them only through the build. The editor reads
 of a grammar's host only what changes the analysis it shows (the attribute's options, read by `GramHostOptions`, and
 the grammars it includes), and it resolves no C# type a grammar names; diagnostics that depend on the rest are the
-build's, so a no from its resolver is not taken as an error of the grammar (`GramCompilerOptions.HostUnseen`): a
+build's, so a no from its resolver is not taken as an error of the grammar (`UnseenHostSymbolResolver`): a
 constructor the captures fill, or a recognizer that takes the input view, is the build's to find or miss. What the
-editor shows in a C# file has been through what the build applies there, the file's `#pragma warning` and the
-project's severities (`GramBuildSeverity`). Analysis in an editor runs the whole
+editor shows has been through what the build applies there, Roslyn's own filter: in a C# file the file's
+`#pragma warning` and the project's severities, in a grammar file the project's severities alone (`GramBuildSeverity`). Analysis in an editor runs the whole
 compiler, emission included, so that the warnings computed over the generated text are the build's; if that ever
 becomes too slow for a keystroke, the fast tier that replaces it must say which diagnostics it does not promise.

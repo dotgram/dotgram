@@ -128,6 +128,9 @@ public static class EmbeddedGrammarService
 	{
 		var analyses = new List<EmbeddedGrammarAnalysis>();
 
+		// What the build makes of a diagnostic, per C# file: its #pragmas are read once.
+		var builds = new Dictionary<SyntaxTree, GramBuildSeverity>();
+
 		foreach (var grammar in grammars)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -175,7 +178,7 @@ public static class EmbeddedGrammarService
 
 				// What the build shows of it, which the C# file and the project have their say in.
 				var shown = grammar.Token.SyntaxTree is { } tree
-					? GramBuildSeverity.Of(diagnostic, tree, place.Start, options, cancellationToken)
+					? Build(tree).Of(diagnostic, place.Start, cancellationToken)
 					: diagnostic.Severity;
 
 				if (shown is not { } severity)
@@ -228,6 +231,14 @@ public static class EmbeddedGrammarService
 		}
 
 		return analyses;
+
+		GramBuildSeverity Build(SyntaxTree tree)
+		{
+			if (!builds.TryGetValue(tree, out var build))
+				builds.Add(tree, build = new GramBuildSeverity(tree, options));
+
+			return build;
+		}
 	}
 
 	static IReadOnlyList<HostDocumentSymbol> MapSymbols(

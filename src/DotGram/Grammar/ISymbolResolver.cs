@@ -296,6 +296,83 @@ public sealed class PermissiveSymbolResolver : ISymbolResolver
 }
 
 /// <summary>
+/// The permissive resolver's answers, given by an analysis that cannot see the host's C#: an
+/// editor's, which resolves no C# type a grammar names and leaves what depends on one to the build.
+/// </summary>
+/// <remarks>
+/// <para>
+/// The permissive resolver says no where a yes would have generated code call something that may
+/// not be there, and some of those noes are errors of the grammar: no constructor the captures
+/// fill (GRAM4008), a recognizer of the host that reads a span rather than the buffered input
+/// (GRAM4026). Against the host the generator may find the constructor or the input view, and an
+/// analysis that took the noes as facts would mark correct grammars wrong.
+/// </para>
+/// <para>
+/// So the compiler asks which resolver it was handed, and with this one does not report what only
+/// those noes would: a rule with captures and a declared type that is not one of C#'s own is taken
+/// to be built by a constructor of its captures, and a buffered form is not refused for a
+/// recognizer's shape. What it produces is compiled by nobody. A type and not a flag, so that no
+/// resolver that does see the host can be told to doubt itself.
+/// </para>
+/// </remarks>
+public sealed class UnseenHostSymbolResolver : ISymbolResolver
+{
+	public static readonly UnseenHostSymbolResolver Instance = new();
+
+	UnseenHostSymbolResolver()
+	{
+	}
+
+	static PermissiveSymbolResolver Permissive => PermissiveSymbolResolver.Instance;
+
+	public bool TypeExists(string qualifiedName)
+	{
+		return Permissive.TypeExists(qualifiedName);
+	}
+
+	public bool IsAssignable(string from, string to)
+	{
+		return Permissive.IsAssignable(from, to);
+	}
+
+	public bool TryResolveConstructors(
+		string qualifiedName, out IReadOnlyList<IReadOnlyList<MethodParameter>> constructors)
+	{
+		return Permissive.TryResolveConstructors(qualifiedName, out constructors);
+	}
+
+	public bool TryResolveSettableProperties(string qualifiedName, out IReadOnlyList<ObjectMember> properties)
+	{
+		return Permissive.TryResolveSettableProperties(qualifiedName, out properties);
+	}
+
+	public ExternalValueResolution TryResolveExternalValue(string methodName, string? against, out string? valueType)
+	{
+		return Permissive.TryResolveExternalValue(methodName, against, out valueType);
+	}
+
+	public ExternalMethodResolution ResolveExternalMethod(string methodName, ExternalMethodRole role)
+	{
+		return Permissive.ResolveExternalMethod(methodName, role);
+	}
+
+	public bool Rewinds(string qualifiedName)
+	{
+		return Permissive.Rewinds(qualifiedName);
+	}
+
+	public bool IsReferenceType(string qualifiedName)
+	{
+		return Permissive.IsReferenceType(qualifiedName);
+	}
+
+	public bool IsNullable(string qualifiedName)
+	{
+		return Permissive.IsNullable(qualifiedName);
+	}
+}
+
+/// <summary>
 /// What a resolver that can see the host says about a simple name read in C#: whether anything where the
 /// generated call stands answers to it — a member of the host, of a class around it or one it derives
 /// from, of a class it imports statically, or a type or namespace.

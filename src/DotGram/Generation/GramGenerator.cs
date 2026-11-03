@@ -1084,9 +1084,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		var marked = CSharpEmitter.CanMark(text);
 
 		var timer = reporting != Reporting.None ? Stopwatch.StartNew() : null;
-		// The compile alone runs on a stack of its own (DeepStack.Entry): what it reads was gathered
-		// before, and what it answers is reported to Roslyn after, on this thread.
-		var result = DeepStack.Entry(() => GramCompiler.Compile(text, new GramCompilerOptions
+		var options = new GramCompilerOptions
 		{
 			FileName       = grammar.Path ?? host.SimpleName + GramFileExtension,
 			ClassName      = host.ClassName,
@@ -1104,11 +1102,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// text is several of them joined, and the map is one per piece with the same
 			// two cases inside it.
 			LineMap        = MapOf(grammar, text, marked),
-
-			// Nought is what the attribute holds when nobody set it, and what somebody
-			// setting it to nought means: take the measured default either way.
-			PartSize       = host.PartSize == 0 ? null : host.PartSize,
-			Lexical        = host.Lexical,
 			LocationType   = host.LocationType,
 			LocatedFacade  = host.LocatedFacade,
 			LocatedFacadeDeclared = host.LocatedFacadeDeclared,
@@ -1117,16 +1110,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// lives beside it, and `using static` is what puts it in reach without the
 			// including class having to derive from anything.
 			StaticImports  = [.. host.Includes.Items.Select(static one => one.Imported)],
-			Portable       = host.Portable,
-			Carrier        = (CarrierKind)host.Carrier,
-			ConstructionsMayThrow = host.ConstructionsMayThrow,
-			BufferedInput  = host.BufferedInput,
-			BufferedBytes  = host.BufferedBytes,
-			SpanCaptures   = host.SpanCaptures,
-			MaxRetained    = host.MaxRetained,
-			BufferSize     = host.BufferSize,
-			Stacks         = host.Stacks,
-			Suffix         = host.Suffix,
 			SuffixDeclared = host.SuffixDeclared,
 			SharedTypes    = host.Shared,
 			Inherits       = inherits,
@@ -1141,7 +1124,6 @@ public sealed class GramGenerator : IIncrementalGenerator
 			ReportCarriers = reporting == Reporting.Full,
 			CountRules     = counting.Counts,
 			MemoiseFailures = counting.Memoises,
-			Trace           = host.Trace || counting.Traces,
 			CollapseForwarders = counting.Collapses,
 			Utf8Literals    = counting.Utf8,
 			Checks          = counting.Checks,
@@ -1150,7 +1132,16 @@ public sealed class GramGenerator : IIncrementalGenerator
 			// Experimental and off unless the build asks (DotGramPositionalFollow).
 			PositionalFollow = positional != Positional.Off,
 			PositionalFollowSplit = positional == Positional.Split,
-		}));
+		};
+
+		// What the reading's attribute says, mapped where the editor maps it too, so that it analyses a
+		// grammar with the options this compiles it with; and a trace build of the whole project on top.
+		(host.Options ?? throw new InvalidOperationException("A host is made with the reading it was read from.")).ApplyTo(options);
+		options.Trace |= counting.Traces;
+
+		// The compile alone runs on a stack of its own (DeepStack.Entry): what it reads was gathered
+		// before, and what it answers is reported to Roslyn after, on this thread.
+		var result = DeepStack.Entry(() => GramCompiler.Compile(text, options));
 
 		timer?.Stop();
 
@@ -1480,7 +1471,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		bool      PerCall    = false,
 		string?   LocatedFacade = null,
 		bool      LocatedFacadeDeclared = false,
-		bool      Trace      = false)
+		bool      Trace      = false,
+		GramHostOptions? Options = null)
 	{
 		/// <summary>
 		/// The name a grammar including this one writes after <c>using</c>.
@@ -1778,7 +1770,10 @@ public sealed class GramGenerator : IIncrementalGenerator
 				PerCall:    options.PerCall,
 				// A trace build of this reading (GramCompilerOptions.Trace), which a later reading
 				// takes from the first like everything else it does not say.
-				Trace:      options.Trace);
+				Trace:      options.Trace,
+				// The reading as GramHostOptions read it, which is what the compilation is handed
+				// (GramHostOptions.ApplyTo).
+				Options:    options);
 
 			return (host, site, options);
 		}

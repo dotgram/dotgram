@@ -147,14 +147,12 @@ public static partial class CSharpEmitter
 			var rules = Reaches(graph, publication.Rule);
 			// A recovery's synchronization is read as the body is, and a recognizer of the host there
 			// wants the whole input as much: the walk that reads both (`recover @M`).
-			var external = rules.Any(rule => NodeWalk.Reading(graph.Bodies[rule], graph).Any(node => node is Node.External { UsesInputView: false }));
+			// Not where the resolver cannot see the host (UnseenHostSymbolResolver): a recognizer it
+			// says reads a span may take the input view for all it knows, and the build says which.
+			// Only this reason is left to the build; the rest are the grammar's own.
 			var why = overKinds ? "token-kind input is not supported by this form yet" :
-				external ? "external recognizers require contiguous input" : null;
-
-			// A recognizer said to read a span may read the input view, for all a resolver that cannot
-			// see the host knows (GramCompilerOptions.HostUnseen): not refused, and not built either.
-			if (external && !overKinds && hostUnseen)
-				continue;
+				!hostUnseen && rules.Any(rule => NodeWalk.Reading(graph.Bodies[rule], graph).Any(node => node is Node.External { UsesInputView: false }))
+					? "external recognizers require contiguous input" : null;
 			if (why is null && bytes) why = ByteRefusal(graph, rules);
 			// Named after the publication, which no other has the name of, and told from a group's machine
 			// by its variant.

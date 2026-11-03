@@ -339,8 +339,9 @@ public sealed partial class GrammarNormalizer
 
 
 			// Where the resolver cannot see the host, its no is not a missing constructor: the rule is
-			// taken to be built by one of its captures, which the build asks the host about.
-			if (!tied && chosen is null or { Count: 0 } && written is null && _hostUnseen)
+			// taken to be built by a constructor of its captures, which the build asks the host about. Not for a
+			// type of C#'s own, which no grammar's captures fill and which needs no host to say so.
+			if (!tied && chosen is null or { Count: 0 } && written is null && _hostUnseen && !BuiltIn(type))
 				chosen = [.. members.Select(static member => member.Name)];
 
 			if (tied || (chosen is null or { Count: 0 } && written is null))
@@ -360,6 +361,28 @@ public sealed partial class GrammarNormalizer
 				? selected.Rebuild(rewritten)
 				: rewritten.Count == 1 ? rewritten[0] : new Node.Choice(rewritten);
 		}
+	}
+
+	/// <summary>
+	/// Whether a declared type is one of C#'s keyword types, by its keyword or by its name in
+	/// <c>System</c>, nullable or not: what a resolver that cannot see the host still knows about.
+	/// </summary>
+	static bool BuiltIn(string type)
+	{
+		var name = type.EndsWith("?", StringComparison.Ordinal) ? type.Substring(0, type.Length - 1) : type;
+
+		if (name.StartsWith("global::", StringComparison.Ordinal))
+			name = name.Substring("global::".Length);
+
+		if (name.StartsWith("System.", StringComparison.Ordinal))
+			name = name.Substring("System.".Length);
+
+		return name is
+			"string" or "object" or "bool" or "char" or "byte" or "sbyte" or "short" or "ushort" or
+			"int" or "uint" or "long" or "ulong" or "nint" or "nuint" or "float" or "double" or "decimal" or
+			"String" or "Object" or "Boolean" or "Char" or "Byte" or "SByte" or "Int16" or "UInt16" or
+			"Int32" or "UInt32" or "Int64" or "UInt64" or "IntPtr" or "UIntPtr" or "Single" or "Double" or
+			"Decimal";
 	}
 
 	/// <summary>
