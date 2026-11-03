@@ -146,9 +146,11 @@ public sealed class FixDictionary
 		return Read(reader);
 	}
 
-	/// <inheritdoc cref="Parse(string)"/>
+	/// <summary>Reads a dictionary from a reader of its text.</summary>
 	/// <param name="input">The dictionary's text; the reader is read and left open.</param>
+	/// <returns>What the text says, unresolved.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
+	/// <exception cref="FormatException">The text is not a dictionary this package can read: the refusal names the element and the line.</exception>
 	public static FixDictionary Read(TextReader input)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
@@ -158,9 +160,11 @@ public sealed class FixDictionary
 		return Read(reader);
 	}
 
-	/// <inheritdoc cref="Parse(string)"/>
+	/// <summary>Reads a dictionary from a stream of its octets.</summary>
 	/// <param name="input">The dictionary's octets; the stream is read and left open.</param>
+	/// <returns>What the octets say, unresolved.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
+	/// <exception cref="FormatException">The octets are not a dictionary this package can read: the refusal names the element and the line.</exception>
 	public static FixDictionary Read(Stream input)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
@@ -170,9 +174,14 @@ public sealed class FixDictionary
 		return Read(reader);
 	}
 
-	/// <inheritdoc cref="Parse(string)"/>
+	/// <summary>Reads a dictionary from its file.</summary>
 	/// <param name="fileName">The path of the dictionary's file.</param>
+	/// <returns>What the file says, unresolved.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="fileName"/> is null.</exception>
+	/// <exception cref="FileNotFoundException">There is no file at <paramref name="fileName"/>.</exception>
+	/// <exception cref="UnauthorizedAccessException">The file may not be read by the caller.</exception>
+	/// <exception cref="IOException">The file could not be opened or read.</exception>
+	/// <exception cref="FormatException">The file is not a dictionary this package can read: the refusal names the element and the line.</exception>
 	public static FixDictionary LoadFile(string fileName)
 	{
 		if (fileName == null) throw new ArgumentNullException(nameof(fileName));

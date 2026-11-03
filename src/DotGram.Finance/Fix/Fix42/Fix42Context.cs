@@ -146,8 +146,12 @@ public sealed record Fix42Context : FixContext
 		return With(FixDictionary.Parse(dictionary));
 	}
 
-	/// <inheritdoc cref="Load(string)"/>
+	/// <summary>This context with a dictionary loaded over its schema: <c>With(FixDictionary.Read(dictionary))</c>.</summary>
 	/// <param name="dictionary">The dictionary's text; the reader is read and left open.</param>
+	/// <returns>A new context, reading as this one does; this one is unchanged.</returns>
+	/// <exception cref="ArgumentNullException"><paramref name="dictionary"/> is null.</exception>
+	/// <exception cref="FormatException">The text is not a dictionary this package can read, or it names what the model does not have.</exception>
+	/// <remarks>See <see cref="With(FixDictionary)"/>, which this is the short form of.</remarks>
 	public Fix42Context Load(TextReader dictionary)
 	{
 		if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
@@ -155,8 +159,12 @@ public sealed record Fix42Context : FixContext
 		return With(FixDictionary.Read(dictionary));
 	}
 
-	/// <inheritdoc cref="Load(string)"/>
+	/// <summary>This context with a dictionary loaded over its schema: <c>With(FixDictionary.Read(dictionary))</c>.</summary>
 	/// <param name="dictionary">The dictionary's octets; the stream is read and left open.</param>
+	/// <returns>A new context, reading as this one does; this one is unchanged.</returns>
+	/// <exception cref="ArgumentNullException"><paramref name="dictionary"/> is null.</exception>
+	/// <exception cref="FormatException">The octets are not a dictionary this package can read, or they name what the model does not have.</exception>
+	/// <remarks>See <see cref="With(FixDictionary)"/>, which this is the short form of.</remarks>
 	public Fix42Context Load(Stream dictionary)
 	{
 		if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
