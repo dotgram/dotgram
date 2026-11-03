@@ -1716,10 +1716,18 @@ public static partial class ExpressionParser
 		return Parse(text, ResolutionScope.Around(Assembly.GetCallingAssembly()));
 	}
 
-	/// <summary>The same, on behalf of an assembly the scope names.</summary>
+	/// <summary>
+	/// Reads the text as a lambda over an expression tree, with names looked up as the given
+	/// assembly's own compilation would see them: the assembly and what it references.
+	/// </summary>
 	/// <remarks>
 	/// <para>
-	/// The form above asks the call itself who is calling, and that question is a stack crawl:
+	/// The same as <c>Parse(text, ResolutionScope.Around(caller))</c>. Before 0.2 this form looked
+	/// in everything the process had loaded, which is neither what C# does nor something a caller
+	/// could reason about.
+	/// </para>
+	/// <para>
+	/// <see cref="Parse(string)"/> asks the call itself who is calling, and that question is a stack crawl:
 	/// ~296 ns, which is a quarter of the shortest parse there is. A scope reading many texts
 	/// asks it once instead — <c>typeof(Whatever).Assembly</c> costs about 7 ns, and a static
 	/// field holding it about 3 — and hands the answer to each reading.
@@ -1730,18 +1738,14 @@ public static partial class ExpressionParser
 	/// assembly's reach rather than the scope's.
 	/// </para>
 	/// </remarks>
-	/// <summary>The same, for the scope that assembly's own compilation would have.</summary>
-	/// <remarks>
-	/// <c>ResolutionScope.Around(caller)</c>, written out: the assembly and what it references.
-	/// Before 0.2 this form looked in everything the process had loaded, which is neither what
-	/// C# does nor something a caller could reason about.
-	/// </remarks>
 	public static LambdaExpression Parse(string text, Assembly caller)
 	{
 		return Parse(text, ResolutionScope.Around(caller ?? throw new ArgumentNullException(nameof(caller))));
 	}
 
-	/// <summary>The same, for names looked for in that scope.</summary>
+	/// <summary>
+	/// Reads the text as a lambda over an expression tree, with names looked up in the given scope.
+	/// </summary>
 	public static LambdaExpression Parse(string text, ResolutionScope scope)
 	{
 		return Parse(text, scope, null);
@@ -1771,7 +1775,10 @@ public static partial class ExpressionParser
 		throw new FormatException(state.Refused() ?? match.Error!);
 	}
 
-	/// <summary>The same, answering rather than throwing.</summary>
+	/// <summary>
+	/// Reads the text as a lambda over an expression tree, as <see cref="Parse(string)"/> does,
+	/// answering with a failed match where that would throw.
+	/// </summary>
 	/// <remarks>
 	/// <para>
 	/// For everything <see cref="Parse(string)"/> would throw for, and not only for text that is not
@@ -1792,18 +1799,24 @@ public static partial class ExpressionParser
 		return TryParse(text, ResolutionScope.Around(Assembly.GetCallingAssembly()));
 	}
 
-	/// <summary>The same, on behalf of an assembly the scope names.</summary>
+	/// <summary>
+	/// Reads the text as a lambda over an expression tree, answering with a failed match rather
+	/// than throwing, with names looked up as the given assembly's own compilation would see them:
+	/// the assembly and what it references.
+	/// </summary>
 	/// <remarks>
 	/// What that assembly decides, and what asking the call for it costs, is written under
 	/// <see cref="Parse(string, Assembly)"/>.
 	/// </remarks>
-	/// <summary>The same, for the scope that assembly's own compilation would have.</summary>
 	public static Match<LambdaExpression> TryParse(string text, Assembly caller)
 	{
 		return TryParse(text, ResolutionScope.Around(caller ?? throw new ArgumentNullException(nameof(caller))));
 	}
 
-	/// <summary>The same, for names looked for in that scope.</summary>
+	/// <summary>
+	/// Reads the text as a lambda over an expression tree, answering with a failed match rather
+	/// than throwing, with names looked up in the given scope.
+	/// </summary>
 	public static Match<LambdaExpression> TryParse(string text, ResolutionScope scope)
 	{
 		var state = new State(scope) { Text = text };
@@ -1838,7 +1851,10 @@ public static partial class ExpressionParser
 		thrown is ArgumentException and not ArgumentNullException;
 	}
 
-	/// <summary>The same, compiled to a delegate of the scope's own type.</summary>
+	/// <summary>
+	/// Reads the text as a lambda and compiles it to a delegate of type <typeparamref name="TDelegate"/>,
+	/// with names looked up as C# written in the calling assembly would see them.
+	/// </summary>
 	/// <remarks>
 	/// Where the two halves meet a scope: what the text declares has to match what the
 	/// delegate takes, and <c>Expression.Lambda</c> is what says so — in a message naming
@@ -1853,19 +1869,25 @@ public static partial class ExpressionParser
 		return Compile<TDelegate>(text, ResolutionScope.Around(Assembly.GetCallingAssembly()));
 	}
 
-	/// <summary>The same, on behalf of an assembly the scope names.</summary>
+	/// <summary>
+	/// Reads the text as a lambda and compiles it to a delegate of type <typeparamref name="TDelegate"/>,
+	/// with names looked up as the given assembly's own compilation would see them: the assembly
+	/// and what it references.
+	/// </summary>
 	/// <remarks>
 	/// What that assembly decides, and what asking the call for it costs, is written under
 	/// <see cref="Parse(string, Assembly)"/>.
 	/// </remarks>
-	/// <summary>The same, for the scope that assembly's own compilation would have.</summary>
 	public static TDelegate Compile<TDelegate>(string text, Assembly caller)
 		where TDelegate : Delegate
 	{
 		return Compile<TDelegate>(text, ResolutionScope.Around(caller ?? throw new ArgumentNullException(nameof(caller))));
 	}
 
-	/// <summary>The same, for names looked for in that scope.</summary>
+	/// <summary>
+	/// Reads the text as a lambda and compiles it to a delegate of type <typeparamref name="TDelegate"/>,
+	/// with names looked up in the given scope.
+	/// </summary>
 	public static TDelegate Compile<TDelegate>(string text, ResolutionScope scope)
 		where TDelegate : Delegate
 	{
