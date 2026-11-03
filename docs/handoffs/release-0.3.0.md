@@ -113,6 +113,10 @@ Each package's notes list them with what to write instead. The ones most project
   construction writes into the context sees it before that construction runs, since the tape runs
   constructions once the parse is accepted. DotGram.Finance's FIX grammar is pinned to the
   immediate carrier for this.
+- In Visual Studio, information-level diagnostics of a standalone `.gram` file (the GRAM5001 and
+  GRAM5002 notes, for example) are underlined in the editor but not listed in the Error List,
+  which asks only about C#, Visual Basic and F# documents. Errors and warnings of a `.gram` file
+  are reported by the build as usual. Planned for a later version.
 
 The attached files are the exact artifacts published to NuGet and the Marketplace;
 `SHA256SUMS.txt` lists their hashes.
