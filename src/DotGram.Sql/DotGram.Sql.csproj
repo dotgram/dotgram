@@ -51,6 +51,7 @@ FIXED
 
 KNOWN ISSUES
 
+- Most DotGram.Sql.Ast records have no XML summary yet. The entry points have one (Batch; Statement with Select, Insert, Update, Delete, Merge and CreateTable; Query with Select; TableSource with Named, Subquery and Join; Expression with Reference, Unary and Binary), and most of the others that have one name the Microsoft reference page or the BNF production they follow.
 - TODO(freeze): T-SQL speed and allocation against 0.2.0, one line from the release benchmark (the one tree costs bytes on some rows).</PackageReleaseNotes>
 
 		<!-- What a caller reads in the editor. The other packages here fail a build on a public
