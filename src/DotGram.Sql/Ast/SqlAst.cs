@@ -83,7 +83,9 @@ public abstract partial record Statement : ISqlNode
 	/// </remarks>
 	public sealed partial record Select : Statement
 	{
-		/// <summary>The query: its clauses, its set operations and its ORDER BY.</summary>
+		/// <summary>
+		/// The query: its clauses, its set operations and its ORDER BY.
+		/// </summary>
 		public required Query Query { get; init; }
 
 		/// <summary>T-SQL: Query Hints. The statement's <c>OPTION (…)</c>, which a subquery may not write.</summary>
@@ -99,16 +101,24 @@ public abstract partial record Statement : ISqlNode
 		/// <summary>T-SQL: TOP. <c>INSERT TOP (n) INTO t …</c>.</summary>
 		public TopClause? Top { get; init; }
 
-		/// <summary>The table the rows go into.</summary>
+		/// <summary>
+		/// The table the rows go into.
+		/// </summary>
 		public required TableSource Target { get; init; }
 
-		/// <summary>The columns named after the table, in order; empty where none were.</summary>
+		/// <summary>
+		/// The columns named after the table, in order; empty where none were.
+		/// </summary>
 		public SqlList<Identifier> Columns { get; init; } = [];
 
-		/// <summary><c>OVERRIDING USER VALUE</c> or <c>OVERRIDING SYSTEM VALUE</c>; null where neither was written.</summary>
+		/// <summary>
+		/// <c>OVERRIDING USER VALUE</c> or <c>OVERRIDING SYSTEM VALUE</c>; null where neither was written.
+		/// </summary>
 		public OverrideKind? Override { get; init; }
 
-		/// <summary>Where the rows come from: a query, a <c>VALUES</c> list, or <c>DEFAULT VALUES</c>, the default.</summary>
+		/// <summary>
+		/// Where the rows come from: a query, a <c>VALUES</c> list, or <c>DEFAULT VALUES</c>, the default.
+		/// </summary>
 		public InsertSource SourceValue { get; init; } = new InsertSource.DefaultValues();
 	}
 
@@ -122,22 +132,34 @@ public abstract partial record Statement : ISqlNode
 		/// <summary>T-SQL: TOP. <c>UPDATE TOP (n) t SET …</c>.</summary>
 		public TopClause? Top { get; init; }
 
-		/// <summary>The table updated; null in a preparable positioned statement, which may leave its table out.</summary>
+		/// <summary>
+		/// The table updated; null in a preparable positioned statement, which may leave its table out.
+		/// </summary>
 		public TableSource? Target { get; init; }
 
-		/// <summary><c>FOR PORTION OF p FROM x TO y</c>: the part of an application-time period updated.</summary>
+		/// <summary>
+		/// <c>FOR PORTION OF p FROM x TO y</c>: the part of an application-time period updated.
+		/// </summary>
 		public PeriodPortion? Portion { get; init; }
 
-		/// <summary>The name the table is given after it (<c>UPDATE t AS u SET …</c>).</summary>
+		/// <summary>
+		/// The name the table is given after it (<c>UPDATE t AS u SET …</c>).
+		/// </summary>
 		public Alias? Alias { get; init; }
 
-		/// <summary>The <c>SET</c> list, in order.</summary>
+		/// <summary>
+		/// The <c>SET</c> list, in order.
+		/// </summary>
 		public SqlList<Assignment> Assignments { get; init; } = [];
 
-		/// <summary>The <c>WHERE</c> condition of a searched update; null where none was written.</summary>
+		/// <summary>
+		/// The <c>WHERE</c> condition of a searched update; null where none was written.
+		/// </summary>
 		public Expression? Where { get; init; }
 
-		/// <summary>The cursor of <c>WHERE CURRENT OF c</c>, in a positioned update.</summary>
+		/// <summary>
+		/// The cursor of <c>WHERE CURRENT OF c</c>, in a positioned update.
+		/// </summary>
 		public CursorReference? CurrentOf { get; init; }
 	}
 
@@ -151,19 +173,30 @@ public abstract partial record Statement : ISqlNode
 		/// <summary>T-SQL: TOP. <c>DELETE TOP (n) FROM t …</c>.</summary>
 		public TopClause? Top { get; init; }
 
-		/// <summary>The table rows are deleted from; null in a preparable positioned statement, which may leave its table out.</summary>
+		/// <summary>
+		/// The table rows are deleted from; null in a preparable positioned statement, which may leave its
+		/// table out.
+		/// </summary>
 		public TableSource? Target { get; init; }
 
-		/// <summary><c>FOR PORTION OF p FROM x TO y</c>: the part of an application-time period deleted.</summary>
+		/// <summary>
+		/// <c>FOR PORTION OF p FROM x TO y</c>: the part of an application-time period deleted.
+		/// </summary>
 		public PeriodPortion? Portion { get; init; }
 
-		/// <summary>The name the table is given after it (<c>DELETE FROM t AS u …</c>).</summary>
+		/// <summary>
+		/// The name the table is given after it (<c>DELETE FROM t AS u …</c>).
+		/// </summary>
 		public Alias? Alias { get; init; }
 
-		/// <summary>The <c>WHERE</c> condition of a searched delete; null where none was written.</summary>
+		/// <summary>
+		/// The <c>WHERE</c> condition of a searched delete; null where none was written.
+		/// </summary>
 		public Expression? Where { get; init; }
 
-		/// <summary>The cursor of <c>WHERE CURRENT OF c</c>, in a positioned delete.</summary>
+		/// <summary>
+		/// The cursor of <c>WHERE CURRENT OF c</c>, in a positioned delete.
+		/// </summary>
 		public CursorReference? CurrentOf { get; init; }
 	}
 
@@ -176,19 +209,29 @@ public abstract partial record Statement : ISqlNode
 		/// <summary>T-SQL: TOP. <c>MERGE TOP (n) INTO t …</c>.</summary>
 		public TopClause? Top { get; init; }
 
-		/// <summary>The table changed.</summary>
+		/// <summary>
+		/// The table changed.
+		/// </summary>
 		public required TableSource Target { get; init; }
 
-		/// <summary>The name the target is given after it.</summary>
+		/// <summary>
+		/// The name the target is given after it.
+		/// </summary>
 		public Alias? Alias { get; init; }
 
-		/// <summary>The table source of <c>USING</c>, which the rows come from.</summary>
+		/// <summary>
+		/// The table source of <c>USING</c>, which the rows come from.
+		/// </summary>
 		public required TableSource SourceTable { get; init; }
 
-		/// <summary>The <c>ON</c> condition, which says whether a source row matches a target row.</summary>
+		/// <summary>
+		/// The <c>ON</c> condition, which says whether a source row matches a target row.
+		/// </summary>
 		public required Expression On { get; init; }
 
-		/// <summary>The <c>WHEN … THEN …</c> clauses, in the order written.</summary>
+		/// <summary>
+		/// The <c>WHEN … THEN …</c> clauses, in the order written.
+		/// </summary>
 		public SqlList<MergeClause> Clauses { get; init; } = [];
 	}
 
@@ -217,19 +260,30 @@ public abstract partial record Statement : ISqlNode
 	/// </summary>
 	public sealed partial record CreateTable : Statement
 	{
-		/// <summary><c>GLOBAL TEMPORARY</c> or <c>LOCAL TEMPORARY</c>; null for a persistent table.</summary>
+		/// <summary>
+		/// <c>GLOBAL TEMPORARY</c> or <c>LOCAL TEMPORARY</c>; null for a persistent table.
+		/// </summary>
 		public TableScope? Scope { get; init; }
 
-		/// <summary>The table's name, as written.</summary>
+		/// <summary>
+		/// The table's name, as written.
+		/// </summary>
 		public required QualifiedName Name { get; init; }
 
-		/// <summary>What the table is made of: its column and constraint definitions, a structured type it is of, or a query.</summary>
+		/// <summary>
+		/// What the table is made of: its column and constraint definitions, a structured type it is of, or
+		/// a query.
+		/// </summary>
 		public required TableContents Contents { get; init; }
 
-		/// <summary>The standard's <c>WITH SYSTEM VERSIONING</c> was written.</summary>
+		/// <summary>
+		/// The standard's <c>WITH SYSTEM VERSIONING</c> was written.
+		/// </summary>
 		public bool SystemVersioning { get; init; }
 
-		/// <summary>A temporary table's <c>ON COMMIT PRESERVE ROWS</c> or <c>ON COMMIT DELETE ROWS</c>.</summary>
+		/// <summary>
+		/// A temporary table's <c>ON COMMIT PRESERVE ROWS</c> or <c>ON COMMIT DELETE ROWS</c>.
+		/// </summary>
 		public TableCommitAction? OnCommit { get; init; }
 	}
 
@@ -501,7 +555,9 @@ public abstract partial record Query : ISqlNode
 		/// <summary>T-SQL: TOP. Of this operand alone, not of the whole result.</summary>
 		public TopClause? Top { get; init; }
 
-		/// <summary><c>DISTINCT</c> or <c>ALL</c> after <c>SELECT</c>; null where neither was written.</summary>
+		/// <summary>
+		/// <c>DISTINCT</c> or <c>ALL</c> after <c>SELECT</c>; null where neither was written.
+		/// </summary>
 		public SetQuantifier? Quantifier { get; init; }
 
 		/// <summary>
@@ -528,19 +584,29 @@ public abstract partial record Query : ISqlNode
 		/// </summary>
 		public IntoClause? Into { get; init; }
 
-		/// <summary>The <c>FROM</c> clause; null where none was written (<c>SELECT 1</c>).</summary>
+		/// <summary>
+		/// The <c>FROM</c> clause; null where none was written (<c>SELECT 1</c>).
+		/// </summary>
 		public FromClause? From { get; init; }
 
-		/// <summary>The <c>WHERE</c> condition; null where none was written.</summary>
+		/// <summary>
+		/// The <c>WHERE</c> condition; null where none was written.
+		/// </summary>
 		public Expression? Where { get; init; }
 
-		/// <summary>The <c>GROUP BY</c> clause; null where none was written.</summary>
+		/// <summary>
+		/// The <c>GROUP BY</c> clause; null where none was written.
+		/// </summary>
 		public GroupByClause? GroupBy { get; init; }
 
-		/// <summary>The <c>HAVING</c> condition; null where none was written.</summary>
+		/// <summary>
+		/// The <c>HAVING</c> condition; null where none was written.
+		/// </summary>
 		public Expression? Having { get; init; }
 
-		/// <summary>The <c>WINDOW</c> clause, the windows named for this operand's <c>OVER</c>s.</summary>
+		/// <summary>
+		/// The <c>WINDOW</c> clause, the windows named for this operand's <c>OVER</c>s.
+		/// </summary>
 		public WindowClause? Window { get; init; }
 	}
 
@@ -810,28 +876,42 @@ public abstract partial record TableSource : ISqlNode
 	/// </summary>
 	public SampleClause? Sample { get; init; }
 
-	/// <summary>A table or view by its name: <c>dbo.t AS x</c>.</summary>
+	/// <summary>
+	/// A table or view by its name: <c>dbo.t AS x</c>.
+	/// </summary>
 	/// <param name="Name">The name, as written.</param>
 	public sealed partial record Named(QualifiedName Name) : TableSource
 	{
-		/// <summary><c>FOR SYSTEM_TIME …</c>: the rows of a system-versioned table at a time or over a span.</summary>
+		/// <summary>
+		/// <c>FOR SYSTEM_TIME …</c>: the rows of a system-versioned table at a time or over a span.
+		/// </summary>
 		public SystemTimeSpecification? SystemTime { get; init; }
 
-		/// <summary>The name the table is given after it.</summary>
+		/// <summary>
+		/// The name the table is given after it.
+		/// </summary>
 		public Alias? Alias { get; init; }
 
-		/// <summary>The standard's <c>ONLY (t)</c>: the table without its subtables.</summary>
+		/// <summary>
+		/// The standard's <c>ONLY (t)</c>: the table without its subtables.
+		/// </summary>
 		public bool Only { get; init; }
 	}
 
-	/// <summary>A derived table: a query in brackets, <c>(SELECT …) AS d</c>.</summary>
+	/// <summary>
+	/// A derived table: a query in brackets, <c>(SELECT …) AS d</c>.
+	/// </summary>
 	/// <param name="Query">The query inside the brackets.</param>
 	public sealed partial record Subquery(Query Query) : TableSource
 	{
-		/// <summary><c>LATERAL</c> was written: the query may name the table sources before it.</summary>
+		/// <summary>
+		/// <c>LATERAL</c> was written: the query may name the table sources before it.
+		/// </summary>
 		public bool Lateral { get; init; }
 
-		/// <summary>The name the derived table is given, and its columns' names where they are listed.</summary>
+		/// <summary>
+		/// The name the derived table is given, and its columns' names where they are listed.
+		/// </summary>
 		public Alias? Alias { get; init; }
 	}
 
@@ -840,10 +920,14 @@ public abstract partial record TableSource : ISqlNode
 	/// </summary>
 	public sealed partial record Join : TableSource
 	{
-		/// <summary>The table source before the join's words.</summary>
+		/// <summary>
+		/// The table source before the join's words.
+		/// </summary>
 		public required TableSource Left { get; init; }
 
-		/// <summary>The table source after them.</summary>
+		/// <summary>
+		/// The table source after them.
+		/// </summary>
 		public required TableSource Right { get; init; }
 
 		/// <summary>
@@ -852,17 +936,23 @@ public abstract partial record TableSource : ISqlNode
 		/// </summary>
 		public JoinKind? Kind { get; init; }
 
-		/// <summary><c>NATURAL</c> was written.</summary>
+		/// <summary>
+		/// <c>NATURAL</c> was written.
+		/// </summary>
 		public bool Natural { get; init; }
 
-		/// <summary><c>OUTER</c> was written after <c>LEFT</c>, <c>RIGHT</c> or <c>FULL</c>.</summary>
+		/// <summary>
+		/// <c>OUTER</c> was written after <c>LEFT</c>, <c>RIGHT</c> or <c>FULL</c>.
+		/// </summary>
 		public bool OuterKeyword { get; init; }
 
 		// BNF: <partitioned join table>'s <join column list> on either side, `t PARTITION BY (a) LEFT JOIN u`.
 		public SqlList<Expression>? LeftPartition { get; init; }
 		public SqlList<Expression>? RightPartition { get; init; }
 
-		/// <summary>The <c>ON</c> condition or the <c>USING</c> columns; null for a join that takes neither.</summary>
+		/// <summary>
+		/// The <c>ON</c> condition or the <c>USING</c> columns; null for a join that takes neither.
+		/// </summary>
 		public JoinSpecification? Specification { get; init; }
 
 		// T-SQL: Join hints (Transact-SQL). How the engine is told to perform the join.
@@ -944,7 +1034,9 @@ public abstract partial record Expression : ISqlNode, ISqlLocatable
 	/// <summary>Where a reading said the value was written, whether the reading published locations or not.</summary>
 	internal SqlSpan Read => _location.Read;
 
-	/// <summary>A name standing for a value: a column, <c>a</c> or <c>t.a</c>.</summary>
+	/// <summary>
+	/// A name standing for a value: a column, <c>a</c> or <c>t.a</c>.
+	/// </summary>
 	/// <param name="Name">The name, as written, with every part.</param>
 	public sealed record Reference(QualifiedName Name) : Expression;
 
@@ -959,7 +1051,9 @@ public abstract partial record Expression : ISqlNode, ISqlLocatable
 	// BNF: <general value specification>'s key words, <datetime value function>. Precision is `CURRENT_TIME (3)`'s.
 	public sealed record Current(CurrentValue Kind, QualifiedName? TypeName = null, Expression? Precision = null) : Expression;
 
-	/// <summary>An operator before its operand: <c>-x</c>, <c>NOT p</c>.</summary>
+	/// <summary>
+	/// An operator before its operand: <c>-x</c>, <c>NOT p</c>.
+	/// </summary>
 	/// <param name="Operator">The operator.</param>
 	/// <param name="Operand">What it applies to.</param>
 	public sealed record Unary(UnaryOperator Operator, Expression Operand) : Expression;

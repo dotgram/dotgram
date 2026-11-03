@@ -146,7 +146,9 @@ public sealed class FixDictionary
 		return Read(reader);
 	}
 
-	/// <summary>Reads a dictionary from a reader of its text.</summary>
+	/// <summary>
+	/// Reads a dictionary from a reader of its text.
+	/// </summary>
 	/// <param name="input">The dictionary's text; the reader is read and left open.</param>
 	/// <returns>What the text says, unresolved.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
@@ -160,7 +162,9 @@ public sealed class FixDictionary
 		return Read(reader);
 	}
 
-	/// <summary>Reads a dictionary from a stream of its octets.</summary>
+	/// <summary>
+	/// Reads a dictionary from a stream of its octets.
+	/// </summary>
 	/// <param name="input">The dictionary's octets; the stream is read and left open.</param>
 	/// <returns>What the octets say, unresolved.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
@@ -174,7 +178,9 @@ public sealed class FixDictionary
 		return Read(reader);
 	}
 
-	/// <summary>Reads a dictionary from its file.</summary>
+	/// <summary>
+	/// Reads a dictionary from its file.
+	/// </summary>
 	/// <param name="fileName">The path of the dictionary's file.</param>
 	/// <returns>What the file says, unresolved.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="fileName"/> is null.</exception>

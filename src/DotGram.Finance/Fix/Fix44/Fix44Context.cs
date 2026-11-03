@@ -148,7 +148,9 @@ public sealed record Fix44Context : FixContext
 		return With(FixDictionary.Parse(dictionary));
 	}
 
-	/// <summary>This context with a dictionary loaded over its schema: <c>With(FixDictionary.Read(dictionary))</c>.</summary>
+	/// <summary>
+	/// This context with a dictionary loaded over its schema: <c>With(FixDictionary.Read(dictionary))</c>.
+	/// </summary>
 	/// <param name="dictionary">The dictionary's text; the reader is read and left open.</param>
 	/// <returns>A new context, reading as this one does; this one is unchanged.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="dictionary"/> is null.</exception>
@@ -161,7 +163,9 @@ public sealed record Fix44Context : FixContext
 		return With(FixDictionary.Read(dictionary));
 	}
 
-	/// <summary>This context with a dictionary loaded over its schema: <c>With(FixDictionary.Read(dictionary))</c>.</summary>
+	/// <summary>
+	/// This context with a dictionary loaded over its schema: <c>With(FixDictionary.Read(dictionary))</c>.
+	/// </summary>
 	/// <param name="dictionary">The dictionary's octets; the stream is read and left open.</param>
 	/// <returns>A new context, reading as this one does; this one is unchanged.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="dictionary"/> is null.</exception>
