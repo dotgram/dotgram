@@ -136,7 +136,8 @@ public sealed class FixDictionary
 	/// <param name="text">A FIX data dictionary, or a fragment of one.</param>
 	/// <returns>What the text says, unresolved.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
-	/// <exception cref="FormatException">The text is not a dictionary this package can read: the refusal names the element and the line.</exception>
+	/// <exception cref="FormatException">The text is well-formed XML but not a dictionary this package can read: it has no &lt;fix&gt; element, or an element it cannot read. The refusal names the element and the line.</exception>
+	/// <exception cref="XmlException">The text is not well-formed XML, or holds a document type definition, which is refused.</exception>
 	public static FixDictionary Parse(string text)
 	{
 		if (text == null) throw new ArgumentNullException(nameof(text));
@@ -152,7 +153,8 @@ public sealed class FixDictionary
 	/// <param name="input">The dictionary's text; the reader is read and left open.</param>
 	/// <returns>What the text says, unresolved.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
-	/// <exception cref="FormatException">The text is not a dictionary this package can read: the refusal names the element and the line.</exception>
+	/// <exception cref="FormatException">The text is well-formed XML but not a dictionary this package can read: it has no &lt;fix&gt; element, or an element it cannot read. The refusal names the element and the line.</exception>
+	/// <exception cref="XmlException">The text is not well-formed XML, or holds a document type definition, which is refused.</exception>
 	public static FixDictionary Read(TextReader input)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
@@ -168,7 +170,8 @@ public sealed class FixDictionary
 	/// <param name="input">The dictionary's octets; the stream is read and left open.</param>
 	/// <returns>What the octets say, unresolved.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
-	/// <exception cref="FormatException">The octets are not a dictionary this package can read: the refusal names the element and the line.</exception>
+	/// <exception cref="FormatException">The octets are well-formed XML but not a dictionary this package can read: it has no &lt;fix&gt; element, or an element it cannot read. The refusal names the element and the line.</exception>
+	/// <exception cref="XmlException">The octets are not well-formed XML, or hold a document type definition, which is refused.</exception>
 	public static FixDictionary Read(Stream input)
 	{
 		if (input == null) throw new ArgumentNullException(nameof(input));
@@ -187,7 +190,8 @@ public sealed class FixDictionary
 	/// <exception cref="FileNotFoundException">There is no file at <paramref name="fileName"/>.</exception>
 	/// <exception cref="UnauthorizedAccessException">The file may not be read by the caller.</exception>
 	/// <exception cref="IOException">The file could not be opened or read.</exception>
-	/// <exception cref="FormatException">The file is not a dictionary this package can read: the refusal names the element and the line.</exception>
+	/// <exception cref="FormatException">The file is well-formed XML but not a dictionary this package can read: it has no &lt;fix&gt; element, or an element it cannot read. The refusal names the element and the line.</exception>
+	/// <exception cref="XmlException">The file is not well-formed XML, or holds a document type definition, which is refused.</exception>
 	public static FixDictionary LoadFile(string fileName)
 	{
 		if (fileName == null) throw new ArgumentNullException(nameof(fileName));

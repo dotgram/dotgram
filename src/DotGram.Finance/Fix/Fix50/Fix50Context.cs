@@ -147,7 +147,8 @@ public sealed record Fix50Context : FixContext
 	/// <param name="dictionary">A FIX data dictionary, or a fragment of one: the text of the file.</param>
 	/// <returns>A new context, reading as this one does; this one is unchanged.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="dictionary"/> is null.</exception>
-	/// <exception cref="FormatException">The text is not a dictionary this package can read, or it names what the model does not have.</exception>
+	/// <exception cref="FormatException">The text is well-formed XML but not a dictionary this package can read (it has no &lt;fix&gt; element, or an element it cannot read), or it names what the model does not have.</exception>
+	/// <exception cref="System.Xml.XmlException">The text is not well-formed XML, or holds a document type definition, which is refused.</exception>
 	/// <remarks>See <see cref="With(FixDictionary)"/>, which this is the short form of.</remarks>
 	public Fix50Context Load(string dictionary)
 	{
@@ -162,7 +163,8 @@ public sealed record Fix50Context : FixContext
 	/// <param name="dictionary">The dictionary's text; the reader is read and left open.</param>
 	/// <returns>A new context, reading as this one does; this one is unchanged.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="dictionary"/> is null.</exception>
-	/// <exception cref="FormatException">The text is not a dictionary this package can read, or it names what the model does not have.</exception>
+	/// <exception cref="FormatException">The text is well-formed XML but not a dictionary this package can read (it has no &lt;fix&gt; element, or an element it cannot read), or it names what the model does not have.</exception>
+	/// <exception cref="System.Xml.XmlException">The text is not well-formed XML, or holds a document type definition, which is refused.</exception>
 	/// <remarks>See <see cref="With(FixDictionary)"/>, which this is the short form of.</remarks>
 	public Fix50Context Load(TextReader dictionary)
 	{
@@ -177,7 +179,8 @@ public sealed record Fix50Context : FixContext
 	/// <param name="dictionary">The dictionary's octets; the stream is read and left open.</param>
 	/// <returns>A new context, reading as this one does; this one is unchanged.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="dictionary"/> is null.</exception>
-	/// <exception cref="FormatException">The octets are not a dictionary this package can read, or they name what the model does not have.</exception>
+	/// <exception cref="FormatException">The octets are well-formed XML but not a dictionary this package can read (it has no &lt;fix&gt; element, or an element it cannot read), or they name what the model does not have.</exception>
+	/// <exception cref="System.Xml.XmlException">The octets are not well-formed XML, or hold a document type definition, which is refused.</exception>
 	/// <remarks>See <see cref="With(FixDictionary)"/>, which this is the short form of.</remarks>
 	public Fix50Context Load(Stream dictionary)
 	{
@@ -190,7 +193,8 @@ public sealed record Fix50Context : FixContext
 	/// <param name="dictionaries">The texts of the files, in order: a later file's message type, component or field replaces an earlier file's.</param>
 	/// <returns>A new context, reading as this one does; this one is unchanged.</returns>
 	/// <exception cref="ArgumentNullException"><paramref name="dictionaries"/> is null, or one of them is.</exception>
-	/// <exception cref="FormatException">A text is not a dictionary this package can read, or what they say together names what the model does not have.</exception>
+	/// <exception cref="FormatException">A text is well-formed XML but not a dictionary this package can read (it has no &lt;fix&gt; element, or an element it cannot read), or what they say together names what the model does not have.</exception>
+	/// <exception cref="System.Xml.XmlException">A text is not well-formed XML, or holds a document type definition, which is refused.</exception>
 	/// <remarks>
 	/// What a correction to somebody else's file is for. Applied one after the other, a place the file
 	/// has wrong is refused before the correction is read; merged, the correction's description of a
@@ -222,7 +226,8 @@ public sealed record Fix50Context : FixContext
 	/// <exception cref="FileNotFoundException">There is no file at <paramref name="fileName"/>.</exception>
 	/// <exception cref="UnauthorizedAccessException">The file may not be read by the caller.</exception>
 	/// <exception cref="IOException">The file could not be opened or read.</exception>
-	/// <exception cref="FormatException">The file is not a dictionary this package can read, or it names what the model does not have.</exception>
+	/// <exception cref="FormatException">The file is well-formed XML but not a dictionary this package can read (it has no &lt;fix&gt; element, or an element it cannot read), or it names what the model does not have.</exception>
+	/// <exception cref="System.Xml.XmlException">The file is not well-formed XML, or holds a document type definition, which is refused.</exception>
 	/// <remarks>See <see cref="With(FixDictionary)"/>, which this is the short form of.</remarks>
 	public Fix50Context LoadFile(string fileName)
 	{
