@@ -49,9 +49,9 @@ NuGet page.
 
 Each package's notes list them with what to write instead. The ones most projects meet:
 
-- **DotGram:** the default carrier (above); new warnings `GRAM4043`, `GRAM4051` and `GRAM4042`,
-  which fail a build with warnings as errors until the grammar is changed; `GRAM0010` below C# 8;
-  ignore-case literals no longer take a case partner across ASCII (`'s'i` and `ſ`).
+- **DotGram:** the default carrier (above); new warnings `GRAM4043`, `GRAM4051`, `GRAM4042` and
+  `GRAM4052`, which fail a build with warnings as errors until the grammar is changed; `GRAM0010`
+  below C# 8; ignore-case literals no longer take a case partner across ASCII (`'s'i` and `ſ`).
 - **DotGram.Sql:** the 0.2.0 T-SQL tree in `DotGram.Sql` is removed — read, walk and write
   `DotGram.Sql.Ast`; the 0.2.0 `DotGram.Sql.Ast` tree changes shape (a SELECT holds a `Query`,
   `SelectColumn`, one `Limit`, a DROP record per kind, reshaped SET options; docs/ast.md);
