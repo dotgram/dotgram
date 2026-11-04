@@ -122,9 +122,6 @@ DotGram.Sql.Ast.Expression.QuantifiedOperation.Quantifier.get -> DotGram.Sql.Ast
 DotGram.Sql.Ast.Expression.QuantifiedOperation.Quantifier.init -> void
 DotGram.Sql.Ast.Expression.QuantifiedOperation.Right.get -> DotGram.Sql.Ast.Expression!
 DotGram.Sql.Ast.Expression.QuantifiedOperation.Right.init -> void
-DotGram.Sql.Ast.Expression.Star
-DotGram.Sql.Ast.Expression.Star.Equals(DotGram.Sql.Ast.Expression.Star? other) -> bool
-DotGram.Sql.Ast.Expression.Star.Star() -> void
 DotGram.Sql.Ast.Expression.Substring.Deconstruct(out DotGram.Sql.Ast.Expression! Value, out DotGram.Sql.Ast.Expression? From, out DotGram.Sql.Ast.Expression? For, out DotGram.Sql.Ast.CharacterLengthUnits? Using) -> void
 DotGram.Sql.Ast.Expression.Substring.ForFirst.get -> bool
 DotGram.Sql.Ast.Expression.Substring.ForFirst.init -> void
@@ -285,9 +282,13 @@ DotGram.Sql.Ast.Statement.CommitPrepared.Id.init -> void
 DotGram.Sql.Ast.Statement.Copy
 DotGram.Sql.Ast.Statement.Copy.Bare.get -> bool
 DotGram.Sql.Ast.Statement.Copy.Bare.init -> void
+DotGram.Sql.Ast.Statement.Copy.BinaryBeforeTable.get -> bool
+DotGram.Sql.Ast.Statement.Copy.BinaryBeforeTable.init -> void
 DotGram.Sql.Ast.Statement.Copy.Columns.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.Identifier!>
 DotGram.Sql.Ast.Statement.Copy.Columns.init -> void
 DotGram.Sql.Ast.Statement.Copy.Copy() -> void
+DotGram.Sql.Ast.Statement.Copy.DelimitersClause.get -> bool
+DotGram.Sql.Ast.Statement.Copy.DelimitersClause.init -> void
 DotGram.Sql.Ast.Statement.Copy.Direction.get -> DotGram.Sql.Ast.CopyDirection
 DotGram.Sql.Ast.Statement.Copy.Direction.init -> void
 DotGram.Sql.Ast.Statement.Copy.Equals(DotGram.Sql.Ast.Statement.Copy? other) -> bool
@@ -619,10 +620,6 @@ override DotGram.Sql.Ast.Expression.QuantifiedOperation.<Clone>$() -> DotGram.Sq
 override DotGram.Sql.Ast.Expression.QuantifiedOperation.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.Expression.QuantifiedOperation.GetHashCode() -> int
 override DotGram.Sql.Ast.Expression.QuantifiedOperation.ToString() -> string!
-override DotGram.Sql.Ast.Expression.Star.<Clone>$() -> DotGram.Sql.Ast.Expression.Star!
-override DotGram.Sql.Ast.Expression.Star.Equals(object? obj) -> bool
-override DotGram.Sql.Ast.Expression.Star.GetHashCode() -> int
-override DotGram.Sql.Ast.Expression.Star.ToString() -> string!
 override DotGram.Sql.Ast.MergeMatchedAction.DoNothing.<Clone>$() -> DotGram.Sql.Ast.MergeMatchedAction.DoNothing!
 override DotGram.Sql.Ast.MergeMatchedAction.DoNothing.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.MergeMatchedAction.DoNothing.GetHashCode() -> int
@@ -763,7 +760,6 @@ override sealed DotGram.Sql.Ast.ConflictTarget.Constraint.Equals(DotGram.Sql.Ast
 override sealed DotGram.Sql.Ast.Expression.IsDocument.Equals(DotGram.Sql.Ast.Expression? other) -> bool
 override sealed DotGram.Sql.Ast.Expression.OperatorCall.Equals(DotGram.Sql.Ast.Expression? other) -> bool
 override sealed DotGram.Sql.Ast.Expression.QuantifiedOperation.Equals(DotGram.Sql.Ast.Expression? other) -> bool
-override sealed DotGram.Sql.Ast.Expression.Star.Equals(DotGram.Sql.Ast.Expression? other) -> bool
 override sealed DotGram.Sql.Ast.MergeMatchedAction.DoNothing.Equals(DotGram.Sql.Ast.MergeMatchedAction? other) -> bool
 override sealed DotGram.Sql.Ast.QuantifiedOperator.Comparison.Equals(DotGram.Sql.Ast.QuantifiedOperator? other) -> bool
 override sealed DotGram.Sql.Ast.QuantifiedOperator.Like.Equals(DotGram.Sql.Ast.QuantifiedOperator? other) -> bool
@@ -814,8 +810,6 @@ static DotGram.Sql.Ast.Expression.OperatorCall.operator !=(DotGram.Sql.Ast.Expre
 static DotGram.Sql.Ast.Expression.OperatorCall.operator ==(DotGram.Sql.Ast.Expression.OperatorCall? left, DotGram.Sql.Ast.Expression.OperatorCall? right) -> bool
 static DotGram.Sql.Ast.Expression.QuantifiedOperation.operator !=(DotGram.Sql.Ast.Expression.QuantifiedOperation? left, DotGram.Sql.Ast.Expression.QuantifiedOperation? right) -> bool
 static DotGram.Sql.Ast.Expression.QuantifiedOperation.operator ==(DotGram.Sql.Ast.Expression.QuantifiedOperation? left, DotGram.Sql.Ast.Expression.QuantifiedOperation? right) -> bool
-static DotGram.Sql.Ast.Expression.Star.operator !=(DotGram.Sql.Ast.Expression.Star? left, DotGram.Sql.Ast.Expression.Star? right) -> bool
-static DotGram.Sql.Ast.Expression.Star.operator ==(DotGram.Sql.Ast.Expression.Star? left, DotGram.Sql.Ast.Expression.Star? right) -> bool
 static DotGram.Sql.Ast.MergeMatchedAction.DoNothing.operator !=(DotGram.Sql.Ast.MergeMatchedAction.DoNothing? left, DotGram.Sql.Ast.MergeMatchedAction.DoNothing? right) -> bool
 static DotGram.Sql.Ast.MergeMatchedAction.DoNothing.operator ==(DotGram.Sql.Ast.MergeMatchedAction.DoNothing? left, DotGram.Sql.Ast.MergeMatchedAction.DoNothing? right) -> bool
 static DotGram.Sql.Ast.PostgreSqlWriter.Write(DotGram.Sql.Ast.ISqlNode! node) -> string!

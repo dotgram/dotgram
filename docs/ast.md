@@ -793,7 +793,6 @@ it. The families stand in alphabetical order, each family's records in the order
 | `Expression.OperatorCall` | PostgreSQL | Operators |
 | `Expression.QuantifiedOperation` | PostgreSQL | Row and Array Comparisons |
 | `Expression.IsDocument` | PostgreSQL | XML Predicates |
-| `Expression.Star` | PostgreSQL | COPY |
 | `Expression.IsNormalized` | SQL:2023 | under &lt;value expression&gt; and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars |
 | `Expression.MemberOf` | SQL:2023 | under &lt;value expression&gt; and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars |
 | `Expression.SubmultisetOf` | SQL:2023 | under &lt;value expression&gt; and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars |

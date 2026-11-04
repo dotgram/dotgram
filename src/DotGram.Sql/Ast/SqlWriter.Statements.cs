@@ -2278,6 +2278,9 @@ public static partial class SqlWriter
 					else
 						Word("COMMIT");
 
+					if (commit.Work && commit.Keyword is not null)
+						throw Both(commit, nameof(commit.Work), nameof(commit.Keyword));
+
 					PutTransactionKeyword(commit.Keyword);
 
 					if (commit.Work)
@@ -2303,9 +2306,16 @@ public static partial class SqlWriter
 					if (rollback.Name is not null && rollback.ToSavepoint is not null)
 						throw Both(rollback, nameof(rollback.Name), nameof(rollback.ToSavepoint));
 
+					if (rollback.Work && rollback.Keyword is not null)
+						throw Both(rollback, nameof(rollback.Work), nameof(rollback.Keyword));
+
 					if (rollback.Abort)
 					{
 						OnlyPostgreSql(rollback);
+
+						if (rollback.ToSavepoint is not null)
+							throw Both(rollback, nameof(rollback.Abort), nameof(rollback.ToSavepoint));
+
 						Word("ABORT");
 					}
 					else
@@ -2396,24 +2406,38 @@ public static partial class SqlWriter
 					break;
 
 				case Statement.SetRole role:
+					if (role.None && role.Value is not null)
+						throw Both(role, nameof(role.None), nameof(role.Value));
+
 					PutSet(role, role.Scope);
 					Word("ROLE");
 
 					if (role.None)
 						Word("NONE");
 					else
-						PutExpression(role.Value!);
+						PutExpression(role.Value ?? throw Empty(role, nameof(role.Value), nameof(role.None)));
 
 					break;
 
 				case Statement.SetTimeZone zone:
+					if (zone.Local && zone.Value is not null)
+						throw Both(zone, nameof(zone.Local), nameof(zone.Value));
+
 					PutSet(zone, zone.Scope);
 					Word("TIME ZONE");
 
 					if (zone.Local)
 						Word("LOCAL");
 					else
-						PutExpression(zone.Value!);
+					{
+						var zoneValue = zone.Value ?? throw Empty(zone, nameof(zone.Value), nameof(zone.Local));
+
+						// PostgreSQL: SET. A zone by a plain word is a name that is no key word (zone_value's IDENT).
+						if (postgreSql && zoneValue is Expression.Reference { Name: [{ Style: IdentifierStyle.Regular, Text: var word }] } && PostgreSql.KeywordCatalogue.IsKeyword(word))
+							throw Misplaced(zone, nameof(zone.Value), "a key word as the zone's name, which PostgreSQL reads only quoted or as a string");
+
+						PutExpression(zoneValue);
+					}
 
 					break;
 
@@ -2432,9 +2456,14 @@ public static partial class SqlWriter
 					PutSet(names, names.Scope);
 					Word("NAMES");
 
-					// PostgreSQL: SET. `SET NAMES` alone has no encoding after it.
+					// PostgreSQL: SET. `SET NAMES` alone has no encoding after it; with one, it is a string or DEFAULT.
 					if (names.Value is { } encoding)
+					{
+						if (postgreSql && encoding is not (LiteralValue.String or Expression.Default))
+							throw Misplaced(names, nameof(names.Value), "other than a string or DEFAULT, which alone PostgreSQL's SET NAMES takes");
+
 						PutExpression(encoding);
+					}
 					else
 						OnlyPostgreSql(names);
 
@@ -2693,6 +2722,13 @@ public static partial class SqlWriter
 				if (direction.WordOmitted && (direction.Kind != FetchOrientationKind.Forward || (!direction.All && direction.Offset is null)))
 					throw Misplaced(direction, nameof(direction.WordOmitted), "where no count or ALL stands for the word FORWARD");
 
+				if (direction.Kind is FetchOrientationKind.Absolute or FetchOrientationKind.Relative && direction.Offset is null)
+					throw Empty(direction, nameof(direction.Offset));
+
+				// PostgreSQL: FETCH. A count is a whole number under its sign, one token, within 32 bits (SignedIconst).
+				if (postgreSql && direction.Offset is { } count && !(count is LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger, Text: var digits } && PostgreSql.Nodes.FitsInteger(digits.TrimStart('+', '-')) && digits.Length - digits.TrimStart('+', '-').Length <= 1))
+					throw Misplaced(direction, nameof(direction.Offset), "other than a whole number within 32 bits, which alone PostgreSQL's FETCH counts by");
+
 				if (!direction.WordOmitted)
 					Word(direction.Kind switch
 					{
@@ -2725,6 +2761,9 @@ public static partial class SqlWriter
 			}
 			else if (from)
 				Word("FROM");
+
+			if (postgreSql && cursor is not { Name.Count: 1, ExtendedName: null, Global: false, Local: false, Ptf: false })
+				throw Misplaced(cursor, "Name", "other than a name of one part, which alone PostgreSQL's FETCH and MOVE take");
 
 			PutCursor(cursor);
 		}

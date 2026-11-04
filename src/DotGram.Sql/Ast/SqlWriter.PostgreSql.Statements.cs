@@ -100,14 +100,19 @@ public static partial class SqlWriter
 
 					if (explain.Bare)
 					{
-						// The old words, ANALYZE and VERBOSE, bare before the statement: no value, and those words alone.
-						if (explain.Options.Count == 0)
-							throw Misplaced(explain, nameof(explain.Bare), "with no option to write bare");
+						// The old words bare before the statement: ANALYZE, then VERBOSE, each at most once and in that order.
+						if (explain.Options.Count is 0 or > 2)
+							throw Misplaced(explain, nameof(explain.Bare), "with no option to write bare, or more than ANALYZE and VERBOSE");
 
-						foreach (var option in explain.Options)
+						for (var at = 0; at < explain.Options.Count; at++)
 						{
-							if (option.Value is not null || option.Options.Count > 0 || !(IsWord(option.Name, "analyze") || IsWord(option.Name, "analyse") || IsWord(option.Name, "verbose")))
-								throw Misplaced(option, nameof(option.Name), "other than ANALYZE or VERBOSE alone, which are the words EXPLAIN takes bare");
+							var option  = explain.Options[at];
+							var analyze = IsWord(option.Name, "analyze") || IsWord(option.Name, "analyse");
+							var verbose = IsWord(option.Name, "verbose");
+
+							// ANALYZE only first; VERBOSE first alone, or second after ANALYZE.
+							if (option.Value is not null || option.Options.Count > 0 || !(analyze || verbose) || (analyze && at > 0) || (verbose && at == 0 && explain.Options.Count > 1))
+								throw Misplaced(option, nameof(option.Name), "other than ANALYZE then VERBOSE, each alone and once, which are the words EXPLAIN takes bare");
 
 							Word(option.Name.Text);
 						}
@@ -460,6 +465,9 @@ public static partial class SqlWriter
 			if (table is not TableSource.Named { Alias: null, Sample: null } named)
 				throw Misplaced(table, "Kind", "other than a table's name, which alone LOCK takes");
 
+			if (named.Name.Count > 3)
+				throw Misplaced(named, "Name", "of more than three parts, which PostgreSQL refuses (improper qualified name)");
+
 			PutSource(named);
 		}
 
@@ -481,6 +489,17 @@ public static partial class SqlWriter
 		{
 			Word("COPY");
 
+			// BINARY before the table and DELIMITERS after the file are two of the options in old clauses of their own:
+			// each is written there and left out of the list, and must be in the list to be written at all.
+			var binaryAt    = copy.BinaryBeforeTable ? IndexOfOption(copy.Options, "format", static value => value is Expression.Reference { Name: [{ } word] } && IsWord(word, "binary")) : -1;
+			var delimiterAt = copy.DelimitersClause ? IndexOfOption(copy.Options, "delimiter", static value => value is LiteralValue.String) : -1;
+
+			if (copy.BinaryBeforeTable && (binaryAt < 0 || copy.Query is not null))
+				throw Misplaced(copy, nameof(copy.BinaryBeforeTable), "with no option format binary to stand for, or before a query, which takes no BINARY");
+
+			if (copy.DelimitersClause && (delimiterAt < 0 || copy.Query is not null))
+				throw Misplaced(copy, nameof(copy.DelimitersClause), "with no option delimiter to stand for, or after a query, which takes no DELIMITERS");
+
 			if (copy.Query is { } query)
 			{
 				if (copy.Table is not null || copy.Columns.Count > 0 || copy.Where is not null || copy.Direction != CopyDirection.To)
@@ -494,6 +513,9 @@ public static partial class SqlWriter
 			{
 				if (copy.Table is null)
 					throw Empty(copy, nameof(copy.Table), nameof(copy.Query));
+
+				if (copy.BinaryBeforeTable)
+					Word("BINARY");
 
 				PutLockedTable(copy.Table);
 
@@ -525,18 +547,43 @@ public static partial class SqlWriter
 				Word(copy.Stream switch { StandardStream.Stdin => "STDIN", StandardStream.Stdout => "STDOUT", null => throw Empty(copy, nameof(copy.File), nameof(copy.Stream)), _ => throw NoText(copy.Stream.Value) });
 			}
 
+			if (delimiterAt >= 0)
+			{
+				Word("DELIMITERS");
+				PutLiteral((LiteralValue)copy.Options[delimiterAt].Value!);
+			}
+
 			if (copy.WithKeyword)
 				Word("WITH");
 
+			var listed = new List<Option>(copy.Options.Count);
+
+			for (var at = 0; at < copy.Options.Count; at++)
+			{
+				if (at != binaryAt && at != delimiterAt)
+					listed.Add(copy.Options[at]);
+			}
+
 			if (copy.Bare)
 			{
-				foreach (var option in copy.Options)
+				if (listed.Count == 0)
+					throw Misplaced(copy, nameof(copy.Bare), "with no option to write as an old word");
+
+				foreach (var option in listed)
 					PutLegacyCopyOption(option);
 			}
-			else if (copy.Options.Count > 0)
+			else if (listed.Count > 0)
 			{
 				Open();
-				Each(copy.Options, PutCopyOption);
+
+				for (var at = 0; at < listed.Count; at++)
+				{
+					if (at > 0)
+						Tight(",");
+
+					PutCopyOption(listed[at]);
+				}
+
 				Close();
 			}
 
@@ -548,6 +595,18 @@ public static partial class SqlWriter
 				Word("WHERE");
 				PutExpression(where);
 			}
+		}
+
+		/// <summary>The first option of a name whose value fits, or -1.</summary>
+		static int IndexOfOption(SqlList<Option> options, string name, Func<Expression?, bool> fits)
+		{
+			for (var at = 0; at < options.Count; at++)
+			{
+				if (IsWord(options[at].Name, name) && options[at].Options.Count == 0 && fits(options[at].Value))
+					return at;
+			}
+
+			return -1;
 		}
 
 		/// <summary>One COPY option in brackets: the name, and the value, the star, DEFAULT or the list where one was written.</summary>
@@ -563,7 +622,7 @@ public static partial class SqlWriter
 				case null:
 					break;
 
-				case Expression.Star:
+				case Expression.Asterisk:
 					Word("*");
 					break;
 
@@ -606,7 +665,7 @@ public static partial class SqlWriter
 					PutLiteral(text);
 					return;
 
-				case "force_quote" or "force_not_null" or "force_null" when option.Value is Expression.Star or Expression.Row { RowKeyword: false }:
+				case "force_quote" or "force_not_null" or "force_null" when option.Value is Expression.Asterisk or Expression.Row { RowKeyword: false }:
 					Word(name switch { "force_quote" => "FORCE QUOTE", "force_not_null" => "FORCE NOT NULL", "force_null" => "FORCE NULL", _ => throw Misplaced(option, nameof(option.Name), "no old word") });
 
 					if (option.Value is Expression.Row row)

@@ -1726,6 +1726,62 @@
 			"name": "explain_declare",
 			"text": "EXPLAIN DECLARE c CURSOR FOR SELECT 1",
 			"accepted": true
+		},
+		{
+			"name": "copy_force_words_apart",
+			"text": "COPY t TO stdout CSV FORCE  QUOTE a; COPY t TO stdout CSV FORCE/*x*/QUOTE a; COPY t FROM stdin CSV FORCE  NOT NULL a",
+			"accepted": true
+		},
+		{
+			"name": "copy_old_clauses_with_brackets",
+			"text": "COPY BINARY t FROM stdin (on_error stop); COPY t FROM stdin USING DELIMITERS ',' (on_error ignore); COPY t FROM stdin DELIMITERS ',' (on_error ignore); COPY BINARY t FROM 'f' USING DELIMITERS '|' WITH HEADER",
+			"accepted": true
+		},
+		{
+			"name": "savepoint_named_savepoint",
+			"text": "ROLLBACK TO savepoint; ROLLBACK TO SAVEPOINT; RELEASE savepoint; SAVEPOINT savepoint",
+			"accepted": true
+		},
+		{
+			"name": "fetch_counts_at_the_edge",
+			"text": "FETCH 2147483647 c; FETCH -2147483647 c",
+			"accepted": true
+		},
+		{
+			"name": "fetch_count_past_32_bits",
+			"text": "FETCH 2147483648 c",
+			"accepted": false,
+			"error": "syntax error at or near \"2147483648\", at index 6"
+		},
+		{
+			"name": "fetch_negative_count_past_32_bits",
+			"text": "FETCH -2147483648 c",
+			"accepted": false,
+			"error": "syntax error at or near \"2147483648\", at index 7"
+		},
+		{
+			"name": "fetch_absolute_past_32_bits",
+			"text": "FETCH ABSOLUTE 99999999999999999999 c",
+			"accepted": false,
+			"error": "syntax error at or near \"99999999999999999999\", at index 15"
+		},
+		{
+			"name": "move_past_32_bits",
+			"text": "MOVE FORWARD 2147483648 c",
+			"accepted": false,
+			"error": "syntax error at or near \"2147483648\", at index 13"
+		},
+		{
+			"name": "set_constraints_four_part",
+			"text": "SET CONSTRAINTS a.b.c.d DEFERRED",
+			"accepted": false,
+			"error": "improper qualified name (too many dotted names): a.b.c.d, at index 16"
+		},
+		{
+			"name": "set_constraints_four_part_later",
+			"text": "SET CONSTRAINTS a, b.c.d.e IMMEDIATE",
+			"accepted": false,
+			"error": "improper qualified name (too many dotted names): b.c.d.e, at index 19"
 		}
 	]
 }

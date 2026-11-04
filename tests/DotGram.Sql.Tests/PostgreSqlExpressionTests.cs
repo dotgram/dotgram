@@ -782,6 +782,25 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("COPY (INSERT INTO t DEFAULT VALUES RETURNING *) TO STDOUT", "copy data change")]
 	[InlineData("COPY t FROM 'f' (format csv) WHERE a",                   "copy bracketed where")]
 	[InlineData("EXPLAIN DECLARE c CURSOR FOR SELECT 1",                  "explain declare")]
+	[InlineData("COPY t TO stdout CSV FORCE  QUOTE a",                    "copy force quote with two spaces")]
+	[InlineData("COPY t TO stdout CSV FORCE/*x*/QUOTE a",                 "copy force quote with a comment")]
+	[InlineData("COPY t FROM stdin CSV FORCE  NOT NULL a",                "copy force not null with two spaces")]
+	[InlineData("COPY BINARY t FROM stdin (on_error stop)",               "copy binary with brackets")]
+	[InlineData("COPY t FROM stdin USING DELIMITERS ',' (on_error ignore)", "copy using delimiters with brackets")]
+	[InlineData("COPY t FROM stdin DELIMITERS ',' (on_error ignore)",     "copy delimiters with brackets")]
+	[InlineData("COPY BINARY t FROM 'f' USING DELIMITERS '|' WITH HEADER", "copy binary and delimiters with old words")]
+	[InlineData("ROLLBACK TO savepoint",                                  "rollback to a savepoint named savepoint")]
+	[InlineData("ROLLBACK TO SAVEPOINT",                                  "rollback to a savepoint named SAVEPOINT")]
+	[InlineData("RELEASE savepoint",                                      "release a savepoint named savepoint")]
+	[InlineData("SAVEPOINT savepoint",                                    "a savepoint named savepoint")]
+	[InlineData("FETCH 2147483647 c",                                     "fetch the largest count")]
+	[InlineData("FETCH -2147483647 c",                                    "fetch the smallest count")]
+	[InlineData("FETCH 2147483648 c",                                     "refused: a count past 32 bits")]
+	[InlineData("FETCH -2147483648 c",                                    "refused: a negative count past 32 bits")]
+	[InlineData("FETCH ABSOLUTE 99999999999999999999 c",                  "refused: ABSOLUTE past 32 bits")]
+	[InlineData("MOVE FORWARD 2147483648 c",                              "refused: MOVE past 32 bits")]
+	[InlineData("SET CONSTRAINTS a.b.c.d DEFERRED",                       "refused: SET CONSTRAINTS of a four-part name")]
+	[InlineData("SET CONSTRAINTS a, b.c.d.e IMMEDIATE",                   "refused: SET CONSTRAINTS of a four-part name later")]
 	[InlineData("DECLARE c CURSOR FOR INSERT INTO t DEFAULT VALUES RETURNING *", "refused: DECLARE of a data change")]
 	[InlineData("FETCH ABSOLUTE c",                                       "refused: ABSOLUTE without a count")]
 	[InlineData("VACUUM FREEZE FULL t",                                   "refused: VACUUM words out of order")]
@@ -934,16 +953,29 @@ public sealed class PostgreSqlExpressionTests
 			"analyze"                  => made is Statement.Analyze { Options.Count: 0, Relations.Count: 0, British: false },
 			"analyse verbose"          => made is Statement.Analyze { Options: [{ Name.Text: "VERBOSE" }], Bare: true, British: true, Relations: [{ Columns.Count: 1 }] },
 			"analyze options"          => made is Statement.Analyze { Options.Count: 2, Bare: false, Relations.Count: 2 },
-			"copy from stdin"          => made is Statement.Copy { Table: TableSource.Named, Direction: CopyDirection.From, File: null, Stream: StandardStream.Stdin, Options.Count: 0, Bare: true, WithKeyword: false },
+			"copy from stdin"          => made is Statement.Copy { Table: TableSource.Named, Direction: CopyDirection.From, File: null, Stream: StandardStream.Stdin, Options.Count: 0, Bare: false, WithKeyword: false },
 			"copy to stdout"           => made is Statement.Copy { Direction: CopyDirection.To, Stream: StandardStream.Stdout },
 			"copy from stdout"         => made is Statement.Copy { Direction: CopyDirection.From, Stream: StandardStream.Stdout },
 			"copy old words"           => made is Statement.Copy { Columns.Count: 2, Program: true, File: not null, Stream: null, Options: [{ Name.Text: "format", Value: Expression.Reference }, { Name.Text: "delimiter", Value: LiteralValue.String }, { Name.Text: "format" }, { Name.Text: "header", Value: LiteralValue.Boolean }, { Name.Text: "force_not_null", Value: Expression.Row { Items.Count: 2 } }], WithKeyword: true, Bare: true, Where: not null },
-			"copy with alone"          => made is Statement.Copy { Options.Count: 0, WithKeyword: true, Bare: true },
-			"copy every old word"      => made is Statement.Copy { Options: [{ Name.Text: "delimiter" }, { Name.Text: "null" }, { Name.Text: "quote" }, { Name.Text: "escape" }, { Name.Text: "freeze" }, { Name.Text: "force_quote", Value: Expression.Star }, { Name.Text: "force_null", Value: Expression.Row }, { Name.Text: "encoding" }], Bare: true },
-			"copy query options"       => made is Statement.Copy { Table: null, Query: Query.Select, Direction: CopyDirection.To, Stream: StandardStream.Stdout, Options: [{ Value: Expression.Reference }, { Value: null }, { Value: Expression.Star }, { Value: Expression.Row { Items: [Expression.Reference, LiteralValue.String] } }, { Value: LiteralValue.String }, { Value: LiteralValue.String }, { Value: LiteralValue.String }, { Value: LiteralValue.Boolean }, { Value: LiteralValue.Numeric }, { Value: Expression.Default }], Bare: false, WithKeyword: true },
+			"copy with alone"          => made is Statement.Copy { Options.Count: 0, WithKeyword: true, Bare: false },
+			"copy every old word"      => made is Statement.Copy { Options: [{ Name.Text: "delimiter" }, { Name.Text: "null" }, { Name.Text: "quote" }, { Name.Text: "escape" }, { Name.Text: "freeze" }, { Name.Text: "force_quote", Value: Expression.Asterisk }, { Name.Text: "force_null", Value: Expression.Row }, { Name.Text: "encoding" }], Bare: true },
+			"copy query options"       => made is Statement.Copy { Table: null, Query: Query.Select, Direction: CopyDirection.To, Stream: StandardStream.Stdout, Options: [{ Value: Expression.Reference }, { Value: null }, { Value: Expression.Asterisk }, { Value: Expression.Row { Items: [Expression.Reference, LiteralValue.String] } }, { Value: LiteralValue.String }, { Value: LiteralValue.String }, { Value: LiteralValue.String }, { Value: LiteralValue.Boolean }, { Value: LiteralValue.Numeric }, { Value: Expression.Default }], Bare: false, WithKeyword: true },
 			"copy data change"         => made is Statement.Copy { Query: Query.DataChange },
 			"copy bracketed where"     => made is Statement.Copy { Options.Count: 1, Bare: false, WithKeyword: false, Where: not null },
 			"explain declare"          => made is Statement.Explain { Statement: Statement.DeclareCursor },
+			"copy force quote with two spaces" => made is Statement.Copy { Options: [{ Name.Text: "format" }, { Name.Text: "force_quote", Value: Expression.Row }] },
+			"copy force quote with a comment" => made is Statement.Copy { Options: [{ Name.Text: "format" }, { Name.Text: "force_quote" }] },
+			"copy force not null with two spaces" => made is Statement.Copy { Options: [{ Name.Text: "format" }, { Name.Text: "force_not_null" }] },
+			"copy binary with brackets" => made is Statement.Copy { Options: [{ Name.Text: "format" }, { Name.Text: "on_error" }], Bare: false, BinaryBeforeTable: true, DelimitersClause: false },
+			"copy using delimiters with brackets" => made is Statement.Copy { Options: [{ Name.Text: "delimiter" }, { Name.Text: "on_error" }], Bare: false, DelimitersClause: true },
+			"copy delimiters with brackets" => made is Statement.Copy { Options.Count: 2, Bare: false, DelimitersClause: true },
+			"copy binary and delimiters with old words" => made is Statement.Copy { Options: [{ Name.Text: "format" }, { Name.Text: "delimiter" }, { Name.Text: "header" }], Bare: true, BinaryBeforeTable: true, DelimitersClause: true, WithKeyword: true },
+			"rollback to a savepoint named savepoint" => made is Statement.Rollback { ToSavepoint.Text: "savepoint", SavepointKeywordOmitted: true },
+			"rollback to a savepoint named SAVEPOINT" => made is Statement.Rollback { ToSavepoint.Text: "SAVEPOINT", SavepointKeywordOmitted: true },
+			"release a savepoint named savepoint" => made is Statement.ReleaseSavepoint { Name.Text: "savepoint", SavepointKeywordOmitted: true },
+			"a savepoint named savepoint" => made is Statement.Savepoint { Name.Text: "savepoint" },
+			"fetch the largest count"  => made is Statement.FetchCursor { Orientation.Offset: LiteralValue.Numeric { Text: "2147483647" } },
+			"fetch the smallest count" => made is Statement.FetchCursor { Orientation.Offset: LiteralValue.Numeric { Text: "-2147483647" } },
 			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
 		};
 
