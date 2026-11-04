@@ -155,6 +155,8 @@ DotGram.Sql.Ast.TableSource.Parenthesized.Alias.init -> void
 DotGram.Sql.Ast.TableSource.RowsFrom
 DotGram.Sql.Ast.TableSource.RowsFrom.Alias.get -> DotGram.Sql.Ast.Alias?
 DotGram.Sql.Ast.TableSource.RowsFrom.Alias.init -> void
+DotGram.Sql.Ast.TableSource.RowsFrom.ColumnDefinitions.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.FieldDefinition!>?
+DotGram.Sql.Ast.TableSource.RowsFrom.ColumnDefinitions.init -> void
 DotGram.Sql.Ast.TableSource.RowsFrom.Deconstruct(out DotGram.Sql.SqlList<DotGram.Sql.Ast.RowsFromItem!> Items, out bool WithOrdinality, out DotGram.Sql.Ast.Alias? Alias) -> void
 DotGram.Sql.Ast.TableSource.RowsFrom.Equals(DotGram.Sql.Ast.TableSource.RowsFrom? other) -> bool
 DotGram.Sql.Ast.TableSource.RowsFrom.Items.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.RowsFromItem!>
