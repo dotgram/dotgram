@@ -72,7 +72,7 @@ Each package's notes list them with what to write instead. The ones most project
 | [DotGram.Web](https://www.nuget.org/packages/DotGram.Web/0.3.0) | JSON, HTTP headers, URIs, dates, … |
 | [DotGram.ExpressionLanguage](https://www.nuget.org/packages/DotGram.ExpressionLanguage/0.3.0) | C#-style expressions to `System.Linq.Expressions` |
 | [DotGram.Finance](https://www.nuget.org/packages/DotGram.Finance/0.3.0) | FIX 4.2, 4.4, 5.0 SP2 |
-| [Visual Studio extension](https://marketplace.visualstudio.com/items?itemName=dotgram.dotgram) | VS 2022 17.14+ and VS 18 |
+| [Visual Studio extension](https://marketplace.visualstudio.com/items?itemName=dotgram.DotGram.VisualStudio) | VS 2022 17.14+ and VS 18 |
 
 ## Known issues
 
