@@ -1066,6 +1066,9 @@ public abstract partial record Expression : ISqlNode, ISqlLocatable
 		// BNF: <indicator parameter>, <indicator variable> — `:a INDICATOR :i` or `:a :i`.
 		public Identifier? Indicator { get; init; }
 		public bool IndicatorKeyword { get; init; }
+
+		/// <summary>PostgreSQL: Positional Parameters. The number of <c>$1</c>, where the parameter is <see cref="ParameterKind.Positional"/>.</summary>
+		public int? Ordinal { get; init; }
 	}
 
 	// BNF: <general value specification>'s key words, <datetime value function>. Precision is `CURRENT_TIME (3)`'s.
@@ -1290,7 +1293,8 @@ public abstract partial record Expression : ISqlNode, ISqlLocatable
 	public sealed record Extension(string Dialect, string Kind, SqlList<ISqlNode> Parts) : Expression;
 }
 
-public enum ParameterKind { Host, Sql, Dynamic, Embedded }
+// PostgreSQL: Positional Parameters. `Positional` is PostgreSQL's `$1`, whose number is Parameter.Ordinal.
+public enum ParameterKind { Host, Sql, Dynamic, Embedded, Positional }
 public enum CurrentValue { Catalog, Date, DefaultTransformGroup, Path, Role, Schema, Time, Timestamp, User, SessionUser, SystemUser, Value, LocalTime, LocalTimestamp, CurrentUser, TransformGroupForType }
 // T-SQL: Bitwise Operators (Transact-SQL). `BitwiseNot` is `~`.
 public enum UnaryOperator { Plus, Minus, Not, BitwiseNot }
@@ -1364,7 +1368,9 @@ public abstract partial record LiteralValue : Expression
 }
 // T-SQL: money and smallmoney (Transact-SQL). `Money` is a literal written with a currency sign.
 public enum NumericLiteralKind { DecimalInteger, HexInteger, OctalInteger, BinaryInteger, Decimal, Approximate, Money }
-public enum StringLiteralKind { Character, National, Unicode }
+// PostgreSQL: String Constants. `Escaped` is `E'…'`, whose backslashes escape; `Dollar` is `$tag$ … $tag$`, whose
+// tag is in the text. The text keeps the letter or the tag, so the kind is read from it, as a number's is.
+public enum StringLiteralKind { Character, National, Unicode, Escaped, Dollar }
 public enum BooleanLiteral { True, False, Unknown }
 public enum DateTimeLiteralKind { Date, Time, Timestamp }
 

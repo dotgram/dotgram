@@ -653,6 +653,10 @@ public sealed class SqlWriterCoverageTests
 			["SetOperation.Distinct"] = (
 				Combined(SetOperator.Union),
 				Combined(SetOperator.Union, distinct: true)),
+			// PostgreSQL's string of bits written in hexits, `X'1F'`, against SQL-92's bits, `B'01'`.
+			["BitString.Hexadecimal"] = (
+				new LiteralValue.BitString("'01'"),
+				new LiteralValue.BitString("'01'") { Hexadecimal = true }),
 			// T-SQL's `0x0A` is the digits after its introducer; the standard's is X and the quoted digits.
 			["Binary.ZeroX"] = (
 				new LiteralValue.Binary("'0A'"),
