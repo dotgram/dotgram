@@ -1,4 +1,4 @@
-DotGram language support
+.Gram language support
 
 0.3.0
 
