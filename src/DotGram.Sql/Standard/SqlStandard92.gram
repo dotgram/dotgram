@@ -244,14 +244,11 @@ RowValueConstructorElement : @Expression
 // operator and is no operand of one. Asked of the left side before the operator, so that a
 // refusal there is where it was; of the right side where it has been read.
 ValueExpression : @Expression
-    = left: ValueExpression & when @(Nodes.IsValue(left)) & op: ('+' | '-' | "||") & right: ValueExpression   << 1
-      & when @(Nodes.IsValue(right))
+    = left: ValueExpression & when @(Nodes.IsValue(left)) & op: ('+' | '-' | "||") & right: ValueExpression & when @(Nodes.IsValue(right))   << 1
         => @(Nodes.Arithmetic(left, op, right))
-    | left: ValueExpression & when @(Nodes.IsValue(left)) & op: ('*' | '/') & right: ValueExpression           << 2
-      & when @(Nodes.IsValue(right))
+    | left: ValueExpression & when @(Nodes.IsValue(left)) & op: ('*' | '/') & right: ValueExpression & when @(Nodes.IsValue(right))           << 2
         => @(Nodes.Arithmetic(left, op, right))
-    | sign: ['+' | '-'] & v: ValueExpression                                     >> 3
-      & when @(Nodes.IsValue(v))
+    | sign: ['+' | '-'] & v: ValueExpression & when @(Nodes.IsValue(v))                                     >> 3
         => @(new Expression.Unary(sign == "-" ? UnaryOperator.Minus : UnaryOperator.Plus, v))
     // §6.11 <character factor> is a primary and a collate clause, which says how it is
     // compared rather than what it is, and is kept all the same, as in a GROUP BY. Written on
@@ -286,7 +283,7 @@ ValueExpressionPrimary : @Expression
             case 1: ')'
         }
         => @(rest is null || rest.Length == 0 ? Nodes.Parenthesized(c) : new Expression.Row(Nodes.List(c, rest)))
-    | '(' & n: RowHead & (',' & rest: RowValueConstructorElement)+ & ')' => @(new Expression.Row(Nodes.List(n, rest)))
+    | '(' & n: RowHead & (',' & more: RowValueConstructorElement)+ & ')' => @(new Expression.Row(Nodes.List(n, more)))
     | c: CaseExpression              => @(c)
     | c: CastSpecification           => @(c)
     | f: ValueFunction               => @(f)
