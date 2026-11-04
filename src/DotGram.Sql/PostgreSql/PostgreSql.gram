@@ -935,7 +935,8 @@ Stmt : @Statement = with: WithClause? & s: BareStmt & when @(Nodes.WithFits(with
 // gram.y TransactionStmt, TransactionStmtLegacy: ABORT, BEGIN, START TRANSACTION, COMMIT, END,
 // ROLLBACK [TO [SAVEPOINT]], SAVEPOINT, RELEASE [SAVEPOINT], and the two-phase commit's three.
 // After COMMIT and ROLLBACK, PREPARED and a string, or the optional word and the chain — a
-// ROLLBACK TO takes no chain, as the server has it.
+// ROLLBACK TO takes no chain, as the server has it. SAVEPOINT is the word only where a name
+// follows it: `ROLLBACK TO savepoint` and `RELEASE savepoint` name a savepoint so called.
 TransactionStmt : @Statement
 	= "ABORT"i & w: TransactionWord? & chain: TransactionChain? => @(Nodes.RolledBack(true, w, chain, null, false))
 	| "START"i & "TRANSACTION"i & modes: TransactionModes => @(new Statement.StartTransaction { Modes = SqlList.Own(modes) })
@@ -944,9 +945,9 @@ TransactionStmt : @Statement
 	| "COMMIT"i & w: TransactionWord? & chain: TransactionChain? => @(Nodes.Committed(false, w, chain))
 	| "END"i & w: TransactionWord? & chain: TransactionChain? => @(Nodes.Committed(true, w, chain))
 	| "ROLLBACK"i & "PREPARED"i & id: Sconst => @(new Statement.RollbackPrepared((LiteralValue.String)id))
-	| "ROLLBACK"i & w: TransactionWord? & ("TO"i & sp: "SAVEPOINT"i? & to: ColId | chain: TransactionChain?) => @(Nodes.RolledBack(false, w, chain, to, to is not null && sp is null))
+	| "ROLLBACK"i & w: TransactionWord? & ("TO"i & sp: ("SAVEPOINT"i & ?=ColId)? & to: ColId | chain: TransactionChain?) => @(Nodes.RolledBack(false, w, chain, to, to is not null && sp is null))
 	| "SAVEPOINT"i & name: ColId => @(new Statement.Savepoint { Name = name })
-	| "RELEASE"i & sp: "SAVEPOINT"i? & name: ColId => @(new Statement.ReleaseSavepoint { Name = name, SavepointKeywordOmitted = sp is null })
+	| "RELEASE"i & sp: ("SAVEPOINT"i & ?=ColId)? & name: ColId => @(new Statement.ReleaseSavepoint { Name = name, SavepointKeywordOmitted = sp is null })
 	| "PREPARE"i & "TRANSACTION"i & id: Sconst => @(new Statement.PrepareTransaction((LiteralValue.String)id))
 
 TransactionWord  : @string    = w: ("WORK"i | "TRANSACTION"i) => @(w)
@@ -1016,9 +1017,10 @@ ZoneValue : @Expression
 	| num: NumericOnly => @(num)
 	| "DEFAULT"i => @(new Expression.Default())
 
-// gram.y ConstraintsSetStmt: before the parameter forms, since `constraints` names a parameter too.
+// gram.y ConstraintsSetStmt: before the parameter forms, since `constraints` names a parameter too;
+// each name has at most three parts, as the server has it (improper qualified name).
 ConstraintsSetStmt : @Statement
-	= "SET"i & "CONSTRAINTS"i & (all: "ALL"i | n1: AnyName & (',' & nn: AnyName)*) & mode: ("DEFERRED"i | "IMMEDIATE"i)
+	= "SET"i & "CONSTRAINTS"i & (all: "ALL"i | n1: AnyName & (',' & nn: AnyName)* & when @(Nodes.ConstraintsFit(n1, nn))) & mode: ("DEFERRED"i | "IMMEDIATE"i)
 		=> @(new Statement.SetConstraints { Target = Nodes.Constrained(all, n1, nn), Timing = (mode[0] | 0x20) == 'd' ? ConstraintTiming.Deferred : ConstraintTiming.Immediate })
 
 // gram.y VariableShowStmt, VariableResetStmt, reset_rest, generic_reset: a parameter by name, by
@@ -1052,8 +1054,10 @@ AnalyzeWord       : @string = w: ("ANALYZE"i | "ANALYSE"i) => @(w)
 // gram.y CallStmt: a call by name, with no clause after it (func_application).
 CallStmt : @Statement = "CALL"i & f: FuncExpr & when @(Nodes.IsWindowless(f)) => @(new Statement.Call { Invocation = (Expression.Invocation)f })
 
-// gram.y DoStmt, dostmt_opt_list: the body and LANGUAGE in either order, each once, the body
-// always — as the server's checks have it.
+// gram.y DoStmt, dostmt_opt_list: the body and LANGUAGE in either order. gram.y reads any
+// number of each; the server refuses a second or a missing body as it runs the statement
+// (ExecuteDoStmt), and that is read here as the statement's shape — a departure from the
+// grammar's own rule, recorded in the oracle fixture as the server's verdict.
 DoStmt : @Statement = "DO"i & first: DoItem & rest: DoItem* & when @(Nodes.DoFits(first, rest)) => @(Nodes.Done(first, rest))
 DoItem : @Nodes.DoItem
 	= s: Sconst => @(new Nodes.DoItem((LiteralValue.String)s, null))
@@ -1099,10 +1103,12 @@ LockMode : @LockMode
 // ── The cursors: gram.y DeclareCursorStmt, FetchStmt, ClosePortalStmt ─────────
 //
 // gram.y DeclareCursorStmt, cursor_options, opt_hold: the words before CURSOR in any order, each
-// axis taking the last; the query is held to a SELECT by a lookahead before it is read.
+// axis taking the last — `SCROLL NO SCROLL` is read, as gram.y reads it, and the server refuses it
+// in analysis; the tree keeps the last word. The query is held to a SELECT by a lookahead before
+// it is read.
 DeclareCursorStmt : @Statement
-	= "DECLARE"i & name: ColId & options: CursorOption* & "CURSOR"i & hold: ("WITH"i & "HOLD"i | "WITHOUT"i & "HOLD"i)? & "FOR"i & ?=SelectStart & s: Stmt & when @(s is Statement.Select)
-		=> @(Nodes.Declared(name, options, hold, s))
+	= "DECLARE"i & name: ColId & options: CursorOption* & "CURSOR"i & (hold: "WITH"i & "HOLD"i | without: "WITHOUT"i & "HOLD"i)? & "FOR"i & ?=SelectStart & s: Stmt & when @(s is Statement.Select)
+		=> @(Nodes.Declared(name, options, hold is not null, without is not null, s))
 
 CursorOption : @string = w: ("NO"i & "SCROLL"i | "SCROLL"i | "BINARY"i | "ASENSITIVE"i | "INSENSITIVE"i) => @(w)
 SelectStart = "SELECT"i | "WITH"i | "VALUES"i | "TABLE"i | '('
@@ -1123,8 +1129,9 @@ FetchDirection : @FetchOrientation
 	| word: ("FORWARD"i | "BACKWARD"i) & (all: "ALL"i | n: SignedIconst?) & ?=(("FROM"i | "IN"i)? & ColId) => @(Nodes.Directed(word, all, n))
 	| n: SignedIconst => @(Nodes.Directed(null, null, n))
 
-// gram.y SignedIconst: a whole number under its sign, one token.
-SignedIconst : @Expression = sign: ('+' | '-')? & ?!GluedNumber & t: Integer => @(Nodes.SignedInteger(sign, t))
+// gram.y SignedIconst: a whole number under its sign, one token; the digits fit 32 bits, as
+// scan.l makes a longer number a float, which SignedIconst does not take.
+SignedIconst : @Expression = sign: ('+' | '-')? & ?!GluedNumber & t: Integer & when @(Nodes.FitsInteger(t)) => @(Nodes.SignedInteger(sign, t))
 
 // gram.y ClosePortalStmt.
 ClosePortalStmt : @Statement
@@ -1149,7 +1156,9 @@ VacuumRelation  : @VacuumRelation   = r: RelationExpr & ('(' & c1: ColId & (',' 
 //
 // A query in brackets and TO; or BINARY, the table, its columns, FROM or TO, PROGRAM, the file or
 // the stream, the old DELIMITERS, WITH, the options and WHERE — which a COPY TO does not take, as
-// the server's grammar has it. The options are read once from the bracket or the first old word.
+// the server's grammar has it. The options are read once from the bracket or the first old word;
+// BINARY before the table and DELIMITERS are the format and delimiter options under spellings
+// of their own, so that a bracketed list after them stays bracketed.
 CopyStmt : @Statement
 	= "COPY"i & '(' & ?=PreparableStart & q: Stmt & when @(Nodes.Preparable(q)) & ')' & "TO"i & program: "PROGRAM"i? & file: CopyFileName & with: "WITH"i? & options: CopyOptions
 		=> @(Nodes.CopiedQuery(q, program, file, with, options))
@@ -1167,7 +1176,7 @@ CopyOptions : @Nodes.CopyOptions
 // a list of words or strings, or nothing.
 CopyGenericOption : @Option = name: ColLabel & value: CopyGenericArg? => @(new Option(name, value, []))
 CopyGenericArg : @Expression
-	= '*' => @(new Expression.Star())
+	= '*' => @(new Expression.Asterisk())
 	| "DEFAULT"i => @(new Expression.Default())
 	| '(' & first: BoolOrString & (',' & rest: BoolOrString)* & ')' => @(new Expression.Row(Nodes.List(first, rest)))
 	| v: VarValue => @(v)
@@ -1184,7 +1193,9 @@ BoolOrString : @Expression
 CopyLegacyOption : @Option
 	= w: ("BINARY"i | "FREEZE"i | "CSV"i | "HEADER"i) => @(Nodes.Legacy(w, null))
 	| w: ("DELIMITER"i | "NULL"i | "QUOTE"i | "ESCAPE"i) & "AS"i? & s: Sconst => @(Nodes.Legacy(w, s))
-	| w: ("FORCE"i & "QUOTE"i | "FORCE"i & "NOT"i & "NULL"i | "FORCE"i & "NULL"i) & (star: '*' | c1: ColId & (',' & cn: ColId)*) => @(Nodes.Forced(w, Nodes.Columns(star, c1, cn)))
+	| "FORCE"i & "QUOTE"i & (star: '*' | c1: ColId & (',' & cn: ColId)*) => @(Nodes.Forced("force_quote", star, c1, cn))
+	| "FORCE"i & "NOT"i & "NULL"i & (star: '*' | c1: ColId & (',' & cn: ColId)*) => @(Nodes.Forced("force_not_null", star, c1, cn))
+	| "FORCE"i & "NULL"i & (star: '*' | c1: ColId & (',' & cn: ColId)*) => @(Nodes.Forced("force_null", star, c1, cn))
 	| "ENCODING"i & s: Sconst => @(Nodes.Legacy("encoding", s))
 
 // gram.y DiscardStmt, CheckPointStmt — the latter T-SQL's record, with no duration.

@@ -199,6 +199,10 @@ public static partial class SqlWriter
 				// T-SQL: DECLARE CURSOR (Transact-SQL). The T-SQL arm takes a cursor whose form T-SQL reads; a standard
 				// one — NO SCROLL, WITH HOLD, WITH RETURN, SENSITIVE, a prepared statement — is the standard's to write.
 				case Statement.DeclareCursor declare:
+					// PostgreSQL: DECLARE. BINARY changes what the cursor gives back; no other reading has it.
+					if (declare.Properties.Binary)
+						OnlyPostgreSql(declare.Properties);
+
 					if (!TransactSqlCursor(declare))
 						return false;
 
@@ -236,6 +240,9 @@ public static partial class SqlWriter
 
 					if (cursor.SourceValue is not CursorSource.Query source)
 						throw Misplaced(cursor, "SourceValue", "other than a query (CursorInPlace)");
+
+					if (cursor.Properties.Binary)
+						OnlyPostgreSql(cursor.Properties);
 
 					if (cursor.Properties is { Sensitivity: not null } or { Holdability: not null } or { Returnability: not null }
 						|| cursor.Properties is { Scrollability: CursorScrollability.NoScroll, ForwardOnly: false })
