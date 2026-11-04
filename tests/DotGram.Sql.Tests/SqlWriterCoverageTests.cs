@@ -754,6 +754,12 @@ public sealed class SqlWriterCoverageTests
 			["Copy.WithKeyword"] = (
 				new Statement.Copy { Table = new TableSource.Named(T), Direction = CopyDirection.From, Stream = StandardStream.Stdin },
 				new Statement.Copy { Table = new TableSource.Named(T), Direction = CopyDirection.From, Stream = StandardStream.Stdin, WithKeyword = true }),
+			["Copy.BinaryBeforeTable"] = (
+				new Statement.Copy { Table = new TableSource.Named(T), Direction = CopyDirection.From, Stream = StandardStream.Stdin, Options = [new Option(new Identifier("format"), new Expression.Reference(new QualifiedName([new Identifier("binary")])), [])] },
+				new Statement.Copy { Table = new TableSource.Named(T), Direction = CopyDirection.From, Stream = StandardStream.Stdin, Options = [new Option(new Identifier("format"), new Expression.Reference(new QualifiedName([new Identifier("binary")])), [])], BinaryBeforeTable = true }),
+			["Copy.DelimitersClause"] = (
+				new Statement.Copy { Table = new TableSource.Named(T), Direction = CopyDirection.From, Stream = StandardStream.Stdin, Options = [new Option(new Identifier("delimiter"), new LiteralValue.String("','", StringLiteralKind.Character), [])] },
+				new Statement.Copy { Table = new TableSource.Named(T), Direction = CopyDirection.From, Stream = StandardStream.Stdin, Options = [new Option(new Identifier("delimiter"), new LiteralValue.String("','", StringLiteralKind.Character), [])], DelimitersClause = true }),
 			["Copy.Bare"] = (
 				new Statement.Copy { Table = new TableSource.Named(T), Direction = CopyDirection.From, Stream = StandardStream.Stdin, Options = [new Option(new Identifier("freeze"), new LiteralValue.Boolean(BooleanLiteral.True), [])] },
 				new Statement.Copy { Table = new TableSource.Named(T), Direction = CopyDirection.From, Stream = StandardStream.Stdin, Options = [new Option(new Identifier("freeze"), new LiteralValue.Boolean(BooleanLiteral.True), [])], Bare = true }),
@@ -1002,6 +1008,7 @@ public sealed class SqlWriterCoverageTests
 			"SetParameter.EqualsSign", "Explain.Bare", "Do.LanguageFirst", "DeallocateAll.PrepareKeyword", "LockTable.TableOmitted", "Discard.Temporary",
 			"StartTransaction.Begin", "Commit.End", "Rollback.Abort", "Rollback.SavepointKeywordOmitted", "ReleaseSavepoint.SavepointKeywordOmitted", "SetTransaction.Session", "DeallocatePrepare.PrepareOmitted",
 			"FetchCursor.InKeyword", "MoveCursor.InKeyword", "FetchOrientation.WordOmitted", "Vacuum.Bare", "Analyze.Bare", "Analyze.British", "Copy.WithKeyword", "Copy.Bare",
+			"Copy.BinaryBeforeTable", "Copy.DelimitersClause",
 		};
 
 		foreach (var (name, pair) in pairs)
