@@ -571,13 +571,13 @@ public static partial class SqlDialect;
 ```
 
 ```csharp
-var old      = SqlDialect.ParseOld("a *= b");                              // a left-joined to b
-var refused  = SqlDialect.TryParseOld("a is distinct from b").IsSuccess;   // False
+var old        = SqlDialect.ParseOld("a *= b");                              // a left-joined to b
+var oldRefuses = SqlDialect.TryParseOld("a is distinct from b").IsSuccess;   // False
 
-var current  = SqlDialect.ParseNew("a is distinct from b");                // a differs from b
-var refused2 = SqlDialect.TryParseNew("a *= b").IsSuccess;                 // False
+var current    = SqlDialect.ParseNew("a is distinct from b");                // a differs from b
+var newRefuses = SqlDialect.TryParseNew("a *= b").IsSuccess;                 // False
 
-var any      = SqlDialect.ParseAny("a *= b");                              // a left-joined to b
+var any        = SqlDialect.ParseAny("a *= b");                              // a left-joined to b
 ```
 
 `Version` is an ordinary rule, and `when Version is "2000"` asks whether it and `"2000"`
