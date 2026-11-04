@@ -244,7 +244,8 @@ static class Nodes
 	{
 		if (name.Count == 1 && name[0] is { Style: IdentifierStyle.Regular, UnicodeEscape: null } word)
 		{
-			var length = modifiers.Count == 1 && modifiers[0] is LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger } n ? n.Text : null;
+			// A length that fits 32 bits; any other modifier leaves the type one by name with its modifiers as they are.
+			var length = modifiers.Count == 1 && modifiers[0] is LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger } n && FitsInteger(n.Text) ? n.Text : null;
 			var core   = word.Text.ToUpperInvariant() switch
 			{
 				"INT2" or "INT4" or "INT8" or "FLOAT4" or "FLOAT8" when modifiers.Count == 0 => Numeric(word.Text, null, null),

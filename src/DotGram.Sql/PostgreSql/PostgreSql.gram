@@ -244,8 +244,10 @@ Uescape : @string = "UESCAPE"i & e: (String | EscapeString) & when @(Nodes.IsEsc
 // levels, and the arithmetic below it one ladder of binding powers, as T-SQL writes its own. The
 // precedence is gram.y's: OR < AND < NOT < IS (and ISNULL, NOTNULL) < comparison < BETWEEN, IN,
 // LIKE, ILIKE, SIMILAR < any other operator < + - < * / % < ^ < AT TIME ZONE < COLLATE < a sign <
-// :: < the subscripts and dots. A prefix operator's operand is read at the operator's own level,
-// so `|/ 25 + 11` is the root of the sum, as the server reads it.
+// :: < the subscripts and dots. A prefix operator's operand is read above the operator's own level,
+// so `|/ 25 + 11` is the root of the sum and `@ a ~ b` is `(@ a) ~ b`, as the server reads them.
+// NOT after a binary operator, `1 + NOT 2`, which bison shifts, is not read here: NOT stands where
+// the boolean tower reads it, as the standard's grammar has it (a recorded deviation).
 //
 // A right operand is read at the level above its operator, as bison reads it, so `a = b AND c`
 // is AND over a comparison, and `NOT a = b` is NOT over the comparison, which the ladder of binding
@@ -351,8 +353,8 @@ QuantifiedRight : @Expression = e: Bracket & when @(e is not Expression.Row) => 
 Arithmetic : @Expression
 	= left: Arithmetic & op: Operator & when @(Nodes.IsOperator(op)) & right: Arithmetic << 1 => @(Nodes.Called(op, left, right))
 	| left: Arithmetic & "OPERATOR"i & '(' & name: AnyOperator & ')' & right: Arithmetic << 1 => @(Nodes.Called(name, left, right))
-	| op: Operator & when @(Nodes.IsOperator(op)) & operand: Arithmetic >> 1 => @(Nodes.Called(op, null, operand))
-	| "OPERATOR"i & '(' & name: AnyOperator & ')' & operand: Arithmetic >> 1 => @(Nodes.Called(name, null, operand))
+	| op: Operator & when @(Nodes.IsOperator(op)) & operand: Arithmetic >> 2 => @(Nodes.Called(op, null, operand))
+	| "OPERATOR"i & '(' & name: AnyOperator & ')' & operand: Arithmetic >> 2 => @(Nodes.Called(name, null, operand))
 	| left: Arithmetic & op: ('+' | '-') & right: Arithmetic << 2 => @(Nodes.Binary(left, Nodes.BinaryOf(op), right))
 	| left: Arithmetic & op: ('*' | '/' | '%') & right: Arithmetic << 3 => @(Nodes.Binary(left, Nodes.BinaryOf(op), right))
 	| left: Arithmetic & '^' & right: Arithmetic << 4 => @(Nodes.Binary(left, BinaryOperator.Power, right))
@@ -669,7 +671,7 @@ TableRefPrimary : @TableSource
 	= only: "ONLY"i? & name: AnyName & star: '*'? & when @(only is null || star is null) & alias: AliasClause? => @(Nodes.Table(name, only is not null, star is not null, alias))
 	| "ONLY"i & '(' & name: AnyName & ')' & alias: AliasClause? => @(Nodes.Table(name, true, false, alias))
 	| lateral: "LATERAL"i? & q: Subquery & alias: AliasClause? => @(new TableSource.Subquery(q) { Lateral = lateral is not null, Alias = alias })
-	| '(' & j: TableRef & ')' & when @(j is TableSource.Join) & alias: AliasClause? => @(Nodes.Bracketed(j, alias))
+	| '(' & j: TableRef & ')' & when @(j is TableSource.Join or TableSource.Parenthesized) & alias: AliasClause? => @(Nodes.Bracketed(j, alias))
 
 // gram.y alias_clause: a name, with AS or without, and the column names after it.
 AliasClause : @Alias

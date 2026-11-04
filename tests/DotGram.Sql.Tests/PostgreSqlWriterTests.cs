@@ -105,6 +105,17 @@ public sealed class PostgreSqlWriterTests
 			"= as CASE's operand"                => new Expression.Case(Equal(A, B), [new CaseWhen([Number("1")], Number("2"))], null),
 			"NOT under NOT"                      => Not(Not(A)),
 			"a sign under a sign"                => Minus(Minus(A)),
+			"OperatorCall under a prefix OperatorCall" => Called("@", null, Called("~", A, B)),
+			"a prefix OperatorCall under OperatorCall" => Called("~", Called("@", null, A), B),
+			"= with NOT on the right under ="    => Equal(Equal(A, Not(B)), C),
+			"= under = on the left"              => Equal(Equal(A, B), C),
+			"= with NOT on the right under IS NULL" => IsNull(Equal(A, Not(B))),
+			"IS DISTINCT FROM NOT under IS NULL" => IsNull(new Expression.IsDistinct(A, false, Not(B))),
+			"a core operator quantified"         => new Expression.QuantifiedOperation(A, new QuantifiedOperator.Named(new QualifiedName(new Identifier("+"))), Quantifier.Any, new Expression.Array([Number("1")])),
+			"a lone SECOND's fractional precision" => new Expression.Cast(A, new DataType.Interval(new IntervalQualifier(DateTimeField.Second, null, null, 3))) { Spelling = CastSpelling.DoubleColon },
+			"a call under a subscript"           => new Expression.Element(new Expression.Invocation(new QualifiedName(new Identifier("f")), [new Argument(A)]), Number("1")),
+			"a string under a member"            => new Expression.Member(new LiteralValue.String("'x'", StringLiteralKind.Character), MemberAccessKind.Dot, new Identifier("f")),
+			"a subscript under a member"         => new Expression.Member(new Expression.Element(A, Number("1")), MemberAccessKind.Dot, new Identifier("f")),
 			_ => throw new ArgumentOutOfRangeException(nameof(which)),
 		};
 	}
@@ -141,6 +152,17 @@ public sealed class PostgreSqlWriterTests
 	[InlineData("= as CASE's operand",                "CASE a = b WHEN 1 THEN 2 END")]
 	[InlineData("NOT under NOT",                      "NOT NOT a")]
 	[InlineData("a sign under a sign",                "- -a")]
+	[InlineData("OperatorCall under a prefix OperatorCall", "@ (a ~ b)")]
+	[InlineData("a prefix OperatorCall under OperatorCall", "@ a ~ b")]
+	[InlineData("= with NOT on the right under =",    "(a = NOT b) = c")]
+	[InlineData("= under = on the left",              "(a = b) = c")]
+	[InlineData("= with NOT on the right under IS NULL", "(a = NOT b) IS NULL")]
+	[InlineData("IS DISTINCT FROM NOT under IS NULL", "(a IS DISTINCT FROM NOT b) IS NULL")]
+	[InlineData("a core operator quantified",         "a + ANY(ARRAY[1])")]
+	[InlineData("a lone SECOND's fractional precision", "a::INTERVAL SECOND(3)")]
+	[InlineData("a call under a subscript",           "(f(a))[1]")]
+	[InlineData("a string under a member",            "('x').f")]
+	[InlineData("a subscript under a member",         "a[1].f")]
 	public void A_tree_is_written_with_the_brackets_its_shape_needs_and_reads_back(string which, string expected)
 	{
 		var tree    = Tree(which);
@@ -180,6 +202,7 @@ public sealed class PostgreSqlWriterTests
 	[InlineData("Argument.ColonEquals")]
 	[InlineData("String.Escaped")]
 	[InlineData("String.Dollar")]
+	[InlineData("IntervalQualifier.FractionalAlone")]
 	public void What_only_PostgreSQL_reads_is_refused_by_the_other_writers(string which)
 	{
 		ISqlNode node = which switch
@@ -202,6 +225,7 @@ public sealed class PostgreSqlWriterTests
 			"Argument.ColonEquals" => new Expression.Invocation(new QualifiedName(new Identifier("f")), [new Argument(A, new Identifier("p"), true) { ColonEquals = true }]),
 			"String.Escaped"       => new LiteralValue.String("'x'", StringLiteralKind.Escaped),
 			"String.Dollar"        => new LiteralValue.String("$$x$$", StringLiteralKind.Dollar),
+			"IntervalQualifier.FractionalAlone" => new DataType.Interval(new IntervalQualifier(DateTimeField.Second, null, null, 3)),
 			_ => throw new ArgumentOutOfRangeException(nameof(which)),
 		};
 
@@ -231,6 +255,8 @@ public sealed class PostgreSqlWriterTests
 	[InlineData("OperatorCall <-")]
 	[InlineData("OperatorCall empty")]
 	[InlineData("OperatorCall qualified bare")]
+	[InlineData("QuantifiedOperation =")]
+	[InlineData("QuantifiedOperation =>")]
 	public void What_PostgreSQL_reads_as_another_node_is_refused_by_its_writer(string which)
 	{
 		ISqlNode node = which switch
@@ -250,6 +276,8 @@ public sealed class PostgreSqlWriterTests
 			"OperatorCall <-"            => Called("<-", A, B),
 			"OperatorCall empty"         => Called("", A, B),
 			"OperatorCall qualified bare" => new Expression.OperatorCall(new QualifiedName(new Identifier("s"), [new Identifier("~")]), A, B),
+			"QuantifiedOperation ="      => new Expression.QuantifiedOperation(A, new QuantifiedOperator.Named(new QualifiedName(new Identifier("="))), Quantifier.Any, B),
+			"QuantifiedOperation =>"     => new Expression.QuantifiedOperation(A, new QuantifiedOperator.Named(new QualifiedName(new Identifier("=>"))), Quantifier.Any, B),
 			_ => throw new ArgumentOutOfRangeException(nameof(which)),
 		};
 

@@ -470,9 +470,20 @@ public static partial class SqlWriter
 		{
 			Word(Field(qualifier.Start));
 
-			// `SECOND (p, f)` alone holds both of its precisions.
+			// `SECOND (p, f)` alone holds both of its precisions; PostgreSQL's lone `SECOND (f)` holds the fractional one.
 			if (qualifier.Start == DateTimeField.Second && qualifier.End is null)
 			{
+				if (qualifier.LeadingPrecision is null && qualifier.FractionalPrecision is { } fractionalAlone)
+				{
+					if (!postgreSql)
+						throw Misplaced(qualifier, "FractionalPrecision", "without a LeadingPrecision on a lone SECOND, which only PostgreSQL writes, as SECOND(f)");
+
+					Call();
+					Number(fractionalAlone);
+					Close();
+					return;
+				}
+
 				if (qualifier.LeadingPrecision is { } seconds)
 				{
 					Call();
@@ -1060,6 +1071,9 @@ public static partial class SqlWriter
 				Expression.Binary { Operator: BinaryOperator.Or }  => PostgreSqlTightness.Disjunct,
 				Expression.Binary { Operator: BinaryOperator.And } => PostgreSqlTightness.Conjunct,
 				Expression.Unary { Operator: UnaryOperator.Not }   => PostgreSqlTightness.Negated,
+				// A comparison or IS DISTINCT FROM whose right operand is NOT reaches as far as the NOT does, `a = NOT b = c` being `a = NOT (b = c)`.
+				Expression.Comparison { Right: Expression.Unary { Operator: UnaryOperator.Not } } => PostgreSqlTightness.Negated,
+				Expression.IsDistinct { Right: Expression.Unary { Operator: UnaryOperator.Not } } => PostgreSqlTightness.Negated,
 				Expression.IsDistinct                              => PostgreSqlTightness.Distinct,
 				Expression.IsNull or Expression.IsTruth or Expression.IsNormalized or Expression.IsDocument => PostgreSqlTightness.Tested,
 				Expression.Comparison                              => PostgreSqlTightness.Compared,
@@ -1107,6 +1121,15 @@ public static partial class SqlWriter
 				LiteralValue.Numeric { Text: ['-' or '+', ..] } when !transactSql => Tightness.Signed,
 				_ => Tightness.Primary,
 			};
+		}
+
+		/// <summary>
+		/// Whether PostgreSQL asks a bracket of what a subscript or a dot follows: it reads them after a column reference, a
+		/// parameter, a bracket and a step, and after nothing else — `f(a)[1]` and `'x'.f` are refused, `(f(a))[1]` read.
+		/// </summary>
+		bool Stepped(Expression target)
+		{
+			return postgreSql && target is not (Expression.Reference or Expression.Parameter or Expression.Parenthesized or Expression.Subquery or Expression.Element or Expression.Member);
 		}
 
 		/// <summary>
@@ -1765,7 +1788,7 @@ public static partial class SqlWriter
 					break;
 
 				case Expression.Element element:
-					PutOperand(element.Collection, Tightness.Primary, standard && (Written(element.Collection, Tightness.Primary) & Towers.Array) == 0);
+					PutOperand(element.Collection, Tightness.Primary, standard && (Written(element.Collection, Tightness.Primary) & Towers.Array) == 0 || Stepped(element.Collection));
 					Tight(element.Trigraphs ? "??(" : "[");
 					Hold();
 
@@ -1800,7 +1823,7 @@ public static partial class SqlWriter
 					if (transactSql && !star)
 						throw Misplaced(expression, "a node", "outside an argument, where T-SQL reads no .*");
 
-					PutOperand(wildcard.Target, Tightness.Primary);
+					PutOperand(wildcard.Target, Tightness.Primary, Stepped(wildcard.Target));
 					Tight(wildcard.Kind switch { WildcardKind.Member => ".*", WildcardKind.Array => "[*]", _ => throw NoText(wildcard.Kind) });
 					break;
 
@@ -2031,8 +2054,9 @@ public static partial class SqlWriter
 					if (comparison.Exclamation && comparison.Operator != ComparisonOperator.NotEqual)
 						throw Misplaced(comparison, "Exclamation", "on a comparison that is not an inequality");
 
-					// PostgreSQL: a tested value on the left, `1 IS NULL = false`; on the right a predicate, or NOT and what it negates, `a = NOT b`.
-					PutOperand(comparison.Left, postgreSql ? PostgreSqlTightness.Tested : Tightness.Additive);
+					// PostgreSQL: a tested value on the left, `1 IS NULL = false`, but not a comparison, the level being non-associative;
+					// on the right a predicate, or NOT and what it negates, `a = NOT b`.
+					PutOperand(comparison.Left, postgreSql ? comparison.Left is Expression.Comparison ? PostgreSqlTightness.Compared + 1 : PostgreSqlTightness.Tested : Tightness.Additive);
 					Word(comparison.Exclamation ? "!=" : Comparison(comparison.Operator));
 					PutOperand(comparison.Right, postgreSql ? comparison.Right is Expression.Unary { Operator: UnaryOperator.Not } ? PostgreSqlTightness.Negated : PostgreSqlTightness.Predicate : Tightness.Additive);
 					break;
@@ -2946,7 +2970,7 @@ public static partial class SqlWriter
 				Close();
 			}
 			else
-				PutOperand(member.Target, Tightness.Primary);
+				PutOperand(member.Target, Tightness.Primary, Stepped(member.Target));
 
 			switch (member.Kind)
 			{

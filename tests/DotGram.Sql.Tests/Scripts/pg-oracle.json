@@ -885,6 +885,42 @@
 			"text": "SELECT a::bit(1 + 1)",
 			"accepted": true,
 			"known": "BIT's length is read as one integer; the server reads any expression list as its modifiers and refuses the list later"
+		},
+		{
+			"name": "prefix_operator_level",
+			"text": "SELECT @ a ~ b, |/ 25 + 11, - a ~ b",
+			"accepted": true
+		},
+		{
+			"name": "comparisons_bracketed",
+			"text": "SELECT (a = NOT b) = c, (a = b) = c, (a = NOT b) IS NULL",
+			"accepted": true
+		},
+		{
+			"name": "quantified_core_operator",
+			"text": "SELECT a + ANY (ARRAY[1]), a || ALL (ARRAY['x']), a - SOME (ARRAY[1])",
+			"accepted": true
+		},
+		{
+			"name": "interval_second_precision",
+			"text": "SELECT x::interval second(3), INTERVAL '1' SECOND(3), x::interval day to second(2)",
+			"accepted": true
+		},
+		{
+			"name": "one_word_type_length_too_large",
+			"text": "SELECT timestamptz(99999999999) 'x', timetz(99999999999) 'x'",
+			"accepted": true
+		},
+		{
+			"name": "from_double_bracket",
+			"text": "SELECT * FROM ((a JOIN b ON true)) j, ((c JOIN d ON true))",
+			"accepted": true
+		},
+		{
+			"name": "not_after_an_operator",
+			"text": "SELECT 1 + NOT 2",
+			"accepted": true,
+			"known": "bison shifts NOT after a binary operator, `1 + (NOT 2)`; here NOT stands only where the boolean tower reads it, as the standard's grammar has it"
 		}
 	]
 }

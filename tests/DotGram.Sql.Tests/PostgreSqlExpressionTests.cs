@@ -73,6 +73,7 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("-a COLLATE \"C\"", "Collate over a sign")]
 	[InlineData("- a AT TIME ZONE 'x'", "AtTimeZone over a sign")]
 	[InlineData("a AT TIME ZONE - 1", "AtTimeZone with a signed zone")]
+	[InlineData("@ a ~ b",     "OperatorCall over a prefix OperatorCall")]
 	public void An_operator_builds_the_node_its_symbol_means(string text, string expected)
 	{
 		var value = Value(text);
@@ -103,6 +104,7 @@ public sealed class PostgreSqlExpressionTests
 			"Collate over a sign" => value is Expression.Collate { Value: Expression.Unary },
 			"AtTimeZone over a sign" => value is Expression.AtTimeZone { Value: Expression.Unary },
 			"AtTimeZone with a signed zone" => value is Expression.AtTimeZone { Zone: Expression.Unary },
+			"OperatorCall over a prefix OperatorCall" => value is Expression.OperatorCall { Operator: [{ Text: "~" }], Left: Expression.OperatorCall { Left: null, Right: Expression.Reference } },
 			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
 		};
 
@@ -124,6 +126,8 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("a IS DISTINCT FROM b = c",  "IsDistinct over Comparison on the right")]
 	[InlineData("a IS DISTINCT FROM NOT b",  "IsDistinct over Not on the right")]
 	[InlineData("a IS NULL IS DISTINCT FROM b", "IsDistinct over IsNull on the left")]
+	[InlineData("(a = NOT b) = c",           "Comparison over a bracketed comparison")]
+	[InlineData("a = NOT b = c",             "Comparison over Not over Comparison")]
 	public void A_test_and_a_comparison_stand_on_each_other_as_the_server_reads_them(string text, string expected)
 	{
 		var value = Value(text);
@@ -139,6 +143,8 @@ public sealed class PostgreSqlExpressionTests
 			"IsDistinct over Comparison on the right" => value is Expression.IsDistinct { Right: Expression.Comparison },
 			"IsDistinct over Not on the right" => value is Expression.IsDistinct { Right: Expression.Unary { Operator: UnaryOperator.Not } },
 			"IsDistinct over IsNull on the left" => value is Expression.IsDistinct { Left: Expression.IsNull },
+			"Comparison over a bracketed comparison" => value is Expression.Comparison { Left: Expression.Parenthesized { Value: Expression.Comparison { Right: Expression.Unary } }, Right: Expression.Reference },
+			"Comparison over Not over Comparison" => value is Expression.Comparison { Left: Expression.Reference, Right: Expression.Unary { Operand: Expression.Comparison } },
 			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
 		};
 
@@ -205,6 +211,7 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("a = ANY (b)",             "QuantifiedOperation comparison")]
 	[InlineData("a LIKE ALL (SELECT b FROM t)", "QuantifiedOperation like")]
 	[InlineData("a @> SOME (b)",           "QuantifiedOperation named")]
+	[InlineData("a + ANY (ARRAY[1])",      "QuantifiedOperation core named")]
 	[InlineData("EXISTS (SELECT 1)",       "Exists")]
 	public void A_predicate_builds_its_record(string text, string expected)
 	{
@@ -227,6 +234,7 @@ public sealed class PostgreSqlExpressionTests
 			"QuantifiedOperation comparison" => value is Expression.QuantifiedOperation { Operator: QuantifiedOperator.Comparison, Right: Expression.Reference },
 			"QuantifiedOperation like" => value is Expression.QuantifiedOperation { Operator: QuantifiedOperator.Like { Kind: LikeKind.Like }, Quantifier: Quantifier.All, Right: Expression.Subquery },
 			"QuantifiedOperation named" => value is Expression.QuantifiedOperation { Operator: QuantifiedOperator.Named { Operator: [{ Text: "@>" }] }, Quantifier: Quantifier.Some },
+			"QuantifiedOperation core named" => value is Expression.QuantifiedOperation { Operator: QuantifiedOperator.Named { Operator: [{ Text: "+" }] }, Right: Expression.Array },
 			"Exists"               => value is Expression.Exists,
 			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
 		};
@@ -295,6 +303,8 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("numeric(0x3) '1'",             "typed literal hex precision")]
 	[InlineData("numeric(2147483648) '1'",      "typed literal numeric by name")]
 	[InlineData("numeric(1.5) '1'",             "typed literal numeric by name")]
+	[InlineData("timestamptz(99999999999) 'x'", "typed literal one-word type by name")]
+	[InlineData("timetz(99999999999) 'x'",      "typed literal one-word type by name")]
 	[InlineData("EXTRACT(\"year\" FROM a)",     "Extract quoted field")]
 	[InlineData("EXTRACT('year' FROM a)",       "Extract string field")]
 	[InlineData("EXTRACT(E'year' FROM a)",      "Extract escape string field")]
@@ -364,6 +374,7 @@ public sealed class PostgreSqlExpressionTests
 			"Array bound in hex"         => value is Expression.Cast { Target: DataType.Array { MaximumCardinality: 16, Brackets: true } },
 			"typed literal hex precision" => value is Expression.Cast { Target: DataType.Numeric { Precision: 3 } },
 			"typed literal numeric by name" => value is Expression.Cast { Target: DataType.Named { Name: [{ Text: "numeric" }], Arguments.Count: 1 } },
+			"typed literal one-word type by name" => value is Expression.Cast { Target: DataType.Named { Arguments.Count: 1 } },
 			"Extract quoted field"       => value is Expression.Extract { Field: null, NamedField: Expression.Reference { Name: [{ Style: IdentifierStyle.Delimited }] } },
 			"Extract string field"       => value is Expression.Extract { Field: null, NamedField: LiteralValue.String { Kind: StringLiteralKind.Character } },
 			"Extract escape string field" => value is Expression.Extract { Field: null, NamedField: LiteralValue.String { Kind: StringLiteralKind.Escaped } },
@@ -393,6 +404,7 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("interval",                   "Interval bare")]
 	[InlineData("interval(3)",                "Interval precision")]
 	[InlineData("interval day to second(2)",  "Interval qualified")]
+	[InlineData("interval second(3)",         "Interval second fractional")]
 	[InlineData("bit varying(8)",             "BitString")]
 	[InlineData("text",                       "Named")]
 	[InlineData("pg_catalog.int4",            "Named qualified")]
@@ -420,6 +432,7 @@ public sealed class PostgreSqlExpressionTests
 			"Interval bare"       => type is DataType.Interval { Qualifier: null, Precision: null },
 			"Interval precision"  => type is DataType.Interval { Qualifier: null, Precision: 3 },
 			"Interval qualified"  => type is DataType.Interval { Qualifier: { Start: DateTimeField.Day, End: DateTimeField.Second, FractionalPrecision: 2 } },
+			"Interval second fractional" => type is DataType.Interval { Qualifier: { Start: DateTimeField.Second, End: null, LeadingPrecision: null, FractionalPrecision: 3 } },
 			"BitString"           => type is DataType.BitString { Kind: BitStringTypeKind.BitVarying, Length: 8 },
 			"Named"               => type is DataType.Named { Name: [{ Text: "text" }] },
 			"Named qualified"     => type is DataType.Named { Name.Count: 2 },
@@ -454,6 +467,8 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("(SELECT 1) UNION (SELECT 2)",                    "bracketed operands")]
 	[InlineData("SELECT (SELECT 1) FROM t",                       "subquery in the list")]
 	[InlineData("SELECT ALL FROM t",                              "all and no targets")]
+	[InlineData("SELECT * FROM ((a JOIN b ON true)) j",           "double bracket alias")]
+	[InlineData("SELECT * FROM ((a JOIN b ON true))",             "double bracket")]
 	// What the server refuses: a bracketed source that is no join, a join with neither NATURAL nor its condition or
 	// with both, OUTER with no direction, ONLY with the inheritance star, DISTINCT with no target list.
 	[InlineData("SELECT * FROM (a)",                              "refused: a bracketed name")]
@@ -495,6 +510,8 @@ public sealed class PostgreSqlExpressionTests
 			"bracketed operands"    => query is Query.Parenthesized { SetOperations: [{ Operator: SetOperator.Union, Query: Query.Parenthesized }] },
 			"subquery in the list"  => query is Query.Select { Columns: [SelectColumn.ExpressionItem { Expression: Expression.Subquery }] },
 			"all and no targets"    => query is Query.Select { Quantifier: SetQuantifier.All, Columns.Count: 0, From: not null },
+			"double bracket alias"  => query is Query.Select { From.Sources: [TableSource.Parenthesized { Source: TableSource.Parenthesized { Source: TableSource.Join }, Alias.Name.Text: "j" }] },
+			"double bracket"        => query is Query.Select { From.Sources: [TableSource.Parenthesized { Source: TableSource.Parenthesized { Source: TableSource.Join }, Alias: null }] },
 			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
 		};
 
