@@ -6,7 +6,7 @@ stmt,125,Stmt,a SELECT so far
 opt_single_name,2,unwritten,
 opt_qualified_name,2,unwritten,
 opt_concurrently,2,unwritten,
-opt_drop_behavior,3,unwritten,
+opt_drop_behavior,3,TruncateStmt,CASCADE or RESTRICT on TRUNCATE; the DDL tier for the rest
 CallStmt,1,unwritten,
 CreateRoleStmt,1,unwritten,
 opt_with,3,unwritten,
@@ -278,8 +278,8 @@ any_name_list,2,unwritten,
 any_name,2,AnyName,
 attrs,2,AnyName,
 type_name_list,2,unwritten,
-TruncateStmt,1,unwritten,
-opt_restart_seqs,3,unwritten,
+TruncateStmt,1,TruncateStmt,
+opt_restart_seqs,3,TruncateStmt,
 CommentStmt,18,unwritten,
 comment_text,2,unwritten,
 SecLabelStmt,10,unwritten,
@@ -517,7 +517,7 @@ opt_cycle_clause,3,CycleClause,
 opt_with_clause,2,Stmt,read once before the statement
 into_clause,2,refused,SELECT INTO is CREATE TABLE AS; the DDL tier
 OptTempTableName,9,refused,with into_clause
-opt_table,2,unwritten,
+opt_table,2,TruncateStmt,
 set_quantifier,3,UnionOrExcept,
 distinct_clause,2,DistinctClause,
 opt_all_clause,2,DistinctClause,
