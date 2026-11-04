@@ -55,7 +55,7 @@ if (!match.IsSuccess)
 
 Every entry point has a form that takes a `ResolutionScope`, and one that takes an `Assembly`
 and means `ResolutionScope.Around(it)`. The one that takes neither asks the stack which assembly
-called it — about 300 ns, often more than a short parse — and that assembly
+called it — a stack crawl of a few hundred nanoseconds, often more than a short parse — and that assembly
 decides what the text may name: public types, and its own internal types and members.
 
 ```csharp
@@ -70,7 +70,7 @@ var rule = ExpressionParser.Compile<Func<Order, bool>>(
     Caller);
 ```
 
-The text names the namespace of anything it uses, because nothing is imported for it
+The text names the namespace of anything outside the five default imports
 (**Names**, below) — the assembly says what may be named, and the text says what is.
 
 Pass it explicitly whenever texts are parsed in a loop, and always when the call is wrapped
@@ -228,12 +228,14 @@ var total = ExpressionParser.Compile<Func<int[], int>>(
 
 ## Mistakes to avoid
 
-1. Expecting `System` to be there. Write `using System;` or the full name.
+1. Expecting a namespace beyond the five defaults (`System`, `System.Collections.Generic`,
+   `System.Linq`, `System.Text`, `System.Threading.Tasks`) to be there. Write its `using` or the
+   full name.
 2. Parsing in a loop through the forms that ask the stack. Pass the `Assembly`.
 3. Wrapping `Parse` in a shared helper library and wondering why the caller's internal types
    are not found. The helper is the caller; pass the assembly through.
 4. Catching only `FormatException` around `Parse`. A text that reads and means nothing
    throws `InvalidOperationException` or `ArgumentException`; use `TryParse` for text you do
    not control.
-5. Treating the text as sandboxed. It can call any public member of any loaded type — file
-   system, process, reflection. Parse only text you would run as code.
+5. Treating the text as sandboxed. It can call any public member of any type its scope
+   reaches — file system, process, reflection. Parse only text you would run as code.
