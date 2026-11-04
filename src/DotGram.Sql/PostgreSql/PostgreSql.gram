@@ -195,9 +195,10 @@ Word : @Identifier
 	| t: Identifier => @(new Identifier(t))
 	| t: DelimitedIdentifier => @(new Identifier(t, IdentifierStyle.Delimited))
 
-// gram.y columnref: a name, and the names after its dots; `.*` and the subscripts arrive with
-// the expressions. An attribute after a dot may be any key word (attr_name: ColLabel).
-Columnref : @Expression = first: ColId & ('.' & rest: AttrName)* => @(new Expression.Reference(Nodes.Chain(first, rest)))
+// gram.y columnref: a name, and the names after its dots — a dot before a star is the indirection's,
+// read after the reference, so the dots stop before it. An attribute after a dot may be any key
+// word (attr_name: ColLabel).
+Columnref : @Expression = first: ColId & (?!('.' & '*') & '.' & rest: AttrName)* => @(new Expression.Reference(Nodes.Chain(first, rest)))
 AttrName  : @Identifier = i: ColLabel => @(i)
 
 // ── gram.y AexprConst: the constants ────────────────────────────────────────
@@ -500,6 +501,7 @@ FuncExprCommonSubexpr : @Expression
 	| "NORMALIZE"i & '(' & v: AExpr & (',' & form: ("NFC"i | "NFD"i | "NFKC"i | "NFKD"i))? & ')' => @(Nodes.Normalized(v, form))
 	| "OVERLAY"i & '(' & v: AExpr & o: OverlayRest & ')' => @(Nodes.Overlaid(v, o))
 	| "OVERLAY"i & '(' & ')' => @(Nodes.Invoked("OVERLAY", (Expression?)null, null))
+	| "MERGE_ACTION"i & '(' & ')' => @(Nodes.Invoked("MERGE_ACTION", (Expression?)null, null))
 	| "POSITION"i & '(' & v: BExpr & "IN"i & within: BExpr & ')' => @(new Expression.Position(v, within, null))
 	| "SUBSTRING"i & '(' & v: AExpr & s: SubstrRest & ')' => @(Nodes.Substring(v, s))
 	| "SUBSTRING"i & '(' & ')' => @(Nodes.Invoked("SUBSTRING", (Expression?)null, null))
@@ -660,13 +662,17 @@ ForLocking : @LockingClause
 	= "FOR"i & mode: ("NO"i & "KEY"i & "UPDATE"i | "UPDATE"i | "KEY"i & "SHARE"i | "SHARE"i) & ("OF"i & first: AnyName & (',' & rest: AnyName)*)? & wait: ("NOWAIT"i | "SKIP"i & "LOCKED"i)? => @(Nodes.Locked(mode, first, rest, wait))
 	| "FOR"i & "READ"i & "ONLY"i => @(new LockingClause(LockingMode.ReadOnly, []))
 
-// gram.y with_clause, common_table_expr: the name, its columns, AS [NOT] MATERIALIZED, the query in
-// brackets, SEARCH and CYCLE. The data-changing bodies arrive with the data change statements.
+// gram.y with_clause, common_table_expr: the name, its columns, AS [NOT] MATERIALIZED, the query or
+// the data change statement in parentheses, SEARCH and CYCLE.
 WithClause : @WithClause = "WITH"i & recursive: "RECURSIVE"i? & first: Cte & (',' & rest: Cte)* => @(new WithClause(recursive is not null, Nodes.List(first, rest)))
 
 Cte : @CommonTableExpression
-	= name: ColId & ('(' & c1: ColId & (',' & cn: ColId)* & ')')? & "AS"i & materialized: ("NOT"i & "MATERIALIZED"i | "MATERIALIZED"i)? & '(' & q: SelectNoParens & ')' & search: SearchClause? & cycle: CycleClause?
+	= name: ColId & ('(' & c1: ColId & (',' & cn: ColId)* & ')')? & "AS"i & materialized: ("NOT"i & "MATERIALIZED"i | "MATERIALIZED"i)? & '(' & q: PreparableStmt & ')' & search: SearchClause? & cycle: CycleClause?
 		=> @(Nodes.Cte(name, c1, cn, materialized, q, search, cycle))
+
+// gram.y PreparableStmt, as a common table expression's body: a query, or a data change statement
+// as the query of its RETURNING rows.
+PreparableStmt : @Query = s: Stmt => @(Nodes.AsQuery(s))
 
 SearchClause : @SearchClause = "SEARCH"i & order: ("DEPTH"i | "BREADTH"i) & "FIRST"i & "BY"i & c1: ColId & (',' & cn: ColId)* & "SET"i & set: ColId => @(Nodes.Searched(order, c1, cn, set))
 CycleClause  : @CycleClause  = "CYCLE"i & c1: ColId & (',' & cn: ColId)* & "SET"i & mark: ColId & ("TO"i & to: AexprConst & "DEFAULT"i & dflt: AexprConst)? & "USING"i & path: ColId => @(new CycleClause(Nodes.List(c1, cn), mark, to, dflt, path))
@@ -797,12 +803,121 @@ ColumnDef : @Nodes.ColumnDef = name: ColId & type: Typename? => @(new Nodes.Colu
 AliasClause : @Alias
 	= asWord: "AS"i? & name: ColId & ('(' & first: ColId & (',' & rest: ColId)* & ')')? => @(new Alias(name, Nodes.ListOrNull(first, rest), asWord is not null))
 
+// ── The data change statements: gram.y InsertStmt, UpdateStmt, DeleteStmt, MergeStmt ───
+//
+// Each in the standard's record, with PostgreSQL's members where it has more: an INSERT's alias
+// and ON CONFLICT, a DELETE's USING, DO NOTHING in a MERGE, RETURNING on each. Everything is read
+// once: a parenthesis after the INSERT's target is a column list unless a query's word or another
+// parenthesis begins it (`INSERT INTO t ((SELECT 1))`), and a WHERE's CURRENT OF is told from a
+// condition by its words.
+InsertStmt : @Statement
+	= "INSERT"i & "INTO"i & name: AnyName & ("AS"i & alias: ColId)? & body: InsertRest & conflict: OnConflict? & returning: Returning?
+		=> @(Nodes.Inserted(name, alias, body, conflict, returning))
+
+// gram.y insert_rest: a column list, OVERRIDING, and the rows or the query; or DEFAULT VALUES. The
+// query is gram.y's SelectStmt, VALUES among its forms; a VALUES alone is the standard's rows.
+InsertRest : @Nodes.InsertBody
+	= "DEFAULT"i & "VALUES"i => @(new Nodes.InsertBody(null, null, null, null))
+	| '(' & ?!("SELECT"i | "VALUES"i | "TABLE"i | "WITH"i | '(') & first: InsertColumn & (',' & rest: InsertColumn)* & ')' & o: Override? & q: SelectNoParens => @(new Nodes.InsertBody(first, rest, o, q))
+	| o: Override? & q: SelectNoParens => @(new Nodes.InsertBody(null, null, o, q))
+
+// gram.y insert_column_item: a column's name; its indirection, `c[1]` or `c.f`, has no slot in the list of names.
+InsertColumn : @Identifier = c: ColId => @(c)
+
+Override : @OverrideKind = "OVERRIDING"i & w: ("USER"i | "SYSTEM"i) & "VALUE"i => @((w[0] | 0x20) == 'u' ? OverrideKind.UserValue : OverrideKind.SystemValue)
+
+// gram.y opt_on_conflict: the target, then DO NOTHING or DO UPDATE SET … WHERE ….
+OnConflict : @ConflictClause = "ON"i & "CONFLICT"i & target: ConflictTarget? & resolution: ConflictAction => @(new ConflictClause(target, resolution))
+
+ConflictTarget : @ConflictTarget
+	= '(' & first: IndexElem & (',' & rest: IndexElem)* & ')' & ("WHERE"i & where: AExpr)? => @(new ConflictTarget.Columns(Nodes.List(first, rest), where))
+	| "ON"i & "CONSTRAINT"i & name: ColId => @(new ConflictTarget.Constraint(name))
+
+// gram.y index_elem: a call, an expression in parentheses, or a column; a collation, an operator
+// class and an order after it have no slot here and are refused.
+IndexElem : @Expression
+	= f: FuncExpr & when @(Nodes.IsWindowless(f)) => @(f)
+	| '(' & e: AExpr & ')' => @(new Expression.Parenthesized(e))
+	| c: ColId => @(new Expression.Reference(new QualifiedName(c)))
+
+ConflictAction : @ConflictResolution
+	= "DO"i & "NOTHING"i => @(new ConflictResolution.Nothing())
+	| "DO"i & "UPDATE"i & "SET"i & first: SetClause & (',' & rest: SetClause)* & ("WHERE"i & where: AExpr)? => @(new ConflictResolution.Update(Nodes.List(first, rest), where))
+
+// gram.y returning_clause: the items, and PostgreSQL 18's names for the old and the new row.
+Returning : @ReturningClause = "RETURNING"i & ("WITH"i & '(' & o1: ReturningOption & (',' & on: ReturningOption)* & ')')? & first: TargetEl & (',' & rest: TargetEl)* => @(Nodes.Returned(o1, on, first, rest))
+ReturningOption : @Nodes.ReturningOption = kind: ("OLD"i | "NEW"i) & "AS"i & name: ColId => @(new Nodes.ReturningOption(kind, name))
+
+// gram.y UpdateStmt: the target with its alias, SET, FROM, WHERE or WHERE CURRENT OF, RETURNING.
+UpdateStmt : @Statement
+	= "UPDATE"i & target: RelationExpr & alias: TargetAlias? & "SET"i & first: SetClause & (',' & rest: SetClause)* & ("FROM"i & f1: TableRef & (',' & fn: TableRef)*)? & where: WhereOrCurrent? & returning: Returning?
+		=> @(Nodes.Updated(target, alias, first, rest, f1, fn, where, returning))
+
+// gram.y relation_expr_opt_alias: a name after the relation, with AS or without; without AS it is
+// no key word the statement goes on with (SET, USING, WHERE, RETURNING, ON).
+TargetAlias : @Alias
+	= "AS"i & name: ColId => @(new Alias(name, null, true))
+	| ?!("SET"i | "USING"i | "ON"i) & name: ColId => @(new Alias(name, null, false))
+
+// gram.y set_clause: a target and its value, or targets in parentheses and a row, a subquery or a
+// list, which is any value here.
+SetClause : @Assignment
+	= '(' & first: SetTarget & (',' & rest: SetTarget)* & ')' & '=' & v: AExpr => @(new Assignment(Nodes.List(first, rest), v, true))
+	| t: SetTarget & '=' & v: AExpr => @(new Assignment([t], v))
+
+// gram.y set_target: a column and its indirection, read once: one subscript is the element set, the
+// names after dots the attributes; a slice, a star or a second subscript has no slot and is refused.
+SetTarget : @AssignmentTarget = name: ColId & steps: Indirection* & when @(Nodes.TargetFits(steps)) => @(Nodes.SetTargetOf(name, steps))
+
+WhereOrCurrent : @Nodes.WhereOrCurrent
+	= "WHERE"i & "CURRENT"i & "OF"i & cursor: ColId => @(new Nodes.WhereOrCurrent(null, cursor))
+	| "WHERE"i & condition: AExpr => @(new Nodes.WhereOrCurrent(condition, null))
+
+// gram.y DeleteStmt: the target with its alias, USING, WHERE or WHERE CURRENT OF, RETURNING.
+DeleteStmt : @Statement
+	= "DELETE"i & "FROM"i & target: RelationExpr & alias: TargetAlias? & ("USING"i & u1: TableRef & (',' & un: TableRef)*)? & where: WhereOrCurrent? & returning: Returning?
+		=> @(Nodes.Deleted(target, alias, u1, un, where, returning))
+
+// gram.y MergeStmt: the target with its alias, the source, ON, the WHEN clauses, RETURNING.
+MergeStmt : @Statement
+	= "MERGE"i & "INTO"i & target: RelationExpr & alias: TargetAlias? & "USING"i & source: TableRef & "ON"i & on: AExpr & whens: MergeWhen+ & returning: Returning?
+		=> @(Nodes.Merged(target, alias, source, on, whens, returning))
+
+// gram.y merge_when_clause: MATCHED, NOT MATCHED BY SOURCE, NOT MATCHED [BY TARGET], each with its
+// AND and its action; the words are read once and say which.
+MergeWhen : @MergeClause
+	= "WHEN"i & "MATCHED"i & ("AND"i & condition: AExpr)? & "THEN"i & action: MergeMatchedThen => @(new MergeClause.Matched(action) { Condition = condition })
+	| "WHEN"i & "NOT"i & "MATCHED"i & "BY"i & "SOURCE"i & ("AND"i & condition: AExpr)? & "THEN"i & action: MergeMatchedThen => @(new MergeClause.NotMatchedBySource(action) { Condition = condition })
+	| "WHEN"i & "NOT"i & "MATCHED"i & (byTarget: "BY"i & "TARGET"i)? & ("AND"i & condition: AExpr)? & "THEN"i & insert: MergeInsertThen => @(new MergeClause.NotMatched(insert) { Condition = condition, ByTarget = byTarget is not null })
+
+MergeMatchedThen : @MergeMatchedAction
+	= "UPDATE"i & "SET"i & first: SetClause & (',' & rest: SetClause)* => @(new MergeMatchedAction.Update(Nodes.List(first, rest)))
+	| "DELETE"i => @(new MergeMatchedAction.Delete())
+	| "DO"i & "NOTHING"i => @(new MergeMatchedAction.DoNothing())
+
+// gram.y merge_insert: the columns, OVERRIDING, and VALUES or DEFAULT VALUES; or DO NOTHING.
+MergeInsertThen : @MergeInsertAction
+	= "INSERT"i & ('(' & c1: ColId & (',' & cn: ColId)* & ')')? & o: Override? & body: MergeInsertBody => @(Nodes.MergeInserted(c1, cn, o, body))
+	| "DO"i & "NOTHING"i => @(new MergeInsertAction([], null, []) { DoNothing = true })
+
+MergeInsertBody : @Nodes.MergeInsertBody
+	= "VALUES"i & '(' & first: AExpr & (',' & rest: AExpr)* & ')' => @(new Nodes.MergeInsertBody(first, rest, false))
+	| "DEFAULT"i & "VALUES"i => @(new Nodes.MergeInsertBody(null, null, true))
+
 // ── The statements, so far ──────────────────────────────────────────────────
 //
-// gram.y stmt: a SELECT, with or without brackets; the rest arrive with the data change statements
-// and the short ones.
-Stmt : @Statement
-	= q: SelectNoParens => @(new Statement.Select { Query = q })
+// gram.y stmt: a SELECT, with or without brackets, and the data change statements; the short ones
+// arrive next. A WITH may begin any of them, so it is read once here and handed to the statement
+// its word says, which reads nothing of it again; the SELECT's clauses are `SelectNoParens`'s with
+// the WITH taken off.
+Stmt : @Statement = with: WithClause? & s: BareStmt & when @(Nodes.WithFits(with, s)) => @(Nodes.Withed(with, s))
+
+BareStmt : @Statement
+	= s: InsertStmt => @(s)
+	| s: UpdateStmt => @(s)
+	| s: DeleteStmt => @(s)
+	| s: MergeStmt => @(s)
+	| body: SelectClause & order: SortClause? & tail: SelectTail? & when @(Nodes.ClausesFit(null, body, order, tail)) => @(new Statement.Select { Query = Nodes.Finished(null, body, order, tail) })
 
 // gram.y stmtmulti: statements each ended by `;` or by the end of the text, with empty statements
 // between them — `;;` and a text of semicolons alone are read, as the server reads them.
