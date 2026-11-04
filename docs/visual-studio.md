@@ -36,12 +36,23 @@ The same annotation works on the receiver parameter of an extension method and o
 field or property initializer:
 
 ```csharp
-static string AsFilter([StringSyntax("filter")] this string text) => text;
+using System.Diagnostics.CodeAnalysis;
 
-var filter = "status = active".AsFilter();
+public static class Filters
+{
+    [StringSyntax("filter")]
+    public const string DefaultFilter = "status = active";
 
-[StringSyntax("filter")]
-const string DefaultFilter = "status = active";
+    public static string AsFilter([StringSyntax("filter")] this string text)
+    {
+        return text;
+    }
+
+    public static string Active()
+    {
+        return "status = active".AsFilter();
+    }
+}
 ```
 
 Only the immediate literal receiver or initializer is classified. Values are not
