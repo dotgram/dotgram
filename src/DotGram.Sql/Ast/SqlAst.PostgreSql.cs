@@ -37,9 +37,6 @@ public abstract partial record Expression
 	/// </remarks>
 	public sealed record QuantifiedOperation(Expression Left, QuantifiedOperator Operator, Quantifier Quantifier, Expression Right) : Expression;
 
-	/// <summary>PostgreSQL: Collation Expressions. <c>COLLATION FOR (x)</c>, the collation of a value.</summary>
-	public sealed record CollationFor(Expression Value) : Expression;
-
 	/// <summary>PostgreSQL: XML Predicates. <c>x IS [NOT] DOCUMENT</c>.</summary>
 	public sealed record IsDocument(Expression Value, bool Not) : Expression;
 

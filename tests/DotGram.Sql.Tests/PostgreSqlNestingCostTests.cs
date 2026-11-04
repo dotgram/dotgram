@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -27,7 +26,7 @@ namespace DotGram.Sql.Tests;
 /// </remarks>
 public sealed class PostgreSqlNestingCostTests
 {
-	/// <summary>How much more a reading twice as big may allocate.</summary>
+	/// <summary>How much more a reading four times as big may allocate.</summary>
 	const double Slack = 8;
 
 	/// <summary>How long a reading of any size here may take before it is taken for a blow-up.</summary>
@@ -38,6 +37,7 @@ public sealed class PostgreSqlNestingCostTests
 	[InlineData("dollar quote of dollars, unclosed", "$t$", "$", "$t",   false)]
 	[InlineData("dollar quote of other tags, closed", "$t$", "$x", "$t$", true)]
 	[InlineData("dollar quote of text, closed",      "$t$", "a", "$t$",  true)]
+	[InlineData("dollar quote of a long tag, near misses in the body", "$abcdefghij$", "$abcdefghi$", "$abcdefghij$", true)]
 	[InlineData("comments nested, closed",           "",    "/*", "*/",  true)]
 	[InlineData("comments nested, unclosed",         "",    "/*", "",    false)]
 	public void A_run_costs_what_its_length_does(string what, string head, string unit, string tail, bool accepted)
@@ -127,8 +127,6 @@ public sealed class PostgreSqlNestingCostTests
 			// A reading the watchdog gave up on runs on until the process ends; it must not keep it alive.
 			IsBackground = true,
 		};
-
-		var clock = Stopwatch.StartNew();
 
 		thread.Start();
 

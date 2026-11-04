@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 DotGram.Sql.Ast.Expression.Parameter.Ordinal.get -> int?
 DotGram.Sql.Ast.Expression.Parameter.Ordinal.init -> void
 DotGram.Sql.Ast.LiteralValue.BitString.Hexadecimal.get -> bool

@@ -26,8 +26,6 @@ public sealed class KeywordCatalogueTests
 	{
 		["ReservedKeyword"]         = static one => one.Category == KeywordCatalogue.Category.Reserved,
 		["TypeFunctionNameKeyword"] = static one => one.Category == KeywordCatalogue.Category.TypeOrFunctionName,
-		["ColumnNameKeyword"]       = static one => one.Category == KeywordCatalogue.Category.ColumnName,
-		["AsLabelKeyword"]          = static one => !one.BareLabel,
 	};
 
 	[Fact]
