@@ -144,14 +144,57 @@ static class Nodes
 		return int.TryParse(text.Substring(1), NumberStyles.None, CultureInfo.InvariantCulture, out _);
 	}
 
-	/// <summary>An integer written in the text, as a number; null where none was written.</summary>
+	/// <summary>An integer written in the text, in any of the four radixes, as a number; null where none was written.</summary>
 	public static int? Integer(string? text)
 	{
-		return text is null ? null : int.Parse(text.Replace("_", ""), CultureInfo.InvariantCulture);
+		return text is null ? null : TryInteger(text, out var value) ? value : throw new FormatException(text);
 	}
 
-	/// <summary>A date, time or timestamp literal: the standard's record, the string from its first quote.</summary>
-	public static LiteralValue DateTimeLiteral(string kind, string text)
+	/// <summary>
+	/// Whether an integer written in the text — a precision, a length, a bound — is one the server reads as an integer:
+	/// a number too large for one is a different token to the server (an FCONST), and a syntax error where an integer
+	/// is asked for. Null, where none was written, fits.
+	/// </summary>
+	public static bool FitsInteger(string? text)
+	{
+		return text is null || TryInteger(text, out _);
+	}
+
+	/// <summary>The value of an integer token, <c>0x1F</c>, <c>0o17</c>, <c>0b11</c>, <c>1_000</c> or plain, where it fits in 32 bits.</summary>
+	static bool TryInteger(string text, out int value)
+	{
+		var radix = text.Length > 1 && text[0] == '0'
+			? (text[1] | 0x20) switch { 'x' => 16, 'o' => 8, 'b' => 2, _ => 10 }
+			: 10;
+		var  total = 0L;
+
+		for (var i = radix == 10 ? 0 : 2; i < text.Length; i++)
+		{
+			var c = text[i];
+
+			if (c == '_')
+				continue;
+
+			var digit = c >= 'a' ? c - 'a' + 10 : c >= 'A' ? c - 'A' + 10 : c - '0';
+
+			total = total * radix + digit;
+
+			if (total > int.MaxValue)
+			{
+				value = 0;
+				return false;
+			}
+		}
+
+		value = (int)total;
+		return true;
+	}
+
+	/// <summary>
+	/// A date, time or timestamp literal: the standard's record where the string is a plain one, which is all the record
+	/// holds; the type and the string, a cast spelled as a typed literal, for a string of any other form.
+	/// </summary>
+	public static Expression DateTimeLiteral(string kind, LiteralValue literal)
 	{
 		var which = (kind[0] | 0x20) switch
 		{
@@ -160,13 +203,35 @@ static class Nodes
 			_   => DateTimeLiteralKind.Timestamp,
 		};
 
-		return new LiteralValue.DateTime(which, Quoted(text));
+		if (literal is LiteralValue.String { Kind: StringLiteralKind.Character } plain)
+			return new LiteralValue.DateTime(which, plain.Text);
+
+		var type = which switch
+		{
+			DateTimeLiteralKind.Date => DateTimeTypeKind.Date,
+			DateTimeLiteralKind.Time => DateTimeTypeKind.Time,
+			_                        => DateTimeTypeKind.Timestamp,
+		};
+
+		return TypedLiteral(new DataType.DateTime(type), literal);
+	}
+
+	/// <summary>
+	/// An interval literal: the standard's record where the string is a plain one, which is all the record holds; the
+	/// type and the string, a cast spelled as a typed literal, for a string of any other form.
+	/// </summary>
+	public static Expression IntervalLiteral(LiteralValue literal, IntervalQualifier? qualifier)
+	{
+		if (literal is LiteralValue.String { Kind: StringLiteralKind.Character } plain)
+			return new LiteralValue.Interval(plain.Text, qualifier);
+
+		return TypedLiteral(new DataType.Interval(qualifier), literal);
 	}
 
 	/// <summary>A typed literal, <c>t 'text'</c>: a cast of the string to the type, spelled as a typed literal.</summary>
-	public static Expression TypedLiteral(DataType type, string text)
+	public static Expression TypedLiteral(DataType type, LiteralValue literal)
 	{
-		return new Expression.Cast(StringLiteral(text, StringLiteralKind.Character), type) { Spelling = CastSpelling.TypedLiteral };
+		return new Expression.Cast(literal, type) { Spelling = CastSpelling.TypedLiteral };
 	}
 
 	/// <summary>
@@ -271,7 +336,7 @@ static class Nodes
 		};
 	}
 
-	/// <summary>A sign before a value: the standard's unary node, and a signed number where the value is a bare number.</summary>
+	/// <summary>A sign before a value: the standard's unary node, over a number too — the sign is the server's operator, not the number's.</summary>
 	public static Expression Signed(string sign, Expression operand)
 	{
 		return new Expression.Unary(sign == "-" ? UnaryOperator.Minus : UnaryOperator.Plus, operand);
@@ -315,6 +380,38 @@ static class Nodes
 		public sealed record Distinct(bool Not, Expression Right) : Test;
 		public sealed record Document(bool Not) : Test;
 		public sealed record Normalized(bool Not, string? Form) : Test;
+	}
+
+	/// <summary>A comparison after a tested value, the tests after it, and the comparison after those, as far as it goes.</summary>
+	public sealed record More(string Op, Expression Right, Test[]? Tails, More? Next);
+
+	/// <summary>
+	/// Whether tests and what follows them are read as the server reads them: <c>IS DISTINCT FROM</c> takes its right
+	/// operand up to the comparison level, so it is the last test and no comparison follows it.
+	/// </summary>
+	public static bool TestsFit(Test[]? tails, More? more)
+	{
+		if (tails is null)
+			return true;
+
+		for (var i = 0; i < tails.Length; i++)
+		{
+			if (tails[i] is Test.Distinct && (i < tails.Length - 1 || more is not null))
+				return false;
+		}
+
+		return true;
+	}
+
+	/// <summary>The value with its tests applied, the comparison after them, and so on, folded from the left.</summary>
+	public static Expression Tested(Expression value, Test[]? tails, More? more)
+	{
+		value = Tested(value, tails);
+
+		for (; more is not null; more = more.Next)
+			value = Tested(Compared(value, more.Op, more.Right), more.Tails);
+
+		return value;
 	}
 
 	/// <summary>The value with its tests applied, each over the one before.</summary>
@@ -416,10 +513,60 @@ static class Nodes
 		return new Expression.Row(List(first, rest), rowKeyword);
 	}
 
-	/// <summary>A value in brackets, kept as the bracket it was.</summary>
-	public static Expression Parenthesized(Expression inner)
+	/// <summary>What followed the first value inside a bracket: more values, or set operations, or nothing.</summary>
+	public abstract record BracketTail
 	{
-		return new Expression.Parenthesized(inner);
+		public sealed record Row(Expression[] Rest) : BracketTail;
+		public sealed record Operations(SetOperation[]? List) : BracketTail;
+	}
+
+	/// <summary>Whether what followed the first value fits it: set operations follow a subquery only.</summary>
+	public static bool BracketFits(Expression first, BracketTail tail)
+	{
+		return tail is not BracketTail.Operations { List: not null } || first is Expression.Subquery;
+	}
+
+	/// <summary>
+	/// What a pair of brackets held: a row, where a comma followed the first value; a query, where a set operation did
+	/// — the subquery the first value was being its first operand, in brackets of its own; the value in brackets
+	/// otherwise, a subquery's brackets being the query's own.
+	/// </summary>
+	public static Expression Bracket(Expression first, BracketTail tail)
+	{
+		switch (tail)
+		{
+			case BracketTail.Row(var rest):
+				return Row(first, rest, false);
+
+			case BracketTail.Operations(var operations):
+				if (first is not Expression.Subquery subquery)
+					return new Expression.Parenthesized(first);
+
+				var query = new Query.Parenthesized(subquery.Query);
+
+				return new Expression.Subquery(Combined(query, operations));
+
+			default:
+				throw new ArgumentOutOfRangeException(nameof(tail));
+		}
+	}
+
+	/// <summary>IN's source, from what its brackets held: the subquery, or the values of the row, or the one value.</summary>
+	public static InSource InSourceOf(Expression held)
+	{
+		return held switch
+		{
+			Expression.Subquery subquery            => new InSource.Subquery(subquery.Query),
+			Expression.Row { RowKeyword: false } row => new InSource.Values(row.Items),
+			Expression.Parenthesized(var value)     => new InSource.Values([value]),
+			_                                        => new InSource.Values([held]),
+		};
+	}
+
+	/// <summary>The right side of a quantified form, from what its brackets held: the subquery, or the one value.</summary>
+	public static Expression QuantifiedValue(Expression held)
+	{
+		return held is Expression.Parenthesized(var value) ? value : held;
 	}
 
 	/// <summary>An array, <c>ARRAY[a, b]</c>, nested or empty.</summary>
@@ -450,7 +597,7 @@ static class Nodes
 	public abstract record FuncTail
 	{
 		public sealed record Call(CallBody Body, CallRest Rest) : FuncTail;
-		public sealed record Typed(string Text) : FuncTail;
+		public sealed record Typed(LiteralValue Literal) : FuncTail;
 	}
 
 	/// <summary>What stood inside a call's brackets: a star, or the arguments with their quantifier and order.</summary>
@@ -463,8 +610,35 @@ static class Nodes
 	/// <summary>What stood after a call's close: a string, which makes the call a typed literal, or the clauses.</summary>
 	public abstract record CallRest
 	{
-		public sealed record Typed(string Text) : CallRest;
+		public sealed record Typed(LiteralValue Literal) : CallRest;
 		public sealed record Clauses(WithinGroupClause? Within, FilterClause? Filter, WindowReference? Over) : CallRest;
+	}
+
+	/// <summary>
+	/// Whether a call's body may be a type's modifiers, where a string after the call makes it a type: plain values,
+	/// at least one — no quantifier, no order, no star, no name, no VARIADIC — as the server reads them.
+	/// </summary>
+	public static bool ModifiersFit(CallBody body, CallRest rest)
+	{
+		if (rest is not CallRest.Typed)
+			return true;
+
+		if (body is not CallBody.Arguments { Quantifier: null, Order: null, List.Count: > 0 } arguments)
+			return false;
+
+		foreach (var argument in arguments.List)
+		{
+			if (argument.Variadic || argument.Name is not null)
+				return false;
+		}
+
+		return true;
+	}
+
+	/// <summary>Whether a key-word function was given as many values as it takes: NULLIF two, the others one or more.</summary>
+	public static bool ArityFits(string word, Expression[]? rest)
+	{
+		return (word[0] | 0x20) != 'n' || rest is { Length: 1 };
 	}
 
 	/// <summary>A name and what followed it: a call, a call turned into a typed literal, or a typed literal on the bare name.</summary>
@@ -472,12 +646,12 @@ static class Nodes
 	{
 		switch (tail)
 		{
-			case FuncTail.Typed(var text):
+			case FuncTail.Typed(var literal):
 				// `date '…'` is the standard's date literal (`date` is no key word of PostgreSQL's, and reaches here as a name).
 				if (name.Count == 1 && name[0] is { Style: IdentifierStyle.Regular, UnicodeEscape: null } word && word.Text.Equals("date", StringComparison.OrdinalIgnoreCase))
-					return DateTimeLiteral("DATE", text);
+					return DateTimeLiteral("DATE", literal);
 
-				return TypedLiteral(NamedType(name, []), text);
+				return TypedLiteral(NamedType(name, []), literal);
 
 			case FuncTail.Call(var body, var rest):
 				var arguments = body is CallBody.Arguments a ? a : null;
@@ -489,14 +663,14 @@ static class Nodes
 
 				switch (rest)
 				{
-					case CallRest.Typed(var text):
+					case CallRest.Typed(var literal):
 						// `numeric(10, 2) '1.5'`: the call's arguments are the type's modifiers.
 						var modifiers = new Expression[call.Arguments.Count];
 
 						for (var i = 0; i < modifiers.Length; i++)
 							modifiers[i] = call.Arguments[i].Value;
 
-						return TypedLiteral(NamedType(name, SqlList.Own(modifiers)), text);
+						return TypedLiteral(NamedType(name, SqlList.Own(modifiers)), literal);
 
 					case CallRest.Clauses(var within, var filter, var over):
 						return within is null && filter is null && over is null ? call : call with { WithinGroup = within, Filter = filter, Over = over };
@@ -756,6 +930,12 @@ static class Nodes
 		public sealed record On(Expression First, Expression[]? Rest) : Distinct;
 	}
 
+	/// <summary>Whether the target list may be empty: after SELECT and SELECT ALL, not after DISTINCT.</summary>
+	public static bool TargetsFit(Distinct? distinct, SelectColumn? first)
+	{
+		return first is not null || distinct is null or Distinct.Of { Quantifier: SetQuantifier.All };
+	}
+
 	public static Query Selected(Distinct? distinct, SelectColumn? first, SelectColumn[]? rest, FromClause? from, Expression? where)
 	{
 		var query = new Query.Select { Columns = List(first, rest), From = from, Where = where };
@@ -799,6 +979,12 @@ static class Nodes
 	public static TableSource Table(QualifiedName name, bool only, bool star, Alias? alias)
 	{
 		return new TableSource.Named(name) { Only = only, Star = star, Alias = alias };
+	}
+
+	/// <summary>Whether OUTER stands where the server reads it: after LEFT, RIGHT or FULL.</summary>
+	public static bool JoinWordsFit(string? kind, string? outer)
+	{
+		return outer is null || kind is not null && (kind[0] | 0x20) != 'i';
 	}
 
 	/// <summary>A join, as the standard's grammar makes one: the kind by its word, the specification after it.</summary>

@@ -1471,7 +1471,11 @@ public abstract partial record DataType : ISqlNode
 	public sealed partial record Boolean : DataType;
 	public sealed partial record DateTime(DateTimeTypeKind Kind, int? Precision = null, TimeZoneMode? TimeZone = null) : DataType;
 	// PostgreSQL: Date/Time Types. `interval`, `interval(3)`, `interval day to second(3)`: the qualifier may be left out, and a precision stand alone.
-	public sealed record Interval(IntervalQualifier? Qualifier = null, int? Precision = null) : DataType;
+	public sealed record Interval(IntervalQualifier? Qualifier) : DataType
+	{
+		/// <summary>The precision in brackets after the word, <c>INTERVAL(3)</c>, where one was written and no qualifier was.</summary>
+		public int? Precision { get; init; }
+	}
 	public sealed record Row(SqlList<FieldDefinition> Fields) : DataType;
 	public sealed record Reference(QualifiedName ReferencedType, QualifiedName? Scope = null) : DataType;
 	public sealed partial record Array(DataType ElementType, int? MaximumCardinality = null, bool Trigraphs = false) : DataType;

@@ -23,6 +23,26 @@ static class KeywordCatalogue
 		Reserved,
 	}
 
+	static HashSet<string>? _keywords;
+
+	/// <summary>Whether a word is a key word of any category — where the grammar asks for a plain name that is none (extract_arg).</summary>
+	public static bool IsKeyword(string word)
+	{
+		var keywords = _keywords;
+
+		if (keywords is null)
+		{
+			keywords = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+			foreach (var (text, _, _) in Words)
+				keywords.Add(text);
+
+			_keywords = keywords;
+		}
+
+		return keywords.Contains(word);
+	}
+
 	/// <summary>Each key word, its category, and whether it may be a column label with no <c>AS</c> before it.</summary>
 	public static readonly IReadOnlyList<(string Word, Category Category, bool BareLabel)> Words =
 	[
