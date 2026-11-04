@@ -58,7 +58,7 @@ public sealed class AstReferenceTests
 	[Fact]
 	public void Every_row_names_a_source()
 	{
-		var allowed = new[] { "SQL-92", "SQL:2023", "T-SQL" };
+		var allowed = new[] { "SQL-92", "SQL:2023", "T-SQL", "PostgreSQL" };
 
 		foreach (var (node, source) in Rows())
 			Assert.True(allowed.Contains(source), $"{node}: {source}");
