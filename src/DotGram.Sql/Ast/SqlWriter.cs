@@ -35,17 +35,6 @@ namespace DotGram.Sql.Ast;
 /// checks the stack first and, where it runs low, goes on on a thread of its own (<c>SqlStack</c>).
 /// </para>
 /// </remarks>
-/// <summary>
-/// Which reading a writer's text is for: the standard's, which <see cref="SqlWriter.Write(ISqlNode)"/> prints, or a
-/// dialect's, which refuses besides the trees that dialect would read as others and keeps its own spellings.
-/// </summary>
-enum SqlDialect
-{
-	Standard,
-	TransactSql,
-	PostgreSql,
-}
-
 public static partial class SqlWriter
 {
 	/// <summary>The tree's text, as the standard reads it. For text T-SQL reads, use <see cref="TransactSqlWriter.Write"/>.</summary>
@@ -338,6 +327,9 @@ public static partial class SqlWriter
 					// A dollar-quoted string's text is its own delimiters: anything else written as one reads back as another kind.
 					if (text.Kind == StringLiteralKind.Dollar && (!text.Text.StartsWith("$", StringComparison.Ordinal) || text.CharacterSet is not null || text.UnicodeEscape is not null))
 						throw Misplaced(text, "Text", "that no dollar quote delimits, or a CharacterSet or UnicodeEscape, which `$tag$ … $tag$` does not say");
+
+					if (text.Kind == StringLiteralKind.Escaped && (text.CharacterSet is not null || text.UnicodeEscape is not null))
+						throw Misplaced(text, "CharacterSet", "or UnicodeEscape on an escape string, which `E'…'` does not say");
 
 					Word(text.Kind switch
 					{
@@ -1002,7 +994,6 @@ public static partial class SqlWriter
 				Expression.Binary { Operator: BinaryOperator.Multiply or BinaryOperator.Divide or BinaryOperator.Modulo or BinaryOperator.Power } => Tightness.Multiplicative,
 				Expression.Binary or Expression.OperatorCall => Tightness.Additive,
 				Expression.QuantifiedOperation or Expression.IsDocument => Tightness.Predicate,
-				Expression.CollationFor => Tightness.Primary,
 				Expression.Unary { Operator: UnaryOperator.Not } => Tightness.Negated,
 				Expression.Unary => Tightness.Signed,
 				Expression.MultisetOperation { Operator: MultisetOperator.Intersect } => Tightness.Multiplicative,
@@ -2494,6 +2485,9 @@ public static partial class SqlWriter
 
 		void PutParameter(Expression.Parameter parameter)
 		{
+			if (parameter.Kind != ParameterKind.Positional && parameter.Ordinal is not null)
+				throw Misplaced(parameter, "Ordinal", "on a parameter that is not positional, whose text has no number");
+
 			if (parameter.Kind == ParameterKind.Dynamic)
 			{
 				if (parameter.Name is not null || parameter.Indicator is not null)
@@ -2508,6 +2502,13 @@ public static partial class SqlWriter
 			{
 				if (parameter.Ordinal is not { } ordinal || parameter.Name is not null || parameter.Indicator is not null)
 					throw Misplaced(parameter, "Ordinal", "missing, or a Name or Indicator, on a positional parameter, which `$1` does not say");
+
+				if (ordinal < 0)
+					throw Misplaced(parameter, "Ordinal", "below zero, which no `$n` writes");
+
+				// T-SQL reads `$1` as money.
+				if (transactSql)
+					throw Misplaced(parameter, "Kind", "Positional, which T-SQL does not read: it reads `$1` as a money literal");
 
 				Word("$" + ordinal.ToString(CultureInfo.InvariantCulture));
 				return;

@@ -53,7 +53,8 @@ namespace Lexical
 	DelimitedPart       = [^ '"'] | "\"\""
 
 	// scan.l `xui`: `U&"…"`, whose escapes the server decodes. `UESCAPE 'c'` stands after it as
-	// tokens of its own, read by the rule that reads the name.
+	// tokens of its own, read by the rule that reads the name: one character, which is no hexit,
+	// no `+`, no quote and no space, in a plain or an escape string.
 	UnicodeIdentifier = 'U'i & '&' & '"' & DelimitedPart+ & '"'
 
 	// scan.l `xq`, `xqs`: a string with `''` for a quote inside, continued by another part after a
@@ -76,12 +77,13 @@ namespace Lexical
 
 	// scan.l `xus`: `U&'…'`; `xn`: `N'…'`, which the server reads as the type `nchar` given a
 	// string and the tree holds as the national string it is in every dialect; `xb` and `xh`:
-	// `B'…'` and `X'…'`, both strings of bits, whose characters are checked after the syntax is
-	// and which no separator continues.
+	// `B'…'` and `X'…'`, both strings of bits, whose characters are checked after the syntax is.
+	// Every one of them continues across a line break as a plain string does.
 	UnicodeString  = 'U'i & '&' & '\'' & StringBody & '\'' & Continued(StringBody)*
 	NationalString = 'N'i & '\'' & StringBody & '\'' & Continued(StringBody)*
-	BitString      = 'B'i & '\'' & [^ '\'']* & '\''
-	HexString      = 'X'i & '\'' & [^ '\'']* & '\''
+	BitString      = 'B'i & '\'' & BitBody & '\'' & Continued(BitBody)*
+	HexString      = 'X'i & '\'' & BitBody & '\'' & Continued(BitBody)*
+	BitBody        = [^ '\'']*
 
 	// scan.l `dolq…`: `$$ … $$` and `$tag$ … $tag$`. The tag is bound where it opens and matched
 	// again where it closes (docs/syntax.md §3.5.1); it is a name with no digit first, in the case
@@ -150,26 +152,28 @@ ColLabel : @Identifier = i: Word => @(i)
 // character; the name keeps its text to the closing quote and the character beside it, as the
 // standard's reading keeps them.
 Word : @Identifier
-	= t: UnicodeIdentifier & ("UESCAPE"i & e: String)? => @(Nodes.UnicodeIdentifier(t, e))
+	= t: UnicodeIdentifier & u: Uescape? => @(Nodes.UnicodeIdentifier(t, u))
 	| t: Identifier => @(new Identifier(t))
 	| t: DelimitedIdentifier => @(new Identifier(t, IdentifierStyle.Delimited))
 
 // gram.y columnref: a name, and the names after its dots; `.*` and the subscripts arrive with
 // the expressions. An attribute after a dot may be any key word (attr_name: ColLabel).
-ColumnReference : @Expression = first: ColId & ('.' & rest: AttributeName)* => @(new Expression.Reference(Nodes.Chain(first, rest)))
-AttributeName   : @Identifier = i: ColLabel => @(i)
+Columnref : @Expression = first: ColId & ('.' & rest: AttrName)* => @(new Expression.Reference(Nodes.Chain(first, rest)))
+AttrName  : @Identifier = i: ColLabel => @(i)
 
 // ── gram.y AexprConst: the constants ────────────────────────────────────────
+//
+// The literals so far; the typed literals, `int '1'`, arrive with the expressions.
 //
 // A literal keeps what was written. A number's kind is read from its text, as the standard's reading
 // reads it; a string keeps its text from its first quote to its last, the letter that begins it apart,
 // which its kind says, as the standard's reading keeps it — so a text two parsers read is one tree.
-Literal : @LiteralValue
+AexprConst : @LiteralValue
 	= ?!GluedNumber & t: Real => @(Nodes.Number(t))
 	| ?!GluedNumber & t: Decimal => @(Nodes.Number(t))
 	| ?!GluedNumber & t: Integer => @(Nodes.Number(t))
 	| t: EscapeString => @(Nodes.StringLiteral(t, StringLiteralKind.Escaped))
-	| t: UnicodeString & ("UESCAPE"i & e: String)? => @(Nodes.UnicodeString(t, e))
+	| t: UnicodeString & u: Uescape? => @(Nodes.UnicodeString(t, u))
 	| t: NationalString => @(Nodes.StringLiteral(t, StringLiteralKind.National))
 	| t: BitString => @(Nodes.BitStringLiteral(t))
 	| t: HexString => @(Nodes.BitStringLiteral(t))
@@ -182,15 +186,23 @@ Literal : @LiteralValue
 // scan.l `integer_junk`, `numeric_junk`, `real_junk`, `realfail`: a number that a word runs into —
 // `123abc`, `1e+`, `1__0` — is refused by the server ("trailing junk"). Over kinds the two are two
 // tokens, a number and a word with nothing between them, which is what `~` asks of them, and a
-// number is read only where no word is glued to it. A parameter is not so guarded: the server's
-// parser reads `$1x` as `$1` and the label `x`, and so does this.
+// number is read only where no word is glued to it.
 GluedNumber = (Real | Decimal | Integer) ~ Identifier
+
+// scan.l `param_junk`: a parameter a word runs into, `$1x`, is refused the same way ("trailing junk
+// after parameter"); and a number the server cannot hold, `$2147483648`, is refused where it is read
+// ("parameter number too large"). The server is the authority here: libpg_query 18.6 reads `$1x` as
+// `$1` and the label `x`, and the server does not.
+GluedParameter = Parameter ~ Identifier
+
+// gram.y Sconst after UESCAPE: the escape character, in a plain or an escape string.
+Uescape : @string = "UESCAPE"i & e: (String | EscapeString) & when @(Nodes.IsEscape(e)) => @(e)
 
 // A constant, a parameter or a column reference: the values the expressions will be built on.
 ConstantValue : @Expression
-	= l: Literal => @(l)
-	| t: Parameter => @(Nodes.Parameter(t))
-	| c: ColumnReference => @(c)
+	= l: AexprConst => @(l)
+	| ?!GluedParameter & t: Parameter & when @(Nodes.FitsParameter(t)) => @(Nodes.Parameter(t))
+	| c: Columnref => @(c)
 
 // ── The entry points ────────────────────────────────────────────────────────
 //

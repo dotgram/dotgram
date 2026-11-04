@@ -35,6 +35,10 @@ public static partial class SqlWriter
 					if (!bits.Text.StartsWith("'", StringComparison.Ordinal))
 						throw Misplaced(bits, "Text", "without quotes");
 
+					// X'…' is PostgreSQL's bit string and the standard's binary string: written for another reading it would come back as the other.
+					if (bits.Hexadecimal && !postgreSql)
+						throw Misplaced(bits, "Hexadecimal", "which only PostgreSQL reads as a string of bits; the standard reads X'…' as a binary string");
+
 					Word((bits.Hexadecimal ? "X" : "B") + bits.Text);
 					return true;
 

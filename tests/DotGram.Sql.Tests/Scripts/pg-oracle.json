@@ -1,5 +1,5 @@
 {
-	"oracle": "libpg_query 18.6 (pglast v8.7)",
+	"oracle": "libpg_query 18.6",
 	"rows": [
 		{
 			"name": "string",
@@ -46,16 +46,67 @@
 			"accepted": true
 		},
 		{
+			"name": "escape_unicode_zero",
+			"expression": "E'\\u0000'",
+			"text": "SELECT E'\\u0000'",
+			"accepted": false,
+			"error": "invalid Unicode escape value at or near \"\\u0000\", at index 9",
+			"known": "the lexer checks no escape's value: a zero, a lone surrogate or a short escape is refused by the server inside the token"
+		},
+		{
+			"name": "escape_unicode_surrogate",
+			"expression": "E'\\uD800'",
+			"text": "SELECT E'\\uD800'",
+			"accepted": false,
+			"error": "invalid Unicode surrogate pair at or near \"'\", at index 15",
+			"known": "the lexer checks no escape's value: a zero, a lone surrogate or a short escape is refused by the server inside the token"
+		},
+		{
 			"name": "unicode_string",
 			"expression": "U&'d\\0061t'",
 			"text": "SELECT U&'d\\0061t'",
 			"accepted": true
 		},
 		{
+			"name": "unicode_string_bad_escape",
+			"expression": "U&'\\00zz'",
+			"text": "SELECT U&'\\00zz'",
+			"accepted": false,
+			"error": "invalid Unicode escape, at index 10",
+			"known": "the lexer checks no escape's value: a zero, a lone surrogate or a short escape is refused by the server inside the token"
+		},
+		{
 			"name": "unicode_string_uescape",
 			"expression": "U&'d!0061t' UESCAPE '!'",
 			"text": "SELECT U&'d!0061t' UESCAPE '!'",
 			"accepted": true
+		},
+		{
+			"name": "unicode_string_uescape_escape_string",
+			"expression": "U&'d!0061t' UESCAPE E'!'",
+			"text": "SELECT U&'d!0061t' UESCAPE E'!'",
+			"accepted": true
+		},
+		{
+			"name": "unicode_string_uescape_two_characters",
+			"expression": "U&'d!0061t' UESCAPE '!!'",
+			"text": "SELECT U&'d!0061t' UESCAPE '!!'",
+			"accepted": false,
+			"error": "invalid Unicode escape character at or near \"'!!'\", at index 27"
+		},
+		{
+			"name": "unicode_string_uescape_hexit",
+			"expression": "U&'d!0061t' UESCAPE 'a'",
+			"text": "SELECT U&'d!0061t' UESCAPE 'a'",
+			"accepted": false,
+			"error": "invalid Unicode escape character at or near \"'a'\", at index 27"
+		},
+		{
+			"name": "unicode_string_uescape_plus",
+			"expression": "U&'d!0061t' UESCAPE '+'",
+			"text": "SELECT U&'d!0061t' UESCAPE '+'",
+			"accepted": false,
+			"error": "invalid Unicode escape character at or near \"'+'\", at index 27"
 		},
 		{
 			"name": "national_string",
@@ -67,6 +118,12 @@
 			"name": "bit_string",
 			"expression": "B'0101'",
 			"text": "SELECT B'0101'",
+			"accepted": true
+		},
+		{
+			"name": "bit_string_continued",
+			"expression": "B'01'\n'10'",
+			"text": "SELECT B'01'\n'10'",
 			"accepted": true
 		},
 		{
@@ -121,6 +178,13 @@
 			"accepted": true
 		},
 		{
+			"name": "integer_trailing_underscore",
+			"expression": "1_",
+			"text": "SELECT 1_",
+			"accepted": false,
+			"error": "trailing junk after numeric literal at or near \"1_\", at index 7"
+		},
+		{
 			"name": "integer_double_underscore",
 			"expression": "1__0",
 			"text": "SELECT 1__0",
@@ -132,6 +196,26 @@
 			"expression": "0x1F",
 			"text": "SELECT 0x1F",
 			"accepted": true
+		},
+		{
+			"name": "hex_integer_leading_underscore",
+			"expression": "0x_1F",
+			"text": "SELECT 0x_1F",
+			"accepted": true
+		},
+		{
+			"name": "hex_integer_junk",
+			"expression": "0x1Fg",
+			"text": "SELECT 0x1Fg",
+			"accepted": false,
+			"error": "trailing junk after numeric literal at or near \"0x1Fg\", at index 7"
+		},
+		{
+			"name": "hex_integer_trailing_underscore",
+			"expression": "0x1F_",
+			"text": "SELECT 0x1F_",
+			"accepted": false,
+			"error": "trailing junk after numeric literal at or near \"0x1F_\", at index 7"
 		},
 		{
 			"name": "octal_integer",
@@ -162,6 +246,12 @@
 			"name": "decimal_leading_point",
 			"expression": ".5",
 			"text": "SELECT .5",
+			"accepted": true
+		},
+		{
+			"name": "decimal_underscore",
+			"expression": ".5_0",
+			"text": "SELECT .5_0",
 			"accepted": true
 		},
 		{
@@ -200,6 +290,27 @@
 			"name": "parameter",
 			"expression": "$1",
 			"text": "SELECT $1",
+			"accepted": true
+		},
+		{
+			"name": "parameter_junk",
+			"expression": "$1x",
+			"text": "SELECT $1x",
+			"server": false,
+			"note": "scan.l param_junk; the server refuses (trailing junk after parameter), libpg_query 18.6 reads $1 and a label",
+			"accepted": true
+		},
+		{
+			"name": "parameter_too_large",
+			"expression": "$2147483648",
+			"text": "SELECT $2147483648",
+			"accepted": false,
+			"error": "parameter number too large at or near \"$2147483648\", at index 7"
+		},
+		{
+			"name": "parameter_leading_zero",
+			"expression": "$01",
+			"text": "SELECT $01",
 			"accepted": true
 		},
 		{

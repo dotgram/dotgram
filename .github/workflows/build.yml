@@ -1,4 +1,4 @@
-﻿name: build
+name: build
 
 on:
   push:
@@ -171,11 +171,11 @@ jobs:
           for framework in net10.0 netstandard2.0; do
             log="$RUNNER_TEMP/verify-cache-$framework.log"
             build --framework "$framework" | tee "$log"
-            for host in DotGram.Sql.Standard.Sql92Parser DotGram.Sql.Standard.SqlStandardParser DotGram.Sql.TransactSql.TransactSqlParser; do
+            for host in DotGram.Sql.Standard.Sql92Parser DotGram.Sql.Standard.SqlStandardParser DotGram.Sql.TransactSql.TransactSqlParser DotGram.Sql.PostgreSql.PostgreSqlParser DotGram.Sql.PostgreSql.PostgreSqlParser.Located; do
               grep -qE "DotGram: $host, .*, cached and verified\$" "$log" || { echo "::error::$host ($framework) was not taken from the cache and verified"; exit 1; }
             done
             reported=$(grep -oE "DotGram: DotGram\.Sql\.[^,]+," "$log" | sort -u | wc -l)
-            [ "$reported" -eq 3 ] || { echo "::error::DotGram.Sql ($framework) reported $reported parsers, not 3"; exit 1; }
+            [ "$reported" -eq 5 ] || { echo "::error::DotGram.Sql ($framework) reported $reported parsers, not 5"; exit 1; }
           done
 
       # Every suite, snapshots included. The generator writes the check lines only into a compilation

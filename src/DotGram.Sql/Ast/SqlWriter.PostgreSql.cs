@@ -11,7 +11,7 @@ public static partial class SqlWriter
 
 		/// <summary>
 		/// PostgreSQL's own expressions (SqlAst.PostgreSql.cs): an operator called by name, a quantified operation over
-		/// an array, <c>COLLATION FOR</c> and <c>IS DOCUMENT</c>. Answers false for every other node.
+		/// an array, and <c>IS DOCUMENT</c>. Answers false for every other node.
 		/// </summary>
 		bool TryPutPostgreSql(Expression expression)
 		{
@@ -61,14 +61,6 @@ public static partial class SqlWriter
 						Close();
 					}
 
-					return true;
-
-				case Expression.CollationFor collation:
-					Word("COLLATION");
-					Word("FOR");
-					Call();
-					PutExpression(collation.Value);
-					Close();
 					return true;
 
 				case Expression.IsDocument document:

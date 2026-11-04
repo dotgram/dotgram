@@ -30,7 +30,7 @@ public sealed class PostgreSqlGramMapTests
 			.ToHashSet(StringComparer.Ordinal);
 		var rows    = File.ReadAllLines(Path.Combine(folder, "Specification", "gram-map.csv")).Skip(1)
 			.Where(static line => line.Length > 0)
-			.Select(static line => line.Split(','))
+			.Select(static line => line.Split(',', 4))
 			.ToList();
 
 		Assert.True(rows.Count > 700, $"{rows.Count} rows: the inventory is not the whole grammar");

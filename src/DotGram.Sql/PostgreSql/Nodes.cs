@@ -49,10 +49,26 @@ static class Nodes
 		return text.Substring(text.IndexOf('\''));
 	}
 
-	/// <summary>The character inside a one-character string, <c>'!'</c>, or null where no string was written.</summary>
+	/// <summary>The character inside a one-character string, <c>'!'</c> or <c>E'!'</c>, or null where no string was written.</summary>
 	static char? EscapeCharacter(string? quoted)
 	{
-		return quoted is { Length: >= 3 } ? quoted[1] : null;
+		return quoted is null ? null : quoted[quoted.IndexOf('\'') + 1];
+	}
+
+	/// <summary>
+	/// Whether a string names an escape character as the server allows one: exactly one character, and none of a hexit,
+	/// <c>+</c>, a quote of either kind or a space.
+	/// </summary>
+	public static bool IsEscape(string quoted)
+	{
+		var body = quoted.Substring(quoted.IndexOf('\'') + 1, quoted.Length - quoted.IndexOf('\'') - 2);
+
+		if (body.Length != 1)
+			return false;
+
+		var c = body[0];
+
+		return !Uri.IsHexDigit(c) && c != '+' && c != '\'' && c != '"' && !char.IsWhiteSpace(c);
 	}
 
 	/// <summary>A name and the parts after it, as many as were read.</summary>
@@ -91,11 +107,18 @@ static class Nodes
 		return text.IndexOf('.') >= 0 ? NumericLiteralKind.Decimal : NumericLiteralKind.DecimalInteger;
 	}
 
-	/// <summary>A positional parameter, <c>$1</c>: its number, read from the text after the sign.</summary>
+	/// <summary>
+	/// A positional parameter, <c>$1</c>: its number, read from the text after the sign. Leading zeros are the number's,
+	/// not the tree's — <c>$01</c> is parameter 1 and is written back as <c>$1</c>, the one normalisation this reading makes.
+	/// </summary>
 	public static Expression Parameter(string text)
 	{
-		var ordinal = int.TryParse(text.AsSpan(1), out var number) ? number : (int?)null;
+		return new Expression.Parameter(ParameterKind.Positional) { Ordinal = int.Parse(text.AsSpan(1), System.Globalization.CultureInfo.InvariantCulture) };
+	}
 
-		return new Expression.Parameter(ParameterKind.Positional) { Ordinal = ordinal };
+	/// <summary>Whether a parameter's number is one the server can hold ("parameter number too large" otherwise).</summary>
+	public static bool FitsParameter(string text)
+	{
+		return int.TryParse(text.AsSpan(1), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out _);
 	}
 }

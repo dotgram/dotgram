@@ -45,11 +45,13 @@ public sealed class PostgreSqlLexicalTests
 		Assert.Null(value.UnicodeEscape);
 	}
 
-	/// <summary>A Unicode string's <c>UESCAPE</c> names its escape character, which stands beside the text.</summary>
-	[Fact]
-	public void A_unicode_string_keeps_its_escape_character()
+	/// <summary>A Unicode string's <c>UESCAPE</c> names its escape character, in a plain or an escape string, which stands beside the text.</summary>
+	[Theory]
+	[InlineData("U&'d!0061t' UESCAPE '!'")]
+	[InlineData("U&'d!0061t' UESCAPE E'!'")]
+	public void A_unicode_string_keeps_its_escape_character(string input)
 	{
-		var value = Assert.IsType<LiteralValue.String>(PostgreSqlParser.ParseExpression("U&'d!0061t' UESCAPE '!'"));
+		var value = Assert.IsType<LiteralValue.String>(PostgreSqlParser.ParseExpression(input));
 
 		Assert.Equal(StringLiteralKind.Unicode, value.Kind);
 		Assert.Equal("'d!0061t'", value.Text);
@@ -67,6 +69,10 @@ public sealed class PostgreSqlLexicalTests
 	[InlineData("$1a$ b $1a$")]
 	[InlineData("$a$ b")]
 	[InlineData("$a$ b $a")]
+	[InlineData("U&'a' UESCAPE '!!'")]
+	[InlineData("U&'a' UESCAPE 'a'")]
+	[InlineData("U&'a' UESCAPE '+'")]
+	[InlineData("U&'a' UESCAPE ' '")]
 	public void A_string_that_is_not_one_is_refused(string input)
 	{
 		Assert.False(PostgreSqlParser.TryParseExpression(input).IsSuccess);
@@ -76,6 +82,7 @@ public sealed class PostgreSqlLexicalTests
 	[Theory]
 	[InlineData("B'0101'", "'0101'", false)]
 	[InlineData("x'1FF'",  "'1FF'",  true)]
+	[InlineData("B'01'\n'10'", "'01'\n'10'", false)]
 	public void A_bit_string_keeps_its_spelling(string input, string text, bool hexadecimal)
 	{
 		var value = Assert.IsType<LiteralValue.BitString>(PostgreSqlParser.ParseExpression(input));
@@ -105,24 +112,30 @@ public sealed class PostgreSqlLexicalTests
 		Assert.Equal(kind, value.Kind);
 	}
 
-	/// <summary>A number a word runs into is one token no rule takes, as the server refuses it ("trailing junk").</summary>
+	/// <summary>A number or a parameter a word runs into is refused, as the server refuses it ("trailing junk"), and so is a parameter number the server cannot hold.</summary>
 	[Theory]
 	[InlineData("123abc")]
 	[InlineData("1e+")]
 	[InlineData("0x")]
 	[InlineData("1__0")]
-	public void A_number_with_junk_after_it_is_refused(string input)
+	[InlineData("$1x")]
+	[InlineData("$2147483648")]
+	public void A_number_or_a_parameter_with_junk_after_it_is_refused(string input)
 	{
 		Assert.False(PostgreSqlParser.TryParseExpression(input).IsSuccess);
 	}
 
-	[Fact]
-	public void A_positional_parameter_keeps_its_number()
+	/// <summary>A parameter's number; leading zeros are the number's, so <c>$012</c> is parameter 12 (written back as <c>$12</c>).</summary>
+	[Theory]
+	[InlineData("$12", 12)]
+	[InlineData("$012", 12)]
+	[InlineData("$2147483647", int.MaxValue)]
+	public void A_positional_parameter_keeps_its_number(string input, int ordinal)
 	{
-		var value = Assert.IsType<Expression.Parameter>(PostgreSqlParser.ParseExpression("$12"));
+		var value = Assert.IsType<Expression.Parameter>(PostgreSqlParser.ParseExpression(input));
 
 		Assert.Equal(ParameterKind.Positional, value.Kind);
-		Assert.Equal(12, value.Ordinal);
+		Assert.Equal(ordinal, value.Ordinal);
 		Assert.Null(value.Name);
 	}
 
