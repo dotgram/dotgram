@@ -224,7 +224,7 @@ public sealed class SetOperationTests
 		var statement = SqlStandardParser.ParseStatement("(TABLE a) UNION TABLE b FOR UPDATE OF x");
 		var select    = Assert.IsType<Statement.Select>(statement);
 
-		Assert.Equal(new LockingClause(LockingMode.Update, [new Identifier("x")]), Assert.Single(select.Query.Locking));
+		Assert.Equal(new LockingClause(LockingMode.Update, [new QualifiedName(new Identifier("x"))]), Assert.Single(select.Query.Locking));
 		Assert.Equal("(TABLE a) UNION TABLE b FOR UPDATE OF x", SqlWriter.Write(statement));
 	}
 

@@ -1192,6 +1192,20 @@ static class Nodes
 		};
 	}
 
+	/// <summary>Names of one part each as qualified names, which the locking clause's OF holds; the empty list for none.</summary>
+	public static SqlList<QualifiedName> Qualified(SqlList<Identifier>? names)
+	{
+		if (names is not { } list || list.Count == 0)
+			return [];
+
+		var qualified = new QualifiedName[list.Count];
+
+		for (var at = 0; at < qualified.Length; at++)
+			qualified[at] = new QualifiedName(list[at]);
+
+		return SqlList.Own(qualified);
+	}
+
 	/// <summary>`TABLE t`, which is `SELECT * FROM t` and says so.</summary>
 	public static Query.Select Tabled(QualifiedName name)
 	{

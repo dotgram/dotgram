@@ -2361,7 +2361,7 @@ GranteeItem : @Grantee = "PUBLIC"i => @(new Grantee.Public())
 CursorSpecification : @Statement.Select = q: QueryExpression & u: UpdatabilityClause? => @(Nodes.Cursor(q, u))
 
 UpdatabilityClause : @LockingClause = "FOR"i & "READ"i & "ONLY"i => @(new LockingClause(LockingMode.ReadOnly, []))
-                                    | "FOR"i & "UPDATE"i & ("OF"i & columns: ColumnNameList)? => @(new LockingClause(LockingMode.Update, columns ?? []))
+                                    | "FOR"i & "UPDATE"i & ("OF"i & columns: ColumnNameList)? => @(new LockingClause(LockingMode.Update, Nodes.Qualified(columns)))
 
 TemporaryTableDeclaration : @Statement.DeclareLocalTemporaryTable = "DECLARE"i & "LOCAL"i & "TEMPORARY"i & "TABLE"i & n: TableName & e: TableElementList & ("ON"i & "COMMIT"i & o: ("PRESERVE"i | "DELETE"i) & "ROWS"i)?
 	  => @(new Statement.DeclareLocalTemporaryTable { Name = n, Elements = e, OnCommit = Nodes.CommitOf(o) })

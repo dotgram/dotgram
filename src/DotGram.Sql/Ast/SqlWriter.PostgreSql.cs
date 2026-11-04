@@ -26,7 +26,7 @@ public static partial class SqlWriter
 						PutOperand(left, PostgreSqlTightness.Operator);
 
 					PutOperatorName(call.Operator, call.OperatorKeyword, false);
-					PutOperand(call.Right, PostgreSqlTightness.Operator + 1);
+					PutOperand(call.Right, call.Right is Expression.OperatorCall { Left: null } ? PostgreSqlTightness.Operator : PostgreSqlTightness.Operator + 1);
 					return true;
 
 				case Expression.QuantifiedOperation quantified:

@@ -74,6 +74,9 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("- a AT TIME ZONE 'x'", "AtTimeZone over a sign")]
 	[InlineData("a AT TIME ZONE - 1", "AtTimeZone with a signed zone")]
 	[InlineData("@ a ~ b",     "OperatorCall over a prefix OperatorCall")]
+	[InlineData("a || !! b",   "Concatenate over a prefix OperatorCall on the right")]
+	[InlineData("a + @ b * c", "Add over a prefix OperatorCall on the right")]
+	[InlineData("a ~ @ b",     "OperatorCall over a prefix OperatorCall on the right")]
 	public void An_operator_builds_the_node_its_symbol_means(string text, string expected)
 	{
 		var value = Value(text);
@@ -105,6 +108,9 @@ public sealed class PostgreSqlExpressionTests
 			"AtTimeZone over a sign" => value is Expression.AtTimeZone { Value: Expression.Unary },
 			"AtTimeZone with a signed zone" => value is Expression.AtTimeZone { Zone: Expression.Unary },
 			"OperatorCall over a prefix OperatorCall" => value is Expression.OperatorCall { Operator: [{ Text: "~" }], Left: Expression.OperatorCall { Left: null, Right: Expression.Reference } },
+			"Concatenate over a prefix OperatorCall on the right" => value is Expression.Binary { Operator: BinaryOperator.Concatenate, Right: Expression.OperatorCall { Left: null } },
+			"Add over a prefix OperatorCall on the right" => value is Expression.Binary { Operator: BinaryOperator.Add, Right: Expression.OperatorCall { Left: null, Right: Expression.Binary { Operator: BinaryOperator.Multiply } } },
+			"OperatorCall over a prefix OperatorCall on the right" => value is Expression.OperatorCall { Left: Expression.Reference, Right: Expression.OperatorCall { Left: null } },
 			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
 		};
 
@@ -165,6 +171,7 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("a IS DISTINCT FROM b IS DISTINCT FROM c")]
 	[InlineData("ARRAY[1, [2]]")]
 	[InlineData("a = ANY (1, 2)")]
+	[InlineData("a OVERLAPS (1, 2)")]
 	[InlineData("f(x).y")]
 	[InlineData("f(x)[1]")]
 	[InlineData("ARRAY[1, 2][1]")]
@@ -213,6 +220,9 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("a @> SOME (b)",           "QuantifiedOperation named")]
 	[InlineData("a + ANY (ARRAY[1])",      "QuantifiedOperation core named")]
 	[InlineData("EXISTS (SELECT 1)",       "Exists")]
+	[InlineData("(1, 2) OVERLAPS (3, 4)",  "Overlaps")]
+	[InlineData("ROW(1, 2) OVERLAPS (3, 4)", "Overlaps row keyword")]
+	[InlineData("a IN (-1, null::int, f(1))", "In values of any shape")]
 	public void A_predicate_builds_its_record(string text, string expected)
 	{
 		var value = Value(text);
@@ -236,6 +246,9 @@ public sealed class PostgreSqlExpressionTests
 			"QuantifiedOperation named" => value is Expression.QuantifiedOperation { Operator: QuantifiedOperator.Named { Operator: [{ Text: "@>" }] }, Quantifier: Quantifier.Some },
 			"QuantifiedOperation core named" => value is Expression.QuantifiedOperation { Operator: QuantifiedOperator.Named { Operator: [{ Text: "+" }] }, Right: Expression.Array },
 			"Exists"               => value is Expression.Exists,
+			"Overlaps"             => value is Expression.Overlaps { Left: Expression.Row { RowKeyword: false }, Right: Expression.Row },
+			"Overlaps row keyword" => value is Expression.Overlaps { Left: Expression.Row { RowKeyword: true } },
+			"In values of any shape" => value is Expression.In { SourceValue: InSource.Values { Items: [Expression.Unary, Expression.Cast, Expression.Invocation] } },
 			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
 		};
 
@@ -469,6 +482,57 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("SELECT ALL FROM t",                              "all and no targets")]
 	[InlineData("SELECT * FROM ((a JOIN b ON true)) j",           "double bracket alias")]
 	[InlineData("SELECT * FROM ((a JOIN b ON true))",             "double bracket")]
+	// The clauses of the whole result.
+	[InlineData("SELECT a FROM t ORDER BY a DESC NULLS LAST LIMIT 10 OFFSET 5", "limit offset")]
+	[InlineData("SELECT a FROM t OFFSET 5 ROWS FETCH FIRST 10 ROWS ONLY", "offset fetch")]
+	[InlineData("SELECT a FROM t OFFSET 5 LIMIT 10",               "offset limit")]
+	[InlineData("SELECT a FROM t LIMIT ALL",                      "limit all")]
+	[InlineData("SELECT a FROM t ORDER BY a FETCH NEXT 3 ROWS WITH TIES", "fetch with ties")]
+	[InlineData("SELECT a FROM t FETCH FIRST ROW ONLY",           "fetch no count")]
+	[InlineData("SELECT a FROM t FETCH FIRST -1 ROWS ONLY OFFSET (SELECT 1)", "fetch signed, offset primary")]
+	[InlineData("SELECT a FROM t FOR UPDATE OF s.t NOWAIT",       "for update of nowait")]
+	[InlineData("SELECT a FROM t FOR NO KEY UPDATE SKIP LOCKED FOR KEY SHARE", "two locks")]
+	[InlineData("SELECT a FROM t FOR SHARE LIMIT 1",              "lock then limit")]
+	[InlineData("SELECT a FROM t LIMIT 1 FOR SHARE",              "limit then lock")]
+	[InlineData("SELECT a FROM t FOR READ ONLY",                  "for read only")]
+	[InlineData("WITH RECURSIVE r (n) AS NOT MATERIALIZED (SELECT 1) SEARCH DEPTH FIRST BY n SET o CYCLE n SET c USING p SELECT * FROM r", "with recursive search cycle")]
+	[InlineData("WITH x AS MATERIALIZED (SELECT 1) SELECT 1",     "with materialized")]
+	[InlineData("(WITH x AS (SELECT 1) SELECT 2)",                "with in brackets")]
+	[InlineData("(SELECT 1 ORDER BY 1 LIMIT 1) UNION (SELECT 2) ORDER BY 1 LIMIT 2", "bracketed operands with clauses")]
+	[InlineData("(SELECT 1) ORDER BY 1",                          "bracketed query with order")]
+	[InlineData("SELECT (SELECT a FROM t ORDER BY a LIMIT 1)",    "subquery with clauses")]
+	[InlineData("SELECT a FROM t GROUP BY DISTINCT ROLLUP (a, (b, c)), CUBE (a), GROUPING SETS ((a), ()), (), a + 1 HAVING count(*) > 1", "group by families")]
+	[InlineData("SELECT a FROM t GROUP BY (a, b)",                "group by row")]
+	[InlineData("SELECT a FROM t WINDOW w AS (PARTITION BY a ORDER BY b ROWS BETWEEN UNBOUNDED PRECEDING AND 1 FOLLOWING EXCLUDE TIES), v AS (w RANGE CURRENT ROW)", "window clause")]
+	[InlineData("SELECT sum(a) OVER (GROUPS 2 PRECEDING) FROM t", "frame groups")]
+	[InlineData("VALUES (1, 2), (3, 4)",                          "values")]
+	[InlineData("TABLE ONLY t",                                   "table only")]
+	[InlineData("SELECT * FROM f(1) AS t (a int, b text)",        "function with definitions")]
+	[InlineData("SELECT * FROM f(1) AS (a int)",                  "function with definitions alone")]
+	[InlineData("SELECT * FROM f(1) t (a, b)",                    "function with column names")]
+	[InlineData("SELECT * FROM LATERAL f(x) WITH ORDINALITY AS t", "lateral function with ordinality")]
+	[InlineData("SELECT * FROM unnest(a, b) WITH ORDINALITY AS u (x, y)", "unnest")]
+	[InlineData("SELECT * FROM LATERAL unnest(a)",                "lateral unnest")]
+	[InlineData("SELECT * FROM s.unnest(a)",                      "qualified unnest is a function")]
+	[InlineData("SELECT * FROM ROWS FROM (f(1), g(2) AS (a int)) WITH ORDINALITY AS r", "rows from")]
+	[InlineData("SELECT * FROM t TABLESAMPLE SYSTEM (10) REPEATABLE (42)", "tablesample")]
+	// What gram.y refuses in its actions, and what its lists refuse.
+	[InlineData("(SELECT 1 ORDER BY 1) ORDER BY 1",               "refused: two ORDER BYs")]
+	[InlineData("(SELECT 1 LIMIT 1) LIMIT 1",                     "refused: two LIMITs")]
+	[InlineData("(SELECT 1 OFFSET 1) OFFSET 1",                   "refused: two OFFSETs")]
+	[InlineData("WITH x AS (SELECT 1) (WITH y AS (SELECT 2) SELECT 3)", "refused: two WITHs")]
+	[InlineData("SELECT a FROM t LIMIT 1, 2",                     "refused: LIMIT a, b")]
+	[InlineData("SELECT a FROM t FETCH FIRST 3 ROWS WITH TIES",   "refused: WITH TIES without ORDER BY")]
+	[InlineData("SELECT a FROM t FETCH FIRST a + 1 ROWS ONLY",    "refused: FETCH count that is no primary")]
+	[InlineData("SELECT a FROM t OFFSET 1 + 1 ROWS",              "refused: OFFSET with ROWS that is no primary")]
+	[InlineData("SELECT a FROM t FOR READ ONLY FOR UPDATE",       "refused: FOR READ ONLY beside a lock")]
+	[InlineData("SELECT sum(a) OVER (ROWS 1 FOLLOWING) FROM t",   "refused: a single following bound")]
+	[InlineData("SELECT sum(a) OVER (ROWS BETWEEN UNBOUNDED FOLLOWING AND CURRENT ROW) FROM t", "refused: a start at UNBOUNDED FOLLOWING")]
+	[InlineData("SELECT sum(a) OVER (ROWS BETWEEN CURRENT ROW AND 1 PRECEDING) FROM t", "refused: a start after its end")]
+	[InlineData("SELECT * FROM f(1) (a int)",                     "refused: definitions without AS or a name")]
+	[InlineData("SELECT * FROM f(1) AS t (a int, b)",             "refused: names and definitions mixed")]
+	[InlineData("SELECT * FROM ROWS FROM (f(1) AS (a, b))",       "refused: ROWS FROM item with names")]
+	[InlineData("SELECT a INTO x FROM t",                         "refused: SELECT INTO (not read here)")]
 	// What the server refuses: a bracketed source that is no join, a join with neither NATURAL nor its condition or
 	// with both, OUTER with no direction, ONLY with the inheritance star, DISTINCT with no target list.
 	[InlineData("SELECT * FROM (a)",                              "refused: a bracketed name")]
@@ -512,6 +576,39 @@ public sealed class PostgreSqlExpressionTests
 			"all and no targets"    => query is Query.Select { Quantifier: SetQuantifier.All, Columns.Count: 0, From: not null },
 			"double bracket alias"  => query is Query.Select { From.Sources: [TableSource.Parenthesized { Source: TableSource.Parenthesized { Source: TableSource.Join }, Alias.Name.Text: "j" }] },
 			"double bracket"        => query is Query.Select { From.Sources: [TableSource.Parenthesized { Source: TableSource.Parenthesized { Source: TableSource.Join }, Alias: null }] },
+			"limit offset"          => query is Query.Select { OrderBy.Items: [{ Direction: SortDirection.Desc, NullOrdering: NullOrdering.Last }], Limit: { Count: not null, Offset: not null, LimitKeyword: true, OffsetAfter: true, OffsetRowWord: null, FetchRowWord: null } },
+			"offset fetch"          => query is Query.Select { Limit: { Count: not null, Offset: not null, LimitKeyword: false, OffsetAfter: false, OffsetRowWord: RowWord.Rows, FetchRowWord: RowWord.Rows, Position: FetchPosition.First } },
+			"offset limit"          => query is Query.Select { Limit: { Count: not null, Offset: not null, LimitKeyword: true, OffsetAfter: false, OffsetRowWord: null } },
+			"limit all"             => query is Query.Select { Limit: { LimitAll: true, LimitKeyword: true, Count: null } },
+			"fetch with ties"       => query is Query.Select { Limit: { WithTies: true, Position: FetchPosition.Next, FetchRowWord: RowWord.Rows } },
+			"fetch no count"        => query is Query.Select { Limit: { Count: null, FetchRowWord: RowWord.Row } },
+			"fetch signed, offset primary" => query is Query.Select { Limit: { Count: Expression.Unary, Offset: Expression.Subquery, OffsetAfter: true } },
+			"for update of nowait"  => query is Query.Select { Locking: [{ Mode: LockingMode.Update, Of: [{ Count: 2 }], Wait: LockWait.NoWait }] },
+			"two locks"             => query is Query.Select { Locking: [{ Mode: LockingMode.NoKeyUpdate, Wait: LockWait.SkipLocked }, { Mode: LockingMode.KeyShare, Wait: null }] },
+			"lock then limit"       => query is Query.Select { Locking.Count: 1, Limit: not null },
+			"limit then lock"       => query is Query.Select { Locking.Count: 1, Limit: not null },
+			"for read only"         => query is Query.Select { Locking: [{ Mode: LockingMode.ReadOnly }] },
+			"with recursive search cycle" => query is Query.Select { With: { Recursive: true, Items: [{ Columns.Count: 1, Materialized: false, Search: { Order: SearchOrder.DepthFirst }, Cycle: { MarkValue: null } }] } },
+			"with materialized"     => query is Query.Select { With.Items: [{ Materialized: true, Columns.Count: 0 }] },
+			"with in brackets"      => query is Query.Parenthesized { Query.With: not null, With: null },
+			"bracketed operands with clauses" => query is Query.Parenthesized { SetOperations: [{ Query: Query.Parenthesized }], OrderBy: not null, Limit: not null, Query: { OrderBy: not null, Limit: not null } },
+			"bracketed query with order" => query is Query.Parenthesized { SetOperations.Count: 0, OrderBy: not null, Query.OrderBy: null },
+			"subquery with clauses" => query is Query.Select { Columns: [SelectColumn.ExpressionItem { Expression: Expression.Subquery { Query: { OrderBy: not null, Limit: not null } } }] },
+			"group by families"     => query is Query.Select { GroupBy: { Quantifier: SetQuantifier.Distinct, Items: [GroupingElement.Rollup { Items: [GroupingElement.Ordinary { Parenthesized: false }, GroupingElement.Ordinary { Parenthesized: true, Expressions.Count: 2 }] }, GroupingElement.Cube, GroupingElement.Sets { Items: [GroupingElement.Ordinary, GroupingElement.Empty] }, GroupingElement.Empty, GroupingElement.Ordinary { Expressions: [Expression.Binary] }] }, Having: Expression.Comparison },
+			"group by row"          => query is Query.Select { GroupBy.Items: [GroupingElement.Ordinary { Parenthesized: true, Expressions.Count: 2 }] },
+			"window clause"         => query is Query.Select { Window.Windows: [{ Specification: { PartitionBy.Count: 1, OrderBy: not null, Frame: { Unit: WindowFrameUnit.Rows, Extent: WindowFrameExtent.Between { From.Kind: WindowBoundKind.UnboundedPreceding, To: { Kind: WindowBoundKind.Following, Offset: not null } }, Exclusion: WindowFrameExclusion.Ties } } }, { Specification: { Existing.Text: "w", Frame: { Unit: WindowFrameUnit.Range, Extent: WindowFrameExtent.Single { Bound.Kind: WindowBoundKind.CurrentRow } } } }] },
+			"frame groups"          => query is Query.Select { Columns: [SelectColumn.ExpressionItem { Expression: Expression.Invocation { Over: WindowReference.Specification { Value.Frame: { Unit: WindowFrameUnit.Groups, Extent: WindowFrameExtent.Single { Bound: { Kind: WindowBoundKind.Preceding, Offset: not null } } } } } }] },
+			"values"                => query is Query.Select { Values.Count: 2, Columns.Count: 0 },
+			"table only"            => query is Query.Select { Table: true, From.Sources: [TableSource.Named { Only: true }] },
+			"function with definitions" => query is Query.Select { From.Sources: [TableSource.Function { Alias: { Name.Text: "t", Columns: null }, ColumnDefinitions.Count: 2, Lateral: false, WithOrdinality: false }] },
+			"function with definitions alone" => query is Query.Select { From.Sources: [TableSource.Function { Alias: null, ColumnDefinitions.Count: 1 }] },
+			"function with column names" => query is Query.Select { From.Sources: [TableSource.Function { Alias.Columns.Count: 2, ColumnDefinitions: null }] },
+			"lateral function with ordinality" => query is Query.Select { From.Sources: [TableSource.Function { Lateral: true, WithOrdinality: true, Alias.Name.Text: "t" }] },
+			"unnest"                => query is Query.Select { From.Sources: [TableSource.Unnest { Expressions.Count: 2, WithOrdinality: true, Alias.Columns.Count: 2, Lateral: false }] },
+			"lateral unnest"        => query is Query.Select { From.Sources: [TableSource.Unnest { Lateral: true, Alias: null }] },
+			"qualified unnest is a function" => query is Query.Select { From.Sources: [TableSource.Function { Invocation.Name.Count: 2 }] },
+			"rows from"             => query is Query.Select { From.Sources: [TableSource.RowsFrom { Items: [{ ColumnDefinitions: null }, { ColumnDefinitions.Count: 1 }], WithOrdinality: true, Alias.Name.Text: "r", Lateral: false }] },
+			"tablesample"           => query is Query.Select { From.Sources: [TableSource.Named { Sample: { Method: SampleMethod.System, Repeat: not null } }] },
 			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
 		};
 
@@ -571,6 +668,18 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("SELECT a FROM t WHERE NOT a IS NULL")]
 	[InlineData("SELECT (a), ((a)), ((SELECT 1 FROM u)) FROM t")]
 	[InlineData("SELECT a FROM t WHERE a = b OR c IS NULL AND NOT d")]
+	[InlineData("SELECT a FROM t ORDER BY a OFFSET 5 ROWS FETCH FIRST 10 ROWS ONLY")]
+	[InlineData("SELECT a FROM t FOR UPDATE OF t")]
+	[InlineData("SELECT a FROM t FOR READ ONLY")]
+	[InlineData("WITH RECURSIVE r (n) AS (SELECT 1 FROM t) SELECT n FROM r")]
+	[InlineData("SELECT a FROM t GROUP BY ROLLUP (a, b) HAVING count(*) > 1")]
+	[InlineData("SELECT a FROM t GROUP BY (a, b)")]
+	[InlineData("SELECT a FROM t WINDOW w AS (PARTITION BY a ORDER BY b ROWS UNBOUNDED PRECEDING)")]
+	[InlineData("VALUES (1, 2), (3, 4)")]
+	[InlineData("TABLE t")]
+	[InlineData("SELECT * FROM UNNEST(a) WITH ORDINALITY AS u")]
+	[InlineData("(SELECT 1 FROM t) UNION (SELECT 2 FROM u) ORDER BY 1")]
+	[InlineData("SELECT (a, b) OVERLAPS (c, d) FROM t")]
 	public void A_text_both_grammars_read_is_one_tree(string text)
 	{
 		var standard   = SqlStandardParser.ParseStatement(text);
