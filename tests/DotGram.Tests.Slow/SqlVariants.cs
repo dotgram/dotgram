@@ -63,12 +63,27 @@ static class SqlVariants
 	/// <param name="counts">Whether the entry counters are written (<c>DOTGRAM_COUNTS</c>).</param>
 	public static Type Parser(string grammar, string follow = "off", bool memo = true, bool counts = false)
 	{
-		return Compiled.GetOrAdd((grammar, follow, memo, counts), static key => Compile(key.Grammar, key.Follow, key.Memo, key.Counts));
+		return Parser(grammar, follow, memo, counts, headGuard: false, located: false);
 	}
 
-	static readonly ConcurrentDictionary<(string Grammar, string Follow, bool Memo, bool Counts), Type> Compiled = new();
+	/// <summary>A parser of one grammar compiled one way, with the head-guard experiment on or off and with or without a located reading beside it.</summary>
+	/// <remarks>The head-guard experiment is a static switch of the emitter: compilations are serialised around it, so a caller asking for it should run alone.</remarks>
+	public static Type Parser(string grammar, string follow, bool memo, bool counts, bool headGuard, bool located)
+	{
+		return Compiled.GetOrAdd((grammar, follow, memo, counts, headGuard, located), static key => Compile(key.Grammar, key.Follow, key.Memo, key.Counts, key.HeadGuard, key.Located));
+	}
 
-	static Type Compile(string grammar, string follow, bool memo, bool counts)
+	/// <summary>The size of what a variant compiled to: the generated C# in characters and the assembly in bytes.</summary>
+	public static readonly ConcurrentDictionary<Type, (long SourceChars, long AssemblyBytes)> Sizes = new();
+
+	/// <summary>The SQL-92 grammar with the value tower instantiated twice (a fixture under <c>Fixtures/ReadOnce/Split</c>).</summary>
+	public const string Sql92Split = "Sql92Split";
+
+	static readonly ConcurrentDictionary<(string Grammar, string Follow, bool Memo, bool Counts, bool HeadGuard, bool Located), Type> Compiled = new();
+
+	static readonly object Compiling = new();
+
+	static Type Compile(string grammar, string follow, bool memo, bool counts, bool headGuard, bool located)
 	{
 		var (host, directory, file, name) = grammar switch
 		{
@@ -76,8 +91,36 @@ static class SqlVariants
 			Standard    => (StandardHost, "Standard", "SqlStandard.gram", "DotGram.Sql.Standard.Variant.SqlStandardParser"),
 			Sql92       => (Sql92Host, "Standard", "SqlStandard92.gram", "DotGram.Sql.Standard.Variant.Sql92Parser"),
 			Sql92Before => (Sql92Host.Replace("Standard.Variant", "Standard.Before"), Fixture("ReadOnce"), "SqlStandard92.gram", "DotGram.Sql.Standard.Before.Sql92Parser"),
+			Sql92Split  => (Sql92Host.Replace("Standard.Variant", "Standard.Split"), Fixture(Path.Combine("ReadOnce", "Split")), "SqlStandard92.gram", "DotGram.Sql.Standard.Split.Sql92Parser"),
 			_           => throw new ArgumentOutOfRangeException(nameof(grammar)),
 		};
+
+		if (headGuard)
+		{
+			host = host.Replace("Standard.Variant", "Standard.Guarded").Replace("Standard.Before", "Standard.BeforeGuarded").Replace("Standard.Split", "Standard.SplitGuarded");
+			name = name.Replace("Standard.Variant", "Standard.Guarded").Replace("Standard.Before", "Standard.BeforeGuarded").Replace("Standard.Split", "Standard.SplitGuarded");
+		}
+
+		if (located)
+			host = host.Replace("\tpublic abstract partial class", "\t[GramOptions(LocationType = typeof(global::DotGram.Sql.ISqlLocatable), Suffix = \"Located\")]\n\tpublic abstract partial class");
+
+		lock (Compiling)
+		{
+			DotGram.Grammar.Emit.CSharpEmitter.HeadGuardFirstExperiment = headGuard;
+
+			try
+			{
+				return Compile(host, directory, file, name, follow, memo, counts);
+			}
+			finally
+			{
+				DotGram.Grammar.Emit.CSharpEmitter.HeadGuardFirstExperiment = false;
+			}
+		}
+	}
+
+	static Type Compile(string host, string directory, string file, string name, string follow, bool memo, bool counts)
+	{
 
 		string[] symbols = [.. counts ? ["DOTGRAM_COUNTS"] : Array.Empty<string>(), .. memo ? Array.Empty<string>() : ["DOTGRAM_NO_MEMO"]];
 
@@ -125,7 +168,11 @@ static class SqlVariants
 			$"{name} ({follow}, memo {memo}) did not compile:\n" +
 			string.Join("\n", result.Diagnostics.Where(one => one.Severity == DiagnosticSeverity.Error).Take(20)));
 
-		return Assembly.Load(stream.ToArray()).GetType(name)!;
+		var loaded = Assembly.Load(stream.ToArray()).GetType(name)!;
+
+		Sizes[loaded] = (output.SyntaxTrees.Skip(1).Sum(static one => (long)one.Length), stream.Length);
+
+		return loaded;
 	}
 
 	/// <summary>The shipped host's attributes, less the located reading, on the tape.</summary>

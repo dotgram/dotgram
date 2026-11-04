@@ -2279,6 +2279,51 @@ sealed partial class Machine
 		/// Written at every return site rather than recovered from the text afterwards: a site
 		/// knows which frames are open where it stands, and the text does not.
 		/// </remarks>
+		/// <summary>The guard every turn of a repetition begins with, or null where the turns do not all begin with one guard.</summary>
+		static Node.Guard? LeadingGuard(Node body)
+		{
+			switch (body)
+			{
+				case Node.Construct(var inner, _):
+					return LeadingGuard(inner);
+
+				case Node.Capture(_, var inner):
+					return LeadingGuard(inner);
+
+				case Node.Atomic(var inner):
+					return LeadingGuard(inner);
+
+				case Node.Marked(var inner, _):
+					return LeadingGuard(inner);
+
+				case Node.Sequence(var nodes) when nodes.Count > 0:
+					return LeadingGuard(nodes[0]);
+
+				case Node.Guard guard:
+					return guard;
+
+				case Node.Choice { Selection: null, Nodes: var alternatives } when alternatives.Count > 0:
+				{
+					Node.Guard? shared = null;
+
+					foreach (var alternative in alternatives)
+					{
+						var one = LeadingGuard(alternative);
+
+						if (one is null || shared is not null && !string.Equals(one.Text, shared.Text, StringComparison.Ordinal))
+							return null;
+
+						shared ??= one;
+					}
+
+					return shared;
+				}
+
+				default:
+					return null;
+			}
+		}
+
 		string Fails()
 		{
 			var given = GivenBack();
@@ -4722,6 +4767,17 @@ sealed partial class Machine
 				{
 					_character = true;
 					machine.EmitUntilSkip(code, until, turns: turns);
+					code.Line();
+				}
+
+				// EXPERIMENT (CSharpEmitter.HeadGuardFirstExperiment): a guard that every turn begins
+				// with is asked before the token is, so that a turn the guard refuses records nothing
+				// — the guard's position is the author's choice (syntax.md §3.6), and a turn that
+				// could not begin is the loop ending, not a refusal.
+				if (CSharpEmitter.HeadGuardFirstExperiment && LeadingGuard(body) is { } lead)
+				{
+					code.Line($"if (!{EmitGuardCall(code, lead)})");
+					code.Then("break;");
 					code.Line();
 				}
 

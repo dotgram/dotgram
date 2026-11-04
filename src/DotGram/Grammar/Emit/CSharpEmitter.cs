@@ -35,6 +35,13 @@ namespace DotGram.Grammar.Emit;
 /// </remarks>
 public static partial class CSharpEmitter
 {
+	/// <summary>
+	/// EXPERIMENT (a prototype's switch, not an option): a guard standing at the head of a repetition's
+	/// turn is asked before the turn's first token is tested, and a turn the guard refuses records
+	/// nothing. Static, read while a reader is written; a test sets it around one compilation.
+	/// </summary>
+	public static bool HeadGuardFirstExperiment;
+
 	/// <param name="graph">The normalized grammar.</param>
 	/// <param name="className">
 	/// The partial class the generated members go into. A nested host is named by its
