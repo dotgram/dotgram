@@ -58,8 +58,8 @@ query and filter languages, markup, and languages of your own — including ones
 
 A grammar lives in the `[Gram]` attribute of the class the parser is generated into, or in
 a `.gram` file listed as `<AdditionalFiles Include="Name.gram" />`. Inline grammars are raw
-string literals and so need C# 11; a `.gram` file needs nothing more than the project
-already has. [Compatibility](#compatibility) has the rest.
+string literals and so need C# 11; a `.gram` file needs C# 8, which `netstandard2.0` and
+`net472` do not default to. [Compatibility](#compatibility) has the rest.
 
 ## Large grammars and build time
 
@@ -1025,7 +1025,8 @@ Two things an older target has to say:
 
 * **A grammar written inside `[Gram]` is a raw string literal, which is C# 11.** On
   `netstandard2.0` and `net472` the default is C# 7.3, so `<LangVersion>` has to be set.
-  A grammar in a `.gram` file needs nothing: the generated code is C# 8.
+  A grammar in a `.gram` file still needs C# 8: below it the build reports GRAM0010 and
+  generates no parser, so set `<LangVersion>8.0</LangVersion>` or later.
 * **`netstandard2.0` and `net472` need `System.Memory`**, for the `ReadOnlySpan<char>`
   the generated methods take.
 

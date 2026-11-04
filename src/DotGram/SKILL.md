@@ -74,7 +74,8 @@ the generator can see it (`GRAM0003` if it is not):
 ```
 
 An inline grammar is a C# raw string literal, so it needs C# 11. A `.gram` file needs
-nothing: the generated code is C# 8.
+C# 8, the language of the generated code: below it (C# 7.3 is the default of `netstandard2.0`
+and `net472`) the build reports `GRAM0010` and generates no parser.
 
 ## What comes out
 

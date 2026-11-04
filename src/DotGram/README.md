@@ -39,8 +39,8 @@ A grammar is read in one of two modes. **Character-level** parsing has no separa
 
 A grammar lives in the `[Gram]` attribute of the class the parser is generated into, or in
 a `.gram` file listed as `<AdditionalFiles Include="Name.gram" />`. An inline grammar is a
-raw string literal, so it needs C# 11; a `.gram` file needs nothing more than the project
-already has.
+raw string literal, so it needs C# 11; a `.gram` file needs C# 8, which `netstandard2.0` and
+`net472` do not default to (Compatibility, below).
 
 ## Generation summary in Build Output
 
