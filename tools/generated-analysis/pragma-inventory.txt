@@ -29,8 +29,8 @@ Examples	DotGram.Examples.Languages.SettingsFile.g.cs	CS0108 // a dialect hides 
 Examples	DotGram.Examples.Languages.SqlDialect.g.cs	0649
 Examples	DotGram.Examples.Languages.TokenizedQuery.g.cs	0649
 Finance	DotGram.Finance.Fix.FixGrammar.g.cs	0649
-Sql	DotGram.Sql.PostgreSql.PostgreSqlParser.g.cs	0649
 Sql	DotGram.Sql.PostgreSql.PostgreSqlParser.Located.g.cs	0649
+Sql	DotGram.Sql.PostgreSql.PostgreSqlParser.g.cs	0649
 Sql	DotGram.Sql.Standard.Sql92Parser.g.cs	0649
 Sql	DotGram.Sql.TransactSql.TransactSqlParser.g.cs	0649
 Web	DotGram.Web.Rfc3339.g.cs	0649
