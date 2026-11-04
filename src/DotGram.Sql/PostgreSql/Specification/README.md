@@ -26,7 +26,8 @@ copied here: what this directory holds is names and facts read from them.
 
 **The authority is the server's parser itself.** `libpg_query` is `gram.y` and `scan.l` compiled apart
 from the server: it answers whether a text parses, with no catalogue and no connection, and what
-its actions refuse it refuses too. Its verdicts over the tests' texts are recorded in
+its actions refuse it refuses too; where it and the server disagree — the server's lexer refuses `$1x`, libpg_query
+18.6 reads a label — the server wins, and the fixture says so. Its verdicts over the tests' texts are recorded in
 `tests/DotGram.Sql.Tests/Scripts/pg-oracle.json`, with the version that gave them, and the grammar is
 held to them both ways: what PostgreSQL reads and this refuses is the work list, what this reads and
 PostgreSQL refuses is a defect. A refusal that parse analysis makes after the grammar — a column
