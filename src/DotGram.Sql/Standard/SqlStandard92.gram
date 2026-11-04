@@ -285,7 +285,7 @@ ValueExpressionPrimary : @Expression
             case 1: ')'
             case 2: (',' & more: RowValueConstructorElement)+ & ')'
         }
-        => @(more is not null ? new Expression.Row(Nodes.List(c, more)) : rest is null || rest.Length == 0 ? Nodes.Parenthesized(c) : new Expression.Row(Nodes.List(c, rest)))
+        => @(more is { Length: > 0 } ? new Expression.Row(Nodes.List(c, more)) : rest is null || rest.Length == 0 ? Nodes.Parenthesized(c) : new Expression.Row(Nodes.List(c, rest)))
     | c: CaseExpression              => @(c)
     | c: CastSpecification           => @(c)
     | f: ValueFunction               => @(f)
