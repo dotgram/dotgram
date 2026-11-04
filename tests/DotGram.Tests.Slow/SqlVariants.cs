@@ -82,6 +82,11 @@ static class SqlVariants
 	/// <summary>The SQL-92 grammar as it was, with the cover's guards alone added to its steps (a fixture under <c>Fixtures/ReadOnce/Guards</c>): what the guards cost by themselves.</summary>
 	public const string Sql92Guards = "Sql92Guards";
 
+	/// <summary>The same with the guards' tests replaced: <c>true</c> (no value named), <c>x is not null</c> (the value named, one test), <c>x is not Expression.Row</c>: what each part of a guard costs.</summary>
+	public const string Sql92GuardsTrue = "Sql92GuardsTrue";
+	public const string Sql92GuardsNull = "Sql92GuardsNull";
+	public const string Sql92GuardsRow = "Sql92GuardsRow";
+
 	static readonly ConcurrentDictionary<(string Grammar, string Follow, bool Memo, bool Counts, bool HeadGuard, bool Located), Type> Compiled = new();
 
 	static readonly object Compiling = new();
@@ -96,6 +101,9 @@ static class SqlVariants
 			Sql92Before => (Sql92Host.Replace("Standard.Variant", "Standard.Before"), Fixture("ReadOnce"), "SqlStandard92.gram", "DotGram.Sql.Standard.Before.Sql92Parser"),
 			Sql92Split  => (Sql92Host.Replace("Standard.Variant", "Standard.Split"), Fixture(Path.Combine("ReadOnce", "Split")), "SqlStandard92.gram", "DotGram.Sql.Standard.Split.Sql92Parser"),
 			Sql92Guards => (Sql92Host.Replace("Standard.Variant", "Standard.Guards"), Fixture(Path.Combine("ReadOnce", "Guards")), "SqlStandard92.gram", "DotGram.Sql.Standard.Guards.Sql92Parser"),
+			Sql92GuardsTrue => (Sql92Host.Replace("Standard.Variant", "Standard.GuardsTrue"), Fixture(Path.Combine("ReadOnce", "GuardsTrue")), "SqlStandard92.gram", "DotGram.Sql.Standard.GuardsTrue.Sql92Parser"),
+			Sql92GuardsNull => (Sql92Host.Replace("Standard.Variant", "Standard.GuardsNull"), Fixture(Path.Combine("ReadOnce", "GuardsNull")), "SqlStandard92.gram", "DotGram.Sql.Standard.GuardsNull.Sql92Parser"),
+			Sql92GuardsRow => (Sql92Host.Replace("Standard.Variant", "Standard.GuardsRow"), Fixture(Path.Combine("ReadOnce", "GuardsRow")), "SqlStandard92.gram", "DotGram.Sql.Standard.GuardsRow.Sql92Parser"),
 			_           => throw new ArgumentOutOfRangeException(nameof(grammar)),
 		};
 
@@ -173,6 +181,14 @@ static class SqlVariants
 			string.Join("\n", result.Diagnostics.Where(one => one.Severity == DiagnosticSeverity.Error).Take(20)));
 
 		var loaded = Assembly.Load(stream.ToArray()).GetType(name)!;
+
+		if (Environment.GetEnvironmentVariable("READONCE_DUMP") is { Length: > 0 } dump)
+		{
+			Directory.CreateDirectory(dump);
+
+			foreach (var one in output.SyntaxTrees.Skip(1))
+				File.WriteAllText(Path.Combine(dump, name + (memo ? "" : ".nomemo") + (counts ? ".counts" : "") + "." + Path.GetFileName(one.FilePath)), one.ToString());
+		}
 
 		Sizes[loaded] = (output.SyntaxTrees.Skip(1).Sum(static one => (long)one.Length), stream.Length);
 
