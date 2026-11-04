@@ -763,7 +763,7 @@ TableRefPrimary : @TableSource
 	= lateral: "LATERAL"i? & "ROWS"i & "FROM"i & '(' & first: RowsFromItem & (',' & rest: RowsFromItem)* & ')' & ordinality: ("WITH"i & "ORDINALITY"i)? & named: FuncAlias? => @(Nodes.RowsFrom(lateral is not null, first, rest, ordinality is not null, named))
 	| lateral: "LATERAL"i? & f: FuncExpr & when @(Nodes.IsWindowless(f)) & ordinality: ("WITH"i & "ORDINALITY"i)? & named: FuncAlias? => @(Nodes.FunctionSource(lateral is not null, f, ordinality is not null, named))
 	| r: RelationExpr & alias: AliasClause? & sample: TableSample? => @(Nodes.Aliased(r, alias, sample))
-	| lateral: "LATERAL"i? & '(' & held: Held & ')' & alias: AliasClause? & when @(Nodes.HeldFits(lateral is not null, held, alias)) => @(Nodes.HeldSource(lateral is not null, held, alias))
+	| lateral: "LATERAL"i? & '(' & held: Held & ')' & when @(Nodes.HeldFits(lateral is not null, held)) & alias: AliasClause? => @(Nodes.HeldSource(lateral is not null, held, alias))
 
 // What one parenthesis in a FROM holds, read once: a query, where a query's word begins it; else a
 // table reference — a join, a parenthesis again, or a subquery in its own parentheses — and, where
