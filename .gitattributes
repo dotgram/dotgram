@@ -19,7 +19,7 @@
 tests/Corpus/ScriptDom/** -text
 
 # PostgreSQL's regression suite, the same way: theirs, byte for byte (one file is ISO-8859).
-tests/Corpus/PostgreSql/** -text
+tests/Corpus/PostgreSql/** -text linguist-vendored
 
 # The same for somebody else's dictionary: it is their file, and a reader we write
 # against it must be held to the bytes they published, not to ours.
