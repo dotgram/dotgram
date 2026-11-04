@@ -3017,6 +3017,39 @@ public static partial class CSharpEmitter
 
 				MemoAt = at;
 			}
+
+			// EXPERIMENT (CSharpEmitter.SuccessMemoExperiment): where each remembered rule succeeded in the reading
+			// under way, three integers a cell — the reading's generation, the end, the index of the value kept — a
+			// cell a rule and a token; stamped by generation rather than cleared, so a reading pays for what it stores
+			// and not for every token it could have. The values kept are let go when the tape is returned.
+			internal int[] MemoHits = new int[0];
+			internal int MemoGeneration;
+			internal object?[] MemoKept = new object?[16];
+			internal int MemoKeptCount;
+
+			internal void MemoiseHits(int cells)
+			{
+				MemoGeneration++;
+
+				if (MemoGeneration == 0)
+				{
+					global::System.Array.Clear(MemoHits, 0, MemoHits.Length);
+					MemoGeneration = 1;
+				}
+
+				if (MemoHits.Length < cells)
+					MemoHits = new int[global::System.Math.Max(cells, MemoHits.Length * 2)];
+			}
+
+			internal int MemoKeep(object? value)
+			{
+				if (MemoKeptCount == MemoKept.Length)
+					global::System.Array.Resize(ref MemoKept, MemoKeptCount * 2);
+
+				MemoKept[MemoKeptCount] = value;
+
+				return MemoKeptCount++;
+			}
 			// </memo>
 
 			#if DOTGRAM_CHECKS
@@ -3170,6 +3203,13 @@ public static partial class CSharpEmitter
 
 			internal static void Return(Ways_DotGram ways)
 			{
+				// EXPERIMENT (CSharpEmitter.SuccessMemoExperiment): nothing a reading kept outlives it.
+				if (ways.MemoKeptCount > 0)
+				{
+					global::System.Array.Clear(ways.MemoKept, 0, ways.MemoKeptCount);
+					ways.MemoKeptCount = 0;
+				}
+
 				// <expectations>
 				// What a parse that rejected many elements kept for them is let go rather than
 				// pooled: a dictionary cleared keeps its room, and the room is the parse's, not the

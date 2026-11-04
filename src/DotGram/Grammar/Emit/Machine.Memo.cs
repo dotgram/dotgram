@@ -290,6 +290,9 @@ sealed partial class Machine
 		}
 
 		file.Line();
+
+		if (CSharpEmitter.SuccessMemoExperiment && Tracing is null)
+			MemoHitAsked(file, rule, slot);
 	}
 
 	/// <summary>
@@ -307,8 +310,31 @@ sealed partial class Machine
 		if (!body.Contains(Tracing is null ? Refused : "goto Failed;", StringComparison.Ordinal))
 			return false;
 
-		file.Write(Tracing is null ? body.Replace(Refused, "goto Failed;") : body);
+		var kept = CSharpEmitter.SuccessMemoExperiment && Tracing is null && body.Contains("return p;", StringComparison.Ordinal);
+
+		file.Write(Tracing is null ? (kept ? body.Replace(Refused, "goto Failed;").Replace("return p;", "goto Kept;") : body.Replace(Refused, "goto Failed;")) : body);
 		file.Line();
+
+		if (kept)
+		{
+			var register = MemoRegister(rule);
+			var when     = new List<string>();
+
+			if (_graph.Climbing.ContainsKey(rule))
+				when.Add("power == 0");
+
+			if (body.Contains("unbuilt", StringComparison.Ordinal))
+				when.Add("unbuilt == 0");
+
+			if (_looks)
+				when.Add("failure.Looking == 0");
+
+			file.Line("Kept:");
+			file.Line($"{(when.Count > 0 ? $"if ({string.Join(" && ", when)}) " : "")}MemoKept(pos, {slot * 3}, p, {(register is null ? "null" : $"(object?){register}")});");
+			file.Line("return p;");
+			file.Line();
+		}
+
 		file.Line("Failed:");
 
 		var call = $"MemoFailed(pos, {slot / 64}, {MemoBit(slot)});";
@@ -339,6 +365,9 @@ sealed partial class Machine
 		header.Line("readonly ulong[] memo;");
 		header.Line("/// <summary>The token the memo's first word stands for: where the reading began.</summary>");
 		header.Line("readonly int memoAt;");
+
+		if (CSharpEmitter.SuccessMemoExperiment)
+			header.Line("readonly int[] memoHits;");
 	}
 
 	/// <summary>The constructor's half: the memo is the tape's, and so travels with it to another stack.</summary>
@@ -346,12 +375,22 @@ sealed partial class Machine
 	{
 		header.Line("this.memo    = ways.Memo;");
 		header.Line("this.memoAt  = ways.MemoAt;");
+
+		if (CSharpEmitter.SuccessMemoExperiment)
+			header.Line("this.memoHits = ways.MemoHits;");
 	}
 
 	/// <summary>Where a remembered rule's failure is written down.</summary>
 	/// <param name="looks">Whether anything this reader reads is read inside a look.</param>
 	void MemoFailedMethod(Writer header, bool looks)
 	{
+		if (CSharpEmitter.SuccessMemoExperiment && Tracing is null)
+		{
+			header.Line();
+			header.Line($"const int MemoCells = {_memo.Count * 3};");
+			MemoKeptMethod(header);
+		}
+
 		header.Line();
 		header.Line("/// <summary>Remembers that a rule entered at <paramref name=\"pos\"/> failed there (Machine.Memo.cs).</summary>");
 
@@ -384,5 +423,65 @@ sealed partial class Machine
 	{
 		file.Line("// What an earlier reading remembered is not this one's: each reading begins with nothing failed.");
 		file.Line($"ways.Memoise(pos, (text.Length - pos + 1) * {MemoWords});");
+
+		if (CSharpEmitter.SuccessMemoExperiment)
+			file.Line($"ways.MemoiseHits((text.Length - pos + 1) * {_memo.Count * 3});");
+	}
+
+	/// <summary>EXPERIMENT: the register a remembered rule's value is handed through, or null where it has none.</summary>
+	string? MemoRegister(RuleSymbol rule)
+	{
+		return Valued(rule) && Carrier is ImmediateCarrier ? Carrier.Last(rule) : null;
+	}
+
+	/// <summary>EXPERIMENT: the success probe, after the failure's.</summary>
+	void MemoHitAsked(Writer file, RuleSymbol rule, int slot)
+	{
+		var power    = _graph.Climbing.ContainsKey(rule) ? "power == 0 && " : "";
+		var register = MemoRegister(rule);
+
+		file.Line("// EXPERIMENT: succeeded here already in this reading: the same end, the same value (CSharpEmitter.SuccessMemoExperiment).");
+
+		using (file.Block($"if ({power}(uint)(pos - memoAt) < (uint)memo.Length)"))
+		{
+			file.Line($"var hitAt = (pos - memoAt) * {_memo.Count * 3} + {slot * 3};");
+
+			using (file.Block("if (memoHits[hitAt] == ways.MemoGeneration)"))
+			{
+				if (CountsRules)
+				{
+					file.Line("#if DOTGRAM_COUNTS");
+					file.Line($"{EnteredOf(rule)}++;");
+					file.Line("#endif");
+				}
+
+				if (register is not null)
+					file.Line($"if (memoHits[hitAt + 2] >= 0) {register} = ({_results.ValueOf(rule)})ways.MemoKept[memoHits[hitAt + 2]]!;");
+
+				file.Line("return memoHits[hitAt + 1];");
+			}
+		}
+
+		file.Line();
+	}
+
+	/// <summary>EXPERIMENT: where a remembered rule's success is written down.</summary>
+	static void MemoKeptMethod(Writer header)
+	{
+		header.Line();
+		header.Line("/// <summary>EXPERIMENT: remembers that a rule entered at <paramref name=\"pos\"/> succeeded there, and what it left.</summary>");
+
+		using (header.Block("void MemoKept(int pos, int cell, int end, object? value)"))
+		{
+			header.Line("var at = (pos - memoAt) * (memoHits.Length == 0 ? 0 : MemoCells) + cell;");
+			header.Line();
+
+			using (header.Block("if ((uint)at < (uint)memoHits.Length)"))
+			{
+				header.Line("memoHits[at]     = ways.MemoGeneration;");
+				header.Line("memoHits[at + 1] = end;");
+				header.Line("memoHits[at + 2] = value == null ? -1 : ways.MemoKeep(value);");
+			}
+		}
 	}
 }

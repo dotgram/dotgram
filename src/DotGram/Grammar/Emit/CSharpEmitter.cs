@@ -42,6 +42,13 @@ public static partial class CSharpEmitter
 	/// </summary>
 	public static bool HeadGuardFirstExperiment;
 
+	/// <summary>
+	/// EXPERIMENT (a prototype's switch, not an option): a reader over tokens remembers where a remembered rule
+	/// succeeded as well — the end and the value — and answers a second entry there at once. Static, read while a
+	/// reader is written; a test sets it around one compilation. For a cost measurement only: no tie replay.
+	/// </summary>
+	public static bool SuccessMemoExperiment;
+
 	/// <param name="graph">The normalized grammar.</param>
 	/// <param name="className">
 	/// The partial class the generated members go into. A nested host is named by its

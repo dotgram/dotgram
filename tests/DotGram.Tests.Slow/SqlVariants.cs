@@ -70,7 +70,13 @@ static class SqlVariants
 	/// <remarks>The head-guard experiment is a static switch of the emitter: compilations are serialised around it, so a caller asking for it should run alone.</remarks>
 	public static Type Parser(string grammar, string follow, bool memo, bool counts, bool headGuard, bool located)
 	{
-		return Compiled.GetOrAdd((grammar, follow, memo, counts, headGuard, located), static key => Compile(key.Grammar, key.Follow, key.Memo, key.Counts, key.HeadGuard, key.Located));
+		return Parser(grammar, follow, memo, counts, headGuard, located, successMemo: false);
+	}
+
+	/// <summary>The same, with the success-memo experiment of the emitter on or off.</summary>
+	public static Type Parser(string grammar, string follow, bool memo, bool counts, bool headGuard, bool located, bool successMemo)
+	{
+		return Compiled.GetOrAdd((grammar, follow, memo, counts, headGuard, located, successMemo), static key => Compile(key.Grammar, key.Follow, key.Memo, key.Counts, key.HeadGuard, key.Located, key.SuccessMemo));
 	}
 
 	/// <summary>The size of what a variant compiled to: the generated C# in characters and the assembly in bytes.</summary>
@@ -87,11 +93,11 @@ static class SqlVariants
 	public const string Sql92GuardsNull = "Sql92GuardsNull";
 	public const string Sql92GuardsRow = "Sql92GuardsRow";
 
-	static readonly ConcurrentDictionary<(string Grammar, string Follow, bool Memo, bool Counts, bool HeadGuard, bool Located), Type> Compiled = new();
+	static readonly ConcurrentDictionary<(string Grammar, string Follow, bool Memo, bool Counts, bool HeadGuard, bool Located, bool SuccessMemo), Type> Compiled = new();
 
 	static readonly object Compiling = new();
 
-	static Type Compile(string grammar, string follow, bool memo, bool counts, bool headGuard, bool located)
+	static Type Compile(string grammar, string follow, bool memo, bool counts, bool headGuard, bool located, bool successMemo)
 	{
 		var (host, directory, file, name) = grammar switch
 		{
@@ -113,12 +119,19 @@ static class SqlVariants
 			name = name.Replace("Standard.Variant", "Standard.Guarded").Replace("Standard.Before", "Standard.BeforeGuarded").Replace("Standard.Split", "Standard.SplitGuarded").Replace("Standard.Guards", "Standard.GuardsGuarded");
 		}
 
+		if (successMemo)
+		{
+			host = host.Replace("Standard.", "Standard.Memoed");
+			name = name.Replace("Standard.", "Standard.Memoed");
+		}
+
 		if (located)
 			host = host.Replace("\tpublic abstract partial class", "\t[GramOptions(LocationType = typeof(global::DotGram.Sql.ISqlLocatable), Suffix = \"Located\")]\n\tpublic abstract partial class");
 
 		lock (Compiling)
 		{
 			DotGram.Grammar.Emit.CSharpEmitter.HeadGuardFirstExperiment = headGuard;
+			DotGram.Grammar.Emit.CSharpEmitter.SuccessMemoExperiment = successMemo;
 
 			try
 			{
@@ -127,6 +140,7 @@ static class SqlVariants
 			finally
 			{
 				DotGram.Grammar.Emit.CSharpEmitter.HeadGuardFirstExperiment = false;
+				DotGram.Grammar.Emit.CSharpEmitter.SuccessMemoExperiment = false;
 			}
 		}
 	}
