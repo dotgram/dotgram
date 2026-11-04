@@ -15,8 +15,8 @@ so nothing here carries a parser runtime, and neither does anything that referen
 ## The dialects
 
 Each dialect is a directory, a namespace and a grammar of its own, and all of them build one tree, the
-standard's own, in `DotGram.Sql.Ast`: the records, `SqlWriter` and `TransactSqlWriter`, which print them back, and
-[`SqlWalker`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/SqlWalker.cs), which visits them. What each parser publishes is
+standard's own, in `DotGram.Sql.Ast`: the records, and `SqlWriter` and `TransactSqlWriter`, which print them back;
+[`SqlWalker`](https://github.com/dotgram/dotgram/blob/main/src/DotGram.Sql/SqlWalker.cs), in `DotGram.Sql`, visits them. What each parser publishes is
 under the table.
 
 | Parser | Namespace | What it reads |
@@ -49,9 +49,9 @@ of its node. `TransactSqlParser` reads at four of them, with the same names and 
 `ParseExpression`, `ParseSearchCondition`, `ParseStatement` and `ParseSql`, with the per-version
 entries; and besides them `ParseSelect`, a query statement and nothing else, which refuses any
 other statement where it begins, and `ParseScript`. `ParseValue` and `ParseDataType` can be added
-to T-SQL later. Each has two `TryParse…`: one giving a `Match<T>` with the refusal's
+to T-SQL later. Each has two kinds of `TryParse…`: one giving a `Match<T>` with the refusal's
 message and position, and a `bool TryParse…(string input, out T value)` for where only the answer
-is wanted.
+is wanted; most entries have both from a position and over a window as well.
 
 All three read through a lexical split (`Lexical = true`): a lexical half makes tokens, and the
 syntactic half above it decides each choice by the token in front of it, which is what a parser

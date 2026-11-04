@@ -40,14 +40,15 @@ is what to decide before using one, the contract they share, and what is easy to
 
 ## The contract they share
 
-- **Input is a `string`.** Every published production has `ParseX` and two `TryParseX`, and each
+- **Input is a `string`.** Every published production has `ParseX` and two kinds of `TryParseX` (most of them
+  also from a position and over a window), and each
   reads the *whole* input: text left over is a refusal, not a shorter answer.
 - **`ParseX` throws `FormatException`**, its message saying what was expected and ending
   with the offset where the text stopped fitting. **`TryParseX` returns a `Match<T>`**:
   `IsSuccess`, `Value` (read it only after `IsSuccess`), `Error` and `Position`.
 - **`bool TryParseX(string input, out T value)`** answers only whether the text reads, and says
   nothing about what was expected where it does not. Where the message is not wanted, ask this
-  one: a refusal costs it about half, since nothing is read a second time to record what failed.
+  one: a refusal costs it less, since nothing is read a second time to record what failed.
 - **A node is a record.** Two that mean the same are equal: a tree equals its own reparse,
   located or not. Every list a node holds is a `SqlList<T>`, read only and compared element by
   element; make one with `[a, b]`, `[.. items]` or `SqlList.From(items)` — an array does not
@@ -125,10 +126,7 @@ reading stopped looking, so the comments after the last statement lie between it
 Spans take no part in equality: key a table of nodes by reference.
 
 **Two namespaces, one tree.** The tree the parsers build is in `DotGram.Sql.Ast`; `DotGram.Sql`
-holds what no tree is — `SqlList<T>`, `SqlSpan`, `SqlWalker`, `SqlScript` — and the records of
-the tree T-SQL's grammar built before, which a parser no longer hands back. Both have a
-`Statement` and an `Expression`: import `DotGram.Sql.Ast` for the parsers' tree, or alias it,
-`using Ast = DotGram.Sql.Ast;`.
+holds what no tree is — `SqlList<T>`, `SqlSpan`, `SqlWalker`, `SqlScript` and the script types.
 
 **A refusal's message can be long.** Where a statement stops at a position that could begin
 almost anything, `Error` lists everything that could have stood there, hundreds of keywords
