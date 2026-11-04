@@ -63,7 +63,7 @@ character the grammar's own position maps to. A grammar inherited from a base cl
 | Id | What it says | What to do |
 | --- | --- | --- |
 | `GRAM2001` | Expected a particular token. | The message names it. |
-| `GRAM2002` | Expected a rule, a namespace or a publication directive. | Only these stand at the top of a grammar: `using`/`@using` lines at its head, a rule (`trivia` among them), `namespace`, `parse`/`find` (with `internal` or `private` before it, if any), and the `context`/`state` declarations. |
+| `GRAM2002` | Expected a rule, a namespace or a publication directive. | Only these stand at the top of a grammar: `using`/`@using` lines at its head, a rule (`trivia` among them), `namespace`, `parse`/`find` (with `public`, `internal` or `private` before it, if any), and the `context`/`state` declarations. |
 | `GRAM2003` | Expected a literal, a reference, an element set, a group or an atomic group. | An operand is missing where one has to stand — often after a `&` or a `\|`. Said in its own words for `when:`, a capture called `when`: `when` begins a guard, so rename the capture. |
 | `GRAM2004` | Expected a name. | |
 | `GRAM2005` | A binding power is a whole number from 0 to 9999. | `<< 2`, `>> 3` (§4.3.1). |
