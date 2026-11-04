@@ -17,6 +17,7 @@ time. Keep a large grammar in a project of its own first, so that only the proje
 When that is not enough, the same generator can run outside the build:
 
 ```shell
+dotnet new tool-manifest
 dotnet tool install DotGram.Cli
 dotnet dotgram generate src/Grammars/Grammars.csproj -o src/Grammars/Generated
 ```
