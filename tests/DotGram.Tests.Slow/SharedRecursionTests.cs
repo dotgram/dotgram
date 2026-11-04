@@ -60,6 +60,10 @@ public sealed class SharedRecursionTests(ITestOutputHelper output)
 		{
 			"T-SQL"                     => (["BooleanPrimary", "RowValueConstructor", "TSqlPrimaryCore"], []),
 			"SQL:2023"                  => (["PrimaryReading"], []),
+			// The rewrite reads a bracket once for a condition and a row; three pairs stay at error
+			// level, each a bracketed query read and then refused (a list after it, an alias after it,
+			// a set operation inside it), and each doubles a level in Ladder: InPredicateValue,
+			// TablePrimary, ValueExpressionPrimary against ScalarSubquery.
 			"SQL-92"                    => ([], ["BooleanPrimary", "RowValueConstructor"]),
 			"SQL-92 before the rewrite" => (["BooleanPrimary", "RowValueConstructor", "InPredicateValue"], []),
 			"EL"                        => (["Postfix", "Primary"], []),
