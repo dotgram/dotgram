@@ -116,6 +116,33 @@ public sealed partial record Argument
 {
 	/// <summary>PostgreSQL: Function Calls. <c>VARIADIC arr</c>, an array spread over the variadic parameters.</summary>
 	public bool Variadic { get; init; }
+
+	/// <summary>PostgreSQL: Function Calls. A named argument written <c>name := value</c>, the older spelling of <c>name =&gt; value</c>.</summary>
+	[Spelling] public bool ColonEquals { get; init; }
+}
+
+public abstract partial record TableSource
+{
+	public sealed partial record Named
+	{
+		/// <summary>PostgreSQL: FROM Clause. <c>t *</c>: the table and its descendants, which is what a bare name means too, said in so many words.</summary>
+		[Spelling] public bool Star { get; init; }
+	}
+
+	public sealed partial record Parenthesized
+	{
+		/// <summary>PostgreSQL: FROM Clause. <c>(a JOIN b ON …) AS j</c>: the alias of a bracketed join.</summary>
+		public Alias? Alias { get; init; }
+	}
+}
+
+public abstract partial record Query
+{
+	public sealed partial record Select
+	{
+		/// <summary>PostgreSQL: DISTINCT ON. <c>SELECT DISTINCT ON (a, b) …</c>: the values the first row of each group of is kept by; empty where none was written.</summary>
+		public SqlList<Expression> DistinctOn { get; init; } = [];
+	}
 }
 
 public abstract partial record DataType

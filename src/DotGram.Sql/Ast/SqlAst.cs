@@ -970,7 +970,7 @@ public abstract partial record TableSource : ISqlNode
 	public sealed record JsonTable(JsonTableDefinition Definition, Alias? Alias = null) : TableSource;
 	// T-SQL: INSERT (Transact-SQL). Option null is T-SQL's form, `(MERGE … OUTPUT …) AS c`, where the statement's OUTPUT is the rows.
 	public sealed record DataChange(ResultOption? Option, Statement Change, Alias? Alias = null) : TableSource;
-	public sealed record Parenthesized(TableSource Source) : TableSource;
+	public sealed partial record Parenthesized(TableSource Source) : TableSource;
 	public sealed record Extension(string Dialect, string Kind, SqlList<ISqlNode> Parts) : TableSource;
 }
 

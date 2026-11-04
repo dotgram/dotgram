@@ -670,6 +670,12 @@ public sealed class SqlWriterCoverageTests
 			["DateTime.Abbreviated"] = (
 				new DataType.DateTime(DateTimeTypeKind.Timestamp, null, TimeZoneMode.With),
 				new DataType.DateTime(DateTimeTypeKind.Timestamp, null, TimeZoneMode.With) { Abbreviated = true }),
+			["Argument.ColonEquals"] = (
+				new Expression.Invocation(new QualifiedName(new Identifier("f")), [new Argument(A, new Identifier("p"), true)]),
+				new Expression.Invocation(new QualifiedName(new Identifier("f")), [new Argument(A, new Identifier("p"), true) { ColonEquals = true }])),
+			["Named.Star"] = (
+				new TableSource.Named(T),
+				new TableSource.Named(T) { Star = true }),
 			["Boolean.Abbreviated"] = (
 				new DataType.Boolean(),
 				new DataType.Boolean { Abbreviated = true }),
@@ -908,7 +914,8 @@ public sealed class SqlWriterCoverageTests
 		{
 			var off = Written(pair.Off);
 			// Only a flag no place reads yet may be refused; every other one must be written.
-			var on  = name == "Option.EqualsOmitted" ? WrittenOrRefused(pair.On) : Written(pair.On);
+			// A spelling only another dialect's writer prints is refused by the standard's, which is its text being lost on purpose.
+			var on  = name is "Option.EqualsOmitted" or "BitString.Hexadecimal" or "Named.Star" ? WrittenOrRefused(pair.On) : Written(pair.On);
 
 			Assert.True(
 				(off is null && on is null) || off != on,

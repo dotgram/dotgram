@@ -712,6 +712,10 @@ public static partial class SqlWriter
 					break;
 
 				case DataType.Numeric numeric:
+					// PostgreSQL's spellings, which T-SQL would read as types of its own.
+					if (transactSql && numeric.Kind is NumericTypeKind.Int2 or NumericTypeKind.Int4 or NumericTypeKind.Int8 or NumericTypeKind.Float4 or NumericTypeKind.Float8)
+						throw Misplaced(numeric, "Kind", "that only PostgreSQL spells so; T-SQL reads int4 as a user's type");
+
 					// A length is for the types that take one; a scale for the exact numbers alone, after a precision.
 					if (numeric.Precision is not null && numeric.Kind is NumericTypeKind.SmallInt or NumericTypeKind.Integer or NumericTypeKind.Int or NumericTypeKind.BigInt or NumericTypeKind.Real or NumericTypeKind.DoublePrecision
 						|| numeric.Scale is not null && (numeric.Precision is null || numeric.Kind is not (NumericTypeKind.Numeric or NumericTypeKind.Decimal or NumericTypeKind.Dec)))
@@ -1845,7 +1849,7 @@ public static partial class SqlWriter
 						throw Both(extract, "Field", "NamedField");
 					}
 					else
-					Word(extract.Field switch
+					Word(extract.Field.Value switch
 					{
 						ExtractField.Year           => "YEAR",
 						ExtractField.Month          => "MONTH",
@@ -1855,7 +1859,7 @@ public static partial class SqlWriter
 						ExtractField.Second         => "SECOND",
 						ExtractField.TimezoneHour   => "TIMEZONE_HOUR",
 						ExtractField.TimezoneMinute                           => "TIMEZONE_MINUTE",
-						_                           => throw NoText(extract.Field),
+						_                           => throw NoText(extract.Field.Value),
 					});
 					Word("FROM");
 					PutExpression(extract.Source);
@@ -2773,7 +2777,7 @@ public static partial class SqlWriter
 			if (argument.NamedAssignment)
 			{
 				PutIdentifier(argument.Name!);
-				Word("=>");
+				Word(argument.ColonEquals ? ":=" : "=>");
 			}
 
 			if (argument.Value is Expression.Generalized generalized)

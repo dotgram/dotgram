@@ -30,7 +30,7 @@ Three sources appear in the tables:
 | `SQL:2023` | ISO/IEC 9075:2023, by production. `SqlStandard.gram` is written from its BNF. |
 | `SQL-92` | ISO/IEC 9075:1992, for what SQL-92 has and SQL:2003 took out: a string of bits. |
 | `T-SQL` | Microsoft's reference, by the page's own title. Everything SQL Server has and the standard does not. |
-| `PostgreSQL` | The PostgreSQL manual, by the page's own title. What PostgreSQL has and the standard does not. |
+| PostgreSQL | The PostgreSQL manual, by the page's own title. What PostgreSQL has and the standard does not. |
 
 ## The shape
 
