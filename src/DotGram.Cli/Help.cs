@@ -24,7 +24,9 @@ static class Help
 		            AssemblyInfo, global usings, the analyzer config under obj/, and any of the project's
 		            own targets hooked there), not Build, AfterBuild or anything after the compiler.
 		            The project must be restored (dotnet restore: the tool never restores); referenced
-		            projects are built if not up to date; needs .NET SDK 8.0.100 or newer. Every
+		            projects are built if not up to date. A project is read with .NET SDK 8.0.100 or
+		            newer and generated only where that SDK's compiler can run DotGram (SDK 9.0.300
+		            or newer for this version); a .gram input needs no SDK compiler. Every
 		            framework must generate the same files. The project's other generators run beside
 		            DotGram's; the language version, symbols, references, packages and source encoding
 		            (CodePage) are the build's to decide.

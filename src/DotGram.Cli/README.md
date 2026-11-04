@@ -44,7 +44,9 @@ not check the project as a whole. It runs what an IDE runs when it opens the pro
 target with the compiler skipped, as a design-time build — so a custom target that does not skip
 design-time builds runs too, and one that follows the compiler finds no new assembly. It does not restore:
 after changing package references, run `dotnet restore` first. When this is not good enough, build with
-`EmitCompilerGeneratedFiles=true` and copy the generated files. It needs .NET SDK 8.0.100 or newer.
+`EmitCompilerGeneratedFiles=true` and copy the generated files.
+It reads a project with .NET SDK 8.0.100 or newer, and generates only where that SDK's compiler
+can run DotGram (SDK 9.0.300 or newer for this version); a `.gram` input needs no SDK compiler.
 
 **Keeping it current.** Nothing in the build notices that a grammar changed: run the command again after
 editing a grammar, or a type it builds. Keep the arguments in a response file (`dotnet dotgram generate

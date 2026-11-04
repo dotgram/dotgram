@@ -36,7 +36,9 @@ among them, which run beside DotGram's. That runs the project's `InitialTargets`
 run before `CoreCompile` (they write `AssemblyInfo`, the global usings and the analyzer configuration
 under `obj/`, and anything of the project's own hooked there), and not `Build`, `AfterBuild` or
 anything after the compiler. The projects it references are built if they are not up to date; the
-configuration is Release unless `--configuration` says otherwise. It needs .NET SDK 8.0.100 or newer.
+configuration is Release unless `--configuration` says otherwise.
+It reads a project with .NET SDK 8.0.100 or newer, and generates only where that SDK's compiler
+can run DotGram (SDK 9.0.300 or newer for this version); a `.gram` input needs no SDK compiler.
 
 **What it promises.** It writes the files DotGram would generate in `dotnet build` of the project
 (Release unless `--configuration` says otherwise), byte for byte, in the encoding the compiler writes

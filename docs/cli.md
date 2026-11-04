@@ -18,8 +18,9 @@ dnx DotGram.Cli generate ...               # .NET 10: run without installing
 ```
 
 The tool runs on .NET 8 and later, on the newest runtime installed (what an identifier may be is decided by the
-runtime's Unicode tables, and the tool must decide as the build does), and needs a .NET SDK 8.0.100 or newer to
-read a project. The version of the tool is the version of the DotGram generator it carries; `dotnet dotgram --version` prints both.
+runtime's Unicode tables, and the tool must decide as the build does), and reads a project with a .NET SDK 8.0.100 or
+newer. It generates for a project only where that SDK's compiler can run DotGram (SDK 9.0.300 or newer
+for this version); a `.gram` input needs no SDK compiler. The version of the tool is the version of the DotGram generator it carries; `dotnet dotgram --version` prints both.
 
 ## Commands
 
