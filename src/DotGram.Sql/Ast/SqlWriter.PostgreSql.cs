@@ -21,12 +21,12 @@ public static partial class SqlWriter
 				case Expression.OperatorCall call:
 					OnlyPostgreSql(call);
 
-					// A prefix operator takes its operand at the operator level, `|/ 25 + 11`; an infix one is left-associative.
+					// A prefix operator takes its operand above the operator level, `|/ 25 + 11` but `(@ a) ~ b`; an infix one is left-associative.
 					if (call.Left is { } left)
 						PutOperand(left, PostgreSqlTightness.Operator);
 
-					PutOperatorName(call.Operator, call.OperatorKeyword);
-					PutOperand(call.Right, call.Left is null ? PostgreSqlTightness.Operator : PostgreSqlTightness.Operator + 1);
+					PutOperatorName(call.Operator, call.OperatorKeyword, false);
+					PutOperand(call.Right, PostgreSqlTightness.Operator + 1);
 					return true;
 
 				case Expression.QuantifiedOperation quantified:
@@ -45,7 +45,7 @@ public static partial class SqlWriter
 							break;
 
 						case QuantifiedOperator.Named named:
-							PutOperatorName(named.Operator, named.OperatorKeyword);
+							PutOperatorName(named.Operator, named.OperatorKeyword, true);
 							break;
 
 						default:
@@ -91,9 +91,10 @@ public static partial class SqlWriter
 		/// <summary>
 		/// An operator by its symbol, or by name in <c>OPERATOR(schema.op)</c>; a bare one may not be qualified, and its symbol
 		/// is one the grammar reads as an operator by name — not a run no operator token holds, and not a symbol the grammar
-		/// reads as the standard's node (`+`, `=`, `||`), which would read back as that node.
+		/// reads as the standard's node (`+`, `=`, `||`), which would read back as that node. A quantified form reads the
+		/// arithmetic symbols by name too, `a + ANY (…)`, and refuses the comparisons alone, which are its own records.
 		/// </summary>
-		void PutOperatorName(QualifiedName name, bool keyword)
+		void PutOperatorName(QualifiedName name, bool keyword, bool quantified)
 		{
 			if (name.Count == 0)
 				throw Misplaced(name, "Count", "of no parts: an operator has a symbol");
@@ -111,9 +112,12 @@ public static partial class SqlWriter
 				throw Misplaced(name, "Count", "above one on an operator written bare: a qualified operator is written OPERATOR(schema.op)");
 
 			var symbol = name[0].Text;
+			var own    = quantified
+				? symbol is "=" or "<>" or "!=" or "<" or ">" or "<=" or ">=" or "=>"
+				: symbol == "||" || !PostgreSql.Nodes.IsOperator(symbol);
 
-			if (symbol.Length == 0 || symbol == "||" || !PostgreSql.Nodes.IsOperator(symbol) || !PostgreSql.Nodes.IsOperatorRun(symbol))
-				throw Misplaced(name, "Text", "that PostgreSQL does not read as an operator by name: a symbol of the standard's own nodes, or no run of operator characters");
+			if (symbol.Length == 0 || own || !PostgreSql.Nodes.IsOperatorRun(symbol))
+				throw Misplaced(name, "Text", "that PostgreSQL does not read as an operator by name here: a symbol of the standard's own nodes, or no run of operator characters");
 
 			Word(symbol);
 		}
