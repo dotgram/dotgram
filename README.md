@@ -803,13 +803,13 @@ difference, with the standard underneath written once.
 
 ## DotGram.Finance
 
-[`DotGram.Finance`](src/DotGram.Finance/README.md) provides `FixParser.Parse` in the `DotGram.Finance.Fix` namespace. The parser returns typed fields,
-with lazy enumeration over character and byte streams, length-delimited binary
-data, and recovery through `FixField.Invalid`. `Parse` reads SOH-delimited wire input; `ParseLog` reads pipes with optional
-surrounding spaces. `FixFieldOptions` configures optional custom length/data pairs.
-
-`FixMessages` explicitly assembles messages and nested groups and applies Strict
-or Lenient validation. The field model and schema are maintained manually; the small handwritten grammar uses computed dispatch. The large
+[`DotGram.Finance`](src/DotGram.Finance/README.md) reads FIX 4.2, FIX 4.4 and FIX 5.0 SP2 tag-value
+messages wherever they are kept rather than traded: logs, archives, files, buses. Each version has
+its own `FixParser` (`DotGram.Finance.Fix.Fix44.FixParser` and so on): `ParseFields` and
+`ParseMessage`/`TryParseMessage` over a string or bytes, `ReadFields` and `ReadMessages` over a
+stream in bounded memory, and `Fix44Context.Log` for pipe-delimited journals. A bad field arrives
+as `FixField.Invalid` in its place; `Validate` checks a message against a dictionary and reports
+every finding at once. The large
 [`Fix44` grammar](tests/DotGram.Finance.Fix44/Fix44Grammar.gram), one literal alternative
 per tag, remains as the oracle the parser is tested against and for benchmarks.
 
