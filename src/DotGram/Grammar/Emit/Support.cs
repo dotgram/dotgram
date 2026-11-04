@@ -3203,6 +3203,7 @@ public static partial class CSharpEmitter
 
 			internal static void Return(Ways_DotGram ways)
 			{
+				// <memo>
 				// EXPERIMENT (CSharpEmitter.SuccessMemoExperiment): nothing a reading kept outlives it.
 				if (ways.MemoKeptCount > 0)
 				{
@@ -3210,6 +3211,7 @@ public static partial class CSharpEmitter
 					ways.MemoKeptCount = 0;
 				}
 
+				// </memo>
 				// <expectations>
 				// What a parse that rejected many elements kept for them is let go rather than
 				// pooled: a dictionary cleared keeps its room, and the room is the parse's, not the
