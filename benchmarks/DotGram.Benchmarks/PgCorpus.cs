@@ -91,6 +91,7 @@ internal static class PgCorpus
 		var variable   = false;
 		var blank      = true;   // nothing but spacing in the buffer so far, so the next content begins the statement
 		var escapes    = false;  // standard_conforming_strings = off: a plain string reads backslash escapes
+		var anyGset    = false;  // after a \gset every name may be a variable: the columns define them
 		var at         = 0;
 
 		void Take(int from, int length)
@@ -213,7 +214,12 @@ internal static class PgCorpus
 
 			if (c == '\'' || c == '"')
 			{
-				var escaped = c == '\'' && (escapes || at > 0 && (text[at - 1] | 0x20) == 'e' && (at < 2 || !IsWordChar(text[at - 2])));
+				// A plain string reads escapes with standard_conforming_strings off, an E'' string always; a U&'' string, a
+				// bit string b'' and a hex string x'' never.
+				var before  = at > 0 ? text[at - 1] : ' ';
+				var lone    = at < 2 || !IsWordChar(text[at - 2]);
+				var escaped = c == '\'' && before != '&' && !(lone && (before | 0x20) is 'b' or 'x')
+					&& (escapes || lone && (before | 0x20) == 'e');
 				var from    = at;
 
 				at++;
@@ -265,9 +271,11 @@ internal static class PgCorpus
 				continue;
 			}
 
-			// psql's own: `\;` is a semicolon the server never sees, `\\` ends a command on a line, and `\name` runs
-			// to the end of the line. The commands that send the buffer send it, `\r` drops it, `\set` defines a
-			// variable, `\copy … from stdin` has its data to `\.`; every other one leaves the buffer as it is.
+			// psql's own: `\;` is a semicolon the server never sees, `\:` a colon that is no variable, `\\` ends a
+			// command on a line, and `\name` runs to the end of the line or to a `\\` outside its quoted arguments.
+			// The commands that send the buffer send it, `\r` drops it, `\set`, `\gset` and `\getenv` define
+			// variables, `\copy … from stdin` has its data to `\.`, `\if` and its kin are read and left where they
+			// stand; every other one leaves the buffer as it is.
 			if (c == '\\')
 			{
 				if (at + 1 < text.Length && text[at + 1] == ';')
@@ -276,7 +284,16 @@ internal static class PgCorpus
 
 					if (parens == 0 && begins == 0)
 						Flush();
+					else
+						Take(at - 1, 1);
 
+					continue;
+				}
+
+				if (at + 1 < text.Length && text[at + 1] == ':')
+				{
+					Take(at + 1, 1);
+					at += 2;
 					continue;
 				}
 
@@ -286,14 +303,7 @@ internal static class PgCorpus
 					continue;
 				}
 
-				var end       = text.IndexOf('\n', at);
-				var separator = text.IndexOf("\\\\", at + 1, StringComparison.Ordinal);
-
-				if (end < 0)
-					end = text.Length;
-
-				if (separator >= 0 && separator < end)
-					end = separator;
+				var end = CommandEnd(text, at);
 
 				var command = text.Substring(at, end - at).TrimEnd('\r');
 				var nameEnd = 1;
@@ -306,6 +316,9 @@ internal static class PgCorpus
 				directives++;
 				at = end;
 
+				if (name == "gset")
+					anyGset = true;
+
 				if (Sending.Contains(name))
 					Flush();
 				else if (Discarding.Contains(name))
@@ -317,7 +330,7 @@ internal static class PgCorpus
 					begins   = 0;
 					lastWord = "";
 				}
-				else if (name == "set")
+				else if (name is "set" or "getenv")
 				{
 					var words = command.Substring(nameEnd).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
 
@@ -365,7 +378,9 @@ internal static class PgCorpus
 				while (to < text.Length && IsWordChar(text[to]) && text[to] != '$')
 					to++;
 
-				if (to > from && defined.Contains(text.Substring(from, to - from)))
+				var named = to > from ? text.Substring(from, to - from) : "";
+
+				if (named.Length > 0 && (defined.Contains(named) || anyGset && named != "NULL" && !char.IsDigit(named[0])))
 					variable = true;
 			}
 
@@ -414,6 +429,51 @@ internal static class PgCorpus
 		Flush();
 
 		return new Cut(statements, directives, dataLines);
+	}
+
+	/// <summary>
+	/// Where a backslash command ends: at the end of its line, or at a <c>\\</c> that stands outside its quoted
+	/// arguments — <c>'…'</c> with backslash escapes, <c>"…"</c> and <c>`…`</c> — as psql's own lexer reads them.
+	/// </summary>
+	static int CommandEnd(string text, int at)
+	{
+		var i = at + 1;
+
+		while (i < text.Length && text[i] != '\n')
+		{
+			var c = text[i];
+
+			if (c == '\\' && i + 1 < text.Length && text[i + 1] == '\\')
+				return i;
+
+			if (c == '\\' && i + 1 < text.Length)
+			{
+				i += 2;
+				continue;
+			}
+
+			if (c is '\'' or '"' or '`')
+			{
+				i++;
+
+				while (i < text.Length && text[i] != c && text[i] != '\n')
+				{
+					if (c == '\'' && text[i] == '\\' && i + 1 < text.Length)
+						i++;
+
+					i++;
+				}
+
+				if (i < text.Length && text[i] == c)
+					i++;
+
+				continue;
+			}
+
+			i++;
+		}
+
+		return i;
 	}
 
 	static bool IsWordStart(char c)
