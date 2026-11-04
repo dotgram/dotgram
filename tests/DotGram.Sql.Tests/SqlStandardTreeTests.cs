@@ -148,7 +148,7 @@ public sealed class SqlStandardTreeTests
 
 		Assert.Equal("'1:30'", literal.Text);
 		Assert.Equal(UnaryOperator.Minus, literal.Sign);
-		Assert.Equal(new IntervalQualifier(DateTimeField.Hour, 2, DateTimeField.Minute), literal.Qualifier with { });
+		Assert.Equal(new IntervalQualifier(DateTimeField.Hour, 2, DateTimeField.Minute), literal.Qualifier! with { });
 		Assert.Null(Both.ParseLiteral("INTERVAL '1' DAY") is LiteralValue.Interval { Sign: { } } ? "signed" : null);
 	}
 

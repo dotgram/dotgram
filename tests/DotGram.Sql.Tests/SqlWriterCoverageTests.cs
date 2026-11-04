@@ -359,6 +359,7 @@ public sealed class SqlWriterCoverageTests
 		[typeof(BinaryOperator)]     = v => new Expression.Binary(A, (BinaryOperator)v, B),
 		[typeof(UnaryOperator)]      = v => new Expression.Unary((UnaryOperator)v, A),
 		[typeof(LikeKind)]           = v => new Expression.Like(A, false, (LikeKind)v, B),
+		[typeof(CastSpelling)]       = v => new Expression.Cast(new LiteralValue.String("'1'", StringLiteralKind.Character), new DataType.Numeric(NumericTypeKind.Int)) { Spelling = (CastSpelling)v },
 		[typeof(TriggerScope)]       = v => new Statement.DropTrigger { Names = [T], On = (TriggerScope)v },
 		[typeof(NumericLiteralKind)] = v => new LiteralValue.Numeric("1", (NumericLiteralKind)v),
 		[typeof(DateTimeLiteralKind)] = v => new LiteralValue.DateTime((DateTimeLiteralKind)v, "2026-09-26"),
@@ -653,6 +654,31 @@ public sealed class SqlWriterCoverageTests
 			["SetOperation.Distinct"] = (
 				Combined(SetOperator.Union),
 				Combined(SetOperator.Union, distinct: true)),
+			// PostgreSQL's spellings beside the standard's: a one-word null test, a colon slice, a count before a start, bracketed array types, one-word time zone types, `bool`.
+			["IsNull.Postfix"] = (
+				new Expression.IsNull(A, false),
+				new Expression.IsNull(A, false) { Postfix = true }),
+			["Element.Colon"] = (
+				new Expression.Element(A, Number("1"), Number("2")),
+				new Expression.Element(A, Number("1"), Number("2")) { Colon = true }),
+			["Substring.ForFirst"] = (
+				new Expression.Substring(A, Number("1"), Number("2"), null),
+				new Expression.Substring(A, Number("1"), Number("2"), null) { ForFirst = true }),
+			["Array.Brackets"] = (
+				new DataType.Array(new DataType.Numeric(NumericTypeKind.Int), 3),
+				new DataType.Array(new DataType.Numeric(NumericTypeKind.Int), 3) { Brackets = true }),
+			["DateTime.Abbreviated"] = (
+				new DataType.DateTime(DateTimeTypeKind.Timestamp, null, TimeZoneMode.With),
+				new DataType.DateTime(DateTimeTypeKind.Timestamp, null, TimeZoneMode.With) { Abbreviated = true }),
+			["Argument.ColonEquals"] = (
+				new Expression.Invocation(new QualifiedName(new Identifier("f")), [new Argument(A, new Identifier("p"), true)]),
+				new Expression.Invocation(new QualifiedName(new Identifier("f")), [new Argument(A, new Identifier("p"), true) { ColonEquals = true }])),
+			["Named.Star"] = (
+				new TableSource.Named(T),
+				new TableSource.Named(T) { Star = true }),
+			["Boolean.Abbreviated"] = (
+				new DataType.Boolean(),
+				new DataType.Boolean { Abbreviated = true }),
 			// PostgreSQL's string of bits written in hexits, `X'1F'`, against SQL-92's bits, `B'01'`.
 			["BitString.Hexadecimal"] = (
 				new LiteralValue.BitString("'01'"),
@@ -888,7 +914,8 @@ public sealed class SqlWriterCoverageTests
 		{
 			var off = Written(pair.Off);
 			// Only a flag no place reads yet may be refused; every other one must be written.
-			var on  = name == "Option.EqualsOmitted" ? WrittenOrRefused(pair.On) : Written(pair.On);
+			// A spelling only another dialect's writer prints is refused by the standard's, which is its text being lost on purpose.
+			var on  = name is "Option.EqualsOmitted" or "BitString.Hexadecimal" or "Named.Star" ? WrittenOrRefused(pair.On) : Written(pair.On);
 
 			Assert.True(
 				(off is null && on is null) || off != on,

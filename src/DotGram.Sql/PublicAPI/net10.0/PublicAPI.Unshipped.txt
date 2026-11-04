@@ -50,3 +50,210 @@ static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseExpression(string! input,
 static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseExpression(string! input, out DotGram.Sql.Ast.Expression! value) -> bool
 static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseExpression(string! input, ref int at, int length, out DotGram.Sql.Ast.Expression! value) -> bool
 static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseExpression(string! input, ref int at, out DotGram.Sql.Ast.Expression! value) -> bool
+DotGram.Sql.Ast.Argument.Variadic.get -> bool
+DotGram.Sql.Ast.Argument.Variadic.init -> void
+DotGram.Sql.Ast.BinaryOperator.Power = 13 -> DotGram.Sql.Ast.BinaryOperator
+DotGram.Sql.Ast.CastSpelling
+DotGram.Sql.Ast.CastSpelling.DoubleColon = 0 -> DotGram.Sql.Ast.CastSpelling
+DotGram.Sql.Ast.CastSpelling.TypedLiteral = 1 -> DotGram.Sql.Ast.CastSpelling
+DotGram.Sql.Ast.DataType.Array.Brackets.get -> bool
+DotGram.Sql.Ast.DataType.Array.Brackets.init -> void
+DotGram.Sql.Ast.DataType.Boolean.Abbreviated.get -> bool
+DotGram.Sql.Ast.DataType.Boolean.Abbreviated.init -> void
+DotGram.Sql.Ast.DataType.DateTime.Abbreviated.get -> bool
+DotGram.Sql.Ast.DataType.DateTime.Abbreviated.init -> void
+DotGram.Sql.Ast.DataType.Interval.Deconstruct(out DotGram.Sql.Ast.IntervalQualifier? Qualifier, out int? Precision) -> void
+DotGram.Sql.Ast.DataType.Interval.Interval(DotGram.Sql.Ast.IntervalQualifier? Qualifier = null, int? Precision = null) -> void
+DotGram.Sql.Ast.DataType.Interval.Precision.get -> int?
+DotGram.Sql.Ast.DataType.Interval.Precision.init -> void
+DotGram.Sql.Ast.DataType.Interval.Qualifier.get -> DotGram.Sql.Ast.IntervalQualifier?
+DotGram.Sql.Ast.Expression.Cast.Spelling.get -> DotGram.Sql.Ast.CastSpelling?
+DotGram.Sql.Ast.Expression.Cast.Spelling.init -> void
+DotGram.Sql.Ast.Expression.Element.Colon.get -> bool
+DotGram.Sql.Ast.Expression.Element.Colon.init -> void
+DotGram.Sql.Ast.Expression.Element.Deconstruct(out DotGram.Sql.Ast.Expression! Collection, out DotGram.Sql.Ast.Expression? Index, out DotGram.Sql.Ast.Expression? To, out bool Trigraphs) -> void
+DotGram.Sql.Ast.Expression.Element.Element(DotGram.Sql.Ast.Expression! Collection, DotGram.Sql.Ast.Expression? Index, DotGram.Sql.Ast.Expression? To = null, bool Trigraphs = false) -> void
+DotGram.Sql.Ast.Expression.Element.Index.get -> DotGram.Sql.Ast.Expression?
+DotGram.Sql.Ast.Expression.Extract.Deconstruct(out DotGram.Sql.Ast.ExtractField? Field, out DotGram.Sql.Ast.Expression! Source) -> void
+DotGram.Sql.Ast.Expression.Extract.Extract(DotGram.Sql.Ast.ExtractField? Field, DotGram.Sql.Ast.Expression! Source) -> void
+DotGram.Sql.Ast.Expression.Extract.Field.get -> DotGram.Sql.Ast.ExtractField?
+DotGram.Sql.Ast.Expression.Extract.NamedField.get -> DotGram.Sql.Ast.Expression?
+DotGram.Sql.Ast.Expression.Extract.NamedField.init -> void
+DotGram.Sql.Ast.Expression.IsDocument
+DotGram.Sql.Ast.Expression.IsDocument.Deconstruct(out DotGram.Sql.Ast.Expression! Value, out bool Not) -> void
+DotGram.Sql.Ast.Expression.IsDocument.Equals(DotGram.Sql.Ast.Expression.IsDocument? other) -> bool
+DotGram.Sql.Ast.Expression.IsDocument.IsDocument(DotGram.Sql.Ast.Expression! Value, bool Not) -> void
+DotGram.Sql.Ast.Expression.IsDocument.Not.get -> bool
+DotGram.Sql.Ast.Expression.IsDocument.Not.init -> void
+DotGram.Sql.Ast.Expression.IsDocument.Value.get -> DotGram.Sql.Ast.Expression!
+DotGram.Sql.Ast.Expression.IsDocument.Value.init -> void
+DotGram.Sql.Ast.Expression.IsNull.Postfix.get -> bool
+DotGram.Sql.Ast.Expression.IsNull.Postfix.init -> void
+DotGram.Sql.Ast.Expression.OperatorCall
+DotGram.Sql.Ast.Expression.OperatorCall.Deconstruct(out DotGram.Sql.Ast.QualifiedName Operator, out DotGram.Sql.Ast.Expression? Left, out DotGram.Sql.Ast.Expression! Right) -> void
+DotGram.Sql.Ast.Expression.OperatorCall.Equals(DotGram.Sql.Ast.Expression.OperatorCall? other) -> bool
+DotGram.Sql.Ast.Expression.OperatorCall.Left.get -> DotGram.Sql.Ast.Expression?
+DotGram.Sql.Ast.Expression.OperatorCall.Left.init -> void
+DotGram.Sql.Ast.Expression.OperatorCall.Operator.get -> DotGram.Sql.Ast.QualifiedName
+DotGram.Sql.Ast.Expression.OperatorCall.Operator.init -> void
+DotGram.Sql.Ast.Expression.OperatorCall.OperatorCall(DotGram.Sql.Ast.QualifiedName Operator, DotGram.Sql.Ast.Expression? Left, DotGram.Sql.Ast.Expression! Right) -> void
+DotGram.Sql.Ast.Expression.OperatorCall.OperatorKeyword.get -> bool
+DotGram.Sql.Ast.Expression.OperatorCall.OperatorKeyword.init -> void
+DotGram.Sql.Ast.Expression.OperatorCall.Right.get -> DotGram.Sql.Ast.Expression!
+DotGram.Sql.Ast.Expression.OperatorCall.Right.init -> void
+DotGram.Sql.Ast.Expression.QuantifiedOperation
+DotGram.Sql.Ast.Expression.QuantifiedOperation.Deconstruct(out DotGram.Sql.Ast.Expression! Left, out DotGram.Sql.Ast.QuantifiedOperator! Operator, out DotGram.Sql.Ast.Quantifier Quantifier, out DotGram.Sql.Ast.Expression! Right) -> void
+DotGram.Sql.Ast.Expression.QuantifiedOperation.Equals(DotGram.Sql.Ast.Expression.QuantifiedOperation? other) -> bool
+DotGram.Sql.Ast.Expression.QuantifiedOperation.Left.get -> DotGram.Sql.Ast.Expression!
+DotGram.Sql.Ast.Expression.QuantifiedOperation.Left.init -> void
+DotGram.Sql.Ast.Expression.QuantifiedOperation.Operator.get -> DotGram.Sql.Ast.QuantifiedOperator!
+DotGram.Sql.Ast.Expression.QuantifiedOperation.Operator.init -> void
+DotGram.Sql.Ast.Expression.QuantifiedOperation.QuantifiedOperation(DotGram.Sql.Ast.Expression! Left, DotGram.Sql.Ast.QuantifiedOperator! Operator, DotGram.Sql.Ast.Quantifier Quantifier, DotGram.Sql.Ast.Expression! Right) -> void
+DotGram.Sql.Ast.Expression.QuantifiedOperation.Quantifier.get -> DotGram.Sql.Ast.Quantifier
+DotGram.Sql.Ast.Expression.QuantifiedOperation.Quantifier.init -> void
+DotGram.Sql.Ast.Expression.QuantifiedOperation.Right.get -> DotGram.Sql.Ast.Expression!
+DotGram.Sql.Ast.Expression.QuantifiedOperation.Right.init -> void
+DotGram.Sql.Ast.Expression.Substring.Deconstruct(out DotGram.Sql.Ast.Expression! Value, out DotGram.Sql.Ast.Expression? From, out DotGram.Sql.Ast.Expression? For, out DotGram.Sql.Ast.CharacterLengthUnits? Using) -> void
+DotGram.Sql.Ast.Expression.Substring.ForFirst.get -> bool
+DotGram.Sql.Ast.Expression.Substring.ForFirst.init -> void
+DotGram.Sql.Ast.Expression.Substring.From.get -> DotGram.Sql.Ast.Expression?
+DotGram.Sql.Ast.Expression.Substring.Substring(DotGram.Sql.Ast.Expression! Value, DotGram.Sql.Ast.Expression? From, DotGram.Sql.Ast.Expression? For, DotGram.Sql.Ast.CharacterLengthUnits? Using) -> void
+DotGram.Sql.Ast.LikeKind.ILike = 3 -> DotGram.Sql.Ast.LikeKind
+DotGram.Sql.Ast.LiteralValue.Interval.Deconstruct(out string! Text, out DotGram.Sql.Ast.IntervalQualifier? Qualifier, out DotGram.Sql.Ast.UnaryOperator? Sign) -> void
+DotGram.Sql.Ast.LiteralValue.Interval.Interval(string! Text, DotGram.Sql.Ast.IntervalQualifier? Qualifier, DotGram.Sql.Ast.UnaryOperator? Sign = null) -> void
+DotGram.Sql.Ast.LiteralValue.Interval.Qualifier.get -> DotGram.Sql.Ast.IntervalQualifier?
+DotGram.Sql.Ast.NumericTypeKind.Float4 = 14 -> DotGram.Sql.Ast.NumericTypeKind
+DotGram.Sql.Ast.NumericTypeKind.Float8 = 15 -> DotGram.Sql.Ast.NumericTypeKind
+DotGram.Sql.Ast.NumericTypeKind.Int2 = 11 -> DotGram.Sql.Ast.NumericTypeKind
+DotGram.Sql.Ast.NumericTypeKind.Int4 = 12 -> DotGram.Sql.Ast.NumericTypeKind
+DotGram.Sql.Ast.NumericTypeKind.Int8 = 13 -> DotGram.Sql.Ast.NumericTypeKind
+DotGram.Sql.Ast.QuantifiedOperator
+DotGram.Sql.Ast.QuantifiedOperator.Comparison
+DotGram.Sql.Ast.QuantifiedOperator.Comparison.Comparison(DotGram.Sql.Ast.ComparisonOperator Operator) -> void
+DotGram.Sql.Ast.QuantifiedOperator.Comparison.Deconstruct(out DotGram.Sql.Ast.ComparisonOperator Operator) -> void
+DotGram.Sql.Ast.QuantifiedOperator.Comparison.Equals(DotGram.Sql.Ast.QuantifiedOperator.Comparison? other) -> bool
+DotGram.Sql.Ast.QuantifiedOperator.Comparison.Operator.get -> DotGram.Sql.Ast.ComparisonOperator
+DotGram.Sql.Ast.QuantifiedOperator.Comparison.Operator.init -> void
+DotGram.Sql.Ast.QuantifiedOperator.Like
+DotGram.Sql.Ast.QuantifiedOperator.Like.Deconstruct(out DotGram.Sql.Ast.LikeKind Kind, out bool Not) -> void
+DotGram.Sql.Ast.QuantifiedOperator.Like.Equals(DotGram.Sql.Ast.QuantifiedOperator.Like? other) -> bool
+DotGram.Sql.Ast.QuantifiedOperator.Like.Kind.get -> DotGram.Sql.Ast.LikeKind
+DotGram.Sql.Ast.QuantifiedOperator.Like.Kind.init -> void
+DotGram.Sql.Ast.QuantifiedOperator.Like.Like(DotGram.Sql.Ast.LikeKind Kind, bool Not) -> void
+DotGram.Sql.Ast.QuantifiedOperator.Like.Not.get -> bool
+DotGram.Sql.Ast.QuantifiedOperator.Like.Not.init -> void
+DotGram.Sql.Ast.QuantifiedOperator.Locate(int at, int length) -> void
+DotGram.Sql.Ast.QuantifiedOperator.Named
+DotGram.Sql.Ast.QuantifiedOperator.Named.Deconstruct(out DotGram.Sql.Ast.QualifiedName Operator, out bool OperatorKeyword) -> void
+DotGram.Sql.Ast.QuantifiedOperator.Named.Equals(DotGram.Sql.Ast.QuantifiedOperator.Named? other) -> bool
+DotGram.Sql.Ast.QuantifiedOperator.Named.Named(DotGram.Sql.Ast.QualifiedName Operator, bool OperatorKeyword = false) -> void
+DotGram.Sql.Ast.QuantifiedOperator.Named.Operator.get -> DotGram.Sql.Ast.QualifiedName
+DotGram.Sql.Ast.QuantifiedOperator.Named.Operator.init -> void
+DotGram.Sql.Ast.QuantifiedOperator.Named.OperatorKeyword.get -> bool
+DotGram.Sql.Ast.QuantifiedOperator.Named.OperatorKeyword.init -> void
+DotGram.Sql.Ast.QuantifiedOperator.QuantifiedOperator(DotGram.Sql.Ast.QuantifiedOperator! original) -> void
+DotGram.Sql.Ast.QuantifiedOperator.Span.get -> DotGram.Sql.SqlSpan
+abstract DotGram.Sql.Ast.QuantifiedOperator.<Clone>$() -> DotGram.Sql.Ast.QuantifiedOperator!
+override DotGram.Sql.Ast.Expression.IsDocument.<Clone>$() -> DotGram.Sql.Ast.Expression.IsDocument!
+override DotGram.Sql.Ast.Expression.IsDocument.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Expression.IsDocument.GetHashCode() -> int
+override DotGram.Sql.Ast.Expression.IsDocument.ToString() -> string!
+override DotGram.Sql.Ast.Expression.OperatorCall.<Clone>$() -> DotGram.Sql.Ast.Expression.OperatorCall!
+override DotGram.Sql.Ast.Expression.OperatorCall.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Expression.OperatorCall.GetHashCode() -> int
+override DotGram.Sql.Ast.Expression.OperatorCall.ToString() -> string!
+override DotGram.Sql.Ast.Expression.QuantifiedOperation.<Clone>$() -> DotGram.Sql.Ast.Expression.QuantifiedOperation!
+override DotGram.Sql.Ast.Expression.QuantifiedOperation.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Expression.QuantifiedOperation.GetHashCode() -> int
+override DotGram.Sql.Ast.Expression.QuantifiedOperation.ToString() -> string!
+override DotGram.Sql.Ast.QuantifiedOperator.Comparison.<Clone>$() -> DotGram.Sql.Ast.QuantifiedOperator.Comparison!
+override DotGram.Sql.Ast.QuantifiedOperator.Comparison.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.QuantifiedOperator.Comparison.GetHashCode() -> int
+override DotGram.Sql.Ast.QuantifiedOperator.Comparison.ToString() -> string!
+override DotGram.Sql.Ast.QuantifiedOperator.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.QuantifiedOperator.GetHashCode() -> int
+override DotGram.Sql.Ast.QuantifiedOperator.Like.<Clone>$() -> DotGram.Sql.Ast.QuantifiedOperator.Like!
+override DotGram.Sql.Ast.QuantifiedOperator.Like.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.QuantifiedOperator.Like.GetHashCode() -> int
+override DotGram.Sql.Ast.QuantifiedOperator.Like.ToString() -> string!
+override DotGram.Sql.Ast.QuantifiedOperator.Named.<Clone>$() -> DotGram.Sql.Ast.QuantifiedOperator.Named!
+override DotGram.Sql.Ast.QuantifiedOperator.Named.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.QuantifiedOperator.Named.GetHashCode() -> int
+override DotGram.Sql.Ast.QuantifiedOperator.Named.ToString() -> string!
+override DotGram.Sql.Ast.QuantifiedOperator.ToString() -> string!
+override sealed DotGram.Sql.Ast.Expression.IsDocument.Equals(DotGram.Sql.Ast.Expression? other) -> bool
+override sealed DotGram.Sql.Ast.Expression.OperatorCall.Equals(DotGram.Sql.Ast.Expression? other) -> bool
+override sealed DotGram.Sql.Ast.Expression.QuantifiedOperation.Equals(DotGram.Sql.Ast.Expression? other) -> bool
+override sealed DotGram.Sql.Ast.QuantifiedOperator.Comparison.Equals(DotGram.Sql.Ast.QuantifiedOperator? other) -> bool
+override sealed DotGram.Sql.Ast.QuantifiedOperator.Like.Equals(DotGram.Sql.Ast.QuantifiedOperator? other) -> bool
+override sealed DotGram.Sql.Ast.QuantifiedOperator.Named.Equals(DotGram.Sql.Ast.QuantifiedOperator? other) -> bool
+static DotGram.Sql.Ast.Expression.IsDocument.operator !=(DotGram.Sql.Ast.Expression.IsDocument? left, DotGram.Sql.Ast.Expression.IsDocument? right) -> bool
+static DotGram.Sql.Ast.Expression.IsDocument.operator ==(DotGram.Sql.Ast.Expression.IsDocument? left, DotGram.Sql.Ast.Expression.IsDocument? right) -> bool
+static DotGram.Sql.Ast.Expression.OperatorCall.operator !=(DotGram.Sql.Ast.Expression.OperatorCall? left, DotGram.Sql.Ast.Expression.OperatorCall? right) -> bool
+static DotGram.Sql.Ast.Expression.OperatorCall.operator ==(DotGram.Sql.Ast.Expression.OperatorCall? left, DotGram.Sql.Ast.Expression.OperatorCall? right) -> bool
+static DotGram.Sql.Ast.Expression.QuantifiedOperation.operator !=(DotGram.Sql.Ast.Expression.QuantifiedOperation? left, DotGram.Sql.Ast.Expression.QuantifiedOperation? right) -> bool
+static DotGram.Sql.Ast.Expression.QuantifiedOperation.operator ==(DotGram.Sql.Ast.Expression.QuantifiedOperation? left, DotGram.Sql.Ast.Expression.QuantifiedOperation? right) -> bool
+static DotGram.Sql.Ast.QuantifiedOperator.Comparison.operator !=(DotGram.Sql.Ast.QuantifiedOperator.Comparison? left, DotGram.Sql.Ast.QuantifiedOperator.Comparison? right) -> bool
+static DotGram.Sql.Ast.QuantifiedOperator.Comparison.operator ==(DotGram.Sql.Ast.QuantifiedOperator.Comparison? left, DotGram.Sql.Ast.QuantifiedOperator.Comparison? right) -> bool
+static DotGram.Sql.Ast.QuantifiedOperator.Like.operator !=(DotGram.Sql.Ast.QuantifiedOperator.Like? left, DotGram.Sql.Ast.QuantifiedOperator.Like? right) -> bool
+static DotGram.Sql.Ast.QuantifiedOperator.Like.operator ==(DotGram.Sql.Ast.QuantifiedOperator.Like? left, DotGram.Sql.Ast.QuantifiedOperator.Like? right) -> bool
+static DotGram.Sql.Ast.QuantifiedOperator.Named.operator !=(DotGram.Sql.Ast.QuantifiedOperator.Named? left, DotGram.Sql.Ast.QuantifiedOperator.Named? right) -> bool
+static DotGram.Sql.Ast.QuantifiedOperator.Named.operator ==(DotGram.Sql.Ast.QuantifiedOperator.Named? left, DotGram.Sql.Ast.QuantifiedOperator.Named? right) -> bool
+static DotGram.Sql.Ast.QuantifiedOperator.operator !=(DotGram.Sql.Ast.QuantifiedOperator? left, DotGram.Sql.Ast.QuantifiedOperator? right) -> bool
+static DotGram.Sql.Ast.QuantifiedOperator.operator ==(DotGram.Sql.Ast.QuantifiedOperator? left, DotGram.Sql.Ast.QuantifiedOperator? right) -> bool
+virtual DotGram.Sql.Ast.QuantifiedOperator.EqualityContract.get -> System.Type!
+virtual DotGram.Sql.Ast.QuantifiedOperator.Equals(DotGram.Sql.Ast.QuantifiedOperator? other) -> bool
+virtual DotGram.Sql.Ast.QuantifiedOperator.PrintMembers(System.Text.StringBuilder! builder) -> bool
+DotGram.Sql.Ast.Query.Select.DistinctOn.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.Expression!>
+DotGram.Sql.Ast.Query.Select.DistinctOn.init -> void
+static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.ParseSql(string! input) -> DotGram.Sql.Ast.Statement![]!
+static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.ParseStatement(string! input) -> DotGram.Sql.Ast.Statement!
+static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.TryParseSql(string! input) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Match<DotGram.Sql.Ast.Statement![]!>
+static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.TryParseSql(string! input, int at) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Match<DotGram.Sql.Ast.Statement![]!>
+static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.TryParseSql(string! input, int at, int length) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Match<DotGram.Sql.Ast.Statement![]!>
+static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.TryParseSql(string! input, out DotGram.Sql.Ast.Statement![]! value) -> bool
+static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.TryParseSql(string! input, ref int at, int length, out DotGram.Sql.Ast.Statement![]! value) -> bool
+static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.TryParseSql(string! input, ref int at, out DotGram.Sql.Ast.Statement![]! value) -> bool
+static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.TryParseStatement(string! input) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Match<DotGram.Sql.Ast.Statement!>
+static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.TryParseStatement(string! input, int at) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Match<DotGram.Sql.Ast.Statement!>
+static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.TryParseStatement(string! input, int at, int length) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Match<DotGram.Sql.Ast.Statement!>
+static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.TryParseStatement(string! input, out DotGram.Sql.Ast.Statement! value) -> bool
+static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.TryParseStatement(string! input, ref int at, int length, out DotGram.Sql.Ast.Statement! value) -> bool
+static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.TryParseStatement(string! input, ref int at, out DotGram.Sql.Ast.Statement! value) -> bool
+static DotGram.Sql.PostgreSql.PostgreSqlParser.ParseSql(string! input) -> DotGram.Sql.Ast.Statement![]!
+static DotGram.Sql.PostgreSql.PostgreSqlParser.ParseStatement(string! input) -> DotGram.Sql.Ast.Statement!
+static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseSql(string! input) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Match<DotGram.Sql.Ast.Statement![]!>
+static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseSql(string! input, int at) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Match<DotGram.Sql.Ast.Statement![]!>
+static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseSql(string! input, int at, int length) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Match<DotGram.Sql.Ast.Statement![]!>
+static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseSql(string! input, out DotGram.Sql.Ast.Statement![]! value) -> bool
+static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseSql(string! input, ref int at, int length, out DotGram.Sql.Ast.Statement![]! value) -> bool
+static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseSql(string! input, ref int at, out DotGram.Sql.Ast.Statement![]! value) -> bool
+static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseStatement(string! input) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Match<DotGram.Sql.Ast.Statement!>
+static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseStatement(string! input, int at) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Match<DotGram.Sql.Ast.Statement!>
+static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseStatement(string! input, int at, int length) -> DotGram.Sql.PostgreSql.PostgreSqlParser.Match<DotGram.Sql.Ast.Statement!>
+static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseStatement(string! input, out DotGram.Sql.Ast.Statement! value) -> bool
+static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseStatement(string! input, ref int at, int length, out DotGram.Sql.Ast.Statement! value) -> bool
+static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseStatement(string! input, ref int at, out DotGram.Sql.Ast.Statement! value) -> bool
+DotGram.Sql.Ast.PostgreSqlWriter
+static DotGram.Sql.Ast.PostgreSqlWriter.Write(DotGram.Sql.Ast.ISqlNode! node) -> string!
+*REMOVED*DotGram.Sql.Ast.DataType.Interval.Deconstruct(out DotGram.Sql.Ast.IntervalQualifier! Qualifier) -> void
+*REMOVED*DotGram.Sql.Ast.DataType.Interval.Interval(DotGram.Sql.Ast.IntervalQualifier! Qualifier) -> void
+*REMOVED*DotGram.Sql.Ast.DataType.Interval.Qualifier.get -> DotGram.Sql.Ast.IntervalQualifier!
+*REMOVED*DotGram.Sql.Ast.Expression.Element.Deconstruct(out DotGram.Sql.Ast.Expression! Collection, out DotGram.Sql.Ast.Expression! Index, out DotGram.Sql.Ast.Expression? To, out bool Trigraphs) -> void
+*REMOVED*DotGram.Sql.Ast.Expression.Element.Element(DotGram.Sql.Ast.Expression! Collection, DotGram.Sql.Ast.Expression! Index, DotGram.Sql.Ast.Expression? To = null, bool Trigraphs = false) -> void
+*REMOVED*DotGram.Sql.Ast.Expression.Element.Index.get -> DotGram.Sql.Ast.Expression!
+*REMOVED*DotGram.Sql.Ast.Expression.Extract.Deconstruct(out DotGram.Sql.Ast.ExtractField Field, out DotGram.Sql.Ast.Expression! Source) -> void
+*REMOVED*DotGram.Sql.Ast.Expression.Extract.Extract(DotGram.Sql.Ast.ExtractField Field, DotGram.Sql.Ast.Expression! Source) -> void
+*REMOVED*DotGram.Sql.Ast.Expression.Extract.Field.get -> DotGram.Sql.Ast.ExtractField
+*REMOVED*DotGram.Sql.Ast.Expression.Substring.Deconstruct(out DotGram.Sql.Ast.Expression! Value, out DotGram.Sql.Ast.Expression! From, out DotGram.Sql.Ast.Expression? For, out DotGram.Sql.Ast.CharacterLengthUnits? Using) -> void
+*REMOVED*DotGram.Sql.Ast.Expression.Substring.From.get -> DotGram.Sql.Ast.Expression!
+*REMOVED*DotGram.Sql.Ast.Expression.Substring.Substring(DotGram.Sql.Ast.Expression! Value, DotGram.Sql.Ast.Expression! From, DotGram.Sql.Ast.Expression? For, DotGram.Sql.Ast.CharacterLengthUnits? Using) -> void
+*REMOVED*DotGram.Sql.Ast.LiteralValue.Interval.Deconstruct(out string! Text, out DotGram.Sql.Ast.IntervalQualifier! Qualifier, out DotGram.Sql.Ast.UnaryOperator? Sign) -> void
+*REMOVED*DotGram.Sql.Ast.LiteralValue.Interval.Interval(string! Text, DotGram.Sql.Ast.IntervalQualifier! Qualifier, DotGram.Sql.Ast.UnaryOperator? Sign = null) -> void
+*REMOVED*DotGram.Sql.Ast.LiteralValue.Interval.Qualifier.get -> DotGram.Sql.Ast.IntervalQualifier!
+DotGram.Sql.Ast.Argument.ColonEquals.get -> bool
+DotGram.Sql.Ast.Argument.ColonEquals.init -> void
+DotGram.Sql.Ast.TableSource.Named.Star.get -> bool
+DotGram.Sql.Ast.TableSource.Named.Star.init -> void
+DotGram.Sql.Ast.TableSource.Parenthesized.Alias.get -> DotGram.Sql.Ast.Alias?
+DotGram.Sql.Ast.TableSource.Parenthesized.Alias.init -> void

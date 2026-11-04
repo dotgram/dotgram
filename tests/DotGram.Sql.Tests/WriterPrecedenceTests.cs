@@ -142,7 +142,7 @@ public sealed class WriterPrecedenceTests
 				return qualified with { Value = operand(qualified.Value) };
 
 			case Expression.Element element:
-				return element with { Collection = operand(element.Collection), Index = operand(element.Index), To = element.To is null ? null : operand(element.To) };
+				return element with { Collection = operand(element.Collection), Index = operand(element.Index!), To = element.To is null ? null : operand(element.To) };
 
 			case Expression.Member member:
 				return member with { Target = operand(member.Target) };

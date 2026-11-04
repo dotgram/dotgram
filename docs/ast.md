@@ -30,6 +30,7 @@ Three sources appear in the tables:
 | `SQL:2023` | ISO/IEC 9075:2023, by production. `SqlStandard.gram` is written from its BNF. |
 | `SQL-92` | ISO/IEC 9075:1992, for what SQL-92 has and SQL:2003 took out: a string of bits. |
 | `T-SQL` | Microsoft's reference, by the page's own title. Everything SQL Server has and the standard does not. |
+| PostgreSQL | The PostgreSQL manual, by the page's own title. What PostgreSQL has and the standard does not. |
 
 ## The shape
 
@@ -768,6 +769,13 @@ it. The families stand in alphabetical order, each family's records in the order
 | `Expression.Match` | SQL:2023 | &lt;match predicate&gt; |
 | `Expression.Overlaps` | SQL:2023 | &lt;overlaps predicate&gt;, whose two sides are rows |
 | `Expression.IsDistinct` | SQL:2023 | under &lt;value expression&gt; and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars |
+| `Expression.OperatorCall` | PostgreSQL | Operators |
+| `Expression.QuantifiedOperation` | PostgreSQL | Row and Array Comparisons |
+| `Expression.CollationFor` | PostgreSQL | Collation Expressions |
+| `Expression.IsDocument` | PostgreSQL | XML Predicates |
+| `QuantifiedOperator.Comparison` | PostgreSQL | Row and Array Comparisons |
+| `QuantifiedOperator.Like` | PostgreSQL | Row and Array Comparisons |
+| `QuantifiedOperator.Named` | PostgreSQL | Row and Array Comparisons |
 | `Expression.IsNormalized` | SQL:2023 | under &lt;value expression&gt; and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars |
 | `Expression.MemberOf` | SQL:2023 | under &lt;value expression&gt; and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars |
 | `Expression.SubmultisetOf` | SQL:2023 | under &lt;value expression&gt; and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars |
