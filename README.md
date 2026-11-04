@@ -878,7 +878,7 @@ query.From!.Sources[0];  // TableSource.Named { Name = Users }
 | [`TransactSqlParser`](src/DotGram.Sql/TransactSql/TransactSql.gram) | T-SQL, a grammar that stands alone, restating the SQL-92 rules it reads as the standard has them |
 
 `TransactSqlParser` reads at four of the standard's levels — `ParseExpression`, `ParseSearchCondition`,
-`ParseStatement` and `ParseSql`, with the per-version entries and `ParseSelect` — and `SqlStandardParser`
+`ParseStatement` and `ParseSql`, with the per-version entries, `ParseScript` and `ParseSelect` — and `SqlStandardParser`
 at six, `ParseValue` and `ParseDataType` besides, which can be added to T-SQL later. The writers print
 key words and date parts in capitals.
 [`src/DotGram.Sql/README.md`](src/DotGram.Sql/README.md) has what each one parses and what it
@@ -995,7 +995,7 @@ Complete examples are under [`examples/DotGram.Examples`](examples/DotGram.Examp
 | [`TypedCsvExample.cs`](examples/DotGram.Examples/Formats/TypedCsvExample.cs) | construction of existing C# types |
 | [`GramExample.cs`](examples/DotGram.Examples/Languages/GramExample.cs) | the .Gram notation parsed by .Gram itself |
 
-[`examples/README.md`](examples/README.md) lists all thirty-eight, grouped by what they
+[`examples/README.md`](examples/README.md) lists all thirty-nine, grouped by what they
 read: formats, feeds, expressions, languages.
 
 ## Documentation
@@ -1049,7 +1049,7 @@ Three things an older target has to say:
 </PropertyGroup>
 
 <ItemGroup Condition="'$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
-  <PackageReference Include="System.Memory" Version="4.5.5" />
+  <PackageReference Include="System.Memory" Version="4.6.3" />
 </ItemGroup>
 ```
 
@@ -1062,6 +1062,10 @@ compiler at least that new.
 dotnet build DotGram.slnx
 dotnet test  DotGram.slnx
 ```
+
+On Linux or macOS, build and test the `Linux` configuration, which leaves out the Visual Studio
+extension and its tests (they build only on Windows): `dotnet build DotGram.slnx -c Linux`, then
+`dotnet test DotGram.slnx -c Linux`.
 
 ## License
 
