@@ -4,6 +4,11 @@ The draft of the GitHub release text, kept here until the tag so that it is revi
 other change. Everything below the rule is pasted as the release's body; lines marked
 `TODO(freeze)` are filled in, or dropped, at the candidate freeze.
 
+The publish workflow pushes the packages and creates no GitHub release, so the last paragraph
+holds only if the release is made by hand with its files: the `.nupkg` files of the tag's publish
+run, the `.vsix` uploaded to the Marketplace, and `SHA256SUMS.txt` written over them with
+`sha256sum *.nupkg *.vsix > SHA256SUMS.txt`. A release made without them drops that paragraph.
+
 ---
 
 # DotGram 0.3.0
