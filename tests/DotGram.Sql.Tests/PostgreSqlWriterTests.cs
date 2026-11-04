@@ -239,6 +239,7 @@ public sealed class PostgreSqlWriterTests
 	[InlineData("Vacuum")]
 	[InlineData("Analyze")]
 	[InlineData("Copy")]
+	[InlineData("CursorProperties.Binary")]
 	public void What_only_PostgreSQL_reads_is_refused_by_the_other_writers(string which)
 	{
 		ISqlNode node = which switch
@@ -290,6 +291,7 @@ public sealed class PostgreSqlWriterTests
 			"Vacuum"               => new Statement.Vacuum([], []),
 			"Analyze"              => new Statement.Analyze([], []),
 			"Copy"                 => new Statement.Copy { Table = T, Direction = CopyDirection.From, Stream = StandardStream.Stdin },
+			"CursorProperties.Binary" => new Statement.DeclareCursor { Cursor = new CursorReference(new QualifiedName(new Identifier("c"))), Properties = new CursorProperties(null, null, null, null) { Binary = true }, SourceValue = new CursorSource.Query(new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([T]) } }, null) },
 			_ => throw new ArgumentOutOfRangeException(nameof(which)),
 		};
 
@@ -342,6 +344,25 @@ public sealed class PostgreSqlWriterTests
 	[InlineData("Copy with neither file nor stream")]
 	[InlineData("Copy TO with WHERE")]
 	[InlineData("Copy.Bare with an option that has no old word")]
+	[InlineData("Copy.Bare with no option")]
+	[InlineData("Copy.BinaryBeforeTable without format binary")]
+	[InlineData("Copy.DelimitersClause without delimiter")]
+	[InlineData("Copy of a four-part table")]
+	[InlineData("Explain.Bare VERBOSE then ANALYZE")]
+	[InlineData("Explain.Bare ANALYZE twice")]
+	[InlineData("Rollback.Abort with ToSavepoint")]
+	[InlineData("Rollback.Work with Keyword")]
+	[InlineData("Commit.Work with Keyword")]
+	[InlineData("SetNames number")]
+	[InlineData("FetchOrientation.Absolute without a count")]
+	[InlineData("FetchOrientation.Relative with a reference")]
+	[InlineData("FetchOrientation count past 32 bits")]
+	[InlineData("MoveCursor two-part cursor")]
+	[InlineData("SetTimeZone key word")]
+	[InlineData("SetTimeZone.Local with Value")]
+	[InlineData("SetTimeZone empty")]
+	[InlineData("SetRole.None with Value")]
+	[InlineData("SetRole empty")]
 	[InlineData("OperatorCall +")]
 	[InlineData("OperatorCall =")]
 	[InlineData("OperatorCall ||")]
@@ -407,6 +428,25 @@ public sealed class PostgreSqlWriterTests
 			"Copy with neither file nor stream" => new Statement.Copy { Table = T, Direction = CopyDirection.From },
 			"Copy TO with WHERE"         => new Statement.Copy { Table = T, Direction = CopyDirection.To, Stream = StandardStream.Stdout, Where = A },
 			"Copy.Bare with an option that has no old word" => new Statement.Copy { Table = T, Direction = CopyDirection.From, Stream = StandardStream.Stdin, Options = [new Option(new Identifier("on_error"), new Expression.Reference(new QualifiedName(new Identifier("ignore"))), [])], Bare = true },
+			"Copy.Bare with no option"   => new Statement.Copy { Table = T, Direction = CopyDirection.From, Stream = StandardStream.Stdin, Bare = true },
+			"Copy.BinaryBeforeTable without format binary" => new Statement.Copy { Table = T, Direction = CopyDirection.From, Stream = StandardStream.Stdin, BinaryBeforeTable = true },
+			"Copy.DelimitersClause without delimiter" => new Statement.Copy { Table = T, Direction = CopyDirection.From, Stream = StandardStream.Stdin, DelimitersClause = true },
+			"Copy of a four-part table"  => new Statement.Copy { Table = new TableSource.Named(QualifiedName.Of(new Identifier("a"), new Identifier("b"), new Identifier("c"), new Identifier("d"))), Direction = CopyDirection.From, Stream = StandardStream.Stdin },
+			"Explain.Bare VERBOSE then ANALYZE" => new Statement.Explain([new Option(new Identifier("verbose"), null, []), new Option(new Identifier("analyze"), null, [])], new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([T]) } }) { Bare = true },
+			"Explain.Bare ANALYZE twice"  => new Statement.Explain([new Option(new Identifier("analyze"), null, []), new Option(new Identifier("analyze"), null, [])], new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([T]) } }) { Bare = true },
+			"Rollback.Abort with ToSavepoint" => new Statement.Rollback { Abort = true, ToSavepoint = new Identifier("s") },
+			"Rollback.Work with Keyword" => new Statement.Rollback { Work = true, Keyword = TransactionKeyword.Transaction },
+			"Commit.Work with Keyword"   => new Statement.Commit { Work = true, Keyword = TransactionKeyword.Transaction },
+			"SetNames number"            => new Statement.SetNames { Value = Number("1") },
+			"FetchOrientation.Absolute without a count" => new Statement.FetchCursor { Cursor = new CursorReference(new QualifiedName(new Identifier("c"))), Orientation = new FetchOrientation(FetchOrientationKind.Absolute) },
+			"FetchOrientation.Relative with a reference" => new Statement.FetchCursor { Cursor = new CursorReference(new QualifiedName(new Identifier("c"))), Orientation = new FetchOrientation(FetchOrientationKind.Relative, A) },
+			"FetchOrientation count past 32 bits" => new Statement.FetchCursor { Cursor = new CursorReference(new QualifiedName(new Identifier("c"))), Orientation = new FetchOrientation(FetchOrientationKind.Forward, Number("2147483648")) },
+			"MoveCursor two-part cursor" => new Statement.MoveCursor { Cursor = new CursorReference(QualifiedName.Of(new Identifier("a"), new Identifier("b"))) },
+			"SetTimeZone key word"       => new Statement.SetTimeZone { Value = new Expression.Reference(new QualifiedName(new Identifier("year"))) },
+			"SetTimeZone.Local with Value" => new Statement.SetTimeZone { Local = true, Value = new LiteralValue.String("'x'", StringLiteralKind.Character) },
+			"SetTimeZone empty"          => new Statement.SetTimeZone(),
+			"SetRole.None with Value"    => new Statement.SetRole { None = true, Value = A },
+			"SetRole empty"              => new Statement.SetRole(),
 			"Query.DataChange.With"      => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], With = new WithClause(false, [new CommonTableExpression(new Identifier("x"), [], new Query.DataChange(new Statement.Delete { Target = T }) { With = new WithClause(false, [new CommonTableExpression(new Identifier("y"), [], new Query.Select { Columns = [new SelectColumn.All()] })]) })]) } },
 			_ => throw new ArgumentOutOfRangeException(nameof(which)),
 		};
