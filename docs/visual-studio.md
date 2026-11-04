@@ -32,6 +32,11 @@ The extension resolves the `StringSyntax` value to the matching `GramLanguage`
 descriptor. Calls to generated parser publication methods are recognized directly from
 their parser host and publication metadata.
 
+A host in a referenced assembly, an internal one included, is read from the descriptor
+the generator wrote into that assembly when it was built. Its `.gram` files belong to the
+project that built it: a file of the same name in the project that references it is
+never read in its place.
+
 The same annotation works on the receiver parameter of an extension method and on a
 field or property initializer:
 

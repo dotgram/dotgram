@@ -65,6 +65,16 @@ public static class DslGrammarSourceResolver
 				cancellationToken).ConfigureAwait(false);
 			candidates.AddRange(resolved.Candidates);
 
+			// A class from a referenced assembly whose file is not here: what the assembly
+			// carries, as the generator falls back to it.
+			if ((resolved.Kind != DslGrammarResolutionKind.Resolved || resolved.Text is null) &&
+				part.PortableSource is { } portable)
+				resolved = new DslGrammarResolution(
+					DslGrammarResolutionKind.Resolved,
+					portable,
+					null,
+					resolved.Candidates);
+
 			if (resolved.Kind != DslGrammarResolutionKind.Resolved || resolved.Text is null)
 				return new DslGrammarResolution(
 					resolved.Kind,

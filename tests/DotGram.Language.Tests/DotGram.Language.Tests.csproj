@@ -29,4 +29,21 @@
 		<Compile Include="..\DotGram.Tests\EmittedCode.cs" Link="Shared\EmittedCode.cs" />
 	</ItemGroup>
 
+	<!-- The generator itself, for the tests that need a library built the way a build builds one:
+	     run in the test process, never referenced, for the same reason as above. Where its
+	     assembly is reaches the tests as assembly metadata. -->
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\DotGram\DotGram.csproj"
+		                  ReferenceOutputAssembly="false" OutputItemType="DotGramGenerator" />
+	</ItemGroup>
+
+	<Target Name="DotGramGeneratorPath" DependsOnTargets="ResolveProjectReferences" BeforeTargets="GetAssemblyAttributes">
+		<ItemGroup>
+			<AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+				<_Parameter1>DotGramGenerator</_Parameter1>
+				<_Parameter2>@(DotGramGenerator->'%(FullPath)')</_Parameter2>
+			</AssemblyAttribute>
+		</ItemGroup>
+	</Target>
+
 </Project>

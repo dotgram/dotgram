@@ -273,6 +273,152 @@ public sealed class DslLanguageDiscoveryTests
 		Assert.Equal("Start = 'x'\nparse Start as Read", language.GrammarSource);
 	}
 
+	[Fact]
+	public void ReadsAReferencedHostFromItsDescriptorAndNeverFromItsGramFile()
+	{
+		const string grammar = "Start = 'x'\nparse Start as Read";
+		var sourcePayload  = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(grammar));
+		var entriesPayload = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("Read\tParse\tStart"));
+		var reference = Reference(Support + $$"""
+
+			[DotGram.Gram("Lexicon.gram")]
+			class Lexicon;
+
+			[DotGram.Gram("Filter.gram")]
+			[DotGram.GramInclude(typeof(Lexicon))]
+			[DotGram.GramLanguage("package.language")]
+			[DotGram.GramLanguageDescriptor(1, "package.language", "{{Hash(grammar)}}", "{{sourcePayload}}", "{{entriesPayload}}")]
+			class PackagedParser;
+			""");
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var compilation = CSharpCompilation.Create(
+			"Consumer",
+			[CSharpSyntaxTree.ParseText("class Consumer;", cancellationToken: cancellationToken)],
+			[MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location), reference]);
+
+		var language = Assert.Single(DslLanguageDiscovery.Discover(compilation, cancellationToken).Languages);
+
+		Assert.Equal(DslGrammarSourceKind.Embedded, language.SourceKind);
+		Assert.Equal(grammar, language.GrammarSource);
+		Assert.Empty(language.IncludedGrammars);
+	}
+
+	[Fact]
+	public void SkipsAReferencedHostWithoutADescriptor()
+	{
+		var reference = Reference(Support + """
+
+			[DotGram.Gram("Start = 'x'\nparse Start")]
+			[DotGram.GramLanguage("package.language")]
+			class PackagedParser;
+			""");
+		var compilation = CSharpCompilation.Create(
+			"Consumer",
+			[CSharpSyntaxTree.ParseText("class Consumer;", cancellationToken: TestContext.Current.CancellationToken)],
+			[MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location), reference]);
+
+		Assert.Empty(DslLanguageDiscovery.Discover(compilation, TestContext.Current.CancellationToken).Languages);
+	}
+
+	[Fact]
+	public void CarriesWhatAReferencedIncludeHoldsBesideItsFileName()
+	{
+		var reference = Reference(Support + """
+
+			[DotGram.Gram("Lexicon.gram")]
+			[DotGram.GramSource("Word = ['a'..'z']+")]
+			public class Lexicon;
+			""");
+		var tree = CSharpSyntaxTree.ParseText(
+			Support + """
+
+				[DotGram.Gram("using Lexicon;\nStart = Lexicon.Word\nparse Start")]
+				[DotGram.GramInclude(typeof(Lexicon))]
+				[DotGram.GramLanguage("derived")]
+				class DerivedParser;
+				""",
+			CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview),
+			cancellationToken: TestContext.Current.CancellationToken);
+		var compilation = CSharpCompilation.Create(
+			"Host",
+			[tree],
+			[MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location), reference]);
+
+		var included = Assert.Single(Assert.Single(DslLanguageDiscovery.Discover(compilation, TestContext.Current.CancellationToken).Languages).IncludedGrammars);
+
+		Assert.Equal(DslGrammarSourceKind.File, included.SourceKind);
+		Assert.Equal("Lexicon.gram", included.GrammarSource);
+		Assert.Equal("Word = ['a'..'z']+", included.PortableSource);
+	}
+
+	/// <summary>
+	/// The editor's passes, each with a new compilation: a reference is walked and its descriptor
+	/// decoded on the first, and the project walked again only where a grammar declaration changed.
+	/// </summary>
+	[Fact]
+	public async Task RepeatedPassesWalkAndDecodeOnce()
+	{
+		var cancellationToken = TestContext.Current.CancellationToken;
+
+		// Unique, so that no other test has decoded this descriptor already.
+		var grammar = $"// {Guid.NewGuid():N}\nStart = 'x'\nparse Start as Read";
+		var sourcePayload  = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(grammar));
+		var entriesPayload = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes("Read\tParse\tStart"));
+		var reference = Reference(Support + $$"""
+
+			[DotGram.GramLanguage("package.language")]
+			[DotGram.GramLanguageDescriptor(1, "package.language", "{{Hash(grammar)}}", "{{sourcePayload}}", "{{entriesPayload}}")]
+			public class PackagedParser;
+			""");
+		var workspace = new AdhocWorkspace();
+		var name      = "Passes" + Guid.NewGuid().ToString("N");
+		var project   = workspace.AddProject(ProjectInfo.Create(
+			ProjectId.CreateNewId(),
+			VersionStamp.Default,
+			name,
+			name,
+			LanguageNames.CSharp,
+			parseOptions: CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview),
+			metadataReferences: [MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location), reference]));
+		workspace.AddDocument(project.Id, "Support.cs", Microsoft.CodeAnalysis.Text.SourceText.From(Support));
+		var document = workspace.AddDocument(project.Id, "Consumer.cs", Microsoft.CodeAnalysis.Text.SourceText.From("class Consumer;"));
+
+		var first = await Pass(document);
+		Assert.Equal(new DslDiscoveryWork(SourceWalks: 1, ReferenceWalks: 2, DescriptorDecodes: 1), first.Work);
+		Assert.Equal("package.language", Assert.Single(first.Languages).Id);
+
+		const int passes = 5;
+		for (var pass = 0; pass < passes; pass++)
+		{
+			document = document.WithText(Microsoft.CodeAnalysis.Text.SourceText.From(
+				$"class Consumer {{ void Typed() {{ var x = {pass}; }} }}"));
+			var compilation = await document.Project.GetCompilationAsync(cancellationToken) ?? throw new InvalidOperationException();
+			var catalog     = DslLanguageDiscovery.Discover(compilation, cancellationToken);
+
+			Assert.Equal(default, catalog.Work);
+			var package = Assert.IsAssignableFrom<IAssemblySymbol>(compilation.GetAssemblyOrModuleSymbol(reference));
+			Assert.True(SymbolEqualityComparer.Default.Equals(
+				package.GetTypeByMetadataName("PackagedParser"),
+				Assert.Single(catalog.Languages).ParserType));
+		}
+
+		document = document.WithText(Microsoft.CodeAnalysis.Text.SourceText.From("""
+			[DotGram.Gram("Start = 'y'\nparse Start")]
+			[DotGram.GramLanguage("own")]
+			class Consumer;
+			"""));
+		var declared = await Pass(document);
+
+		Assert.Equal(new DslDiscoveryWork(SourceWalks: 1, ReferenceWalks: 0, DescriptorDecodes: 0), declared.Work);
+		Assert.Equal(new[] { "own", "package.language" }, declared.Languages.Select(static language => language.Id));
+
+		async Task<DslLanguageCatalog> Pass(Document current)
+		{
+			var compilation = await current.Project.GetCompilationAsync(cancellationToken) ?? throw new InvalidOperationException();
+			return DslLanguageDiscovery.Discover(compilation, cancellationToken);
+		}
+	}
+
 	static DslLanguageCatalog Discover(string source)
 	{
 		var tree = CSharpSyntaxTree.ParseText(

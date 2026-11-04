@@ -106,6 +106,37 @@ public sealed class DslGrammarSourceResolverTests
 			resolution.Text);
 	}
 
+	[Theory]
+	[InlineData(false)]
+	[InlineData(true)]
+	public async Task ReadsWhatAReferencedIncludeCarriesWhereItsFileIsNotInTheProject(bool file)
+	{
+		var project = file
+			? Project().AddAdditionalDocument("Lexicon.gram", SourceText.From("Word = ['x']+"), filePath: @"P:\Dsl\Lexicon.gram").Project
+			: Project();
+		var language = new DslLanguageDefinition(
+			"derived",
+			null!,
+			DslGrammarSourceKind.Embedded,
+			"using Lexicon;\nStart = Lexicon.Word\nparse Start",
+			[],
+			[],
+			[new DslIncludedGrammarDefinition(
+				"Lexicon",
+				DslGrammarSourceKind.File,
+				"Lexicon.gram",
+				"Word = ['a'..'z']+")]);
+
+		var resolution = await DslGrammarSourceResolver.ResolveAsync(
+			project,
+			language,
+			TestContext.Current.CancellationToken);
+
+		// The file first where there is one, as the generator reads it.
+		Assert.Equal(DslGrammarResolutionKind.Resolved, resolution.Kind);
+		Assert.Contains(file ? "Word = ['x']+" : "Word = ['a'..'z']+", resolution.Text);
+	}
+
 	static Project Project()
 	{
 		return new AdhocWorkspace().AddProject("Dsl", LanguageNames.CSharp);

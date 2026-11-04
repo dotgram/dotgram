@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
@@ -9,6 +11,8 @@ using System.Threading;
 using DotGram.Grammar;
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace DotGram.Language;
 
@@ -40,11 +44,18 @@ public sealed class DslRecognitionContractDefinition(
 public sealed class DslIncludedGrammarDefinition(
 	string name,
 	DslGrammarSourceKind sourceKind,
-	string grammarSource)
+	string grammarSource,
+	string? portableSource = null)
 {
 	public string Name { get; } = name;
 	public DslGrammarSourceKind SourceKind { get; } = sourceKind;
 	public string GrammarSource { get; } = grammarSource;
+
+	/// <summary>
+	/// What a class in a referenced assembly carries in <c>[GramSource]</c>: the grammar to read
+	/// where its <c>.gram</c> file is not in the project, as the generator reads it.
+	/// </summary>
+	public string? PortableSource { get; } = portableSource;
 }
 
 public sealed class DslLanguageDefinition(
@@ -81,16 +92,57 @@ public sealed class DslLanguageDefinition(
 public sealed class DslLanguageCatalog(IReadOnlyList<DslLanguageDefinition> languages)
 {
 	public IReadOnlyList<DslLanguageDefinition> Languages { get; } = languages;
+
+	/// <summary>
+	/// What building this catalog cost, for the tests that hold the session caches to it.
+	/// </summary>
+	internal DslDiscoveryWork Work { get; set; }
 }
+
+/// <summary>
+/// The work one discovery did rather than took from a cache.
+/// </summary>
+/// <param name="SourceWalks">Walks of the project's own types: one where its declarations changed, else none.</param>
+/// <param name="ReferenceWalks">References whose types were walked: each one once a session.</param>
+/// <param name="DescriptorDecodes">Descriptors decoded and hashed: each distinct one once a session.</param>
+readonly record struct DslDiscoveryWork(int SourceWalks, int ReferenceWalks, int DescriptorDecodes);
 
 /// <summary>
 /// Discovers generated-language declarations from Roslyn symbols without loading the
 /// consumer assembly or relying on the spelling used at an attribute site.
 /// </summary>
+/// <remarks>
+/// <para>
+/// The editor asks on every pause in typing, and every pause brings a new compilation, so a
+/// cache keyed by the compilation alone answers only within one pass. What is kept across
+/// passes is what a pass would otherwise walk again: for each reference, which of its types
+/// are hosts, once a session; for the project, which of its types are, until a file that
+/// declares grammar attributes changes; and every descriptor decoded, by its contents. The
+/// definitions themselves are built again on every pass from the new compilation's symbols,
+/// which is a handful of attribute reads, so nothing of an old compilation is held.
+/// </para>
+/// <para>
+/// A host in a referenced assembly is read from the descriptor the generator wrote on it
+/// and from nothing else. Its <c>[Gram]</c> names a file of the project that built it, and
+/// looking for that name among this project's files finds nothing, or finds a file of the
+/// same name that is some other grammar.
+/// </para>
+/// </remarks>
 public static class DslLanguageDiscovery
 {
 	static readonly ConditionalWeakTable<Compilation, DslLanguageCatalog> Cache = new();
 	static readonly object CacheGate = new();
+
+	static readonly ConditionalWeakTable<object, ReferenceHosts> ReferenceCache = new();
+	static readonly ConditionalWeakTable<SyntaxTree, TreeRelevance> TreeCache = new();
+	static readonly Dictionary<string, SourceHosts> SourceCache = new(StringComparer.Ordinal);
+	static readonly Dictionary<string, DecodedDescriptor> DescriptorCache = new(StringComparer.Ordinal);
+
+	/// <summary>
+	/// How many distinct descriptors are kept decoded. A session sees a few dozen at most; a
+	/// cache this full has been fed by something else and starts again.
+	/// </summary>
+	const int DescriptorCacheLimit = 256;
 
 	const string GramAttribute                 = "DotGram.GramAttribute";
 	const string GramIncludeAttribute          = "DotGram.GramIncludeAttribute";
@@ -134,69 +186,329 @@ public static class DslLanguageDiscovery
 		Compilation compilation,
 		CancellationToken cancellationToken)
 	{
-
-		var assemblies = new List<IAssemblySymbol> { compilation.Assembly };
-		assemblies.AddRange(compilation.References
-			.Select(compilation.GetAssemblyOrModuleSymbol)
-			.OfType<IAssemblySymbol>()
-			.Where(HasDescriptorMarker));
-		var types = assemblies
-			.SelectMany(assembly => Types(assembly.GlobalNamespace, cancellationToken))
-			.ToArray();
+		var work      = new Work();
 		var languages = new List<DslLanguageDefinition>();
 
-		foreach (var type in types)
+		foreach (var host in SourceHostTypes(compilation, work, cancellationToken))
+			if (Define(host, compilation.Assembly, work) is { } language)
+				languages.Add(language);
+
+		var seen = new HashSet<IAssemblySymbol>(SymbolEqualityComparer.Default) { compilation.Assembly };
+		foreach (var reference in compilation.References)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 
-			var languageAttribute = type.GetAttributes().FirstOrDefault(IsLanguageAttribute);
-			var grammarAttribute  = PrimaryGramAttribute(type.GetAttributes());
-			var descriptor = Descriptor(type);
-			if (languageAttribute is null || grammarAttribute is null && descriptor is null ||
-				languageAttribute.ConstructorArguments is not [{ Value: string id }] ||
-				string.IsNullOrWhiteSpace(id))
-				continue;
-			if (descriptor is not null && descriptor.LanguageId != id)
-				descriptor = null;
-			if (grammarAttribute is null && descriptor is null)
+			if (compilation.GetAssemblyOrModuleSymbol(reference) is not IAssemblySymbol assembly ||
+				!seen.Add(assembly))
 				continue;
 
-			var grammar = grammarAttribute is not null
-				? Grammar(type, grammarAttribute)
-				: descriptor is { } generated
-					? (DslGrammarSourceKind.Embedded, generated.Source)
-					: null;
-			if (grammar is null)
-				continue;
-
-			var classifications = type.GetAttributes()
-				.Where(IsClassificationAttribute)
-				.Select(ClassificationDefinition)
-				.Where(static item => item is not null)
-				.Cast<DslClassificationDefinition>()
-				.ToArray();
-			if (classifications.Length == 0 && descriptor is not null)
-				classifications = descriptor.Classifications.ToArray();
-			var recognitionContract = RecognitionContract(type);
-			if (recognitionContract.Guards.Count == 0 && recognitionContract.Externals.Count == 0 &&
-				descriptor is not null)
-				recognitionContract = descriptor.RecognitionContract;
-
-			languages.Add(new DslLanguageDefinition(
-				id,
-				type,
-				grammar.Value.Kind,
-				grammar.Value.Source,
-				Extensions(languageAttribute),
-				classifications,
-				grammarAttribute is null ? [] : IncludedGrammars(type),
-				descriptor?.FormatVersion ?? 0,
-				descriptor?.GrammarHash,
-				descriptor?.Entries,
-				recognitionContract));
+			foreach (var host in ReferenceHostTypes(compilation, reference, assembly, work, cancellationToken))
+				if (Define(host, null, work) is { } language)
+					languages.Add(language);
 		}
 
-		return new DslLanguageCatalog(languages);
+		return new DslLanguageCatalog(languages)
+		{
+			Work = new DslDiscoveryWork(work.SourceWalks, work.ReferenceWalks, work.DescriptorDecodes),
+		};
+	}
+
+	/// <summary>
+	/// One host as a language, read from the symbol in hand.
+	/// </summary>
+	/// <param name="source">
+	/// The compilation's own assembly where the host is in source; null where it is in a
+	/// reference, which is then read from its descriptor alone.
+	/// </param>
+	static DslLanguageDefinition? Define(INamedTypeSymbol type, IAssemblySymbol? source, Work work)
+	{
+		var attributes        = type.GetAttributes();
+		var languageAttribute = attributes.FirstOrDefault(IsLanguageAttribute);
+		if (languageAttribute is null ||
+			languageAttribute.ConstructorArguments is not [{ Value: string id }] ||
+			string.IsNullOrWhiteSpace(id))
+			return null;
+
+		var grammarAttribute = source is null ? null : PrimaryGramAttribute(attributes);
+		var descriptor       = Descriptor(attributes, work);
+		if (descriptor is not null && descriptor.LanguageId != id)
+			descriptor = null;
+		if (grammarAttribute is null && descriptor is null)
+			return null;
+
+		var grammar = grammarAttribute is not null
+			? Grammar(type, grammarAttribute)
+			: (Kind: DslGrammarSourceKind.Embedded, Source: descriptor!.Source);
+		if (grammar is null)
+			return null;
+
+		var classifications = attributes
+			.Where(IsClassificationAttribute)
+			.Select(ClassificationDefinition)
+			.Where(static item => item is not null)
+			.Cast<DslClassificationDefinition>()
+			.ToArray();
+		if (classifications.Length == 0 && descriptor is not null)
+			classifications = descriptor.Classifications.ToArray();
+		var recognitionContract = RecognitionContract(attributes);
+		if (recognitionContract.Guards.Count == 0 && recognitionContract.Externals.Count == 0 &&
+			descriptor is not null)
+			recognitionContract = descriptor.RecognitionContract;
+
+		return new DslLanguageDefinition(
+			id,
+			type,
+			grammar.Value.Kind,
+			grammar.Value.Source,
+			Extensions(languageAttribute),
+			classifications,
+			grammarAttribute is null ? [] : IncludedGrammars(type, source!),
+			descriptor?.FormatVersion ?? 0,
+			descriptor?.GrammarHash,
+			descriptor?.Entries,
+			recognitionContract);
+	}
+
+	/// <summary>
+	/// The project's own hosts: walked where a file that declares grammar attributes changed,
+	/// and otherwise the ones the last walk found, looked up in the new compilation.
+	/// </summary>
+	static IReadOnlyList<INamedTypeSymbol> SourceHostTypes(
+		Compilation compilation,
+		Work work,
+		CancellationToken cancellationToken)
+	{
+		var relevant  = new List<SyntaxTree>();
+		var cacheable = true;
+		foreach (var tree in compilation.SyntaxTrees)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+
+			var relevance = TreeCache.GetValue(tree, Relevance);
+			if (relevance.Declares)
+				relevant.Add(tree);
+			if (relevance.GlobalAlias)
+				cacheable = false;
+		}
+
+		var key = compilation.AssemblyName ?? "";
+		if (cacheable)
+		{
+			SourceHosts? entry;
+			lock (CacheGate)
+				SourceCache.TryGetValue(key, out entry);
+
+			if (entry is not null && entry.Trees.Length == relevant.Count &&
+				entry.Trees.Zip(relevant, static (left, right) => ReferenceEquals(left, right)).All(static same => same) &&
+				Resolve(compilation.Assembly, entry.Names) is { } found)
+				return found;
+		}
+
+		work.SourceWalks++;
+		var hosts = Types(compilation.Assembly.GlobalNamespace, cancellationToken)
+			.Where(static type => type.GetAttributes().Any(IsLanguageAttribute))
+			.ToArray();
+
+		if (cacheable)
+		{
+			var names = hosts.Select(MetadataName).ToArray();
+			lock (CacheGate)
+				SourceCache[key] = new SourceHosts([.. relevant], names);
+		}
+
+		return hosts;
+	}
+
+	/// <summary>
+	/// A reference's hosts: walked the first time the reference is seen and looked up by name
+	/// after that, in whichever compilation asks.
+	/// </summary>
+	static IReadOnlyList<INamedTypeSymbol> ReferenceHostTypes(
+		Compilation compilation,
+		MetadataReference reference,
+		IAssemblySymbol assembly,
+		Work work,
+		CancellationToken cancellationToken)
+	{
+		var key     = ReferenceKey(reference);
+		var options = compilation.Options.MetadataImportOptions;
+		if (key is not null)
+		{
+			ReferenceHosts? entry;
+			lock (CacheGate)
+				ReferenceCache.TryGetValue(key, out entry);
+
+			if (entry is not null && entry.Options == options &&
+				Resolve(assembly, entry.Names) is { } found)
+				return found;
+		}
+
+		work.ReferenceWalks++;
+		var hosts = HasDescriptorMarker(assembly)
+			? Types(assembly.GlobalNamespace, cancellationToken)
+				.Where(static type => type.GetAttributes().Any(IsLanguageAttribute))
+				.ToArray()
+			: [];
+
+		if (key is not null)
+		{
+			var names = hosts.Select(MetadataName).ToArray();
+			lock (CacheGate)
+			{
+				ReferenceCache.Remove(key);
+				ReferenceCache.Add(key, new ReferenceHosts(options, names));
+			}
+		}
+
+		return hosts;
+	}
+
+	/// <summary>
+	/// What stays the same while a reference does: the metadata a file reference was read
+	/// into, or the compilation a project reference stands for. Null where neither is in
+	/// reach, and such a reference is walked every time.
+	/// </summary>
+	static object? ReferenceKey(MetadataReference reference)
+	{
+		switch (reference)
+		{
+			case CompilationReference compilationReference:
+				return compilationReference.Compilation;
+
+			case PortableExecutableReference portable:
+				try
+				{
+					return portable.GetMetadataId();
+				}
+				catch (Exception exception) when (exception is IOException or BadImageFormatException or UnauthorizedAccessException)
+				{
+					return null;
+				}
+
+			default:
+				return null;
+		}
+	}
+
+	/// <summary>
+	/// The types named, from <paramref name="assembly"/>; null where one of them is no longer
+	/// there, which sends the caller back to walking.
+	/// </summary>
+	static INamedTypeSymbol[]? Resolve(IAssemblySymbol assembly, string[] names)
+	{
+		var types = new INamedTypeSymbol[names.Length];
+		for (var index = 0; index < names.Length; index++)
+		{
+			if (assembly.GetTypeByMetadataName(names[index]) is not { } type)
+				return null;
+
+			types[index] = type;
+		}
+
+		return types;
+	}
+
+	static string MetadataName(INamedTypeSymbol type)
+	{
+		var name = type.MetadataName;
+		for (var outer = type.ContainingType; outer is not null; outer = outer.ContainingType)
+			name = outer.MetadataName + "+" + name;
+		for (var space = type.ContainingNamespace; space is { IsGlobalNamespace: false }; space = space.ContainingNamespace)
+			name = space.MetadataName + "." + name;
+
+		return name;
+	}
+
+	/// <summary>
+	/// Whether a file can change which of the project's types are hosts or what they say: it
+	/// declares a type or applies an attribute whose name starts with <c>Gram</c>, or names one
+	/// through an alias. Read from the declarations only, never from a member's body, and once
+	/// per tree. An edit makes a new tree, so an edit to a file that declares any of them,
+	/// before or after, is a walk wherever in the file it is, and an edit to any other is not.
+	/// </summary>
+	/// <remarks>
+	/// A global alias can rename a grammar attribute for every other file, which no reading of
+	/// one file can see; a project that has one is walked on every pass.
+	/// </remarks>
+	static TreeRelevance Relevance(SyntaxTree tree)
+	{
+		var declares    = false;
+		var globalAlias = false;
+		var pending     = new Stack<SyntaxNode>();
+		pending.Push(tree.GetRoot());
+
+		while (pending.Count > 0)
+		{
+			var node = pending.Pop();
+
+			if (node is UsingDirectiveSyntax { Alias: not null } alias)
+			{
+				if (alias.NamespaceOrType.ToString().IndexOf("Gram", StringComparison.Ordinal) >= 0)
+				{
+					declares     = true;
+					globalAlias |= alias.GlobalKeyword.IsKind(SyntaxKind.GlobalKeyword);
+				}
+
+				continue;
+			}
+
+			if (node is AttributeSyntax attribute)
+			{
+				declares |= SimpleName(attribute.Name).StartsWith("Gram", StringComparison.Ordinal);
+				continue;
+			}
+
+			if (node is BaseTypeDeclarationSyntax type)
+				declares |= type.Identifier.ValueText.StartsWith("Gram", StringComparison.Ordinal);
+
+			if (node is CompilationUnitSyntax or BaseNamespaceDeclarationSyntax or BaseTypeDeclarationSyntax or AttributeListSyntax)
+				foreach (var child in node.ChildNodes())
+					pending.Push(child);
+		}
+
+		return new TreeRelevance(declares, globalAlias);
+	}
+
+	static string SimpleName(NameSyntax name)
+	{
+		return name switch
+		{
+			QualifiedNameSyntax qualified    => qualified.Right.Identifier.ValueText,
+			AliasQualifiedNameSyntax aliased => aliased.Name.Identifier.ValueText,
+			SimpleNameSyntax simple          => simple.Identifier.ValueText,
+			_                                => "",
+		};
+	}
+
+	sealed class Work
+	{
+		public int SourceWalks;
+		public int ReferenceWalks;
+		public int DescriptorDecodes;
+	}
+
+	sealed class TreeRelevance(bool declares, bool globalAlias)
+	{
+		public bool Declares    { get; } = declares;
+		public bool GlobalAlias { get; } = globalAlias;
+	}
+
+	sealed class SourceHosts(SyntaxTree[] trees, string[] names)
+	{
+		public SyntaxTree[] Trees { get; } = trees;
+		public string[]     Names { get; } = names;
+	}
+
+	sealed class ReferenceHosts(MetadataImportOptions options, string[] names)
+	{
+		public MetadataImportOptions Options { get; } = options;
+		public string[]              Names   { get; } = names;
+	}
+
+	sealed class DecodedDescriptor(object?[] arguments, GeneratedDescriptor? descriptor)
+	{
+		public object?[]            Arguments  { get; } = arguments;
+		public GeneratedDescriptor? Descriptor { get; } = descriptor;
 	}
 
 	sealed class GeneratedDescriptor(
@@ -217,11 +529,39 @@ public static class DslLanguageDiscovery
 		public DslRecognitionContractDefinition RecognitionContract { get; } = recognitionContract;
 	}
 
-	static GeneratedDescriptor? Descriptor(INamedTypeSymbol type)
+	/// <summary>
+	/// The descriptor among a host's attributes, decoded once for every distinct one: a
+	/// reference's hosts are read on every pass, and their payloads are what costs.
+	/// </summary>
+	static GeneratedDescriptor? Descriptor(ImmutableArray<AttributeData> attributes, Work work)
 	{
-		var attribute = type.GetAttributes().FirstOrDefault(IsDescriptorAttribute);
-		if (attribute?.ConstructorArguments is not { } arguments ||
-			arguments.Length is not (5 or 6 or 7) ||
+		var attribute = attributes.FirstOrDefault(IsDescriptorAttribute);
+		if (attribute?.ConstructorArguments is not { Length: >= 3 } arguments ||
+			arguments[2].Value is not string key)
+			return null;
+
+		var values = arguments.Select(static argument => argument.Value).ToArray();
+		lock (CacheGate)
+			if (DescriptorCache.TryGetValue(key, out var cached) && cached.Arguments.SequenceEqual(values))
+				return cached.Descriptor;
+
+		work.DescriptorDecodes++;
+		var decoded = Decode(arguments);
+
+		lock (CacheGate)
+		{
+			if (DescriptorCache.Count >= DescriptorCacheLimit)
+				DescriptorCache.Clear();
+
+			DescriptorCache[key] = new DecodedDescriptor(values, decoded);
+		}
+
+		return decoded;
+	}
+
+	static GeneratedDescriptor? Decode(ImmutableArray<TypedConstant> arguments)
+	{
+		if (arguments.Length is not (5 or 6 or 7) ||
 			arguments[0].Value is not int formatVersion ||
 			formatVersion != arguments.Length - 4 ||
 			arguments[1].Value is not string languageId ||
@@ -277,10 +617,10 @@ public static class DslLanguageDiscovery
 			recognitionContract);
 	}
 
-	static DslRecognitionContractDefinition RecognitionContract(INamedTypeSymbol type)
+	static DslRecognitionContractDefinition RecognitionContract(ImmutableArray<AttributeData> attributes)
 	{
 		var lines = new List<string>();
-		foreach (var attribute in type.GetAttributes())
+		foreach (var attribute in attributes)
 		{
 			if (IsAttributeType(attribute.AttributeClass, ToolingGuardAttribute) &&
 				attribute.ConstructorArguments is [{ Value: string expression }, { Value: bool accepted }])
@@ -372,7 +712,14 @@ public static class DslLanguageDiscovery
 			: (DslGrammarSourceKind.Embedded, source);
 	}
 
-	static IReadOnlyList<DslIncludedGrammarDefinition> IncludedGrammars(INamedTypeSymbol parserType)
+	/// <param name="source">
+	/// The compilation's own assembly. A class from anywhere else carries its grammar in
+	/// <c>[GramSource]</c>, which is read where its file is not in the project, as the generator
+	/// reads it.
+	/// </param>
+	static IReadOnlyList<DslIncludedGrammarDefinition> IncludedGrammars(
+		INamedTypeSymbol parserType,
+		IAssemblySymbol source)
 	{
 		var included = new List<DslIncludedGrammarDefinition>();
 		var seen = new HashSet<string>(StringComparer.Ordinal) { parserType.ToDisplayString() };
@@ -397,7 +744,13 @@ public static class DslLanguageDiscovery
 			if (!IsIdentifier(name))
 				continue;
 
-			included.Add(new DslIncludedGrammarDefinition(name, grammar.Kind, grammar.Source));
+			var portable = SymbolEqualityComparer.Default.Equals(current.ContainingAssembly, source)
+				? null
+				: current.GetAttributes()
+					.FirstOrDefault(static candidate =>
+						candidate.AttributeClass?.ToDisplayString() == GramIncludes.GramSourceAttribute)?
+					.ConstructorArguments.FirstOrDefault().Value as string;
+			included.Add(new DslIncludedGrammarDefinition(name, grammar.Kind, grammar.Source, portable));
 		}
 
 		return included;
