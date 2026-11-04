@@ -382,12 +382,18 @@ ValueFunction : @Ast.Expression
                    new Build.Values.Call(name, SqlList.Own(Build.Rules.Tailed(args ?? [], model)), Syntax.Distinctly(quantifier)), tail))
     // `TRIM`'s own shape reads its head once (`TrimHead`): a specification, the characters and the
     // `FROM` where they were written. Where no `FROM` stands, the characters are the only argument
-    // or the first of a call's, and a specification with no `FROM` after it is a column's name
-    // there, `TRIM (LEADING)`, as it always was.
+    // or the first of a call's.
+    //
+    // **A specification is followed by its `FROM`**, from level 160, where the words are the
+    // specification's: `TRIM (LEADING)`, `TRIM (LEADING + 1)` and `TRIM (BOTH, 1)` are `Msg 102`
+    // at 170, and they were read here as a call over a column named `LEADING`. Read so, the
+    // specification's characters were read twice, once as what it trims and once as that column's
+    // sum, and `TRIM (LEADING + TRIM (LEADING + …` nested n deep cost 2^n. Below 160 the words are
+    // names, and are read as any.
     | name: "TRIM"i & '(' & head: TrimHead?
       & switch @(head is null ? 0 : head.From is not null ? 2 : 1)
         {
-            case 0: quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
+            case 0: ?!TSqlTrimSpecification & quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
             case 1: close: ')'? & switch @(close is not null ? 1 : head!.What!.Plain ? 0 : 2) { case 0: more: CallRest  case 1: none  default: when @(false) }
             case 2: v: TSqlValueExpression & ')'
         }
@@ -967,13 +973,11 @@ Argument : @Ast.Expression
 	| v: TSqlValueExpression => @(v)
 
 // What `TRIM (` begins with, up to its `FROM`: a specification and the characters, the characters
-// alone, or nothing — or the characters and no `FROM`, the call's first argument, where a word
-// of the specification with no `FROM` after it is a column's name. One rule, so that what may
-// stand after the bracket is asked for at once.
+// alone, or nothing — or the characters and no `FROM`, the call's first argument. One rule, so
+// that what may stand after the bracket is asked for at once.
 TrimHead : @Build.Values.TrimHead
 	= how: TSqlTrimSpecification & what: CallItem? & from: "FROM"i => @(new Build.Values.TrimHead(how, what, from))
 	| ?!TSqlTrimSpecification & what: CallItem & from: "FROM"i?    => @(new Build.Values.TrimHead(null, what, from))
-	| what: CallItem                                               => @(new Build.Values.TrimHead(null, what, null))
 	| from: "FROM"i                                                => @(new Build.Values.TrimHead(null, null, from))
 
 // An argument a named function reads as a value, and whether `FunctionCall` would read the same.
