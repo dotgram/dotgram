@@ -1571,8 +1571,17 @@ public static partial class SqlWriter
 							break;
 						}
 
-						if (cast.Value is not LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.Escaped or StringLiteralKind.Dollar, CharacterSet: null } typed)
+						if (cast.Value is not LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.Escaped or StringLiteralKind.Dollar or StringLiteralKind.Unicode, CharacterSet: null } typed)
 							throw Misplaced(cast, "Value", "other than a plain string on a typed literal, which is a type and a string");
+
+						// `INTERVAL E'1' DAY`: the qualifier stands after the string, as the interval literal's does.
+						if (cast.Target is DataType.Interval { Qualifier: { } typedQualifier, Precision: null })
+						{
+							Word("INTERVAL");
+							PutLiteral(typed);
+							PutQualifier(typedQualifier);
+							break;
+						}
 
 						PutType(cast.Target);
 						PutLiteral(typed);
