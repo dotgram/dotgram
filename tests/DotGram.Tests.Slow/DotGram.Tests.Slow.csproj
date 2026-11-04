@@ -72,6 +72,8 @@
 		     the source while reading the copy would hold a run against the wrong file. It needs the
 		     source tree anyway, since tests/Corpus/ScriptDom is not copied either. -->
 		<Compile Include="..\..\benchmarks\DotGram.Benchmarks\CorpusRoundTrip.cs" Link="Shared\CorpusRoundTrip.cs" />
+		<!-- PostgreSQL's regression suite the same way: PgCorpusRoundTripTests holds the cutter and the reading to a baseline. -->
+		<Compile Include="..\..\benchmarks\DotGram.Benchmarks\PgCorpus.cs" Link="Shared\PgCorpus.cs" />
 	</ItemGroup>
 
 </Project>

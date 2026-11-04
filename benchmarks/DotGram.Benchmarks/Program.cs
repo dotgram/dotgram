@@ -805,6 +805,18 @@ static class Program
 			return;
 		}
 
+		// `--pg-corpus <dir> [groups] [each]`: PostgreSQL's regression suite, cut as psql cuts it and read by
+		// PostgreSqlParser; the four cells per file and the refusals by the statement's first words. See PgCorpus.cs.
+		if (args.Length >= 2 && args[0] == "--pg-corpus")
+		{
+			PgCorpus.Report(
+				args[1],
+				args.Length >= 3 && int.TryParse(args[2], out var groups) ? groups : 12,
+				args.Length >= 4 && int.TryParse(args[3], out var each) ? each : 3);
+
+			return;
+		}
+
 		if (args.Length >= 1 && args[0] == "--ladders")
 		{
 			Ladders.Run(args.Length >= 2 && int.TryParse(args[1], out var over) ? over : 401);

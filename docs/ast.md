@@ -1106,6 +1106,7 @@ it. The families stand in alphabetical order, each family's records in the order
 | `TableSource.RowPatternRecognition` | SQL:2023 | &lt;row pattern recognition clause&gt; after a table primary, 't MATCH_RECOGNIZE (…) AS m' |
 | `TableSource.JsonTable` | SQL:2023 | under &lt;table reference&gt;, &lt;table factor&gt;, &lt;table primary&gt;, &lt;joined table&gt;, derived/collection/function/JSON tables |
 | `TableSource.DataChange` | T-SQL | INSERT (Transact-SQL) |
+| `TableSource.RowsFrom` | PostgreSQL | SELECT |
 | `TableSource.Parenthesized` | SQL:2023 | under &lt;table reference&gt;, &lt;table factor&gt;, &lt;table primary&gt;, &lt;joined table&gt;, derived/collection/function/JSON tables |
 | `TableSource.Extension` | T-SQL | none: a construct a dialect reads and the tree has no place for yet, said by Dialect and Kind |
 | `TableSource.Pivot` | T-SQL | FROM clause plus JOIN, APPLY, PIVOT (T-SQL) |

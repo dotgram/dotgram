@@ -41,7 +41,8 @@ public static partial class SqlWriter
 
 			if (query is Query.Parenthesized parenthesized)
 			{
-				if (parenthesized.Query.With is not null)
+				// PostgreSQL's select_with_parens holds a whole select_no_parens, WITH included.
+				if (parenthesized.Query.With is not null && !postgreSql)
 					throw Misplaced(parenthesized.Query, "With", "inside the brackets of a query, which take no WITH");
 
 				Open();
@@ -96,7 +97,15 @@ public static partial class SqlWriter
 				if (locking.Of.Count > 0)
 				{
 					Word("OF");
-					Each(locking.Of, PutIdentifier);
+					Each(locking.Of, PutName);
+				}
+
+				if (locking.Wait is { } wait)
+				{
+					if (!postgreSql)
+						throw Misplaced(locking, "Wait", "which only PostgreSQL reads, NOWAIT and SKIP LOCKED");
+
+					Word(wait switch { LockWait.NoWait => "NOWAIT", LockWait.SkipLocked => "SKIP LOCKED", _ => throw NoText(wait) });
 				}
 			}
 		}
@@ -189,7 +198,8 @@ public static partial class SqlWriter
 		// not there, rather than dropped.
 		void PutLimit(Limit limit)
 		{
-			var fetched = limit.Count is not null || limit.FetchRowWord is not null;
+			var limited = limit.LimitKeyword || limit.LimitAll;
+			var fetched = limit.Count is not null || limit.FetchRowWord is not null || limited;
 
 			if (!fetched && limit.Offset is null)
 				throw Empty(limit, "Offset", "Count", "FetchRowWord");
@@ -200,26 +210,82 @@ public static partial class SqlWriter
 			if (limit.Offset is null && limit.OffsetRowWord is not null)
 				throw Misplaced(limit, "OffsetRowWord", "without an Offset, which alone writes it");
 
-			if (limit.Offset is { } offset)
+			// PostgreSQL's LIMIT: the count or ALL, and none of FETCH's words; its OFFSET may follow the count, and may stand without ROWS.
+			if (limited && !postgreSql)
+				throw Misplaced(limit, "LimitKeyword", "or LimitAll, which only PostgreSQL writes; the standard's count is FETCH FIRST n ROWS ONLY");
+
+			if (limited && (limit.Percent || limit.WithTies || limit.FetchRowWord is not null || limit.Position != FetchPosition.First))
+				throw Misplaced(limit, "Percent, WithTies, FetchRowWord or Position", "with LIMIT, which FETCH alone writes");
+
+			if (limit.LimitAll && limit.Count is not null)
+				throw Both(limit, "LimitAll", "Count");
+
+			if (limit.OffsetAfter && !postgreSql)
+				throw Misplaced(limit, "OffsetAfter", "which only PostgreSQL reads; the standard's OFFSET stands first");
+
+			if (limit.OffsetAfter && (limit.Offset is null || !fetched))
+				throw Misplaced(limit, "OffsetAfter", "without an Offset and a count for it to stand after");
+
+			if (limit.Offset is { } offset && !limit.OffsetAfter)
+				PutOffset(limit, offset);
+
+			if (fetched)
 			{
-				Word("OFFSET");
-				PutExpression(offset);
-				Word(RowText(limit.OffsetRowWord));
+				if (limited)
+				{
+					Word("LIMIT");
+
+					if (limit.LimitAll)
+						Word("ALL");
+					else
+						PutExpression(limit.Count!);
+				}
+				else
+				{
+					Word(limit.Position switch { FetchPosition.First => "FETCH FIRST", FetchPosition.Next => "FETCH NEXT", _ => throw NoText(limit.Position) });
+
+					// PostgreSQL's FETCH count is a primary or a signed number (select_fetch_first_value), never a larger expression.
+					if (limit.Count is { } count)
+						PutFetchValue(count);
+
+					if (limit.Percent)
+						Word("PERCENT");
+
+					Word(RowText(limit.FetchRowWord));
+					Word(limit.WithTies ? "WITH TIES" : "ONLY");
+				}
 			}
 
-			if (!fetched)
+			if (limit.Offset is { } after && limit.OffsetAfter)
+				PutOffset(limit, after);
+		}
+
+		/// <summary>OFFSET and its value: with ROW or ROWS where the word was written, and in PostgreSQL without where it was not.</summary>
+		void PutOffset(Limit limit, Expression offset)
+		{
+			Word("OFFSET");
+
+			if (limit.OffsetRowWord is null && postgreSql)
+			{
+				PutExpression(offset);
 				return;
+			}
 
-			Word(limit.Position switch { FetchPosition.First => "FETCH FIRST", FetchPosition.Next => "FETCH NEXT", _ => throw NoText(limit.Position) });
+			if (postgreSql)
+				PutFetchValue(offset);
+			else
+				PutExpression(offset);
 
-			if (limit.Count is { } count)
-				PutExpression(count);
+			Word(RowText(limit.OffsetRowWord));
+		}
 
-			if (limit.Percent)
-				Word("PERCENT");
-
-			Word(RowText(limit.FetchRowWord));
-			Word(limit.WithTies ? "WITH TIES" : "ONLY");
+		/// <summary>A FETCH count, or an OFFSET with ROWS: in PostgreSQL a primary or a signed number, so anything else is bracketed.</summary>
+		void PutFetchValue(Expression value)
+		{
+			if (postgreSql && value is not Expression.Unary { Operator: UnaryOperator.Minus or UnaryOperator.Plus, Operand: LiteralValue.Numeric })
+				PutOperand(value, Tightness.Primary);
+			else
+				PutExpression(value);
 		}
 
 		/// <summary>ROW or ROWS; a word left out is ROWS.</summary>
@@ -280,10 +346,18 @@ public static partial class SqlWriter
 				return;
 			}
 
-			if (query.Table && Explicit(query) is { } table)
+			if (query.Table && Explicit(query, postgreSql) is { } table)
 			{
 				Word("TABLE");
-				PutName(table);
+
+				// PostgreSQL's TABLE takes a relation_expr: ONLY and the inheritance star stand with the name.
+				if (table.Only)
+					Word("ONLY");
+
+				PutName(table.Name);
+
+				if (table.Star)
+					Word("*");
 
 				return;
 			}
@@ -398,7 +472,8 @@ public static partial class SqlWriter
 
 		// The table of `TABLE t` where the query is still exactly `SELECT * FROM t`; null where it has
 		// been changed into anything more, which is then written in full rather than lost.
-		static QualifiedName? Explicit(Query.Select query)
+		/// <summary>The one table of a query that is `SELECT * FROM t` and nothing else; with ONLY or the star where the reading takes a relation there (PostgreSQL).</summary>
+		static TableSource.Named? Explicit(Query.Select query, bool relation)
 		{
 			if (query is not { Columns: [SelectColumn.All], From.Sources: [TableSource.Named { Hints.Count: 0 } named], Top: null, Quantifier: null, Into: null, IntoTable: null, Where: null, GroupBy: null, Having: null, Window: null })
 				return null;
@@ -407,8 +482,9 @@ public static partial class SqlWriter
 			// the depth the caller last checked, so on a deep tree it could throw where the writer would
 			// otherwise hand the walk to a fresh stack.
 			return named.GetType() == typeof(TableSource.Named)
-				&& named is { Sample: null, SystemTime: null, Alias: null, Only: false, DataSource: null, ForPath: false }
-				? named.Name
+				&& named is { Sample: null, SystemTime: null, Alias: null, DataSource: null, ForPath: false }
+				&& (relation || named is { Only: false, Star: false })
+				? named
 				: null;
 		}
 
@@ -422,7 +498,8 @@ public static partial class SqlWriter
 				Each(row.Items, PutExpression);
 				Close();
 			}
-			else if (row.Items.Count == 1)
+			// The standard writes a row of one value bare; PostgreSQL's VALUES takes rows in brackets only.
+			else if (row.Items.Count == 1 && !postgreSql)
 				PutExpression(row.Items[0]);
 			else
 			{
@@ -555,6 +632,15 @@ public static partial class SqlWriter
 				}
 
 				Word("AS");
+
+				if (common.Materialized is { } materialized)
+				{
+					if (!postgreSql)
+						throw Misplaced(common, "Materialized", "which only PostgreSQL reads, AS [NOT] MATERIALIZED");
+
+					Word(materialized ? "MATERIALIZED" : "NOT MATERIALIZED");
+				}
+
 				PutSubquery(common.Query);
 
 				if (common.Search is { } search)
@@ -1214,6 +1300,14 @@ public static partial class SqlWriter
 					break;
 
 				case TableSource.Unnest unnest:
+					if (unnest.Lateral)
+					{
+						if (!postgreSql)
+							throw Misplaced(unnest, "Lateral", "which only PostgreSQL reads before unnest");
+
+						Word("LATERAL");
+					}
+
 					Word("UNNEST");
 					Call();
 					Each(unnest.Expressions, PutExpression);
@@ -1248,9 +1342,82 @@ public static partial class SqlWriter
 						Close();
 					}
 					else
+					{
+						// PostgreSQL's LATERAL, WITH ORDINALITY and column definition list (func_table, func_alias_clause).
+						if (function.Lateral)
+						{
+							if (!postgreSql)
+								throw Misplaced(function, "Lateral", "which only PostgreSQL reads before a function in FROM");
+
+							Word("LATERAL");
+						}
+
 						PutExpression(function.Invocation);
+
+						if (function.WithOrdinality)
+						{
+							if (!postgreSql)
+								throw Misplaced(function, "WithOrdinality", "which only PostgreSQL reads after a function in FROM");
+
+							Word("WITH ORDINALITY");
+						}
+
+						if (function.ColumnDefinitions is { } definitions)
+						{
+							if (!postgreSql)
+								throw Misplaced(function, "ColumnDefinitions", "which only PostgreSQL reads after a function in FROM");
+
+							if (function.Alias is { Columns: not null })
+								throw Both(function, "ColumnDefinitions", "Alias.Columns");
+
+							if (definitions.Count == 0)
+								throw Empty(function, "ColumnDefinitions");
+
+							if (function.Alias is { } named)
+								PutAlias(named);
+							else
+								Word("AS");
+
+							PutFieldDefinitions(definitions);
+							break;
+						}
+					}
+
 					tableFunction = false;
 					PutAlias(function.Alias);
+					break;
+
+				case TableSource.RowsFrom rows:
+					if (!postgreSql)
+						throw Misplaced(rows, "Items", "that only PostgreSQL reads: ROWS FROM (…)");
+
+					if (rows.Items.Count == 0)
+						throw Empty(rows, "Items");
+
+					if (rows.Lateral)
+						Word("LATERAL");
+
+					Word("ROWS FROM");
+					Open();
+					Each(rows.Items, item =>
+					{
+						PutExpression(item.Invocation);
+
+						if (item.ColumnDefinitions is { } itemDefinitions)
+						{
+							if (itemDefinitions.Count == 0)
+								throw Empty(item, "ColumnDefinitions");
+
+							Word("AS");
+							PutFieldDefinitions(itemDefinitions);
+						}
+					});
+					Close();
+
+					if (rows.WithOrdinality)
+						Word("WITH ORDINALITY");
+
+					PutAlias(rows.Alias);
 					break;
 
 				case TableSource.TableFunction function:
@@ -1394,6 +1561,18 @@ public static partial class SqlWriter
 			Word("PARTITION BY");
 			Open();
 			Each(list, PutExpression);
+			Close();
+		}
+
+		/// <summary>A column definition list, <c>(a int, b text)</c>: each column's name and type.</summary>
+		void PutFieldDefinitions(SqlList<FieldDefinition> definitions)
+		{
+			Open();
+			Each(definitions, definition =>
+			{
+				PutIdentifier(definition.Name);
+				PutType(definition.Type);
+			});
 			Close();
 		}
 
