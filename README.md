@@ -695,7 +695,9 @@ foreach (var row in StreamingFeed.ParseFeed(reader))
 This is what makes the size of the input stop mattering. The window is bounded and reused
 as the parse moves along it, so what is held is the record being read rather than the file,
 and each record reaches the caller as it is read rather than in an array of all of them at
-the end. That grammar, over a feed made a line at a time:
+the end. A grammar of the same shape
+([`StreamingBenchmarks.cs`](benchmarks/DotGram.Benchmarks/StreamingBenchmarks.cs), records that
+end in `eos`), over a feed made a line at a time:
 
 | rows | read | seconds | managed peak | working set |
 | --: | --: | --: | --: | --: |
@@ -906,7 +908,8 @@ the rest.
 
 The URL benchmark compares a .Gram URL grammar with the same language transcribed
 rule-for-rule into a regular expression. Both are held to agreeing on every tested input,
-and on every part they pull out of it, before anything is timed.
+and on every part they pull out of it, before anything is timed. Measured on Windows,
+.NET 10, on 2026-08-27 with an earlier generator; indicative.
 
 | Input | .Gram | `RegexOptions.Compiled` | |
 | --- | ---: | ---: | ---: |
