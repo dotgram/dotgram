@@ -1600,12 +1600,12 @@ public sealed class SqlWriterCoverageTests
 			"a sample on a DELETE's target"         => new Statement.Delete { Target = new TableSource.Named(T) { Sample = new SampleClause(SampleMethod.System, A) } },
 			"a subquery as an UPDATE's target"      => new Statement.Update { Target = new TableSource.Subquery(Selected), Assignments = [Assigned()] },
 			"an alias on a table variable target"   => new Statement.Delete { Target = new TableSource.Variable(new Identifier("@t")) { Alias = new Alias(new Identifier("x")) } },
-			"an OUTPUT with no item"                => new Statement.Delete { Target = new TableSource.Named(T), Output = new OutputClause([], null, null, null) },
-			"an OUTPUT's columns without INTO"      => new Statement.Delete { Target = new TableSource.Named(T), Output = new OutputClause([new SelectColumn.ExpressionItem(A)], null, [new Identifier("a")], null) },
+			"an OUTPUT with no item"                => new Statement.Delete { Target = new TableSource.Named(T), Returning = new ReturningClause.Output([], null, null, null) },
+			"an OUTPUT's columns without INTO"      => new Statement.Delete { Target = new TableSource.Named(T), Returning = new ReturningClause.Output([new SelectColumn.ExpressionItem(A)], null, [new Identifier("a")], null) },
 			"a second OUTPUT without INTO"          => new Statement.Delete
 			{
 				Target = new TableSource.Named(T),
-				Output = new OutputClause([new SelectColumn.ExpressionItem(A)], null, null, new OutputClause([new SelectColumn.ExpressionItem(A)], null, null, null)),
+				Returning = new ReturningClause.Output([new SelectColumn.ExpressionItem(A)], null, null, new ReturningClause.Output([new SelectColumn.ExpressionItem(A)], null, null, null)),
 			},
 			"an empty second FROM"                  => new Statement.Delete { Target = new TableSource.Named(T), From = new FromClause([]) },
 			"INSERT BULK with no column"            => new Statement.InsertBulk(T, [], []),
@@ -1618,7 +1618,7 @@ public sealed class SqlWriterCoverageTests
 			"T-SQL's data change table on a statement with no OUTPUT" =>
 				Joined(new TableSource.DataChange(null, new Statement.Delete { Target = new TableSource.Named(T) }, new Alias(new Identifier("c")))),
 			"T-SQL's data change table with no name" =>
-				Joined(new TableSource.DataChange(null, new Statement.Delete { Target = new TableSource.Named(T), Output = new OutputClause([new SelectColumn.ExpressionItem(A)], null, null, null) })),
+				Joined(new TableSource.DataChange(null, new Statement.Delete { Target = new TableSource.Named(T), Returning = new ReturningClause.Output([new SelectColumn.ExpressionItem(A)], null, null, null) })),
 			"an assignment of nothing that is not a call" => new Statement.Update { Target = new TableSource.Named(T), Assignments = [new Assignment([], B)] },
 			"a variable with two targets"           => new Statement.Update
 			{
@@ -1671,22 +1671,22 @@ public sealed class SqlWriterCoverageTests
 			"a function after OUTPUT INTO"          => new Statement.Delete
 			{
 				Target = new TableSource.Named(T),
-				Output = new OutputClause([new SelectColumn.ExpressionItem(A)], new TableSource.Function(new Expression.Invocation(U, [new Argument(A)])), null, null),
+				Returning = new ReturningClause.Output([new SelectColumn.ExpressionItem(A)], new TableSource.Function(new Expression.Invocation(U, [new Argument(A)])), null, null),
 			},
 			"a mutation path beside a compound operator" => Updated(new Assignment([new AssignmentTarget(T, MutationPath: [new Identifier("b")])], Two) { Operator = AssignmentOperator.Add }),
 			"an index beside a variable"            => Updated(new Assignment([new AssignmentTarget(T, Index: Two)], Two) { Variable = V }),
 			"FOR PATH on a data change target"      => new Statement.Delete { Target = new TableSource.Named(T) { ForPath = true } },
 			"FOR SYSTEM_TIME on a data change target" => new Statement.Delete { Target = new TableSource.Named(T) { SystemTime = new SystemTimeSpecification.All() } },
-			"T-SQL's data change table whose OUTPUT has INTO" => ReturnedInto(Returning() with { Output = Returning().Output! with { Into = new TableSource.Named(U) } }),
+			"T-SQL's data change table whose OUTPUT has INTO" => ReturnedInto(Returning() with { Returning = (ReturningClause.Output)Returning().Returning! with { Into = new TableSource.Named(U) } }),
 			"T-SQL's data change table with OPTION" => ReturnedInto(Returning() with { Hints = [new QueryHint.OptimizeForUnknown()] }),
 			"T-SQL's data change table with WITH"   => ReturnedInto(Returning() with { With = new WithClause(false, [new CommonTableExpression(new Identifier("q"), [], Selected)]) }),
 			"T-SQL's data change table outside an INSERT" => Joined(new TableSource.DataChange(null, Returning(), new Alias(new Identifier("c")))),
 			"T-SQL's data change table beside another table" => ReturnedInto(Returning(), new TableSource.Named(U)),
-			"a bare * in OUTPUT"                    => new Statement.Delete { Target = new TableSource.Named(T), Output = new OutputClause([new SelectColumn.All()], null, null, null) },
+			"a bare * in OUTPUT"                    => new Statement.Delete { Target = new TableSource.Named(T), Returning = new ReturningClause.Output([new SelectColumn.All()], null, null, null) },
 			"a variable assigned in OUTPUT"         => new Statement.Delete
 			{
 				Target = new TableSource.Named(T),
-				Output = new OutputClause([new SelectColumn.VariableAssignment(new Identifier("@v"), AssignmentOperator.Assign, A)], null, null, null),
+				Returning = new ReturningClause.Output([new SelectColumn.VariableAssignment(new Identifier("@v"), AssignmentOperator.Assign, A)], null, null, null),
 			},
 			"DEFAULT given to a variable"           => Updated(new Assignment([], new Expression.Default()) { Variable = V }),
 			"DEFAULT after a compound operator through a column" => Updated(Assigned() with { Value = new Expression.Default(), Operator = AssignmentOperator.Add, Variable = V }),
@@ -1966,7 +1966,7 @@ public sealed class SqlWriterCoverageTests
 	/// <summary><c>DELETE t OUTPUT a</c>, a statement that returns its rows.</summary>
 	static Statement.Delete Returning()
 	{
-		return new Statement.Delete { Target = new TableSource.Named(T), Output = new OutputClause([new SelectColumn.ExpressionItem(A)], null, null, null) };
+		return new Statement.Delete { Target = new TableSource.Named(T), Returning = new ReturningClause.Output([new SelectColumn.ExpressionItem(A)], null, null, null) };
 	}
 
 	/// <summary><c>INSERT u SELECT a FROM (</c>the statement<c>) AS c</c>, and any other tables given beside it.</summary>

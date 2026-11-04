@@ -196,7 +196,7 @@ static partial class Build
 		/// <summary>
 		/// T-SQL's OUTPUT: the items as a select list's, <c>INTO</c> a target and its columns, and the second OUTPUT.
 		/// </summary>
-		static Ast.OutputClause? Output(Clause? old)
+		static Ast.ReturningClause.Output? Output(Clause? old)
 		{
 			if (old is null)
 				return null;
@@ -204,7 +204,7 @@ static partial class Build
 			if (old is not Clause.Output(var items, var into, var columns, var next))
 				throw BuildGap.Open(old, "inventory Clause.Output");
 
-			return new Ast.OutputClause(
+			return new Ast.ReturningClause.Output(
 				Queries.Columns(items),
 				into is null ? null : Target(into),
 				columns is null ? null : Values.Parts(old, columns),
@@ -264,7 +264,7 @@ static partial class Build
 				Columns     = Each(old.Columns ?? [], one => Values.Name(old, one) is { Parts: [var part] } && !one.StartsWith('.')
 					? part
 					: throw BuildGap.Open(old, $"inventory Statement.Insert (a qualified or prefixed column `{one}`, where the column list holds identifiers)")),
-				Output      = Output(old.Output),
+				Returning   = Output(old.Output),
 				SourceValue = rows,
 				Hints       = Hints(old.Options),
 			};
@@ -281,7 +281,7 @@ static partial class Build
 				Top         = Queries.Topped(old.Top),
 				Target      = Target(old.Target),
 				Assignments = Each(old.Set, Assignment),
-				Output      = Output(old.Output),
+				Returning   = Output(old.Output),
 				From        = old.From.Length > 0 ? new Ast.FromClause(Each(old.From, Source)) : null,
 				Where       = Where(old.Where),
 				CurrentOf   = CurrentOf(old, old.Where),
@@ -300,7 +300,7 @@ static partial class Build
 				Top         = Queries.Topped(old.Top),
 				FromOmitted = Recover(Before(old, old.Target), static text => Words(text) is not [.., "DELETE", "FROM"] and not ["FROM"], false),
 				Target      = Target(old.Target),
-				Output      = Output(old.Output),
+				Returning   = Output(old.Output),
 				From        = old.From.Length > 0 ? new Ast.FromClause(Each(old.From, Source)) : null,
 				Where       = Where(old.Where),
 				CurrentOf   = CurrentOf(old, old.Where),
@@ -411,7 +411,7 @@ static partial class Build
 				SourceTable = Source(old.Using),
 				On          = Values.Of(old.On),
 				Clauses     = Each(old.Whens, When),
-				Output      = Output(old.Output),
+				Returning   = Output(old.Output),
 				Hints       = Hints(old.Options),
 			};
 		}

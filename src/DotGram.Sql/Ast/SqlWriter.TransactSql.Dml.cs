@@ -416,7 +416,65 @@ public static partial class SqlWriter
 		/// T-SQL: OUTPUT clause (Transact-SQL). The items, then perhaps <c>INTO</c> a target and its columns, then the
 		/// second <c>OUTPUT</c>, which the grammar reads only after an <c>INTO</c>.
 		/// </summary>
-		void PutOutput(OutputClause? output)
+		/// <summary>
+		/// What a data change statement gives back, where its reading puts it: T-SQL's OUTPUT after the target (the
+		/// first call), PostgreSQL's RETURNING at the statement's end (the second).
+		/// </summary>
+		void PutReturning(ReturningClause? returning, bool atEnd)
+		{
+			switch (returning)
+			{
+				case null:
+					return;
+
+				case ReturningClause.Output output when !atEnd:
+					if (postgreSql)
+						throw Misplaced(output, "Items", "that PostgreSQL does not read: its statements give rows back with RETURNING, not OUTPUT");
+
+					PutOutput(output);
+					return;
+
+				case ReturningClause.Returned items when atEnd:
+					if (!postgreSql)
+						throw Misplaced(items, "Items", "that only PostgreSQL reads, RETURNING; the standard has no such clause and T-SQL's is OUTPUT");
+
+					if (items.Items.Count == 0)
+						throw Empty(items, "Items");
+
+					Word("RETURNING");
+
+					if (items.OldAlias is not null || items.NewAlias is not null)
+					{
+						Word("WITH");
+						Open();
+
+						if (items.OldAlias is { } old)
+						{
+							Word("OLD AS");
+							PutIdentifier(old);
+
+							if (items.NewAlias is not null)
+								Tight(",");
+						}
+
+						if (items.NewAlias is { } fresh)
+						{
+							Word("NEW AS");
+							PutIdentifier(fresh);
+						}
+
+						Close();
+					}
+
+					Each(items.Items, PutColumn);
+					return;
+
+				default:
+					return;
+			}
+		}
+
+		void PutOutput(ReturningClause.Output output)
 		{
 			if (!SqlStack.Enough())
 			{
@@ -424,9 +482,6 @@ public static partial class SqlWriter
 
 				return;
 			}
-
-			if (output is null)
-				return;
 
 			if (output.Items.Count == 0)
 				throw Empty(output, "Items");

@@ -39,6 +39,23 @@ public static partial class SqlWriter
 			for (var at = Regroupings(operations); at > 0; at--)
 				Open();
 
+			// PostgreSQL: a data change statement where a query stands, which is a common table expression's body.
+			if (query is Query.DataChange change)
+			{
+				if (!postgreSql)
+					throw Misplaced(change, "Change", "a data change statement as a query, which only PostgreSQL reads (a WITH body)");
+
+				if (change.Change is not (Statement.Insert or Statement.Update or Statement.Delete or Statement.Merge))
+					throw Misplaced(change, "Change", "that is not an INSERT, UPDATE, DELETE or MERGE, which alone PostgreSQL reads as a query");
+
+				if (operations.Count > 0 || query.OrderBy is not null || query.Limit is not null || query.Locking.Count > 0)
+					throw Misplaced(change, "Change", "with set operations or clauses after it, which a data change takes none of");
+
+				PutStatement(change.Change);
+
+				return;
+			}
+
 			if (query is Query.Parenthesized parenthesized)
 			{
 				// PostgreSQL's select_with_parens holds a whole select_no_parens, WITH included.
@@ -1465,16 +1482,16 @@ public static partial class SqlWriter
 				// T-SQL: INSERT (Transact-SQL). The statement in brackets, its OUTPUT the rows, and the name they go by.
 				// The grammar's ChangedStatement: an OUTPUT with no INTO and no second OUTPUT, and no OPTION or WITH.
 				case TableSource.DataChange { Option: null } returned:
-					var (output, hints, with) = returned.Change switch
+					var (returning, hints, with) = returned.Change switch
 					{
-						Statement.Insert insert => (insert.Output, insert.Hints, insert.With),
-						Statement.Update update => (update.Output, update.Hints, update.With),
-						Statement.Delete delete => (delete.Output, delete.Hints, delete.With),
-						Statement.Merge merge   => (merge.Output, merge.Hints, merge.With),
+						Statement.Insert insert => (insert.Returning, insert.Hints, insert.With),
+						Statement.Update update => (update.Returning, update.Hints, update.With),
+						Statement.Delete delete => (delete.Returning, delete.Hints, delete.With),
+						Statement.Merge merge   => (merge.Returning, merge.Hints, merge.With),
 						_                       => (null, [], null),
 					};
 
-					if (output is null)
+					if (returning is not ReturningClause.Output output)
 						throw Misplaced(returned, "Option", "left out on a statement with no OUTPUT");
 
 					if (output.Into is not null || output.Next is not null)
@@ -1868,6 +1885,18 @@ public static partial class SqlWriter
 
 					PutDmlTarget(insert.Target);
 
+					// PostgreSQL's alias of the target, `INSERT INTO t AS a`.
+					if (insert.Alias is { } insertAlias)
+					{
+						if (!postgreSql)
+							throw Misplaced(insert, "Alias", "which only PostgreSQL reads on an INSERT's target");
+
+						if (insertAlias.Columns is not null)
+							throw Misplaced(insert, "Alias", "with column names, which an INSERT's alias does not take");
+
+						PutAlias(insertAlias);
+					}
+
 					if (insert.Columns.Count > 0)
 					{
 						Open();
@@ -1876,7 +1905,7 @@ public static partial class SqlWriter
 					}
 
 					PutOverride(insert.Override);
-					PutOutput(insert.Output);
+					PutReturning(insert.Returning, atEnd: false);
 
 					if (insert.SourceValue is InsertSource.DefaultValues)
 						Word("DEFAULT VALUES");
@@ -1890,7 +1919,9 @@ public static partial class SqlWriter
 					else if (!TryPutTransactSql(insert.SourceValue))
 						throw Unwritten(insert.SourceValue);
 
+					PutConflicts(insert);
 					PutQueryHints(insert.Hints);
+					PutReturning(insert.Returning, atEnd: true);
 					break;
 
 				case Statement.Update update:
@@ -1902,10 +1933,11 @@ public static partial class SqlWriter
 					PutAlias(update.Alias);
 					Word("SET");
 					Each(update.Assignments, PutAssignment);
-					PutOutput(update.Output);
+					PutReturning(update.Returning, atEnd: false);
 					PutSecondFrom(update.From);
 					PutWhereOrCurrent(update.Where, update.CurrentOf);
 					PutQueryHints(update.Hints);
+					PutReturning(update.Returning, atEnd: true);
 					break;
 
 				case Statement.Delete delete:
@@ -1919,10 +1951,25 @@ public static partial class SqlWriter
 					PutDmlTarget(delete.Target!);
 					PutPortion(delete.Portion);
 					PutAlias(delete.Alias);
-					PutOutput(delete.Output);
+					PutReturning(delete.Returning, atEnd: false);
 					PutSecondFrom(delete.From);
+
+					// PostgreSQL's USING: the tables joined to the target for the condition.
+					if (delete.Using is { } joined)
+					{
+						if (!postgreSql)
+							throw Misplaced(delete, "Using", "which only PostgreSQL reads; T-SQL's second table list is From");
+
+						if (joined.Sources.Count == 0)
+							throw Empty(joined, "Sources");
+
+						Word("USING");
+						Each(joined.Sources, PutSource);
+					}
+
 					PutWhereOrCurrent(delete.Where, delete.CurrentOf);
 					PutQueryHints(delete.Hints);
+					PutReturning(delete.Returning, atEnd: true);
 					break;
 
 				case Statement.Merge merge:
@@ -1966,6 +2013,14 @@ public static partial class SqlWriter
 								Each(matchedUpdate.Assignments, one => PutAssignment(one, merging: true));
 								break;
 
+							// PostgreSQL: MERGE. DO NOTHING after any WHEN.
+							case MergeClause.Matched { Action: MergeMatchedAction.DoNothing } or MergeClause.NotMatchedBySource { Action: MergeMatchedAction.DoNothing }:
+								if (!postgreSql)
+									throw Misplaced(clause, "Action", "DoNothing, which only PostgreSQL reads after WHEN MATCHED");
+
+								Word("DO NOTHING");
+								break;
+
 							case MergeClause.Matched:
 								Word("DELETE");
 								break;
@@ -1982,6 +2037,18 @@ public static partial class SqlWriter
 
 							default:
 								var action = ((MergeClause.NotMatched)clause).Action;
+
+								if (action.DoNothing)
+								{
+									if (!postgreSql)
+										throw Misplaced(action, "DoNothing", "which only PostgreSQL reads after WHEN NOT MATCHED");
+
+									if (action.Columns.Count > 0 || action.Values.Count > 0 || action.Override is not null || action.DefaultValues)
+										throw Misplaced(action, "DoNothing", "with columns, values, an override or DefaultValues");
+
+									Word("DO NOTHING");
+									break;
+								}
 
 								Word("INSERT");
 
@@ -2011,8 +2078,9 @@ public static partial class SqlWriter
 						}
 					}
 
-					PutOutput(merge.Output);
+					PutReturning(merge.Returning, atEnd: false);
 					PutQueryHints(merge.Hints);
+					PutReturning(merge.Returning, atEnd: true);
 					break;
 
 				case Statement.TruncateTable truncate:
@@ -2032,6 +2100,76 @@ public static partial class SqlWriter
 				default:
 					PutOtherStatement(statement);
 					break;
+			}
+		}
+
+		/// <summary>PostgreSQL's ON CONFLICT clauses, after the rows: the target, and nothing or an update.</summary>
+		void PutConflicts(Statement.Insert insert)
+		{
+			if (insert.Conflicts.Count == 0)
+				return;
+
+			if (!postgreSql)
+				throw Misplaced(insert, "Conflicts", "which only PostgreSQL reads, ON CONFLICT");
+
+			foreach (var conflict in insert.Conflicts)
+			{
+				Word("ON CONFLICT");
+
+				switch (conflict.Target)
+				{
+					case null:
+						break;
+
+					case ConflictTarget.Columns columns:
+						if (columns.Items.Count == 0)
+							throw Empty(columns, "Items");
+
+						Open();
+						Each(columns.Items, PutExpression);
+						Close();
+
+						if (columns.Where is { } where)
+						{
+							Word("WHERE");
+							PutExpression(where);
+						}
+
+						break;
+
+					case ConflictTarget.Constraint constraint:
+						Word("ON CONSTRAINT");
+						PutIdentifier(constraint.Name);
+						break;
+
+					default:
+						throw Unwritten(conflict.Target);
+				}
+
+				switch (conflict.Resolution)
+				{
+					case ConflictResolution.Nothing:
+						Word("DO NOTHING");
+						break;
+
+					case ConflictResolution.Update update:
+						if (update.Assignments.Count == 0)
+							throw Empty(update, "Assignments");
+
+						Word("DO UPDATE SET");
+						Each(update.Assignments, PutAssignment);
+
+						if (update.Where is { } where)
+						{
+							Word("WHERE");
+							PutExpression(where);
+						}
+
+						break;
+
+					default:
+						throw Unwritten(conflict.Resolution);
+				}
 			}
 		}
 

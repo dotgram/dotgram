@@ -174,8 +174,94 @@ public abstract partial record TableSource
 	}
 }
 
+public abstract partial record Statement
+{
+	public sealed partial record Insert
+	{
+		/// <summary>PostgreSQL: INSERT. <c>INSERT INTO t AS a …</c>: the name the target goes by in ON CONFLICT and RETURNING.</summary>
+		public Alias? Alias { get; init; }
+
+		/// <summary>PostgreSQL: INSERT. The <c>ON CONFLICT</c> clauses, in order; one in PostgreSQL, a list because SQLite chains several.</summary>
+		public SqlList<ConflictClause> Conflicts { get; init; } = [];
+	}
+
+	public sealed partial record Delete
+	{
+		/// <summary>PostgreSQL: DELETE. <c>USING t, u</c>: the tables joined to the target for the condition, which may not name the target again.</summary>
+		public FromClause? Using { get; init; }
+	}
+}
+
+/// <summary>PostgreSQL: INSERT. <c>ON CONFLICT [target] action</c>: what is done where a row would break a unique constraint.</summary>
+public sealed record ConflictClause(ConflictTarget? Target, ConflictResolution Resolution) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+
+/// <summary>PostgreSQL: INSERT. Which constraint an ON CONFLICT means: the columns or expressions of an index, with its WHERE, or a constraint by name.</summary>
+public abstract record ConflictTarget : ISqlNode
+{
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected ConflictTarget()
+	{
+	}
+
+	/// <summary>PostgreSQL: INSERT. <c>(a, (b + 1), f(c)) WHERE …</c>: a column by its name, an expression in brackets or a call, each an item.</summary>
+	public sealed record Columns(SqlList<Expression> Items, Expression? Where = null) : ConflictTarget;
+
+	/// <summary>PostgreSQL: INSERT. <c>ON CONSTRAINT name</c>.</summary>
+	public sealed record Constraint(Identifier Name) : ConflictTarget;
+}
+
+/// <summary>PostgreSQL: INSERT. What ON CONFLICT does: nothing, or an update of the row with its own WHERE.</summary>
+public abstract record ConflictResolution : ISqlNode
+{
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected ConflictResolution()
+	{
+	}
+
+	/// <summary>PostgreSQL: INSERT. <c>DO NOTHING</c>.</summary>
+	public sealed record Nothing : ConflictResolution;
+
+	/// <summary>PostgreSQL: INSERT. <c>DO UPDATE SET … [WHERE …]</c>; <c>EXCLUDED.c</c> in the assignments is a reference.</summary>
+	public sealed record Update(SqlList<Assignment> Assignments, Expression? Where = null) : ConflictResolution;
+}
+
+public abstract partial record MergeMatchedAction
+{
+	/// <summary>PostgreSQL: MERGE. <c>WHEN MATCHED THEN DO NOTHING</c>, and the same after NOT MATCHED BY SOURCE.</summary>
+	public sealed record DoNothing : MergeMatchedAction;
+}
+
+public sealed partial record MergeInsertAction
+{
+	/// <summary>PostgreSQL: MERGE. <c>WHEN NOT MATCHED THEN DO NOTHING</c>: no insert at all, and nothing else of the record.</summary>
+	public bool DoNothing { get; init; }
+}
+
 public abstract partial record Query
 {
+	/// <summary>
+	/// PostgreSQL: WITH Queries. A data change statement where a query stands — the body of a common table expression,
+	/// <c>WITH moved AS (DELETE FROM t RETURNING *) SELECT * FROM moved</c>; its rows are what its RETURNING gives.
+	/// </summary>
+	public sealed record DataChange(Statement Change) : Query;
+
 	public sealed partial record Select
 	{
 		/// <summary>PostgreSQL: DISTINCT ON. <c>SELECT DISTINCT ON (a, b) …</c>: the values the first row of each group of is kept by; empty where none was written.</summary>

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 
 using DotGram.Sql.Ast;
@@ -1523,6 +1524,197 @@ static class Nodes
 			definitions[at] = new FieldDefinition(columns[at].Name, columns[at].Type!);
 
 		return SqlList.Own(definitions);
+	}
+
+	// ── The data change statements ─────────────────────────────────────────────
+
+	/// <summary>What an INSERT's target is given: the columns, OVERRIDING, and the query — or DEFAULT VALUES, where all are null.</summary>
+	public sealed record InsertBody(Identifier? First, Identifier[]? Rest, OverrideKind? Override, Query? Query);
+
+	/// <summary>RETURNING's `OLD AS o` or `NEW AS n`.</summary>
+	public sealed record ReturningOption(string Kind, Identifier Name);
+
+	/// <summary>A WHERE: its condition, or the cursor of WHERE CURRENT OF.</summary>
+	public sealed record WhereOrCurrent(Expression? Condition, Identifier? Cursor);
+
+	/// <summary>A MERGE's INSERT: the values, or DEFAULT VALUES.</summary>
+	public sealed record MergeInsertBody(Expression? First, Expression[]? Rest, bool DefaultValues);
+
+	/// <summary>
+	/// The rows an INSERT or a MERGE gives its target: the standard's rows where the query is a bare VALUES, so that a
+	/// text both readings read is one tree; the query otherwise.
+	/// </summary>
+	static InsertSource InsertSourceOf(Query query)
+	{
+		if (query is Query.Select { Values.Count: > 0, With: null, OrderBy: null, Limit: null, Locking.Count: 0, SetOperations.Count: 0 } values)
+			return new InsertSource.Values(values.Values);
+
+		return new InsertSource.Subquery(query);
+	}
+
+	public static Statement Inserted(QualifiedName name, Identifier? alias, InsertBody body, ConflictClause? conflict, ReturningClause? returning)
+	{
+		return new Statement.Insert
+		{
+			Target      = new TableSource.Named(name),
+			Alias       = alias is null ? null : new Alias(alias, null, true),
+			Columns     = List(body.First, body.Rest),
+			Override    = body.Override,
+			SourceValue = body.Query is null ? new InsertSource.DefaultValues() : InsertSourceOf(body.Query),
+			Conflicts   = conflict is null ? [] : [conflict],
+			Returning   = returning,
+		};
+	}
+
+	public static ReturningClause Returned(ReturningOption? first, ReturningOption[]? rest, SelectColumn head, SelectColumn[]? tail)
+	{
+		Identifier? old   = null;
+		Identifier? fresh = null;
+
+		foreach (var option in List(first, rest))
+		{
+			if ((option.Kind[0] | 0x20) == 'o')
+				old = option.Name;
+			else
+				fresh = option.Name;
+		}
+
+		return new ReturningClause.Returned(List(head, tail), old, fresh);
+	}
+
+	/// <summary>Whether a set target's indirection fits the record: dots to attributes, with at most one subscript before them, and no slice or star.</summary>
+	public static bool TargetFits(Step[]? steps)
+	{
+		if (steps is null)
+			return true;
+
+		var subscripts = 0;
+
+		foreach (var step in steps)
+		{
+			switch (step)
+			{
+				case Step.Subscript:
+					if (subscripts++ > 0)
+						return false;
+
+					break;
+
+				case Step.Member:
+					break;
+
+				default:
+					return false;
+			}
+		}
+
+		return true;
+	}
+
+	public static AssignmentTarget SetTargetOf(Identifier name, Step[]? steps)
+	{
+		Expression? index = null;
+		var path = new System.Collections.Generic.List<Identifier>();
+
+		if (steps is not null)
+		{
+			foreach (var step in steps)
+			{
+				if (step is Step.Subscript(var at))
+					index = at;
+				else if (step is Step.Member(var member))
+					path.Add(member);
+			}
+		}
+
+		return new AssignmentTarget(new QualifiedName(name), index, path.Count == 0 ? null : SqlList.Own(path.ToArray()));
+	}
+
+	static FromClause? Sources(TableSource? first, TableSource[]? rest)
+	{
+		return first is null ? null : new FromClause(List(first, rest));
+	}
+
+	public static Statement Updated(TableSource target, Alias? alias, Assignment first, Assignment[]? rest, TableSource? f1, TableSource[]? fn, WhereOrCurrent? where, ReturningClause? returning)
+	{
+		return new Statement.Update
+		{
+			Target      = target,
+			Alias       = alias,
+			Assignments = List(first, rest),
+			From        = Sources(f1, fn),
+			Where       = where?.Condition,
+			CurrentOf   = where?.Cursor is { } cursor ? new CursorReference(new QualifiedName(cursor)) : null,
+			Returning   = returning,
+		};
+	}
+
+	public static Statement Deleted(TableSource target, Alias? alias, TableSource? u1, TableSource[]? un, WhereOrCurrent? where, ReturningClause? returning)
+	{
+		return new Statement.Delete
+		{
+			Target    = target,
+			Alias     = alias,
+			Using     = Sources(u1, un),
+			Where     = where?.Condition,
+			CurrentOf = where?.Cursor is { } cursor ? new CursorReference(new QualifiedName(cursor)) : null,
+			Returning = returning,
+		};
+	}
+
+	public static Statement Merged(TableSource target, Alias? alias, TableSource source, Expression on, MergeClause[] whens, ReturningClause? returning)
+	{
+		return new Statement.Merge
+		{
+			Target      = target,
+			Alias       = alias,
+			SourceTable = source,
+			On          = on,
+			Clauses     = SqlList.Own(whens),
+			Returning   = returning,
+		};
+	}
+
+	/// <summary>Whether a WITH before a statement fits it: a SELECT whose bracketed query has a WITH of its own refuses a second ("multiple WITH clauses not allowed").</summary>
+	public static bool WithFits(WithClause? with, Statement statement)
+	{
+		if (with is null || statement is not Statement.Select select)
+			return true;
+
+		var inner = select.Query;
+
+		while (inner is Query.Parenthesized { SetOperations.Count: 0 } bracketed)
+			inner = bracketed.Query;
+
+		return inner.With is null;
+	}
+
+	/// <summary>The statement with the WITH read before it, on the record that holds one.</summary>
+	public static Statement Withed(WithClause? with, Statement statement)
+	{
+		if (with is null)
+			return statement;
+
+		return statement switch
+		{
+			Statement.Select select => select with { Query = select.Query with { With = with } },
+			Statement.Insert insert => insert with { With = with },
+			Statement.Update update => update with { With = with },
+			Statement.Delete delete => delete with { With = with },
+			Statement.Merge merge   => merge with { With = with },
+			_ => throw new ArgumentOutOfRangeException(nameof(statement)),
+		};
+	}
+
+	/// <summary>A statement as a query: a SELECT's query, or a data change as the query of its rows.</summary>
+	public static Query AsQuery(Statement statement)
+	{
+		return statement is Statement.Select select ? select.Query : new Query.DataChange(statement);
+	}
+
+	public static MergeInsertAction MergeInserted(Identifier? c1, Identifier[]? cn, OverrideKind? overriding, MergeInsertBody body)
+	{
+		return new MergeInsertAction(List(c1, cn), overriding, List(body.First, body.Rest)) { DefaultValues = body.DefaultValues };
 	}
 
 	/// <summary>One UNION, EXCEPT or INTERSECT, its quantifier, and the operand after it.</summary>

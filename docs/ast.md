@@ -858,6 +858,10 @@ it. The families stand in alphabetical order, each family's records in the order
 | `HostDeclaration.Pli` | SQL:2023 | under &lt;host declaration&gt; |
 | `HostParameterDeclaration.Parameter` | SQL:2023 | under &lt;host parameter declaration&gt;: a host parameter with its type, or the status parameter SQLSTATE |
 | `HostParameterDeclaration.Status` | SQL:2023 | under &lt;host parameter declaration&gt;: a host parameter with its type, or the status parameter SQLSTATE |
+| `ConflictResolution.Nothing` | PostgreSQL | INSERT |
+| `ConflictResolution.Update` | PostgreSQL | INSERT |
+| `ConflictTarget.Columns` | PostgreSQL | INSERT |
+| `ConflictTarget.Constraint` | PostgreSQL | INSERT |
 | `InSource.Subquery` | SQL:2023 | &lt;negatable predicate part2&gt; |
 | `InSource.Values` | SQL:2023 | &lt;negatable predicate part2&gt; |
 | `IndexAlteration.Rebuild` | T-SQL | ALTER INDEX (Transact-SQL) |
@@ -940,6 +944,7 @@ it. The families stand in alphabetical order, each family's records in the order
 | `MergeClause.NotMatchedBySource` | T-SQL | MERGE (Transact-SQL) |
 | `MergeMatchedAction.Update` | SQL:2023 | &lt;merge matched then&gt; |
 | `MergeMatchedAction.Delete` | SQL:2023 | &lt;merge matched then&gt; |
+| `MergeMatchedAction.DoNothing` | PostgreSQL | MERGE |
 | `MessageValidation.Named` | T-SQL | VALIDATION = word — under CREATE MESSAGE TYPE (Transact-SQL) |
 | `MessageValidation.ValidXml` | T-SQL | VALIDATION = VALID_XML WITH SCHEMA COLLECTION name — under CREATE MESSAGE TYPE (Transact-SQL) |
 | `ModuleContent.Cursor` | SQL:2023 | under &lt;module contents&gt;: a cursor declared, statically or dynamically, or an &lt;externally-invoked procedure&gt; |
@@ -975,6 +980,7 @@ it. The families stand in alphabetical order, each family's records in the order
 | `QuantifiedOperator.Comparison` | PostgreSQL | Row and Array Comparisons |
 | `QuantifiedOperator.Like` | PostgreSQL | Row and Array Comparisons |
 | `QuantifiedOperator.Named` | PostgreSQL | Row and Array Comparisons |
+| `Query.DataChange` | PostgreSQL | WITH Queries (Common Table Expressions) |
 | `Query.Select` | SQL:2023 | &lt;query specification&gt;, &lt;table value constructor&gt;, &lt;explicit table&gt; |
 | `Query.Parenthesized` | SQL:2023 | A pair of brackets written around a query — under &lt;query expression&gt;, &lt;query expression body&gt;, &lt;query term&gt;, &lt;query primary&gt; |
 | `QueryHint.Named` | T-SQL | A hint of one word, with or without a value — under Query Hints (Transact-SQL) |
@@ -993,6 +999,8 @@ it. The families stand in alphabetical order, each family's records in the order
 | `QueueOption.PoisonMessageHandling` | T-SQL | POISON_MESSAGE_HANDLING (STATUS = ON) or OFF — under CREATE QUEUE (Transact-SQL) |
 | `QueueOption.DropActivation` | T-SQL | ACTIVATION (DROP) — under CREATE QUEUE (Transact-SQL) |
 | `QueueOption.Activation` | T-SQL | ACTIVATION (setting, …) — under CREATE QUEUE (Transact-SQL) |
+| `ReturningClause.Returned` | PostgreSQL | INSERT |
+| `ReturningClause.Output` | T-SQL | OUTPUT clause (Transact-SQL) |
 | `ResourceGovernorAction.Reconfigure` | T-SQL | RECONFIGURE — under ALTER RESOURCE GOVERNOR (Transact-SQL) |
 | `ResourceGovernorAction.Disable` | T-SQL | DISABLE — under ALTER RESOURCE GOVERNOR (Transact-SQL) |
 | `ResourceGovernorAction.ResetStatistics` | T-SQL | RESET STATISTICS — under ALTER RESOURCE GOVERNOR (Transact-SQL) |

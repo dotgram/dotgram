@@ -24,6 +24,8 @@ public sealed class PostgreSqlWriterTests
 
 	static readonly DataType Int = new DataType.Numeric(NumericTypeKind.Int);
 
+	static readonly TableSource T = new TableSource.Named(new QualifiedName(new Identifier("t")));
+
 	static Expression Number(string text)
 	{
 		return new LiteralValue.Numeric(text, NumericLiteralKind.DecimalInteger);
@@ -209,6 +211,12 @@ public sealed class PostgreSqlWriterTests
 	[InlineData("String.Escaped")]
 	[InlineData("String.Dollar")]
 	[InlineData("IntervalQualifier.FractionalAlone")]
+	[InlineData("Insert.Alias")]
+	[InlineData("Insert.Conflicts")]
+	[InlineData("ReturningClause.Returned")]
+	[InlineData("Delete.Using")]
+	[InlineData("MergeMatchedAction.DoNothing")]
+	[InlineData("Query.DataChange")]
 	public void What_only_PostgreSQL_reads_is_refused_by_the_other_writers(string which)
 	{
 		ISqlNode node = which switch
@@ -232,6 +240,12 @@ public sealed class PostgreSqlWriterTests
 			"String.Escaped"       => new LiteralValue.String("'x'", StringLiteralKind.Escaped),
 			"String.Dollar"        => new LiteralValue.String("$$x$$", StringLiteralKind.Dollar),
 			"IntervalQualifier.FractionalAlone" => new DataType.Interval(new IntervalQualifier(DateTimeField.Second, null, null, 3)),
+			"Insert.Alias"         => new Statement.Insert { Target = T, Alias = new Alias(new Identifier("x"), null, true) },
+			"Insert.Conflicts"     => new Statement.Insert { Target = T, Conflicts = [new ConflictClause(null, new ConflictResolution.Nothing())] },
+			"ReturningClause.Returned" => new Statement.Delete { Target = T, Returning = new ReturningClause.Returned([new SelectColumn.All()]) },
+			"Delete.Using"         => new Statement.Delete { Target = T, Using = new FromClause([T]) },
+			"MergeMatchedAction.DoNothing" => new Statement.Merge { Target = T, SourceTable = new TableSource.Named(new QualifiedName(new Identifier("s"))), On = A, Clauses = [new MergeClause.Matched(new MergeMatchedAction.DoNothing())] },
+			"Query.DataChange"     => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([T]), With = new WithClause(false, [new CommonTableExpression(new Identifier("x"), [], new Query.DataChange(new Statement.Delete { Target = T }))]) } },
 			_ => throw new ArgumentOutOfRangeException(nameof(which)),
 		};
 
@@ -263,6 +277,7 @@ public sealed class PostgreSqlWriterTests
 	[InlineData("OperatorCall qualified bare")]
 	[InlineData("QuantifiedOperation =")]
 	[InlineData("QuantifiedOperation =>")]
+	[InlineData("ReturningClause.Output")]
 	public void What_PostgreSQL_reads_as_another_node_is_refused_by_its_writer(string which)
 	{
 		ISqlNode node = which switch
@@ -284,6 +299,7 @@ public sealed class PostgreSqlWriterTests
 			"OperatorCall qualified bare" => new Expression.OperatorCall(new QualifiedName(new Identifier("s"), [new Identifier("~")]), A, B),
 			"QuantifiedOperation ="      => new Expression.QuantifiedOperation(A, new QuantifiedOperator.Named(new QualifiedName(new Identifier("="))), Quantifier.Any, B),
 			"QuantifiedOperation =>"     => new Expression.QuantifiedOperation(A, new QuantifiedOperator.Named(new QualifiedName(new Identifier("=>"))), Quantifier.Any, B),
+			"ReturningClause.Output"     => new Statement.Delete { Target = T, Returning = new ReturningClause.Output([new SelectColumn.ExpressionItem(A)], null, null, null) },
 			_ => throw new ArgumentOutOfRangeException(nameof(which)),
 		};
 

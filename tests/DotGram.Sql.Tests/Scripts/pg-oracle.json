@@ -1206,6 +1206,74 @@
 			"text": "(SELECT 1 FOR UPDATE SKIP LOCKED) ORDER BY 1 FETCH FIRST 1 ROW WITH TIES; ((SELECT 1 FOR UPDATE SKIP LOCKED)) ORDER BY 1 FETCH FIRST 1 ROW WITH TIES",
 			"accepted": false,
 			"error": "SKIP LOCKED and WITH TIES options cannot be used together, at index 63"
+		},
+		{
+			"name": "inserts",
+			"text": "INSERT INTO t (a, b) VALUES (1, 2), (3, 4); INSERT INTO t AS x DEFAULT VALUES RETURNING *; INSERT INTO t OVERRIDING SYSTEM VALUE SELECT 1; INSERT INTO t ((SELECT 1)); INSERT INTO t VALUES (1) ON CONFLICT (a, (b + 1), lower(c)) WHERE a > 0 DO UPDATE SET a = EXCLUDED.a WHERE t.a < 1; INSERT INTO t VALUES (1) ON CONFLICT ON CONSTRAINT c DO NOTHING; INSERT INTO t VALUES (1) ON CONFLICT DO NOTHING; INSERT INTO t VALUES (1) RETURNING WITH (OLD AS o, NEW AS n) o.a, n.a AS b; WITH x AS (SELECT 1) INSERT INTO t SELECT * FROM x",
+			"accepted": true
+		},
+		{
+			"name": "updates_and_deletes",
+			"text": "UPDATE ONLY t AS u SET a = 1, (b, c) = (2, 3), d[1] = 4, e.f = 5 FROM v WHERE u.a = v.a RETURNING u.a; UPDATE t u SET a = 1 WHERE CURRENT OF c; DELETE FROM t * USING u, v WHERE t.a = u.a RETURNING *; DELETE FROM t WHERE CURRENT OF c",
+			"accepted": true
+		},
+		{
+			"name": "merges",
+			"text": "MERGE INTO t AS x USING s ON t.a = s.a WHEN MATCHED AND s.b > 0 THEN UPDATE SET b = s.b WHEN MATCHED THEN DELETE WHEN NOT MATCHED BY SOURCE THEN DO NOTHING WHEN NOT MATCHED BY TARGET THEN INSERT (a, b) OVERRIDING USER VALUE VALUES (s.a, s.b) WHEN NOT MATCHED THEN DO NOTHING RETURNING merge_action(), t.*; MERGE INTO t USING s ON true WHEN NOT MATCHED THEN INSERT DEFAULT VALUES",
+			"accepted": true
+		},
+		{
+			"name": "data_change_bodies",
+			"text": "WITH moved AS (DELETE FROM t RETURNING *) INSERT INTO u SELECT * FROM moved; WITH x AS (UPDATE t SET a = 1 RETURNING a) SELECT * FROM x",
+			"accepted": true
+		},
+		{
+			"name": "delete_without_from",
+			"text": "DELETE t WHERE a = 1",
+			"accepted": false,
+			"error": "syntax error at or near \"t\", at index 7"
+		},
+		{
+			"name": "merge_without_when",
+			"text": "MERGE INTO t USING s ON true",
+			"accepted": false,
+			"error": "syntax error at end of input"
+		},
+		{
+			"name": "do_update_without_set",
+			"text": "INSERT INTO t VALUES (1) ON CONFLICT DO UPDATE",
+			"accepted": false,
+			"error": "syntax error at end of input"
+		},
+		{
+			"name": "set_target_slice",
+			"text": "UPDATE t SET a[1:2] = 1",
+			"accepted": true,
+			"known": "AssignmentTarget holds one subscript; gram.y's set_target takes a slice"
+		},
+		{
+			"name": "set_target_star",
+			"text": "UPDATE t SET a.* = 1",
+			"accepted": true,
+			"known": "AssignmentTarget holds names and one subscript; gram.y's set_target takes `.*`"
+		},
+		{
+			"name": "insert_column_indirection",
+			"text": "INSERT INTO t (a[1], b.c) VALUES (1, 2)",
+			"accepted": true,
+			"known": "the column list holds names; gram.y's insert_column_item takes an indirection"
+		},
+		{
+			"name": "set_target_two_subscripts",
+			"text": "UPDATE t SET a[1][2] = 1",
+			"accepted": true,
+			"known": "AssignmentTarget holds one subscript; gram.y's set_target takes any indirection"
+		},
+		{
+			"name": "conflict_target_with_collation",
+			"text": "INSERT INTO t VALUES (1) ON CONFLICT (a COLLATE \"C\" text_pattern_ops DESC) DO NOTHING",
+			"accepted": true,
+			"known": "ConflictTarget.Columns holds expressions; gram.y's index_elem takes a collation, an operator class and an order"
 		}
 	]
 }

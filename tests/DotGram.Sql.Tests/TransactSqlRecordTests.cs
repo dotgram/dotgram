@@ -182,12 +182,12 @@ public sealed class TransactSqlRecordTests
 			"Delete.Target Function"      => made is Ast.Statement.Delete { Target: Ast.TableSource.Function },
 			"Delete.Output"               => made is Ast.Statement.Delete
 			{
-				Output: { Into: Ast.TableSource.Variable { Name.Text: "@log" }, Columns: [{ Text: "a" }], Next: { Into: null, Items.Count: 1 } },
+				Returning: Ast.ReturningClause.Output { Into: Ast.TableSource.Variable { Name.Text: "@log" }, Columns: [{ Text: "a" }], Next: { Into: null, Items.Count: 1 } },
 			},
 			"Update.Target Variable"      => made is Ast.Statement.Update { Target: Ast.TableSource.Variable { Hints.Count: 1 } },
 			"Update.Output From Hints"    => made is Ast.Statement.Update
 			{
-				Output.Items: [Ast.SelectColumn.QualifiedAll], From.Sources: [Ast.TableSource.Join], Hints.Count: 1,
+				Returning: Ast.ReturningClause.Output { Items: [Ast.SelectColumn.QualifiedAll] }, From.Sources: [Ast.TableSource.Join], Hints.Count: 1,
 			},
 			"Update.Target OpenQuery"     => made is Ast.Statement.Update { Target: Ast.TableSource.OpenQuery },
 			"Merge.BySource ByTarget DefaultValues" => made is Ast.Statement.Merge
@@ -227,7 +227,7 @@ public sealed class TransactSqlRecordTests
 				{
 					Query: Ast.Query.Select
 					{
-						From.Sources: [Ast.TableSource.DataChange { Option: null, Change: Ast.Statement.Delete { Output: not null }, Alias: { AsKeyword: true, Columns.Count: 1 } }],
+						From.Sources: [Ast.TableSource.DataChange { Option: null, Change: Ast.Statement.Delete { Returning: not null }, Alias: { AsKeyword: true, Columns.Count: 1 } }],
 					},
 				},
 			},
@@ -257,7 +257,7 @@ public sealed class TransactSqlRecordTests
 			_                             => made is Ast.Statement.Merge
 			{
 				IntoOmitted: true,
-				Output.Items: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.Reference { Name.Parts: [{ Text: "$action" }] }, Alias: null }],
+				Returning: Ast.ReturningClause.Output { Items: [Ast.SelectColumn.ExpressionItem { Expression: Ast.Expression.Reference { Name.Parts: [{ Text: "$action" }] }, Alias: null }] },
 			},
 		};
 
