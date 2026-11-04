@@ -161,19 +161,22 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 	{
 		var before  = SqlVariants.Parser(SqlVariants.Sql92Before);
 		var guards  = SqlVariants.Parser(SqlVariants.Sql92Guards);
-		var guardsH = SqlVariants.Parser(SqlVariants.Sql92Guards, "off", true, false, headGuard: true, located: false);
+		var gTrue   = SqlVariants.Parser(SqlVariants.Sql92GuardsTrue);
+		var gNull   = SqlVariants.Parser(SqlVariants.Sql92GuardsNull);
+		var gRow    = SqlVariants.Parser(SqlVariants.Sql92GuardsRow);
 		var cover   = SqlVariants.Parser(SqlVariants.Sql92);
-		var coverH  = SqlVariants.Parser(SqlVariants.Sql92, "off", true, false, headGuard: true, located: false);
 		var splitH  = SqlVariants.Parser(SqlVariants.Sql92Split, "off", true, false, headGuard: true, located: false);
 
-		foreach (var (name, type) in new[] { ("before", before), ("before+guards", guards), ("before+guards+hg", guardsH), ("cover", cover), ("cover+headguard", coverH), ("split+headguard", splitH) })
+		(string, Type)[] parsers = [("before", before), ("guards: IsValue", guards), ("guards: true", gTrue), ("guards: not null", gNull), ("guards: not Row", gRow), ("cover", cover), ("split+headguard", splitH)];
+
+		foreach (var (name, type) in parsers)
 			Log($"size {name,-18}: generated C# {SqlVariants.Sizes[type].SourceChars:N0} chars, assembly {SqlVariants.Sizes[type].AssemblyBytes:N0} bytes");
 
 		var generated = Generated(3000, seed: 92);
 		var accepted  = generated.Where(text => Answer(before, "TryParseSelect", [text]).Accepted).ToList();
 
-		Timing(accepted, [("before", before), ("before+guards", guards), ("before+guards+hg", guardsH), ("cover", cover), ("cover+headguard", coverH), ("split+headguard", splitH)]);
-		Timing(accepted, [("before", before), ("before+guards", guards), ("before+guards+hg", guardsH), ("cover", cover), ("cover+headguard", coverH), ("split+headguard", splitH)]);
+		Timing(accepted, parsers);
+		Timing(accepted, parsers);
 	}
 
 	void Differential(string title, Type before, Type after, List<string> texts, bool holds)
