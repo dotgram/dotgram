@@ -967,7 +967,7 @@ public static partial class SqlWriter
 
 				PutValue(one, "SEND");
 
-				if (SqlWriter.Write(one, transactSql: true).StartsWith("(", StringComparison.Ordinal))
+				if (SqlWriter.Write(one, SqlDialect.TransactSql).StartsWith("(", StringComparison.Ordinal))
 					throw Misplaced(send, "Conversations", "that begins with a bracket and is not bracketed, which the grammar reads as the list of handles");
 			}
 
