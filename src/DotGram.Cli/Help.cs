@@ -43,7 +43,8 @@ static class Help
 		gives the build's text), and the generation report files (DotGramReportGeneration) are not
 		written. The EmbeddedAttribute definition is the compiler's text and may differ in line endings
 		from your SDK's. The diagnostics of DotGram itself are shown at the severities the build gives
-		them (.editorconfig, /nowarn, /warnaserror); an error among them stops the run (exit 2).
+		them (.editorconfig, /nowarn, /warnaserror); an error among them stops the run (exit 2,
+		or 3 where every one is GRAM3004, a type the grammar names that is not in view).
 		The SDK's compiler must be at least as new as the one DotGram was built for, as for the build,
 		which skips a generator built for a newer compiler (CS9057): the run then exits 3.
 
@@ -90,7 +91,8 @@ static class Help
 
 		Exit codes:
 		  0  generated
-		  2  grammar errors (nothing written); for a .gram, a parser that does not compile
+		  2  grammar errors (nothing written), unless every one is GRAM3004, which exits 3; for a .gram,
+		     a parser that does not compile
 		  3  usage, input or output, a project not restored, MSBuild failing for a framework, a generator
 		     that will not load, an error the project's build would report too (nothing written),
 		     frameworks that generate different files
