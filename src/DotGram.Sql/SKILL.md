@@ -1,4 +1,4 @@
----
+﻿---
 name: dotgram-sql
 description: Parse SQL text into a tree of records with DotGram.Sql — T-SQL as SQL Server reads it (statements, whole texts, scripts cut into batches as sqlcmd cuts them, a database's compatibility level, source locations), ISO SQL:2023 as the standard writes it, and SQL-92. Use when a project references the DotGram.Sql package, or when SQL text has to be read, checked, walked or printed back without a database. Not a database client, a query builder or a formatter: it reads syntax, and a statement it reads may still name tables and columns that do not exist.
 ---
@@ -32,6 +32,16 @@ is what to decide before using one, the contract they share, and what is easy to
   `INTERSECT` is a list on the query it follows (`Query.SetOperations`), and that query's
   `OrderBy`, `Limit` and locking clauses are then the whole result's; its `Columns`, `From`,
   `Where` are the first operand's. `Query.Operands()` gives every SELECT of a compound.
+- **`PostgreSqlParser`** (`DotGram.Sql.PostgreSql`) — code written for PostgreSQL, read as the
+  server's own parser reads it (PostgreSQL 18) and held against it. It builds the tree in
+  `DotGram.Sql.Ast`, with PostgreSQL's constructs in it: `::` casts, `$1` parameters, `E'…'` and
+  `$$…$$` strings, operators by name (`@>`, `->>`, any `OPERATOR(s.+)`), `LIMIT` and `OFFSET`,
+  `DISTINCT ON`, `FOR UPDATE SKIP LOCKED`, `INSERT … ON CONFLICT`, `RETURNING`, `MERGE … DO NOTHING`,
+  `BEGIN`/`END`/`ABORT`, `SET`/`SHOW`/`RESET`, `EXPLAIN`, `DO`, `PREPARE`/`EXECUTE`, cursors,
+  `LISTEN`/`NOTIFY`, `LOCK`, `VACUUM`/`ANALYZE`, `COPY`. It reads at three levels:
+  `ParseExpression`, `ParseStatement` and `ParseSql`; `Located` alike. It does not read the schema
+  statements (`CREATE`, `ALTER`, `DROP`) yet, and `PostgreSqlWriter.Write` prints a tree back in
+  PostgreSQL's text, refusing what only another dialect writes.
 - **`Sql92Parser`** (`DotGram.Sql.Standard`) — SQL-92 as the standard writes it. Four
   entries: `ParseSelect` (an `Ast.Statement`, a `Statement.Select`), `ParseQuery` (an `Ast.Query`),
   `ParseSearchCondition` and `ParseValueExpression` (an `Ast.Expression`). It builds the tree in
