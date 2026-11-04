@@ -564,13 +564,13 @@ public static partial class SqlDialect;
 ```
 
 ```csharp
-SqlDialect.ParseOld("a *= b");                              // a left-joined to b
-SqlDialect.TryParseOld("a is distinct from b").IsSuccess;   // False
+var old      = SqlDialect.ParseOld("a *= b");                              // a left-joined to b
+var refused  = SqlDialect.TryParseOld("a is distinct from b").IsSuccess;   // False
 
-SqlDialect.ParseNew("a is distinct from b");                // a differs from b
-SqlDialect.TryParseNew("a *= b").IsSuccess;                 // False
+var current  = SqlDialect.ParseNew("a is distinct from b");                // a differs from b
+var refused2 = SqlDialect.TryParseNew("a *= b").IsSuccess;                 // False
 
-SqlDialect.ParseAny("a *= b");                              // a left-joined to b
+var any      = SqlDialect.ParseAny("a *= b");                              // a left-joined to b
 ```
 
 `Version` is an ordinary rule, and `when Version is "2000"` asks whether it and `"2000"`
@@ -620,12 +620,19 @@ public static partial class FeedParser;
 The parser returns that structure directly:
 
 ```csharp
+var text = """
+	H|2026-09-20
+	R|ABC|100
+	T|1
+
+	""";
+
 var feed = FeedParser.ParseFeed(text);
 
-feed.Header.Date.Year;
-feed.Rows[0].Symbol;
-feed.Rows[0].Quantity;
-feed.Trailer.Count;
+var year     = feed.Header.Date.Year;    // 2026
+var symbol   = feed.Rows[0].Symbol;      // ABC
+var quantity = feed.Rows[0].Quantity;    // 100
+var count    = feed.Trailer.Count;       // 1
 ```
 
 There is no generic parse tree and no visitor required to turn it into application data.
