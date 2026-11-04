@@ -51,7 +51,7 @@ public sealed class PostgreSqlNestingCostTests
 		foreach (var size in new[] { 1 << 10, 1 << 12, 1 << 14, 1 << 16 })
 		{
 			var text = Text(head, unit, tail, size, accepted);
-			var (finished, read, allocated) = Read(text);
+			var (finished, read, allocated) = Read(text, static t => PostgreSqlParser.TryParseExpression(t).IsSuccess);
 
 			Assert.True(
 				finished,
@@ -70,6 +70,46 @@ public sealed class PostgreSqlNestingCostTests
 
 			bytes.Add(allocated);
 		}
+	}
+
+	/// <summary>
+	/// A nest costs what its depth does: a call inside a call with a typed literal's string or a bad tail after the
+	/// outermost (the call read once, the string after its bracket deciding), a subquery in brackets inside brackets,
+	/// and a bracketed join inside a bracketed join — accepted and refused alike.
+	/// </summary>
+	[Theory]
+	[InlineData("calls, then a typed literal",       "SELECT ", "f(",  "a", ")", " 'x'",      true)]
+	[InlineData("calls, then a bad tail",            "SELECT ", "f(",  "a", ")", " 'x' 'y'",  false)]
+	[InlineData("calls, unclosed",                   "SELECT ", "f(",  "a", "",  "",          false)]
+	[InlineData("brackets around a subquery, closed", "SELECT ", "(",   "SELECT 1", ")", "",   true)]
+	[InlineData("brackets around a subquery, unclosed", "SELECT ", "(", "SELECT 1", "", "",    false)]
+	[InlineData("brackets around a value, unclosed",  "SELECT ", "(",   "a", "",  "",          false)]
+	[InlineData("bracketed joins, closed",           "SELECT * FROM ", "(", "a JOIN b ON x", " JOIN c ON y)", "", true)]
+	[InlineData("bracketed joins, unclosed",         "SELECT * FROM ", "(", "a JOIN b ON x", "", "", false)]
+	public void A_nest_costs_what_its_depth_does(string what, string head, string opener, string core, string closer, string tail, bool accepted)
+	{
+		PostgreSqlParser.TryParseStatement(Nest(head, opener, core, closer, tail, 2));
+
+		var bytes = new List<long>();
+
+		foreach (var depth in new[] { 8, 16, 32, 64 })
+		{
+			var text = Nest(head, opener, core, closer, tail, depth);
+			var (finished, read, allocated) = Read(text, static t => PostgreSqlParser.TryParseStatement(t).IsSuccess);
+
+			Assert.True(finished, $"{what}: {depth} levels were not read in {Watchdog.TotalSeconds:F0} s, where the depths before allocated {string.Join(", ", bytes.Select(static one => one.ToString("N0")))} bytes.");
+			Assert.Equal(accepted, read);
+
+			if (bytes.Count > 0)
+				Assert.True(allocated <= bytes[^1] * Slack, $"{what}: {depth / 2} levels allocated {bytes[^1]:N0} bytes and {depth} allocated {allocated:N0}, {(double)allocated / bytes[^1]:F1} times as much.");
+
+			bytes.Add(allocated);
+		}
+	}
+
+	static string Nest(string head, string opener, string core, string closer, string tail, int depth)
+	{
+		return head + string.Concat(Enumerable.Repeat(opener, depth)) + core + string.Concat(Enumerable.Repeat(closer, depth)) + tail;
 	}
 
 	/// <summary>A comment a hundred thousand deep is read through every door: plain and located.</summary>
@@ -110,7 +150,7 @@ public sealed class PostgreSqlNestingCostTests
 	/// Reads the text on a thread of its own, so that the parser's stores start empty; whether it finished within the
 	/// watchdog, whether it was accepted, and the bytes the thread allocated.
 	/// </summary>
-	static (bool Finished, bool Read, long Allocated) Read(string text)
+	static (bool Finished, bool Read, long Allocated) Read(string text, Func<string, bool> parse)
 	{
 		var read      = false;
 		var allocated = 0L;
@@ -119,7 +159,7 @@ public sealed class PostgreSqlNestingCostTests
 			{
 				var before = GC.GetAllocatedBytesForCurrentThread();
 
-				read      = PostgreSqlParser.TryParseExpression(text).IsSuccess;
+				read      = parse(text);
 				allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 			},
 			64 << 20)
