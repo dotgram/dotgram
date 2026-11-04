@@ -504,7 +504,7 @@ cursor_name,1,unwritten,
 cursor_options,6,unwritten,
 opt_hold,3,unwritten,
 SelectStmt,2,unwritten,
-select_with_parens,2,SelectWithParens,
+select_with_parens,2,SelectWithParens,and Bracket, where a bracket inside an expression holds a query
 select_no_parens,8,SelectNoParens,ORDER BY, the limits, the locking and WITH arrive with the queries
 select_clause,2,SelectClause,
 simple_select,7,SimpleSelect,VALUES, TABLE, INTO, GROUP BY, HAVING and WINDOW arrive with the queries
@@ -615,9 +615,9 @@ opt_timezone,3,TimeZone,
 opt_interval,14,IntervalQualifier,
 interval_second,2,IntervalQualifier,
 JsonType,1,SimpleTypename,
-a_expr,70,AExpr,the boolean tower is AExpr, AndExpr, NotExpr, IsExpr, Comparison, Predicate; the rest Arithmetic
-b_expr,22,Arithmetic,BETWEEN's bounds are read as the arithmetic below the predicate level; a comparison inside a bound needs brackets here
-c_expr,14,Primary,
+a_expr,70,AExpr,the boolean tower is AExpr, AndExpr, NotExpr, IsExpr, Compared, Predicate; the rest Arithmetic
+b_expr,22,BExpr,POSITION's operands; BETWEEN's bounds are read as the arithmetic below the predicate level, so a comparison inside a bound needs brackets here
+c_expr,14,Primary,UNIQUE (…) is refused, as the server refuses it (not implemented)
 func_application,7,FuncTail,
 func_expr,3,FuncExpr,
 func_expr_windowless,3,unwritten,
@@ -647,7 +647,7 @@ frame_bound,5,unwritten,
 opt_window_exclusion_clause,5,unwritten,
 row,3,Primary,
 explicit_row,2,Primary,
-implicit_row,1,Bracketed,
+implicit_row,1,Bracket,
 sub_type,3,PredicateTail,
 all_Op,2,OperatorSymbol,
 MathOp,12,OperatorSymbol,
@@ -677,7 +677,7 @@ columnref,2,Columnref,the dots; the subscripts arrive with the expressions
 indirection_el,4,Indirection,
 opt_slice_bound,2,Indirection,
 indirection,2,Indirection,
-opt_indirection,2,Postfixed,
+opt_indirection,2,Primary,the steps after a column reference, a parameter or a bracket
 opt_asymmetric,2,PredicateTail,
 json_passing_clause_opt,2,unwritten,
 json_arguments,2,unwritten,
@@ -711,9 +711,9 @@ name,1,ColId,
 attr_name,1,AttrName,
 file_name,1,unwritten,
 func_name,2,FuncName,
-AexprConst,13,AexprConst,the literals; the typed literals arrive with the expressions
+AexprConst,13,AexprConst,the literals; the typed literals are TypedConstant and FuncExpr
 Iconst,1,token,
-Sconst,1,token,
+Sconst,1,Sconst,
 SignedIconst,3,token,
 RoleId,1,unwritten,
 RoleSpec,4,unwritten,

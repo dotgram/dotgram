@@ -237,21 +237,15 @@ GluedParameter = Parameter ~ Identifier
 // gram.y Sconst after UESCAPE: the escape character, in a plain or an escape string.
 Uescape : @string = "UESCAPE"i & e: (String | EscapeString) & when @(Nodes.IsEscape(e)) => @(e)
 
-// A constant, a parameter or a column reference, and the typed constants.
-ConstantValue : @Expression
-	= l: AexprConst => @(l)
-	| ?!GluedParameter & t: Parameter & when @(Nodes.FitsParameter(t)) => @(Nodes.Parameter(t))
-	| v: TypedConstant => @(v)
-	| c: Columnref => @(c)
-
 // ── The expressions: gram.y a_expr, b_expr, c_expr ──────────────────────────
 //
 // gram.y's expression is one nonterminal with bison's precedence table; here the boolean tower is
 // the standard's shape restated — OR, AND, NOT, the IS tests, the predicates — with PostgreSQL's
 // levels, and the arithmetic below it one ladder of binding powers, as T-SQL writes its own. The
 // precedence is gram.y's: OR < AND < NOT < IS (and ISNULL, NOTNULL) < comparison < BETWEEN, IN,
-// LIKE, ILIKE, SIMILAR < any other operator < + - < * / % < ^ < a sign < AT TIME ZONE < COLLATE <
-// :: < the subscripts and dots.
+// LIKE, ILIKE, SIMILAR < any other operator < + - < * / % < ^ < AT TIME ZONE < COLLATE < a sign <
+// :: < the subscripts and dots. A prefix operator's operand is read at the operator's own level,
+// so `|/ 25 + 11` is the root of the sum, as the server reads it.
 //
 // A right operand is read at the level above its operator, as bison reads it, so `a = b AND c`
 // is AND over a comparison, and `NOT a = b` is NOT over the comparison, which the ladder of binding
@@ -269,26 +263,50 @@ NotExpr : @Expression
 	= "NOT"i & operand: NotExpr => @(new Expression.Unary(UnaryOperator.Not, operand))
 	| e: IsExpr => @(e)
 
-// gram.y's `%nonassoc IS ISNULL NOTNULL` level and its predicates: a test stands after a value and
-// cannot stack — `a IS NULL IS NULL` is refused, as bison refuses it — so the tails are read once,
-// after one operand, which is the one reading of the value (the T-SQL predicate's lesson).
+// gram.y's `%nonassoc IS ISNULL NOTNULL` level and the comparison level above it, which bison
+// interleaves: the tests stand after a value and stack — `a IS NULL IS NULL` is read, as the
+// server reads it — and a tested value is an operand of a comparison, `1 IS NULL = false`, whose
+// result is tested again, `a = b IS NULL = c`. Two comparisons with no test between them, `a < b
+// < c`, are refused, the level being non-associative; and `IS DISTINCT FROM` reads its right
+// operand up to the comparison level, so no test and no comparison follows it. Everything is read
+// once — the value, its tails, and the operator after them that says whether a comparison follows
+// (the T-SQL predicate's lesson).
 IsExpr : @Expression
-	= value: Comparison & tails: IsTail* => @(Nodes.Tested(value, tails))
+	= value: Compared & (tails: IsTail+ & more: IsMore?)? & when @(Nodes.TestsFit(tails, more)) => @(Nodes.Tested(value, tails, more))
+
+IsMore : @Nodes.More
+	= op: ("<=" | ">=" | "<>" | "!=" | '<' | '>' | '=') & right: ComparisonRight & (tails: IsTail+ & more: IsMore?)? & when @(Nodes.TestsFit(tails, more)) => @(new Nodes.More(op, right, tails, more))
 
 IsTail : @Nodes.Test
 	= "IS"i & negated: "NOT"i? & "NULL"i => @(new Nodes.Test.Null(negated is not null, false))
 	| "ISNULL"i => @(new Nodes.Test.Null(false, true))
 	| "NOTNULL"i => @(new Nodes.Test.Null(true, true))
 	| "IS"i & negated: "NOT"i? & truth: ("TRUE"i | "FALSE"i | "UNKNOWN"i) => @(new Nodes.Test.Truth(negated is not null, truth))
-	| "IS"i & negated: "NOT"i? & "DISTINCT"i & "FROM"i & right: Comparison => @(new Nodes.Test.Distinct(negated is not null, right))
+	| "IS"i & negated: "NOT"i? & "DISTINCT"i & "FROM"i & right: DistinctRight => @(new Nodes.Test.Distinct(negated is not null, right))
 	| "IS"i & negated: "NOT"i? & "DOCUMENT"i => @(new Nodes.Test.Document(negated is not null))
 	| "IS"i & negated: "NOT"i? & form: ("NFC"i | "NFD"i | "NFKC"i | "NFKD"i)? & "NORMALIZED"i => @(new Nodes.Test.Normalized(negated is not null, form))
 
-// gram.y's comparison level is one level for all six operators, non-associative: `a < b < c` is
-// refused. The operators are the standard's; `!=` keeps its spelling. The left operand is read
-// once, and the operator after it says whether there is a right one.
-Comparison : @Expression
-	= left: Predicate & (op: ("<=" | ">=" | "<>" | "!=" | '<' | '>' | '=') & right: Predicate)? => @(op is null ? left : Nodes.Compared(left, op, right!))
+// gram.y's comparison level is one level for all six operators. The operators are the standard's;
+// `!=` keeps its spelling. The left operand is read once, and the operator after it says whether
+// there is a right one.
+Compared : @Expression
+	= left: Predicate & (op: ("<=" | ">=" | "<>" | "!=" | '<' | '>' | '=') & right: ComparisonRight)? => @(op is null ? left : Nodes.Compared(left, op, right!))
+
+// The right operand of a comparison: a predicate, or NOT and what it negates — `a = NOT b` is read
+// by the server, NOT's operand reaching as far as any NOT's does. IS DISTINCT FROM's right operand
+// reaches one level further, over a comparison: `a IS DISTINCT FROM b = c` is `b = c` on the right.
+ComparisonRight : @Expression
+	= "NOT"i & operand: NotExpr => @(new Expression.Unary(UnaryOperator.Not, operand))
+	| p: Predicate => @(p)
+
+DistinctRight : @Expression
+	= "NOT"i & operand: NotExpr => @(new Expression.Unary(UnaryOperator.Not, operand))
+	| c: Compared => @(c)
+
+// gram.y b_expr: the arithmetic and one comparison over it, without the predicates that begin
+// with a key word — POSITION's operands.
+BExpr : @Expression
+	= left: Arithmetic & (op: ("<=" | ">=" | "<>" | "!=" | '<' | '>' | '=') & right: Arithmetic)? => @(op is null ? left : Nodes.Compared(left, op, right!))
 
 // gram.y's `%nonassoc BETWEEN IN_P LIKE ILIKE SIMILAR NOT_LA` level, and the quantified forms,
 // `a op ANY (…)`, which bison places at the operator's own level but which read like these: one
@@ -310,11 +328,10 @@ PredicateTail : @Nodes.Tail
 	| op: QuantifiedOperator & quantifier: ("ANY"i | "SOME"i | "ALL"i) & '(' & right: QuantifiedRight & ')'
 		=> @(new Nodes.Tail.Quantified(op, quantifier, right))
 
-// gram.y in_expr: a subquery, or a list of values. The bracket was read by the caller; a query
-// inside brackets of its own is read as the value it is in brackets, once.
-InSource : @InSource
-	= q: SelectNoParens => @(new InSource.Subquery(q))
-	| first: AExpr & (',' & rest: AExpr)* => @(new InSource.Values(Nodes.List(first, rest)))
+// gram.y in_expr: a subquery, or a list of values, between the brackets the caller read — what any
+// bracket holds, as the server's SubLink has it: `IN ((SELECT 1))` is the subquery in its own
+// brackets, `IN ((1, 2))` one row.
+InSource : @InSource = e: Bracket => @(Nodes.InSourceOf(e))
 
 // gram.y subquery_Op: a comparison, a pattern match, or any operator by its symbol or by name.
 QuantifiedOperator : @QuantifiedOperator
@@ -324,10 +341,9 @@ QuantifiedOperator : @QuantifiedOperator
 	| t: Operator & when @(Nodes.IsOperator(t)) => @(new QuantifiedOperator.Named(Nodes.OperatorName(t)))
 	| t: ('+' | '-' | '*' | '/' | '%' | '^' | "||") => @(new QuantifiedOperator.Named(Nodes.OperatorName(t)))
 
-// The right side of a quantified form: a subquery, or an array expression in the same brackets.
-QuantifiedRight : @Expression
-	= q: SelectNoParens => @(new Expression.Subquery(q))
-	| e: AExpr => @(e)
+// The right side of a quantified form: a subquery, or an array expression, between the brackets
+// the caller read; a list of values is refused, as the server refuses `= ANY (1, 2)`.
+QuantifiedRight : @Expression = e: Bracket & when @(e is not Expression.Row) => @(Nodes.QuantifiedValue(e))
 
 // gram.y a_expr's arithmetic, as one ladder of binding powers. Where the tree names the operator
 // — `+ - * / % ^` and `||` — the node is the standard's; any other run of operator characters, and
@@ -335,17 +351,17 @@ QuantifiedRight : @Expression
 Arithmetic : @Expression
 	= left: Arithmetic & op: Operator & when @(Nodes.IsOperator(op)) & right: Arithmetic << 1 => @(Nodes.Called(op, left, right))
 	| left: Arithmetic & "OPERATOR"i & '(' & name: AnyOperator & ')' & right: Arithmetic << 1 => @(Nodes.Called(name, left, right))
+	| op: Operator & when @(Nodes.IsOperator(op)) & operand: Arithmetic >> 1 => @(Nodes.Called(op, null, operand))
+	| "OPERATOR"i & '(' & name: AnyOperator & ')' & operand: Arithmetic >> 1 => @(Nodes.Called(name, null, operand))
 	| left: Arithmetic & op: ('+' | '-') & right: Arithmetic << 2 => @(Nodes.Binary(left, Nodes.BinaryOf(op), right))
 	| left: Arithmetic & op: ('*' | '/' | '%') & right: Arithmetic << 3 => @(Nodes.Binary(left, Nodes.BinaryOf(op), right))
 	| left: Arithmetic & '^' & right: Arithmetic << 4 => @(Nodes.Binary(left, BinaryOperator.Power, right))
-	| sign: ('+' | '-') & operand: Arithmetic >> 5 => @(Nodes.Signed(sign, operand))
-	| op: Operator & when @(Nodes.IsOperator(op)) & operand: Arithmetic >> 5 => @(Nodes.Called(op, null, operand))
-	| "OPERATOR"i & '(' & name: AnyOperator & ')' & operand: Arithmetic >> 5 => @(Nodes.Called(name, null, operand))
-	| left: Arithmetic & "AT"i & "TIME"i & "ZONE"i & zone: Arithmetic << 6 => @(new Expression.AtTimeZone(left, zone))
-	| left: Arithmetic & "AT"i & "LOCAL"i << 6 => @(new Expression.AtTimeZone(left, null))
-	| left: Arithmetic & "COLLATE"i & name: AnyName << 7 => @(new Expression.Collate(left, new CollationName(name)))
+	| left: Arithmetic & "AT"i & "TIME"i & "ZONE"i & zone: Arithmetic << 5 => @(new Expression.AtTimeZone(left, zone))
+	| left: Arithmetic & "AT"i & "LOCAL"i << 5 => @(new Expression.AtTimeZone(left, null))
+	| left: Arithmetic & "COLLATE"i & name: AnyName << 6 => @(new Expression.Collate(left, new CollationName(name)))
+	| sign: ('+' | '-') & operand: Arithmetic >> 7 => @(Nodes.Signed(sign, operand))
 	| left: Arithmetic & "::" & type: Typename << 8 => @(Nodes.Cast(left, type, CastSpelling.DoubleColon))
-	| e: Postfixed => @(e)
+	| e: Primary => @(e)
 
 // gram.y any_operator: an operator's name, with the schemas before it.
 AnyOperator    : @QualifiedName = (first: ColId & '.')* & t: OperatorSymbol => @(Nodes.OperatorName(first, t))
@@ -356,21 +372,19 @@ OperatorSymbol : @string
 // gram.y any_name: a name, and the names after its dots.
 AnyName : @QualifiedName = first: ColId & ('.' & rest: AttrName)* => @(Nodes.Chain(first, rest))
 
-// gram.y opt_indirection, read once after a primary: a dot and a name or a star, or a subscript
-// — never a second reading of the primary.
-Postfixed : @Expression
-	= p: Primary & steps: Indirection* => @(Nodes.Reached(p, steps))
-
+// gram.y opt_indirection, read once after the primaries that take it — a column reference, a
+// parameter, a bracket — and after no other, as the server reads it: a dot and a name or a star,
+// or a subscript, whose first value is read once and the colon after it says a slice.
 Indirection : @Nodes.Step
 	= '.' & '*' => @(new Nodes.Step.Star())
 	| '.' & name: AttrName => @(new Nodes.Step.Member(name))
-	| '[' & lower: AExpr? & ':' & upper: AExpr? & ']' => @(new Nodes.Step.Slice(lower, upper))
-	| '[' & index: AExpr & ']' => @(new Nodes.Step.Subscript(index))
+	| '[' & lower: AExpr? & (colon: ':' & upper: AExpr?)? & ']' & when @(colon is not null || lower is not null) => @(colon is null ? new Nodes.Step.Subscript(lower!) : new Nodes.Step.Slice(lower, upper))
 
 // gram.y c_expr. The named functions come first, each beginning with a word only it begins with;
 // a call by name after them, read once — its name, its arguments, its closing bracket — and a
 // string standing right after the bracket makes it a typed literal instead; then the constants,
-// a parameter, the brackets, and a column reference last of all.
+// a parameter, a column reference and the brackets, the last three with the subscripts and dots
+// after them. `UNIQUE (…)` is refused as the server refuses it (not implemented).
 Primary : @Expression
 	= v: FuncExprCommonSubexpr => @(v)
 	| v: CaseExpr => @(v)
@@ -379,24 +393,36 @@ Primary : @Expression
 	| "ARRAY"i & a: ArrayExpr => @(a)
 	| "ROW"i & '(' & (first: AExpr & (',' & rest: AExpr)*)? & ')' => @(Nodes.Row(first, rest, true))
 	| "GROUPING"i & '(' & first: AExpr & (',' & rest: AExpr)* & ')' => @(Nodes.Invoked("GROUPING", first, rest))
-	| "UNIQUE"i & q: Subquery => @(new Expression.Unique(null, q))
 	| "DEFAULT"i => @(new Expression.Default())
 	| v: FuncExpr => @(v)
-	| v: ConstantValue => @(v)
-	| b: Bracketed => @(b)
+	| l: AexprConst => @(l)
+	| ?!GluedParameter & t: Parameter & when @(Nodes.FitsParameter(t)) & steps: Indirection* => @(Nodes.Reached(Nodes.Parameter(t), steps))
+	| v: TypedConstant => @(v)
+	| c: Columnref & steps: Indirection* => @(Nodes.Reached(c, steps))
+	| b: Bracketed & steps: Indirection* => @(Nodes.Reached(b, steps))
 
-// gram.y `'(' a_expr ')'`, implicit_row and select_with_parens, read with one bracket: a query's
-// word after the bracket says a subquery, and otherwise the value inside is read once, and a
-// comma after it says a row — never a second reading from the bracket, at any depth.
-Bracketed : @Expression
-	= '(' & q: SelectNoParens & ')' => @(new Expression.Subquery(q))
-	| '(' & first: AExpr & (',' & rest: AExpr)* & ')' => @(rest is not { Length: > 0 } ? Nodes.Parenthesized(first) : Nodes.Row(first, rest, false))
+// gram.y `'(' a_expr ')'`, implicit_row and select_with_parens, read with one bracket, and what
+// stands between one pair of brackets: a query's word after the bracket says a subquery, and
+// otherwise the value inside is read once and what follows it says which — a comma a row, a set
+// operation a query whose first operand the value was, `((SELECT 1) UNION (SELECT 2))`, and the
+// close the value in brackets — never a second reading from the bracket, at any depth.
+Bracketed : @Expression = '(' & e: Bracket & ')' => @(e)
+
+Bracket : @Expression
+	= ?=("SELECT"i | "VALUES"i | "TABLE"i | "WITH"i) & q: SelectNoParens => @(new Expression.Subquery(q))
+	| first: AExpr & tail: BracketTail & when @(Nodes.BracketFits(first, tail)) => @(Nodes.Bracket(first, tail))
+
+BracketTail : @Nodes.BracketTail
+	= (',' & rest: AExpr)+ => @(new Nodes.BracketTail.Row(rest))
+	| operations: BracketOperation+ => @(new Nodes.BracketTail.Operations(operations))
+	| none => @(new Nodes.BracketTail.Operations(null))
+BracketOperation : @SetOperation
+	= o: Intersect => @(o)
+	| o: UnionOrExcept => @(o)
 
 // A subquery whose brackets are the construct's own — EXISTS (…), ARRAY (…), a derived table — as the
-// standard's reading has them: the query inside, and a bracket more as the query in brackets.
-Subquery : @Query
-	= '(' & q: SelectNoParens & ')' => @(q)
-	| '(' & q: Subquery & ')' => @(new Query.Parenthesized(q))
+// standard's reading has them: the query inside.
+Subquery : @Query = '(' & q: SelectNoParens & ')' => @(q)
 
 // gram.y array_expr: `[…]`, whose elements are values, or arrays all of them — never a mixture, as the
 // server refuses one.
@@ -418,16 +444,19 @@ WhenClause : @CaseWhen = "WHEN"i & test: AExpr & "THEN"i & result: AExpr => @(ne
 FuncExpr : @Expression = name: FuncName & tail: FuncTail => @(Nodes.Function(name, tail))
 
 FuncTail : @Nodes.FuncTail
-	= '(' & body: CallBody & ')' & rest: CallRest => @(new Nodes.FuncTail.Call(body, rest))
-	| typed: String => @(new Nodes.FuncTail.Typed(typed))
+	= '(' & body: CallBody & ')' & rest: CallRest & when @(Nodes.ModifiersFit(body, rest)) => @(new Nodes.FuncTail.Call(body, rest))
+	| typed: Sconst => @(new Nodes.FuncTail.Typed(typed))
 
 CallBody : @Nodes.CallBody
 	= '*' => @(new Nodes.CallBody.Star())
 	| quantifier: ("ALL"i | "DISTINCT"i)? & first: FuncArg & (',' & rest: FuncArg)* & order: SortClause? => @(new Nodes.CallBody.Arguments(quantifier, Nodes.List(first, rest), order))
 	| none => @(new Nodes.CallBody.Arguments(null, [], null))
 
+// A string after the close makes the call a type and its arguments the type's modifiers — plain
+// values, at least one: `f(DISTINCT a) 'x'`, `f(a := 1) 'x'` and `f() 'x'` are refused, as the
+// server refuses them.
 CallRest : @Nodes.CallRest
-	= typed: String => @(new Nodes.CallRest.Typed(typed))
+	= typed: Sconst => @(new Nodes.CallRest.Typed(typed))
 	| within: WithinGroupClause? & filter: FilterClause? & over: OverClause? => @(new Nodes.CallRest.Clauses(within, filter, over))
 
 // gram.y func_arg_expr: a value, named by `=>` or `:=`, and `VARIADIC` before the last.
@@ -458,19 +487,19 @@ SortBy     : @SortItem = key: AExpr & direction: ("ASC"i | "DESC"i)? & ("NULLS"i
 
 FuncExprCommonSubexpr : @Expression
 	= "COLLATION"i & "FOR"i & '(' & v: AExpr & ')' => @(new Expression.CollationFor(v))
-	| kind: ("CURRENT_DATE"i | "CURRENT_ROLE"i | "CURRENT_USER"i | "SESSION_USER"i | "SYSTEM_USER"i | "USER"i | "CURRENT_CATALOG"i | "CURRENT_SCHEMA"i) => @(Nodes.Current(kind, null))
-	| kind: ("CURRENT_TIME"i | "CURRENT_TIMESTAMP"i | "LOCALTIME"i | "LOCALTIMESTAMP"i) & ('(' & precision: Integer & ')')? => @(Nodes.Current(kind, precision))
+	| kind: ("CURRENT_DATE"i | "CURRENT_ROLE"i | "CURRENT_USER"i | "SESSION_USER"i | "SYSTEM_USER"i | "USER"i | "CURRENT_CATALOG"i | "CURRENT_SCHEMA"i) & ?!'(' => @(Nodes.Current(kind, null))
+	| kind: ("CURRENT_TIME"i | "CURRENT_TIMESTAMP"i | "LOCALTIME"i | "LOCALTIMESTAMP"i) & ('(' & precision: Integer & when @(Nodes.FitsInteger(precision)) & ')')? => @(Nodes.Current(kind, precision))
 	| "CAST"i & '(' & v: AExpr & "AS"i & type: Typename & ')' => @(Nodes.Cast(v, type, null))
 	| "EXTRACT"i & '(' & field: ExtractArg & "FROM"i & source: AExpr & ')' => @(Nodes.Extracted(field, source))
 	| "NORMALIZE"i & '(' & v: AExpr & (',' & form: ("NFC"i | "NFD"i | "NFKC"i | "NFKD"i))? & ')' => @(Nodes.Normalized(v, form))
 	| "OVERLAY"i & '(' & v: AExpr & o: OverlayRest & ')' => @(Nodes.Overlaid(v, o))
 	| "OVERLAY"i & '(' & ')' => @(Nodes.Invoked("OVERLAY", (Expression?)null, null))
-	| "POSITION"i & '(' & v: Arithmetic & "IN"i & within: Arithmetic & ')' => @(new Expression.Position(v, within, null))
+	| "POSITION"i & '(' & v: BExpr & "IN"i & within: BExpr & ')' => @(new Expression.Position(v, within, null))
 	| "SUBSTRING"i & '(' & v: AExpr & s: SubstrRest & ')' => @(Nodes.Substring(v, s))
 	| "SUBSTRING"i & '(' & ')' => @(Nodes.Invoked("SUBSTRING", (Expression?)null, null))
 	| "TREAT"i & '(' & v: AExpr & "AS"i & type: Typename & ')' => @(new Expression.Treat(v, type))
 	| "TRIM"i & '(' & spec: ("BOTH"i | "LEADING"i | "TRAILING"i)? & t: TrimList & ')' => @(Nodes.Trimmed(spec, t))
-	| name: ("NULLIF"i | "COALESCE"i | "GREATEST"i | "LEAST"i) & '(' & first: AExpr & (',' & rest: AExpr)* & ')' => @(Nodes.Invoked(name, first, rest))
+	| name: ("NULLIF"i | "COALESCE"i | "GREATEST"i | "LEAST"i) & '(' & first: AExpr & (',' & rest: AExpr)* & ')' & when @(Nodes.ArityFits(name, rest)) => @(Nodes.Invoked(name, first, rest))
 
 // gram.y overlay_list, after the value, or the plain arguments after it: read once, the word after
 // the value saying which.
@@ -478,11 +507,13 @@ OverlayRest : @Nodes.Overlay
 	= "PLACING"i & placing: AExpr & "FROM"i & from: AExpr & ("FOR"i & count: AExpr)? => @(new Nodes.Overlay(placing, from, count, null))
 	| (',' & more: AExpr)* => @(new Nodes.Overlay(null, null, null, more))
 
-// gram.y extract_arg: a field the standard names, or any name or string.
+// gram.y extract_arg: a field the standard names, or any plain name that is no key word, or a
+// string of any form.
 ExtractArg : @Nodes.Field
 	= f: ("YEAR"i | "MONTH"i | "DAY"i | "HOUR"i | "MINUTE"i | "SECOND"i) => @(new Nodes.Field.Named(f))
-	| n: Identifier => @(new Nodes.Field.Other(new Expression.Reference(new QualifiedName(new Identifier(n)))))
-	| t: String => @(new Nodes.Field.Other(Nodes.StringLiteral(t, StringLiteralKind.Character)))
+	| n: Identifier & when @(!KeywordCatalogue.IsKeyword(n)) => @(new Nodes.Field.Other(new Expression.Reference(new QualifiedName(new Identifier(n)))))
+	| n: DelimitedIdentifier => @(new Nodes.Field.Other(new Expression.Reference(new QualifiedName(new Identifier(n, IdentifierStyle.Delimited)))))
+	| t: Sconst => @(new Nodes.Field.Other(t))
 
 // gram.y substr_list after the value — the start and the count in either order, either alone, or
 // a pattern and its escape — or the plain arguments after it: read once, the word after the value
@@ -514,18 +545,18 @@ Typename : @DataType
 	= setof: "SETOF"i? & t: SimpleTypename & bounds: ArrayBounds => @(Nodes.Typed(t, bounds, setof is not null))
 
 ArrayBounds : @Nodes.Bounds
-	= "ARRAY"i & ('[' & cardinality: Integer & ']')? => @(new Nodes.Bounds.Standard(cardinality))
+	= "ARRAY"i & ('[' & cardinality: Integer & when @(Nodes.FitsInteger(cardinality)) & ']')? => @(new Nodes.Bounds.Standard(cardinality))
 	| dimensions: Dimension* => @(new Nodes.Bounds.Brackets(dimensions))
-Dimension : @Nodes.Dimension = '[' & n: Integer? & ']' => @(new Nodes.Dimension(Nodes.Integer(n)))
+Dimension : @Nodes.Dimension = '[' & n: Integer? & when @(Nodes.FitsInteger(n)) & ']' => @(new Nodes.Dimension(Nodes.Integer(n)))
 
 SimpleTypename : @DataType
 	= t: NumericType => @(t)
-	| "BIT"i & varying: "VARYING"i? & ('(' & n: Integer & ')')? => @(Nodes.Bits(varying is not null, n))
+	| "BIT"i & varying: "VARYING"i? & ('(' & n: Integer & when @(Nodes.FitsInteger(n)) & ')')? => @(Nodes.Bits(varying is not null, n))
 	| t: CharacterType => @(t)
-	| kind: ("TIMESTAMP"i | "TIME"i) & ('(' & p: Integer & ')')? & zone: TimeZone? => @(Nodes.Temporal(kind, p, zone))
-	| kind: ("TIMESTAMPTZ"i | "TIMETZ"i) & ('(' & p: Integer & ')')? => @(Nodes.Temporal(kind, p, "WITH"))
+	| kind: ("TIMESTAMP"i | "TIME"i) & ('(' & p: Integer & when @(Nodes.FitsInteger(p)) & ')')? & zone: TimeZone? => @(Nodes.Temporal(kind, p, zone))
+	| kind: ("TIMESTAMPTZ"i | "TIMETZ"i) & ('(' & p: Integer & when @(Nodes.FitsInteger(p)) & ')')? => @(Nodes.Temporal(kind, p, "WITH"))
 	| "DATE"i => @(new DataType.DateTime(DateTimeTypeKind.Date))
-	| "INTERVAL"i & '(' & p: Integer & ')' => @(new DataType.Interval(null, Nodes.Integer(p)))
+	| "INTERVAL"i & '(' & p: Integer & when @(Nodes.FitsInteger(p)) & ')' => @(new DataType.Interval(null) { Precision = Nodes.Integer(p) })
 	| "INTERVAL"i & q: IntervalQualifier? => @(new DataType.Interval(q))
 	| "JSON"i => @(new DataType.Json())
 	| t: GenericType => @(t)
@@ -534,14 +565,14 @@ TimeZone = ("WITH"i | "WITHOUT"i) & "TIME"i & "ZONE"i
 
 NumericType : @DataType
 	= kind: ("INT"i | "INTEGER"i | "SMALLINT"i | "BIGINT"i | "REAL"i | "INT2"i | "INT4"i | "INT8"i | "FLOAT4"i | "FLOAT8"i) => @(Nodes.Numeric(kind, null, null))
-	| "FLOAT"i & ('(' & p: Integer & ')')? => @(Nodes.Numeric("FLOAT", p, null))
+	| "FLOAT"i & ('(' & p: Integer & when @(Nodes.FitsInteger(p)) & ')')? => @(Nodes.Numeric("FLOAT", p, null))
 	| "DOUBLE"i & "PRECISION"i => @(Nodes.Numeric("DOUBLE PRECISION", null, null))
-	| kind: ("DECIMAL"i | "DEC"i | "NUMERIC"i) & ('(' & p: Integer & (',' & s: Integer)? & ')')? => @(Nodes.Numeric(kind, p, s))
+	| kind: ("DECIMAL"i | "DEC"i | "NUMERIC"i) & ('(' & p: Integer & when @(Nodes.FitsInteger(p)) & (',' & s: Integer & when @(Nodes.FitsInteger(s)))? & ')')? => @(Nodes.Numeric(kind, p, s))
 	| "BOOLEAN"i => @(new DataType.Boolean())
 	| "BOOL"i => @(new DataType.Boolean { Abbreviated = true })
 
 CharacterType : @DataType
-	= kind: ("CHARACTER"i & "VARYING"i | "CHAR"i & "VARYING"i | "VARCHAR"i | "NATIONAL"i & "CHARACTER"i & "VARYING"i | "NATIONAL"i & "CHAR"i & "VARYING"i | "NCHAR"i & "VARYING"i | "NATIONAL"i & "CHARACTER"i | "NATIONAL"i & "CHAR"i | "CHARACTER"i | "CHAR"i | "NCHAR"i) & ('(' & n: Integer & ')')? => @(Nodes.Characters(kind, n))
+	= kind: ("CHARACTER"i & "VARYING"i | "CHAR"i & "VARYING"i | "VARCHAR"i | "NATIONAL"i & "CHARACTER"i & "VARYING"i | "NATIONAL"i & "CHAR"i & "VARYING"i | "NCHAR"i & "VARYING"i | "NATIONAL"i & "CHARACTER"i | "NATIONAL"i & "CHAR"i | "CHARACTER"i | "CHAR"i | "NCHAR"i) & ('(' & n: Integer & when @(Nodes.FitsInteger(n)) & ')')? => @(Nodes.Characters(kind, n))
 
 // gram.y GenericType: a name and its modifiers, which gram.y reads as any expressions.
 GenericType : @DataType
@@ -550,8 +581,8 @@ GenericType : @DataType
 // gram.y opt_interval: the standard's qualifier, as the standard's grammar reads it.
 IntervalQualifier : @IntervalQualifier
 	= s: ("YEAR"i | "MONTH"i | "DAY"i | "HOUR"i | "MINUTE"i) & "TO"i & e: ("MONTH"i | "HOUR"i | "MINUTE"i) => @(Nodes.Qualifier(s, null, e, null))
-	| s: ("DAY"i | "HOUR"i | "MINUTE"i) & "TO"i & "SECOND"i & ('(' & p: Integer & ')')? => @(Nodes.Qualifier(s, null, "SECOND", p))
-	| "SECOND"i & ('(' & p: Integer & ')')? => @(Nodes.Qualifier("SECOND", null, null, p))
+	| s: ("DAY"i | "HOUR"i | "MINUTE"i) & "TO"i & "SECOND"i & ('(' & p: Integer & when @(Nodes.FitsInteger(p)) & ')')? => @(Nodes.Qualifier(s, null, "SECOND", p))
+	| "SECOND"i & ('(' & p: Integer & when @(Nodes.FitsInteger(p)) & ')')? => @(Nodes.Qualifier("SECOND", null, null, p))
 	| f: ("YEAR"i | "MONTH"i | "DAY"i | "HOUR"i | "MINUTE"i) => @(Nodes.Qualifier(f, null, null, null))
 
 // ── gram.y AexprConst: the typed constants ──────────────────────────────────
@@ -559,17 +590,24 @@ IntervalQualifier : @IntervalQualifier
 // A type's name before a string is that type's value; the standard's typed literals keep the
 // standard's records, and the rest are a cast written as a typed literal.
 TypedConstant : @Expression
-	= "INTERVAL"i & t: String & q: IntervalQualifier? => @(new LiteralValue.Interval(Nodes.Quoted(t), q))
-	| "INTERVAL"i & '(' & p: Integer & ')' & t: String => @(Nodes.TypedLiteral(new DataType.Interval(null, Nodes.Integer(p)), t))
-	| kind: ("DATE"i | "TIMESTAMP"i | "TIME"i) & t: String => @(Nodes.DateTimeLiteral(kind, t))
-	| type: ConstTypename & t: String => @(Nodes.TypedLiteral(type, t))
+	= "INTERVAL"i & t: Sconst & q: IntervalQualifier? => @(Nodes.IntervalLiteral(t, q))
+	| "INTERVAL"i & '(' & p: Integer & when @(Nodes.FitsInteger(p)) & ')' & t: Sconst => @(Nodes.TypedLiteral(new DataType.Interval(null) { Precision = Nodes.Integer(p) }, t))
+	| kind: ("DATE"i | "TIMESTAMP"i | "TIME"i) & t: Sconst => @(Nodes.DateTimeLiteral(kind, t))
+	| type: ConstTypename & t: Sconst => @(Nodes.TypedLiteral(type, t))
+
+// gram.y Sconst: a string in any of its forms, which is what stands after a type's name.
+Sconst : @LiteralValue
+	= t: EscapeString => @(Nodes.StringLiteral(t, StringLiteralKind.Escaped))
+	| t: UnicodeString & u: Uescape? => @(Nodes.UnicodeString(t, u))
+	| t: DollarQuoted => @(new LiteralValue.String(t, StringLiteralKind.Dollar))
+	| t: String => @(Nodes.StringLiteral(t, StringLiteralKind.Character))
 
 ConstTypename : @DataType
 	= t: NumericType => @(t)
-	| "BIT"i & varying: "VARYING"i? & ('(' & n: Integer & ')')? => @(Nodes.Bits(varying is not null, n))
+	| "BIT"i & varying: "VARYING"i? & ('(' & n: Integer & when @(Nodes.FitsInteger(n)) & ')')? => @(Nodes.Bits(varying is not null, n))
 	| t: CharacterType => @(t)
-	| kind: ("TIMESTAMP"i | "TIME"i) & ('(' & p: Integer & ')')? & zone: TimeZone? => @(Nodes.Temporal(kind, p, zone))
-	| kind: ("TIMESTAMPTZ"i | "TIMETZ"i) & ('(' & p: Integer & ')')? => @(Nodes.Temporal(kind, p, "WITH"))
+	| kind: ("TIMESTAMP"i | "TIME"i) & ('(' & p: Integer & when @(Nodes.FitsInteger(p)) & ')')? & zone: TimeZone? => @(Nodes.Temporal(kind, p, zone))
+	| kind: ("TIMESTAMPTZ"i | "TIMETZ"i) & ('(' & p: Integer & when @(Nodes.FitsInteger(p)) & ')')? => @(Nodes.Temporal(kind, p, "WITH"))
 	| "JSON"i => @(new DataType.Json())
 
 // ── The query core: gram.y select_with_parens, select_no_parens, simple_select ──
@@ -577,9 +615,7 @@ ConstTypename : @DataType
 // Enough of a query for an expression to hold one and for a statement to be one: the target list,
 // FROM with its names, joins and subqueries, WHERE, and the set operations with bracketed operands.
 // The rest of select_no_parens — WITH, ORDER BY, the limits, the locking — arrives with the queries.
-SelectWithParens : @Query
-	= '(' & q: SelectNoParens & ')' => @(new Query.Parenthesized(q))
-	| '(' & q: SelectWithParens & ')' => @(new Query.Parenthesized(q))
+SelectWithParens : @Query = '(' & q: SelectNoParens & ')' => @(new Query.Parenthesized(q))
 
 SelectNoParens : @Query = q: SelectClause => @(q)
 
@@ -595,9 +631,10 @@ SelectPrimary : @Query
 	= q: SimpleSelect => @(q)
 	| q: SelectWithParens => @(q)
 
-// gram.y simple_select: the SELECT itself. An empty target list is read, as the server reads it.
+// gram.y simple_select: the SELECT itself. An empty target list is read, as the server reads it,
+// after SELECT or SELECT ALL; DISTINCT asks for one.
 SimpleSelect : @Query
-	= "SELECT"i & d: DistinctClause? & (first: TargetEl & (',' & rest: TargetEl)*)? & from: FromClause? & ("WHERE"i & where: AExpr)?
+	= "SELECT"i & d: DistinctClause? & (first: TargetEl & (',' & rest: TargetEl)*)? & when @(Nodes.TargetsFit(d, first)) & from: FromClause? & ("WHERE"i & where: AExpr)?
 		=> @(Nodes.Selected(d, first, rest, from, where))
 
 DistinctClause : @Nodes.Distinct
@@ -615,12 +652,13 @@ TargetLabel : @Nodes.Label
 	| name: BareColLabel => @(new Nodes.Label(name, false))
 
 // gram.y from_clause, from_list, table_ref and joined_table, in the standard's shape: a source and
-// its joins, folded from the left.
+// its joins, folded from the left. A join is NATURAL or has its ON or USING; OUTER follows LEFT,
+// RIGHT or FULL; a bracketed source is a join, as the server's table_ref has it.
 FromClause : @FromClause = "FROM"i & first: TableRef & (',' & rest: TableRef)* => @(new FromClause(Nodes.List(first, rest)))
 
 TableRef : @TableSource
 	= left: TableRef & "CROSS"i & "JOIN"i & right: TableRefPrimary => @(Nodes.Joined(left, "CROSS", false, false, right, null))
-	| left: TableRef & natural: "NATURAL"i? & kind: ("INNER"i | "LEFT"i | "RIGHT"i | "FULL"i)? & outer: "OUTER"i? & "JOIN"i & right: TableRefPrimary & spec: JoinQual? => @(Nodes.Joined(left, kind, natural is not null, outer is not null, right, spec))
+	| left: TableRef & natural: "NATURAL"i? & kind: ("INNER"i | "LEFT"i | "RIGHT"i | "FULL"i)? & outer: "OUTER"i? & "JOIN"i & when @(Nodes.JoinWordsFit(kind, outer)) & right: TableRefPrimary & spec: JoinQual? & when @((natural is null) != (spec is null)) => @(Nodes.Joined(left, kind, natural is not null, outer is not null, right, spec))
 	| p: TableRefPrimary => @(p)
 
 JoinQual : @JoinSpecification
@@ -628,10 +666,10 @@ JoinQual : @JoinSpecification
 	| "ON"i & condition: AExpr => @(new JoinSpecification.On(condition))
 
 TableRefPrimary : @TableSource
-	= only: "ONLY"i? & name: AnyName & star: '*'? & alias: AliasClause? => @(Nodes.Table(name, only is not null, star is not null, alias))
+	= only: "ONLY"i? & name: AnyName & star: '*'? & when @(only is null || star is null) & alias: AliasClause? => @(Nodes.Table(name, only is not null, star is not null, alias))
 	| "ONLY"i & '(' & name: AnyName & ')' & alias: AliasClause? => @(Nodes.Table(name, true, false, alias))
 	| lateral: "LATERAL"i? & q: Subquery & alias: AliasClause? => @(new TableSource.Subquery(q) { Lateral = lateral is not null, Alias = alias })
-	| '(' & j: TableRef & ')' & alias: AliasClause? => @(Nodes.Bracketed(j, alias))
+	| '(' & j: TableRef & ')' & when @(j is TableSource.Join) & alias: AliasClause? => @(Nodes.Bracketed(j, alias))
 
 // gram.y alias_clause: a name, with AS or without, and the column names after it.
 AliasClause : @Alias
@@ -643,21 +681,16 @@ AliasClause : @Alias
 Stmt : @Statement
 	= q: SelectNoParens => @(new Statement.Select { Query = q })
 
-// gram.y stmtmulti: statements each ended by `;` or by the end of the text.
-StmtMulti     : @Statement[] = s: StmtTerminated* => @(s ?? System.Array.Empty<Statement>())
-StmtTerminated : @Statement  = s: Stmt & (';' | eof) => @(s)
+// gram.y stmtmulti: statements each ended by `;` or by the end of the text, with empty statements
+// between them — `;;` and a text of semicolons alone are read, as the server reads them.
+StmtMulti      : @Statement[] = ';'* & s: StmtTerminated* => @(s ?? System.Array.Empty<Statement>())
+StmtTerminated : @Statement   = s: Stmt & (';'+ | eof) => @(s)
 
 // ── The entry points ────────────────────────────────────────────────────────
 //
 // The rules a program asks for by name, published under the standard's names: an expression, a
-// statement of any kind, and a text of statements.
-namespace Dialect
-{
-	Value     : @Expression  = v: AExpr => @(v)
-	Statement : @Statement   = s: Stmt & ';'? => @(s)
-	Sql       : @Statement[] = s: StmtMulti => @(s)
-}
-
-parse Dialect.Value     as ParseExpression
-parse Dialect.Statement as ParseStatement
-parse Dialect.Sql       as ParseSql
+// statement of any kind, and a text of statements — the statement being the rule the text of
+// statements repeats, so that the two entries share one reading.
+parse AExpr          as ParseExpression
+parse StmtTerminated as ParseStatement
+parse StmtMulti      as ParseSql
