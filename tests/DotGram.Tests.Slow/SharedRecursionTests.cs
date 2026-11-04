@@ -205,32 +205,39 @@ public sealed class SharedRecursionTests(ITestOutputHelper output)
 	}
 
 	/// <summary>
-	/// The pairs the rewritten SQL-92 grammar still has at error level, each nested through the
-	/// construct its witness names, with the rule entries a parse costs at each depth: a count that
-	/// doubles every level is the shape the analysis is about, one that grows by a constant is not.
+	/// Pairs flagged at error level, each nested through the construct its witness names, with the
+	/// rule entries a parse costs at each depth: a count that doubles every level is the shape the
+	/// analysis is about, one that grows by a constant is not. The SQL-92 rows are what the rewritten
+	/// grammar still has; the others are a sample of the larger grammars' pairs.
 	/// </summary>
 	/// <remarks>Reported, not held: what the counts say is the report's to weigh.</remarks>
 	[Theory]
-	[InlineData("InPredicateValue", "SELECT a FROM t WHERE ", "a IN ((SELECT a FROM t WHERE {0}), 2)", "a = 1")]
-	[InlineData("ValueExpressionPrimary", "SELECT a FROM t WHERE ", "((SELECT a FROM t WHERE {0}) UNION (SELECT a FROM t)) = 1", "a = 1")]
-	[InlineData("TablePrimary", "SELECT a FROM ", "((SELECT a FROM {0}) AS q)", "t")]
-	public void Sql92Ladder(string rule, string head, string shape, string core)
+	[InlineData(SqlVariants.Sql92, "InPredicateValue", "TryParseSelect", "SELECT a FROM t WHERE ", "a IN ((SELECT a FROM t WHERE {0}), 2)", "a = 1")]
+	[InlineData(SqlVariants.Sql92, "ValueExpressionPrimary", "TryParseSelect", "SELECT a FROM t WHERE ", "((SELECT a FROM t WHERE {0}) UNION (SELECT a FROM t)) = 1", "a = 1")]
+	[InlineData(SqlVariants.Sql92, "TablePrimary", "TryParseSelect", "SELECT a FROM ", "((SELECT a FROM {0}) AS q)", "t")]
+	[InlineData(SqlVariants.TransactSql, "TSqlTablePrimary", "TryParseSyntaxSelect", "SELECT a FROM ", "((SELECT a FROM {0}) AS q)", "t")]
+	[InlineData(SqlVariants.TransactSql, "InPredicateValue", "TryParseSyntaxSelect", "SELECT a FROM t WHERE ", "a IN ((SELECT a FROM t WHERE {0}), 2)", "a = 1")]
+	[InlineData(SqlVariants.TransactSql, "Top", "TryParseSyntaxSelect", "SELECT TOP ", "((SELECT TOP {0} a FROM t)) a FROM t", "(1)")]
+	[InlineData(SqlVariants.TransactSql, "SetFunctionSpecification", "TryParseSyntaxSelect", "SELECT ", "COUNT({0})", "a")]
+	[InlineData(SqlVariants.TransactSql, "TSqlValueFunction", "TryParseSyntaxSelect", "SELECT ", "IIF({0} = 1, 1, 2)", "a")]
+	[InlineData(SqlVariants.TransactSql, "ValueFunction", "TryParseSyntaxSelect", "SELECT ", "CHAR_LENGTH({0})", "'a'")]
+	[InlineData(SqlVariants.TransactSql, "GroupingSet", "TryParseSyntaxSelect", "SELECT a FROM t GROUP BY ", "ROLLUP((({0})))", "a")]
+	[InlineData(SqlVariants.Standard, "TablePrimary", "TryParseStatement", "SELECT a FROM ", "((SELECT a FROM {0}) AS q)", "t")]
+	[InlineData(SqlVariants.Standard, "ComparisonTail", "TryParseStatement", "SELECT a FROM t WHERE ", "a = SOME ((SELECT a FROM t WHERE {0}))", "a = 1")]
+	public void Ladder(string grammar, string rule, string publication, string head, string shape, string core)
 	{
-		var parser = SqlVariants.Parser(SqlVariants.Sql92, counts: true);
-		var line   = new StringBuilder($"  ladder SQL-92 {rule}:");
+		var parser = SqlVariants.Parser(grammar, counts: true);
+		var line   = new StringBuilder($"  ladder {grammar} {rule}:");
 		var last   = 0L;
 
 		foreach (var depth in new[] { 2, 4, 6, 8, 10 })
 		{
-			var text = head;
 			var nest = core;
 
 			for (var level = 0; level < depth; level++)
 				nest = shape.Replace("{0}", nest, StringComparison.Ordinal);
 
-			text += nest;
-
-			var (count, accepted) = Entries(parser, "TryParseSelect", text);
+			var (count, accepted) = Entries(parser, publication, head + nest);
 
 			line.Append(System.Globalization.CultureInfo.InvariantCulture, $" {depth}: {count}{(accepted ? "" : " refused")}");
 
