@@ -374,6 +374,7 @@ public sealed class SqlWriterCoverageTests
 		[typeof(SetOperator)]        = v => Combined((SetOperator)v),
 		[typeof(LockingMode)]        = v => Selected with { Locking = [new LockingClause((LockingMode)v, [])] },
 		[typeof(RowWord)]            = v => Selected with { Limit = new Limit { Offset = A, OffsetRowWord = (RowWord)v, Count = B, FetchRowWord = (RowWord)v } },
+		[typeof(LockWait)]           = v => Selected with { Locking = [new LockingClause(LockingMode.Update, []) { Wait = (LockWait)v }] },
 		[typeof(FetchPosition)]      = v => Selected with { Limit = new Limit { Count = A, FetchRowWord = RowWord.Rows, Position = (FetchPosition)v } },
 		// A hundred and seventy permissions and twenty-eight classes, generated from the catalogue (D148):
 		// this is what says each one has words of its own, where PermissionCatalogueTests says which.
@@ -679,6 +680,13 @@ public sealed class SqlWriterCoverageTests
 			["Boolean.Abbreviated"] = (
 				new DataType.Boolean(),
 				new DataType.Boolean { Abbreviated = true }),
+			// PostgreSQL's LIMIT n for FETCH FIRST n ROWS ONLY, and its OFFSET after the count.
+			["Limit.LimitKeyword"] = (
+				Selected with { Limit = new Limit { Count = B, FetchRowWord = RowWord.Rows } },
+				Selected with { Limit = new Limit { Count = B, LimitKeyword = true } }),
+			["Limit.OffsetAfter"] = (
+				Selected with { Limit = new Limit { Offset = A, Count = B, FetchRowWord = RowWord.Rows } },
+				Selected with { Limit = new Limit { Offset = A, Count = B, FetchRowWord = RowWord.Rows, OffsetAfter = true } }),
 			// PostgreSQL's string of bits written in hexits, `X'1F'`, against SQL-92's bits, `B'01'`.
 			["BitString.Hexadecimal"] = (
 				new LiteralValue.BitString("'01'"),
@@ -916,7 +924,7 @@ public sealed class SqlWriterCoverageTests
 			// Only a flag no place reads yet may be refused; every other one must be written.
 			// A spelling only another dialect's writer prints is refused by the standard's, which is its text being lost on purpose.
 			var on  = name is "Option.EqualsOmitted" or "BitString.Hexadecimal" or "Named.Star" or "IsNull.Postfix" or "Element.Colon" or "Substring.ForFirst"
-				or "Array.Brackets" or "DateTime.Abbreviated" or "Boolean.Abbreviated" or "Argument.ColonEquals"
+				or "Array.Brackets" or "DateTime.Abbreviated" or "Boolean.Abbreviated" or "Argument.ColonEquals" or "Limit.LimitKeyword" or "Limit.OffsetAfter"
 				? WrittenOrRefused(pair.On)
 				: Written(pair.On);
 

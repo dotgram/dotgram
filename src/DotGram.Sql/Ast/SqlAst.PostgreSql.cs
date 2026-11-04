@@ -127,6 +127,37 @@ public sealed partial record Argument
 
 public abstract partial record TableSource
 {
+	public sealed partial record Function
+	{
+		/// <summary>PostgreSQL: SELECT (FROM Clause). <c>LATERAL</c> was written before the function.</summary>
+		public bool Lateral { get; init; }
+
+		/// <summary>PostgreSQL: SELECT (FROM Clause). <c>WITH ORDINALITY</c> after the function: a column numbering its rows.</summary>
+		public bool WithOrdinality { get; init; }
+
+		/// <summary>
+		/// PostgreSQL: SELECT (FROM Clause). The column definition list after the alias, <c>f(x) AS t (a int, b text)</c>, for a
+		/// function returning <c>record</c>; null where none was written. With one, <see cref="Alias"/> names no columns.
+		/// </summary>
+		public SqlList<FieldDefinition>? ColumnDefinitions { get; init; }
+	}
+
+	public sealed partial record Unnest
+	{
+		/// <summary>PostgreSQL: SELECT (FROM Clause). <c>LATERAL</c> was written before <c>unnest</c>, which may stand without it there.</summary>
+		public bool Lateral { get; init; }
+	}
+
+	/// <summary>
+	/// PostgreSQL: SELECT (FROM Clause). <c>ROWS FROM (f(x), g(y) AS (a int))</c>: several functions side by side, each row
+	/// made of one row from each, with <c>WITH ORDINALITY</c> and an alias after the bracket.
+	/// </summary>
+	public sealed record RowsFrom(SqlList<RowsFromItem> Items, bool WithOrdinality, Alias? Alias = null) : TableSource
+	{
+		/// <summary>PostgreSQL: SELECT (FROM Clause). <c>LATERAL</c> was written before <c>ROWS FROM</c>.</summary>
+		public bool Lateral { get; init; }
+	}
+
 	public sealed partial record Named
 	{
 		/// <summary>PostgreSQL: FROM Clause. <c>t *</c>: the table and its descendants, which is what a bare name means too, said in so many words.</summary>
@@ -167,5 +198,13 @@ public abstract partial record DataType
 	{
 		/// <summary>PostgreSQL: Boolean Type. Written <c>bool</c>.</summary>
 		[Spelling] public bool Abbreviated { get; init; }
+	}
+}
+
+/// <summary>PostgreSQL: SELECT (FROM Clause). One function of a <c>ROWS FROM (…)</c>, with its column definition list where one was written.</summary>
+public sealed record RowsFromItem(Expression.Invocation Invocation, SqlList<FieldDefinition>? ColumnDefinitions = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }

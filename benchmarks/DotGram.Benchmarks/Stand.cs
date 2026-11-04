@@ -405,6 +405,9 @@ static partial class Stand
 			.. TsqlWorkloads(),
 			Tsql("comment", SqlWithComments),
 
+			// PostgreSQL, the generated reading as its own base: directional rows from the first slice that reads a query.
+			.. PgsqlWorkloads(),
+
 			// A stock count, hand and generated (finance-24, for performance-ff's C2).
 			.. FeedWorkloads(),
 

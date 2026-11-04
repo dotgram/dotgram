@@ -921,6 +921,177 @@
 			"text": "SELECT 1 + NOT 2",
 			"accepted": true,
 			"known": "bison shifts NOT after a binary operator, `1 + (NOT 2)`; here NOT stands only where the boolean tower reads it, as the standard's grammar has it"
+		},
+		{
+			"name": "limits",
+			"text": "SELECT a FROM t ORDER BY a DESC NULLS LAST LIMIT 10 OFFSET 5; SELECT a FROM t OFFSET 5 ROWS FETCH FIRST 10 ROWS ONLY; SELECT a FROM t OFFSET 5 LIMIT 10; SELECT a FROM t LIMIT ALL; SELECT a FROM t ORDER BY a FETCH NEXT 3 ROWS WITH TIES; SELECT a FROM t FETCH FIRST ROW ONLY; SELECT a FROM t FETCH FIRST -1 ROWS ONLY OFFSET (SELECT 1)",
+			"accepted": true
+		},
+		{
+			"name": "locking",
+			"text": "SELECT a FROM t FOR UPDATE OF s.t NOWAIT; SELECT a FROM t FOR NO KEY UPDATE SKIP LOCKED FOR KEY SHARE; SELECT a FROM t FOR SHARE LIMIT 1; SELECT a FROM t LIMIT 1 FOR SHARE; SELECT a FROM t FOR READ ONLY",
+			"accepted": true
+		},
+		{
+			"name": "with_clauses",
+			"text": "WITH RECURSIVE r (n) AS NOT MATERIALIZED (SELECT 1) SEARCH DEPTH FIRST BY n SET o CYCLE n SET c USING p SELECT * FROM r; WITH x AS MATERIALIZED (SELECT 1) SELECT 1; (WITH x AS (SELECT 1) SELECT 2)",
+			"accepted": true
+		},
+		{
+			"name": "bracketed_queries_with_clauses",
+			"text": "(SELECT 1 ORDER BY 1 LIMIT 1) UNION (SELECT 2) ORDER BY 1 LIMIT 2; (SELECT 1) ORDER BY 1; SELECT (SELECT a FROM t ORDER BY a LIMIT 1)",
+			"accepted": true
+		},
+		{
+			"name": "grouping",
+			"text": "SELECT a FROM t GROUP BY DISTINCT ROLLUP (a, (b, c)), CUBE (a), GROUPING SETS ((a), ()), (), a + 1 HAVING count(*) > 1; SELECT a FROM t GROUP BY (a, b)",
+			"accepted": true
+		},
+		{
+			"name": "windows",
+			"text": "SELECT a FROM t WINDOW w AS (PARTITION BY a ORDER BY b ROWS BETWEEN UNBOUNDED PRECEDING AND 1 FOLLOWING EXCLUDE TIES), v AS (w RANGE CURRENT ROW); SELECT sum(a) OVER (GROUPS 2 PRECEDING) FROM t",
+			"accepted": true
+		},
+		{
+			"name": "values_and_table",
+			"text": "VALUES (1, 2), (3, 4); TABLE ONLY t",
+			"accepted": true
+		},
+		{
+			"name": "from_functions",
+			"text": "SELECT * FROM f(1) AS t (a int, b text); SELECT * FROM f(1) AS (a int); SELECT * FROM f(1) t (a, b); SELECT * FROM LATERAL f(x) WITH ORDINALITY AS t; SELECT * FROM unnest(a, b) WITH ORDINALITY AS u (x, y); SELECT * FROM LATERAL unnest(a); SELECT * FROM s.unnest(a); SELECT * FROM ROWS FROM (f(1), g(2) AS (a int)) WITH ORDINALITY AS r; SELECT * FROM t TABLESAMPLE SYSTEM (10) REPEATABLE (42)",
+			"accepted": true
+		},
+		{
+			"name": "two_order_bys",
+			"text": "(SELECT 1 ORDER BY 1) ORDER BY 1",
+			"accepted": false,
+			"error": "multiple ORDER BY clauses not allowed, at index 31"
+		},
+		{
+			"name": "two_limits",
+			"text": "(SELECT 1 LIMIT 1) LIMIT 1",
+			"accepted": false,
+			"error": "multiple LIMIT clauses not allowed, at index 19"
+		},
+		{
+			"name": "two_offsets",
+			"text": "(SELECT 1 OFFSET 1) OFFSET 1",
+			"accepted": false,
+			"error": "multiple OFFSET clauses not allowed, at index 20"
+		},
+		{
+			"name": "two_withs",
+			"text": "WITH x AS (SELECT 1) (WITH y AS (SELECT 2) SELECT 3)",
+			"accepted": false,
+			"error": "multiple WITH clauses not allowed, at index 0"
+		},
+		{
+			"name": "limit_comma",
+			"text": "SELECT a FROM t LIMIT 1, 2",
+			"accepted": false,
+			"error": "LIMIT #,# syntax is not supported, at index 16"
+		},
+		{
+			"name": "with_ties_without_order",
+			"text": "SELECT a FROM t FETCH FIRST 3 ROWS WITH TIES",
+			"accepted": false,
+			"error": "WITH TIES cannot be specified without ORDER BY clause, at index 35"
+		},
+		{
+			"name": "fetch_count_expression",
+			"text": "SELECT a FROM t FETCH FIRST a + 1 ROWS ONLY",
+			"accepted": false,
+			"error": "syntax error at or near \"+\", at index 30"
+		},
+		{
+			"name": "offset_rows_expression",
+			"text": "SELECT a FROM t OFFSET 1 + 1 ROWS",
+			"accepted": false,
+			"error": "syntax error at or near \"ROWS\", at index 29"
+		},
+		{
+			"name": "read_only_beside_lock",
+			"text": "SELECT a FROM t FOR READ ONLY FOR UPDATE",
+			"accepted": false,
+			"error": "syntax error at or near \"FOR\", at index 30"
+		},
+		{
+			"name": "frame_single_following",
+			"text": "SELECT sum(a) OVER (ROWS 1 FOLLOWING) FROM t",
+			"accepted": false,
+			"error": "frame starting from following row cannot end with current row, at index 25"
+		},
+		{
+			"name": "frame_start_unbounded_following",
+			"text": "SELECT sum(a) OVER (ROWS BETWEEN UNBOUNDED FOLLOWING AND CURRENT ROW) FROM t",
+			"accepted": false,
+			"error": "frame start cannot be UNBOUNDED FOLLOWING, at index 33"
+		},
+		{
+			"name": "frame_start_after_end",
+			"text": "SELECT sum(a) OVER (ROWS BETWEEN CURRENT ROW AND 1 PRECEDING) FROM t",
+			"accepted": false,
+			"error": "frame starting from current row cannot have preceding rows, at index 49"
+		},
+		{
+			"name": "definitions_without_name",
+			"text": "SELECT * FROM f(1) (a int)",
+			"accepted": false,
+			"error": "syntax error at or near \"(\", at index 19"
+		},
+		{
+			"name": "names_and_definitions_mixed",
+			"text": "SELECT * FROM f(1) AS t (a int, b)",
+			"accepted": false,
+			"error": "syntax error at or near \")\", at index 33"
+		},
+		{
+			"name": "rows_from_item_with_names",
+			"text": "SELECT * FROM ROWS FROM (f(1) AS (a, b))",
+			"accepted": false,
+			"error": "syntax error at or near \",\", at index 35"
+		},
+		{
+			"name": "select_into",
+			"text": "SELECT a INTO x FROM t",
+			"accepted": true,
+			"known": "SELECT INTO is CREATE TABLE AS, which arrives with the DDL; not read here"
+		},
+		{
+			"name": "tablesample_other_method",
+			"text": "SELECT * FROM t TABLESAMPLE system_rows (10)",
+			"accepted": true,
+			"known": "gram.y reads any method by name with any arguments; the standard's two methods with one argument are read here"
+		},
+		{
+			"name": "collate_in_column_definition",
+			"text": "SELECT * FROM f(1) AS (a text COLLATE \"C\")",
+			"accepted": true,
+			"known": "a column definition's COLLATE has no slot in FieldDefinition and is refused here"
+		},
+		{
+			"name": "keyword_function_as_table",
+			"text": "SELECT * FROM CURRENT_DATE",
+			"accepted": true,
+			"known": "gram.y's func_table takes func_expr_common_subexpr; a call by name alone is read here"
+		},
+		{
+			"name": "sort_using_operator",
+			"text": "SELECT a FROM t ORDER BY a USING <",
+			"accepted": true,
+			"known": "SortItem has no slot for sortby's USING operator; refused here"
+		},
+		{
+			"name": "prefix_on_the_right_and_overlaps",
+			"text": "SELECT a || !! b, a + @ b * c, a ~ @ b, (1, 2) OVERLAPS (3, 4), ROW(1, 2) OVERLAPS (3, 4), a IN (-1, null::int, f(1))",
+			"accepted": true
+		},
+		{
+			"name": "overlaps_no_row",
+			"text": "SELECT a OVERLAPS (1, 2)",
+			"accepted": false,
+			"error": "syntax error at or near \"OVERLAPS\", at index 9"
 		}
 	]
 }

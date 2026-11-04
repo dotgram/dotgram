@@ -1596,7 +1596,9 @@ public static partial class SqlWriter
 						_                          => throw NoText(binary.Operator),
 					});
 					PassCondition(condition);
-					PutOperand(binary.Right, binding + 1, bracketRight);
+
+					// PostgreSQL reads a prefix operator's call bare on the right of any infix, `a || !! b`, `a + @ b`: its operand reaches as far as the prefix's own level.
+					PutOperand(binary.Right, postgreSql && binding >= PostgreSqlTightness.Operator && binary.Right is Expression.OperatorCall { Left: null } ? PostgreSqlTightness.Operator : binding + 1, bracketRight);
 					break;
 
 				case Expression.MultisetOperation multiset:
@@ -2091,7 +2093,7 @@ public static partial class SqlWriter
 
 						// §8.4: an in value list holds row value expressions, which are non-parenthesized primaries and explicit rows. `x IN
 						// (a + 1)` and `x IN ((a))` are not read by the standard, and a bracket the tree does not hold would make another tree.
-						if (!transactSql)
+						if (standard)
 							foreach (var item in items)
 								if (!InItem(item))
 									throw Misplaced(@in, "SourceValue", "with an item that is not a primary without brackets, which the standard's in value list holds");

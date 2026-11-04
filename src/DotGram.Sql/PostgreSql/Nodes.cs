@@ -465,6 +465,13 @@ static class Nodes
 		public sealed record In(bool Not, InSource Source) : Tail;
 		public sealed record Like(bool Not, string Kind, Expression Pattern, Expression? Escape) : Tail;
 		public sealed record Quantified(QuantifiedOperator Operator, string Quantifier, Expression Right) : Tail;
+		public sealed record Overlaps(Expression Right) : Tail;
+	}
+
+	/// <summary>Whether a tail fits its operand: OVERLAPS takes a row on its left, as gram.y's `row OVERLAPS row` has it.</summary>
+	public static bool TailFits(Expression value, Tail? tail)
+	{
+		return tail is not Tail.Overlaps || value is Expression.Row;
 	}
 
 	/// <summary>The predicate the value and its tail make.</summary>
@@ -489,6 +496,10 @@ static class Nodes
 					return new Expression.QuantifiedComparison(value, comparison.Operator, quantifier, subquery.Query);
 
 				return new Expression.QuantifiedOperation(value, op, quantifier, right);
+
+			case Tail.Overlaps(var other):
+				// gram.y: `row OVERLAPS row`, both rows in brackets; the left one was read as the operand.
+				return new Expression.Overlaps(value, other);
 
 			default:
 				throw new ArgumentOutOfRangeException(nameof(tail));
@@ -983,9 +994,9 @@ static class Nodes
 		return first is not null || distinct is null or Distinct.Of { Quantifier: SetQuantifier.All };
 	}
 
-	public static Query Selected(Distinct? distinct, SelectColumn? first, SelectColumn[]? rest, FromClause? from, Expression? where)
+	public static Query Selected(Distinct? distinct, SelectColumn? first, SelectColumn[]? rest, FromClause? from, Expression? where, GroupByClause? group, Expression? having, WindowClause? window)
 	{
-		var query = new Query.Select { Columns = List(first, rest), From = from, Where = where };
+		var query = new Query.Select { Columns = List(first, rest), From = from, Where = where, GroupBy = group, Having = having, Window = window };
 
 		return distinct switch
 		{
@@ -994,6 +1005,403 @@ static class Nodes
 			Distinct.On(var head, var tail) => query with { Quantifier = SetQuantifier.Distinct, DistinctOn = List(head, tail) },
 			_ => throw new ArgumentOutOfRangeException(nameof(distinct)),
 		};
+	}
+
+	/// <summary>`TABLE t`, which is `SELECT * FROM t` and says so; the relation may carry ONLY or the star.</summary>
+	public static Query Tabled(TableSource relation)
+	{
+		return new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([relation]), Table = true };
+	}
+
+	/// <summary>ALL or DISTINCT by its word; null where none was written.</summary>
+	public static SetQuantifier? QuantifierOf(string? word)
+	{
+		return word is null ? null : (word[0] | 0x20) == 'a' ? SetQuantifier.All : SetQuantifier.Distinct;
+	}
+
+	// ── The clauses of the whole result ────────────────────────────────────────
+
+	/// <summary>What followed ORDER BY: the limit and the locking clauses, in either order.</summary>
+	public sealed record SelectTail(Limit? Limit, LockingClause[]? Locking);
+
+	/// <summary>
+	/// What gram.y's select_no_parens refuses in its actions: where the operand is one query in brackets with no set
+	/// operation after it, a second WITH, ORDER BY, LIMIT or OFFSET on it ("multiple ORDER BY clauses not allowed");
+	/// WITH TIES with no ORDER BY to break them by; and FOR READ ONLY beside another locking clause.
+	/// </summary>
+	public static bool ClausesFit(WithClause? with, Query body, OrderByClause? order, SelectTail? tail)
+	{
+		var limit   = tail?.Limit;
+		var locking = tail?.Locking;
+
+		if (locking is { Length: > 1 })
+		{
+			foreach (var clause in locking)
+			{
+				if (clause.Mode == LockingMode.ReadOnly)
+					return false;
+			}
+		}
+
+		var inner = body;
+
+		while (inner is Query.Parenthesized { SetOperations.Count: 0 } bracketed)
+			inner = bracketed.Query;
+
+		if (ReferenceEquals(inner, body))
+			return limit is not { WithTies: true } || order is not null;
+
+		if (with is not null && inner.With is not null)
+			return false;
+
+		if (order is not null && inner.OrderBy is not null)
+			return false;
+
+		if (limit is not null && inner.Limit is { } had)
+		{
+			if (limit.Offset is not null && had.Offset is not null)
+				return false;
+
+			if ((limit.Count is not null || limit.LimitAll) && (had.Count is not null || had.LimitAll || had.FetchRowWord is not null))
+				return false;
+		}
+
+		return limit is not { WithTies: true } || order is not null || inner.OrderBy is not null;
+	}
+
+	/// <summary>The query with the clauses of the whole result on it, as the standard's reading places them.</summary>
+	public static Query Finished(WithClause? with, Query body, OrderByClause? order, SelectTail? tail)
+	{
+		if (with is null && order is null && tail is null)
+			return body;
+
+		return body with
+		{
+			With    = with ?? body.With,
+			OrderBy = order ?? body.OrderBy,
+			Limit   = tail?.Limit ?? body.Limit,
+			Locking = tail?.Locking is { } locking ? List(locking) : body.Locking,
+		};
+	}
+
+	/// <summary>LIMIT (or FETCH) and OFFSET as one limit, and which was written first.</summary>
+	public static Limit Limited(Limit? count, Limit? offset, bool offsetFirst)
+	{
+		if (offset is null)
+			return count!;
+
+		if (count is null)
+			return offset;
+
+		return count with { Offset = offset.Offset, OffsetRowWord = offset.OffsetRowWord, OffsetAfter = !offsetFirst };
+	}
+
+	/// <summary>FETCH FIRST | NEXT [n] ROW | ROWS ONLY | WITH TIES, as the standard's reading builds it.</summary>
+	public static Limit Fetched(string position, Expression? count, string word, string ties)
+	{
+		return new Limit
+		{
+			Count        = count,
+			FetchRowWord = RowWordOf(word),
+			Position     = (position[0] | 0x20) == 'f' ? FetchPosition.First : FetchPosition.Next,
+			WithTies     = (ties[0] | 0x20) == 'w',
+		};
+	}
+
+	public static RowWord? RowWordOf(string? word)
+	{
+		return word is null ? null : word.Length == 3 ? RowWord.Row : RowWord.Rows;
+	}
+
+	/// <summary>
+	/// Whether a value is gram.y's select_fetch_first_value: a primary (c_expr), or a signed number; a larger
+	/// expression is refused there, so that `OFFSET 1 ROWS` is told from `OFFSET 1 - 1` with ROWS after it.
+	/// </summary>
+	public static bool IsFetchValue(Expression? value)
+	{
+		return value switch
+		{
+			null => true,
+			Expression.Unary { Operator: UnaryOperator.Minus or UnaryOperator.Plus, Operand: LiteralValue.Numeric } => true,
+			Expression.Unary or Expression.Binary or Expression.OperatorCall or Expression.Comparison or Expression.Cast { Spelling: CastSpelling.DoubleColon }
+				or Expression.AtTimeZone or Expression.Collate or Expression.IsNull or Expression.IsTruth or Expression.IsDistinct or Expression.IsNormalized
+				or Expression.IsDocument or Expression.Between or Expression.In or Expression.Like or Expression.QuantifiedComparison or Expression.QuantifiedOperation => false,
+			_ => true,
+		};
+	}
+
+	/// <summary>A locking clause: its strength by its words, the tables after OF, and NOWAIT or SKIP LOCKED.</summary>
+	public static LockingClause Locked(string mode, QualifiedName? first, QualifiedName[]? rest, string? wait)
+	{
+		var strength = (mode[0] | 0x20) switch
+		{
+			'n' => LockingMode.NoKeyUpdate,
+			'u' => LockingMode.Update,
+			'k' => LockingMode.KeyShare,
+			_   => LockingMode.Share,
+		};
+
+		SqlList<QualifiedName> of = [];
+
+		if (first is { } head)
+		{
+			var names = new QualifiedName[1 + (rest?.Length ?? 0)];
+
+			names[0] = head;
+			rest?.CopyTo(names, 1);
+			of = SqlList.Own(names);
+		}
+
+		return new LockingClause(strength, of)
+		{
+			Wait = wait is null ? null : (wait[0] | 0x20) == 'n' ? LockWait.NoWait : LockWait.SkipLocked,
+		};
+	}
+
+	/// <summary>A common table expression, with AS [NOT] MATERIALIZED where it was written.</summary>
+	public static CommonTableExpression Cte(Identifier name, Identifier? first, Identifier[]? rest, string? materialized, Query query, SearchClause? search, CycleClause? cycle)
+	{
+		return new CommonTableExpression(name, List(first, rest), query, search, cycle)
+		{
+			Materialized = materialized is null ? null : (materialized[0] | 0x20) != 'n',
+		};
+	}
+
+	public static SearchClause Searched(string order, Identifier first, Identifier[]? rest, Identifier set)
+	{
+		return new SearchClause((order[0] | 0x20) == 'd' ? SearchOrder.DepthFirst : SearchOrder.BreadthFirst, List(first, rest), set);
+	}
+
+	// ── Grouping and windows ───────────────────────────────────────────────────
+
+	/// <summary>A grouping item: a row in brackets is the standard's bracketed grouping set, any other value a set of one.</summary>
+	public static GroupingElement GroupItem(Expression value)
+	{
+		return value is Expression.Row { RowKeyword: false } row
+			? new GroupingElement.Ordinary(row.Items, true)
+			: new GroupingElement.Ordinary([value]);
+	}
+
+	/// <summary>ROLLUP's or CUBE's items, each a grouping item.</summary>
+	public static SqlList<GroupingElement> GroupItems(Expression first, Expression[]? rest)
+	{
+		var values = List(first, rest);
+		var items  = new GroupingElement[values.Count];
+
+		for (var at = 0; at < items.Length; at++)
+			items[at] = GroupItem(values[at]);
+
+		return SqlList.Own(items);
+	}
+
+	public static WindowFrame Framed(string unit, WindowFrameExtent extent, WindowFrameExclusion? exclusion)
+	{
+		var which = (unit[0] | 0x20) switch
+		{
+			'r' when unit.Length == 5 => WindowFrameUnit.Range,
+			'r' => WindowFrameUnit.Rows,
+			_   => WindowFrameUnit.Groups,
+		};
+
+		return new WindowFrame(which, extent, exclusion, null);
+	}
+
+	/// <summary>A frame bound by its direction, UNBOUNDED where no value was written.</summary>
+	public static WindowFrameBound Bound(string direction, Expression? value)
+	{
+		var preceding = (direction[0] | 0x20) == 'p';
+
+		if (value is null)
+			return new WindowFrameBound(preceding ? WindowBoundKind.UnboundedPreceding : WindowBoundKind.UnboundedFollowing);
+
+		return new WindowFrameBound(preceding ? WindowBoundKind.Preceding : WindowBoundKind.Following, value);
+	}
+
+	/// <summary>
+	/// What gram.y refuses of a frame in its actions: a single bound that follows, a start at UNBOUNDED FOLLOWING, an
+	/// end at UNBOUNDED PRECEDING, and a start after its end (a following start with a current-row or preceding end,
+	/// a current-row start with a preceding end).
+	/// </summary>
+	public static bool FrameFits(WindowFrameExtent extent)
+	{
+		switch (extent)
+		{
+			case WindowFrameExtent.Single(var only):
+				return only.Kind is not (WindowBoundKind.Following or WindowBoundKind.UnboundedFollowing);
+
+			case WindowFrameExtent.Between(var from, var to):
+				if (from.Kind == WindowBoundKind.UnboundedFollowing || to.Kind == WindowBoundKind.UnboundedPreceding)
+					return false;
+
+				if (from.Kind == WindowBoundKind.Following && to.Kind is WindowBoundKind.CurrentRow or WindowBoundKind.Preceding)
+					return false;
+
+				return from.Kind != WindowBoundKind.CurrentRow || to.Kind != WindowBoundKind.Preceding;
+
+			default:
+				throw new ArgumentOutOfRangeException(nameof(extent));
+		}
+	}
+
+	public static WindowFrameExclusion Exclusion(string words)
+	{
+		return (words[0] | 0x20) switch
+		{
+			'c' => WindowFrameExclusion.CurrentRow,
+			'g' => WindowFrameExclusion.Group,
+			't' => WindowFrameExclusion.Ties,
+			_   => WindowFrameExclusion.NoOthers,
+		};
+	}
+
+	// ── The sources of a FROM ──────────────────────────────────────────────────
+
+	/// <summary>A relation with its alias and its TABLESAMPLE.</summary>
+	public static TableSource Aliased(TableSource relation, Alias? alias, SampleClause? sample)
+	{
+		var named = (TableSource.Named)relation;
+
+		return named with { Alias = alias, Sample = sample };
+	}
+
+	public static SampleClause Sample(string method, Expression percentage, Expression? repeat)
+	{
+		return new SampleClause((method[0] | 0x20) == 'b' ? SampleMethod.Bernoulli : SampleMethod.System, percentage, repeat);
+	}
+
+	/// <summary>Whether a call may stand as a table: a call by name with no FILTER, WITHIN GROUP or OVER (func_expr_windowless).</summary>
+	public static bool IsWindowless(Expression call)
+	{
+		return call is Expression.Invocation { Filter: null, WithinGroup: null, Over: null };
+	}
+
+	/// <summary>A column's name and, where a type follows it, a column definition.</summary>
+	public sealed record ColumnDef(Identifier Name, DataType? Type);
+
+	/// <summary>A function's alias: the name, and the column names or the column definitions after it.</summary>
+	public sealed record FuncAlias(Alias? Alias, SqlList<FieldDefinition>? Definitions);
+
+	/// <summary>
+	/// Whether what followed a function is one of gram.y's func_alias_clause shapes: a name, with column names or
+	/// column definitions in brackets; or AS and column definitions alone. A list is of names or of definitions, never
+	/// both.
+	/// </summary>
+	public static bool FuncAliasFits(bool asWord, Identifier? name, ColumnDef? first, ColumnDef[]? rest)
+	{
+		if (first is null)
+			return name is not null;
+
+		var typed = first.Type is not null;
+
+		if (rest is not null)
+		{
+			foreach (var column in rest)
+			{
+				if (column.Type is not null != typed)
+					return false;
+			}
+		}
+
+		return name is not null || asWord && typed;
+	}
+
+	public static FuncAlias FuncAliasOf(bool asWord, Identifier? name, ColumnDef? first, ColumnDef[]? rest)
+	{
+		if (first is null)
+			return new FuncAlias(new Alias(name!, null, asWord), null);
+
+		var columns = List(first, rest);
+
+		if (first.Type is null)
+		{
+			var names = new Identifier[columns.Count];
+
+			for (var at = 0; at < names.Length; at++)
+				names[at] = columns[at].Name;
+
+			return new FuncAlias(new Alias(name!, SqlList.Own(names), asWord), null);
+		}
+
+		var definitions = new FieldDefinition[columns.Count];
+
+		for (var at = 0; at < definitions.Length; at++)
+			definitions[at] = new FieldDefinition(columns[at].Name, columns[at].Type!);
+
+		return new FuncAlias(name is null ? null : new Alias(name, null, asWord), SqlList.Own(definitions));
+	}
+
+	/// <summary>
+	/// A function as a table: the standard's <c>Unnest</c> for a plain, unqualified <c>unnest</c> with value arguments and
+	/// no column definitions, so that a text both readings read is one tree; a function source for every other.
+	/// </summary>
+	public static TableSource FunctionSource(bool lateral, Expression call, bool ordinality, FuncAlias? alias)
+	{
+		var invocation = (Expression.Invocation)call;
+
+		if (alias?.Definitions is null && invocation.Name is [{ Style: IdentifierStyle.Regular, UnicodeEscape: null } word]
+			&& word.Text.Equals("unnest", StringComparison.OrdinalIgnoreCase) && invocation.Quantifier is null && invocation.OrderBy is null && PlainArguments(invocation))
+		{
+			var values = new Expression[invocation.Arguments.Count];
+
+			for (var at = 0; at < values.Length; at++)
+				values[at] = invocation.Arguments[at].Value;
+
+			return new TableSource.Unnest(SqlList.Own(values), ordinality, alias?.Alias) { Lateral = lateral };
+		}
+
+		return new TableSource.Function(invocation, alias?.Alias) { Lateral = lateral, WithOrdinality = ordinality, ColumnDefinitions = alias?.Definitions };
+	}
+
+	static bool PlainArguments(Expression.Invocation invocation)
+	{
+		foreach (var argument in invocation.Arguments)
+		{
+			if (argument.Name is not null || argument.Variadic)
+				return false;
+		}
+
+		return true;
+	}
+
+	public static TableSource RowsFrom(bool lateral, RowsFromItem first, RowsFromItem[]? rest, bool ordinality, FuncAlias? alias)
+	{
+		return new TableSource.RowsFrom(List(first, rest), ordinality, alias?.Alias) { Lateral = lateral };
+	}
+
+	/// <summary>Whether every column of a definition list has its type, as ROWS FROM's items ask (TableFuncElementList); none at all fits.</summary>
+	public static bool AllTyped(ColumnDef? first, ColumnDef[]? rest)
+	{
+		if (first is null)
+			return true;
+
+		if (first.Type is null)
+			return false;
+
+		if (rest is not null)
+		{
+			foreach (var column in rest)
+			{
+				if (column.Type is null)
+					return false;
+			}
+		}
+
+		return true;
+	}
+
+	/// <summary>The column definitions read, each with its type; null where none were written.</summary>
+	public static SqlList<FieldDefinition>? Definitions(ColumnDef? first, ColumnDef[]? rest)
+	{
+		if (first is null)
+			return null;
+
+		var columns     = List(first, rest);
+		var definitions = new FieldDefinition[columns.Count];
+
+		for (var at = 0; at < definitions.Length; at++)
+			definitions[at] = new FieldDefinition(columns[at].Name, columns[at].Type!);
+
+		return SqlList.Own(definitions);
 	}
 
 	/// <summary>One UNION, EXCEPT or INTERSECT, its quantifier, and the operand after it.</summary>

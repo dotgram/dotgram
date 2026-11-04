@@ -245,7 +245,9 @@ Uescape : @string = "UESCAPE"i & e: (String | EscapeString) & when @(Nodes.IsEsc
 // precedence is gram.y's: OR < AND < NOT < IS (and ISNULL, NOTNULL) < comparison < BETWEEN, IN,
 // LIKE, ILIKE, SIMILAR < any other operator < + - < * / % < ^ < AT TIME ZONE < COLLATE < a sign <
 // :: < the subscripts and dots. A prefix operator's operand is read above the operator's own level,
-// so `|/ 25 + 11` is the root of the sum and `@ a ~ b` is `(@ a) ~ b`, as the server reads them.
+// so `|/ 25 + 11` is the root of the sum and `@ a ~ b` is `(@ a) ~ b`, as the server reads them; and
+// a prefix operator stands as the right operand of any infix, `a || !! b`, `a + @ b * c`, as bison
+// shifts it, its operand reaching as far as the prefix's own level.
 // NOT after a binary operator, `1 + NOT 2`, which bison shifts, is not read here: NOT stands where
 // the boolean tower reads it, as the standard's grammar has it (a recorded deviation).
 //
@@ -310,13 +312,14 @@ DistinctRight : @Expression
 BExpr : @Expression
 	= left: Arithmetic & (op: ("<=" | ">=" | "<>" | "!=" | '<' | '>' | '=') & right: Arithmetic)? => @(op is null ? left : Nodes.Compared(left, op, right!))
 
-// gram.y's `%nonassoc BETWEEN IN_P LIKE ILIKE SIMILAR NOT_LA` level, and the quantified forms,
-// `a op ANY (…)`, which bison places at the operator's own level but which read like these: one
-// operand, read once, then at most one of the tails. `NOT` is read once and the word after it
+// gram.y's `%nonassoc BETWEEN IN_P LIKE ILIKE SIMILAR NOT_LA` level, the quantified forms,
+// `a op ANY (…)`, which bison places at the operator's own level but which read like these, and
+// `row OVERLAPS row`, whose operands are rows in brackets: one operand, read once, then at most
+// one of the tails. `NOT` is read once and the word after it
 // says which predicate; BETWEEN's bounds are gram.y's b_expr, read here as the arithmetic below
 // this level, so the AND between them is BETWEEN's own.
 Predicate : @Expression
-	= value: Arithmetic & tail: PredicateTail? => @(tail is null ? value : Nodes.Predicated(value, tail))
+	= value: Arithmetic & tail: PredicateTail? & when @(Nodes.TailFits(value, tail)) => @(tail is null ? value : Nodes.Predicated(value, tail))
 
 PredicateTail : @Nodes.Tail
 	= negated: "NOT"i? & "BETWEEN"i & symmetry: ("SYMMETRIC"i | "ASYMMETRIC"i)? & low: Arithmetic & "AND"i & high: Arithmetic
@@ -329,6 +332,7 @@ PredicateTail : @Nodes.Tail
 		=> @(new Nodes.Tail.Like(negated is not null, "SIMILAR", pattern, escape))
 	| op: QuantifiedOperator & quantifier: ("ANY"i | "SOME"i | "ALL"i) & '(' & right: QuantifiedRight & ')'
 		=> @(new Nodes.Tail.Quantified(op, quantifier, right))
+	| "OVERLAPS"i & right: Primary & when @(right is Expression.Row) => @(new Nodes.Tail.Overlaps(right))
 
 // gram.y in_expr: a subquery, or a list of values, between the brackets the caller read — what any
 // bracket holds, as the server's SubLink has it: `IN ((SELECT 1))` is the subquery in its own
@@ -478,10 +482,10 @@ OverClause        : @WindowReference
 	= "OVER"i & w: WindowSpecification => @(new WindowReference.Specification(w))
 	| "OVER"i & name: ColId => @(new WindowReference.NameRef(name))
 
-// gram.y window_specification; the frame arrives with the queries.
+// gram.y window_specification: the existing window, PARTITION BY, ORDER BY and the frame.
 WindowSpecification : @WindowSpecification
-	= '(' & (?!("PARTITION"i & "BY"i) & ?!("ORDER"i & "BY"i) & existing: ColId)? & ("PARTITION"i & "BY"i & first: AExpr & (',' & rest: AExpr)*)? & order: SortClause? & ')'
-		=> @(new WindowSpecification(existing, Nodes.List(first, rest), order, null))
+	= '(' & (?!("PARTITION"i & "BY"i) & ?!("ORDER"i & "BY"i) & ?!("RANGE"i | "ROWS"i | "GROUPS"i) & existing: ColId)? & ("PARTITION"i & "BY"i & first: AExpr & (',' & rest: AExpr)*)? & order: SortClause? & frame: FrameClause? & ')'
+		=> @(new WindowSpecification(existing, Nodes.List(first, rest), order, frame))
 
 // gram.y sort_clause, sortby.
 SortClause : @OrderByClause = "ORDER"i & "BY"i & first: SortBy & (',' & rest: SortBy)* => @(new OrderByClause(Nodes.List(first, rest)))
@@ -612,17 +616,60 @@ ConstTypename : @DataType
 	| kind: ("TIMESTAMPTZ"i | "TIMETZ"i) & ('(' & p: Integer & when @(Nodes.FitsInteger(p)) & ')')? => @(Nodes.Temporal(kind, p, "WITH"))
 	| "JSON"i => @(new DataType.Json())
 
-// ── The query core: gram.y select_with_parens, select_no_parens, simple_select ──
+// ── The queries: gram.y select_with_parens, select_no_parens, simple_select and their clauses ──
 //
-// Enough of a query for an expression to hold one and for a statement to be one: the target list,
-// FROM with its names, joins and subqueries, WHERE, and the set operations with bracketed operands.
-// The rest of select_no_parens — WITH, ORDER BY, the limits, the locking — arrives with the queries.
+// A query in the shape the standard's reading gives it: the operands with their set operations, and
+// the clauses of the whole result — WITH before, ORDER BY, the limit and the locking clauses after.
+// gram.y's select_with_parens returns the query inside its brackets as it is; the tree keeps the
+// brackets as a node, so that what stood inside them is told from what follows.
 SelectWithParens : @Query = '(' & q: SelectNoParens & ')' => @(new Query.Parenthesized(q))
 
-SelectNoParens : @Query = q: SelectClause => @(q)
+// gram.y select_no_parens: WITH, the operands, ORDER BY, and the limit and the locking clauses in
+// either order. Where the operand is one query in brackets with no set operation after it, gram.y
+// sets the clauses on that query and refuses in its action a second ORDER BY, LIMIT, OFFSET or WITH
+// ("multiple ORDER BY clauses not allowed"); the locking clauses are appended; WITH TIES asks for an
+// ORDER BY; and FOR READ ONLY stands alone.
+SelectNoParens : @Query
+	= with: WithClause? & body: SelectClause & order: SortClause? & tail: SelectTail? & when @(Nodes.ClausesFit(with, body, order, tail)) => @(Nodes.Finished(with, body, order, tail))
 
-// gram.y select_clause with its set operations: a left fold, INTERSECT binding tighter, so a term on
-// the right of UNION or EXCEPT is an operand with a list of its own.
+SelectTail : @Nodes.SelectTail
+	= limit: SelectLimit & locking: ForLocking* => @(new Nodes.SelectTail(limit, locking))
+	| locking: ForLocking+ & limit: SelectLimit? => @(new Nodes.SelectTail(limit, locking))
+
+// gram.y select_limit: LIMIT and OFFSET in either order; FETCH is the standard's spelling of a LIMIT.
+// `LIMIT a, b` is refused, as gram.y refuses it in its action. gram.y's select_fetch_first_value —
+// FETCH's count, and OFFSET's with ROW or ROWS after it — is a primary or a signed number, not any
+// expression: the value is read once and the word after it says which was asked.
+SelectLimit : @Limit
+	= l: LimitClause & o: OffsetClause? => @(Nodes.Limited(l, o, false))
+	| o: OffsetClause & l: LimitClause? => @(Nodes.Limited(l, o, true))
+
+LimitClause : @Limit
+	= "LIMIT"i & "ALL"i => @(new Limit { LimitAll = true, LimitKeyword = true })
+	| "LIMIT"i & count: AExpr & ?!',' => @(new Limit { Count = count, LimitKeyword = true })
+	| "FETCH"i & position: ("FIRST"i | "NEXT"i) & (?!("ROW"i | "ROWS"i) & count: AExpr)? & when @(Nodes.IsFetchValue(count)) & word: ("ROW"i | "ROWS"i) & ties: ("ONLY"i | "WITH"i & "TIES"i) => @(Nodes.Fetched(position, count, word, ties))
+
+OffsetClause : @Limit
+	= "OFFSET"i & v: AExpr & word: ("ROW"i | "ROWS"i)? & when @(word is null || Nodes.IsFetchValue(v)) => @(new Limit { Offset = v, OffsetRowWord = Nodes.RowWordOf(word) })
+
+// gram.y for_locking_item: the strength, the tables after OF (qualified names, as gram.y reads them),
+// and NOWAIT or SKIP LOCKED; FOR READ ONLY, which gram.y reads as no lock and the standard as its own
+// clause, so that a text both read is one tree.
+ForLocking : @LockingClause
+	= "FOR"i & mode: ("NO"i & "KEY"i & "UPDATE"i | "UPDATE"i | "KEY"i & "SHARE"i | "SHARE"i) & ("OF"i & first: AnyName & (',' & rest: AnyName)*)? & wait: ("NOWAIT"i | "SKIP"i & "LOCKED"i)? => @(Nodes.Locked(mode, first, rest, wait))
+	| "FOR"i & "READ"i & "ONLY"i => @(new LockingClause(LockingMode.ReadOnly, []))
+
+// gram.y with_clause, common_table_expr: the name, its columns, AS [NOT] MATERIALIZED, the query in
+// brackets, SEARCH and CYCLE. The data-changing bodies arrive with the data change statements.
+WithClause : @WithClause = "WITH"i & recursive: "RECURSIVE"i? & first: Cte & (',' & rest: Cte)* => @(new WithClause(recursive is not null, Nodes.List(first, rest)))
+
+Cte : @CommonTableExpression
+	= name: ColId & ('(' & c1: ColId & (',' & cn: ColId)* & ')')? & "AS"i & materialized: ("NOT"i & "MATERIALIZED"i | "MATERIALIZED"i)? & '(' & q: SelectNoParens & ')' & search: SearchClause? & cycle: CycleClause?
+		=> @(Nodes.Cte(name, c1, cn, materialized, q, search, cycle))
+
+SearchClause : @SearchClause = "SEARCH"i & order: ("DEPTH"i | "BREADTH"i) & "FIRST"i & "BY"i & c1: ColId & (',' & cn: ColId)* & "SET"i & set: ColId => @(Nodes.Searched(order, c1, cn, set))
+CycleClause  : @CycleClause  = "CYCLE"i & c1: ColId & (',' & cn: ColId)* & "SET"i & mark: ColId & ("TO"i & to: AexprConst & "DEFAULT"i & dflt: AexprConst)? & "USING"i & path: ColId => @(new CycleClause(Nodes.List(c1, cn), mark, to, dflt, path))
+
 SelectClause : @Query = first: SelectTerm & rest: UnionOrExcept* => @(Nodes.Combined(first, rest))
 UnionOrExcept : @SetOperation = op: ("UNION"i | "EXCEPT"i) & quantifier: ("ALL"i | "DISTINCT"i)? & q: SelectTerm => @(Nodes.Operation(op, quantifier, q))
 
@@ -633,11 +680,16 @@ SelectPrimary : @Query
 	= q: SimpleSelect => @(q)
 	| q: SelectWithParens => @(q)
 
-// gram.y simple_select: the SELECT itself. An empty target list is read, as the server reads it,
-// after SELECT or SELECT ALL; DISTINCT asks for one.
+// gram.y simple_select: the SELECT itself, with its clauses; VALUES; and TABLE t, which is
+// `SELECT * FROM t` and says so. An empty target list is read, as the server reads it, after SELECT
+// or SELECT ALL; DISTINCT asks for one. INTO is not read here (SELECT INTO is CREATE TABLE AS).
 SimpleSelect : @Query
-	= "SELECT"i & d: DistinctClause? & (first: TargetEl & (',' & rest: TargetEl)*)? & when @(Nodes.TargetsFit(d, first)) & from: FromClause? & ("WHERE"i & where: AExpr)?
-		=> @(Nodes.Selected(d, first, rest, from, where))
+	= "SELECT"i & d: DistinctClause? & (first: TargetEl & (',' & rest: TargetEl)*)? & when @(Nodes.TargetsFit(d, first)) & from: FromClause? & ("WHERE"i & where: AExpr)? & group: GroupClause? & ("HAVING"i & having: AExpr)? & window: WindowClause?
+		=> @(Nodes.Selected(d, first, rest, from, where, group, having, window))
+	| "VALUES"i & row: ValuesRow & (',' & rows: ValuesRow)* => @(new Query.Select { Values = Nodes.List(row, rows) })
+	| "TABLE"i & t: RelationExpr => @(Nodes.Tabled(t))
+
+ValuesRow : @RowValue = '(' & first: AExpr & (',' & rest: AExpr)* & ')' => @(new RowValue(Nodes.List(first, rest)))
 
 DistinctClause : @Nodes.Distinct
 	= "DISTINCT"i & "ON"i & '(' & first: AExpr & (',' & rest: AExpr)* & ')' => @(new Nodes.Distinct.On(first, rest))
@@ -653,6 +705,39 @@ TargetLabel : @Nodes.Label
 	= "AS"i & name: ColLabel => @(new Nodes.Label(name, true))
 	| name: BareColLabel => @(new Nodes.Label(name, false))
 
+// gram.y group_clause, group_by_item: any expression, `()`, ROLLUP and CUBE over expressions, and
+// GROUPING SETS over items; a row in brackets, `(a, b)`, is the standard's bracketed grouping set,
+// so that a text both read is one tree. ROLLUP and GROUPING SETS are words before an expression
+// could begin with them, as gram.y has it.
+GroupClause : @GroupByClause = "GROUP"i & "BY"i & quantifier: ("ALL"i | "DISTINCT"i)? & first: GroupItem & (',' & rest: GroupItem)* => @(new GroupByClause(Nodes.QuantifierOf(quantifier), Nodes.List(first, rest)))
+
+GroupItem : @GroupingElement
+	= '(' & ')' => @(new GroupingElement.Empty())
+	| "ROLLUP"i & '(' & first: AExpr & (',' & rest: AExpr)* & ')' => @(new GroupingElement.Rollup(Nodes.GroupItems(first, rest)))
+	| "CUBE"i & '(' & first: AExpr & (',' & rest: AExpr)* & ')' => @(new GroupingElement.Cube(Nodes.GroupItems(first, rest)))
+	| "GROUPING"i & "SETS"i & '(' & set: GroupItem & (',' & sets: GroupItem)* & ')' => @(new GroupingElement.Sets(Nodes.List(set, sets)))
+	| e: AExpr => @(Nodes.GroupItem(e))
+
+// gram.y window_clause, window_definition; the specification is the one OVER reads.
+WindowClause : @WindowClause = "WINDOW"i & first: WindowDef & (',' & rest: WindowDef)* => @(new WindowClause(Nodes.List(first, rest)))
+WindowDef    : @WindowDefinition = name: ColId & "AS"i & spec: WindowSpecification => @(new WindowDefinition(name, spec))
+
+// gram.y opt_frame_clause, frame_extent, frame_bound: the unit, one bound or two, and the exclusion.
+// gram.y refuses in its actions a frame that starts at UNBOUNDED FOLLOWING or ends at UNBOUNDED
+// PRECEDING, a single bound of FOLLOWING, and a start after its end (`FrameFits`).
+FrameClause : @WindowFrame = unit: ("RANGE"i | "ROWS"i | "GROUPS"i) & extent: FrameExtent & when @(Nodes.FrameFits(extent)) & exclusion: FrameExclusion? => @(Nodes.Framed(unit, extent, exclusion))
+
+FrameExtent : @WindowFrameExtent
+	= "BETWEEN"i & from: FrameBound & "AND"i & to: FrameBound => @(new WindowFrameExtent.Between(from, to))
+	| b: FrameBound => @(new WindowFrameExtent.Single(b))
+
+FrameBound : @WindowFrameBound
+	= "UNBOUNDED"i & direction: ("PRECEDING"i | "FOLLOWING"i) => @(Nodes.Bound(direction, null))
+	| "CURRENT"i & "ROW"i => @(new WindowFrameBound(WindowBoundKind.CurrentRow))
+	| v: AExpr & direction: ("PRECEDING"i | "FOLLOWING"i) => @(Nodes.Bound(direction, v))
+
+FrameExclusion : @WindowFrameExclusion = "EXCLUDE"i & words: ("CURRENT"i & "ROW"i | "GROUP"i | "TIES"i | "NO"i & "OTHERS"i) => @(Nodes.Exclusion(words))
+
 // gram.y from_clause, from_list, table_ref and joined_table, in the standard's shape: a source and
 // its joins, folded from the left. A join is NATURAL or has its ON or USING; OUTER follows LEFT,
 // RIGHT or FULL; a bracketed source is a join, as the server's table_ref has it.
@@ -667,11 +752,34 @@ JoinQual : @JoinSpecification
 	= "USING"i & '(' & first: ColId & (',' & rest: ColId)* & ')' & ("AS"i & alias: ColId)? => @(new JoinSpecification.Using(Nodes.List(first, rest), alias))
 	| "ON"i & condition: AExpr => @(new JoinSpecification.On(condition))
 
+// gram.y table_ref: a function, which begins with a name as a table does and is asked first, with
+// its bracket deciding; ROWS FROM; a relation with its alias and TABLESAMPLE; a subquery; a
+// bracketed join. LATERAL stands before a function or a subquery. gram.y's TABLESAMPLE takes any
+// method by name with any arguments; the standard's two methods with one are read here.
 TableRefPrimary : @TableSource
-	= only: "ONLY"i? & name: AnyName & star: '*'? & when @(only is null || star is null) & alias: AliasClause? => @(Nodes.Table(name, only is not null, star is not null, alias))
-	| "ONLY"i & '(' & name: AnyName & ')' & alias: AliasClause? => @(Nodes.Table(name, true, false, alias))
+	= lateral: "LATERAL"i? & "ROWS"i & "FROM"i & '(' & first: RowsFromItem & (',' & rest: RowsFromItem)* & ')' & ordinality: ("WITH"i & "ORDINALITY"i)? & named: FuncAlias? => @(Nodes.RowsFrom(lateral is not null, first, rest, ordinality is not null, named))
+	| lateral: "LATERAL"i? & f: FuncExpr & when @(Nodes.IsWindowless(f)) & ordinality: ("WITH"i & "ORDINALITY"i)? & named: FuncAlias? => @(Nodes.FunctionSource(lateral is not null, f, ordinality is not null, named))
+	| r: RelationExpr & alias: AliasClause? & sample: TableSample? => @(Nodes.Aliased(r, alias, sample))
 	| lateral: "LATERAL"i? & q: Subquery & alias: AliasClause? => @(new TableSource.Subquery(q) { Lateral = lateral is not null, Alias = alias })
 	| '(' & j: TableRef & ')' & when @(j is TableSource.Join or TableSource.Parenthesized) & alias: AliasClause? => @(Nodes.Bracketed(j, alias))
+
+// gram.y relation_expr: a name, with ONLY before it or the inheritance star after it.
+RelationExpr : @TableSource
+	= only: "ONLY"i? & name: AnyName & star: '*'? & when @(only is null || star is null) => @(Nodes.Table(name, only is not null, star is not null, null))
+	| "ONLY"i & '(' & name: AnyName & ')' => @(Nodes.Table(name, true, false, null))
+
+TableSample : @SampleClause = "TABLESAMPLE"i & method: ("BERNOULLI"i | "SYSTEM"i) & '(' & p: AExpr & ')' & ("REPEATABLE"i & '(' & r: AExpr & ')')? => @(Nodes.Sample(method, p, r))
+
+// gram.y rowsfrom_item: a function and its column definition list.
+RowsFromItem : @RowsFromItem = f: FuncExpr & when @(Nodes.IsWindowless(f)) & ("AS"i & '(' & first: ColumnDef & (',' & rest: ColumnDef)* & ')')? & when @(Nodes.AllTyped(first, rest)) => @(new RowsFromItem((Expression.Invocation)f, Nodes.Definitions(first, rest)))
+
+// gram.y func_alias_clause: an alias, with column names or column definitions after it, or the
+// definitions alone after AS. A name and a type after it are read once, and the list is one of
+// names or one of definitions, as gram.y's two lists are.
+FuncAlias : @Nodes.FuncAlias
+	= asWord: "AS"i? & name: ColId? & ('(' & first: ColumnDef & (',' & rest: ColumnDef)* & ')')? & when @(Nodes.FuncAliasFits(asWord is not null, name, first, rest)) => @(Nodes.FuncAliasOf(asWord is not null, name, first, rest))
+
+ColumnDef : @Nodes.ColumnDef = name: ColId & type: Typename? => @(new Nodes.ColumnDef(name, type))
 
 // gram.y alias_clause: a name, with AS or without, and the column names after it.
 AliasClause : @Alias
@@ -679,7 +787,8 @@ AliasClause : @Alias
 
 // ── The statements, so far ──────────────────────────────────────────────────
 //
-// gram.y stmt: a SELECT; the rest arrive with the data change statements and the short ones.
+// gram.y stmt: a SELECT, with or without brackets; the rest arrive with the data change statements
+// and the short ones.
 Stmt : @Statement
 	= q: SelectNoParens => @(new Statement.Select { Query = q })
 

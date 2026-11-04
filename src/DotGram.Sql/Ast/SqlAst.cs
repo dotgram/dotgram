@@ -743,6 +743,9 @@ public sealed record CommonTableExpression(Identifier Name, SqlList<Identifier> 
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
+
+	/// <summary>PostgreSQL: WITH Queries. <c>AS MATERIALIZED</c> (true), <c>AS NOT MATERIALIZED</c> (false); null where neither was written.</summary>
+	public bool? Materialized { get; init; }
 }
 
 // BNF: <search clause>, <recursive search order>, <sequence column>.
@@ -830,6 +833,15 @@ public sealed record Limit : ISqlNode
 
 	/// <summary><c>FETCH FIRST</c> or <c>FETCH NEXT</c>.</summary>
 	[Spelling] public FetchPosition Position { get; init; }
+
+	/// <summary>PostgreSQL: LIMIT and OFFSET. <c>LIMIT n</c> rather than <c>FETCH FIRST n ROWS ONLY</c>; the count is <see cref="Count"/>, or <see cref="LimitAll"/>.</summary>
+	[Spelling] public bool LimitKeyword { get; init; }
+
+	/// <summary>PostgreSQL: LIMIT and OFFSET. <c>LIMIT ALL</c>, which limits nothing and says so; <see cref="Count"/> is null.</summary>
+	public bool LimitAll { get; init; }
+
+	/// <summary>PostgreSQL: LIMIT and OFFSET. The OFFSET written after the LIMIT or FETCH, <c>LIMIT 10 OFFSET 5</c>; the standard writes OFFSET first.</summary>
+	[Spelling] public bool OffsetAfter { get; init; }
 }
 public enum RowWord { Row, Rows }
 public enum FetchPosition { First, Next }
@@ -838,13 +850,19 @@ public enum FetchPosition { First, Next }
 /// BNF: <c>&lt;updatability clause&gt;</c> of a <c>&lt;cursor specification&gt;</c>, and the row locks
 /// other dialects write in its place. One of a query's <see cref="Query.Locking"/>: <c>FOR UPDATE OF a</c>.
 /// </summary>
-public sealed record LockingClause(LockingMode Mode, SqlList<Identifier> Of) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+/// <param name="Of">The tables named after <c>OF</c>: names of one part in the standard, qualified names in PostgreSQL, which reads <c>FOR UPDATE OF s.t</c> and refuses it later.</param>
+public sealed record LockingClause(LockingMode Mode, SqlList<QualifiedName> Of) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
+
+	/// <summary>PostgreSQL: The Locking Clause. <c>NOWAIT</c> or <c>SKIP LOCKED</c>; null where neither was written.</summary>
+	public LockWait? Wait { get; init; }
 }
 public enum LockingMode { ReadOnly, Update, NoKeyUpdate, Share, KeyShare }
+/// <summary>PostgreSQL: The Locking Clause. What a locking clause does about a row another transaction holds.</summary>
+public enum LockWait { NoWait, SkipLocked }
 public sealed record CorrespondingClause(bool By, SqlList<Identifier> Columns) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
@@ -971,7 +989,7 @@ public abstract partial record TableSource : ISqlNode
 		public JoinHint? Hint { get; init; }
 	}
 
-	public sealed record Unnest(SqlList<Expression> Expressions, bool WithOrdinality, Alias? Alias) : TableSource;
+	public sealed partial record Unnest(SqlList<Expression> Expressions, bool WithOrdinality, Alias? Alias) : TableSource;
 	public sealed partial record Function(Expression.Invocation Invocation, Alias? Alias = null) : TableSource;
 
 	// BNF: <table function derived table>, `TABLE (f (a))`.
