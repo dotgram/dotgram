@@ -19,7 +19,9 @@ namespace DotGram.Sql.Tests;
 /// <para>
 /// The verdicts are recorded, so that this runs with nothing but the fixture: a private script puts each row's
 /// <c>text</c> to libpg_query, which is the server's <c>gram.y</c> and <c>scan.l</c> compiled apart from the server —
-/// syntax alone, no catalogue — and writes what it said, with its version. A row's <c>expression</c> is the part of
+/// syntax alone, no catalogue — and writes what it said, with its version. Where the live server answers otherwise
+/// (<c>$1x</c>: the server's lexer refuses the junk, libpg_query 18.6 reads a label), the row carries the server's
+/// verdict as <c>server</c>, and the server wins. A row's <c>expression</c> is the part of
 /// the text after <c>SELECT</c>, read here through <c>ParseExpression</c> while that is the level published; a row
 /// with no <c>expression</c> is a statement, read through <c>ParseStatement</c> once that level exists.
 /// </para>
@@ -31,6 +33,12 @@ namespace DotGram.Sql.Tests;
 public sealed class PostgreSqlOracleTests
 {
 	sealed record Row(string Name, string Text, string? Expression, bool Accepted, string? Known);
+
+	/// <summary>Whether the text is read, by the server where it was asked and disagreed, by libpg_query otherwise.</summary>
+	static bool Read(JsonElement row)
+	{
+		return row.TryGetProperty("server", out var server) ? server.GetBoolean() : row.GetProperty("accepted").GetBoolean();
+	}
 
 	static IReadOnlyList<Row> Rows()
 	{
@@ -47,7 +55,7 @@ public sealed class PostgreSqlOracleTests
 				row.GetProperty("name").GetString()!,
 				row.GetProperty("text").GetString()!,
 				row.TryGetProperty("expression", out var expression) ? expression.GetString() : null,
-				row.GetProperty("accepted").GetBoolean(),
+				Read(row),
 				row.TryGetProperty("known", out var known) ? known.GetString() : null))
 			.ToList();
 	}

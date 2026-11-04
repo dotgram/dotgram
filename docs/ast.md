@@ -771,7 +771,6 @@ it. The families stand in alphabetical order, each family's records in the order
 | `Expression.IsDistinct` | SQL:2023 | under &lt;value expression&gt; and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars |
 | `Expression.OperatorCall` | PostgreSQL | Operators |
 | `Expression.QuantifiedOperation` | PostgreSQL | Row and Array Comparisons |
-| `Expression.CollationFor` | PostgreSQL | Collation Expressions |
 | `Expression.IsDocument` | PostgreSQL | XML Predicates |
 | `QuantifiedOperator.Comparison` | PostgreSQL | Row and Array Comparisons |
 | `QuantifiedOperator.Like` | PostgreSQL | Row and Array Comparisons |
