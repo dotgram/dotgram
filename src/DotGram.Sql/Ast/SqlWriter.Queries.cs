@@ -31,15 +31,8 @@ public static partial class SqlWriter
 				return;
 			}
 
-			if (query.With is { } with)
-				PutWith(with);
-
-			var operations = query.SetOperations;
-
-			for (var at = Regroupings(operations); at > 0; at--)
-				Open();
-
-			// PostgreSQL: a data change statement where a query stands, which is a common table expression's body.
+			// PostgreSQL: a data change statement where a query stands, which is a common table expression's body. A WITH
+			// of its own has no place: the statement's WITH is written inside it.
 			if (query is Query.DataChange change)
 			{
 				if (!postgreSql)
@@ -48,13 +41,21 @@ public static partial class SqlWriter
 				if (change.Change is not (Statement.Insert or Statement.Update or Statement.Delete or Statement.Merge))
 					throw Misplaced(change, "Change", "that is not an INSERT, UPDATE, DELETE or MERGE, which alone PostgreSQL reads as a query");
 
-				if (operations.Count > 0 || query.OrderBy is not null || query.Limit is not null || query.Locking.Count > 0)
-					throw Misplaced(change, "Change", "with set operations or clauses after it, which a data change takes none of");
+				if (query.With is not null || query.SetOperations.Count > 0 || query.OrderBy is not null || query.Limit is not null || query.Locking.Count > 0)
+					throw Misplaced(change, "Change", "with a WITH, set operations or clauses after it, which a data change takes none of (its own WITH is the statement's)");
 
 				PutStatement(change.Change);
 
 				return;
 			}
+
+			if (query.With is { } with)
+				PutWith(with);
+
+			var operations = query.SetOperations;
+
+			for (var at = Regroupings(operations); at > 0; at--)
+				Open();
 
 			if (query is Query.Parenthesized parenthesized)
 			{
@@ -2119,6 +2120,30 @@ public static partial class SqlWriter
 			}
 		}
 
+		/// <summary>
+		/// One item of ON CONFLICT's target, as PostgreSQL's index_elem reads it: a column's name, a call by name or by a key
+		/// word, or an expression in brackets — any other expression gets the brackets, and reads back inside them.
+		/// </summary>
+		void PutIndexElement(Expression item)
+		{
+			switch (item)
+			{
+				case Expression.Reference { Name.Count: 1 }:
+				case Expression.Invocation { Filter: null, WithinGroup: null, Over: null }:
+				case Expression.Parenthesized:
+				case Expression.Cast or Expression.Extract or Expression.Treat or Expression.Trim or Expression.Position
+					or Expression.Substring or Expression.Overlay or Expression.Normalize or Expression.CollationFor:
+					PutExpression(item);
+					break;
+
+				default:
+					Open();
+					PutExpression(item);
+					Close();
+					break;
+			}
+		}
+
 		/// <summary>PostgreSQL's ON CONFLICT clauses, after the rows: the target, and nothing or an update.</summary>
 		void PutConflicts(Statement.Insert insert)
 		{
@@ -2127,6 +2152,9 @@ public static partial class SqlWriter
 
 			if (!postgreSql)
 				throw Misplaced(insert, "Conflicts", "which only PostgreSQL reads, ON CONFLICT");
+
+			if (insert.Conflicts.Count > 1)
+				throw Misplaced(insert, "Conflicts", "more than one, where PostgreSQL reads one ON CONFLICT");
 
 			foreach (var conflict in insert.Conflicts)
 			{
@@ -2142,7 +2170,7 @@ public static partial class SqlWriter
 							throw Empty(columns, "Items");
 
 						Open();
-						Each(columns.Items, PutExpression);
+						Each(columns.Items, PutIndexElement);
 						Close();
 
 						if (columns.Where is { } where)

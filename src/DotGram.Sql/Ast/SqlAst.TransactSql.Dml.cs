@@ -15,7 +15,6 @@ public abstract partial record Statement
 		/// </summary>
 		public WithClause? With { get; init; }
 
-		/// <summary>T-SQL: OUTPUT clause (Transact-SQL). After the column list, before the rows.</summary>
 
 		/// <summary>T-SQL: INSERT (Transact-SQL). <c>OPTION (…)</c> after the rows.</summary>
 		public SqlList<QueryHint> Hints { get; init; } = [];
@@ -35,7 +34,6 @@ public abstract partial record Statement
 		/// </summary>
 		public WithClause? With { get; init; }
 
-		/// <summary>T-SQL: OUTPUT clause (Transact-SQL). After SET, before the second FROM.</summary>
 
 		/// <summary>T-SQL: UPDATE (Transact-SQL). <c>OPTION (…)</c>, last.</summary>
 		public SqlList<QueryHint> Hints { get; init; } = [];
@@ -54,7 +52,6 @@ public abstract partial record Statement
 		/// </summary>
 		public WithClause? With { get; init; }
 
-		/// <summary>T-SQL: OUTPUT clause (Transact-SQL). After the target, before the second FROM.</summary>
 
 		/// <summary>T-SQL: DELETE (Transact-SQL). <c>OPTION (…)</c>, last.</summary>
 		public SqlList<QueryHint> Hints { get; init; } = [];
@@ -76,7 +73,6 @@ public abstract partial record Statement
 		/// </summary>
 		public WithClause? With { get; init; }
 
-		/// <summary>T-SQL: OUTPUT clause (Transact-SQL). After the last WHEN.</summary>
 
 		/// <summary>T-SQL: MERGE (Transact-SQL). <c>OPTION (…)</c>, last.</summary>
 		public SqlList<QueryHint> Hints { get; init; } = [];

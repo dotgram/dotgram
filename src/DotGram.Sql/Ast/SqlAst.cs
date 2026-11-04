@@ -125,7 +125,10 @@ public abstract partial record Statement : ISqlNode
 		/// </summary>
 		public InsertSource SourceValue { get; init; } = new InsertSource.DefaultValues();
 
-		/// <summary>What the statement gives back: PostgreSQL's <c>RETURNING</c> or T-SQL's <c>OUTPUT</c>; null where neither was written.</summary>
+		/// <summary>
+		/// What the statement gives back: PostgreSQL's <c>RETURNING</c>, at the end, or T-SQL's <c>OUTPUT</c>, after the column list, before the rows;
+		/// null where neither was written.
+		/// </summary>
 		public ReturningClause? Returning { get; init; }
 	}
 
@@ -169,7 +172,10 @@ public abstract partial record Statement : ISqlNode
 		/// </summary>
 		public CursorReference? CurrentOf { get; init; }
 
-		/// <summary>What the statement gives back: PostgreSQL's <c>RETURNING</c> or T-SQL's <c>OUTPUT</c>; null where neither was written.</summary>
+		/// <summary>
+		/// What the statement gives back: PostgreSQL's <c>RETURNING</c>, at the end, or T-SQL's <c>OUTPUT</c>, after SET, before the second FROM;
+		/// null where neither was written.
+		/// </summary>
 		public ReturningClause? Returning { get; init; }
 	}
 
@@ -209,7 +215,10 @@ public abstract partial record Statement : ISqlNode
 		/// </summary>
 		public CursorReference? CurrentOf { get; init; }
 
-		/// <summary>What the statement gives back: PostgreSQL's <c>RETURNING</c> or T-SQL's <c>OUTPUT</c>; null where neither was written.</summary>
+		/// <summary>
+		/// What the statement gives back: PostgreSQL's <c>RETURNING</c>, at the end, or T-SQL's <c>OUTPUT</c>, after the target, before the second FROM;
+		/// null where neither was written.
+		/// </summary>
 		public ReturningClause? Returning { get; init; }
 	}
 
@@ -247,7 +256,10 @@ public abstract partial record Statement : ISqlNode
 		/// </summary>
 		public SqlList<MergeClause> Clauses { get; init; } = [];
 
-		/// <summary>What the statement gives back: PostgreSQL's <c>RETURNING</c> or T-SQL's <c>OUTPUT</c>; null where neither was written.</summary>
+		/// <summary>
+		/// What the statement gives back: PostgreSQL's <c>RETURNING</c>, at the end, or T-SQL's <c>OUTPUT</c>, after the last WHEN;
+		/// null where neither was written.
+		/// </summary>
 		public ReturningClause? Returning { get; init; }
 	}
 

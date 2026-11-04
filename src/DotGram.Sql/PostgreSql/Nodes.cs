@@ -1537,9 +1537,6 @@ static class Nodes
 	/// <summary>A WHERE: its condition, or the cursor of WHERE CURRENT OF.</summary>
 	public sealed record WhereOrCurrent(Expression? Condition, Identifier? Cursor);
 
-	/// <summary>A MERGE's INSERT: the values, or DEFAULT VALUES.</summary>
-	public sealed record MergeInsertBody(Expression? First, Expression[]? Rest, bool DefaultValues);
-
 	/// <summary>
 	/// The rows an INSERT or a MERGE gives its target: the standard's rows where the query is a bare VALUES, so that a
 	/// text both readings read is one tree; the query otherwise.
@@ -1564,6 +1561,26 @@ static class Nodes
 			Conflicts   = conflict is null ? [] : [conflict],
 			Returning   = returning,
 		};
+	}
+
+	/// <summary>Whether RETURNING's options name OLD at most once and NEW at most once; a second of either the server refuses.</summary>
+	public static bool OptionsDistinct(ReturningOption? first, ReturningOption[]? rest)
+	{
+		if (first is null)
+			return true;
+
+		var olds = 0;
+		var news = 0;
+
+		foreach (var option in List(first, rest))
+		{
+			if ((option.Kind[0] | 0x20) == 'o')
+				olds++;
+			else
+				news++;
+		}
+
+		return olds <= 1 && news <= 1;
 	}
 
 	public static ReturningClause Returned(ReturningOption? first, ReturningOption[]? rest, SelectColumn head, SelectColumn[]? tail)
@@ -1730,9 +1747,9 @@ static class Nodes
 		};
 	}
 
-	public static MergeInsertAction MergeInserted(Identifier? c1, Identifier[]? cn, OverrideKind? overriding, MergeInsertBody body)
+	public static MergeInsertAction MergeInserted(Identifier? c1, Identifier[]? cn, OverrideKind? overriding, Expression first, Expression[]? rest)
 	{
-		return new MergeInsertAction(List(c1, cn), overriding, List(body.First, body.Rest)) { DefaultValues = body.DefaultValues };
+		return new MergeInsertAction(List(c1, cn), overriding, List(first, rest));
 	}
 
 	/// <summary>One UNION, EXCEPT or INTERSECT, its quantifier, and the operand after it.</summary>

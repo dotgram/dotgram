@@ -1285,6 +1285,110 @@
 			"text": "WITH x AS (SELECT 1) TRUNCATE t",
 			"accepted": false,
 			"error": "syntax error at or near \"TRUNCATE\", at index 21"
+		},
+		{
+			"name": "with_truncate_body",
+			"text": "WITH x AS (TRUNCATE t) SELECT 1",
+			"accepted": false,
+			"error": "syntax error at or near \"TRUNCATE\", at index 11"
+		},
+		{
+			"name": "merge_insert_columns_default_values",
+			"text": "MERGE INTO t USING s ON t.a = s.a WHEN NOT MATCHED THEN INSERT (a) DEFAULT VALUES",
+			"accepted": false,
+			"error": "syntax error at or near \"DEFAULT\", at index 67"
+		},
+		{
+			"name": "merge_insert_overriding_default_values",
+			"text": "MERGE INTO t USING s ON t.a = s.a WHEN NOT MATCHED THEN INSERT OVERRIDING SYSTEM VALUE DEFAULT VALUES",
+			"accepted": false,
+			"error": "syntax error at or near \"DEFAULT\", at index 87"
+		},
+		{
+			"name": "insert_column_named_values",
+			"text": "INSERT INTO t (values) VALUES (1)",
+			"accepted": true
+		},
+		{
+			"name": "insert_columns_values_first",
+			"text": "INSERT INTO t (values, a) SELECT 1, 2",
+			"accepted": true
+		},
+		{
+			"name": "insert_bracketed_values",
+			"text": "INSERT INTO t (VALUES (1))",
+			"accepted": true
+		},
+		{
+			"name": "conflict_target_keyword_calls",
+			"text": "INSERT INTO t VALUES (1) ON CONFLICT (coalesce(a, 0), (CAST(a AS int)), CAST(b AS int), EXTRACT(year FROM d)) DO NOTHING",
+			"accepted": true
+		},
+		{
+			"name": "from_keyword_calls",
+			"text": "SELECT * FROM coalesce(b) AS c(d int), LATERAL nullif(1, 2) WITH ORDINALITY AS n(e, f)",
+			"accepted": true
+		},
+		{
+			"name": "from_cast",
+			"text": "SELECT * FROM CAST(1 AS int) AS c",
+			"known": "TableSource.Function holds a call; gram.y's func_table takes every key word function, CAST and EXTRACT among them",
+			"accepted": true
+		},
+		{
+			"name": "returning_old_twice",
+			"text": "UPDATE t SET a = 1 RETURNING WITH (OLD AS o, OLD AS p) *",
+			"server": false,
+			"accepted": true,
+			"note": "parse_clause.c transformReturningClause; the server refuses (OLD cannot be specified multiple times), libpg_query 18.6 reads it"
+		},
+		{
+			"name": "returning_new_twice",
+			"text": "UPDATE t SET a = 1 RETURNING WITH (NEW AS n, OLD AS o, NEW AS m) *",
+			"server": false,
+			"accepted": true,
+			"note": "parse_clause.c transformReturningClause; the server refuses (NEW cannot be specified multiple times), libpg_query 18.6 reads it"
+		},
+		{
+			"name": "insert_four_part_name",
+			"text": "INSERT INTO a.b.c.d VALUES (1)",
+			"accepted": false,
+			"error": "improper qualified name (too many dotted names): a.b.c.d, at index 12"
+		},
+		{
+			"name": "from_four_part_name",
+			"text": "SELECT * FROM a.b.c.d",
+			"accepted": false,
+			"error": "improper qualified name (too many dotted names): a.b.c.d, at index 14"
+		},
+		{
+			"name": "update_four_part_name",
+			"text": "UPDATE a.b.c.d SET x = 1",
+			"accepted": false,
+			"error": "improper qualified name (too many dotted names): a.b.c.d, at index 7"
+		},
+		{
+			"name": "delete_four_part_name",
+			"text": "DELETE FROM a.b.c.d",
+			"accepted": false,
+			"error": "improper qualified name (too many dotted names): a.b.c.d, at index 12"
+		},
+		{
+			"name": "truncate_four_part_name",
+			"text": "TRUNCATE a, ONLY (a.b.c.d)",
+			"accepted": false,
+			"error": "improper qualified name (too many dotted names): a.b.c.d, at index 18"
+		},
+		{
+			"name": "merge_four_part_name",
+			"text": "MERGE INTO a.b.c.d USING s ON true WHEN MATCHED THEN DELETE",
+			"accepted": false,
+			"error": "improper qualified name (too many dotted names): a.b.c.d, at index 11"
+		},
+		{
+			"name": "from_three_part_name",
+			"text": "SELECT * FROM a.b.c",
+			"accepted": true
 		}
 	]
 }
