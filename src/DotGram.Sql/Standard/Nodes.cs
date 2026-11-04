@@ -88,6 +88,50 @@ static class Nodes
 	}
 
 	/// <summary>
+	/// Whether a value the SQL-92 tower read is a condition: a predicate, a boolean operator over
+	/// conditions, a truth test, or one of those in brackets. The tower reads a condition and a value
+	/// in one shape (<c>SqlStandard92.gram</c>, <c>Condition</c>), and this is what tells them apart
+	/// where the grammar asks: at each boolean step, at a bracket's close, and at the end of a search
+	/// condition.
+	/// </summary>
+	public static bool IsCondition(Expression value)
+	{
+		switch (value)
+		{
+			case Expression.Comparison:
+			case Expression.QuantifiedComparison:
+			case Expression.Between:
+			case Expression.In:
+			case Expression.Like:
+			case Expression.IsNull:
+			case Expression.IsTruth:
+			case Expression.Match:
+			case Expression.Overlaps:
+			case Expression.Exists:
+			case Expression.Unique:
+				return true;
+
+			case Expression.Binary { Operator: BinaryOperator.And or BinaryOperator.Or }:
+				return true;
+
+			case Expression.Unary { Operator: UnaryOperator.Not } not:
+				return IsCondition(not.Operand);
+
+			case Expression.Parenthesized parenthesized:
+				return IsCondition(parenthesized.Value);
+
+			default:
+				return false;
+		}
+	}
+
+	/// <summary>Whether a value the tower read may be an operand of an arithmetic operator: neither a condition nor a row.</summary>
+	public static bool IsValue(Expression value)
+	{
+		return value is not Expression.Row && !IsCondition(value);
+	}
+
+	/// <summary>
 	/// Whether a bracket's contents are what follows them asks for: a generalized invocation's are a
 	/// primary, and a datetime less a datetime is only ever in brackets of its own.
 	/// </summary>
