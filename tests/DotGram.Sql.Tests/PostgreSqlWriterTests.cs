@@ -116,6 +116,9 @@ public sealed class PostgreSqlWriterTests
 			"a call under a subscript"           => new Expression.Element(new Expression.Invocation(new QualifiedName(new Identifier("f")), [new Argument(A)]), Number("1")),
 			"a string under a member"            => new Expression.Member(new LiteralValue.String("'x'", StringLiteralKind.Character), MemberAccessKind.Dot, new Identifier("f")),
 			"a subscript under a member"         => new Expression.Member(new Expression.Element(A, Number("1")), MemberAccessKind.Dot, new Identifier("f")),
+			"a prefix OperatorCall on the right of ||" => Binary(A, BinaryOperator.Concatenate, Called("!!", null, B)),
+			"a prefix OperatorCall on the right of an OperatorCall" => Called("~", A, Called("@", null, B)),
+			"a prefix OperatorCall on the right of +" => Binary(A, BinaryOperator.Add, Called("@", null, B)),
 			_ => throw new ArgumentOutOfRangeException(nameof(which)),
 		};
 	}
@@ -163,6 +166,9 @@ public sealed class PostgreSqlWriterTests
 	[InlineData("a call under a subscript",           "(f(a))[1]")]
 	[InlineData("a string under a member",            "('x').f")]
 	[InlineData("a subscript under a member",         "a[1].f")]
+	[InlineData("a prefix OperatorCall on the right of ||", "a || !! b")]
+	[InlineData("a prefix OperatorCall on the right of an OperatorCall", "a ~ @ b")]
+	[InlineData("a prefix OperatorCall on the right of +", "a + @ b")]
 	public void A_tree_is_written_with_the_brackets_its_shape_needs_and_reads_back(string which, string expected)
 	{
 		var tree    = Tree(which);
