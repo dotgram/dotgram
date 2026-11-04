@@ -217,6 +217,7 @@ public sealed class PostgreSqlWriterTests
 	[InlineData("Delete.Using")]
 	[InlineData("MergeMatchedAction.DoNothing")]
 	[InlineData("Query.DataChange")]
+	[InlineData("TruncateTable.Others")]
 	public void What_only_PostgreSQL_reads_is_refused_by_the_other_writers(string which)
 	{
 		ISqlNode node = which switch
@@ -246,6 +247,7 @@ public sealed class PostgreSqlWriterTests
 			"Delete.Using"         => new Statement.Delete { Target = T, Using = new FromClause([T]) },
 			"MergeMatchedAction.DoNothing" => new Statement.Merge { Target = T, SourceTable = new TableSource.Named(new QualifiedName(new Identifier("s"))), On = A, Clauses = [new MergeClause.Matched(new MergeMatchedAction.DoNothing())] },
 			"Query.DataChange"     => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([T]), With = new WithClause(false, [new CommonTableExpression(new Identifier("x"), [], new Query.DataChange(new Statement.Delete { Target = T }))]) } },
+			"TruncateTable.Others" => new Statement.TruncateTable { Target = T, Others = [T], Behavior = DropBehavior.Cascade, TableOmitted = true },
 			_ => throw new ArgumentOutOfRangeException(nameof(which)),
 		};
 
