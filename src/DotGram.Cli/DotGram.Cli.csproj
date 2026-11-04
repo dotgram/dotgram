@@ -28,6 +28,15 @@
 		<!-- Roslyn carries a dozen resource cultures, several megabytes, that a tool printing English
 		     never reads. -->
 		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+
+		<!-- Symbols inside the assembly, as the libraries carry them: a stack trace from the tool has
+		     line numbers without a symbol server. -->
+		<DebugType>embedded</DebugType>
+
+		<!-- Paths in the PDB and the package normalized to the repository rather than the runner's
+		     disk, as the libraries have them, so that what CI packs can be rebuilt from the commit its
+		     nuspec names. Only on CI, because locally it would point a debugger at /_/. -->
+		<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
 	</PropertyGroup>
 
 	<ItemGroup>
