@@ -76,7 +76,13 @@ static class SqlVariants
 	/// <summary>The same, with the success-memo experiment of the emitter on or off.</summary>
 	public static Type Parser(string grammar, string follow, bool memo, bool counts, bool headGuard, bool located, bool successMemo)
 	{
-		return Compiled.GetOrAdd((grammar, follow, memo, counts, headGuard, located, successMemo), static key => Compile(key.Grammar, key.Follow, key.Memo, key.Counts, key.HeadGuard, key.Located, key.SuccessMemo));
+		return Parser(grammar, follow, memo, counts, headGuard, located, successMemo, immediate: false);
+	}
+
+	/// <summary>The same, on the immediate carrier (the shipped parsers') rather than the tape these variants have always been on.</summary>
+	public static Type Parser(string grammar, string follow, bool memo, bool counts, bool headGuard, bool located, bool successMemo, bool immediate)
+	{
+		return Compiled.GetOrAdd((grammar, follow, memo, counts, headGuard, located, successMemo, immediate), static key => Compile(key.Grammar, key.Follow, key.Memo, key.Counts, key.HeadGuard, key.Located, key.SuccessMemo, key.Immediate));
 	}
 
 	/// <summary>The size of what a variant compiled to: the generated C# in characters and the assembly in bytes.</summary>
@@ -93,11 +99,11 @@ static class SqlVariants
 	public const string Sql92GuardsNull = "Sql92GuardsNull";
 	public const string Sql92GuardsRow = "Sql92GuardsRow";
 
-	static readonly ConcurrentDictionary<(string Grammar, string Follow, bool Memo, bool Counts, bool HeadGuard, bool Located, bool SuccessMemo), Type> Compiled = new();
+	static readonly ConcurrentDictionary<(string Grammar, string Follow, bool Memo, bool Counts, bool HeadGuard, bool Located, bool SuccessMemo, bool Immediate), Type> Compiled = new();
 
 	static readonly object Compiling = new();
 
-	static Type Compile(string grammar, string follow, bool memo, bool counts, bool headGuard, bool located, bool successMemo)
+	static Type Compile(string grammar, string follow, bool memo, bool counts, bool headGuard, bool located, bool successMemo, bool immediate)
 	{
 		var (host, directory, file, name) = grammar switch
 		{
@@ -117,6 +123,12 @@ static class SqlVariants
 		{
 			host = host.Replace("Standard.Variant", "Standard.Guarded").Replace("Standard.Before", "Standard.BeforeGuarded").Replace("Standard.Split", "Standard.SplitGuarded").Replace("Standard.Guards", "Standard.GuardsGuarded");
 			name = name.Replace("Standard.Variant", "Standard.Guarded").Replace("Standard.Before", "Standard.BeforeGuarded").Replace("Standard.Split", "Standard.SplitGuarded").Replace("Standard.Guards", "Standard.GuardsGuarded");
+		}
+
+		if (immediate)
+		{
+			host = host.Replace("GramCarrier.Tape", "GramCarrier.Immediate").Replace("Standard.", "Standard.Immediate");
+			name = name.Replace("Standard.", "Standard.Immediate");
 		}
 
 		if (successMemo)

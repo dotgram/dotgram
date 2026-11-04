@@ -291,7 +291,7 @@ sealed partial class Machine
 
 		file.Line();
 
-		if (CSharpEmitter.SuccessMemoExperiment && Tracing is null)
+		if (CSharpEmitter.SuccessMemoExperiment && Tracing is null && Carrier is ImmediateCarrier)
 			MemoHitAsked(file, rule, slot);
 	}
 
@@ -310,7 +310,7 @@ sealed partial class Machine
 		if (!body.Contains(Tracing is null ? Refused : "goto Failed;", StringComparison.Ordinal))
 			return false;
 
-		var kept = CSharpEmitter.SuccessMemoExperiment && Tracing is null && body.Contains("return p;", StringComparison.Ordinal);
+		var kept = CSharpEmitter.SuccessMemoExperiment && Tracing is null && Carrier is ImmediateCarrier && body.Contains("return p;", StringComparison.Ordinal);
 
 		file.Write(Tracing is null ? (kept ? body.Replace(Refused, "goto Failed;").Replace("return p;", "goto Kept;") : body.Replace(Refused, "goto Failed;")) : body);
 		file.Line();
@@ -384,7 +384,7 @@ sealed partial class Machine
 	/// <param name="looks">Whether anything this reader reads is read inside a look.</param>
 	void MemoFailedMethod(Writer header, bool looks)
 	{
-		if (CSharpEmitter.SuccessMemoExperiment && Tracing is null)
+		if (CSharpEmitter.SuccessMemoExperiment && Tracing is null && Carrier is ImmediateCarrier)
 		{
 			header.Line();
 			header.Line($"const int MemoCells = {_memo.Count * 3};");

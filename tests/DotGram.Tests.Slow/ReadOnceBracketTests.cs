@@ -74,9 +74,9 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 	[Fact]
 	public void Sql92_costs_its_depth_once_a_bracket_is_read_once()
 	{
-		var before = SqlVariants.Parser(SqlVariants.Sql92Before, counts: true);
-		var after  = SqlVariants.Parser(SqlVariants.Sql92, counts: true);
-		var split  = SqlVariants.Parser(SqlVariants.Sql92Split, "off", true, true, headGuard: true, located: false);
+		var before = Immediate(SqlVariants.Sql92Before, counts: true);
+		var after  = Immediate(SqlVariants.Sql92, counts: true);
+		var split  = Immediate(SqlVariants.Sql92Split, counts: true, headGuard: true);
 		var worst  = 1.0;
 
 		Log("rule entries per depth: before -> cover -> split+headguard (r = refused, t = timed out at 30 s)");
@@ -113,13 +113,15 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 	[Fact]
 	public void Sql92_reads_the_same_with_a_bracket_read_once()
 	{
-		var before   = SqlVariants.Parser(SqlVariants.Sql92Before);
-		var cover    = SqlVariants.Parser(SqlVariants.Sql92);
-		var coverHg  = SqlVariants.Parser(SqlVariants.Sql92, "off", true, false, headGuard: true, located: false);
-		var splitHg  = SqlVariants.Parser(SqlVariants.Sql92Split, "off", true, false, headGuard: true, located: false);
-		var beforeL  = SqlVariants.Parser(SqlVariants.Sql92Before, "off", true, false, headGuard: false, located: true).GetNestedType("Located")!;
-		var coverHgL = SqlVariants.Parser(SqlVariants.Sql92, "off", true, false, headGuard: true, located: true).GetNestedType("Located")!;
-		var splitHgL = SqlVariants.Parser(SqlVariants.Sql92Split, "off", true, false, headGuard: true, located: true).GetNestedType("Located")!;
+		var before   = Immediate(SqlVariants.Sql92Before);
+		var cover    = Immediate(SqlVariants.Sql92);
+		var coverHg  = Immediate(SqlVariants.Sql92, headGuard: true);
+		var splitHg  = Immediate(SqlVariants.Sql92Split, headGuard: true);
+		var beforeL  = Immediate(SqlVariants.Sql92Before, located: true).GetNestedType("Located")!;
+		var coverHgL = Immediate(SqlVariants.Sql92, headGuard: true, located: true).GetNestedType("Located")!;
+		var splitHgL = Immediate(SqlVariants.Sql92Split, headGuard: true, located: true).GetNestedType("Located")!;
+		var memoed   = Immediate(SqlVariants.Sql92Before, successMemo: true);
+		var memoedL  = Immediate(SqlVariants.Sql92Before, located: true, successMemo: true).GetNestedType("Located")!;
 
 		foreach (var (name, type) in new[] { ("before", before), ("cover", cover), ("cover+headguard", coverHg), ("split+headguard", splitHg) })
 			Log($"size {name,-16}: generated C# {SqlVariants.Sizes[type].SourceChars:N0} chars, assembly {SqlVariants.Sizes[type].AssemblyBytes:N0} bytes");
@@ -149,30 +151,33 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 		Differential("before vs cover", before, cover, texts, holds: true);
 		Differential("before vs cover+headguard", before, coverHg, texts, holds: false);
 		Differential("before vs split+headguard", before, splitHg, texts, holds: false);
+		Differential("before vs before+successmemo", before, memoed, texts, holds: false);
 
 		LocatedDifferential("located: before vs cover+headguard", beforeL, coverHgL, accepted.Concat(corpus).Concat(Harvested("Sql92")).ToList());
 		LocatedDifferential("located: before vs split+headguard", beforeL, splitHgL, accepted.Concat(corpus).Concat(Harvested("Sql92")).ToList());
+		LocatedDifferential("located: before vs before+successmemo", beforeL, memoedL, accepted.Concat(corpus).Concat(Harvested("Sql92")).ToList());
 
-		Timing(accepted, [("before", before), ("cover", cover), ("cover+headguard", coverHg), ("split+headguard", splitHg)]);
+		Timing(accepted, [("before", before), ("before+successmemo", memoed), ("cover", cover), ("cover+headguard", coverHg), ("split+headguard", splitHg)]);
 	}
 
 	[Fact]
 	public void Sql92_time_of_the_guards_alone()
 	{
-		var before  = SqlVariants.Parser(SqlVariants.Sql92Before);
-		var guards  = SqlVariants.Parser(SqlVariants.Sql92Guards);
-		var gTrue   = SqlVariants.Parser(SqlVariants.Sql92GuardsTrue);
-		var gNull   = SqlVariants.Parser(SqlVariants.Sql92GuardsNull);
-		var gRow    = SqlVariants.Parser(SqlVariants.Sql92GuardsRow);
-		var cover   = SqlVariants.Parser(SqlVariants.Sql92);
-		var splitH  = SqlVariants.Parser(SqlVariants.Sql92Split, "off", true, false, headGuard: true, located: false);
+		var before  = Immediate(SqlVariants.Sql92Before);
+		var guards  = Immediate(SqlVariants.Sql92Guards);
+		var gTrue   = Immediate(SqlVariants.Sql92GuardsTrue);
+		var gNull   = Immediate(SqlVariants.Sql92GuardsNull);
+		var gRow    = Immediate(SqlVariants.Sql92GuardsRow);
+		var cover   = Immediate(SqlVariants.Sql92);
+		var coverH  = Immediate(SqlVariants.Sql92, headGuard: true);
+		var splitH  = Immediate(SqlVariants.Sql92Split, headGuard: true);
 
-		var memoed  = SqlVariants.Parser(SqlVariants.Sql92Before, "off", true, false, headGuard: false, located: false, successMemo: true);
+		var memoed  = Immediate(SqlVariants.Sql92Before, successMemo: true);
 
-		(string, Type)[] parsers = [("before", before), ("before+successmemo", memoed), ("guards: IsValue", guards), ("guards: true", gTrue), ("guards: not null", gNull), ("guards: not Row", gRow), ("cover", cover), ("split+headguard", splitH)];
+		(string, Type)[] parsers = [("before", before), ("before+successmemo", memoed), ("guards: IsValue", guards), ("guards: true", gTrue), ("guards: not null", gNull), ("guards: not Row", gRow), ("cover", cover), ("cover+headguard", coverH), ("split+headguard", splitH)];
 
 		// The success memo on the old grammar must make the exponential shapes linear, or it measures nothing.
-		var memoedCounted = SqlVariants.Parser(SqlVariants.Sql92Before, "off", true, true, headGuard: false, located: false, successMemo: true);
+		var memoedCounted = Immediate(SqlVariants.Sql92Before, counts: true, successMemo: true);
 
 		foreach (var (name, shape, core) in Shapes.Take(6).Concat(Shapes.Where(static one => one.Name is "subq-cond" or "row-list")))
 		{
@@ -196,6 +201,12 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 
 		Timing(accepted, parsers);
 		Timing(accepted, parsers);
+	}
+
+	/// <summary>A variant on the immediate carrier, the shipped parsers' (the variants' default is the tape).</summary>
+	static Type Immediate(string grammar, bool counts = false, bool headGuard = false, bool located = false, bool successMemo = false)
+	{
+		return SqlVariants.Parser(grammar, "off", true, counts, headGuard, located, successMemo, immediate: true);
 	}
 
 	void Differential(string title, Type before, Type after, List<string> texts, bool holds)
