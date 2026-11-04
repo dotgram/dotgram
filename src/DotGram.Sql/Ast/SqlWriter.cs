@@ -335,11 +335,17 @@ public static partial class SqlWriter
 
 					var introducer = text.CharacterSet is { } set ? "_" + Dotted(set.Name) : "";
 
+					// A dollar-quoted string's text is its own delimiters: anything else written as one reads back as another kind.
+					if (text.Kind == StringLiteralKind.Dollar && (!text.Text.StartsWith("$", StringComparison.Ordinal) || text.CharacterSet is not null || text.UnicodeEscape is not null))
+						throw Misplaced(text, "Text", "that no dollar quote delimits, or a CharacterSet or UnicodeEscape, which `$tag$ … $tag$` does not say");
+
 					Word(text.Kind switch
 					{
 						StringLiteralKind.National  => "N" + text.Text,
 						StringLiteralKind.Unicode   => introducer + "U&" + text.Text + (text.UnicodeEscape is { } escape ? "UESCAPE'" + escape + "'" : ""),
 						StringLiteralKind.Character => introducer + text.Text,
+						StringLiteralKind.Escaped   => "E" + text.Text,
+						StringLiteralKind.Dollar    => text.Text,
 						_                           => throw NoText(text.Kind),
 					});
 					break;
@@ -2357,6 +2363,16 @@ public static partial class SqlWriter
 					throw Misplaced(parameter, "Name", "or Indicator on a dynamic parameter, which `?` does not say");
 
 				Word("?");
+				return;
+			}
+
+			// `$1` is PostgreSQL's positional parameter: its number and nothing else.
+			if (parameter.Kind == ParameterKind.Positional)
+			{
+				if (parameter.Ordinal is not { } ordinal || parameter.Name is not null || parameter.Indicator is not null)
+					throw Misplaced(parameter, "Ordinal", "missing, or a Name or Indicator, on a positional parameter, which `$1` does not say");
+
+				Word("$" + ordinal.ToString(CultureInfo.InvariantCulture));
 				return;
 			}
 
