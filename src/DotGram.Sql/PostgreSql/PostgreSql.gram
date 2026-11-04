@@ -904,6 +904,11 @@ MergeInsertBody : @Nodes.MergeInsertBody
 	= "VALUES"i & '(' & first: AExpr & (',' & rest: AExpr)* & ')' => @(new Nodes.MergeInsertBody(first, rest, false))
 	| "DEFAULT"i & "VALUES"i => @(new Nodes.MergeInsertBody(null, null, true))
 
+// gram.y TruncateStmt: TABLE or not, the relations, RESTART or CONTINUE IDENTITY, CASCADE or RESTRICT.
+TruncateStmt : @Statement
+	= "TRUNCATE"i & table: "TABLE"i? & first: RelationExpr & (',' & rest: RelationExpr)* & (identity: ("RESTART"i | "CONTINUE"i) & "IDENTITY"i)? & behavior: ("CASCADE"i | "RESTRICT"i)?
+		=> @(Nodes.Truncated(table is null, first, rest, identity, behavior))
+
 // ── The statements, so far ──────────────────────────────────────────────────
 //
 // gram.y stmt: a SELECT, with or without brackets, and the data change statements; the short ones
@@ -917,6 +922,7 @@ BareStmt : @Statement
 	| s: UpdateStmt => @(s)
 	| s: DeleteStmt => @(s)
 	| s: MergeStmt => @(s)
+	| s: TruncateStmt => @(s)
 	| body: SelectClause & order: SortClause? & tail: SelectTail? & when @(Nodes.ClausesFit(null, body, order, tail)) => @(new Statement.Select { Query = Nodes.Finished(null, body, order, tail) })
 
 // gram.y stmtmulti: statements each ended by `;` or by the end of the text, with empty statements

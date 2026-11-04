@@ -1274,6 +1274,17 @@
 			"text": "INSERT INTO t VALUES (1) ON CONFLICT (a COLLATE \"C\" text_pattern_ops DESC) DO NOTHING",
 			"accepted": true,
 			"known": "ConflictTarget.Columns holds expressions; gram.y's index_elem takes a collation, an operator class and an order"
+		},
+		{
+			"name": "truncates",
+			"text": "TRUNCATE a, ONLY b, c * RESTART IDENTITY CASCADE; TRUNCATE TABLE t CONTINUE IDENTITY RESTRICT",
+			"accepted": true
+		},
+		{
+			"name": "with_before_truncate",
+			"text": "WITH x AS (SELECT 1) TRUNCATE t",
+			"accepted": false,
+			"error": "syntax error at or near \"TRUNCATE\", at index 21"
 		}
 	]
 }

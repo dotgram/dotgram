@@ -2087,11 +2087,27 @@ public static partial class SqlWriter
 					if (truncate.Identity is not null && truncate.Partitions.Count > 0)
 						throw Both(truncate, "Identity", "Partitions");
 
-					Word("TRUNCATE TABLE");
+					// PostgreSQL's TRUNCATE: several tables, the word TABLE left out, CASCADE or RESTRICT.
+					if (!postgreSql && (truncate.Others.Count > 0 || truncate.Behavior is not null || truncate.TableOmitted))
+						throw Misplaced(truncate, "Others, Behavior or TableOmitted", "which only PostgreSQL reads on TRUNCATE");
+
+					if (truncate.Partitions.Count > 0 && (truncate.Others.Count > 0 || truncate.Behavior is not null))
+						throw Both(truncate, "Partitions", "Others or Behavior");
+
+					Word(truncate.TableOmitted ? "TRUNCATE" : "TRUNCATE TABLE");
 					PutSource(truncate.Target);
+
+					foreach (var other in truncate.Others)
+					{
+						Tight(",");
+						PutSource(other);
+					}
 
 					if (truncate.Identity is { } identity)
 						Word(identity switch { IdentityRestart.Continue => "CONTINUE IDENTITY", IdentityRestart.Restart => "RESTART IDENTITY", _ => throw NoText(identity) });
+
+					if (truncate.Behavior is { } behavior)
+						Word(behavior switch { DropBehavior.Cascade => "CASCADE", DropBehavior.Restrict => "RESTRICT", _ => throw NoText(behavior) });
 
 					PutPartitions(truncate.Partitions);
 

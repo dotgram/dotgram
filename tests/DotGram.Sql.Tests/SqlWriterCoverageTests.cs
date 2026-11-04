@@ -684,6 +684,10 @@ public sealed class SqlWriterCoverageTests
 			["Limit.LimitKeyword"] = (
 				Selected with { Limit = new Limit { Count = B, FetchRowWord = RowWord.Rows } },
 				Selected with { Limit = new Limit { Count = B, LimitKeyword = true } }),
+			// PostgreSQL's TRUNCATE without the word TABLE.
+			["TruncateTable.TableOmitted"] = (
+				new Statement.TruncateTable { Target = new TableSource.Named(T) },
+				new Statement.TruncateTable { Target = new TableSource.Named(T), TableOmitted = true }),
 			["Limit.OffsetAfter"] = (
 				Selected with { Limit = new Limit { Offset = A, Count = B, FetchRowWord = RowWord.Rows } },
 				Selected with { Limit = new Limit { Offset = A, Count = B, FetchRowWord = RowWord.Rows, OffsetAfter = true } }),
@@ -924,7 +928,7 @@ public sealed class SqlWriterCoverageTests
 			// Only a flag no place reads yet may be refused; every other one must be written.
 			// A spelling only another dialect's writer prints is refused by the standard's, which is its text being lost on purpose.
 			var on  = name is "Option.EqualsOmitted" or "BitString.Hexadecimal" or "Named.Star" or "IsNull.Postfix" or "Element.Colon" or "Substring.ForFirst"
-				or "Array.Brackets" or "DateTime.Abbreviated" or "Boolean.Abbreviated" or "Argument.ColonEquals" or "Limit.LimitKeyword" or "Limit.OffsetAfter"
+				or "Array.Brackets" or "DateTime.Abbreviated" or "Boolean.Abbreviated" or "Argument.ColonEquals" or "Limit.LimitKeyword" or "Limit.OffsetAfter" or "TruncateTable.TableOmitted"
 				? WrittenOrRefused(pair.On)
 				: Written(pair.On);
 

@@ -232,6 +232,12 @@ DotGram.Sql.Ast.Statement.Insert.Returning.get -> DotGram.Sql.Ast.ReturningClaus
 DotGram.Sql.Ast.Statement.Insert.Returning.init -> void
 DotGram.Sql.Ast.Statement.Merge.Returning.get -> DotGram.Sql.Ast.ReturningClause?
 DotGram.Sql.Ast.Statement.Merge.Returning.init -> void
+DotGram.Sql.Ast.Statement.TruncateTable.Behavior.get -> DotGram.Sql.Ast.DropBehavior?
+DotGram.Sql.Ast.Statement.TruncateTable.Behavior.init -> void
+DotGram.Sql.Ast.Statement.TruncateTable.Others.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.TableSource!>
+DotGram.Sql.Ast.Statement.TruncateTable.Others.init -> void
+DotGram.Sql.Ast.Statement.TruncateTable.TableOmitted.get -> bool
+DotGram.Sql.Ast.Statement.TruncateTable.TableOmitted.init -> void
 DotGram.Sql.Ast.Statement.Update.Returning.get -> DotGram.Sql.Ast.ReturningClause?
 DotGram.Sql.Ast.Statement.Update.Returning.init -> void
 DotGram.Sql.Ast.StringLiteralKind.Dollar = 4 -> DotGram.Sql.Ast.StringLiteralKind

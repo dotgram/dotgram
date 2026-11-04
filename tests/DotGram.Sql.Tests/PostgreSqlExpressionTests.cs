@@ -666,6 +666,9 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("MERGE INTO t USING s ON true WHEN NOT MATCHED THEN INSERT DEFAULT VALUES", "merge insert default values")]
 	[InlineData("WITH moved AS (DELETE FROM t RETURNING *) INSERT INTO u SELECT * FROM moved", "data change body in insert")]
 	[InlineData("WITH x AS (UPDATE t SET a = 1 RETURNING a) SELECT * FROM x", "data change body in select")]
+	[InlineData("TRUNCATE a, ONLY b, c * RESTART IDENTITY CASCADE",         "truncate")]
+	[InlineData("TRUNCATE TABLE t CONTINUE IDENTITY RESTRICT",            "truncate table")]
+	[InlineData("WITH x AS (SELECT 1) TRUNCATE t",                        "refused: WITH before TRUNCATE")]
 	[InlineData("DELETE t WHERE a = 1",                                   "refused: DELETE without FROM")]
 	[InlineData("MERGE INTO t USING s ON true",                           "refused: MERGE without WHEN")]
 	[InlineData("INSERT INTO t VALUES (1) ON CONFLICT DO UPDATE",         "refused: DO UPDATE without SET")]
@@ -697,6 +700,8 @@ public sealed class PostgreSqlExpressionTests
 			"merge insert default values" => made is Statement.Merge { Clauses: [MergeClause.NotMatched { Action: { DefaultValues: true, DoNothing: false } }] },
 			"data change body in insert" => made is Statement.Insert { With.Items: [{ Query: Query.DataChange { Change: Statement.Delete { Returning: not null } } }] },
 			"data change body in select" => made is Statement.Select { Query.With.Items: [{ Query: Query.DataChange { Change: Statement.Update } }] },
+			"truncate"                 => made is Statement.TruncateTable { TableOmitted: true, Target: TableSource.Named { Name.Count: 1 }, Others: [TableSource.Named { Only: true }, TableSource.Named { Star: true }], Identity: IdentityRestart.Restart, Behavior: DropBehavior.Cascade },
+			"truncate table"           => made is Statement.TruncateTable { TableOmitted: false, Others.Count: 0, Identity: IdentityRestart.Continue, Behavior: DropBehavior.Restrict },
 			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
 		};
 
@@ -773,6 +778,7 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("UPDATE t SET (a, b) = (1, 2) WHERE c = 3")]
 	[InlineData("DELETE FROM t WHERE a = 1")]
 	[InlineData("MERGE INTO t USING s ON t.a = s.a WHEN MATCHED THEN DELETE WHEN NOT MATCHED THEN INSERT (a) VALUES (s.a)")]
+	[InlineData("TRUNCATE TABLE t RESTART IDENTITY")]
 	public void A_text_both_grammars_read_is_one_tree(string text)
 	{
 		var standard   = SqlStandardParser.ParseStatement(text);
