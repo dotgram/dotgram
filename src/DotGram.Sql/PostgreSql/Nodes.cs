@@ -135,13 +135,13 @@ static class Nodes
 	/// </summary>
 	public static Expression Parameter(string text)
 	{
-		return new Expression.Parameter(ParameterKind.Positional) { Ordinal = int.Parse(text.AsSpan(1), CultureInfo.InvariantCulture) };
+		return new Expression.Parameter(ParameterKind.Positional) { Ordinal = int.Parse(text.Substring(1), NumberStyles.None, CultureInfo.InvariantCulture) };
 	}
 
 	/// <summary>Whether a parameter's number is one the server can hold ("parameter number too large" otherwise).</summary>
 	public static bool FitsParameter(string text)
 	{
-		return int.TryParse(text.AsSpan(1), NumberStyles.None, CultureInfo.InvariantCulture, out _);
+		return int.TryParse(text.Substring(1), NumberStyles.None, CultureInfo.InvariantCulture, out _);
 	}
 
 	/// <summary>An integer written in the text, as a number; null where none was written.</summary>
