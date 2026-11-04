@@ -154,29 +154,23 @@ DotGram.Sql.Ast.QuantifiedOperator.Named.OperatorKeyword.init -> void
 DotGram.Sql.Ast.QuantifiedOperator.QuantifiedOperator(DotGram.Sql.Ast.QuantifiedOperator! original) -> void
 DotGram.Sql.Ast.QuantifiedOperator.Span.get -> DotGram.Sql.SqlSpan
 abstract DotGram.Sql.Ast.QuantifiedOperator.<Clone>$() -> DotGram.Sql.Ast.QuantifiedOperator!
-override DotGram.Sql.Ast.Expression.IsDocument.<Clone>$() -> DotGram.Sql.Ast.Expression.IsDocument!
 override DotGram.Sql.Ast.Expression.IsDocument.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.Expression.IsDocument.GetHashCode() -> int
 override DotGram.Sql.Ast.Expression.IsDocument.ToString() -> string!
-override DotGram.Sql.Ast.Expression.OperatorCall.<Clone>$() -> DotGram.Sql.Ast.Expression.OperatorCall!
 override DotGram.Sql.Ast.Expression.OperatorCall.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.Expression.OperatorCall.GetHashCode() -> int
 override DotGram.Sql.Ast.Expression.OperatorCall.ToString() -> string!
-override DotGram.Sql.Ast.Expression.QuantifiedOperation.<Clone>$() -> DotGram.Sql.Ast.Expression.QuantifiedOperation!
 override DotGram.Sql.Ast.Expression.QuantifiedOperation.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.Expression.QuantifiedOperation.GetHashCode() -> int
 override DotGram.Sql.Ast.Expression.QuantifiedOperation.ToString() -> string!
-override DotGram.Sql.Ast.QuantifiedOperator.Comparison.<Clone>$() -> DotGram.Sql.Ast.QuantifiedOperator.Comparison!
 override DotGram.Sql.Ast.QuantifiedOperator.Comparison.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.QuantifiedOperator.Comparison.GetHashCode() -> int
 override DotGram.Sql.Ast.QuantifiedOperator.Comparison.ToString() -> string!
 override DotGram.Sql.Ast.QuantifiedOperator.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.QuantifiedOperator.GetHashCode() -> int
-override DotGram.Sql.Ast.QuantifiedOperator.Like.<Clone>$() -> DotGram.Sql.Ast.QuantifiedOperator.Like!
 override DotGram.Sql.Ast.QuantifiedOperator.Like.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.QuantifiedOperator.Like.GetHashCode() -> int
 override DotGram.Sql.Ast.QuantifiedOperator.Like.ToString() -> string!
-override DotGram.Sql.Ast.QuantifiedOperator.Named.<Clone>$() -> DotGram.Sql.Ast.QuantifiedOperator.Named!
 override DotGram.Sql.Ast.QuantifiedOperator.Named.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.QuantifiedOperator.Named.GetHashCode() -> int
 override DotGram.Sql.Ast.QuantifiedOperator.Named.ToString() -> string!
@@ -257,3 +251,9 @@ DotGram.Sql.Ast.TableSource.Named.Star.get -> bool
 DotGram.Sql.Ast.TableSource.Named.Star.init -> void
 DotGram.Sql.Ast.TableSource.Parenthesized.Alias.get -> DotGram.Sql.Ast.Alias?
 DotGram.Sql.Ast.TableSource.Parenthesized.Alias.init -> void
+override DotGram.Sql.Ast.Expression.IsDocument.<Clone>$() -> DotGram.Sql.Ast.Expression!
+override DotGram.Sql.Ast.Expression.OperatorCall.<Clone>$() -> DotGram.Sql.Ast.Expression!
+override DotGram.Sql.Ast.Expression.QuantifiedOperation.<Clone>$() -> DotGram.Sql.Ast.Expression!
+override DotGram.Sql.Ast.QuantifiedOperator.Comparison.<Clone>$() -> DotGram.Sql.Ast.QuantifiedOperator!
+override DotGram.Sql.Ast.QuantifiedOperator.Like.<Clone>$() -> DotGram.Sql.Ast.QuantifiedOperator!
+override DotGram.Sql.Ast.QuantifiedOperator.Named.<Clone>$() -> DotGram.Sql.Ast.QuantifiedOperator!
