@@ -1904,7 +1904,7 @@ static class Nodes
 	/// <summary>One item of a DO: the body, or the language after LANGUAGE.</summary>
 	public sealed record DoItem(LiteralValue.String? Body, Expression? Language);
 
-	/// <summary>DO's checks, which the server makes in the grammar: one body, one language at most ("conflicting or redundant options"), the body always ("no inline code specified").</summary>
+	/// <summary>DO's checks, which the server makes as it runs the statement (ExecuteDoStmt), read here as the statement's shape: one body, one language at most ("conflicting or redundant options"), the body always ("no inline code specified"). The oracle fixture records the departure as the server's verdict.</summary>
 	public static bool DoFits(DoItem first, DoItem[]? rest)
 	{
 		var bodies    = 0;
@@ -2044,7 +2044,10 @@ static class Nodes
 	/// <summary>A signed whole number as one token, as the server's SignedIconst has it.</summary>
 	public static Expression SignedInteger(string? sign, string digits)
 	{
-		return Number(sign is null ? digits : sign + digits);
+		// The kind is the digits' — hexadecimal, octal, binary or decimal — and the sign is the token's.
+		var number = (LiteralValue.Numeric)Number(digits);
+
+		return sign is null ? number : number with { Text = sign + digits };
 	}
 
 	static Option Named(string name, Expression? value)

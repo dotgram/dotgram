@@ -363,6 +363,8 @@ public sealed class PostgreSqlWriterTests
 	[InlineData("SetTimeZone empty")]
 	[InlineData("SetRole.None with Value")]
 	[InlineData("SetRole empty")]
+	[InlineData("SetConstraints four-part name")]
+	[InlineData("FetchOrientation hexadecimal count past 32 bits")]
 	[InlineData("OperatorCall +")]
 	[InlineData("OperatorCall =")]
 	[InlineData("OperatorCall ||")]
@@ -447,6 +449,8 @@ public sealed class PostgreSqlWriterTests
 			"SetTimeZone empty"          => new Statement.SetTimeZone(),
 			"SetRole.None with Value"    => new Statement.SetRole { None = true, Value = A },
 			"SetRole empty"              => new Statement.SetRole(),
+			"SetConstraints four-part name" => new Statement.SetConstraints { Target = new ConstraintTarget.Names([QualifiedName.Of(new Identifier("a"), new Identifier("b"), new Identifier("c"), new Identifier("d"))]), Timing = ConstraintTiming.Deferred },
+			"FetchOrientation hexadecimal count past 32 bits" => new Statement.FetchCursor { Cursor = new CursorReference(new QualifiedName(new Identifier("c"))), Orientation = new FetchOrientation(FetchOrientationKind.Forward, new LiteralValue.Numeric("0x80000000", NumericLiteralKind.HexInteger)) },
 			"Query.DataChange.With"      => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], With = new WithClause(false, [new CommonTableExpression(new Identifier("x"), [], new Query.DataChange(new Statement.Delete { Target = T }) { With = new WithClause(false, [new CommonTableExpression(new Identifier("y"), [], new Query.Select { Columns = [new SelectColumn.All()] })]) })]) } },
 			_ => throw new ArgumentOutOfRangeException(nameof(which)),
 		};

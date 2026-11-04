@@ -117,8 +117,8 @@ namespace Lexical
 	// anyhow, and a run of the other seven ends in none of `+` and `-`, or is one of them alone.
 	// The server also cuts a run where a comment begins inside it, `a+/*c*/b`; a lexical rule
 	// cannot look ahead, so such a run is read whole and refused by the rule that reads an
-	// operator (Nodes.IsOperator) — the one place this lexer reads less than scan.l, listed in
-	// Specification/gram-map.csv.
+	// operator (Nodes.IsOperator) — the one place this lexer reads less than scan.l, held as a known
+	// deviation in the oracle fixture (tests/DotGram.Sql.Tests/Scripts/pg-oracle.json, `operator_before_comment`).
 	OperatorCharacter   = ['~' | '!' | '@' | '#' | '^' | '&' | '|' | '`' | '?' | '%' | '+' | '-' | '*' | '/' | '<' | '>' | '=']
 	QualifyingCharacter = ['~' | '!' | '@' | '#' | '^' | '&' | '|' | '`' | '?' | '%']
 	PlainCharacter      = ['+' | '-' | '*' | '/' | '<' | '>' | '=']

@@ -1782,6 +1782,23 @@
 			"text": "SET CONSTRAINTS a, b.c.d.e IMMEDIATE",
 			"accepted": false,
 			"error": "improper qualified name (too many dotted names): b.c.d.e, at index 19"
+		},
+		{
+			"name": "fetch_radix_counts",
+			"text": "FETCH 0x10 c; FETCH 0o17 c; FETCH 0b101 c; FETCH ABSOLUTE 0x10 c; FETCH FORWARD 0b1 c; FETCH 0x7FFFFFFF c; FETCH -0x10 c",
+			"accepted": true
+		},
+		{
+			"name": "fetch_hexadecimal_past_32_bits",
+			"text": "FETCH 0x80000000 c",
+			"accepted": false,
+			"error": "syntax error at or near \"0x80000000\", at index 6"
+		},
+		{
+			"name": "operator_before_comment",
+			"text": "SELECT 1 -/**/3; SELECT -/**/3; SELECT 1 +/**/3; SELECT 1 </**/ 3",
+			"known": "scan.l ends an operator where a comment begins inside it; the Operator token is a lexical rule, which cannot look ahead, so the run is read whole and refused (a generator-level limitation)",
+			"accepted": true
 		}
 	]
 }
