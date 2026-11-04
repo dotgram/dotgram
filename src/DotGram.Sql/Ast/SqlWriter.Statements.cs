@@ -2218,12 +2218,44 @@ public static partial class SqlWriter
 					break;
 
 				case Statement.StartTransaction start:
-					Word("START TRANSACTION");
+					// PostgreSQL: BEGIN. The word after BEGIN is one of two, or none.
+					if (start.Begin)
+					{
+						OnlyPostgreSql(start);
+
+						if (start.Work && start.Keyword is not null)
+							throw Both(start, nameof(start.Work), nameof(start.Keyword));
+
+						Word("BEGIN");
+						PutTransactionKeyword(start.Keyword);
+
+						if (start.Work)
+							Word("WORK");
+					}
+					else
+					{
+						if (start.Work || start.Keyword is not null)
+							throw Misplaced(start, start.Work ? nameof(start.Work) : nameof(start.Keyword), "after START TRANSACTION, which takes no word (it is BEGIN's)");
+
+						Word("START TRANSACTION");
+					}
+
 					Each(start.Modes, PutTransactionMode);
 					break;
 
 				case Statement.SetTransaction set:
-					Word(set.Local ? "SET LOCAL" : "SET");
+					if (set.Session)
+					{
+						OnlyPostgreSql(set);
+
+						if (set.Local)
+							throw Both(set, nameof(set.Local), nameof(set.Session));
+
+						Word("SET SESSION");
+					}
+					else
+						Word(set.Local ? "SET LOCAL" : "SET");
+
 					Word(set.Tran ? "TRAN" : "TRANSACTION");
 					Each(set.Modes, PutTransactionMode);
 					break;
@@ -2245,12 +2277,26 @@ public static partial class SqlWriter
 					break;
 
 				case Statement.ReleaseSavepoint release:
-					Word("RELEASE SAVEPOINT");
+					if (release.SavepointKeywordOmitted)
+					{
+						OnlyPostgreSql(release);
+						Word("RELEASE");
+					}
+					else
+						Word("RELEASE SAVEPOINT");
+
 					PutIdentifier(release.Name);
 					break;
 
 				case Statement.Commit commit:
-					Word("COMMIT");
+					if (commit.End)
+					{
+						OnlyPostgreSql(commit);
+						Word("END");
+					}
+					else
+						Word("COMMIT");
+
 					PutTransactionKeyword(commit.Keyword);
 
 					if (commit.Work)
@@ -2271,7 +2317,14 @@ public static partial class SqlWriter
 					if (rollback.Name is not null && rollback.ToSavepoint is not null)
 						throw Both(rollback, nameof(rollback.Name), nameof(rollback.ToSavepoint));
 
-					Word("ROLLBACK");
+					if (rollback.Abort)
+					{
+						OnlyPostgreSql(rollback);
+						Word("ABORT");
+					}
+					else
+						Word("ROLLBACK");
+
 					PutTransactionKeyword(rollback.Keyword);
 
 					if (rollback.Work)
@@ -2282,9 +2335,22 @@ public static partial class SqlWriter
 
 					if (rollback.ToSavepoint is { } to)
 					{
-						Word("TO SAVEPOINT");
+						// PostgreSQL: ROLLBACK TO SAVEPOINT. The word SAVEPOINT may be left out, and no chain stands with a TO.
+						if (rollback.SavepointKeywordOmitted)
+						{
+							OnlyPostgreSql(rollback);
+							Word("TO");
+						}
+						else
+							Word("TO SAVEPOINT");
+
+						if (postgreSql && rollback.Chain is not null)
+							throw Both(rollback, nameof(rollback.Chain), nameof(rollback.ToSavepoint));
+
 						PutIdentifier(to);
 					}
+					else if (rollback.SavepointKeywordOmitted)
+						throw Misplaced(rollback, nameof(rollback.SavepointKeywordOmitted), "with no savepoint to go to");
 
 					break;
 
@@ -2338,12 +2404,14 @@ public static partial class SqlWriter
 					break;
 
 				case Statement.SetSessionAuthorization authorization:
-					Word("SET SESSION AUTHORIZATION");
+					PutSet(authorization, authorization.Scope);
+					Word("SESSION AUTHORIZATION");
 					PutExpression(authorization.Value);
 					break;
 
 				case Statement.SetRole role:
-					Word("SET ROLE");
+					PutSet(role, role.Scope);
+					Word("ROLE");
 
 					if (role.None)
 						Word("NONE");
@@ -2353,7 +2421,8 @@ public static partial class SqlWriter
 					break;
 
 				case Statement.SetTimeZone zone:
-					Word("SET TIME ZONE");
+					PutSet(zone, zone.Scope);
+					Word("TIME ZONE");
 
 					if (zone.Local)
 						Word("LOCAL");
@@ -2368,13 +2437,21 @@ public static partial class SqlWriter
 					break;
 
 				case Statement.SetSchema schema:
-					Word("SET SCHEMA");
+					PutSet(schema, schema.Scope);
+					Word("SCHEMA");
 					PutExpression(schema.Value);
 					break;
 
 				case Statement.SetNames names:
-					Word("SET NAMES");
-					PutExpression(names.Value);
+					PutSet(names, names.Scope);
+					Word("NAMES");
+
+					// PostgreSQL: SET. `SET NAMES` alone has no encoding after it.
+					if (names.Value is { } encoding)
+						PutExpression(encoding);
+					else
+						OnlyPostgreSql(names);
+
 					break;
 
 				case Statement.SetPath path:
@@ -2412,7 +2489,13 @@ public static partial class SqlWriter
 					break;
 
 				case Statement.SetSessionCharacteristics characteristics:
-					Word("SET SESSION CHARACTERISTICS AS");
+					PutSet(characteristics, characteristics.Scope);
+
+					// PostgreSQL: SET. One TRANSACTION and its modes, where the standard lists several.
+					if (postgreSql && characteristics.Characteristics.Count != 1)
+						throw Misplaced(characteristics, nameof(characteristics.Characteristics), "other than one list of modes, which alone PostgreSQL reads after SESSION CHARACTERISTICS AS");
+
+					Word("SESSION CHARACTERISTICS AS");
 					Each(characteristics.Characteristics, modes =>
 					{
 						Word("TRANSACTION");
@@ -2489,7 +2572,7 @@ public static partial class SqlWriter
 				Word(one switch { ChainMode.Chain => "AND CHAIN", ChainMode.NoChain => "AND NO CHAIN", _ => throw NoText(one) });
 		}
 
-		/// <summary>T-SQL's word after COMMIT or ROLLBACK, where the page lets one be written.</summary>
+		/// <summary>T-SQL's word after COMMIT or ROLLBACK, where the page lets one be written; PostgreSQL's after BEGIN, COMMIT, END, ABORT and ROLLBACK, TRANSACTION alone.</summary>
 		void PutTransactionKeyword(TransactionKeyword? keyword)
 		{
 			switch (keyword)
@@ -2498,6 +2581,9 @@ public static partial class SqlWriter
 					break;
 
 				case TransactionKeyword.Tran:
+					if (postgreSql)
+						throw Misplaced(keyword, "Kind", "TRAN, which PostgreSQL does not read");
+
 					Word("TRAN");
 					break;
 
@@ -2515,6 +2601,9 @@ public static partial class SqlWriter
 		{
 			if (name is null)
 				return;
+
+			if (postgreSql)
+				throw Misplaced(name, "Kind", "a transaction's name, which PostgreSQL does not read after COMMIT or ROLLBACK");
 
 			// T-SQL: COMMIT TRANSACTION, ROLLBACK TRANSACTION (Transact-SQL). TranName: a name or a variable, never both, as
 			// BEGIN and SAVE already refuse.
@@ -2575,10 +2664,45 @@ public static partial class SqlWriter
 					Word(access.Mode switch { TransactionAccess.ReadOnly => "READ ONLY", TransactionAccess.ReadWrite => "READ WRITE", _ => throw NoText(access.Mode) });
 					break;
 
-				default:
-					Word("DIAGNOSTICS SIZE");
-					PutExpression(((TransactionMode.DiagnosticsSize)mode).Size);
+				// PostgreSQL: SET TRANSACTION. DEFERRABLE, which only PostgreSQL reads.
+				case TransactionMode.Deferrable deferrable:
+					OnlyPostgreSql(deferrable);
+					Word(deferrable.Not ? "NOT DEFERRABLE" : "DEFERRABLE");
 					break;
+
+				default:
+					var size = (TransactionMode.DiagnosticsSize)mode;
+
+					if (postgreSql)
+						throw Misplaced(size, "Kind", "DIAGNOSTICS SIZE, which PostgreSQL does not read");
+
+					Word("DIAGNOSTICS SIZE");
+					PutExpression(size.Size);
+					break;
+			}
+		}
+
+		/// <summary>SET and its scope word, which only PostgreSQL reads: <c>SET LOCAL</c>, <c>SET SESSION</c>, or SET alone.</summary>
+		void PutSet(ISqlNode statement, SetScope? scope)
+		{
+			switch (scope)
+			{
+				case null:
+					Word("SET");
+					break;
+
+				case SetScope.Local:
+					OnlyPostgreSql(statement);
+					Word("SET LOCAL");
+					break;
+
+				case SetScope.Session:
+					OnlyPostgreSql(statement);
+					Word("SET SESSION");
+					break;
+
+				default:
+					throw NoText(scope.Value);
 			}
 		}
 
@@ -2708,7 +2832,14 @@ public static partial class SqlWriter
 					break;
 
 				case Statement.DeallocatePrepare deallocate:
-					Word("DEALLOCATE PREPARE");
+					if (deallocate.PrepareOmitted)
+					{
+						OnlyPostgreSql(deallocate);
+						Word("DEALLOCATE");
+					}
+					else
+						Word("DEALLOCATE PREPARE");
+
 					PutStatementReference(deallocate.Statement);
 					break;
 
@@ -2741,6 +2872,25 @@ public static partial class SqlWriter
 					Word("EXECUTE");
 					PutStatementReference(execute.Statement);
 
+					// PostgreSQL: EXECUTE. The values in brackets after the name, and no result clause.
+					if (postgreSql)
+					{
+						if (execute.Result is not null)
+							throw Misplaced(execute, nameof(execute.Result), "which PostgreSQL's EXECUTE has no INTO for");
+
+						if (execute.Parameters is { } values)
+						{
+							if (values is not DynamicArguments.Values { Items.Count: > 0 } items)
+								throw Misplaced(execute, nameof(execute.Parameters), "other than values, one at least, which PostgreSQL reads in brackets after the name");
+
+							Open();
+							Each(items.Items, PutExpression);
+							Close();
+						}
+
+						break;
+					}
+
 					if (execute.Result is { } result)
 					{
 						Word("INTO");
@@ -2761,7 +2911,7 @@ public static partial class SqlWriter
 					break;
 
 				default:
-					if (TryPutTransactSql(statement))
+					if (TryPutPostgreSql(statement) || TryPutTransactSql(statement))
 						break;
 
 					throw Unwritten(statement);

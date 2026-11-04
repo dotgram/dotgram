@@ -1698,7 +1698,7 @@ static class Nodes
 		if (with is null)
 			return true;
 
-		if (statement is Statement.TruncateTable)
+		if (statement is not (Statement.Insert or Statement.Update or Statement.Delete or Statement.Merge or Statement.Select))
 			return false;
 
 		if (statement is not Statement.Select select)
@@ -1733,6 +1733,243 @@ static class Nodes
 	public static Query AsQuery(Statement statement)
 	{
 		return statement is Statement.Select select ? select.Query : new Query.DataChange(statement);
+	}
+
+
+	// ── The short statements ────────────────────────────────────────────────────
+
+	/// <summary>The items read, the first and the rest, as an array; empty where none was.</summary>
+	public static T[] Items<T>(T? first, T[]? rest) where T : class
+	{
+		if (first is null)
+			return [];
+
+		if (rest is not { Length: > 0 })
+			return [first];
+
+		var items = new T[rest.Length + 1];
+
+		items[0] = first;
+		rest.CopyTo(items, 1);
+
+		return items;
+	}
+
+	static TransactionKeyword? KeywordOf(string? word)
+	{
+		return word is not null && (word[0] | 0x20) == 't' ? TransactionKeyword.Transaction : null;
+	}
+
+	public static Statement Begun(string? word, TransactionMode[] modes)
+	{
+		return new Statement.StartTransaction { Modes = SqlList.Own(modes), Begin = true, Keyword = KeywordOf(word), Work = word is not null && (word[0] | 0x20) == 'w' };
+	}
+
+	public static Statement Committed(bool end, string? word, ChainMode? chain)
+	{
+		return new Statement.Commit { End = end, Keyword = KeywordOf(word), Work = word is not null && (word[0] | 0x20) == 'w', Chain = chain };
+	}
+
+	public static Statement RolledBack(bool abort, string? word, ChainMode? chain, Identifier? to, bool savepointOmitted)
+	{
+		return new Statement.Rollback { Abort = abort, Keyword = KeywordOf(word), Work = word is not null && (word[0] | 0x20) == 'w', Chain = chain, ToSavepoint = to, SavepointKeywordOmitted = savepointOmitted };
+	}
+
+	/// <summary>What a SET sets, as gram.y's set_rest and set_rest_more read it; <c>Bare</c> says the form's own SESSION was the scope word.</summary>
+	public abstract record SetRest
+	{
+		public sealed record Snapshot(LiteralValue.String Id) : SetRest;
+		public sealed record Transaction(TransactionMode[] Modes) : SetRest;
+		public sealed record Characteristics(TransactionMode[] Modes, bool Bare) : SetRest;
+		public sealed record Authorization(Expression? Value, bool Bare) : SetRest;
+		public sealed record TimeZone(Expression? Value, bool Local) : SetRest;
+		public sealed record Schema(LiteralValue Value) : SetRest;
+		public sealed record Names(LiteralValue? Encoding, bool Default) : SetRest;
+		public sealed record Role(Expression Value) : SetRest;
+		public sealed record Xml(string Word) : SetRest;
+		public sealed record Generic(QualifiedName Name, bool EqualsSign, SqlList<Expression>? Values, string? Default, bool FromCurrent) : SetRest;
+	}
+
+	static SetScope? ScopeOf(string? word)
+	{
+		return word is null ? null : (word[0] | 0x20) == 'l' ? SetScope.Local : SetScope.Session;
+	}
+
+	/// <summary>A form whose own first word is SESSION, read without it, fits only after the scope word SESSION, which was that word.</summary>
+	public static bool SetFits(string? scope, SetRest rest)
+	{
+		var bare = rest is SetRest.Characteristics { Bare: true } or SetRest.Authorization { Bare: true };
+
+		return !bare || (scope is not null && (scope[0] | 0x20) == 's');
+	}
+
+	public static Statement Set(string? scope, SetRest rest)
+	{
+		var scoped = ScopeOf(scope);
+
+		switch (rest)
+		{
+			case SetRest.Snapshot snapshot:
+				return new Statement.SetTransactionSnapshot(snapshot.Id) { Scope = scoped };
+
+			case SetRest.Transaction transaction:
+				return new Statement.SetTransaction { Modes = SqlList.Own(transaction.Modes), Local = scoped == SetScope.Local, Session = scoped == SetScope.Session };
+
+			case SetRest.Characteristics characteristics:
+				return new Statement.SetSessionCharacteristics { Characteristics = [SqlList.Own(characteristics.Modes)], Scope = characteristics.Bare ? null : scoped };
+
+			case SetRest.Authorization authorization:
+				return new Statement.SetSessionAuthorization { Value = authorization.Value ?? new Expression.Default(), Scope = authorization.Bare ? null : scoped };
+
+			case SetRest.TimeZone zone:
+				return new Statement.SetTimeZone { Value = zone.Value, Local = zone.Local, Scope = scoped };
+
+			case SetRest.Schema schema:
+				return new Statement.SetSchema { Value = schema.Value, Scope = scoped };
+
+			case SetRest.Names names:
+				return new Statement.SetNames { Value = names.Default ? new Expression.Default() : names.Encoding, Scope = scoped };
+
+			case SetRest.Role role:
+				var none = role.Value is Expression.Reference { Name: [{ Style: IdentifierStyle.Regular, Text: var text }] } && text.Equals("none", StringComparison.OrdinalIgnoreCase);
+
+				return new Statement.SetRole { Value = none ? null : role.Value, None = none, Scope = scoped };
+
+			case SetRest.Xml xml:
+				return new Statement.SetParameter(new QualifiedName(new Identifier("xmloption")), [new Expression.Reference(new QualifiedName(new Identifier(xml.Word)))]) { Scope = scoped, Spelling = ParameterSpelling.XmlOption };
+
+			default:
+				var generic = (SetRest.Generic)rest;
+
+				SqlList<Expression> values = generic.Values is { } listed ? listed : generic.Default is null ? [] : [new Expression.Default()];
+
+				return new Statement.SetParameter(generic.Name, values) { Scope = scoped, EqualsSign = generic.EqualsSign, FromCurrent = generic.FromCurrent };
+		}
+	}
+
+	/// <summary>A number with its sign, as gram.y's NumericOnly reads it: the literal, under a sign where one was written.</summary>
+	public static Expression Signed(string? sign, string text)
+	{
+		Expression number = Number(text);
+
+		return sign is null ? number : new Expression.Unary(sign == "-" ? UnaryOperator.Minus : UnaryOperator.Plus, number);
+	}
+
+	/// <summary>A parameter SHOW or RESET names: by name, by the statement's own words (the spelling, and the name those words are), or ALL where both are null.</summary>
+	public sealed record ParameterRef(QualifiedName? Name, ParameterSpelling? Spelling);
+
+	/// <summary>The parameter a spelling's words name.</summary>
+	public static string ParameterOf(ParameterSpelling spelling)
+	{
+		return spelling switch
+		{
+			ParameterSpelling.TimeZone                  => "timezone",
+			ParameterSpelling.TransactionIsolationLevel => "transaction_isolation",
+			ParameterSpelling.SessionAuthorization      => "session_authorization",
+			_                                           => "xmloption",
+		};
+	}
+
+	public static ParameterRef Spelled(ParameterSpelling spelling)
+	{
+		return new ParameterRef(new QualifiedName(new Identifier(ParameterOf(spelling))), spelling);
+	}
+
+	/// <summary>Whether a statement is one EXPLAIN explains: a query, a data change, an EXECUTE, a cursor's declaration.</summary>
+	public static bool Explainable(Statement statement)
+	{
+		return statement is Statement.Select or Statement.Insert or Statement.Update or Statement.Delete or Statement.Merge or Statement.Execute or Statement.DeclareCursor;
+	}
+
+	/// <summary>Whether a statement is one PREPARE prepares: a query or a data change.</summary>
+	public static bool Preparable(Statement statement)
+	{
+		return statement is Statement.Select or Statement.Insert or Statement.Update or Statement.Delete or Statement.Merge;
+	}
+
+	/// <summary>EXPLAIN with the old bare words: ANALYZE (or ANALYSE) and VERBOSE, as options named by the words written.</summary>
+	public static Statement Explained(string? analyze, string? verbose, Statement statement)
+	{
+		var options = new List<Option>(2);
+
+		if (analyze is not null)
+			options.Add(new Option(new Identifier(analyze), null, []));
+
+		if (verbose is not null)
+			options.Add(new Option(new Identifier(verbose), null, []));
+
+		return new Statement.Explain(SqlList.Own(options.ToArray()), statement) { Bare = options.Count > 0 };
+	}
+
+	/// <summary>One item of a DO: the body, or the language after LANGUAGE.</summary>
+	public sealed record DoItem(LiteralValue.String? Body, Expression? Language);
+
+	/// <summary>DO's checks, which the server makes in the grammar: one body, one language at most ("conflicting or redundant options"), the body always ("no inline code specified").</summary>
+	public static bool DoFits(DoItem first, DoItem[]? rest)
+	{
+		var bodies    = 0;
+		var languages = 0;
+
+		foreach (var item in Items(first, rest))
+		{
+			if (item.Body is not null)
+				bodies++;
+			else
+				languages++;
+		}
+
+		return bodies == 1 && languages <= 1;
+	}
+
+	public static Statement Done(DoItem first, DoItem[]? rest)
+	{
+		LiteralValue.String? body     = null;
+		Expression?          language = null;
+
+		foreach (var item in Items(first, rest))
+		{
+			if (item.Body is not null)
+				body = item.Body;
+			else
+				language = item.Language;
+		}
+
+		return new Statement.Do(body!, language) { LanguageFirst = first.Language is not null };
+	}
+
+	/// <summary>The constraints SET CONSTRAINTS names, as a list; the first is a value, so the generic list does not take it.</summary>
+	public static ConstraintTarget Constrained(string? all, QualifiedName? first, QualifiedName[]? rest)
+	{
+		if (all is not null || first is null)
+			return new ConstraintTarget.All();
+
+		var names = new QualifiedName[1 + (rest?.Length ?? 0)];
+
+		names[0] = first.Value;
+		rest?.CopyTo(names, 1);
+
+		return new ConstraintTarget.Names(SqlList.Own(names));
+	}
+
+	public static Statement Deallocated(bool prepareWord, bool all, Identifier? name)
+	{
+		if (all)
+			return new Statement.DeallocateAll { PrepareKeyword = prepareWord };
+
+		return new Statement.DeallocatePrepare { Statement = new StatementReference(name!), PrepareOmitted = !prepareWord };
+	}
+
+	public static Statement Discarded(string word)
+	{
+		var target = (word[0] | 0x20) switch
+		{
+			'a' => DiscardTarget.All,
+			'p' => DiscardTarget.Plans,
+			's' => DiscardTarget.Sequences,
+			_   => DiscardTarget.Temp,
+		};
+
+		return new Statement.Discard(target) { Temporary = word.Length > 4 && target == DiscardTarget.Temp };
 	}
 
 	public static Statement Truncated(bool tableOmitted, TableSource first, TableSource[]? rest, string? identity, string? behavior)

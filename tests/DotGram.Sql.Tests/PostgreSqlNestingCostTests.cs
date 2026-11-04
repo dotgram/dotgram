@@ -102,6 +102,9 @@ public sealed class PostgreSqlNestingCostTests
 	[InlineData("data change bodies nested, closed", "", "WITH x AS (", "INSERT INTO t DEFAULT VALUES", ") INSERT INTO t DEFAULT VALUES", "", true)]
 	[InlineData("data change bodies nested, unclosed", "", "WITH x AS (", "INSERT INTO t DEFAULT VALUES", "", "", false)]
 	[InlineData("bracketed joins, closed",           "SELECT * FROM ", "(", "a JOIN b ON x", " JOIN c ON y)", "", true)]
+	[InlineData("explains nested",                   "", "EXPLAIN ", "SELECT 1", "", "", false)]
+	[InlineData("explains with options nested",      "", "EXPLAIN (VERBOSE) ", "SELECT 1", "", "", false)]
+	[InlineData("prepares nested",                   "", "PREPARE p AS ", "SELECT 1", "", "", false)]
 	[InlineData("bracketed joins, unclosed",         "SELECT * FROM ", "(", "a JOIN b ON x", "", "", false)]
 	public void A_nest_costs_what_its_depth_does(string what, string head, string opener, string core, string closer, string tail, bool accepted)
 	{

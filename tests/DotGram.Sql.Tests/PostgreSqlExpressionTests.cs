@@ -652,6 +652,224 @@ public sealed class PostgreSqlExpressionTests
 	}
 
 	/// <summary>A text of statements holds empty ones too, as the server's stmtmulti does; one statement is one, with its semicolon or without.</summary>
+	// ── The short statements ───────────────────────────────────────────────────
+
+	[Theory]
+	[InlineData("BEGIN",                                                  "begin")]
+	[InlineData("BEGIN WORK ISOLATION LEVEL SERIALIZABLE, READ ONLY DEFERRABLE", "begin work with modes")]
+	[InlineData("BEGIN TRANSACTION NOT DEFERRABLE",                       "begin transaction not deferrable")]
+	[InlineData("START TRANSACTION ISOLATION LEVEL REPEATABLE READ READ WRITE", "start transaction")]
+	[InlineData("COMMIT",                                                 "commit")]
+	[InlineData("COMMIT WORK AND CHAIN",                                  "commit work and chain")]
+	[InlineData("END TRANSACTION AND NO CHAIN",                           "end transaction and no chain")]
+	[InlineData("ABORT",                                                  "abort")]
+	[InlineData("ROLLBACK WORK",                                          "rollback work")]
+	[InlineData("ROLLBACK TO SAVEPOINT s",                                "rollback to savepoint")]
+	[InlineData("ROLLBACK TRANSACTION TO s",                              "rollback transaction to")]
+	[InlineData("SAVEPOINT s",                                            "savepoint")]
+	[InlineData("RELEASE SAVEPOINT s",                                    "release savepoint")]
+	[InlineData("RELEASE s",                                              "release")]
+	[InlineData("PREPARE TRANSACTION 'gid'",                              "prepare transaction")]
+	[InlineData("COMMIT PREPARED 'gid'",                                  "commit prepared")]
+	[InlineData("ROLLBACK PREPARED E'g\\id'",                             "rollback prepared")]
+	[InlineData("SET TRANSACTION ISOLATION LEVEL READ COMMITTED",         "set transaction")]
+	[InlineData("SET LOCAL TRANSACTION READ ONLY",                        "set local transaction")]
+	[InlineData("SET SESSION TRANSACTION READ WRITE",                     "set session transaction")]
+	[InlineData("SET TRANSACTION SNAPSHOT '000003A1-1'",                  "set transaction snapshot")]
+	[InlineData("SET SESSION CHARACTERISTICS AS TRANSACTION READ ONLY",   "set session characteristics")]
+	[InlineData("SET LOCAL SESSION CHARACTERISTICS AS TRANSACTION READ ONLY", "set local session characteristics")]
+	[InlineData("SET SESSION AUTHORIZATION u",                            "set session authorization")]
+	[InlineData("SET SESSION AUTHORIZATION DEFAULT",                      "set session authorization default")]
+	[InlineData("SET SESSION SESSION AUTHORIZATION 'u'",                  "set session session authorization")]
+	[InlineData("SET TIME ZONE 'UTC'",                                    "set time zone string")]
+	[InlineData("SET LOCAL TIME ZONE LOCAL",                              "set local time zone local")]
+	[InlineData("SET TIME ZONE INTERVAL '+01:00' HOUR TO MINUTE",         "set time zone interval")]
+	[InlineData("SET TIME ZONE -7",                                       "set time zone number")]
+	[InlineData("SET TIME ZONE DEFAULT",                                  "set time zone default")]
+	[InlineData("SET TIME ZONE utc",                                      "set time zone word")]
+	[InlineData("SET SCHEMA 'public'",                                    "set schema")]
+	[InlineData("SET NAMES 'UTF8'",                                       "set names")]
+	[InlineData("SET NAMES",                                              "set names bare")]
+	[InlineData("SET NAMES DEFAULT",                                      "set names default")]
+	[InlineData("SET ROLE r",                                             "set role")]
+	[InlineData("SET LOCAL ROLE NONE",                                    "set local role none")]
+	[InlineData("SET XML OPTION DOCUMENT",                                "set xml option")]
+	[InlineData("SET search_path TO a, \"B\", 'c'",                       "set parameter to list")]
+	[InlineData("SET LOCAL s.p = on",                                     "set local parameter equals")]
+	[InlineData("SET p TO DEFAULT",                                       "set parameter to default")]
+	[InlineData("SET p = -1.5",                                           "set parameter number")]
+	[InlineData("SET p = true",                                           "set parameter boolean")]
+	[InlineData("SET p FROM CURRENT",                                     "set parameter from current")]
+	[InlineData("SET time TO 1",                                          "set a parameter named time")]
+	[InlineData("SET role TO 'x'",                                        "set a parameter named role")]
+	[InlineData("SET names TO 'x'",                                       "set a parameter named names")]
+	[InlineData("SET session TO 1",                                       "set a parameter named session")]
+	[InlineData("SET transaction = 1",                                    "set a parameter named transaction")]
+	[InlineData("SET CONSTRAINTS ALL DEFERRED",                           "set constraints all")]
+	[InlineData("SET CONSTRAINTS a, s.b IMMEDIATE",                       "set constraints named")]
+	[InlineData("SHOW search_path",                                       "show")]
+	[InlineData("SHOW ALL",                                               "show all")]
+	[InlineData("SHOW TIME ZONE",                                         "show time zone")]
+	[InlineData("SHOW TRANSACTION ISOLATION LEVEL",                       "show transaction isolation level")]
+	[InlineData("SHOW SESSION AUTHORIZATION",                             "show session authorization")]
+	[InlineData("RESET s.p",                                              "reset")]
+	[InlineData("RESET ALL",                                              "reset all")]
+	[InlineData("RESET TIME ZONE",                                        "reset time zone")]
+	[InlineData("RESET time",                                             "reset a parameter named time")]
+	[InlineData("EXPLAIN SELECT 1",                                       "explain")]
+	[InlineData("EXPLAIN ANALYZE VERBOSE INSERT INTO t DEFAULT VALUES",   "explain analyze verbose")]
+	[InlineData("EXPLAIN VERBOSE WITH x AS (SELECT 1) SELECT * FROM x",   "explain verbose with")]
+	[InlineData("EXPLAIN (ANALYSE, COSTS off, FORMAT json, BUFFERS, TIMING false, SERIALIZE 'text') EXECUTE p(1)", "explain options")]
+	[InlineData("CALL p(1, b => 2)",                                      "call")]
+	[InlineData("DO $$ BEGIN END $$",                                     "do")]
+	[InlineData("DO LANGUAGE plpgsql 'x'",                                "do language first")]
+	[InlineData("DO 'x' LANGUAGE 'sql'",                                  "do language after")]
+	[InlineData("PREPARE p (int, text[]) AS SELECT $1, $2",               "prepare plan")]
+	[InlineData("PREPARE p AS INSERT INTO t VALUES ($1)",                 "prepare plan insert")]
+	[InlineData("EXECUTE p",                                              "execute")]
+	[InlineData("EXECUTE p(1, 'x')",                                      "execute arguments")]
+	[InlineData("DEALLOCATE p",                                           "deallocate")]
+	[InlineData("DEALLOCATE PREPARE p",                                   "deallocate prepare")]
+	[InlineData("DEALLOCATE ALL",                                         "deallocate all")]
+	[InlineData("DEALLOCATE PREPARE ALL",                                 "deallocate prepare all")]
+	[InlineData("DEALLOCATE prepare",                                     "deallocate a plan named prepare")]
+	[InlineData("LISTEN c",                                               "listen")]
+	[InlineData("UNLISTEN c",                                             "unlisten")]
+	[InlineData("UNLISTEN *",                                             "unlisten all")]
+	[InlineData("NOTIFY c",                                               "notify")]
+	[InlineData("NOTIFY c, 'payload'",                                    "notify payload")]
+	[InlineData("LOCK TABLE a, ONLY b, c * IN SHARE UPDATE EXCLUSIVE MODE NOWAIT", "lock")]
+	[InlineData("LOCK t",                                                 "lock bare")]
+	[InlineData("LOCK t IN ACCESS EXCLUSIVE MODE",                        "lock access exclusive")]
+	[InlineData("DISCARD ALL",                                            "discard all")]
+	[InlineData("DISCARD TEMPORARY",                                      "discard temporary")]
+	[InlineData("DISCARD TEMP",                                           "discard temp")]
+	[InlineData("CHECKPOINT",                                             "checkpoint")]
+	[InlineData("WITH x AS (SELECT 1) COMMIT",                            "refused: WITH before COMMIT")]
+	[InlineData("BEGIN, READ ONLY",                                       "refused: a comma before the first mode")]
+	[InlineData("ROLLBACK TO s AND CHAIN",                                "refused: ROLLBACK TO with a chain")]
+	[InlineData("SET CATALOG 'x'",                                        "refused: SET CATALOG")]
+	[InlineData("SET LOCAL AUTHORIZATION x",                              "refused: AUTHORIZATION after LOCAL")]
+	[InlineData("SET CHARACTERISTICS AS TRANSACTION READ ONLY",           "refused: CHARACTERISTICS with no SESSION")]
+	[InlineData("SET p",                                                  "refused: SET with no value")]
+	[InlineData("EXPLAIN EXPLAIN SELECT 1",                               "refused: EXPLAIN of an EXPLAIN")]
+	[InlineData("EXPLAIN TRUNCATE t",                                     "refused: EXPLAIN of a TRUNCATE")]
+	[InlineData("PREPARE p AS TRUNCATE t",                                "refused: PREPARE of a TRUNCATE")]
+	[InlineData("PREPARE p AS EXECUTE q",                                 "refused: PREPARE of an EXECUTE")]
+	[InlineData("DO LANGUAGE sql",                                        "refused: DO with no body")]
+	[InlineData("DO 'x' 'y'",                                             "refused: DO with two bodies")]
+	[InlineData("DO 'x' LANGUAGE a LANGUAGE b",                           "refused: DO with two languages")]
+	[InlineData("EXECUTE p()",                                            "refused: EXECUTE with empty brackets")]
+	[InlineData("CALL f(a) OVER ()",                                      "refused: CALL with OVER")]
+	[InlineData("LOCK t IN SHARE MODE MODE",                              "refused: LOCK with a word too many")]
+	[InlineData("DISCARD PLAN",                                           "refused: DISCARD of a wrong word")]
+	public void A_short_statement_builds_its_record(string text, string expected)
+	{
+		if (expected.StartsWith("refused", StringComparison.Ordinal))
+		{
+			Assert.False(PostgreSqlParser.TryParseStatement(text).IsSuccess);
+			return;
+		}
+
+		var made  = Holds(text);
+		var holds = expected switch
+		{
+			"begin"                    => made is Statement.StartTransaction { Begin: true, Keyword: null, Work: false, Modes.Count: 0 },
+			"begin work with modes"    => made is Statement.StartTransaction { Begin: true, Work: true, Modes: [TransactionMode.Isolation { Level: IsolationLevel.Serializable }, TransactionMode.Access { Mode: TransactionAccess.ReadOnly }, TransactionMode.Deferrable { Not: false }] },
+			"begin transaction not deferrable" => made is Statement.StartTransaction { Begin: true, Keyword: TransactionKeyword.Transaction, Modes: [TransactionMode.Deferrable { Not: true }] },
+			"start transaction"        => made is Statement.StartTransaction { Begin: false, Modes.Count: 2 },
+			"commit"                   => made is Statement.Commit { End: false, Work: false, Chain: null, Keyword: null },
+			"commit work and chain"    => made is Statement.Commit { Work: true, Chain: ChainMode.Chain },
+			"end transaction and no chain" => made is Statement.Commit { End: true, Keyword: TransactionKeyword.Transaction, Chain: ChainMode.NoChain },
+			"abort"                    => made is Statement.Rollback { Abort: true, ToSavepoint: null },
+			"rollback work"            => made is Statement.Rollback { Abort: false, Work: true },
+			"rollback to savepoint"    => made is Statement.Rollback { ToSavepoint.Text: "s", SavepointKeywordOmitted: false },
+			"rollback transaction to"  => made is Statement.Rollback { Keyword: TransactionKeyword.Transaction, ToSavepoint.Text: "s", SavepointKeywordOmitted: true },
+			"savepoint"                => made is Statement.Savepoint { Name.Text: "s" },
+			"release savepoint"        => made is Statement.ReleaseSavepoint { SavepointKeywordOmitted: false },
+			"release"                  => made is Statement.ReleaseSavepoint { SavepointKeywordOmitted: true },
+			"prepare transaction"      => made is Statement.PrepareTransaction { Id.Text: "'gid'" },
+			"commit prepared"          => made is Statement.CommitPrepared,
+			"rollback prepared"        => made is Statement.RollbackPrepared { Id.Kind: StringLiteralKind.Escaped },
+			"set transaction"          => made is Statement.SetTransaction { Local: false, Session: false, Modes: [TransactionMode.Isolation { Level: IsolationLevel.ReadCommitted }] },
+			"set local transaction"    => made is Statement.SetTransaction { Local: true, Session: false },
+			"set session transaction"  => made is Statement.SetTransaction { Local: false, Session: true },
+			"set transaction snapshot" => made is Statement.SetTransactionSnapshot { Scope: null },
+			"set session characteristics" => made is Statement.SetSessionCharacteristics { Scope: null, Characteristics: [[TransactionMode.Access]] },
+			"set local session characteristics" => made is Statement.SetSessionCharacteristics { Scope: SetScope.Local },
+			"set session authorization" => made is Statement.SetSessionAuthorization { Scope: null, Value: Expression.Reference },
+			"set session authorization default" => made is Statement.SetSessionAuthorization { Value: Expression.Default },
+			"set session session authorization" => made is Statement.SetSessionAuthorization { Scope: SetScope.Session, Value: LiteralValue.String },
+			"set time zone string"     => made is Statement.SetTimeZone { Value: LiteralValue.String, Local: false, Scope: null },
+			"set local time zone local" => made is Statement.SetTimeZone { Value: null, Local: true, Scope: SetScope.Local },
+			"set time zone interval"   => made is Statement.SetTimeZone { Value: LiteralValue.Interval },
+			"set time zone number"     => made is Statement.SetTimeZone { Value: Expression.Unary { Operator: UnaryOperator.Minus } },
+			"set time zone default"    => made is Statement.SetTimeZone { Value: Expression.Default },
+			"set time zone word"       => made is Statement.SetTimeZone { Value: Expression.Reference },
+			"set schema"               => made is Statement.SetSchema { Value: LiteralValue.String },
+			"set names"                => made is Statement.SetNames { Value: LiteralValue.String },
+			"set names bare"           => made is Statement.SetNames { Value: null },
+			"set names default"        => made is Statement.SetNames { Value: Expression.Default },
+			"set role"                 => made is Statement.SetRole { None: false, Value: Expression.Reference },
+			"set local role none"      => made is Statement.SetRole { None: true, Value: null, Scope: SetScope.Local },
+			"set xml option"           => made is Statement.SetParameter { Spelling: ParameterSpelling.XmlOption, Name: [{ Text: "xmloption" }], Values: [Expression.Reference] },
+			"set parameter to list"    => made is Statement.SetParameter { Name: [{ Text: "search_path" }], Values: [Expression.Reference, Expression.Reference { Name: [{ Style: IdentifierStyle.Delimited }] }, LiteralValue.String], EqualsSign: false, Scope: null },
+			"set local parameter equals" => made is Statement.SetParameter { Name.Count: 2, Values: [Expression.Reference { Name: [{ Text: "on" }] }], EqualsSign: true, Scope: SetScope.Local },
+			"set parameter to default" => made is Statement.SetParameter { Values: [Expression.Default] },
+			"set parameter number"     => made is Statement.SetParameter { Values: [Expression.Unary { Operand: LiteralValue.Numeric }] },
+			"set parameter boolean"    => made is Statement.SetParameter { Values: [LiteralValue.Boolean] },
+			"set parameter from current" => made is Statement.SetParameter { FromCurrent: true, Values.Count: 0 },
+			"set a parameter named time" => made is Statement.SetParameter { Name: [{ Text: "time" }] },
+			"set a parameter named role" => made is Statement.SetParameter { Name: [{ Text: "role" }] },
+			"set a parameter named names" => made is Statement.SetParameter { Name: [{ Text: "names" }] },
+			"set a parameter named session" => made is Statement.SetParameter { Name: [{ Text: "session" }], Scope: null },
+			"set a parameter named transaction" => made is Statement.SetParameter { Name: [{ Text: "transaction" }], EqualsSign: true },
+			"set constraints all"      => made is Statement.SetConstraints { Target: ConstraintTarget.All, Timing: ConstraintTiming.Deferred },
+			"set constraints named"    => made is Statement.SetConstraints { Target: ConstraintTarget.Names { Values.Count: 2 }, Timing: ConstraintTiming.Immediate },
+			"show"                     => made is Statement.ShowParameter { Name: [{ Text: "search_path" }], Spelling: null },
+			"show all"                 => made is Statement.ShowParameter { Name: null },
+			"show time zone"           => made is Statement.ShowParameter { Name: [{ Text: "timezone" }], Spelling: ParameterSpelling.TimeZone },
+			"show transaction isolation level" => made is Statement.ShowParameter { Spelling: ParameterSpelling.TransactionIsolationLevel },
+			"show session authorization" => made is Statement.ShowParameter { Spelling: ParameterSpelling.SessionAuthorization },
+			"reset"                    => made is Statement.ResetParameter { Name.Count: 2 },
+			"reset all"                => made is Statement.ResetParameter { Name: null },
+			"reset time zone"          => made is Statement.ResetParameter { Spelling: ParameterSpelling.TimeZone },
+			"reset a parameter named time" => made is Statement.ResetParameter { Name: [{ Text: "time" }], Spelling: null },
+			"explain"                  => made is Statement.Explain { Options.Count: 0, Bare: false, Statement: Statement.Select },
+			"explain analyze verbose"  => made is Statement.Explain { Options: [{ Name.Text: "ANALYZE" }, { Name.Text: "VERBOSE" }], Bare: true, Statement: Statement.Insert },
+			"explain verbose with"     => made is Statement.Explain { Options.Count: 1, Bare: true, Statement: Statement.Select { Query.With: not null } },
+			"explain options"          => made is Statement.Explain { Options: [{ Name.Text: "ANALYSE", Value: null }, { Value: Expression.Reference }, { Value: Expression.Reference }, { Value: null }, { Value: LiteralValue.Boolean }, { Value: LiteralValue.String }], Bare: false, Statement: Statement.Execute { Parameters: DynamicArguments.Values } },
+			"call"                     => made is Statement.Call { Invocation.Arguments.Count: 2 },
+			"do"                       => made is Statement.Do { Body.Kind: StringLiteralKind.Dollar, Language: null },
+			"do language first"        => made is Statement.Do { Language: Expression.Reference, LanguageFirst: true },
+			"do language after"        => made is Statement.Do { Language: LiteralValue.String, LanguageFirst: false },
+			"prepare plan"             => made is Statement.PreparePlan { Name.Text: "p", ParameterTypes: [DataType.Numeric, DataType.Array], Body: Statement.Select },
+			"prepare plan insert"      => made is Statement.PreparePlan { ParameterTypes.Count: 0, Body: Statement.Insert },
+			"execute"                  => made is Statement.Execute { Statement.Name.Text: "p", Parameters: null, Result: null },
+			"execute arguments"        => made is Statement.Execute { Parameters: DynamicArguments.Values { Items.Count: 2 } },
+			"deallocate"               => made is Statement.DeallocatePrepare { PrepareOmitted: true },
+			"deallocate prepare"       => made is Statement.DeallocatePrepare { PrepareOmitted: false },
+			"deallocate all"           => made is Statement.DeallocateAll { PrepareKeyword: false },
+			"deallocate prepare all"   => made is Statement.DeallocateAll { PrepareKeyword: true },
+			"deallocate a plan named prepare" => made is Statement.DeallocatePrepare { Statement.Name.Text: "prepare", PrepareOmitted: true },
+			"listen"                   => made is Statement.Listen { Channel.Text: "c" },
+			"unlisten"                 => made is Statement.Unlisten { Channel.Text: "c" },
+			"unlisten all"             => made is Statement.Unlisten { Channel: null },
+			"notify"                   => made is Statement.Notify { Payload: null },
+			"notify payload"           => made is Statement.Notify { Payload: not null },
+			"lock"                     => made is Statement.LockTable { Tables: [TableSource.Named, TableSource.Named { Only: true }, TableSource.Named { Star: true }], Mode: LockMode.ShareUpdateExclusive, NoWait: true, TableOmitted: false },
+			"lock bare"                => made is Statement.LockTable { Tables.Count: 1, Mode: null, NoWait: false, TableOmitted: true },
+			"lock access exclusive"    => made is Statement.LockTable { Mode: LockMode.AccessExclusive },
+			"discard all"              => made is Statement.Discard { Target: DiscardTarget.All },
+			"discard temporary"        => made is Statement.Discard { Target: DiscardTarget.Temp, Temporary: true },
+			"discard temp"             => made is Statement.Discard { Target: DiscardTarget.Temp, Temporary: false },
+			"checkpoint"               => made is Statement.Checkpoint { Duration: null },
+			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
+		};
+
+		Assert.True(holds, $"{text}: {made}");
+	}
+
 	// ── The data change statements ─────────────────────────────────────────────
 
 	[Theory]
