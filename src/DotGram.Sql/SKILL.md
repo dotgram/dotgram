@@ -126,7 +126,8 @@ reading stopped looking, so the comments after the last statement lie between it
 Spans take no part in equality: key a table of nodes by reference.
 
 **Two namespaces, one tree.** The tree the parsers build is in `DotGram.Sql.Ast`; `DotGram.Sql`
-holds what no tree is — `SqlList<T>`, `SqlSpan`, `SqlWalker`, `SqlScript` and the script types.
+holds what no tree is — `SqlList<T>`, `SqlSpan` and `ISqlSpan`, `SqlWalker`, `SqlScript` and the script types, and
+`StatementCategory`.
 
 **A refusal's message can be long.** Where a statement stops at a position that could begin
 almost anything, `Error` lists everything that could have stood there, hundreds of keywords
