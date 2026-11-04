@@ -2280,24 +2280,24 @@ sealed partial class Machine
 		/// knows which frames are open where it stands, and the text does not.
 		/// </remarks>
 		/// <summary>The guard every turn of a repetition begins with, or null where the turns do not all begin with one guard.</summary>
-		static Node.Guard? LeadingGuard(Node body)
+		static Node.Guard? TurnHeadGuard(Node body)
 		{
 			switch (body)
 			{
 				case Node.Construct(var inner, _):
-					return LeadingGuard(inner);
+					return TurnHeadGuard(inner);
 
 				case Node.Capture(_, var inner):
-					return LeadingGuard(inner);
+					return TurnHeadGuard(inner);
 
 				case Node.Atomic(var inner):
-					return LeadingGuard(inner);
+					return TurnHeadGuard(inner);
 
 				case Node.Marked(var inner, _):
-					return LeadingGuard(inner);
+					return TurnHeadGuard(inner);
 
 				case Node.Sequence(var nodes) when nodes.Count > 0:
-					return LeadingGuard(nodes[0]);
+					return TurnHeadGuard(nodes[0]);
 
 				case Node.Guard guard:
 					return guard;
@@ -2308,7 +2308,7 @@ sealed partial class Machine
 
 					foreach (var alternative in alternatives)
 					{
-						var one = LeadingGuard(alternative);
+						var one = TurnHeadGuard(alternative);
 
 						if (one is null || shared is not null && !string.Equals(one.Text, shared.Text, StringComparison.Ordinal))
 							return null;
@@ -4774,7 +4774,7 @@ sealed partial class Machine
 				// with is asked before the token is, so that a turn the guard refuses records nothing
 				// — the guard's position is the author's choice (syntax.md §3.6), and a turn that
 				// could not begin is the loop ending, not a refusal.
-				if (CSharpEmitter.HeadGuardFirstExperiment && LeadingGuard(body) is { } lead)
+				if (CSharpEmitter.HeadGuardFirstExperiment && TurnHeadGuard(body) is { } lead)
 				{
 					code.Line($"if (!{EmitGuardCall(code, lead)})");
 					code.Then("break;");
