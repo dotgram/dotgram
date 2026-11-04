@@ -138,7 +138,7 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 		{
 			Log($"  {kind}: {samples.Count}");
 
-			foreach (var sample in samples.Take(12))
+			foreach (var sample in samples.Take(samples.Count > 40 ? 3 : 8))
 				Log("    " + sample.Replace("\n", "\n    "));
 		}
 
@@ -172,13 +172,37 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 				one.Accepted != two.Accepted ? (one.Accepted ? "outcome: accepted before, refused after" : "outcome: refused before, accepted after") :
 				one.Accepted ? "tree" :
 				one.Position != two.Position ? "refusal position" :
-				"refusal message, same position";
+				"refusal message, same position: " + Gained(one.Text, two.Text);
 
 			if (!kinds.TryGetValue(kind, out var samples))
 				kinds[kind] = samples = [];
 
 			samples.Add($"{name} {form} ({string.Join(", ", arguments.Skip(1))}) of {Show((string)arguments[0])}:\n  before {one.Text}\n  after  {two.Text}");
 		}
+	}
+
+	/// <summary>What the expected list gained and lost, as one signature: the kinds of message change, counted.</summary>
+	static string Gained(string before, string after)
+	{
+		var one = Expected(before);
+		var two = Expected(after);
+		var gained = two.Except(one, StringComparer.Ordinal).ToList();
+		var lost   = one.Except(two, StringComparer.Ordinal).ToList();
+
+		if (gained.Count == 0 && lost.Count == 0)
+			return one.SequenceEqual(two, StringComparer.Ordinal) ? "same items, other text" : "same items, another order";
+
+		return "+{" + string.Join(" ", gained) + "} -{" + string.Join(" ", lost) + "}";
+	}
+
+	static List<string> Expected(string text)
+	{
+		var match = Regex.Match(text, "Expected (.*?)\\. \\|");
+
+		if (!match.Success)
+			return [];
+
+		return [.. Regex.Split(match.Groups[1].Value, ", | or ").Select(static one => one.Trim())];
 	}
 
 	static string Show(string text)

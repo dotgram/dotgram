@@ -204,10 +204,9 @@ InPredicateValue : @InSource
 // other bracket, once; it comes up as the element's value.
 RowValueConstructor : @Expression
     = e: RowValueConstructorElement => @e
-    | q: TableSubquery => @(new Expression.Subquery(q))
 
 RowValueConstructorElement : @Expression
-    = v: ValueExpression => @(v)
+    = v: Value => @(v)
     | "NULL"i    => @(Nodes.Null())
     | "DEFAULT"i => @(new Expression.Default())
 
@@ -243,12 +242,16 @@ RowValueConstructorElement : @Expression
 // An operand is a value: a bracketed condition or a row, which a bracket may hand up, takes no
 // operator and is no operand of one. Asked of the left side before the operator, so that a
 // refusal there is where it was; of the right side where it has been read.
-ValueExpression : @Expression
-    = left: ValueExpression & when @(Nodes.IsValue(left)) & op: ('+' | '-' | "||") & right: ValueExpression & when @(Nodes.IsValue(right))   << 1
+ValueExpression : @Expression = v: Value & when @(Nodes.IsValue(v)) => @(v)
+
+// The tower's value level, which a row's element reads: a bracketed condition or a row comes up
+// through it to the predicate, and is refused by `ValueExpression` where a value alone is asked for.
+Value : @Expression
+    = left: Value & when @(Nodes.IsValue(left)) & op: ('+' | '-' | "||") & right: Value & when @(Nodes.IsValue(right))   << 1
         => @(Nodes.Arithmetic(left, op, right))
-    | left: ValueExpression & when @(Nodes.IsValue(left)) & op: ('*' | '/') & right: ValueExpression & when @(Nodes.IsValue(right))           << 2
+    | left: Value & when @(Nodes.IsValue(left)) & op: ('*' | '/') & right: Value & when @(Nodes.IsValue(right))           << 2
         => @(Nodes.Arithmetic(left, op, right))
-    | sign: ['+' | '-'] & v: ValueExpression & when @(Nodes.IsValue(v))                                     >> 3
+    | sign: ['+' | '-'] & v: Value & when @(Nodes.IsValue(v))                                     >> 3
         => @(new Expression.Unary(sign == "-" ? UnaryOperator.Minus : UnaryOperator.Plus, v))
     // §6.11 <character factor> is a primary and a collate clause, which says how it is
     // compared rather than what it is, and is kept all the same, as in a GROUP BY. Written on
