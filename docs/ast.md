@@ -225,6 +225,11 @@ it. The families stand in alphabetical order, each family's records in the order
 | `Statement.Notify` | PostgreSQL | NOTIFY | Session |
 | `Statement.LockTable` | PostgreSQL | LOCK | Transaction |
 | `Statement.Discard` | PostgreSQL | DISCARD | Session |
+| `Statement.MoveCursor` | PostgreSQL | MOVE | Control |
+| `Statement.CloseAllCursors` | PostgreSQL | CLOSE | Control |
+| `Statement.Vacuum` | PostgreSQL | VACUUM | Admin |
+| `Statement.Analyze` | PostgreSQL | ANALYZE | Admin |
+| `Statement.Copy` | PostgreSQL | COPY | Dml |
 | `Statement.Commit` | T-SQL | COMMIT TRANSACTION, COMMIT WORK (Transact-SQL) | Transaction |
 | `Statement.Rollback` | T-SQL | ROLLBACK TRANSACTION, ROLLBACK WORK (Transact-SQL) | Transaction |
 | `Statement.Connect` | SQL:2023 | connection/session statements | Session |
@@ -788,6 +793,7 @@ it. The families stand in alphabetical order, each family's records in the order
 | `Expression.OperatorCall` | PostgreSQL | Operators |
 | `Expression.QuantifiedOperation` | PostgreSQL | Row and Array Comparisons |
 | `Expression.IsDocument` | PostgreSQL | XML Predicates |
+| `Expression.Star` | PostgreSQL | COPY |
 | `Expression.IsNormalized` | SQL:2023 | under &lt;value expression&gt; and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars |
 | `Expression.MemberOf` | SQL:2023 | under &lt;value expression&gt; and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars |
 | `Expression.SubmultisetOf` | SQL:2023 | under &lt;value expression&gt; and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars |
