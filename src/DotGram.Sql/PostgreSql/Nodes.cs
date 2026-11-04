@@ -1976,7 +1976,7 @@ static class Nodes
 	// ── The cursors, VACUUM, ANALYZE and COPY ───────────────────────────────────
 
 	/// <summary>DECLARE's cursor: the words before CURSOR, each axis taking the last written, WITH or WITHOUT HOLD, and the query.</summary>
-	public static Statement Declared(Identifier name, string[]? options, string? hold, Statement query)
+	public static Statement Declared(Identifier name, string[]? options, bool withHold, bool withoutHold, Statement query)
 	{
 		CursorSensitivity?   sensitivity = null;
 		CursorScrollability? scroll      = null;
@@ -2008,7 +2008,7 @@ static class Nodes
 			}
 		}
 
-		CursorHoldability? holdability = hold is null ? null : (hold[4] | 0x20) == 'o' ? CursorHoldability.WithoutHold : CursorHoldability.WithHold;
+		CursorHoldability? holdability = withHold ? CursorHoldability.WithHold : withoutHold ? CursorHoldability.WithoutHold : null;
 
 		return new Statement.DeclareCursor
 		{
@@ -2094,10 +2094,10 @@ static class Nodes
 	}
 
 	/// <summary>The columns of FORCE QUOTE and its kin: the star, or the names as a row.</summary>
-	public static Expression Columns(string? star, Identifier? first, Identifier[]? rest)
+	static Expression Columns(string? star, Identifier? first, Identifier[]? rest)
 	{
 		if (star is not null)
-			return new Expression.Star();
+			return new Expression.Asterisk();
 
 		var names = Items(first, rest);
 		var items = new Expression[names.Length];
@@ -2130,16 +2130,25 @@ static class Nodes
 		}
 	}
 
-	public static Option Forced(string words, Expression columns)
+	/// <summary>FORCE QUOTE, FORCE NOT NULL or FORCE NULL, each under its own name, with the star or the columns.</summary>
+	public static Option Forced(string name, string? star, Identifier? first, Identifier[]? rest)
 	{
-		var name = (words[6] | 0x20) switch
-		{
-			'q' => "force_quote",
-			'n' when (words[7] | 0x20) == 'o' => "force_not_null",
-			_   => "force_null",
-		};
+		return Named(name, Columns(star, first, rest));
+	}
 
-		return Named(name, columns);
+	/// <summary>SET CONSTRAINTS' names have at most three parts each, as the server has it.</summary>
+	public static bool ConstraintsFit(QualifiedName? first, QualifiedName[]? rest)
+	{
+		if (first is { Count: > 3 })
+			return false;
+
+		foreach (var name in rest ?? [])
+		{
+			if (name.Count > 3)
+				return false;
+		}
+
+		return true;
 	}
 
 	/// <summary>A COPY TO takes no WHERE, as the server's grammar refuses it.</summary>
@@ -2162,16 +2171,18 @@ static class Nodes
 
 		return new Statement.Copy
 		{
-			Table       = new TableSource.Named(name),
-			Columns     = List(c1, cn),
-			Direction   = (direction[0] | 0x20) == 'f' ? CopyDirection.From : CopyDirection.To,
-			Program     = program is not null,
-			File        = (LiteralValue.String?)file.File,
-			Stream      = file.Stream,
-			Options     = SqlList.Own(items.ToArray()),
-			Where       = where,
-			WithKeyword = with is not null,
-			Bare        = options.Bare || binary is not null || delimiter is not null,
+			Table             = new TableSource.Named(name),
+			Columns           = List(c1, cn),
+			Direction         = (direction[0] | 0x20) == 'f' ? CopyDirection.From : CopyDirection.To,
+			Program           = program is not null,
+			File              = (LiteralValue.String?)file.File,
+			Stream            = file.Stream,
+			Options           = SqlList.Own(items.ToArray()),
+			Where             = where,
+			WithKeyword       = with is not null,
+			Bare              = options.Bare && options.Items.Length > 0,
+			BinaryBeforeTable = binary is not null,
+			DelimitersClause  = delimiter is not null,
 		};
 	}
 
@@ -2186,7 +2197,7 @@ static class Nodes
 			Stream      = file.Stream,
 			Options     = SqlList.Own(options.Items),
 			WithKeyword = with is not null,
-			Bare        = options.Bare,
+			Bare        = options.Bare && options.Items.Length > 0,
 		};
 	}
 

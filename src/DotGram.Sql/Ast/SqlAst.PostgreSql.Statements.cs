@@ -249,7 +249,7 @@ public abstract partial record Statement
 	/// PostgreSQL: COPY. <c>COPY t (a, b) FROM 'file' WITH (FORMAT csv)</c>, <c>COPY (SELECT …) TO STDOUT</c>: a table and its
 	/// columns or a query, the direction, the file (or a program, or the standard stream) and the options. The old option
 	/// words — <c>CSV HEADER DELIMITER ','</c> — are the same options under the names the bracketed form gives them, and
-	/// <c>Bare</c> says they were written as words.
+	/// <c>Bare</c> says they were written as words. <c>FORCE_QUOTE *</c> holds <see cref="Expression.Asterisk"/>.
 	/// </summary>
 	public sealed record Copy : Statement
 	{
@@ -273,15 +273,15 @@ public abstract partial record Statement
 		/// <summary>Written with <c>WITH</c> before the options.</summary>
 		[Spelling] public bool WithKeyword { get; init; }
 
-		/// <summary>Written with the old option words rather than the bracketed list.</summary>
+		/// <summary>Written with the old option words rather than the bracketed list; set only where an old word was read.</summary>
 		[Spelling] public bool Bare { get; init; }
-	}
-}
 
-public abstract partial record Expression
-{
-	/// <summary>PostgreSQL: COPY. The <c>*</c> of <c>FORCE_QUOTE *</c>: every column.</summary>
-	public sealed record Star : Expression;
+		/// <summary>Written <c>COPY BINARY t …</c>: the option <c>format binary</c> as the word before the table.</summary>
+		[Spelling] public bool BinaryBeforeTable { get; init; }
+
+		/// <summary>Written <c>… DELIMITERS 'x'</c> after the file: the option <c>delimiter</c> in the old clause of its own.</summary>
+		[Spelling] public bool DelimitersClause { get; init; }
+	}
 }
 
 public sealed partial record CursorProperties
