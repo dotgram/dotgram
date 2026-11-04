@@ -77,8 +77,8 @@ using System;
 using DotGram.Finance.Fix;
 using DotGram.Finance.Fix.Fix44;
 
-var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
-            "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
+var wire = ("8=FIX.4.4|9=68|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
+            "38=100|40=2|44=12.50|10=253|").Replace('|', '\u0001');
 
 foreach (var field in FixParser.ParseFields(wire))
 {
@@ -126,8 +126,8 @@ foreach (var field in FixParser.ParseFields(wire))
 ## Reading messages
 
 ```csharp
-var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
-            "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
+var wire = ("8=FIX.4.4|9=68|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
+            "38=100|40=2|44=12.50|10=253|").Replace('|', '\u0001');
 
 if (!FixParser.TryParseMessage(wire, out var message, out var error))
 {
@@ -182,8 +182,8 @@ with its own position. Counterparty-defined pairs go in `Fix44Context`:
 ```csharp
 using System.Collections.Generic;
 
-var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
-            "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
+var wire = ("8=FIX.4.4|9=68|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
+            "38=100|40=2|44=12.50|10=253|").Replace('|', '\u0001');
 
 var context = new Fix44Context
 {

@@ -24,8 +24,8 @@ using DotGram.Finance.Fix;
 using DotGram.Finance.Fix.Fix44;
 
 // One message, with the separator written as a pipe so it can be read on a page.
-var wire = ("8=FIX.4.4|9=65|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
-            "38=100|40=2|44=12.50|10=000|").Replace('|', '\u0001');
+var wire = ("8=FIX.4.4|9=68|35=D|11=ORDER|55=ABC|54=1|60=20260915-12:00:00|" +
+            "38=100|40=2|44=12.50|10=253|").Replace('|', '\u0001');
 
 if (FixParser.TryParseMessage(wire, out var message, out var error) && message is FixMessage.NewOrderSingle order)
 {
