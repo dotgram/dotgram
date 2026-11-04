@@ -131,6 +131,12 @@ static class Nodes
 		return value is not Expression.Row && !IsCondition(value);
 	}
 
+	/// <summary>Whether what a bracket holds is a bare <c>NULL</c> or <c>DEFAULT</c>, which only a row of several may begin with.</summary>
+	public static bool IsRowHeadOnly(Expression value)
+	{
+		return value is LiteralValue.Null or Expression.Default;
+	}
+
 	/// <summary>
 	/// Whether a bracket's contents are what follows them asks for: a generalized invocation's are a
 	/// primary, and a datetime less a datetime is only ever in brackets of its own.

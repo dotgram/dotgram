@@ -275,18 +275,17 @@ Value : @Expression
 // a value or the first element of a row alike, and what follows says which: the closing bracket
 // after a condition is a bracketed condition, after a value a bracketed value; a comma after a
 // value opens a row. A `switch` and not a choice, so that after a condition only the bracket is
-// asked for, as the boolean primary asked when the bracket was its own. A row beginning with
-// `NULL` or `DEFAULT`, which the tower does not read, is the second alternative, and the tower
-// refuses those words at once.
+// asked for, as the boolean primary asked when the bracket was its own; after a bare `NULL` or
+// `DEFAULT`, which only a row may begin with, only a row's comma.
 ValueExpressionPrimary : @Expression
     = '(' & c: Condition
-      & switch @(Nodes.IsCondition(c) ? 1 : 0)
+      & switch @(Nodes.IsCondition(c) ? 1 : Nodes.IsRowHeadOnly(c) ? 2 : 0)
         {
             case 0: rest: BracketTail
             case 1: ')'
+            case 2: (',' & more: RowValueConstructorElement)+ & ')'
         }
-        => @(rest is null || rest.Length == 0 ? Nodes.Parenthesized(c) : new Expression.Row(Nodes.List(c, rest)))
-    | '(' & n: RowHead & (',' & more: RowValueConstructorElement)+ & ')' => @(new Expression.Row(Nodes.List(n, more)))
+        => @(more is not null ? new Expression.Row(Nodes.List(c, more)) : rest is null || rest.Length == 0 ? Nodes.Parenthesized(c) : new Expression.Row(Nodes.List(c, rest)))
     | c: CaseExpression              => @(c)
     | c: CastSpecification           => @(c)
     | f: ValueFunction               => @(f)
@@ -299,11 +298,6 @@ ValueExpressionPrimary : @Expression
 BracketTail : @Expression[]
     = ')' => @(System.Array.Empty<Expression>())
     | (',' & rest: RowValueConstructorElement)+ & ')' => @(rest)
-
-// The words a row may begin with that no value does.
-RowHead : @Expression
-    = "NULL"i    => @(Nodes.Null())
-    | "DEFAULT"i => @(new Expression.Default())
 
 // ── §6.9 Set function, §6.16-6.18 value functions ──────────────────────────
 
