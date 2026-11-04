@@ -469,12 +469,17 @@ public static partial class SqlWriter
 
 					return true;
 
-				// T-SQL: CHECKPOINT (Transact-SQL). A value or none.
+				// T-SQL: CHECKPOINT (Transact-SQL). A value or none; PostgreSQL's CHECKPOINT is the word alone.
 				case Statement.Checkpoint checkpoint:
 					Word("CHECKPOINT");
 
 					if (checkpoint.Duration is { } duration)
+					{
+						if (postgreSql)
+							throw Misplaced(checkpoint, nameof(checkpoint.Duration), "which PostgreSQL's CHECKPOINT does not take");
+
 						PutValue(checkpoint, duration);
+					}
 
 					return true;
 
