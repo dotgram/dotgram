@@ -203,7 +203,115 @@ public abstract partial record Statement
 		/// <summary>Written <c>DISCARD TEMPORARY</c>, the long word.</summary>
 		[Spelling] public bool Temporary { get; init; }
 	}
+
+	public sealed partial record FetchCursor
+	{
+		/// <summary>PostgreSQL: FETCH. Written <c>FETCH … IN c</c>, the word IN where FROM may stand.</summary>
+		[Spelling] public bool InKeyword { get; init; }
+	}
+
+	/// <summary>PostgreSQL: MOVE. <c>MOVE FORWARD ALL IN c</c>: a FETCH that moves the cursor and gives no row back; the same words.</summary>
+	public sealed record MoveCursor : Statement
+	{
+		public FetchOrientation? Orientation { get; init; }
+		public bool FromKeyword { get; init; }
+
+		/// <summary>Written <c>MOVE … IN c</c>, the word IN where FROM may stand.</summary>
+		[Spelling] public bool InKeyword { get; init; }
+
+		public required CursorReference Cursor { get; init; }
+	}
+
+	/// <summary>PostgreSQL: CLOSE. <c>CLOSE ALL</c>: every open cursor.</summary>
+	public sealed record CloseAllCursors : Statement;
+
+	/// <summary>
+	/// PostgreSQL: VACUUM. <c>VACUUM (FULL, ANALYZE) t (a, b), u</c>: the options, each a name and perhaps a value, and the
+	/// relations with their columns; empty where the whole database is meant.
+	/// </summary>
+	public sealed record Vacuum(SqlList<Option> Options, SqlList<VacuumRelation> Relations) : Statement
+	{
+		/// <summary>Written <c>VACUUM FULL FREEZE VERBOSE ANALYZE …</c>, the options as bare words in that order rather than in brackets.</summary>
+		[Spelling] public bool Bare { get; init; }
+	}
+
+	/// <summary>PostgreSQL: ANALYZE. <c>ANALYZE (VERBOSE) t (a), u</c>: the options and the relations, as VACUUM has them.</summary>
+	public sealed record Analyze(SqlList<Option> Options, SqlList<VacuumRelation> Relations) : Statement
+	{
+		/// <summary>Written <c>ANALYZE VERBOSE …</c>, the one option as a bare word rather than in brackets.</summary>
+		[Spelling] public bool Bare { get; init; }
+
+		/// <summary>Written <c>ANALYSE</c>.</summary>
+		[Spelling] public bool British { get; init; }
+	}
+
+	/// <summary>
+	/// PostgreSQL: COPY. <c>COPY t (a, b) FROM 'file' WITH (FORMAT csv)</c>, <c>COPY (SELECT …) TO STDOUT</c>: a table and its
+	/// columns or a query, the direction, the file (or a program, or the standard stream) and the options. The old option
+	/// words — <c>CSV HEADER DELIMITER ','</c> — are the same options under the names the bracketed form gives them, and
+	/// <c>Bare</c> says they were written as words.
+	/// </summary>
+	public sealed record Copy : Statement
+	{
+		public TableSource? Table { get; init; }
+		public SqlList<Identifier> Columns { get; init; } = [];
+		public Query? Query { get; init; }
+		public required CopyDirection Direction { get; init; }
+
+		/// <summary>The file, or the program's command line where <c>Program</c> is set; null where the standard stream is meant.</summary>
+		public LiteralValue.String? File { get; init; }
+		public bool Program { get; init; }
+
+		/// <summary><c>STDIN</c> or <c>STDOUT</c>, where no file was named; the grammar reads either with either direction, as the server's does.</summary>
+		public StandardStream? Stream { get; init; }
+
+		public SqlList<Option> Options { get; init; } = [];
+
+		/// <summary>The condition after WHERE, which only a COPY FROM takes.</summary>
+		public Expression? Where { get; init; }
+
+		/// <summary>Written with <c>WITH</c> before the options.</summary>
+		[Spelling] public bool WithKeyword { get; init; }
+
+		/// <summary>Written with the old option words rather than the bracketed list.</summary>
+		[Spelling] public bool Bare { get; init; }
+	}
 }
+
+public abstract partial record Expression
+{
+	/// <summary>PostgreSQL: COPY. The <c>*</c> of <c>FORCE_QUOTE *</c>: every column.</summary>
+	public sealed record Star : Expression;
+}
+
+public sealed partial record CursorProperties
+{
+	/// <summary>PostgreSQL: DECLARE. <c>BINARY</c>: the rows in binary form.</summary>
+	public bool Binary { get; init; }
+}
+
+public sealed partial record FetchOrientation
+{
+	/// <summary>PostgreSQL: FETCH. <c>FORWARD ALL</c>, <c>BACKWARD ALL</c>: every row that way; false where a count or nothing was written.</summary>
+	public bool All { get; init; }
+
+	/// <summary>PostgreSQL: FETCH. Written <c>FETCH 5 c</c> or <c>FETCH ALL c</c>, the word FORWARD left out.</summary>
+	[Spelling] public bool WordOmitted { get; init; }
+}
+
+/// <summary>PostgreSQL: VACUUM, ANALYZE. One relation and the columns named after it, <c>t (a, b)</c>; the columns empty where none were.</summary>
+public sealed record VacuumRelation(TableSource Relation, SqlList<Identifier> Columns) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+}
+
+/// <summary>PostgreSQL: COPY. Which way the rows go.</summary>
+public enum CopyDirection { From, To }
+
+/// <summary>PostgreSQL: COPY. The standard stream named where no file is.</summary>
+public enum StandardStream { Stdin, Stdout }
 
 public abstract partial record TransactionMode
 {

@@ -232,6 +232,13 @@ public sealed class PostgreSqlWriterTests
 	[InlineData("Listen")]
 	[InlineData("LockTable")]
 	[InlineData("Discard")]
+	[InlineData("FetchOrientationKind.Forward")]
+	[InlineData("FetchCursor.InKeyword")]
+	[InlineData("MoveCursor")]
+	[InlineData("CloseAllCursors")]
+	[InlineData("Vacuum")]
+	[InlineData("Analyze")]
+	[InlineData("Copy")]
 	public void What_only_PostgreSQL_reads_is_refused_by_the_other_writers(string which)
 	{
 		ISqlNode node = which switch
@@ -276,6 +283,13 @@ public sealed class PostgreSqlWriterTests
 			"Listen"               => new Statement.Listen(new Identifier("c")),
 			"LockTable"            => new Statement.LockTable([T]),
 			"Discard"              => new Statement.Discard(DiscardTarget.All),
+			"FetchOrientationKind.Forward" => new Statement.FetchCursor { Cursor = new CursorReference(new QualifiedName(new Identifier("c"))), Orientation = new FetchOrientation(FetchOrientationKind.Forward) },
+			"FetchCursor.InKeyword" => new Statement.FetchCursor { Cursor = new CursorReference(new QualifiedName(new Identifier("c"))), InKeyword = true },
+			"MoveCursor"           => new Statement.MoveCursor { Cursor = new CursorReference(new QualifiedName(new Identifier("c"))) },
+			"CloseAllCursors"      => new Statement.CloseAllCursors(),
+			"Vacuum"               => new Statement.Vacuum([], []),
+			"Analyze"              => new Statement.Analyze([], []),
+			"Copy"                 => new Statement.Copy { Table = T, Direction = CopyDirection.From, Stream = StandardStream.Stdin },
 			_ => throw new ArgumentOutOfRangeException(nameof(which)),
 		};
 
@@ -316,6 +330,18 @@ public sealed class PostgreSqlWriterTests
 	[InlineData("Checkpoint.Duration")]
 	[InlineData("LockTable of a subquery")]
 	[InlineData("Discard.Temporary on PLANS")]
+	[InlineData("FetchCursor.Into")]
+	[InlineData("FetchOrientation.All on NEXT")]
+	[InlineData("FetchOrientation.WordOmitted on BACKWARD")]
+	[InlineData("FetchCursor FROM and IN")]
+	[InlineData("DeclareCursor.Extended")]
+	[InlineData("DeclareCursor with READ ONLY")]
+	[InlineData("Vacuum.Bare out of order")]
+	[InlineData("Analyze.Bare with FULL")]
+	[InlineData("Copy with a query and FROM")]
+	[InlineData("Copy with neither file nor stream")]
+	[InlineData("Copy TO with WHERE")]
+	[InlineData("Copy.Bare with an option that has no old word")]
 	[InlineData("OperatorCall +")]
 	[InlineData("OperatorCall =")]
 	[InlineData("OperatorCall ||")]
@@ -369,6 +395,18 @@ public sealed class PostgreSqlWriterTests
 			"Checkpoint.Duration"        => new Statement.Checkpoint(A),
 			"LockTable of a subquery"    => new Statement.LockTable([new TableSource.Subquery(new Query.Select { Columns = [new SelectColumn.All()] }) { Alias = new Alias(new Identifier("x"), null, true) }]),
 			"Discard.Temporary on PLANS" => new Statement.Discard(DiscardTarget.Plans) { Temporary = true },
+			"FetchCursor.Into"           => new Statement.FetchCursor { Cursor = new CursorReference(new QualifiedName(new Identifier("c"))), Into = new DynamicArguments.Values([A]) },
+			"FetchOrientation.All on NEXT" => new Statement.FetchCursor { Cursor = new CursorReference(new QualifiedName(new Identifier("c"))), Orientation = new FetchOrientation(FetchOrientationKind.Next) { All = true } },
+			"FetchOrientation.WordOmitted on BACKWARD" => new Statement.FetchCursor { Cursor = new CursorReference(new QualifiedName(new Identifier("c"))), Orientation = new FetchOrientation(FetchOrientationKind.Backward) { All = true, WordOmitted = true } },
+			"FetchCursor FROM and IN"    => new Statement.FetchCursor { Cursor = new CursorReference(new QualifiedName(new Identifier("c"))), FromKeyword = true, InKeyword = true },
+			"DeclareCursor.Extended"     => new Statement.DeclareCursor { Cursor = new CursorReference(new QualifiedName(new Identifier("c"))), Properties = new CursorProperties(null, CursorScrollability.Scroll, null, null), SourceValue = new CursorSource.Query(new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([T]) } }, null), Extended = true },
+			"DeclareCursor with READ ONLY" => new Statement.DeclareCursor { Cursor = new CursorReference(new QualifiedName(new Identifier("c"))), Properties = new CursorProperties(null, null, null, null), SourceValue = new CursorSource.Query(new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([T]) } }, new UpdatabilityClause(true, [])) },
+			"Vacuum.Bare out of order"   => new Statement.Vacuum([new Option(new Identifier("verbose"), null, []), new Option(new Identifier("full"), null, [])], []) { Bare = true },
+			"Analyze.Bare with FULL"     => new Statement.Analyze([new Option(new Identifier("full"), null, [])], []) { Bare = true },
+			"Copy with a query and FROM" => new Statement.Copy { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([T]) }, Direction = CopyDirection.From, Stream = StandardStream.Stdin },
+			"Copy with neither file nor stream" => new Statement.Copy { Table = T, Direction = CopyDirection.From },
+			"Copy TO with WHERE"         => new Statement.Copy { Table = T, Direction = CopyDirection.To, Stream = StandardStream.Stdout, Where = A },
+			"Copy.Bare with an option that has no old word" => new Statement.Copy { Table = T, Direction = CopyDirection.From, Stream = StandardStream.Stdin, Options = [new Option(new Identifier("on_error"), new Expression.Reference(new QualifiedName(new Identifier("ignore"))), [])], Bare = true },
 			"Query.DataChange.With"      => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], With = new WithClause(false, [new CommonTableExpression(new Identifier("x"), [], new Query.DataChange(new Statement.Delete { Target = T }) { With = new WithClause(false, [new CommonTableExpression(new Identifier("y"), [], new Query.Select { Columns = [new SelectColumn.All()] })]) })]) } },
 			_ => throw new ArgumentOutOfRangeException(nameof(which)),
 		};

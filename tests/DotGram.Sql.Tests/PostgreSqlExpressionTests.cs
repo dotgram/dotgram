@@ -745,6 +745,49 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("DISCARD TEMPORARY",                                      "discard temporary")]
 	[InlineData("DISCARD TEMP",                                           "discard temp")]
 	[InlineData("CHECKPOINT",                                             "checkpoint")]
+	[InlineData("DECLARE c BINARY INSENSITIVE NO SCROLL CURSOR WITH HOLD FOR SELECT 1", "declare")]
+	[InlineData("DECLARE c SCROLL ASENSITIVE SCROLL CURSOR WITHOUT HOLD FOR WITH x AS (SELECT 1) SELECT * FROM x FOR UPDATE", "declare with and locking")]
+	[InlineData("DECLARE c CURSOR FOR SELECT 1 FOR READ ONLY",             "declare for read only")]
+	[InlineData("FETCH c",                                                "fetch")]
+	[InlineData("FETCH NEXT FROM c",                                      "fetch next from")]
+	[InlineData("FETCH PRIOR IN c",                                       "fetch prior in")]
+	[InlineData("FETCH ABSOLUTE -5 c",                                    "fetch absolute")]
+	[InlineData("FETCH RELATIVE +2 c",                                    "fetch relative")]
+	[InlineData("FETCH 5 c",                                              "fetch count")]
+	[InlineData("FETCH ALL c",                                            "fetch all")]
+	[InlineData("FETCH FORWARD c",                                        "fetch forward")]
+	[InlineData("FETCH FORWARD 3 c",                                      "fetch forward count")]
+	[InlineData("FETCH FORWARD ALL c",                                    "fetch forward all")]
+	[InlineData("FETCH BACKWARD 3 IN c",                                  "fetch backward count in")]
+	[InlineData("FETCH BACKWARD ALL c",                                   "fetch backward all")]
+	[InlineData("FETCH next",                                             "fetch a cursor named next")]
+	[InlineData("MOVE c",                                                 "move")]
+	[InlineData("MOVE FORWARD ALL IN c",                                  "move forward all in")]
+	[InlineData("MOVE -3 c",                                              "move count")]
+	[InlineData("CLOSE c",                                                "close")]
+	[InlineData("CLOSE ALL",                                              "close all")]
+	[InlineData("VACUUM",                                                 "vacuum")]
+	[InlineData("VACUUM FULL FREEZE VERBOSE ANALYZE t (a, b), ONLY u",    "vacuum bare")]
+	[InlineData("VACUUM (FULL, ANALYZE, SKIP_LOCKED false, INDEX_CLEANUP auto, PARALLEL 2) t", "vacuum options")]
+	[InlineData("ANALYZE",                                                "analyze")]
+	[InlineData("ANALYSE VERBOSE t (a)",                                  "analyse verbose")]
+	[InlineData("ANALYZE (VERBOSE, SKIP_LOCKED) t, u",                    "analyze options")]
+	[InlineData("COPY t FROM STDIN",                                      "copy from stdin")]
+	[InlineData("COPY t TO STDOUT",                                       "copy to stdout")]
+	[InlineData("COPY t FROM STDOUT",                                     "copy from stdout")]
+	[InlineData("COPY BINARY t (a, b) FROM PROGRAM 'cat' USING DELIMITERS '|' WITH CSV HEADER FORCE NOT NULL a, b WHERE a > 1", "copy old words")]
+	[InlineData("COPY t FROM 'f' WITH",                                   "copy with alone")]
+	[InlineData("COPY t FROM 'f' DELIMITER AS ',' NULL '' QUOTE '\"' ESCAPE '\\' FREEZE FORCE QUOTE * FORCE NULL a ENCODING 'UTF8'", "copy every old word")]
+	[InlineData("COPY (SELECT 1) TO STDOUT WITH (FORMAT csv, HEADER, FORCE_QUOTE *, FORCE_NULL (a, 'b'), DELIMITER ',', NULL '', ENCODING 'UTF8', freeze true, header 1, x DEFAULT)", "copy query options")]
+	[InlineData("COPY (INSERT INTO t DEFAULT VALUES RETURNING *) TO STDOUT", "copy data change")]
+	[InlineData("COPY t FROM 'f' (format csv) WHERE a",                   "copy bracketed where")]
+	[InlineData("EXPLAIN DECLARE c CURSOR FOR SELECT 1",                  "explain declare")]
+	[InlineData("DECLARE c CURSOR FOR INSERT INTO t DEFAULT VALUES RETURNING *", "refused: DECLARE of a data change")]
+	[InlineData("FETCH ABSOLUTE c",                                       "refused: ABSOLUTE without a count")]
+	[InlineData("VACUUM FREEZE FULL t",                                   "refused: VACUUM words out of order")]
+	[InlineData("ANALYZE FULL t",                                         "refused: ANALYZE FULL")]
+	[InlineData("COPY t TO 'f' WHERE a > 1",                              "refused: COPY TO with WHERE")]
+	[InlineData("COPY (TRUNCATE t) TO STDOUT",                            "refused: COPY of a TRUNCATE")]
 	[InlineData("WITH x AS (SELECT 1) COMMIT",                            "refused: WITH before COMMIT")]
 	[InlineData("BEGIN, READ ONLY",                                       "refused: a comma before the first mode")]
 	[InlineData("ROLLBACK TO s AND CHAIN",                                "refused: ROLLBACK TO with a chain")]
@@ -864,6 +907,43 @@ public sealed class PostgreSqlExpressionTests
 			"discard temporary"        => made is Statement.Discard { Target: DiscardTarget.Temp, Temporary: true },
 			"discard temp"             => made is Statement.Discard { Target: DiscardTarget.Temp, Temporary: false },
 			"checkpoint"               => made is Statement.Checkpoint { Duration: null },
+			"declare"                  => made is Statement.DeclareCursor { Cursor.Name: [{ Text: "c" }], Properties: { Binary: true, Sensitivity: CursorSensitivity.Insensitive, Scrollability: CursorScrollability.NoScroll, Holdability: CursorHoldability.WithHold, Returnability: null }, SourceValue: CursorSource.Query { Updatability: null, Select.Query: Query.Select }, Extended: false },
+			"declare with and locking" => made is Statement.DeclareCursor { Properties: { Binary: false, Sensitivity: CursorSensitivity.Asensitive, Scrollability: CursorScrollability.Scroll, Holdability: CursorHoldability.WithoutHold }, SourceValue: CursorSource.Query { Select.Query: { With: not null, Locking.Count: 1 } } },
+			"declare for read only"    => made is Statement.DeclareCursor { Properties: { Sensitivity: null, Scrollability: null, Holdability: null }, SourceValue: CursorSource.Query { Select.Query.Locking: [{ Mode: LockingMode.ReadOnly }] } },
+			"fetch"                    => made is Statement.FetchCursor { Orientation: null, FromKeyword: false, InKeyword: false, Cursor.Name: [{ Text: "c" }], Into: null },
+			"fetch next from"          => made is Statement.FetchCursor { Orientation: { Kind: FetchOrientationKind.Next, Offset: null }, FromKeyword: true },
+			"fetch prior in"           => made is Statement.FetchCursor { Orientation.Kind: FetchOrientationKind.Prior, InKeyword: true, FromKeyword: false },
+			"fetch absolute"           => made is Statement.FetchCursor { Orientation: { Kind: FetchOrientationKind.Absolute, Offset: LiteralValue.Numeric { Text: "-5" } } },
+			"fetch relative"           => made is Statement.FetchCursor { Orientation: { Kind: FetchOrientationKind.Relative, Offset: LiteralValue.Numeric { Text: "+2" } } },
+			"fetch count"              => made is Statement.FetchCursor { Orientation: { Kind: FetchOrientationKind.Forward, Offset: LiteralValue.Numeric, All: false, WordOmitted: true } },
+			"fetch all"                => made is Statement.FetchCursor { Orientation: { Kind: FetchOrientationKind.Forward, Offset: null, All: true, WordOmitted: true } },
+			"fetch forward"            => made is Statement.FetchCursor { Orientation: { Kind: FetchOrientationKind.Forward, Offset: null, All: false, WordOmitted: false } },
+			"fetch forward count"      => made is Statement.FetchCursor { Orientation: { Kind: FetchOrientationKind.Forward, Offset: not null, WordOmitted: false } },
+			"fetch forward all"        => made is Statement.FetchCursor { Orientation: { Kind: FetchOrientationKind.Forward, All: true, WordOmitted: false } },
+			"fetch backward count in"  => made is Statement.FetchCursor { Orientation: { Kind: FetchOrientationKind.Backward, Offset: not null }, InKeyword: true },
+			"fetch backward all"       => made is Statement.FetchCursor { Orientation: { Kind: FetchOrientationKind.Backward, All: true } },
+			"fetch a cursor named next" => made is Statement.FetchCursor { Orientation: null, Cursor.Name: [{ Text: "next" }] },
+			"move"                     => made is Statement.MoveCursor { Orientation: null, Cursor.Name: [{ Text: "c" }] },
+			"move forward all in"      => made is Statement.MoveCursor { Orientation: { Kind: FetchOrientationKind.Forward, All: true }, InKeyword: true },
+			"move count"               => made is Statement.MoveCursor { Orientation: { Kind: FetchOrientationKind.Forward, Offset: LiteralValue.Numeric { Text: "-3" }, WordOmitted: true } },
+			"close"                    => made is Statement.CloseCursor { Cursor.Name: [{ Text: "c" }] },
+			"close all"                => made is Statement.CloseAllCursors,
+			"vacuum"                   => made is Statement.Vacuum { Options.Count: 0, Relations.Count: 0 },
+			"vacuum bare"              => made is Statement.Vacuum { Options: [{ Name.Text: "FULL" }, { Name.Text: "FREEZE" }, { Name.Text: "VERBOSE" }, { Name.Text: "ANALYZE" }], Bare: true, Relations: [{ Relation: TableSource.Named, Columns.Count: 2 }, { Relation: TableSource.Named { Only: true }, Columns.Count: 0 }] },
+			"vacuum options"           => made is Statement.Vacuum { Options: [{ Value: null }, { Value: null }, { Value: LiteralValue.Boolean }, { Value: Expression.Reference }, { Value: LiteralValue.Numeric }], Bare: false, Relations.Count: 1 },
+			"analyze"                  => made is Statement.Analyze { Options.Count: 0, Relations.Count: 0, British: false },
+			"analyse verbose"          => made is Statement.Analyze { Options: [{ Name.Text: "VERBOSE" }], Bare: true, British: true, Relations: [{ Columns.Count: 1 }] },
+			"analyze options"          => made is Statement.Analyze { Options.Count: 2, Bare: false, Relations.Count: 2 },
+			"copy from stdin"          => made is Statement.Copy { Table: TableSource.Named, Direction: CopyDirection.From, File: null, Stream: StandardStream.Stdin, Options.Count: 0, Bare: true, WithKeyword: false },
+			"copy to stdout"           => made is Statement.Copy { Direction: CopyDirection.To, Stream: StandardStream.Stdout },
+			"copy from stdout"         => made is Statement.Copy { Direction: CopyDirection.From, Stream: StandardStream.Stdout },
+			"copy old words"           => made is Statement.Copy { Columns.Count: 2, Program: true, File: not null, Stream: null, Options: [{ Name.Text: "format", Value: Expression.Reference }, { Name.Text: "delimiter", Value: LiteralValue.String }, { Name.Text: "format" }, { Name.Text: "header", Value: LiteralValue.Boolean }, { Name.Text: "force_not_null", Value: Expression.Row { Items.Count: 2 } }], WithKeyword: true, Bare: true, Where: not null },
+			"copy with alone"          => made is Statement.Copy { Options.Count: 0, WithKeyword: true, Bare: true },
+			"copy every old word"      => made is Statement.Copy { Options: [{ Name.Text: "delimiter" }, { Name.Text: "null" }, { Name.Text: "quote" }, { Name.Text: "escape" }, { Name.Text: "freeze" }, { Name.Text: "force_quote", Value: Expression.Star }, { Name.Text: "force_null", Value: Expression.Row }, { Name.Text: "encoding" }], Bare: true },
+			"copy query options"       => made is Statement.Copy { Table: null, Query: Query.Select, Direction: CopyDirection.To, Stream: StandardStream.Stdout, Options: [{ Value: Expression.Reference }, { Value: null }, { Value: Expression.Star }, { Value: Expression.Row { Items: [Expression.Reference, LiteralValue.String] } }, { Value: LiteralValue.String }, { Value: LiteralValue.String }, { Value: LiteralValue.String }, { Value: LiteralValue.Boolean }, { Value: LiteralValue.Numeric }, { Value: Expression.Default }], Bare: false, WithKeyword: true },
+			"copy data change"         => made is Statement.Copy { Query: Query.DataChange },
+			"copy bracketed where"     => made is Statement.Copy { Options.Count: 1, Bare: false, WithKeyword: false, Where: not null },
+			"explain declare"          => made is Statement.Explain { Statement: Statement.DeclareCursor },
 			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
 		};
 

@@ -126,6 +126,11 @@ public static class StatementCategories
 		["Do"] = StatementCategory.Execute,
 		["PreparePlan"] = StatementCategory.Execute,
 		["DeallocateAll"] = StatementCategory.Execute,
+		["MoveCursor"] = StatementCategory.Control,
+		["CloseAllCursors"] = StatementCategory.Control,
+		["Vacuum"] = StatementCategory.Admin,
+		["Analyze"] = StatementCategory.Admin,
+		["Copy"] = StatementCategory.Dml,
 
 		["Execute"] = StatementCategory.Execute,
 		["ExecuteModule"] = StatementCategory.Execute,

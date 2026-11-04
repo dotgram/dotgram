@@ -2113,33 +2113,14 @@ public static partial class SqlWriter
 
 				case Statement.FetchCursor fetch:
 					Word("FETCH");
+					PutFetchArgs(fetch, fetch.Orientation, fetch.FromKeyword, fetch.InKeyword, fetch.Cursor);
 
-					if (fetch.Orientation is { } orientation)
-					{
-						Word(orientation.Kind switch
-						{
-							FetchOrientationKind.Next     => "NEXT",
-							FetchOrientationKind.Prior    => "PRIOR",
-							FetchOrientationKind.First    => "FIRST",
-							FetchOrientationKind.Last     => "LAST",
-							FetchOrientationKind.Absolute => "ABSOLUTE",
-							FetchOrientationKind.Relative                             => "RELATIVE",
-							_                             => throw NoText(orientation.Kind),
-						});
-
-						// FetchRow keeps a signed number as one token.
-						if (orientation.Offset is { } offset)
-							PutSignedNumber(orientation, offset);
-					}
-
-					if (fetch.FromKeyword)
-						Word("FROM");
-
-					PutCursor(fetch.Cursor);
-
-					// T-SQL's FETCH may leave INTO out, and the row goes to the client.
+					// T-SQL's FETCH may leave INTO out, and the row goes to the client; PostgreSQL's has no INTO.
 					if (fetch.Into is { } into)
 					{
+						if (postgreSql)
+							throw Misplaced(fetch, nameof(fetch.Into), "which PostgreSQL's FETCH has no INTO for");
+
 						Word("INTO");
 						PutArguments(into);
 					}
@@ -2688,6 +2669,64 @@ public static partial class SqlWriter
 					PutExpression(size.Size);
 					break;
 			}
+		}
+
+		/// <summary>
+		/// What follows FETCH or MOVE: the direction, FROM or IN, and the cursor. PostgreSQL's FORWARD and BACKWARD take a
+		/// count or ALL after them, and may leave the word FORWARD out before a count or ALL.
+		/// </summary>
+		void PutFetchArgs(ISqlNode statement, FetchOrientation? orientation, bool from, bool inWord, CursorReference cursor)
+		{
+			if (orientation is { } direction)
+			{
+				var directed = direction.Kind is FetchOrientationKind.Forward or FetchOrientationKind.Backward;
+
+				if (directed)
+					OnlyPostgreSql(direction);
+
+				if ((direction.All || direction.WordOmitted) && !directed)
+					throw Misplaced(direction, direction.All ? nameof(direction.All) : nameof(direction.WordOmitted), "on other than FORWARD or BACKWARD");
+
+				if (direction.All && direction.Offset is not null)
+					throw Both(direction, nameof(direction.All), nameof(direction.Offset));
+
+				if (direction.WordOmitted && (direction.Kind != FetchOrientationKind.Forward || (!direction.All && direction.Offset is null)))
+					throw Misplaced(direction, nameof(direction.WordOmitted), "where no count or ALL stands for the word FORWARD");
+
+				if (!direction.WordOmitted)
+					Word(direction.Kind switch
+					{
+						FetchOrientationKind.Next     => "NEXT",
+						FetchOrientationKind.Prior    => "PRIOR",
+						FetchOrientationKind.First    => "FIRST",
+						FetchOrientationKind.Last     => "LAST",
+						FetchOrientationKind.Absolute => "ABSOLUTE",
+						FetchOrientationKind.Relative => "RELATIVE",
+						FetchOrientationKind.Forward  => "FORWARD",
+						FetchOrientationKind.Backward => "BACKWARD",
+						_                             => throw NoText(direction.Kind),
+					});
+
+				if (direction.All)
+					Word("ALL");
+
+				// FetchRow keeps a signed number as one token.
+				if (direction.Offset is { } offset)
+					PutSignedNumber(direction, offset);
+			}
+
+			if (from && inWord)
+				throw Both(statement, "FromKeyword", "InKeyword");
+
+			if (inWord)
+			{
+				OnlyPostgreSql(statement);
+				Word("IN");
+			}
+			else if (from)
+				Word("FROM");
+
+			PutCursor(cursor);
 		}
 
 		/// <summary>SET and its scope word, which only PostgreSQL reads: <c>SET LOCAL</c>, <c>SET SESSION</c>, or SET alone.</summary>

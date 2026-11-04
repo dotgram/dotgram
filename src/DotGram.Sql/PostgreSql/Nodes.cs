@@ -1972,6 +1972,224 @@ static class Nodes
 		return new Statement.Discard(target) { Temporary = word.Length > 4 && target == DiscardTarget.Temp };
 	}
 
+
+	// ── The cursors, VACUUM, ANALYZE and COPY ───────────────────────────────────
+
+	/// <summary>DECLARE's cursor: the words before CURSOR, each axis taking the last written, WITH or WITHOUT HOLD, and the query.</summary>
+	public static Statement Declared(Identifier name, string[]? options, string? hold, Statement query)
+	{
+		CursorSensitivity?   sensitivity = null;
+		CursorScrollability? scroll      = null;
+		var                  binary      = false;
+
+		foreach (var option in options ?? [])
+		{
+			switch (option[0] | 0x20)
+			{
+				case 'b':
+					binary = true;
+					break;
+
+				case 'a':
+					sensitivity = CursorSensitivity.Asensitive;
+					break;
+
+				case 'i':
+					sensitivity = CursorSensitivity.Insensitive;
+					break;
+
+				case 'n':
+					scroll = CursorScrollability.NoScroll;
+					break;
+
+				default:
+					scroll = CursorScrollability.Scroll;
+					break;
+			}
+		}
+
+		CursorHoldability? holdability = hold is null ? null : (hold[4] | 0x20) == 'o' ? CursorHoldability.WithoutHold : CursorHoldability.WithHold;
+
+		return new Statement.DeclareCursor
+		{
+			Cursor      = new CursorReference(new QualifiedName(name)),
+			Properties  = new CursorProperties(sensitivity, scroll, holdability, null) { Binary = binary },
+			SourceValue = new CursorSource.Query((Statement.Select)query, null),
+		};
+	}
+
+	/// <summary>What follows FETCH or MOVE: the direction, FROM or IN, and the cursor's name.</summary>
+	public sealed record FetchArgs(FetchOrientation? Orientation, string? Word, Identifier Cursor);
+
+	public static Statement CursorMoved(string verb, FetchArgs args)
+	{
+		var from = args.Word is not null && (args.Word[0] | 0x20) == 'f';
+		var inWord = args.Word is not null && !from;
+		var cursor = new CursorReference(new QualifiedName(args.Cursor));
+
+		if ((verb[0] | 0x20) == 'm')
+			return new Statement.MoveCursor { Orientation = args.Orientation, FromKeyword = from, InKeyword = inWord, Cursor = cursor };
+
+		return new Statement.FetchCursor { Orientation = args.Orientation, FromKeyword = from, InKeyword = inWord, Cursor = cursor };
+	}
+
+	/// <summary>FORWARD or BACKWARD with ALL, a count, or nothing after it; the bare count and the bare ALL are FORWARD with its word left out.</summary>
+	public static FetchOrientation Directed(string? word, string? all, Expression? count)
+	{
+		var kind = word is not null && (word[0] | 0x20) == 'b' ? FetchOrientationKind.Backward : FetchOrientationKind.Forward;
+
+		return new FetchOrientation(kind, count) { All = all is not null, WordOmitted = word is null };
+	}
+
+	/// <summary>A signed whole number as one token, as the server's SignedIconst has it.</summary>
+	public static Expression SignedInteger(string? sign, string digits)
+	{
+		return Number(sign is null ? digits : sign + digits);
+	}
+
+	static Option Named(string name, Expression? value)
+	{
+		return new Option(new Identifier(name), value, []);
+	}
+
+	public static Statement Vacuumed(string? full, string? freeze, string? verbose, string? analyze, VacuumRelation[] relations)
+	{
+		var options = new List<Option>(4);
+
+		if (full is not null)
+			options.Add(Named(full, null));
+
+		if (freeze is not null)
+			options.Add(Named(freeze, null));
+
+		if (verbose is not null)
+			options.Add(Named(verbose, null));
+
+		if (analyze is not null)
+			options.Add(Named(analyze, null));
+
+		return new Statement.Vacuum(SqlList.Own(options.ToArray()), SqlList.Own(relations)) { Bare = true };
+	}
+
+	/// <summary>ANALYZE with its options in brackets, or the bare VERBOSE, or neither — the last two the bare spelling.</summary>
+	public static Statement Analyzed(string word, Option? first, Option[]? rest, string? verbose, VacuumRelation[] relations)
+	{
+		var british = (word[5] | 0x20) == 's';
+
+		if (first is not null)
+			return new Statement.Analyze(List(first, rest), SqlList.Own(relations)) { British = british };
+
+		return new Statement.Analyze(verbose is null ? [] : [Named(verbose, null)], SqlList.Own(relations)) { Bare = true, British = british };
+	}
+
+	/// <summary>The file COPY names, or the standard stream.</summary>
+	public sealed record CopyFile(LiteralValue? File, StandardStream? Stream);
+
+	/// <summary>COPY's options: in brackets under their names, or the old words, each the option it stands for.</summary>
+	public sealed record CopyOptions(Option[] Items, bool Bare);
+
+	public static CopyFile Streamed(string word)
+	{
+		return new CopyFile(null, (word[3] | 0x20) == 'i' ? StandardStream.Stdin : StandardStream.Stdout);
+	}
+
+	/// <summary>The columns of FORCE QUOTE and its kin: the star, or the names as a row.</summary>
+	public static Expression Columns(string? star, Identifier? first, Identifier[]? rest)
+	{
+		if (star is not null)
+			return new Expression.Star();
+
+		var names = Items(first, rest);
+		var items = new Expression[names.Length];
+
+		for (var at = 0; at < items.Length; at++)
+			items[at] = new Expression.Reference(new QualifiedName(names[at]));
+
+		return new Expression.Row(SqlList.Own(items));
+	}
+
+	/// <summary>An old option word as the option it stands for: BINARY and CSV are the format, HEADER and FREEZE are true.</summary>
+	public static Option Legacy(string word, Expression? value)
+	{
+		switch (word[0] | 0x20)
+		{
+			case 'b':
+				return Named("format", new Expression.Reference(new QualifiedName(new Identifier("binary"))));
+
+			case 'c':
+				return Named("format", new Expression.Reference(new QualifiedName(new Identifier("csv"))));
+
+			case 'h':
+				return Named("header", new LiteralValue.Boolean(BooleanLiteral.True));
+
+			case 'f' when (word[1] | 0x20) == 'r':
+				return Named("freeze", new LiteralValue.Boolean(BooleanLiteral.True));
+
+			default:
+				return Named(word.ToLowerInvariant(), value);
+		}
+	}
+
+	public static Option Forced(string words, Expression columns)
+	{
+		var name = (words[6] | 0x20) switch
+		{
+			'q' => "force_quote",
+			'n' when (words[7] | 0x20) == 'o' => "force_not_null",
+			_   => "force_null",
+		};
+
+		return Named(name, columns);
+	}
+
+	/// <summary>A COPY TO takes no WHERE, as the server's grammar refuses it.</summary>
+	public static bool CopyFits(string direction, Expression? where)
+	{
+		return where is null || (direction[0] | 0x20) == 'f';
+	}
+
+	public static Statement Copied(string? binary, QualifiedName name, Identifier? c1, Identifier[]? cn, string direction, string? program, CopyFile file, LiteralValue? delimiter, string? with, CopyOptions options, Expression? where)
+	{
+		var items = new List<Option>(options.Items.Length + 2);
+
+		if (binary is not null)
+			items.Add(Legacy(binary, null));
+
+		if (delimiter is not null)
+			items.Add(Named("delimiter", delimiter));
+
+		items.AddRange(options.Items);
+
+		return new Statement.Copy
+		{
+			Table       = new TableSource.Named(name),
+			Columns     = List(c1, cn),
+			Direction   = (direction[0] | 0x20) == 'f' ? CopyDirection.From : CopyDirection.To,
+			Program     = program is not null,
+			File        = (LiteralValue.String?)file.File,
+			Stream      = file.Stream,
+			Options     = SqlList.Own(items.ToArray()),
+			Where       = where,
+			WithKeyword = with is not null,
+			Bare        = options.Bare || binary is not null || delimiter is not null,
+		};
+	}
+
+	public static Statement CopiedQuery(Statement query, string? program, CopyFile file, string? with, CopyOptions options)
+	{
+		return new Statement.Copy
+		{
+			Query       = AsQuery(query),
+			Direction   = CopyDirection.To,
+			Program     = program is not null,
+			File        = (LiteralValue.String?)file.File,
+			Stream      = file.Stream,
+			Options     = SqlList.Own(options.Items),
+			WithKeyword = with is not null,
+			Bare        = options.Bare,
+		};
+	}
+
 	public static Statement Truncated(bool tableOmitted, TableSource first, TableSource[]? rest, string? identity, string? behavior)
 	{
 		return new Statement.TruncateTable
