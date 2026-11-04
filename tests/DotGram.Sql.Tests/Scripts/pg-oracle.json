@@ -1,0 +1,312 @@
+{
+	"oracle": "libpg_query 18.6 (pglast v8.7)",
+	"rows": [
+		{
+			"name": "string",
+			"expression": "'a'",
+			"text": "SELECT 'a'",
+			"accepted": true
+		},
+		{
+			"name": "string_continued",
+			"expression": "'a'\n'b'",
+			"text": "SELECT 'a'\n'b'",
+			"accepted": true
+		},
+		{
+			"name": "string_continued_comment",
+			"expression": "'a' -- c\n  'b'",
+			"text": "SELECT 'a' -- c\n  'b'",
+			"accepted": true
+		},
+		{
+			"name": "string_not_continued",
+			"expression": "'a' 'b'",
+			"text": "SELECT 'a' 'b'",
+			"accepted": false,
+			"error": "syntax error at or near \"'b'\", at index 11"
+		},
+		{
+			"name": "string_not_continued_block",
+			"expression": "'a' /* \n */ 'b'",
+			"text": "SELECT 'a' /* \n */ 'b'",
+			"accepted": false,
+			"error": "syntax error at or near \"'b'\", at index 19"
+		},
+		{
+			"name": "escape_string",
+			"expression": "E'a\\n\\''",
+			"text": "SELECT E'a\\n\\''",
+			"accepted": true
+		},
+		{
+			"name": "escape_unicode",
+			"expression": "E'\\u0041'",
+			"text": "SELECT E'\\u0041'",
+			"accepted": true
+		},
+		{
+			"name": "unicode_string",
+			"expression": "U&'d\\0061t'",
+			"text": "SELECT U&'d\\0061t'",
+			"accepted": true
+		},
+		{
+			"name": "unicode_string_uescape",
+			"expression": "U&'d!0061t' UESCAPE '!'",
+			"text": "SELECT U&'d!0061t' UESCAPE '!'",
+			"accepted": true
+		},
+		{
+			"name": "national_string",
+			"expression": "N'a'",
+			"text": "SELECT N'a'",
+			"accepted": true
+		},
+		{
+			"name": "bit_string",
+			"expression": "B'0101'",
+			"text": "SELECT B'0101'",
+			"accepted": true
+		},
+		{
+			"name": "hex_string",
+			"expression": "X'1FF'",
+			"text": "SELECT X'1FF'",
+			"accepted": true
+		},
+		{
+			"name": "dollar_empty_tag",
+			"expression": "$$ a $$",
+			"text": "SELECT $$ a $$",
+			"accepted": true
+		},
+		{
+			"name": "dollar_tag",
+			"expression": "$tag$ a $x$ b $tag$",
+			"text": "SELECT $tag$ a $x$ b $tag$",
+			"accepted": true
+		},
+		{
+			"name": "dollar_tag_case",
+			"expression": "$Tag$ a $tag$",
+			"text": "SELECT $Tag$ a $tag$",
+			"accepted": false,
+			"error": "unterminated dollar-quoted string at or near \"$Tag$ a $tag$\", at index 7"
+		},
+		{
+			"name": "dollar_tag_digit",
+			"expression": "$1a$ b $1a$",
+			"text": "SELECT $1a$ b $1a$",
+			"accepted": false,
+			"error": "syntax error at or near \"b\", at index 12"
+		},
+		{
+			"name": "dollar_unclosed",
+			"expression": "$a$ b",
+			"text": "SELECT $a$ b",
+			"accepted": false,
+			"error": "unterminated dollar-quoted string at or near \"$a$ b\", at index 7"
+		},
+		{
+			"name": "integer",
+			"expression": "42",
+			"text": "SELECT 42",
+			"accepted": true
+		},
+		{
+			"name": "integer_underscore",
+			"expression": "1_000_000",
+			"text": "SELECT 1_000_000",
+			"accepted": true
+		},
+		{
+			"name": "integer_double_underscore",
+			"expression": "1__0",
+			"text": "SELECT 1__0",
+			"accepted": false,
+			"error": "trailing junk after numeric literal at or near \"1__0\", at index 7"
+		},
+		{
+			"name": "hex_integer",
+			"expression": "0x1F",
+			"text": "SELECT 0x1F",
+			"accepted": true
+		},
+		{
+			"name": "octal_integer",
+			"expression": "0o17",
+			"text": "SELECT 0o17",
+			"accepted": true
+		},
+		{
+			"name": "binary_integer",
+			"expression": "0b101",
+			"text": "SELECT 0b101",
+			"accepted": true
+		},
+		{
+			"name": "hex_empty",
+			"expression": "0x",
+			"text": "SELECT 0x",
+			"accepted": false,
+			"error": "invalid hexadecimal integer at or near \"0x\", at index 7"
+		},
+		{
+			"name": "decimal",
+			"expression": "1.5",
+			"text": "SELECT 1.5",
+			"accepted": true
+		},
+		{
+			"name": "decimal_leading_point",
+			"expression": ".5",
+			"text": "SELECT .5",
+			"accepted": true
+		},
+		{
+			"name": "decimal_trailing_point",
+			"expression": "5.",
+			"text": "SELECT 5.",
+			"accepted": true
+		},
+		{
+			"name": "real",
+			"expression": "1e10",
+			"text": "SELECT 1e10",
+			"accepted": true
+		},
+		{
+			"name": "real_signed",
+			"expression": "1.5e-3",
+			"text": "SELECT 1.5e-3",
+			"accepted": true
+		},
+		{
+			"name": "real_no_digits",
+			"expression": "1e+",
+			"text": "SELECT 1e+",
+			"accepted": false,
+			"error": "trailing junk after numeric literal at or near \"1e+\", at index 7"
+		},
+		{
+			"name": "number_junk",
+			"expression": "123abc",
+			"text": "SELECT 123abc",
+			"accepted": false,
+			"error": "trailing junk after numeric literal at or near \"123abc\", at index 7"
+		},
+		{
+			"name": "parameter",
+			"expression": "$1",
+			"text": "SELECT $1",
+			"accepted": true
+		},
+		{
+			"name": "true",
+			"expression": "TRUE",
+			"text": "SELECT TRUE",
+			"accepted": true
+		},
+		{
+			"name": "null",
+			"expression": "null",
+			"text": "SELECT null",
+			"accepted": true
+		},
+		{
+			"name": "name",
+			"expression": "abc",
+			"text": "SELECT abc",
+			"accepted": true
+		},
+		{
+			"name": "name_dollar",
+			"expression": "a$b",
+			"text": "SELECT a$b",
+			"accepted": true
+		},
+		{
+			"name": "name_unicode",
+			"expression": "ünïcode",
+			"text": "SELECT ünïcode",
+			"accepted": true
+		},
+		{
+			"name": "name_quoted",
+			"expression": "\"a b\"",
+			"text": "SELECT \"a b\"",
+			"accepted": true
+		},
+		{
+			"name": "name_quoted_empty",
+			"expression": "\"\"",
+			"text": "SELECT \"\"",
+			"accepted": false,
+			"error": "zero-length delimited identifier at or near \"\"\"\", at index 7"
+		},
+		{
+			"name": "name_unicode_quoted",
+			"expression": "U&\"d!0061t\" UESCAPE '!'",
+			"text": "SELECT U&\"d!0061t\" UESCAPE '!'",
+			"accepted": true
+		},
+		{
+			"name": "name_qualified",
+			"expression": "a.b.c",
+			"text": "SELECT a.b.c",
+			"accepted": true
+		},
+		{
+			"name": "name_qualified_keyword",
+			"expression": "a.select",
+			"text": "SELECT a.select",
+			"accepted": true
+		},
+		{
+			"name": "name_reserved",
+			"expression": "select",
+			"text": "SELECT select",
+			"accepted": false,
+			"error": "syntax error at or near \"select\", at index 7"
+		},
+		{
+			"name": "name_reserved_quoted",
+			"expression": "\"select\"",
+			"text": "SELECT \"select\"",
+			"accepted": true
+		},
+		{
+			"name": "name_unreserved",
+			"expression": "year",
+			"text": "SELECT year",
+			"accepted": true
+		},
+		{
+			"name": "name_column_keyword",
+			"expression": "between",
+			"text": "SELECT between",
+			"accepted": true
+		},
+		{
+			"name": "name_type_function_keyword",
+			"expression": "join",
+			"text": "SELECT join",
+			"accepted": false,
+			"error": "syntax error at end of input"
+		},
+		{
+			"name": "comment_nested",
+			"expression": "/* a /* b */ c */ 1",
+			"text": "SELECT /* a /* b */ c */ 1",
+			"accepted": true
+		},
+		{
+			"name": "comment_unclosed",
+			"expression": "/* a /* b */ 1",
+			"text": "SELECT /* a /* b */ 1",
+			"accepted": false,
+			"error": "unterminated /* comment at or near \"/* a /* b */ 1\", at index 7"
+		}
+	]
+}
