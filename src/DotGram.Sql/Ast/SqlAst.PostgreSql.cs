@@ -186,6 +186,18 @@ public abstract partial record Statement
 		/// <summary>PostgreSQL: DELETE. <c>USING t, u</c>: the tables joined to the target for the condition, which may not name the target again.</summary>
 		public FromClause? Using { get; init; }
 	}
+
+	public sealed partial record TruncateTable
+	{
+		/// <summary>PostgreSQL: TRUNCATE. The tables after the first, <c>TRUNCATE a, b, ONLY c *</c>; empty where one was written.</summary>
+		public SqlList<TableSource> Others { get; init; } = [];
+
+		/// <summary>PostgreSQL: TRUNCATE. <c>CASCADE</c> or <c>RESTRICT</c>; null where neither was written.</summary>
+		public DropBehavior? Behavior { get; init; }
+
+		/// <summary>PostgreSQL: TRUNCATE. Written <c>TRUNCATE t</c>, without the word TABLE.</summary>
+		[Spelling] public bool TableOmitted { get; init; }
+	}
 }
 
 /// <summary>PostgreSQL: INSERT. <c>ON CONFLICT [target] action</c>: what is done where a row would break a unique constraint.</summary>

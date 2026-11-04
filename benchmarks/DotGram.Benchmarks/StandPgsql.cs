@@ -29,6 +29,9 @@ static partial class Stand
 			"WHERE c.active AND (g.name = ANY (ARRAY['EU', 'US', 'APAC']) OR c.vip) " +
 			"AND NOT EXISTS (SELECT 1 FROM blocked AS b WHERE b.customer_id = c.customer_id) " +
 			"GROUP BY c.customer_id, c.name HAVING count(*) > 1 ORDER BY c.customer_id, revenue DESC NULLS LAST FETCH FIRST 100 ROWS ONLY"),
+		("insert-conflict",
+			"INSERT INTO orders AS o (order_id, customer_id, total, placed) VALUES (1, 42, 99.50, '2026-09-18'), (2, 43, 10, now()) " +
+			"ON CONFLICT (order_id) DO UPDATE SET total = EXCLUDED.total, placed = EXCLUDED.placed WHERE o.total <> EXCLUDED.total RETURNING o.order_id, o.total"),
 		("refused-late", "SELECT a, b, c FROM t WHERE a = 1 AND b = 2 AND c ="),
 	];
 
