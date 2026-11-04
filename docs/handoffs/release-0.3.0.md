@@ -22,9 +22,9 @@ NuGet page.
 ## Highlights
 
 - **Generator.** The default carrier now builds as it reads wherever it can, so an accepted parse
-  no longer walks a tape at the end (the expression language's accepted text parses 30-55%
-  faster on it); `Carrier = GramCarrier.Tape` keeps the old behaviour, and `GRAM5016` says
-  where the tape is the safer choice. New in the notation: bindings and back-references
+  no longer walks a tape at the end and is faster (the expression language's accepted text, by 20
+  to 65% on its benchmarks, about half on most); `Carrier = GramCarrier.Tape` keeps the old
+  behaviour, and `GRAM5016` says where the tape is the safer choice. New in the notation: bindings and back-references
   (`$q: X`, `$q`, `X{#q}`) for constructs closed by the text that opened them, `eos` for input
   read as a sequence of segments, and `Std.Nested(open, close)`. A trace build (`Trace = true`)
   reports what a parser reads to a sink, and `GramWhy` says why the last call was
