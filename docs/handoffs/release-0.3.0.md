@@ -24,12 +24,12 @@ NuGet page.
 - **Generator.** The default carrier now builds as it reads wherever it can, so an accepted parse
   no longer walks a tape at the end and is faster (the expression language's accepted text, by 20
   to 65% on its benchmarks, about half on most); `Carrier = GramCarrier.Tape` keeps the old
-  behaviour, and `GRAM5016` says where the tape is the safer choice. New in the notation: bindings and back-references
-  (`$q: X`, `$q`, `X{#q}`) for constructs closed by the text that opened them, `eos` for input
-  read as a sequence of segments, and `Std.Nested(open, close)`. A trace build (`Trace = true`)
-  reports what a parser reads to a sink, and `GramWhy` says why the last call was
-  refused. A command-line build keeps compiled parsers between builds. Ignore-case literals and
-  `\p{…}` read Unicode 16.0 on every runtime.
+  behaviour, and `GRAM5016` says where the tape is the safer choice. New in the notation:
+  bindings and back-references (`$q: X`, `$q`, `X{#q}`) for constructs closed by the text that
+  opened them, `eos` for input read as a sequence of segments, and `Std.Nested(open, close)`. A
+  trace build (`Trace = true`) reports what a parser reads to a sink, and `GramWhy` says why the
+  last call was refused. A command-line build keeps compiled parsers between builds. Ignore-case
+  literals and `\p{…}` read Unicode 16.0 on every runtime.
 - **Readers agree with strings.** A parse read from a `TextReader`, lines or segments reads what
   the same parse reads over a string, and a rule a reader cannot read that way gets no reader
   overload, with `GRAM5001` saying why. TODO(freeze): one sentence on the reader/engine agreement
