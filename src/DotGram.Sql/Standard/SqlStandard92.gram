@@ -66,16 +66,29 @@ trivia       = { (Std.Spacing | Std.LineComment("--") | Std.BlockComment("/*", "
 // and in the shape it builds them: the same text is the same tree whichever of the two read it.
 // Where the two grammars are written differently the action says how it reaches that shape.
 
-SearchCondition : @Expression
-    = left: SearchCondition & "OR"i & right: BooleanTerm => @(new Expression.Binary(left, BinaryOperator.Or, right))
+// **One tower for a condition and a value, and what a bracket holds is read once.** The standard
+// writes the search condition over the value expression, and a bracket may open either: a
+// <boolean primary> in brackets, a <value expression primary> in brackets, a row, a subquery.
+// Asked one after another, each alternative read the whole bracket and the next read it again,
+// and where the bracket's value held a condition of its own — `(CASE WHEN c THEN 1 END = 1)`,
+// `((SELECT 1 WHERE c) = 1)` — the readings doubled at every level of the nest: 2^n. So the
+// tower below reads the one shape both share, from the OR down to a primary, a bare value
+// standing where a predicate does; a guard at each step says whether what stood before it may
+// take the step, and `SearchCondition`, the condition a clause asks for, says at the end that
+// what was read is one. A bracket reads the tower once (`ValueExpressionPrimary`), and what it
+// turned out to hold — a condition, a value, a row — is what it was.
+SearchCondition : @Expression = c: Condition & when @(Nodes.IsCondition(c)) => @(c)
+
+Condition : @Expression
+    = left: Condition & when @(Nodes.IsCondition(left)) & "OR"i & right: BooleanTerm & when @(Nodes.IsCondition(right)) => @(new Expression.Binary(left, BinaryOperator.Or, right))
     | t: BooleanTerm                                     => @t
 
 BooleanTerm : @Expression
-    = left: BooleanTerm & "AND"i & right: BooleanFactor => @(new Expression.Binary(left, BinaryOperator.And, right))
+    = left: BooleanTerm & when @(Nodes.IsCondition(left)) & "AND"i & right: BooleanFactor & when @(Nodes.IsCondition(right)) => @(new Expression.Binary(left, BinaryOperator.And, right))
     | f: BooleanFactor                                  => @f
 
 BooleanFactor : @Expression
-    = negated: "NOT"i? & t: BooleanTest => @(negated is null ? t : new Expression.Unary(UnaryOperator.Not, t))
+    = negated: "NOT"i? & t: BooleanTest & when @(negated is null || Nodes.IsCondition(t)) => @(negated is null ? t : new Expression.Unary(UnaryOperator.Not, t))
 
 // §8.13 <boolean test>. `IS TRUE` and its fellows, and the standard allows them to
 // stack — `x IS TRUE IS NOT FALSE` is legal — so this repeats rather than being one
@@ -83,14 +96,15 @@ BooleanFactor : @Expression
 // Left recursive rather than a repetition, so that §4.3 folds it and each test is
 // built around what stood to its left. The two read the same language.
 BooleanTest : @Expression
-    = operand: BooleanTest & "IS"i & negated: "NOT"i? & truth: TruthValue => @(new Expression.IsTruth(operand, negated is not null, Nodes.Truthful(truth)))
+    = operand: BooleanTest & when @(Nodes.IsCondition(operand)) & "IS"i & negated: "NOT"i? & truth: TruthValue => @(new Expression.IsTruth(operand, negated is not null, Nodes.Truthful(truth)))
     | p: BooleanPrimary => @(p)
 
 TruthValue  = "TRUE"i | "FALSE"i | "UNKNOWN"i
 
+// A bracketed condition is a bracketed value that holds a condition (`ValueExpressionPrimary`),
+// and comes up through the predicate's row.
 BooleanPrimary : @Expression
     = p: Predicate => @(p)
-    | '(' & c: SearchCondition & ')' => @(new Expression.Parenthesized(c))
 
 // §8.1. Written in the order the standard lists them, except that the ones sharing a
 // left operand are gathered: <row value constructor> opens six of the nine, and
@@ -104,12 +118,22 @@ BooleanPrimary : @Expression
 // tail, so that a comparison is built once, with both its operands, where a tail built it
 // without its left operand and then copied it twice to fill it in: the most common
 // predicate, and a third of what a search condition allocated.
+//
+// A row that holds a condition — a bracketed one, which the bracket read — takes no tail and is
+// the predicate; a value or a row may take one, and without one it is a bare value, which only a
+// bracket accepts (`SearchCondition` refuses it at the end). A `switch` and not a choice, so that
+// what a refusal names after a bracketed condition is what it named when the bracket was the
+// boolean primary's own.
 Predicate : @Expression
     = "EXISTS"i                & q:    TableSubquery => @(new Expression.Exists(q))
     | "UNIQUE"i                & q:    TableSubquery => @(new Expression.Unique(null, q))
     | row: RowValueConstructor
-      & ( op: CompOp & ( some: Quantifier & sub: TableSubquery | right: RowValueConstructor ) | tail: PredicateTail )
-        => @(op is null ? Nodes.Predicated(row, tail!) : Nodes.Compared(row, op, some, sub, right))
+      & switch @(Nodes.IsCondition(row) ? 1 : 0)
+        {
+            case 0: ( op: CompOp & ( some: Quantifier & sub: TableSubquery | right: RowValueConstructor ) | tail: PredicateTail )?
+            case 1: none
+        }
+        => @(op is not null ? Nodes.Compared(row, op, some, sub, right) : tail is not null ? Nodes.Predicated(row, tail) : row)
 
 // What may follow a row on the left of a predicate. One rule so that the row is read
 // once: written as six alternatives of <predicate> each beginning with <row value
@@ -176,9 +200,10 @@ InPredicateValue : @InSource
 // round, `(a + 1) * 2` was read to its end as the first element of a row, refused at
 // the missing comma, and read again as a value — once per level of parentheses.
 
+// A row of several is a bracket with commas in it, which `ValueExpressionPrimary` reads with every
+// other bracket, once; it comes up as the element's value.
 RowValueConstructor : @Expression
     = e: RowValueConstructorElement => @e
-    | '(' & first: RowValueConstructorElement & (',' & rest: RowValueConstructorElement)+ & ')' => @(new Expression.Row(Nodes.List(first, rest)))
     | q: TableSubquery => @(new Expression.Subquery(q))
 
 RowValueConstructorElement : @Expression
@@ -214,12 +239,19 @@ RowValueConstructorElement : @Expression
 // concatenation bind loosest and to the left, multiplicative tighter and to the left, a
 // sign tightest and to the right — so `-a * b` is `(-a) * b`, which is what the three
 // rules said by having the sign apply to a primary.
+//
+// An operand is a value: a bracketed condition or a row, which a bracket may hand up, takes no
+// operator and is no operand of one. Asked of the left side before the operator, so that a
+// refusal there is where it was; of the right side where it has been read.
 ValueExpression : @Expression
-    = left: ValueExpression & op: ('+' | '-' | "||") & right: ValueExpression   << 1
+    = left: ValueExpression & when @(Nodes.IsValue(left)) & op: ('+' | '-' | "||") & right: ValueExpression   << 1
+      & when @(Nodes.IsValue(right))
         => @(Nodes.Arithmetic(left, op, right))
-    | left: ValueExpression & op: ('*' | '/') & right: ValueExpression           << 2
+    | left: ValueExpression & when @(Nodes.IsValue(left)) & op: ('*' | '/') & right: ValueExpression           << 2
+      & when @(Nodes.IsValue(right))
         => @(Nodes.Arithmetic(left, op, right))
     | sign: ['+' | '-'] & v: ValueExpression                                     >> 3
+      & when @(Nodes.IsValue(v))
         => @(new Expression.Unary(sign == "-" ? UnaryOperator.Minus : UnaryOperator.Plus, v))
     // §6.11 <character factor> is a primary and a collate clause, which says how it is
     // compared rather than what it is, and is kept all the same, as in a GROUP BY. Written on
@@ -238,8 +270,23 @@ ValueExpression : @Expression
 //
 // A bracket around nothing but a subquery is the subquery's: `((SELECT a FROM t))` is a
 // subquery of a bracketed query, as SQL:2023 reads it (Nodes.Parenthesized).
+//
+// **The bracket is read once, whatever it holds.** The tower from the OR down reads a condition,
+// a value or the first element of a row alike, and what follows says which: the closing bracket
+// after a condition is a bracketed condition, after a value a bracketed value; a comma after a
+// value opens a row. A `switch` and not a choice, so that after a condition only the bracket is
+// asked for, as the boolean primary asked when the bracket was its own. A row beginning with
+// `NULL` or `DEFAULT`, which the tower does not read, is the second alternative, and the tower
+// refuses those words at once.
 ValueExpressionPrimary : @Expression
-    = '(' & v: ValueExpression & ')' => @(Nodes.Parenthesized(v))
+    = '(' & c: Condition
+      & switch @(Nodes.IsCondition(c) ? 1 : 0)
+        {
+            case 0: rest: BracketTail
+            case 1: ')'
+        }
+        => @(rest is null || rest.Length == 0 ? Nodes.Parenthesized(c) : new Expression.Row(Nodes.List(c, rest)))
+    | '(' & n: RowHead & (',' & rest: RowValueConstructorElement)+ & ')' => @(new Expression.Row(Nodes.List(n, rest)))
     | c: CaseExpression              => @(c)
     | c: CastSpecification           => @(c)
     | f: ValueFunction               => @(f)
@@ -247,6 +294,16 @@ ValueExpressionPrimary : @Expression
     | q: ScalarSubquery              => @(q)
     | v: UnsignedValueSpecification  => @(v)
     | n: ColumnReference             => @(n)
+
+// What may follow the value a bracket holds: the bracket, or the rest of a row.
+BracketTail : @Expression[]
+    = ')' => @(System.Array.Empty<Expression>())
+    | (',' & rest: RowValueConstructorElement)+ & ')' => @(rest)
+
+// The words a row may begin with that no value does.
+RowHead : @Expression
+    = "NULL"i    => @(Nodes.Null())
+    | "DEFAULT"i => @(new Expression.Default())
 
 // ── §6.9 Set function, §6.16-6.18 value functions ──────────────────────────
 

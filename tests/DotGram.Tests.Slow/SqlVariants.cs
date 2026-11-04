@@ -39,6 +39,9 @@ static class SqlVariants
 	/// <summary>The SQL-92 parser T-SQL includes.</summary>
 	public const string Sql92 = "Sql92";
 
+	/// <summary>The SQL-92 grammar as it was before a bracket was read once (a fixture under <c>Fixtures/ReadOnce</c>), for the differential.</summary>
+	public const string Sql92Before = "Sql92Before";
+
 	/// <summary>
 	/// The name a variant publishes an entry under. T-SQL's grammar publishes its entries to its own assembly as
 	/// <c>TryParseSyntax…</c>, building the T-SQL tree, and the shipped class carries them onto the common tree under
@@ -72,6 +75,7 @@ static class SqlVariants
 			TransactSql => (TransactSqlHost, "TransactSql", "TransactSql.gram", "DotGram.Sql.TransactSql.Variant.TransactSqlParser"),
 			Standard    => (StandardHost, "Standard", "SqlStandard.gram", "DotGram.Sql.Standard.Variant.SqlStandardParser"),
 			Sql92       => (Sql92Host, "Standard", "SqlStandard92.gram", "DotGram.Sql.Standard.Variant.Sql92Parser"),
+			Sql92Before => (Sql92Host.Replace("Standard.Variant", "Standard.Before"), Fixture("ReadOnce"), "SqlStandard92.gram", "DotGram.Sql.Standard.Before.Sql92Parser"),
 			_           => throw new ArgumentOutOfRangeException(nameof(grammar)),
 		};
 
@@ -162,7 +166,15 @@ static class SqlVariants
 
 	static string Grammar(string directory, string file, [CallerFilePath] string here = "")
 	{
-		return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", "..", "src", "DotGram.Sql", directory, file));
+		return Path.IsPathRooted(directory)
+			? Path.Combine(directory, file)
+			: Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", "..", "src", "DotGram.Sql", directory, file));
+	}
+
+	/// <summary>A directory of grammar fixtures beside this file: a grammar as it was, kept for a differential.</summary>
+	static string Fixture(string name, [CallerFilePath] string here = "")
+	{
+		return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "Fixtures", name));
 	}
 
 	/// <summary>A .gram file handed to the generator as the build hands it one.</summary>
