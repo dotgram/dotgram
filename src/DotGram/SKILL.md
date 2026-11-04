@@ -422,7 +422,7 @@ call came from — write nothing in them that assumes it is.
 	Carrier      = GramCarrier.Tape,     // run no construction for a parse that fails (§3.7)
 	ConstructionsMayThrow = true,        // on Immediate, throw only what the tape would; ignored here (§7.5)
 	Stacks       = 4,                    // how many stacks a deep reading may take; 0 is no limit
-	PartSize     = 60_000,               // how large a generated method may grow
+	PartSize     = 120,                  // target size of a divided recognizer's parts, in estimated basic blocks; 0 is the measured default
 	IncludedAs   = "Lex",                // the name an including grammar gets without `As`
 	Portable     = false,                // do not carry the grammar text in the assembly
 	Trace        = true)]                // a trace build: report what is read to a sink (below)
@@ -626,7 +626,7 @@ The traps, in the order they are usually met:
   <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
   ```
 
-- **Ask a trace build why** an input is refused rather than guessing from the message (below).
+- **Ask a trace build why** an input is refused rather than guessing from the message (above).
 - **Let C# do what C# is better at.** A guard, a constructor, an operator on the result
   type — the grammar says what the syntax is, and what a thing means is the C#'s.
 - **A parser older than its grammar?** The compiler server keeps the parsers it compiled and
