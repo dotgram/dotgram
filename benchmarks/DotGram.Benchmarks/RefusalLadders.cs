@@ -222,6 +222,10 @@ internal static class RefusalLadders
 		}
 
 		yield return R("T-SQL statement", "columns, then a FROM with nothing after it", "columns", 4096, n => $"SELECT {Names(n)} FROM", static t => TransactSqlParser.TryParseStatement(t).IsSuccess);
+		yield return R("PostgreSQL statement", "calls nested, then a bad tail", "levels", 200, n => "SELECT " + Copies("f(", n) + "a" + Copies(")", n) + " 'x' 'y'", static t => DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseStatement(t).IsSuccess);
+		yield return R("PostgreSQL statement", "brackets around a subquery, never closed", "levels", 300, n => "SELECT " + Copies("(", n) + "SELECT 1", static t => DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseStatement(t).IsSuccess);
+		yield return R("PostgreSQL statement", "bracketed joins, never closed", "levels", 200, n => "SELECT * FROM " + Copies("(", n) + "a JOIN b ON x", static t => DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseStatement(t).IsSuccess);
+		yield return R("PostgreSQL statement", "an unclosed dollar quote", "characters", 4096, n => "SELECT $t$ " + new string('$', n), static t => DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseStatement(t).IsSuccess);
 		yield return R("T-SQL statement", "an unclosed string", "characters", 4096, n => "SELECT '" + new string('a', n), static t => TransactSqlParser.TryParseStatement(t).IsSuccess);
 		yield return R("T-SQL statement", "an unclosed comment", "characters", 4096, n => "SELECT 1 /* " + new string('a', n), static t => TransactSqlParser.TryParseStatement(t).IsSuccess);
 		yield return R("T-SQL statement", "an unclosed bracketed identifier", "characters", 4096, n => "SELECT [" + new string('a', n), static t => TransactSqlParser.TryParseStatement(t).IsSuccess);

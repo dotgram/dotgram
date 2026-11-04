@@ -22,8 +22,8 @@ namespace DotGram.Sql.Tests;
 /// syntax alone, no catalogue — and writes what it said, with its version. Where the live server answers otherwise
 /// (<c>$1x</c>: the server's lexer refuses the junk, libpg_query 18.6 reads a label), the row carries the server's
 /// verdict as <c>server</c>, and the server wins. A row's <c>expression</c> is the part of
-/// the text after <c>SELECT</c>, read here through <c>ParseExpression</c> while that is the level published; a row
-/// with no <c>expression</c> is a statement, read through <c>ParseStatement</c> once that level exists.
+/// the text after <c>SELECT</c>, read through <c>ParseExpression</c>; a row with no <c>expression</c> is a text of statements, read
+/// through <c>ParseSql</c>.
 /// </para>
 /// <para>
 /// Both cells are faults: what PostgreSQL reads and this refuses is the work list, what this reads and PostgreSQL
@@ -69,7 +69,7 @@ public sealed class PostgreSqlOracleTests
 		{
 			var read = row.Expression is { } expression
 				? PostgreSqlParser.TryParseExpression(expression).IsSuccess
-				: throw new NotSupportedException($"{row.Name}: a statement row, which no published level reads yet");
+				: PostgreSqlParser.TryParseSql(row.Text).IsSuccess;
 			var expected = row.Known is null ? row.Accepted : !row.Accepted;
 
 			if (read != expected)
@@ -84,8 +84,8 @@ public sealed class PostgreSqlOracleTests
 	public void Every_known_deviation_is_still_one()
 	{
 		var stale = Rows()
-			.Where(static row => row.Known is not null && row.Expression is not null)
-			.Where(static row => PostgreSqlParser.TryParseExpression(row.Expression!).IsSuccess == row.Accepted)
+			.Where(static row => row.Known is not null)
+			.Where(static row => (row.Expression is { } expression ? PostgreSqlParser.TryParseExpression(expression).IsSuccess : PostgreSqlParser.TryParseSql(row.Text).IsSuccess) == row.Accepted)
 			.Select(static row => row.Name)
 			.ToList();
 
