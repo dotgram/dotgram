@@ -56,6 +56,9 @@ query and filter languages, markup, and languages of your own — including ones
                   PrivateAssets="all" ExcludeAssets="runtime" />
 ```
 
+The generator runs in the C# compiler of .NET SDK 9.0.300 or newer (Roslyn 4.14; Visual Studio 17.14).
+The project may still target `net8.0` or older, but an SDK 8 build stops with CS9057.
+
 A grammar lives in the `[Gram]` attribute of the class the parser is generated into, or in
 a `.gram` file listed as `<AdditionalFiles Include="Name.gram" />`. Inline grammars are raw
 string literals and so need C# 11; a `.gram` file needs C# 8, which `netstandard2.0` and
@@ -72,6 +75,7 @@ time. Keep a large grammar in a project of its own first, so that only the proje
 When that is not enough, the same generator can run outside the build:
 
 ```shell
+dotnet new tool-manifest
 dotnet tool install DotGram.Cli
 dotnet dotgram generate src/Grammars/Grammars.csproj -o src/Grammars/Generated
 ```
@@ -1027,7 +1031,7 @@ class; several classes with different tables add up, while identical ones are st
 assembly compiled at C# 8 to 10 that already holds close to 16 MB of strings fails to compile
 (CS8103). From C# 11 the table takes none of that heap.
 
-Two things an older target has to say:
+Three things an older target has to say:
 
 * **A grammar written inside `[Gram]` is a raw string literal, which is C# 11.** On
   `netstandard2.0` and `net472` the default is C# 7.3, so `<LangVersion>` has to be set.
@@ -1035,13 +1039,16 @@ Two things an older target has to say:
   generates no parser, so set `<LangVersion>8.0</LangVersion>` or later.
 * **`netstandard2.0` and `net472` need `System.Memory`**, for the `ReadOnlySpan<char>`
   the generated methods take.
+* **A `record` on `netstandard2.0` or `net472` needs `System.Runtime.CompilerServices.IsExternalInit`**, a type
+  those frameworks lack (CS0518). Declare it once in the project:
+  `namespace System.Runtime.CompilerServices { internal static class IsExternalInit { } }`.
 
 ```xml
-<PropertyGroup Condition="'$(TargetFramework)' == 'net472'">
+<PropertyGroup Condition="'$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
   <LangVersion>11.0</LangVersion>
 </PropertyGroup>
 
-<ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+<ItemGroup Condition="'$(TargetFramework)' == 'net472' Or '$(TargetFramework)' == 'netstandard2.0'">
   <PackageReference Include="System.Memory" Version="4.5.5" />
 </ItemGroup>
 ```

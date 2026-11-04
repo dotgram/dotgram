@@ -12,7 +12,8 @@ A project either references the `DotGram` package and generates in its build, or
 ## Install
 
 ```shell
-dotnet tool install DotGram.Cli            # --global, or --local with a tool manifest
+dotnet new tool-manifest                   # once, in the repository root (or install with --global)
+dotnet tool install DotGram.Cli
 dnx DotGram.Cli generate ...               # .NET 10: run without installing
 ```
 

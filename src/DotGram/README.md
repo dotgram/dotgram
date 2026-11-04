@@ -37,6 +37,9 @@ A grammar is read in one of two modes. **Character-level** parsing has no separa
                   PrivateAssets="all" ExcludeAssets="runtime" />
 ```
 
+The generator runs in the C# compiler of .NET SDK 9.0.300 or newer (Roslyn 4.14; Visual Studio 17.14).
+The project may still target `net8.0` or older, but an SDK 8 build stops with CS9057.
+
 A grammar lives in the `[Gram]` attribute of the class the parser is generated into, or in
 a `.gram` file listed as `<AdditionalFiles Include="Name.gram" />`. An inline grammar is a
 raw string literal, so it needs C# 11; a `.gram` file needs C# 8, which `netstandard2.0` and
@@ -90,6 +93,7 @@ time. Keep a large grammar in a project of its own first, so that only the proje
 When that is not enough, the same generator can run outside the build:
 
 ```shell
+dotnet new tool-manifest
 dotnet tool install DotGram.Cli
 dotnet dotgram generate src/Grammars/Grammars.csproj -o src/Grammars/Generated
 ```
@@ -440,6 +444,9 @@ The generated parser is C# 8 and targets whatever the project around it targets.
   and generates no parser.
 * `netstandard2.0` and `net472` need `System.Memory`, for the `ReadOnlySpan<char>` the
   generated methods take.
+* A `record` on `netstandard2.0` or `net472` needs `System.Runtime.CompilerServices.IsExternalInit`, a type
+  those frameworks lack (CS0518). Declare it once in the project:
+  `namespace System.Runtime.CompilerServices { internal static class IsExternalInit { } }`.
 
 The generator is a Roslyn analyzer built against `Microsoft.CodeAnalysis` 4.14 and needs a
 compiler at least that new.
