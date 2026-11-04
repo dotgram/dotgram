@@ -62,8 +62,8 @@ DotGram.Sql.Ast.DataType.Boolean.Abbreviated.get -> bool
 DotGram.Sql.Ast.DataType.Boolean.Abbreviated.init -> void
 DotGram.Sql.Ast.DataType.DateTime.Abbreviated.get -> bool
 DotGram.Sql.Ast.DataType.DateTime.Abbreviated.init -> void
-DotGram.Sql.Ast.DataType.Interval.Deconstruct(out DotGram.Sql.Ast.IntervalQualifier? Qualifier, out int? Precision) -> void
-DotGram.Sql.Ast.DataType.Interval.Interval(DotGram.Sql.Ast.IntervalQualifier? Qualifier = null, int? Precision = null) -> void
+DotGram.Sql.Ast.DataType.Interval.Deconstruct(out DotGram.Sql.Ast.IntervalQualifier? Qualifier) -> void
+DotGram.Sql.Ast.DataType.Interval.Interval(DotGram.Sql.Ast.IntervalQualifier? Qualifier) -> void
 DotGram.Sql.Ast.DataType.Interval.Precision.get -> int?
 DotGram.Sql.Ast.DataType.Interval.Precision.init -> void
 DotGram.Sql.Ast.DataType.Interval.Qualifier.get -> DotGram.Sql.Ast.IntervalQualifier?
