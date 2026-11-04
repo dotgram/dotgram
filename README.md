@@ -57,7 +57,8 @@ query and filter languages, markup, and languages of your own — including ones
 ```
 
 The generator runs in the C# compiler of .NET SDK 9.0.300 or newer (Roslyn 4.14; Visual Studio 17.14).
-The project may still target `net8.0` or older, but an SDK 8 build stops with CS9057.
+The project may still target `net8.0` or older, but an SDK 8 build skips the generator with warning
+CS9057 and generates no parser, so the code that calls it does not compile.
 
 A grammar lives in the `[Gram]` attribute of the class the parser is generated into, or in
 a `.gram` file listed as `<AdditionalFiles Include="Name.gram" />`. Inline grammars are raw
