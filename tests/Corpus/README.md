@@ -26,6 +26,18 @@ The files are exempt from the repository's line-ending normalization
 (`.gitattributes`): fifteen of them are UTF-16, and the point of a corpus written
 elsewhere is that it is their text and not ours.
 
+`PostgreSql/` is PostgreSQL's own regression suite, `src/test/regress/sql` of the
+`REL_18_STABLE` branch at commit `d6694976c88c038039c2b74d0aa4eaa4e083519c` (2026-11-04),
+copied byte for byte: 233 files, 4.9 MB. Licensed under the PostgreSQL License — the
+notice is `PostgreSql/COPYRIGHT`, as it stands in the PostgreSQL tree. It is a psql script,
+not statements: `benchmarks/DotGram.Benchmarks/PgCorpus.cs` cuts it as psql does and reads
+every statement with `PostgreSqlParser`, and `tests/DotGram.Tests.Slow/PgCorpusBaseline.txt`
+holds each file's four counts (read, refused, threw, same), never worse:
+
+```
+dotnet run -c Release --project benchmarks/DotGram.Benchmarks -- --pg-corpus tests/Corpus/PostgreSql/sql
+```
+
 ## Why it is here
 
 Two things it answers that nothing written here can.
