@@ -171,10 +171,11 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 		var cover   = Immediate(SqlVariants.Sql92);
 		var coverH  = Immediate(SqlVariants.Sql92, headGuard: true);
 		var splitH  = Immediate(SqlVariants.Sql92Split, headGuard: true);
+		var noStep  = Immediate(SqlVariants.Sql92NoStepGuards);
 
 		var memoed  = Immediate(SqlVariants.Sql92Before, successMemo: true);
 
-		(string, Type)[] parsers = [("before", before), ("before+successmemo", memoed), ("guards: IsValue", guards), ("guards: true", gTrue), ("guards: not null", gNull), ("guards: not Row", gRow), ("cover", cover), ("cover+headguard", coverH), ("split+headguard", splitH)];
+		(string, Type)[] parsers = [("before", before), ("before+successmemo", memoed), ("guards: IsValue", guards), ("guards: true", gTrue), ("guards: not null", gNull), ("guards: not Row", gRow), ("cover", cover), ("cover+headguard", coverH), ("split+headguard", splitH), ("cover, no step guards", noStep)];
 
 		// The success memo on the old grammar must make the exponential shapes linear, or it measures nothing.
 		var memoedCounted = Immediate(SqlVariants.Sql92Before, counts: true, successMemo: true);
