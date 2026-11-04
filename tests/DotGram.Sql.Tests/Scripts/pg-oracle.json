@@ -588,6 +588,303 @@
 			"name": "is_null_twice_read",
 			"text": "SELECT a IS NULL IS NOT TRUE",
 			"accepted": true
+		},
+		{
+			"name": "binding_powers",
+			"text": "SELECT |/ 25 + 11, -a COLLATE \"C\", - a AT TIME ZONE 'x', 2 ^ - 3, - 2 ^ 3, a ~ b + c, a || b + c, a AT TIME ZONE - 1",
+			"accepted": true
+		},
+		{
+			"name": "tests_and_comparisons_interleaved",
+			"text": "SELECT a IS NULL IS NULL, 1 IS NULL = false, a = b IS NULL = c, true = NOT false, a IS DISTINCT FROM b = c, a IS DISTINCT FROM NOT b, a IS NULL IS DISTINCT FROM b, NOT a IS NULL",
+			"accepted": true
+		},
+		{
+			"name": "distinct_then_test",
+			"text": "SELECT a IS DISTINCT FROM b IS NULL",
+			"accepted": false,
+			"error": "syntax error at or near \"IS\", at index 28"
+		},
+		{
+			"name": "distinct_twice",
+			"text": "SELECT a IS DISTINCT FROM b IS DISTINCT FROM c",
+			"accepted": false,
+			"error": "syntax error at or near \"IS\", at index 28"
+		},
+		{
+			"name": "comparison_twice",
+			"text": "SELECT a = b = c",
+			"accepted": false,
+			"error": "syntax error at or near \"=\", at index 13"
+		},
+		{
+			"name": "brackets_hold_queries",
+			"text": "SELECT 1 IN ((SELECT 1), 2), a = ANY ((SELECT 1) || b), 1 IN ((SELECT 1)), a = ANY ((SELECT 1)), ((SELECT 1) UNION (SELECT 2)) + 1, 1 IN ((SELECT 1) INTERSECT (SELECT 2) UNION (SELECT 3)), a = ANY ((1, 2)), a IN ((1, 2))",
+			"accepted": true
+		},
+		{
+			"name": "quantified_over_a_list",
+			"text": "SELECT a = ANY (1, 2)",
+			"accepted": false,
+			"error": "syntax error at or near \",\", at index 17"
+		},
+		{
+			"name": "indirection_after_primaries",
+			"text": "SELECT $1[1], (SELECT 1)[1], (a).f, (ROW(1, 2)).f, a[1:2][3], a[:], a.b[1].c",
+			"accepted": true
+		},
+		{
+			"name": "indirection_after_a_call",
+			"text": "SELECT f(x).y",
+			"accepted": false,
+			"error": "syntax error at or near \".\", at index 11"
+		},
+		{
+			"name": "subscript_after_a_call",
+			"text": "SELECT f(x)[1]",
+			"accepted": false,
+			"error": "syntax error at or near \"[\", at index 11"
+		},
+		{
+			"name": "subscript_after_an_array",
+			"text": "SELECT ARRAY[1, 2][1]",
+			"accepted": false,
+			"error": "syntax error at or near \"[\", at index 18"
+		},
+		{
+			"name": "subscript_after_a_string",
+			"text": "SELECT 'abc'[1]",
+			"accepted": false,
+			"error": "syntax error at or near \"[\", at index 12"
+		},
+		{
+			"name": "member_after_row",
+			"text": "SELECT ROW(1, 2).f",
+			"accepted": false,
+			"error": "syntax error at or near \".\", at index 16"
+		},
+		{
+			"name": "subscript_after_case",
+			"text": "SELECT CASE a WHEN 1 THEN 2 END[1]",
+			"accepted": false,
+			"error": "syntax error at or near \"[\", at index 31"
+		},
+		{
+			"name": "empty_subscript",
+			"text": "SELECT a[]",
+			"accepted": false,
+			"error": "syntax error at or near \"]\", at index 9"
+		},
+		{
+			"name": "typed_literal_string_forms",
+			"text": "SELECT date $$2024-01-01$$, int4 E'1', numeric(10, 2) U&'1', timestamp(3) E'x', INTERVAL E'1' DAY, f(a, b) 'x'",
+			"accepted": true
+		},
+		{
+			"name": "typed_literal_distinct",
+			"text": "SELECT f(DISTINCT a ORDER BY b) 'x'",
+			"accepted": false,
+			"error": "syntax error at or near \"'x'\", at index 32"
+		},
+		{
+			"name": "typed_literal_named",
+			"text": "SELECT f(a := 1) 'x'",
+			"accepted": false,
+			"error": "type modifier cannot have parameter name, at index 9"
+		},
+		{
+			"name": "typed_literal_variadic",
+			"text": "SELECT f(VARIADIC a) 'x'",
+			"accepted": false,
+			"error": "syntax error at or near \"'x'\", at index 21"
+		},
+		{
+			"name": "typed_literal_star",
+			"text": "SELECT f(*) 'x'",
+			"accepted": false,
+			"error": "syntax error at or near \"'x'\", at index 12"
+		},
+		{
+			"name": "typed_literal_empty",
+			"text": "SELECT f() 'x'",
+			"accepted": false,
+			"error": "syntax error at or near \"'x'\", at index 11"
+		},
+		{
+			"name": "typed_literal_twice",
+			"text": "SELECT numeric '1' 'x'",
+			"accepted": false,
+			"error": "syntax error at or near \"'x'\", at index 19"
+		},
+		{
+			"name": "integers_in_every_radix",
+			"text": "SELECT x::int[0x10], numeric(0x3) '1', interval(0x3) '1', x::int[0x7fffffff], x::int[1_0]",
+			"accepted": true
+		},
+		{
+			"name": "integer_too_large_bound",
+			"text": "SELECT x::int[99999999999]",
+			"accepted": false,
+			"error": "syntax error at or near \"99999999999\", at index 14"
+		},
+		{
+			"name": "integer_too_large_bound_edge",
+			"text": "SELECT x::int[2147483648]",
+			"accepted": false,
+			"error": "syntax error at or near \"2147483648\", at index 14"
+		},
+		{
+			"name": "integer_too_large_length",
+			"text": "SELECT varchar(99999999999) 'x'",
+			"accepted": false,
+			"error": "syntax error at or near \"99999999999\", at index 15"
+		},
+		{
+			"name": "integer_too_large_precision",
+			"text": "SELECT numeric(2147483648) '1'",
+			"accepted": true
+		},
+		{
+			"name": "extract_fields",
+			"text": "SELECT EXTRACT(\"year\" FROM a), EXTRACT('year' FROM a), EXTRACT(E'year' FROM a), EXTRACT(epoch FROM a)",
+			"accepted": true
+		},
+		{
+			"name": "extract_reserved_word",
+			"text": "SELECT EXTRACT(true FROM a)",
+			"accepted": false,
+			"error": "syntax error at or near \"true\", at index 15"
+		},
+		{
+			"name": "extract_unreserved_word",
+			"text": "SELECT EXTRACT(name FROM a)",
+			"accepted": false,
+			"error": "syntax error at or near \"name\", at index 15"
+		},
+		{
+			"name": "current_schema_call",
+			"text": "SELECT CURRENT_SCHEMA(), CURRENT_SCHEMA",
+			"accepted": true
+		},
+		{
+			"name": "position_b_expr",
+			"text": "SELECT POSITION(a = b IN c)",
+			"accepted": true
+		},
+		{
+			"name": "position_a_expr",
+			"text": "SELECT POSITION(a IN b IN c)",
+			"accepted": false,
+			"error": "syntax error at or near \"IN\", at index 23"
+		},
+		{
+			"name": "nullif_one",
+			"text": "SELECT NULLIF(a)",
+			"accepted": false,
+			"error": "syntax error at or near \")\", at index 15"
+		},
+		{
+			"name": "nullif_three",
+			"text": "SELECT NULLIF(a, b, c)",
+			"accepted": false,
+			"error": "syntax error at or near \",\", at index 18"
+		},
+		{
+			"name": "coalesce_one",
+			"text": "SELECT COALESCE(a)",
+			"accepted": true
+		},
+		{
+			"name": "unique_predicate",
+			"text": "SELECT UNIQUE (SELECT 1)",
+			"accepted": false,
+			"error": "UNIQUE predicate is not yet implemented, at index 7"
+		},
+		{
+			"name": "from_bracketed_name",
+			"text": "SELECT * FROM (a)",
+			"accepted": false,
+			"error": "syntax error at or near \")\", at index 16"
+		},
+		{
+			"name": "from_bracketed_subquery",
+			"text": "SELECT * FROM ((SELECT 1) x)",
+			"accepted": false,
+			"error": "syntax error at or near \")\", at index 27"
+		},
+		{
+			"name": "join_without_condition",
+			"text": "SELECT * FROM t JOIN u",
+			"accepted": false,
+			"error": "syntax error at end of input"
+		},
+		{
+			"name": "natural_join_with_condition",
+			"text": "SELECT * FROM t NATURAL JOIN u ON true",
+			"accepted": false,
+			"error": "syntax error at or near \"ON\", at index 31"
+		},
+		{
+			"name": "cross_join_with_condition",
+			"text": "SELECT * FROM t CROSS JOIN u ON true",
+			"accepted": false,
+			"error": "syntax error at or near \"ON\", at index 29"
+		},
+		{
+			"name": "outer_join_without_direction",
+			"text": "SELECT * FROM t OUTER JOIN u ON true",
+			"accepted": false,
+			"error": "syntax error at or near \"OUTER\", at index 16"
+		},
+		{
+			"name": "inner_outer_join",
+			"text": "SELECT * FROM t INNER OUTER JOIN u ON true",
+			"accepted": false,
+			"error": "syntax error at or near \"OUTER\", at index 22"
+		},
+		{
+			"name": "only_with_star",
+			"text": "SELECT * FROM ONLY t *",
+			"accepted": false,
+			"error": "syntax error at or near \"*\", at index 21"
+		},
+		{
+			"name": "distinct_without_targets",
+			"text": "SELECT DISTINCT FROM t",
+			"accepted": false,
+			"error": "syntax error at or near \"FROM\", at index 16"
+		},
+		{
+			"name": "distinct_on_without_targets",
+			"text": "SELECT DISTINCT ON (a) FROM t",
+			"accepted": false,
+			"error": "syntax error at or near \"FROM\", at index 23"
+		},
+		{
+			"name": "all_without_targets",
+			"text": "SELECT ALL FROM t",
+			"accepted": true
+		},
+		{
+			"name": "empty_statements",
+			"text": "SELECT 1;; SELECT 2;",
+			"accepted": true
+		},
+		{
+			"name": "semicolons_alone",
+			"text": ";;",
+			"accepted": true
+		},
+		{
+			"name": "empty_text",
+			"text": "",
+			"accepted": true
+		},
+		{
+			"name": "bit_length_expression",
+			"text": "SELECT a::bit(1 + 1)",
+			"accepted": true,
+			"known": "BIT's length is read as one integer; the server reads any expression list as its modifiers and refuses the list later"
 		}
 	]
 }

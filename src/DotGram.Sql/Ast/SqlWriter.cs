@@ -67,6 +67,9 @@ public static partial class SqlWriter
 		/// <summary>Whether the text is for T-SQL.</summary>
 		bool transactSql => dialect == SqlDialect.TransactSql;
 
+		/// <summary>Whether the text is for the standard's reading, whose towers type the operands (<see cref="Typing"/>).</summary>
+		bool standard => dialect == SqlDialect.Standard;
+
 		public Text(SqlDialect dialect)
 		{
 			this.dialect = dialect;
@@ -319,6 +322,9 @@ public static partial class SqlWriter
 
 				// The introducer and the letters before the quote are the literal's, and no space may stand in it.
 				case LiteralValue.String text:
+					if (!postgreSql && text.Kind is StringLiteralKind.Escaped or StringLiteralKind.Dollar)
+						throw Misplaced(text, "Kind", "that only PostgreSQL reads: an escape string, `E'…'`, or a dollar-quoted one");
+
 					if (transactSql && !IsQuoted(text))
 						throw Misplaced(text, "Kind", "or CharacterSet that T-SQL does not read: a Unicode string, or one with an introducer");
 
@@ -712,9 +718,9 @@ public static partial class SqlWriter
 					break;
 
 				case DataType.Numeric numeric:
-					// PostgreSQL's spellings, which T-SQL would read as types of its own.
-					if (transactSql && numeric.Kind is NumericTypeKind.Int2 or NumericTypeKind.Int4 or NumericTypeKind.Int8 or NumericTypeKind.Float4 or NumericTypeKind.Float8)
-						throw Misplaced(numeric, "Kind", "that only PostgreSQL spells so; T-SQL reads int4 as a user's type");
+					// PostgreSQL's spellings, which the other readings take for types of a user's own.
+					if (!postgreSql && numeric.Kind is NumericTypeKind.Int2 or NumericTypeKind.Int4 or NumericTypeKind.Int8 or NumericTypeKind.Float4 or NumericTypeKind.Float8)
+						throw Misplaced(numeric, "Kind", "that only PostgreSQL spells so; the standard and T-SQL read int4 as a user's type");
 
 					// A length is for the types that take one; a scale for the exact numbers alone, after a precision.
 					if (numeric.Precision is not null && numeric.Kind is NumericTypeKind.SmallInt or NumericTypeKind.Integer or NumericTypeKind.Int or NumericTypeKind.BigInt or NumericTypeKind.Real or NumericTypeKind.DoublePrecision
@@ -762,6 +768,9 @@ public static partial class SqlWriter
 					break;
 
 				case DataType.Boolean boolean:
+					if (boolean.Abbreviated && !postgreSql)
+						throw Misplaced(boolean, "Abbreviated", "which only PostgreSQL reads: the others take `bool` for a user's type");
+
 					Word(boolean.Abbreviated ? "BOOL" : "BOOLEAN");
 					break;
 
@@ -772,6 +781,9 @@ public static partial class SqlWriter
 					// PostgreSQL's `timestamptz` and `timetz`: the type with its time zone in one word, and no precision in between.
 					if (datetime.Abbreviated)
 					{
+						if (!postgreSql)
+							throw Misplaced(datetime, "Abbreviated", "which only PostgreSQL reads: the others take `timestamptz` for a user's type");
+
 						if (datetime.Kind == DateTimeTypeKind.Date || datetime.TimeZone != TimeZoneMode.With)
 							throw Misplaced(datetime, "Abbreviated", "on a date, or without WITH TIME ZONE, which the one-word spellings always say");
 
@@ -806,6 +818,9 @@ public static partial class SqlWriter
 
 					if (interval.Precision is { } intervalPrecision)
 					{
+						if (!postgreSql)
+							throw Misplaced(interval, "Precision", "which only PostgreSQL reads, `INTERVAL(3)`; the standard's precision stands in the qualifier");
+
 						if (interval.Qualifier is not null)
 							throw Both(interval, "Precision", "Qualifier");
 
@@ -850,6 +865,9 @@ public static partial class SqlWriter
 					// PostgreSQL's `t[n]` and `t[]`, against the standard's `t ARRAY[n]`.
 					if (array.Brackets)
 					{
+						if (!postgreSql)
+							throw Misplaced(array, "Brackets", "which only PostgreSQL reads, `t[]`; the standard's array type is `t ARRAY[n]`");
+
 						if (array.Trigraphs)
 							throw Both(array, "Brackets", "Trigraphs");
 
@@ -985,8 +1003,84 @@ public static partial class SqlWriter
 			public const int Primary        = 11; // everything that brackets or names itself
 		}
 
+		// PostgreSQL's (PostgreSql.gram's binding powers), on a scale of its own above the standard's, so
+		// that an ask written in the standard's constants is lifted to it (`Lifted`) and never mistaken for
+		// one of its own: OR < AND < NOT < IS DISTINCT FROM < the other IS tests < a comparison < BETWEEN,
+		// IN, LIKE and the quantified forms < any other operator, `||` and `& | #` among them < + - <
+		// * / % < ^ < AT TIME ZONE < COLLATE < a sign < :: < a primary. A test stands on a test and on
+		// a comparison, and a comparison on a test, as bison interleaves the two levels; IS DISTINCT
+		// FROM ends its level, so it stands below the tests and a test or a comparison over it takes a
+		// bracket. A prefix operator takes its operand at the operator level: `|/ 25 + 11` is the root
+		// of the sum.
+		static class PostgreSqlTightness
+		{
+			public const int Disjunct       = 101; // OR
+			public const int Conjunct       = 102; // AND
+			public const int Negated        = 103; // NOT
+			public const int Distinct       = 104; // IS DISTINCT FROM
+			public const int Tested         = 105; // IS NULL, ISNULL, NOTNULL, IS TRUE, IS NORMALIZED, IS DOCUMENT
+			public const int Compared       = 106; // = <> != < > <= >=
+			public const int Predicate      = 107; // BETWEEN, IN, LIKE, ILIKE, SIMILAR TO, op ANY (…)
+			public const int Operator       = 108; // any other operator, || among them, and OPERATOR(…)
+			public const int Additive       = 109; // + -
+			public const int Multiplicative = 110; // * / %
+			public const int Power          = 111; // ^
+			public const int Zoned          = 112; // AT TIME ZONE, AT LOCAL
+			public const int Collated       = 113; // COLLATE
+			public const int Signed         = 114; // + - before an operand
+			public const int Cast           = 115; // ::
+			public const int Primary        = 116; // everything that brackets or names itself, with its subscripts and dots
+		}
+
+		/// <summary>The standard's ask on PostgreSQL's scale: the level that means the same, or a tighter one where none does.</summary>
+		static int Lifted(int least)
+		{
+			if (least >= Tightness.Primary)
+				return PostgreSqlTightness.Primary + (least - Tightness.Primary);
+
+			return least switch
+			{
+				Tightness.Disjunct       => PostgreSqlTightness.Disjunct,
+				Tightness.Conjunct       => PostgreSqlTightness.Conjunct,
+				Tightness.Negated        => PostgreSqlTightness.Negated,
+				Tightness.Tested         => PostgreSqlTightness.Tested,
+				Tightness.Predicate      => PostgreSqlTightness.Compared,
+				Tightness.Additive       => PostgreSqlTightness.Operator,
+				Tightness.Multiplicative => PostgreSqlTightness.Multiplicative,
+				Tightness.Signed         => PostgreSqlTightness.Signed,
+				Tightness.Postfixed      => PostgreSqlTightness.Collated,
+				_                        => PostgreSqlTightness.Zoned,
+			};
+		}
+
+		int PostgreSqlStrength(Expression expression)
+		{
+			return expression switch
+			{
+				Expression.Binary { Operator: BinaryOperator.Or }  => PostgreSqlTightness.Disjunct,
+				Expression.Binary { Operator: BinaryOperator.And } => PostgreSqlTightness.Conjunct,
+				Expression.Unary { Operator: UnaryOperator.Not }   => PostgreSqlTightness.Negated,
+				Expression.IsDistinct                              => PostgreSqlTightness.Distinct,
+				Expression.IsNull or Expression.IsTruth or Expression.IsNormalized or Expression.IsDocument => PostgreSqlTightness.Tested,
+				Expression.Comparison                              => PostgreSqlTightness.Compared,
+				Expression.Between or Expression.In or Expression.Like or Expression.QuantifiedComparison or Expression.QuantifiedOperation => PostgreSqlTightness.Predicate,
+				Expression.Binary { Operator: BinaryOperator.Add or BinaryOperator.Subtract } => PostgreSqlTightness.Additive,
+				Expression.Binary { Operator: BinaryOperator.Multiply or BinaryOperator.Divide or BinaryOperator.Modulo } => PostgreSqlTightness.Multiplicative,
+				Expression.Binary { Operator: BinaryOperator.Power } => PostgreSqlTightness.Power,
+				Expression.Binary or Expression.OperatorCall       => PostgreSqlTightness.Operator,
+				Expression.AtTimeZone                              => PostgreSqlTightness.Zoned,
+				Expression.Collate                                 => PostgreSqlTightness.Collated,
+				Expression.Unary                                   => PostgreSqlTightness.Signed,
+				Expression.Cast { Spelling: CastSpelling.DoubleColon } => PostgreSqlTightness.Cast,
+				_                                                  => PostgreSqlTightness.Primary,
+			};
+		}
+
 		int Strength(Expression expression)
 		{
+			if (postgreSql)
+				return PostgreSqlStrength(expression);
+
 			return expression switch
 			{
 				Expression.Binary { Operator: BinaryOperator.Or }  => Tightness.Disjunct,
@@ -1035,6 +1129,9 @@ public static partial class SqlWriter
 		/// </summary>
 		void PutOperand(Expression operand, int least, bool bracket)
 		{
+			if (postgreSql && least < PostgreSqlTightness.Disjunct)
+				least = Lifted(least);
+
 			if (!bracket && Strength(operand) >= least)
 			{
 				PutExpression(operand);
@@ -1212,7 +1309,7 @@ public static partial class SqlWriter
 
 			var op = binary.Operator;
 
-			if (transactSql || op is not (BinaryOperator.Concatenate or BinaryOperator.Add or BinaryOperator.Subtract or BinaryOperator.Multiply or BinaryOperator.Divide))
+			if (!standard || op is not (BinaryOperator.Concatenate or BinaryOperator.Add or BinaryOperator.Subtract or BinaryOperator.Multiply or BinaryOperator.Divide))
 				return Towers.Value;
 
 			if (op == BinaryOperator.Concatenate)
@@ -1430,7 +1527,7 @@ public static partial class SqlWriter
 				case Expression.Unary unary when unary.Operator == UnaryOperator.Not:
 					Word("NOT");
 					PassCondition(condition);
-					PutOperand(unary.Operand, transactSql ? Tightness.Negated : Tightness.Tested);
+					PutOperand(unary.Operand, postgreSql ? PostgreSqlTightness.Negated : transactSql ? Tightness.Negated : Tightness.Tested);
 					break;
 
 				// A sign is written against its operand; where the operand begins with a sign of its own, `Fuses`
@@ -1442,11 +1539,12 @@ public static partial class SqlWriter
 					{
 						UnaryOperator.Minus      => "-",
 						UnaryOperator.Plus       => "+",
-						UnaryOperator.BitwiseNot => "~",
+						// PostgreSQL reads `~` as an operator by name (OperatorCall), never as this node.
+						UnaryOperator.BitwiseNot => postgreSql ? throw Misplaced(unary, "Operator", "BitwiseNot, which PostgreSQL reads as the operator `~` called by name") : "~",
 						_                        => throw NoText(unary.Operator),
 					});
 					Hold();
-					PutOperand(unary.Operand, transactSql ? Tightness.Signed : Tightness.Postfixed, !transactSql && (Written(unary.Operand, Tightness.Postfixed) & (Towers.Numeric | Towers.Interval)) == 0);
+					PutOperand(unary.Operand, postgreSql ? PostgreSqlTightness.Signed : transactSql ? Tightness.Signed : Tightness.Postfixed, standard && (Written(unary.Operand, Tightness.Postfixed) & (Towers.Numeric | Towers.Interval)) == 0);
 					break;
 
 				case Expression.Binary binary:
@@ -1465,12 +1563,12 @@ public static partial class SqlWriter
 						BinaryOperator.And         => "AND",
 						BinaryOperator.Or          => "OR",
 						BinaryOperator.Modulo      => "%",
-						BinaryOperator.BitwiseAnd  => "&",
-						BinaryOperator.BitwiseOr   => "|",
-						// One symbol, two meanings: `^` is T-SQL's exclusive or and PostgreSQL's power, and each dialect writes the other's as it reads it.
-						BinaryOperator.BitwiseXor  => postgreSql ? "#" : "^",
-						BinaryOperator.ShiftLeft   => "<<",
-						BinaryOperator.ShiftRight  => ">>",
+						// PostgreSQL reads `& | # << >>` as operators by name (OperatorCall), never as this node; and its `^` is the power.
+						BinaryOperator.BitwiseAnd  => postgreSql ? throw Misplaced(binary, "Operator", "BitwiseAnd, which PostgreSQL reads as the operator `&` called by name") : "&",
+						BinaryOperator.BitwiseOr   => postgreSql ? throw Misplaced(binary, "Operator", "BitwiseOr, which PostgreSQL reads as the operator `|` called by name") : "|",
+						BinaryOperator.BitwiseXor  => postgreSql ? throw Misplaced(binary, "Operator", "BitwiseXor, which PostgreSQL reads as the operator `#` called by name; its `^` is the power") : "^",
+						BinaryOperator.ShiftLeft   => postgreSql ? throw Misplaced(binary, "Operator", "ShiftLeft, which PostgreSQL reads as the operator `<<` called by name") : "<<",
+						BinaryOperator.ShiftRight  => postgreSql ? throw Misplaced(binary, "Operator", "ShiftRight, which PostgreSQL reads as the operator `>>` called by name") : ">>",
 						BinaryOperator.Power       => postgreSql ? "^" : throw Misplaced(binary, "Operator", "Power, which only PostgreSQL reads (its `^`); the standard and T-SQL have no power operator"),
 						_                          => throw NoText(binary.Operator),
 					});
@@ -1479,11 +1577,11 @@ public static partial class SqlWriter
 					break;
 
 				case Expression.MultisetOperation multiset:
-					PutOperand(multiset.Left, Strength(multiset), !transactSql && (Written(multiset.Left, Strength(multiset)) & Towers.Multiset) == 0);
+					PutOperand(multiset.Left, Strength(multiset), standard && (Written(multiset.Left, Strength(multiset)) & Towers.Multiset) == 0);
 					Word("MULTISET");
 					Word(multiset.Operator switch { MultisetOperator.Union => "UNION", MultisetOperator.Except => "EXCEPT", MultisetOperator.Intersect => "INTERSECT", _ => throw NoText(multiset.Operator) });
 					PutQuantifier(multiset.Quantifier);
-					PutOperand(multiset.Right, Strength(multiset) + 1, !transactSql && (Written(multiset.Right, Strength(multiset) + 1) & Towers.Multiset) == 0);
+					PutOperand(multiset.Right, Strength(multiset) + 1, standard && (Written(multiset.Right, Strength(multiset) + 1) & Towers.Multiset) == 0);
 					break;
 
 				case Expression.Row rowValue:
@@ -1521,9 +1619,9 @@ public static partial class SqlWriter
 				case Expression.Case @case:
 					Word("CASE");
 
-					// The operand and a simple CASE's WHEN are row value predicands (§6.12): a value, or a predicate in a bracket.
+					// The operand and a simple CASE's WHEN are row value predicands (§6.12): a value, or a predicate in a bracket; PostgreSQL's operand is any expression.
 					if (@case.Operand is { } operand)
-						PutOperand(operand, Tightness.Additive);
+						PutOperand(operand, postgreSql ? PostgreSqlTightness.Disjunct : Tightness.Additive);
 
 					foreach (var when in @case.Whens)
 					{
@@ -1564,7 +1662,10 @@ public static partial class SqlWriter
 
 						if (spelling == CastSpelling.DoubleColon)
 						{
-							PutOperand(cast.Value, Tightness.Primary);
+							if (!postgreSql)
+								throw Misplaced(cast, "Spelling", "DoubleColon, which only PostgreSQL reads");
+
+							PutOperand(cast.Value, PostgreSqlTightness.Cast);
 							Tight("::");
 							Hold();
 							PutType(cast.Target);
@@ -1664,15 +1765,18 @@ public static partial class SqlWriter
 					break;
 
 				case Expression.Element element:
-					PutOperand(element.Collection, Tightness.Primary, !transactSql && (Written(element.Collection, Tightness.Primary) & Towers.Array) == 0);
+					PutOperand(element.Collection, Tightness.Primary, standard && (Written(element.Collection, Tightness.Primary) & Towers.Array) == 0);
 					Tight(element.Trigraphs ? "??(" : "[");
 					Hold();
 
-					// A bound left out is PostgreSQL's `a[:3]`, which only its colon writes.
+					if (element.Colon && !postgreSql)
+						throw Misplaced(element, "Colon", "which only PostgreSQL reads, `a[1:2]`");
+
+					// A bound left out is PostgreSQL's `a[:3]`, `a[2:]` or `a[:]`, which only its colon writes.
 					if (element.Index is { } index)
 						PutSubscript(index);
-					else if (!element.Colon || element.To is null)
-						throw Misplaced(element, "Index", "missing where no colon slice with an upper bound was written");
+					else if (!element.Colon)
+						throw Misplaced(element, "Index", "missing where no colon slice was written");
 
 					if (element.Colon)
 					{
@@ -1719,18 +1823,23 @@ public static partial class SqlWriter
 					break;
 
 				case Expression.Collate collate:
-					PutOperand(collate.Value, transactSql ? Tightness.Zoned : Tightness.Primary, !transactSql && (Written(collate.Value, Tightness.Primary) & Towers.Character) == 0);
+					PutOperand(collate.Value, postgreSql ? PostgreSqlTightness.Collated : transactSql ? Tightness.Zoned : Tightness.Primary, standard && (Written(collate.Value, Tightness.Primary) & Towers.Character) == 0);
 					Word("COLLATE");
 					PutCollation(collate.Collation);
 					break;
 
 				case Expression.AtTimeZone zone:
-					PutOperand(zone.Value, transactSql ? Tightness.Postfixed : Tightness.Primary, !transactSql && (Written(zone.Value, Tightness.Primary) & Towers.Datetime) == 0);
+					PutOperand(zone.Value, postgreSql ? PostgreSqlTightness.Zoned : transactSql ? Tightness.Postfixed : Tightness.Primary, standard && (Written(zone.Value, Tightness.Primary) & Towers.Datetime) == 0);
 
 					if (zone.Zone is { } at)
 					{
 						Word("AT TIME ZONE");
-						PutZone(at);
+
+						// PostgreSQL reads the zone at the level above its AT; the others as PutZone says.
+						if (postgreSql)
+							PutOperand(at, PostgreSqlTightness.Zoned + 1);
+						else
+							PutZone(at);
 					}
 					else
 						Word("AT LOCAL");
@@ -1741,11 +1850,14 @@ public static partial class SqlWriter
 					if ((qualified.Value is Expression.Parenthesized { Value: var inner } ? inner : qualified.Value) is Expression.Binary { Operator: BinaryOperator.Subtract } subtraction)
 						difference = subtraction;
 
-					PutOperand(qualified.Value, Tightness.Primary, !transactSql && (Written(qualified.Value, Tightness.Primary) & Towers.Value) != Towers.Value);
+					PutOperand(qualified.Value, Tightness.Primary, standard && (Written(qualified.Value, Tightness.Primary) & Towers.Value) != Towers.Value);
 					PutQualifier(qualified.Qualifier);
 					break;
 
 				case Expression.Substring substring:
+					if (substring.ForFirst && !postgreSql)
+						throw Misplaced(substring, "ForFirst", "which only PostgreSQL reads, `SUBSTRING(a FOR 2 FROM 1)`");
+
 					if (substring.From is null && (substring.For is null || substring.ForFirst))
 						throw Misplaced(substring, "From", "missing with no FOR, or with FOR first: PostgreSQL's `FOR b` alone is the one shape without FROM");
 
@@ -1919,22 +2031,23 @@ public static partial class SqlWriter
 					if (comparison.Exclamation && comparison.Operator != ComparisonOperator.NotEqual)
 						throw Misplaced(comparison, "Exclamation", "on a comparison that is not an inequality");
 
-					PutOperand(comparison.Left, Tightness.Additive);
+					// PostgreSQL: a tested value on the left, `1 IS NULL = false`; on the right a predicate, or NOT and what it negates, `a = NOT b`.
+					PutOperand(comparison.Left, postgreSql ? PostgreSqlTightness.Tested : Tightness.Additive);
 					Word(comparison.Exclamation ? "!=" : Comparison(comparison.Operator));
-					PutOperand(comparison.Right, Tightness.Additive);
+					PutOperand(comparison.Right, postgreSql ? comparison.Right is Expression.Unary { Operator: UnaryOperator.Not } ? PostgreSqlTightness.Negated : PostgreSqlTightness.Predicate : Tightness.Additive);
 					break;
 
 				case Expression.Between between:
-					PutOperand(between.Value, Tightness.Additive);
+					PutOperand(between.Value, postgreSql ? PostgreSqlTightness.Operator : Tightness.Additive);
 					PutNot(between.Not);
 					Word("BETWEEN");
 
 					if (between.Symmetry is { } symmetry)
 						Word(symmetry switch { BetweenSymmetry.Asymmetric => "ASYMMETRIC", BetweenSymmetry.Symmetric => "SYMMETRIC", _ => throw NoText(symmetry) });
 
-					PutOperand(between.Lower, Tightness.Additive);
+					PutOperand(between.Lower, postgreSql ? PostgreSqlTightness.Operator : Tightness.Additive);
 					Word("AND");
-					PutOperand(between.Upper, Tightness.Additive);
+					PutOperand(between.Upper, postgreSql ? PostgreSqlTightness.Operator : Tightness.Additive);
 					break;
 
 				case Expression.In @in:
@@ -1942,7 +2055,7 @@ public static partial class SqlWriter
 					if (@in.SourceValue is InSource.Values { Items: [Expression.Subquery] })
 						throw Misplaced(@in, "SourceValue", "that is a list of one subquery, which is read as IN over the subquery itself");
 
-					PutOperand(@in.Value, Tightness.Additive);
+					PutOperand(@in.Value, postgreSql ? PostgreSqlTightness.Operator : Tightness.Additive);
 					PutNot(@in.Not);
 					Word("IN");
 
@@ -1967,10 +2080,10 @@ public static partial class SqlWriter
 					break;
 
 				case Expression.Like like:
-					PutOperand(like.Value, Tightness.Additive);
+					PutOperand(like.Value, postgreSql ? PostgreSqlTightness.Operator : Tightness.Additive);
 					PutNot(like.Not);
-					Word(like.Kind switch { LikeKind.Like => "LIKE", LikeKind.Similar => "SIMILAR TO", LikeKind.Regex => "LIKE_REGEX", LikeKind.ILike => "ILIKE", _ => throw NoText(like.Kind) });
-					PutOperand(like.Pattern, Tightness.Additive);
+					Word(like.Kind switch { LikeKind.Like => "LIKE", LikeKind.Similar => "SIMILAR TO", LikeKind.Regex => "LIKE_REGEX", LikeKind.ILike => postgreSql ? "ILIKE" : throw Misplaced(like, "Kind", "ILike, which only PostgreSQL reads"), _ => throw NoText(like.Kind) });
+					PutOperand(like.Pattern, postgreSql ? PostgreSqlTightness.Operator : Tightness.Additive);
 
 					// T-SQL: LIKE (Transact-SQL). The escape in ODBC's braces.
 					if (like.BracedEscape)
@@ -1987,7 +2100,7 @@ public static partial class SqlWriter
 					else if (like.Escape is { } escape)
 					{
 						Word("ESCAPE");
-						PutOperand(escape, Tightness.Additive);
+						PutOperand(escape, postgreSql ? PostgreSqlTightness.Operator : Tightness.Additive);
 					}
 
 					if (like.Flag is { } flag)
@@ -1999,11 +2112,14 @@ public static partial class SqlWriter
 					break;
 
 				case Expression.IsNull isNull:
-					PutOperand(isNull.Value, Tightness.Additive);
+					PutOperand(isNull.Value, postgreSql ? PostgreSqlTightness.Tested : Tightness.Additive);
 
 					// PostgreSQL's one-word spellings, after the value.
 					if (isNull.Postfix)
 					{
+						if (!postgreSql)
+							throw Misplaced(isNull, "Postfix", "which only PostgreSQL reads, ISNULL and NOTNULL");
+
 						Word(isNull.Not ? "NOTNULL" : "ISNULL");
 						break;
 					}
@@ -2014,14 +2130,14 @@ public static partial class SqlWriter
 					break;
 
 				case Expression.IsTruth isTruth:
-					PutOperand(isTruth.Value, Tightness.Predicate);
+					PutOperand(isTruth.Value, postgreSql ? PostgreSqlTightness.Tested : Tightness.Predicate);
 					Word("IS");
 					PutNot(isTruth.Not);
 					Word(Truth(isTruth.Truth));
 					break;
 
 				case Expression.QuantifiedComparison quantified:
-					PutOperand(quantified.Left, Tightness.Additive);
+					PutOperand(quantified.Left, postgreSql ? PostgreSqlTightness.Operator : Tightness.Additive);
 					Word(Comparison(quantified.Operator));
 					Word(quantified.Quantifier switch { Quantifier.All => "ALL", Quantifier.Some => "SOME", Quantifier.Any => "ANY", _ => throw NoText(quantified.Quantifier) });
 					PutSubquery(quantified.Query);
@@ -2065,7 +2181,7 @@ public static partial class SqlWriter
 					if (distinct.Quantifier is not null && (!transactSql || distinct.Right is not Expression.Subquery))
 						throw Misplaced(distinct, "Quantifier", transactSql ? "before other than a subquery (DistinctTail)" : "on the standard's IS DISTINCT FROM, which reads none");
 
-					PutOperand(distinct.Left, Tightness.Additive);
+					PutOperand(distinct.Left, postgreSql ? PostgreSqlTightness.Tested : Tightness.Additive);
 					Word("IS");
 					PutNot(distinct.Not);
 					Word("DISTINCT FROM");
@@ -2076,12 +2192,15 @@ public static partial class SqlWriter
 						PutSubquery(((Expression.Subquery)distinct.Right).Query);
 					}
 					else
-						PutOperand(distinct.Right, Tightness.Additive);
+					{
+						// PostgreSQL reads the right operand up to a comparison, `a IS DISTINCT FROM b = c`, or NOT and what it negates.
+						PutOperand(distinct.Right, postgreSql ? distinct.Right is Expression.Unary { Operator: UnaryOperator.Not } ? PostgreSqlTightness.Negated : PostgreSqlTightness.Compared : Tightness.Additive);
+					}
 
 					break;
 
 				case Expression.IsNormalized normalized:
-					PutOperand(normalized.Value, Tightness.Additive);
+					PutOperand(normalized.Value, postgreSql ? PostgreSqlTightness.Tested : Tightness.Additive);
 					Word("IS");
 					PutNot(normalized.Not);
 
@@ -2515,9 +2634,9 @@ public static partial class SqlWriter
 				if (ordinal < 0)
 					throw Misplaced(parameter, "Ordinal", "below zero, which no `$n` writes");
 
-				// T-SQL reads `$1` as money.
-				if (transactSql)
-					throw Misplaced(parameter, "Kind", "Positional, which T-SQL does not read: it reads `$1` as a money literal");
+				// Only PostgreSQL reads it; T-SQL reads `$1` as money.
+				if (!postgreSql)
+					throw Misplaced(parameter, "Kind", "Positional, which only PostgreSQL reads; T-SQL reads `$1` as a money literal");
 
 				Word("$" + ordinal.ToString(CultureInfo.InvariantCulture));
 				return;
@@ -2770,6 +2889,9 @@ public static partial class SqlWriter
 			// PostgreSQL's `VARIADIC arr` spreads an array over the variadic parameters.
 			if (argument.Variadic)
 			{
+				if (!postgreSql)
+					throw Misplaced(argument, "Variadic", "which only PostgreSQL reads");
+
 				if (argument.Name is not null)
 					throw Both(argument, "Variadic", "Name");
 
@@ -2785,6 +2907,9 @@ public static partial class SqlWriter
 
 			if (argument.NamedAssignment)
 			{
+				if (argument.ColonEquals && !postgreSql)
+					throw Misplaced(argument, "ColonEquals", "which only PostgreSQL reads, `:=` beside the standard's `=>`");
+
 				PutIdentifier(argument.Name!);
 				Word(argument.ColonEquals ? ":=" : "=>");
 			}

@@ -62,6 +62,17 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("a AT TIME ZONE 'UTC'", "AtTimeZone")]
 	[InlineData("a AT LOCAL",  "AtTimeZone(local)")]
 	[InlineData("a COLLATE \"C\"", "Collate")]
+	// The binding powers are the server's: a prefix operator takes its operand at the operator level, `||` is
+	// an operator like any other, and a sign binds tighter than AT TIME ZONE and COLLATE.
+	[InlineData("|/ 25 + 11",  "OperatorCall prefix over Add")]
+	[InlineData("a ~ b + c",   "OperatorCall over Add")]
+	[InlineData("a || b + c",  "Concatenate over Add")]
+	[InlineData("a ^ b ^ c",   "Power left-associative")]
+	[InlineData("2 ^ - 3",     "Power over a sign")]
+	[InlineData("- 2 ^ 3",     "Power under a sign")]
+	[InlineData("-a COLLATE \"C\"", "Collate over a sign")]
+	[InlineData("- a AT TIME ZONE 'x'", "AtTimeZone over a sign")]
+	[InlineData("a AT TIME ZONE - 1", "AtTimeZone with a signed zone")]
 	public void An_operator_builds_the_node_its_symbol_means(string text, string expected)
 	{
 		var value = Value(text);
@@ -83,18 +94,95 @@ public sealed class PostgreSqlExpressionTests
 			"AtTimeZone"          => value is Expression.AtTimeZone { Zone: not null },
 			"AtTimeZone(local)"   => value is Expression.AtTimeZone { Zone: null },
 			"Collate"             => value is Expression.Collate,
+			"OperatorCall prefix over Add" => value is Expression.OperatorCall { Left: null, Right: Expression.Binary { Operator: BinaryOperator.Add } },
+			"OperatorCall over Add" => value is Expression.OperatorCall { Left: Expression.Reference, Right: Expression.Binary { Operator: BinaryOperator.Add } },
+			"Concatenate over Add" => value is Expression.Binary { Operator: BinaryOperator.Concatenate, Right: Expression.Binary { Operator: BinaryOperator.Add } },
+			"Power left-associative" => value is Expression.Binary { Operator: BinaryOperator.Power, Left: Expression.Binary { Operator: BinaryOperator.Power } },
+			"Power over a sign"   => value is Expression.Binary { Operator: BinaryOperator.Power, Right: Expression.Unary { Operator: UnaryOperator.Minus } },
+			"Power under a sign"  => value is Expression.Binary { Operator: BinaryOperator.Power, Left: Expression.Unary { Operator: UnaryOperator.Minus } },
+			"Collate over a sign" => value is Expression.Collate { Value: Expression.Unary },
+			"AtTimeZone over a sign" => value is Expression.AtTimeZone { Value: Expression.Unary },
+			"AtTimeZone with a signed zone" => value is Expression.AtTimeZone { Zone: Expression.Unary },
 			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
 		};
 
 		Assert.True(holds, $"{text}: {value}");
 	}
 
-	/// <summary>The comparison level is non-associative, and an array mixes no values with arrays, as the server refuses both.</summary>
+	/// <summary>
+	/// The IS level and the comparisons interleave as bison reads them: tests stack and stand on either side of a
+	/// comparison, a comparison's right operand may be NOT and what it negates, and IS DISTINCT FROM takes its right
+	/// operand up to a comparison.
+	/// </summary>
+	[Theory]
+	[InlineData("a IS NULL IS NULL",         "IsNull over IsNull")]
+	[InlineData("1 IS NULL = false",         "Comparison over IsNull on the left")]
+	[InlineData("a = b IS NULL",             "IsNull over Comparison")]
+	[InlineData("a = b IS NULL = c",         "Comparison over IsNull over Comparison")]
+	[InlineData("true = NOT false",          "Comparison over Not on the right")]
+	[InlineData("NOT a IS NULL",             "Not over IsNull")]
+	[InlineData("a IS DISTINCT FROM b = c",  "IsDistinct over Comparison on the right")]
+	[InlineData("a IS DISTINCT FROM NOT b",  "IsDistinct over Not on the right")]
+	[InlineData("a IS NULL IS DISTINCT FROM b", "IsDistinct over IsNull on the left")]
+	public void A_test_and_a_comparison_stand_on_each_other_as_the_server_reads_them(string text, string expected)
+	{
+		var value = Value(text);
+
+		var holds = expected switch
+		{
+			"IsNull over IsNull"   => value is Expression.IsNull { Value: Expression.IsNull },
+			"Comparison over IsNull on the left" => value is Expression.Comparison { Left: Expression.IsNull, Right: LiteralValue.Boolean },
+			"IsNull over Comparison" => value is Expression.IsNull { Value: Expression.Comparison },
+			"Comparison over IsNull over Comparison" => value is Expression.Comparison { Left: Expression.IsNull { Value: Expression.Comparison } },
+			"Comparison over Not on the right" => value is Expression.Comparison { Right: Expression.Unary { Operator: UnaryOperator.Not } },
+			"Not over IsNull"      => value is Expression.Unary { Operator: UnaryOperator.Not, Operand: Expression.IsNull },
+			"IsDistinct over Comparison on the right" => value is Expression.IsDistinct { Right: Expression.Comparison },
+			"IsDistinct over Not on the right" => value is Expression.IsDistinct { Right: Expression.Unary { Operator: UnaryOperator.Not } },
+			"IsDistinct over IsNull on the left" => value is Expression.IsDistinct { Left: Expression.IsNull },
+			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
+		};
+
+		Assert.True(holds, $"{text}: {value}");
+	}
+
+	/// <summary>
+	/// What the server refuses is refused: the comparison level is non-associative, IS DISTINCT FROM ends its level, an
+	/// array mixes no values with arrays, a quantified form takes no list, an indirection follows no call, literal, array,
+	/// row or CASE, a typed literal's call holds plain arguments and at least one, NULLIF takes two values, UNIQUE is not
+	/// implemented, EXTRACT's field is no key word, an integer must fit 32 bits, and a subscript is not empty.
+	/// </summary>
 	[Theory]
 	[InlineData("a < b < c")]
+	[InlineData("a = b = c")]
 	[InlineData("a = ")]
+	[InlineData("a IS DISTINCT FROM b IS NULL")]
+	[InlineData("a IS DISTINCT FROM b IS DISTINCT FROM c")]
 	[InlineData("ARRAY[1, [2]]")]
-	public void What_the_ladder_cannot_group_is_refused(string text)
+	[InlineData("a = ANY (1, 2)")]
+	[InlineData("f(x).y")]
+	[InlineData("f(x)[1]")]
+	[InlineData("ARRAY[1, 2][1]")]
+	[InlineData("'abc'[1]")]
+	[InlineData("ROW(1, 2).f")]
+	[InlineData("CASE a WHEN 1 THEN 2 END[1]")]
+	[InlineData("f(DISTINCT a ORDER BY b) 'x'")]
+	[InlineData("f(a := 1) 'x'")]
+	[InlineData("f(VARIADIC a) 'x'")]
+	[InlineData("f(*) 'x'")]
+	[InlineData("f() 'x'")]
+	[InlineData("numeric '1' 'x'")]
+	[InlineData("NULLIF(a)")]
+	[InlineData("NULLIF(a, b, c)")]
+	[InlineData("UNIQUE (SELECT 1)")]
+	[InlineData("EXTRACT(true FROM x)")]
+	[InlineData("EXTRACT(name FROM x)")]
+	[InlineData("POSITION(a IN b IN c)")]
+	[InlineData("x::int[99999999999]")]
+	[InlineData("x::int[2147483648]")]
+	[InlineData("varchar(99999999999) 'x'")]
+	[InlineData("interval(99999999999) '1'")]
+	[InlineData("a[]")]
+	public void What_the_server_refuses_is_refused(string text)
 	{
 		Assert.False(PostgreSqlParser.TryParseExpression(text).IsSuccess);
 	}
@@ -188,6 +276,31 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("(a).*",                        "Wildcard")]
 	[InlineData("a.b[1].c",                     "Member over Element over Reference")]
 	[InlineData("$1::int",                      "Cast over Parameter")]
+	[InlineData("$1[1]",                        "Element over Parameter")]
+	[InlineData("(SELECT 1)[1]",                "Element over Subquery")]
+	[InlineData("a[1:2][3]",                    "Element over Element slice")]
+	[InlineData("a[:]",                         "Element slice open both")]
+	[InlineData("1 IN ((SELECT 1), 2)",         "In values with a subquery")]
+	[InlineData("1 IN ((SELECT 1))",            "In subquery bracketed")]
+	[InlineData("a = ANY ((SELECT 1) || b)",    "QuantifiedOperation over Concatenate")]
+	[InlineData("a = ANY ((1, 2))",             "QuantifiedOperation over Row")]
+	[InlineData("((SELECT 1) UNION (SELECT 2)) + 1", "Subquery with set operations")]
+	[InlineData("1 IN ((SELECT 1) INTERSECT (SELECT 2) UNION (SELECT 3))", "In subquery with set operations")]
+	[InlineData("date $$2024-01-01$$",          "typed literal dollar date")]
+	[InlineData("int4 E'1'",                    "typed literal escape string")]
+	[InlineData("numeric(10, 2) U&'1'",         "typed literal unicode string")]
+	[InlineData("timestamp(3) E'x'",            "typed literal escape string timestamp")]
+	[InlineData("INTERVAL E'1' DAY",            "typed literal escape string interval")]
+	[InlineData("x::int[0x10]",                 "Array bound in hex")]
+	[InlineData("numeric(0x3) '1'",             "typed literal hex precision")]
+	[InlineData("numeric(2147483648) '1'",      "typed literal numeric by name")]
+	[InlineData("numeric(1.5) '1'",             "typed literal numeric by name")]
+	[InlineData("EXTRACT(\"year\" FROM a)",     "Extract quoted field")]
+	[InlineData("EXTRACT('year' FROM a)",       "Extract string field")]
+	[InlineData("EXTRACT(E'year' FROM a)",      "Extract escape string field")]
+	[InlineData("CURRENT_SCHEMA()",             "Invocation current_schema")]
+	[InlineData("CURRENT_SCHEMA",               "Current schema")]
+	[InlineData("POSITION(a = b IN c)",         "Position over Comparison")]
 	public void A_primary_builds_its_record(string text, string expected)
 	{
 		var value = Value(text);
@@ -233,6 +346,30 @@ public sealed class PostgreSqlExpressionTests
 			"Wildcard"                   => value is Expression.Wildcard { Kind: WildcardKind.Member },
 			"Member over Element over Reference" => value is Expression.Member { Target: Expression.Element { Collection: Expression.Reference { Name.Count: 2 } } },
 			"Cast over Parameter"        => value is Expression.Cast { Value: Expression.Parameter { Ordinal: 1 } },
+			"Element over Parameter"     => value is Expression.Element { Collection: Expression.Parameter },
+			"Element over Subquery"      => value is Expression.Element { Collection: Expression.Subquery },
+			"Element over Element slice" => value is Expression.Element { Colon: false, Collection: Expression.Element { Colon: true } },
+			"Element slice open both"    => value is Expression.Element { Index: null, To: null, Colon: true },
+			"In values with a subquery"  => value is Expression.In { SourceValue: InSource.Values { Items: [Expression.Subquery, LiteralValue.Numeric] } },
+			"In subquery bracketed"      => value is Expression.In { SourceValue: InSource.Subquery { Query: Query.Parenthesized } },
+			"QuantifiedOperation over Concatenate" => value is Expression.QuantifiedOperation { Right: Expression.Binary { Operator: BinaryOperator.Concatenate, Left: Expression.Subquery } },
+			"QuantifiedOperation over Row" => value is Expression.QuantifiedOperation { Right: Expression.Row { RowKeyword: false } },
+			"Subquery with set operations" => value is Expression.Binary { Left: Expression.Subquery { Query: Query.Parenthesized { SetOperations: [{ Operator: SetOperator.Union, Query: Query.Parenthesized }] } } },
+			"In subquery with set operations" => value is Expression.In { SourceValue: InSource.Subquery { Query: Query.Parenthesized { SetOperations: [{ Operator: SetOperator.Intersect }, { Operator: SetOperator.Union }] } } },
+			"typed literal dollar date"  => value is Expression.Cast { Spelling: CastSpelling.TypedLiteral, Target: DataType.DateTime { Kind: DateTimeTypeKind.Date }, Value: LiteralValue.String { Kind: StringLiteralKind.Dollar } },
+			"typed literal escape string" => value is Expression.Cast { Spelling: CastSpelling.TypedLiteral, Target: DataType.Numeric { Kind: NumericTypeKind.Int4 }, Value: LiteralValue.String { Kind: StringLiteralKind.Escaped } },
+			"typed literal unicode string" => value is Expression.Cast { Spelling: CastSpelling.TypedLiteral, Target: DataType.Numeric { Precision: 10, Scale: 2 }, Value: LiteralValue.String { Kind: StringLiteralKind.Unicode } },
+			"typed literal escape string timestamp" => value is Expression.Cast { Spelling: CastSpelling.TypedLiteral, Target: DataType.DateTime { Kind: DateTimeTypeKind.Timestamp, Precision: 3 }, Value: LiteralValue.String { Kind: StringLiteralKind.Escaped } },
+			"typed literal escape string interval" => value is Expression.Cast { Spelling: CastSpelling.TypedLiteral, Target: DataType.Interval { Qualifier.Start: DateTimeField.Day }, Value: LiteralValue.String { Kind: StringLiteralKind.Escaped } },
+			"Array bound in hex"         => value is Expression.Cast { Target: DataType.Array { MaximumCardinality: 16, Brackets: true } },
+			"typed literal hex precision" => value is Expression.Cast { Target: DataType.Numeric { Precision: 3 } },
+			"typed literal numeric by name" => value is Expression.Cast { Target: DataType.Named { Name: [{ Text: "numeric" }], Arguments.Count: 1 } },
+			"Extract quoted field"       => value is Expression.Extract { Field: null, NamedField: Expression.Reference { Name: [{ Style: IdentifierStyle.Delimited }] } },
+			"Extract string field"       => value is Expression.Extract { Field: null, NamedField: LiteralValue.String { Kind: StringLiteralKind.Character } },
+			"Extract escape string field" => value is Expression.Extract { Field: null, NamedField: LiteralValue.String { Kind: StringLiteralKind.Escaped } },
+			"Invocation current_schema"  => value is Expression.Invocation { Arguments.Count: 0 },
+			"Current schema"             => value is Expression.Current { Kind: CurrentValue.Schema },
+			"Position over Comparison"   => value is Expression.Position { Value: Expression.Comparison },
 			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
 		};
 
@@ -316,6 +453,19 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("SELECT 1 UNION ALL SELECT 2 INTERSECT SELECT 3", "intersect tighter")]
 	[InlineData("(SELECT 1) UNION (SELECT 2)",                    "bracketed operands")]
 	[InlineData("SELECT (SELECT 1) FROM t",                       "subquery in the list")]
+	[InlineData("SELECT ALL FROM t",                              "all and no targets")]
+	// What the server refuses: a bracketed source that is no join, a join with neither NATURAL nor its condition or
+	// with both, OUTER with no direction, ONLY with the inheritance star, DISTINCT with no target list.
+	[InlineData("SELECT * FROM (a)",                              "refused: a bracketed name")]
+	[InlineData("SELECT * FROM ((SELECT 1) x)",                   "refused: a bracketed subquery source")]
+	[InlineData("SELECT * FROM t JOIN u",                         "refused: a join without its condition")]
+	[InlineData("SELECT * FROM t NATURAL JOIN u ON true",         "refused: NATURAL with a condition")]
+	[InlineData("SELECT * FROM t CROSS JOIN u ON true",           "refused: CROSS JOIN with a condition")]
+	[InlineData("SELECT * FROM t OUTER JOIN u ON true",           "refused: OUTER without a direction")]
+	[InlineData("SELECT * FROM t INNER OUTER JOIN u ON true",     "refused: INNER OUTER")]
+	[InlineData("SELECT * FROM ONLY t *",                         "refused: ONLY with the star")]
+	[InlineData("SELECT DISTINCT FROM t",                         "refused: DISTINCT without targets")]
+	[InlineData("SELECT DISTINCT ON (a) FROM t",                  "refused: DISTINCT ON without targets")]
 	public void A_query_builds_its_record(string text, string expected)
 	{
 		if (expected.StartsWith("refused", StringComparison.Ordinal))
@@ -344,12 +494,14 @@ public sealed class PostgreSqlExpressionTests
 			"intersect tighter"     => query is Query.Select { SetOperations: [{ Operator: SetOperator.UnionAll, Query: Query.Select { SetOperations: [{ Operator: SetOperator.Intersect }] } }] },
 			"bracketed operands"    => query is Query.Parenthesized { SetOperations: [{ Operator: SetOperator.Union, Query: Query.Parenthesized }] },
 			"subquery in the list"  => query is Query.Select { Columns: [SelectColumn.ExpressionItem { Expression: Expression.Subquery }] },
+			"all and no targets"    => query is Query.Select { Quantifier: SetQuantifier.All, Columns.Count: 0, From: not null },
 			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
 		};
 
 		Assert.True(holds, $"{text}: {query}");
 	}
 
+	/// <summary>A text of statements holds empty ones too, as the server's stmtmulti does; one statement is one, with its semicolon or without.</summary>
 	[Fact]
 	public void A_text_of_statements_is_read_each_ended_by_a_semicolon_or_the_end()
 	{
@@ -357,6 +509,12 @@ public sealed class PostgreSqlExpressionTests
 
 		Assert.Equal(3, statements.Length);
 		Assert.Empty(PostgreSqlParser.ParseSql(""));
+		Assert.Empty(PostgreSqlParser.ParseSql(";;"));
+		Assert.Single(PostgreSqlParser.ParseSql(";; SELECT 1;;"));
+		Assert.True(PostgreSqlParser.TryParseStatement("SELECT 1;").IsSuccess);
+		Assert.True(PostgreSqlParser.TryParseStatement("SELECT 1;;").IsSuccess);
+		Assert.False(PostgreSqlParser.TryParseStatement("SELECT 1; SELECT 2").IsSuccess);
+		Assert.False(PostgreSqlParser.TryParseStatement("").IsSuccess);
 	}
 
 	// ── Identity with the standard's reading ───────────────────────────────────
@@ -392,6 +550,10 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("SELECT SUM(DISTINCT a) FILTER (WHERE b) FROM t")]
 	[InlineData("SELECT a FROM t WHERE NOT (a = 1 OR b = 2) AND c")]
 	[InlineData("SELECT 0x1F, 1_000, U&\"a\" FROM t")]
+	[InlineData("SELECT a FROM t WHERE a IN ((SELECT a FROM u))")]
+	[InlineData("SELECT a FROM t WHERE NOT a IS NULL")]
+	[InlineData("SELECT (a), ((a)), ((SELECT 1 FROM u)) FROM t")]
+	[InlineData("SELECT a FROM t WHERE a = b OR c IS NULL AND NOT d")]
 	public void A_text_both_grammars_read_is_one_tree(string text)
 	{
 		var standard   = SqlStandardParser.ParseStatement(text);

@@ -30,7 +30,7 @@ Three sources appear in the tables:
 | `SQL:2023` | ISO/IEC 9075:2023, by production. `SqlStandard.gram` is written from its BNF. |
 | `SQL-92` | ISO/IEC 9075:1992, for what SQL-92 has and SQL:2003 took out: a string of bits. |
 | `T-SQL` | Microsoft's reference, by the page's own title. Everything SQL Server has and the standard does not. |
-| PostgreSQL | The PostgreSQL manual, by the page's own title. What PostgreSQL has and the standard does not. |
+| `PostgreSQL` | The PostgreSQL manual, by the page's own title. What PostgreSQL has and the standard does not. |
 
 ## The shape
 
@@ -772,9 +772,6 @@ it. The families stand in alphabetical order, each family's records in the order
 | `Expression.OperatorCall` | PostgreSQL | Operators |
 | `Expression.QuantifiedOperation` | PostgreSQL | Row and Array Comparisons |
 | `Expression.IsDocument` | PostgreSQL | XML Predicates |
-| `QuantifiedOperator.Comparison` | PostgreSQL | Row and Array Comparisons |
-| `QuantifiedOperator.Like` | PostgreSQL | Row and Array Comparisons |
-| `QuantifiedOperator.Named` | PostgreSQL | Row and Array Comparisons |
 | `Expression.IsNormalized` | SQL:2023 | under &lt;value expression&gt; and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars |
 | `Expression.MemberOf` | SQL:2023 | under &lt;value expression&gt; and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars |
 | `Expression.SubmultisetOf` | SQL:2023 | under &lt;value expression&gt; and all numeric/string/datetime/interval/boolean/predicate/value-primary subgrammars |
@@ -975,6 +972,9 @@ it. The families stand in alphabetical order, each family's records in the order
 | `PolicyPredicate.DropBlock` | T-SQL | DROP BLOCK PREDICATE ON t [AFTER INSERT] — under CREATE SECURITY POLICY (Transact-SQL) |
 | `PrivilegeObject.Named` | T-SQL | GRANT Object Permissions (Transact-SQL) |
 | `PrivilegeObject.Classed` | T-SQL | GRANT (Transact-SQL) |
+| `QuantifiedOperator.Comparison` | PostgreSQL | Row and Array Comparisons |
+| `QuantifiedOperator.Like` | PostgreSQL | Row and Array Comparisons |
+| `QuantifiedOperator.Named` | PostgreSQL | Row and Array Comparisons |
 | `Query.Select` | SQL:2023 | &lt;query specification&gt;, &lt;table value constructor&gt;, &lt;explicit table&gt; |
 | `Query.Parenthesized` | SQL:2023 | A pair of brackets written around a query — under &lt;query expression&gt;, &lt;query expression body&gt;, &lt;query term&gt;, &lt;query primary&gt; |
 | `QueryHint.Named` | T-SQL | A hint of one word, with or without a value — under Query Hints (Transact-SQL) |

@@ -567,7 +567,7 @@ NumericType : @DataType
 	= kind: ("INT"i | "INTEGER"i | "SMALLINT"i | "BIGINT"i | "REAL"i | "INT2"i | "INT4"i | "INT8"i | "FLOAT4"i | "FLOAT8"i) => @(Nodes.Numeric(kind, null, null))
 	| "FLOAT"i & ('(' & p: Integer & when @(Nodes.FitsInteger(p)) & ')')? => @(Nodes.Numeric("FLOAT", p, null))
 	| "DOUBLE"i & "PRECISION"i => @(Nodes.Numeric("DOUBLE PRECISION", null, null))
-	| kind: ("DECIMAL"i | "DEC"i | "NUMERIC"i) & ('(' & p: Integer & when @(Nodes.FitsInteger(p)) & (',' & s: Integer & when @(Nodes.FitsInteger(s)))? & ')')? => @(Nodes.Numeric(kind, p, s))
+	| kind: ("DECIMAL"i | "DEC"i | "NUMERIC"i) & ('(' & a: AExpr & (',' & b: AExpr)* & ')')? => @(Nodes.Exact(kind, a, b))
 	| "BOOLEAN"i => @(new DataType.Boolean())
 	| "BOOL"i => @(new DataType.Boolean { Abbreviated = true })
 

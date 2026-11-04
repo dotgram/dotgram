@@ -915,7 +915,10 @@ public sealed class SqlWriterCoverageTests
 			var off = Written(pair.Off);
 			// Only a flag no place reads yet may be refused; every other one must be written.
 			// A spelling only another dialect's writer prints is refused by the standard's, which is its text being lost on purpose.
-			var on  = name is "Option.EqualsOmitted" or "BitString.Hexadecimal" or "Named.Star" ? WrittenOrRefused(pair.On) : Written(pair.On);
+			var on  = name is "Option.EqualsOmitted" or "BitString.Hexadecimal" or "Named.Star" or "IsNull.Postfix" or "Element.Colon" or "Substring.ForFirst"
+				or "Array.Brackets" or "DateTime.Abbreviated" or "Boolean.Abbreviated" or "Argument.ColonEquals"
+				? WrittenOrRefused(pair.On)
+				: Written(pair.On);
 
 			Assert.True(
 				(off is null && on is null) || off != on,
@@ -2324,11 +2327,26 @@ new TableSource.ContainsTable(T, [Searched(), new Expression.Asterisk()], A, nul
 
 	// A value the writer refuses outright is not a silent one, so a throw is read as "it has text for
 	// this and declines to print it here", which is what the throwing default is for.
+	/// <summary>
+	/// The standard's text for the node, or PostgreSQL's where the standard refuses the node as one only PostgreSQL reads
+	/// (marked as such, so that it is never the same text as the standard's for another value), or "(refused)".
+	/// </summary>
 	static string? Write(Func<object, ISqlNode> build, object value)
 	{
 		try
 		{
 			return SqlWriter.Write(build(value));
+		}
+		catch (ArgumentException)
+		{
+			try
+			{
+				return "PostgreSQL: " + PostgreSqlWriter.Write(build(value));
+			}
+			catch (Exception)
+			{
+				return "(refused)";
+			}
 		}
 		catch (Exception)
 		{
