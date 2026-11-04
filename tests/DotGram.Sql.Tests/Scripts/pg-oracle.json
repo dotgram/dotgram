@@ -1389,6 +1389,257 @@
 			"name": "from_three_part_name",
 			"text": "SELECT * FROM a.b.c",
 			"accepted": true
+		},
+		{
+			"name": "begin_modes",
+			"text": "BEGIN WORK ISOLATION LEVEL SERIALIZABLE, READ ONLY DEFERRABLE",
+			"accepted": true
+		},
+		{
+			"name": "begin_comma_first",
+			"text": "BEGIN, READ ONLY",
+			"accepted": false,
+			"error": "syntax error at or near \",\", at index 5"
+		},
+		{
+			"name": "end_chain",
+			"text": "END TRANSACTION AND NO CHAIN",
+			"accepted": true
+		},
+		{
+			"name": "abort_work",
+			"text": "ABORT WORK AND CHAIN",
+			"accepted": true
+		},
+		{
+			"name": "rollback_to_bare",
+			"text": "ROLLBACK TRANSACTION TO s",
+			"accepted": true
+		},
+		{
+			"name": "rollback_to_chain",
+			"text": "ROLLBACK TO s AND CHAIN",
+			"accepted": false,
+			"error": "syntax error at or near \"AND\", at index 14"
+		},
+		{
+			"name": "release_bare",
+			"text": "RELEASE s",
+			"accepted": true
+		},
+		{
+			"name": "two_phase",
+			"text": "PREPARE TRANSACTION 'gid'; COMMIT PREPARED 'gid'; ROLLBACK PREPARED E'g\\id'",
+			"accepted": true
+		},
+		{
+			"name": "set_session_transaction",
+			"text": "SET SESSION TRANSACTION READ WRITE",
+			"accepted": true
+		},
+		{
+			"name": "set_transaction_snapshot",
+			"text": "SET LOCAL TRANSACTION SNAPSHOT '000003A1-1'",
+			"accepted": true
+		},
+		{
+			"name": "set_local_session_characteristics",
+			"text": "SET LOCAL SESSION CHARACTERISTICS AS TRANSACTION READ ONLY",
+			"accepted": true
+		},
+		{
+			"name": "set_characteristics_bare",
+			"text": "SET CHARACTERISTICS AS TRANSACTION READ ONLY",
+			"accepted": false,
+			"error": "syntax error at or near \"AS\", at index 20"
+		},
+		{
+			"name": "set_session_session_authorization",
+			"text": "SET SESSION SESSION AUTHORIZATION 'u'",
+			"accepted": true
+		},
+		{
+			"name": "set_local_authorization",
+			"text": "SET LOCAL AUTHORIZATION x",
+			"accepted": false,
+			"error": "syntax error at or near \"AUTHORIZATION\", at index 10"
+		},
+		{
+			"name": "set_catalog",
+			"text": "SET CATALOG 'x'",
+			"accepted": false,
+			"error": "current database cannot be changed, at index 12"
+		},
+		{
+			"name": "set_time_zone_forms",
+			"text": "SET TIME ZONE 'UTC'; SET LOCAL TIME ZONE LOCAL; SET TIME ZONE INTERVAL '+01:00' HOUR TO MINUTE; SET TIME ZONE -7; SET TIME ZONE DEFAULT; SET TIME ZONE utc",
+			"accepted": true
+		},
+		{
+			"name": "set_names_forms",
+			"text": "SET NAMES 'UTF8'; SET NAMES; SET NAMES DEFAULT",
+			"accepted": true
+		},
+		{
+			"name": "set_role_none",
+			"text": "SET LOCAL ROLE NONE",
+			"accepted": true
+		},
+		{
+			"name": "set_xml_option",
+			"text": "SET XML OPTION DOCUMENT",
+			"accepted": true
+		},
+		{
+			"name": "set_parameter_forms",
+			"text": "SET search_path TO a, \"B\", 'c'; SET LOCAL s.p = on; SET p TO DEFAULT; SET p = -1.5; SET p = true; SET p FROM CURRENT",
+			"accepted": true
+		},
+		{
+			"name": "set_parameter_named_like_a_form",
+			"text": "SET time TO 1; SET role TO 'x'; SET names TO 'x'; SET session TO 1; SET transaction = 1",
+			"accepted": true
+		},
+		{
+			"name": "set_no_value",
+			"text": "SET p",
+			"accepted": false,
+			"error": "syntax error at end of input"
+		},
+		{
+			"name": "set_constraints",
+			"text": "SET CONSTRAINTS ALL DEFERRED; SET CONSTRAINTS a, s.b IMMEDIATE",
+			"accepted": true
+		},
+		{
+			"name": "show_forms",
+			"text": "SHOW search_path; SHOW ALL; SHOW TIME ZONE; SHOW TRANSACTION ISOLATION LEVEL; SHOW SESSION AUTHORIZATION",
+			"accepted": true
+		},
+		{
+			"name": "reset_forms",
+			"text": "RESET s.p; RESET ALL; RESET TIME ZONE; RESET time",
+			"accepted": true
+		},
+		{
+			"name": "explain_forms",
+			"text": "EXPLAIN SELECT 1; EXPLAIN ANALYZE VERBOSE INSERT INTO t DEFAULT VALUES; EXPLAIN VERBOSE WITH x AS (SELECT 1) SELECT * FROM x; EXPLAIN (ANALYSE, COSTS off, FORMAT json, BUFFERS, TIMING false, SERIALIZE 'text') EXECUTE p(1)",
+			"accepted": true
+		},
+		{
+			"name": "explain_explain",
+			"text": "EXPLAIN EXPLAIN SELECT 1",
+			"accepted": false,
+			"error": "syntax error at or near \"EXPLAIN\", at index 8"
+		},
+		{
+			"name": "explain_truncate",
+			"text": "EXPLAIN TRUNCATE t",
+			"accepted": false,
+			"error": "syntax error at or near \"TRUNCATE\", at index 8"
+		},
+		{
+			"name": "call_named_argument",
+			"text": "CALL p(1, b => 2)",
+			"accepted": true
+		},
+		{
+			"name": "call_over",
+			"text": "CALL f(a) OVER ()",
+			"accepted": false,
+			"error": "syntax error at or near \"OVER\", at index 10"
+		},
+		{
+			"name": "do_forms",
+			"text": "DO $$ BEGIN END $$; DO LANGUAGE plpgsql 'x'; DO 'x' LANGUAGE 'sql'",
+			"accepted": true
+		},
+		{
+			"name": "do_no_body",
+			"text": "DO LANGUAGE sql",
+			"accepted": true,
+			"server": false,
+			"note": "functioncmds.c ExecuteDoStmt; the server refuses (no inline code specified) before anything runs, libpg_query 18.6 reads it"
+		},
+		{
+			"name": "do_two_bodies",
+			"text": "DO 'x' 'y'",
+			"accepted": true,
+			"server": false,
+			"note": "functioncmds.c ExecuteDoStmt; the server refuses (conflicting or redundant options) before anything runs, libpg_query 18.6 reads it"
+		},
+		{
+			"name": "do_two_languages",
+			"text": "DO 'x' LANGUAGE a LANGUAGE b",
+			"accepted": true,
+			"server": false,
+			"note": "functioncmds.c ExecuteDoStmt; the server refuses (conflicting or redundant options) before anything runs, libpg_query 18.6 reads it"
+		},
+		{
+			"name": "prepare_forms",
+			"text": "PREPARE p (int, text[]) AS SELECT $1, $2; PREPARE p AS INSERT INTO t VALUES ($1)",
+			"accepted": true
+		},
+		{
+			"name": "prepare_truncate",
+			"text": "PREPARE p AS TRUNCATE t",
+			"accepted": false,
+			"error": "syntax error at or near \"TRUNCATE\", at index 13"
+		},
+		{
+			"name": "prepare_execute",
+			"text": "PREPARE p AS EXECUTE q",
+			"accepted": false,
+			"error": "syntax error at or near \"EXECUTE\", at index 13"
+		},
+		{
+			"name": "execute_forms",
+			"text": "EXECUTE p; EXECUTE p(1, 'x')",
+			"accepted": true
+		},
+		{
+			"name": "execute_empty_brackets",
+			"text": "EXECUTE p()",
+			"accepted": false,
+			"error": "syntax error at or near \")\", at index 10"
+		},
+		{
+			"name": "deallocate_forms",
+			"text": "DEALLOCATE p; DEALLOCATE PREPARE p; DEALLOCATE ALL; DEALLOCATE PREPARE ALL; DEALLOCATE prepare",
+			"accepted": true
+		},
+		{
+			"name": "listen_notify",
+			"text": "LISTEN c; UNLISTEN c; UNLISTEN *; NOTIFY c; NOTIFY c, 'payload'",
+			"accepted": true
+		},
+		{
+			"name": "lock_forms",
+			"text": "LOCK TABLE a, ONLY b, c * IN SHARE UPDATE EXCLUSIVE MODE NOWAIT; LOCK t; LOCK t IN ACCESS EXCLUSIVE MODE",
+			"accepted": true
+		},
+		{
+			"name": "lock_mode_twice",
+			"text": "LOCK t IN SHARE MODE MODE",
+			"accepted": false,
+			"error": "syntax error at or near \"MODE\", at index 21"
+		},
+		{
+			"name": "discard_forms",
+			"text": "DISCARD ALL; DISCARD TEMPORARY; DISCARD TEMP; DISCARD PLANS; DISCARD SEQUENCES; CHECKPOINT",
+			"accepted": true
+		},
+		{
+			"name": "discard_plan",
+			"text": "DISCARD PLAN",
+			"accepted": false,
+			"error": "syntax error at or near \"PLAN\", at index 8"
+		},
+		{
+			"name": "with_before_commit",
+			"text": "WITH x AS (SELECT 1) COMMIT",
+			"accepted": false,
+			"error": "syntax error at or near \"COMMIT\", at index 21"
 		}
 	]
 }

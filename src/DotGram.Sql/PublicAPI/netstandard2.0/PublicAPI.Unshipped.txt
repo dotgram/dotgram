@@ -64,6 +64,11 @@ DotGram.Sql.Ast.DataType.Interval.Interval(DotGram.Sql.Ast.IntervalQualifier? Qu
 DotGram.Sql.Ast.DataType.Interval.Precision.get -> int?
 DotGram.Sql.Ast.DataType.Interval.Precision.init -> void
 DotGram.Sql.Ast.DataType.Interval.Qualifier.get -> DotGram.Sql.Ast.IntervalQualifier?
+DotGram.Sql.Ast.DiscardTarget
+DotGram.Sql.Ast.DiscardTarget.All = 0 -> DotGram.Sql.Ast.DiscardTarget
+DotGram.Sql.Ast.DiscardTarget.Plans = 1 -> DotGram.Sql.Ast.DiscardTarget
+DotGram.Sql.Ast.DiscardTarget.Sequences = 2 -> DotGram.Sql.Ast.DiscardTarget
+DotGram.Sql.Ast.DiscardTarget.Temp = 3 -> DotGram.Sql.Ast.DiscardTarget
 DotGram.Sql.Ast.Expression.Cast.Spelling.get -> DotGram.Sql.Ast.CastSpelling?
 DotGram.Sql.Ast.Expression.Cast.Spelling.init -> void
 DotGram.Sql.Ast.Expression.Element.Colon.get -> bool
@@ -129,6 +134,15 @@ DotGram.Sql.Ast.LiteralValue.BitString.Hexadecimal.init -> void
 DotGram.Sql.Ast.LiteralValue.Interval.Deconstruct(out string! Text, out DotGram.Sql.Ast.IntervalQualifier? Qualifier, out DotGram.Sql.Ast.UnaryOperator? Sign) -> void
 DotGram.Sql.Ast.LiteralValue.Interval.Interval(string! Text, DotGram.Sql.Ast.IntervalQualifier? Qualifier, DotGram.Sql.Ast.UnaryOperator? Sign = null) -> void
 DotGram.Sql.Ast.LiteralValue.Interval.Qualifier.get -> DotGram.Sql.Ast.IntervalQualifier?
+DotGram.Sql.Ast.LockMode
+DotGram.Sql.Ast.LockMode.AccessExclusive = 7 -> DotGram.Sql.Ast.LockMode
+DotGram.Sql.Ast.LockMode.AccessShare = 0 -> DotGram.Sql.Ast.LockMode
+DotGram.Sql.Ast.LockMode.Exclusive = 6 -> DotGram.Sql.Ast.LockMode
+DotGram.Sql.Ast.LockMode.RowExclusive = 2 -> DotGram.Sql.Ast.LockMode
+DotGram.Sql.Ast.LockMode.RowShare = 1 -> DotGram.Sql.Ast.LockMode
+DotGram.Sql.Ast.LockMode.Share = 4 -> DotGram.Sql.Ast.LockMode
+DotGram.Sql.Ast.LockMode.ShareRowExclusive = 5 -> DotGram.Sql.Ast.LockMode
+DotGram.Sql.Ast.LockMode.ShareUpdateExclusive = 3 -> DotGram.Sql.Ast.LockMode
 DotGram.Sql.Ast.LockWait
 DotGram.Sql.Ast.LockWait.NoWait = 0 -> DotGram.Sql.Ast.LockWait
 DotGram.Sql.Ast.LockWait.SkipLocked = 1 -> DotGram.Sql.Ast.LockWait
@@ -148,6 +162,11 @@ DotGram.Sql.Ast.NumericTypeKind.Int2 = 11 -> DotGram.Sql.Ast.NumericTypeKind
 DotGram.Sql.Ast.NumericTypeKind.Int4 = 12 -> DotGram.Sql.Ast.NumericTypeKind
 DotGram.Sql.Ast.NumericTypeKind.Int8 = 13 -> DotGram.Sql.Ast.NumericTypeKind
 DotGram.Sql.Ast.ParameterKind.Positional = 4 -> DotGram.Sql.Ast.ParameterKind
+DotGram.Sql.Ast.ParameterSpelling
+DotGram.Sql.Ast.ParameterSpelling.SessionAuthorization = 2 -> DotGram.Sql.Ast.ParameterSpelling
+DotGram.Sql.Ast.ParameterSpelling.TimeZone = 0 -> DotGram.Sql.Ast.ParameterSpelling
+DotGram.Sql.Ast.ParameterSpelling.TransactionIsolationLevel = 1 -> DotGram.Sql.Ast.ParameterSpelling
+DotGram.Sql.Ast.ParameterSpelling.XmlOption = 3 -> DotGram.Sql.Ast.ParameterSpelling
 DotGram.Sql.Ast.PostgreSqlWriter
 DotGram.Sql.Ast.QuantifiedOperator
 DotGram.Sql.Ast.QuantifiedOperator.Comparison
@@ -221,24 +240,191 @@ DotGram.Sql.Ast.RowsFromItem.Invocation.init -> void
 DotGram.Sql.Ast.RowsFromItem.Locate(int at, int length) -> void
 DotGram.Sql.Ast.RowsFromItem.RowsFromItem(DotGram.Sql.Ast.Expression.Invocation! Invocation, DotGram.Sql.SqlList<DotGram.Sql.Ast.FieldDefinition!>? ColumnDefinitions = null) -> void
 DotGram.Sql.Ast.RowsFromItem.Span.get -> DotGram.Sql.SqlSpan
+DotGram.Sql.Ast.SetScope
+DotGram.Sql.Ast.SetScope.Local = 1 -> DotGram.Sql.Ast.SetScope
+DotGram.Sql.Ast.SetScope.Session = 0 -> DotGram.Sql.Ast.SetScope
+DotGram.Sql.Ast.Statement.Commit.End.get -> bool
+DotGram.Sql.Ast.Statement.Commit.End.init -> void
+DotGram.Sql.Ast.Statement.CommitPrepared
+DotGram.Sql.Ast.Statement.CommitPrepared.CommitPrepared(DotGram.Sql.Ast.LiteralValue.String! Id) -> void
+DotGram.Sql.Ast.Statement.CommitPrepared.Deconstruct(out DotGram.Sql.Ast.LiteralValue.String! Id) -> void
+DotGram.Sql.Ast.Statement.CommitPrepared.Equals(DotGram.Sql.Ast.Statement.CommitPrepared? other) -> bool
+DotGram.Sql.Ast.Statement.CommitPrepared.Id.get -> DotGram.Sql.Ast.LiteralValue.String!
+DotGram.Sql.Ast.Statement.CommitPrepared.Id.init -> void
+DotGram.Sql.Ast.Statement.DeallocateAll
+DotGram.Sql.Ast.Statement.DeallocateAll.DeallocateAll() -> void
+DotGram.Sql.Ast.Statement.DeallocateAll.Equals(DotGram.Sql.Ast.Statement.DeallocateAll? other) -> bool
+DotGram.Sql.Ast.Statement.DeallocateAll.PrepareKeyword.get -> bool
+DotGram.Sql.Ast.Statement.DeallocateAll.PrepareKeyword.init -> void
+DotGram.Sql.Ast.Statement.DeallocatePrepare.PrepareOmitted.get -> bool
+DotGram.Sql.Ast.Statement.DeallocatePrepare.PrepareOmitted.init -> void
 DotGram.Sql.Ast.Statement.Delete.Returning.get -> DotGram.Sql.Ast.ReturningClause?
 DotGram.Sql.Ast.Statement.Delete.Returning.init -> void
 DotGram.Sql.Ast.Statement.Delete.Using.get -> DotGram.Sql.Ast.FromClause?
 DotGram.Sql.Ast.Statement.Delete.Using.init -> void
+DotGram.Sql.Ast.Statement.Discard
+DotGram.Sql.Ast.Statement.Discard.Deconstruct(out DotGram.Sql.Ast.DiscardTarget Target) -> void
+DotGram.Sql.Ast.Statement.Discard.Discard(DotGram.Sql.Ast.DiscardTarget Target) -> void
+DotGram.Sql.Ast.Statement.Discard.Equals(DotGram.Sql.Ast.Statement.Discard? other) -> bool
+DotGram.Sql.Ast.Statement.Discard.Target.get -> DotGram.Sql.Ast.DiscardTarget
+DotGram.Sql.Ast.Statement.Discard.Target.init -> void
+DotGram.Sql.Ast.Statement.Discard.Temporary.get -> bool
+DotGram.Sql.Ast.Statement.Discard.Temporary.init -> void
+DotGram.Sql.Ast.Statement.Do
+DotGram.Sql.Ast.Statement.Do.Body.get -> DotGram.Sql.Ast.LiteralValue.String!
+DotGram.Sql.Ast.Statement.Do.Body.init -> void
+DotGram.Sql.Ast.Statement.Do.Deconstruct(out DotGram.Sql.Ast.LiteralValue.String! Body, out DotGram.Sql.Ast.Expression? Language) -> void
+DotGram.Sql.Ast.Statement.Do.Do(DotGram.Sql.Ast.LiteralValue.String! Body, DotGram.Sql.Ast.Expression? Language = null) -> void
+DotGram.Sql.Ast.Statement.Do.Equals(DotGram.Sql.Ast.Statement.Do? other) -> bool
+DotGram.Sql.Ast.Statement.Do.Language.get -> DotGram.Sql.Ast.Expression?
+DotGram.Sql.Ast.Statement.Do.Language.init -> void
+DotGram.Sql.Ast.Statement.Do.LanguageFirst.get -> bool
+DotGram.Sql.Ast.Statement.Do.LanguageFirst.init -> void
+DotGram.Sql.Ast.Statement.Explain
+DotGram.Sql.Ast.Statement.Explain.Bare.get -> bool
+DotGram.Sql.Ast.Statement.Explain.Bare.init -> void
+DotGram.Sql.Ast.Statement.Explain.Deconstruct(out DotGram.Sql.SqlList<DotGram.Sql.Ast.Option!> Options, out DotGram.Sql.Ast.Statement! Statement) -> void
+DotGram.Sql.Ast.Statement.Explain.Equals(DotGram.Sql.Ast.Statement.Explain? other) -> bool
+DotGram.Sql.Ast.Statement.Explain.Explain(DotGram.Sql.SqlList<DotGram.Sql.Ast.Option!> Options, DotGram.Sql.Ast.Statement! Statement) -> void
+DotGram.Sql.Ast.Statement.Explain.Options.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.Option!>
+DotGram.Sql.Ast.Statement.Explain.Options.init -> void
+DotGram.Sql.Ast.Statement.Explain.Statement.get -> DotGram.Sql.Ast.Statement!
+DotGram.Sql.Ast.Statement.Explain.Statement.init -> void
 DotGram.Sql.Ast.Statement.Insert.Alias.get -> DotGram.Sql.Ast.Alias?
 DotGram.Sql.Ast.Statement.Insert.Alias.init -> void
 DotGram.Sql.Ast.Statement.Insert.Conflicts.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.ConflictClause!>
 DotGram.Sql.Ast.Statement.Insert.Conflicts.init -> void
 DotGram.Sql.Ast.Statement.Insert.Returning.get -> DotGram.Sql.Ast.ReturningClause?
 DotGram.Sql.Ast.Statement.Insert.Returning.init -> void
+DotGram.Sql.Ast.Statement.Listen
+DotGram.Sql.Ast.Statement.Listen.Channel.get -> DotGram.Sql.Ast.Identifier!
+DotGram.Sql.Ast.Statement.Listen.Channel.init -> void
+DotGram.Sql.Ast.Statement.Listen.Deconstruct(out DotGram.Sql.Ast.Identifier! Channel) -> void
+DotGram.Sql.Ast.Statement.Listen.Equals(DotGram.Sql.Ast.Statement.Listen? other) -> bool
+DotGram.Sql.Ast.Statement.Listen.Listen(DotGram.Sql.Ast.Identifier! Channel) -> void
+DotGram.Sql.Ast.Statement.LockTable
+DotGram.Sql.Ast.Statement.LockTable.Deconstruct(out DotGram.Sql.SqlList<DotGram.Sql.Ast.TableSource!> Tables) -> void
+DotGram.Sql.Ast.Statement.LockTable.Equals(DotGram.Sql.Ast.Statement.LockTable? other) -> bool
+DotGram.Sql.Ast.Statement.LockTable.LockTable(DotGram.Sql.SqlList<DotGram.Sql.Ast.TableSource!> Tables) -> void
+DotGram.Sql.Ast.Statement.LockTable.Mode.get -> DotGram.Sql.Ast.LockMode?
+DotGram.Sql.Ast.Statement.LockTable.Mode.init -> void
+DotGram.Sql.Ast.Statement.LockTable.NoWait.get -> bool
+DotGram.Sql.Ast.Statement.LockTable.NoWait.init -> void
+DotGram.Sql.Ast.Statement.LockTable.TableOmitted.get -> bool
+DotGram.Sql.Ast.Statement.LockTable.TableOmitted.init -> void
+DotGram.Sql.Ast.Statement.LockTable.Tables.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.TableSource!>
+DotGram.Sql.Ast.Statement.LockTable.Tables.init -> void
 DotGram.Sql.Ast.Statement.Merge.Returning.get -> DotGram.Sql.Ast.ReturningClause?
 DotGram.Sql.Ast.Statement.Merge.Returning.init -> void
+DotGram.Sql.Ast.Statement.Notify
+DotGram.Sql.Ast.Statement.Notify.Channel.get -> DotGram.Sql.Ast.Identifier!
+DotGram.Sql.Ast.Statement.Notify.Channel.init -> void
+DotGram.Sql.Ast.Statement.Notify.Deconstruct(out DotGram.Sql.Ast.Identifier! Channel, out DotGram.Sql.Ast.LiteralValue.String? Payload) -> void
+DotGram.Sql.Ast.Statement.Notify.Equals(DotGram.Sql.Ast.Statement.Notify? other) -> bool
+DotGram.Sql.Ast.Statement.Notify.Notify(DotGram.Sql.Ast.Identifier! Channel, DotGram.Sql.Ast.LiteralValue.String? Payload = null) -> void
+DotGram.Sql.Ast.Statement.Notify.Payload.get -> DotGram.Sql.Ast.LiteralValue.String?
+DotGram.Sql.Ast.Statement.Notify.Payload.init -> void
+DotGram.Sql.Ast.Statement.PreparePlan
+DotGram.Sql.Ast.Statement.PreparePlan.Body.get -> DotGram.Sql.Ast.Statement!
+DotGram.Sql.Ast.Statement.PreparePlan.Body.init -> void
+DotGram.Sql.Ast.Statement.PreparePlan.Deconstruct(out DotGram.Sql.Ast.Identifier! Name, out DotGram.Sql.SqlList<DotGram.Sql.Ast.DataType!> ParameterTypes, out DotGram.Sql.Ast.Statement! Body) -> void
+DotGram.Sql.Ast.Statement.PreparePlan.Equals(DotGram.Sql.Ast.Statement.PreparePlan? other) -> bool
+DotGram.Sql.Ast.Statement.PreparePlan.Name.get -> DotGram.Sql.Ast.Identifier!
+DotGram.Sql.Ast.Statement.PreparePlan.Name.init -> void
+DotGram.Sql.Ast.Statement.PreparePlan.ParameterTypes.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.DataType!>
+DotGram.Sql.Ast.Statement.PreparePlan.ParameterTypes.init -> void
+DotGram.Sql.Ast.Statement.PreparePlan.PreparePlan(DotGram.Sql.Ast.Identifier! Name, DotGram.Sql.SqlList<DotGram.Sql.Ast.DataType!> ParameterTypes, DotGram.Sql.Ast.Statement! Body) -> void
+DotGram.Sql.Ast.Statement.PrepareTransaction
+DotGram.Sql.Ast.Statement.PrepareTransaction.Deconstruct(out DotGram.Sql.Ast.LiteralValue.String! Id) -> void
+DotGram.Sql.Ast.Statement.PrepareTransaction.Equals(DotGram.Sql.Ast.Statement.PrepareTransaction? other) -> bool
+DotGram.Sql.Ast.Statement.PrepareTransaction.Id.get -> DotGram.Sql.Ast.LiteralValue.String!
+DotGram.Sql.Ast.Statement.PrepareTransaction.Id.init -> void
+DotGram.Sql.Ast.Statement.PrepareTransaction.PrepareTransaction(DotGram.Sql.Ast.LiteralValue.String! Id) -> void
+DotGram.Sql.Ast.Statement.ReleaseSavepoint.SavepointKeywordOmitted.get -> bool
+DotGram.Sql.Ast.Statement.ReleaseSavepoint.SavepointKeywordOmitted.init -> void
+DotGram.Sql.Ast.Statement.ResetParameter
+DotGram.Sql.Ast.Statement.ResetParameter.Deconstruct(out DotGram.Sql.Ast.QualifiedName? Name) -> void
+DotGram.Sql.Ast.Statement.ResetParameter.Equals(DotGram.Sql.Ast.Statement.ResetParameter? other) -> bool
+DotGram.Sql.Ast.Statement.ResetParameter.Name.get -> DotGram.Sql.Ast.QualifiedName?
+DotGram.Sql.Ast.Statement.ResetParameter.Name.init -> void
+DotGram.Sql.Ast.Statement.ResetParameter.ResetParameter(DotGram.Sql.Ast.QualifiedName? Name) -> void
+DotGram.Sql.Ast.Statement.ResetParameter.Spelling.get -> DotGram.Sql.Ast.ParameterSpelling?
+DotGram.Sql.Ast.Statement.ResetParameter.Spelling.init -> void
+DotGram.Sql.Ast.Statement.Rollback.Abort.get -> bool
+DotGram.Sql.Ast.Statement.Rollback.Abort.init -> void
+DotGram.Sql.Ast.Statement.Rollback.SavepointKeywordOmitted.get -> bool
+DotGram.Sql.Ast.Statement.Rollback.SavepointKeywordOmitted.init -> void
+DotGram.Sql.Ast.Statement.RollbackPrepared
+DotGram.Sql.Ast.Statement.RollbackPrepared.Deconstruct(out DotGram.Sql.Ast.LiteralValue.String! Id) -> void
+DotGram.Sql.Ast.Statement.RollbackPrepared.Equals(DotGram.Sql.Ast.Statement.RollbackPrepared? other) -> bool
+DotGram.Sql.Ast.Statement.RollbackPrepared.Id.get -> DotGram.Sql.Ast.LiteralValue.String!
+DotGram.Sql.Ast.Statement.RollbackPrepared.Id.init -> void
+DotGram.Sql.Ast.Statement.RollbackPrepared.RollbackPrepared(DotGram.Sql.Ast.LiteralValue.String! Id) -> void
+DotGram.Sql.Ast.Statement.SetNames.Scope.get -> DotGram.Sql.Ast.SetScope?
+DotGram.Sql.Ast.Statement.SetNames.Scope.init -> void
+DotGram.Sql.Ast.Statement.SetNames.Value.get -> DotGram.Sql.Ast.Expression?
+DotGram.Sql.Ast.Statement.SetParameter
+DotGram.Sql.Ast.Statement.SetParameter.Deconstruct(out DotGram.Sql.Ast.QualifiedName Name, out DotGram.Sql.SqlList<DotGram.Sql.Ast.Expression!> Values) -> void
+DotGram.Sql.Ast.Statement.SetParameter.Equals(DotGram.Sql.Ast.Statement.SetParameter? other) -> bool
+DotGram.Sql.Ast.Statement.SetParameter.EqualsSign.get -> bool
+DotGram.Sql.Ast.Statement.SetParameter.EqualsSign.init -> void
+DotGram.Sql.Ast.Statement.SetParameter.FromCurrent.get -> bool
+DotGram.Sql.Ast.Statement.SetParameter.FromCurrent.init -> void
+DotGram.Sql.Ast.Statement.SetParameter.Name.get -> DotGram.Sql.Ast.QualifiedName
+DotGram.Sql.Ast.Statement.SetParameter.Name.init -> void
+DotGram.Sql.Ast.Statement.SetParameter.Scope.get -> DotGram.Sql.Ast.SetScope?
+DotGram.Sql.Ast.Statement.SetParameter.Scope.init -> void
+DotGram.Sql.Ast.Statement.SetParameter.SetParameter(DotGram.Sql.Ast.QualifiedName Name, DotGram.Sql.SqlList<DotGram.Sql.Ast.Expression!> Values) -> void
+DotGram.Sql.Ast.Statement.SetParameter.Spelling.get -> DotGram.Sql.Ast.ParameterSpelling?
+DotGram.Sql.Ast.Statement.SetParameter.Spelling.init -> void
+DotGram.Sql.Ast.Statement.SetParameter.Values.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.Expression!>
+DotGram.Sql.Ast.Statement.SetParameter.Values.init -> void
+DotGram.Sql.Ast.Statement.SetRole.Scope.get -> DotGram.Sql.Ast.SetScope?
+DotGram.Sql.Ast.Statement.SetRole.Scope.init -> void
+DotGram.Sql.Ast.Statement.SetSchema.Scope.get -> DotGram.Sql.Ast.SetScope?
+DotGram.Sql.Ast.Statement.SetSchema.Scope.init -> void
+DotGram.Sql.Ast.Statement.SetSessionAuthorization.Scope.get -> DotGram.Sql.Ast.SetScope?
+DotGram.Sql.Ast.Statement.SetSessionAuthorization.Scope.init -> void
+DotGram.Sql.Ast.Statement.SetSessionCharacteristics.Scope.get -> DotGram.Sql.Ast.SetScope?
+DotGram.Sql.Ast.Statement.SetSessionCharacteristics.Scope.init -> void
+DotGram.Sql.Ast.Statement.SetTimeZone.Scope.get -> DotGram.Sql.Ast.SetScope?
+DotGram.Sql.Ast.Statement.SetTimeZone.Scope.init -> void
+DotGram.Sql.Ast.Statement.SetTransaction.Session.get -> bool
+DotGram.Sql.Ast.Statement.SetTransaction.Session.init -> void
+DotGram.Sql.Ast.Statement.SetTransactionSnapshot
+DotGram.Sql.Ast.Statement.SetTransactionSnapshot.Deconstruct(out DotGram.Sql.Ast.LiteralValue.String! Snapshot) -> void
+DotGram.Sql.Ast.Statement.SetTransactionSnapshot.Equals(DotGram.Sql.Ast.Statement.SetTransactionSnapshot? other) -> bool
+DotGram.Sql.Ast.Statement.SetTransactionSnapshot.Scope.get -> DotGram.Sql.Ast.SetScope?
+DotGram.Sql.Ast.Statement.SetTransactionSnapshot.Scope.init -> void
+DotGram.Sql.Ast.Statement.SetTransactionSnapshot.SetTransactionSnapshot(DotGram.Sql.Ast.LiteralValue.String! Snapshot) -> void
+DotGram.Sql.Ast.Statement.SetTransactionSnapshot.Snapshot.get -> DotGram.Sql.Ast.LiteralValue.String!
+DotGram.Sql.Ast.Statement.SetTransactionSnapshot.Snapshot.init -> void
+DotGram.Sql.Ast.Statement.ShowParameter
+DotGram.Sql.Ast.Statement.ShowParameter.Deconstruct(out DotGram.Sql.Ast.QualifiedName? Name) -> void
+DotGram.Sql.Ast.Statement.ShowParameter.Equals(DotGram.Sql.Ast.Statement.ShowParameter? other) -> bool
+DotGram.Sql.Ast.Statement.ShowParameter.Name.get -> DotGram.Sql.Ast.QualifiedName?
+DotGram.Sql.Ast.Statement.ShowParameter.Name.init -> void
+DotGram.Sql.Ast.Statement.ShowParameter.ShowParameter(DotGram.Sql.Ast.QualifiedName? Name) -> void
+DotGram.Sql.Ast.Statement.ShowParameter.Spelling.get -> DotGram.Sql.Ast.ParameterSpelling?
+DotGram.Sql.Ast.Statement.ShowParameter.Spelling.init -> void
+DotGram.Sql.Ast.Statement.StartTransaction.Begin.get -> bool
+DotGram.Sql.Ast.Statement.StartTransaction.Begin.init -> void
+DotGram.Sql.Ast.Statement.StartTransaction.Keyword.get -> DotGram.Sql.Ast.TransactionKeyword?
+DotGram.Sql.Ast.Statement.StartTransaction.Keyword.init -> void
+DotGram.Sql.Ast.Statement.StartTransaction.Work.get -> bool
+DotGram.Sql.Ast.Statement.StartTransaction.Work.init -> void
 DotGram.Sql.Ast.Statement.TruncateTable.Behavior.get -> DotGram.Sql.Ast.DropBehavior?
 DotGram.Sql.Ast.Statement.TruncateTable.Behavior.init -> void
 DotGram.Sql.Ast.Statement.TruncateTable.Others.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.TableSource!>
 DotGram.Sql.Ast.Statement.TruncateTable.Others.init -> void
 DotGram.Sql.Ast.Statement.TruncateTable.TableOmitted.get -> bool
 DotGram.Sql.Ast.Statement.TruncateTable.TableOmitted.init -> void
+DotGram.Sql.Ast.Statement.Unlisten
+DotGram.Sql.Ast.Statement.Unlisten.Channel.get -> DotGram.Sql.Ast.Identifier?
+DotGram.Sql.Ast.Statement.Unlisten.Channel.init -> void
+DotGram.Sql.Ast.Statement.Unlisten.Deconstruct(out DotGram.Sql.Ast.Identifier? Channel) -> void
+DotGram.Sql.Ast.Statement.Unlisten.Equals(DotGram.Sql.Ast.Statement.Unlisten? other) -> bool
+DotGram.Sql.Ast.Statement.Unlisten.Unlisten(DotGram.Sql.Ast.Identifier? Channel) -> void
 DotGram.Sql.Ast.Statement.Update.Returning.get -> DotGram.Sql.Ast.ReturningClause?
 DotGram.Sql.Ast.Statement.Update.Returning.init -> void
 DotGram.Sql.Ast.StringLiteralKind.Dollar = 4 -> DotGram.Sql.Ast.StringLiteralKind
@@ -269,6 +455,12 @@ DotGram.Sql.Ast.TableSource.RowsFrom.WithOrdinality.get -> bool
 DotGram.Sql.Ast.TableSource.RowsFrom.WithOrdinality.init -> void
 DotGram.Sql.Ast.TableSource.Unnest.Lateral.get -> bool
 DotGram.Sql.Ast.TableSource.Unnest.Lateral.init -> void
+DotGram.Sql.Ast.TransactionMode.Deferrable
+DotGram.Sql.Ast.TransactionMode.Deferrable.Deconstruct(out bool Not) -> void
+DotGram.Sql.Ast.TransactionMode.Deferrable.Deferrable(bool Not) -> void
+DotGram.Sql.Ast.TransactionMode.Deferrable.Equals(DotGram.Sql.Ast.TransactionMode.Deferrable? other) -> bool
+DotGram.Sql.Ast.TransactionMode.Deferrable.Not.get -> bool
+DotGram.Sql.Ast.TransactionMode.Deferrable.Not.init -> void
 DotGram.Sql.PostgreSql.PostgreSqlParser
 DotGram.Sql.PostgreSql.PostgreSqlParser.Located
 DotGram.Sql.PostgreSql.PostgreSqlParser.Match<T>
@@ -374,10 +566,78 @@ override DotGram.Sql.Ast.ReturningClause.ToString() -> string!
 override DotGram.Sql.Ast.RowsFromItem.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.RowsFromItem.GetHashCode() -> int
 override DotGram.Sql.Ast.RowsFromItem.ToString() -> string!
+override DotGram.Sql.Ast.Statement.CommitPrepared.<Clone>$() -> DotGram.Sql.Ast.Statement!
+override DotGram.Sql.Ast.Statement.CommitPrepared.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Statement.CommitPrepared.GetHashCode() -> int
+override DotGram.Sql.Ast.Statement.CommitPrepared.ToString() -> string!
+override DotGram.Sql.Ast.Statement.DeallocateAll.<Clone>$() -> DotGram.Sql.Ast.Statement!
+override DotGram.Sql.Ast.Statement.DeallocateAll.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Statement.DeallocateAll.GetHashCode() -> int
+override DotGram.Sql.Ast.Statement.DeallocateAll.ToString() -> string!
+override DotGram.Sql.Ast.Statement.Discard.<Clone>$() -> DotGram.Sql.Ast.Statement!
+override DotGram.Sql.Ast.Statement.Discard.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Statement.Discard.GetHashCode() -> int
+override DotGram.Sql.Ast.Statement.Discard.ToString() -> string!
+override DotGram.Sql.Ast.Statement.Do.<Clone>$() -> DotGram.Sql.Ast.Statement!
+override DotGram.Sql.Ast.Statement.Do.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Statement.Do.GetHashCode() -> int
+override DotGram.Sql.Ast.Statement.Do.ToString() -> string!
+override DotGram.Sql.Ast.Statement.Explain.<Clone>$() -> DotGram.Sql.Ast.Statement!
+override DotGram.Sql.Ast.Statement.Explain.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Statement.Explain.GetHashCode() -> int
+override DotGram.Sql.Ast.Statement.Explain.ToString() -> string!
+override DotGram.Sql.Ast.Statement.Listen.<Clone>$() -> DotGram.Sql.Ast.Statement!
+override DotGram.Sql.Ast.Statement.Listen.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Statement.Listen.GetHashCode() -> int
+override DotGram.Sql.Ast.Statement.Listen.ToString() -> string!
+override DotGram.Sql.Ast.Statement.LockTable.<Clone>$() -> DotGram.Sql.Ast.Statement!
+override DotGram.Sql.Ast.Statement.LockTable.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Statement.LockTable.GetHashCode() -> int
+override DotGram.Sql.Ast.Statement.LockTable.ToString() -> string!
+override DotGram.Sql.Ast.Statement.Notify.<Clone>$() -> DotGram.Sql.Ast.Statement!
+override DotGram.Sql.Ast.Statement.Notify.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Statement.Notify.GetHashCode() -> int
+override DotGram.Sql.Ast.Statement.Notify.ToString() -> string!
+override DotGram.Sql.Ast.Statement.PreparePlan.<Clone>$() -> DotGram.Sql.Ast.Statement!
+override DotGram.Sql.Ast.Statement.PreparePlan.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Statement.PreparePlan.GetHashCode() -> int
+override DotGram.Sql.Ast.Statement.PreparePlan.ToString() -> string!
+override DotGram.Sql.Ast.Statement.PrepareTransaction.<Clone>$() -> DotGram.Sql.Ast.Statement!
+override DotGram.Sql.Ast.Statement.PrepareTransaction.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Statement.PrepareTransaction.GetHashCode() -> int
+override DotGram.Sql.Ast.Statement.PrepareTransaction.ToString() -> string!
+override DotGram.Sql.Ast.Statement.ResetParameter.<Clone>$() -> DotGram.Sql.Ast.Statement!
+override DotGram.Sql.Ast.Statement.ResetParameter.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Statement.ResetParameter.GetHashCode() -> int
+override DotGram.Sql.Ast.Statement.ResetParameter.ToString() -> string!
+override DotGram.Sql.Ast.Statement.RollbackPrepared.<Clone>$() -> DotGram.Sql.Ast.Statement!
+override DotGram.Sql.Ast.Statement.RollbackPrepared.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Statement.RollbackPrepared.GetHashCode() -> int
+override DotGram.Sql.Ast.Statement.RollbackPrepared.ToString() -> string!
+override DotGram.Sql.Ast.Statement.SetParameter.<Clone>$() -> DotGram.Sql.Ast.Statement!
+override DotGram.Sql.Ast.Statement.SetParameter.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Statement.SetParameter.GetHashCode() -> int
+override DotGram.Sql.Ast.Statement.SetParameter.ToString() -> string!
+override DotGram.Sql.Ast.Statement.SetTransactionSnapshot.<Clone>$() -> DotGram.Sql.Ast.Statement!
+override DotGram.Sql.Ast.Statement.SetTransactionSnapshot.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Statement.SetTransactionSnapshot.GetHashCode() -> int
+override DotGram.Sql.Ast.Statement.SetTransactionSnapshot.ToString() -> string!
+override DotGram.Sql.Ast.Statement.ShowParameter.<Clone>$() -> DotGram.Sql.Ast.Statement!
+override DotGram.Sql.Ast.Statement.ShowParameter.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Statement.ShowParameter.GetHashCode() -> int
+override DotGram.Sql.Ast.Statement.ShowParameter.ToString() -> string!
+override DotGram.Sql.Ast.Statement.Unlisten.<Clone>$() -> DotGram.Sql.Ast.Statement!
+override DotGram.Sql.Ast.Statement.Unlisten.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Statement.Unlisten.GetHashCode() -> int
+override DotGram.Sql.Ast.Statement.Unlisten.ToString() -> string!
 override DotGram.Sql.Ast.TableSource.RowsFrom.<Clone>$() -> DotGram.Sql.Ast.TableSource!
 override DotGram.Sql.Ast.TableSource.RowsFrom.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.TableSource.RowsFrom.GetHashCode() -> int
 override DotGram.Sql.Ast.TableSource.RowsFrom.ToString() -> string!
+override DotGram.Sql.Ast.TransactionMode.Deferrable.<Clone>$() -> DotGram.Sql.Ast.TransactionMode!
+override DotGram.Sql.Ast.TransactionMode.Deferrable.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.TransactionMode.Deferrable.GetHashCode() -> int
+override DotGram.Sql.Ast.TransactionMode.Deferrable.ToString() -> string!
 override DotGram.Sql.PostgreSql.PostgreSqlParser.SourceSpan.ToString() -> string!
 override sealed DotGram.Sql.Ast.ConflictResolution.Nothing.Equals(DotGram.Sql.Ast.ConflictResolution? other) -> bool
 override sealed DotGram.Sql.Ast.ConflictResolution.Update.Equals(DotGram.Sql.Ast.ConflictResolution? other) -> bool
@@ -393,7 +653,24 @@ override sealed DotGram.Sql.Ast.QuantifiedOperator.Named.Equals(DotGram.Sql.Ast.
 override sealed DotGram.Sql.Ast.Query.DataChange.Equals(DotGram.Sql.Ast.Query? other) -> bool
 override sealed DotGram.Sql.Ast.ReturningClause.Output.Equals(DotGram.Sql.Ast.ReturningClause? other) -> bool
 override sealed DotGram.Sql.Ast.ReturningClause.Returned.Equals(DotGram.Sql.Ast.ReturningClause? other) -> bool
+override sealed DotGram.Sql.Ast.Statement.CommitPrepared.Equals(DotGram.Sql.Ast.Statement? other) -> bool
+override sealed DotGram.Sql.Ast.Statement.DeallocateAll.Equals(DotGram.Sql.Ast.Statement? other) -> bool
+override sealed DotGram.Sql.Ast.Statement.Discard.Equals(DotGram.Sql.Ast.Statement? other) -> bool
+override sealed DotGram.Sql.Ast.Statement.Do.Equals(DotGram.Sql.Ast.Statement? other) -> bool
+override sealed DotGram.Sql.Ast.Statement.Explain.Equals(DotGram.Sql.Ast.Statement? other) -> bool
+override sealed DotGram.Sql.Ast.Statement.Listen.Equals(DotGram.Sql.Ast.Statement? other) -> bool
+override sealed DotGram.Sql.Ast.Statement.LockTable.Equals(DotGram.Sql.Ast.Statement? other) -> bool
+override sealed DotGram.Sql.Ast.Statement.Notify.Equals(DotGram.Sql.Ast.Statement? other) -> bool
+override sealed DotGram.Sql.Ast.Statement.PreparePlan.Equals(DotGram.Sql.Ast.Statement? other) -> bool
+override sealed DotGram.Sql.Ast.Statement.PrepareTransaction.Equals(DotGram.Sql.Ast.Statement? other) -> bool
+override sealed DotGram.Sql.Ast.Statement.ResetParameter.Equals(DotGram.Sql.Ast.Statement? other) -> bool
+override sealed DotGram.Sql.Ast.Statement.RollbackPrepared.Equals(DotGram.Sql.Ast.Statement? other) -> bool
+override sealed DotGram.Sql.Ast.Statement.SetParameter.Equals(DotGram.Sql.Ast.Statement? other) -> bool
+override sealed DotGram.Sql.Ast.Statement.SetTransactionSnapshot.Equals(DotGram.Sql.Ast.Statement? other) -> bool
+override sealed DotGram.Sql.Ast.Statement.ShowParameter.Equals(DotGram.Sql.Ast.Statement? other) -> bool
+override sealed DotGram.Sql.Ast.Statement.Unlisten.Equals(DotGram.Sql.Ast.Statement? other) -> bool
 override sealed DotGram.Sql.Ast.TableSource.RowsFrom.Equals(DotGram.Sql.Ast.TableSource? other) -> bool
+override sealed DotGram.Sql.Ast.TransactionMode.Deferrable.Equals(DotGram.Sql.Ast.TransactionMode? other) -> bool
 static DotGram.Sql.Ast.ConflictClause.operator !=(DotGram.Sql.Ast.ConflictClause? left, DotGram.Sql.Ast.ConflictClause? right) -> bool
 static DotGram.Sql.Ast.ConflictClause.operator ==(DotGram.Sql.Ast.ConflictClause? left, DotGram.Sql.Ast.ConflictClause? right) -> bool
 static DotGram.Sql.Ast.ConflictResolution.Nothing.operator !=(DotGram.Sql.Ast.ConflictResolution.Nothing? left, DotGram.Sql.Ast.ConflictResolution.Nothing? right) -> bool
@@ -435,8 +712,42 @@ static DotGram.Sql.Ast.ReturningClause.operator !=(DotGram.Sql.Ast.ReturningClau
 static DotGram.Sql.Ast.ReturningClause.operator ==(DotGram.Sql.Ast.ReturningClause? left, DotGram.Sql.Ast.ReturningClause? right) -> bool
 static DotGram.Sql.Ast.RowsFromItem.operator !=(DotGram.Sql.Ast.RowsFromItem? left, DotGram.Sql.Ast.RowsFromItem? right) -> bool
 static DotGram.Sql.Ast.RowsFromItem.operator ==(DotGram.Sql.Ast.RowsFromItem? left, DotGram.Sql.Ast.RowsFromItem? right) -> bool
+static DotGram.Sql.Ast.Statement.CommitPrepared.operator !=(DotGram.Sql.Ast.Statement.CommitPrepared? left, DotGram.Sql.Ast.Statement.CommitPrepared? right) -> bool
+static DotGram.Sql.Ast.Statement.CommitPrepared.operator ==(DotGram.Sql.Ast.Statement.CommitPrepared? left, DotGram.Sql.Ast.Statement.CommitPrepared? right) -> bool
+static DotGram.Sql.Ast.Statement.DeallocateAll.operator !=(DotGram.Sql.Ast.Statement.DeallocateAll? left, DotGram.Sql.Ast.Statement.DeallocateAll? right) -> bool
+static DotGram.Sql.Ast.Statement.DeallocateAll.operator ==(DotGram.Sql.Ast.Statement.DeallocateAll? left, DotGram.Sql.Ast.Statement.DeallocateAll? right) -> bool
+static DotGram.Sql.Ast.Statement.Discard.operator !=(DotGram.Sql.Ast.Statement.Discard? left, DotGram.Sql.Ast.Statement.Discard? right) -> bool
+static DotGram.Sql.Ast.Statement.Discard.operator ==(DotGram.Sql.Ast.Statement.Discard? left, DotGram.Sql.Ast.Statement.Discard? right) -> bool
+static DotGram.Sql.Ast.Statement.Do.operator !=(DotGram.Sql.Ast.Statement.Do? left, DotGram.Sql.Ast.Statement.Do? right) -> bool
+static DotGram.Sql.Ast.Statement.Do.operator ==(DotGram.Sql.Ast.Statement.Do? left, DotGram.Sql.Ast.Statement.Do? right) -> bool
+static DotGram.Sql.Ast.Statement.Explain.operator !=(DotGram.Sql.Ast.Statement.Explain? left, DotGram.Sql.Ast.Statement.Explain? right) -> bool
+static DotGram.Sql.Ast.Statement.Explain.operator ==(DotGram.Sql.Ast.Statement.Explain? left, DotGram.Sql.Ast.Statement.Explain? right) -> bool
+static DotGram.Sql.Ast.Statement.Listen.operator !=(DotGram.Sql.Ast.Statement.Listen? left, DotGram.Sql.Ast.Statement.Listen? right) -> bool
+static DotGram.Sql.Ast.Statement.Listen.operator ==(DotGram.Sql.Ast.Statement.Listen? left, DotGram.Sql.Ast.Statement.Listen? right) -> bool
+static DotGram.Sql.Ast.Statement.LockTable.operator !=(DotGram.Sql.Ast.Statement.LockTable? left, DotGram.Sql.Ast.Statement.LockTable? right) -> bool
+static DotGram.Sql.Ast.Statement.LockTable.operator ==(DotGram.Sql.Ast.Statement.LockTable? left, DotGram.Sql.Ast.Statement.LockTable? right) -> bool
+static DotGram.Sql.Ast.Statement.Notify.operator !=(DotGram.Sql.Ast.Statement.Notify? left, DotGram.Sql.Ast.Statement.Notify? right) -> bool
+static DotGram.Sql.Ast.Statement.Notify.operator ==(DotGram.Sql.Ast.Statement.Notify? left, DotGram.Sql.Ast.Statement.Notify? right) -> bool
+static DotGram.Sql.Ast.Statement.PreparePlan.operator !=(DotGram.Sql.Ast.Statement.PreparePlan? left, DotGram.Sql.Ast.Statement.PreparePlan? right) -> bool
+static DotGram.Sql.Ast.Statement.PreparePlan.operator ==(DotGram.Sql.Ast.Statement.PreparePlan? left, DotGram.Sql.Ast.Statement.PreparePlan? right) -> bool
+static DotGram.Sql.Ast.Statement.PrepareTransaction.operator !=(DotGram.Sql.Ast.Statement.PrepareTransaction? left, DotGram.Sql.Ast.Statement.PrepareTransaction? right) -> bool
+static DotGram.Sql.Ast.Statement.PrepareTransaction.operator ==(DotGram.Sql.Ast.Statement.PrepareTransaction? left, DotGram.Sql.Ast.Statement.PrepareTransaction? right) -> bool
+static DotGram.Sql.Ast.Statement.ResetParameter.operator !=(DotGram.Sql.Ast.Statement.ResetParameter? left, DotGram.Sql.Ast.Statement.ResetParameter? right) -> bool
+static DotGram.Sql.Ast.Statement.ResetParameter.operator ==(DotGram.Sql.Ast.Statement.ResetParameter? left, DotGram.Sql.Ast.Statement.ResetParameter? right) -> bool
+static DotGram.Sql.Ast.Statement.RollbackPrepared.operator !=(DotGram.Sql.Ast.Statement.RollbackPrepared? left, DotGram.Sql.Ast.Statement.RollbackPrepared? right) -> bool
+static DotGram.Sql.Ast.Statement.RollbackPrepared.operator ==(DotGram.Sql.Ast.Statement.RollbackPrepared? left, DotGram.Sql.Ast.Statement.RollbackPrepared? right) -> bool
+static DotGram.Sql.Ast.Statement.SetParameter.operator !=(DotGram.Sql.Ast.Statement.SetParameter? left, DotGram.Sql.Ast.Statement.SetParameter? right) -> bool
+static DotGram.Sql.Ast.Statement.SetParameter.operator ==(DotGram.Sql.Ast.Statement.SetParameter? left, DotGram.Sql.Ast.Statement.SetParameter? right) -> bool
+static DotGram.Sql.Ast.Statement.SetTransactionSnapshot.operator !=(DotGram.Sql.Ast.Statement.SetTransactionSnapshot? left, DotGram.Sql.Ast.Statement.SetTransactionSnapshot? right) -> bool
+static DotGram.Sql.Ast.Statement.SetTransactionSnapshot.operator ==(DotGram.Sql.Ast.Statement.SetTransactionSnapshot? left, DotGram.Sql.Ast.Statement.SetTransactionSnapshot? right) -> bool
+static DotGram.Sql.Ast.Statement.ShowParameter.operator !=(DotGram.Sql.Ast.Statement.ShowParameter? left, DotGram.Sql.Ast.Statement.ShowParameter? right) -> bool
+static DotGram.Sql.Ast.Statement.ShowParameter.operator ==(DotGram.Sql.Ast.Statement.ShowParameter? left, DotGram.Sql.Ast.Statement.ShowParameter? right) -> bool
+static DotGram.Sql.Ast.Statement.Unlisten.operator !=(DotGram.Sql.Ast.Statement.Unlisten? left, DotGram.Sql.Ast.Statement.Unlisten? right) -> bool
+static DotGram.Sql.Ast.Statement.Unlisten.operator ==(DotGram.Sql.Ast.Statement.Unlisten? left, DotGram.Sql.Ast.Statement.Unlisten? right) -> bool
 static DotGram.Sql.Ast.TableSource.RowsFrom.operator !=(DotGram.Sql.Ast.TableSource.RowsFrom? left, DotGram.Sql.Ast.TableSource.RowsFrom? right) -> bool
 static DotGram.Sql.Ast.TableSource.RowsFrom.operator ==(DotGram.Sql.Ast.TableSource.RowsFrom? left, DotGram.Sql.Ast.TableSource.RowsFrom? right) -> bool
+static DotGram.Sql.Ast.TransactionMode.Deferrable.operator !=(DotGram.Sql.Ast.TransactionMode.Deferrable? left, DotGram.Sql.Ast.TransactionMode.Deferrable? right) -> bool
+static DotGram.Sql.Ast.TransactionMode.Deferrable.operator ==(DotGram.Sql.Ast.TransactionMode.Deferrable? left, DotGram.Sql.Ast.TransactionMode.Deferrable? right) -> bool
 static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.ParseExpression(string! input) -> DotGram.Sql.Ast.Expression!
 static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.ParseSql(string! input) -> DotGram.Sql.Ast.Statement![]!
 static DotGram.Sql.PostgreSql.PostgreSqlParser.Located.ParseStatement(string! input) -> DotGram.Sql.Ast.Statement!
@@ -532,6 +843,7 @@ virtual DotGram.Sql.Ast.ReturningClause.PrintMembers(System.Text.StringBuilder! 
 *REMOVED*DotGram.Sql.Ast.Statement.Insert.Output.init -> void
 *REMOVED*DotGram.Sql.Ast.Statement.Merge.Output.get -> DotGram.Sql.Ast.OutputClause?
 *REMOVED*DotGram.Sql.Ast.Statement.Merge.Output.init -> void
+*REMOVED*DotGram.Sql.Ast.Statement.SetNames.Value.get -> DotGram.Sql.Ast.Expression!
 *REMOVED*DotGram.Sql.Ast.Statement.Update.Output.get -> DotGram.Sql.Ast.OutputClause?
 *REMOVED*DotGram.Sql.Ast.Statement.Update.Output.init -> void
 *REMOVED*override DotGram.Sql.Ast.OutputClause.Equals(object? obj) -> bool
