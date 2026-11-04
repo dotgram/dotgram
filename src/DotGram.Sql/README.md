@@ -161,6 +161,10 @@ All three of these parsers may be called from any number of threads at once; tha
 generated parser's own contract, not something this package adds
 ([`DotGram`'s README](https://github.com/dotgram/dotgram/blob/main/src/DotGram/README.md#threads)).
 
+Each parser class also has a public `Scan(ReadOnlySpan<char> text, int pos, out int kind)`, the
+scanner of its lexer. The `kind` it gives is the grammar's own numbering of its tokens, which no
+constant names and which changes whenever the grammar does: it is not stable before 1.0.
+
 ## Taking one
 
 ```xml
