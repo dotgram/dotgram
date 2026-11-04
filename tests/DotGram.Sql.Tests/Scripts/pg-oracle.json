@@ -1092,6 +1092,96 @@
 			"text": "SELECT a OVERLAPS (1, 2)",
 			"accepted": false,
 			"error": "syntax error at or near \"OVERLAPS\", at index 9"
+		},
+		{
+			"name": "rows_from_definitions",
+			"text": "SELECT * FROM ROWS FROM (f()) AS t (b int), ROWS FROM (g()) AS (c text)",
+			"accepted": true
+		},
+		{
+			"name": "rollup_of_nothing",
+			"text": "SELECT a FROM t GROUP BY ROLLUP()",
+			"accepted": false,
+			"error": "syntax error at or near \")\", at index 32"
+		},
+		{
+			"name": "rollup_with_order_by",
+			"text": "SELECT a FROM t GROUP BY ROLLUP(a ORDER BY b)",
+			"accepted": false,
+			"error": "syntax error at or near \"ORDER\", at index 34"
+		},
+		{
+			"name": "cube_with_named_argument",
+			"text": "SELECT a FROM t GROUP BY CUBE(a, x := 1)",
+			"accepted": false,
+			"error": "syntax error at or near \":=\", at index 35"
+		},
+		{
+			"name": "rollup_with_distinct",
+			"text": "SELECT a FROM t GROUP BY rollup(DISTINCT a)",
+			"accepted": false,
+			"error": "syntax error at or near \"DISTINCT\", at index 32"
+		},
+		{
+			"name": "rollup_over_a_call",
+			"text": "SELECT a FROM t GROUP BY ROLLUP(ROLLUP(a)), CUBE(cube(b))",
+			"accepted": true
+		},
+		{
+			"name": "fetch_after_bracketed_limit",
+			"text": "(SELECT 1 LIMIT 1) FETCH FIRST ROW ONLY",
+			"accepted": false,
+			"error": "multiple LIMIT clauses not allowed, at index 19"
+		},
+		{
+			"name": "ties_and_skip_locked",
+			"text": "SELECT a FROM t ORDER BY a FETCH FIRST 1 ROWS WITH TIES FOR UPDATE SKIP LOCKED",
+			"accepted": false,
+			"error": "SKIP LOCKED and WITH TIES options cannot be used together, at index 46"
+		},
+		{
+			"name": "ties_inside_skip_locked_outside",
+			"text": "SELECT * FROM (SELECT a FROM t ORDER BY a FETCH FIRST 1 ROWS WITH TIES) s FOR UPDATE SKIP LOCKED",
+			"accepted": true
+		},
+		{
+			"name": "over_partition_name",
+			"text": "SELECT sum(a) OVER (partition) FROM t",
+			"accepted": false,
+			"error": "syntax error at or near \")\", at index 29"
+		},
+		{
+			"name": "nested_derived_tables",
+			"text": "SELECT * FROM ((SELECT 1) x JOIN y ON true) z, (((SELECT 1) UNION (SELECT 2) ORDER BY 1 LIMIT 1) x JOIN y ON true) w, ((SELECT 1)) v",
+			"accepted": true
+		},
+		{
+			"name": "aliased_bracket_in_a_bracket",
+			"text": "SELECT * FROM ((a JOIN b ON true) x) y",
+			"accepted": false,
+			"error": "syntax error at or near \")\", at index 35"
+		},
+		{
+			"name": "lateral_before_a_join",
+			"text": "SELECT * FROM LATERAL (a JOIN b ON true)",
+			"accepted": false,
+			"error": "syntax error at or near \"a\", at index 23"
+		},
+		{
+			"name": "aliased_subquery_in_a_bracket",
+			"text": "SELECT * FROM ((SELECT 1) x)",
+			"accepted": false,
+			"error": "syntax error at or near \")\", at index 27"
+		},
+		{
+			"name": "fetch_a_column_named_rows",
+			"text": "SELECT a FROM t FETCH FIRST rows ROWS ONLY",
+			"accepted": true
+		},
+		{
+			"name": "overlaps_positions",
+			"text": "SELECT (a, b) OVERLAPS (c, d) AND x, NOT (a, b) OVERLAPS (c, d), (a, b) OVERLAPS (c, d) = true, ((a, b) OVERLAPS (c, d)), (a, b) OVERLAPS ROW(c, d) FROM t WHERE (a, b) OVERLAPS (c, d)",
+			"accepted": true
 		}
 	]
 }

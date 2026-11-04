@@ -1034,6 +1034,9 @@ static class Nodes
 		var limit   = tail?.Limit;
 		var locking = tail?.Locking;
 
+		if (!TiesAndSkipFit(limit, locking))
+			return false;
+
 		if (locking is { Length: > 1 })
 		{
 			foreach (var clause in locking)
@@ -1062,11 +1065,26 @@ static class Nodes
 			if (limit.Offset is not null && had.Offset is not null)
 				return false;
 
-			if ((limit.Count is not null || limit.LimitAll) && (had.Count is not null || had.LimitAll || had.FetchRowWord is not null))
+			if ((limit.Count is not null || limit.LimitAll || limit.FetchRowWord is not null) && (had.Count is not null || had.LimitAll || had.FetchRowWord is not null))
 				return false;
 		}
 
 		return limit is not { WithTies: true } || order is not null || inner.OrderBy is not null;
+	}
+
+	/// <summary>gram.y: "SKIP LOCKED and WITH TIES options cannot be used together" — on one level; a bracketed query's WITH TIES is its own.</summary>
+	static bool TiesAndSkipFit(Limit? limit, LockingClause[]? locking)
+	{
+		if (limit is not { WithTies: true } || locking is null)
+			return true;
+
+		foreach (var clause in locking)
+		{
+			if (clause.Wait == LockWait.SkipLocked)
+				return false;
+		}
+
+		return true;
 	}
 
 	/// <summary>The query with the clauses of the whole result on it, as the standard's reading places them.</summary>
@@ -1125,7 +1143,7 @@ static class Nodes
 			Expression.Unary { Operator: UnaryOperator.Minus or UnaryOperator.Plus, Operand: LiteralValue.Numeric } => true,
 			Expression.Unary or Expression.Binary or Expression.OperatorCall or Expression.Comparison or Expression.Cast { Spelling: CastSpelling.DoubleColon }
 				or Expression.AtTimeZone or Expression.Collate or Expression.IsNull or Expression.IsTruth or Expression.IsDistinct or Expression.IsNormalized
-				or Expression.IsDocument or Expression.Between or Expression.In or Expression.Like or Expression.QuantifiedComparison or Expression.QuantifiedOperation => false,
+				or Expression.IsDocument or Expression.Between or Expression.In or Expression.Like or Expression.QuantifiedComparison or Expression.QuantifiedOperation or Expression.Overlaps => false,
 			_ => true,
 		};
 	}
@@ -1365,7 +1383,69 @@ static class Nodes
 
 	public static TableSource RowsFrom(bool lateral, RowsFromItem first, RowsFromItem[]? rest, bool ordinality, FuncAlias? alias)
 	{
-		return new TableSource.RowsFrom(List(first, rest), ordinality, alias?.Alias) { Lateral = lateral };
+		return new TableSource.RowsFrom(List(first, rest), ordinality, alias?.Alias) { Lateral = lateral, ColumnDefinitions = alias?.Definitions };
+	}
+
+	// ── One parenthesis in a FROM ──────────────────────────────────────────────
+
+	/// <summary>What a parenthesis in a FROM held: a query, or a table reference (a join, a parenthesis, a subquery).</summary>
+	public sealed record Held(Query? Query, TableSource? Source);
+
+	/// <summary>
+	/// Whether what followed a table reference inside a parenthesis fits it: set operations, ORDER BY, a limit or a lock follow
+	/// a bare subquery only, as the operands of gram.y's select_with_parens, and never a join; and the subquery's own WITH TIES
+	/// and SKIP LOCKED do not meet.
+	/// </summary>
+	public static bool HeldClausesFit(TableSource source, SetOperation[]? operations, OrderByClause? order, SelectTail? tail)
+	{
+		if (operations is null or { Length: 0 } && order is null && tail is null)
+			return true;
+
+		if (source is not TableSource.Subquery { Alias: null, Lateral: false } subquery)
+			return false;
+
+		return ClausesFit(null, new Query.Parenthesized(subquery.Query) with { SetOperations = List(operations) }, order, tail);
+	}
+
+	/// <summary>
+	/// What the parenthesis held, by what followed its first element: a bare subquery alone is a query in its own
+	/// parentheses, as the standard's reading has it; with set operations or clauses after it, the query they make; a join
+	/// or a parenthesis is the source it is.
+	/// </summary>
+	public static Held HeldOf(TableSource source, SetOperation[]? operations, OrderByClause? order, SelectTail? tail)
+	{
+		if (source is TableSource.Subquery { Alias: null, Lateral: false } subquery)
+		{
+			var query = (Query)new Query.Parenthesized(subquery.Query);
+
+			if (operations is { Length: > 0 })
+				query = Combined(query, operations);
+
+			return new Held(Finished(null, query, order, tail), null);
+		}
+
+		return new Held(null, source);
+	}
+
+	/// <summary>
+	/// Whether a parenthesis in a FROM may hold what it held: a query, with LATERAL or without; a join, or a parenthesis
+	/// with no alias of its own, with no LATERAL before it — never a bare name, `FROM (a)`, nor an aliased subquery or
+	/// parenthesis, `FROM ((SELECT 1) x)`, `FROM ((a JOIN b ON true) x) y`, as gram.y's table_ref has it.
+	/// </summary>
+	public static bool HeldFits(bool lateral, Held held, Alias? alias)
+	{
+		if (held.Query is not null)
+			return true;
+
+		return !lateral && held.Source is TableSource.Join or TableSource.Parenthesized { Alias: null };
+	}
+
+	public static TableSource HeldSource(bool lateral, Held held, Alias? alias)
+	{
+		if (held.Query is { } query)
+			return new TableSource.Subquery(query) { Lateral = lateral, Alias = alias };
+
+		return Bracketed(held.Source!, alias);
 	}
 
 	/// <summary>Whether every column of a definition list has its type, as ROWS FROM's items ask (TableFuncElementList); none at all fits.</summary>

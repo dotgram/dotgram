@@ -90,6 +90,10 @@ public sealed class PostgreSqlNestingCostTests
 	[InlineData("subscripts nested, unclosed",       "SELECT ", "a[",  "1", "",  "",          false)]
 	[InlineData("slices nested, closed",             "SELECT ", "a[1:", "1", "]", "",         true)]
 	[InlineData("tests after a bracket, nested",     "SELECT ", "(",   "a", ") IS NULL", "",   true)]
+	[InlineData("rollups nested, closed",            "SELECT a FROM t GROUP BY ", "ROLLUP(", "a", ")", "", true)]
+	[InlineData("rollups nested, unclosed",          "SELECT a FROM t GROUP BY ", "ROLLUP(", "a", "",  "", false)]
+	[InlineData("derived tables nested, closed",     "SELECT * FROM ", "(", "(SELECT 1) x", " JOIN y ON true) z", "", true)]
+	[InlineData("derived tables nested, unclosed",   "SELECT * FROM ", "(", "(SELECT 1) x", "", "", false)]
 	[InlineData("bracketed joins, closed",           "SELECT * FROM ", "(", "a JOIN b ON x", " JOIN c ON y)", "", true)]
 	[InlineData("bracketed joins, unclosed",         "SELECT * FROM ", "(", "a JOIN b ON x", "", "", false)]
 	public void A_nest_costs_what_its_depth_does(string what, string head, string opener, string core, string closer, string tail, bool accepted)

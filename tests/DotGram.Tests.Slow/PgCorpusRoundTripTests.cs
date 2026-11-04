@@ -55,10 +55,35 @@ public sealed class PgCorpusRoundTripTests
 	[Fact]
 	public void Copy_from_stdin_is_followed_by_data_that_belongs_to_no_statement()
 	{
-		var cut = PgCorpus.CutScript("COPY t FROM stdin;\n1\tone;\n2\ttwo\n\\.\nSELECT 1;\ncopy t (a) from STDIN with (format csv);\nx;\n\\.\n");
+		var cut = PgCorpus.CutScript("COPY t FROM stdin;\n1\tone;\n2\ttwo\n\\.\nSELECT 1;\ncopy t (a) from STDIN with (format csv);\nx;\n\\.\n-- the data\nCOPY u FROM stdin;\n3\n\\.\n\\copy v from stdin\n4;\n\\.\nSELECT 2;");
 
-		Assert.Equal(["COPY t FROM stdin", "SELECT 1", "copy t (a) from STDIN with (format csv)"], cut.Statements.Select(static one => one.Text).ToArray());
-		Assert.Equal(3, cut.DataLines);
+		Assert.Equal(["COPY t FROM stdin", "SELECT 1", "copy t (a) from STDIN with (format csv)", "COPY u FROM stdin", "SELECT 2"], cut.Statements.Select(static one => one.Text).ToArray());
+		Assert.Equal(5, cut.DataLines);
+	}
+
+	[Fact]
+	public void A_comment_before_a_statement_is_not_the_statement()
+	{
+		var cut = PgCorpus.CutScript("-- one\n/* two */\nSELECT 1; -- three\nSELECT /* four */ 2;\n-- five");
+
+		Assert.Equal(["SELECT 1", "SELECT /* four */ 2"], cut.Statements.Select(static one => one.Text).ToArray());
+		Assert.Equal([3, 4], cut.Statements.Select(static one => one.Line).ToArray());
+	}
+
+	[Fact]
+	public void A_backslash_semicolon_ends_a_statement_and_the_commands_are_known_by_name()
+	{
+		var cut = PgCorpus.CutScript("SELECT 1 \\; SELECT 2;\nSELECT 3 \\getenv x PATH\n;\nSELECT 4 \\r\nSELECT 5;\nSELECT 6 \\bind 1 \\g\nSELECT 7 \\parse p\n\\if true \\\\ SELECT 8;\n\\endif");
+
+		Assert.Equal(["SELECT 1", "SELECT 2", "SELECT 3", "SELECT 5", "SELECT 6", "SELECT 7", "SELECT 8"], cut.Statements.Select(static one => one.Text).ToArray());
+	}
+
+	[Fact]
+	public void A_plain_string_reads_escapes_while_standard_conforming_strings_is_off()
+	{
+		var cut = PgCorpus.CutScript("SET standard_conforming_strings = off;\nSELECT 'a\\'b';\nSELECT 2;\nRESET standard_conforming_strings;\nSELECT 'c\\';\nSELECT 3;");
+
+		Assert.Equal(["SET standard_conforming_strings = off", "SELECT 'a\\'b'", "SELECT 2", "RESET standard_conforming_strings", "SELECT 'c\\'", "SELECT 3"], cut.Statements.Select(static one => one.Text).ToArray());
 	}
 
 	[Fact]
@@ -70,11 +95,11 @@ public sealed class PgCorpusRoundTripTests
 	}
 
 	[Fact]
-	public void A_statement_with_a_psql_variable_is_marked_and_a_cast_is_not()
+	public void A_statement_with_a_psql_variable_is_marked_and_a_cast_or_an_unset_name_is_not()
 	{
-		var cut = PgCorpus.CutScript("SELECT :x; SELECT :'x'; SELECT :\"x\"; SELECT 1::int; SELECT ':x'; SELECT a[1:2];");
+		var cut = PgCorpus.CutScript("\\set x 1\nSELECT :x; SELECT :'x'; SELECT :\"x\"; SELECT :{?x}; SELECT 1::int; SELECT ':x'; SELECT a[1:2]; SELECT a[1:NULL]; SELECT :y; SELECT :VERSION_NUM;");
 
-		Assert.Equal([true, true, true, false, false, false], cut.Statements.Select(static one => one.HasVariable).ToArray());
+		Assert.Equal([true, true, true, true, false, false, false, false, false, true], cut.Statements.Select(static one => one.HasVariable).ToArray());
 	}
 
 	[Fact]

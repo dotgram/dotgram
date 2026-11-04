@@ -96,6 +96,12 @@ public static partial class SqlWriter
 
 				if (locking.Of.Count > 0)
 				{
+					// The standard's OF names columns, one part each; PostgreSQL's names tables, qualified where written.
+					if (!postgreSql)
+						foreach (var of in locking.Of)
+							if (of.Count != 1)
+								throw Misplaced(locking, "Of", "with a name of more than one part, which only PostgreSQL reads (FOR UPDATE OF s.t)");
+
 					Word("OF");
 					Each(locking.Of, PutName);
 				}
@@ -1416,6 +1422,23 @@ public static partial class SqlWriter
 
 					if (rows.WithOrdinality)
 						Word("WITH ORDINALITY");
+
+					if (rows.ColumnDefinitions is { } rowsDefinitions)
+					{
+						if (rows.Alias is { Columns: not null })
+							throw Both(rows, "ColumnDefinitions", "Alias.Columns");
+
+						if (rowsDefinitions.Count == 0)
+							throw Empty(rows, "ColumnDefinitions");
+
+						if (rows.Alias is { } rowsAlias)
+							PutAlias(rowsAlias);
+						else
+							Word("AS");
+
+						PutFieldDefinitions(rowsDefinitions);
+						break;
+					}
 
 					PutAlias(rows.Alias);
 					break;

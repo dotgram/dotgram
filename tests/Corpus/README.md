@@ -28,7 +28,7 @@ elsewhere is that it is their text and not ours.
 
 `PostgreSql/` is PostgreSQL's own regression suite, `src/test/regress/sql` of the
 `REL_18_STABLE` branch at commit `d6694976c88c038039c2b74d0aa4eaa4e083519c` (2026-11-04),
-copied byte for byte: 233 files, 4.9 MB. Licensed under the PostgreSQL License — the
+copied byte for byte: 233 files, 4.6 MB. Licensed under the PostgreSQL License — the
 notice is `PostgreSql/COPYRIGHT`, as it stands in the PostgreSQL tree. It is a psql script,
 not statements: `benchmarks/DotGram.Benchmarks/PgCorpus.cs` cuts it as psql does and reads
 every statement with `PostgreSqlParser`, and `tests/DotGram.Tests.Slow/PgCorpusBaseline.txt`

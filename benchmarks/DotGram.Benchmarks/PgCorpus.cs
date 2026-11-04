@@ -17,7 +17,7 @@ namespace DotGram.Benchmarks;
 /// <remarks>
 /// <para>
 /// The suite is a script for psql, not text a program sends: statements end at <c>;</c> outside strings, dollar
-/// quotes, comments and brackets; a line of <c>\…</c> is psql's and not the server's; <c>COPY … FROM stdin;</c> is
+/// quotes, comments and parentheses; a line of <c>\…</c> is psql's and not the server's; <c>COPY … FROM stdin;</c> is
 /// followed by data lines up to <c>\.</c> that belong to no statement; a <c>BEGIN ATOMIC … END</c> body holds
 /// semicolons psql counts past; and <c>:name</c>, <c>:'name'</c> and <c>:"name"</c> are psql's variables, which make
 /// a statement no SQL until psql has substituted them. The cutter here is psqlscan.l's reading of those, and the
@@ -51,11 +51,36 @@ internal static class PgCorpus
 
 	// ── The cutter ─────────────────────────────────────────────────────────────
 
-	/// <summary>Cuts a psql script into the statements psql would send, as psqlscan.l reads it.</summary>
+	/// <summary>The backslash commands that send the query buffer, by their exact names (psql's command.c).</summary>
+	static readonly HashSet<string> Sending = new(StringComparer.Ordinal) { "g", "gx", "gset", "gexec", "gdesc", "bind", "bind_named", "sendpipeline", "parse", "crosstabview", "watch" };
+
+	/// <summary>The commands that discard the query buffer.</summary>
+	static readonly HashSet<string> Discarding = new(StringComparer.Ordinal) { "r", "reset" };
+
+	/// <summary>psql's own variables, defined without a <c>\set</c>.</summary>
+	static readonly HashSet<string> BuiltIn = new(StringComparer.Ordinal)
+	{
+		"DBNAME", "ENCODING", "ERROR", "HOST", "LAST_ERROR_MESSAGE", "LAST_ERROR_SQLSTATE", "PORT", "ROW_COUNT", "SERVER_VERSION_NAME",
+		"SERVER_VERSION_NUM", "SHELL_ERROR", "SHELL_EXIT_CODE", "SQLSTATE", "USER", "VERSION", "VERSION_NAME", "VERSION_NUM",
+	};
+
+	static readonly Regex StandardConformingStrings = new(@"^\s*SET\s+(SESSION\s+|LOCAL\s+)?standard_conforming_strings\s*(=|TO)\s*'?(?<value>\w+)'?\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+	static readonly Regex ResetConformingStrings    = new(@"^\s*RESET\s+standard_conforming_strings\s*$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+	static readonly Regex CopyCommandFromStdin      = new(@"^\\copy\b[\s\S]*?\bfrom\s+p?stdin\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+	/// <summary>
+	/// Cuts a psql script into the statements psql would send, as psqlscan.l reads it: statements end at <c>;</c> (or
+	/// <c>\;</c>) outside strings, quoted names, dollar quotes, comments and parentheses, and outside a <c>BEGIN ATOMIC</c>
+	/// body; a backslash command runs to the end of its line, or to a <c>\\</c>; the ones that send the buffer send it,
+	/// <c>\r</c> drops it, <c>\set</c> defines a variable, <c>\copy … from stdin</c> swallows its data to <c>\.</c>, as
+	/// <c>COPY … FROM stdin;</c> does; and a plain string reads backslashes as escapes while
+	/// <c>standard_conforming_strings</c> is off.
+	/// </summary>
 	internal static Cut CutScript(string text)
 	{
 		var statements = new List<Statement>();
 		var buffer     = new StringBuilder();
+		var defined    = new HashSet<string>(BuiltIn, StringComparer.Ordinal);
 		var directives = 0;
 		var dataLines  = 0;
 		var line       = 1;
@@ -65,6 +90,7 @@ internal static class PgCorpus
 		var lastWord   = "";
 		var variable   = false;
 		var blank      = true;   // nothing but spacing in the buffer so far, so the next content begins the statement
+		var escapes    = false;  // standard_conforming_strings = off: a plain string reads backslash escapes
 		var at         = 0;
 
 		void Take(int from, int length)
@@ -85,6 +111,30 @@ internal static class PgCorpus
 			buffer.Append(text, from, length);
 		}
 
+		void SkipCopyData()
+		{
+			var end = text.IndexOf('\n', at);
+
+			at = end < 0 ? text.Length : end + 1;
+
+			if (end >= 0)
+				line++;
+
+			while (at < text.Length)
+			{
+				var next = text.IndexOf('\n', at);
+				var row  = text.Substring(at, (next < 0 ? text.Length : next) - at).TrimEnd('\r');
+
+				at = next < 0 ? text.Length : next + 1;
+				line++;
+
+				if (row == "\\.")
+					break;
+
+				dataLines++;
+			}
+		}
+
 		void Flush()
 		{
 			var statement = buffer.ToString().Trim();
@@ -92,7 +142,14 @@ internal static class PgCorpus
 			buffer.Clear();
 
 			if (statement.Length > 0)
+			{
 				statements.Add(new Statement(statement, startLine, variable));
+
+				if (StandardConformingStrings.Match(statement) is { Success: true } setting)
+					escapes = setting.Groups["value"].Value.ToLowerInvariant() is "off" or "false" or "0" or "no";
+				else if (ResetConformingStrings.IsMatch(statement))
+					escapes = false;
+			}
 
 			variable = false;
 			blank    = true;
@@ -105,7 +162,8 @@ internal static class PgCorpus
 		{
 			var c = text[at];
 
-			// A line comment, a block comment (nested), a string, a quoted name, a dollar quote: copied whole.
+			// A line comment: dropped while nothing of a statement has begun, kept inside one; a block comment
+			// (nested), a string, a quoted name, a dollar quote: copied whole.
 			if (c == '-' && at + 1 < text.Length && text[at + 1] == '-')
 			{
 				var end = text.IndexOf('\n', at);
@@ -113,7 +171,9 @@ internal static class PgCorpus
 				if (end < 0)
 					end = text.Length;
 
-				Take(at, end - at);
+				if (!blank)
+					Take(at, end - at);
+
 				at = end;
 				continue;
 			}
@@ -145,13 +205,15 @@ internal static class PgCorpus
 				}
 				while (depth > 0 && at < text.Length);
 
-				Take(from, at - from);
+				if (!blank)
+					Take(from, at - from);
+
 				continue;
 			}
 
 			if (c == '\'' || c == '"')
 			{
-				var escaped = c == '\'' && at > 0 && (text[at - 1] | 0x20) == 'e' && (at < 2 || !IsWordChar(text[at - 2]));
+				var escaped = c == '\'' && (escapes || at > 0 && (text[at - 1] | 0x20) == 'e' && (at < 2 || !IsWordChar(text[at - 2])));
 				var from    = at;
 
 				at++;
@@ -163,6 +225,9 @@ internal static class PgCorpus
 
 					if (escaped && text[at] == '\\' && at + 1 < text.Length)
 					{
+						if (text[at + 1] == '\n')
+							line++;
+
 						at += 2;
 						continue;
 					}
@@ -200,22 +265,78 @@ internal static class PgCorpus
 				continue;
 			}
 
-			// psql's own: a backslash command to the end of the line. The ones that send the buffer send it; the
-			// others leave it.
+			// psql's own: `\;` is a semicolon the server never sees, `\\` ends a command on a line, and `\name` runs
+			// to the end of the line. The commands that send the buffer send it, `\r` drops it, `\set` defines a
+			// variable, `\copy … from stdin` has its data to `\.`; every other one leaves the buffer as it is.
 			if (c == '\\')
 			{
-				var end = text.IndexOf('\n', at);
+				if (at + 1 < text.Length && text[at + 1] == ';')
+				{
+					at += 2;
+
+					if (parens == 0 && begins == 0)
+						Flush();
+
+					continue;
+				}
+
+				if (at + 1 < text.Length && text[at + 1] == '\\')
+				{
+					at += 2;
+					continue;
+				}
+
+				var end       = text.IndexOf('\n', at);
+				var separator = text.IndexOf("\\\\", at + 1, StringComparison.Ordinal);
 
 				if (end < 0)
 					end = text.Length;
 
+				if (separator >= 0 && separator < end)
+					end = separator;
+
 				var command = text.Substring(at, end - at).TrimEnd('\r');
+				var nameEnd = 1;
+
+				while (nameEnd < command.Length && (char.IsLetterOrDigit(command[nameEnd]) || command[nameEnd] == '_' || command[nameEnd] == '?'))
+					nameEnd++;
+
+				var name = command.Substring(1, nameEnd - 1);
 
 				directives++;
 				at = end;
 
-				if (command.StartsWith("\\g", StringComparison.Ordinal) || command.StartsWith("\\crosstabview", StringComparison.Ordinal) || command.StartsWith("\\watch", StringComparison.Ordinal))
+				if (Sending.Contains(name))
 					Flush();
+				else if (Discarding.Contains(name))
+				{
+					buffer.Clear();
+					variable = false;
+					blank    = true;
+					parens   = 0;
+					begins   = 0;
+					lastWord = "";
+				}
+				else if (name == "set")
+				{
+					var words = command.Substring(nameEnd).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+
+					if (words.Length > 0)
+						defined.Add(words[0]);
+				}
+				else if (name == "unset")
+				{
+					var words = command.Substring(nameEnd).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+
+					if (words.Length > 0)
+						defined.Remove(words[0]);
+				}
+				else if (name == "copy" && CopyCommandFromStdin.IsMatch(command))
+				{
+					at = end < text.Length ? end : text.Length;
+					SkipCopyData();
+					continue;
+				}
 
 				continue;
 			}
@@ -228,10 +349,25 @@ internal static class PgCorpus
 			else if (c == ')' && parens > 0)
 				parens--;
 
-			// psql's variables: `:name`, `:'name'`, `:"name"`, `:{?name}` — not the `::` of a cast, and not a slice's `:` before a number.
-			if (c == ':' && (at == 0 || text[at - 1] != ':') && at + 1 < text.Length && text[at + 1] != ':'
-				&& (text[at + 1] == '\'' || text[at + 1] == '"' || text[at + 1] == '{' || text[at + 1] == '_' || char.IsLetter(text[at + 1])))
-				variable = true;
+			// psql's variables: `:name`, `:'name'`, `:"name"`, `:{?name}` — of a name psql has, by `\set` or its own; not
+			// the `::` of a cast, and not a slice's `:NULL` or `:n` of a name nobody set.
+			if (c == ':' && (at == 0 || text[at - 1] != ':') && at + 1 < text.Length && text[at + 1] != ':')
+			{
+				var from = at + 1;
+
+				if (from < text.Length && (text[from] == '\'' || text[from] == '"'))
+					from++;
+				else if (from + 1 < text.Length && text[from] == '{' && text[from + 1] == '?')
+					from += 2;
+
+				var to = from;
+
+				while (to < text.Length && IsWordChar(text[to]) && text[to] != '$')
+					to++;
+
+				if (to > from && defined.Contains(text.Substring(from, to - from)))
+					variable = true;
+			}
 
 			// The words psqlscan.l counts: BEGIN ATOMIC opens a body, CASE inside it opens one more, END closes one.
 			if (IsWordStart(c))
@@ -260,34 +396,13 @@ internal static class PgCorpus
 				at++;
 
 				var statement = buffer.ToString().Trim();
-				var copy      = CopyFromStdin.IsMatch(statement);
+				var copy      = CopyFromStdin.IsMatch(LeadingCommentsStripped.Replace(statement, ""));
 
 				Flush();
 
 				// COPY … FROM stdin: the lines up to `\.` are the data, and belong to no statement.
 				if (copy)
-				{
-					var end = text.IndexOf('\n', at);
-
-					at = end < 0 ? text.Length : end + 1;
-
-					if (end >= 0)
-						line++;
-
-					while (at < text.Length)
-					{
-						var next = text.IndexOf('\n', at);
-						var row  = text.Substring(at, (next < 0 ? text.Length : next) - at).TrimEnd('\r');
-
-						at = next < 0 ? text.Length : next + 1;
-						line++;
-
-						if (row == "\\.")
-							break;
-
-						dataLines++;
-					}
-				}
+					SkipCopyData();
 
 				continue;
 			}

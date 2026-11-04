@@ -156,6 +156,9 @@ public abstract partial record TableSource
 	{
 		/// <summary>PostgreSQL: SELECT (FROM Clause). <c>LATERAL</c> was written before <c>ROWS FROM</c>.</summary>
 		public bool Lateral { get; init; }
+
+		/// <summary>PostgreSQL: SELECT (FROM Clause). The column definition list after the alias, <c>ROWS FROM (…) AS t (a int)</c>; null where none was written. With one, <see cref="Alias"/> names no columns.</summary>
+		public SqlList<FieldDefinition>? ColumnDefinitions { get; init; }
 	}
 
 	public sealed partial record Named

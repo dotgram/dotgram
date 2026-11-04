@@ -2,7 +2,7 @@
 
 `sql/` is `src/test/regress/sql` of PostgreSQL, branch `REL_18_STABLE`, commit
 `d6694976c88c038039c2b74d0aa4eaa4e083519c` (2026-11-04), copied byte for byte: 233
-files, 4.9 MB. The licence is `COPYRIGHT` beside them, as it stands in the
+files, 4.6 MB. The licence is `COPYRIGHT` beside them, as it stands in the
 PostgreSQL tree.
 
 The files are exempt from the repository's line-ending normalization

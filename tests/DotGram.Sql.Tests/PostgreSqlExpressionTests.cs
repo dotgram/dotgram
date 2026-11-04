@@ -516,6 +516,14 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("SELECT * FROM s.unnest(a)",                      "qualified unnest is a function")]
 	[InlineData("SELECT * FROM ROWS FROM (f(1), g(2) AS (a int)) WITH ORDINALITY AS r", "rows from")]
 	[InlineData("SELECT * FROM t TABLESAMPLE SYSTEM (10) REPEATABLE (42)", "tablesample")]
+	[InlineData("SELECT * FROM ((SELECT 1) x JOIN y ON true) z", "nested derived table")]
+	[InlineData("SELECT * FROM (((SELECT 1) UNION (SELECT 2) ORDER BY 1 LIMIT 1) x JOIN y ON true) w", "nested set operation with clauses")]
+	[InlineData("SELECT * FROM ((SELECT 1)) x",                  "doubly bracketed subquery")]
+	[InlineData("SELECT * FROM ROWS FROM (f()) AS t (b int)",    "rows from with definitions")]
+	[InlineData("SELECT * FROM ROWS FROM (f()) AS (b int)",      "rows from with definitions alone")]
+	[InlineData("SELECT a FROM t FETCH FIRST rows ROWS ONLY",    "fetch a column named rows")]
+	[InlineData("SELECT a FROM t GROUP BY ROLLUP(ROLLUP(a)), CUBE(cube(b))", "rollup over a call")]
+	[InlineData("SELECT * FROM (SELECT a FROM t ORDER BY a FETCH FIRST 1 ROWS WITH TIES) s FOR UPDATE SKIP LOCKED", "ties inside, skip locked outside")]
 	// What gram.y refuses in its actions, and what its lists refuse.
 	[InlineData("(SELECT 1 ORDER BY 1) ORDER BY 1",               "refused: two ORDER BYs")]
 	[InlineData("(SELECT 1 LIMIT 1) LIMIT 1",                     "refused: two LIMITs")]
@@ -533,6 +541,16 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("SELECT * FROM f(1) AS t (a int, b)",             "refused: names and definitions mixed")]
 	[InlineData("SELECT * FROM ROWS FROM (f(1) AS (a, b))",       "refused: ROWS FROM item with names")]
 	[InlineData("SELECT a INTO x FROM t",                         "refused: SELECT INTO (not read here)")]
+	[InlineData("SELECT a FROM t GROUP BY ROLLUP()",              "refused: ROLLUP of nothing")]
+	[InlineData("SELECT a FROM t GROUP BY ROLLUP(a ORDER BY b)",  "refused: ROLLUP with ORDER BY")]
+	[InlineData("SELECT a FROM t GROUP BY CUBE(a, x := 1)",       "refused: CUBE with a named argument")]
+	[InlineData("SELECT a FROM t GROUP BY rollup(DISTINCT a)",    "refused: rollup with DISTINCT")]
+	[InlineData("(SELECT 1 LIMIT 1) FETCH FIRST ROW ONLY",        "refused: FETCH after a bracketed LIMIT")]
+	[InlineData("SELECT a FROM t ORDER BY a FETCH FIRST 1 ROWS WITH TIES FOR UPDATE SKIP LOCKED", "refused: WITH TIES and SKIP LOCKED")]
+	[InlineData("SELECT sum(a) OVER (partition) FROM t",          "refused: OVER (partition)")]
+	[InlineData("SELECT * FROM ((a JOIN b ON true) x) y",         "refused: an aliased bracket in a bracket")]
+	[InlineData("SELECT * FROM LATERAL (a JOIN b ON true)",       "refused: LATERAL before a join")]
+	[InlineData("SELECT * FROM ((SELECT 1) x)",                   "refused: an aliased subquery in a bracket")]
 	// What the server refuses: a bracketed source that is no join, a join with neither NATURAL nor its condition or
 	// with both, OUTER with no direction, ONLY with the inheritance star, DISTINCT with no target list.
 	[InlineData("SELECT * FROM (a)",                              "refused: a bracketed name")]
@@ -609,6 +627,14 @@ public sealed class PostgreSqlExpressionTests
 			"qualified unnest is a function" => query is Query.Select { From.Sources: [TableSource.Function { Invocation.Name.Count: 2 }] },
 			"rows from"             => query is Query.Select { From.Sources: [TableSource.RowsFrom { Items: [{ ColumnDefinitions: null }, { ColumnDefinitions.Count: 1 }], WithOrdinality: true, Alias.Name.Text: "r", Lateral: false }] },
 			"tablesample"           => query is Query.Select { From.Sources: [TableSource.Named { Sample: { Method: SampleMethod.System, Repeat: not null } }] },
+			"nested derived table"  => query is Query.Select { From.Sources: [TableSource.Parenthesized { Source: TableSource.Join { Left: TableSource.Subquery { Alias.Name.Text: "x", Query: Query.Select } }, Alias.Name.Text: "z" }] },
+			"nested set operation with clauses" => query is Query.Select { From.Sources: [TableSource.Parenthesized { Source: TableSource.Join { Left: TableSource.Subquery { Query: Query.Parenthesized { SetOperations.Count: 1, OrderBy: not null, Limit: not null } } } }] },
+			"doubly bracketed subquery" => query is Query.Select { From.Sources: [TableSource.Subquery { Query: Query.Parenthesized { Query: Query.Select }, Alias.Name.Text: "x" }] },
+			"rows from with definitions" => query is Query.Select { From.Sources: [TableSource.RowsFrom { ColumnDefinitions.Count: 1, Alias: { Name.Text: "t", Columns: null } }] },
+			"rows from with definitions alone" => query is Query.Select { From.Sources: [TableSource.RowsFrom { ColumnDefinitions.Count: 1, Alias: null }] },
+			"fetch a column named rows" => query is Query.Select { Limit: { Count: Expression.Reference, FetchRowWord: RowWord.Rows } },
+			"rollup over a call"    => query is Query.Select { GroupBy.Items: [GroupingElement.Rollup { Items: [GroupingElement.Ordinary { Expressions: [Expression.Invocation] }] }, GroupingElement.Cube { Items: [GroupingElement.Ordinary { Expressions: [Expression.Invocation] }] }] },
+			"ties inside, skip locked outside" => query is Query.Select { From.Sources: [TableSource.Subquery { Query.Limit.WithTies: true }], Locking: [{ Wait: LockWait.SkipLocked }] },
 			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
 		};
 
