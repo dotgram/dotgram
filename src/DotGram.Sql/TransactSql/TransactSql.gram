@@ -1102,7 +1102,7 @@ DottedTail
 // `NATIONAL` in front is part of the same question and not a second rule: whether it may
 // stand there is the last part's business too, which is why the condition is asked of the
 // whole of what was written.
-DottedType = t: ("NATIONAL"i? & TSqlQualifiedName & DottedTail?) & when @(Syntax.Dotted(t))
+DottedType : @string = t: ("NATIONAL"i? & TSqlQualifiedName & DottedTail?) & when @(Syntax.Dotted(t)) => @(t)
 
 TSqlLength = '(' & (Lexical.Digits | "MAX"i) & ')'
 
@@ -6417,8 +6417,8 @@ LibraryContent    = "CONTENT"i & '=' & (Quoted | TSql.BinaryLiteral | "NONE"i | 
 // A sample kept is kept from a scan: `PERSIST_SAMPLE_PERCENT` is `Msg 153` unless `FULLSCAN`,
 // `SAMPLE` or `RESAMPLE` stands in the same list — `NORECOMPUTE`, `ALL` and `MAXDOP` will not
 // do — and both statements say it the same way.
-CreateStatisticsWith
-	= t: ("WITH"i & CreateStatisticsOption & (',' & CreateStatisticsOption)*) & when @(Syntax.Sampled(t))
+CreateStatisticsWith : @string
+	= t: ("WITH"i & CreateStatisticsOption & (',' & CreateStatisticsOption)*) & when @(Syntax.Sampled(t)) => @(t)
 
 CreateStatisticsOption
 	= "FULLSCAN"i
@@ -6430,8 +6430,8 @@ CreateStatisticsOption
 	| "AUTO_DROP"i & OnOffValue
 	| "STATS_STREAM"i & '=' & TSql.BinaryLiteral
 
-UpdateStatisticsWith
-	= t: ("WITH"i & UpdateStatisticsOption & (',' & UpdateStatisticsOption)*) & when @(Syntax.Sampled(t))
+UpdateStatisticsWith : @string
+	= t: ("WITH"i & UpdateStatisticsOption & (',' & UpdateStatisticsOption)*) & when @(Syntax.Sampled(t)) => @(t)
 
 UpdateStatisticsOption
 	= CreateStatisticsOption

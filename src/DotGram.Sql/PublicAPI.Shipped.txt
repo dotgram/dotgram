@@ -11937,12 +11937,6 @@ DotGram.Sql.StatementCategory.Query = 0 -> DotGram.Sql.StatementCategory
 DotGram.Sql.StatementCategory.Session = 6 -> DotGram.Sql.StatementCategory
 DotGram.Sql.StatementCategory.Transaction = 5 -> DotGram.Sql.StatementCategory
 DotGram.Sql.TransactSql.TransactSqlParser
-DotGram.Sql.TransactSql.TransactSqlParser.CreateStatisticsWith
-DotGram.Sql.TransactSql.TransactSqlParser.CreateStatisticsWith.CreateStatisticsWith(string! t) -> void
-DotGram.Sql.TransactSql.TransactSqlParser.CreateStatisticsWith.T.get -> string!
-DotGram.Sql.TransactSql.TransactSqlParser.DottedType
-DotGram.Sql.TransactSql.TransactSqlParser.DottedType.DottedType(string! t) -> void
-DotGram.Sql.TransactSql.TransactSqlParser.DottedType.T.get -> string!
 DotGram.Sql.TransactSql.TransactSqlParser.Located
 DotGram.Sql.TransactSql.TransactSqlParser.Match<T>
 DotGram.Sql.TransactSql.TransactSqlParser.Match<T>.Error.get -> string?
@@ -11964,9 +11958,6 @@ DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.On(System.ReadOnlySpan<char
 DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.SourceSpan() -> void
 DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.SourceSpan(int start, int length) -> void
 DotGram.Sql.TransactSql.TransactSqlParser.SourceSpan.Start.get -> int
-DotGram.Sql.TransactSql.TransactSqlParser.UpdateStatisticsWith
-DotGram.Sql.TransactSql.TransactSqlParser.UpdateStatisticsWith.T.get -> string!
-DotGram.Sql.TransactSql.TransactSqlParser.UpdateStatisticsWith.UpdateStatisticsWith(string! t) -> void
 abstract DotGram.Sql.Ast.ActivationSetting.<Clone>$() -> DotGram.Sql.Ast.ActivationSetting!
 abstract DotGram.Sql.Ast.AlterColumnAction.<Clone>$() -> DotGram.Sql.Ast.AlterColumnAction!
 abstract DotGram.Sql.Ast.AlterDatabaseAction.<Clone>$() -> DotGram.Sql.Ast.AlterDatabaseAction!
