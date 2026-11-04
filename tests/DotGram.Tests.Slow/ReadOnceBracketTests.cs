@@ -167,7 +167,26 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 		var cover   = SqlVariants.Parser(SqlVariants.Sql92);
 		var splitH  = SqlVariants.Parser(SqlVariants.Sql92Split, "off", true, false, headGuard: true, located: false);
 
-		(string, Type)[] parsers = [("before", before), ("guards: IsValue", guards), ("guards: true", gTrue), ("guards: not null", gNull), ("guards: not Row", gRow), ("cover", cover), ("split+headguard", splitH)];
+		var memoed  = SqlVariants.Parser(SqlVariants.Sql92Before, "off", true, false, headGuard: false, located: false, successMemo: true);
+
+		(string, Type)[] parsers = [("before", before), ("before+successmemo", memoed), ("guards: IsValue", guards), ("guards: true", gTrue), ("guards: not null", gNull), ("guards: not Row", gRow), ("cover", cover), ("split+headguard", splitH)];
+
+		// The success memo on the old grammar must make the exponential shapes linear, or it measures nothing.
+		var memoedCounted = SqlVariants.Parser(SqlVariants.Sql92Before, "off", true, true, headGuard: false, located: false, successMemo: true);
+
+		foreach (var (name, shape, core) in Shapes.Take(6).Concat(Shapes.Where(static one => one.Name is "subq-cond" or "row-list")))
+		{
+			var line = $"{name,-20} before+successmemo";
+
+			foreach (var depth in new[] { 4, 8, 16, 32 })
+			{
+				var (count, ok) = Count(memoedCounted, Prefix + Nest(shape, core, depth), true);
+
+				line += $" | {depth}: {Shown(count, ok)}";
+			}
+
+			Log(line);
+		}
 
 		foreach (var (name, type) in parsers)
 			Log($"size {name,-18}: generated C# {SqlVariants.Sizes[type].SourceChars:N0} chars, assembly {SqlVariants.Sizes[type].AssemblyBytes:N0} bytes");
