@@ -381,6 +381,8 @@ public sealed class SqlWriterCoverageTests
 			: new Statement.ShowParameter(new QualifiedName([new Identifier((ParameterSpelling)v switch { ParameterSpelling.TimeZone => "timezone", ParameterSpelling.TransactionIsolationLevel => "transaction_isolation", _ => "session_authorization" })])) { Spelling = (ParameterSpelling)v },
 		[typeof(LockMode)]           = v => new Statement.LockTable([new TableSource.Named(T)]) { Mode = (LockMode)v },
 		[typeof(DiscardTarget)]      = v => new Statement.Discard((DiscardTarget)v),
+		[typeof(CopyDirection)]      = v => new Statement.Copy { Table = new TableSource.Named(T), Direction = (CopyDirection)v, Stream = StandardStream.Stdin },
+		[typeof(StandardStream)]     = v => new Statement.Copy { Table = new TableSource.Named(T), Direction = CopyDirection.From, Stream = (StandardStream)v },
 		[typeof(FetchPosition)]      = v => Selected with { Limit = new Limit { Count = A, FetchRowWord = RowWord.Rows, Position = (FetchPosition)v } },
 		// A hundred and seventy permissions and twenty-eight classes, generated from the catalogue (D148):
 		// this is what says each one has words of its own, where PermissionCatalogueTests says which.
@@ -731,6 +733,30 @@ public sealed class SqlWriterCoverageTests
 			["Discard.Temporary"] = (
 				new Statement.Discard(DiscardTarget.Temp),
 				new Statement.Discard(DiscardTarget.Temp) { Temporary = true }),
+			["FetchCursor.InKeyword"] = (
+				new Statement.FetchCursor { Cursor = new CursorReference(T), FromKeyword = true },
+				new Statement.FetchCursor { Cursor = new CursorReference(T), InKeyword = true }),
+			["MoveCursor.InKeyword"] = (
+				new Statement.MoveCursor { Cursor = new CursorReference(T), FromKeyword = true },
+				new Statement.MoveCursor { Cursor = new CursorReference(T), InKeyword = true }),
+			["FetchOrientation.WordOmitted"] = (
+				new Statement.MoveCursor { Cursor = new CursorReference(T), Orientation = new FetchOrientation(FetchOrientationKind.Forward) { All = true } },
+				new Statement.MoveCursor { Cursor = new CursorReference(T), Orientation = new FetchOrientation(FetchOrientationKind.Forward) { All = true, WordOmitted = true } }),
+			["Vacuum.Bare"] = (
+				new Statement.Vacuum([new Option(new Identifier("full"), null, [])], []),
+				new Statement.Vacuum([new Option(new Identifier("full"), null, [])], []) { Bare = true }),
+			["Analyze.Bare"] = (
+				new Statement.Analyze([new Option(new Identifier("verbose"), null, [])], []),
+				new Statement.Analyze([new Option(new Identifier("verbose"), null, [])], []) { Bare = true }),
+			["Analyze.British"] = (
+				new Statement.Analyze([], []),
+				new Statement.Analyze([], []) { British = true }),
+			["Copy.WithKeyword"] = (
+				new Statement.Copy { Table = new TableSource.Named(T), Direction = CopyDirection.From, Stream = StandardStream.Stdin },
+				new Statement.Copy { Table = new TableSource.Named(T), Direction = CopyDirection.From, Stream = StandardStream.Stdin, WithKeyword = true }),
+			["Copy.Bare"] = (
+				new Statement.Copy { Table = new TableSource.Named(T), Direction = CopyDirection.From, Stream = StandardStream.Stdin, Options = [new Option(new Identifier("freeze"), new LiteralValue.Boolean(BooleanLiteral.True), [])] },
+				new Statement.Copy { Table = new TableSource.Named(T), Direction = CopyDirection.From, Stream = StandardStream.Stdin, Options = [new Option(new Identifier("freeze"), new LiteralValue.Boolean(BooleanLiteral.True), [])], Bare = true }),
 			// PostgreSQL's TRUNCATE without the word TABLE.
 			["TruncateTable.TableOmitted"] = (
 				new Statement.TruncateTable { Target = new TableSource.Named(T) },
@@ -975,6 +1001,7 @@ public sealed class SqlWriterCoverageTests
 		{
 			"SetParameter.EqualsSign", "Explain.Bare", "Do.LanguageFirst", "DeallocateAll.PrepareKeyword", "LockTable.TableOmitted", "Discard.Temporary",
 			"StartTransaction.Begin", "Commit.End", "Rollback.Abort", "Rollback.SavepointKeywordOmitted", "ReleaseSavepoint.SavepointKeywordOmitted", "SetTransaction.Session", "DeallocatePrepare.PrepareOmitted",
+			"FetchCursor.InKeyword", "MoveCursor.InKeyword", "FetchOrientation.WordOmitted", "Vacuum.Bare", "Analyze.Bare", "Analyze.British", "Copy.WithKeyword", "Copy.Bare",
 		};
 
 		foreach (var (name, pair) in pairs)

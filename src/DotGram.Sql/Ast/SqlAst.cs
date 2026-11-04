@@ -406,7 +406,7 @@ public abstract partial record Statement : ISqlNode
 	public sealed record DeclareCursor : Statement { public required CursorReference Cursor { get; init; } public required CursorProperties Properties { get; init; } public required CursorSource SourceValue { get; init; } [Spelling] public bool Extended { get; init; } }
 	public sealed record OpenCursor : Statement { public required CursorReference Cursor { get; init; } public DynamicArguments? Using { get; init; } }
 	// BNF: <fetch statement>, <dynamic fetch statement>: targets, or `INTO [SQL] DESCRIPTOR d`, and whether FROM was written.
-	public sealed record FetchCursor : Statement { public FetchOrientation? Orientation { get; init; } public bool FromKeyword { get; init; } public required CursorReference Cursor { get; init; } public DynamicArguments? Into { get; init; } }
+	public sealed partial record FetchCursor : Statement { public FetchOrientation? Orientation { get; init; } public bool FromKeyword { get; init; } public required CursorReference Cursor { get; init; } public DynamicArguments? Into { get; init; } }
 	public sealed record CloseCursor : Statement { public required CursorReference Cursor { get; init; } }
 	public sealed record AllocateCursor : Statement { public required CursorReference Cursor { get; init; } public bool CursorKeyword { get; init; } public CursorProperties? Properties { get; init; } public required CursorAllocationSource SourceValue { get; init; } }
 
@@ -2625,7 +2625,7 @@ public sealed record CursorReference(QualifiedName? Name, Expression? ExtendedNa
 // `TypeWarning` is `TYPE_WARNING`. `ForwardOnly` is the word `FORWARD_ONLY` written where the standard
 // writes `NO SCROLL`: one meaning, two words, so Scrollability stays NoScroll and the flag says which
 // was written.
-public sealed record CursorProperties(CursorSensitivity? Sensitivity, CursorScrollability? Scrollability, CursorHoldability? Holdability, CursorReturnability? Returnability) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed partial record CursorProperties(CursorSensitivity? Sensitivity, CursorScrollability? Scrollability, CursorHoldability? Holdability, CursorReturnability? Returnability) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public CursorScope? Scope { get; init; }
 	public CursorType? Type { get; init; }
 	public CursorConcurrency? Concurrency { get; init; }
@@ -2654,13 +2654,14 @@ public sealed record UpdatabilityClause(bool ReadOnly, SqlList<Identifier> Updat
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record FetchOrientation(FetchOrientationKind Kind, Expression? Offset = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed partial record FetchOrientation(FetchOrientationKind Kind, Expression? Offset = null) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public enum FetchOrientationKind { Next, Prior, First, Last, Absolute, Relative }
+// PostgreSQL: FETCH. `Forward` and `Backward` are PostgreSQL's, a count or ALL after them.
+public enum FetchOrientationKind { Next, Prior, First, Last, Absolute, Relative, Forward, Backward }
 public abstract record CursorAllocationSource : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Prepared(StatementReference Statement) : CursorAllocationSource; public sealed record Routine(RoutineDesignator Designator) : CursorAllocationSource; }
 public sealed record StatementReference(Identifier? Name, Expression? ExtendedName = null, bool Global = false, bool Local = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)

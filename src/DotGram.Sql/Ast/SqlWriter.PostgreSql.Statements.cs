@@ -234,6 +234,119 @@ public static partial class SqlWriter
 
 					return true;
 
+				// PostgreSQL: DECLARE. The standard's record in PostgreSQL's words: the options before CURSOR, WITH or
+				// WITHOUT HOLD after it, the query after FOR. Another reading's cursor is the T-SQL arm's.
+				case Statement.DeclareCursor declare when postgreSql:
+					if (declare.Cursor is not { Name: { Count: 1 } name, ExtendedName: null, Global: false, Local: false, Ptf: false })
+						throw Misplaced(declare, nameof(declare.Cursor), "other than a name of one part, which alone PostgreSQL's DECLARE takes");
+
+					if (declare.Extended)
+						throw Misplaced(declare, nameof(declare.Extended), "the words after CURSOR, which are T-SQL's");
+
+					var properties = declare.Properties;
+
+					if (properties is { Returnability: not null } or { Sensitivity: CursorSensitivity.Sensitive } or { Scope: not null } or { Type: not null } or { Concurrency: not null } or { TypeWarning: true } or { ForwardOnly: true })
+						throw Misplaced(declare, nameof(declare.Properties), "a word PostgreSQL's DECLARE does not read: WITH RETURN, SENSITIVE, or T-SQL's");
+
+					if (declare.SourceValue is not CursorSource.Query { Updatability: null, UpdatabilityBeforeOptions: false, Select.Hints.Count: 0 } source)
+						throw Misplaced(declare, nameof(declare.SourceValue), "other than a query with no FOR READ ONLY or hints, which PostgreSQL reads as the query's own clauses");
+
+					Word("DECLARE");
+					PutName(name);
+
+					if (properties.Binary)
+						Word("BINARY");
+
+					if (properties.Sensitivity is { } sensitivity)
+						Word(sensitivity == CursorSensitivity.Insensitive ? "INSENSITIVE" : "ASENSITIVE");
+
+					if (properties.Scrollability is { } scrollability)
+						Word(scrollability == CursorScrollability.Scroll ? "SCROLL" : "NO SCROLL");
+
+					Word("CURSOR");
+
+					if (properties.Holdability is { } holdability)
+						Word(holdability == CursorHoldability.WithHold ? "WITH HOLD" : "WITHOUT HOLD");
+
+					Word("FOR");
+					PutQuery(source.Select.Query);
+					return true;
+
+				case Statement.MoveCursor move:
+					OnlyPostgreSql(move);
+					Word("MOVE");
+					PutFetchArgs(move, move.Orientation, move.FromKeyword, move.InKeyword, move.Cursor);
+					return true;
+
+				case Statement.CloseAllCursors close:
+					OnlyPostgreSql(close);
+					Word("CLOSE ALL");
+					return true;
+
+				case Statement.Vacuum vacuum:
+					OnlyPostgreSql(vacuum);
+					Word("VACUUM");
+
+					if (vacuum.Bare)
+					{
+						// The old words in their order: FULL, FREEZE, VERBOSE, ANALYZE.
+						var rank = -1;
+
+						foreach (var option in vacuum.Options)
+						{
+							var next = option.Value is null && option.Options.Count == 0
+								? IsWord(option.Name, "full") ? 0 : IsWord(option.Name, "freeze") ? 1 : IsWord(option.Name, "verbose") ? 2 : IsWord(option.Name, "analyze") || IsWord(option.Name, "analyse") ? 3 : -1
+								: -1;
+
+							if (next <= rank)
+								throw Misplaced(option, nameof(option.Name), "other than FULL, FREEZE, VERBOSE and ANALYZE alone, in that order, which are the words VACUUM takes bare");
+
+							rank = next;
+							Word(option.Name.Text);
+						}
+					}
+					else if (vacuum.Options.Count > 0)
+					{
+						Open();
+						Each(vacuum.Options, PutUtilityOption);
+						Close();
+					}
+
+					Each(vacuum.Relations, PutVacuumRelation);
+					return true;
+
+				case Statement.Analyze analyze:
+					OnlyPostgreSql(analyze);
+					Word(analyze.British ? "ANALYSE" : "ANALYZE");
+
+					if (analyze.Bare)
+					{
+						foreach (var option in analyze.Options)
+						{
+							if (option.Value is not null || option.Options.Count > 0 || !IsWord(option.Name, "verbose"))
+								throw Misplaced(option, nameof(option.Name), "other than VERBOSE alone, which is the word ANALYZE takes bare");
+
+							Word(option.Name.Text);
+						}
+
+						if (analyze.Options.Count > 1)
+							throw Misplaced(analyze, nameof(analyze.Options), "more than the one word ANALYZE takes bare");
+					}
+					else if (analyze.Options.Count > 0)
+					{
+						Open();
+						Each(analyze.Options, PutUtilityOption);
+						Close();
+					}
+
+					Each(analyze.Relations, PutVacuumRelation);
+					return true;
+
+				case Statement.Copy copy:
+					OnlyPostgreSql(copy);
+					PutCopy(copy);
+					return true;
+
 				case Statement.Discard discard:
 					OnlyPostgreSql(discard);
 					Word("DISCARD");
@@ -348,6 +461,164 @@ public static partial class SqlWriter
 				throw Misplaced(table, "Kind", "other than a table's name, which alone LOCK takes");
 
 			PutSource(named);
+		}
+
+		/// <summary>A relation VACUUM or ANALYZE names, and its columns in brackets where any were.</summary>
+		void PutVacuumRelation(VacuumRelation relation)
+		{
+			PutLockedTable(relation.Relation);
+
+			if (relation.Columns.Count > 0)
+			{
+				Open();
+				Each(relation.Columns, PutIdentifier);
+				Close();
+			}
+		}
+
+		/// <summary>COPY: the table and its columns or the query, the direction, the file or the stream, the options, WHERE.</summary>
+		void PutCopy(Statement.Copy copy)
+		{
+			Word("COPY");
+
+			if (copy.Query is { } query)
+			{
+				if (copy.Table is not null || copy.Columns.Count > 0 || copy.Where is not null || copy.Direction != CopyDirection.To)
+					throw Misplaced(copy, nameof(copy.Query), "beside a table, columns or a WHERE, or with FROM, where a query goes TO alone");
+
+				Open();
+				PutQuery(query);
+				Close();
+			}
+			else
+			{
+				if (copy.Table is null)
+					throw Empty(copy, nameof(copy.Table), nameof(copy.Query));
+
+				PutLockedTable(copy.Table);
+
+				if (copy.Columns.Count > 0)
+				{
+					Open();
+					Each(copy.Columns, PutIdentifier);
+					Close();
+				}
+			}
+
+			Word(copy.Direction switch { CopyDirection.From => "FROM", CopyDirection.To => "TO", _ => throw NoText(copy.Direction) });
+
+			if (copy.Program)
+				Word("PROGRAM");
+
+			if (copy.File is { } file)
+			{
+				if (copy.Stream is not null)
+					throw Both(copy, nameof(copy.File), nameof(copy.Stream));
+
+				PutLiteral(file);
+			}
+			else
+			{
+				if (copy.Program)
+					throw Misplaced(copy, nameof(copy.Program), "with no command line, where a stream stands");
+
+				Word(copy.Stream switch { StandardStream.Stdin => "STDIN", StandardStream.Stdout => "STDOUT", null => throw Empty(copy, nameof(copy.File), nameof(copy.Stream)), _ => throw NoText(copy.Stream.Value) });
+			}
+
+			if (copy.WithKeyword)
+				Word("WITH");
+
+			if (copy.Bare)
+			{
+				foreach (var option in copy.Options)
+					PutLegacyCopyOption(option);
+			}
+			else if (copy.Options.Count > 0)
+			{
+				Open();
+				Each(copy.Options, PutCopyOption);
+				Close();
+			}
+
+			if (copy.Where is { } where)
+			{
+				if (copy.Direction != CopyDirection.From)
+					throw Misplaced(copy, nameof(copy.Where), "with TO, where the server's grammar refuses a WHERE");
+
+				Word("WHERE");
+				PutExpression(where);
+			}
+		}
+
+		/// <summary>One COPY option in brackets: the name, and the value, the star, DEFAULT or the list where one was written.</summary>
+		void PutCopyOption(Option option)
+		{
+			if (option.Options.Count > 0)
+				throw Misplaced(option, nameof(option.Options), "under a COPY option, which takes a value alone");
+
+			PutIdentifier(option.Name);
+
+			switch (option.Value)
+			{
+				case null:
+					break;
+
+				case Expression.Star:
+					Word("*");
+					break;
+
+				case Expression.Default:
+					Word("DEFAULT");
+					break;
+
+				case Expression.Row { RowKeyword: false } row:
+					Open();
+					Each(row.Items, PutParameterValue);
+					Close();
+					break;
+
+				default:
+					PutParameterValue(option.Value);
+					break;
+			}
+		}
+
+		/// <summary>One COPY option as the old word it has: BINARY, CSV, HEADER, FREEZE, DELIMITER 'x' and the rest; an option with no old word is refused.</summary>
+		void PutLegacyCopyOption(Option option)
+		{
+			if (option.Options.Count > 0)
+				throw Misplaced(option, nameof(option.Options), "under a COPY option, which takes a value alone");
+
+			var name = option.Name.Style == IdentifierStyle.Regular ? option.Name.Text.ToLowerInvariant() : "";
+
+			switch (name)
+			{
+				case "format" when option.Value is Expression.Reference { Name: [{ } format] } && (IsWord(format, "binary") || IsWord(format, "csv")):
+					Word(format.Text.ToUpperInvariant());
+					return;
+
+				case "header" or "freeze" when option.Value is LiteralValue.Boolean { Value: BooleanLiteral.True }:
+					Word(name.ToUpperInvariant());
+					return;
+
+				case "delimiter" or "null" or "quote" or "escape" or "encoding" when option.Value is LiteralValue.String text:
+					Word(name.ToUpperInvariant());
+					PutLiteral(text);
+					return;
+
+				case "force_quote" or "force_not_null" or "force_null" when option.Value is Expression.Star or Expression.Row { RowKeyword: false }:
+					Word(name switch { "force_quote" => "FORCE QUOTE", "force_not_null" => "FORCE NOT NULL", "force_null" => "FORCE NULL", _ => throw Misplaced(option, nameof(option.Name), "no old word") });
+
+					if (option.Value is Expression.Row row)
+						Each(row.Items, PutParameterValue);
+					else
+						Word("*");
+
+					return;
+
+				default:
+					throw Misplaced(option, nameof(option.Name), "an option COPY has no old word for; it is written in brackets");
+			}
 		}
 	}
 }
