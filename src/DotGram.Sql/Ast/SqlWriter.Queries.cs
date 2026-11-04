@@ -288,11 +288,27 @@ public static partial class SqlWriter
 				return;
 			}
 
-			if (query.Columns.Count == 0)
+			// PostgreSQL reads a SELECT with no target list.
+			if (query.Columns.Count == 0 && !postgreSql)
 				throw Empty(query, "Columns", "Values");
 
 			Word("SELECT");
 			PutQuantifier(query.Quantifier);
+
+			// PostgreSQL's DISTINCT ON: the values after DISTINCT, in brackets.
+			if (query.DistinctOn.Count > 0)
+			{
+				if (query.Quantifier != SetQuantifier.Distinct)
+					throw Misplaced(query, "DistinctOn", "without DISTINCT as the quantifier, which `DISTINCT ON (…)` says");
+
+				if (!postgreSql)
+					throw Misplaced(query, "DistinctOn", "which only PostgreSQL reads");
+
+				Word("ON");
+				Call();
+				Each(query.DistinctOn, PutExpression);
+				Close();
+			}
 			PutTop(query.Top);
 
 			var outer = into;
@@ -1013,6 +1029,15 @@ public static partial class SqlWriter
 					else
 						PutName(named.Name);
 
+					// PostgreSQL's `t *`: the descendants said in so many words.
+					if (named.Star)
+					{
+						if (!postgreSql || named.Only)
+							throw Misplaced(named, "Star", named.Only ? "beside Only, which says the opposite" : "which only PostgreSQL reads");
+
+						Word("*");
+					}
+
 					if (named.SystemTime is { } time)
 					{
 						Word("FOR SYSTEM_TIME");
@@ -1293,6 +1318,16 @@ public static partial class SqlWriter
 					Open();
 					PutSource(parenthesized.Source);
 					Close();
+
+					// PostgreSQL's alias of a bracketed join.
+					if (parenthesized.Alias is { } bracketAlias)
+					{
+						if (!postgreSql)
+							throw Misplaced(parenthesized, "Alias", "which only PostgreSQL reads on a bracketed join");
+
+						PutAlias(bracketAlias);
+					}
+
 					break;
 
 				default:
