@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
+using DotGram.Sql.Standard;
 using DotGram.Sql.TransactSql;
 
 using Xunit;
@@ -22,6 +23,14 @@ namespace DotGram.Sql.Tests;
 /// <c>TRY_PARSE</c> alike), and a predicate read its row once for its tails and again for
 /// <c>IS DISTINCT FROM</c>, which a <c>CASE</c> nested in a condition reaches at every level — refused
 /// when unclosed, and ACCEPTED where each level is itself an <c>IS DISTINCT FROM</c>.
+/// </para>
+/// <para>
+/// <b>And every function with a shape of its own that is a call besides</b> — <c>UPPER</c>, <c>LOWER</c>,
+/// the four lengths, <c>TRIM</c>, <c>CHOOSE</c> and the five set functions. Where the shape did not end
+/// at its bracket the call read the same arguments again from the name, so an unclosed nest of
+/// <c>UPPER(</c> cost 2^n and of <c>TRIM(</c> 3^n, and a closed <c>TRIM(TRIM(a))</c> or
+/// <c>CHOOSE(CHOOSE(a))</c>, both accepted, 2^n: 20 levels took most of a second. SQL-92's <c>TRIM</c>
+/// read its value twice the same way, closed and accepted.
 /// </para>
 /// <para>
 /// <b>Two witnesses, because one of the blow-ups allocates and the other does not.</b> Each depth is
@@ -66,18 +75,50 @@ public sealed class TransactSqlNestingCostTests
 	[InlineData(
 		"CASE in a condition, IS NOT DISTINCT FROM at every level",
 		"SELECT 1 WHERE ", "CASE WHEN ", "a IS NOT DISTINCT FROM b", " THEN 1 END IS NOT DISTINCT FROM 1", true)]
+	[InlineData("UPPER, unclosed",                     "SELECT ",         "UPPER(",            "a", "",      false)]
+	[InlineData("LOWER, unclosed in a condition",      "SELECT 1 WHERE ", "LOWER(",            "a", "",      false)]
+	[InlineData("CHAR_LENGTH, unclosed",               "SELECT ",         "CHAR_LENGTH(",      "a", "",      false)]
+	[InlineData("CHARACTER_LENGTH, unclosed",          "SELECT ",         "CHARACTER_LENGTH(", "a", "",      false)]
+	[InlineData("OCTET_LENGTH, unclosed",              "SELECT ",         "OCTET_LENGTH(",     "a", "",      false)]
+	[InlineData("BIT_LENGTH, unclosed",                "SELECT ",         "BIT_LENGTH(",       "a", "",      false)]
+	[InlineData("UPPER, a call of two at every level", "SELECT ",         "UPPER(",            "a", ", 1)",  true)]
+	[InlineData("TRIM, unclosed",                      "SELECT ",         "TRIM(",             "a", "",      false)]
+	[InlineData("TRIM, closed",                        "SELECT ",         "TRIM(",             "a", ")",     true)]
+	[InlineData("TRIM, a dangling sign at every level", "SELECT ",        "TRIM(",             "a", ") +",   false)]
+	[InlineData("CHOOSE, unclosed",                    "SELECT ",         "CHOOSE(",           "a", "",      false)]
+	[InlineData("CHOOSE, unclosed in a condition",     "SELECT 1 WHERE ", "CHOOSE(",           "a", "",      false)]
+	[InlineData("CHOOSE, a later argument unclosed",   "SELECT ",         "CHOOSE(1, ",        "a", "",      false)]
+	[InlineData("CHOOSE, a call of one at every level", "SELECT ",        "CHOOSE(",           "a", ")",     true)]
+	[InlineData("SUM, unclosed",                       "SELECT ",         "SUM(",              "a", "",      false)]
+	[InlineData("COUNT, unclosed",                     "SELECT ",         "COUNT(",            "a", "",      false)]
+	[InlineData("AVG DISTINCT, unclosed",              "SELECT ",         "AVG(DISTINCT ",     "a", "",      false)]
+	[InlineData("MAX, unclosed in a table's arguments", "SELECT * FROM ", "MAX(",              "a", "",      false)]
+	[InlineData("MIN, a call of two at every level",   "SELECT ",         "MIN(",              "a", ", 1)",  true)]
 	public void A_nest_costs_what_its_depth_does(string what, string head, string opener, string core, string closer, bool accepted)
+	{
+		Holds(static text => TransactSqlParser.TryParseStatement(text).IsSuccess, what, head, opener, core, closer, accepted);
+	}
+
+	[Theory]
+	[InlineData("TRIM, closed",            "TRIM(", "a", ")",      true)]
+	[InlineData("TRIM FROM, closed",       "TRIM(", "a", " FROM b)", true)]
+	public void A_nest_in_SQL_92_costs_what_its_depth_does(string what, string opener, string core, string closer, bool accepted)
+	{
+		Holds(static text => Sql92Parser.TryParseValueExpression(text).IsSuccess, what, "", opener, core, closer, accepted);
+	}
+
+	static void Holds(Func<string, bool> parse, string what, string head, string opener, string core, string closer, bool accepted)
 	{
 		// The shape once at a small depth and on this thread, so that the first depth measured is not
 		// the one that pays for compiling the reader.
-		TransactSqlParser.TryParseStatement(Text(head, opener, core, closer, 2));
+		parse(Text(head, opener, core, closer, 2));
 
 		var bytes = new List<long>();
 
 		foreach (var depth in Depths)
 		{
 			var text = Text(head, opener, core, closer, depth);
-			var (finished, read, allocated) = Read(text);
+			var (finished, read, allocated) = Read(parse, text);
 
 			Assert.True(
 				finished,
@@ -103,7 +144,7 @@ public sealed class TransactSqlNestingCostTests
 	/// Reads the text on a thread of its own, so that the parser's stores start empty; whether it
 	/// finished within the watchdog, whether it was accepted, and the bytes the thread allocated.
 	/// </summary>
-	static (bool Finished, bool Read, long Allocated) Read(string text)
+	static (bool Finished, bool Read, long Allocated) Read(Func<string, bool> parse, string text)
 	{
 		var read      = false;
 		var allocated = 0L;
@@ -112,7 +153,7 @@ public sealed class TransactSqlNestingCostTests
 			{
 				var before = GC.GetAllocatedBytesForCurrentThread();
 
-				read      = TransactSqlParser.TryParseStatement(text).IsSuccess;
+				read      = parse(text);
 				allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 			},
 			16 << 20)

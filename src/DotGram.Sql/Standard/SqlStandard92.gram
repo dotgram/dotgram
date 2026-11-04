@@ -278,16 +278,33 @@ ValueFunction : @Expression
     | name: "LOWER"i     & '(' & v: ValueExpression & ')'                                  => @(Nodes.Call(name, v))
     | "CONVERT"i         & '(' & v: ValueExpression & "USING"i & by: QualifiedName & ')'   => @(new Expression.TranslateUsing(TranslateFunction.Convert, v, by))
     | "TRANSLATE"i       & '(' & v: ValueExpression & "USING"i & by: QualifiedName & ')'   => @(new Expression.TranslateUsing(TranslateFunction.Translate, v, by))
-    | "TRIM"i            & '(' & { how: TrimSpecification? } & what: ValueExpression?
-                   & "FROM"i & v: ValueExpression & ')'
-        => @(new Expression.Trim(how is null ? null : Nodes.TrimSpecificationOf(how), what, true, v))
-    | "TRIM"i & '(' & v: ValueExpression & ')'      => @(new Expression.Trim(null, null, false, v))
+    // `TRIM (v)` is `TRIM (v FROM x)` with no `FROM`, and both read their head once (`TrimHead`):
+    // written as two alternatives, the value was read again, and `TRIM (TRIM (a))` nested n deep
+    // was read 2^n times.
+    | "TRIM"i & '(' & head: TrimHead & switch @(head.From is not null ? 1 : head.How is null ? 0 : 2)
+        {
+            case 0: none
+            case 1: v: ValueExpression
+            default: when @(false)
+        }
+      & ')'
+        => @(head.From is not null
+                 ? new Expression.Trim(head.How is null ? null : Nodes.TrimSpecificationOf(head.How), head.What, true, v!)
+                 : new Expression.Trim(null, null, false, head.What!))
     | "CURRENT_DATE"i                                            => @(new Expression.Current(CurrentValue.Date))
     | name: "CURRENT_TIME"i      & ('(' & digits: Digits & ')')? => @(Nodes.CurrentTime(name, digits))
     | name: "CURRENT_TIMESTAMP"i & ('(' & digits: Digits & ')')? => @(Nodes.CurrentTime(name, digits))
 
 ExtractField      = "YEAR"i | "MONTH"i | "DAY"i | "HOUR"i | "MINUTE"i | "SECOND"i | "TIMEZONE_HOUR"i | "TIMEZONE_MINUTE"i
 TrimSpecification = "LEADING"i | "TRAILING"i | "BOTH"i
+
+// What `TRIM (` begins with, up to its `FROM`: a specification and the characters, the characters
+// alone, or nothing — or the characters and no `FROM`. One rule of three ways in, so that what may
+// stand after the bracket is asked for at once.
+TrimHead : @Nodes.TrimHead
+    = how: TrimSpecification & what: ValueExpression? & from: "FROM"i => @(new Nodes.TrimHead(how, what, from))
+    | what: ValueExpression & from: "FROM"i?                          => @(new Nodes.TrimHead(null, what, from))
+    | from: "FROM"i                                                   => @(new Nodes.TrimHead(null, null, from))
 
 // ── §6.20 Case expression, §6.10 Cast ──────────────────────────────────────
 //
