@@ -1640,6 +1640,92 @@
 			"text": "WITH x AS (SELECT 1) COMMIT",
 			"accepted": false,
 			"error": "syntax error at or near \"COMMIT\", at index 21"
+		},
+		{
+			"name": "declare_forms",
+			"text": "DECLARE c BINARY INSENSITIVE NO SCROLL CURSOR WITH HOLD FOR SELECT 1; DECLARE c SCROLL ASENSITIVE SCROLL CURSOR WITHOUT HOLD FOR WITH x AS (SELECT 1) SELECT * FROM x FOR UPDATE; DECLARE c CURSOR FOR SELECT 1 FOR READ ONLY",
+			"accepted": true
+		},
+		{
+			"name": "declare_data_change",
+			"text": "DECLARE c CURSOR FOR INSERT INTO t DEFAULT VALUES RETURNING *",
+			"accepted": false,
+			"error": "syntax error at or near \"INSERT\", at index 21"
+		},
+		{
+			"name": "fetch_forms",
+			"text": "FETCH c; FETCH NEXT FROM c; FETCH PRIOR IN c; FETCH FIRST c; FETCH LAST c; FETCH ABSOLUTE -5 c; FETCH RELATIVE +2 c; FETCH 5 c; FETCH ALL c; FETCH FORWARD c; FETCH FORWARD 3 c; FETCH FORWARD ALL c; FETCH BACKWARD c; FETCH BACKWARD 3 IN c; FETCH BACKWARD ALL c; FETCH next",
+			"accepted": true
+		},
+		{
+			"name": "fetch_absolute_bare",
+			"text": "FETCH ABSOLUTE c",
+			"accepted": false,
+			"error": "syntax error at or near \"c\", at index 15"
+		},
+		{
+			"name": "move_forms",
+			"text": "MOVE c; MOVE FORWARD ALL IN c; MOVE -3 c",
+			"accepted": true
+		},
+		{
+			"name": "close_forms",
+			"text": "CLOSE c; CLOSE ALL",
+			"accepted": true
+		},
+		{
+			"name": "vacuum_forms",
+			"text": "VACUUM; VACUUM FULL FREEZE VERBOSE ANALYZE t (a, b), ONLY u; VACUUM (FULL, ANALYZE, SKIP_LOCKED false, INDEX_CLEANUP auto, PARALLEL 2) t",
+			"accepted": true
+		},
+		{
+			"name": "vacuum_words_out_of_order",
+			"text": "VACUUM FREEZE FULL t",
+			"accepted": false,
+			"error": "syntax error at or near \"FULL\", at index 14"
+		},
+		{
+			"name": "analyze_forms",
+			"text": "ANALYZE; ANALYSE VERBOSE t (a); ANALYZE (VERBOSE, SKIP_LOCKED) t, u",
+			"accepted": true
+		},
+		{
+			"name": "analyze_full",
+			"text": "ANALYZE FULL t",
+			"accepted": false,
+			"error": "syntax error at or near \"FULL\", at index 8"
+		},
+		{
+			"name": "copy_forms",
+			"text": "COPY t FROM STDIN; COPY t TO STDOUT; COPY t FROM STDOUT; COPY BINARY t (a, b) FROM PROGRAM 'cat' USING DELIMITERS '|' WITH CSV HEADER FORCE NOT NULL a, b WHERE a > 1; COPY t FROM 'f' WITH; COPY t FROM 'f' (format csv) WHERE a",
+			"accepted": true
+		},
+		{
+			"name": "copy_every_old_word",
+			"text": "COPY t FROM 'f' DELIMITER AS ',' NULL '' QUOTE '\"' ESCAPE '\\' FREEZE FORCE QUOTE * FORCE NULL a ENCODING 'UTF8'",
+			"accepted": true
+		},
+		{
+			"name": "copy_query_options",
+			"text": "COPY (SELECT 1) TO STDOUT WITH (FORMAT csv, HEADER, FORCE_QUOTE *, FORCE_NULL (a, 'b'), DELIMITER ',', NULL '', ENCODING 'UTF8', freeze true, header 1, x DEFAULT); COPY (INSERT INTO t DEFAULT VALUES RETURNING *) TO STDOUT",
+			"accepted": true
+		},
+		{
+			"name": "copy_to_where",
+			"text": "COPY t TO 'f' WHERE a > 1",
+			"accepted": false,
+			"error": "WHERE clause not allowed with COPY TO, at index 14"
+		},
+		{
+			"name": "copy_truncate",
+			"text": "COPY (TRUNCATE t) TO STDOUT",
+			"accepted": false,
+			"error": "syntax error at or near \"TRUNCATE\", at index 6"
+		},
+		{
+			"name": "explain_declare",
+			"text": "EXPLAIN DECLARE c CURSOR FOR SELECT 1",
+			"accepted": true
 		}
 	]
 }
