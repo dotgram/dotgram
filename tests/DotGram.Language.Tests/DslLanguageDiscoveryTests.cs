@@ -419,6 +419,35 @@ public sealed class DslLanguageDiscoveryTests
 		}
 	}
 
+	/// <summary>
+	/// A compilation asked before its references are loaded sees no attribute and so no host;
+	/// that walk is not what the next compilation of the same files gets.
+	/// </summary>
+	[Fact]
+	public void WalksAgainOnceTheReferencesResolve()
+	{
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var name = "Unloaded" + Guid.NewGuid().ToString("N");
+		var tree = CSharpSyntaxTree.ParseText(
+			Support + """
+
+				[DotGram.Gram("Start = 'x'\nparse Start")]
+				[DotGram.GramLanguage("early")]
+				class EarlyParser;
+				""",
+			CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Preview),
+			cancellationToken: cancellationToken);
+
+		var unloaded = DslLanguageDiscovery.Discover(CSharpCompilation.Create(name, [tree]), cancellationToken);
+		var loaded   = DslLanguageDiscovery.Discover(
+			CSharpCompilation.Create(name, [tree], [MetadataReference.CreateFromFile(typeof(Attribute).Assembly.Location)]),
+			cancellationToken);
+
+		Assert.Empty(unloaded.Languages);
+		Assert.Equal(1, loaded.Work.SourceWalks);
+		Assert.Equal("early", Assert.Single(loaded.Languages).Id);
+	}
+
 	static DslLanguageCatalog Discover(string source)
 	{
 		var tree = CSharpSyntaxTree.ParseText(

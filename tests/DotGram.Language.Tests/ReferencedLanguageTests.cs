@@ -106,8 +106,9 @@ public sealed class ReferencedLanguageTests
 	}
 
 	/// <summary>
-	/// What a project reference compiles against is the library's reference assembly, and an
-	/// internal type is in it only where the library lets another assembly see its internals.
+	/// What a project reference compiles against is the library's reference assembly. That
+	/// keeps the library's internal types and drops only its private members, so an internal
+	/// host is found through it as through the library itself.
 	/// </summary>
 	[Fact]
 	public void SeesAnInternalHostThroughAReferenceAssembly()

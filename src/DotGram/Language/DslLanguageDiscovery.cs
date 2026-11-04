@@ -291,15 +291,25 @@ public static class DslLanguageDiscovery
 				cacheable = false;
 		}
 
-		var key = compilation.AssemblyName ?? "";
+		// One entry per build of a project: a project built for several frameworks is one
+		// assembly name with several sets of symbols, and the entries would take turns.
+		var key = (compilation.AssemblyName ?? "") + "\u0000" + string.Join(
+			";",
+			compilation.SyntaxTrees.FirstOrDefault()?.Options.PreprocessorSymbolNames ?? []);
+
+		// What a walk can see besides the trees: before the references are loaded nothing is
+		// an attribute or a string, and before the generator has run there is no attribute of
+		// the right name, so a walk then finds no host and must not be kept for after.
+		var resolves = compilation.GetSpecialType(SpecialType.System_String).TypeKind != TypeKind.Error;
+		var declared = compilation.Assembly.GetTypeByMetadataName(LanguageAttribute) is not null;
 		if (cacheable)
 		{
 			SourceHosts? entry;
 			lock (CacheGate)
 				SourceCache.TryGetValue(key, out entry);
 
-			if (entry is not null && entry.Trees.Length == relevant.Count &&
-				entry.Trees.Zip(relevant, static (left, right) => ReferenceEquals(left, right)).All(static same => same) &&
+			if (entry is not null && entry.Resolves == resolves && entry.Declared == declared &&
+				entry.Matches(relevant) &&
 				Resolve(compilation.Assembly, entry.Names) is { } found)
 				return found;
 		}
@@ -313,7 +323,7 @@ public static class DslLanguageDiscovery
 		{
 			var names = hosts.Select(MetadataName).ToArray();
 			lock (CacheGate)
-				SourceCache[key] = new SourceHosts([.. relevant], names);
+				SourceCache[key] = new SourceHosts(relevant, names, resolves, declared);
 		}
 
 		return hosts;
@@ -493,10 +503,32 @@ public static class DslLanguageDiscovery
 		public bool GlobalAlias { get; } = globalAlias;
 	}
 
-	sealed class SourceHosts(SyntaxTree[] trees, string[] names)
+	/// <summary>
+	/// The hosts one walk of a project found, and what it saw. The trees are held weakly: an
+	/// entry outlives its project when the solution closes, and must not keep its files alive.
+	/// </summary>
+	sealed class SourceHosts(IReadOnlyList<SyntaxTree> trees, string[] names, bool resolves, bool declared)
 	{
-		public SyntaxTree[] Trees { get; } = trees;
-		public string[]     Names { get; } = names;
+		readonly WeakReference<SyntaxTree>[] _trees = trees.Select(static tree => new WeakReference<SyntaxTree>(tree)).ToArray();
+
+		public string[] Names    { get; } = names;
+		public bool     Resolves { get; } = resolves;
+		public bool     Declared { get; } = declared;
+
+		/// <summary>
+		/// Whether <paramref name="relevant"/> are the very trees the walk read, in order.
+		/// </summary>
+		public bool Matches(IReadOnlyList<SyntaxTree> relevant)
+		{
+			if (_trees.Length != relevant.Count)
+				return false;
+
+			for (var index = 0; index < _trees.Length; index++)
+				if (!_trees[index].TryGetTarget(out var tree) || !ReferenceEquals(tree, relevant[index]))
+					return false;
+
+			return true;
+		}
 	}
 
 	sealed class ReferenceHosts(MetadataImportOptions options, string[] names)

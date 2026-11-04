@@ -68,7 +68,7 @@ public static class DslGrammarSourceResolver
 			// A class from a referenced assembly whose file is not here: what the assembly
 			// carries, as the generator falls back to it.
 			if ((resolved.Kind != DslGrammarResolutionKind.Resolved || resolved.Text is null) &&
-				part.PortableSource is { } portable)
+				part.PortableSource is { Length: > 0 } portable)
 				resolved = new DslGrammarResolution(
 					DslGrammarResolutionKind.Resolved,
 					portable,
