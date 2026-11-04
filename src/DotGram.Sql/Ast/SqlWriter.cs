@@ -393,7 +393,10 @@ public static partial class SqlWriter
 					}
 
 					Word(interval.Text);
-					PutQualifier(interval.Qualifier);
+
+					if (interval.Qualifier is { } qualifier)
+						PutQualifier(qualifier);
+
 					break;
 
 				case LiteralValue.Null:
@@ -733,6 +736,11 @@ public static partial class SqlWriter
 						NumericTypeKind.SmallInt        => "SMALLINT",
 						NumericTypeKind.Integer         => "INTEGER",
 						NumericTypeKind.Int             => "INT",
+						NumericTypeKind.Int2            => "INT2",
+						NumericTypeKind.Int4            => "INT4",
+						NumericTypeKind.Int8            => "INT8",
+						NumericTypeKind.Float4          => "FLOAT4",
+						NumericTypeKind.Float8          => "FLOAT8",
 						NumericTypeKind.BigInt          => "BIGINT",
 						NumericTypeKind.Float           => "FLOAT",
 						NumericTypeKind.Real            => "REAL",
@@ -757,13 +765,31 @@ public static partial class SqlWriter
 
 					break;
 
-				case DataType.Boolean:
-					Word("BOOLEAN");
+				case DataType.Boolean boolean:
+					Word(boolean.Abbreviated ? "BOOL" : "BOOLEAN");
 					break;
 
 				case DataType.DateTime datetime:
 					if (transactSql && datetime.Kind == DateTimeTypeKind.Timestamp)
 						throw Misplaced(datetime, "Kind", "Timestamp, which T-SQL reads as the name of its own row-version type");
+
+					// PostgreSQL's `timestamptz` and `timetz`: the type with its time zone in one word, and no precision in between.
+					if (datetime.Abbreviated)
+					{
+						if (datetime.Kind == DateTimeTypeKind.Date || datetime.TimeZone != TimeZoneMode.With)
+							throw Misplaced(datetime, "Abbreviated", "on a date, or without WITH TIME ZONE, which the one-word spellings always say");
+
+						Word(datetime.Kind == DateTimeTypeKind.Time ? "TIMETZ" : "TIMESTAMPTZ");
+
+						if (datetime.Precision is { } abbreviatedPrecision)
+						{
+							Call();
+							Number(abbreviatedPrecision);
+							Close();
+						}
+
+						break;
+					}
 
 					PutTypeName(datetime, datetime.Kind switch { DateTimeTypeKind.Date => "DATE", DateTimeTypeKind.Time => "TIME", DateTimeTypeKind.Timestamp => "TIMESTAMP", _ => throw NoText(datetime.Kind) });
 
@@ -781,7 +807,20 @@ public static partial class SqlWriter
 
 				case DataType.Interval interval:
 					Word("INTERVAL");
-					PutQualifier(interval.Qualifier);
+
+					if (interval.Precision is { } intervalPrecision)
+					{
+						if (interval.Qualifier is not null)
+							throw Both(interval, "Precision", "Qualifier");
+
+						Call();
+						Number(intervalPrecision);
+						Close();
+					}
+
+					if (interval.Qualifier is { } intervalQualifier)
+						PutQualifier(intervalQualifier);
+
 					break;
 
 				case DataType.Row row:
@@ -811,6 +850,23 @@ public static partial class SqlWriter
 
 				case DataType.Array array:
 					PutType(array.ElementType);
+
+					// PostgreSQL's `t[n]` and `t[]`, against the standard's `t ARRAY[n]`.
+					if (array.Brackets)
+					{
+						if (array.Trigraphs)
+							throw Both(array, "Brackets", "Trigraphs");
+
+						Tight("[");
+						Hold();
+
+						if (array.MaximumCardinality is { } bound)
+							Number(bound);
+
+						Tight("]");
+						break;
+					}
+
 					Word("ARRAY");
 
 					if (array.MaximumCardinality is { } cardinality)
@@ -939,8 +995,10 @@ public static partial class SqlWriter
 			{
 				Expression.Binary { Operator: BinaryOperator.Or }  => Tightness.Disjunct,
 				Expression.Binary { Operator: BinaryOperator.And } => Tightness.Conjunct,
-				Expression.Binary { Operator: BinaryOperator.Multiply or BinaryOperator.Divide or BinaryOperator.Modulo } => Tightness.Multiplicative,
-				Expression.Binary => Tightness.Additive,
+				Expression.Binary { Operator: BinaryOperator.Multiply or BinaryOperator.Divide or BinaryOperator.Modulo or BinaryOperator.Power } => Tightness.Multiplicative,
+				Expression.Binary or Expression.OperatorCall => Tightness.Additive,
+				Expression.QuantifiedOperation or Expression.IsDocument => Tightness.Predicate,
+				Expression.CollationFor => Tightness.Primary,
 				Expression.Unary { Operator: UnaryOperator.Not } => Tightness.Negated,
 				Expression.Unary => Tightness.Signed,
 				Expression.MultisetOperation { Operator: MultisetOperator.Intersect } => Tightness.Multiplicative,
@@ -1414,9 +1472,11 @@ public static partial class SqlWriter
 						BinaryOperator.Modulo      => "%",
 						BinaryOperator.BitwiseAnd  => "&",
 						BinaryOperator.BitwiseOr   => "|",
-						BinaryOperator.BitwiseXor  => "^",
+						// One symbol, two meanings: `^` is T-SQL's exclusive or and PostgreSQL's power, and each dialect writes the other's as it reads it.
+						BinaryOperator.BitwiseXor  => postgreSql ? "#" : "^",
 						BinaryOperator.ShiftLeft   => "<<",
 						BinaryOperator.ShiftRight  => ">>",
+						BinaryOperator.Power       => postgreSql ? "^" : throw Misplaced(binary, "Operator", "Power, which only PostgreSQL reads (its `^`); the standard and T-SQL have no power operator"),
 						_                          => throw NoText(binary.Operator),
 					});
 					PassCondition(condition);
@@ -1501,6 +1561,29 @@ public static partial class SqlWriter
 					if (cast.Try && cast.Format is not null)
 						throw Both(cast, "Try", "Format");
 
+					// PostgreSQL's two spellings besides CAST: `x::t`, and `t 'text'`, which takes a string and nothing else.
+					if (cast.Spelling is { } spelling)
+					{
+						if (cast.Try || cast.Format is not null)
+							throw Both(cast, "Spelling", cast.Try ? "Try" : "Format");
+
+						if (spelling == CastSpelling.DoubleColon)
+						{
+							PutOperand(cast.Value, Tightness.Primary);
+							Tight("::");
+							Hold();
+							PutType(cast.Target);
+							break;
+						}
+
+						if (cast.Value is not LiteralValue.String { Kind: StringLiteralKind.Character or StringLiteralKind.Escaped or StringLiteralKind.Dollar, CharacterSet: null } typed)
+							throw Misplaced(cast, "Value", "other than a plain string on a typed literal, which is a type and a string");
+
+						PutType(cast.Target);
+						PutLiteral(typed);
+						break;
+					}
+
 					Word(cast.Try ? "TRY_CAST" : "CAST");
 					Call();
 					PutExpression(cast.Value);
@@ -1580,9 +1663,23 @@ public static partial class SqlWriter
 					PutOperand(element.Collection, Tightness.Primary, !transactSql && (Written(element.Collection, Tightness.Primary) & Towers.Array) == 0);
 					Tight(element.Trigraphs ? "??(" : "[");
 					Hold();
-					PutSubscript(element.Index);
 
-					if (element.To is { } to)
+					// A bound left out is PostgreSQL's `a[:3]`, which only its colon writes.
+					if (element.Index is { } index)
+						PutSubscript(index);
+					else if (!element.Colon || element.To is null)
+						throw Misplaced(element, "Index", "missing where no colon slice with an upper bound was written");
+
+					if (element.Colon)
+					{
+						Hold();
+						Tight(":");
+						Hold();
+
+						if (element.To is { } upper)
+							PutSubscript(upper);
+					}
+					else if (element.To is { } to)
 					{
 						Word("TO");
 						PutSubscript(to);
@@ -1645,13 +1742,27 @@ public static partial class SqlWriter
 					break;
 
 				case Expression.Substring substring:
+					if (substring.From is null && (substring.For is null || substring.ForFirst))
+						throw Misplaced(substring, "From", "missing with no FOR, or with FOR first: PostgreSQL's `FOR b` alone is the one shape without FROM");
+
 					Word("SUBSTRING");
 					Call();
 					PutExpression(substring.Value);
-					Word("FROM");
-					PutExpression(substring.From);
 
-					if (substring.For is { } forLength)
+					// PostgreSQL's `FOR b FROM a`, the count before the start.
+					if (substring.ForFirst && substring.For is { } forFirst)
+					{
+						Word("FOR");
+						PutExpression(forFirst);
+					}
+
+					if (substring.From is { } from)
+					{
+						Word("FROM");
+						PutExpression(from);
+					}
+
+					if (!substring.ForFirst && substring.For is { } forLength)
 					{
 						Word("FOR");
 						PutExpression(forLength);
@@ -1729,6 +1840,20 @@ public static partial class SqlWriter
 				case Expression.Extract extract:
 					Word("EXTRACT");
 					Call();
+
+					// PostgreSQL's field the standard does not name, as the name or the string written.
+					if (extract.Field is null)
+					{
+						if (extract.NamedField is not { } namedField)
+							throw Misplaced(extract, "Field", "missing with no NamedField either");
+
+						PutExpression(namedField);
+					}
+					else if (extract.NamedField is not null)
+					{
+						throw Both(extract, "Field", "NamedField");
+					}
+					else
 					Word(extract.Field switch
 					{
 						ExtractField.Year           => "YEAR",
@@ -1840,7 +1965,7 @@ public static partial class SqlWriter
 				case Expression.Like like:
 					PutOperand(like.Value, Tightness.Additive);
 					PutNot(like.Not);
-					Word(like.Kind switch { LikeKind.Like => "LIKE", LikeKind.Similar => "SIMILAR TO", LikeKind.Regex => "LIKE_REGEX", _ => throw NoText(like.Kind) });
+					Word(like.Kind switch { LikeKind.Like => "LIKE", LikeKind.Similar => "SIMILAR TO", LikeKind.Regex => "LIKE_REGEX", LikeKind.ILike => "ILIKE", _ => throw NoText(like.Kind) });
 					PutOperand(like.Pattern, Tightness.Additive);
 
 					// T-SQL: LIKE (Transact-SQL). The escape in ODBC's braces.
@@ -1871,6 +1996,14 @@ public static partial class SqlWriter
 
 				case Expression.IsNull isNull:
 					PutOperand(isNull.Value, Tightness.Additive);
+
+					// PostgreSQL's one-word spellings, after the value.
+					if (isNull.Postfix)
+					{
+						Word(isNull.Not ? "NOTNULL" : "ISNULL");
+						break;
+					}
+
 					Word("IS");
 					PutNot(isNull.Not);
 					Word("NULL");
@@ -2262,7 +2395,7 @@ public static partial class SqlWriter
 					break;
 
 				default:
-					if (TryPutTransactSql(expression))
+					if (TryPutTransactSql(expression) || TryPutPostgreSql(expression))
 						break;
 
 					throw Unwritten(expression);
@@ -2620,6 +2753,15 @@ public static partial class SqlWriter
 		// else is written in its own, `(a AS t).m ()`.
 		void PutArgument(Argument argument)
 		{
+			// PostgreSQL's `VARIADIC arr` spreads an array over the variadic parameters.
+			if (argument.Variadic)
+			{
+				if (argument.Name is not null)
+					throw Both(argument, "Variadic", "Name");
+
+				Word("VARIADIC");
+			}
+
 			if (transactSql && argument.Name is not null)
 				throw Misplaced(argument, "Name", "that T-SQL does not read: its function calls pass arguments by position");
 

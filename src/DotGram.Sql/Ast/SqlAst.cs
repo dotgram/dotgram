@@ -1136,7 +1136,8 @@ public abstract partial record Expression : ISqlNode, ISqlLocatable
 	public sealed record CollectionQuery(CollectionKind Kind, Query Query) : Expression;
 
 	// BNF: <array element reference>, and a JSON simplified accessor's `[1 TO 3]`. Trigraphs are `??(` and `??)`.
-	public sealed record Element(Expression Collection, Expression Index, Expression? To = null, bool Trigraphs = false) : Expression;
+	// PostgreSQL: Subscripts. `Index` is null where a slice's lower bound is left out, `a[:3]`.
+	public sealed partial record Element(Expression Collection, Expression? Index, Expression? To = null, bool Trigraphs = false) : Expression;
 
 	// BNF: a JSON simplified accessor's `.*` and `[*]`.
 	// T-SQL: `t.*` as an argument (CHECKSUM, BINARY_CHECKSUM, CONTAINS, FREETEXT): all columns of `t`; the target is the table's reference, as in `SelectColumn.QualifiedAll`.
@@ -1157,13 +1158,15 @@ public abstract partial record Expression : ISqlNode, ISqlLocatable
 	public sealed record IntervalQualified(Expression Value, IntervalQualifier Qualifier) : Expression;
 
 	// BNF: <string value function>s whose arguments are key words and not a comma list.
-	public sealed record Substring(Expression Value, Expression From, Expression? For, CharacterLengthUnits? Using) : Expression;
+	// PostgreSQL: substring. `From` is null where only `FOR` was written.
+	public sealed partial record Substring(Expression Value, Expression? From, Expression? For, CharacterLengthUnits? Using) : Expression;
 	public sealed record SubstringSimilar(Expression Value, Expression Pattern, Expression Escape) : Expression;
 	public sealed record Trim(TrimSpecification? Specification, Expression? Character, bool FromKeyword, Expression Source) : Expression;
 	public sealed record Overlay(Expression Value, Expression Placing, Expression From, Expression? For, CharacterLengthUnits? Using) : Expression;
 	public sealed record Position(Expression Value, Expression Within, CharacterLengthUnits? Using) : Expression;
 	public sealed record Length(LengthFunction Function, Expression Value, CharacterLengthUnits? Using) : Expression;
-	public sealed record Extract(ExtractField Field, Expression Source) : Expression;
+	// PostgreSQL: EXTRACT. `Field` is null where the field is one the standard does not name (`NamedField`).
+	public sealed partial record Extract(ExtractField? Field, Expression Source) : Expression;
 	// BNF: <normalize function>; a result length may carry a multiplier and its units, `10 K CHARACTERS`.
 	public sealed record Normalize(Expression Value, NormalForm? Form, Expression? MaxLength) : Expression
 	{
@@ -1197,7 +1200,7 @@ public abstract partial record Expression : ISqlNode, ISqlLocatable
 	// BNF: <like predicate>, <similar predicate>, <regex like predicate> — whose FLAG is Flag.
 	public sealed partial record Like(Expression Value, bool Not, LikeKind Kind, Expression Pattern, Expression? Escape = null, Expression? Flag = null) : Expression;
 
-	public sealed record IsNull(Expression Value, bool Not) : Expression;
+	public sealed partial record IsNull(Expression Value, bool Not) : Expression;
 
 	// BNF: <boolean test>, `a IS NOT UNKNOWN`.
 	public sealed record IsTruth(Expression Value, bool Not, BooleanLiteral Truth) : Expression;
@@ -1280,14 +1283,16 @@ public enum CurrentValue { Catalog, Date, DefaultTransformGroup, Path, Role, Sch
 public enum UnaryOperator { Plus, Minus, Not, BitwiseNot }
 // T-SQL: Arithmetic Operators, Bitwise Operators (Transact-SQL). From `Modulo` on: `%`, `&`, `|`, `^`,
 // `<<` and `>>`. `%` binds as `*` does.
-public enum BinaryOperator { Add, Subtract, Multiply, Divide, Concatenate, And, Or, Modulo, BitwiseAnd, BitwiseOr, BitwiseXor, ShiftLeft, ShiftRight }
+// PostgreSQL: Mathematical Functions and Operators. `Power` is PostgreSQL's `^`; T-SQL's `^` is `BitwiseXor`, which PostgreSQL writes `#`.
+public enum BinaryOperator { Add, Subtract, Multiply, Divide, Concatenate, And, Or, Modulo, BitwiseAnd, BitwiseOr, BitwiseXor, ShiftLeft, ShiftRight, Power }
 public enum MultisetOperator { Union, Except, Intersect }
 // T-SQL: Comparison Operators (Transact-SQL). `NotLess` is `!<` and `NotGreater` is `!>`, which the
 // standard does not have. T-SQL's `!=` is `NotEqual` written differently, not an operator of its own.
 public enum ComparisonOperator { Equal, NotEqual, Less, Greater, LessOrEqual, GreaterOrEqual, NotLess, NotGreater }
 public enum BetweenSymmetry { Asymmetric, Symmetric }
 public enum Quantifier { All, Some, Any }
-public enum LikeKind { Like, Similar, Regex }
+// PostgreSQL: Pattern Matching. `ILike` is `ILIKE`, the match that ignores case.
+public enum LikeKind { Like, Similar, Regex, ILike }
 public enum CollectionKind { Array, Multiset, Table }
 public enum MemberAccessKind { Dot, Dereference, StaticMethod }
 public enum WildcardKind { Member, Array }
@@ -1339,7 +1344,8 @@ public abstract partial record LiteralValue : Expression
 	public sealed record Boolean(BooleanLiteral Value) : LiteralValue;
 	public sealed record DateTime(DateTimeLiteralKind Kind, string Text) : LiteralValue;
 	// Sign is `INTERVAL -'1' DAY`'s, null where none was written.
-	public sealed record Interval(string Text, IntervalQualifier Qualifier, UnaryOperator? Sign = null) : LiteralValue;
+	// PostgreSQL: Interval Input. `Qualifier` is null where none was written, `INTERVAL '1 day'`.
+	public sealed record Interval(string Text, IntervalQualifier? Qualifier, UnaryOperator? Sign = null) : LiteralValue;
 	public sealed record Null : LiteralValue;
 }
 // T-SQL: money and smallmoney (Transact-SQL). `Money` is a literal written with a currency sign.
@@ -1358,7 +1364,7 @@ public sealed record CaseWhen(SqlList<Expression> When, Expression Then) : ISqlN
 		_location = new SqlLocation(new SqlSpan(at, length));
 	}
 }
-public sealed record Argument(Expression Value, Identifier? Name = null, bool NamedAssignment = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
+public sealed partial record Argument(Expression Value, Identifier? Name = null, bool NamedAssignment = false) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{
 		_location = new SqlLocation(new SqlSpan(at, length));
@@ -1434,12 +1440,13 @@ public abstract partial record DataType : ISqlNode
 	// `Length` is null where it is set.
 	public sealed record Binary(BinaryTypeKind Kind, int? Length = null, LargeObjectSize? LargeObject = null, [property: Spelling] bool Max = false) : DataType;
 	public sealed record Numeric(NumericTypeKind Kind, int? Precision = null, int? Scale = null) : DataType;
-	public sealed record Boolean : DataType;
-	public sealed record DateTime(DateTimeTypeKind Kind, int? Precision = null, TimeZoneMode? TimeZone = null) : DataType;
-	public sealed record Interval(IntervalQualifier Qualifier) : DataType;
+	public sealed partial record Boolean : DataType;
+	public sealed partial record DateTime(DateTimeTypeKind Kind, int? Precision = null, TimeZoneMode? TimeZone = null) : DataType;
+	// PostgreSQL: Date/Time Types. `interval`, `interval(3)`, `interval day to second(3)`: the qualifier may be left out, and a precision stand alone.
+	public sealed record Interval(IntervalQualifier? Qualifier = null, int? Precision = null) : DataType;
 	public sealed record Row(SqlList<FieldDefinition> Fields) : DataType;
 	public sealed record Reference(QualifiedName ReferencedType, QualifiedName? Scope = null) : DataType;
-	public sealed record Array(DataType ElementType, int? MaximumCardinality = null, bool Trigraphs = false) : DataType;
+	public sealed partial record Array(DataType ElementType, int? MaximumCardinality = null, bool Trigraphs = false) : DataType;
 	public sealed record Multiset(DataType ElementType) : DataType;
 	public sealed partial record UserDefined(QualifiedName Name) : DataType;
 	public sealed record Json : DataType;
@@ -1457,7 +1464,8 @@ public enum CharacterTypeKind
 	Nvarchar,
 }
 public enum BinaryTypeKind { Binary, BinaryVarying, Varbinary, BinaryLargeObject, Blob }
-public enum NumericTypeKind { Numeric, Decimal, Dec, SmallInt, Integer, Int, BigInt, Float, Real, DoublePrecision, DecFloat }
+// PostgreSQL: Numeric Types. `Int2`, `Int4`, `Int8`, `Float4` and `Float8` are PostgreSQL's spellings of the standard's small, plain and big integers, real and double precision.
+public enum NumericTypeKind { Numeric, Decimal, Dec, SmallInt, Integer, Int, BigInt, Float, Real, DoublePrecision, DecFloat, Int2, Int4, Int8, Float4, Float8 }
 public enum DateTimeTypeKind { Date, Time, Timestamp }
 public enum TimeZoneMode { With, Without }
 public enum LengthUnit { Characters, Octets }
