@@ -122,7 +122,7 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 		var splitHgL = SqlVariants.Parser(SqlVariants.Sql92Split, "off", true, false, headGuard: true, located: true).GetNestedType("Located")!;
 
 		foreach (var (name, type) in new[] { ("before", before), ("cover", cover), ("cover+headguard", coverHg), ("split+headguard", splitHg) })
-			Log($"size {name,-16}: generated C# {SqlVariants.Sizes[type.Assembly.GetTypes().First(static one => SqlVariants.Sizes.ContainsKey(one))].SourceChars:N0} chars, assembly {SqlVariants.Sizes[type.Assembly.GetTypes().First(static one => SqlVariants.Sizes.ContainsKey(one))].AssemblyBytes:N0} bytes");
+			Log($"size {name,-16}: generated C# {SqlVariants.Sizes[type].SourceChars:N0} chars, assembly {SqlVariants.Sizes[type].AssemblyBytes:N0} bytes");
 
 		var generated = Generated(3000, seed: 92);
 		var accepted  = generated.Where(text => Answer(before, "TryParseSelect", [text]).Accepted).ToList();
@@ -154,6 +154,26 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 		LocatedDifferential("located: before vs split+headguard", beforeL, splitHgL, accepted.Concat(corpus).Concat(Harvested("Sql92")).ToList());
 
 		Timing(accepted, [("before", before), ("cover", cover), ("cover+headguard", coverHg), ("split+headguard", splitHg)]);
+	}
+
+	[Fact]
+	public void Sql92_time_of_the_guards_alone()
+	{
+		var before  = SqlVariants.Parser(SqlVariants.Sql92Before);
+		var guards  = SqlVariants.Parser(SqlVariants.Sql92Guards);
+		var guardsH = SqlVariants.Parser(SqlVariants.Sql92Guards, "off", true, false, headGuard: true, located: false);
+		var cover   = SqlVariants.Parser(SqlVariants.Sql92);
+		var coverH  = SqlVariants.Parser(SqlVariants.Sql92, "off", true, false, headGuard: true, located: false);
+		var splitH  = SqlVariants.Parser(SqlVariants.Sql92Split, "off", true, false, headGuard: true, located: false);
+
+		foreach (var (name, type) in new[] { ("before", before), ("before+guards", guards), ("before+guards+hg", guardsH), ("cover", cover), ("cover+headguard", coverH), ("split+headguard", splitH) })
+			Log($"size {name,-18}: generated C# {SqlVariants.Sizes[type].SourceChars:N0} chars, assembly {SqlVariants.Sizes[type].AssemblyBytes:N0} bytes");
+
+		var generated = Generated(3000, seed: 92);
+		var accepted  = generated.Where(text => Answer(before, "TryParseSelect", [text]).Accepted).ToList();
+
+		Timing(accepted, [("before", before), ("before+guards", guards), ("before+guards+hg", guardsH), ("cover", cover), ("cover+headguard", coverH), ("split+headguard", splitH)]);
+		Timing(accepted, [("before", before), ("before+guards", guards), ("before+guards+hg", guardsH), ("cover", cover), ("cover+headguard", coverH), ("split+headguard", splitH)]);
 	}
 
 	void Differential(string title, Type before, Type after, List<string> texts, bool holds)

@@ -79,6 +79,9 @@ static class SqlVariants
 	/// <summary>The SQL-92 grammar with the value tower instantiated twice (a fixture under <c>Fixtures/ReadOnce/Split</c>).</summary>
 	public const string Sql92Split = "Sql92Split";
 
+	/// <summary>The SQL-92 grammar as it was, with the cover's guards alone added to its steps (a fixture under <c>Fixtures/ReadOnce/Guards</c>): what the guards cost by themselves.</summary>
+	public const string Sql92Guards = "Sql92Guards";
+
 	static readonly ConcurrentDictionary<(string Grammar, string Follow, bool Memo, bool Counts, bool HeadGuard, bool Located), Type> Compiled = new();
 
 	static readonly object Compiling = new();
@@ -92,13 +95,14 @@ static class SqlVariants
 			Sql92       => (Sql92Host, "Standard", "SqlStandard92.gram", "DotGram.Sql.Standard.Variant.Sql92Parser"),
 			Sql92Before => (Sql92Host.Replace("Standard.Variant", "Standard.Before"), Fixture("ReadOnce"), "SqlStandard92.gram", "DotGram.Sql.Standard.Before.Sql92Parser"),
 			Sql92Split  => (Sql92Host.Replace("Standard.Variant", "Standard.Split"), Fixture(Path.Combine("ReadOnce", "Split")), "SqlStandard92.gram", "DotGram.Sql.Standard.Split.Sql92Parser"),
+			Sql92Guards => (Sql92Host.Replace("Standard.Variant", "Standard.Guards"), Fixture(Path.Combine("ReadOnce", "Guards")), "SqlStandard92.gram", "DotGram.Sql.Standard.Guards.Sql92Parser"),
 			_           => throw new ArgumentOutOfRangeException(nameof(grammar)),
 		};
 
 		if (headGuard)
 		{
-			host = host.Replace("Standard.Variant", "Standard.Guarded").Replace("Standard.Before", "Standard.BeforeGuarded").Replace("Standard.Split", "Standard.SplitGuarded");
-			name = name.Replace("Standard.Variant", "Standard.Guarded").Replace("Standard.Before", "Standard.BeforeGuarded").Replace("Standard.Split", "Standard.SplitGuarded");
+			host = host.Replace("Standard.Variant", "Standard.Guarded").Replace("Standard.Before", "Standard.BeforeGuarded").Replace("Standard.Split", "Standard.SplitGuarded").Replace("Standard.Guards", "Standard.GuardsGuarded");
+			name = name.Replace("Standard.Variant", "Standard.Guarded").Replace("Standard.Before", "Standard.BeforeGuarded").Replace("Standard.Split", "Standard.SplitGuarded").Replace("Standard.Guards", "Standard.GuardsGuarded");
 		}
 
 		if (located)
