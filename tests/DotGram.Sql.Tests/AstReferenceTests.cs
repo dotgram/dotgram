@@ -136,7 +136,7 @@ public sealed class AstReferenceTests
 		var text = File.ReadAllText(Path.Combine(Root(), "docs", "ast.md"));
 		var rows = new List<(string, string)>();
 
-		foreach (Match row in Regex.Matches(text, @"^\| `([\w.]+)` \| ([^|]+?) \|", RegexOptions.Multiline))
+		foreach (Match row in Regex.Matches(text, @"^\| `(\w+(?:\.\w+)+)` \| ([^|]+?) \|", RegexOptions.Multiline))
 			rows.Add((row.Groups[1].Value, row.Groups[2].Value.Trim()));
 
 		return rows;
