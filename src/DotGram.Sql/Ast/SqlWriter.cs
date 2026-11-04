@@ -35,18 +35,29 @@ namespace DotGram.Sql.Ast;
 /// checks the stack first and, where it runs low, goes on on a thread of its own (<c>SqlStack</c>).
 /// </para>
 /// </remarks>
+/// <summary>
+/// Which reading a writer's text is for: the standard's, which <see cref="SqlWriter.Write(ISqlNode)"/> prints, or a
+/// dialect's, which refuses besides the trees that dialect would read as others and keeps its own spellings.
+/// </summary>
+enum SqlDialect
+{
+	Standard,
+	TransactSql,
+	PostgreSql,
+}
+
 public static partial class SqlWriter
 {
 	/// <summary>The tree's text, as the standard reads it. For text T-SQL reads, use <see cref="TransactSqlWriter.Write"/>.</summary>
 	public static string Write(ISqlNode node)
 	{
-		return Write(node, transactSql: false);
+		return Write(node, SqlDialect.Standard);
 	}
 
-	/// <summary>The one writer, for the standard's reading or for T-SQL's (<see cref="TransactSqlWriter"/>).</summary>
-	internal static string Write(ISqlNode node, bool transactSql)
+	/// <summary>The one writer, for the standard's reading or for a dialect's (<see cref="TransactSqlWriter"/>).</summary>
+	internal static string Write(ISqlNode node, SqlDialect dialect)
 	{
-		var text = new Text(transactSql);
+		var text = new Text(dialect);
 
 		text.PutNode(node);
 
@@ -58,14 +69,18 @@ public static partial class SqlWriter
 		readonly StringBuilder written = new();
 
 		/// <summary>
-		/// Whether the text is for T-SQL, which refuses besides what every reading refuses the trees T-SQL would read as
-		/// others (<see cref="TransactSqlWriter"/>). Set once, by the entry that makes the writer.
+		/// Which reading the text is for: the standard's, or a dialect's, which refuses besides what every reading refuses
+		/// the trees that dialect would read as others (<see cref="TransactSqlWriter"/>). Set once, by the entry that makes
+		/// the writer.
 		/// </summary>
-		readonly bool transactSql;
+		readonly SqlDialect dialect;
 
-		public Text(bool transactSql)
+		/// <summary>Whether the text is for T-SQL.</summary>
+		bool transactSql => dialect == SqlDialect.TransactSql;
+
+		public Text(SqlDialect dialect)
 		{
-			this.transactSql = transactSql;
+			this.dialect = dialect;
 		}
 
 		bool held = true;

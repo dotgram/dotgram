@@ -684,7 +684,7 @@ public static partial class SqlWriter
 			if (type is null)
 				return false;
 
-			var text  = SqlWriter.Write(type, true);
+			var text  = SqlWriter.Write(type, SqlDialect.TransactSql);
 			var until = '\0';
 
 			foreach (var c in text)

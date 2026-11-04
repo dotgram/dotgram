@@ -1688,8 +1688,8 @@ public static partial class SqlWriter
 			Close();
 
 			if (!Syntax.WithoutVariable(function.Arguments.Count == 0
-				? SqlWriter.Write(new Expression.Reference(function.Name), transactSql: true)
-				: string.Join(", ", function.Arguments.Select(static one => SqlWriter.Write(one, transactSql: true)))))
+				? SqlWriter.Write(new Expression.Reference(function.Name), SqlDialect.TransactSql)
+				: string.Join(", ", function.Arguments.Select(static one => SqlWriter.Write(one, SqlDialect.TransactSql)))))
 				throw Misplaced(function, "Arguments", "with a local variable, which a security policy does not take (Msg 112)");
 		}
 

@@ -20,7 +20,7 @@ public static class TransactSqlWriter
 	/// </remarks>
 	public static string Write(ISqlNode node)
 	{
-		var text = SqlWriter.Write(node, transactSql: true);
+		var text = SqlWriter.Write(node, SqlDialect.TransactSql);
 
 		return node is Statement statement && Terminated(statement) ? text + ";" : text;
 	}
