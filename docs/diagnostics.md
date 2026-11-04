@@ -21,8 +21,8 @@ silently acquire a new one. The retired numbers are listed at the end.
 
 **Where a message points.** A grammar in a `.gram` file is underlined in that file. A grammar
 written into the `[Gram("…")]` attribute is underlined inside the string literal, at the
-character the grammar's own position maps to. A grammar inherited from a base class is
-underlined where it was written, in the base's own file — see §5.1.
+character the grammar's own position maps to. A grammar inherited from a base class, or included with
+`[GramInclude]`, is underlined where it was written, in its own file — see syntax.md §6.7.
 
 ---
 
@@ -31,10 +31,10 @@ underlined where it was written, in the base's own file — see §5.1.
 | Id | What it says | What to do |
 | --- | --- | --- |
 | `GRAM0001` | The generator itself failed. | A defect in .Gram, not in the grammar. The message names the stage and carries the exception; please report it. |
-| `GRAM0002` | A class hosting a grammar must be `partial`. | Add `partial` to the class the `[Gram]` attribute is on. |
+| `GRAM0002` | A class hosting a grammar must be `partial`. | Add `partial` to the class the `[Gram]` attribute is on. A nested host needs every enclosing class to be `partial` as well. |
 | `GRAM0003` | No grammar file for a `[Gram]` class. | Add the `.gram` file, or add it to the project as `<AdditionalFiles Include="…" />`. |
 | `GRAM0004` | More than one grammar file matches. | Two additional files answer to the same name. Name one of them in the attribute: `[Gram("Feed.gram")]`. |
-| `GRAM0005` | The name a grammar is included under is not an identifier. | `[Gram(IncludedAs = "…")]` names the namespace an inheriting grammar reaches this one through, so it has to be one identifier. |
+| `GRAM0005` | The name a grammar is included under is not an identifier. | `[Gram(IncludedAs = "…")]` names the namespace an including grammar reaches this one through, so it has to be one identifier. |
 | `GRAM0006` | Two readings of one grammar want the same scope. | The `[Gram]` and every `[GramOptions]` on a class is a compilation of its own and needs a scope of its own: the `[Gram]` goes in the class itself, and every `[GramOptions]` names a nested class with `Suffix`. |
 | `GRAM0007` | The name a grammar is compiled under is not an identifier. | `[GramOptions(Suffix = "…")]` names a nested class, and a class is named by an identifier. |
 | `GRAM0008` | Two grammars are included under one name. | An included grammar is wrapped in a namespace named after it, which is what keeps two grammars' rules apart: `Sql92.Identifier` and `Lex.Identifier` are different names. Two under one name are one namespace, and their rules do collide — give all but one an `As` of its own. |
@@ -63,7 +63,7 @@ underlined where it was written, in the base's own file — see §5.1.
 | Id | What it says | What to do |
 | --- | --- | --- |
 | `GRAM2001` | Expected a particular token. | The message names it. |
-| `GRAM2002` | Expected a rule, a namespace or a publication directive. | Only those four things stand at the top of a grammar: a rule, `namespace`, `parse`/`find`, and the `context`/`state`/`trivia` declarations. |
+| `GRAM2002` | Expected a rule, a namespace or a publication directive. | Only these stand at the top of a grammar: `using`/`@using` lines at its head, a rule (`trivia` among them), `namespace`, `parse`/`find` (with `internal` or `private` before it, if any), and the `context`/`state` declarations. |
 | `GRAM2003` | Expected a literal, a reference, an element set, a group or an atomic group. | An operand is missing where one has to stand — often after a `&` or a `\|`. Said in its own words for `when:`, a capture called `when`: `when` begins a guard, so rename the capture. |
 | `GRAM2004` | Expected a name. | |
 | `GRAM2005` | A binding power is a whole number from 0 to 9999. | `<< 2`, `>> 3` (§4.3.1). |
