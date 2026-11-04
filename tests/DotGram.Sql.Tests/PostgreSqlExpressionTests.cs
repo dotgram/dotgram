@@ -794,6 +794,14 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("RELEASE savepoint",                                      "release a savepoint named savepoint")]
 	[InlineData("SAVEPOINT savepoint",                                    "a savepoint named savepoint")]
 	[InlineData("FETCH 2147483647 c",                                     "fetch the largest count")]
+	[InlineData("FETCH 0x10 c",                                           "fetch a hexadecimal count")]
+	[InlineData("FETCH 0o17 c",                                           "fetch an octal count")]
+	[InlineData("FETCH 0b101 c",                                          "fetch a binary count")]
+	[InlineData("FETCH ABSOLUTE 0x10 c",                                  "fetch absolute hexadecimal")]
+	[InlineData("FETCH FORWARD 0b1 c",                                    "fetch forward binary")]
+	[InlineData("FETCH 0x7FFFFFFF c",                                     "fetch the largest hexadecimal count")]
+	[InlineData("FETCH -0x10 c",                                          "fetch a negative hexadecimal count")]
+	[InlineData("FETCH 0x80000000 c",                                     "refused: a hexadecimal count past 32 bits")]
 	[InlineData("FETCH -2147483647 c",                                    "fetch the smallest count")]
 	[InlineData("FETCH 2147483648 c",                                     "refused: a count past 32 bits")]
 	[InlineData("FETCH -2147483648 c",                                    "refused: a negative count past 32 bits")]
@@ -975,6 +983,13 @@ public sealed class PostgreSqlExpressionTests
 			"release a savepoint named savepoint" => made is Statement.ReleaseSavepoint { Name.Text: "savepoint", SavepointKeywordOmitted: true },
 			"a savepoint named savepoint" => made is Statement.Savepoint { Name.Text: "savepoint" },
 			"fetch the largest count"  => made is Statement.FetchCursor { Orientation.Offset: LiteralValue.Numeric { Text: "2147483647" } },
+			"fetch a hexadecimal count" => made is Statement.FetchCursor { Orientation.Offset: LiteralValue.Numeric { Text: "0x10", Kind: NumericLiteralKind.HexInteger } },
+			"fetch an octal count"     => made is Statement.FetchCursor { Orientation.Offset: LiteralValue.Numeric { Kind: NumericLiteralKind.OctalInteger } },
+			"fetch a binary count"     => made is Statement.FetchCursor { Orientation.Offset: LiteralValue.Numeric { Kind: NumericLiteralKind.BinaryInteger } },
+			"fetch absolute hexadecimal" => made is Statement.FetchCursor { Orientation: { Kind: FetchOrientationKind.Absolute, Offset: LiteralValue.Numeric { Kind: NumericLiteralKind.HexInteger } } },
+			"fetch forward binary"     => made is Statement.FetchCursor { Orientation: { Kind: FetchOrientationKind.Forward, Offset: LiteralValue.Numeric { Kind: NumericLiteralKind.BinaryInteger } } },
+			"fetch the largest hexadecimal count" => made is Statement.FetchCursor { Orientation.Offset: LiteralValue.Numeric { Text: "0x7FFFFFFF", Kind: NumericLiteralKind.HexInteger } },
+			"fetch a negative hexadecimal count" => made is Statement.FetchCursor { Orientation.Offset: LiteralValue.Numeric { Text: "-0x10", Kind: NumericLiteralKind.HexInteger } },
 			"fetch the smallest count" => made is Statement.FetchCursor { Orientation.Offset: LiteralValue.Numeric { Text: "-2147483647" } },
 			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
 		};
