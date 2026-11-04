@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using System.Threading;
 
 using DotGram.Grammar;
 using DotGram.Grammar.Binding;
@@ -58,7 +60,7 @@ public sealed class SharedRecursionTests(ITestOutputHelper output)
 		{
 			"T-SQL"                     => (["BooleanPrimary", "RowValueConstructor", "TSqlPrimaryCore"], []),
 			"SQL:2023"                  => (["PrimaryReading"], []),
-			"SQL-92"                    => ([], []),
+			"SQL-92"                    => ([], ["BooleanPrimary", "RowValueConstructor"]),
 			"SQL-92 before the rewrite" => (["BooleanPrimary", "RowValueConstructor", "InPredicateValue"], []),
 			"EL"                        => (["Postfix", "Primary"], []),
 			"PostgreSQL 91bf1d63"       => (["TableRefPrimary", "GroupItem"], []),
@@ -133,11 +135,11 @@ public sealed class SharedRecursionTests(ITestOutputHelper output)
 			true
 		},
 
-		// The same written in place: the normalizer factors the shared prefix, and nothing is left to flag.
+		// The same written in one rule: nothing factors the shared prefix out, and it is the same shape.
 		{
-			"textbook, factored", "A",
+			"textbook, in one rule", "A",
 			"A = '(' & A & ')' & 'x' | '(' & A & ')' & 'y' | 'a'\nStart = A & eof\nparse Start\n",
-			false
+			true
 		},
 
 		// A named shape against a call by the same name: `cast ( cast ( …`.
@@ -200,6 +202,87 @@ public sealed class SharedRecursionTests(ITestOutputHelper output)
 		Log($"  shared prefix of {letters} letters: {(told ? "flagged" : "missed")}");
 
 		Assert.Equal(flagged, told);
+	}
+
+	/// <summary>
+	/// The pairs the rewritten SQL-92 grammar still has at error level, each nested through the
+	/// construct its witness names, with the rule entries a parse costs at each depth: a count that
+	/// doubles every level is the shape the analysis is about, one that grows by a constant is not.
+	/// </summary>
+	/// <remarks>Reported, not held: what the counts say is the report's to weigh.</remarks>
+	[Theory]
+	[InlineData("InPredicateValue", "SELECT a FROM t WHERE ", "a IN ((SELECT a FROM t WHERE {0}), 2)", "a = 1")]
+	[InlineData("ValueExpressionPrimary", "SELECT a FROM t WHERE ", "((SELECT a FROM t WHERE {0}) UNION (SELECT a FROM t)) = 1", "a = 1")]
+	[InlineData("TablePrimary", "SELECT a FROM ", "((SELECT a FROM {0}) AS q)", "t")]
+	public void Sql92Ladder(string rule, string head, string shape, string core)
+	{
+		var parser = SqlVariants.Parser(SqlVariants.Sql92, counts: true);
+		var line   = new StringBuilder($"  ladder SQL-92 {rule}:");
+		var last   = 0L;
+
+		foreach (var depth in new[] { 2, 4, 6, 8, 10 })
+		{
+			var text = head;
+			var nest = core;
+
+			for (var level = 0; level < depth; level++)
+				nest = shape.Replace("{0}", nest, StringComparison.Ordinal);
+
+			text += nest;
+
+			var (count, accepted) = Entries(parser, "TryParseSelect", text);
+
+			line.Append(System.Globalization.CultureInfo.InvariantCulture, $" {depth}: {count}{(accepted ? "" : " refused")}");
+
+			if (last > 0)
+				line.Append(System.Globalization.CultureInfo.InvariantCulture, $" (x{(double)count / last:F2})");
+
+			last = count;
+		}
+
+		Log(line.ToString());
+	}
+
+	/// <summary>The rule entries one parse makes, and whether it was accepted.</summary>
+	static (long Count, bool Accepted) Entries(Type parser, string publication, string text)
+	{
+		var counters = parser.GetNestedTypes(BindingFlags.NonPublic | BindingFlags.Public)
+			.SelectMany(static type => type.GetFields(BindingFlags.NonPublic | BindingFlags.Static))
+			.Where(static field => field.Name.StartsWith("CountEntered_", StringComparison.Ordinal))
+			.ToArray();
+
+		foreach (var counter in counters)
+			counter.SetValue(null, 0L);
+
+		var read = parser.GetMethod(publication, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, binder: null, [typeof(string)], modifiers: null)
+			?? throw new InvalidOperationException("no " + publication + " on " + parser);
+
+		object?    match = null;
+		Exception? error = null;
+
+		var thread = new Thread(() =>
+		{
+			try
+			{
+				match = read.Invoke(null, [text]);
+			}
+			catch (TargetInvocationException thrown)
+			{
+				error = thrown;
+			}
+		}, 256 * 1024 * 1024) { IsBackground = true };
+
+		thread.Start();
+
+		if (!thread.Join(TimeSpan.FromSeconds(60)))
+			return (-1, false);
+
+		if (error is not null)
+			throw new InvalidOperationException("the counted reading threw", error);
+
+		var accepted = (bool)match!.GetType().GetProperty("IsSuccess")!.GetValue(match)!;
+
+		return (counters.Sum(static counter => (long)counter.GetValue(null)!), accepted);
 	}
 
 	SharedRecursion.Result Report(string name, string grammar, bool lexical)

@@ -578,7 +578,7 @@ public static class SharedRecursion
 
 			var names = rules.Select(static rule => rule.Name).Distinct().Take(most + 1).ToList();
 
-			return names.Count > most ? string.Join(",", names.Take(most)) + ",…" : string.Join(",", names);
+			return names.Count > most ? string.Join(",", names.Take(most)) + ",..." : string.Join(",", names);
 		}
 
 		static string Written(Trail? trail)
@@ -592,7 +592,7 @@ public static class SharedRecursion
 
 			var written = string.Join(" ", letters);
 
-			return written.Length <= Widest ? written : written.Substring(0, Widest) + " …";
+			return written.Length <= Widest ? written : written.Substring(0, Widest) + " ...";
 		}
 
 		/// <summary>Whether both can read one more letter together.</summary>
@@ -1068,27 +1068,25 @@ public static class SharedRecursion
 
 				// A letter of many kinds is most often a name class with every word it holds: the
 				// class is what the author wrote.
-				TerminalInventory.Kind? named = null;
+				TerminalInventory.Pattern? named = null;
 
 				foreach (var range in ranges)
-				{
 					for (var at = (int)range.From; at <= range.To && named is null; at++)
-						if (at > 0 && at - 1 < inventory.Kinds.Count && inventory.Kinds[at - 1].Matched.Any(static pattern => pattern is TerminalInventory.Pattern.Class))
-							named = inventory.Kinds[at - 1];
+						if (at > 0 && at - 1 < inventory.Kinds.Count)
+							named = inventory.Kinds[at - 1].Matched.FirstOrDefault(static pattern => pattern is TerminalInventory.Pattern.Class);
 
-					if (named is not null)
-						break;
-				}
+				if (named is not null)
+					return $"[{named} +{count - 1}]";
 
-				var shown = named ?? (ranges[0].From > 0 && ranges[0].From - 1 < inventory.Kinds.Count ? inventory.Kinds[ranges[0].From - 1] : null);
-
-				return shown is null ? $"[{count} kinds]" : $"[{Kind(shown)} +{count - 1}]";
+				return ranges[0].From > 0 && ranges[0].From - 1 < inventory.Kinds.Count
+					? $"[{Kind(inventory.Kinds[ranges[0].From - 1])} +{count - 1}]"
+					: $"[{count} kinds]";
 			}
 
 			if (count == 1)
 				return CharRange.Quote(ranges[0].From);
 
-			return ranges.Count == 1 ? $"[{ranges[0]}]" : $"[{ranges[0]} | …]";
+			return ranges.Count == 1 ? $"[{ranges[0]}]" : $"[{ranges[0]} | ...]";
 		}
 
 		static string Kind(TerminalInventory.Kind kind)
