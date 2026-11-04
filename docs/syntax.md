@@ -761,7 +761,7 @@ is left is a rule that cannot match, so a caller fails where the construct is wr
 
 #### Computed choice: `switch`
 
-```gram
+```dotgram
 Field = tag: Digits & '=' & switch @(Kind(tag)) {
     case 0: Text
     case 1: Binary
@@ -973,8 +973,8 @@ Without it a refusal names what could have stood where the parse stopped, which 
 and, where what could have stood there is everything an expression may begin with, a list
 nobody reads. The rule that knows what it is says so instead.
 
-Every reading says it — the direct-method reader, a method compiled flat, and the backtracking engine
-(`Direct = false`), over a string, a reader and a stream alike. What is parsed is the same either way.
+Every reading says it — the direct-method reader, a method compiled flat, and the shared backtracking engine,
+over a string, a reader and a stream alike. What is parsed is the same either way.
 
 The text is handed back as it stands. Nothing here reads it, so it is a sentence where a
 sentence is wanted and a code where the caller has its own words in its own languages.
@@ -2448,7 +2448,7 @@ offers one only where it provably works.
 **An additional buffered input form.** `stream` on a `parse` or `find` publication requests
 a synchronous pull reader that continues recognition when its buffer is refilled:
 
-```gram
+```dotgram
 parse Document stream
 parse Packet stream bytes
 find Row stream
@@ -2547,7 +2547,7 @@ actions, and follows `GramOptions` inheritance and explicit overrides.
 The byte form always uses `ReadOnlySpan<byte>` for raw captures, independently
 of `SpanCaptures`.
 
-```gram
+```dotgram
 Number : @int = text: ['0'..'9']+ => @(ToInt(text))
 parse Number stream bytes
 ```
@@ -2939,6 +2939,11 @@ of it fails a build.
 | `LocationType` | none | an interface whose implementors are told where they were written; below. |
 | `PerCall` | `false` | on a `[GramOptions]` with a `LocationType` and a `Suffix`: the locations are asked for per call, not compiled in; below. |
 | `Trace` | `false` | a trace build: the parser reports what it reads to a sink (§6.9). Changes no answer. |
+| `BufferedInput` | `false` | adds the buffered character form to parse and find publications (§6.3). |
+| `BufferedBytes` | `false` | adds the buffered byte form, with no text decoding (§6.3). |
+| `SpanCaptures` | `false` | hands character captures over as `ReadOnlySpan<char>` rather than `string` (§6.3). |
+| `MaxRetained` | `int.MaxValue`, no limit | the most a buffered parse may hold at once, where a call does not say; zero or less is `GRAM0009` (§6.3). |
+| `BufferSize` | `4096` | the capacity a buffered parse's buffer starts with, where a call does not say; zero or less is `GRAM0009` (§6.3). |
 
 `[Gram]` is a `[GramOptions]` with a grammar in it, so every option but `Source` and
 `IncludedAs` may be written on either, and a `[GramOptions]` takes what it does not say from
