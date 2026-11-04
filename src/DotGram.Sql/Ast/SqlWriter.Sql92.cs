@@ -35,7 +35,7 @@ public static partial class SqlWriter
 					if (!bits.Text.StartsWith("'", StringComparison.Ordinal))
 						throw Misplaced(bits, "Text", "without quotes");
 
-					Word("B" + bits.Text);
+					Word((bits.Hexadecimal ? "X" : "B") + bits.Text);
 					return true;
 
 				default:

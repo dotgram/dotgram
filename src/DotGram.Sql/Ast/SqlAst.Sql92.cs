@@ -29,5 +29,9 @@ public abstract partial record LiteralValue
 	/// SQL-92: §5.3 &lt;bit string literal&gt;; removed in SQL:2003. <c>B'0101'</c>: the text from its first quote,
 	/// as <see cref="Binary"/> holds <c>X'…'</c>.
 	/// </summary>
-	public sealed record BitString(string Text) : LiteralValue;
+	public sealed record BitString(string Text) : LiteralValue
+	{
+		/// <summary>PostgreSQL: Bit-String Constants. Written in hexits, <c>X'1FF'</c>, rather than bits, <c>B'0101'</c>; the text is the same quoted body.</summary>
+		[Spelling] public bool Hexadecimal { get; init; }
+	}
 }
