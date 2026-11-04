@@ -251,4 +251,4 @@ holds the buffer and bounds untrusted input itself. Neither closes its input.
    as a `FixField.Invalid`: only a length says where the data ends.
 7. Reading another version's data through the wrong namespace. A 4.2 or FIXT.1.1 message read by
    `Fix44.FixParser` is built as a 4.4 message and told its BeginString is wrong.
-7. Editing a `FixDictionary` after `With` and expecting the context to follow. Apply it again.
+8. Editing a `FixDictionary` after `With` and expecting the context to follow. Apply it again.
