@@ -26,6 +26,8 @@ public sealed class KeywordCatalogueTests
 	{
 		["ReservedKeyword"]         = static one => one.Category == KeywordCatalogue.Category.Reserved,
 		["TypeFunctionNameKeyword"] = static one => one.Category == KeywordCatalogue.Category.TypeOrFunctionName,
+		["ColumnNameKeyword"]       = static one => one.Category == KeywordCatalogue.Category.ColumnName,
+		["AsLabelKeyword"]          = static one => !one.BareLabel,
 	};
 
 	[Fact]
@@ -45,6 +47,8 @@ public sealed class KeywordCatalogueTests
 	[Theory]
 	[InlineData("ReservedKeyword")]
 	[InlineData("TypeFunctionNameKeyword")]
+	[InlineData("ColumnNameKeyword")]
+	[InlineData("AsLabelKeyword")]
 	public void The_grammar_lists_exactly_the_catalogue_class(string rule)
 	{
 		var expected = KeywordCatalogue.Words.Where(Lists[rule]).Select(static one => one.Word).Order(StringComparer.Ordinal).ToList();

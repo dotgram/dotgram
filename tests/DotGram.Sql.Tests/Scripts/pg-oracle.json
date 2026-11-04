@@ -418,6 +418,176 @@
 			"text": "SELECT /* a /* b */ 1",
 			"accepted": false,
 			"error": "unterminated /* comment at or near \"/* a /* b */ 1\", at index 7"
+		},
+		{
+			"name": "precedence",
+			"text": "SELECT a + b * c ^ d",
+			"accepted": true
+		},
+		{
+			"name": "comparison_chain",
+			"text": "SELECT a < b < c",
+			"accepted": false,
+			"error": "syntax error at or near \"<\", at index 13"
+		},
+		{
+			"name": "is_null_twice",
+			"text": "SELECT a IS NULL IS NULL",
+			"accepted": true
+		},
+		{
+			"name": "operator_custom",
+			"text": "SELECT a @> b, a -> 'k', a OPERATOR(pg_catalog.+) b, @ a, |/ a",
+			"accepted": true
+		},
+		{
+			"name": "operator_glued_comment",
+			"text": "SELECT a+/*c*/b",
+			"known": "the operator lexeme is read whole: the server cuts a run where a comment begins inside it",
+			"accepted": true
+		},
+		{
+			"name": "operator_trailing_sign",
+			"text": "SELECT a=-1, a<>-1, a@-b",
+			"accepted": true
+		},
+		{
+			"name": "cast_forms",
+			"text": "SELECT a::int::text, CAST(a AS int), int4 '5', numeric(10, 2) '1.5', point '(1,2)'",
+			"accepted": true
+		},
+		{
+			"name": "at_time_zone",
+			"text": "SELECT a AT TIME ZONE 'UTC', a AT LOCAL",
+			"accepted": true
+		},
+		{
+			"name": "collate",
+			"text": "SELECT a COLLATE \"C\"",
+			"accepted": true
+		},
+		{
+			"name": "predicates",
+			"text": "SELECT a NOTNULL, a ISNULL, a IS NOT TRUE, a IS DISTINCT FROM b, a IS NOT DOCUMENT, a IS NFC NORMALIZED",
+			"accepted": true
+		},
+		{
+			"name": "between",
+			"text": "SELECT a BETWEEN SYMMETRIC 1 AND 2 AND c",
+			"accepted": true
+		},
+		{
+			"name": "in_forms",
+			"text": "SELECT a NOT IN (1, 2), a IN (SELECT b FROM t)",
+			"accepted": true
+		},
+		{
+			"name": "like_forms",
+			"text": "SELECT a ILIKE 'x%' ESCAPE '!', a NOT SIMILAR TO 'x', a LIKE ALL (SELECT b FROM t)",
+			"accepted": true
+		},
+		{
+			"name": "quantified_forms",
+			"text": "SELECT a = ANY (SELECT b FROM t), a = ANY (b), a @> SOME (b)",
+			"accepted": true
+		},
+		{
+			"name": "functions",
+			"text": "SELECT s.f(a => 1, b := 2), count(*), count(DISTINCT a ORDER BY b), f(VARIADIC a), sum(a) FILTER (WHERE b) OVER (PARTITION BY c ORDER BY d), rank(1) WITHIN GROUP (ORDER BY a) OVER w",
+			"accepted": true
+		},
+		{
+			"name": "keyword_functions",
+			"text": "SELECT EXTRACT(epoch FROM a), SUBSTRING(a FOR 2 FROM 1), SUBSTRING(a, 1, 2), TRIM(BOTH 'x' FROM a), TRIM(a, 'x'), OVERLAY(a PLACING b FROM 1), POSITION(a IN b), COALESCE(a, b), CURRENT_TIMESTAMP(3), COLLATION FOR (a), NORMALIZE(a, NFC)",
+			"accepted": true
+		},
+		{
+			"name": "primaries",
+			"text": "SELECT ARRAY[1, 2], ARRAY[[1], [2]], ARRAY(SELECT 1), ROW(1, 2), (1, 2), (a), ((SELECT 1)), a[1], a[1:2], a[:2], a[2:], (a).f, (a).*, a.b[1].c, $1::int, EXISTS (SELECT 1), CASE a WHEN 1 THEN 2 ELSE 3 END, DEFAULT",
+			"accepted": true
+		},
+		{
+			"name": "types",
+			"text": "SELECT a::int8, a::float8, a::numeric(10, 2), a::double precision, a::bool, a::varchar(10), a::character varying, a::timestamptz(3), a::timestamp with time zone, a::time(2) without time zone, a::interval, a::interval(3), a::interval day to second(2), a::bit varying(8), a::text, a::pg_catalog.int4, a::\"int4\", a::int[], a::int[3][], a::int ARRAY[3]",
+			"accepted": true
+		},
+		{
+			"name": "interval_literals",
+			"text": "SELECT INTERVAL '1 day', INTERVAL '1' YEAR TO MONTH, INTERVAL(3) '1 day', DATE '2024-01-01'",
+			"accepted": true
+		},
+		{
+			"name": "select_empty",
+			"text": "SELECT",
+			"accepted": true
+		},
+		{
+			"name": "select_distinct_on",
+			"text": "SELECT DISTINCT ON (a, b) c FROM t",
+			"accepted": true
+		},
+		{
+			"name": "select_labels",
+			"text": "SELECT a AS x, b y, c, * FROM t",
+			"accepted": true
+		},
+		{
+			"name": "select_label_needs_as",
+			"text": "SELECT 1 year",
+			"accepted": false,
+			"error": "syntax error at or near \"year\", at index 9"
+		},
+		{
+			"name": "select_label_with_as",
+			"text": "SELECT 1 AS year",
+			"accepted": true
+		},
+		{
+			"name": "from_only_alias",
+			"text": "SELECT * FROM ONLY t AS a (c, d), t *",
+			"accepted": true
+		},
+		{
+			"name": "from_joins",
+			"text": "SELECT * FROM a NATURAL LEFT OUTER JOIN b, c CROSS JOIN d, (e JOIN f ON e.x = f.x) JOIN g USING (x, y) AS j",
+			"accepted": true
+		},
+		{
+			"name": "from_lateral",
+			"text": "SELECT * FROM LATERAL (SELECT 1) s, (SELECT 1) AS u WHERE u.x > 1",
+			"accepted": true
+		},
+		{
+			"name": "set_operations",
+			"text": "SELECT 1 UNION ALL SELECT 2 INTERSECT SELECT 3 EXCEPT DISTINCT SELECT 4",
+			"accepted": true
+		},
+		{
+			"name": "set_operations_bracketed",
+			"text": "(SELECT 1) UNION (SELECT 2)",
+			"accepted": true
+		},
+		{
+			"name": "statements",
+			"text": "SELECT 1; SELECT 2;",
+			"accepted": true
+		},
+		{
+			"name": "not_a_statement",
+			"text": "SELECT 1 1",
+			"accepted": false,
+			"error": "syntax error at or near \"1\", at index 9"
+		},
+		{
+			"name": "array_mixed",
+			"text": "SELECT ARRAY[1, [2, 3]]",
+			"accepted": false,
+			"error": "syntax error at or near \"[\", at index 16"
+		},
+		{
+			"name": "is_null_twice_read",
+			"text": "SELECT a IS NULL IS NOT TRUE",
+			"accepted": true
 		}
 	]
 }
