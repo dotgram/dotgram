@@ -135,13 +135,13 @@ static class Nodes
 	/// </summary>
 	public static Expression Parameter(string text)
 	{
-		return new Expression.Parameter(ParameterKind.Positional) { Ordinal = int.Parse(text.AsSpan(1), CultureInfo.InvariantCulture) };
+		return new Expression.Parameter(ParameterKind.Positional) { Ordinal = int.Parse(text.Substring(1), NumberStyles.None, CultureInfo.InvariantCulture) };
 	}
 
 	/// <summary>Whether a parameter's number is one the server can hold ("parameter number too large" otherwise).</summary>
 	public static bool FitsParameter(string text)
 	{
-		return int.TryParse(text.AsSpan(1), NumberStyles.None, CultureInfo.InvariantCulture, out _);
+		return int.TryParse(text.Substring(1), NumberStyles.None, CultureInfo.InvariantCulture, out _);
 	}
 
 	/// <summary>An integer written in the text, as a number; null where none was written.</summary>
@@ -223,7 +223,15 @@ static class Nodes
 	/// <summary>An operator's symbol with the schemas written before it, <c>pg_catalog.+</c>.</summary>
 	public static QualifiedName OperatorName(Identifier[]? schemas, string symbol)
 	{
-		return schemas is null ? OperatorName(symbol) : new QualifiedName(schemas[0], [.. schemas[1..], new Identifier(symbol)]);
+		if (schemas is null)
+			return OperatorName(symbol);
+
+		var rest = new Identifier[schemas.Length];
+
+		System.Array.Copy(schemas, 1, rest, 0, schemas.Length - 1);
+		rest[rest.Length - 1] = new Identifier(symbol);
+
+		return new QualifiedName(schemas[0], rest);
 	}
 
 	/// <summary>
@@ -323,7 +331,7 @@ static class Nodes
 				Test.Truth(var not, var word)     => new Expression.IsTruth(value, not, (word[0] | 0x20) switch { 't' => BooleanLiteral.True, 'f' => BooleanLiteral.False, _ => BooleanLiteral.Unknown }),
 				Test.Distinct(var not, var right) => new Expression.IsDistinct(value, not, right),
 				Test.Document(var not)            => new Expression.IsDocument(value, not),
-				Test.Normalized(var not, var form) => new Expression.IsNormalized(value, not, form is null ? null : Enum.Parse<NormalForm>(form.ToUpperInvariant())),
+				Test.Normalized(var not, var form) => new Expression.IsNormalized(value, not, form is null ? null : (NormalForm)Enum.Parse(typeof(NormalForm), form.ToUpperInvariant(), true)),
 				_ => throw new ArgumentOutOfRangeException(nameof(tails)),
 			};
 		}
@@ -552,7 +560,7 @@ static class Nodes
 	{
 		return field switch
 		{
-			Field.Named(var word) => new Expression.Extract(Enum.Parse<ExtractField>(word, ignoreCase: true), source),
+			Field.Named(var word) => new Expression.Extract((ExtractField)Enum.Parse(typeof(ExtractField), word, true), source),
 			Field.Other(var value) => new Expression.Extract(null, source) { NamedField = value },
 			_ => throw new ArgumentOutOfRangeException(nameof(field)),
 		};
@@ -560,7 +568,7 @@ static class Nodes
 
 	public static Expression Normalized(Expression value, string? form)
 	{
-		return new Expression.Normalize(value, form is null ? null : Enum.Parse<NormalForm>(form.ToUpperInvariant()), null);
+		return new Expression.Normalize(value, form is null ? null : (NormalForm)Enum.Parse(typeof(NormalForm), form.ToUpperInvariant(), true), null);
 	}
 
 	/// <summary>
@@ -733,9 +741,9 @@ static class Nodes
 	public static IntervalQualifier Qualifier(string start, string? leadingPrecision, string? end, string? fractionalPrecision)
 	{
 		return new IntervalQualifier(
-			Enum.Parse<DateTimeField>(start, ignoreCase: true),
+			(DateTimeField)Enum.Parse(typeof(DateTimeField), start, true),
 			Integer(leadingPrecision),
-			end is null ? null : Enum.Parse<DateTimeField>(end, ignoreCase: true),
+			end is null ? null : (DateTimeField)Enum.Parse(typeof(DateTimeField), end, true),
 			Integer(fractionalPrecision));
 	}
 
