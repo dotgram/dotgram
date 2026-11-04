@@ -92,6 +92,8 @@ internal static class DslEmbeddedSiteAnalysis
 	const string RecognitionDiagnostic = "GRAM6101";
 	const string StringSyntaxAttribute = "System.Diagnostics.CodeAnalysis.StringSyntaxAttribute";
 
+	static readonly DslEmbeddedSiteResult Empty = new([], [], [], []);
+
 	public static async Task<DslEmbeddedSiteResult> AnalyzeAsync(
 		Document document,
 		SyntaxNode root,
@@ -100,6 +102,11 @@ internal static class DslEmbeddedSiteAnalysis
 		DslEmbeddedSiteCache? cache = null)
 	{
 		var catalog = DslLanguageDiscovery.Discover(model.Compilation, cancellationToken);
+
+		// Nothing to route to: no argument is worth binding. Most C# files of most projects.
+		if (catalog.Languages.Count == 0)
+			return Empty;
+
 		var classifications = new List<HostDslClassification>();
 		var symbols = new List<HostDslSymbol>();
 		var diagnostics = new List<HostDiagnostic>();

@@ -435,6 +435,28 @@ public sealed class DslEmbeddedSiteAnalysisTests
 	}
 
 	[Fact]
+	public async Task AnswersNothingWhereTheProjectHasNoLanguage()
+	{
+		var cancellationToken = TestContext.Current.CancellationToken;
+		var document = Document(Support + """
+
+			static class Example
+			{
+				static void Run([System.Diagnostics.CodeAnalysis.StringSyntax("dotgram.test.filter")] string text) { }
+				static void Test() => Run("let total");
+			}
+			""");
+		var root  = await document.GetSyntaxRootAsync(cancellationToken) ?? throw new InvalidOperationException();
+		var model = await document.GetSemanticModelAsync(cancellationToken) ?? throw new InvalidOperationException();
+
+		var result = await DslEmbeddedSiteAnalysis.AnalyzeAsync(document, root, model, cancellationToken);
+
+		Assert.Empty(result.Sites);
+		Assert.Empty(result.Classifications);
+		Assert.Empty(result.Diagnostics);
+	}
+
+	[Fact]
 	public async Task ReusesPreparedGrammarUntilLanguageDeclarationChanges()
 	{
 		var cancellationToken = TestContext.Current.CancellationToken;
