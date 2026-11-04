@@ -268,6 +268,8 @@ public sealed class PostgreSqlWriterTests
 	[InlineData("Binary.ShiftLeft")]
 	[InlineData("Binary.ShiftRight")]
 	[InlineData("Unary.BitwiseNot")]
+	[InlineData("Insert.Conflicts twice")]
+	[InlineData("Query.DataChange.With")]
 	[InlineData("OperatorCall +")]
 	[InlineData("OperatorCall =")]
 	[InlineData("OperatorCall ||")]
@@ -302,9 +304,30 @@ public sealed class PostgreSqlWriterTests
 			"QuantifiedOperation ="      => new Expression.QuantifiedOperation(A, new QuantifiedOperator.Named(new QualifiedName(new Identifier("="))), Quantifier.Any, B),
 			"QuantifiedOperation =>"     => new Expression.QuantifiedOperation(A, new QuantifiedOperator.Named(new QualifiedName(new Identifier("=>"))), Quantifier.Any, B),
 			"ReturningClause.Output"     => new Statement.Delete { Target = T, Returning = new ReturningClause.Output([new SelectColumn.ExpressionItem(A)], null, null, null) },
+			"Insert.Conflicts twice"     => new Statement.Insert { Target = T, Conflicts = [new ConflictClause(null, new ConflictResolution.Nothing()), new ConflictClause(null, new ConflictResolution.Nothing())] },
+			"Query.DataChange.With"      => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], With = new WithClause(false, [new CommonTableExpression(new Identifier("x"), [], new Query.DataChange(new Statement.Delete { Target = T }) { With = new WithClause(false, [new CommonTableExpression(new Identifier("y"), [], new Query.Select { Columns = [new SelectColumn.All()] })]) })]) } },
 			_ => throw new ArgumentOutOfRangeException(nameof(which)),
 		};
 
 		Assert.Throws<ArgumentException>(() => PostgreSqlWriter.Write(node));
+	}
+
+	/// <summary>
+	/// An item of ON CONFLICT's target that PostgreSQL's index_elem reads bare is written bare; any other expression gets
+	/// the brackets, and the text reads back with them.
+	/// </summary>
+	[Fact]
+	public void A_conflict_target_item_is_written_as_an_index_element()
+	{
+		var tree = new Statement.Insert
+		{
+			Target    = T,
+			Conflicts = [new ConflictClause(new ConflictTarget.Columns([A, new Expression.Invocation(new QualifiedName(new Identifier("f")), [new Argument(A)]), new Expression.Parenthesized(Binary(A, BinaryOperator.Add, B)), new Expression.Cast(A, Int), Binary(A, BinaryOperator.Add, B), new Expression.Reference(QualifiedName.Of(new Identifier("a"), new Identifier("b")))], null), new ConflictResolution.Nothing())],
+		};
+
+		var written = PostgreSqlWriter.Write(tree);
+
+		Assert.Equal("INSERT INTO t DEFAULT VALUES ON CONFLICT (a, f(a), (a + b), CAST(a AS INT), (a + b), (a.b)) DO NOTHING", written);
+		Assert.True(PostgreSqlParser.TryParseStatement(written).IsSuccess, written);
 	}
 }
