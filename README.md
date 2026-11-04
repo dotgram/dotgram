@@ -797,9 +797,8 @@ own are different rules and cannot collide by accident.
 The include crosses a project reference, which is what makes a grammar a library. What
 travels is the grammar rather than a parser: the including assembly generates its own from
 it, under its own substitutions.
-[`TransactSql`](src/DotGram.Sql/TransactSql/TransactSql.gram) is built that way on
-[`SqlStandard92`](src/DotGram.Sql/Standard/SqlStandard92.gram) — a dialect the size of its
-difference, with the standard underneath written once.
+[`LexemeLibraryExample.cs`](examples/DotGram.Examples/Languages/LexemeLibraryExample.cs) is a
+whole example of one.
 
 ## DotGram.Finance
 
