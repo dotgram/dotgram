@@ -108,6 +108,7 @@
 		<AdditionalFiles Include="Standard\SqlStandard.gram" />
 		<AdditionalFiles Include="Standard\SqlStandard92.gram" />
 		<AdditionalFiles Include="TransactSql\TransactSql.gram" />
+		<AdditionalFiles Include="PostgreSql\PostgreSql.gram" />
 	</ItemGroup>
 
 	<ItemGroup>

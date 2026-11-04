@@ -31,6 +31,7 @@
 		<AdditionalFiles Include="$(MSBuildThisFileDirectory)..\..\src\DotGram.Sql\Standard\SqlStandard.gram" Link="Sql\SqlStandard.gram" />
 		<AdditionalFiles Include="$(MSBuildThisFileDirectory)..\..\src\DotGram.Sql\Standard\SqlStandard92.gram" Link="Sql\SqlStandard92.gram" />
 		<AdditionalFiles Include="$(MSBuildThisFileDirectory)..\..\src\DotGram.Sql\TransactSql\TransactSql.gram" Link="Sql\TransactSql.gram" />
+		<AdditionalFiles Include="$(MSBuildThisFileDirectory)..\..\src\DotGram.Sql\PostgreSql\PostgreSql.gram" Link="Sql\PostgreSql.gram" />
 	</ItemGroup>
 
 	<ItemGroup>
