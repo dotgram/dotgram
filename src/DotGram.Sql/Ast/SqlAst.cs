@@ -426,42 +426,43 @@ public abstract partial record Statement : ISqlNode
 	public sealed record Return : Statement { public Expression? Value { get; init; } public bool NullKeyword { get; init; } }
 
 	// BNF: transaction statements
-	public sealed record StartTransaction : Statement { public SqlList<TransactionMode> Modes { get; init; } = []; }
+	public sealed partial record StartTransaction : Statement { public SqlList<TransactionMode> Modes { get; init; } = []; }
 	// T-SQL: SET TRANSACTION ISOLATION LEVEL (Transact-SQL). `Tran` is the word written where the page
 	// publishes `TRAN` for `TRANSACTION`.
-	public sealed record SetTransaction : Statement { public bool Local { get; init; } public SqlList<TransactionMode> Modes { get; init; } = []; [Spelling] public bool Tran { get; init; } }
+	public sealed partial record SetTransaction : Statement { public bool Local { get; init; } public SqlList<TransactionMode> Modes { get; init; } = []; [Spelling] public bool Tran { get; init; } }
 	public sealed record SetConstraints : Statement { public ConstraintTarget Target { get; init; } = new ConstraintTarget.All(); public required ConstraintTiming Timing { get; init; } }
 	public sealed record Savepoint : Statement { public required Identifier Name { get; init; } }
-	public sealed record ReleaseSavepoint : Statement { public required Identifier Name { get; init; } }
+	public sealed partial record ReleaseSavepoint : Statement { public required Identifier Name { get; init; } }
 	// T-SQL: COMMIT TRANSACTION, COMMIT WORK (Transact-SQL). `Keyword` is the word after COMMIT, which the
 	// page makes optional — `COMMIT` and `COMMIT TRANSACTION` are both text and are not the same text — so
 	// null is no word and each value is one. A flag for the word beside a flag for its spelling would have
 	// had a state no text says: TRAN written and no keyword. `Name` is the transaction a commit may name,
 	// and
 	// `DelayedDurability` its `WITH (DELAYED_DURABILITY = { OFF | ON })`; null is no WITH at all.
-	public sealed record Commit : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } [Spelling] public TransactionKeyword? Keyword { get; init; } public TransactionName? Name { get; init; } public bool? DelayedDurability { get; init; } }
+	public sealed partial record Commit : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } [Spelling] public TransactionKeyword? Keyword { get; init; } public TransactionName? Name { get; init; } public bool? DelayedDurability { get; init; } }
 	// T-SQL: ROLLBACK TRANSACTION, ROLLBACK WORK (Transact-SQL). `Keyword` is as Commit's. `Name` is what
 	// T-SQL writes after `ROLLBACK TRAN`, which its page says may be a transaction or a savepoint and
 	// which the syntax cannot tell apart; `ToSavepoint` is the standard's `TO SAVEPOINT s`, a different
 	// construct that knows what it names. At most one of the two is set — the writer refuses a node with
 	// both, and `SqlWriterCoverageTests` holds each grammar to the one it may use.
-	public sealed record Rollback : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } public Identifier? ToSavepoint { get; init; } [Spelling] public TransactionKeyword? Keyword { get; init; } public TransactionName? Name { get; init; } }
+	public sealed partial record Rollback : Statement { public bool Work { get; init; } public ChainMode? Chain { get; init; } public Identifier? ToSavepoint { get; init; } [Spelling] public TransactionKeyword? Keyword { get; init; } public TransactionName? Name { get; init; } }
 
 	// BNF: connection/session statements
 	public sealed record Connect : Statement { public required ConnectionTarget Target { get; init; } }
 	public sealed record SetConnection : Statement { public required ConnectionObject Connection { get; init; } }
 	public sealed record Disconnect : Statement { public required DisconnectObject Object { get; init; } }
-	public sealed record SetSessionAuthorization : Statement { public required Expression Value { get; init; } }
-	public sealed record SetRole : Statement { public Expression? Value { get; init; } public bool None { get; init; } }
-	public sealed record SetTimeZone : Statement { public Expression? Value { get; init; } public bool Local { get; init; } }
+	public sealed partial record SetSessionAuthorization : Statement { public required Expression Value { get; init; } }
+	public sealed partial record SetRole : Statement { public Expression? Value { get; init; } public bool None { get; init; } }
+	public sealed partial record SetTimeZone : Statement { public Expression? Value { get; init; } public bool Local { get; init; } }
 	public sealed record SetCatalog : Statement { public required Expression Value { get; init; } }
-	public sealed record SetSchema : Statement { public required Expression Value { get; init; } }
-	public sealed record SetNames : Statement { public required Expression Value { get; init; } }
+	public sealed partial record SetSchema : Statement { public required Expression Value { get; init; } }
+	// PostgreSQL: SET. `SET NAMES` alone, with no encoding after it, leaves the value null.
+	public sealed partial record SetNames : Statement { public Expression? Value { get; init; } }
 	public sealed record SetPath : Statement { public required Expression Value { get; init; } }
 	public sealed record SetTransformGroup : Statement { public required TransformGroupCharacteristic Value { get; init; } }
 	public sealed record SetCollation : Statement { public bool NoCollation { get; init; } public Expression? Value { get; init; } public SqlList<CharacterSetName> ForCharacterSets { get; init; } = []; }
 	// BNF: <session characteristic list>: one list of modes per `TRANSACTION ...` written.
-	public sealed record SetSessionCharacteristics : Statement { public SqlList<SqlList<TransactionMode>> Characteristics { get; init; } = []; }
+	public sealed partial record SetSessionCharacteristics : Statement { public SqlList<SqlList<TransactionMode>> Characteristics { get; init; } = []; }
 
 	// BNF: diagnostics/descriptor/dynamic SQL
 	public sealed record AllocateDescriptor : Statement { public bool SqlKeyword { get; init; } public required DescriptorReference Descriptor { get; init; } public Expression? Max { get; init; } }
@@ -470,7 +471,7 @@ public abstract partial record Statement : ISqlNode
 	public sealed record SetDescriptor : Statement { public bool SqlKeyword { get; init; } public required DescriptorReference Descriptor { get; init; } public required DescriptorSet Body { get; init; } }
 	public sealed record CopyDescriptor : Statement { public required DescriptorCopy Body { get; init; } }
 	public sealed record Prepare : Statement { public required StatementReference Statement { get; init; } public Expression? Attributes { get; init; } public required Expression Sql { get; init; } }
-	public sealed record DeallocatePrepare : Statement { public required StatementReference Statement { get; init; } }
+	public sealed partial record DeallocatePrepare : Statement { public required StatementReference Statement { get; init; } }
 	public sealed record Describe : Statement { public required DescribeBody Body { get; init; } }
 	public sealed record Execute : Statement { public required StatementReference Statement { get; init; } public DynamicArguments? Result { get; init; } public DynamicArguments? Parameters { get; init; } }
 	public sealed record ExecuteImmediate : Statement { public required Expression Sql { get; init; } }
@@ -2823,7 +2824,7 @@ public abstract record DescribeObject : ISqlNode { SqlLocation _location; public
 public abstract record DynamicArguments : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected DynamicArguments() { } public sealed record Values(SqlList<Expression> Items) : DynamicArguments; public sealed record Descriptor(DescriptorReference Value, bool SqlKeyword) : DynamicArguments; }
 
 // --- Transactions/connections ---------------------------------------------
-public abstract record TransactionMode : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected TransactionMode() { } public sealed record Isolation(IsolationLevel Level) : TransactionMode; public sealed record Access(TransactionAccess Mode) : TransactionMode; public sealed record DiagnosticsSize(Expression Size) : TransactionMode; }
+public abstract partial record TransactionMode : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } private protected TransactionMode() { } public sealed record Isolation(IsolationLevel Level) : TransactionMode; public sealed record Access(TransactionAccess Mode) : TransactionMode; public sealed record DiagnosticsSize(Expression Size) : TransactionMode; }
 // T-SQL: SET TRANSACTION ISOLATION LEVEL (Transact-SQL). `Snapshot` is T-SQL's.
 public enum IsolationLevel { ReadUncommitted, ReadCommitted, RepeatableRead, Serializable, Snapshot }
 public enum TransactionAccess { ReadOnly, ReadWrite }

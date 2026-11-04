@@ -209,6 +209,22 @@ it. The families stand in alphabetical order, each family's records in the order
 | `Statement.SetConstraints` | SQL:2023 | under top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families | Session |
 | `Statement.Savepoint` | SQL:2023 | under top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families | Transaction |
 | `Statement.ReleaseSavepoint` | SQL:2023 | under top-level SQL statement containers and executable/schema/data/control/transaction/session/dynamic statement families | Transaction |
+| `Statement.PrepareTransaction` | PostgreSQL | PREPARE TRANSACTION | Transaction |
+| `Statement.CommitPrepared` | PostgreSQL | COMMIT PREPARED | Transaction |
+| `Statement.RollbackPrepared` | PostgreSQL | ROLLBACK PREPARED | Transaction |
+| `Statement.SetTransactionSnapshot` | PostgreSQL | SET TRANSACTION | Session |
+| `Statement.SetParameter` | PostgreSQL | SET | Session |
+| `Statement.ShowParameter` | PostgreSQL | SHOW | Session |
+| `Statement.ResetParameter` | PostgreSQL | RESET | Session |
+| `Statement.Explain` | PostgreSQL | EXPLAIN | Execute |
+| `Statement.Do` | PostgreSQL | DO | Execute |
+| `Statement.PreparePlan` | PostgreSQL | PREPARE | Execute |
+| `Statement.DeallocateAll` | PostgreSQL | DEALLOCATE | Execute |
+| `Statement.Listen` | PostgreSQL | LISTEN | Session |
+| `Statement.Unlisten` | PostgreSQL | UNLISTEN | Session |
+| `Statement.Notify` | PostgreSQL | NOTIFY | Session |
+| `Statement.LockTable` | PostgreSQL | LOCK | Transaction |
+| `Statement.Discard` | PostgreSQL | DISCARD | Session |
 | `Statement.Commit` | T-SQL | COMMIT TRANSACTION, COMMIT WORK (Transact-SQL) | Transaction |
 | `Statement.Rollback` | T-SQL | ROLLBACK TRANSACTION, ROLLBACK WORK (Transact-SQL) | Transaction |
 | `Statement.Connect` | SQL:2023 | connection/session statements | Session |
@@ -1138,6 +1154,7 @@ it. The families stand in alphabetical order, each family's records in the order
 | `TransactionMode.Isolation` | SQL:2023 | &lt;transaction mode&gt; |
 | `TransactionMode.Access` | SQL:2023 | &lt;transaction mode&gt; |
 | `TransactionMode.DiagnosticsSize` | SQL:2023 | &lt;transaction mode&gt; |
+| `TransactionMode.Deferrable` | PostgreSQL | SET TRANSACTION |
 | `TransformDropTarget.All` | SQL:2023 | &lt;transform drop target&gt; |
 | `TransformDropTarget.Group` | SQL:2023 | &lt;transform drop target&gt; |
 | `TypeRepresentation.Type` | SQL:2023 | &lt;representation&gt; |

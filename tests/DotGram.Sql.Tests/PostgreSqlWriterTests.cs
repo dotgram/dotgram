@@ -218,6 +218,20 @@ public sealed class PostgreSqlWriterTests
 	[InlineData("MergeMatchedAction.DoNothing")]
 	[InlineData("Query.DataChange")]
 	[InlineData("TruncateTable.Others")]
+	[InlineData("StartTransaction.Begin")]
+	[InlineData("Commit.End")]
+	[InlineData("Rollback.Abort")]
+	[InlineData("TransactionMode.Deferrable")]
+	[InlineData("SetTimeZone.Scope")]
+	[InlineData("SetNames.Value null")]
+	[InlineData("SetParameter")]
+	[InlineData("ShowParameter")]
+	[InlineData("Explain")]
+	[InlineData("Do")]
+	[InlineData("PreparePlan")]
+	[InlineData("Listen")]
+	[InlineData("LockTable")]
+	[InlineData("Discard")]
 	public void What_only_PostgreSQL_reads_is_refused_by_the_other_writers(string which)
 	{
 		ISqlNode node = which switch
@@ -248,6 +262,20 @@ public sealed class PostgreSqlWriterTests
 			"MergeMatchedAction.DoNothing" => new Statement.Merge { Target = T, SourceTable = new TableSource.Named(new QualifiedName(new Identifier("s"))), On = A, Clauses = [new MergeClause.Matched(new MergeMatchedAction.DoNothing())] },
 			"Query.DataChange"     => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([T]), With = new WithClause(false, [new CommonTableExpression(new Identifier("x"), [], new Query.DataChange(new Statement.Delete { Target = T }))]) } },
 			"TruncateTable.Others" => new Statement.TruncateTable { Target = T, Others = [T], Behavior = DropBehavior.Cascade, TableOmitted = true },
+			"StartTransaction.Begin" => new Statement.StartTransaction { Begin = true },
+			"Commit.End"           => new Statement.Commit { End = true },
+			"Rollback.Abort"       => new Statement.Rollback { Abort = true },
+			"TransactionMode.Deferrable" => new Statement.StartTransaction { Modes = [new TransactionMode.Deferrable(false)] },
+			"SetTimeZone.Scope"    => new Statement.SetTimeZone { Local = true, Scope = SetScope.Local },
+			"SetNames.Value null"  => new Statement.SetNames(),
+			"SetParameter"         => new Statement.SetParameter(new QualifiedName(new Identifier("p")), [A]),
+			"ShowParameter"        => new Statement.ShowParameter(null),
+			"Explain"              => new Statement.Explain([], new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([T]) } }),
+			"Do"                   => new Statement.Do(new LiteralValue.String("'x'", StringLiteralKind.Character)),
+			"PreparePlan"          => new Statement.PreparePlan(new Identifier("p"), [], new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([T]) } }),
+			"Listen"               => new Statement.Listen(new Identifier("c")),
+			"LockTable"            => new Statement.LockTable([T]),
+			"Discard"              => new Statement.Discard(DiscardTarget.All),
 			_ => throw new ArgumentOutOfRangeException(nameof(which)),
 		};
 
@@ -270,6 +298,24 @@ public sealed class PostgreSqlWriterTests
 	[InlineData("Unary.BitwiseNot")]
 	[InlineData("Insert.Conflicts twice")]
 	[InlineData("Query.DataChange.With")]
+	[InlineData("TransactionKeyword.Tran")]
+	[InlineData("Commit.Name")]
+	[InlineData("Commit.DelayedDurability")]
+	[InlineData("TransactionMode.DiagnosticsSize")]
+	[InlineData("IsolationLevel.Snapshot")]
+	[InlineData("StartTransaction.Work without Begin")]
+	[InlineData("Rollback.ToSavepoint with Chain")]
+	[InlineData("SetSessionCharacteristics twice")]
+	[InlineData("Execute.Result")]
+	[InlineData("Execute.Parameters descriptor")]
+	[InlineData("Explain.Bare with a value")]
+	[InlineData("Explain of a TRUNCATE")]
+	[InlineData("PreparePlan of an EXECUTE")]
+	[InlineData("SetParameter.FromCurrent with values")]
+	[InlineData("ShowParameter.Spelling of another name")]
+	[InlineData("Checkpoint.Duration")]
+	[InlineData("LockTable of a subquery")]
+	[InlineData("Discard.Temporary on PLANS")]
 	[InlineData("OperatorCall +")]
 	[InlineData("OperatorCall =")]
 	[InlineData("OperatorCall ||")]
@@ -305,6 +351,24 @@ public sealed class PostgreSqlWriterTests
 			"QuantifiedOperation =>"     => new Expression.QuantifiedOperation(A, new QuantifiedOperator.Named(new QualifiedName(new Identifier("=>"))), Quantifier.Any, B),
 			"ReturningClause.Output"     => new Statement.Delete { Target = T, Returning = new ReturningClause.Output([new SelectColumn.ExpressionItem(A)], null, null, null) },
 			"Insert.Conflicts twice"     => new Statement.Insert { Target = T, Conflicts = [new ConflictClause(null, new ConflictResolution.Nothing()), new ConflictClause(null, new ConflictResolution.Nothing())] },
+			"TransactionKeyword.Tran"    => new Statement.Commit { Keyword = TransactionKeyword.Tran },
+			"Commit.Name"                => new Statement.Commit { Name = new TransactionName(new Identifier("x")) },
+			"Commit.DelayedDurability"   => new Statement.Commit { DelayedDurability = true },
+			"TransactionMode.DiagnosticsSize" => new Statement.StartTransaction { Modes = [new TransactionMode.DiagnosticsSize(A)] },
+			"IsolationLevel.Snapshot"    => new Statement.StartTransaction { Modes = [new TransactionMode.Isolation(IsolationLevel.Snapshot)] },
+			"StartTransaction.Work without Begin" => new Statement.StartTransaction { Work = true },
+			"Rollback.ToSavepoint with Chain" => new Statement.Rollback { ToSavepoint = new Identifier("s"), Chain = ChainMode.Chain },
+			"SetSessionCharacteristics twice" => new Statement.SetSessionCharacteristics { Characteristics = [[new TransactionMode.Access(TransactionAccess.ReadOnly)], [new TransactionMode.Access(TransactionAccess.ReadWrite)]] },
+			"Execute.Result"             => new Statement.Execute { Statement = new StatementReference(new Identifier("p")), Result = new DynamicArguments.Values([A]) },
+			"Execute.Parameters descriptor" => new Statement.Execute { Statement = new StatementReference(new Identifier("p")), Parameters = new DynamicArguments.Descriptor(new DescriptorReference(new Identifier("d")), false) },
+			"Explain.Bare with a value"  => new Statement.Explain([new Option(new Identifier("verbose"), A, [])], new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], From = new FromClause([T]) } }) { Bare = true },
+			"Explain of a TRUNCATE"      => new Statement.Explain([], new Statement.TruncateTable { Target = T }),
+			"PreparePlan of an EXECUTE"  => new Statement.PreparePlan(new Identifier("p"), [], new Statement.Execute { Statement = new StatementReference(new Identifier("q")) }),
+			"SetParameter.FromCurrent with values" => new Statement.SetParameter(new QualifiedName(new Identifier("p")), [A]) { FromCurrent = true },
+			"ShowParameter.Spelling of another name" => new Statement.ShowParameter(new QualifiedName(new Identifier("p"))) { Spelling = ParameterSpelling.TimeZone },
+			"Checkpoint.Duration"        => new Statement.Checkpoint(A),
+			"LockTable of a subquery"    => new Statement.LockTable([new TableSource.Subquery(new Query.Select { Columns = [new SelectColumn.All()] }) { Alias = new Alias(new Identifier("x"), null, true) }]),
+			"Discard.Temporary on PLANS" => new Statement.Discard(DiscardTarget.Plans) { Temporary = true },
 			"Query.DataChange.With"      => new Statement.Select { Query = new Query.Select { Columns = [new SelectColumn.All()], With = new WithClause(false, [new CommonTableExpression(new Identifier("x"), [], new Query.DataChange(new Statement.Delete { Target = T }) { With = new WithClause(false, [new CommonTableExpression(new Identifier("y"), [], new Query.Select { Columns = [new SelectColumn.All()] })]) })]) } },
 			_ => throw new ArgumentOutOfRangeException(nameof(which)),
 		};

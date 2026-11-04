@@ -375,6 +375,12 @@ public sealed class SqlWriterCoverageTests
 		[typeof(LockingMode)]        = v => Selected with { Locking = [new LockingClause((LockingMode)v, [])] },
 		[typeof(RowWord)]            = v => Selected with { Limit = new Limit { Offset = A, OffsetRowWord = (RowWord)v, Count = B, FetchRowWord = (RowWord)v } },
 		[typeof(LockWait)]           = v => Selected with { Locking = [new LockingClause(LockingMode.Update, []) { Wait = (LockWait)v }] },
+		[typeof(SetScope)]           = v => new Statement.SetParameter(T, [A]) { Scope = (SetScope)v },
+		[typeof(ParameterSpelling)]  = v => (ParameterSpelling)v == ParameterSpelling.XmlOption
+			? new Statement.SetParameter(new QualifiedName([new Identifier("xmloption")]), [new Expression.Reference(new QualifiedName([new Identifier("document")]))]) { Spelling = ParameterSpelling.XmlOption }
+			: new Statement.ShowParameter(new QualifiedName([new Identifier((ParameterSpelling)v switch { ParameterSpelling.TimeZone => "timezone", ParameterSpelling.TransactionIsolationLevel => "transaction_isolation", _ => "session_authorization" })])) { Spelling = (ParameterSpelling)v },
+		[typeof(LockMode)]           = v => new Statement.LockTable([new TableSource.Named(T)]) { Mode = (LockMode)v },
+		[typeof(DiscardTarget)]      = v => new Statement.Discard((DiscardTarget)v),
 		[typeof(FetchPosition)]      = v => Selected with { Limit = new Limit { Count = A, FetchRowWord = RowWord.Rows, Position = (FetchPosition)v } },
 		// A hundred and seventy permissions and twenty-eight classes, generated from the catalogue (D148):
 		// this is what says each one has words of its own, where PermissionCatalogueTests says which.
@@ -684,6 +690,47 @@ public sealed class SqlWriterCoverageTests
 			["Limit.LimitKeyword"] = (
 				Selected with { Limit = new Limit { Count = B, FetchRowWord = RowWord.Rows } },
 				Selected with { Limit = new Limit { Count = B, LimitKeyword = true } }),
+			// PostgreSQL's spellings of the transaction statements: BEGIN, END, ABORT, the word SAVEPOINT left out.
+			["StartTransaction.Begin"] = (
+				new Statement.StartTransaction(),
+				new Statement.StartTransaction { Begin = true }),
+			["Commit.End"] = (
+				new Statement.Commit(),
+				new Statement.Commit { End = true }),
+			["Rollback.Abort"] = (
+				new Statement.Rollback(),
+				new Statement.Rollback { Abort = true }),
+			["Rollback.SavepointKeywordOmitted"] = (
+				new Statement.Rollback { ToSavepoint = new Identifier("s") },
+				new Statement.Rollback { ToSavepoint = new Identifier("s"), SavepointKeywordOmitted = true }),
+			["ReleaseSavepoint.SavepointKeywordOmitted"] = (
+				new Statement.ReleaseSavepoint { Name = new Identifier("s") },
+				new Statement.ReleaseSavepoint { Name = new Identifier("s"), SavepointKeywordOmitted = true }),
+			["SetTransaction.Session"] = (
+				new Statement.SetTransaction { Modes = [new TransactionMode.Access(TransactionAccess.ReadOnly)] },
+				new Statement.SetTransaction { Modes = [new TransactionMode.Access(TransactionAccess.ReadOnly)], Session = true }),
+			["DeallocatePrepare.PrepareOmitted"] = (
+				new Statement.DeallocatePrepare { Statement = new StatementReference(new Identifier("p")) },
+				new Statement.DeallocatePrepare { Statement = new StatementReference(new Identifier("p")), PrepareOmitted = true }),
+			// PostgreSQL's own statements, each spelling against its plain form; the standard's writer refuses both.
+			["SetParameter.EqualsSign"] = (
+				new Statement.SetParameter(T, [A]),
+				new Statement.SetParameter(T, [A]) { EqualsSign = true }),
+			["Explain.Bare"] = (
+				new Statement.Explain([new Option(new Identifier("verbose"), null, [])], new Statement.Select { Query = Selected }),
+				new Statement.Explain([new Option(new Identifier("verbose"), null, [])], new Statement.Select { Query = Selected }) { Bare = true }),
+			["Do.LanguageFirst"] = (
+				new Statement.Do(new LiteralValue.String("'x'", StringLiteralKind.Character), A),
+				new Statement.Do(new LiteralValue.String("'x'", StringLiteralKind.Character), A) { LanguageFirst = true }),
+			["DeallocateAll.PrepareKeyword"] = (
+				new Statement.DeallocateAll(),
+				new Statement.DeallocateAll { PrepareKeyword = true }),
+			["LockTable.TableOmitted"] = (
+				new Statement.LockTable([new TableSource.Named(T)]),
+				new Statement.LockTable([new TableSource.Named(T)]) { TableOmitted = true }),
+			["Discard.Temporary"] = (
+				new Statement.Discard(DiscardTarget.Temp),
+				new Statement.Discard(DiscardTarget.Temp) { Temporary = true }),
 			// PostgreSQL's TRUNCATE without the word TABLE.
 			["TruncateTable.TableOmitted"] = (
 				new Statement.TruncateTable { Target = new TableSource.Named(T) },
@@ -922,13 +969,29 @@ public sealed class SqlWriterCoverageTests
 					+ named.Name + ", so add it to Covered, where every value of it is asked for its own text.");
 		}
 
+		// PostgreSQL's own statements: the standard's writer refuses the node with the flag or without, and
+		// PostgreSQL's writer is asked instead.
+		var own = new HashSet<string>(StringComparer.Ordinal)
+		{
+			"SetParameter.EqualsSign", "Explain.Bare", "Do.LanguageFirst", "DeallocateAll.PrepareKeyword", "LockTable.TableOmitted", "Discard.Temporary",
+			"StartTransaction.Begin", "Commit.End", "Rollback.Abort", "Rollback.SavepointKeywordOmitted", "ReleaseSavepoint.SavepointKeywordOmitted", "SetTransaction.Session", "DeallocatePrepare.PrepareOmitted",
+		};
+
 		foreach (var (name, pair) in pairs)
 		{
+			if (own.Contains(name))
+			{
+				Assert.NotEqual(PostgreSqlWriter.Write(pair.Off), PostgreSqlWriter.Write(pair.On));
+				continue;
+			}
+
 			var off = Written(pair.Off);
 			// Only a flag no place reads yet may be refused; every other one must be written.
 			// A spelling only another dialect's writer prints is refused by the standard's, which is its text being lost on purpose.
 			var on  = name is "Option.EqualsOmitted" or "BitString.Hexadecimal" or "Named.Star" or "IsNull.Postfix" or "Element.Colon" or "Substring.ForFirst"
 				or "Array.Brackets" or "DateTime.Abbreviated" or "Boolean.Abbreviated" or "Argument.ColonEquals" or "Limit.LimitKeyword" or "Limit.OffsetAfter" or "TruncateTable.TableOmitted"
+				or "StartTransaction.Begin" or "Commit.End" or "Rollback.Abort" or "Rollback.SavepointKeywordOmitted" or "ReleaseSavepoint.SavepointKeywordOmitted" or "SetTransaction.Session"
+				or "DeallocatePrepare.PrepareOmitted" or "SetParameter.EqualsSign" or "Explain.Bare" or "Do.LanguageFirst" or "DeallocateAll.PrepareKeyword" or "LockTable.TableOmitted" or "Discard.Temporary"
 				? WrittenOrRefused(pair.On)
 				: Written(pair.On);
 

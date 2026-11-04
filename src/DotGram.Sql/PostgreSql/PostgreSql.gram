@@ -922,12 +922,210 @@ TruncateStmt : @Statement
 // the WITH taken off.
 Stmt : @Statement = with: WithClause? & s: BareStmt & when @(Nodes.WithFits(with, s)) => @(Nodes.Withed(with, s))
 
+
+// ── The short statements: gram.y TransactionStmt, VariableSetStmt, VariableShowStmt, ─────
+//    VariableResetStmt, ConstraintsSetStmt, ExplainStmt, CallStmt, DoStmt, PrepareStmt,
+//    ExecuteStmt, DeallocateStmt, ListenStmt, NotifyStmt, UnlistenStmt, LockStmt, DiscardStmt,
+//    CheckPointStmt
+//
+// Each begins with a word of its own and is read once from it. The standard's records are kept
+// where PostgreSQL's statement means the same thing and gain its spelling (BEGIN, END, ABORT) or
+// its scope word; what the standard has not is a record of its own.
+
+// gram.y TransactionStmt, TransactionStmtLegacy: ABORT, BEGIN, START TRANSACTION, COMMIT, END,
+// ROLLBACK [TO [SAVEPOINT]], SAVEPOINT, RELEASE [SAVEPOINT], and the two-phase commit's three.
+// After COMMIT and ROLLBACK, PREPARED and a string, or the optional word and the chain — a
+// ROLLBACK TO takes no chain, as the server has it.
+TransactionStmt : @Statement
+	= "ABORT"i & w: TransactionWord? & chain: TransactionChain? => @(Nodes.RolledBack(true, w, chain, null, false))
+	| "START"i & "TRANSACTION"i & modes: TransactionModes => @(new Statement.StartTransaction { Modes = SqlList.Own(modes) })
+	| "BEGIN"i & w: TransactionWord? & modes: TransactionModes => @(Nodes.Begun(w, modes))
+	| "COMMIT"i & "PREPARED"i & id: Sconst => @(new Statement.CommitPrepared((LiteralValue.String)id))
+	| "COMMIT"i & w: TransactionWord? & chain: TransactionChain? => @(Nodes.Committed(false, w, chain))
+	| "END"i & w: TransactionWord? & chain: TransactionChain? => @(Nodes.Committed(true, w, chain))
+	| "ROLLBACK"i & "PREPARED"i & id: Sconst => @(new Statement.RollbackPrepared((LiteralValue.String)id))
+	| "ROLLBACK"i & w: TransactionWord? & ("TO"i & sp: "SAVEPOINT"i? & to: ColId | chain: TransactionChain?) => @(Nodes.RolledBack(false, w, chain, to, to is not null && sp is null))
+	| "SAVEPOINT"i & name: ColId => @(new Statement.Savepoint { Name = name })
+	| "RELEASE"i & sp: "SAVEPOINT"i? & name: ColId => @(new Statement.ReleaseSavepoint { Name = name, SavepointKeywordOmitted = sp is null })
+	| "PREPARE"i & "TRANSACTION"i & id: Sconst => @(new Statement.PrepareTransaction((LiteralValue.String)id))
+
+TransactionWord  : @string    = w: ("WORK"i | "TRANSACTION"i) => @(w)
+TransactionChain : @ChainMode = "AND"i & no: "NO"i? & "CHAIN"i => @(no is null ? ChainMode.Chain : ChainMode.NoChain)
+
+// gram.y transaction_mode_list, transaction_mode_list_or_empty: the modes, a comma between them or
+// none. The empty list is the first's.
+TransactionModes    : @TransactionMode[] = (first: TransactionMode & (','? & rest: TransactionMode)*)? => @(Nodes.Items(first, rest))
+TransactionModeList : @TransactionMode[] = first: TransactionMode & (','? & rest: TransactionMode)* => @(Nodes.Items(first, rest))
+
+// gram.y transaction_mode_item, iso_level.
+TransactionMode : @TransactionMode
+	= "ISOLATION"i & "LEVEL"i & "READ"i & "UNCOMMITTED"i => @(new TransactionMode.Isolation(IsolationLevel.ReadUncommitted))
+	| "ISOLATION"i & "LEVEL"i & "READ"i & "COMMITTED"i => @(new TransactionMode.Isolation(IsolationLevel.ReadCommitted))
+	| "ISOLATION"i & "LEVEL"i & "REPEATABLE"i & "READ"i => @(new TransactionMode.Isolation(IsolationLevel.RepeatableRead))
+	| "ISOLATION"i & "LEVEL"i & "SERIALIZABLE"i => @(new TransactionMode.Isolation(IsolationLevel.Serializable))
+	| "READ"i & "ONLY"i => @(new TransactionMode.Access(TransactionAccess.ReadOnly))
+	| "READ"i & "WRITE"i => @(new TransactionMode.Access(TransactionAccess.ReadWrite))
+	| "NOT"i & "DEFERRABLE"i => @(new TransactionMode.Deferrable(true))
+	| "DEFERRABLE"i => @(new TransactionMode.Deferrable(false))
+
+// gram.y VariableSetStmt, set_rest, set_rest_more: SET, its scope word, and what is set — the
+// statement's own forms first, each needing its second word, so that `SET time TO 1` and
+// `SET role TO x` fall through to a parameter named so; then a parameter by name. The scope word
+// is read once: after SESSION, `CHARACTERISTICS AS …` and `AUTHORIZATION …` are the forms whose
+// own SESSION it was, which `SetFits` holds to that word alone. CATALOG has no form: the server
+// refuses `SET CATALOG` in the grammar, and a parameter named catalog takes TO.
+VariableSetStmt : @Statement
+	= "SET"i & scope: (("LOCAL"i | "SESSION"i) & ?!("TO"i | '=' | "FROM"i | '.'))? & rest: SetRest & when @(Nodes.SetFits(scope, rest)) => @(Nodes.Set(scope, rest))
+
+SetRest : @Nodes.SetRest
+	= "TRANSACTION"i & "SNAPSHOT"i & s: Sconst => @(new Nodes.SetRest.Snapshot((LiteralValue.String)s))
+	| "TRANSACTION"i & modes: TransactionModeList => @(new Nodes.SetRest.Transaction(modes))
+	| "SESSION"i & "CHARACTERISTICS"i & "AS"i & "TRANSACTION"i & modes: TransactionModeList => @(new Nodes.SetRest.Characteristics(modes, false))
+	| "CHARACTERISTICS"i & "AS"i & "TRANSACTION"i & modes: TransactionModeList => @(new Nodes.SetRest.Characteristics(modes, true))
+	| "SESSION"i & "AUTHORIZATION"i & (d: "DEFAULT"i | v: NonReservedWordOrSconst) => @(new Nodes.SetRest.Authorization(v, false))
+	| "AUTHORIZATION"i & (d: "DEFAULT"i | v: NonReservedWordOrSconst) => @(new Nodes.SetRest.Authorization(v, true))
+	| "TIME"i & "ZONE"i & (local: "LOCAL"i | z: ZoneValue) => @(new Nodes.SetRest.TimeZone(z, local is not null))
+	| "SCHEMA"i & s: Sconst => @(new Nodes.SetRest.Schema(s))
+	| "NAMES"i & ?!("TO"i | '=' | "FROM"i | '.') & (d: "DEFAULT"i | enc: Sconst)? => @(new Nodes.SetRest.Names(enc, d is not null))
+	| "ROLE"i & v: NonReservedWordOrSconst => @(new Nodes.SetRest.Role(v))
+	| "XML"i & "OPTION"i & w: ("DOCUMENT"i | "CONTENT"i) => @(new Nodes.SetRest.Xml(w))
+	| name: VarName & (current: "FROM"i & "CURRENT"i | op: ("TO"i | '=') & (d: "DEFAULT"i | v1: VarValue & (',' & vn: VarValue)*)) => @(new Nodes.SetRest.Generic(name, op == "=", d is null && current is null ? Nodes.List(v1, vn) : null, d, current is not null))
+
+// gram.y var_name: a name, and the names after its dots.
+VarName : @QualifiedName = first: ColId & ('.' & rest: ColId)* => @(Nodes.Chain(first, rest))
+
+// gram.y var_value, opt_boolean_or_string, NumericOnly: TRUE, FALSE, ON, any word that is no
+// reserved key word, a string, or a signed number.
+VarValue : @Expression
+	= "TRUE"i => @(new LiteralValue.Boolean(BooleanLiteral.True))
+	| "FALSE"i => @(new LiteralValue.Boolean(BooleanLiteral.False))
+	| on: "ON"i => @(new Expression.Reference(new QualifiedName(new Identifier(on))))
+	| w: NonReservedWord => @(new Expression.Reference(new QualifiedName(w)))
+	| s: Sconst => @(s)
+	| n: NumericOnly => @(n)
+
+NumericOnly : @Expression = sign: ('+' | '-')? & ?!GluedNumber & t: (Real | Decimal | Integer) => @(Nodes.Signed(sign, t))
+
+// gram.y NonReservedWord, NonReservedWord_or_Sconst: any word but a reserved key word; and that or a string.
+NonReservedWord         : @Identifier = ?!ReservedKeyword & i: Word => @(i)
+NonReservedWordOrSconst : @Expression = w: NonReservedWord => @(new Expression.Reference(new QualifiedName(w))) | s: Sconst => @(s)
+
+// gram.y zone_value: a string, a plain name that is no key word, an interval, a number, DEFAULT.
+ZoneValue : @Expression
+	= s: Sconst => @(s)
+	| n: Identifier & when @(!KeywordCatalogue.IsKeyword(n)) => @(new Expression.Reference(new QualifiedName(new Identifier(n))))
+	| n: DelimitedIdentifier => @(new Expression.Reference(new QualifiedName(new Identifier(n, IdentifierStyle.Delimited))))
+	| "INTERVAL"i & t: Sconst & q: IntervalQualifier? => @(Nodes.IntervalLiteral(t, q))
+	| "INTERVAL"i & '(' & p: Integer & when @(Nodes.FitsInteger(p)) & ')' & t: Sconst => @(Nodes.TypedLiteral(new DataType.Interval(null) { Precision = Nodes.Integer(p) }, t))
+	| num: NumericOnly => @(num)
+	| "DEFAULT"i => @(new Expression.Default())
+
+// gram.y ConstraintsSetStmt: before the parameter forms, since `constraints` names a parameter too.
+ConstraintsSetStmt : @Statement
+	= "SET"i & "CONSTRAINTS"i & (all: "ALL"i | n1: AnyName & (',' & nn: AnyName)*) & mode: ("DEFERRED"i | "IMMEDIATE"i)
+		=> @(new Statement.SetConstraints { Target = Nodes.Constrained(all, n1, nn), Timing = (mode[0] | 0x20) == 'd' ? ConstraintTiming.Deferred : ConstraintTiming.Immediate })
+
+// gram.y VariableShowStmt, VariableResetStmt, reset_rest, generic_reset: a parameter by name, by
+// the statement's own words for it, or ALL.
+VariableShowStmt  : @Statement = "SHOW"i & p: ParameterRef => @(new Statement.ShowParameter(p.Name) { Spelling = p.Spelling })
+VariableResetStmt : @Statement = "RESET"i & p: ParameterRef => @(new Statement.ResetParameter(p.Name) { Spelling = p.Spelling })
+
+ParameterRef : @Nodes.ParameterRef
+	= "TIME"i & "ZONE"i => @(Nodes.Spelled(ParameterSpelling.TimeZone))
+	| "TRANSACTION"i & "ISOLATION"i & "LEVEL"i => @(Nodes.Spelled(ParameterSpelling.TransactionIsolationLevel))
+	| "SESSION"i & "AUTHORIZATION"i => @(Nodes.Spelled(ParameterSpelling.SessionAuthorization))
+	| "ALL"i => @(new Nodes.ParameterRef(null, null))
+	| name: VarName => @(new Nodes.ParameterRef(name, null))
+
+// gram.y ExplainStmt, ExplainableStmt, utility_option_list: the options in brackets, or the old
+// words ANALYZE and VERBOSE bare; then the statement, which a lookahead holds to the explainable
+// kinds before it is read, so that `EXPLAIN EXPLAIN …` is refused at its second word.
+ExplainStmt : @Statement
+	= "EXPLAIN"i & '(' & o1: UtilityOption & (',' & on: UtilityOption)* & ')' & ?=ExplainableStart & s: Stmt & when @(Nodes.Explainable(s)) => @(new Statement.Explain(Nodes.List(o1, on), s))
+	| "EXPLAIN"i & (a: AnalyzeWord & v: "VERBOSE"i? | v: "VERBOSE"i)? & ?=ExplainableStart & s: Stmt & when @(Nodes.Explainable(s)) => @(Nodes.Explained(a, v, s))
+
+ExplainableStart = "SELECT"i | "WITH"i | "VALUES"i | "TABLE"i | '(' | "INSERT"i | "UPDATE"i | "DELETE"i | "MERGE"i | "EXECUTE"i | "DECLARE"i
+PreparableStart  = "SELECT"i | "WITH"i | "VALUES"i | "TABLE"i | '(' | "INSERT"i | "UPDATE"i | "DELETE"i | "MERGE"i
+
+// gram.y utility_option_elem, utility_option_name, utility_option_arg: a name — any word but a
+// reserved one, or ANALYZE — and its value, where one was written.
+UtilityOption     : @Option = name: UtilityOptionName & value: VarValue? => @(new Option(name, value, []))
+UtilityOptionName : @Identifier = w: AnalyzeWord => @(new Identifier(w)) | i: NonReservedWord => @(i)
+AnalyzeWord       : @string = w: ("ANALYZE"i | "ANALYSE"i) => @(w)
+
+// gram.y CallStmt: a call by name, with no clause after it (func_application).
+CallStmt : @Statement = "CALL"i & f: FuncExpr & when @(Nodes.IsWindowless(f)) => @(new Statement.Call { Invocation = (Expression.Invocation)f })
+
+// gram.y DoStmt, dostmt_opt_list: the body and LANGUAGE in either order, each once, the body
+// always — as the server's checks have it.
+DoStmt : @Statement = "DO"i & first: DoItem & rest: DoItem* & when @(Nodes.DoFits(first, rest)) => @(Nodes.Done(first, rest))
+DoItem : @Nodes.DoItem
+	= s: Sconst => @(new Nodes.DoItem((LiteralValue.String)s, null))
+	| "LANGUAGE"i & l: NonReservedWordOrSconst => @(new Nodes.DoItem(null, l))
+
+// gram.y PrepareStmt, prep_type_clause, PreparableStmt: the name, the types, AS and the statement,
+// held to a query or a data change by a lookahead before it is read.
+PrepareStmt : @Statement
+	= "PREPARE"i & name: ColId & ('(' & t1: Typename & (',' & tn: Typename)* & ')')? & "AS"i & ?=PreparableStart & s: Stmt & when @(Nodes.Preparable(s))
+		=> @(new Statement.PreparePlan(name, Nodes.List(t1, tn), s))
+
+// gram.y ExecuteStmt, execute_param_clause: the name and the values in brackets, one at least;
+// the CREATE TABLE … AS EXECUTE forms are the table statements'.
+ExecuteStmt : @Statement
+	= "EXECUTE"i & name: ColId & ('(' & a1: AExpr & (',' & an: AExpr)* & ')')?
+		=> @(new Statement.Execute { Statement = new StatementReference(name), Parameters = a1 is null ? null : new DynamicArguments.Values(Nodes.List(a1, an)) })
+
+// gram.y DeallocateStmt: PREPARE is the word only where a name or ALL follows it; `DEALLOCATE prepare` names a plan.
+DeallocateStmt : @Statement
+	= "DEALLOCATE"i & p: ("PREPARE"i & ?=("ALL"i | ColId))? & (all: "ALL"i | name: ColId) => @(Nodes.Deallocated(p is not null, all is not null, name))
+
+// gram.y ListenStmt, NotifyStmt, UnlistenStmt.
+ListenStmt   : @Statement = "LISTEN"i & c: ColId => @(new Statement.Listen(c))
+NotifyStmt   : @Statement = "NOTIFY"i & c: ColId & (',' & payload: Sconst)? => @(new Statement.Notify(c, (LiteralValue.String?)payload))
+UnlistenStmt : @Statement = "UNLISTEN"i & '*' => @(new Statement.Unlisten(null)) | "UNLISTEN"i & c: ColId => @(new Statement.Unlisten(c))
+
+// gram.y LockStmt, opt_lock, lock_type, opt_nowait: the longer modes before the one-word ones they begin with.
+LockStmt : @Statement
+	= "LOCK"i & table: "TABLE"i? & r1: RelationExpr & (',' & rn: RelationExpr)* & ("IN"i & mode: LockMode & "MODE"i)? & nowait: "NOWAIT"i?
+		=> @(new Statement.LockTable(Nodes.List(r1, rn)) { Mode = mode, NoWait = nowait is not null, TableOmitted = table is null })
+
+LockMode : @LockMode
+	= "ACCESS"i & "SHARE"i => @(LockMode.AccessShare)
+	| "ACCESS"i & "EXCLUSIVE"i => @(LockMode.AccessExclusive)
+	| "ROW"i & "SHARE"i => @(LockMode.RowShare)
+	| "ROW"i & "EXCLUSIVE"i => @(LockMode.RowExclusive)
+	| "SHARE"i & "UPDATE"i & "EXCLUSIVE"i => @(LockMode.ShareUpdateExclusive)
+	| "SHARE"i & "ROW"i & "EXCLUSIVE"i => @(LockMode.ShareRowExclusive)
+	| "SHARE"i => @(LockMode.Share)
+	| "EXCLUSIVE"i => @(LockMode.Exclusive)
+
+// gram.y DiscardStmt, CheckPointStmt — the latter T-SQL's record, with no duration.
+DiscardStmt    : @Statement = "DISCARD"i & w: ("ALL"i | "TEMPORARY"i | "TEMP"i | "PLANS"i | "SEQUENCES"i) => @(Nodes.Discarded(w))
+CheckpointStmt : @Statement = "CHECKPOINT"i => @(new Statement.Checkpoint(null))
+
 BareStmt : @Statement
 	= s: InsertStmt => @(s)
 	| s: UpdateStmt => @(s)
 	| s: DeleteStmt => @(s)
 	| s: MergeStmt => @(s)
 	| s: TruncateStmt => @(s)
+	| s: TransactionStmt => @(s)
+	| s: ConstraintsSetStmt => @(s)
+	| s: VariableSetStmt => @(s)
+	| s: VariableShowStmt => @(s)
+	| s: VariableResetStmt => @(s)
+	| s: ExplainStmt => @(s)
+	| s: CallStmt => @(s)
+	| s: DoStmt => @(s)
+	| s: PrepareStmt => @(s)
+	| s: ExecuteStmt => @(s)
+	| s: DeallocateStmt => @(s)
+	| s: ListenStmt => @(s)
+	| s: NotifyStmt => @(s)
+	| s: UnlistenStmt => @(s)
+	| s: LockStmt => @(s)
+	| s: DiscardStmt => @(s)
+	| s: CheckpointStmt => @(s)
 	| body: SelectClause & order: SortClause? & tail: SelectTail? & when @(Nodes.ClausesFit(null, body, order, tail)) => @(new Statement.Select { Query = Nodes.Finished(null, body, order, tail) })
 
 // gram.y stmtmulti: statements each ended by `;` or by the end of the text, with empty statements
