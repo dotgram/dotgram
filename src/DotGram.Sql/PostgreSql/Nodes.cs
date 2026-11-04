@@ -1678,7 +1678,13 @@ static class Nodes
 	/// <summary>Whether a WITH before a statement fits it: a SELECT whose bracketed query has a WITH of its own refuses a second ("multiple WITH clauses not allowed").</summary>
 	public static bool WithFits(WithClause? with, Statement statement)
 	{
-		if (with is null || statement is not Statement.Select select)
+		if (with is null)
+			return true;
+
+		if (statement is Statement.TruncateTable)
+			return false;
+
+		if (statement is not Statement.Select select)
 			return true;
 
 		var inner = select.Query;
@@ -1710,6 +1716,18 @@ static class Nodes
 	public static Query AsQuery(Statement statement)
 	{
 		return statement is Statement.Select select ? select.Query : new Query.DataChange(statement);
+	}
+
+	public static Statement Truncated(bool tableOmitted, TableSource first, TableSource[]? rest, string? identity, string? behavior)
+	{
+		return new Statement.TruncateTable
+		{
+			Target       = first,
+			Others       = List(rest),
+			Identity     = identity is null ? null : (identity[0] | 0x20) == 'r' ? IdentityRestart.Restart : IdentityRestart.Continue,
+			Behavior     = behavior is null ? null : (behavior[0] | 0x20) == 'c' ? DropBehavior.Cascade : DropBehavior.Restrict,
+			TableOmitted = tableOmitted,
+		};
 	}
 
 	public static MergeInsertAction MergeInserted(Identifier? c1, Identifier[]? cn, OverrideKind? overriding, MergeInsertBody body)
