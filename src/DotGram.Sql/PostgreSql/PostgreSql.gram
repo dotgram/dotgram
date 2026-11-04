@@ -484,7 +484,7 @@ OverClause        : @WindowReference
 
 // gram.y window_specification: the existing window, PARTITION BY, ORDER BY and the frame.
 WindowSpecification : @WindowSpecification
-	= '(' & (?!("PARTITION"i & "BY"i) & ?!("ORDER"i & "BY"i) & ?!("RANGE"i | "ROWS"i | "GROUPS"i) & existing: ColId)? & ("PARTITION"i & "BY"i & first: AExpr & (',' & rest: AExpr)*)? & order: SortClause? & frame: FrameClause? & ')'
+	= '(' & (?!"PARTITION"i & ?!("ORDER"i & "BY"i) & ?!("RANGE"i | "ROWS"i | "GROUPS"i) & existing: ColId)? & ("PARTITION"i & "BY"i & first: AExpr & (',' & rest: AExpr)*)? & order: SortClause? & frame: FrameClause? & ')'
 		=> @(new WindowSpecification(existing, Nodes.List(first, rest), order, frame))
 
 // gram.y sort_clause, sortby.
@@ -647,7 +647,8 @@ SelectLimit : @Limit
 LimitClause : @Limit
 	= "LIMIT"i & "ALL"i => @(new Limit { LimitAll = true, LimitKeyword = true })
 	| "LIMIT"i & count: AExpr & ?!',' => @(new Limit { Count = count, LimitKeyword = true })
-	| "FETCH"i & position: ("FIRST"i | "NEXT"i) & (?!("ROW"i | "ROWS"i) & count: AExpr)? & when @(Nodes.IsFetchValue(count)) & word: ("ROW"i | "ROWS"i) & ties: ("ONLY"i | "WITH"i & "TIES"i) => @(Nodes.Fetched(position, count, word, ties))
+	| "FETCH"i & position: ("FIRST"i | "NEXT"i) & count: AExpr & when @(Nodes.IsFetchValue(count)) & word: ("ROW"i | "ROWS"i) & ties: ("ONLY"i | "WITH"i & "TIES"i) => @(Nodes.Fetched(position, count, word, ties))
+	| "FETCH"i & position: ("FIRST"i | "NEXT"i) & word: ("ROW"i | "ROWS"i) & ties: ("ONLY"i | "WITH"i & "TIES"i) => @(Nodes.Fetched(position, null, word, ties))
 
 OffsetClause : @Limit
 	= "OFFSET"i & v: AExpr & word: ("ROW"i | "ROWS"i)? & when @(word is null || Nodes.IsFetchValue(v)) => @(new Limit { Offset = v, OffsetRowWord = Nodes.RowWordOf(word) })
@@ -706,9 +707,10 @@ TargetLabel : @Nodes.Label
 	| name: BareColLabel => @(new Nodes.Label(name, false))
 
 // gram.y group_clause, group_by_item: any expression, `()`, ROLLUP and CUBE over expressions, and
-// GROUPING SETS over items; a row in brackets, `(a, b)`, is the standard's bracketed grouping set,
-// so that a text both read is one tree. ROLLUP and GROUPING SETS are words before an expression
-// could begin with them, as gram.y has it.
+// GROUPING SETS over items; a row in parentheses, `(a, b)`, is the standard's bracketed grouping
+// set, so that a text both read is one tree. ROLLUP and CUBE before a parenthesis are the clauses
+// and never a call, as gram.y has it — `ROLLUP()`, `ROLLUP(a ORDER BY b)` and `rollup(DISTINCT a)`
+// are refused, and a nest of them is read once; inside their lists `rollup(a)` is a call again.
 GroupClause : @GroupByClause = "GROUP"i & "BY"i & quantifier: ("ALL"i | "DISTINCT"i)? & first: GroupItem & (',' & rest: GroupItem)* => @(new GroupByClause(Nodes.QuantifierOf(quantifier), Nodes.List(first, rest)))
 
 GroupItem : @GroupingElement
@@ -716,7 +718,7 @@ GroupItem : @GroupingElement
 	| "ROLLUP"i & '(' & first: AExpr & (',' & rest: AExpr)* & ')' => @(new GroupingElement.Rollup(Nodes.GroupItems(first, rest)))
 	| "CUBE"i & '(' & first: AExpr & (',' & rest: AExpr)* & ')' => @(new GroupingElement.Cube(Nodes.GroupItems(first, rest)))
 	| "GROUPING"i & "SETS"i & '(' & set: GroupItem & (',' & sets: GroupItem)* & ')' => @(new GroupingElement.Sets(Nodes.List(set, sets)))
-	| e: AExpr => @(Nodes.GroupItem(e))
+	| ?!(("ROLLUP"i | "CUBE"i) & '(') & e: AExpr => @(Nodes.GroupItem(e))
 
 // gram.y window_clause, window_definition; the specification is the one OVER reads.
 WindowClause : @WindowClause = "WINDOW"i & first: WindowDef & (',' & rest: WindowDef)* => @(new WindowClause(Nodes.List(first, rest)))
@@ -753,15 +755,25 @@ JoinQual : @JoinSpecification
 	| "ON"i & condition: AExpr => @(new JoinSpecification.On(condition))
 
 // gram.y table_ref: a function, which begins with a name as a table does and is asked first, with
-// its bracket deciding; ROWS FROM; a relation with its alias and TABLESAMPLE; a subquery; a
-// bracketed join. LATERAL stands before a function or a subquery. gram.y's TABLESAMPLE takes any
-// method by name with any arguments; the standard's two methods with one are read here.
+// its parenthesis deciding; ROWS FROM; a relation with its alias and TABLESAMPLE; and a parenthesis,
+// which holds a subquery or a join — read once, by `Held`, whatever follows it. LATERAL stands
+// before a function or a subquery. gram.y's TABLESAMPLE takes any method by name with any
+// arguments; the standard's two methods with one are read here.
 TableRefPrimary : @TableSource
 	= lateral: "LATERAL"i? & "ROWS"i & "FROM"i & '(' & first: RowsFromItem & (',' & rest: RowsFromItem)* & ')' & ordinality: ("WITH"i & "ORDINALITY"i)? & named: FuncAlias? => @(Nodes.RowsFrom(lateral is not null, first, rest, ordinality is not null, named))
 	| lateral: "LATERAL"i? & f: FuncExpr & when @(Nodes.IsWindowless(f)) & ordinality: ("WITH"i & "ORDINALITY"i)? & named: FuncAlias? => @(Nodes.FunctionSource(lateral is not null, f, ordinality is not null, named))
 	| r: RelationExpr & alias: AliasClause? & sample: TableSample? => @(Nodes.Aliased(r, alias, sample))
-	| lateral: "LATERAL"i? & q: Subquery & alias: AliasClause? => @(new TableSource.Subquery(q) { Lateral = lateral is not null, Alias = alias })
-	| '(' & j: TableRef & ')' & when @(j is TableSource.Join or TableSource.Parenthesized) & alias: AliasClause? => @(Nodes.Bracketed(j, alias))
+	| lateral: "LATERAL"i? & '(' & held: Held & ')' & alias: AliasClause? & when @(Nodes.HeldFits(lateral is not null, held, alias)) => @(Nodes.HeldSource(lateral is not null, held, alias))
+
+// What one parenthesis in a FROM holds, read once: a query, where a query's word begins it; else a
+// table reference — a join, a parenthesis again, or a subquery in its own parentheses — and, where
+// that was a bare subquery, the set operations and the clauses that may follow it, so that
+// `((SELECT 1) UNION (SELECT 2) ORDER BY 1) x` is one reading from its first parenthesis to its
+// last. gram.y reads the same text twice over (select_with_parens against joined_table) and bison
+// chooses; here the first element is read once and what follows it says which it was.
+Held : @Nodes.Held
+	= ?=("SELECT"i | "VALUES"i | "TABLE"i | "WITH"i) & q: SelectNoParens => @(new Nodes.Held(q, null))
+	| t: TableRef & operations: BracketOperation* & order: SortClause? & tail: SelectTail? & when @(Nodes.HeldClausesFit(t, operations, order, tail)) => @(Nodes.HeldOf(t, operations, order, tail))
 
 // gram.y relation_expr: a name, with ONLY before it or the inheritance star after it.
 RelationExpr : @TableSource

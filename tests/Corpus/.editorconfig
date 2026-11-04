@@ -1,0 +1,6 @@
+# Somebody else's corpus, kept byte for byte: no editor touches its line endings or spacing.
+[**]
+end_of_line = unset
+trim_trailing_whitespace = unset
+insert_final_newline = unset
+charset = unset
