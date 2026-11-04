@@ -279,6 +279,27 @@ static class Nodes
 		return text.IndexOf("--", StringComparison.Ordinal) < 0 && text.IndexOf("/*", StringComparison.Ordinal) < 0;
 	}
 
+	/// <summary>
+	/// Whether a text is a run the lexer reads as one operator token (scan.l): operator characters only, and a run
+	/// ending in <c>+</c> or <c>-</c> holding one of <c>~ ! @ # % ^ &amp; | ` ?</c>, so that its end is not a sign.
+	/// </summary>
+	public static bool IsOperatorRun(string text)
+	{
+		const string characters = "+-*/<>=~!@#%^&|`?";
+		const string qualifying = "~!@#%^&|`?";
+
+		if (text.Length == 0)
+			return false;
+
+		foreach (var c in text)
+		{
+			if (characters.IndexOf(c) < 0)
+				return false;
+		}
+
+		return text.Length == 1 || text[text.Length - 1] is not ('+' or '-') || text.IndexOfAny(qualifying.ToCharArray()) >= 0;
+	}
+
 	/// <summary>An operator's symbol as a name of one part.</summary>
 	public static QualifiedName OperatorName(string symbol)
 	{
@@ -867,6 +888,31 @@ static class Nodes
 		};
 
 		return new DataType.Numeric(which, Integer(precision), Integer(scale));
+	}
+
+	/// <summary>
+	/// An exact number's type, whose modifiers gram.y reads as any expressions (opt_type_modifiers): the standard's record
+	/// where they are a precision and a scale, integers that fit; a type by the name written, with the modifiers as they
+	/// are, otherwise — which the server reads and refuses later, as it reads `numeric(1.5)`.
+	/// </summary>
+	public static DataType Exact(string kind, Expression? first, Expression[]? rest)
+	{
+		if (first is null)
+			return Numeric(kind, null, null);
+
+		var scale = rest is { Length: 1 } ? rest[0] : null;
+
+		if (rest is not { Length: > 1 } && IsIntegerThatFits(first) && (scale is null || IsIntegerThatFits(scale)))
+			return Numeric(kind, ((LiteralValue.Numeric)first).Text, scale is null ? null : ((LiteralValue.Numeric)scale).Text);
+
+		return NamedType(new QualifiedName(new Identifier(kind)), List(first, rest));
+	}
+
+	/// <summary>Whether a value is an integer literal, in any radix, that fits 32 bits.</summary>
+	static bool IsIntegerThatFits(Expression value)
+	{
+		return value is LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.HexInteger or NumericLiteralKind.OctalInteger or NumericLiteralKind.BinaryInteger } number
+			&& FitsInteger(number.Text);
 	}
 
 	public static DataType Bits(bool varying, string? length)

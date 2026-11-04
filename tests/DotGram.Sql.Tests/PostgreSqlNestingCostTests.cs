@@ -74,8 +74,9 @@ public sealed class PostgreSqlNestingCostTests
 
 	/// <summary>
 	/// A nest costs what its depth does: a call inside a call with a typed literal's string or a bad tail after the
-	/// outermost (the call read once, the string after its bracket deciding), a subquery in brackets inside brackets,
-	/// and a bracketed join inside a bracketed join — accepted and refused alike.
+	/// outermost (the call read once, the string after its bracket deciding), a value or a subquery in brackets inside
+	/// brackets, a subscript inside a subscript (the first value read once, the colon after it deciding), and a
+	/// bracketed join inside a bracketed join — accepted and refused alike.
 	/// </summary>
 	[Theory]
 	[InlineData("calls, then a typed literal",       "SELECT ", "f(",  "a", ")", " 'x'",      true)]
@@ -83,7 +84,12 @@ public sealed class PostgreSqlNestingCostTests
 	[InlineData("calls, unclosed",                   "SELECT ", "f(",  "a", "",  "",          false)]
 	[InlineData("brackets around a subquery, closed", "SELECT ", "(",   "SELECT 1", ")", "",   true)]
 	[InlineData("brackets around a subquery, unclosed", "SELECT ", "(", "SELECT 1", "", "",    false)]
+	[InlineData("brackets around a value, closed",    "SELECT ", "(",   "a", ")", "",          true)]
 	[InlineData("brackets around a value, unclosed",  "SELECT ", "(",   "a", "",  "",          false)]
+	[InlineData("subscripts nested, closed",         "SELECT ", "a[",  "1", "]", "",          true)]
+	[InlineData("subscripts nested, unclosed",       "SELECT ", "a[",  "1", "",  "",          false)]
+	[InlineData("slices nested, closed",             "SELECT ", "a[1:", "1", "]", "",         true)]
+	[InlineData("tests after a bracket, nested",     "SELECT ", "(",   "a", ") IS NULL", "",   true)]
 	[InlineData("bracketed joins, closed",           "SELECT * FROM ", "(", "a JOIN b ON x", " JOIN c ON y)", "", true)]
 	[InlineData("bracketed joins, unclosed",         "SELECT * FROM ", "(", "a JOIN b ON x", "", "", false)]
 	public void A_nest_costs_what_its_depth_does(string what, string head, string opener, string core, string closer, string tail, bool accepted)
