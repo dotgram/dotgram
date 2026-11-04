@@ -2245,7 +2245,13 @@ public static partial class SqlWriter
 					Word("SET CONSTRAINTS");
 
 					if (constraints.Target is ConstraintTarget.Names listed)
+					{
+						// PostgreSQL: SET CONSTRAINTS. A name of at most three parts, as the server has it.
+						if (postgreSql && listed.Values.Any(static name => name.Count > 3))
+							throw Misplaced(constraints, "Target", "a name of more than three parts, which PostgreSQL refuses (improper qualified name)");
+
 						Each(listed.Values, PutName);
+					}
 					else
 						Word("ALL");
 
@@ -2725,8 +2731,9 @@ public static partial class SqlWriter
 				if (direction.Kind is FetchOrientationKind.Absolute or FetchOrientationKind.Relative && direction.Offset is null)
 					throw Empty(direction, nameof(direction.Offset));
 
-				// PostgreSQL: FETCH. A count is a whole number under its sign, one token, within 32 bits (SignedIconst).
-				if (postgreSql && direction.Offset is { } count && !(count is LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger, Text: var digits } && PostgreSql.Nodes.FitsInteger(digits.TrimStart('+', '-')) && digits.Length - digits.TrimStart('+', '-').Length <= 1))
+				// PostgreSQL: FETCH. A count is a whole number under its sign, one token, within 32 bits (SignedIconst) — in
+				// any of the integer spellings, hexadecimal, octal and binary among them.
+				if (postgreSql && direction.Offset is { } count && !(count is LiteralValue.Numeric { Kind: NumericLiteralKind.DecimalInteger or NumericLiteralKind.HexInteger or NumericLiteralKind.OctalInteger or NumericLiteralKind.BinaryInteger, Text: var digits } && PostgreSql.Nodes.FitsInteger(digits.TrimStart('+', '-')) && digits.Length - digits.TrimStart('+', '-').Length <= 1))
 					throw Misplaced(direction, nameof(direction.Offset), "other than a whole number within 32 bits, which alone PostgreSQL's FETCH counts by");
 
 				if (!direction.WordOmitted)
