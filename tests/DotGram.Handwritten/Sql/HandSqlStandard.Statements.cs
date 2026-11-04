@@ -285,7 +285,12 @@ partial class HandSqlStandard
 				columns = [];
 			}
 
-			return new LockingClause(LockingMode.Update, columns);
+			var of = new QualifiedName[columns.Count];
+
+			for (var at = 0; at < of.Length; at++)
+				of[at] = new QualifiedName(columns[at]);
+
+			return new LockingClause(LockingMode.Update, [.. of]);
 		}
 
 		cursor = save;
