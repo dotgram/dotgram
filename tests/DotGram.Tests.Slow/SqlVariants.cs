@@ -99,6 +99,9 @@ static class SqlVariants
 	public const string Sql92GuardsNull = "Sql92GuardsNull";
 	public const string Sql92GuardsRow = "Sql92GuardsRow";
 
+	/// <summary>The cover with its per-step guards removed, the wrappers' kept (a fixture under <c>Fixtures/ReadOnce/NoStepGuards</c>): the time floor of "one guard per rule", not a grammar that reads the right language.</summary>
+	public const string Sql92NoStepGuards = "Sql92NoStepGuards";
+
 	static readonly ConcurrentDictionary<(string Grammar, string Follow, bool Memo, bool Counts, bool HeadGuard, bool Located, bool SuccessMemo, bool Immediate), Type> Compiled = new();
 
 	static readonly object Compiling = new();
@@ -116,6 +119,7 @@ static class SqlVariants
 			Sql92GuardsTrue => (Sql92Host.Replace("Standard.Variant", "Standard.GuardsTrue"), Fixture(Path.Combine("ReadOnce", "GuardsTrue")), "SqlStandard92.gram", "DotGram.Sql.Standard.GuardsTrue.Sql92Parser"),
 			Sql92GuardsNull => (Sql92Host.Replace("Standard.Variant", "Standard.GuardsNull"), Fixture(Path.Combine("ReadOnce", "GuardsNull")), "SqlStandard92.gram", "DotGram.Sql.Standard.GuardsNull.Sql92Parser"),
 			Sql92GuardsRow => (Sql92Host.Replace("Standard.Variant", "Standard.GuardsRow"), Fixture(Path.Combine("ReadOnce", "GuardsRow")), "SqlStandard92.gram", "DotGram.Sql.Standard.GuardsRow.Sql92Parser"),
+			Sql92NoStepGuards => (Sql92Host.Replace("Standard.Variant", "Standard.NoStepGuards"), Fixture(Path.Combine("ReadOnce", "NoStepGuards")), "SqlStandard92.gram", "DotGram.Sql.Standard.NoStepGuards.Sql92Parser"),
 			_           => throw new ArgumentOutOfRangeException(nameof(grammar)),
 		};
 
