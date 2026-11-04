@@ -413,10 +413,6 @@ public static partial class SqlWriter
 		}
 
 		/// <summary>
-		/// T-SQL: OUTPUT clause (Transact-SQL). The items, then perhaps <c>INTO</c> a target and its columns, then the
-		/// second <c>OUTPUT</c>, which the grammar reads only after an <c>INTO</c>.
-		/// </summary>
-		/// <summary>
 		/// What a data change statement gives back, where its reading puts it: T-SQL's OUTPUT after the target (the
 		/// first call), PostgreSQL's RETURNING at the statement's end (the second).
 		/// </summary>
@@ -474,6 +470,10 @@ public static partial class SqlWriter
 			}
 		}
 
+		/// <summary>
+		/// T-SQL: OUTPUT clause (Transact-SQL). The items, then perhaps <c>INTO</c> a target and its columns, then the
+		/// second <c>OUTPUT</c>, which the grammar reads only after an <c>INTO</c>.
+		/// </summary>
 		void PutOutput(ReturningClause.Output output)
 		{
 			if (!SqlStack.Enough())

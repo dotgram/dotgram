@@ -671,8 +671,8 @@ Cte : @CommonTableExpression
 		=> @(Nodes.Cte(name, c1, cn, materialized, q, search, cycle))
 
 // gram.y PreparableStmt, as a common table expression's body: a query, or a data change statement
-// as the query of its RETURNING rows.
-PreparableStmt : @Query = s: Stmt => @(Nodes.AsQuery(s))
+// as the query of its RETURNING rows; TRUNCATE is no PreparableStmt and is refused.
+PreparableStmt : @Query = s: Stmt & when @(s is not Statement.TruncateTable) => @(Nodes.AsQuery(s))
 
 SearchClause : @SearchClause = "SEARCH"i & order: ("DEPTH"i | "BREADTH"i) & "FIRST"i & "BY"i & c1: ColId & (',' & cn: ColId)* & "SET"i & set: ColId => @(Nodes.Searched(order, c1, cn, set))
 CycleClause  : @CycleClause  = "CYCLE"i & c1: ColId & (',' & cn: ColId)* & "SET"i & mark: ColId & ("TO"i & to: AexprConst & "DEFAULT"i & dflt: AexprConst)? & "USING"i & path: ColId => @(new CycleClause(Nodes.List(c1, cn), mark, to, dflt, path))
@@ -761,12 +761,14 @@ JoinQual : @JoinSpecification
 	| "ON"i & condition: AExpr => @(new JoinSpecification.On(condition))
 
 // gram.y table_ref: a function, which begins with a name as a table does and is asked first, with
-// its parenthesis deciding; ROWS FROM; a relation with its alias and TABLESAMPLE; and a parenthesis,
+// its parenthesis deciding — one of the key word functions where it is a call (COALESCE, NULLIF;
+// CAST and the others have no call to stand as a table and are refused); ROWS FROM; a relation with its alias and TABLESAMPLE; and a parenthesis,
 // which holds a subquery or a join — read once, by `Held`, whatever follows it. LATERAL stands
 // before a function or a subquery. gram.y's TABLESAMPLE takes any method by name with any
 // arguments; the standard's two methods with one are read here.
 TableRefPrimary : @TableSource
 	= lateral: "LATERAL"i? & "ROWS"i & "FROM"i & '(' & first: RowsFromItem & (',' & rest: RowsFromItem)* & ')' & ordinality: ("WITH"i & "ORDINALITY"i)? & named: FuncAlias? => @(Nodes.RowsFrom(lateral is not null, first, rest, ordinality is not null, named))
+	| lateral: "LATERAL"i? & f: FuncExprCommonSubexpr & when @(f is Expression.Invocation) & ordinality: ("WITH"i & "ORDINALITY"i)? & named: FuncAlias? => @(Nodes.FunctionSource(lateral is not null, f, ordinality is not null, named))
 	| lateral: "LATERAL"i? & f: FuncExpr & when @(Nodes.IsWindowless(f)) & ordinality: ("WITH"i & "ORDINALITY"i)? & named: FuncAlias? => @(Nodes.FunctionSource(lateral is not null, f, ordinality is not null, named))
 	| r: RelationExpr & alias: AliasClause? & sample: TableSample? => @(Nodes.Aliased(r, alias, sample))
 	| lateral: "LATERAL"i? & '(' & held: Held & ')' & when @(Nodes.HeldFits(lateral is not null, held)) & alias: AliasClause? => @(Nodes.HeldSource(lateral is not null, held, alias))
@@ -782,9 +784,11 @@ Held : @Nodes.Held
 	| t: TableRef & operations: BracketOperation* & order: SortClause? & tail: SelectTail? & when @(Nodes.HeldClausesFit(t, operations, order, tail)) => @(Nodes.HeldOf(t, operations, order, tail))
 
 // gram.y relation_expr: a name, with ONLY before it or the inheritance star after it.
+// gram.y relation_expr: the name, ONLY before it with or without its parentheses, a star after it.
+// A name of more than three parts is refused, as the server refuses it (improper qualified name).
 RelationExpr : @TableSource
-	= only: "ONLY"i? & name: AnyName & star: '*'? & when @(only is null || star is null) => @(Nodes.Table(name, only is not null, star is not null, null))
-	| "ONLY"i & '(' & name: AnyName & ')' => @(Nodes.Table(name, true, false, null))
+	= only: "ONLY"i? & name: AnyName & when @(name.Count <= 3) & star: '*'? & when @(only is null || star is null) => @(Nodes.Table(name, only is not null, star is not null, null))
+	| "ONLY"i & '(' & name: AnyName & when @(name.Count <= 3) & ')' => @(Nodes.Table(name, true, false, null))
 
 TableSample : @SampleClause = "TABLESAMPLE"i & method: ("BERNOULLI"i | "SYSTEM"i) & '(' & p: AExpr & ')' & ("REPEATABLE"i & '(' & r: AExpr & ')')? => @(Nodes.Sample(method, p, r))
 
@@ -808,17 +812,18 @@ AliasClause : @Alias
 // Each in the standard's record, with PostgreSQL's members where it has more: an INSERT's alias
 // and ON CONFLICT, a DELETE's USING, DO NOTHING in a MERGE, RETURNING on each. Everything is read
 // once: a parenthesis after the INSERT's target is a column list unless a query's word or another
-// parenthesis begins it (`INSERT INTO t ((SELECT 1))`), and a WHERE's CURRENT OF is told from a
-// condition by its words.
+// parenthesis begins it (`INSERT INTO t ((SELECT 1))`) — VALUES only with a parenthesis after it,
+// since it may name a column — and a WHERE's CURRENT OF is told from a condition by its words. The
+// target's name has at most three parts, as the server has it (improper qualified name).
 InsertStmt : @Statement
-	= "INSERT"i & "INTO"i & name: AnyName & ("AS"i & alias: ColId)? & body: InsertRest & conflict: OnConflict? & returning: Returning?
+	= "INSERT"i & "INTO"i & name: AnyName & when @(name.Count <= 3) & ("AS"i & alias: ColId)? & body: InsertRest & conflict: OnConflict? & returning: Returning?
 		=> @(Nodes.Inserted(name, alias, body, conflict, returning))
 
 // gram.y insert_rest: a column list, OVERRIDING, and the rows or the query; or DEFAULT VALUES. The
 // query is gram.y's SelectStmt, VALUES among its forms; a VALUES alone is the standard's rows.
 InsertRest : @Nodes.InsertBody
 	= "DEFAULT"i & "VALUES"i => @(new Nodes.InsertBody(null, null, null, null))
-	| '(' & ?!("SELECT"i | "VALUES"i | "TABLE"i | "WITH"i | '(') & first: InsertColumn & (',' & rest: InsertColumn)* & ')' & o: Override? & q: SelectNoParens => @(new Nodes.InsertBody(first, rest, o, q))
+	| '(' & ?!("SELECT"i | "TABLE"i | "WITH"i | '(' | "VALUES"i & '(') & first: InsertColumn & (',' & rest: InsertColumn)* & ')' & o: Override? & q: SelectNoParens => @(new Nodes.InsertBody(first, rest, o, q))
 	| o: Override? & q: SelectNoParens => @(new Nodes.InsertBody(null, null, o, q))
 
 // gram.y insert_column_item: a column's name; its indirection, `c[1]` or `c.f`, has no slot in the list of names.
@@ -833,10 +838,12 @@ ConflictTarget : @ConflictTarget
 	= '(' & first: IndexElem & (',' & rest: IndexElem)* & ')' & ("WHERE"i & where: AExpr)? => @(new ConflictTarget.Columns(Nodes.List(first, rest), where))
 	| "ON"i & "CONSTRAINT"i & name: ColId => @(new ConflictTarget.Constraint(name))
 
-// gram.y index_elem: a call, an expression in parentheses, or a column; a collation, an operator
-// class and an order after it have no slot here and are refused.
+// gram.y index_elem: a call — by a key word (COALESCE, CAST) or by name — an expression in
+// parentheses, or a column; a collation, an operator class and an order after it have no slot here
+// and are refused.
 IndexElem : @Expression
-	= f: FuncExpr & when @(Nodes.IsWindowless(f)) => @(f)
+	= f: FuncExprCommonSubexpr => @(f)
+	| f: FuncExpr & when @(Nodes.IsWindowless(f)) => @(f)
 	| '(' & e: AExpr & ')' => @(new Expression.Parenthesized(e))
 	| c: ColId => @(new Expression.Reference(new QualifiedName(c)))
 
@@ -844,8 +851,9 @@ ConflictAction : @ConflictResolution
 	= "DO"i & "NOTHING"i => @(new ConflictResolution.Nothing())
 	| "DO"i & "UPDATE"i & "SET"i & first: SetClause & (',' & rest: SetClause)* & ("WHERE"i & where: AExpr)? => @(new ConflictResolution.Update(Nodes.List(first, rest), where))
 
-// gram.y returning_clause: the items, and PostgreSQL 18's names for the old and the new row.
-Returning : @ReturningClause = "RETURNING"i & ("WITH"i & '(' & o1: ReturningOption & (',' & on: ReturningOption)* & ')')? & first: TargetEl & (',' & rest: TargetEl)* => @(Nodes.Returned(o1, on, first, rest))
+// gram.y returning_clause: the items, and PostgreSQL 18's names for the old and the new row, each
+// named once, as the server has it.
+Returning : @ReturningClause = "RETURNING"i & ("WITH"i & '(' & o1: ReturningOption & (',' & on: ReturningOption)* & ')')? & when @(Nodes.OptionsDistinct(o1, on)) & first: TargetEl & (',' & rest: TargetEl)* => @(Nodes.Returned(o1, on, first, rest))
 ReturningOption : @Nodes.ReturningOption = kind: ("OLD"i | "NEW"i) & "AS"i & name: ColId => @(new Nodes.ReturningOption(kind, name))
 
 // gram.y UpdateStmt: the target with its alias, SET, FROM, WHERE or WHERE CURRENT OF, RETURNING.
@@ -895,14 +903,11 @@ MergeMatchedThen : @MergeMatchedAction
 	| "DELETE"i => @(new MergeMatchedAction.Delete())
 	| "DO"i & "NOTHING"i => @(new MergeMatchedAction.DoNothing())
 
-// gram.y merge_insert: the columns, OVERRIDING, and VALUES or DEFAULT VALUES; or DO NOTHING.
+// gram.y merge_insert: DEFAULT VALUES alone; or the columns, OVERRIDING, and VALUES; or DO NOTHING.
 MergeInsertThen : @MergeInsertAction
-	= "INSERT"i & ('(' & c1: ColId & (',' & cn: ColId)* & ')')? & o: Override? & body: MergeInsertBody => @(Nodes.MergeInserted(c1, cn, o, body))
+	= "INSERT"i & "DEFAULT"i & "VALUES"i => @(new MergeInsertAction([], null, []) { DefaultValues = true })
+	| "INSERT"i & ('(' & c1: ColId & (',' & cn: ColId)* & ')')? & o: Override? & "VALUES"i & '(' & first: AExpr & (',' & rest: AExpr)* & ')' => @(Nodes.MergeInserted(c1, cn, o, first, rest))
 	| "DO"i & "NOTHING"i => @(new MergeInsertAction([], null, []) { DoNothing = true })
-
-MergeInsertBody : @Nodes.MergeInsertBody
-	= "VALUES"i & '(' & first: AExpr & (',' & rest: AExpr)* & ')' => @(new Nodes.MergeInsertBody(first, rest, false))
-	| "DEFAULT"i & "VALUES"i => @(new Nodes.MergeInsertBody(null, null, true))
 
 // gram.y TruncateStmt: TABLE or not, the relations, RESTART or CONTINUE IDENTITY, CASCADE or RESTRICT.
 TruncateStmt : @Statement

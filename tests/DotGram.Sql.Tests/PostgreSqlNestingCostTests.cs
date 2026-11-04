@@ -26,8 +26,11 @@ namespace DotGram.Sql.Tests;
 /// </remarks>
 public sealed class PostgreSqlNestingCostTests
 {
-	/// <summary>How much more a reading four times as big may allocate.</summary>
+	/// <summary>How much more a reading four times as big may allocate: a linear shape's four, with room; a quadratic's sixteen fails.</summary>
 	const double Slack = 8;
+
+	/// <summary>How much more a reading twice as deep may allocate: a linear shape's two, with room; a quadratic's four fails.</summary>
+	const double DepthSlack = 3;
 
 	/// <summary>How long a reading of any size here may take before it is taken for a blow-up.</summary>
 	static readonly TimeSpan Watchdog = TimeSpan.FromSeconds(10);
@@ -115,7 +118,7 @@ public sealed class PostgreSqlNestingCostTests
 			Assert.Equal(accepted, read);
 
 			if (bytes.Count > 0)
-				Assert.True(allocated <= bytes[^1] * Slack, $"{what}: {depth / 2} levels allocated {bytes[^1]:N0} bytes and {depth} allocated {allocated:N0}, {(double)allocated / bytes[^1]:F1} times as much.");
+				Assert.True(allocated <= bytes[^1] * DepthSlack, $"{what}: {depth / 2} levels allocated {bytes[^1]:N0} bytes and {depth} allocated {allocated:N0}, {(double)allocated / bytes[^1]:F1} times as much.");
 
 			bytes.Add(allocated);
 		}
