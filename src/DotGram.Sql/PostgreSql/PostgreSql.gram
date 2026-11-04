@@ -1,0 +1,204 @@
+﻿@using System;
+@using DotGram.Sql.Ast;
+@using DotGram.Sql.PostgreSql;
+
+using Lexical;
+
+// PostgreSQL 18, as the server's own parser reads it: written from the published grammar and lexer,
+// src/backend/parser/gram.y and scan.l (Specification/README.md says where they are and under what
+// licence), and held to that parser — libpg_query, which is gram.y compiled apart from the server —
+// by recorded verdicts (tests/DotGram.Sql.Tests/Scripts/pg-oracle.json). The rule is the engine's
+// parser's: what gram.y reads, this reads, the refusals its own actions raise included; what parse
+// analysis refuses afterwards is not syntax, and is read.
+//
+// This file stands alone: no other grammar is included. Where a reading has the shape the ISO
+// standard gives it, the rule is written as the standard's grammar writes it and says so. The rule
+// names are gram.y's nonterminals where one stands for the rule (Specification/gram-map.csv says
+// where each nonterminal went), so that a reader with gram.y open can follow one against the other.
+// It builds the common tree, DotGram.Sql.Ast, in its actions, through the factories of Nodes.
+//
+// Written in slices. So far: the lexical elements — names and the four classes of key word, every
+// form of string with dollar quoting among them, numbers and parameters — and the value a
+// constant or a column reference is.
+
+// A key word is a whole word: `SELECTED` is a name and not `SELECT` and what follows it.
+wordboundary = Lexical.IdentifierContinue
+
+// scan.l `whitespace`: the six space characters, a comment to the end of its line, or one in
+// brackets, which holds others to any depth (`xcdepth`): `/* a /* b */ c */` is one comment.
+trivia = { (Lexical.Whitespace | Std.LineComment("--") | Std.Nested("/*", "*/"))* }
+
+// ── The lexemes, as scan.l names them ───────────────────────────────────────
+//
+// A namespace with no trivia, so a token is its characters and nothing stands between them.
+namespace Lexical
+{
+	trivia = none
+
+	// scan.l `space`: six characters, and nothing of Unicode's.
+	Space      = [' ' | '\t' | '\n' | '\r' | '\f' | '\v']
+	Whitespace = Space+
+	Newline    = ['\n' | '\r']
+
+	// scan.l `ident_start`, `ident_cont`: a letter, an underscore or any character above ASCII,
+	// then those, digits and `$`. Folding to lower case is the server's and not the syntax's: a
+	// name keeps its text, and `"Abc"` and `Abc` are two names here as they are there.
+	IdentifierStart    = ['A'..'Z' | 'a'..'z' | '_' | '\u0080'..'￿']
+	IdentifierContinue = ['A'..'Z' | 'a'..'z' | '_' | '\u0080'..'￿' | '0'..'9' | '$']
+	Identifier         = IdentifierStart & IdentifierContinue*
+
+	// scan.l `xd`: `"…"`, with `""` for a quote inside; an empty one is refused ("zero-length
+	// delimited identifier").
+	DelimitedIdentifier = '"' & DelimitedPart+ & '"'
+	DelimitedPart       = [^ '"'] | "\"\""
+
+	// scan.l `xui`: `U&"…"`, whose escapes the server decodes. `UESCAPE 'c'` stands after it as
+	// tokens of its own, read by the rule that reads the name.
+	UnicodeIdentifier = 'U'i & '&' & '"' & DelimitedPart+ & '"'
+
+	// scan.l `xq`, `xqs`: a string with `''` for a quote inside, continued by another part after a
+	// separator that holds a line break — spaces, and line comments each ended by a break, which is
+	// scan.l's `whitespace_with_newline`; a bracketed comment never continues one. The literal is the
+	// whole text, its parts and what divides them included, as the tree keeps every literal.
+	String          = '\'' & StringBody & '\'' & Continued(StringBody)*
+	StringBody      = ([^ '\''] | "''")*
+	Continued(body) = Continuation & '\'' & body & '\''
+	Continuation    = (NonNewlineSpace | LineComment)* & Newline & (Space | LineComment & Newline)*
+	NonNewlineSpace = [' ' | '\t' | '\f' | '\v']
+	LineComment     = "--" & [^ '\n' | '\r']*
+
+	// scan.l `xe`: `E'…'`, where a backslash escapes the character after it, and `\u` and `\U` take
+	// four and eight hexits. A `\u` with fewer is refused by the server inside the token; here the
+	// token does not match, and the text is read as the name `E` before a string, which no position
+	// takes either.
+	EscapeString = 'E'i & '\'' & EscapeBody & '\'' & Continued(EscapeBody)*
+	EscapeBody   = ([^ '\\' | '\''] | "''" | '\\' & ('u' & Hexit{4} | 'U' & Hexit{8} | [^ 'u' | 'U']))*
+
+	// scan.l `xus`: `U&'…'`; `xn`: `N'…'`, which the server reads as the type `nchar` given a
+	// string and the tree holds as the national string it is in every dialect; `xb` and `xh`:
+	// `B'…'` and `X'…'`, both strings of bits, whose characters are checked after the syntax is
+	// and which no separator continues.
+	UnicodeString  = 'U'i & '&' & '\'' & StringBody & '\'' & Continued(StringBody)*
+	NationalString = 'N'i & '\'' & StringBody & '\'' & Continued(StringBody)*
+	BitString      = 'B'i & '\'' & [^ '\'']* & '\''
+	HexString      = 'X'i & '\'' & [^ '\'']* & '\''
+
+	// scan.l `dolq…`: `$$ … $$` and `$tag$ … $tag$`. The tag is bound where it opens and matched
+	// again where it closes (docs/syntax.md §3.5.1); it is a name with no digit first, in the case
+	// it was written; `$tag: (Tag?)` that read nothing binds the empty tag, so `$$` is the same
+	// rule. A `$other$` inside is text. The body is read once, and the closing is tried only where
+	// a `$` stands.
+	DollarQuoted = { '$' & $tag: (Tag?) & '$' & (?!('$' & $tag & '$') & any)* & '$' & $tag & '$' }
+	Tag          = TagStart & TagContinue*
+	TagStart     = ['A'..'Z' | 'a'..'z' | '_' | '\u0080'..'￿']
+	TagContinue  = ['A'..'Z' | 'a'..'z' | '_' | '\u0080'..'￿' | '0'..'9']
+
+	// scan.l's numbers: an integer in four radixes, `_` allowed between digits, a decimal and a
+	// real with an exponent.
+	Digit          = ['0'..'9']
+	Hexit          = ['0'..'9' | 'A'..'F' | 'a'..'f']
+	DecimalInteger = Digit & ('_'? & Digit)*
+	Integer        = "0X"i & ('_'? & Hexit)+
+	               | "0O"i & ('_'? & ['0'..'7'])+
+	               | "0B"i & ('_'? & ['0' | '1'])+
+	               | DecimalInteger
+	Decimal        = DecimalInteger & '.' & DecimalInteger? | '.' & DecimalInteger
+	Real           = (Decimal | DecimalInteger) & 'E'i & ['+' | '-']? & DecimalInteger
+
+	// scan.l `param`: `$1`.
+	Parameter = '$' & Digit+
+
+	// ── The classes of key word (kwlist.h; KeywordCatalogue.cs) ──────────────
+	//
+	// Each is a kind of its own, so that a rule reading a name can refuse a class by a lookahead
+	// over kinds; a word that is a key word and a name at once is a token of both kinds, and the
+	// rule that wants one says which (docs/syntax.md §7.1). The words are the catalogue's, which
+	// KeywordCatalogueTests holds these lists to.
+
+	// kwlist.h RESERVED_KEYWORD: a name only in quotes, after `AS` as a column label, or after a dot.
+	ReservedKeyword
+		= ("ALL"i | "ANALYSE"i | "ANALYZE"i | "AND"i | "ANY"i | "ARRAY"i | "AS"i | "ASC"i | "ASYMMETRIC"i
+		| "BOTH"i | "CASE"i | "CAST"i | "CHECK"i | "COLLATE"i | "COLUMN"i | "CONSTRAINT"i | "CREATE"i
+		| "CURRENT_CATALOG"i | "CURRENT_DATE"i | "CURRENT_ROLE"i | "CURRENT_TIME"i | "CURRENT_TIMESTAMP"i
+		| "CURRENT_USER"i | "DEFAULT"i | "DEFERRABLE"i | "DESC"i | "DISTINCT"i | "DO"i | "ELSE"i | "END"i
+		| "EXCEPT"i | "FALSE"i | "FETCH"i | "FOR"i | "FOREIGN"i | "FROM"i | "GRANT"i | "GROUP"i
+		| "HAVING"i | "IN"i | "INITIALLY"i | "INTERSECT"i | "INTO"i | "LATERAL"i | "LEADING"i | "LIMIT"i
+		| "LOCALTIME"i | "LOCALTIMESTAMP"i | "NOT"i | "NULL"i | "OFFSET"i | "ON"i | "ONLY"i | "OR"i
+		| "ORDER"i | "PLACING"i | "PRIMARY"i | "REFERENCES"i | "RETURNING"i | "SELECT"i | "SESSION_USER"i
+		| "SOME"i | "SYMMETRIC"i | "SYSTEM_USER"i | "TABLE"i | "THEN"i | "TO"i | "TRAILING"i | "TRUE"i
+		| "UNION"i | "UNIQUE"i | "USER"i | "USING"i | "VARIADIC"i | "WHEN"i | "WHERE"i | "WINDOW"i
+		| "WITH"i)
+
+	// kwlist.h TYPE_FUNC_NAME_KEYWORD: a function's or a type's name, never a column's.
+	TypeFunctionNameKeyword
+		= ("AUTHORIZATION"i | "BINARY"i | "COLLATION"i | "CONCURRENTLY"i | "CROSS"i | "CURRENT_SCHEMA"i
+		| "FREEZE"i | "FULL"i | "ILIKE"i | "INNER"i | "IS"i | "ISNULL"i | "JOIN"i | "LEFT"i | "LIKE"i
+		| "NATURAL"i | "NOTNULL"i | "OUTER"i | "OVERLAPS"i | "RIGHT"i | "SIMILAR"i | "TABLESAMPLE"i
+		| "VERBOSE"i)
+}
+
+// ── The names: gram.y ColId, type_function_name, NonReservedWord, ColLabel, BareColLabel ───
+//
+// Five positions a word may stand in, each admitting its own classes of key word (kwlist.h). A
+// key word is a token of its own kind and of the name's at once, so a word refused as a name here
+// is one of the classes the position excludes, and a quoted one is a name anywhere. Two so far:
+// a column's name and an attribute's; the function and type names arrive with the expressions.
+ColId    : @Identifier = ?!ReservedKeyword & ?!TypeFunctionNameKeyword & i: Word => @(i)
+ColLabel : @Identifier = i: Word => @(i)
+
+// gram.y's IDENT, in its three spellings. A Unicode name's `UESCAPE 'c'` names its escape
+// character; the name keeps its text to the closing quote and the character beside it, as the
+// standard's reading keeps them.
+Word : @Identifier
+	= t: UnicodeIdentifier & ("UESCAPE"i & e: String)? => @(Nodes.UnicodeIdentifier(t, e))
+	| t: Identifier => @(new Identifier(t))
+	| t: DelimitedIdentifier => @(new Identifier(t, IdentifierStyle.Delimited))
+
+// gram.y columnref: a name, and the names after its dots; `.*` and the subscripts arrive with
+// the expressions. An attribute after a dot may be any key word (attr_name: ColLabel).
+ColumnReference : @Expression = first: ColId & ('.' & rest: AttributeName)* => @(new Expression.Reference(Nodes.Chain(first, rest)))
+AttributeName   : @Identifier = i: ColLabel => @(i)
+
+// ── gram.y AexprConst: the constants ────────────────────────────────────────
+//
+// A literal keeps what was written. A number's kind is read from its text, as the standard's reading
+// reads it; a string keeps its text from its first quote to its last, the letter that begins it apart,
+// which its kind says, as the standard's reading keeps it — so a text two parsers read is one tree.
+Literal : @LiteralValue
+	= ?!GluedNumber & t: Real => @(Nodes.Number(t))
+	| ?!GluedNumber & t: Decimal => @(Nodes.Number(t))
+	| ?!GluedNumber & t: Integer => @(Nodes.Number(t))
+	| t: EscapeString => @(Nodes.StringLiteral(t, StringLiteralKind.Escaped))
+	| t: UnicodeString & ("UESCAPE"i & e: String)? => @(Nodes.UnicodeString(t, e))
+	| t: NationalString => @(Nodes.StringLiteral(t, StringLiteralKind.National))
+	| t: BitString => @(Nodes.BitStringLiteral(t))
+	| t: HexString => @(Nodes.BitStringLiteral(t))
+	| t: DollarQuoted => @(new LiteralValue.String(t, StringLiteralKind.Dollar))
+	| t: String => @(Nodes.StringLiteral(t, StringLiteralKind.Character))
+	| "TRUE"i => @(new LiteralValue.Boolean(BooleanLiteral.True))
+	| "FALSE"i => @(new LiteralValue.Boolean(BooleanLiteral.False))
+	| "NULL"i => @(new LiteralValue.Null())
+
+// scan.l `integer_junk`, `numeric_junk`, `real_junk`, `realfail`: a number that a word runs into —
+// `123abc`, `1e+`, `1__0` — is refused by the server ("trailing junk"). Over kinds the two are two
+// tokens, a number and a word with nothing between them, which is what `~` asks of them, and a
+// number is read only where no word is glued to it. A parameter is not so guarded: the server's
+// parser reads `$1x` as `$1` and the label `x`, and so does this.
+GluedNumber = (Real | Decimal | Integer) ~ Identifier
+
+// A constant, a parameter or a column reference: the values the expressions will be built on.
+ConstantValue : @Expression
+	= l: Literal => @(l)
+	| t: Parameter => @(Nodes.Parameter(t))
+	| c: ColumnReference => @(c)
+
+// ── The entry points ────────────────────────────────────────────────────────
+//
+// The rules a program asks for by name, published under the standard's names. So far one:
+// an expression, which is a constant value until the expressions are written.
+namespace Dialect
+{
+	Value : @Expression = v: ConstantValue => @(v)
+}
+
+parse Dialect.Value as ParseExpression
