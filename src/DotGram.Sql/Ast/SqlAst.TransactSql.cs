@@ -297,18 +297,16 @@ public sealed record Placement(PlacementKind Kind, Identifier Target, SqlList<Id
 /// </summary>
 public enum PlacementKind { On, TextImageOn, FilestreamOn, MoveTo }
 
-/// <summary>
-/// T-SQL: OUTPUT clause (Transact-SQL). What a data change statement gives back, and where it puts it.
-/// </summary>
-/// <remarks>
-/// <see cref="Next"/> because a statement may write both an <c>OUTPUT INTO</c> and a second
-/// <c>OUTPUT</c> to the caller.
-/// </remarks>
-public sealed record OutputClause(SqlList<SelectColumn> Items, TableSource? Into, SqlList<Identifier>? Columns, OutputClause? Next) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
-	public void Locate(int at, int length)
-	{
-		_location = new SqlLocation(new SqlSpan(at, length));
-	}
+public abstract partial record ReturningClause
+{
+	/// <summary>
+	/// T-SQL: OUTPUT clause (Transact-SQL). What a data change statement gives back, and where it puts it.
+	/// </summary>
+	/// <remarks>
+	/// <see cref="Next"/> because a statement may write both an <c>OUTPUT INTO</c> and a second
+	/// <c>OUTPUT</c> to the caller.
+	/// </remarks>
+	public sealed record Output(SqlList<SelectColumn> Items, TableSource? Into, SqlList<Identifier>? Columns, Output? Next) : ReturningClause;
 }
 
 /// <summary>T-SQL: EXECUTE (Transact-SQL). Whom a module or a statement runs as.</summary>

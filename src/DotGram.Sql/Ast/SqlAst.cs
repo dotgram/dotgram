@@ -120,6 +120,9 @@ public abstract partial record Statement : ISqlNode
 		/// Where the rows come from: a query, a <c>VALUES</c> list, or <c>DEFAULT VALUES</c>, the default.
 		/// </summary>
 		public InsertSource SourceValue { get; init; } = new InsertSource.DefaultValues();
+
+		/// <summary>What the statement gives back: PostgreSQL's <c>RETURNING</c> or T-SQL's <c>OUTPUT</c>; null where neither was written.</summary>
+		public ReturningClause? Returning { get; init; }
 	}
 
 	/// <summary>
@@ -161,6 +164,9 @@ public abstract partial record Statement : ISqlNode
 		/// The cursor of <c>WHERE CURRENT OF c</c>, in a positioned update.
 		/// </summary>
 		public CursorReference? CurrentOf { get; init; }
+
+		/// <summary>What the statement gives back: PostgreSQL's <c>RETURNING</c> or T-SQL's <c>OUTPUT</c>; null where neither was written.</summary>
+		public ReturningClause? Returning { get; init; }
 	}
 
 	/// <summary>
@@ -198,6 +204,9 @@ public abstract partial record Statement : ISqlNode
 		/// The cursor of <c>WHERE CURRENT OF c</c>, in a positioned delete.
 		/// </summary>
 		public CursorReference? CurrentOf { get; init; }
+
+		/// <summary>What the statement gives back: PostgreSQL's <c>RETURNING</c> or T-SQL's <c>OUTPUT</c>; null where neither was written.</summary>
+		public ReturningClause? Returning { get; init; }
 	}
 
 	/// <summary>
@@ -233,6 +242,9 @@ public abstract partial record Statement : ISqlNode
 		/// The <c>WHEN … THEN …</c> clauses, in the order written.
 		/// </summary>
 		public SqlList<MergeClause> Clauses { get; init; } = [];
+
+		/// <summary>What the statement gives back: PostgreSQL's <c>RETURNING</c> or T-SQL's <c>OUTPUT</c>; null where neither was written.</summary>
+		public ReturningClause? Returning { get; init; }
 	}
 
 	// BNF: <truncate table statement>
@@ -1953,6 +1965,30 @@ public sealed record RowValue(SqlList<Expression> Items, bool RowKeyword = false
 	}
 }
 public enum OverrideKind { UserValue, SystemValue }
+
+/// <summary>
+/// What a data change statement gives back: PostgreSQL's <c>RETURNING</c> (<see cref="Returned"/>), T-SQL's <c>OUTPUT</c>
+/// (<see cref="Output"/>). One slot on each statement, <c>Returning</c>, holds either.
+/// </summary>
+public abstract partial record ReturningClause : ISqlNode
+{
+	SqlLocation _location;
+	public SqlSpan Span => _location.Span;
+	public void Locate(int at, int length)
+	{
+		_location = new SqlLocation(new SqlSpan(at, length));
+	}
+
+	private protected ReturningClause()
+	{
+	}
+
+	/// <summary>
+	/// PostgreSQL: Returning Data from Modified Rows. <c>RETURNING a, b * 2 AS c, *</c>, and PostgreSQL 18's
+	/// <c>RETURNING WITH (OLD AS o, NEW AS n) …</c>, the names the old and the new row go by in the items.
+	/// </summary>
+	public sealed record Returned(SqlList<SelectColumn> Items, Identifier? OldAlias = null, Identifier? NewAlias = null) : ReturningClause;
+}
 public abstract partial record MergeClause : ISqlNode
 {
 	SqlLocation _location;
@@ -1966,7 +2002,7 @@ public abstract partial record MergeClause : ISqlNode
 	public sealed record Matched(MergeMatchedAction Action) : MergeClause;
 	public sealed partial record NotMatched(MergeInsertAction Action) : MergeClause;
 }
-public abstract record MergeMatchedAction : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Update(SqlList<Assignment> Assignments) : MergeMatchedAction; public sealed record Delete : MergeMatchedAction; }
+public abstract partial record MergeMatchedAction : ISqlNode { SqlLocation _location; public SqlSpan Span => _location.Span; public void Locate(int at, int length) { _location = new SqlLocation(new SqlSpan(at, length)); } public sealed record Update(SqlList<Assignment> Assignments) : MergeMatchedAction; public sealed record Delete : MergeMatchedAction; }
 public sealed partial record MergeInsertAction(SqlList<Identifier> Columns, OverrideKind? Override, SqlList<Expression> Values) : ISqlNode { SqlLocation _location; Type EqualityContract => SqlLocation.Guard(GetType()); public SqlSpan Span => _location.Span;
 	public void Locate(int at, int length)
 	{

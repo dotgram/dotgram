@@ -516,6 +516,7 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("SELECT * FROM s.unnest(a)",                      "qualified unnest is a function")]
 	[InlineData("SELECT * FROM ROWS FROM (f(1), g(2) AS (a int)) WITH ORDINALITY AS r", "rows from")]
 	[InlineData("SELECT * FROM t TABLESAMPLE SYSTEM (10) REPEATABLE (42)", "tablesample")]
+	[InlineData("SELECT t.*, a.b.* FROM t",                        "qualified stars")]
 	[InlineData("SELECT * FROM ((SELECT 1) x JOIN y ON true) z", "nested derived table")]
 	[InlineData("SELECT * FROM (((SELECT 1) UNION (SELECT 2) ORDER BY 1 LIMIT 1) x JOIN y ON true) w", "nested set operation with clauses")]
 	[InlineData("SELECT * FROM ((SELECT 1)) x",                  "doubly bracketed subquery")]
@@ -629,6 +630,7 @@ public sealed class PostgreSqlExpressionTests
 			"qualified unnest is a function" => query is Query.Select { From.Sources: [TableSource.Function { Invocation.Name.Count: 2 }] },
 			"rows from"             => query is Query.Select { From.Sources: [TableSource.RowsFrom { Items: [{ ColumnDefinitions: null }, { ColumnDefinitions.Count: 1 }], WithOrdinality: true, Alias.Name.Text: "r", Lateral: false }] },
 			"tablesample"           => query is Query.Select { From.Sources: [TableSource.Named { Sample: { Method: SampleMethod.System, Repeat: not null } }] },
+			"qualified stars"       => query is Query.Select { Columns: [SelectColumn.ExpressionItem { Expression: Expression.Wildcard { Target: Expression.Reference { Name.Count: 1 } } }, SelectColumn.ExpressionItem { Expression: Expression.Wildcard { Target: Expression.Reference { Name.Count: 2 } } }] },
 			"nested derived table"  => query is Query.Select { From.Sources: [TableSource.Parenthesized { Source: TableSource.Join { Left: TableSource.Subquery { Alias.Name.Text: "x", Query: Query.Select } }, Alias.Name.Text: "z" }] },
 			"nested set operation with clauses" => query is Query.Select { From.Sources: [TableSource.Parenthesized { Source: TableSource.Join { Left: TableSource.Subquery { Query: Query.Parenthesized { SetOperations.Count: 1, OrderBy: not null, Limit: not null } } } }] },
 			"doubly bracketed subquery" => query is Query.Select { From.Sources: [TableSource.Subquery { Query: Query.Parenthesized { Query: Query.Select }, Alias.Name.Text: "x" }] },
@@ -644,6 +646,63 @@ public sealed class PostgreSqlExpressionTests
 	}
 
 	/// <summary>A text of statements holds empty ones too, as the server's stmtmulti does; one statement is one, with its semicolon or without.</summary>
+	// ── The data change statements ─────────────────────────────────────────────
+
+	[Theory]
+	[InlineData("INSERT INTO t (a, b) VALUES (1, 2), (3, 4)",              "insert values")]
+	[InlineData("INSERT INTO t AS x DEFAULT VALUES RETURNING *",          "insert alias default returning")]
+	[InlineData("INSERT INTO t OVERRIDING SYSTEM VALUE SELECT 1",         "insert overriding query")]
+	[InlineData("INSERT INTO t ((SELECT 1))",                             "insert bracketed query")]
+	[InlineData("INSERT INTO t VALUES (1) ON CONFLICT (a, (b + 1), lower(c)) WHERE a > 0 DO UPDATE SET a = EXCLUDED.a WHERE t.a < 1", "on conflict columns do update")]
+	[InlineData("INSERT INTO t VALUES (1) ON CONFLICT ON CONSTRAINT c DO NOTHING", "on conflict constraint do nothing")]
+	[InlineData("INSERT INTO t VALUES (1) ON CONFLICT DO NOTHING",         "on conflict without target")]
+	[InlineData("INSERT INTO t VALUES (1) RETURNING WITH (OLD AS o, NEW AS n) o.a, n.a AS b", "returning old and new")]
+	[InlineData("WITH x AS (SELECT 1) INSERT INTO t SELECT * FROM x",      "insert with")]
+	[InlineData("UPDATE ONLY t AS u SET a = 1, (b, c) = (2, 3), d[1] = 4, e.f = 5 FROM v WHERE u.a = v.a RETURNING u.a", "update")]
+	[InlineData("UPDATE t u SET a = 1 WHERE CURRENT OF c",                "update current of")]
+	[InlineData("DELETE FROM t * USING u, v WHERE t.a = u.a RETURNING *",  "delete using")]
+	[InlineData("DELETE FROM t WHERE CURRENT OF c",                       "delete current of")]
+	[InlineData("MERGE INTO t AS x USING s ON t.a = s.a WHEN MATCHED AND s.b > 0 THEN UPDATE SET b = s.b WHEN MATCHED THEN DELETE WHEN NOT MATCHED BY SOURCE THEN DO NOTHING WHEN NOT MATCHED BY TARGET THEN INSERT (a, b) OVERRIDING USER VALUE VALUES (s.a, s.b) WHEN NOT MATCHED THEN DO NOTHING RETURNING merge_action(), t.*", "merge")]
+	[InlineData("MERGE INTO t USING s ON true WHEN NOT MATCHED THEN INSERT DEFAULT VALUES", "merge insert default values")]
+	[InlineData("WITH moved AS (DELETE FROM t RETURNING *) INSERT INTO u SELECT * FROM moved", "data change body in insert")]
+	[InlineData("WITH x AS (UPDATE t SET a = 1 RETURNING a) SELECT * FROM x", "data change body in select")]
+	[InlineData("DELETE t WHERE a = 1",                                   "refused: DELETE without FROM")]
+	[InlineData("MERGE INTO t USING s ON true",                           "refused: MERGE without WHEN")]
+	[InlineData("INSERT INTO t VALUES (1) ON CONFLICT DO UPDATE",         "refused: DO UPDATE without SET")]
+	public void A_data_change_builds_its_record(string text, string expected)
+	{
+		if (expected.StartsWith("refused", StringComparison.Ordinal))
+		{
+			Assert.False(PostgreSqlParser.TryParseStatement(text).IsSuccess);
+			return;
+		}
+
+		var made  = Holds(text);
+		var holds = expected switch
+		{
+			"insert values"            => made is Statement.Insert { Columns.Count: 2, SourceValue: InsertSource.Values { Rows.Count: 2 }, Alias: null, Conflicts.Count: 0, Returning: null },
+			"insert alias default returning" => made is Statement.Insert { Alias.Name.Text: "x", SourceValue: InsertSource.DefaultValues, Returning: ReturningClause.Returned { Items: [SelectColumn.All], OldAlias: null } },
+			"insert overriding query"  => made is Statement.Insert { Override: OverrideKind.SystemValue, SourceValue: InsertSource.Subquery { Query: Query.Select } },
+			"insert bracketed query"   => made is Statement.Insert { Columns.Count: 0, SourceValue: InsertSource.Subquery { Query: Query.Parenthesized } },
+			"on conflict columns do update" => made is Statement.Insert { Conflicts: [{ Target: ConflictTarget.Columns { Items: [Expression.Reference, Expression.Parenthesized, Expression.Invocation], Where: not null }, Resolution: ConflictResolution.Update { Assignments.Count: 1, Where: not null } }] },
+			"on conflict constraint do nothing" => made is Statement.Insert { Conflicts: [{ Target: ConflictTarget.Constraint { Name.Text: "c" }, Resolution: ConflictResolution.Nothing }] },
+			"on conflict without target" => made is Statement.Insert { Conflicts: [{ Target: null, Resolution: ConflictResolution.Nothing }] },
+			"returning old and new"    => made is Statement.Insert { Returning: ReturningClause.Returned { OldAlias.Text: "o", NewAlias.Text: "n", Items.Count: 2 } },
+			"insert with"              => made is Statement.Insert { With.Items.Count: 1, SourceValue: InsertSource.Subquery },
+			"update"                   => made is Statement.Update { Target: TableSource.Named { Only: true }, Alias: { Name.Text: "u", AsKeyword: true }, Assignments: [{ Parenthesized: false }, { Parenthesized: true, Targets.Count: 2 }, { Targets: [{ Index: not null }] }, { Targets: [{ MutationPath.Count: 1 }] }], From.Sources.Count: 1, Where: not null, CurrentOf: null, Returning: ReturningClause.Returned },
+			"update current of"        => made is Statement.Update { Alias: { Name.Text: "u", AsKeyword: false }, Where: null, CurrentOf.Name: not null },
+			"delete using"             => made is Statement.Delete { Target: TableSource.Named { Star: true }, Using.Sources.Count: 2, Where: not null, Returning: ReturningClause.Returned },
+			"delete current of"        => made is Statement.Delete { CurrentOf: not null, Using: null },
+			"merge"                    => made is Statement.Merge { Alias.Name.Text: "x", Clauses: [MergeClause.Matched { Condition: not null, Action: MergeMatchedAction.Update }, MergeClause.Matched { Condition: null, Action: MergeMatchedAction.Delete }, MergeClause.NotMatchedBySource { Action: MergeMatchedAction.DoNothing }, MergeClause.NotMatched { ByTarget: true, Action: { Columns.Count: 2, Override: OverrideKind.UserValue, Values.Count: 2 } }, MergeClause.NotMatched { ByTarget: false, Action.DoNothing: true }], Returning: ReturningClause.Returned { Items.Count: 2 } },
+			"merge insert default values" => made is Statement.Merge { Clauses: [MergeClause.NotMatched { Action: { DefaultValues: true, DoNothing: false } }] },
+			"data change body in insert" => made is Statement.Insert { With.Items: [{ Query: Query.DataChange { Change: Statement.Delete { Returning: not null } } }] },
+			"data change body in select" => made is Statement.Select { Query.With.Items: [{ Query: Query.DataChange { Change: Statement.Update } }] },
+			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
+		};
+
+		Assert.True(holds, $"{text}: {made}");
+	}
+
 	[Fact]
 	public void A_text_of_statements_is_read_each_ended_by_a_semicolon_or_the_end()
 	{
@@ -708,6 +767,12 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("SELECT * FROM UNNEST(a) WITH ORDINALITY AS u")]
 	[InlineData("(SELECT 1 FROM t) UNION (SELECT 2 FROM u) ORDER BY 1")]
 	[InlineData("SELECT (a, b) OVERLAPS (c, d) FROM t")]
+	[InlineData("INSERT INTO t (a, b) VALUES (1, 2)")]
+	[InlineData("INSERT INTO t DEFAULT VALUES")]
+	[InlineData("UPDATE t SET a = 1 WHERE b = 2")]
+	[InlineData("UPDATE t SET (a, b) = (1, 2) WHERE c = 3")]
+	[InlineData("DELETE FROM t WHERE a = 1")]
+	[InlineData("MERGE INTO t USING s ON t.a = s.a WHEN MATCHED THEN DELETE WHEN NOT MATCHED THEN INSERT (a) VALUES (s.a)")]
 	public void A_text_both_grammars_read_is_one_tree(string text)
 	{
 		var standard   = SqlStandardParser.ParseStatement(text);

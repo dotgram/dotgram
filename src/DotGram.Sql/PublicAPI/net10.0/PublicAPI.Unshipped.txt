@@ -9,6 +9,50 @@ DotGram.Sql.Ast.CastSpelling.DoubleColon = 0 -> DotGram.Sql.Ast.CastSpelling
 DotGram.Sql.Ast.CastSpelling.TypedLiteral = 1 -> DotGram.Sql.Ast.CastSpelling
 DotGram.Sql.Ast.CommonTableExpression.Materialized.get -> bool?
 DotGram.Sql.Ast.CommonTableExpression.Materialized.init -> void
+DotGram.Sql.Ast.ConflictClause
+DotGram.Sql.Ast.ConflictClause.<Clone>$() -> DotGram.Sql.Ast.ConflictClause!
+DotGram.Sql.Ast.ConflictClause.ConflictClause(DotGram.Sql.Ast.ConflictTarget? Target, DotGram.Sql.Ast.ConflictResolution! Resolution) -> void
+DotGram.Sql.Ast.ConflictClause.Deconstruct(out DotGram.Sql.Ast.ConflictTarget? Target, out DotGram.Sql.Ast.ConflictResolution! Resolution) -> void
+DotGram.Sql.Ast.ConflictClause.Equals(DotGram.Sql.Ast.ConflictClause? other) -> bool
+DotGram.Sql.Ast.ConflictClause.Locate(int at, int length) -> void
+DotGram.Sql.Ast.ConflictClause.Resolution.get -> DotGram.Sql.Ast.ConflictResolution!
+DotGram.Sql.Ast.ConflictClause.Resolution.init -> void
+DotGram.Sql.Ast.ConflictClause.Span.get -> DotGram.Sql.SqlSpan
+DotGram.Sql.Ast.ConflictClause.Target.get -> DotGram.Sql.Ast.ConflictTarget?
+DotGram.Sql.Ast.ConflictClause.Target.init -> void
+DotGram.Sql.Ast.ConflictResolution
+DotGram.Sql.Ast.ConflictResolution.ConflictResolution(DotGram.Sql.Ast.ConflictResolution! original) -> void
+DotGram.Sql.Ast.ConflictResolution.Locate(int at, int length) -> void
+DotGram.Sql.Ast.ConflictResolution.Nothing
+DotGram.Sql.Ast.ConflictResolution.Nothing.Equals(DotGram.Sql.Ast.ConflictResolution.Nothing? other) -> bool
+DotGram.Sql.Ast.ConflictResolution.Nothing.Nothing() -> void
+DotGram.Sql.Ast.ConflictResolution.Span.get -> DotGram.Sql.SqlSpan
+DotGram.Sql.Ast.ConflictResolution.Update
+DotGram.Sql.Ast.ConflictResolution.Update.Assignments.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.Assignment!>
+DotGram.Sql.Ast.ConflictResolution.Update.Assignments.init -> void
+DotGram.Sql.Ast.ConflictResolution.Update.Deconstruct(out DotGram.Sql.SqlList<DotGram.Sql.Ast.Assignment!> Assignments, out DotGram.Sql.Ast.Expression? Where) -> void
+DotGram.Sql.Ast.ConflictResolution.Update.Equals(DotGram.Sql.Ast.ConflictResolution.Update? other) -> bool
+DotGram.Sql.Ast.ConflictResolution.Update.Update(DotGram.Sql.SqlList<DotGram.Sql.Ast.Assignment!> Assignments, DotGram.Sql.Ast.Expression? Where = null) -> void
+DotGram.Sql.Ast.ConflictResolution.Update.Where.get -> DotGram.Sql.Ast.Expression?
+DotGram.Sql.Ast.ConflictResolution.Update.Where.init -> void
+DotGram.Sql.Ast.ConflictTarget
+DotGram.Sql.Ast.ConflictTarget.Columns
+DotGram.Sql.Ast.ConflictTarget.Columns.Columns(DotGram.Sql.SqlList<DotGram.Sql.Ast.Expression!> Items, DotGram.Sql.Ast.Expression? Where = null) -> void
+DotGram.Sql.Ast.ConflictTarget.Columns.Deconstruct(out DotGram.Sql.SqlList<DotGram.Sql.Ast.Expression!> Items, out DotGram.Sql.Ast.Expression? Where) -> void
+DotGram.Sql.Ast.ConflictTarget.Columns.Equals(DotGram.Sql.Ast.ConflictTarget.Columns? other) -> bool
+DotGram.Sql.Ast.ConflictTarget.Columns.Items.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.Expression!>
+DotGram.Sql.Ast.ConflictTarget.Columns.Items.init -> void
+DotGram.Sql.Ast.ConflictTarget.Columns.Where.get -> DotGram.Sql.Ast.Expression?
+DotGram.Sql.Ast.ConflictTarget.Columns.Where.init -> void
+DotGram.Sql.Ast.ConflictTarget.ConflictTarget(DotGram.Sql.Ast.ConflictTarget! original) -> void
+DotGram.Sql.Ast.ConflictTarget.Constraint
+DotGram.Sql.Ast.ConflictTarget.Constraint.Constraint(DotGram.Sql.Ast.Identifier! Name) -> void
+DotGram.Sql.Ast.ConflictTarget.Constraint.Deconstruct(out DotGram.Sql.Ast.Identifier! Name) -> void
+DotGram.Sql.Ast.ConflictTarget.Constraint.Equals(DotGram.Sql.Ast.ConflictTarget.Constraint? other) -> bool
+DotGram.Sql.Ast.ConflictTarget.Constraint.Name.get -> DotGram.Sql.Ast.Identifier!
+DotGram.Sql.Ast.ConflictTarget.Constraint.Name.init -> void
+DotGram.Sql.Ast.ConflictTarget.Locate(int at, int length) -> void
+DotGram.Sql.Ast.ConflictTarget.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.DataType.Array.Brackets.get -> bool
 DotGram.Sql.Ast.DataType.Array.Brackets.init -> void
 DotGram.Sql.Ast.DataType.Boolean.Abbreviated.get -> bool
@@ -93,6 +137,11 @@ DotGram.Sql.Ast.LockingClause.LockingClause(DotGram.Sql.Ast.LockingMode Mode, Do
 DotGram.Sql.Ast.LockingClause.Of.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.QualifiedName>
 DotGram.Sql.Ast.LockingClause.Wait.get -> DotGram.Sql.Ast.LockWait?
 DotGram.Sql.Ast.LockingClause.Wait.init -> void
+DotGram.Sql.Ast.MergeInsertAction.DoNothing.get -> bool
+DotGram.Sql.Ast.MergeInsertAction.DoNothing.init -> void
+DotGram.Sql.Ast.MergeMatchedAction.DoNothing
+DotGram.Sql.Ast.MergeMatchedAction.DoNothing.DoNothing() -> void
+DotGram.Sql.Ast.MergeMatchedAction.DoNothing.Equals(DotGram.Sql.Ast.MergeMatchedAction.DoNothing? other) -> bool
 DotGram.Sql.Ast.NumericTypeKind.Float4 = 14 -> DotGram.Sql.Ast.NumericTypeKind
 DotGram.Sql.Ast.NumericTypeKind.Float8 = 15 -> DotGram.Sql.Ast.NumericTypeKind
 DotGram.Sql.Ast.NumericTypeKind.Int2 = 11 -> DotGram.Sql.Ast.NumericTypeKind
@@ -127,8 +176,40 @@ DotGram.Sql.Ast.QuantifiedOperator.Named.OperatorKeyword.init -> void
 DotGram.Sql.Ast.QuantifiedOperator.QuantifiedOperator() -> void
 DotGram.Sql.Ast.QuantifiedOperator.QuantifiedOperator(DotGram.Sql.Ast.QuantifiedOperator! original) -> void
 DotGram.Sql.Ast.QuantifiedOperator.Span.get -> DotGram.Sql.SqlSpan
+DotGram.Sql.Ast.Query.DataChange
+DotGram.Sql.Ast.Query.DataChange.Change.get -> DotGram.Sql.Ast.Statement!
+DotGram.Sql.Ast.Query.DataChange.Change.init -> void
+DotGram.Sql.Ast.Query.DataChange.DataChange(DotGram.Sql.Ast.Statement! Change) -> void
+DotGram.Sql.Ast.Query.DataChange.Deconstruct(out DotGram.Sql.Ast.Statement! Change) -> void
+DotGram.Sql.Ast.Query.DataChange.Equals(DotGram.Sql.Ast.Query.DataChange? other) -> bool
 DotGram.Sql.Ast.Query.Select.DistinctOn.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.Expression!>
 DotGram.Sql.Ast.Query.Select.DistinctOn.init -> void
+DotGram.Sql.Ast.ReturningClause
+DotGram.Sql.Ast.ReturningClause.Locate(int at, int length) -> void
+DotGram.Sql.Ast.ReturningClause.Output
+DotGram.Sql.Ast.ReturningClause.Output.Columns.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.Identifier!>?
+DotGram.Sql.Ast.ReturningClause.Output.Columns.init -> void
+DotGram.Sql.Ast.ReturningClause.Output.Deconstruct(out DotGram.Sql.SqlList<DotGram.Sql.Ast.SelectColumn!> Items, out DotGram.Sql.Ast.TableSource? Into, out DotGram.Sql.SqlList<DotGram.Sql.Ast.Identifier!>? Columns, out DotGram.Sql.Ast.ReturningClause.Output? Next) -> void
+DotGram.Sql.Ast.ReturningClause.Output.Equals(DotGram.Sql.Ast.ReturningClause.Output? other) -> bool
+DotGram.Sql.Ast.ReturningClause.Output.Into.get -> DotGram.Sql.Ast.TableSource?
+DotGram.Sql.Ast.ReturningClause.Output.Into.init -> void
+DotGram.Sql.Ast.ReturningClause.Output.Items.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.SelectColumn!>
+DotGram.Sql.Ast.ReturningClause.Output.Items.init -> void
+DotGram.Sql.Ast.ReturningClause.Output.Next.get -> DotGram.Sql.Ast.ReturningClause.Output?
+DotGram.Sql.Ast.ReturningClause.Output.Next.init -> void
+DotGram.Sql.Ast.ReturningClause.Output.Output(DotGram.Sql.SqlList<DotGram.Sql.Ast.SelectColumn!> Items, DotGram.Sql.Ast.TableSource? Into, DotGram.Sql.SqlList<DotGram.Sql.Ast.Identifier!>? Columns, DotGram.Sql.Ast.ReturningClause.Output? Next) -> void
+DotGram.Sql.Ast.ReturningClause.Returned
+DotGram.Sql.Ast.ReturningClause.Returned.Deconstruct(out DotGram.Sql.SqlList<DotGram.Sql.Ast.SelectColumn!> Items, out DotGram.Sql.Ast.Identifier? OldAlias, out DotGram.Sql.Ast.Identifier? NewAlias) -> void
+DotGram.Sql.Ast.ReturningClause.Returned.Equals(DotGram.Sql.Ast.ReturningClause.Returned? other) -> bool
+DotGram.Sql.Ast.ReturningClause.Returned.Items.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.SelectColumn!>
+DotGram.Sql.Ast.ReturningClause.Returned.Items.init -> void
+DotGram.Sql.Ast.ReturningClause.Returned.NewAlias.get -> DotGram.Sql.Ast.Identifier?
+DotGram.Sql.Ast.ReturningClause.Returned.NewAlias.init -> void
+DotGram.Sql.Ast.ReturningClause.Returned.OldAlias.get -> DotGram.Sql.Ast.Identifier?
+DotGram.Sql.Ast.ReturningClause.Returned.OldAlias.init -> void
+DotGram.Sql.Ast.ReturningClause.Returned.Returned(DotGram.Sql.SqlList<DotGram.Sql.Ast.SelectColumn!> Items, DotGram.Sql.Ast.Identifier? OldAlias = null, DotGram.Sql.Ast.Identifier? NewAlias = null) -> void
+DotGram.Sql.Ast.ReturningClause.ReturningClause(DotGram.Sql.Ast.ReturningClause! original) -> void
+DotGram.Sql.Ast.ReturningClause.Span.get -> DotGram.Sql.SqlSpan
 DotGram.Sql.Ast.RowsFromItem
 DotGram.Sql.Ast.RowsFromItem.<Clone>$() -> DotGram.Sql.Ast.RowsFromItem!
 DotGram.Sql.Ast.RowsFromItem.ColumnDefinitions.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.FieldDefinition!>?
@@ -140,6 +221,20 @@ DotGram.Sql.Ast.RowsFromItem.Invocation.init -> void
 DotGram.Sql.Ast.RowsFromItem.Locate(int at, int length) -> void
 DotGram.Sql.Ast.RowsFromItem.RowsFromItem(DotGram.Sql.Ast.Expression.Invocation! Invocation, DotGram.Sql.SqlList<DotGram.Sql.Ast.FieldDefinition!>? ColumnDefinitions = null) -> void
 DotGram.Sql.Ast.RowsFromItem.Span.get -> DotGram.Sql.SqlSpan
+DotGram.Sql.Ast.Statement.Delete.Returning.get -> DotGram.Sql.Ast.ReturningClause?
+DotGram.Sql.Ast.Statement.Delete.Returning.init -> void
+DotGram.Sql.Ast.Statement.Delete.Using.get -> DotGram.Sql.Ast.FromClause?
+DotGram.Sql.Ast.Statement.Delete.Using.init -> void
+DotGram.Sql.Ast.Statement.Insert.Alias.get -> DotGram.Sql.Ast.Alias?
+DotGram.Sql.Ast.Statement.Insert.Alias.init -> void
+DotGram.Sql.Ast.Statement.Insert.Conflicts.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.ConflictClause!>
+DotGram.Sql.Ast.Statement.Insert.Conflicts.init -> void
+DotGram.Sql.Ast.Statement.Insert.Returning.get -> DotGram.Sql.Ast.ReturningClause?
+DotGram.Sql.Ast.Statement.Insert.Returning.init -> void
+DotGram.Sql.Ast.Statement.Merge.Returning.get -> DotGram.Sql.Ast.ReturningClause?
+DotGram.Sql.Ast.Statement.Merge.Returning.init -> void
+DotGram.Sql.Ast.Statement.Update.Returning.get -> DotGram.Sql.Ast.ReturningClause?
+DotGram.Sql.Ast.Statement.Update.Returning.init -> void
 DotGram.Sql.Ast.StringLiteralKind.Dollar = 4 -> DotGram.Sql.Ast.StringLiteralKind
 DotGram.Sql.Ast.StringLiteralKind.Escaped = 3 -> DotGram.Sql.Ast.StringLiteralKind
 DotGram.Sql.Ast.TableSource.Function.ColumnDefinitions.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.FieldDefinition!>?
@@ -195,7 +290,35 @@ DotGram.Sql.PostgreSql.PostgreSqlParser.SourceSpan.On(System.ReadOnlySpan<char> 
 DotGram.Sql.PostgreSql.PostgreSqlParser.SourceSpan.SourceSpan() -> void
 DotGram.Sql.PostgreSql.PostgreSqlParser.SourceSpan.SourceSpan(int start, int length) -> void
 DotGram.Sql.PostgreSql.PostgreSqlParser.SourceSpan.Start.get -> int
+abstract DotGram.Sql.Ast.ConflictResolution.<Clone>$() -> DotGram.Sql.Ast.ConflictResolution!
+abstract DotGram.Sql.Ast.ConflictTarget.<Clone>$() -> DotGram.Sql.Ast.ConflictTarget!
 abstract DotGram.Sql.Ast.QuantifiedOperator.<Clone>$() -> DotGram.Sql.Ast.QuantifiedOperator!
+abstract DotGram.Sql.Ast.ReturningClause.<Clone>$() -> DotGram.Sql.Ast.ReturningClause!
+override DotGram.Sql.Ast.ConflictClause.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.ConflictClause.GetHashCode() -> int
+override DotGram.Sql.Ast.ConflictClause.ToString() -> string!
+override DotGram.Sql.Ast.ConflictResolution.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.ConflictResolution.GetHashCode() -> int
+override DotGram.Sql.Ast.ConflictResolution.Nothing.<Clone>$() -> DotGram.Sql.Ast.ConflictResolution.Nothing!
+override DotGram.Sql.Ast.ConflictResolution.Nothing.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.ConflictResolution.Nothing.GetHashCode() -> int
+override DotGram.Sql.Ast.ConflictResolution.Nothing.ToString() -> string!
+override DotGram.Sql.Ast.ConflictResolution.ToString() -> string!
+override DotGram.Sql.Ast.ConflictResolution.Update.<Clone>$() -> DotGram.Sql.Ast.ConflictResolution.Update!
+override DotGram.Sql.Ast.ConflictResolution.Update.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.ConflictResolution.Update.GetHashCode() -> int
+override DotGram.Sql.Ast.ConflictResolution.Update.ToString() -> string!
+override DotGram.Sql.Ast.ConflictTarget.Columns.<Clone>$() -> DotGram.Sql.Ast.ConflictTarget.Columns!
+override DotGram.Sql.Ast.ConflictTarget.Columns.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.ConflictTarget.Columns.GetHashCode() -> int
+override DotGram.Sql.Ast.ConflictTarget.Columns.ToString() -> string!
+override DotGram.Sql.Ast.ConflictTarget.Constraint.<Clone>$() -> DotGram.Sql.Ast.ConflictTarget.Constraint!
+override DotGram.Sql.Ast.ConflictTarget.Constraint.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.ConflictTarget.Constraint.GetHashCode() -> int
+override DotGram.Sql.Ast.ConflictTarget.Constraint.ToString() -> string!
+override DotGram.Sql.Ast.ConflictTarget.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.ConflictTarget.GetHashCode() -> int
+override DotGram.Sql.Ast.ConflictTarget.ToString() -> string!
 override DotGram.Sql.Ast.Expression.IsDocument.<Clone>$() -> DotGram.Sql.Ast.Expression.IsDocument!
 override DotGram.Sql.Ast.Expression.IsDocument.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.Expression.IsDocument.GetHashCode() -> int
@@ -208,6 +331,10 @@ override DotGram.Sql.Ast.Expression.QuantifiedOperation.<Clone>$() -> DotGram.Sq
 override DotGram.Sql.Ast.Expression.QuantifiedOperation.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.Expression.QuantifiedOperation.GetHashCode() -> int
 override DotGram.Sql.Ast.Expression.QuantifiedOperation.ToString() -> string!
+override DotGram.Sql.Ast.MergeMatchedAction.DoNothing.<Clone>$() -> DotGram.Sql.Ast.MergeMatchedAction.DoNothing!
+override DotGram.Sql.Ast.MergeMatchedAction.DoNothing.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.MergeMatchedAction.DoNothing.GetHashCode() -> int
+override DotGram.Sql.Ast.MergeMatchedAction.DoNothing.ToString() -> string!
 override DotGram.Sql.Ast.QuantifiedOperator.Comparison.<Clone>$() -> DotGram.Sql.Ast.QuantifiedOperator.Comparison!
 override DotGram.Sql.Ast.QuantifiedOperator.Comparison.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.QuantifiedOperator.Comparison.GetHashCode() -> int
@@ -223,6 +350,21 @@ override DotGram.Sql.Ast.QuantifiedOperator.Named.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.QuantifiedOperator.Named.GetHashCode() -> int
 override DotGram.Sql.Ast.QuantifiedOperator.Named.ToString() -> string!
 override DotGram.Sql.Ast.QuantifiedOperator.ToString() -> string!
+override DotGram.Sql.Ast.Query.DataChange.<Clone>$() -> DotGram.Sql.Ast.Query.DataChange!
+override DotGram.Sql.Ast.Query.DataChange.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.Query.DataChange.GetHashCode() -> int
+override DotGram.Sql.Ast.Query.DataChange.ToString() -> string!
+override DotGram.Sql.Ast.ReturningClause.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.ReturningClause.GetHashCode() -> int
+override DotGram.Sql.Ast.ReturningClause.Output.<Clone>$() -> DotGram.Sql.Ast.ReturningClause.Output!
+override DotGram.Sql.Ast.ReturningClause.Output.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.ReturningClause.Output.GetHashCode() -> int
+override DotGram.Sql.Ast.ReturningClause.Output.ToString() -> string!
+override DotGram.Sql.Ast.ReturningClause.Returned.<Clone>$() -> DotGram.Sql.Ast.ReturningClause.Returned!
+override DotGram.Sql.Ast.ReturningClause.Returned.Equals(object? obj) -> bool
+override DotGram.Sql.Ast.ReturningClause.Returned.GetHashCode() -> int
+override DotGram.Sql.Ast.ReturningClause.Returned.ToString() -> string!
+override DotGram.Sql.Ast.ReturningClause.ToString() -> string!
 override DotGram.Sql.Ast.RowsFromItem.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.RowsFromItem.GetHashCode() -> int
 override DotGram.Sql.Ast.RowsFromItem.ToString() -> string!
@@ -231,19 +373,43 @@ override DotGram.Sql.Ast.TableSource.RowsFrom.Equals(object? obj) -> bool
 override DotGram.Sql.Ast.TableSource.RowsFrom.GetHashCode() -> int
 override DotGram.Sql.Ast.TableSource.RowsFrom.ToString() -> string!
 override DotGram.Sql.PostgreSql.PostgreSqlParser.SourceSpan.ToString() -> string!
+override sealed DotGram.Sql.Ast.ConflictResolution.Nothing.Equals(DotGram.Sql.Ast.ConflictResolution? other) -> bool
+override sealed DotGram.Sql.Ast.ConflictResolution.Update.Equals(DotGram.Sql.Ast.ConflictResolution? other) -> bool
+override sealed DotGram.Sql.Ast.ConflictTarget.Columns.Equals(DotGram.Sql.Ast.ConflictTarget? other) -> bool
+override sealed DotGram.Sql.Ast.ConflictTarget.Constraint.Equals(DotGram.Sql.Ast.ConflictTarget? other) -> bool
 override sealed DotGram.Sql.Ast.Expression.IsDocument.Equals(DotGram.Sql.Ast.Expression? other) -> bool
 override sealed DotGram.Sql.Ast.Expression.OperatorCall.Equals(DotGram.Sql.Ast.Expression? other) -> bool
 override sealed DotGram.Sql.Ast.Expression.QuantifiedOperation.Equals(DotGram.Sql.Ast.Expression? other) -> bool
+override sealed DotGram.Sql.Ast.MergeMatchedAction.DoNothing.Equals(DotGram.Sql.Ast.MergeMatchedAction? other) -> bool
 override sealed DotGram.Sql.Ast.QuantifiedOperator.Comparison.Equals(DotGram.Sql.Ast.QuantifiedOperator? other) -> bool
 override sealed DotGram.Sql.Ast.QuantifiedOperator.Like.Equals(DotGram.Sql.Ast.QuantifiedOperator? other) -> bool
 override sealed DotGram.Sql.Ast.QuantifiedOperator.Named.Equals(DotGram.Sql.Ast.QuantifiedOperator? other) -> bool
+override sealed DotGram.Sql.Ast.Query.DataChange.Equals(DotGram.Sql.Ast.Query? other) -> bool
+override sealed DotGram.Sql.Ast.ReturningClause.Output.Equals(DotGram.Sql.Ast.ReturningClause? other) -> bool
+override sealed DotGram.Sql.Ast.ReturningClause.Returned.Equals(DotGram.Sql.Ast.ReturningClause? other) -> bool
 override sealed DotGram.Sql.Ast.TableSource.RowsFrom.Equals(DotGram.Sql.Ast.TableSource? other) -> bool
+static DotGram.Sql.Ast.ConflictClause.operator !=(DotGram.Sql.Ast.ConflictClause? left, DotGram.Sql.Ast.ConflictClause? right) -> bool
+static DotGram.Sql.Ast.ConflictClause.operator ==(DotGram.Sql.Ast.ConflictClause? left, DotGram.Sql.Ast.ConflictClause? right) -> bool
+static DotGram.Sql.Ast.ConflictResolution.Nothing.operator !=(DotGram.Sql.Ast.ConflictResolution.Nothing? left, DotGram.Sql.Ast.ConflictResolution.Nothing? right) -> bool
+static DotGram.Sql.Ast.ConflictResolution.Nothing.operator ==(DotGram.Sql.Ast.ConflictResolution.Nothing? left, DotGram.Sql.Ast.ConflictResolution.Nothing? right) -> bool
+static DotGram.Sql.Ast.ConflictResolution.Update.operator !=(DotGram.Sql.Ast.ConflictResolution.Update? left, DotGram.Sql.Ast.ConflictResolution.Update? right) -> bool
+static DotGram.Sql.Ast.ConflictResolution.Update.operator ==(DotGram.Sql.Ast.ConflictResolution.Update? left, DotGram.Sql.Ast.ConflictResolution.Update? right) -> bool
+static DotGram.Sql.Ast.ConflictResolution.operator !=(DotGram.Sql.Ast.ConflictResolution? left, DotGram.Sql.Ast.ConflictResolution? right) -> bool
+static DotGram.Sql.Ast.ConflictResolution.operator ==(DotGram.Sql.Ast.ConflictResolution? left, DotGram.Sql.Ast.ConflictResolution? right) -> bool
+static DotGram.Sql.Ast.ConflictTarget.Columns.operator !=(DotGram.Sql.Ast.ConflictTarget.Columns? left, DotGram.Sql.Ast.ConflictTarget.Columns? right) -> bool
+static DotGram.Sql.Ast.ConflictTarget.Columns.operator ==(DotGram.Sql.Ast.ConflictTarget.Columns? left, DotGram.Sql.Ast.ConflictTarget.Columns? right) -> bool
+static DotGram.Sql.Ast.ConflictTarget.Constraint.operator !=(DotGram.Sql.Ast.ConflictTarget.Constraint? left, DotGram.Sql.Ast.ConflictTarget.Constraint? right) -> bool
+static DotGram.Sql.Ast.ConflictTarget.Constraint.operator ==(DotGram.Sql.Ast.ConflictTarget.Constraint? left, DotGram.Sql.Ast.ConflictTarget.Constraint? right) -> bool
+static DotGram.Sql.Ast.ConflictTarget.operator !=(DotGram.Sql.Ast.ConflictTarget? left, DotGram.Sql.Ast.ConflictTarget? right) -> bool
+static DotGram.Sql.Ast.ConflictTarget.operator ==(DotGram.Sql.Ast.ConflictTarget? left, DotGram.Sql.Ast.ConflictTarget? right) -> bool
 static DotGram.Sql.Ast.Expression.IsDocument.operator !=(DotGram.Sql.Ast.Expression.IsDocument? left, DotGram.Sql.Ast.Expression.IsDocument? right) -> bool
 static DotGram.Sql.Ast.Expression.IsDocument.operator ==(DotGram.Sql.Ast.Expression.IsDocument? left, DotGram.Sql.Ast.Expression.IsDocument? right) -> bool
 static DotGram.Sql.Ast.Expression.OperatorCall.operator !=(DotGram.Sql.Ast.Expression.OperatorCall? left, DotGram.Sql.Ast.Expression.OperatorCall? right) -> bool
 static DotGram.Sql.Ast.Expression.OperatorCall.operator ==(DotGram.Sql.Ast.Expression.OperatorCall? left, DotGram.Sql.Ast.Expression.OperatorCall? right) -> bool
 static DotGram.Sql.Ast.Expression.QuantifiedOperation.operator !=(DotGram.Sql.Ast.Expression.QuantifiedOperation? left, DotGram.Sql.Ast.Expression.QuantifiedOperation? right) -> bool
 static DotGram.Sql.Ast.Expression.QuantifiedOperation.operator ==(DotGram.Sql.Ast.Expression.QuantifiedOperation? left, DotGram.Sql.Ast.Expression.QuantifiedOperation? right) -> bool
+static DotGram.Sql.Ast.MergeMatchedAction.DoNothing.operator !=(DotGram.Sql.Ast.MergeMatchedAction.DoNothing? left, DotGram.Sql.Ast.MergeMatchedAction.DoNothing? right) -> bool
+static DotGram.Sql.Ast.MergeMatchedAction.DoNothing.operator ==(DotGram.Sql.Ast.MergeMatchedAction.DoNothing? left, DotGram.Sql.Ast.MergeMatchedAction.DoNothing? right) -> bool
 static DotGram.Sql.Ast.PostgreSqlWriter.Write(DotGram.Sql.Ast.ISqlNode! node) -> string!
 static DotGram.Sql.Ast.QuantifiedOperator.Comparison.operator !=(DotGram.Sql.Ast.QuantifiedOperator.Comparison? left, DotGram.Sql.Ast.QuantifiedOperator.Comparison? right) -> bool
 static DotGram.Sql.Ast.QuantifiedOperator.Comparison.operator ==(DotGram.Sql.Ast.QuantifiedOperator.Comparison? left, DotGram.Sql.Ast.QuantifiedOperator.Comparison? right) -> bool
@@ -253,6 +419,14 @@ static DotGram.Sql.Ast.QuantifiedOperator.Named.operator !=(DotGram.Sql.Ast.Quan
 static DotGram.Sql.Ast.QuantifiedOperator.Named.operator ==(DotGram.Sql.Ast.QuantifiedOperator.Named? left, DotGram.Sql.Ast.QuantifiedOperator.Named? right) -> bool
 static DotGram.Sql.Ast.QuantifiedOperator.operator !=(DotGram.Sql.Ast.QuantifiedOperator? left, DotGram.Sql.Ast.QuantifiedOperator? right) -> bool
 static DotGram.Sql.Ast.QuantifiedOperator.operator ==(DotGram.Sql.Ast.QuantifiedOperator? left, DotGram.Sql.Ast.QuantifiedOperator? right) -> bool
+static DotGram.Sql.Ast.Query.DataChange.operator !=(DotGram.Sql.Ast.Query.DataChange? left, DotGram.Sql.Ast.Query.DataChange? right) -> bool
+static DotGram.Sql.Ast.Query.DataChange.operator ==(DotGram.Sql.Ast.Query.DataChange? left, DotGram.Sql.Ast.Query.DataChange? right) -> bool
+static DotGram.Sql.Ast.ReturningClause.Output.operator !=(DotGram.Sql.Ast.ReturningClause.Output? left, DotGram.Sql.Ast.ReturningClause.Output? right) -> bool
+static DotGram.Sql.Ast.ReturningClause.Output.operator ==(DotGram.Sql.Ast.ReturningClause.Output? left, DotGram.Sql.Ast.ReturningClause.Output? right) -> bool
+static DotGram.Sql.Ast.ReturningClause.Returned.operator !=(DotGram.Sql.Ast.ReturningClause.Returned? left, DotGram.Sql.Ast.ReturningClause.Returned? right) -> bool
+static DotGram.Sql.Ast.ReturningClause.Returned.operator ==(DotGram.Sql.Ast.ReturningClause.Returned? left, DotGram.Sql.Ast.ReturningClause.Returned? right) -> bool
+static DotGram.Sql.Ast.ReturningClause.operator !=(DotGram.Sql.Ast.ReturningClause? left, DotGram.Sql.Ast.ReturningClause? right) -> bool
+static DotGram.Sql.Ast.ReturningClause.operator ==(DotGram.Sql.Ast.ReturningClause? left, DotGram.Sql.Ast.ReturningClause? right) -> bool
 static DotGram.Sql.Ast.RowsFromItem.operator !=(DotGram.Sql.Ast.RowsFromItem? left, DotGram.Sql.Ast.RowsFromItem? right) -> bool
 static DotGram.Sql.Ast.RowsFromItem.operator ==(DotGram.Sql.Ast.RowsFromItem? left, DotGram.Sql.Ast.RowsFromItem? right) -> bool
 static DotGram.Sql.Ast.TableSource.RowsFrom.operator !=(DotGram.Sql.Ast.TableSource.RowsFrom? left, DotGram.Sql.Ast.TableSource.RowsFrom? right) -> bool
@@ -301,9 +475,18 @@ static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseStatement(string! input, 
 static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseStatement(string! input, out DotGram.Sql.Ast.Statement! value) -> bool
 static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseStatement(string! input, ref int at, int length, out DotGram.Sql.Ast.Statement! value) -> bool
 static DotGram.Sql.PostgreSql.PostgreSqlParser.TryParseStatement(string! input, ref int at, out DotGram.Sql.Ast.Statement! value) -> bool
+virtual DotGram.Sql.Ast.ConflictResolution.EqualityContract.get -> System.Type!
+virtual DotGram.Sql.Ast.ConflictResolution.Equals(DotGram.Sql.Ast.ConflictResolution? other) -> bool
+virtual DotGram.Sql.Ast.ConflictResolution.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual DotGram.Sql.Ast.ConflictTarget.EqualityContract.get -> System.Type!
+virtual DotGram.Sql.Ast.ConflictTarget.Equals(DotGram.Sql.Ast.ConflictTarget? other) -> bool
+virtual DotGram.Sql.Ast.ConflictTarget.PrintMembers(System.Text.StringBuilder! builder) -> bool
 virtual DotGram.Sql.Ast.QuantifiedOperator.EqualityContract.get -> System.Type!
 virtual DotGram.Sql.Ast.QuantifiedOperator.Equals(DotGram.Sql.Ast.QuantifiedOperator? other) -> bool
 virtual DotGram.Sql.Ast.QuantifiedOperator.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual DotGram.Sql.Ast.ReturningClause.EqualityContract.get -> System.Type!
+virtual DotGram.Sql.Ast.ReturningClause.Equals(DotGram.Sql.Ast.ReturningClause? other) -> bool
+virtual DotGram.Sql.Ast.ReturningClause.PrintMembers(System.Text.StringBuilder! builder) -> bool
 *REMOVED*DotGram.Sql.Ast.DataType.Interval.Deconstruct(out DotGram.Sql.Ast.IntervalQualifier! Qualifier) -> void
 *REMOVED*DotGram.Sql.Ast.DataType.Interval.Interval(DotGram.Sql.Ast.IntervalQualifier! Qualifier) -> void
 *REMOVED*DotGram.Sql.Ast.DataType.Interval.Qualifier.get -> DotGram.Sql.Ast.IntervalQualifier!
@@ -322,3 +505,31 @@ virtual DotGram.Sql.Ast.QuantifiedOperator.PrintMembers(System.Text.StringBuilde
 *REMOVED*DotGram.Sql.Ast.LockingClause.Deconstruct(out DotGram.Sql.Ast.LockingMode Mode, out DotGram.Sql.SqlList<DotGram.Sql.Ast.Identifier!> Of) -> void
 *REMOVED*DotGram.Sql.Ast.LockingClause.LockingClause(DotGram.Sql.Ast.LockingMode Mode, DotGram.Sql.SqlList<DotGram.Sql.Ast.Identifier!> Of) -> void
 *REMOVED*DotGram.Sql.Ast.LockingClause.Of.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.Identifier!>
+*REMOVED*DotGram.Sql.Ast.OutputClause
+*REMOVED*DotGram.Sql.Ast.OutputClause.<Clone>$() -> DotGram.Sql.Ast.OutputClause!
+*REMOVED*DotGram.Sql.Ast.OutputClause.Columns.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.Identifier!>?
+*REMOVED*DotGram.Sql.Ast.OutputClause.Columns.init -> void
+*REMOVED*DotGram.Sql.Ast.OutputClause.Deconstruct(out DotGram.Sql.SqlList<DotGram.Sql.Ast.SelectColumn!> Items, out DotGram.Sql.Ast.TableSource? Into, out DotGram.Sql.SqlList<DotGram.Sql.Ast.Identifier!>? Columns, out DotGram.Sql.Ast.OutputClause? Next) -> void
+*REMOVED*DotGram.Sql.Ast.OutputClause.Equals(DotGram.Sql.Ast.OutputClause? other) -> bool
+*REMOVED*DotGram.Sql.Ast.OutputClause.Into.get -> DotGram.Sql.Ast.TableSource?
+*REMOVED*DotGram.Sql.Ast.OutputClause.Into.init -> void
+*REMOVED*DotGram.Sql.Ast.OutputClause.Items.get -> DotGram.Sql.SqlList<DotGram.Sql.Ast.SelectColumn!>
+*REMOVED*DotGram.Sql.Ast.OutputClause.Items.init -> void
+*REMOVED*DotGram.Sql.Ast.OutputClause.Locate(int at, int length) -> void
+*REMOVED*DotGram.Sql.Ast.OutputClause.Next.get -> DotGram.Sql.Ast.OutputClause?
+*REMOVED*DotGram.Sql.Ast.OutputClause.Next.init -> void
+*REMOVED*DotGram.Sql.Ast.OutputClause.OutputClause(DotGram.Sql.SqlList<DotGram.Sql.Ast.SelectColumn!> Items, DotGram.Sql.Ast.TableSource? Into, DotGram.Sql.SqlList<DotGram.Sql.Ast.Identifier!>? Columns, DotGram.Sql.Ast.OutputClause? Next) -> void
+*REMOVED*DotGram.Sql.Ast.OutputClause.Span.get -> DotGram.Sql.SqlSpan
+*REMOVED*DotGram.Sql.Ast.Statement.Delete.Output.get -> DotGram.Sql.Ast.OutputClause?
+*REMOVED*DotGram.Sql.Ast.Statement.Delete.Output.init -> void
+*REMOVED*DotGram.Sql.Ast.Statement.Insert.Output.get -> DotGram.Sql.Ast.OutputClause?
+*REMOVED*DotGram.Sql.Ast.Statement.Insert.Output.init -> void
+*REMOVED*DotGram.Sql.Ast.Statement.Merge.Output.get -> DotGram.Sql.Ast.OutputClause?
+*REMOVED*DotGram.Sql.Ast.Statement.Merge.Output.init -> void
+*REMOVED*DotGram.Sql.Ast.Statement.Update.Output.get -> DotGram.Sql.Ast.OutputClause?
+*REMOVED*DotGram.Sql.Ast.Statement.Update.Output.init -> void
+*REMOVED*override DotGram.Sql.Ast.OutputClause.Equals(object? obj) -> bool
+*REMOVED*override DotGram.Sql.Ast.OutputClause.GetHashCode() -> int
+*REMOVED*override DotGram.Sql.Ast.OutputClause.ToString() -> string!
+*REMOVED*static DotGram.Sql.Ast.OutputClause.operator !=(DotGram.Sql.Ast.OutputClause? left, DotGram.Sql.Ast.OutputClause? right) -> bool
+*REMOVED*static DotGram.Sql.Ast.OutputClause.operator ==(DotGram.Sql.Ast.OutputClause? left, DotGram.Sql.Ast.OutputClause? right) -> bool
