@@ -524,6 +524,8 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("SELECT a FROM t FETCH FIRST rows ROWS ONLY",    "fetch a column named rows")]
 	[InlineData("SELECT a FROM t GROUP BY ROLLUP(ROLLUP(a)), CUBE(cube(b))", "rollup over a call")]
 	[InlineData("SELECT * FROM (SELECT a FROM t ORDER BY a FETCH FIRST 1 ROWS WITH TIES) s FOR UPDATE SKIP LOCKED", "ties inside, skip locked outside")]
+	[InlineData("(SELECT 1 FOR UPDATE SKIP LOCKED) ORDER BY 1 FETCH FIRST 1 ROW WITH TIES", "refused: SKIP LOCKED in the brackets and WITH TIES after")]
+	[InlineData("((SELECT 1 FOR UPDATE SKIP LOCKED)) ORDER BY 1 FETCH FIRST 1 ROW WITH TIES", "refused: SKIP LOCKED two brackets deep and WITH TIES after")]
 	// What gram.y refuses in its actions, and what its lists refuse.
 	[InlineData("(SELECT 1 ORDER BY 1) ORDER BY 1",               "refused: two ORDER BYs")]
 	[InlineData("(SELECT 1 LIMIT 1) LIMIT 1",                     "refused: two LIMITs")]
@@ -724,6 +726,20 @@ public sealed class PostgreSqlExpressionTests
 	}
 
 	// ── The doors ──────────────────────────────────────────────────────────────
+
+	/// <summary>A query a parenthesis in FROM made from a bare subquery has a span: the parentheses', or theirs to the last clause.</summary>
+	[Theory]
+	[InlineData("SELECT * FROM ((SELECT 1)) x",                                         "(SELECT 1)")]
+	[InlineData("SELECT * FROM ((SELECT 1) UNION (SELECT 2)) x",                        "(SELECT 1) UNION (SELECT 2)")]
+	[InlineData("SELECT * FROM ((SELECT 1) UNION (SELECT 2) ORDER BY 1 LIMIT 1 FOR UPDATE) x", "(SELECT 1) UNION (SELECT 2) ORDER BY 1 LIMIT 1 FOR UPDATE")]
+	public void A_query_a_parenthesis_in_FROM_made_is_located(string text, string expected)
+	{
+		var located = (Statement.Select)PostgreSqlParser.Located.ParseStatement(text);
+		var source  = Assert.IsType<TableSource.Subquery>(((Query.Select)located.Query).From!.Sources[0]);
+
+		Assert.True(source.Query.Span.Known, $"{text}: {source.Query}");
+		Assert.Equal(expected, text.Substring(source.Query.Span.At, source.Query.Span.Length));
+	}
 
 	[Theory]
 	[InlineData("SELECT a + b FROM t WHERE c")]

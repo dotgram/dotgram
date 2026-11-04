@@ -1182,6 +1182,30 @@
 			"name": "overlaps_positions",
 			"text": "SELECT (a, b) OVERLAPS (c, d) AND x, NOT (a, b) OVERLAPS (c, d), (a, b) OVERLAPS (c, d) = true, ((a, b) OVERLAPS (c, d)), (a, b) OVERLAPS ROW(c, d) FROM t WHERE (a, b) OVERLAPS (c, d)",
 			"accepted": true
+		},
+		{
+			"name": "overlaps_as_an_operand_on_the_right",
+			"text": "SELECT 1 + (a, b) OVERLAPS (c, d)",
+			"accepted": true,
+			"known": "bison reads `row OVERLAPS row` at the operator levels, as an operand of + and before BETWEEN; here it is a predicate tail, read where IN and BETWEEN are"
+		},
+		{
+			"name": "overlaps_as_an_operand_on_the_left",
+			"text": "SELECT (a, b) OVERLAPS (c, d) + 1",
+			"accepted": true,
+			"known": "bison reads `row OVERLAPS row` at the operator levels, as an operand of + and before BETWEEN; here it is a predicate tail, read where IN and BETWEEN are"
+		},
+		{
+			"name": "overlaps_before_between",
+			"text": "SELECT 1 FROM t WHERE (a, b) OVERLAPS (c, d) BETWEEN x AND y",
+			"accepted": true,
+			"known": "bison reads `row OVERLAPS row` at the operator levels, as an operand of + and before BETWEEN; here it is a predicate tail, read where IN and BETWEEN are"
+		},
+		{
+			"name": "ties_in_a_bracket_and_skip_locked",
+			"text": "(SELECT 1 FOR UPDATE SKIP LOCKED) ORDER BY 1 FETCH FIRST 1 ROW WITH TIES; ((SELECT 1 FOR UPDATE SKIP LOCKED)) ORDER BY 1 FETCH FIRST 1 ROW WITH TIES",
+			"accepted": false,
+			"error": "SKIP LOCKED and WITH TIES options cannot be used together, at index 63"
 		}
 	]
 }

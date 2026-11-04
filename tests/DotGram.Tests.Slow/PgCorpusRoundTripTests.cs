@@ -81,9 +81,33 @@ public sealed class PgCorpusRoundTripTests
 	[Fact]
 	public void A_plain_string_reads_escapes_while_standard_conforming_strings_is_off()
 	{
-		var cut = PgCorpus.CutScript("SET standard_conforming_strings = off;\nSELECT 'a\\'b';\nSELECT 2;\nRESET standard_conforming_strings;\nSELECT 'c\\';\nSELECT 3;");
+		var cut = PgCorpus.CutScript("SET standard_conforming_strings = off;\nSELECT 'a\\'b';\nSELECT 2;\nSELECT U&'\\', b'\\', x'\\';\nSELECT ab'\\'c';\nRESET standard_conforming_strings;\nSELECT 'c\\';\nSELECT 3;");
 
-		Assert.Equal(["SET standard_conforming_strings = off", "SELECT 'a\\'b'", "SELECT 2", "RESET standard_conforming_strings", "SELECT 'c\\'", "SELECT 3"], cut.Statements.Select(static one => one.Text).ToArray());
+		Assert.Equal(["SET standard_conforming_strings = off", "SELECT 'a\\'b'", "SELECT 2", "SELECT U&'\\', b'\\', x'\\'", "SELECT ab'\\'c'", "RESET standard_conforming_strings", "SELECT 'c\\'", "SELECT 3"], cut.Statements.Select(static one => one.Text).ToArray());
+	}
+
+	[Fact]
+	public void A_commands_quoted_argument_may_hold_a_double_backslash()
+	{
+		var cut = PgCorpus.CutScript("\\qecho '\\\\.'\nSELECT 1;\nSELECT 2;");
+
+		Assert.Equal(["SELECT 1", "SELECT 2"], cut.Statements.Select(static one => one.Text).ToArray());
+	}
+
+	[Fact]
+	public void Sendpipeline_sends_and_a_backslash_semicolon_inside_parentheses_is_kept()
+	{
+		var cut = PgCorpus.CutScript("SELECT 1 \\bind \\sendpipeline\nSELECT (1 \\; 2), '\\:'; SELECT a \\: b;");
+
+		Assert.Equal(["SELECT 1", "SELECT (1 ; 2), '\\:'", "SELECT a : b"], cut.Statements.Select(static one => one.Text).ToArray());
+	}
+
+	[Fact]
+	public void Gset_and_getenv_define_variables()
+	{
+		var cut = PgCorpus.CutScript("\\getenv home HOME\nSELECT :home; SELECT :other; SELECT 1 \\gset\nSELECT :other; SELECT a[1:NULL], a[1:2];");
+
+		Assert.Equal([true, false, true, false], cut.Statements.Where(static one => one.Text.StartsWith("SELECT :", StringComparison.Ordinal) || one.Text.StartsWith("SELECT a[", StringComparison.Ordinal)).Select(static one => one.HasVariable).ToArray());
 	}
 
 	[Fact]
@@ -128,6 +152,15 @@ public sealed class PgCorpusRoundTripTests
 
 		if (Environment.GetEnvironmentVariable("DOTGRAM_RECORD_PG_CORPUS_BASELINE") is { Length: > 0 })
 		{
+			// A re-record never hides a file that reads less: a drop must be allowed by name, in
+			// DOTGRAM_PG_CORPUS_ALLOW_DROP (file keys apart by `;`), and is then written with that said.
+			var allowed = (Environment.GetEnvironmentVariable("DOTGRAM_PG_CORPUS_ALLOW_DROP") ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToHashSet(StringComparer.Ordinal);
+			var dropped = Read()
+				.Where(then => counts.TryGetValue(then.Key, out var now) && now.Read < then.Value.Read && !allowed.Contains(then.Key))
+				.Select(then => $"{then.Key}: read {counts[then.Key].Read} where the baseline read {then.Value.Read}; name it in DOTGRAM_PG_CORPUS_ALLOW_DROP to record the drop.")
+				.ToList();
+
+			Assert.Empty(dropped);
 			Record(counts);
 
 			return;

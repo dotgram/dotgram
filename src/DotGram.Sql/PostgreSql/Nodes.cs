@@ -1034,9 +1034,6 @@ static class Nodes
 		var limit   = tail?.Limit;
 		var locking = tail?.Locking;
 
-		if (!TiesAndSkipFit(limit, locking))
-			return false;
-
 		if (locking is { Length: > 1 })
 		{
 			foreach (var clause in locking)
@@ -1050,6 +1047,10 @@ static class Nodes
 
 		while (inner is Query.Parenthesized { SetOperations.Count: 0 } bracketed)
 			inner = bracketed.Query;
+
+		// gram.y: "SKIP LOCKED and WITH TIES options cannot be used together" — the query's own, with what the brackets held.
+		if (!TiesAndSkipFit(limit ?? inner.Limit, locking, inner.Locking))
+			return false;
 
 		if (ReferenceEquals(inner, body))
 			return limit is not { WithTies: true } || order is not null;
@@ -1072,13 +1073,25 @@ static class Nodes
 		return limit is not { WithTies: true } || order is not null || inner.OrderBy is not null;
 	}
 
-	/// <summary>gram.y: "SKIP LOCKED and WITH TIES options cannot be used together" — on one level; a bracketed query's WITH TIES is its own.</summary>
-	static bool TiesAndSkipFit(Limit? limit, LockingClause[]? locking)
+	/// <summary>
+	/// gram.y: "SKIP LOCKED and WITH TIES options cannot be used together" — on one query, its own clauses and those
+	/// the brackets around it held; a derived table's are its own.
+	/// </summary>
+	static bool TiesAndSkipFit(Limit? limit, LockingClause[]? locking, SqlList<LockingClause> held)
 	{
-		if (limit is not { WithTies: true } || locking is null)
+		if (limit is not { WithTies: true })
 			return true;
 
-		foreach (var clause in locking)
+		if (locking is not null)
+		{
+			foreach (var clause in locking)
+			{
+				if (clause.Wait == LockWait.SkipLocked)
+					return false;
+			}
+		}
+
+		foreach (var clause in held)
 		{
 			if (clause.Wait == LockWait.SkipLocked)
 				return false;
@@ -1416,12 +1429,40 @@ static class Nodes
 	{
 		if (source is TableSource.Subquery { Alias: null, Lateral: false } subquery)
 		{
-			var query = (Query)new Query.Parenthesized(subquery.Query);
+			var bracketed = new Query.Parenthesized(subquery.Query);
+
+			// The brackets' span is the source's, which the located reading gave; with operations or clauses after
+			// them, the query made runs from the brackets to the last of those.
+			if (subquery.Span.Known)
+				bracketed.Locate(subquery.Span.At, subquery.Span.Length);
+
+			Query query = bracketed;
 
 			if (operations is { Length: > 0 })
 				query = Combined(query, operations);
 
-			return new Held(Finished(null, query, order, tail), null);
+			query = Finished(null, query, order, tail);
+
+			if (!ReferenceEquals(query, bracketed) && subquery.Span.Known)
+			{
+				var end = subquery.Span.End;
+
+				if (operations is { Length: > 0 } && operations[operations.Length - 1].Span is { Known: true } last)
+					end = Math.Max(end, last.End);
+
+				if (order?.Span is { Known: true } sorted)
+					end = Math.Max(end, sorted.End);
+
+				if (tail?.Limit?.Span is { Known: true } limited)
+					end = Math.Max(end, limited.End);
+
+				if (tail?.Locking is { Length: > 0 } locks && locks[locks.Length - 1].Span is { Known: true } locked)
+					end = Math.Max(end, locked.End);
+
+				query.Locate(subquery.Span.At, end - subquery.Span.At);
+			}
+
+			return new Held(query, null);
 		}
 
 		return new Held(null, source);
@@ -1432,7 +1473,7 @@ static class Nodes
 	/// with no alias of its own, with no LATERAL before it — never a bare name, `FROM (a)`, nor an aliased subquery or
 	/// parenthesis, `FROM ((SELECT 1) x)`, `FROM ((a JOIN b ON true) x) y`, as gram.y's table_ref has it.
 	/// </summary>
-	public static bool HeldFits(bool lateral, Held held, Alias? alias)
+	public static bool HeldFits(bool lateral, Held held)
 	{
 		if (held.Query is not null)
 			return true;
