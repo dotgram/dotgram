@@ -1259,6 +1259,74 @@ static partial class Build
 		/// <summary>What may follow a call, as <c>CallTail</c> reads it: a null treatment or a WITHIN GROUP as written, and the window.</summary>
 		internal sealed record Windowing(string? Within, Clause? Over);
 
+		/// <summary>
+		/// An argument a named function read as a value, and whether <c>FunctionCall</c> would have read the same one there:
+		/// it reads a <c>NULL</c> as the keyword alone, so <c>NULL + 1</c> is an argument of the one and not of the other.
+		/// </summary>
+		internal sealed record Argued(Ast.Expression Value, bool Plain);
+
+		/// <summary>What <c>TRIM (</c> began with: the trim specification, the characters to trim and the <c>FROM</c>, where each was written.</summary>
+		internal sealed record TrimHead(string? How, Argued? What, string? From);
+
+		/// <summary>What <c>FunctionCall</c> reads after the arguments a named function has already read: the rest of them, a model, the bracket and a tail.</summary>
+		internal sealed record Remainder(Ast.Expression[]? Arguments, string? Model, Windowing? Tail);
+
+		/// <summary>Whether a value's text begins with the keyword <c>NULL</c>, which <c>FunctionCall</c> reads as an argument by itself.</summary>
+		public static bool NullHeaded(string text)
+		{
+			if (text.Length < 4 || string.Compare(text, 0, "NULL", 0, 4, StringComparison.OrdinalIgnoreCase) != 0)
+				return false;
+
+			return text.Length == 4 || !(char.IsLetterOrDigit(text[4]) || text[4] is '_' or '@' or '#' or '$');
+		}
+
+		/// <summary>
+		/// Whether the arguments a named function read are the ones <c>FunctionCall</c> would read at the same place, so
+		/// that the call may go on as that rule's without reading them again.
+		/// </summary>
+		public static bool Plain(Argued first, Argued[]? items)
+		{
+			if (!first.Plain)
+				return false;
+
+			if (items is not null)
+				foreach (var item in items)
+					if (!item.Plain)
+						return false;
+
+			return true;
+		}
+
+		/// <summary>The first argument and the values of the ones read after it, as a named function's own shape keeps them.</summary>
+		public static Ast.Expression[] Listed(Argued first, Argued[]? items)
+		{
+			var read = new Ast.Expression[1 + (items?.Length ?? 0)];
+
+			read[0] = first.Value;
+
+			for (var at = 1; at < read.Length; at++)
+				read[at] = items![at - 1].Value;
+
+			return read;
+		}
+
+		/// <summary>The call <c>FunctionCall</c> builds, over arguments a named function read first and the rest it read after them.</summary>
+		public static Ast.Expression Rested(string name, string? quantifier, Argued first, Argued[]? items, Remainder rest)
+		{
+			var read = new List<Ast.Expression> { first.Value };
+
+			if (items is not null)
+				foreach (var item in items)
+					read.Add(item.Value);
+
+			if (rest.Arguments is not null)
+				read.AddRange(rest.Arguments);
+
+			return Called(
+				new Call(name, SqlList.Own(Rules.Tailed([.. read], rest.Model)), Syntax.Distinctly(quantifier)),
+				rest.Tail);
+		}
+
 		/// <summary>A call and what was written after it, where anything was.</summary>
 		public static Ast.Expression Called(Ast.Expression call, Windowing? tail)
 		{

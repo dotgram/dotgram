@@ -303,12 +303,23 @@ SearchCondition : @Ast.Expression
 SearchedWhen : @Build.Clause.When = "WHEN"i & test: SearchCondition & "THEN"i & result: Result => @(new Build.Clause.When(test, result))
 
 // COUNT(*) is its own shape; the rest take a set quantifier and a value expression.
+//
+// Each name is a call besides, `SUM (a, b)` and `COUNT ()`, and the arguments are read once
+// for both, as `ValueFunction` says. What follows the bracket is read here where the text is
+// the call's, as `FunctionCall` reads it, and by `TSqlPrimaryCore` where it is the shape's.
 SetFunctionSpecification : @Ast.Expression
     = name: "COUNT"i & '(' & '*' & ')'
         => @(new Build.Values.Call(name, Build.Values.None, "*"))
-    | name: SetFunctionType & '(' & quantifier: SetQuantifier? & v: TSqlValueExpression & ')'
-        => @(new Build.Values.Call(
-            name, [v], Syntax.Distinctly(quantifier)))
+    | name: SetFunctionType & '(' & quantifier: SetQuantifier? & first: CallItem?
+      & switch @(first is null ? 0 : 1)
+        {
+            case 0: args: Arguments? & model: UseModel? & ')' & tail: CallTail?
+            case 1: close: ')'? & switch @(close is not null ? 1 : first!.Plain ? 0 : 2) { case 0: more: CallRest  case 1: none  default: when @(false) }
+        }
+        => @(close is not null ? new Build.Values.Call(name, [first!.Value], Syntax.Distinctly(quantifier))
+             : more is not null ? Build.Values.Rested(name, quantifier, first!, null, more)
+             : Build.Values.Called(
+                   new Build.Values.Call(name, SqlList.Own(Build.Rules.Tailed(args ?? [], model)), Syntax.Distinctly(quantifier)), tail))
 
 SetFunctionType = "AVG"i | "MAX"i | "MIN"i | "SUM"i | "COUNT"i
 
@@ -343,20 +354,48 @@ UnsignedValueSpecification : @Ast.Expression = v: UnsignedLiteral => @(v) | v: T
 
 // The functions the standard spells out rather than leaving to <routine invocation>.
 // Each is a keyword and a fixed shape, which is why they are here and not a call.
+//
+// **Each is a call besides, and its arguments are read once for both.** Where the fixed shape
+// is not what was written — `UPPER (a, b)`, `UPPER ()`, `UPPER (DISTINCT a)`, `TRIM (a, b)
+// OVER ()` — the text is `FunctionCall`'s, which once read it again from the name: the
+// argument the shape had read and refused at its end was read a second time as the call's,
+// so a nest of n unclosed `UPPER (` cost 2^n and of `TRIM (` 3^n, two and three readings a
+// level, and a closed `TRIM (TRIM (a))` 2^n as well. So the shape reads its arguments, and
+// where it cannot end there the call goes on from them as `FunctionCall` would and builds
+// what that rule builds (`CallItem` says whether it would have read the same arguments: it
+// reads a `NULL` as the keyword alone). Where no argument was read the call is read from the
+// bracket, as `FunctionCall` reads it, and that rule reads none of these names bare. The shape
+// is tried first and ends at its bracket, so `UPPER (a) OVER ()` is what it was: `UPPER (a)`,
+// and a window nothing reads. A `switch` and not a choice says which way the call goes on, so
+// that what a refusal names, and in which order, is what it named when each was a rule.
 ValueFunction : @Ast.Expression
-    = name: "CHAR_LENGTH"i      & '(' & v: TSqlValueExpression & ')'                                 => @(new Build.Values.Call(name, [v]))
-    | name: "CHARACTER_LENGTH"i & '(' & v: TSqlValueExpression & ')'                            => @(new Build.Values.Call(name, [v]))
-    | name: "OCTET_LENGTH"i     & '(' & v: TSqlValueExpression & ')'                                => @(new Build.Values.Call(name, [v]))
-    | name: "BIT_LENGTH"i       & '(' & v: TSqlValueExpression & ')'                                 => @(new Build.Values.Call(name, [v]))
-    | name: "UPPER"i     & '(' & v: TSqlValueExpression & ')'                                  => @(new Build.Values.Call(name, [v]))
-    | name: "LOWER"i     & '(' & v: TSqlValueExpression & ')'                                  => @(new Build.Values.Call(name, [v]))
-    | name: "TRIM"i      & '(' & { how: TSqlTrimSpecification? } & what: TSqlValueExpression?
-                   & "FROM"i & v: TSqlValueExpression & ')'
-        => @(new Build.Values.Call(
-            name,
-            what is null ? [v] : [what, v],
-            how) { From = true })
-    | name: "TRIM"i & '(' & v: TSqlValueExpression & ')'      => @(new Build.Values.Call(name, [v]))
+    = name: ("CHAR_LENGTH"i | "CHARACTER_LENGTH"i | "OCTET_LENGTH"i | "BIT_LENGTH"i | "UPPER"i | "LOWER"i)
+      & '(' & first: CallItem?
+      & switch @(first is null ? 0 : 1)
+        {
+            case 0: quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
+            case 1: close: ')'? & switch @(close is not null ? 1 : first!.Plain ? 0 : 2) { case 0: more: CallRest  case 1: none  default: when @(false) }
+        }
+        => @(close is not null ? new Build.Values.Call(name, [first!.Value])
+             : more is not null ? Build.Values.Rested(name, null, first!, null, more)
+             : Build.Values.Called(
+                   new Build.Values.Call(name, SqlList.Own(Build.Rules.Tailed(args ?? [], model)), Syntax.Distinctly(quantifier)), tail))
+    // `TRIM`'s own shape reads its head once (`TrimHead`): a specification, the characters and the
+    // `FROM` where they were written. Where no `FROM` stands, the characters are the only argument
+    // or the first of a call's, and a specification with no `FROM` after it is a column's name
+    // there, `TRIM (LEADING)`, as it always was.
+    | name: "TRIM"i & '(' & head: TrimHead?
+      & switch @(head is null ? 0 : head.From is not null ? 2 : 1)
+        {
+            case 0: quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
+            case 1: close: ')'? & switch @(close is not null ? 1 : head!.What!.Plain ? 0 : 2) { case 0: more: CallRest  case 1: none  default: when @(false) }
+            case 2: v: TSqlValueExpression & ')'
+        }
+        => @(head?.From is not null ? new Build.Values.Call(name, head.What is null ? [v!] : [head.What.Value, v!], head.How) { From = true }
+             : close is not null ? new Build.Values.Call(name, [head!.What!.Value])
+             : more is not null ? Build.Values.Rested(name, null, head!.What!, null, more)
+             : Build.Values.Called(
+                   new Build.Values.Call(name, SqlList.Own(Build.Rules.Tailed(args ?? [], model)), Syntax.Distinctly(quantifier)), tail))
     | name: "CURRENT_DATE"i                                      => @(new Build.Values.Call(name, Build.Values.None))
     | name: "CURRENT_TIMESTAMP"i                                 => @(new Build.Values.Call(name, Build.Values.None))
 
@@ -559,7 +598,8 @@ TSqlPrimaryCore : @Ast.Expression
 	| f: ValueFunction                         => @(f)
 	| f: TSqlValueFunction                     => @(f)
 	| f: CountStar & tail: CallTail?                => @(Build.Values.Called(f, tail))
-	| f: SetFunctionSpecification & tail: CallTail? => @(Build.Values.Called(f, tail))
+	| f: SetFunctionSpecification & switch @(f is Build.Values.Call ? 1 : 0) { case 0: none  case 1: tail: CallTail? }
+		=> @(Build.Values.Called(f, tail))
 	| q: ScalarSubquery                        => @(q)
 	| n: NextValue                             => @(n)
 	| f: DatePartCall                          => @(f)
@@ -693,8 +733,24 @@ TSqlCast : @Ast.Expression
 TSqlValueFunction : @Ast.Expression
 	= name: "IIF"i & '(' & c: SearchCondition & ',' & a: TSqlValueExpression & ',' & b: TSqlValueExpression & ')'
 		=> @(new Build.Values.Call(name, [c, a, b]))
-	| name: "CHOOSE"i & '(' & at: TSqlValueExpression & ',' & first: TSqlValueExpression & (',' & rest: TSqlValueExpression)* & ')'
-		=> @(new Build.Values.Call(name, SqlList.Own(Syntax.Listed(at, Syntax.Listed(first, rest)))))
+	// A choice of one, `CHOOSE (1)`, is a call, and so is anything else this shape refuses where
+	// `FunctionCall` reads it; the arguments are read once for both, as `ValueFunction` says.
+	| name: "CHOOSE"i & '(' & at: CallItem?
+	  & switch @(at is null ? 0 : 1)
+	    {
+	        case 0: quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
+	        case 1: (',' & chosen: CallItem)*
+	              & switch @(chosen is { Length: > 0 } ? 1 : 0)
+	                {
+	                    case 0: when @(Build.Values.Plain(at!, chosen)) & more: CallRest
+	                    case 1: close: ')'?
+	                          & switch @(close is not null ? 1 : Build.Values.Plain(at!, chosen) ? 0 : 2) { case 0: more: CallRest  case 1: none  default: when @(false) }
+	                }
+	    }
+		=> @(close is not null ? new Build.Values.Call(name, SqlList.Own(Build.Values.Listed(at!, chosen)))
+		     : more is not null ? Build.Values.Rested(name, null, at!, chosen, more)
+		     : Build.Values.Called(
+		           new Build.Values.Call(name, SqlList.Own(Build.Rules.Tailed(args ?? [], model)), Syntax.Distinctly(quantifier)), tail))
 	| name: JsonObjectName & '(' & body: JsonObjectBody? & ')' & tail: CallTail?
 		=> @(Build.Values.Called(new Build.Values.Call(name, SqlList.Own(body)), tail))
 	| name: "JSON_ARRAY"i & '(' & body: JsonArrayBody? & ')' & tail: CallTail?
@@ -800,13 +856,18 @@ NextValue : @Ast.Expression
 // finds no such aggregate (`Msg 195`): `CAST (DISTINCT 1)`. `CONVERT` and `TRY_CONVERT` need no
 // line of their own: no name reads them, and `dbo.CONVERT (1)` is `Msg 156`.
 FunctionCall : @Ast.Expression
-	= ?!((JsonOwnName | "IIF"i) & '(')
+	= ?!((JsonOwnName | "IIF"i | NamedCallName) & '(')
 	  & ?!(("CAST"i | "TRY_CAST"i | "PARSE"i | "TRY_PARSE"i) & '(' & ?!SetQuantifier)
 	  & name: TSqlQualifiedName & when @(Syntax.Callable(name) && !Syntax.IsDatePartFunction(name))
 	  & '(' & quantifier: SetQuantifier? & args: Arguments? & model: UseModel? & ')' & tail: CallTail?
 		=> @(Build.Values.Called(
 				 new Build.Values.Call(
 					 name, SqlList.Own(Build.Rules.Tailed(args ?? [], model)), Syntax.Distinctly(quantifier)), tail))
+
+// The names `ValueFunction`, `TSqlValueFunction` and `SetFunctionSpecification` read as calls
+// themselves, from the arguments their own shapes read: read here as well, those arguments were
+// read twice, and a nest of n cost 2^n.
+NamedCallName = "CHAR_LENGTH"i | "CHARACTER_LENGTH"i | "OCTET_LENGTH"i | "BIT_LENGTH"i | "UPPER"i | "LOWER"i | "TRIM"i | "CHOOSE"i | SetFunctionType
 
 // What may follow a call: which rows of a window it sees when they are null, what a
 // set function inside a window is ordered by, and the window itself. All three are kept,
@@ -904,6 +965,26 @@ Argument : @Ast.Expression
 	= "NULL"i    => @(Build.Values.Null())
 	| "DEFAULT"i => @(Build.Values.Default())
 	| v: TSqlValueExpression => @(v)
+
+// What `TRIM (` begins with, up to its `FROM`: a specification and the characters, the characters
+// alone, or nothing — or the characters and no `FROM`, the call's first argument, where a word
+// of the specification with no `FROM` after it is a column's name. One rule, so that what may
+// stand after the bracket is asked for at once.
+TrimHead : @Build.Values.TrimHead
+	= how: TSqlTrimSpecification & what: CallItem? & from: "FROM"i => @(new Build.Values.TrimHead(how, what, from))
+	| ?!TSqlTrimSpecification & what: CallItem & from: "FROM"i?    => @(new Build.Values.TrimHead(null, what, from))
+	| what: CallItem                                               => @(new Build.Values.TrimHead(null, what, null))
+	| from: "FROM"i                                                => @(new Build.Values.TrimHead(null, null, from))
+
+// An argument a named function reads as a value, and whether `FunctionCall` would read the same.
+CallItem : @Build.Values.Argued
+	= v: TSqlValueExpression => @(new Build.Values.Argued(v, v is Ast.LiteralValue.Null || !Build.Values.NullHeaded(parserText)))
+
+// What `FunctionCall` reads after the arguments a named function has read, so that the call goes
+// on from them rather than from its name.
+CallRest : @Build.Values.Remainder
+	= (',' & rest: Argument)* & model: UseModel? & ')' & tail: CallTail?
+		=> @(new Build.Values.Remainder(rest, model, tail))
 
 CountStar : @Ast.Expression
 	= name: ("COUNT_BIG"i | "CHECKSUM"i | "BINARY_CHECKSUM"i) & '(' & '*' & ')'

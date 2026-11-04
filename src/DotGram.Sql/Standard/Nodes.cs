@@ -584,6 +584,9 @@ static class Nodes
 		return parts?.Roles ?? 0;
 	}
 
+	/// <summary>What <c>TRIM (</c> began with: the trim specification, the characters to trim and the <c>FROM</c>, where each was written.</summary>
+	internal sealed record TrimHead(string? How, Expression? What, string? From);
+
 	public static TrimSpecification TrimSpecificationOf(string word)
 	{
 		return (word[0] | 0x20) switch
