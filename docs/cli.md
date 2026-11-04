@@ -33,7 +33,7 @@ dotnet dotgram --help | generate --help | --skill | --version
 | `generate` | writes the parsers a build would generate |
 | `--skill` | prints the guide for coding agents (`SKILL.md`, which also ships in the package) |
 | `--version` | prints the tool's and the generator's versions |
-| `--help` | prints the usage; `generate --help` the same with the options |
+| `--help` | prints the usage, the commands and every option of `generate`; `generate --help` prints only `generate`'s |
 
 The input's kind is its extension: `.csproj` is a whole project, `.gram` is one grammar.
 

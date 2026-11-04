@@ -85,6 +85,7 @@ coding agents. The reference is [`docs/cli.md`](https://github.com/dotgram/dotgr
 `--` ends the options: every argument after it is the input, a dash in front or not. An option of a `.gram` input given
 with a project is a usage error, not ignored.
 
-Exit codes: 0 generated; 2 grammar errors (nothing written); 3 usage, input or output, a project not
+Exit codes: 0 generated; 2 grammar errors (nothing written), unless every one is GRAM3004 (a type a
+grammar names is not in view), which exits 3; 3 usage, input or output, a project not
 restored, MSBuild failing for a framework, a generator that will not load, an error the project's build
 would report too, frameworks that generate different files.

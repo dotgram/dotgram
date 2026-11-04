@@ -49,7 +49,8 @@ Two differences by design: `#line` paths are relative to the output folder (`--l
 gives the build's text), and the generation report files (`DotGramReportGeneration`) are not written.
 The `EmbeddedAttribute` definition is the compiler's text and may differ in line endings from your
 SDK's. The diagnostics of DotGram itself are shown at the severities the build gives them
-(`.editorconfig`, `/nowarn`, `/warnaserror`); an error among them stops the run with exit 2. If the
+(`.editorconfig`, `/nowarn`, `/warnaserror`); an error among them stops the run with exit 2, except when every one
+is GRAM3004 (a type a grammar names is not in view), which exits 3. If the
 SDK's compiler is older than the one DotGram was built for, the build skips DotGram (CS9057) and the
 tool exits 3 instead of generating.
 
@@ -91,7 +92,8 @@ The tool prints the line for its output folder.
 
 - The first line is the arguments as the tool understood them, response files expanded.
 - Diagnostics are `path(line,col): error GRAMnnnn: message`, as csc writes them.
-- Exit codes: 0 done; 2 grammar errors (nothing written); 3 usage, MSBuild failing for a framework, a
+- Exit codes: 0 done; 2 grammar errors (nothing written), unless every one is GRAM3004, which
+  exits 3; 3 usage, MSBuild failing for a framework, a
   project not restored, a generator that will not load, an error the project's build would report
   too (nothing written), frameworks that differ.
 - A project that references another version of `DotGram` than the tool carries is generated with the
