@@ -997,11 +997,7 @@ VarName : @QualifiedName = first: ColId & ('.' & rest: ColId)* => @(Nodes.Chain(
 // gram.y var_value, opt_boolean_or_string, NumericOnly: TRUE, FALSE, ON, any word that is no
 // reserved key word, a string, or a signed number.
 VarValue : @Expression
-	= "TRUE"i => @(new LiteralValue.Boolean(BooleanLiteral.True))
-	| "FALSE"i => @(new LiteralValue.Boolean(BooleanLiteral.False))
-	| on: "ON"i => @(new Expression.Reference(new QualifiedName(new Identifier(on))))
-	| w: NonReservedWord => @(new Expression.Reference(new QualifiedName(w)))
-	| s: Sconst => @(s)
+	= v: BoolOrString => @(v)
 	| n: NumericOnly => @(n)
 
 NumericOnly : @Expression = sign: ('+' | '-')? & ?!GluedNumber & t: (Real | Decimal | Integer) => @(Nodes.Signed(sign, t))
@@ -1099,6 +1095,98 @@ LockMode : @LockMode
 	| "SHARE"i => @(LockMode.Share)
 	| "EXCLUSIVE"i => @(LockMode.Exclusive)
 
+
+// ── The cursors: gram.y DeclareCursorStmt, FetchStmt, ClosePortalStmt ─────────
+//
+// gram.y DeclareCursorStmt, cursor_options, opt_hold: the words before CURSOR in any order, each
+// axis taking the last; the query is held to a SELECT by a lookahead before it is read.
+DeclareCursorStmt : @Statement
+	= "DECLARE"i & name: ColId & options: CursorOption* & "CURSOR"i & hold: ("WITH"i & "HOLD"i | "WITHOUT"i & "HOLD"i)? & "FOR"i & ?=SelectStart & s: Stmt & when @(s is Statement.Select)
+		=> @(Nodes.Declared(name, options, hold, s))
+
+CursorOption : @string = w: ("NO"i & "SCROLL"i | "SCROLL"i | "BINARY"i | "ASENSITIVE"i | "INSENSITIVE"i) => @(w)
+SelectStart = "SELECT"i | "WITH"i | "VALUES"i | "TABLE"i | '('
+
+// gram.y FetchStmt, fetch_args, from_in: FETCH or MOVE, the direction, FROM or IN, the cursor. A
+// direction's word is one only where the cursor follows it: `FETCH next` names a cursor.
+FetchStmt : @Statement = verb: ("FETCH"i | "MOVE"i) & args: FetchArgs => @(Nodes.CursorMoved(verb, args))
+FetchArgs : @Nodes.FetchArgs = o: FetchDirection? & word: ("FROM"i | "IN"i)? & c: ColId => @(new Nodes.FetchArgs(o, word, c))
+
+FetchDirection : @FetchOrientation
+	= "NEXT"i & ?=(("FROM"i | "IN"i)? & ColId) => @(new FetchOrientation(FetchOrientationKind.Next))
+	| "PRIOR"i & ?=(("FROM"i | "IN"i)? & ColId) => @(new FetchOrientation(FetchOrientationKind.Prior))
+	| "FIRST"i & ?=(("FROM"i | "IN"i)? & ColId) => @(new FetchOrientation(FetchOrientationKind.First))
+	| "LAST"i & ?=(("FROM"i | "IN"i)? & ColId) => @(new FetchOrientation(FetchOrientationKind.Last))
+	| "ABSOLUTE"i & n: SignedIconst => @(new FetchOrientation(FetchOrientationKind.Absolute, n))
+	| "RELATIVE"i & n: SignedIconst => @(new FetchOrientation(FetchOrientationKind.Relative, n))
+	| all: "ALL"i => @(Nodes.Directed(null, all, null))
+	| word: ("FORWARD"i | "BACKWARD"i) & (all: "ALL"i | n: SignedIconst?) & ?=(("FROM"i | "IN"i)? & ColId) => @(Nodes.Directed(word, all, n))
+	| n: SignedIconst => @(Nodes.Directed(null, null, n))
+
+// gram.y SignedIconst: a whole number under its sign, one token.
+SignedIconst : @Expression = sign: ('+' | '-')? & ?!GluedNumber & t: Integer => @(Nodes.SignedInteger(sign, t))
+
+// gram.y ClosePortalStmt.
+ClosePortalStmt : @Statement
+	= "CLOSE"i & "ALL"i => @(new Statement.CloseAllCursors())
+	| "CLOSE"i & c: ColId => @(new Statement.CloseCursor { Cursor = new CursorReference(new QualifiedName(c)) })
+
+// ── VACUUM and ANALYZE: gram.y VacuumStmt, AnalyzeStmt, vacuum_relation_list ────
+//
+// The options in brackets, or the old words in their fixed order; then the relations, each with
+// its columns, or none.
+VacuumStmt : @Statement
+	= "VACUUM"i & '(' & o1: UtilityOption & (',' & on: UtilityOption)* & ')' & relations: VacuumRelations => @(new Statement.Vacuum(Nodes.List(o1, on), SqlList.Own(relations)))
+	| "VACUUM"i & full: "FULL"i? & freeze: "FREEZE"i? & verbose: "VERBOSE"i? & analyze: AnalyzeWord? & relations: VacuumRelations => @(Nodes.Vacuumed(full, freeze, verbose, analyze, relations))
+
+AnalyzeStmt : @Statement
+	= word: AnalyzeWord & ('(' & o1: UtilityOption & (',' & on: UtilityOption)* & ')' | verbose: "VERBOSE"i?) & relations: VacuumRelations => @(Nodes.Analyzed(word, o1, on, verbose, relations))
+
+VacuumRelations : @VacuumRelation[] = (first: VacuumRelation & (',' & rest: VacuumRelation)*)? => @(Nodes.Items(first, rest))
+VacuumRelation  : @VacuumRelation   = r: RelationExpr & ('(' & c1: ColId & (',' & cn: ColId)* & ')')? => @(new VacuumRelation(r, Nodes.List(c1, cn)))
+
+// ── COPY: gram.y CopyStmt, copy_options, copy_opt_item, copy_generic_opt_elem ────
+//
+// A query in brackets and TO; or BINARY, the table, its columns, FROM or TO, PROGRAM, the file or
+// the stream, the old DELIMITERS, WITH, the options and WHERE — which a COPY TO does not take, as
+// the server's grammar has it. The options are read once from the bracket or the first old word.
+CopyStmt : @Statement
+	= "COPY"i & '(' & ?=PreparableStart & q: Stmt & when @(Nodes.Preparable(q)) & ')' & "TO"i & program: "PROGRAM"i? & file: CopyFileName & with: "WITH"i? & options: CopyOptions
+		=> @(Nodes.CopiedQuery(q, program, file, with, options))
+	| "COPY"i & binary: "BINARY"i? & name: AnyName & when @(name.Count <= 3) & ('(' & c1: ColId & (',' & cn: ColId)* & ')')? & direction: ("FROM"i | "TO"i) & program: "PROGRAM"i? & file: CopyFileName
+	  & ("USING"i? & "DELIMITERS"i & delimiter: Sconst)? & with: "WITH"i? & options: CopyOptions & ("WHERE"i & where: AExpr)? & when @(Nodes.CopyFits(direction, where))
+		=> @(Nodes.Copied(binary, name, c1, cn, direction, program, file, delimiter, with, options, where))
+
+CopyFileName : @Nodes.CopyFile = s: Sconst => @(new Nodes.CopyFile(s, null)) | w: ("STDIN"i | "STDOUT"i) => @(Nodes.Streamed(w))
+
+CopyOptions : @Nodes.CopyOptions
+	= '(' & o1: CopyGenericOption & (',' & on: CopyGenericOption)* & ')' => @(new Nodes.CopyOptions(Nodes.Items(o1, on), false))
+	| items: CopyLegacyOption* => @(new Nodes.CopyOptions(items ?? [], true))
+
+// gram.y copy_generic_opt_elem, copy_generic_opt_arg: any word as the name; a value, a star, DEFAULT,
+// a list of words or strings, or nothing.
+CopyGenericOption : @Option = name: ColLabel & value: CopyGenericArg? => @(new Option(name, value, []))
+CopyGenericArg : @Expression
+	= '*' => @(new Expression.Star())
+	| "DEFAULT"i => @(new Expression.Default())
+	| '(' & first: BoolOrString & (',' & rest: BoolOrString)* & ')' => @(new Expression.Row(Nodes.List(first, rest)))
+	| v: VarValue => @(v)
+
+// gram.y opt_boolean_or_string: TRUE, FALSE, ON, a word that is no reserved key word, or a string.
+BoolOrString : @Expression
+	= "TRUE"i => @(new LiteralValue.Boolean(BooleanLiteral.True))
+	| "FALSE"i => @(new LiteralValue.Boolean(BooleanLiteral.False))
+	| on: "ON"i => @(new Expression.Reference(new QualifiedName(new Identifier(on))))
+	| w: NonReservedWord => @(new Expression.Reference(new QualifiedName(w)))
+	| s: Sconst => @(s)
+
+// gram.y copy_opt_item: the old words, each the option it stands for.
+CopyLegacyOption : @Option
+	= w: ("BINARY"i | "FREEZE"i | "CSV"i | "HEADER"i) => @(Nodes.Legacy(w, null))
+	| w: ("DELIMITER"i | "NULL"i | "QUOTE"i | "ESCAPE"i) & "AS"i? & s: Sconst => @(Nodes.Legacy(w, s))
+	| w: ("FORCE"i & "QUOTE"i | "FORCE"i & "NOT"i & "NULL"i | "FORCE"i & "NULL"i) & (star: '*' | c1: ColId & (',' & cn: ColId)*) => @(Nodes.Forced(w, Nodes.Columns(star, c1, cn)))
+	| "ENCODING"i & s: Sconst => @(Nodes.Legacy("encoding", s))
+
 // gram.y DiscardStmt, CheckPointStmt — the latter T-SQL's record, with no duration.
 DiscardStmt    : @Statement = "DISCARD"i & w: ("ALL"i | "TEMPORARY"i | "TEMP"i | "PLANS"i | "SEQUENCES"i) => @(Nodes.Discarded(w))
 CheckpointStmt : @Statement = "CHECKPOINT"i => @(new Statement.Checkpoint(null))
@@ -1126,6 +1214,12 @@ BareStmt : @Statement
 	| s: LockStmt => @(s)
 	| s: DiscardStmt => @(s)
 	| s: CheckpointStmt => @(s)
+	| s: DeclareCursorStmt => @(s)
+	| s: FetchStmt => @(s)
+	| s: ClosePortalStmt => @(s)
+	| s: VacuumStmt => @(s)
+	| s: AnalyzeStmt => @(s)
+	| s: CopyStmt => @(s)
 	| body: SelectClause & order: SortClause? & tail: SelectTail? & when @(Nodes.ClausesFit(null, body, order, tail)) => @(new Statement.Select { Query = Nodes.Finished(null, body, order, tail) })
 
 // gram.y stmtmulti: statements each ended by `;` or by the end of the text, with empty statements
