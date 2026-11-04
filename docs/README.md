@@ -88,7 +88,6 @@ dated by the commit that wrote them.
 | [`design/normalizer-passes-2026-09-18.md`](design/normalizer-passes-2026-09-18.md), [`design/normalizer-optimize-2026-09-18.md`](design/normalizer-optimize-2026-09-18.md) | The normalizer split into building the graph and optimizing it, so the optimizing part may run again. |
 | [`design/shared-beginnings-over-kinds-2026-09-18.md`](design/shared-beginnings-over-kinds-2026-09-18.md) | What holds SQL:2023's rules on the tape over kinds, and what removes each kind of cause. |
 | [`design/sql-over-kinds.md`](design/sql-over-kinds.md) | Reading SQL over tokens rather than characters. |
-| [`design/read-directive-2026-09-19.md`](design/read-directive-2026-09-19.md) | Reading one rule from a position: what the positional forms already do and what they still owe. |
 | [`design/reader-input-forms.md`](design/reader-input-forms.md) | The input forms the generator compiles for. |
 | [`design/padded-run-give-back-2026-09-29.md`](design/padded-run-give-back-2026-09-29.md) | A run up to a padded delimiter followed by padding of its own: why it is read in turns, why the engine and a one-way tape do not cure it, and the proof that settles it. |
 | [`design/test-audit-2026-09-18.md`](design/test-audit-2026-09-18.md) | What each test proves, and what was removed for proving it twice. |
