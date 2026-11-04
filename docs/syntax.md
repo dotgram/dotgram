@@ -4252,8 +4252,8 @@ anything; declaring is how control is taken, never how it is obtained.
 
 | Wanted | Shape | Declared |
 | --- | --- | --- |
-| most control, no allocation per record | `Read()` and properties | nothing |
-| failures in the stream, LINQ over it | `IEnumerable<RowOutcome>` | nothing |
+| most control, no allocation per record | `Read()` and properties (not generated yet — status.md) | nothing |
+| failures in the stream, LINQ over it | `IEnumerable<RowOutcome>` (not generated yet — status.md) | nothing |
 | failures in the stream as the author's own types | `IEnumerable<FeedItem>` with a factory | `: T[]` |
 | successful records only, failures to a log | `IEnumerable<Row>` and a sink | nothing |
 
