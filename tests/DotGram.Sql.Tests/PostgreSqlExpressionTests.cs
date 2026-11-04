@@ -525,6 +525,10 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("SELECT a FROM t FETCH FIRST rows ROWS ONLY",    "fetch a column named rows")]
 	[InlineData("SELECT a FROM t GROUP BY ROLLUP(ROLLUP(a)), CUBE(cube(b))", "rollup over a call")]
 	[InlineData("SELECT * FROM (SELECT a FROM t ORDER BY a FETCH FIRST 1 ROWS WITH TIES) s FOR UPDATE SKIP LOCKED", "ties inside, skip locked outside")]
+	[InlineData("SELECT * FROM coalesce(b) AS c(d int), LATERAL nullif(1, 2) WITH ORDINALITY AS n(e, f)", "key word calls as tables")]
+	[InlineData("SELECT * FROM a.b.c",                                     "three-part table")]
+	[InlineData("SELECT * FROM a.b.c.d",                                   "refused: four-part table")]
+	[InlineData("SELECT * FROM CAST(1 AS int) AS c",                       "refused: CAST as a table")]
 	[InlineData("(SELECT 1 FOR UPDATE SKIP LOCKED) ORDER BY 1 FETCH FIRST 1 ROW WITH TIES", "refused: SKIP LOCKED in the brackets and WITH TIES after")]
 	[InlineData("((SELECT 1 FOR UPDATE SKIP LOCKED)) ORDER BY 1 FETCH FIRST 1 ROW WITH TIES", "refused: SKIP LOCKED two brackets deep and WITH TIES after")]
 	// What gram.y refuses in its actions, and what its lists refuse.
@@ -639,6 +643,8 @@ public sealed class PostgreSqlExpressionTests
 			"fetch a column named rows" => query is Query.Select { Limit: { Count: Expression.Reference, FetchRowWord: RowWord.Rows } },
 			"rollup over a call"    => query is Query.Select { GroupBy.Items: [GroupingElement.Rollup { Items: [GroupingElement.Ordinary { Expressions: [Expression.Invocation] }] }, GroupingElement.Cube { Items: [GroupingElement.Ordinary { Expressions: [Expression.Invocation] }] }] },
 			"ties inside, skip locked outside" => query is Query.Select { From.Sources: [TableSource.Subquery { Query.Limit.WithTies: true }], Locking: [{ Wait: LockWait.SkipLocked }] },
+			"key word calls as tables" => query is Query.Select { From.Sources: [TableSource.Function { Invocation.Name.Count: 1, ColumnDefinitions.Count: 1, Lateral: false }, TableSource.Function { Invocation.Arguments.Count: 2, Lateral: true, WithOrdinality: true, Alias.Columns.Count: 2 }] },
+			"three-part table"      => query is Query.Select { From.Sources: [TableSource.Named { Name.Count: 3 }] },
 			_ => throw new ArgumentOutOfRangeException(nameof(expected)),
 		};
 
@@ -668,7 +674,22 @@ public sealed class PostgreSqlExpressionTests
 	[InlineData("WITH x AS (UPDATE t SET a = 1 RETURNING a) SELECT * FROM x", "data change body in select")]
 	[InlineData("TRUNCATE a, ONLY b, c * RESTART IDENTITY CASCADE",         "truncate")]
 	[InlineData("TRUNCATE TABLE t CONTINUE IDENTITY RESTRICT",            "truncate table")]
+	[InlineData("INSERT INTO t (values) VALUES (1)",                      "insert into a column named values")]
+	[InlineData("INSERT INTO t (values, a) SELECT 1, 2",                  "insert into columns named values and a")]
+	[InlineData("INSERT INTO t (VALUES (1))",                             "insert bracketed values")]
+	[InlineData("INSERT INTO t VALUES (1) ON CONFLICT (coalesce(a, 0), (CAST(a AS int)), CAST(b AS int), EXTRACT(year FROM d)) DO NOTHING", "on conflict key word calls")]
+	[InlineData("INSERT INTO a.b.c VALUES (1)",                           "insert into a three-part name")]
 	[InlineData("WITH x AS (SELECT 1) TRUNCATE t",                        "refused: WITH before TRUNCATE")]
+	[InlineData("WITH x AS (TRUNCATE t) SELECT 1",                        "refused: TRUNCATE as a WITH body")]
+	[InlineData("MERGE INTO t USING s ON true WHEN NOT MATCHED THEN INSERT (a) DEFAULT VALUES", "refused: MERGE INSERT with columns and DEFAULT VALUES")]
+	[InlineData("MERGE INTO t USING s ON true WHEN NOT MATCHED THEN INSERT OVERRIDING SYSTEM VALUE DEFAULT VALUES", "refused: MERGE INSERT with OVERRIDING and DEFAULT VALUES")]
+	[InlineData("UPDATE t SET a = 1 RETURNING WITH (OLD AS o, OLD AS p) *", "refused: OLD named twice")]
+	[InlineData("UPDATE t SET a = 1 RETURNING WITH (NEW AS n, OLD AS o, NEW AS m) *", "refused: NEW named twice")]
+	[InlineData("INSERT INTO a.b.c.d VALUES (1)",                         "refused: four-part INSERT target")]
+	[InlineData("UPDATE a.b.c.d SET x = 1",                               "refused: four-part UPDATE target")]
+	[InlineData("DELETE FROM a.b.c.d",                                    "refused: four-part DELETE target")]
+	[InlineData("TRUNCATE a, ONLY (a.b.c.d)",                             "refused: four-part TRUNCATE target")]
+	[InlineData("MERGE INTO a.b.c.d USING s ON true WHEN MATCHED THEN DELETE", "refused: four-part MERGE target")]
 	[InlineData("DELETE t WHERE a = 1",                                   "refused: DELETE without FROM")]
 	[InlineData("MERGE INTO t USING s ON true",                           "refused: MERGE without WHEN")]
 	[InlineData("INSERT INTO t VALUES (1) ON CONFLICT DO UPDATE",         "refused: DO UPDATE without SET")]
@@ -698,6 +719,11 @@ public sealed class PostgreSqlExpressionTests
 			"delete current of"        => made is Statement.Delete { CurrentOf: not null, Using: null },
 			"merge"                    => made is Statement.Merge { Alias.Name.Text: "x", Clauses: [MergeClause.Matched { Condition: not null, Action: MergeMatchedAction.Update }, MergeClause.Matched { Condition: null, Action: MergeMatchedAction.Delete }, MergeClause.NotMatchedBySource { Action: MergeMatchedAction.DoNothing }, MergeClause.NotMatched { ByTarget: true, Action: { Columns.Count: 2, Override: OverrideKind.UserValue, Values.Count: 2 } }, MergeClause.NotMatched { ByTarget: false, Action.DoNothing: true }], Returning: ReturningClause.Returned { Items.Count: 2 } },
 			"merge insert default values" => made is Statement.Merge { Clauses: [MergeClause.NotMatched { Action: { DefaultValues: true, DoNothing: false } }] },
+			"insert into a column named values" => made is Statement.Insert { Columns: [{ Text: "values" }], SourceValue: InsertSource.Values { Rows.Count: 1 } },
+			"insert into columns named values and a" => made is Statement.Insert { Columns.Count: 2, SourceValue: InsertSource.Subquery { Query: Query.Select } },
+			"insert bracketed values"  => made is Statement.Insert { Columns.Count: 0, SourceValue: InsertSource.Subquery { Query: Query.Parenthesized { Query: Query.Select { Values.Count: 1 } } } },
+			"on conflict key word calls" => made is Statement.Insert { Conflicts: [{ Target: ConflictTarget.Columns { Items: [Expression.Invocation, Expression.Parenthesized, Expression.Cast, Expression.Extract] } }] },
+			"insert into a three-part name" => made is Statement.Insert { Target: TableSource.Named { Name.Count: 3 } },
 			"data change body in insert" => made is Statement.Insert { With.Items: [{ Query: Query.DataChange { Change: Statement.Delete { Returning: not null } } }] },
 			"data change body in select" => made is Statement.Select { Query.With.Items: [{ Query: Query.DataChange { Change: Statement.Update } }] },
 			"truncate"                 => made is Statement.TruncateTable { TableOmitted: true, Target: TableSource.Named { Name.Count: 1 }, Others: [TableSource.Named { Only: true }, TableSource.Named { Star: true }], Identity: IdentityRestart.Restart, Behavior: DropBehavior.Cascade },
