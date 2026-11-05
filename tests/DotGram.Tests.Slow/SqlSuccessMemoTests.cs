@@ -200,7 +200,8 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 			.Concat(Statements().Where((_, i) => i % 4 == 0))
 			.Concat(corpus)
 			.Concat(generated)
-			.Concat(Sql92Shapes.SelectMany(shape => new[] { 2, 5, 8, 16 }.Select(depth => Prefix + Nest(shape.Shape, shape.Core, depth))))
+			// To depth 8: without the memo the subquery with a set operation costs a hundred million entries there, and three to the depth beyond.
+			.Concat(Sql92Shapes.SelectMany(shape => new[] { 2, 5, 8 }.Select(depth => Prefix + Nest(shape.Shape, shape.Core, depth))))
 			.Concat(Sql92Shapes.Select(shape => Nest(shape.Shape, shape.Core, 3)))
 			.Concat(
 			[
@@ -243,7 +244,7 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 
 		var texts = Harvested("TransactSql")
 			.Concat(Statements())
-			.Concat(TSqlShapes.SelectMany(shape => new[] { 2, 5, 8, 16 }.Select(depth => "SELECT a FROM t WHERE " + Nest(shape.Shape, shape.Core, depth))))
+			.Concat(TSqlShapes.SelectMany(shape => new[] { 2, 5, 8 }.Select(depth => "SELECT a FROM t WHERE " + Nest(shape.Shape, shape.Core, depth))))
 			.Concat(TSqlShapes.Select(shape => Nest(shape.Shape, shape.Core, 3)))
 			.Distinct()
 			.ToList();
