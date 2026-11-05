@@ -37,6 +37,11 @@ sealed class GramNativeNavigationListener : IWpfTextViewCreationListener
 	{
 		void Attach(object? sender = null, EventArgs? args = null)
 		{
+			EditorGuard.Run("Native navigation attach", AttachNow);
+		}
+
+		void AttachNow()
+		{
 			ThreadHelper.ThrowIfNotOnUIThread();
 			if (textView.Properties.ContainsProperty(typeof(GramCodeWindowManager)))
 				return;
@@ -59,7 +64,7 @@ sealed class GramNativeNavigationListener : IWpfTextViewCreationListener
 
 			textView.Properties.AddProperty(typeof(GramCodeWindowManager), manager);
 			textView.VisualElement.Loaded -= Attach;
-			textView.Closed += (_, _) => manager.RemoveAdornments();
+			textView.Closed += (_, _) => EditorGuard.Run("Native navigation detach", () => manager.RemoveAdornments());
 		}
 
 		textView.VisualElement.Loaded += Attach;
@@ -124,6 +129,15 @@ public sealed class DotGramPackage : AsyncPackage, IVsRunningDocTableEvents3
 
 	public int OnBeforeDocumentWindowShow(uint cookie, int firstShow, IVsWindowFrame frame)
 	{
+		return EditorGuard.Run("Native navigation window show", VSConstants.S_OK, () =>
+		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+			return Show(cookie, frame);
+		});
+	}
+
+	int Show(uint cookie, IVsWindowFrame frame)
+	{
 		ThreadHelper.ThrowIfNotOnUIThread();
 		if (_documents is null || _windows.ContainsKey(frame) || !IsGramDocument(cookie))
 			return VSConstants.S_OK;
@@ -149,6 +163,15 @@ public sealed class DotGramPackage : AsyncPackage, IVsRunningDocTableEvents3
 	}
 
 	public int OnAfterDocumentWindowHide(uint cookie, IVsWindowFrame frame)
+	{
+		return EditorGuard.Run("Native navigation window hide", VSConstants.S_OK, () =>
+		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+			return Hide(frame);
+		});
+	}
+
+	int Hide(IVsWindowFrame frame)
 	{
 		ThreadHelper.ThrowIfNotOnUIThread();
 		if (_windows.TryGetValue(frame, out var manager))
@@ -224,6 +247,26 @@ sealed class GramPriorityCommandTarget(
 
 	public int QueryStatus(ref Guid commandGroup, uint commandCount, OLECMD[] commands, IntPtr commandText)
 	{
+		var group = commandGroup;
+		return EditorGuard.Run("Priority Find References state", NotSupported, () =>
+		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+			return Status(group, commandCount, commands);
+		});
+	}
+
+	public int Exec(ref Guid commandGroup, uint commandId, uint options, IntPtr input, IntPtr output)
+	{
+		var group = commandGroup;
+		return EditorGuard.Run("Priority Find References", NotSupported, () =>
+		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+			return Execute(group, commandId);
+		});
+	}
+
+	int Status(Guid commandGroup, uint commandCount, OLECMD[] commands)
+	{
 		ThreadHelper.ThrowIfNotOnUIThread();
 		if (commandCount != 1 || !IsFindReferences(commandGroup, commands[0].cmdID) || ActiveCSharpView() is null)
 			return NotSupported;
@@ -232,7 +275,7 @@ sealed class GramPriorityCommandTarget(
 		return VSConstants.S_OK;
 	}
 
-	public int Exec(ref Guid commandGroup, uint commandId, uint options, IntPtr input, IntPtr output)
+	int Execute(Guid commandGroup, uint commandId)
 	{
 		ThreadHelper.ThrowIfNotOnUIThread();
 		if (!IsFindReferences(commandGroup, commandId) || ActiveCSharpView() is not { } view)
@@ -330,7 +373,7 @@ sealed class GramDropdownClient : IVsDropdownBarClient, IDisposable
 	public int SetDropdownBar(IVsDropdownBar dropdown)
 	{
 		_dropdown = dropdown;
-		SelectAtCaret();
+		EditorGuard.Run("Native navigation dropdown", SelectAtCaret);
 		return VSConstants.S_OK;
 	}
 
@@ -371,6 +414,11 @@ sealed class GramDropdownClient : IVsDropdownBarClient, IDisposable
 
 	public int OnItemChosen(int combo, int index)
 	{
+		return EditorGuard.Run("Native navigation dropdown choice", VSConstants.E_FAIL, () => Choose(index));
+	}
+
+	int Choose(int index)
+	{
 		if (!Valid(index))
 			return VSConstants.E_INVALIDARG;
 
@@ -409,7 +457,7 @@ sealed class GramDropdownClient : IVsDropdownBarClient, IDisposable
 
 	void CaretChanged(object sender, CaretPositionChangedEventArgs args)
 	{
-		SelectAtCaret();
+		EditorGuard.Run("Native navigation dropdown caret", SelectAtCaret);
 	}
 
 	void Refresh(ITextSnapshot snapshot)

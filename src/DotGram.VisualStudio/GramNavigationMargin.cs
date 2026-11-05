@@ -33,9 +33,12 @@ sealed class EmbeddedGramNavigationMarginProvider : IWpfTextViewMarginProvider
 
 	public IWpfTextViewMargin CreateMargin(IWpfTextViewHost host, IWpfTextViewMargin containerMargin)
 	{
-		return new EmbeddedGramNavigationMargin(
-			host.TextView,
-			EmbeddedGrammarBufferAnalysis.For(host.TextView.TextBuffer, Workspace, Documents));
+		return EditorGuard.Run<IWpfTextViewMargin>(
+			"Embedded navigation margin",
+			null!,
+			() => new EmbeddedGramNavigationMargin(
+				host.TextView,
+				EmbeddedGrammarBufferAnalysis.For(host.TextView.TextBuffer, Workspace, Documents)));
 	}
 }
 
@@ -73,35 +76,54 @@ abstract class GramNavigationMargin : Grid, IWpfTextViewMargin
 		if (snapshot != _view.TextSnapshot)
 			return;
 
+		// Left set by a failure, it would ignore every selection the user makes from then on.
 		_updating = true;
-		var items = Items(snapshot);
-		_symbols.ItemsSource = items;
-		Visibility = items.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
-		SelectAtCaret(items, snapshot);
-		_updating = false;
+		try
+		{
+			var items = Items(snapshot);
+			_symbols.ItemsSource = items;
+			Visibility = items.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+			SelectAtCaret(items, snapshot);
+		}
+		finally
+		{
+			_updating = false;
+		}
 	}
 
 	protected void RequestRefresh(ITextSnapshot snapshot)
 	{
-		if (Dispatcher.CheckAccess())
-			Refresh(snapshot);
-		else
-			ThreadHelper.JoinableTaskFactory.Run(async () =>
-			{
-				await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+		EditorGuard.Run("Navigation margin refresh", () =>
+		{
+			if (Dispatcher.CheckAccess())
 				Refresh(snapshot);
-			});
+			else
+				ThreadHelper.JoinableTaskFactory.Run(async () =>
+				{
+					await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+					Refresh(snapshot);
+				});
+		});
 	}
 
 	void CaretChanged(object sender, CaretPositionChangedEventArgs args)
 	{
-		var items = _symbols.ItemsSource as IReadOnlyList<NavigationItem>;
-		if (items is null)
-			return;
+		EditorGuard.Run("Navigation margin caret", () =>
+		{
+			var items = _symbols.ItemsSource as IReadOnlyList<NavigationItem>;
+			if (items is null)
+				return;
 
-		_updating = true;
-		SelectAtCaret(items, args.NewPosition.BufferPosition.Snapshot);
-		_updating = false;
+			_updating = true;
+			try
+			{
+				SelectAtCaret(items, args.NewPosition.BufferPosition.Snapshot);
+			}
+			finally
+			{
+				_updating = false;
+			}
+		});
 	}
 
 	void SelectAtCaret(IReadOnlyList<NavigationItem> items, ITextSnapshot snapshot)
@@ -115,6 +137,11 @@ abstract class GramNavigationMargin : Grid, IWpfTextViewMargin
 	}
 
 	void SelectionChanged(object sender, SelectionChangedEventArgs args)
+	{
+		EditorGuard.Run("Navigation margin selection", Select);
+	}
+
+	void Select()
 	{
 		if (_updating || _symbols.SelectedItem is not NavigationItem item)
 			return;

@@ -80,6 +80,37 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 		SnapshotPoint triggerLocation,
 		CancellationToken token)
 	{
+		return EditorGuard.Run(
+			"Completion start",
+			CompletionStartData.DoesNotParticipateInCompletion,
+			() => Start(triggerLocation),
+			token);
+	}
+
+	public Task<CompletionContext> GetCompletionContextAsync(
+		IAsyncCompletionSession session,
+		CompletionTrigger trigger,
+		SnapshotPoint triggerLocation,
+		SnapshotSpan applicableToSpan,
+		CancellationToken token)
+	{
+		return EditorGuard.RunAsync(
+			"Completion",
+			CompletionContext.Empty,
+			() => ContextAsync(triggerLocation, applicableToSpan, token),
+			token);
+	}
+
+	public Task<object> GetDescriptionAsync(
+		IAsyncCompletionSession session,
+		CompletionItem item,
+		CancellationToken token)
+	{
+		return EditorGuard.Run("Completion description", Task.FromResult<object>(""), () => DescriptionAsync(item), token);
+	}
+
+	CompletionStartData Start(SnapshotPoint triggerLocation)
+	{
 		if (!IsApplicable(triggerLocation))
 			return CompletionStartData.DoesNotParticipateInCompletion;
 
@@ -88,9 +119,7 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 			WordSpan(triggerLocation));
 	}
 
-	public async Task<CompletionContext> GetCompletionContextAsync(
-		IAsyncCompletionSession session,
-		CompletionTrigger trigger,
+	async Task<CompletionContext> ContextAsync(
 		SnapshotPoint triggerLocation,
 		SnapshotSpan applicableToSpan,
 		CancellationToken token)
@@ -182,10 +211,7 @@ abstract class GramCompletionSourceBase : IAsyncCompletionSource
 		return new CompletionContext(items.ToImmutable());
 	}
 
-	public Task<object> GetDescriptionAsync(
-		IAsyncCompletionSession session,
-		CompletionItem item,
-		CancellationToken token)
+	Task<object> DescriptionAsync(CompletionItem item)
 	{
 		return Task.FromResult<object>(
 			_descriptions.TryGetValue(item.DisplayText, out var description)
@@ -1112,9 +1138,9 @@ static class RoslynSymbolNavigation
 			var result = pendingNavigation is null ? null : await ResultAsync(pendingNavigation).ConfigureAwait(false);
 			return result is true;
 		}
-		catch (Exception exception) when (exception is not OutOfMemoryException)
+		catch (Exception exception) when (EditorGuard.Recoverable(exception))
 		{
-			Microsoft.VisualStudio.Shell.ActivityLog.LogError("DotGram.VisualStudio", exception.ToString());
+			EditorGuard.Log("Roslyn symbol navigation", exception);
 			return false;
 		}
 	}

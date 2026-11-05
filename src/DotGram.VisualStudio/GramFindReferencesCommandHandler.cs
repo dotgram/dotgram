@@ -42,6 +42,20 @@ sealed class GramFindReferencesCommandHandler : ICommandHandler<FindReferencesCo
 
 	public CommandState GetCommandState(FindReferencesCommandArgs args)
 	{
+		return EditorGuard.Run("Find References state", CommandState.Unavailable, () => State(args));
+	}
+
+	public bool ExecuteCommand(FindReferencesCommandArgs args, CommandExecutionContext executionContext)
+	{
+		return EditorGuard.Run("Find References", false, () =>
+		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+			return Execute(args);
+		});
+	}
+
+	CommandState State(FindReferencesCommandArgs args)
+	{
 		if (args.SubjectBuffer.ContentType.IsOfType("CSharp"))
 			return CommandState.Available;
 
@@ -49,7 +63,7 @@ sealed class GramFindReferencesCommandHandler : ICommandHandler<FindReferencesCo
 		return found is null ? CommandState.Unavailable : CommandState.Available;
 	}
 
-	public bool ExecuteCommand(FindReferencesCommandArgs args, CommandExecutionContext executionContext)
+	bool Execute(FindReferencesCommandArgs args)
 	{
 		ThreadHelper.ThrowIfNotOnUIThread();
 		if (args.SubjectBuffer.ContentType.IsOfType("CSharp"))
@@ -76,9 +90,9 @@ sealed class GramFindReferencesCommandHandler : ICommandHandler<FindReferencesCo
 				Show(references);
 				return true;
 			}
-			catch (Exception exception) when (exception is not OutOfMemoryException)
+			catch (Exception exception) when (EditorGuard.Recoverable(exception))
 			{
-				ActivityLog.LogError("DotGram.VisualStudio", exception.ToString());
+				EditorGuard.Log("C# Find All References", exception);
 				return false;
 			}
 		}

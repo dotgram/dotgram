@@ -28,10 +28,22 @@ sealed class GramRenameCommandHandler : ICommandHandler<RenameCommandArgs>
 
 	public CommandState GetCommandState(RenameCommandArgs args)
 	{
-		return Target(args) is null ? CommandState.Unavailable : CommandState.Available;
+		return EditorGuard.Run(
+			"Rename state",
+			CommandState.Unavailable,
+			() => Target(args) is null ? CommandState.Unavailable : CommandState.Available);
 	}
 
 	public bool ExecuteCommand(RenameCommandArgs args, CommandExecutionContext executionContext)
+	{
+		return EditorGuard.Run("Rename", false, () =>
+		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+			return Execute(args);
+		});
+	}
+
+	bool Execute(RenameCommandArgs args)
 	{
 		ThreadHelper.ThrowIfNotOnUIThread();
 		var found = Target(args);
@@ -58,7 +70,8 @@ sealed class GramRenameCommandHandler : ICommandHandler<RenameCommandArgs>
 			return;
 		}
 
-		GramRenameAdornment.Show(view, found.Name, replacement =>
+		// The rename is applied later, from the adornment's own keyboard and command handlers.
+		GramRenameAdornment.Show(view, found.Name, replacement => EditorGuard.Run("Rename apply", () =>
 		{
 			if (replacement == found.Name)
 				return;
@@ -69,7 +82,7 @@ sealed class GramRenameCommandHandler : ICommandHandler<RenameCommandArgs>
 				edit.Replace(position, found.Name.Length, replacement);
 
 			edit.Apply();
-		});
+		}));
 	}
 
 	GramFindReferencesTarget? Target(RenameCommandArgs args)

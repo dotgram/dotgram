@@ -37,10 +37,13 @@ sealed class EmbeddedGrammarClassifierProvider : IClassifierProvider
 
 	public IClassifier GetClassifier(ITextBuffer buffer)
 	{
-		return buffer.Properties.GetOrCreateSingletonProperty(() =>
-			new EmbeddedGrammarClassifier(
-				EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents),
-				Classifications));
+		return EditorGuard.Run<IClassifier>(
+			"Embedded classifier",
+			null!,
+			() => buffer.Properties.GetOrCreateSingletonProperty(() =>
+				new EmbeddedGrammarClassifier(
+					EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents),
+					Classifications)));
 	}
 }
 
@@ -82,6 +85,11 @@ sealed class EmbeddedGrammarClassifier : IClassifier
 	public event EventHandler<ClassificationChangedEventArgs>? ClassificationChanged;
 
 	public IList<ClassificationSpan> GetClassificationSpans(SnapshotSpan span)
+	{
+		return EditorGuard.Run<IList<ClassificationSpan>>("Embedded classification", [], () => Spans(span));
+	}
+
+	List<ClassificationSpan> Spans(SnapshotSpan span)
 	{
 		var snapshot = span.Snapshot;
 		var result   = new List<ClassificationSpan>();
@@ -160,8 +168,11 @@ sealed class EmbeddedGrammarDiagnosticTaggerProvider : ITaggerProvider
 
 	public ITagger<T>? CreateTagger<T>(ITextBuffer buffer) where T : ITag
 	{
-		return new EmbeddedGrammarDiagnosticTagger(
-			EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents)) as ITagger<T>;
+		return EditorGuard.Run<ITagger<T>?>(
+			"Embedded diagnostic tagger",
+			null,
+			() => new EmbeddedGrammarDiagnosticTagger(
+				EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents)) as ITagger<T>);
 	}
 }
 
@@ -178,6 +189,11 @@ sealed class EmbeddedGrammarDiagnosticTagger : ITagger<ErrorTag>
 	public event EventHandler<SnapshotSpanEventArgs>? TagsChanged;
 
 	public IEnumerable<ITagSpan<ErrorTag>> GetTags(NormalizedSnapshotSpanCollection spans)
+	{
+		return EditorGuard.Enumerate("Embedded diagnostic tags", Tags(spans));
+	}
+
+	IEnumerable<ITagSpan<ErrorTag>> Tags(NormalizedSnapshotSpanCollection spans)
 	{
 		if (spans.Count == 0)
 			yield break;
@@ -438,6 +454,11 @@ sealed class EmbeddedGrammarBufferAnalysis
 
 	void BufferChanged(object sender, TextContentChangedEventArgs change)
 	{
+		EditorGuard.Run("Embedded grammar buffer change", () => BufferChanged(change));
+	}
+
+	void BufferChanged(TextContentChangedEventArgs change)
+	{
 		var translated = false;
 
 		lock (_gate)
@@ -470,6 +491,11 @@ sealed class EmbeddedGrammarBufferAnalysis
 	}
 
 	void WorkspaceChanged(object sender, WorkspaceChangeEventArgs change)
+	{
+		EditorGuard.Run("Embedded grammar workspace change", () => WorkspaceChanged(change));
+	}
+
+	void WorkspaceChanged(WorkspaceChangeEventArgs change)
 	{
 		if (!_documents.TryGetTextDocument(_buffer, out var textDocument) || textDocument.FilePath is null)
 			return;
@@ -630,14 +656,17 @@ sealed class EmbeddedGrammarBufferAnalysis
 			await NotifyChangedAsync(snapshot);
 
 			if (retry)
-				_ = RetryAsync(snapshot, cancellationToken);
+				_ = EditorGuard.RunAsync(
+					"Embedded grammar retry",
+					() => RetryAsync(snapshot, cancellationToken),
+					cancellationToken);
 		}
 		catch (OperationCanceledException)
 		{
 		}
-		catch (Exception exception) when (exception is not OutOfMemoryException)
+		catch (Exception exception) when (EditorGuard.Recoverable(exception))
 		{
-			ActivityLog.LogError("DotGram.VisualStudio", exception.ToString());
+			EditorGuard.Log("Embedded grammar analysis", exception);
 			// An editor extension must degrade to no tags rather than destabilize Visual Studio.
 		}
 	}

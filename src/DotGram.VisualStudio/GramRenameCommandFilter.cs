@@ -33,6 +33,15 @@ sealed class GramRenameViewListener : IWpfTextViewCreationListener
 
 	public void TextViewCreated(IWpfTextView view)
 	{
+		EditorGuard.Run("Rename command filter", () =>
+		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+			Created(view);
+		});
+	}
+
+	void Created(IWpfTextView view)
+	{
 		ThreadHelper.ThrowIfNotOnUIThread();
 		var adapter = Adapters.GetViewAdapter(view);
 
@@ -98,9 +107,9 @@ sealed class GramCSharpFindReferencesService
 			GramFindReferencesCommandHandler.Show(references, Services, Buffers, ContentTypes);
 			return true;
 		}
-		catch (Exception exception) when (exception is not OutOfMemoryException)
+		catch (Exception exception) when (EditorGuard.Recoverable(exception))
 		{
-			ActivityLog.LogError("DotGram.VisualStudio", exception.ToString());
+			EditorGuard.Log("C# Find All References", exception);
 			return false;
 		}
 	}
@@ -113,20 +122,15 @@ sealed class GramRenameCommandFilter(
 {
 	public IOleCommandTarget Next { get; set; } = null!;
 
+	// Only this filter's own part is guarded: what it does not handle, or fails to, goes on to the
+	// next command target, whose failures are not this extension's to swallow.
 	public int QueryStatus(ref Guid commandGroup, uint commandCount, OLECMD[] commands, IntPtr commandText)
 	{
 		ThreadHelper.ThrowIfNotOnUIThread();
+		var group = commandGroup;
 
-		if (commandCount == 1 && IsRename(commandGroup, commands[0].cmdID) && Target() is not null)
-		{
-			commands[0].cmdf = (uint)(OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED);
+		if (EditorGuard.Run("Rename command filter state", false, () => Supports(group, commandCount, commands)))
 			return VSConstants.S_OK;
-		}
-		if (commandCount == 1 && IsFindReferences(commandGroup, commands[0].cmdID) && findReferences is not null)
-		{
-			commands[0].cmdf = (uint)(OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED);
-			return VSConstants.S_OK;
-		}
 
 		return Next.QueryStatus(ref commandGroup, commandCount, commands, commandText);
 	}
@@ -134,26 +138,51 @@ sealed class GramRenameCommandFilter(
 	public int Exec(ref Guid commandGroup, uint commandId, uint options, IntPtr input, IntPtr output)
 	{
 		ThreadHelper.ThrowIfNotOnUIThread();
+		var group = commandGroup;
 
-		if (GramRenameAdornment.TryHandleCommand(view, commandGroup, commandId))
+		if (EditorGuard.Run("Rename command filter", false, () => Handle(group, commandId)))
 			return VSConstants.S_OK;
 
+		return Next.Exec(ref commandGroup, commandId, options, input, output);
+	}
+
+	bool Supports(Guid commandGroup, uint commandCount, OLECMD[] commands)
+	{
+		if (commandCount == 1 && IsRename(commandGroup, commands[0].cmdID) && Target() is not null)
+		{
+			commands[0].cmdf = (uint)(OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED);
+			return true;
+		}
+		if (commandCount == 1 && IsFindReferences(commandGroup, commands[0].cmdID) && findReferences is not null)
+		{
+			commands[0].cmdf = (uint)(OLECMDF.OLECMDF_SUPPORTED | OLECMDF.OLECMDF_ENABLED);
+			return true;
+		}
+
+		return false;
+	}
+
+	bool Handle(Guid commandGroup, uint commandId)
+	{
+		ThreadHelper.ThrowIfNotOnUIThread();
+
+		if (GramRenameAdornment.TryHandleCommand(view, commandGroup, commandId))
+			return true;
+
 		if (IsFindReferences(commandGroup, commandId))
-			return findReferences?.Invoke() == true
-				? VSConstants.S_OK
-				: Next.Exec(ref commandGroup, commandId, options, input, output);
+			return findReferences?.Invoke() == true;
 
 		if (!IsRename(commandGroup, commandId))
-			return Next.Exec(ref commandGroup, commandId, options, input, output);
+			return false;
 
 		var found = Target();
 
 		if (found is null)
-			return Next.Exec(ref commandGroup, commandId, options, input, output);
+			return false;
 
 		GramRenameCommandHandler.Rename(view, found);
 
-		return VSConstants.S_OK;
+		return true;
 	}
 
 	GramFindReferencesTarget? Target()

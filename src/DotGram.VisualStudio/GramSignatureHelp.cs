@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel.Composition;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 using DotGram.Grammar;
@@ -28,8 +29,9 @@ sealed class GramSignatureHelpTrigger : IWpfTextViewCreationListener
 
 	public void TextViewCreated(IWpfTextView textView)
 	{
-		textView.TextBuffer.Changed += (sender, change) =>
-			Trigger(textView, Broker, change, static (_, _) => true);
+		textView.TextBuffer.Changed += (sender, change) => EditorGuard.Run(
+			"Signature help trigger",
+			() => Trigger(textView, Broker, change, static (_, _) => true));
 	}
 
 	internal static void Trigger(
@@ -43,7 +45,7 @@ sealed class GramSignatureHelpTrigger : IWpfTextViewCreationListener
 		if (edit is null || edit.NewText.Length != 1 || edit.NewText[0] is not ('(' or ',' or ')'))
 			return;
 
-		_ = TriggerAsync();
+		_ = EditorGuard.RunAsync("Signature help trigger", TriggerAsync, CancellationToken.None);
 
 		async Task TriggerAsync()
 		{
@@ -80,16 +82,22 @@ sealed class EmbeddedGramSignatureHelpTrigger : IWpfTextViewCreationListener
 
 	public void TextViewCreated(IWpfTextView textView)
 	{
+		EditorGuard.Run("Embedded signature help trigger", () => Created(textView));
+	}
+
+	void Created(IWpfTextView textView)
+	{
 		var analysis = EmbeddedGrammarBufferAnalysis.For(textView.TextBuffer, Workspace, Documents);
 
-		textView.TextBuffer.Changed += (sender, change) =>
-			GramSignatureHelpTrigger.Trigger(
+		textView.TextBuffer.Changed += (sender, change) => EditorGuard.Run(
+			"Embedded signature help trigger",
+			() => GramSignatureHelpTrigger.Trigger(
 				textView,
 				Broker,
 				change,
 				(snapshot, position) =>
 					analysis.TryGet(snapshot, out var classifications, out _) &&
-					classifications.Any(item => item.GrammarSpan.Contains(position)));
+					classifications.Any(item => item.GrammarSpan.Contains(position))));
 	}
 }
 
@@ -101,7 +109,10 @@ sealed class GramSignatureHelpSourceProvider : ISignatureHelpSourceProvider
 {
 	public ISignatureHelpSource TryCreateSignatureHelpSource(ITextBuffer textBuffer)
 	{
-		return new GramSignatureHelpSource(textBuffer, GramBufferAnalysis.For(textBuffer));
+		return EditorGuard.Run<ISignatureHelpSource>(
+			"Signature help source",
+			null!,
+			() => new GramSignatureHelpSource(textBuffer, GramBufferAnalysis.For(textBuffer)));
 	}
 }
 
@@ -119,15 +130,23 @@ sealed class EmbeddedGramSignatureHelpSourceProvider : ISignatureHelpSourceProvi
 
 	public ISignatureHelpSource TryCreateSignatureHelpSource(ITextBuffer textBuffer)
 	{
-		return new EmbeddedGramSignatureHelpSource(
-			textBuffer,
-			EmbeddedGrammarBufferAnalysis.For(textBuffer, Workspace, Documents));
+		return EditorGuard.Run<ISignatureHelpSource>(
+			"Embedded signature help source",
+			null!,
+			() => new EmbeddedGramSignatureHelpSource(
+				textBuffer,
+				EmbeddedGrammarBufferAnalysis.For(textBuffer, Workspace, Documents)));
 	}
 }
 
 abstract class GramSignatureHelpSourceBase(ITextBuffer buffer) : ISignatureHelpSource
 {
 	public void AugmentSignatureHelpSession(ISignatureHelpSession session, IList<ISignature> signatures)
+	{
+		EditorGuard.Run("Signature help", () => Augment(session, signatures));
+	}
+
+	void Augment(ISignatureHelpSession session, IList<ISignature> signatures)
 	{
 		var snapshot = buffer.CurrentSnapshot;
 		var trigger  = session.TextView.Caret.Position.BufferPosition

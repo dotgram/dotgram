@@ -86,6 +86,11 @@ sealed class GramClassifierProvider : IClassifierProvider
 
 	public IClassifier GetClassifier(ITextBuffer buffer)
 	{
+		return EditorGuard.Run<IClassifier>("Classifier", null!, () => Create(buffer));
+	}
+
+	IClassifier Create(ITextBuffer buffer)
+	{
 		var analysis = GramBufferAnalysis.For(buffer);
 		Configure(analysis, buffer, _workspace, _documents);
 		return buffer.Properties.GetOrCreateSingletonProperty(() =>
@@ -138,6 +143,11 @@ sealed class GramClassifier : IClassifier
 
 	public IList<ClassificationSpan> GetClassificationSpans(SnapshotSpan span)
 	{
+		return EditorGuard.Run<IList<ClassificationSpan>>("Classification", [], () => Spans(span));
+	}
+
+	List<ClassificationSpan> Spans(SnapshotSpan span)
+	{
 		var document = _analysis.Document(span.Snapshot);
 		var result   = new List<ClassificationSpan>();
 
@@ -185,9 +195,12 @@ sealed class GramDiagnosticTaggerProvider : ITaggerProvider
 
 	public ITagger<T>? CreateTagger<T>(ITextBuffer buffer) where T : ITag
 	{
-		var analysis = GramBufferAnalysis.For(buffer);
-		GramClassifierProvider.Configure(analysis, buffer, _workspace, _documents);
-		return new GramDiagnosticTagger(analysis) as ITagger<T>;
+		return EditorGuard.Run<ITagger<T>?>("Diagnostic tagger", null, () =>
+		{
+			var analysis = GramBufferAnalysis.For(buffer);
+			GramClassifierProvider.Configure(analysis, buffer, _workspace, _documents);
+			return new GramDiagnosticTagger(analysis) as ITagger<T>;
+		});
 	}
 }
 
@@ -204,6 +217,11 @@ sealed class GramDiagnosticTagger : ITagger<ErrorTag>
 	public event EventHandler<SnapshotSpanEventArgs>? TagsChanged;
 
 	public IEnumerable<ITagSpan<ErrorTag>> GetTags(NormalizedSnapshotSpanCollection spans)
+	{
+		return EditorGuard.Enumerate("Diagnostic tags", Tags(spans));
+	}
+
+	IEnumerable<ITagSpan<ErrorTag>> Tags(NormalizedSnapshotSpanCollection spans)
 	{
 		if (spans.Count == 0)
 			yield break;
@@ -341,7 +359,7 @@ sealed class GramBufferAnalysis
 		documents.TextDocumentDisposed += TextDocumentDisposed;
 
 		ScheduleResolve(0);
-		_ = SettleAsync();
+		_ = EditorGuard.RunAsync("Grammar settling", SettleAsync, CancellationToken.None);
 	}
 
 	public GramDocument Document(ITextSnapshot snapshot)
@@ -607,6 +625,11 @@ sealed class GramBufferAnalysis
 
 	void WorkspaceChanged(object sender, WorkspaceChangeEventArgs change)
 	{
+		EditorGuard.Run("Grammar workspace change", () => WorkspaceChanged(change));
+	}
+
+	void WorkspaceChanged(WorkspaceChangeEventArgs change)
+	{
 		StandaloneGrammarResolution resolution;
 		string?                     filePath;
 
@@ -641,6 +664,11 @@ sealed class GramBufferAnalysis
 	}
 
 	void TextDocumentDisposed(object sender, Microsoft.VisualStudio.Text.TextDocumentEventArgs e)
+	{
+		EditorGuard.Run("Grammar document close", () => DocumentDisposed(e));
+	}
+
+	void DocumentDisposed(Microsoft.VisualStudio.Text.TextDocumentEventArgs e)
 	{
 		Workspace?                   workspace;
 		ITextDocumentFactoryService? documents;
@@ -761,9 +789,9 @@ sealed class GramBufferAnalysis
 		catch (OperationCanceledException)
 		{
 		}
-		catch (Exception exception) when (exception is not OutOfMemoryException)
+		catch (Exception exception) when (EditorGuard.Recoverable(exception))
 		{
-			ActivityLog.LogError("DotGram.VisualStudio", exception.ToString());
+			EditorGuard.Log("Grammar host resolution", exception);
 		}
 	}
 
@@ -806,6 +834,11 @@ sealed class GramBufferAnalysis
 	}
 
 	void BufferChanged(object sender, TextContentChangedEventArgs change)
+	{
+		EditorGuard.Run("Grammar buffer change", () => BufferChanged(change));
+	}
+
+	void BufferChanged(TextContentChangedEventArgs change)
 	{
 		lock (_gate)
 		{
@@ -889,9 +922,9 @@ sealed class GramBufferAnalysis
 		catch (OperationCanceledException)
 		{
 		}
-		catch (Exception exception) when (exception is not OutOfMemoryException)
+		catch (Exception exception) when (EditorGuard.Recoverable(exception))
 		{
-			ActivityLog.LogError("DotGram.VisualStudio", exception.ToString());
+			EditorGuard.Log("Grammar analysis", exception);
 		}
 	}
 

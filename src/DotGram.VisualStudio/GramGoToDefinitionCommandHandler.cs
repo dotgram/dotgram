@@ -37,6 +37,20 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 
 	public CommandState GetCommandState(GoToDefinitionCommandArgs args)
 	{
+		return EditorGuard.Run("Go To Definition state", CommandState.Unavailable, () => State(args));
+	}
+
+	public bool ExecuteCommand(GoToDefinitionCommandArgs args, CommandExecutionContext executionContext)
+	{
+		return EditorGuard.Run("Go To Definition", false, () =>
+		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+			return Execute(args);
+		});
+	}
+
+	CommandState State(GoToDefinitionCommandArgs args)
+	{
 		var snapshot = args.TextView.TextSnapshot;
 		var position = Position(args, snapshot);
 		return args.SubjectBuffer.ContentType.IsOfType("CSharp") ||
@@ -47,7 +61,7 @@ sealed class GramGoToDefinitionCommandHandler : ICommandHandler<GoToDefinitionCo
 			: CommandState.Unavailable;
 	}
 
-	public bool ExecuteCommand(GoToDefinitionCommandArgs args, CommandExecutionContext executionContext)
+	bool Execute(GoToDefinitionCommandArgs args)
 	{
 		ThreadHelper.ThrowIfNotOnUIThread();
 		var snapshot = args.TextView.TextSnapshot;

@@ -18,9 +18,12 @@ sealed class GramReferenceHighlightTaggerProvider : IViewTaggerProvider
 {
 	public ITagger<T>? CreateTagger<T>(ITextView textView, ITextBuffer buffer) where T : ITag
 	{
-		return buffer == textView.TextBuffer
-			? new GramReferenceHighlightTagger(textView, GramBufferAnalysis.For(buffer)) as ITagger<T>
-			: null;
+		return EditorGuard.Run<ITagger<T>?>(
+			"Reference highlight tagger",
+			null,
+			() => buffer == textView.TextBuffer
+				? new GramReferenceHighlightTagger(textView, GramBufferAnalysis.For(buffer)) as ITagger<T>
+				: null);
 	}
 }
 
@@ -37,11 +40,14 @@ sealed class EmbeddedGramReferenceHighlightTaggerProvider : IViewTaggerProvider
 
 	public ITagger<T>? CreateTagger<T>(ITextView textView, ITextBuffer buffer) where T : ITag
 	{
-		return buffer == textView.TextBuffer
-			? new EmbeddedGramReferenceHighlightTagger(
-				textView,
-				EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents)) as ITagger<T>
-			: null;
+		return EditorGuard.Run<ITagger<T>?>(
+			"Embedded reference highlight tagger",
+			null,
+			() => buffer == textView.TextBuffer
+				? new EmbeddedGramReferenceHighlightTagger(
+					textView,
+					EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents)) as ITagger<T>
+				: null);
 	}
 }
 
@@ -66,6 +72,11 @@ sealed class GramReferenceHighlightTagger : ITagger<TextMarkerTag>, IDisposable
 	public event EventHandler<SnapshotSpanEventArgs>? TagsChanged;
 
 	public IEnumerable<ITagSpan<TextMarkerTag>> GetTags(NormalizedSnapshotSpanCollection spans)
+	{
+		return EditorGuard.Enumerate("Reference highlight tags", Tags(spans));
+	}
+
+	IEnumerable<ITagSpan<TextMarkerTag>> Tags(NormalizedSnapshotSpanCollection spans)
 	{
 		if (spans.Count == 0)
 			yield break;
@@ -143,6 +154,11 @@ sealed class EmbeddedGramReferenceHighlightTagger : ITagger<TextMarkerTag>, IDis
 	public event EventHandler<SnapshotSpanEventArgs>? TagsChanged;
 
 	public IEnumerable<ITagSpan<TextMarkerTag>> GetTags(NormalizedSnapshotSpanCollection spans)
+	{
+		return EditorGuard.Enumerate("Embedded reference highlight tags", Tags(spans));
+	}
+
+	IEnumerable<ITagSpan<TextMarkerTag>> Tags(NormalizedSnapshotSpanCollection spans)
 	{
 		if (spans.Count == 0)
 			yield break;

@@ -47,12 +47,15 @@ sealed class GramQuickInfoSourceProvider : IAsyncQuickInfoSourceProvider
 
 	public IAsyncQuickInfoSource TryCreateQuickInfoSource(ITextBuffer textBuffer)
 	{
-		return new GramQuickInfoSource(
-			textBuffer,
-			GramBufferAnalysis.For(textBuffer),
-			new RoslynGramCompletion(textBuffer, Workspace, Documents),
-			FormatMaps,
-			ClassificationTypes);
+		return EditorGuard.Run<IAsyncQuickInfoSource>(
+			"Quick Info source",
+			null!,
+			() => new GramQuickInfoSource(
+				textBuffer,
+				GramBufferAnalysis.For(textBuffer),
+				new RoslynGramCompletion(textBuffer, Workspace, Documents),
+				FormatMaps,
+				ClassificationTypes));
 	}
 }
 
@@ -76,12 +79,15 @@ sealed class EmbeddedGramQuickInfoSourceProvider : IAsyncQuickInfoSourceProvider
 
 	public IAsyncQuickInfoSource TryCreateQuickInfoSource(ITextBuffer textBuffer)
 	{
-		return new EmbeddedGramQuickInfoSource(
-			textBuffer,
-			EmbeddedGrammarBufferAnalysis.For(textBuffer, Workspace, Documents),
-			new RoslynGramCompletion(textBuffer, Workspace, Documents),
-			FormatMaps,
-			ClassificationTypes);
+		return EditorGuard.Run<IAsyncQuickInfoSource>(
+			"Embedded Quick Info source",
+			null!,
+			() => new EmbeddedGramQuickInfoSource(
+				textBuffer,
+				EmbeddedGrammarBufferAnalysis.For(textBuffer, Workspace, Documents),
+				new RoslynGramCompletion(textBuffer, Workspace, Documents),
+				FormatMaps,
+				ClassificationTypes));
 	}
 }
 
@@ -92,7 +98,14 @@ sealed class GramQuickInfoSource(
 	IClassificationFormatMapService formatMaps,
 	IClassificationTypeRegistryService classificationTypes) : IAsyncQuickInfoSource
 {
-	public async Task<QuickInfoItem?> GetQuickInfoItemAsync(
+	public Task<QuickInfoItem?> GetQuickInfoItemAsync(
+		IAsyncQuickInfoSession session,
+		CancellationToken cancellationToken)
+	{
+		return EditorGuard.RunAsync("Quick Info", null, () => QuickInfoAsync(session, cancellationToken), cancellationToken);
+	}
+
+	async Task<QuickInfoItem?> QuickInfoAsync(
 		IAsyncQuickInfoSession session,
 		CancellationToken cancellationToken)
 	{
@@ -527,7 +540,15 @@ sealed class EmbeddedGramQuickInfoSource(
 	IClassificationFormatMapService formatMaps,
 	IClassificationTypeRegistryService classificationTypes) : IAsyncQuickInfoSource
 {
-	public async Task<QuickInfoItem?> GetQuickInfoItemAsync(
+	public Task<QuickInfoItem?> GetQuickInfoItemAsync(
+		IAsyncQuickInfoSession session,
+		CancellationToken cancellationToken)
+	{
+		return EditorGuard.RunAsync(
+			"Embedded Quick Info", null, () => QuickInfoAsync(session, cancellationToken), cancellationToken);
+	}
+
+	async Task<QuickInfoItem?> QuickInfoAsync(
 		IAsyncQuickInfoSession session,
 		CancellationToken cancellationToken)
 	{

@@ -17,9 +17,12 @@ sealed class GramBraceMatchingTaggerProvider : IViewTaggerProvider
 {
 	public ITagger<T>? CreateTagger<T>(ITextView textView, ITextBuffer buffer) where T : ITag
 	{
-		return buffer == textView.TextBuffer
-			? new GramBraceMatchingTagger(textView, GramBufferAnalysis.For(buffer)) as ITagger<T>
-			: null;
+		return EditorGuard.Run<ITagger<T>?>(
+			"Brace matching tagger",
+			null,
+			() => buffer == textView.TextBuffer
+				? new GramBraceMatchingTagger(textView, GramBufferAnalysis.For(buffer)) as ITagger<T>
+				: null);
 	}
 }
 
@@ -36,11 +39,14 @@ sealed class EmbeddedGramBraceMatchingTaggerProvider : IViewTaggerProvider
 
 	public ITagger<T>? CreateTagger<T>(ITextView textView, ITextBuffer buffer) where T : ITag
 	{
-		return buffer == textView.TextBuffer
-			? new EmbeddedGramBraceMatchingTagger(
-				textView,
-				EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents)) as ITagger<T>
-			: null;
+		return EditorGuard.Run<ITagger<T>?>(
+			"Embedded brace matching tagger",
+			null,
+			() => buffer == textView.TextBuffer
+				? new EmbeddedGramBraceMatchingTagger(
+					textView,
+					EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents)) as ITagger<T>
+				: null);
 	}
 }
 
@@ -62,6 +68,11 @@ sealed class GramBraceMatchingTagger : ITagger<TextMarkerTag>, IDisposable
 	public event EventHandler<SnapshotSpanEventArgs>? TagsChanged;
 
 	public IEnumerable<ITagSpan<TextMarkerTag>> GetTags(NormalizedSnapshotSpanCollection spans)
+	{
+		return EditorGuard.Enumerate("Brace matching tags", Tags(spans));
+	}
+
+	IEnumerable<ITagSpan<TextMarkerTag>> Tags(NormalizedSnapshotSpanCollection spans)
 	{
 		if (spans.Count == 0)
 			yield break;
@@ -133,6 +144,11 @@ sealed class EmbeddedGramBraceMatchingTagger : ITagger<TextMarkerTag>, IDisposab
 
 	public IEnumerable<ITagSpan<TextMarkerTag>> GetTags(NormalizedSnapshotSpanCollection spans)
 	{
+		return EditorGuard.Enumerate("Embedded brace matching tags", Tags(spans));
+	}
+
+	IEnumerable<ITagSpan<TextMarkerTag>> Tags(NormalizedSnapshotSpanCollection spans)
+	{
 		if (spans.Count == 0)
 			yield break;
 
@@ -193,7 +209,10 @@ sealed class GramOutliningTaggerProvider : ITaggerProvider
 {
 	public ITagger<T>? CreateTagger<T>(ITextBuffer buffer) where T : ITag
 	{
-		return new GramOutliningTagger(GramBufferAnalysis.For(buffer)) as ITagger<T>;
+		return EditorGuard.Run<ITagger<T>?>(
+			"Outlining tagger",
+			null,
+			() => new GramOutliningTagger(GramBufferAnalysis.For(buffer)) as ITagger<T>);
 	}
 }
 
@@ -210,8 +229,11 @@ sealed class EmbeddedGramOutliningTaggerProvider : ITaggerProvider
 
 	public ITagger<T>? CreateTagger<T>(ITextBuffer buffer) where T : ITag
 	{
-		return new EmbeddedGramOutliningTagger(
-			EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents)) as ITagger<T>;
+		return EditorGuard.Run<ITagger<T>?>(
+			"Embedded outlining tagger",
+			null,
+			() => new EmbeddedGramOutliningTagger(
+				EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents)) as ITagger<T>);
 	}
 }
 
@@ -233,6 +255,11 @@ sealed class GramOutliningTagger : ITagger<IOutliningRegionTag>, IDisposable
 	}
 
 	public IEnumerable<ITagSpan<IOutliningRegionTag>> GetTags(NormalizedSnapshotSpanCollection spans)
+	{
+		return EditorGuard.Enumerate("Outlining tags", Tags(spans));
+	}
+
+	IEnumerable<ITagSpan<IOutliningRegionTag>> Tags(NormalizedSnapshotSpanCollection spans)
 	{
 		if (spans.Count == 0)
 			yield break;
@@ -272,6 +299,11 @@ sealed class EmbeddedGramOutliningTagger : ITagger<IOutliningRegionTag>, IDispos
 	}
 
 	public IEnumerable<ITagSpan<IOutliningRegionTag>> GetTags(NormalizedSnapshotSpanCollection spans)
+	{
+		return EditorGuard.Enumerate("Embedded outlining tags", Tags(spans));
+	}
+
+	IEnumerable<ITagSpan<IOutliningRegionTag>> Tags(NormalizedSnapshotSpanCollection spans)
 	{
 		if (spans.Count == 0)
 			yield break;

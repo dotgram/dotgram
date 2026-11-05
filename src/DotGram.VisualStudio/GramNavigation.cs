@@ -35,6 +35,11 @@ sealed class GramNavigableSymbolSourceProvider : INavigableSymbolSourceProvider
 
 	public INavigableSymbolSource TryCreateNavigableSymbolSource(ITextView textView, ITextBuffer buffer)
 	{
+		return EditorGuard.Run<INavigableSymbolSource>("Navigation source", null!, () => Create(textView, buffer));
+	}
+
+	INavigableSymbolSource Create(ITextView textView, ITextBuffer buffer)
+	{
 		var analysis = GramBufferAnalysis.For(buffer);
 		GramClassifierProvider.Configure(analysis, buffer, Workspace, Documents);
 		return new GramNavigableSymbolSource(textView, buffer, analysis, Services);
@@ -58,13 +63,16 @@ sealed class EmbeddedGramNavigableSymbolSourceProvider : INavigableSymbolSourceP
 
 	public INavigableSymbolSource TryCreateNavigableSymbolSource(ITextView textView, ITextBuffer buffer)
 	{
-		return new EmbeddedGramNavigableSymbolSource(
-			textView,
-			buffer,
-			EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents),
-			Services,
-			Workspace,
-			Documents);
+		return EditorGuard.Run<INavigableSymbolSource>(
+			"Embedded navigation source",
+			null!,
+			() => new EmbeddedGramNavigableSymbolSource(
+				textView,
+				buffer,
+				EmbeddedGrammarBufferAnalysis.For(buffer, Workspace, Documents),
+				Services,
+				Workspace,
+				Documents));
 	}
 }
 
@@ -77,6 +85,11 @@ sealed class GramNavigableSymbolSource(
 	public Task<INavigableSymbol?> GetNavigableSymbolAsync(
 		SnapshotSpan triggerSpan,
 		CancellationToken token)
+	{
+		return EditorGuard.Run("Navigable symbol", Task.FromResult<INavigableSymbol?>(null), () => SymbolAsync(triggerSpan), token);
+	}
+
+	Task<INavigableSymbol?> SymbolAsync(SnapshotSpan triggerSpan)
 	{
 		var snapshot = buffer.CurrentSnapshot;
 		var position = triggerSpan.TranslateTo(snapshot, SpanTrackingMode.EdgeExclusive).Start.Position;
@@ -128,9 +141,14 @@ sealed class EmbeddedGramNavigableSymbolSource(
 	VisualStudioWorkspace workspace,
 	ITextDocumentFactoryService documents) : INavigableSymbolSource
 {
-	public async Task<INavigableSymbol?> GetNavigableSymbolAsync(
+	public Task<INavigableSymbol?> GetNavigableSymbolAsync(
 		SnapshotSpan triggerSpan,
 		CancellationToken token)
+	{
+		return EditorGuard.RunAsync("Embedded navigable symbol", null, () => SymbolAsync(triggerSpan, token), token);
+	}
+
+	async Task<INavigableSymbol?> SymbolAsync(SnapshotSpan triggerSpan, CancellationToken token)
 	{
 		var snapshot = buffer.CurrentSnapshot;
 		var position = triggerSpan.TranslateTo(snapshot, SpanTrackingMode.EdgeExclusive).Start.Position;
@@ -196,11 +214,14 @@ sealed class FileNavigableSymbol(
 
 	public void Navigate(INavigableRelationship relationship)
 	{
-		ThreadHelper.ThrowIfNotOnUIThread();
-		if (relationship != PredefinedNavigableRelationships.Definition)
-			return;
+		EditorGuard.Run("Navigation to a file", () =>
+		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+			if (relationship != PredefinedNavigableRelationships.Definition)
+				return;
 
-		Open(services, filePath, line, column);
+			Open(services, filePath, line, column);
+		});
 	}
 
 	internal static void Open(IServiceProvider services, string filePath, int line, int column)
@@ -239,12 +260,15 @@ sealed class IncludedGrammarNavigableSymbol(
 
 	public void Navigate(INavigableRelationship relationship)
 	{
-		ThreadHelper.ThrowIfNotOnUIThread();
-		if (relationship != PredefinedNavigableRelationships.Definition)
-			return;
+		EditorGuard.Run("Navigation to an included grammar", () =>
+		{
+			ThreadHelper.ThrowIfNotOnUIThread();
+			if (relationship != PredefinedNavigableRelationships.Definition)
+				return;
 
-		if (IncludedGrammarView.PathToOpen(target.Grammar) is { } path)
-			FileNavigableSymbol.Open(services, path, target.Line, target.Column);
+			if (IncludedGrammarView.PathToOpen(target.Grammar) is { } path)
+				FileNavigableSymbol.Open(services, path, target.Line, target.Column);
+		});
 	}
 }
 
@@ -273,12 +297,15 @@ sealed class GramNavigableSymbol(
 
 	public void Navigate(INavigableRelationship relationship)
 	{
-		if (relationship != PredefinedNavigableRelationships.Definition)
-			return;
+		EditorGuard.Run("Navigation in the buffer", () =>
+		{
+			if (relationship != PredefinedNavigableRelationships.Definition)
+				return;
 
-		var point = definition.GetPoint(view.TextSnapshot);
+			var point = definition.GetPoint(view.TextSnapshot);
 
-		view.Caret.MoveTo(point);
-		view.ViewScroller.EnsureSpanVisible(new SnapshotSpan(point, 0));
+			view.Caret.MoveTo(point);
+			view.ViewScroller.EnsureSpanVisible(new SnapshotSpan(point, 0));
+		});
 	}
 }
