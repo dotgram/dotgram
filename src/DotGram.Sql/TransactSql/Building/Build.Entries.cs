@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Reflection;
 
 using Ast = DotGram.Sql.Ast;
 
@@ -82,39 +80,14 @@ static partial class Build
 
 	// ── Spans ───────────────────────────────────────────────────────────────────
 
-	/// <summary>How each record of the common tree is told where it was written, by type: null for one that keeps nothing.</summary>
-	static readonly ConcurrentDictionary<Type, Action<object, int, int>?> Placers = new();
-
 	/// <summary>
 	/// A new node told the span of the old node it was made from: the range the reading offered the old one, without
-	/// the gap in front of it, which the common tree does not keep.
+	/// the gap in front of it, which the common tree does not keep. A value type keeps nothing: its copy is not the
+	/// node the caller holds.
 	/// </summary>
 	static void Place(object made, SqlSpan span)
 	{
-		if (Placers.GetOrAdd(made.GetType(), Placer) is { } place)
-			place(made, span.At, span.Length);
-	}
-
-	static Action<object, int, int>? Placer(Type type)
-	{
-		if (type.IsValueType)
-			return null;
-
-		var locate = type.GetMethod("Locate", BindingFlags.Public | BindingFlags.Instance, null, [typeof(int), typeof(int)], null);
-
-		if (locate is null)
-			return null;
-
-		return (Action<object, int, int>)typeof(Build)
-			.GetMethod(nameof(Typed), BindingFlags.NonPublic | BindingFlags.Static)!
-			.MakeGenericMethod(locate.DeclaringType!)
-			.Invoke(null, [locate])!;
-	}
-
-	static Action<object, int, int> Typed<TNode>(MethodInfo locate)
-	{
-		var typed = (Action<TNode, int, int>)locate.CreateDelegate(typeof(Action<TNode, int, int>));
-
-		return (node, at, length) => typed((TNode)node, at, length);
+		if (made is ISqlSpan located && !made.GetType().IsValueType)
+			located.Locate(span.At, span.Length);
 	}
 }
