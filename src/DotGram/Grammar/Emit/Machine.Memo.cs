@@ -190,11 +190,22 @@ sealed partial class Machine
 	/// </remarks>
 	bool _looks;
 
-	/// <summary>Words a token: one for every sixty-four rules remembered.</summary>
-	int MemoWords => (_memo.Count + 63) / 64;
+	/// <summary>Words a token: one bit for every rule remembered, and one more for every rule whose successes are, sixty-four to a word.</summary>
+	int MemoWords => (_memo.Count + _kept.Count + 63) / 64;
 
-	/// <summary>Integers a token for the successes: three a rule remembered — the generation, the end, the value kept.</summary>
-	int MemoCells => _kept.Count * 3;
+	/// <summary>The bit that says a rule's success is remembered at a token: after the failures' bits, in the same words.</summary>
+	int KeptSlot(int cell)
+	{
+		return _memo.Count + cell;
+	}
+
+	/// <summary>
+	/// The shortest reading worth remembering, in tokens. A rule read again over one or two tokens costs
+	/// what the store would, and the nest the memo is for re-reads its longer levels: the innermost
+	/// ones are read once per alternative, a bounded number of times, and every level above them is
+	/// answered. So the hot, short successes — a name, a literal, a bracket around one — are not stored.
+	/// </summary>
+	const int KeptSpan = 4;
 
 	/// <summary>Which of the rules that probe the stack the reader remembers, and why not the rest.</summary>
 	void ChooseMemo(IReadOnlyList<RuleSymbol> rules)
@@ -387,6 +398,13 @@ sealed partial class Machine
 		var index = MemoIndex(slot);
 		var power = _graph.Climbing.ContainsKey(rule) ? "power == 0 && " : "";
 
+		if (_kept.TryGetValue(rule, out var cell) && body.Contains("return p;", StringComparison.Ordinal))
+		{
+			KeptAsked(file, rule, slot, cell, body);
+
+			return;
+		}
+
 		file.Line("// Failed here already in this reading, and a second reading would fail again (Machine.Memo.cs).");
 		file.Line(
 			$"if ({power}(uint)({index}) < (uint)memo.Length && " +
@@ -417,9 +435,6 @@ sealed partial class Machine
 		}
 
 		file.Line();
-
-		if (_kept.TryGetValue(rule, out var cell) && body.Contains("return p;", StringComparison.Ordinal))
-			KeptAsked(file, rule, cell, body);
 	}
 
 	/// <summary>
@@ -481,8 +496,10 @@ sealed partial class Machine
 
 		if (Keeps)
 		{
-			header.Line("/// <summary>Where each remembered rule has succeeded in this reading, and what it left: three integers a rule and a token, from <c>Ways_DotGram.Kept</c>.</summary>");
+			header.Line("/// <summary>Where each remembered rule's successes ended and what they left: two integers a token, a run of them a rule, from <c>Ways_DotGram.Kept</c>.</summary>");
 			header.Line("readonly int[] kept;");
+			header.Line("/// <summary>How long one rule's run is: two integers a token of the reading.</summary>");
+			header.Line("readonly int keptRun;");
 		}
 	}
 
@@ -493,7 +510,10 @@ sealed partial class Machine
 		header.Line("this.memoAt  = ways.MemoAt;");
 
 		if (Keeps)
+		{
 			header.Line("this.kept    = ways.Kept;");
+			header.Line("this.keptRun = ways.KeptRun;");
+		}
 	}
 
 	/// <summary>Where a remembered rule's failure is written down.</summary>
@@ -537,7 +557,7 @@ sealed partial class Machine
 		file.Line($"ways.Memoise(pos, (text.Length - pos + 1) * {MemoWords});");
 
 		if (Keeps)
-			file.Line($"ways.KeepRoom((text.Length - pos + 1) * {MemoCells});");
+			file.Line($"ways.KeepRoom({_kept.Count}, text.Length - pos + 1);");
 	}
 
 	/// <summary>The register a remembered rule's value is handed through, or null where it has none.</summary>
@@ -553,8 +573,9 @@ sealed partial class Machine
 	}
 
 	/// <summary>
-	/// The successes asked at the top of a remembered rule's method, after its failures: succeeded
-	/// here already, hand over what it left and return where it ended.
+	/// The memo asked at the top of a rule whose successes are remembered too: the word of its two
+	/// bits read once — failed here already, fail again; succeeded here already, hand over what it
+	/// left and return where it ended.
 	/// </summary>
 	/// <remarks>
 	/// A success read unbuilt left no value, and is remembered as that: a reading that builds
@@ -562,20 +583,52 @@ sealed partial class Machine
 	/// So the probe answers in every reading, and a nest the reader reads unbuilt — a refused
 	/// text read again for its message, behind a look — costs its depth as an accepted one does.
 	/// </remarks>
-	void KeptAsked(Writer file, RuleSymbol rule, int cell, string body)
+	void KeptAsked(Writer file, RuleSymbol rule, int slot, int cell, string body)
 	{
 		var register = KeptRegister(rule);
 		var unbuilt  = register is not null && ReadUnbuilt(body);
 		var power    = _graph.Climbing.ContainsKey(rule) ? "power == 0 && " : "";
-		var built    = unbuilt ? " && (unbuilt != 0 || kept[keptAt + 2] != -2)" : "";
+		var built    = unbuilt ? " && (unbuilt != 0 || kept[keptAt + 1] != -2)" : "";
+		var index    = MemoIndex(slot);
+		var sameWord = slot / 64 == KeptSlot(cell) / 64;
 
-		file.Line("// Succeeded here already in this reading: the same end, the same value (Machine.Memo.cs).");
+		file.Line("// Failed here already in this reading, and a second reading would fail again; succeeded here");
+		file.Line("// already, and the same reading would end at the same place with the same value (Machine.Memo.cs).");
 
-		using (file.Block($"if ({power}(uint)(pos - memoAt) < (uint)memo.Length)"))
+		using (file.Block($"if ({power}(uint)({index}) < (uint)memo.Length)"))
 		{
-			file.Line($"var keptAt = (pos - memoAt) * {MemoCells} + {cell * 3};");
+			file.Line($"var word = memo[{index}];");
+			file.Line();
+			file.Line($"if ((word & {MemoBit(slot)}) != 0)");
 
-			using (file.Block($"if ((uint)keptAt < (uint)kept.Length && kept[keptAt] == ways.Generation{built})"))
+			if (CountsRules || Tracing is not null)
+			{
+				using (file.Block(""))
+				{
+					if (CountsRules)
+					{
+						file.Line("#if DOTGRAM_COUNTS");
+						file.Line($"{EnteredOf(rule)}++;");
+						file.Line("#endif");
+						file.Line();
+					}
+
+					if (Tracing is not null)
+						file.Line($"failure.Trace?.Remembered({Tracing.RuleOf(rule)}, pos);");
+
+					file.Line("return -1;");
+				}
+			}
+			else
+			{
+				file.Then("return -1;");
+			}
+
+			file.Line();
+			file.Line($"var keptAt = {cell} * keptRun + (pos - memoAt) * 2;");
+			file.Line();
+
+			using (file.Block($"if (({(sameWord ? "word" : $"memo[{MemoIndex(KeptSlot(cell))}]")} & {MemoBit(KeptSlot(cell))}) != 0{built})"))
 			{
 				if (CountsRules)
 				{
@@ -586,9 +639,9 @@ sealed partial class Machine
 				}
 
 				if (register is not null)
-					file.Line($"{(unbuilt ? "if (unbuilt == 0) " : "")}{register} = kept[keptAt + 2] >= 0 ? ({_results.ValueOf(rule)})ways.KeptValues[kept[keptAt + 2]]! : default!;");
+					file.Line($"{(unbuilt ? "if (unbuilt == 0) " : "")}{register} = kept[keptAt + 1] >= 0 ? ({_results.ValueOf(rule)})ways.KeptValues[kept[keptAt + 1]]! : default!;");
 
-				file.Line("return kept[keptAt + 1];");
+				file.Line("return kept[keptAt];");
 			}
 		}
 
@@ -616,8 +669,10 @@ sealed partial class Machine
 			? "null, true"
 			: ReadUnbuilt(body) ? $"(object?){register}, unbuilt == 0" : $"(object?){register}, true";
 
+		when.Add($"p - pos >= {KeptSpan}");
+
 		file.Line("Kept:");
-		file.Line($"{(when.Count > 0 ? $"if ({string.Join(" && ", when)}) " : "")}Kept(pos, {cell * 3}, p, {value});");
+		file.Line($"if ({string.Join(" && ", when)}) Kept(pos, {KeptSlot(cell) / 64}, {MemoBit(KeptSlot(cell))}, {cell}, p, {value});");
 		file.Line("return p;");
 		file.Line();
 	}
@@ -629,16 +684,22 @@ sealed partial class Machine
 		header.Line("/// <summary>Remembers that a rule entered at <paramref name=\"pos\"/> succeeded there, where it ended and what it left (Machine.Memo.cs).</summary>");
 		header.Line("/// <param name=\"built\">Whether the reading built: read unbuilt, the rule left no value, and the cell says so (-2) for a reading that builds to read it again.</param>");
 
-		using (header.Block("void Kept(int pos, int cell, int end, object? value, bool built)"))
+		using (header.Block("void Kept(int pos, int word, ulong bit, int cell, int end, object? value, bool built)"))
 		{
-			header.Line($"var at = (pos - memoAt) * {MemoCells} + cell;");
+			header.Line($"var at = (pos - memoAt) * {MemoWords} + word;");
 			header.Line();
 
-			using (header.Block("if ((uint)at < (uint)kept.Length)"))
+			using (header.Block("if ((uint)at < (uint)memo.Length)"))
 			{
-				header.Line("kept[at]     = ways.Generation;");
-				header.Line("kept[at + 1] = end;");
-				header.Line("kept[at + 2] = !built ? -2 : value == null ? -1 : ways.Keep(value);");
+				header.Line("memo[at] |= bit;");
+				header.Line();
+				header.Line("if (at >= ways.MemoUsed)");
+				header.Then("ways.MemoUsed = at + 1;");
+				header.Line();
+				header.Line("var keptAt = cell * keptRun + (pos - memoAt) * 2;");
+				header.Line();
+				header.Line("kept[keptAt]     = end;");
+				header.Line("kept[keptAt + 1] = !built ? -2 : value == null ? -1 : ways.Keep(value);");
 			}
 		}
 	}

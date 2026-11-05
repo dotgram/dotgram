@@ -3020,20 +3020,20 @@ public static partial class CSharpEmitter
 			// </memo>
 			// <kept>
 			/// <summary>
-			/// Where each rule a reader remembers has succeeded in the reading under way, and what it left:
-			/// three integers a rule and a token — the reading's generation, the end, the index of the
-			/// value kept — counted from where the reading began (Machine.Memo.cs).
+			/// Where each rule a reader remembers the successes of ended, and what it left: two integers a
+			/// token — the end, the index of the value kept — in a run a rule, counted from where the
+			/// reading began; whether a cell is written is a bit of <see cref="Memo"/>, cleared with the
+			/// failures' (Machine.Memo.cs).
 			/// </summary>
 			/// <remarks>
-			/// Stamped with the reading's generation rather than cleared, so that a reading pays for what
-			/// it stores and not for every token it could have stored at; a cell of another generation is
-			/// an empty one. The values kept are let go when the tape is returned: nothing a reading kept
-			/// outlives it, and the parse holds what it built through its result alone.
+			/// A run a rule rather than a row a token, so that a rule read at one token after another
+			/// writes and reads neighbouring cells. The values kept are let go when the tape is returned:
+			/// nothing a reading kept outlives it, and the parse holds what it built through its result alone.
 			/// </remarks>
 			internal int[] Kept = new int[0];
 
-			/// <summary>The generation of the reading under way: what a cell written in it is stamped with.</summary>
-			internal int Generation;
+			/// <summary>How long one rule's run is in the reading under way: two integers a token.</summary>
+			internal int KeptRun;
 
 			/// <summary>How many cells the reading under way can use, for the bound a pooled tape is held under.</summary>
 			internal int KeptUsed;
@@ -3044,23 +3044,14 @@ public static partial class CSharpEmitter
 			/// <summary>How many of them there are.</summary>
 			internal int KeptCount;
 
-			/// <summary>A reading begun: a generation of its own, and room for its cells.</summary>
-			internal void KeepRoom(int cells)
+			/// <summary>A reading begun: room for a run a rule over its tokens.</summary>
+			internal void KeepRoom(int rules, int tokens)
 			{
-				Generation++;
+				KeptRun  = tokens * 2;
+				KeptUsed = rules * KeptRun;
 
-				// Wrapped round after two billion readings: every cell is of some old generation then,
-				// and one of them could be stamped with this one by chance.
-				if (Generation == 0)
-				{
-					global::System.Array.Clear(Kept, 0, Kept.Length);
-					Generation = 1;
-				}
-
-				if (Kept.Length < cells)
-					Kept = new int[global::System.Math.Max(cells, Kept.Length * 2)];
-
-				KeptUsed = cells;
+				if (Kept.Length < KeptUsed)
+					Kept = new int[global::System.Math.Max(KeptUsed, Kept.Length * 2)];
 			}
 
 			/// <summary>A value a remembered rule left, kept for a second entry there: its index.</summary>
