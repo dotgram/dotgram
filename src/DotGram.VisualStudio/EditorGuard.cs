@@ -14,8 +14,10 @@ namespace DotGram.VisualStudio;
 /// and the editor gets the answer it would get had the extension nothing to say: no gold bar, no
 /// component Visual Studio disables, no exception of an unobserved task that reaches nobody.
 /// Cancellation is how an editor operation ends early, and is neither logged nor passed on when
-/// the caller's token has been cancelled and the exception's own token has been too: the
-/// caller's, or one linked to it. Any other cancellation is a failure like any other.
+/// the exception carries the caller's own token and that token has been cancelled. Any other
+/// cancellation, one of a token merely linked to the caller's included, is logged like any
+/// other failure: from the exception alone nothing shows that a token is linked.
+/// What leaves the process in no state to go on is never caught (see <see cref="Recoverable"/>).
 /// </summary>
 static class EditorGuard
 {
@@ -78,9 +80,10 @@ static class EditorGuard
 	}
 
 	/// <summary>
-	/// Runs work nobody awaits. The task it returns never faults, critical failures included: a
-	/// discarded task's exception reaches nobody, so rethrowing one would only lose it. Every
-	/// failure but the caller's cancellation is logged here instead.
+	/// Runs work nobody awaits. An ordinary failure is logged here, where it would otherwise go
+	/// unobserved, and the task completes. A critical one is logged where that is still possible
+	/// and then left to fault the task, so that it stays the process's to deal with rather than
+	/// being turned into a success.
 	/// </summary>
 	public static async Task RunAsync(string operation, Func<Task> body, CancellationToken cancellationToken)
 	{
@@ -91,9 +94,14 @@ static class EditorGuard
 		catch (OperationCanceledException exception) when (Canceled(exception, cancellationToken))
 		{
 		}
+		catch (Exception exception) when (Recoverable(exception))
+		{
+			Log(operation, exception);
+		}
 		catch (Exception exception)
 		{
 			Log(operation, exception);
+			throw;
 		}
 	}
 
@@ -163,21 +171,20 @@ static class EditorGuard
 		{
 			Write($"{operation} failed: {exception}");
 		}
-		catch (Exception)
+		catch (Exception failure) when (Recoverable(failure))
 		{
-			// Nowhere is left to report it, out of memory included, and a failure to log must
-			// not become the failure the guard exists to keep out of Visual Studio.
+			// Nowhere is left to report it, and a failure to log must not become the failure the
+			// guard exists to keep out of Visual Studio. A critical one goes on like any other.
 		}
 	}
 
 	/// <summary>
-	/// Whether a cancellation is the caller's: its token has been cancelled, and so has the
-	/// exception's own, which is the caller's token or one linked to it. A cancellation that
-	/// comes while the caller's token stands, or that carries a token nobody cancelled, is not.
+	/// Whether a cancellation is the caller's: the exception carries the caller's own token, and
+	/// that token has been cancelled.
 	/// </summary>
 	internal static bool Canceled(OperationCanceledException exception, CancellationToken cancellationToken)
 	{
-		return cancellationToken.IsCancellationRequested && exception.CancellationToken.IsCancellationRequested;
+		return cancellationToken.IsCancellationRequested && exception.CancellationToken == cancellationToken;
 	}
 
 	/// <summary>

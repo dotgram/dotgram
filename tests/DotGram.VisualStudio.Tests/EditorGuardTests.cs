@@ -261,19 +261,28 @@ public sealed class EditorGuardTests
 	[Fact]
 	public void ACancellationOfATokenNobodyCancelledIsLoggedEvenOnceTheCallerHasCancelled()
 	{
-		using var caller = new CancellationTokenSource();
-		using var other  = new CancellationTokenSource();
+		using var caller    = new CancellationTokenSource();
+		using var other     = new CancellationTokenSource();
+		using var cancelled = new CancellationTokenSource();
 		caller.Cancel();
+		cancelled.Cancel();
 
 		EditorGuard.Run<int>("guard other token", -1, () => throw new OperationCanceledException(other.Token), caller.Token);
 		EditorGuard.Run<int>("guard no token", -1, () => throw new OperationCanceledException(), caller.Token);
+		EditorGuard.Run<int>(
+			"guard unrelated cancelled token",
+			-1,
+			() => throw new OperationCanceledException(cancelled.Token),
+			caller.Token);
 
 		Assert.Single(Logged("guard other token"));
 		Assert.Single(Logged("guard no token"));
+		Assert.Single(Logged("guard unrelated cancelled token"));
 	}
 
+	// Nothing in the exception shows that its token is linked to the caller's, so it is logged.
 	[Fact]
-	public void ACancellationOfATokenLinkedToTheCallersIsNotLogged()
+	public void ACancellationOfATokenLinkedToTheCallersIsLogged()
 	{
 		using var caller = new CancellationTokenSource();
 		using var linked = CancellationTokenSource.CreateLinkedTokenSource(caller.Token);
@@ -281,7 +290,7 @@ public sealed class EditorGuardTests
 
 		EditorGuard.Run<int>("guard linked token", -1, () => throw new OperationCanceledException(linked.Token), caller.Token);
 
-		Assert.Empty(Logged("guard linked token"));
+		Assert.Single(Logged("guard linked token"));
 	}
 
 	[Fact]
@@ -298,20 +307,17 @@ public sealed class EditorGuardTests
 	}
 
 	[Fact]
-	public async Task WorkNobodyAwaitsNeverFaultsEvenOnACriticalFailure()
+	public async Task WorkNobodyAwaitsFaultsOnACriticalFailureAfterLoggingIt()
 	{
-		var task = EditorGuard.RunAsync(
+		await Assert.ThrowsAsync<OutOfMemoryException>(() => EditorGuard.RunAsync(
 			"guard forgotten critical",
 			async () =>
 			{
 				await Task.Yield();
 				throw new OutOfMemoryException();
 			},
-			CancellationToken.None);
+			CancellationToken.None));
 
-		await task;
-
-		Assert.Equal(TaskStatus.RanToCompletion, task.Status);
 		Assert.Single(Logged("guard forgotten critical"));
 	}
 
@@ -364,6 +370,22 @@ public sealed class EditorGuardTests
 		Assert.Equal(1, EditorGuard.Enumerate("guard early", Tags()).First());
 		Assert.True(disposed);
 		Assert.Empty(Logged("guard early"));
+	}
+
+	[Fact]
+	public void ACriticalFailureToLogIsNotHidden()
+	{
+		var write = EditorGuard.Write;
+		EditorGuard.Write = _ => throw new OutOfMemoryException();
+
+		try
+		{
+			Assert.Throws<OutOfMemoryException>(() => EditorGuard.Run("guard log out of memory", () => throw new InvalidOperationException()));
+		}
+		finally
+		{
+			EditorGuard.Write = write;
+		}
 	}
 
 	[Fact]

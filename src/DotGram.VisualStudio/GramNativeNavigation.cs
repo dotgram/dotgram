@@ -68,8 +68,9 @@ sealed class GramNativeNavigationListener : IWpfTextViewCreationListener
 			ActivityLog.LogInformation(
 				"DotGram.VisualStudio",
 				$"Native navigation listener AddAdornments returned 0x{result:X8}.");
-			if (ErrorHandler.Failed(result))
-				return;
+			// A failure Visual Studio reports by its result is a failure like a thrown one: it is
+			// logged once and not tried again on the next activation.
+			ErrorHandler.ThrowOnFailure(result);
 
 			textView.Properties.AddProperty(typeof(GramCodeWindowManager), manager);
 			textView.VisualElement.Loaded -= Attach;
