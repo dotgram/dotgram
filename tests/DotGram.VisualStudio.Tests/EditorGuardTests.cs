@@ -199,15 +199,15 @@ public sealed class EditorGuardTests
 		Assert.Single(Logged("guard enumerator"));
 	}
 
-	// What no fallback survives is let through also when it comes wrapped, as it does out of a
-	// task, a reflection call or a type initializer; and so is what the Visual Studio SDK counts
-	// as critical.
+	// What no fallback survives is let through, also when it comes wrapped, as it does out of a
+	// task, a reflection call or a type initializer.
 	[Theory]
 	[InlineData("out of memory")]
 	[InlineData("aggregate")]
 	[InlineData("reflection")]
 	[InlineData("type initializer")]
-	[InlineData("critical to the SDK")]
+	[InlineData("access violation")]
+	[InlineData("invalid program")]
 	public void ACriticalFailureIsNotCaughtEvenWrapped(string kind)
 	{
 		Exception critical = kind switch
@@ -215,7 +215,8 @@ public sealed class EditorGuardTests
 			"aggregate"           => new AggregateException(new InvalidOperationException(), new OutOfMemoryException()),
 			"reflection"          => new TargetInvocationException(new OutOfMemoryException()),
 			"type initializer"    => new TypeInitializationException("Host", new AggregateException(new OutOfMemoryException())),
-			"critical to the SDK" => new DivideByZeroException(),
+			"access violation"    => new AccessViolationException(),
+			"invalid program"     => new AggregateException(new InvalidProgramException()),
 			_                     => new OutOfMemoryException(),
 		};
 
@@ -223,6 +224,28 @@ public sealed class EditorGuardTests
 
 		Assert.Same(critical, thrown);
 		Assert.Empty(Logged("guard critical " + kind));
+	}
+
+	// A bug in the extension's own code is what the guard keeps out of Visual Studio, whatever
+	// the SDK's own list of critical exceptions says about some of them.
+	[Theory]
+	[InlineData("divide by zero")]
+	[InlineData("null reference")]
+	[InlineData("index out of range")]
+	[InlineData("invalid cast")]
+	public void AProgrammingErrorIsCaught(string kind)
+	{
+		Exception bug = kind switch
+		{
+			"divide by zero"     => new DivideByZeroException(),
+			"null reference"     => new NullReferenceException(),
+			"index out of range" => new IndexOutOfRangeException(),
+			_                    => new InvalidCastException(),
+		};
+
+		EditorGuard.Run("guard bug " + kind, () => throw bug);
+
+		Assert.Single(Logged("guard bug " + kind));
 	}
 
 	[Fact]

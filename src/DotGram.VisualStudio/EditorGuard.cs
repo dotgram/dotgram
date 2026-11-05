@@ -181,11 +181,16 @@ static class EditorGuard
 	}
 
 	/// <summary>
-	/// Everything but what no fallback answer survives: running out of memory, and the exceptions
-	/// the Visual Studio SDK's <c>ErrorHandler.IsCriticalException</c> counts as critical, also
-	/// where one arrives wrapped in another (a task's, a reflection call's, a type initializer's).
-	/// The list is repeated here rather than called, because the tests run without the SDK.
+	/// Everything but what leaves the process in no state to go on: running out of memory, a
+	/// stack overflow, a corrupted-state access violation, an aborted thread or appdomain, code
+	/// the runtime cannot load or run; also where one arrives wrapped in another (a task's, a
+	/// reflection call's, a type initializer's).
 	/// </summary>
+	/// <remarks>
+	/// This departs on purpose from the SDK's <c>ErrorHandler.IsCriticalException</c>, which also
+	/// counts <see cref="DivideByZeroException"/> as critical. That is an ordinary bug in the
+	/// extension's own code, and keeping such bugs out of Visual Studio is what the guard is for.
+	/// </remarks>
 	internal static bool Recoverable(Exception exception)
 	{
 		return !Critical(exception);
@@ -199,7 +204,8 @@ static class EditorGuard
 				return false;
 
 			case OutOfMemoryException or StackOverflowException or AccessViolationException or
-				AppDomainUnloadedException or BadImageFormatException or DivideByZeroException:
+				ThreadAbortException or AppDomainUnloadedException or
+				InvalidProgramException or BadImageFormatException:
 				return true;
 
 			case AggregateException aggregate:
