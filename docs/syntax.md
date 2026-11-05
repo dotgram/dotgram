@@ -37,6 +37,7 @@ that thing is what the notation already means in C# or in .NET regular expressio
   - [4.4 Rule separator](#44-rule-separator)
   - [4.5 Trivia — insignificant whitespace and comments](#45-trivia--insignificant-whitespace-and-comments)
   - [4.6 Keyword boundaries](#46-keyword-boundaries)
+  - [4.7 Alternatives that decide after a nested construct](#47-alternatives-that-decide-after-a-nested-construct)
 - [5. Namespaces](#5-namespaces)
   - [5.1 Rebinding](#51-rebinding)
   - [5.2 The standard library, `Std`](#52-the-standard-library-std)
@@ -1737,6 +1738,52 @@ has — so `word` becomes one range test over every kind that is a word: a keywo
 class every character of which continues a word. It reads exactly one token there, which
 is what it read over characters too.
 
+### 4.7 Alternatives that decide after a nested construct
+
+Ordered choice decides by trying: `A | B` reads `A`, and where `A` fails anywhere, `B` is read
+from the same place, with nothing kept of what `A` read. That is linear as long as the token
+that refutes `A` comes early. Where two alternatives share a prefix that holds a *nested
+instance of the recursion the choice stands in* — a bracket whose content is read by the
+tower the choice belongs to — and the token that tells them apart comes after that instance,
+the instance is read once per alternative, and inside it the same choice does the same at the
+next level: two to the depth. The 1992 BNF's predicate is the shape, written as it stands:
+
+```dotgram
+BooleanPrimary = Predicate                                  // a row and its tail: (CASE WHEN c THEN 1 END = 1) read as a value, refused at =
+               | '(' & SearchCondition & ')'                // then read again as a condition, at every level
+```
+
+Every grammar that reads a bracket as one thing and then as another has it — a row against
+a bracketed value, `CAST(` against a call by that name, a subquery read and then declined —
+and a hand-written parser avoids it one way: it reads the shared text once and decides by
+what follows. The compiler finds the shape and says so (`GRAM4054`, information), at the rule,
+with the alternatives and the shortest text after which both go on reading the same
+construct. Nothing has to be done about it: over tokens, on the immediate carrier, the reader
+then remembers where the rules of that recursion succeed and what they built — three
+integers a rule and a token, beside the memo of failures §6.5 describes, under the same
+contract (§7.2) — so that a second entry at the same token is answered without reading, and
+every level is read once. What it costs is a store at every success of such a rule on the
+accepted path, a few per cent of a statement on SQL-92's reader, and 12 bytes a token a rule
+remembered. Over characters, on the tape, in a trace build and for a rule that reaches its
+context nothing is remembered, and the message says so: there the shape costs its depth's
+power until the grammar is rewritten.
+
+The rewrite needs no memo and is what the message shows. Factor the prefix the alternatives
+share, `A & (X | Y)`, where it is one operand (`GRAM4016`, §4.3, which the compiler does
+itself where it can prove the operand has one reading). Where the alternatives call different
+rules over overlapping text, read the union once and classify after: one bracket rule that
+reads what a bracket holds through the top of the tower, and a `switch` (§3.6) on what it
+read or on the token after it — a `switch` enters one case and records nothing for the
+others, so a refusal names what it named. Or read the value first and then at most one tail,
+the way an operator loop reads its operand before the operator. Which to prefer is measured,
+not assumed: on SQL-92 the rewrite that reads a bracket once cost more on accepted texts than
+the memo does, and the grammar stays as written.
+
+The analysis is bounded, not a proof: it follows the two alternatives over at most fourteen
+tokens, a rule at most twice on one stack, and gives up a pair past three thousand states; a
+shared prefix longer than that before the nested construct is not seen. A `when` on the way
+is read as nothing, so a pair a guard separates is told with a note that it may be.
+
 ---
 
 ## 5. Namespaces
@@ -2768,7 +2815,10 @@ A rule a cycle re-enters is also where a reading over tokens remembers what fail
 may be read as a condition, then as a value, then as a subquery, and each attempt reads all
 that is inside it again: left to itself a nest of brackets costs a power of its depth. So such
 a rule, entered again at a token where it has already failed in the same reading, fails at once
-— one bit a rule and a token, forgotten when the reading ends. A success is read again. A rule
+— one bit a rule and a token, forgotten when the reading ends. A success is read again, except
+in the rules of a recursion an ordered choice reads twice before it decides (§4.7): there the
+reader remembers where the rule succeeded and what it built, and answers the second entry
+with it. A rule
 is not remembered where its answer could depend on more than where it begins: one that reaches
 a hook naming `context` or the reading's state (§7.2), one that gives back (`?`), every rule of
 a reading that recovers (§8.2) or reads a buffered input, and every rule read over characters.
@@ -3529,9 +3579,10 @@ ordinary C# rules.
   on its arguments and the text — not merely "no side effects": it may not read state that
   changes while the input is read. The same holds of a `=>` construction whose value such a
   check reads: that value is built during recognition, and it may depend only on its captures
-  and the text. A reader over tokens remembers where a recursive rule failed and answers the
-  next entry there without reading it again (§6.5), which holds only if asking again could not
-  have answered otherwise. A hook may still read `context` by that name, which the generator
+  and the text. A reader over tokens remembers where a recursive rule failed — and, for the
+  rules §4.7 names, where it succeeded and what it built — and answers the next entry there
+  without reading it again (§6.5), which holds only if asking again could not have answered
+  otherwise. A hook may still read `context` by that name, which the generator
   can see: a rule that reaches one is read again every time. State reached any other way — a
   static field, a context kept somewhere else — it cannot see, and a check that reads it may be
   answered with a failure remembered from before the state changed.

@@ -467,7 +467,7 @@ sealed partial class Machine
 				using (file.Block($"public int {inner}(int pos{DirectStrength(rule)})"))
 				{
 					if (slot >= 0)
-						MemoAsked(file, rule, slot);
+						MemoAsked(file, rule, slot, body!);
 
 					// The rule the way back into itself goes through, so the probe stands here and
 					// not at the call: one line a rule instead of one at every place that calls it.
@@ -2279,51 +2279,6 @@ sealed partial class Machine
 		/// Written at every return site rather than recovered from the text afterwards: a site
 		/// knows which frames are open where it stands, and the text does not.
 		/// </remarks>
-		/// <summary>The guard every turn of a repetition begins with, or null where the turns do not all begin with one guard.</summary>
-		static Node.Guard? TurnHeadGuard(Node body)
-		{
-			switch (body)
-			{
-				case Node.Construct(var inner, _):
-					return TurnHeadGuard(inner);
-
-				case Node.Capture(_, var inner):
-					return TurnHeadGuard(inner);
-
-				case Node.Atomic(var inner):
-					return TurnHeadGuard(inner);
-
-				case Node.Marked(var inner, _):
-					return TurnHeadGuard(inner);
-
-				case Node.Sequence(var nodes) when nodes.Count > 0:
-					return TurnHeadGuard(nodes[0]);
-
-				case Node.Guard guard:
-					return guard;
-
-				case Node.Choice { Selection: null, Nodes: var alternatives } when alternatives.Count > 0:
-				{
-					Node.Guard? shared = null;
-
-					foreach (var alternative in alternatives)
-					{
-						var one = TurnHeadGuard(alternative);
-
-						if (one is null || shared is not null && !string.Equals(one.Text, shared.Text, StringComparison.Ordinal))
-							return null;
-
-						shared ??= one;
-					}
-
-					return shared;
-				}
-
-				default:
-					return null;
-			}
-		}
-
 		string Fails()
 		{
 			var given = GivenBack();
@@ -4767,17 +4722,6 @@ sealed partial class Machine
 				{
 					_character = true;
 					machine.EmitUntilSkip(code, until, turns: turns);
-					code.Line();
-				}
-
-				// EXPERIMENT (CSharpEmitter.HeadGuardFirstExperiment): a guard that every turn begins
-				// with is asked before the token is, so that a turn the guard refuses records nothing
-				// — the guard's position is the author's choice (syntax.md §3.6), and a turn that
-				// could not begin is the loop ending, not a refusal.
-				if (CSharpEmitter.HeadGuardFirstExperiment && TurnHeadGuard(body) is { } lead)
-				{
-					code.Line($"if (!{EmitGuardCall(code, lead)})");
-					code.Then("break;");
 					code.Line();
 				}
 

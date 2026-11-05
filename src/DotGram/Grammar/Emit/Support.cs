@@ -3017,40 +3017,63 @@ public static partial class CSharpEmitter
 
 				MemoAt = at;
 			}
+			// </memo>
+			// <kept>
+			/// <summary>
+			/// Where each rule a reader remembers has succeeded in the reading under way, and what it left:
+			/// three integers a rule and a token — the reading's generation, the end, the index of the
+			/// value kept — counted from where the reading began (Machine.Memo.cs).
+			/// </summary>
+			/// <remarks>
+			/// Stamped with the reading's generation rather than cleared, so that a reading pays for what
+			/// it stores and not for every token it could have stored at; a cell of another generation is
+			/// an empty one. The values kept are let go when the tape is returned: nothing a reading kept
+			/// outlives it, and the parse holds what it built through its result alone.
+			/// </remarks>
+			internal int[] Kept = new int[0];
 
-			// EXPERIMENT (CSharpEmitter.SuccessMemoExperiment): where each remembered rule succeeded in the reading
-			// under way, three integers a cell — the reading's generation, the end, the index of the value kept — a
-			// cell a rule and a token; stamped by generation rather than cleared, so a reading pays for what it stores
-			// and not for every token it could have. The values kept are let go when the tape is returned.
-			internal int[] MemoHits = new int[0];
-			internal int MemoGeneration;
-			internal object?[] MemoKept = new object?[16];
-			internal int MemoKeptCount;
+			/// <summary>The generation of the reading under way: what a cell written in it is stamped with.</summary>
+			internal int Generation;
 
-			internal void MemoiseHits(int cells)
+			/// <summary>How many cells the reading under way can use, for the bound a pooled tape is held under.</summary>
+			internal int KeptUsed;
+
+			/// <summary>The values the cells name, in the order they were kept.</summary>
+			internal object?[] KeptValues = new object?[16];
+
+			/// <summary>How many of them there are.</summary>
+			internal int KeptCount;
+
+			/// <summary>A reading begun: a generation of its own, and room for its cells.</summary>
+			internal void KeepRoom(int cells)
 			{
-				MemoGeneration++;
+				Generation++;
 
-				if (MemoGeneration == 0)
+				// Wrapped round after two billion readings: every cell is of some old generation then,
+				// and one of them could be stamped with this one by chance.
+				if (Generation == 0)
 				{
-					global::System.Array.Clear(MemoHits, 0, MemoHits.Length);
-					MemoGeneration = 1;
+					global::System.Array.Clear(Kept, 0, Kept.Length);
+					Generation = 1;
 				}
 
-				if (MemoHits.Length < cells)
-					MemoHits = new int[global::System.Math.Max(cells, MemoHits.Length * 2)];
+				if (Kept.Length < cells)
+					Kept = new int[global::System.Math.Max(cells, Kept.Length * 2)];
+
+				KeptUsed = cells;
 			}
 
-			internal int MemoKeep(object? value)
+			/// <summary>A value a remembered rule left, kept for a second entry there: its index.</summary>
+			internal int Keep(object value)
 			{
-				if (MemoKeptCount == MemoKept.Length)
-					global::System.Array.Resize(ref MemoKept, MemoKeptCount * 2);
+				if (KeptCount == KeptValues.Length)
+					global::System.Array.Resize(ref KeptValues, KeptCount * 2);
 
-				MemoKept[MemoKeptCount] = value;
+				KeptValues[KeptCount] = value;
 
-				return MemoKeptCount++;
+				return KeptCount++;
 			}
-			// </memo>
+			// </kept>
 
 			#if DOTGRAM_CHECKS
 
@@ -3203,15 +3226,16 @@ public static partial class CSharpEmitter
 
 			internal static void Return(Ways_DotGram ways)
 			{
-				// <memo>
-				// EXPERIMENT (CSharpEmitter.SuccessMemoExperiment): nothing a reading kept outlives it.
-				if (ways.MemoKeptCount > 0)
+				// <kept>
+				// Nothing a reading kept outlives it: the values a second entry was handed are the
+				// result's to hold, or nobody's.
+				if (ways.KeptCount > 0)
 				{
-					global::System.Array.Clear(ways.MemoKept, 0, ways.MemoKeptCount);
-					ways.MemoKeptCount = 0;
+					global::System.Array.Clear(ways.KeptValues, 0, ways.KeptCount);
+					ways.KeptCount = 0;
 				}
 
-				// </memo>
+				// </kept>
 				// <expectations>
 				// What a parse that rejected many elements kept for them is let go rather than
 				// pooled: a dictionary cleared keeps its room, and the room is the parse's, not the

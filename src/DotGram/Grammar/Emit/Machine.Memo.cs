@@ -9,7 +9,9 @@ namespace DotGram.Grammar.Emit;
 
 /// <summary>
 /// The memo of failures: a reader over tokens remembers where a rule that can reach itself has
-/// failed, and answers a second entry there at once.
+/// failed, and answers a second entry there at once. And the memo of successes beside it, for the
+/// rules of a recursion an ordered choice reads twice before it decides: where such a rule
+/// succeeded, and what it left.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -65,6 +67,25 @@ namespace DotGram.Grammar.Emit;
 /// bound. Each reading clears it, so a parse that reads a refused input twice to say what it
 /// expected reads it twice in full.
 /// </para>
+/// <para>
+/// <b>Successes.</b> A failure remembered answers the shape where a bracket is tried as one thing
+/// after another and each attempt fails inside it. It does not answer the shape where an attempt
+/// <i>succeeds</i> through the nest and is refused only after it: an ordered choice whose
+/// alternatives share a prefix holding a nested instance of the recursion they stand in, and
+/// whose deciding token comes after that instance — <c>(CASE WHEN … END = 1)</c> read as a value
+/// in brackets, refused at <c>=</c>, and read again as a condition in brackets, at every level:
+/// two to the depth. <see cref="SharedRecursion"/> finds those choices at generation time, and
+/// for the rules of the cycle each stands in the reader remembers successes too: where the rule
+/// ended and the value it left, three integers a rule and a token, stamped with the reading's
+/// generation rather than cleared. A second entry at a remembered place hands the value over and
+/// returns the end, and every level of the nest is read once. Only on the immediate carrier,
+/// whose values are objects a register hands on: the tape numbers its records by where they were
+/// written, and a reading given up has unwound them. And only for the rules the failure memo
+/// remembers, under the same contract (a rule's answer is a function of where it begins), at
+/// strength zero, outside a look, and where the reading builds: a success read unbuilt left no
+/// value to hand over. What it costs is a store a success on the accepted path, measured at a few
+/// per cent of a statement on SQL-92, and 12 bytes a token a rule.
+/// </para>
 /// </remarks>
 sealed partial class Machine
 {
@@ -74,8 +95,24 @@ sealed partial class Machine
 	/// </summary>
 	internal bool MemoisesFailures;
 
+	/// <summary>
+	/// Whether this machine's reader may remember where its rules succeeded as well
+	/// (<see cref="GramCompilerOptions.MemoiseSuccesses"/>).
+	/// </summary>
+	internal bool MemoisesSuccesses;
+
+	/// <summary>
+	/// The choices the shared-recursion analysis found in the grammar, each with the cycle it stands
+	/// in (<see cref="SharedRecursion"/>): what decides which rules' successes are remembered. Null
+	/// where the analysis was not run.
+	/// </summary>
+	internal IReadOnlyList<SharedRecursion.Pair>? SharedChoices;
+
 	/// <summary>The rules whose failures the reader remembers, each with the number of its bit.</summary>
 	readonly Dictionary<RuleSymbol, int> _memo = [];
+
+	/// <summary>The rules whose successes the reader remembers too, each with the number of its cell.</summary>
+	readonly Dictionary<RuleSymbol, int> _kept = [];
 
 	/// <summary>The candidates the reader does not remember, and why, for the report.</summary>
 	readonly List<(RuleSymbol Rule, string Why)> _memoRefused = [];
@@ -89,6 +126,62 @@ sealed partial class Machine
 	/// <summary>The rules that probe the stack and are not remembered, each with its reason.</summary>
 	internal IReadOnlyList<(RuleSymbol Rule, string Why)> MemoRefused => _memoRefused;
 
+	/// <summary>Whether the reader remembers any rule's successes.</summary>
+	internal bool Keeps => _kept.Count > 0;
+
+	/// <summary>The rules whose successes are remembered, in the order of their cells.</summary>
+	internal IEnumerable<RuleSymbol> KeptRules => _kept.OrderBy(static one => one.Value).Select(static one => one.Key);
+
+	/// <summary>The rules of a cycle whose successes this reader remembers, in the order of their cells.</summary>
+	internal List<RuleSymbol> KeptOf(IReadOnlyList<RuleSymbol> cycle)
+	{
+		return KeptRules.Where(cycle.Contains).ToList();
+	}
+
+	/// <summary>Why this reader remembers no success of a cycle's rules, or null where it reads none of them.</summary>
+	internal string? WhyNotKept(IReadOnlyList<RuleSymbol> cycle)
+	{
+		if (_directRules is null || !cycle.Any(_directRules.Contains))
+			return null;
+
+		if (!MemoisesSuccesses)
+			return "the memo of successes is off (DOTGRAM_NO_SUCCESS_MEMO)";
+
+		if (Tracing is not null)
+			return "a trace build enters and leaves every rule it reads";
+
+		if (Carrier is not ImmediateCarrier)
+			return "the rules are read on the tape, whose records a reading given up has unwound";
+
+		if (!OverKinds)
+			return "the rules are read over characters";
+
+		if (BufferedInput || BufferedBytes)
+			return "the rules read a buffered input";
+
+		if (ReadsRecovery)
+			return "the reader recovers";
+
+		var refused = _memoRefused.Where(one => cycle.Contains(one.Rule)).Select(static one => one.Why).Distinct().ToList();
+
+		return refused.Count > 0
+			? "a rule of the recursion " + string.Join(", ", refused.Select(static why => why switch
+			{
+				"context"    => "reaches a hook that names its context",
+				"gives back" => "is marked '?' and can be asked for another reading",
+				"characters" => "reads a literal of more than one character",
+				_            => why,
+			}))
+			: "no rule of the recursion is an entry of it that the failure memo remembers";
+	}
+
+	/// <summary>Whether the reader could remember successes at all: over tokens, immediately carried, not traced.</summary>
+	/// <remarks>
+	/// A trace build says what it entered and left, and an entry answered from the memo would be a
+	/// frame it never opened; the tape's records are unwound with the reading that wrote them.
+	/// </remarks>
+	internal bool CouldKeep => MemoisesSuccesses && Memoises && Tracing is null && Carrier is ImmediateCarrier;
+
 	/// <summary>Whether anything this machine's reader writes is read inside a look: set where a look is written.</summary>
 	/// <remarks>
 	/// Kept as the reader is written rather than asked of the text afterwards: the text of a large
@@ -100,11 +193,15 @@ sealed partial class Machine
 	/// <summary>Words a token: one for every sixty-four rules remembered.</summary>
 	int MemoWords => (_memo.Count + 63) / 64;
 
+	/// <summary>Integers a token for the successes: three a rule remembered — the generation, the end, the value kept.</summary>
+	int MemoCells => _kept.Count * 3;
+
 	/// <summary>Which of the rules that probe the stack the reader remembers, and why not the rest.</summary>
 	void ChooseMemo(IReadOnlyList<RuleSymbol> rules)
 	{
 		_memo.Clear();
 		_memoRefused.Clear();
+		_kept.Clear();
 
 		if (!MemoisesFailures)
 			return;
@@ -133,6 +230,35 @@ sealed partial class Machine
 			else
 				_memoRefused.Add((rule, why));
 		}
+
+		ChooseKept();
+	}
+
+	/// <summary>
+	/// Which of the remembered rules remember their successes too: those of a cycle some choice
+	/// reads a nested instance of before it decides (<see cref="SharedRecursion"/>, levels 2 and 3).
+	/// </summary>
+	/// <remarks>
+	/// The cycle's rules rather than the choice's alone: the two alternatives need not enter the same
+	/// rule, but from the nested instance on they read the same rules at the same tokens, and every
+	/// way round the cycle passes a rule the failure memo remembers (the entries of the recursion,
+	/// <see cref="Deepens"/>), which is where the second reading is answered.
+	/// </remarks>
+	void ChooseKept()
+	{
+		if (!CouldKeep || SharedChoices is null)
+			return;
+
+		var cycles = new HashSet<RuleSymbol>();
+
+		foreach (var pair in SharedChoices)
+			if (pair.Level >= SharedRecursion.Remembered)
+				foreach (var rule in pair.Cycle)
+					cycles.Add(rule);
+
+		foreach (var rule in Memoised)
+			if (cycles.Contains(rule))
+				_kept[rule] = _kept.Count;
 	}
 
 	/// <summary>
@@ -255,7 +381,8 @@ sealed partial class Machine
 	/// Before the stack probe, since an answer that reads nothing needs no stack. Where entries are
 	/// counted, the answer is one entry, as a reading would have been.
 	/// </remarks>
-	void MemoAsked(Writer file, RuleSymbol rule, int slot)
+	/// <param name="body">The rule's body as rendered, which says whether it ever succeeds and whether it is read unbuilt.</param>
+	void MemoAsked(Writer file, RuleSymbol rule, int slot, string body)
 	{
 		var index = MemoIndex(slot);
 		var power = _graph.Climbing.ContainsKey(rule) ? "power == 0 && " : "";
@@ -291,8 +418,8 @@ sealed partial class Machine
 
 		file.Line();
 
-		if (CSharpEmitter.SuccessMemoExperiment && Tracing is null && Carrier is ImmediateCarrier)
-			MemoHitAsked(file, rule, slot);
+		if (_kept.TryGetValue(rule, out var cell) && body.Contains("return p;", StringComparison.Ordinal))
+			KeptAsked(file, rule, cell, body);
 	}
 
 	/// <summary>
@@ -305,35 +432,21 @@ sealed partial class Machine
 	/// </remarks>
 	bool MemoBody(Writer file, RuleSymbol rule, int slot, string body)
 	{
-		const string Refused = "return -1;";
+		const string Refused   = "return -1;";
+		const string Succeeded = "return p;";
 
 		if (!body.Contains(Tracing is null ? Refused : "goto Failed;", StringComparison.Ordinal))
 			return false;
 
-		var kept = CSharpEmitter.SuccessMemoExperiment && Tracing is null && Carrier is ImmediateCarrier && body.Contains("return p;", StringComparison.Ordinal);
+		// A success leaves through one place too, where it is remembered: every `return p;` of the
+		// body is the rule succeeding at p, and a body with none never succeeds.
+		var kept = _kept.TryGetValue(rule, out var cell) && body.Contains(Succeeded, StringComparison.Ordinal);
 
-		file.Write(Tracing is null ? (kept ? body.Replace(Refused, "goto Failed;").Replace("return p;", "goto Kept;") : body.Replace(Refused, "goto Failed;")) : body);
+		file.Write(Tracing is null ? (kept ? body.Replace(Refused, "goto Failed;").Replace(Succeeded, "goto Kept;") : body.Replace(Refused, "goto Failed;")) : body);
 		file.Line();
 
 		if (kept)
-		{
-			var register = MemoRegister(rule);
-			var when     = new List<string>();
-
-			if (_graph.Climbing.ContainsKey(rule))
-				when.Add("power == 0");
-
-			if (body.Contains("unbuilt", StringComparison.Ordinal))
-				when.Add("unbuilt == 0");
-
-			if (_looks)
-				when.Add("failure.Looking == 0");
-
-			file.Line("Kept:");
-			file.Line($"{(when.Count > 0 ? $"if ({string.Join(" && ", when)}) " : "")}MemoKept(pos, {slot * 3}, p, {(register is null ? "null" : $"(object?){register}")});");
-			file.Line("return p;");
-			file.Line();
-		}
+			KeptLeft(file, rule, cell, body);
 
 		file.Line("Failed:");
 
@@ -358,38 +471,37 @@ sealed partial class Machine
 		return true;
 	}
 
-	/// <summary>The reader's two fields the remembered rules read, and where they come from.</summary>
-	static void MemoFields(Writer header)
+	/// <summary>The reader's fields the remembered rules read, and where they come from.</summary>
+	void MemoFields(Writer header)
 	{
 		header.Line("/// <summary>Where each remembered rule has failed in this reading: a bit a rule, from <c>Ways_DotGram.Memo</c>.</summary>");
 		header.Line("readonly ulong[] memo;");
 		header.Line("/// <summary>The token the memo's first word stands for: where the reading began.</summary>");
 		header.Line("readonly int memoAt;");
 
-		if (CSharpEmitter.SuccessMemoExperiment)
-			header.Line("readonly int[] memoHits;");
+		if (Keeps)
+		{
+			header.Line("/// <summary>Where each remembered rule has succeeded in this reading, and what it left: three integers a rule and a token, from <c>Ways_DotGram.Kept</c>.</summary>");
+			header.Line("readonly int[] kept;");
+		}
 	}
 
 	/// <summary>The constructor's half: the memo is the tape's, and so travels with it to another stack.</summary>
-	static void MemoTaken(Writer header)
+	void MemoTaken(Writer header)
 	{
 		header.Line("this.memo    = ways.Memo;");
 		header.Line("this.memoAt  = ways.MemoAt;");
 
-		if (CSharpEmitter.SuccessMemoExperiment)
-			header.Line("this.memoHits = ways.MemoHits;");
+		if (Keeps)
+			header.Line("this.kept    = ways.Kept;");
 	}
 
 	/// <summary>Where a remembered rule's failure is written down.</summary>
 	/// <param name="looks">Whether anything this reader reads is read inside a look.</param>
 	void MemoFailedMethod(Writer header, bool looks)
 	{
-		if (CSharpEmitter.SuccessMemoExperiment && Tracing is null && Carrier is ImmediateCarrier)
-		{
-			header.Line();
-			header.Line($"const int MemoCells = {_memo.Count * 3};");
-			MemoKeptMethod(header);
-		}
+		if (Keeps)
+			KeptMethod(header);
 
 		header.Line();
 		header.Line("/// <summary>Remembers that a rule entered at <paramref name=\"pos\"/> failed there (Machine.Memo.cs).</summary>");
@@ -424,63 +536,109 @@ sealed partial class Machine
 		file.Line("// What an earlier reading remembered is not this one's: each reading begins with nothing failed.");
 		file.Line($"ways.Memoise(pos, (text.Length - pos + 1) * {MemoWords});");
 
-		if (CSharpEmitter.SuccessMemoExperiment)
-			file.Line($"ways.MemoiseHits((text.Length - pos + 1) * {_memo.Count * 3});");
+		if (Keeps)
+			file.Line($"ways.KeepRoom((text.Length - pos + 1) * {MemoCells});");
 	}
 
-	/// <summary>EXPERIMENT: the register a remembered rule's value is handed through, or null where it has none.</summary>
-	string? MemoRegister(RuleSymbol rule)
+	/// <summary>The register a remembered rule's value is handed through, or null where it has none.</summary>
+	string? KeptRegister(RuleSymbol rule)
 	{
-		return Valued(rule) && Carrier is ImmediateCarrier ? Carrier.Last(rule) : null;
+		return Valued(rule) ? Carrier.Last(rule) : null;
 	}
 
-	/// <summary>EXPERIMENT: the success probe, after the failure's.</summary>
-	void MemoHitAsked(Writer file, RuleSymbol rule, int slot)
+	/// <summary>Whether a rule's body can be read unbuilt — inside a look, or after a loop gave a way back twice — where its construction does not run.</summary>
+	static bool ReadUnbuilt(string body)
 	{
+		return body.Contains("unbuilt", StringComparison.Ordinal);
+	}
+
+	/// <summary>
+	/// The successes asked at the top of a remembered rule's method, after its failures: succeeded
+	/// here already, hand over what it left and return where it ended.
+	/// </summary>
+	/// <remarks>
+	/// A success read unbuilt left no value, and is remembered as that: a reading that builds
+	/// reads the rule again rather than take it, and a reading that does not build takes any.
+	/// So the probe answers in every reading, and a nest the reader reads unbuilt — a refused
+	/// text read again for its message, behind a look — costs its depth as an accepted one does.
+	/// </remarks>
+	void KeptAsked(Writer file, RuleSymbol rule, int cell, string body)
+	{
+		var register = KeptRegister(rule);
+		var unbuilt  = register is not null && ReadUnbuilt(body);
 		var power    = _graph.Climbing.ContainsKey(rule) ? "power == 0 && " : "";
-		var register = MemoRegister(rule);
+		var built    = unbuilt ? " && (unbuilt != 0 || kept[keptAt + 2] != -2)" : "";
 
-		file.Line("// EXPERIMENT: succeeded here already in this reading: the same end, the same value (CSharpEmitter.SuccessMemoExperiment).");
+		file.Line("// Succeeded here already in this reading: the same end, the same value (Machine.Memo.cs).");
 
 		using (file.Block($"if ({power}(uint)(pos - memoAt) < (uint)memo.Length)"))
 		{
-			file.Line($"var hitAt = (pos - memoAt) * {_memo.Count * 3} + {slot * 3};");
+			file.Line($"var keptAt = (pos - memoAt) * {MemoCells} + {cell * 3};");
 
-			using (file.Block("if (memoHits[hitAt] == ways.MemoGeneration)"))
+			using (file.Block($"if ((uint)keptAt < (uint)kept.Length && kept[keptAt] == ways.Generation{built})"))
 			{
 				if (CountsRules)
 				{
 					file.Line("#if DOTGRAM_COUNTS");
 					file.Line($"{EnteredOf(rule)}++;");
 					file.Line("#endif");
+					file.Line();
 				}
 
 				if (register is not null)
-					file.Line($"if (memoHits[hitAt + 2] >= 0) {register} = ({_results.ValueOf(rule)})ways.MemoKept[memoHits[hitAt + 2]]!;");
+					file.Line($"{(unbuilt ? "if (unbuilt == 0) " : "")}{register} = kept[keptAt + 2] >= 0 ? ({_results.ValueOf(rule)})ways.KeptValues[kept[keptAt + 2]]! : default!;");
 
-				file.Line("return memoHits[hitAt + 1];");
+				file.Line("return kept[keptAt + 1];");
 			}
 		}
 
 		file.Line();
 	}
 
-	/// <summary>EXPERIMENT: where a remembered rule's success is written down.</summary>
-	static void MemoKeptMethod(Writer header)
+	/// <summary>The one place a remembered rule's body succeeds through: the success written down, then returned.</summary>
+	/// <remarks>
+	/// At the strength the rule was entered at, as at the top of the method (MemoBody says why); and
+	/// not inside a look, where nothing it refused on the way was recorded, so that a reading outside
+	/// the look, which must record it, reads it.
+	/// </remarks>
+	void KeptLeft(Writer file, RuleSymbol rule, int cell, string body)
+	{
+		var register = KeptRegister(rule);
+		var when     = new List<string>();
+
+		if (_graph.Climbing.ContainsKey(rule))
+			when.Add("power == 0");
+
+		if (_looks)
+			when.Add("failure.Looking == 0");
+
+		var value = register is null
+			? "null, true"
+			: ReadUnbuilt(body) ? $"(object?){register}, unbuilt == 0" : $"(object?){register}, true";
+
+		file.Line("Kept:");
+		file.Line($"{(when.Count > 0 ? $"if ({string.Join(" && ", when)}) " : "")}Kept(pos, {cell * 3}, p, {value});");
+		file.Line("return p;");
+		file.Line();
+	}
+
+	/// <summary>Where a remembered rule's success is written down.</summary>
+	void KeptMethod(Writer header)
 	{
 		header.Line();
-		header.Line("/// <summary>EXPERIMENT: remembers that a rule entered at <paramref name=\"pos\"/> succeeded there, and what it left.</summary>");
+		header.Line("/// <summary>Remembers that a rule entered at <paramref name=\"pos\"/> succeeded there, where it ended and what it left (Machine.Memo.cs).</summary>");
+		header.Line("/// <param name=\"built\">Whether the reading built: read unbuilt, the rule left no value, and the cell says so (-2) for a reading that builds to read it again.</param>");
 
-		using (header.Block("void MemoKept(int pos, int cell, int end, object? value)"))
+		using (header.Block("void Kept(int pos, int cell, int end, object? value, bool built)"))
 		{
-			header.Line("var at = (pos - memoAt) * (memoHits.Length == 0 ? 0 : MemoCells) + cell;");
+			header.Line($"var at = (pos - memoAt) * {MemoCells} + cell;");
 			header.Line();
 
-			using (header.Block("if ((uint)at < (uint)memoHits.Length)"))
+			using (header.Block("if ((uint)at < (uint)kept.Length)"))
 			{
-				header.Line("memoHits[at]     = ways.MemoGeneration;");
-				header.Line("memoHits[at + 1] = end;");
-				header.Line("memoHits[at + 2] = value == null ? -1 : ways.MemoKeep(value);");
+				header.Line("kept[at]     = ways.Generation;");
+				header.Line("kept[at + 1] = end;");
+				header.Line("kept[at + 2] = !built ? -2 : value == null ? -1 : ways.Keep(value);");
 			}
 		}
 	}

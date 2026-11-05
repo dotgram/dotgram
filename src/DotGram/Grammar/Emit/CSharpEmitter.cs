@@ -35,20 +35,6 @@ namespace DotGram.Grammar.Emit;
 /// </remarks>
 public static partial class CSharpEmitter
 {
-	/// <summary>
-	/// EXPERIMENT (a prototype's switch, not an option): a guard standing at the head of a repetition's
-	/// turn is asked before the turn's first token is tested, and a turn the guard refuses records
-	/// nothing. Static, read while a reader is written; a test sets it around one compilation.
-	/// </summary>
-	public static bool HeadGuardFirstExperiment;
-
-	/// <summary>
-	/// EXPERIMENT (a prototype's switch, not an option): a reader over tokens remembers where a remembered rule
-	/// succeeded as well — the end and the value — and answers a second entry there at once. Static, read while a
-	/// reader is written; a test sets it around one compilation. For a cost measurement only: no tie replay.
-	/// </summary>
-	public static bool SuccessMemoExperiment;
-
 	/// <param name="graph">The normalized grammar.</param>
 	/// <param name="className">
 	/// The partial class the generated members go into. A nested host is named by its
@@ -77,6 +63,84 @@ public static partial class CSharpEmitter
 	/// generator acted under, because the remedy is chosen against them.
 	/// </para>
 	/// </remarks>
+	/// <summary>
+	/// The hint for every choice the shared-recursion analysis found at the levels where a nest is
+	/// read once per alternative (GRAM4054, information): whether the readers of this file remember
+	/// the recursion's successes and read the nest once, and the rewrite that reads the shared text
+	/// once and needs no memo.
+	/// </summary>
+	/// <remarks>
+	/// Said here and not where the analysis ran, because only a machine knows whether it remembers:
+	/// over characters, on the tape, in a trace build and for a rule that names its context nothing
+	/// is remembered, and then the hint says that the nest costs its depth's power and the rewrite
+	/// is the remedy rather than the faster way.
+	/// </remarks>
+	static void SharedRecursionTold(
+		RecognitionGraph graph, IReadOnlyList<SharedRecursion.Pair> shared, List<Compiled> machines, ICollection<GramDiagnostic> diagnostics)
+	{
+		foreach (var pair in shared)
+		{
+			if (pair.Level < SharedRecursion.Remembered)
+				continue;
+
+			List<RuleSymbol>? kept = null;
+			string?           why  = null;
+
+			foreach (var compiled in machines)
+			{
+				if (!compiled.Direct)
+					continue;
+
+				if (compiled.Machine.KeptOf(pair.Cycle) is { Count: > 0 } remembered)
+				{
+					kept = remembered;
+
+					break;
+				}
+
+				why ??= compiled.Machine.WhyNotKept(pair.Cycle);
+			}
+
+			var names = kept is null
+				? ""
+				: string.Join(", ", kept.Take(6).Select(rule => "'" + graph.Origin(rule).Name + "'")) + (kept.Count > 6 ? $" and {kept.Count - 6} more" : "");
+
+			var shape = pair.Shape switch
+			{
+				"?"  => $"reads its optional (alternative {pair.First}) and what follows it (alternative {pair.Second})",
+				"*"  => $"reads a turn of its repetition (alternative {pair.First}) and what follows the repetition (alternative {pair.Second})",
+				"?=" => $"reads its lookahead (alternative {pair.First}) and then what follows it (alternative {pair.Second})",
+				_    => $"tries its alternatives {pair.First} and {pair.Second} in turn",
+			};
+
+			var guarded = pair.Guarded
+				? " A 'when' on the way may tell the two apart, which the analysis does not read."
+				: "";
+
+			var remedy =
+				"factor the prefix the alternatives share ('A & (X | Y)'), read a bracket's content in one rule and " +
+				"tell what it was by a 'switch' on it, or read the value and then its tail (docs/syntax.md §4.7).";
+
+			var message = kept is not null
+				? $"'{pair.Rule.Name}' {shape}, and after {pair.Witness} both read the same text through the recursion " +
+				  "the rule stands in before the first can be refused: a nest of that text would be read once per " +
+				  $"alternative at every level, doubling with the depth. The parser remembers where the recursion's rules succeed ({names}) " +
+				  "and reads every level once, at a store a success — a few per cent of an accepted parse, 3-4 % measured on SQL-92 — " +
+				  "and 12 bytes a token a rule remembered. Written to read the shared text once it would need no memo: " + remedy + guarded
+				: $"'{pair.Rule.Name}' {shape}, and after {pair.Witness} both read the same text through the recursion " +
+				  "the rule stands in before the first can be refused: a nest of that text is read once per " +
+				  $"alternative at every level, doubling with the depth, and the parser cannot remember the recursion's successes here ({why ?? "no reader of this file reads the rule"}). " +
+				  "Write the alternatives to read the shared text once: " + remedy + guarded;
+
+			diagnostics.Add(new GramDiagnostic(
+				GramCompiler.SharedRecursions,
+				message,
+				pair.Rule.Declaration?.At.Position ?? 0,
+				pair.Rule.Declaration?.At.Length ?? 0,
+				GramSeverity.Info));
+		}
+	}
+
 	static void Oversee(
 		string file, RuleSymbol? anchor, ICollection<GramDiagnostic>? diagnostics)
 	{
@@ -207,7 +271,7 @@ public static partial class CSharpEmitter
 		ValueStorageKind valueStorage = ValueStorageKind.Auto, bool bufferedInput = false, bool bufferedBytes = false, bool spanCaptures = false, bool prefixTables = true, ICollection<string>? sourceParts = null, int sourceFileSize = 0,
 		int maxRetained = int.MaxValue, int bufferSize = 4096, ICollection<string>? carriers = null,
 		bool countRules = false, bool memoise = false, bool trace = false, bool utf8Literals = false, bool checks = false, bool steps = false,
-		bool constructionsMayThrow = false, bool hostUnseen = false)
+		bool constructionsMayThrow = false, bool hostUnseen = false, bool memoiseSuccesses = true, IReadOnlyList<SharedRecursion.Pair>? sharedChoices = null)
 	{
 		statics ??= [];
 
@@ -300,7 +364,9 @@ public static partial class CSharpEmitter
 				ConstructionsMayThrow = constructionsMayThrow,
 
 				// Over tokens only, which the machine asks itself (Machine.Memo.cs).
-				MemoisesFailures = memoise,
+				MemoisesFailures   = memoise,
+				MemoisesSuccesses  = memoiseSuccesses,
+				SharedChoices      = sharedChoices,
 			};
 
 			// Every publication of this rule needs none of the three things the arena is
@@ -377,6 +443,8 @@ public static partial class CSharpEmitter
 			made.Tracing = tracing;
 			made.KeepsDoors = made.KeepsDoors && tracing is null;
 			made.MemoisesFailures = memoise;
+			made.MemoisesSuccesses = memoiseSuccesses;
+			made.SharedChoices = sharedChoices;
 			if (!made.CanDirect(publications)) continue;
 			// Kept only where the union carries as its members do.
 			if (immediately && !made.WillCarryImmediately) continue;
@@ -1130,6 +1198,9 @@ public static partial class CSharpEmitter
 			// The memo of failures is on the tape too, and counts in its bound where a machine keeps one.
 			var memoises = machines.Exists(static compiled => compiled.Direct && compiled.Machine.Memoises);
 
+			// And the memo of successes beside it, where some machine remembers those.
+			var keeps = machines.Exists(static compiled => compiled.Direct && compiled.Machine.Keeps);
+
 			var expectations = machines.Exists(static compiled => compiled.Direct && compiled.Machine.TapeKeepsExpectations);
 
 			// A reader that tells its rejected elements what they wanted marks where each turn began,
@@ -1152,16 +1223,16 @@ public static partial class CSharpEmitter
 			// one move (Machine.KeepsPlaces), and counted in the tape's bound with the rest.
 			var places = machines.Exists(static compiled => compiled.Direct && compiled.Machine.KeepsPlaces);
 
-			file.Write(Region(Region(Region(Region(Region(Region(Region(regioned, "marks", graph.State is not null), "memo", memoises), "expectations", expectations), "turn", turns), "noturn", !turns), "furthest", furthest), "places", places)
+			file.Write(Region(Region(Region(Region(Region(Region(Region(Region(regioned, "marks", graph.State is not null), "memo", memoises), "kept", keeps), "expectations", expectations), "turn", turns), "noturn", !turns), "furthest", furthest), "places", places)
 				.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture))
-				.Replace("/*MEMOROOM*/", memoises ? " + ways.Memo.Length * 2L" : "")
+				.Replace("/*MEMOROOM*/", memoises ? " + ways.Memo.Length * 2L" + (keeps ? " + ways.Kept.Length" : "") : "")
 				.Replace("/*PLACESROOM*/", places ? " + ways.Places.Length" : "")
 				// Two integers a way on the tape, and two more beside it where the places are kept.
 				.Replace("/*WAYWIDTH*/2L", places ? "4L" : "2L")
 				// A refusal a recording reading records is told to the sink, where the build traces.
 				.Replace("\t/*REFUSED*/\r\n", tracing is null ? "" : "\tfailure.Trace?.Refused(at, expected);\r\n\r\n")
 				.Replace("\t/*REFUSED*/\n", tracing is null ? "" : "\tfailure.Trace?.Refused(at, expected);\n\n")
-				.Replace("/*MEMOUSED*/", memoises ? " + ways.MemoUsed * 2L" : "")
+				.Replace("/*MEMOUSED*/", memoises ? " + ways.MemoUsed * 2L" + (keeps ? " + ways.KeptUsed" : "") : "")
 				.Replace(
 					"/*REACH*/",
 					readsRecovery
@@ -1327,6 +1398,9 @@ public static partial class CSharpEmitter
 			foreach (var compiled in machines)
 				foreach (var warning in compiled.Machine.Oversized)
 					diagnostics.Add(warning);
+
+			if (sharedChoices is not null)
+				SharedRecursionTold(graph, sharedChoices, machines, diagnostics);
 
 			Oversee(
 				written,
@@ -5272,6 +5346,7 @@ file.Line("return spare;");
 		{
 			var machine    = one.Machine;
 			var remembered = machine.Memoised.Select(static rule => rule.Declaration?.Name ?? rule.Name).ToList();
+			var kept       = machine.KeptRules.Select(static rule => rule.Declaration?.Name ?? rule.Name).ToList();
 			var unasked    = machine.MemoRefused.Select(static pair => $"{pair.Rule.Declaration?.Name ?? pair.Rule.Name} ({pair.Why})").ToList();
 
 			if (remembered.Count + unasked.Count > 0)
@@ -5279,7 +5354,9 @@ file.Line("return spare;");
 					$"memo {Read(one)}: remembered {remembered.Count}" +
 					(remembered.Count > 0 ? ": " + string.Join(", ", remembered) : "") +
 					$"; not {unasked.Count}" +
-					(unasked.Count > 0 ? ": " + string.Join(", ", unasked) : ""));
+					(unasked.Count > 0 ? ": " + string.Join(", ", unasked) : "") +
+					$"; kept {kept.Count}" +
+					(kept.Count > 0 ? ": " + string.Join(", ", kept) : ""));
 		}
 	}
 

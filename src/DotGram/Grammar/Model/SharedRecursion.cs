@@ -60,6 +60,9 @@ namespace DotGram.Grammar.Model;
 /// </remarks>
 public static class SharedRecursion
 {
+	/// <summary>The level from which a pair is told and its cycle remembered: two joint entries into the cycle, or one into the rule itself. One joint entry is information only.</summary>
+	public const int Remembered = 2;
+
 	/// <summary>How many times one rule may be on a configuration's stack; a call past it is cut. A cut-off, not a proof.</summary>
 	const int Recursion = 2;
 
@@ -96,7 +99,8 @@ public static class SharedRecursion
 	/// <param name="Level">3: both enter the rule itself again; 2: two joint entries into its cycle; 1: one.</param>
 	/// <param name="Guarded">Whether a <c>when</c> was read as nothing on the way, and so may separate the two.</param>
 	/// <param name="Witness">The joint letters, each joint entry marked with the rules each side entered.</param>
-	public sealed record Pair(RuleSymbol Rule, Node Choice, string Shape, int First, int Second, int Level, bool Guarded, string Witness);
+	/// <param name="Cycle">The rules of the recursion cycle the choice stands in: what a reader remembers to read the nest once (Machine.Memo.cs).</param>
+	public sealed record Pair(RuleSymbol Rule, Node Choice, string Shape, int First, int Second, int Level, bool Guarded, string Witness, IReadOnlyList<RuleSymbol> Cycle);
 
 	/// <summary>What the analysis found, and how much it asked.</summary>
 	/// <param name="Found">Every pair told, levels 1 to 3, a pair of a rule's clones once.</param>
@@ -278,6 +282,7 @@ public static class SharedRecursion
 
 			var cycles    = 0;
 			var recursive = 0;
+			var members   = new List<IReadOnlyList<RuleSymbol>>();
 
 			foreach (var component in calls.Components)
 			{
@@ -286,6 +291,8 @@ public static class SharedRecursion
 
 				foreach (var rule in component)
 					_component[rule] = cycles;
+
+				members.Add([.. component]);
 
 				cycles++;
 				recursive += component.Count;
@@ -331,7 +338,7 @@ public static class SharedRecursion
 							// A clone of a rule is walked in the same order, so a choice's place among its
 							// rule's is the same in every clone: one finding for what is written once.
 							if (told is { } pair && said.Add(((object?)origin.Declaration ?? origin, at, i, j)))
-								found.Add(new Pair(origin, candidate.Choice, candidate.Shape, i + 1, j + 1, pair.Level, pair.Guarded, pair.Witness));
+								found.Add(new Pair(origin, candidate.Choice, candidate.Shape, i + 1, j + 1, pair.Level, pair.Guarded, pair.Witness, members[component]));
 						}
 				}
 			}

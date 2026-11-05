@@ -188,6 +188,12 @@ public static class GramCompiler
 		if (!HasErrors(diagnostics))
 			diagnostics.AddRange(ExponentialRepetition.Report(graph, lexical));
 
+		// An ordered choice that reads a nested instance of its own recursion before it can be refused:
+		// a nest of them is read once per alternative at every level. What the analysis finds decides
+		// which rules' successes the readers remember (Machine.Memo.cs), and the emitter says of each
+		// choice whether they do (GRAM4054).
+		var shared = !HasErrors(diagnostics) ? SharedRecursion.Check(graph, lexical).Found : null;
+
 		// And the one question that has a different answer on the other side of the cut:
 		// over characters an overlap between an optional and what follows it is settled by
 		// backtracking, and over kinds a reading that fits is the one that stands.
@@ -224,7 +230,7 @@ public static class GramCompiler
 					options.LanguageRecognitionContract, options.StaticImports,
 					options.Portable ? grammarText : null, options.SuffixDeclared, options.ValueStorage, options.BufferedInput, options.BufferedBytes, options.SpanCaptures, options.PrefixTables, sourceParts, options.SourceFileSize, options.MaxRetained, options.BufferSize, carriers,
 					options.CountRules, options.MemoiseFailures, options.Trace, options.Utf8Literals, options.Checks, options.Steps,
-					options.ConstructionsMayThrow, options.SymbolResolver is UnseenHostSymbolResolver)));
+					options.ConstructionsMayThrow, options.SymbolResolver is UnseenHostSymbolResolver, options.MemoiseSuccesses, shared)));
 
 		for (var part = 0; part < sourceParts.Count; part++)
 			sources.Add(new GeneratedSource(sources[0].HintName.Replace(".gram.g.cs", $".gram.part-{part + 1:D4}.g.cs"), sourceParts[part]));
@@ -412,6 +418,9 @@ public static class GramCompiler
 
 	/// <summary>A repetition can read one run of text in two ways, so a refused input is read again for every way of cutting it.</summary>
 	public const string ExponentialRepetitions = "GRAM4052";
+
+	/// <summary>Two alternatives of a rule read a nested instance of its recursion before either can be refused; the parser remembers the recursion's successes, and the rewrite that needs none is shown.</summary>
+	public const string SharedRecursions = "GRAM4054";
 
 	/// <summary>The immediate carrier, asked for by name, could not carry a machine of the grammar.</summary>
 	public const string CarrierRefused = "GRAM5007";

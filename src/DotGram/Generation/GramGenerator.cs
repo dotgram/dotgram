@@ -173,7 +173,8 @@ public sealed class GramGenerator : IIncrementalGenerator
 		// shipped package — gets a counter of entries in every rule method as well (D144). Asked of the
 		// parse options, which change when the symbols do and not on an edit.
 		// And one that defines DOTGRAM_NO_MEMO is compiled without the memo of failures, so that a
-		// test can hold the parser with it to the parser without it (GramCompilerOptions.MemoiseFailures).
+		// test can hold the parser with it to the parser without it (GramCompilerOptions.MemoiseFailures);
+		// DOTGRAM_NO_SUCCESS_MEMO likewise for the memo of successes (GramCompilerOptions.MemoiseSuccesses).
 		// And `DotGramTrace`: every grammar of the project compiled as a trace build, as if each of
 		// its readings said `Trace = true` (GramCompilerOptions.Trace). Off unless the property says
 		// `true`.
@@ -198,6 +199,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		var counting = context.ParseOptionsProvider.Combine(tracing).Select(static (input, _) =>
 			(Counts: input.Left.PreprocessorSymbolNames.Contains(CountsSymbol),
 			Memoises: !input.Left.PreprocessorSymbolNames.Contains(NoMemoSymbol),
+			Keeps: !input.Left.PreprocessorSymbolNames.Contains(NoSuccessMemoSymbol),
 			Traces: input.Right,
 			Collapses: !input.Left.PreprocessorSymbolNames.Contains(NoCollapseSymbol),
 			Utf8: input.Left is CSharpParseOptions { LanguageVersion: >= LanguageVersion.CSharp11 },
@@ -360,6 +362,9 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// <summary>The symbol under which a test compiles a parser without the memo of failures.</summary>
 	const string NoMemoSymbol = "DOTGRAM_NO_MEMO";
 
+	/// <summary>The symbol under which a test compiles a parser without the memo of successes (GramCompilerOptions.MemoiseSuccesses).</summary>
+	const string NoSuccessMemoSymbol = "DOTGRAM_NO_SUCCESS_MEMO";
+
 	/// <summary>The symbol under which a test compiles a parser that calls its forwarding rules as written.</summary>
 	const string NoCollapseSymbol = "DOTGRAM_NO_COLLAPSE";
 
@@ -371,7 +376,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 		Split,
 	}
 
-	static Parser CompileSafely(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, bool Traces, bool Collapses, bool Utf8, bool Checks, bool Steps) counting, Positional positional)
+	static Parser CompileSafely(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, bool Keeps, bool Traces, bool Collapses, bool Utf8, bool Checks, bool Steps) counting, Positional positional)
 	{
 		try
 		{
@@ -406,7 +411,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	readonly record struct CompileKey(
 		Grammar                                                                          Grammar,
 		Reporting                                                                        Reporting,
-		(bool Counts, bool Memoises, bool Traces, bool Collapses, bool Utf8, bool Checks, bool Steps) Counting,
+		(bool Counts, bool Memoises, bool Keeps, bool Traces, bool Collapses, bool Utf8, bool Checks, bool Steps) Counting,
 		Positional                                                                       Positional,
 		Guid                                                                             Generator);
 
@@ -448,7 +453,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// <see cref="CompileSafely"/>, or the parser an earlier compilation in this process made of the
 	/// same input.
 	/// </summary>
-	static Parser CompileCached(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, bool Traces, bool Collapses, bool Utf8, bool Checks, bool Steps) counting, Positional positional, Caching caching)
+	static Parser CompileCached(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, bool Keeps, bool Traces, bool Collapses, bool Utf8, bool Checks, bool Steps) counting, Positional positional, Caching caching)
 	{
 		// No text is a grammar that never got as far as the compile, which only hands its reports on.
 		if (caching == Caching.Off || grammar.Text is null)
@@ -1057,7 +1062,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 	/// Stage three: the grammar compiled against what the host answered. No compilation
 	/// reaches here, so it runs only when the grammar or one of the answers changed.
 	/// </summary>
-	static Parser Compile(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, bool Traces, bool Collapses, bool Utf8, bool Checks, bool Steps) counting, Positional positional)
+	static Parser Compile(Grammar grammar, Reporting reporting, (bool Counts, bool Memoises, bool Keeps, bool Traces, bool Collapses, bool Utf8, bool Checks, bool Steps) counting, Positional positional)
 	{
 		if (grammar.Text is not { } text)
 			return new Parser(grammar.Host.Key, null, null, grammar.Reports);
@@ -1124,6 +1129,7 @@ public sealed class GramGenerator : IIncrementalGenerator
 			ReportCarriers = reporting == Reporting.Full,
 			CountRules     = counting.Counts,
 			MemoiseFailures = counting.Memoises,
+			MemoiseSuccesses = counting.Keeps,
 			CollapseForwarders = counting.Collapses,
 			Utf8Literals    = counting.Utf8,
 			Checks          = counting.Checks,

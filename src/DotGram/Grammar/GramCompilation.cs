@@ -319,6 +319,29 @@ public sealed class GramCompilerOptions
 	public bool MemoiseFailures { get; set; } = true;
 
 	/// <summary>
+	/// Whether a reader over tokens remembers where the rules of a recursion some ordered choice
+	/// reads twice have succeeded, and what they left, and answers a second entry there at once.
+	/// On by default; off is for a test that holds the parser with the memo to the parser without it.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// A choice whose alternatives share a prefix holding a nested instance of the recursion the
+	/// choice stands in, and whose deciding token comes after that instance, reads the instance once
+	/// per alternative at every level of a nest: two to the depth (<c>GRAM4054</c>). For the rules of
+	/// such a recursion — among those <see cref="MemoiseFailures"/> already remembers, under its
+	/// contract — the reader keeps where the rule ended and the value it left, three integers a rule
+	/// and a token, and every level is read once. Only on the immediate carrier, whose values a
+	/// register hands on: the tape unwinds the records of a reading given up. Nothing is remembered
+	/// in a grammar no such choice was found in, so a grammar without the shape pays nothing.
+	/// </para>
+	/// <para>
+	/// The generator sets it off where the compilation defines <c>DOTGRAM_NO_SUCCESS_MEMO</c>, and
+	/// nowhere else.
+	/// </para>
+	/// </remarks>
+	public bool MemoiseSuccesses { get; set; } = true;
+
+	/// <summary>
 	/// Whether the consumer's C# is 11 or later, so that the code may hold UTF-8 string
 	/// literals. Off by default, which is the C# 8 floor every emitted file is held to.
 	/// </summary>
