@@ -29,6 +29,9 @@
   has been removed since it was made.
 - Bindings and back-references, `$q: X`, `$q` and `X{#q}`, are classified and described in
   Quick Info.
+- A failure inside the extension no longer reaches Visual Studio as a gold bar or a disabled
+  editor component: the feature it broke says nothing that time, and the failure is written to
+  the activity log (`devenv /log`) with the operation it broke.
 
 0.2.0
 
