@@ -35,9 +35,18 @@ sealed class GramNativeNavigationListener : IWpfTextViewCreationListener
 
 	public void TextViewCreated(IWpfTextView textView)
 	{
+		// A view that is not ready yet is tried again when it is next loaded; one that failed is
+		// not, or the same failure would be logged again on every activation of its tab.
 		void Attach(object? sender = null, EventArgs? args = null)
 		{
-			EditorGuard.Run("Native navigation attach", AttachNow);
+			var failed = EditorGuard.Run("Native navigation attach", true, () =>
+			{
+				AttachNow();
+				return false;
+			});
+
+			if (failed)
+				textView.VisualElement.Loaded -= Attach;
 		}
 
 		void AttachNow()

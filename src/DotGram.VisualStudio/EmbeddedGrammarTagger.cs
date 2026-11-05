@@ -481,13 +481,15 @@ sealed class EmbeddedGrammarBufferAnalysis
 			}
 		}
 
+		// Analysis is asked for first, so that a handler that fails cannot leave the buffer
+		// without one.
+		Schedule(change.After);
+
 		// Visual Studio invalidates classifications for the changed snapshot immediately.
 		// Tell it that the translated DotGram spans are already available; otherwise the
 		// C# string classification is visible until the deferred analysis publishes again.
 		if (translated)
-			Changed?.Invoke(change.After);
-
-		Schedule(change.After);
+			EditorGuard.Notify("Embedded grammar buffer change notification", Changed, change.After);
 	}
 
 	void WorkspaceChanged(object sender, WorkspaceChangeEventArgs change)
@@ -532,8 +534,12 @@ sealed class EmbeddedGrammarBufferAnalysis
 			await Task.Delay(AnalysisDelayMilliseconds, cancellationToken).ConfigureAwait(false);
 			await AnalyzeAsync(snapshot, cancellationToken).ConfigureAwait(false);
 		}
-		catch (OperationCanceledException)
+		catch (OperationCanceledException exception) when (EditorGuard.Canceled(exception, cancellationToken))
 		{
+		}
+		catch (Exception exception) when (EditorGuard.Recoverable(exception))
+		{
+			EditorGuard.Log("Embedded grammar analysis", exception);
 		}
 	}
 
@@ -661,7 +667,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 					() => RetryAsync(snapshot, cancellationToken),
 					cancellationToken);
 		}
-		catch (OperationCanceledException)
+		catch (OperationCanceledException exception) when (EditorGuard.Canceled(exception, cancellationToken))
 		{
 		}
 		catch (Exception exception) when (EditorGuard.Recoverable(exception))
@@ -732,7 +738,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 	async Task NotifyChangedAsync(ITextSnapshot snapshot)
 	{
 		await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
-		Changed?.Invoke(snapshot);
+		EditorGuard.Notify("Embedded grammar analysis notification", Changed, snapshot);
 	}
 
 	internal static bool ShouldPreserveEmbeddedAnalysis(
@@ -863,7 +869,7 @@ sealed class EmbeddedGrammarBufferAnalysis
 			if (_buffer.CurrentSnapshot == snapshot)
 				Schedule(snapshot);
 		}
-		catch (OperationCanceledException)
+		catch (OperationCanceledException exception) when (EditorGuard.Canceled(exception, cancellationToken))
 		{
 		}
 	}

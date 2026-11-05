@@ -41,11 +41,14 @@ sealed class GramCompletionSourceProvider : IAsyncCompletionSourceProvider
 
 	public IAsyncCompletionSource GetOrCreate(ITextView textView)
 	{
-		return textView.Properties.GetOrCreateSingletonProperty(() =>
-			new GramCompletionSource(
-				textView.TextBuffer,
-				GramBufferAnalysis.For(textView.TextBuffer),
-				new RoslynGramCompletion(textView.TextBuffer, Workspace, Documents)));
+		return EditorGuard.Run<IAsyncCompletionSource>(
+			"Completion source",
+			null!,
+			() => textView.Properties.GetOrCreateSingletonProperty(() =>
+				new GramCompletionSource(
+					textView.TextBuffer,
+					GramBufferAnalysis.For(textView.TextBuffer),
+					new RoslynGramCompletion(textView.TextBuffer, Workspace, Documents))));
 	}
 }
 
@@ -62,11 +65,14 @@ sealed class EmbeddedGramCompletionSourceProvider : IAsyncCompletionSourceProvid
 
 	public IAsyncCompletionSource GetOrCreate(ITextView textView)
 	{
-		return textView.Properties.GetOrCreateSingletonProperty(() =>
-			new EmbeddedGramCompletionSource(
-				textView.TextBuffer,
-				EmbeddedGrammarBufferAnalysis.For(textView.TextBuffer, Workspace, Documents),
-				new RoslynGramCompletion(textView.TextBuffer, Workspace, Documents)));
+		return EditorGuard.Run<IAsyncCompletionSource>(
+			"Embedded completion source",
+			null!,
+			() => textView.Properties.GetOrCreateSingletonProperty(() =>
+				new EmbeddedGramCompletionSource(
+					textView.TextBuffer,
+					EmbeddedGrammarBufferAnalysis.For(textView.TextBuffer, Workspace, Documents),
+					new RoslynGramCompletion(textView.TextBuffer, Workspace, Documents))));
 	}
 }
 

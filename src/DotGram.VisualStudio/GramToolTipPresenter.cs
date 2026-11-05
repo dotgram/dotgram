@@ -32,14 +32,19 @@ sealed class GramToolTipPresenterFactory : IToolTipPresenterFactory
 	[ImportMany]
 	IEnumerable<Lazy<IToolTipPresenterFactory, IOrderable>> Factories { get; set; } = null!;
 
+	// Only the choice of the next factory is guarded: what that factory does is Visual Studio's.
+	// Without one this factory presents nothing either, and the next in order is asked instead.
 	public IToolTipPresenter Create(ITextView textView, ToolTipParameters parameters)
 	{
-		var inner = Orderer.Order(Factories)
-			.First(factory => factory.Metadata.Name != Name)
-			.Value
-			.Create(textView, parameters);
+		var next = EditorGuard.Run<IToolTipPresenterFactory?>(
+			"Tooltip presenter",
+			null,
+			() => Orderer.Order(Factories).First(factory => factory.Metadata.Name != Name).Value);
 
-		return new GramToolTipPresenter(inner);
+		if (next is null)
+			return null!;
+
+		return new GramToolTipPresenter(next.Create(textView, parameters));
 	}
 }
 
@@ -51,23 +56,34 @@ sealed class GramToolTipPresenter(IToolTipPresenter inner) : IToolTipPresenter
 		remove => inner.Dismissed -= value;
 	}
 
+	// Only the filtering of the content is guarded: should it fail, Visual Studio's presenter is
+	// handed what it was given, as if this one were not there. The presenter's own failures are
+	// its own.
 	public void StartOrUpdate(ITrackingSpan applicableToSpan, IEnumerable<object> content)
+	{
+		var shown = EditorGuard.Run<Shown?>("Tooltip content", null, () => Filter(applicableToSpan, content));
+
+		if (shown is null)
+			inner.StartOrUpdate(applicableToSpan, content);
+		else if (shown.Dismiss)
+			inner.Dismiss();
+		else
+			inner.StartOrUpdate(shown.Span, shown.Items);
+	}
+
+	static Shown Filter(ITrackingSpan applicableToSpan, IEnumerable<object> content)
 	{
 		var items = content.ToArray();
 		var markers = items.OfType<IDotGramQuickInfoContent>().ToArray();
 
 		if (markers.Length == 0)
-		{
-			inner.StartOrUpdate(applicableToSpan, items);
-			return;
-		}
+			return new Shown(applicableToSpan, items, false);
 
 		var visible = markers.Where(static item => item.ShouldDisplay).Cast<object>().ToArray();
-		if (visible.Length == 0)
-			inner.Dismiss();
-		else
-			inner.StartOrUpdate(markers[0].TrackingSpan, visible);
+		return new Shown(markers[0].TrackingSpan, visible, visible.Length == 0);
 	}
+
+	sealed record Shown(ITrackingSpan Span, object[] Items, bool Dismiss);
 
 	public void Dismiss()
 	{

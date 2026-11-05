@@ -786,7 +786,7 @@ sealed class GramBufferAnalysis
 				ScheduleResolve(retry);
 			}
 		}
-		catch (OperationCanceledException)
+		catch (OperationCanceledException exception) when (EditorGuard.Canceled(exception, cancellationToken))
 		{
 		}
 		catch (Exception exception) when (EditorGuard.Recoverable(exception))
@@ -849,8 +849,10 @@ sealed class GramBufferAnalysis
 			_snapshot = change.After;
 		}
 
-		Changed?.Invoke(change.After);
+		// Analysis is asked for first: a handler that fails must not leave the buffer without it,
+		// with the emptied translated document standing in for an analysis until the next edit.
 		ScheduleAnalysis(change.After, immediate: false);
+		EditorGuard.Notify("Grammar buffer change notification", Changed, change.After);
 	}
 
 	void ScheduleAnalysis(ITextSnapshot snapshot, bool immediate)
@@ -917,9 +919,9 @@ sealed class GramBufferAnalysis
 			}
 
 			await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync(cancellationToken);
-			Changed?.Invoke(snapshot);
+			EditorGuard.Notify("Grammar analysis notification", Changed, snapshot);
 		}
-		catch (OperationCanceledException)
+		catch (OperationCanceledException exception) when (EditorGuard.Canceled(exception, cancellationToken))
 		{
 		}
 		catch (Exception exception) when (EditorGuard.Recoverable(exception))

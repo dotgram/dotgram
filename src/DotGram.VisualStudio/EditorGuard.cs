@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -12,8 +13,9 @@ namespace DotGram.VisualStudio;
 /// A failure of the extension's own is written to the activity log with the operation it broke,
 /// and the editor gets the answer it would get had the extension nothing to say: no gold bar, no
 /// component Visual Studio disables, no exception of an unobserved task that reaches nobody.
-/// Cancellation through the caller's own token is how an editor operation ends early, and is
-/// neither logged nor passed on.
+/// Cancellation is how an editor operation ends early, and is neither logged nor passed on when
+/// the caller's token has been cancelled and the exception's own token has been too: the
+/// caller's, or one linked to it. Any other cancellation is a failure like any other.
 /// </summary>
 static class EditorGuard
 {
@@ -31,7 +33,7 @@ static class EditorGuard
 		{
 			return body();
 		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		catch (OperationCanceledException exception) when (Canceled(exception, cancellationToken))
 		{
 			return fallback;
 		}
@@ -64,7 +66,7 @@ static class EditorGuard
 		{
 			return await body().ConfigureAwait(false);
 		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		catch (OperationCanceledException exception) when (Canceled(exception, cancellationToken))
 		{
 			return fallback;
 		}
@@ -76,8 +78,9 @@ static class EditorGuard
 	}
 
 	/// <summary>
-	/// Runs work nobody awaits: the task it returns never faults, so the discard that starts it
-	/// loses nothing. A failure is logged here, where it would otherwise go unobserved.
+	/// Runs work nobody awaits. The task it returns never faults, critical failures included: a
+	/// discarded task's exception reaches nobody, so rethrowing one would only lose it. Every
+	/// failure but the caller's cancellation is logged here instead.
 	/// </summary>
 	public static async Task RunAsync(string operation, Func<Task> body, CancellationToken cancellationToken)
 	{
@@ -85,13 +88,26 @@ static class EditorGuard
 		{
 			await body().ConfigureAwait(false);
 		}
-		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+		catch (OperationCanceledException exception) when (Canceled(exception, cancellationToken))
 		{
 		}
-		catch (Exception exception) when (Recoverable(exception))
+		catch (Exception exception)
 		{
 			Log(operation, exception);
 		}
+	}
+
+	/// <summary>
+	/// Raises an event to each of its handlers under a guard of its own, so that one failing
+	/// handler neither keeps the event from the others nor stops what its raiser does next.
+	/// </summary>
+	public static void Notify<T>(string operation, Action<T>? handlers, T argument)
+	{
+		if (handlers is null)
+			return;
+
+		foreach (Action<T> handler in handlers.GetInvocationList())
+			Run(operation, () => handler(argument));
 	}
 
 	/// <summary>
@@ -147,19 +163,58 @@ static class EditorGuard
 		{
 			Write($"{operation} failed: {exception}");
 		}
-		catch (Exception failure) when (Recoverable(failure))
+		catch (Exception)
 		{
-			// Nowhere is left to report it, and a failure to log must not become the failure
-			// the guard exists to keep out of Visual Studio.
+			// Nowhere is left to report it, out of memory included, and a failure to log must
+			// not become the failure the guard exists to keep out of Visual Studio.
 		}
 	}
 
 	/// <summary>
-	/// Everything but running out of memory, which no fallback answer survives.
+	/// Whether a cancellation is the caller's: its token has been cancelled, and so has the
+	/// exception's own, which is the caller's token or one linked to it. A cancellation that
+	/// comes while the caller's token stands, or that carries a token nobody cancelled, is not.
+	/// </summary>
+	internal static bool Canceled(OperationCanceledException exception, CancellationToken cancellationToken)
+	{
+		return cancellationToken.IsCancellationRequested && exception.CancellationToken.IsCancellationRequested;
+	}
+
+	/// <summary>
+	/// Everything but what no fallback answer survives: running out of memory, and the exceptions
+	/// the Visual Studio SDK's <c>ErrorHandler.IsCriticalException</c> counts as critical, also
+	/// where one arrives wrapped in another (a task's, a reflection call's, a type initializer's).
+	/// The list is repeated here rather than called, because the tests run without the SDK.
 	/// </summary>
 	internal static bool Recoverable(Exception exception)
 	{
-		return exception is not OutOfMemoryException;
+		return !Critical(exception);
+	}
+
+	static bool Critical(Exception? exception)
+	{
+		switch (exception)
+		{
+			case null:
+				return false;
+
+			case OutOfMemoryException or StackOverflowException or AccessViolationException or
+				AppDomainUnloadedException or BadImageFormatException or DivideByZeroException:
+				return true;
+
+			case AggregateException aggregate:
+				foreach (var inner in aggregate.InnerExceptions)
+					if (Critical(inner))
+						return true;
+
+				return false;
+
+			case TargetInvocationException or TypeInitializationException:
+				return Critical(exception.InnerException);
+
+			default:
+				return false;
+		}
 	}
 
 	static void WriteToActivityLog(string message)

@@ -156,11 +156,24 @@ static class GramRenameAdornment
 			return false;
 		}
 
+		// Left registered by a popup that failed to open, the handler would send the view's
+		// arrows and deletions to a text box nobody can see.
 		CommandHandlers[view] = HandleCommand;
-		popup.IsOpen = true;
-		textBox.Focus();
-		Keyboard.Focus(textBox);
-		textBox.SelectAll();
+		var opened = false;
+
+		try
+		{
+			popup.IsOpen = true;
+			textBox.Focus();
+			Keyboard.Focus(textBox);
+			textBox.SelectAll();
+			opened = true;
+		}
+		finally
+		{
+			if (!opened)
+				CommandHandlers.Remove(view);
+		}
 	}
 
 	static bool IsIdentifier(string text)
