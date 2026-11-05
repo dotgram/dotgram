@@ -20,8 +20,10 @@ namespace DotGram.Tests;
 
 /// <summary>
 /// The shipped SQL grammars run through the generator here, under the build's switches a test wants
-/// to compare: with and without the memo of failures, under each value of the positional follow,
-/// and with the entry counters or without.
+/// to compare: with and without the memo of failures, with and without the memo of successes, on
+/// the tape or on the immediate carrier, under each value of the positional follow, and with the
+/// entry counters or without; and two rewrites of the SQL-92 grammar kept as fixtures beside it,
+/// for a differential against the grammar as it ships.
 /// </summary>
 /// <remarks>
 /// Each variant is the grammar file as it ships, behind the shipped host's attributes, in a
@@ -39,8 +41,15 @@ static class SqlVariants
 	/// <summary>The SQL-92 parser T-SQL includes.</summary>
 	public const string Sql92 = "Sql92";
 
-	/// <summary>The SQL-92 grammar as it was before a bracket was read once (a fixture under <c>Fixtures/ReadOnce</c>), for the differential.</summary>
-	public const string Sql92Before = "Sql92Before";
+	/// <summary>
+	/// The SQL-92 grammar with every bracket read once and classified after (a fixture under
+	/// <c>Fixtures/ReadOnce/Cover</c>): the rewrite that needs no memo, kept to be measured against
+	/// the grammar as it ships with the memo of successes.
+	/// </summary>
+	public const string Sql92Cover = "Sql92Cover";
+
+	/// <summary>The same with the value tower instantiated twice, once a context (a fixture under <c>Fixtures/ReadOnce/Split</c>).</summary>
+	public const string Sql92Split = "Sql92Split";
 
 	/// <summary>
 	/// The name a variant publishes an entry under. T-SQL's grammar publishes its entries to its own assembly as
@@ -57,114 +66,59 @@ static class SqlVariants
 		return "TryParseSyntax" + (level == "SearchCondition" ? "Condition" : level);
 	}
 
-	/// <summary>A parser of one grammar compiled one way.</summary>
+	/// <summary>A parser of one grammar compiled one way, on the tape these variants have always been on.</summary>
 	/// <param name="follow"><c>off</c>, <c>true</c> or <c>split</c>, as <c>DotGramPositionalFollow</c> says it.</param>
 	/// <param name="memo">Whether the memo of failures is written (<c>DOTGRAM_NO_MEMO</c> where not).</param>
 	/// <param name="counts">Whether the entry counters are written (<c>DOTGRAM_COUNTS</c>).</param>
 	public static Type Parser(string grammar, string follow = "off", bool memo = true, bool counts = false)
 	{
-		return Parser(grammar, follow, memo, counts, headGuard: false, located: false);
+		return Parser(grammar, follow, memo, counts, immediate: false);
 	}
 
-	/// <summary>A parser of one grammar compiled one way, with the head-guard experiment on or off and with or without a located reading beside it.</summary>
-	/// <remarks>The head-guard experiment is a static switch of the emitter: compilations are serialised around it, so a caller asking for it should run alone.</remarks>
-	public static Type Parser(string grammar, string follow, bool memo, bool counts, bool headGuard, bool located)
+	/// <summary>A parser of one grammar compiled one way, on the immediate carrier (the shipped parsers') or on the tape.</summary>
+	/// <param name="immediate">Whether the host names the immediate carrier rather than the tape.</param>
+	/// <param name="keeps">Whether the memo of successes is written (<c>DOTGRAM_NO_SUCCESS_MEMO</c> where not).</param>
+	/// <param name="located">Whether a located reading is compiled beside the plain one, as a nested type <c>Located</c>.</param>
+	public static Type Parser(string grammar, string follow, bool memo, bool counts, bool immediate, bool keeps = true, bool located = false)
 	{
-		return Parser(grammar, follow, memo, counts, headGuard, located, successMemo: false);
-	}
-
-	/// <summary>The same, with the success-memo experiment of the emitter on or off.</summary>
-	public static Type Parser(string grammar, string follow, bool memo, bool counts, bool headGuard, bool located, bool successMemo)
-	{
-		return Parser(grammar, follow, memo, counts, headGuard, located, successMemo, immediate: false);
-	}
-
-	/// <summary>The same, on the immediate carrier (the shipped parsers') rather than the tape these variants have always been on.</summary>
-	public static Type Parser(string grammar, string follow, bool memo, bool counts, bool headGuard, bool located, bool successMemo, bool immediate)
-	{
-		return Compiled.GetOrAdd((grammar, follow, memo, counts, headGuard, located, successMemo, immediate), static key => Compile(key.Grammar, key.Follow, key.Memo, key.Counts, key.HeadGuard, key.Located, key.SuccessMemo, key.Immediate));
+		return Compiled.GetOrAdd((grammar, follow, memo, counts, immediate, keeps, located), static key => Compile(key.Grammar, key.Follow, key.Memo, key.Counts, key.Immediate, key.Keeps, key.Located));
 	}
 
 	/// <summary>The size of what a variant compiled to: the generated C# in characters and the assembly in bytes.</summary>
 	public static readonly ConcurrentDictionary<Type, (long SourceChars, long AssemblyBytes)> Sizes = new();
 
-	/// <summary>The SQL-92 grammar with the value tower instantiated twice (a fixture under <c>Fixtures/ReadOnce/Split</c>).</summary>
-	public const string Sql92Split = "Sql92Split";
+	static readonly ConcurrentDictionary<(string Grammar, string Follow, bool Memo, bool Counts, bool Immediate, bool Keeps, bool Located), Type> Compiled = new();
 
-	/// <summary>The SQL-92 grammar as it was, with the cover's guards alone added to its steps (a fixture under <c>Fixtures/ReadOnce/Guards</c>): what the guards cost by themselves.</summary>
-	public const string Sql92Guards = "Sql92Guards";
-
-	/// <summary>The same with the guards' tests replaced: <c>true</c> (no value named), <c>x is not null</c> (the value named, one test), <c>x is not Expression.Row</c>: what each part of a guard costs.</summary>
-	public const string Sql92GuardsTrue = "Sql92GuardsTrue";
-	public const string Sql92GuardsNull = "Sql92GuardsNull";
-	public const string Sql92GuardsRow = "Sql92GuardsRow";
-
-	/// <summary>The cover with its per-step guards removed, the wrappers' kept (a fixture under <c>Fixtures/ReadOnce/NoStepGuards</c>): the time floor of "one guard per rule", not a grammar that reads the right language.</summary>
-	public const string Sql92NoStepGuards = "Sql92NoStepGuards";
-
-	static readonly ConcurrentDictionary<(string Grammar, string Follow, bool Memo, bool Counts, bool HeadGuard, bool Located, bool SuccessMemo, bool Immediate), Type> Compiled = new();
-
-	static readonly object Compiling = new();
-
-	static Type Compile(string grammar, string follow, bool memo, bool counts, bool headGuard, bool located, bool successMemo, bool immediate)
+	static Type Compile(string grammar, string follow, bool memo, bool counts, bool immediate, bool keeps, bool located)
 	{
-		var (host, directory, file, name) = grammar switch
+		var (directory, file, className, helpers) = grammar switch
 		{
-			TransactSql => (TransactSqlHost, "TransactSql", "TransactSql.gram", "DotGram.Sql.TransactSql.Variant.TransactSqlParser"),
-			Standard    => (StandardHost, "Standard", "SqlStandard.gram", "DotGram.Sql.Standard.Variant.SqlStandardParser"),
-			Sql92       => (Sql92Host, "Standard", "SqlStandard92.gram", "DotGram.Sql.Standard.Variant.Sql92Parser"),
-			Sql92Before => (Sql92Host.Replace("Standard.Variant", "Standard.Before"), Fixture("ReadOnce"), "SqlStandard92.gram", "DotGram.Sql.Standard.Before.Sql92Parser"),
-			Sql92Split  => (Sql92Host.Replace("Standard.Variant", "Standard.Split"), Fixture(Path.Combine("ReadOnce", "Split")), "SqlStandard92.gram", "DotGram.Sql.Standard.Split.Sql92Parser"),
-			Sql92Guards => (Sql92Host.Replace("Standard.Variant", "Standard.Guards"), Fixture(Path.Combine("ReadOnce", "Guards")), "SqlStandard92.gram", "DotGram.Sql.Standard.Guards.Sql92Parser"),
-			Sql92GuardsTrue => (Sql92Host.Replace("Standard.Variant", "Standard.GuardsTrue"), Fixture(Path.Combine("ReadOnce", "GuardsTrue")), "SqlStandard92.gram", "DotGram.Sql.Standard.GuardsTrue.Sql92Parser"),
-			Sql92GuardsNull => (Sql92Host.Replace("Standard.Variant", "Standard.GuardsNull"), Fixture(Path.Combine("ReadOnce", "GuardsNull")), "SqlStandard92.gram", "DotGram.Sql.Standard.GuardsNull.Sql92Parser"),
-			Sql92GuardsRow => (Sql92Host.Replace("Standard.Variant", "Standard.GuardsRow"), Fixture(Path.Combine("ReadOnce", "GuardsRow")), "SqlStandard92.gram", "DotGram.Sql.Standard.GuardsRow.Sql92Parser"),
-			Sql92NoStepGuards => (Sql92Host.Replace("Standard.Variant", "Standard.NoStepGuards"), Fixture(Path.Combine("ReadOnce", "NoStepGuards")), "SqlStandard92.gram", "DotGram.Sql.Standard.NoStepGuards.Sql92Parser"),
+			TransactSql => ("TransactSql", "TransactSql.gram", "TransactSqlParser", ""),
+			Standard    => ("Standard", "SqlStandard.gram", "SqlStandardParser", ""),
+			Sql92       => ("Standard", "SqlStandard92.gram", "Sql92Parser", ""),
+			Sql92Cover  => (Fixture(Path.Combine("ReadOnce", "Cover")), "SqlStandard92.gram", "Sql92Parser", CoverNodes),
+			Sql92Split  => (Fixture(Path.Combine("ReadOnce", "Split")), "SqlStandard92.gram", "Sql92Parser", CoverNodes),
 			_           => throw new ArgumentOutOfRangeException(nameof(grammar)),
 		};
 
-		if (headGuard)
-		{
-			host = host.Replace("Standard.Variant", "Standard.Guarded").Replace("Standard.Before", "Standard.BeforeGuarded").Replace("Standard.Split", "Standard.SplitGuarded").Replace("Standard.Guards", "Standard.GuardsGuarded");
-			name = name.Replace("Standard.Variant", "Standard.Guarded").Replace("Standard.Before", "Standard.BeforeGuarded").Replace("Standard.Split", "Standard.SplitGuarded").Replace("Standard.Guards", "Standard.GuardsGuarded");
-		}
+		// A namespace of its own for every way of compiling, so that two variants loaded into one
+		// process never share a name.
+		var ns   = "DotGram.Sql." + (immediate ? "Immediate" : "Tape") + (keeps ? "" : "Unkept") + (located ? "Located" : "") + "." + grammar;
+		var name = ns + "." + className;
+		var host = Host
+			.Replace("NAMESPACE", ns)
+			.Replace("GRAMMAR", file)
+			.Replace("CARRIER", immediate ? "Immediate" : "Tape")
+			.Replace("CLASS", className)
+			.Replace("LOCATED", located ? "\t[GramOptions(LocationType = typeof(global::DotGram.Sql.ISqlLocatable), Suffix = \"Located\")]\n" : "")
+			.Replace("HELPERS", helpers);
 
-		if (immediate)
-		{
-			host = host.Replace("GramCarrier.Tape", "GramCarrier.Immediate").Replace("Standard.", "Standard.Immediate");
-			name = name.Replace("Standard.", "Standard.Immediate");
-		}
-
-		if (successMemo)
-		{
-			host = host.Replace("Standard.", "Standard.Memoed");
-			name = name.Replace("Standard.", "Standard.Memoed");
-		}
-
-		if (located)
-			host = host.Replace("\tpublic abstract partial class", "\t[GramOptions(LocationType = typeof(global::DotGram.Sql.ISqlLocatable), Suffix = \"Located\")]\n\tpublic abstract partial class");
-
-		lock (Compiling)
-		{
-			DotGram.Grammar.Emit.CSharpEmitter.HeadGuardFirstExperiment = headGuard;
-			DotGram.Grammar.Emit.CSharpEmitter.SuccessMemoExperiment = successMemo;
-
-			try
-			{
-				return Compile(host, directory, file, name, follow, memo, counts);
-			}
-			finally
-			{
-				DotGram.Grammar.Emit.CSharpEmitter.HeadGuardFirstExperiment = false;
-				DotGram.Grammar.Emit.CSharpEmitter.SuccessMemoExperiment = false;
-			}
-		}
+		return Compile(host, directory, file, name, follow, memo, counts, keeps);
 	}
 
-	static Type Compile(string host, string directory, string file, string name, string follow, bool memo, bool counts)
+	static Type Compile(string host, string directory, string file, string name, string follow, bool memo, bool counts, bool keeps)
 	{
-
-		string[] symbols = [.. counts ? ["DOTGRAM_COUNTS"] : Array.Empty<string>(), .. memo ? Array.Empty<string>() : ["DOTGRAM_NO_MEMO"]];
+		string[] symbols = [.. counts ? ["DOTGRAM_COUNTS"] : Array.Empty<string>(), .. memo ? Array.Empty<string>() : ["DOTGRAM_NO_MEMO"], .. keeps ? Array.Empty<string>() : ["DOTGRAM_NO_SUCCESS_MEMO"]];
 
 		var parse = CSharpParseOptions.Default
 			.WithLanguageVersion(LanguageVersion.Latest)
@@ -198,6 +152,9 @@ static class SqlVariants
 		// Or the switch did not reach the generator, and the two variants compared are one.
 		Assert.Equal(memo, output.SyntaxTrees.Any(one => one.ToString().Contains("MemoFailed(pos", StringComparison.Ordinal)));
 
+		if (!keeps)
+			Assert.DoesNotContain(output.SyntaxTrees, one => one.ToString().Contains("Kept(pos", StringComparison.Ordinal));
+
 		if (counts)
 			Assert.Contains(output.SyntaxTrees, one => one.ToString().Contains("CountEntered_", StringComparison.Ordinal));
 
@@ -212,7 +169,7 @@ static class SqlVariants
 
 		var loaded = Assembly.Load(stream.ToArray()).GetType(name)!;
 
-		if (Environment.GetEnvironmentVariable("READONCE_DUMP") is { Length: > 0 } dump)
+		if (Environment.GetEnvironmentVariable("SQLVARIANTS_DUMP") is { Length: > 0 } dump)
 		{
 			Directory.CreateDirectory(dump);
 
@@ -225,41 +182,68 @@ static class SqlVariants
 		return loaded;
 	}
 
-	/// <summary>The shipped host's attributes, less the located reading, on the tape.</summary>
+	/// <summary>The shipped host's attributes, less the located reading, with the carrier, the namespace and the class named per variant.</summary>
 	/// <remarks>
-	/// The tape, named: these variants have always been the tape's — what the walks read is what
-	/// <c>DeepNestingCountTests</c> counts — and the shipped hosts name the immediate carrier, which
-	/// a variant left to choose would now be given too.
+	/// The tape, named, for the variants that have always been the tape's — what the walks read is
+	/// what <c>DeepNestingCountTests</c> counts — and the immediate carrier, named, for the shipped
+	/// parsers' own, which a variant left to choose would be given too.
 	/// </remarks>
-	const string TransactSqlHost =
+	const string Host =
 		"using DotGram;\n" +
-		"namespace DotGram.Sql.TransactSql.Variant\n" +
+		"using DotGram.Sql.Ast;\n" +
+		"namespace NAMESPACE\n" +
 		"{\n" +
-		"\t[Gram(\"TransactSql.gram\", Lexical = true, Carrier = GramCarrier.Tape)]\n" +
-		"\tpublic abstract partial class TransactSqlParser\n" +
+		"\t[Gram(\"GRAMMAR\", Lexical = true, Carrier = GramCarrier.CARRIER)]\n" +
+		"LOCATED" +
+		"\tpublic abstract partial class CLASS\n" +
 		"\t{\n" +
 		"\t}\n" +
+		"HELPERS" +
 		"}\n";
 
-	const string StandardHost =
-		"using DotGram;\n" +
-		"namespace DotGram.Sql.Standard.Variant\n" +
-		"{\n" +
-		"\t[Gram(\"SqlStandard.gram\", Lexical = true, Carrier = GramCarrier.Tape)]\n" +
-		"\tpublic abstract partial class SqlStandardParser\n" +
+	/// <summary>
+	/// What the rewritten SQL-92 grammars ask of a value the one tower read: whether it is a condition,
+	/// a value an arithmetic operator may take, or a bare <c>NULL</c> or <c>DEFAULT</c> only a row may begin
+	/// with. The shipped grammar reads conditions and values by rules of their own and asks none of this.
+	/// </summary>
+	const string CoverNodes =
+		"\tstatic class CoverNodes\n" +
 		"\t{\n" +
-		"\t}\n" +
-		"}\n";
-
-	const string Sql92Host =
-		"using DotGram;\n" +
-		"namespace DotGram.Sql.Standard.Variant\n" +
-		"{\n" +
-		"\t[Gram(\"SqlStandard92.gram\", Lexical = true, Carrier = GramCarrier.Tape)]\n" +
-		"\tpublic abstract partial class Sql92Parser\n" +
-		"\t{\n" +
-		"\t}\n" +
-		"}\n";
+		"\t\tpublic static bool IsCondition(Expression value)\n" +
+		"\t\t{\n" +
+		"\t\t\tswitch (value)\n" +
+		"\t\t\t{\n" +
+		"\t\t\t\tcase Expression.Comparison:\n" +
+		"\t\t\t\tcase Expression.QuantifiedComparison:\n" +
+		"\t\t\t\tcase Expression.Between:\n" +
+		"\t\t\t\tcase Expression.In:\n" +
+		"\t\t\t\tcase Expression.Like:\n" +
+		"\t\t\t\tcase Expression.IsNull:\n" +
+		"\t\t\t\tcase Expression.IsTruth:\n" +
+		"\t\t\t\tcase Expression.Match:\n" +
+		"\t\t\t\tcase Expression.Overlaps:\n" +
+		"\t\t\t\tcase Expression.Exists:\n" +
+		"\t\t\t\tcase Expression.Unique:\n" +
+		"\t\t\t\t\treturn true;\n" +
+		"\t\t\t\tcase Expression.Binary { Operator: BinaryOperator.And or BinaryOperator.Or }:\n" +
+		"\t\t\t\t\treturn true;\n" +
+		"\t\t\t\tcase Expression.Unary { Operator: UnaryOperator.Not } not:\n" +
+		"\t\t\t\t\treturn IsCondition(not.Operand);\n" +
+		"\t\t\t\tcase Expression.Parenthesized parenthesized:\n" +
+		"\t\t\t\t\treturn IsCondition(parenthesized.Value);\n" +
+		"\t\t\t\tdefault:\n" +
+		"\t\t\t\t\treturn false;\n" +
+		"\t\t\t}\n" +
+		"\t\t}\n" +
+		"\t\tpublic static bool IsValue(Expression value)\n" +
+		"\t\t{\n" +
+		"\t\t\treturn value is not Expression.Row && !IsCondition(value);\n" +
+		"\t\t}\n" +
+		"\t\tpublic static bool IsRowHeadOnly(Expression value)\n" +
+		"\t\t{\n" +
+		"\t\t\treturn value is LiteralValue.Null or Expression.Default;\n" +
+		"\t\t}\n" +
+		"\t}\n";
 
 	static string Grammar(string directory, string file, [CallerFilePath] string here = "")
 	{
@@ -268,7 +252,7 @@ static class SqlVariants
 			: Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", "..", "src", "DotGram.Sql", directory, file));
 	}
 
-	/// <summary>A directory of grammar fixtures beside this file: a grammar as it was, kept for a differential.</summary>
+	/// <summary>A directory of grammar fixtures beside this file: a grammar rewritten, kept for a differential.</summary>
 	static string Fixture(string name, [CallerFilePath] string here = "")
 	{
 		return Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "Fixtures", name));

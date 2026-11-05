@@ -1869,7 +1869,11 @@ same input in several ways may take exponential work when failure occurs at the 
 Extracting that body into a rule no longer changes the search space. Use an explicit
 atomic group only where the language really permits commitment. Its commonest form in a
 real grammar, trivia without braces beside a class that reads the same characters, is told
-(`GRAM4051`, syntax §4.5). The historical timings
+(`GRAM4051`, syntax §4.5). Over tokens the other common form — an ordered choice whose
+alternatives read a nested instance of their own recursion before either can be refused, a
+bracket read as a value and then as a condition — is told too (`GRAM4054`, syntax §4.7), and on
+the immediate carrier the reader remembers the recursion's successes beside its failures, so
+that the nest costs its depth rather than two to it. The historical timings
 and generated-size table were measured for the removed per-rule generator and must be
 remeasured against the current automaton before making performance claims.
 

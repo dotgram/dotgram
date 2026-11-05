@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -18,30 +18,37 @@ using Xunit;
 namespace DotGram.Tests;
 
 /// <summary>
-/// The SQL-92 grammar with every bracket read once, held against the grammar as it was: what each
-/// reads, refuses and builds — the records compared with <c>Equals</c> and every node's span walked
-/// on a located reading — over the SQL-92 tests' texts, the corpus statements the parser accepts, a
-/// generated corpus of several thousand SQL-92 statements, and nests to depth 32; the rule entries a
-/// nest costs at each depth; the emitted size of each variant; and the time of each on accepted texts.
+/// The memo of successes (<c>Machine.Memo.cs</c>) held to the SQL grammars as they ship, on the
+/// immediate carrier they ship on: the nests an ordered choice read once per alternative at every
+/// level — a bracketed condition tried as a value and then as a condition, a row tried as a value
+/// and then as a row, a bracketed subquery read and declined — cost their depth in rule entries;
+/// and what the parser with the memo reads, refuses and builds is what the parser without it
+/// does, answer for answer, over the SQL-92 tests' texts, the corpus statements the parser accepts,
+/// a generated corpus of several thousand statements, nests to depth 32 and the T-SQL corpus, and
+/// record for record on a located reading. Beside those, for the decision whether a grammar is
+/// rewritten to read the shared text once instead, the rewrite's own numbers: how its answers
+/// differ from the shipped grammar's, its size and its time.
 /// </summary>
 /// <remarks>
-/// A prototype's measurement, not a test to keep: it prints every kind of difference with samples and
-/// holds only that no accepted text is refused, none refused is accepted, and no accepted text builds
-/// another tree. Alone, because the head-guard experiment is a static switch of the emitter.
+/// Alone, so that the timings are not taken beside another class's readings; the differentials
+/// print every kind of difference with samples, and the memo's hold that there is none.
 /// </remarks>
 [Collection(typeof(Alone))]
-public sealed class ReadOnceBracketTests(ITestOutputHelper output)
+public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 {
 	void Log(string line)
 	{
 		output.WriteLine(line);
 
-		if (Environment.GetEnvironmentVariable("READONCE_OUT") is { Length: > 0 } file)
+		if (Environment.GetEnvironmentVariable("SUCCESSMEMO_OUT") is { Length: > 0 } file)
 			File.AppendAllText(file, line + "\n");
 	}
 
-	/// <summary>The nests a bracketed value holding a condition made exponential, each a level around <c>{0}</c>.</summary>
-	static readonly (string Name, string Shape, string Core)[] Shapes =
+	/// <summary>Twice the depth may cost at most this many times the entries: linear, with a seventh over for the ends of the text.</summary>
+	const double Doubling = 2.14;
+
+	/// <summary>The SQL-92 nests a bracketed value holding a condition made exponential, each a level around <c>{0}</c>, and the shapes that were linear before.</summary>
+	static readonly (string Name, string Shape, string Core)[] Sql92Shapes =
 	[
 		("case-cond",        "(CASE WHEN {0} THEN 1 END = 1)",                          "a = 1"),
 		("case-value",       "(CASE WHEN {0} THEN 1 END) = 1",                          "a = 1"),
@@ -61,6 +68,8 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 		("subq-value",       "((SELECT a FROM t WHERE {0})) = 1",                       "a = 1"),
 		("exists-cond",      "(EXISTS (SELECT a FROM t WHERE {0}))",                    "a = 1"),
 		("in-subq-cond",     "(a IN (SELECT a FROM t WHERE {0}))",                      "a = 1"),
+		("in-subq-list",     "(a IN ((SELECT a FROM t WHERE {0}), 2))",                 "a = 1"),
+		("subq-union",       "(((SELECT a FROM t WHERE {0}) UNION (SELECT a FROM t)) = 1)", "a = 1"),
 		("row-list",         "((CASE WHEN {0} THEN 1 END, 1) = (1, 1))",                "a = 1"),
 		("row-nest",         "(({0}, 1) = (1, 1))",                                     "a"),
 		("case-cond-unclosed","(CASE WHEN {0}",                                         "a = 1"),
@@ -69,75 +78,130 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 		("value-brackets",   "({0})",                                                   "a"),
 	];
 
+	/// <summary>The T-SQL nests: the bracketed condition the exponential reading was found in, the forms around it, and a bracketed subquery in FROM.</summary>
+	static readonly (string Name, string Shape, string Core)[] TSqlShapes =
+	[
+		("case-cond",        "(CASE WHEN {0} THEN 1 END = 1)",                          "a = 1"),
+		("case-dbl-cond",    "((CASE WHEN {0} THEN 1 END) = 1)",                        "a = 1"),
+		("case-isnull",      "(CASE WHEN {0} THEN 1 END IS NULL)",                      "a = 1"),
+		("case-and",         "(CASE WHEN {0} THEN 1 END = 1 AND b = 1)",                "a = 1"),
+		("iif-cond",         "(IIF({0}, 1, 0) = 1)",                                    "a = 1"),
+		("subq-cond",        "((SELECT a FROM t WHERE {0}) = 1)",                       "a = 1"),
+		("subq-value",       "((SELECT a FROM t WHERE {0})) = 1",                       "a = 1"),
+		("exists-cond",      "(EXISTS (SELECT a FROM t WHERE {0}))",                    "a = 1"),
+		("in-subq-list",     "(a IN ((SELECT a FROM t WHERE {0}), 2))",                 "a = 1"),
+		("cast-case",        "(CAST(CASE WHEN {0} THEN 1 END AS INT) = 1)",             "a = 1"),
+		("upper-case",       "(UPPER(CASE WHEN {0} THEN 'a' END) = 'a')",               "a = 1"),
+		("choose-case",      "(CHOOSE(1, CASE WHEN {0} THEN 1 END) = 1)",               "a = 1"),
+		("row-nest",         "(({0}, 1) = (1, 1))",                                     "a"),
+		("value-nest",       "({0})",                                                   "a"),
+		("case-cond-unclosed","(CASE WHEN {0}",                                         "a = 1"),
+		("case-cond-refused","(CASE WHEN {0} THEN 1 END = 1 x)",                        "a = 1"),
+	];
+
+	/// <summary>The SQL:2023 nests: the bracketed subquery the bracket reads and declines, and the condition forms.</summary>
+	static readonly (string Name, string Shape, string Core)[] StandardShapes =
+	[
+		("subq-declined",    "((SELECT a FROM t WHERE {0})) = 1",                       "a = 1"),
+		("subq-cond",        "((SELECT a FROM t WHERE {0}) = 1)",                       "a = 1"),
+		("case-cond",        "(CASE WHEN {0} THEN 1 END = 1)",                          "a = 1"),
+		("case-dbl-cond",    "((CASE WHEN {0} THEN 1 END) = 1)",                        "a = 1"),
+		("row-nest",         "(({0}, 1) = (1, 1))",                                     "a"),
+		("case-cond-unclosed","(CASE WHEN {0}",                                         "a = 1"),
+	];
+
 	const string Prefix = "SELECT a FROM t WHERE ";
 
+	static readonly int[] Depths = [4, 8, 16, 32];
+
 	[Fact]
-	public void Sql92_costs_its_depth_once_a_bracket_is_read_once()
+	public void Sql92_nests_cost_their_depth_with_the_memo()
 	{
-		var before = Immediate(SqlVariants.Sql92Before, counts: true);
-		var after  = Immediate(SqlVariants.Sql92, counts: true);
-		var split  = Immediate(SqlVariants.Sql92Split, counts: true, headGuard: true);
-		var worst  = 1.0;
+		Ladders("SQL-92", SqlVariants.Sql92, "TryParseSelect", Prefix, Sql92Shapes);
+	}
 
-		Log("rule entries per depth: before -> cover -> split+headguard (r = refused, t = timed out at 30 s)");
+	[Fact]
+	public void TSql_nests_cost_their_depth_with_the_memo()
+	{
+		Ladders("T-SQL", SqlVariants.TransactSql, SqlVariants.Entry(SqlVariants.TransactSql, "TryParseSearchCondition"), "", TSqlShapes);
+	}
 
-		foreach (var (name, shape, core) in Shapes)
+	[Fact]
+	public void Sql2023_nests_cost_their_depth_with_the_memo()
+	{
+		Ladders("SQL:2023", SqlVariants.Standard, "TryParseSearchCondition", "", StandardShapes);
+	}
+
+	/// <summary>
+	/// Every shape at four depths a doubling apart, with the memo and without: with it, twice the depth
+	/// costs at most <see cref="Doubling"/> times the entries; without it, the reading is counted to depth
+	/// 16 and a shape that took more than thirty seconds is marked <c>t</c>.
+	/// </summary>
+	void Ladders(string title, string grammar, string publication, string prefix, (string Name, string Shape, string Core)[] shapes)
+	{
+		var kept   = Immediate(grammar, counts: true);
+		var unkept = Immediate(grammar, counts: true, keeps: false);
+		var worst  = ("", 1.0);
+
+		Log($"{title}, rule entries per depth: without the memo of successes -> with it (r = refused; t = not counted: past depth 16 without the memo, or past thirty seconds)");
+
+		foreach (var (name, shape, core) in shapes)
 		{
-			var line  = $"{name,-20}";
-			var last  = 0L;
+			var line = $"{name,-20}";
+			var last = 0L;
 			var ratio = 0.0;
 
-			foreach (var depth in new[] { 4, 8, 16, 32 })
+			foreach (var depth in Depths)
 			{
-				var text = Prefix + Nest(shape, core, depth);
-				var (one, okOne) = Count(before, text, depth <= 16);
-				var (two, okTwo) = Count(after, text, true);
-				var (three, okThree) = Count(split, text, true);
+				var text = prefix + Nest(shape, core, depth);
+				var (one, okOne) = Count(unkept, publication, text, depth <= 16);
+				var (two, okTwo) = Count(kept, publication, text);
 
-				line += $" | {depth}: {Shown(one, okOne)} -> {Shown(two, okTwo)} -> {Shown(three, okThree)}";
+				line += $" | {depth}: {Shown(one, okOne)} -> {Shown(two, okTwo)}";
+
+				Assert.True(depth > 16 || okOne == okTwo || one == long.MaxValue / 4, $"{title} {name} at depth {depth}: accepted {okOne} without the memo, {okTwo} with it");
 
 				if (last > 0)
-					ratio = (double)two / last;
+					ratio = Math.Max(ratio, (double)two / last);
 
 				last = two;
 			}
 
-			worst = Math.Max(worst, ratio);
-			Log(line + $" | cover 32/16 x{ratio:F2}");
+			if (ratio > worst.Item2)
+				worst = (name, ratio);
+
+			Log(line + $" | worst doubling x{ratio:F2}");
 		}
 
-		// Linear in the depth: twice the depth costs at most twice the entries, with a tenth for the fixed cost.
-		Assert.True(worst < 2.2, $"a nest still grows faster than its depth: x{worst:F2} for twice the depth.");
+		Assert.True(worst.Item2 <= Doubling, $"{title}: '{worst.Item1}' still grows faster than its depth: x{worst.Item2:F2} for twice the depth.");
 	}
 
 	[Fact]
-	public void Sql92_reads_the_same_with_a_bracket_read_once()
+	public void Sql92_reads_the_same_with_the_memo()
 	{
-		var before   = Immediate(SqlVariants.Sql92Before);
-		var cover    = Immediate(SqlVariants.Sql92);
-		var coverHg  = Immediate(SqlVariants.Sql92, headGuard: true);
-		var splitHg  = Immediate(SqlVariants.Sql92Split, headGuard: true);
-		var beforeL  = Immediate(SqlVariants.Sql92Before, located: true).GetNestedType("Located")!;
-		var coverHgL = Immediate(SqlVariants.Sql92, headGuard: true, located: true).GetNestedType("Located")!;
-		var splitHgL = Immediate(SqlVariants.Sql92Split, headGuard: true, located: true).GetNestedType("Located")!;
-		var memoed   = Immediate(SqlVariants.Sql92Before, successMemo: true);
-		var memoedL  = Immediate(SqlVariants.Sql92Before, located: true, successMemo: true).GetNestedType("Located")!;
+		var unkept  = Immediate(SqlVariants.Sql92, keeps: false);
+		var kept    = Immediate(SqlVariants.Sql92);
+		var unkeptL = Immediate(SqlVariants.Sql92, keeps: false, located: true).GetNestedType("Located")!;
+		var keptL   = Immediate(SqlVariants.Sql92, located: true).GetNestedType("Located")!;
+		var cover   = Immediate(SqlVariants.Sql92Cover);
+		var split   = Immediate(SqlVariants.Sql92Split);
+		var coverL  = Immediate(SqlVariants.Sql92Cover, located: true).GetNestedType("Located")!;
 
-		foreach (var (name, type) in new[] { ("before", before), ("cover", cover), ("cover+headguard", coverHg), ("split+headguard", splitHg) })
-			Log($"size {name,-16}: generated C# {SqlVariants.Sizes[type].SourceChars:N0} chars, assembly {SqlVariants.Sizes[type].AssemblyBytes:N0} bytes");
+		foreach (var (name, type) in new[] { ("shipped, no memo", unkept), ("shipped + memo", kept), ("cover", cover), ("split", split) })
+			Log($"size {name,-18}: generated C# {SqlVariants.Sizes[type].SourceChars:N0} chars, assembly {SqlVariants.Sizes[type].AssemblyBytes:N0} bytes");
 
 		var generated = Generated(3000, seed: 92);
-		var accepted  = generated.Where(text => Answer(before, "TryParseSelect", [text]).Accepted).ToList();
-		var corpus    = Statements().Where(text => Answer(before, "TryParseSelect", [text]).Accepted || Answer(before, "TryParseQuery", [text]).Accepted).ToList();
+		var accepted  = generated.Where(text => Answer(unkept, "TryParseSelect", [text]).Accepted).ToList();
+		var corpus    = Statements().Where(text => Answer(unkept, "TryParseSelect", [text]).Accepted || Answer(unkept, "TryParseQuery", [text]).Accepted).ToList();
 
-		Log($"generated statements: {generated.Count}, of which the old parser accepts {accepted.Count}; corpus statements the old parser accepts as a select or a query: {corpus.Count} of {Statements().Count}");
+		Log($"generated statements: {generated.Count}, of which the parser accepts {accepted.Count}; corpus statements the parser accepts as a select or a query: {corpus.Count} of {Statements().Count}");
 
 		var texts = Harvested("Sql92")
 			.Concat(Statements().Where((_, i) => i % 4 == 0))
 			.Concat(corpus)
 			.Concat(generated)
-			.Concat(Shapes.SelectMany(shape => new[] { 2, 5, 8, 16 }.Select(depth => Prefix + Nest(shape.Shape, shape.Core, depth))))
-			.Concat(Shapes.Select(shape => Nest(shape.Shape, shape.Core, 3)))
+			.Concat(Sql92Shapes.SelectMany(shape => new[] { 2, 5, 8, 16 }.Select(depth => Prefix + Nest(shape.Shape, shape.Core, depth))))
+			.Concat(Sql92Shapes.Select(shape => Nest(shape.Shape, shape.Core, 3)))
 			.Concat(
 			[
 				"a", "(a)", "((a))", "(a) + 1", "(a, b) = (1, 2)", "(a, b) + 1 = 1", "(a = 1) = 1", "(a = 1) + 1", "-(a = 1)",
@@ -148,69 +212,62 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 			.Distinct()
 			.ToList();
 
-		Differential("before vs cover", before, cover, texts, holds: true);
-		Differential("before vs cover+headguard", before, coverHg, texts, holds: false);
-		Differential("before vs split+headguard", before, splitHg, texts, holds: false);
-		Differential("before vs before+successmemo", before, memoed, texts, holds: false);
+		var located = accepted.Concat(corpus).Concat(Harvested("Sql92")).ToList();
 
-		LocatedDifferential("located: before vs cover+headguard", beforeL, coverHgL, accepted.Concat(corpus).Concat(Harvested("Sql92")).ToList());
-		LocatedDifferential("located: before vs split+headguard", beforeL, splitHgL, accepted.Concat(corpus).Concat(Harvested("Sql92")).ToList());
-		LocatedDifferential("located: before vs before+successmemo", beforeL, memoedL, accepted.Concat(corpus).Concat(Harvested("Sql92")).ToList());
+		// The memo: the same answer, byte for byte, and the same records.
+		var differences = Differential("shipped: no memo vs memo", unkept, kept, texts, holds: true);
 
-		Timing(accepted, [("before", before), ("before+successmemo", memoed), ("cover", cover), ("cover+headguard", coverHg), ("split+headguard", splitHg)]);
+		Assert.True(differences == 0, $"{differences} answers differ between the shipped SQL-92 parser with the memo of successes and without; see the output.");
+		Assert.Equal(0, LocatedDifferential("located: shipped, no memo vs memo", unkeptL, keptL, located));
+
+		// The rewrites, for the table: what they would change.
+		Differential("shipped + memo vs cover", kept, cover, texts, holds: false);
+		Differential("shipped + memo vs split", kept, split, texts, holds: false);
+		LocatedDifferential("located: shipped + memo vs cover", keptL, coverL, located);
+
+		Timing("TryParseSelect", accepted, [("shipped, no memo", unkept), ("shipped + memo", kept), ("cover", cover), ("split", split)]);
+		Timing("TryParseSelect", accepted, [("shipped, no memo", unkept), ("shipped + memo", kept), ("cover", cover), ("split", split)]);
 	}
 
 	[Fact]
-	public void Sql92_time_of_the_guards_alone()
+	public void TSql_reads_the_same_with_the_memo()
 	{
-		var before  = Immediate(SqlVariants.Sql92Before);
-		var guards  = Immediate(SqlVariants.Sql92Guards);
-		var gTrue   = Immediate(SqlVariants.Sql92GuardsTrue);
-		var gNull   = Immediate(SqlVariants.Sql92GuardsNull);
-		var gRow    = Immediate(SqlVariants.Sql92GuardsRow);
-		var cover   = Immediate(SqlVariants.Sql92);
-		var coverH  = Immediate(SqlVariants.Sql92, headGuard: true);
-		var splitH  = Immediate(SqlVariants.Sql92Split, headGuard: true);
-		var noStep  = Immediate(SqlVariants.Sql92NoStepGuards);
+		var unkept = Immediate(SqlVariants.TransactSql, keeps: false);
+		var kept   = Immediate(SqlVariants.TransactSql);
 
-		var memoed  = Immediate(SqlVariants.Sql92Before, successMemo: true);
-
-		(string, Type)[] parsers = [("before", before), ("before+successmemo", memoed), ("guards: IsValue", guards), ("guards: true", gTrue), ("guards: not null", gNull), ("guards: not Row", gRow), ("cover", cover), ("cover+headguard", coverH), ("split+headguard", splitH), ("cover, no step guards", noStep)];
-
-		// The success memo on the old grammar must make the exponential shapes linear, or it measures nothing.
-		var memoedCounted = Immediate(SqlVariants.Sql92Before, counts: true, successMemo: true);
-
-		foreach (var (name, shape, core) in Shapes.Take(6).Concat(Shapes.Where(static one => one.Name is "subq-cond" or "row-list")))
-		{
-			var line = $"{name,-20} before+successmemo";
-
-			foreach (var depth in new[] { 4, 8, 16, 32 })
-			{
-				var (count, ok) = Count(memoedCounted, Prefix + Nest(shape, core, depth), true);
-
-				line += $" | {depth}: {Shown(count, ok)}";
-			}
-
-			Log(line);
-		}
-
-		foreach (var (name, type) in parsers)
+		foreach (var (name, type) in new[] { ("shipped, no memo", unkept), ("shipped + memo", kept) })
 			Log($"size {name,-18}: generated C# {SqlVariants.Sizes[type].SourceChars:N0} chars, assembly {SqlVariants.Sizes[type].AssemblyBytes:N0} bytes");
 
-		var generated = Generated(3000, seed: 92);
-		var accepted  = generated.Where(text => Answer(before, "TryParseSelect", [text]).Accepted).ToList();
+		var statement = SqlVariants.Entry(SqlVariants.TransactSql, "TryParseStatement");
+		var condition = SqlVariants.Entry(SqlVariants.TransactSql, "TryParseSearchCondition");
 
-		Timing(accepted, parsers);
-		Timing(accepted, parsers);
+		var texts = Harvested("TransactSql")
+			.Concat(Statements())
+			.Concat(TSqlShapes.SelectMany(shape => new[] { 2, 5, 8, 16 }.Select(depth => "SELECT a FROM t WHERE " + Nest(shape.Shape, shape.Core, depth))))
+			.Concat(TSqlShapes.Select(shape => Nest(shape.Shape, shape.Core, 3)))
+			.Distinct()
+			.ToList();
+
+		var accepted = Statements().Where(text => Answer(unkept, statement, [text]).Accepted).ToList();
+
+		Log($"corpus statements: {Statements().Count}, of which the parser accepts {accepted.Count}");
+
+		var differences = Differential("T-SQL shipped: no memo vs memo", unkept, kept, texts, holds: true);
+
+		Assert.True(differences == 0, $"{differences} answers differ between the shipped T-SQL parser with the memo of successes and without; see the output.");
+
+		Timing(statement, accepted, [("shipped, no memo", unkept), ("shipped + memo", kept)]);
+		Timing(statement, accepted, [("shipped, no memo", unkept), ("shipped + memo", kept)]);
 	}
 
-	/// <summary>A variant on the immediate carrier, the shipped parsers' (the variants' default is the tape).</summary>
-	static Type Immediate(string grammar, bool counts = false, bool headGuard = false, bool located = false, bool successMemo = false)
+	/// <summary>A variant on the immediate carrier, the shipped parsers'.</summary>
+	static Type Immediate(string grammar, bool counts = false, bool keeps = true, bool located = false)
 	{
-		return SqlVariants.Parser(grammar, "off", true, counts, headGuard, located, successMemo, immediate: true);
+		return SqlVariants.Parser(grammar, "off", true, counts, immediate: true, keeps, located);
 	}
 
-	void Differential(string title, Type before, Type after, List<string> texts, bool holds)
+	/// <summary>Every answer of every publication of both parsers over the texts, whole, cut and in windows, compared as text; the differences by kind, with samples; how many there were.</summary>
+	int Differential(string title, Type before, Type after, List<string> texts, bool holds)
 	{
 		var all    = Publications(after);
 		var random = new Random(92);
@@ -245,9 +302,12 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 
 		if (holds)
 			Assert.True(breaking == 0, $"{title}: {breaking} answers differ in outcome or tree; see the output.");
+
+		return different;
 	}
 
-	void LocatedDifferential(string title, Type before, Type after, List<string> texts)
+	/// <summary>Every accepted answer of a located reading compared record for record and span for span; how many differ in any way.</summary>
+	int LocatedDifferential(string title, Type before, Type after, List<string> texts)
 	{
 		var all = Publications(after);
 		var compared = 0;
@@ -296,12 +356,14 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 
 		foreach (var sample in unequal.Take(5).Concat(spansDiffer.Take(5)).Concat(outcome.Take(5)))
 			Log("    " + sample);
+
+		return unequal.Count + spansDiffer.Count + outcome.Count;
 	}
 
-	void Timing(List<string> accepted, (string Name, Type Parser)[] parsers)
+	void Timing(string publication, List<string> accepted, (string Name, Type Parser)[] parsers)
 	{
 		var texts   = accepted.Take(1500).ToList();
-		var methods = parsers.Select(one => one.Parser.GetMethod("TryParseSelect", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, binder: null, [typeof(string)], modifiers: null)!).ToArray();
+		var methods = parsers.Select(one => one.Parser.GetMethod(publication, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, binder: null, [typeof(string)], modifiers: null)!).ToArray();
 		var medians = new double[parsers.Length];
 		var rounds  = new List<double>[parsers.Length];
 
@@ -333,7 +395,7 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 		Log($"time per accepted generated statement ({texts.Count} texts, median of 5 rounds, directional on a shared machine):");
 
 		for (var i = 0; i < parsers.Length; i++)
-			Log($"  {parsers[i].Name,-16} {medians[i],8:F2} us  x{medians[i] / medians[0]:F3} of before  (rounds: {string.Join(" ", rounds[i].Select(static one => one.ToString("F2")))})");
+			Log($"  {parsers[i].Name,-16} {medians[i],8:F2} us  x{medians[i] / medians[0]:F3} of the first  (rounds: {string.Join(" ", rounds[i].Select(static one => one.ToString("F2")))})");
 	}
 
 	static void Compare(Type before, Type after, string name, string text, Random random, ref int count, ref int nontrivial, ref int acceptedAnswers, SortedDictionary<int, int> depths, Dictionary<string, List<string>> kinds, bool whole = false)
@@ -631,7 +693,16 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 				return $"extension {extension.Dialect}: {extension.Kind}";
 
 			case ISqlNode node:
-				return SqlWriter.Write(node);
+				// The T-SQL variant builds T-SQL's own tree, which the writer of the common tree refuses in places
+				// (a literal it has no text for): the record written out as a record then, which compares as well.
+				try
+				{
+					return SqlWriter.Write(node);
+				}
+				catch (ArgumentException)
+				{
+					return node.ToString() ?? "";
+				}
 
 			case System.Collections.IEnumerable items when value is not string:
 				return "[" + string.Join("; ", items.Cast<object?>().Select(Written)) + "]";
@@ -654,7 +725,8 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 		];
 	}
 
-	static (long Count, bool Accepted) Count(Type parser, string text, bool worth)
+	/// <summary>The rule entries one reading of a text costs, and whether it was accepted; a reading past thirty seconds is a timeout, marked <c>t</c>.</summary>
+	static (long Count, bool Accepted) Count(Type parser, string publication, string text, bool worth = true)
 	{
 		if (!worth)
 			return (long.MaxValue / 4, false);
@@ -664,8 +736,8 @@ public sealed class ReadOnceBracketTests(ITestOutputHelper output)
 		foreach (var counter in counters)
 			counter.SetValue(null, 0L);
 
-		var read = parser.GetMethod("TryParseSelect", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, binder: null, [typeof(string)], modifiers: null)
-			?? throw new InvalidOperationException("no TryParseSelect on " + parser);
+		var read = parser.GetMethod(publication, BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static, binder: null, [typeof(string)], modifiers: null)
+			?? throw new InvalidOperationException($"no {publication} on " + parser);
 
 		object? match = null;
 		Exception? error = null;
