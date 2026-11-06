@@ -715,7 +715,7 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 	/// member's name and its parameter list after <c>at</c> — not the answer's own <c>at {position}</c>,
 	/// whose position is a number.
 	/// </summary>
-	static readonly Regex Frames = new(@"\s+at [\w.<>`$\[\],]+\([^\r\n]*", RegexOptions.Compiled);
+	static readonly Regex Frames = new(@"\s+at [\w.<>`$\[\],]+\([^()\r\n]*\)( in [^\r\n]*?:line \d+)?", RegexOptions.Compiled);
 
 	/// <summary>
 	/// An answer with the stack frames of a gap it keeps taken out, and nothing else: a record written
