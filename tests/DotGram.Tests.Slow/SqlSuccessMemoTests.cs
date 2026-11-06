@@ -707,13 +707,51 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 			$"+{kind.GetProperty("Length")!.GetValue(match)}: {kind.GetProperty("Error")!.GetValue(match)} | " +
 			(accepted ? Written(value) : "");
 
-		// A record written out may hold an exception the tree keeps as a gap, whose stack trace names the
-		// frames the runtime inlined: not the tree's, and not compared — wherever in the text it stands.
-		return (match, Frames.Replace(text, ""), accepted, position, value);
+		return (match, Normalized(text), accepted, position, value);
 	}
 
-	/// <summary>The lines of a stack trace inside a written record.</summary>
-	static readonly Regex Frames = new(@"\s+at [^\r\n]+", RegexOptions.Compiled);
+	/// <summary>
+	/// The lines of a stack trace inside a written record: <c>at Type.Method(…) in file:line n</c>, a
+	/// member's name and its parameter list after <c>at</c> — not the answer's own <c>at {position}</c>,
+	/// whose position is a number.
+	/// </summary>
+	static readonly Regex Frames = new(@"\s+at [\w.<>`$\[\],]+\([^\r\n]*", RegexOptions.Compiled);
+
+	/// <summary>
+	/// An answer with the stack frames of a gap it keeps taken out, and nothing else: a record written
+	/// out may hold an exception the tree keeps as a gap, whose stack trace names the frames the runtime
+	/// inlined, which are not the tree's. The outcome, position, length, message and tree stay as written.
+	/// </summary>
+	static string Normalized(string text)
+	{
+		return Frames.Replace(text, "");
+	}
+
+	/// <summary>What the normalization keeps apart and what it takes out, held here so that a differential compares answers and not their absence.</summary>
+	[Theory]
+	[InlineData("Success at 0+15:  | SELECT 1 FROM t", "Success at 0+16:  | SELECT 99 FROM t")]
+	[InlineData("Success at 0+15:  | SELECT 1 FROM t", "Success at 0+15:  | SELECT 2 FROM t")]
+	[InlineData("NoMatch at 3+0: Expected 'a'. | ", "NoMatch at 4+0: Expected 'a'. | ")]
+	[InlineData("NoMatch at 3+0: Expected 'a'. | ", "NoMatch at 3+0: Expected 'b'. | ")]
+	public void Answers_that_differ_stay_apart_when_normalized(string one, string other)
+	{
+		Assert.NotEqual(Normalized(one), Normalized(other));
+		Assert.Equal(one, Normalized(one));
+	}
+
+	[Fact]
+	public void Only_the_frames_of_a_gap_are_taken_out()
+	{
+		const string frames =
+			"Success at 0+15:  | Built { Gap = DotGram.Sql.TransactSql.BuildGap: Statement.Dbcc: not kept\n" +
+			"   at DotGram.Sql.TransactSql.Build.Server.DbccOption(Dbcc owner, Clause clause) in /x/Build.Server.cs:line 930\n" +
+			"   at DotGram.Sql.TransactSql.Build.Server.<>c__DisplayClass36_0.<Dbcc>b__1(Clause one) in /x/Build.Server.cs:line 905\n" +
+			"   at DotGram.Sql.TransactSql.Build.Hold[T](T given, Func`2 build) in /x/Build.Built.cs:line 185, Given = Dbcc { } }";
+
+		Assert.Equal(
+			"Success at 0+15:  | Built { Gap = DotGram.Sql.TransactSql.BuildGap: Statement.Dbcc: not kept, Given = Dbcc { } }",
+			Normalized(frames));
+	}
 
 	static string Written(object? value)
 	{

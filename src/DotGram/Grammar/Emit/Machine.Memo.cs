@@ -87,8 +87,9 @@ namespace DotGram.Grammar.Emit;
 /// outside a look, for a reading of four tokens or more, and where the reading builds: a success
 /// read unbuilt left no value to hand over, and is remembered as that. And a success is stored
 /// only while the reading is inside an earlier alternative of a choice that keeps the rule, which
-/// the reader counts (<see cref="KeepsPending"/>): a text whose first alternative wins stores
-/// nothing. Every success is stored instead where some flagged alternative is not counted around
+/// the reader counts (<see cref="KeepsPending"/>): stored while an earlier alternative is being
+/// read, whether or not it wins, and not otherwise. Every success is stored instead where some
+/// flagged alternative is not counted around
 /// — read in place rather than called, or in a clone of its rule the reader could not match to the
 /// choice the analysis named — and the carriers report says so. What it costs then is a store at
 /// each success of a remembered rule inside such an alternative, and 8 bytes a token a rule.
