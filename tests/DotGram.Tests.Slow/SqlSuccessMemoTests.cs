@@ -729,7 +729,9 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 				}
 				catch (ArgumentException)
 				{
-					return node.ToString() ?? "";
+					// A record written out may hold an exception the tree keeps as a gap, whose stack
+					// trace names the frames the runtime inlined: not the tree's, and not compared.
+					return Regex.Replace(node.ToString() ?? "", @"\s+at [^\r\n]+", "");
 				}
 
 			case System.Collections.IEnumerable items when value is not string:
