@@ -120,7 +120,8 @@ public sealed class EditorParityTests
 
 			// Placed as the generator places a diagnostic in the literal: where the literal holds
 			// its place, and over the whole literal where it does not.
-			foreach (var diagnostic in GramLanguageService.NormalizeDiagnostics(compiled.Diagnostics, tokens))
+			// GRAM4054 is the one message the build reports and the editor leaves to it (the first theory says why).
+			foreach (var diagnostic in GramLanguageService.NormalizeDiagnostics(compiled.Diagnostics.Where(static one => one.Id != GramCompiler.SharedRecursions).ToList(), tokens))
 				if (diagnostic.Position <= grammar.Text.Length)
 					reported.Add((
 						diagnostic,
