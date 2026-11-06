@@ -1759,14 +1759,15 @@ and a hand-written parser avoids it one way: it reads the shared text once and d
 what follows. The compiler finds the shape and says so (`GRAM4054`, information), at the rule,
 with the alternatives and the shortest text after which both go on reading the same
 construct. Nothing has to be done about it: over tokens, on the immediate carrier, the reader
-then remembers where the rules of that recursion succeed and what they built — three
-integers a rule and a token, beside the memo of failures §6.5 describes, under the same
-contract (§7.2) — so that a second entry at the same token is answered without reading, and
-every level is read once. What it costs is a store at every success of such a rule on the
-accepted path, a few per cent of a statement on SQL-92's reader, and 12 bytes a token a rule
-remembered. Over characters, on the tape, in a trace build and for a rule that reaches its
-context nothing is remembered, and the message says so: there the shape costs its depth's
-power until the grammar is rewritten.
+then remembers where the first rule of that recursion both alternatives enter at one token
+succeeds, and what it built — two integers a rule and a token and a bit in the memo word,
+beside the memo of failures §6.5 describes, under the same contract (§7.2) — so that a second
+entry at the same token is answered without reading, and every level is read once. What it
+costs is a store at every success of that rule of four tokens or more on the accepted path,
+and 8 bytes a token for it. Over characters, on the tape, in a trace build, where a
+construction may throw, inside a lookahead and for a rule that reaches its context nothing is
+remembered, and the message says so: there the shape costs its depth's power until the grammar
+is rewritten.
 
 The rewrite needs no memo and is what the message shows. Factor the prefix the alternatives
 share, `A & (X | Y)`, where it is one operand (`GRAM4016`, §4.3, which the compiler does

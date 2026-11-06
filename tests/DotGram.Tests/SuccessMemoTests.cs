@@ -109,6 +109,130 @@ public sealed class SuccessMemoTests
 		Assert.Equal(without, with);
 	}
 
+	/// <summary>
+	/// A construction that may throw: what a reading held of that is let go with the reading, so
+	/// nothing is remembered where the grammar says <c>ConstructionsMayThrow</c>, and the second
+	/// entry throws as the first did. <c>((x)-)-</c> read the inner bracket as <c>B</c> first, whose
+	/// <c>Name</c> threw into the held exception, and dropped it with the alternative; remembered,
+	/// the second alternative would have been handed the value and nothing thrown.
+	/// </summary>
+	[Theory]
+	[InlineData("((x)-)-")]
+	[InlineData("(((x)-)-)-")]
+	[InlineData("((a)-)-")]
+	public void Where_a_construction_may_throw_nothing_is_remembered_and_the_held_exception_is_thrown(string input)
+	{
+		const string throwing =
+			Lexical +
+			"Start : @string = a: A & eof => @(a)\n" +
+			"A : @string = b: B => @(b) | c: C => @(c) | n: Lexical.Name => @(n == \"x\" ? throw new System.InvalidOperationException(\"boom\") : n)\n" +
+			"B : @string = '(' & a: A & ')' & '+' => @(\"+\" + a)\n" +
+			"C : @string = '(' & a: A & ')' & '-' => @(\"-\" + a)\n" +
+			"parse Start\n";
+
+		var (diagnostics, source) = Compile(throwing, keeps: true, mayThrow: true);
+		var hint = Assert.Single(diagnostics, static one => one.Id == GramCompiler.SharedRecursions);
+
+		Assert.Contains("a construction may throw (ConstructionsMayThrow)", hint.Message, StringComparison.Ordinal);
+		Assert.DoesNotContain("Kept(pos", source, StringComparison.Ordinal);
+
+		var with    = Answer(Compiled(throwing, keeps: true, mayThrow: true), input);
+		var without = Answer(Compiled(throwing, keeps: false, mayThrow: true), input);
+
+		Assert.Equal(without, with);
+		Assert.Equal(input.Contains('x', StringComparison.Ordinal) ? "threw InvalidOperationException" : "--a", with);
+	}
+
+	/// <summary>
+	/// A success read unbuilt — the first alternative calls <c>A</c> for nothing, so <c>A</c> is read
+	/// with its constructions off — is remembered as that, and the second alternative, which builds,
+	/// reads it again rather than take a value that was never built.
+	/// </summary>
+	[Theory]
+	[InlineData("((a)-)-", "--a")]
+	[InlineData("(((a)+)-)-", "--+a")]
+	public void A_success_read_unbuilt_is_read_again_where_the_value_is_needed(string input, string value)
+	{
+		const string unused =
+			Lexical +
+			"Start : @string = A & '!' => @(\"!\") | a: A & eof => @(a)\n" +
+			"A : @string = b: B => @(b) | c: C => @(c) | n: Lexical.Name => @(n)\n" +
+			"B : @string = '(' & a: A & ')' & '+' => @(\"+\" + a)\n" +
+			"C : @string = '(' & a: A & ')' & '-' => @(\"-\" + a)\n" +
+			"parse Start\n";
+
+		var with = EmittedCode.Match(Compiled(unused, keeps: true), "Grammar", "TryParseStart", input);
+
+		Assert.True(with.IsSuccess, with.Error);
+		Assert.Equal(value, with.Value);
+		Assert.Equal(EmittedCode.Match(Compiled(unused, keeps: false), "Grammar", "TryParseStart", input), with);
+	}
+
+	/// <summary>A climbing rule is remembered at strength zero only: entered as an operand of its own operator, it is read.</summary>
+	[Theory]
+	[InlineData("((a)-)- + a", "--a+a")]
+	[InlineData("a + ((a)-)- + (a)-", "a+--a+-a")]
+	[InlineData("((a)-)- +", null)]
+	public void A_climbing_rule_remembers_at_strength_zero_only(string input, string? value)
+	{
+		const string climbing =
+			Lexical +
+			"Start : @string = a: A & eof => @(a)\n" +
+			"A : @string = left: A & '+' & right: A << 1 => @(left + \"+\" + right) | b: B => @(b) | c: C => @(c) | n: Lexical.Name => @(n)\n" +
+			"B : @string = '(' & a: A & ')' & '+' => @(\"+\" + a)\n" +
+			"C : @string = '(' & a: A & ')' & '-' => @(\"-\" + a)\n" +
+			"parse Start\n";
+
+		var with    = EmittedCode.Match(Compiled(climbing, keeps: true), "Grammar", "TryParseStart", input);
+		var without = EmittedCode.Match(Compiled(climbing, keeps: false), "Grammar", "TryParseStart", input);
+
+		Assert.Equal(without, with);
+		Assert.Equal(value is not null, with.IsSuccess);
+
+		if (value is not null)
+			Assert.Equal(value, with.Value);
+	}
+
+	/// <summary>A nest read inside a look first is not remembered there, and the reading outside the look answers as the reader without the memo does.</summary>
+	[Theory]
+	[InlineData("((a)-)-")]
+	[InlineData("((a)-)+")]
+	[InlineData("((a)-")]
+	[InlineData("((a)+)-!")]
+	public void A_reading_inside_a_look_is_not_remembered(string input)
+	{
+		const string looked =
+			Lexical +
+			"Start : @string = ?=(A & '!') & a: A & '!' => @(a + \"!\") | a: A & eof => @(a)\n" +
+			"A : @string = b: B => @(b) | c: C => @(c) | n: Lexical.Name => @(n)\n" +
+			"B : @string = '(' & a: A & ')' & '+' => @(\"+\" + a)\n" +
+			"C : @string = '(' & a: A & ')' & '-' => @(\"-\" + a)\n" +
+			"parse Start\n";
+
+		Assert.Equal(
+			EmittedCode.Match(Compiled(looked, keeps: false), "Grammar", "TryParseStart", input),
+			EmittedCode.Match(Compiled(looked, keeps: true), "Grammar", "TryParseStart", input));
+	}
+
+	/// <summary>What a reading answers, or the exception it threw, as one word.</summary>
+	static string Answer(Assembly assembly, string input)
+	{
+		try
+		{
+			var match = EmittedCode.Match(assembly, "Grammar", "TryParseStart", input);
+
+			return match.IsSuccess ? (string)match.Value! : "refused: " + match.Error;
+		}
+		catch (TargetInvocationException thrown)
+		{
+			return "threw " + thrown.InnerException?.GetType().Name;
+		}
+		catch (InvalidOperationException)
+		{
+			return "threw InvalidOperationException";
+		}
+	}
+
 	/// <summary>The hint at the rule: information, naming the choice, the recursion's rules remembered, and the rewrite.</summary>
 	[Fact]
 	public void The_hint_names_the_choice_and_the_rules_remembered()
@@ -118,7 +242,7 @@ public sealed class SuccessMemoTests
 
 		Assert.Equal(GramSeverity.Info, hint.Severity);
 		Assert.StartsWith("'A' tries its alternatives 1 and 2 in turn", hint.Message, StringComparison.Ordinal);
-		Assert.Contains("The parser remembers where the recursion's rules succeed ('A')", hint.Message, StringComparison.Ordinal);
+		Assert.Contains("The parser remembers where 'A' succeeds", hint.Message, StringComparison.Ordinal);
 		Assert.Contains("factor the prefix the alternatives share", hint.Message, StringComparison.Ordinal);
 		Assert.Contains("Kept(pos", source, StringComparison.Ordinal);
 		Assert.Contains("kept 1: A", Reported(Textbook), StringComparison.Ordinal);
@@ -189,30 +313,31 @@ public sealed class SuccessMemoTests
 		return counters.Sum(static counter => (long)counter.GetValue(null)!);
 	}
 
-	static readonly Dictionary<(string, bool, bool), Assembly> _compiled = [];
+	static readonly Dictionary<(string, bool, bool, bool), Assembly> _compiled = [];
 
-	static Assembly Compiled(string grammar, bool keeps, bool counts = false)
+	static Assembly Compiled(string grammar, bool keeps, bool counts = false, bool mayThrow = false)
 	{
 		lock (_compiled)
 		{
-			if (!_compiled.TryGetValue((grammar, keeps, counts), out var assembly))
-				_compiled[(grammar, keeps, counts)] = assembly = EmittedCode.Compile(
-					Compile(grammar, keeps, counts).Source, "Grammar", symbols: counts ? ["DOTGRAM_COUNTS"] : null);
+			if (!_compiled.TryGetValue((grammar, keeps, counts, mayThrow), out var assembly))
+				_compiled[(grammar, keeps, counts, mayThrow)] = assembly = EmittedCode.Compile(
+					Compile(grammar, keeps, counts, mayThrow: mayThrow).Source, "Grammar", symbols: counts ? ["DOTGRAM_COUNTS"] : null);
 
 			return assembly;
 		}
 	}
 
-	static (IReadOnlyList<GramDiagnostic> Diagnostics, string Source) Compile(string grammar, bool keeps, bool counts = false, bool lexical = true)
+	static (IReadOnlyList<GramDiagnostic> Diagnostics, string Source) Compile(string grammar, bool keeps, bool counts = false, bool lexical = true, bool mayThrow = false)
 	{
 		var result = GramCompiler.Compile(grammar, new GramCompilerOptions
 		{
-			ClassName        = "Grammar",
-			CSharpScanner    = RoslynCSharpScanner.Instance,
-			SymbolResolver   = Resolver(),
-			Lexical          = lexical,
-			CountRules       = counts,
-			MemoiseSuccesses = keeps,
+			ClassName             = "Grammar",
+			CSharpScanner         = RoslynCSharpScanner.Instance,
+			SymbolResolver        = Resolver(),
+			Lexical               = lexical,
+			CountRules            = counts,
+			MemoiseSuccesses      = keeps,
+			ConstructionsMayThrow = mayThrow,
 		});
 
 		Assert.DoesNotContain(result.Diagnostics, one => one.Severity == GramSeverity.Error);

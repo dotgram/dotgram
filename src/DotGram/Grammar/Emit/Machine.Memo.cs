@@ -75,16 +75,18 @@ namespace DotGram.Grammar.Emit;
 /// whose deciding token comes after that instance — <c>(CASE WHEN … END = 1)</c> read as a value
 /// in brackets, refused at <c>=</c>, and read again as a condition in brackets, at every level:
 /// two to the depth. <see cref="SharedRecursion"/> finds those choices at generation time, and
-/// for the rules of the cycle each stands in the reader remembers successes too: where the rule
-/// ended and the value it left, three integers a rule and a token, stamped with the reading's
-/// generation rather than cleared. A second entry at a remembered place hands the value over and
-/// returns the end, and every level of the nest is read once. Only on the immediate carrier,
-/// whose values are objects a register hands on: the tape numbers its records by where they were
-/// written, and a reading given up has unwound them. And only for the rules the failure memo
-/// remembers, under the same contract (a rule's answer is a function of where it begins), at
-/// strength zero, outside a look, and where the reading builds: a success read unbuilt left no
-/// value to hand over. What it costs is a store a success on the accepted path, measured at a few
-/// per cent of a statement on SQL-92, and 12 bytes a token a rule.
+/// for the first rule of the cycle both alternatives enter at one token the reader remembers
+/// successes too: where the rule ended and the value it left, two integers a rule and a token in
+/// a run a rule, and whether a token has one a bit of the memo word beside the failure's, cleared
+/// with it. A second entry at a remembered place hands the value over and returns the end, and
+/// every level of the nest is read once. Only on the immediate carrier, whose values are objects
+/// a register hands on: the tape numbers its records by where they were written, and a reading
+/// given up has unwound them; and not where a construction may throw, since what a reading held
+/// of that is let go with the reading. And only for the rules the failure memo remembers, under
+/// the same contract (a rule's answer is a function of where it begins), at strength zero,
+/// outside a look, for a reading of four tokens or more, and where the reading builds: a success
+/// read unbuilt left no value to hand over, and is remembered as that. What it costs is a store
+/// at each success of a remembered rule on the accepted path, and 8 bytes a token a rule.
 /// </para>
 /// </remarks>
 sealed partial class Machine
@@ -135,7 +137,19 @@ sealed partial class Machine
 	/// <summary>The rules of a cycle whose successes this reader remembers, in the order of their cells.</summary>
 	internal List<RuleSymbol> KeptOf(IReadOnlyList<RuleSymbol> cycle)
 	{
-		return KeptRules.Where(cycle.Contains).ToList();
+		return KeptRules.Where(rule => cycle.Any(one => SameRule(one, rule))).ToList();
+	}
+
+	/// <summary>The rules whose successes this reader remembers for one choice: what answers its later alternative.</summary>
+	internal IReadOnlyList<RuleSymbol> KeptFor(SharedRecursion.Pair pair)
+	{
+		return _keptFor.TryGetValue(pair, out var rules) ? rules : [];
+	}
+
+	/// <summary>Whether two rules are one rule as written: a rule is cloned per context and strength, and the analysis names the first clone.</summary>
+	bool SameRule(RuleSymbol one, RuleSymbol other)
+	{
+		return ReferenceEquals(one, other) || ReferenceEquals(_graph.Origin(one), _graph.Origin(other));
 	}
 
 	/// <summary>Why this reader remembers no success of a cycle's rules, or null where it reads none of them.</summary>
@@ -152,6 +166,9 @@ sealed partial class Machine
 
 		if (Carrier is not ImmediateCarrier)
 			return "the rules are read on the tape, whose records a reading given up has unwound";
+
+		if (Carrier is ImmediateCarrier { Holds: true })
+			return "a construction may throw (ConstructionsMayThrow), and what a reading held of that is let go with the reading";
 
 		if (!OverKinds)
 			return "the rules are read over characters";
@@ -180,7 +197,10 @@ sealed partial class Machine
 	/// A trace build says what it entered and left, and an entry answered from the memo would be a
 	/// frame it never opened; the tape's records are unwound with the reading that wrote them.
 	/// </remarks>
-	internal bool CouldKeep => MemoisesSuccesses && Memoises && Tracing is null && Carrier is ImmediateCarrier;
+	internal bool CouldKeep => MemoisesSuccesses && Memoises && Tracing is null && Carrier is ImmediateCarrier { Holds: false };
+
+	/// <summary>What answers each flagged choice's later alternative: the rules kept for it (<see cref="ChooseKept"/>).</summary>
+	readonly Dictionary<SharedRecursion.Pair, IReadOnlyList<RuleSymbol>> _keptFor = [];
 
 	/// <summary>Whether anything this machine's reader writes is read inside a look: set where a look is written.</summary>
 	/// <remarks>
@@ -265,35 +285,40 @@ sealed partial class Machine
 
 		var kept = new HashSet<RuleSymbol>();
 
+		_keptFor.Clear();
+
 		foreach (var pair in SharedChoices)
 		{
-			if (pair.Level < SharedRecursion.Remembered)
+			// A reading inside a lookahead is not remembered, so a look's pair is not answered.
+			if (pair.Level < SharedRecursion.Remembered || pair.Shape == "?=")
 				continue;
 
-			var found = false;
+			var mine = new List<RuleSymbol>();
 
 			foreach (var joint in pair.Joint)
 			{
-				foreach (var rule in joint)
-					if (_memo.ContainsKey(rule))
-					{
-						kept.Add(rule);
-						found = true;
-					}
+				mine.AddRange(Remembered(joint));
 
-				if (found)
+				if (mine.Count > 0)
 					break;
 			}
 
-			if (!found)
-				foreach (var rule in pair.Cycle)
-					if (_memo.ContainsKey(rule))
-						kept.Add(rule);
+			if (mine.Count == 0)
+				mine.AddRange(Remembered(pair.Cycle));
+
+			_keptFor[pair] = mine;
+			kept.UnionWith(mine);
 		}
 
 		foreach (var rule in Memoised)
 			if (kept.Contains(rule))
 				_kept[rule] = _kept.Count;
+	}
+
+	/// <summary>The remembered rules among the clones of the rules named, as this machine reads them.</summary>
+	List<RuleSymbol> Remembered(IReadOnlyList<RuleSymbol> named)
+	{
+		return Memoised.Where(rule => named.Any(one => SameRule(one, rule))).ToList();
 	}
 
 	/// <summary>
@@ -590,10 +615,10 @@ sealed partial class Machine
 		return Valued(rule) ? Carrier.Last(rule) : null;
 	}
 
-	/// <summary>Whether a rule's body can be read unbuilt — inside a look, or after a loop gave a way back twice — where its construction does not run.</summary>
-	static bool ReadUnbuilt(string body)
+	/// <summary>Whether a rule can be read unbuilt — a call whose value nobody reads, or after a loop gave a way back twice — where its construction does not run (Machine.Immediate.cs, Held).</summary>
+	bool ReadUnbuilt(RuleSymbol rule)
 	{
-		return body.Contains("unbuilt", StringComparison.Ordinal);
+		return Carrier is ImmediateCarrier { Unbuilding: true } && Demands.ReadUnbuilt(rule);
 	}
 
 	/// <summary>
@@ -610,7 +635,7 @@ sealed partial class Machine
 	void KeptAsked(Writer file, RuleSymbol rule, int slot, int cell, string body)
 	{
 		var register = KeptRegister(rule);
-		var unbuilt  = register is not null && ReadUnbuilt(body);
+		var unbuilt  = register is not null && ReadUnbuilt(rule);
 		var power    = _graph.Climbing.ContainsKey(rule) ? "power == 0 && " : "";
 		var built    = unbuilt ? " && (unbuilt != 0 || kept[keptAt + 1] != -2)" : "";
 		var index    = MemoIndex(slot);
@@ -691,7 +716,7 @@ sealed partial class Machine
 
 		var value = register is null
 			? "null, true"
-			: ReadUnbuilt(body) ? $"(object?){register}, unbuilt == 0" : $"(object?){register}, true";
+			: ReadUnbuilt(rule) ? $"(object?){register}, unbuilt == 0" : $"(object?){register}, true";
 
 		when.Add($"p - pos >= {KeptSpan}");
 

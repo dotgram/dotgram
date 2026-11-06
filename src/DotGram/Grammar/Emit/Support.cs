@@ -3044,6 +3044,9 @@ public static partial class CSharpEmitter
 			/// <summary>How many of them there are.</summary>
 			internal int KeptCount;
 
+			/// <summary>How many the last reading kept, for the bound a pooled tape is held under: the count is cleared when it is returned.</summary>
+			internal int KeptPeak;
+
 			/// <summary>A reading begun: room for a run a rule over its tokens.</summary>
 			internal void KeepRoom(int rules, int tokens)
 			{
@@ -3220,6 +3223,8 @@ public static partial class CSharpEmitter
 				// <kept>
 				// Nothing a reading kept outlives it: the values a second entry was handed are the
 				// result's to hold, or nobody's.
+				ways.KeptPeak = ways.KeptCount;
+
 				if (ways.KeptCount > 0)
 				{
 					global::System.Array.Clear(ways.KeptValues, 0, ways.KeptCount);

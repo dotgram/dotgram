@@ -1,0 +1,22 @@
+// The memo of successes (docs/syntax.md §4.7, Machine.Memo.cs): a choice whose two
+// alternatives read a bracketed nest of the rule itself and are told apart only by the sign
+// after it, so that the first alternative reads the nest and is refused, and the second
+// reads it again. Read over kinds, where the reader remembers the failures of its recursion,
+// `A` remembers its successes too: the probe of both bits at the top of its method, the one
+// place its body succeeds through, where the success is written down, and the tape's run of
+// cells and the values it keeps. No other snapshot holds any of it.
+
+trivia = { ' '* }
+
+namespace Lexical
+{
+	trivia = none
+	Name = ['a'..'z']+
+}
+
+Start : @string = a: A & eof => @(a)
+A : @string = b: B => @(b) | c: C => @(c) | n: Lexical.Name => @(n)
+B : @string = '(' & a: A & ')' & '+' => @("+" + a)
+C : @string = '(' & a: A & ')' & '-' => @("-" + a)
+
+parse Start

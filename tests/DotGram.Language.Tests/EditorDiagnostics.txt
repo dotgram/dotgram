@@ -5,6 +5,7 @@
 // "--- GRAMnnnn reason" is an exclusion. Every number the generator's source names is here once.
 --- GRAM0001 the Roslyn shell's own failure; the editor never runs the generator's shell
 --- GRAM0002 Roslyn shell: needs the [Gram] host class, which must be partial; the editor has no host class
+--- GRAM4054 the shared-recursion analysis is a second on a grammar of a thousand rules; the editor leaves it to the build (GramCompilerOptions.AnalyseSharedRecursion)
 --- GRAM0003 Roslyn shell: needs the [Gram] class and the project's AdditionalFiles to find a grammar file; the editor is handed the file
 --- GRAM0004 Roslyn shell: needs several AdditionalFiles matching one [Gram] name
 --- GRAM0005 Roslyn shell: needs the [Gram(IncludedAs = ...)] attribute option
@@ -443,18 +444,6 @@ parse Run
 === GRAM4053
 A = 'a' & when @(parserInput.Length > 0)
 parse A
-=== GRAM4054 lexical
-trivia = { ' '* }
-namespace Lexical
-{
-	trivia = none
-	Name = ['a'..'z']+
-}
-Start = A & eof
-A = B | C | Lexical.Name
-B = '(' & A & ')' & '+'
-C = '(' & A & ')' & '-'
-parse Start
 === GRAM5001
 A = 'a' & any* & 'b'
 find A

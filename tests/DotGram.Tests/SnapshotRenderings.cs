@@ -250,6 +250,19 @@ static class SnapshotRenderings
 				break;
 			}
 
+			// Read over kinds, with a choice that reads a nest of its own rule once per alternative:
+			// the memo of successes, which only this file shows (Machine.Memo.cs).
+			case "Kept":
+			{
+				var kept = Options();
+
+				kept.Lexical = true;
+
+				yield return (kept, null);
+
+				break;
+			}
+
 			// Read over kinds, with terminals that bind text: the lexer begins each and its
 			// own rule measures the token from its start, which only this file shows.
 			case "Begun":

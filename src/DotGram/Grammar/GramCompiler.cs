@@ -192,7 +192,7 @@ public static class GramCompiler
 		// a nest of them is read once per alternative at every level. What the analysis finds decides
 		// which rules' successes the readers remember (Machine.Memo.cs), and the emitter says of each
 		// choice whether they do (GRAM4054).
-		var shared = !HasErrors(diagnostics) ? SharedRecursion.Check(graph, lexical).Found : null;
+		var shared = options.AnalyseSharedRecursion && !HasErrors(diagnostics) ? SharedRecursion.Check(graph, lexical).Found : null;
 
 		// And the one question that has a different answer on the other side of the cut:
 		// over characters an overlap between an optional and what follows it is settled by

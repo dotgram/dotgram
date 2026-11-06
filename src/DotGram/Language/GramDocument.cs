@@ -377,6 +377,9 @@ public static class GramLanguageService
 
 		result.Lexical = options?.Lexical ?? false;
 
+		// A second on every analysis of a large document, for a hint the build says: left to the build.
+		result.AnalyseSharedRecursion = false;
+
 		return result;
 	}
 

@@ -261,6 +261,33 @@ public sealed class SqlSuccessMemoTests(ITestOutputHelper output)
 		Timing(statement, accepted, [("shipped, no memo", unkept), ("shipped + memo", kept)]);
 	}
 
+	[Fact]
+	public void Sql2023_reads_the_same_with_the_memo()
+	{
+		var unkept = Immediate(SqlVariants.Standard, keeps: false);
+		var kept   = Immediate(SqlVariants.Standard);
+
+		foreach (var (name, type) in new[] { ("shipped, no memo", unkept), ("shipped + memo", kept) })
+			Log($"size {name,-18}: generated C# {SqlVariants.Sizes[type].SourceChars:N0} chars, assembly {SqlVariants.Sizes[type].AssemblyBytes:N0} bytes");
+
+		var texts = Harvested("SqlStandard")
+			.Concat(Statements())
+			.Concat(StandardShapes.SelectMany(shape => new[] { 2, 5, 8 }.Select(depth => "SELECT a FROM t WHERE " + Nest(shape.Shape, shape.Core, depth))))
+			.Concat(StandardShapes.Select(shape => Nest(shape.Shape, shape.Core, 3)))
+			.Distinct()
+			.ToList();
+
+		var accepted = Statements().Where(text => Answer(unkept, "TryParseStatement", [text]).Accepted).ToList();
+
+		Log($"corpus statements: {Statements().Count}, of which the parser accepts {accepted.Count}");
+
+		var differences = Differential("SQL:2023 shipped: no memo vs memo", unkept, kept, texts, holds: true);
+
+		Assert.True(differences == 0, $"{differences} answers differ between the shipped SQL:2023 parser with the memo of successes and without; see the output.");
+
+		Timing("TryParseStatement", accepted, [("shipped, no memo", unkept), ("shipped + memo", kept)]);
+	}
+
 	/// <summary>A variant on the immediate carrier, the shipped parsers'.</summary>
 	static Type Immediate(string grammar, bool counts = false, bool keeps = true, bool located = false)
 	{

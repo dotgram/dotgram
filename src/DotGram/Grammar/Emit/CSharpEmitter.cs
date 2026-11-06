@@ -46,24 +46,6 @@ public static partial class CSharpEmitter
 	/// emits none, which is right for a caller with no file to point at.
 	/// </param>
 	/// <summary>
-	/// Every method of the finished file held against the size the JIT stops optimizing at.
-	/// </summary>
-	/// <remarks>
-	/// <para>
-	/// Over the text, because the text is what every rendering produces and the estimate is
-	/// textual anyway — a detector inside one rendering measures that rendering's own
-	/// bookkeeping and misses the next one, which is how the first version of this warned
-	/// about nothing. A local function is a method of its own to the JIT and is measured as
-	/// one here: a header at deeper indent ends the enclosing method's stretch, which is
-	/// exactly how the JIT sees it too.
-	/// </para>
-	/// <para>
-	/// A warning, not an error: the parser is correct and merely compiled the way a method
-	/// is on its first call, several times slower. The message carries the numbers the
-	/// generator acted under, because the remedy is chosen against them.
-	/// </para>
-	/// </remarks>
-	/// <summary>
 	/// The hint for every choice the shared-recursion analysis found at the levels where a nest is
 	/// read once per alternative (GRAM4054, information): whether the readers of this file remember
 	/// the recursion's successes and read the nest once, and the rewrite that reads the shared text
@@ -83,7 +65,7 @@ public static partial class CSharpEmitter
 			if (pair.Level < SharedRecursion.Remembered)
 				continue;
 
-			List<RuleSymbol>? kept = null;
+			IReadOnlyList<RuleSymbol>? kept = null;
 			string?           why  = null;
 
 			foreach (var compiled in machines)
@@ -91,7 +73,7 @@ public static partial class CSharpEmitter
 				if (!compiled.Direct)
 					continue;
 
-				if (compiled.Machine.KeptOf(pair.Cycle) is { Count: > 0 } remembered)
+				if (compiled.Machine.KeptFor(pair) is { Count: > 0 } remembered)
 				{
 					kept = remembered;
 
@@ -103,7 +85,10 @@ public static partial class CSharpEmitter
 
 			var names = kept is null
 				? ""
-				: string.Join(", ", kept.Take(6).Select(rule => "'" + graph.Origin(rule).Name + "'")) + (kept.Count > 6 ? $" and {kept.Count - 6} more" : "");
+				: string.Join(", ", kept.Select(rule => "'" + graph.Origin(rule).Name + "'").Distinct());
+
+			if (pair.Shape == "?=")
+				why ??= "a reading inside a lookahead is not remembered, and the look reads the nest again outside it";
 
 			var shape = pair.Shape switch
 			{
@@ -124,9 +109,9 @@ public static partial class CSharpEmitter
 			var message = kept is not null
 				? $"'{pair.Rule.Name}' {shape}, and after {pair.Witness} both read the same text through the recursion " +
 				  "the rule stands in before the first can be refused: a nest of that text would be read once per " +
-				  $"alternative at every level, doubling with the depth. The parser remembers where the recursion's rules succeed ({names}) " +
-				  "and reads every level once, at a store a success — a few per cent of an accepted parse, 3-4 % measured on SQL-92 — " +
-				  "and 12 bytes a token a rule remembered. Written to read the shared text once it would need no memo: " + remedy + guarded
+				  $"alternative at every level, doubling with the depth. The parser remembers where {names} succeeds, " +
+				  "which both alternatives enter at the same token, and reads every level once, at a store at each success of " +
+				  "that rule and 8 bytes a token for it. Written to read the shared text once it would need no memo: " + remedy + guarded
 				: $"'{pair.Rule.Name}' {shape}, and after {pair.Witness} both read the same text through the recursion " +
 				  "the rule stands in before the first can be refused: a nest of that text is read once per " +
 				  $"alternative at every level, doubling with the depth, and the parser cannot remember the recursion's successes here ({why ?? "no reader of this file reads the rule"}). " +
@@ -141,6 +126,24 @@ public static partial class CSharpEmitter
 		}
 	}
 
+	/// <summary>
+	/// Every method of the finished file held against the size the JIT stops optimizing at.
+	/// </summary>
+	/// <remarks>
+	/// <para>
+	/// Over the text, because the text is what every rendering produces and the estimate is
+	/// textual anyway — a detector inside one rendering measures that rendering's own
+	/// bookkeeping and misses the next one, which is how the first version of this warned
+	/// about nothing. A local function is a method of its own to the JIT and is measured as
+	/// one here: a header at deeper indent ends the enclosing method's stretch, which is
+	/// exactly how the JIT sees it too.
+	/// </para>
+	/// <para>
+	/// A warning, not an error: the parser is correct and merely compiled the way a method
+	/// is on its first call, several times slower. The message carries the numbers the
+	/// generator acted under, because the remedy is chosen against them.
+	/// </para>
+	/// </remarks>
 	static void Oversee(
 		string file, RuleSymbol? anchor, ICollection<GramDiagnostic>? diagnostics)
 	{
@@ -1225,14 +1228,14 @@ public static partial class CSharpEmitter
 
 			file.Write(Region(Region(Region(Region(Region(Region(Region(Region(regioned, "marks", graph.State is not null), "memo", memoises), "kept", keeps), "expectations", expectations), "turn", turns), "noturn", !turns), "furthest", furthest), "places", places)
 				.Replace("/*DEEPER*/", DeeperSpares.ToString(System.Globalization.CultureInfo.InvariantCulture))
-				.Replace("/*MEMOROOM*/", memoises ? " + ways.Memo.Length * 2L" + (keeps ? " + ways.Kept.Length" : "") : "")
+				.Replace("/*MEMOROOM*/", memoises ? " + ways.Memo.Length * 2L" + (keeps ? " + ways.Kept.Length + ways.KeptValues.Length * 2L" : "") : "")
 				.Replace("/*PLACESROOM*/", places ? " + ways.Places.Length" : "")
 				// Two integers a way on the tape, and two more beside it where the places are kept.
 				.Replace("/*WAYWIDTH*/2L", places ? "4L" : "2L")
 				// A refusal a recording reading records is told to the sink, where the build traces.
 				.Replace("\t/*REFUSED*/\r\n", tracing is null ? "" : "\tfailure.Trace?.Refused(at, expected);\r\n\r\n")
 				.Replace("\t/*REFUSED*/\n", tracing is null ? "" : "\tfailure.Trace?.Refused(at, expected);\n\n")
-				.Replace("/*MEMOUSED*/", memoises ? " + ways.MemoUsed * 2L" + (keeps ? " + ways.KeptUsed" : "") : "")
+				.Replace("/*MEMOUSED*/", memoises ? " + ways.MemoUsed * 2L" + (keeps ? " + ways.KeptUsed + ways.KeptPeak * 2L" : "") : "")
 				.Replace(
 					"/*REACH*/",
 					readsRecovery

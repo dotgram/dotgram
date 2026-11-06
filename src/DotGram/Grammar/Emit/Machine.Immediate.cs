@@ -355,7 +355,7 @@ sealed partial class Machine
 		/// language reads an untyped lambda's body only to find its end, and a construction
 		/// in that body, run before the lambda's parameters have types, throws.
 		/// </remarks>
-		bool Unbuilding => _unbuilding ??= machine._rules.Any(machine.Demands.ReadUnbuilt);
+		internal bool Unbuilding => _unbuilding ??= machine._rules.Any(machine.Demands.ReadUnbuilt);
 
 		bool? _unbuilding;
 
