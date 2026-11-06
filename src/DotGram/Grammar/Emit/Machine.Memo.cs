@@ -246,29 +246,53 @@ sealed partial class Machine
 	}
 
 	/// <summary>
-	/// Which of the remembered rules remember their successes too: those of a cycle some choice
-	/// reads a nested instance of before it decides (<see cref="SharedRecursion"/>, levels 2 and 3).
+	/// Which of the remembered rules remember their successes too: for every choice that reads a
+	/// nested instance of its cycle before it decides (<see cref="SharedRecursion"/>, levels 2 and
+	/// 3), the first rule of the cycle both alternatives enter at one token that the failure memo
+	/// remembers — from that entry on the two readings are one reading, and a second entry there is
+	/// answered without the nest being read — or, where no such rule is remembered, every
+	/// remembered rule of the cycle, each of which some way round it passes.
 	/// </summary>
 	/// <remarks>
-	/// The cycle's rules rather than the choice's alone: the two alternatives need not enter the same
-	/// rule, but from the nested instance on they read the same rules at the same tokens, and every
-	/// way round the cycle passes a rule the failure memo remembers (the entries of the recursion,
-	/// <see cref="Deepens"/>), which is where the second reading is answered.
+	/// The fewest rules that answer the nest, because every rule remembered costs a store at each
+	/// of its successes on the accepted path: the whole cycle read +13 % to +34 % on SQL:2023's
+	/// nests of brackets, the one rule both alternatives enter does not.
 	/// </remarks>
 	void ChooseKept()
 	{
 		if (!CouldKeep || SharedChoices is null)
 			return;
 
-		var cycles = new HashSet<RuleSymbol>();
+		var kept = new HashSet<RuleSymbol>();
 
 		foreach (var pair in SharedChoices)
-			if (pair.Level >= SharedRecursion.Remembered)
+		{
+			if (pair.Level < SharedRecursion.Remembered)
+				continue;
+
+			var found = false;
+
+			foreach (var joint in pair.Joint)
+			{
+				foreach (var rule in joint)
+					if (_memo.ContainsKey(rule))
+					{
+						kept.Add(rule);
+						found = true;
+					}
+
+				if (found)
+					break;
+			}
+
+			if (!found)
 				foreach (var rule in pair.Cycle)
-					cycles.Add(rule);
+					if (_memo.ContainsKey(rule))
+						kept.Add(rule);
+		}
 
 		foreach (var rule in Memoised)
-			if (cycles.Contains(rule))
+			if (kept.Contains(rule))
 				_kept[rule] = _kept.Count;
 	}
 
