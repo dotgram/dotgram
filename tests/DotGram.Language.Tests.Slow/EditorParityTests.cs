@@ -154,6 +154,10 @@ public sealed class EditorParityTests
 			SymbolResolver = UnseenHostSymbolResolver.Instance,
 			Own            = own,
 			Cuts           = cuts,
+
+			// The editor leaves the shared-recursion analysis to the build (GramDocument.CompilerOptions):
+			// GRAM4054 is the one message the compiler reports that the editor does not show.
+			AnalyseSharedRecursion = false,
 		};
 
 		if (host is null)
