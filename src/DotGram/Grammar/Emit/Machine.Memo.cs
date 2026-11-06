@@ -203,11 +203,12 @@ sealed partial class Machine
 	readonly Dictionary<SharedRecursion.Pair, IReadOnlyList<RuleSymbol>> _keptFor = [];
 
 	/// <summary>
-	/// The earlier alternative of every flagged choice: while one of them is being read, a later
-	/// alternative of its choice is still to come, and a success read then may be asked for again.
-	/// A success read while none is cannot be, so it is not stored (<see cref="KeepsPending"/>).
+	/// The earlier alternative of every flagged choice, with the choices it is the earlier
+	/// alternative of: while one of them is being read, a later alternative of its choice is still
+	/// to come, and a success of the rule kept for that choice may be asked for again. A success read
+	/// while none is cannot be, so it is not stored (<see cref="KeepsPending"/>).
 	/// </summary>
-	readonly HashSet<Node> _pendingFirsts = new(NodeIdentity.Instance);
+	readonly Dictionary<Node, List<SharedRecursion.Pair>> _pendingFirsts = new(NodeIdentity.Instance);
 
 	/// <summary>Those of them the reader was written to count around: a part called from a choice or an option.</summary>
 	readonly HashSet<Node> _wrapped = new(NodeIdentity.Instance);
@@ -219,18 +220,52 @@ sealed partial class Machine
 	/// </summary>
 	bool _keptAlways;
 
-	/// <summary>Whether the reader counts the flagged alternatives it is inside, and stores a success only inside one.</summary>
+	/// <summary>
+	/// Whether the reader counts the flagged alternatives it is inside, a count a kept rule, and
+	/// stores a success of a kept rule only inside an earlier alternative of a choice that keeps it.
+	/// </summary>
 	/// <remarks>
 	/// Sound because a success is asked for again only by a later alternative of a flagged choice,
 	/// after an earlier one read it: that reading is inside the earlier alternative, where the count
-	/// is above zero. A count left raised by a part that failed costs stores, never a hit.
+	/// of the rule kept for that choice is above zero. A count left raised by a part that failed
+	/// costs stores, never a hit.
 	/// </remarks>
 	internal bool KeepsPending => Keeps && !_keptAlways && _pendingFirsts.Count > 0;
 
-	/// <summary>Whether a node is the earlier alternative of a flagged choice, to be counted around.</summary>
-	internal bool Pending(Node node)
+	/// <summary>Whether a node is the earlier alternative of a flagged choice, to be counted around: known before the kept rules are.</summary>
+	internal bool IsPending(Node node)
 	{
-		return _pendingFirsts.Contains(node);
+		return _pendingFirsts.ContainsKey(node);
+	}
+
+	/// <summary>The counts a node raises, being the earlier alternative of flagged choices: the cells of the rules kept for them; none where it is not.</summary>
+	internal IReadOnlyList<int> Pending(Node node)
+	{
+		if (!_pendingFirsts.TryGetValue(node, out var pairs))
+			return [];
+
+		var cells = new List<int>();
+
+		foreach (var pair in pairs)
+			foreach (var rule in KeptFor(pair))
+				if (_kept.TryGetValue(rule, out var cell) && !cells.Contains(cell))
+					cells.Add(cell);
+
+		cells.Sort();
+
+		return cells;
+	}
+
+	/// <summary>The name of the count of a kept rule's cell.</summary>
+	internal static string PendingOf(int cell)
+	{
+		return "keptPending" + cell.ToString(System.Globalization.CultureInfo.InvariantCulture);
+	}
+
+	/// <summary>The cell of a rule whose successes are remembered.</summary>
+	internal int KeptCell(RuleSymbol rule)
+	{
+		return _kept[rule];
 	}
 
 	/// <summary>A flagged alternative the reader counts around, noted while the readers are first rendered.</summary>
@@ -261,11 +296,11 @@ sealed partial class Machine
 			switch (pair.Choice)
 			{
 				case Node.Choice { Selection: null } choice when pair.First <= choice.Nodes.Count:
-					_pendingFirsts.Add(choice.Nodes[pair.First - 1]);
+					Pend(choice.Nodes[pair.First - 1], pair);
 					break;
 
 				case Node.Repeat { Min: 0, Max: 1 } option:
-					_pendingFirsts.Add(option.Body);
+					Pend(option.Body, pair);
 					break;
 
 				// A repetition's turn is not counted around: its ending is no failure, and nothing restores a count at a loop's end.
@@ -276,10 +311,18 @@ sealed partial class Machine
 		}
 	}
 
+	void Pend(Node alternative, SharedRecursion.Pair pair)
+	{
+		if (!_pendingFirsts.TryGetValue(alternative, out var pairs))
+			_pendingFirsts[alternative] = pairs = [];
+
+		pairs.Add(pair);
+	}
+
 	/// <summary>After the readers were first rendered: a flagged alternative none counted around means every success is stored.</summary>
 	void SettlePending()
 	{
-		if (_pendingFirsts.Any(node => !_wrapped.Contains(node)))
+		if (_pendingFirsts.Keys.Any(node => !_wrapped.Contains(node)))
 			_keptAlways = true;
 	}
 
@@ -796,7 +839,7 @@ sealed partial class Machine
 			when.Add("failure.Looking == 0");
 
 		if (KeepsPending)
-			when.Add("keptPending > 0");
+			when.Add($"{PendingOf(cell)} > 0");
 
 		var value = register is null
 			? "null, true"

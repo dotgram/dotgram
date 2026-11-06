@@ -314,10 +314,12 @@ sealed partial class Machine
 				if (Unbuilding)
 					yield return ("int", "unbuilt");
 
-				// How many earlier alternatives of flagged choices the reading is inside: a success is
-				// stored for a later alternative only while one is (Machine.Memo.cs, KeepsPending).
+				// How many earlier alternatives of the flagged choices each kept rule answers the reading
+				// is inside: a success is stored for a later alternative only while one is (Machine.Memo.cs,
+				// KeepsPending).
 				if (machine.KeepsPending)
-					yield return ("int", "keptPending");
+					foreach (var rule in machine.KeptRules)
+						yield return ("int", Machine.PendingOf(machine.KeptCell(rule)));
 
 				// The exceptions constructions threw, held in the order they were raised until the
 				// reading each was raised in stands or is given up (the class remarks): how many

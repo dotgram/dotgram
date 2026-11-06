@@ -442,7 +442,7 @@ namespace DotGram.Snapshots
 			readonly int[] parserLengths;
 			internal string last0;
 			internal int unbuilt;
-			internal int keptPending;
+			internal int keptPending0;
 
 			internal Reader_DotGram(global::System.ReadOnlySpan<char> text, Ways_DotGram ways, string parserSource, int[] parserStarts, int[] parserLengths, global::System.ReadOnlyMemory<char> parserWhole)
 			{
@@ -455,7 +455,7 @@ namespace DotGram.Snapshots
 				this.parserLengths = parserLengths;
 				this.last0 = default!;
 				this.unbuilt = default!;
-				this.keptPending = default!;
+				this.keptPending0 = default!;
 				this.whole   = parserWhole;
 				this.memo    = ways.Memo;
 				this.memoAt  = ways.MemoAt;
@@ -537,7 +537,7 @@ namespace DotGram.Snapshots
 				deep.failure = this.failure;
 				deep.last0 = this.last0;
 				deep.unbuilt = this.unbuilt;
-				deep.keptPending = this.keptPending;
+				deep.keptPending0 = this.keptPending0;
 				deep.probes = this.probes;
 				deep.pos    = pos;
 				deep.which  = which;
@@ -550,7 +550,7 @@ namespace DotGram.Snapshots
 				this.failure = deep.failure;
 				this.last0 = deep.last0;
 				this.unbuilt = deep.unbuilt;
-				this.keptPending = deep.keptPending;
+				this.keptPending0 = deep.keptPending0;
 				// Still on the stack that ran low: the next entry probes it again.
 				this.probes = 0;
 
@@ -639,9 +639,9 @@ namespace DotGram.Snapshots
 				{
 					case '\u0001':
 						{
-							var kp0 = keptPending; keptPending = kp0 + 1;
+							var kp0 = keptPending0; keptPending0 = kp0 + 1;
 							var q0 = Read_B(p);
-							keptPending = kp0;
+							keptPending0 = kp0;
 							if (q0 < 0)
 							{
 								var q1 = Read_C(p);
@@ -667,7 +667,7 @@ namespace DotGram.Snapshots
 				goto Kept;
 
 				Kept:
-				if (failure.Looking == 0 && keptPending > 0 && p - pos >= 4) Kept(pos, 0, 0x2UL, 0, p, (object?)last0, unbuilt == 0);
+				if (failure.Looking == 0 && keptPending0 > 0 && p - pos >= 4) Kept(pos, 0, 0x2UL, 0, p, (object?)last0, unbuilt == 0);
 				return p;
 
 				Failed:
@@ -771,7 +771,7 @@ namespace DotGram.Snapshots
 			internal Failure failure = default!;
 			internal string last0 = default!;
 			internal int unbuilt = default!;
-			internal int keptPending = default!;
+			internal int keptPending0 = default!;
 			internal int probes;
 			internal int pos;
 			internal int which;
@@ -876,7 +876,7 @@ namespace DotGram.Snapshots
 				failure = default!;
 				last0 = default!;
 				unbuilt = default!;
-				keptPending = default!;
+				keptPending0 = default!;
 				thrown = null;
 				handed = null;
 			}
@@ -985,7 +985,7 @@ namespace DotGram.Snapshots
 						reader.failure = this.failure;
 						reader.last0 = this.last0;
 						reader.unbuilt = this.unbuilt;
-						reader.keptPending = this.keptPending;
+						reader.keptPending0 = this.keptPending0;
 						reader.probes = this.probes;
 
 						switch (this.which)
@@ -996,7 +996,7 @@ namespace DotGram.Snapshots
 						this.failure = reader.failure;
 						this.last0 = reader.last0;
 						this.unbuilt = reader.unbuilt;
-						this.keptPending = reader.keptPending;
+						this.keptPending0 = reader.keptPending0;
 						this.probes = reader.probes;
 					}
 					catch (global::System.Exception caught)

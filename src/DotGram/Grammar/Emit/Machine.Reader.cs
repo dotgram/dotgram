@@ -4024,16 +4024,16 @@ sealed partial class Machine
 					if (marks.Count > 0)
 						code.Line();
 
-					// Inside the earlier alternative of a flagged choice, a success is worth storing (Machine.Memo.cs).
-					var pending = Pending(alternatives[i]);
+					// Inside the earlier alternative of a flagged choice, a success of the rule kept for it is worth storing (Machine.Memo.cs).
+					var (raised, restored) = Pending(alternatives[i]);
 
-					if (pending is { } raise)
-						code.Line(raise);
+					foreach (var line in raised)
+						code.Line(line);
 
 					code.Line(i == 0 ? $"var {tried} = {part};" : $"{tried} = {part};");
 
-					if (pending is not null)
-						code.Line($"keptPending = kp{_pendings - 1};");
+					foreach (var line in restored)
+						code.Line(line);
 
 					if (unwind.Count > 0)
 					{
@@ -4069,24 +4069,35 @@ sealed partial class Machine
 		int _pendings;
 
 		/// <summary>
-		/// The lines that raise the count of flagged alternatives around a part's call, where the part
-		/// is the earlier alternative of a flagged choice (Machine.Memo.cs); null where it is not, or
-		/// the reader keeps every success anyway. Noted while the readers are first rendered, so that
-		/// an alternative read in place rather than called is known before any reader is written.
+		/// The lines that raise, and put back, the counts of the rules kept for the choices a part is
+		/// the earlier alternative of, around the part's call (Machine.Memo.cs); none where it is no
+		/// such alternative, or the reader keeps every success anyway. Noted while the readers are
+		/// first rendered, so that an alternative read in place rather than called is known before
+		/// any reader is written.
 		/// </summary>
-		string? Pending(Node alternative)
+		(List<string> Raised, List<string> Restored) Pending(Node alternative)
 		{
-			if (!machine.Pending(alternative))
-				return null;
+			var raised   = new List<string>();
+			var restored = new List<string>();
+
+			if (!machine.IsPending(alternative))
+				return (raised, restored);
 
 			machine.Wrapped(alternative);
 
 			if (!machine.KeepsPending)
-				return null;
+				return (raised, restored);
 
-			var saved = $"kp{_pendings++}";
+			foreach (var cell in machine.Pending(alternative))
+			{
+				var saved = $"kp{_pendings++}";
+				var count = Machine.PendingOf(cell);
 
-			return $"var {saved} = keptPending; keptPending = {saved} + 1;";
+				raised.Add($"var {saved} = {count}; {count} = {saved} + 1;");
+				restored.Add($"{count} = {saved};");
+			}
+
+			return (raised, restored);
 		}
 
 		/// <summary>Two blocks, closed in the order they were opened in reverse.</summary>
@@ -5062,15 +5073,15 @@ sealed partial class Machine
 				code.Line();
 			}
 
-			var pending = Pending(body);
+			var (raised, restored) = Pending(body);
 
-			if (pending is { } raise)
-				code.Line(raise);
+			foreach (var line in raised)
+				code.Line(line);
 
 			code.Line($"var {turn} = {call};");
 
-			if (pending is not null)
-				code.Line($"keptPending = kp{_pendings - 1};");
+			foreach (var line in restored)
+				code.Line(line);
 
 			code.Line();
 
