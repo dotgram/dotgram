@@ -346,6 +346,9 @@ sealed partial class Machine
 		// traversal: it also creates helpers and gathers state needed before carrier selection.
 		var opens = new HashSet<RuleSymbol>();
 
+		// The flagged alternatives the readers count around (Machine.Memo.cs), known before they are rendered.
+		ChoosePending(rules);
+
 		foreach (var rule in rules)
 		{
 			_seam       = FollowSets.SeamOf(rule, _graph);
@@ -357,6 +360,8 @@ sealed partial class Machine
 			if (reader.ObservedOpen)
 				opens.Add(rule);
 		}
+
+		SettlePending();
 
 		if (Reporting)
 			OpenedHere = [.. opens];
@@ -4019,7 +4024,16 @@ sealed partial class Machine
 					if (marks.Count > 0)
 						code.Line();
 
+					// Inside the earlier alternative of a flagged choice, a success is worth storing (Machine.Memo.cs).
+					var pending = Pending(alternatives[i]);
+
+					if (pending is { } raise)
+						code.Line(raise);
+
 					code.Line(i == 0 ? $"var {tried} = {part};" : $"{tried} = {part};");
+
+					if (pending is not null)
+						code.Line($"keptPending = kp{_pendings - 1};");
 
 					if (unwind.Count > 0)
 					{
@@ -4049,6 +4063,30 @@ sealed partial class Machine
 			code.Line($"p = {tried};");
 
 			opened?.Dispose();
+		}
+
+		/// <summary>How many flagged alternatives this reader has counted around, for the names of their saved counts.</summary>
+		int _pendings;
+
+		/// <summary>
+		/// The lines that raise the count of flagged alternatives around a part's call, where the part
+		/// is the earlier alternative of a flagged choice (Machine.Memo.cs); null where it is not, or
+		/// the reader keeps every success anyway. Noted while the readers are first rendered, so that
+		/// an alternative read in place rather than called is known before any reader is written.
+		/// </summary>
+		string? Pending(Node alternative)
+		{
+			if (!machine.Pending(alternative))
+				return null;
+
+			machine.Wrapped(alternative);
+
+			if (!machine.KeepsPending)
+				return null;
+
+			var saved = $"kp{_pendings++}";
+
+			return $"var {saved} = keptPending; keptPending = {saved} + 1;";
 		}
 
 		/// <summary>Two blocks, closed in the order they were opened in reverse.</summary>
@@ -5024,7 +5062,16 @@ sealed partial class Machine
 				code.Line();
 			}
 
+			var pending = Pending(body);
+
+			if (pending is { } raise)
+				code.Line(raise);
+
 			code.Line($"var {turn} = {call};");
+
+			if (pending is not null)
+				code.Line($"keptPending = kp{_pendings - 1};");
+
 			code.Line();
 
 			var undone = _gathers && back >= 0 || _logs && back >= 0 || undo.Length > 0;

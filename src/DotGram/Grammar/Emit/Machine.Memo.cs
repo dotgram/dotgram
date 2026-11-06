@@ -202,6 +202,87 @@ sealed partial class Machine
 	/// <summary>What answers each flagged choice's later alternative: the rules kept for it (<see cref="ChooseKept"/>).</summary>
 	readonly Dictionary<SharedRecursion.Pair, IReadOnlyList<RuleSymbol>> _keptFor = [];
 
+	/// <summary>
+	/// The earlier alternative of every flagged choice: while one of them is being read, a later
+	/// alternative of its choice is still to come, and a success read then may be asked for again.
+	/// A success read while none is cannot be, so it is not stored (<see cref="KeepsPending"/>).
+	/// </summary>
+	readonly HashSet<Node> _pendingFirsts = new(NodeIdentity.Instance);
+
+	/// <summary>Those of them the reader was written to count around: a part called from a choice or an option.</summary>
+	readonly HashSet<Node> _wrapped = new(NodeIdentity.Instance);
+
+	/// <summary>
+	/// Whether every success is stored, the count notwithstanding: a flagged alternative the reader
+	/// does not count around (a repetition's turn, an alternative read in place), or a flagged rule
+	/// with a clone the analysis did not name, would otherwise leave its nest unremembered.
+	/// </summary>
+	bool _keptAlways;
+
+	/// <summary>Whether the reader counts the flagged alternatives it is inside, and stores a success only inside one.</summary>
+	/// <remarks>
+	/// Sound because a success is asked for again only by a later alternative of a flagged choice,
+	/// after an earlier one read it: that reading is inside the earlier alternative, where the count
+	/// is above zero. A count left raised by a part that failed costs stores, never a hit.
+	/// </remarks>
+	internal bool KeepsPending => Keeps && !_keptAlways && _pendingFirsts.Count > 0;
+
+	/// <summary>Whether a node is the earlier alternative of a flagged choice, to be counted around.</summary>
+	internal bool Pending(Node node)
+	{
+		return _pendingFirsts.Contains(node);
+	}
+
+	/// <summary>A flagged alternative the reader counts around, noted while the readers are first rendered.</summary>
+	internal void Wrapped(Node node)
+	{
+		_wrapped.Add(node);
+	}
+
+	/// <summary>The earlier alternatives of the flagged choices, found before the readers are first rendered (<see cref="Settle"/>).</summary>
+	void ChoosePending(IReadOnlyList<RuleSymbol> rules)
+	{
+		_pendingFirsts.Clear();
+		_wrapped.Clear();
+		_keptAlways = false;
+
+		if (SharedChoices is null)
+			return;
+
+		foreach (var pair in SharedChoices)
+		{
+			if (pair.Level < SharedRecursion.Remembered || pair.Shape == "?=")
+				continue;
+
+			// A clone of the choice's rule has a choice of its own the analysis did not name.
+			if (rules.Any(rule => !ReferenceEquals(rule, pair.Rule) && ReferenceEquals(_graph.Origin(rule), _graph.Origin(pair.Rule))))
+				_keptAlways = true;
+
+			switch (pair.Choice)
+			{
+				case Node.Choice { Selection: null } choice when pair.First <= choice.Nodes.Count:
+					_pendingFirsts.Add(choice.Nodes[pair.First - 1]);
+					break;
+
+				case Node.Repeat { Min: 0, Max: 1 } option:
+					_pendingFirsts.Add(option.Body);
+					break;
+
+				// A repetition's turn is not counted around: its ending is no failure, and nothing restores a count at a loop's end.
+				default:
+					_keptAlways = true;
+					break;
+			}
+		}
+	}
+
+	/// <summary>After the readers were first rendered: a flagged alternative none counted around means every success is stored.</summary>
+	void SettlePending()
+	{
+		if (_pendingFirsts.Any(node => !_wrapped.Contains(node)))
+			_keptAlways = true;
+	}
+
 	/// <summary>Whether anything this machine's reader writes is read inside a look: set where a look is written.</summary>
 	/// <remarks>
 	/// Kept as the reader is written rather than asked of the text afterwards: the text of a large
@@ -713,6 +794,9 @@ sealed partial class Machine
 
 		if (_looks)
 			when.Add("failure.Looking == 0");
+
+		if (KeepsPending)
+			when.Add("keptPending > 0");
 
 		var value = register is null
 			? "null, true"

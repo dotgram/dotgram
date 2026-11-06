@@ -314,6 +314,11 @@ sealed partial class Machine
 				if (Unbuilding)
 					yield return ("int", "unbuilt");
 
+				// How many earlier alternatives of flagged choices the reading is inside: a success is
+				// stored for a later alternative only while one is (Machine.Memo.cs, KeepsPending).
+				if (machine.KeepsPending)
+					yield return ("int", "keptPending");
+
 				// The exceptions constructions threw, held in the order they were raised until the
 				// reading each was raised in stands or is given up (the class remarks): how many
 				// stand, and the journal itself, made on the first throw and never in a reading
